@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import argparse
+import json
+import sys
 from collections import defaultdict
 from datetime import datetime, timezone
 from typing import Literal
@@ -185,9 +187,21 @@ def main() -> None:
         default="all",
     )
     p.add_argument("--days", type=int, default=1)
+    p.add_argument(
+        "--json",
+        action="store_true",
+        help="Emit the run summary as a single JSON line (machine-readable).",
+    )
     args = p.parse_args()
     out = run(args.source, args.days)
-    print(out)
+    if args.json:
+        print(json.dumps(out, default=str))
+    else:
+        print(out)
+    # Non-zero exit when no events landed AND nothing was drafted, so a
+    # silent-failure cron tick surfaces in Modal alerts without parsing logs.
+    if out["events"] == 0 and out["signals_drafted"] == 0 and out["errors"] > 0:
+        sys.exit(2)
 
 
 if __name__ == "__main__":
