@@ -2,8 +2,8 @@ import { api, type SignalRow } from "@/lib/api";
 
 export const dynamic = "force-dynamic";
 
-function isWithinLast24h(iso: string): boolean {
-  const t = new Date(iso).getTime();
+function isWithinLast24h(publishedAt: SignalRow["publishedAt"]): boolean {
+  const t = new Date(publishedAt).getTime();
   return Number.isFinite(t) && Date.now() - t < 24 * 60 * 60 * 1000;
 }
 
