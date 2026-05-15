@@ -1,13 +1,12 @@
 import { notFound } from "next/navigation";
 import { api } from "@/lib/api";
-import { requireSignedIn } from "@/lib/require-auth";
 import { SignalCard } from "@/components/molecules/SignalCard";
 import { SpilloverGraph } from "@/components/organisms/SpilloverGraph";
 
 export const dynamic = "force-dynamic";
 
+// Public: individual entity pages list the public signals tied to that entity.
 export default async function EntityPage({ params }: { params: Promise<{ id: string }> }) {
-  await requireSignedIn();
   const { id } = await params;
   let data;
   try {

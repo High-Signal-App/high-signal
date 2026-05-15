@@ -71,9 +71,10 @@ export default function ApiDocsPage() {
           {ENDPOINTS.map((e) => (
             <tr key={e.path}>
               <td className="border-b border-zinc-900 py-2 pr-3 font-mono text-xs text-[var(--color-accent)]">
-                <Link href={e.path} className="hover:underline">
+                {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+                <a href={e.path} className="hover:underline">
                   {e.path}
-                </Link>
+                </a>
               </td>
               <td className="border-b border-zinc-900 py-2 pr-3 font-mono text-xs text-zinc-500">
                 {e.format}

@@ -1,11 +1,11 @@
 import { api, type EntityRow } from "@/lib/api";
-import { requireSignedIn } from "@/lib/require-auth";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Entities — High Signal" };
 
+// Public: the entity corpus is part of the signal context that consumers
+// of /signals need to navigate the spillover graph.
 export default async function EntitiesPage() {
-  await requireSignedIn();
   let entities: EntityRow[] = [];
   try {
     const r = await api.entities();
