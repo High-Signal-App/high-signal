@@ -1,5 +1,4 @@
 import { api, type Direction, type Confidence, type SignalRow } from "@/lib/api";
-import { requireSignedIn } from "@/lib/require-auth";
 import { SignalCard } from "@/components/molecules/SignalCard";
 import { FilterBar, type Facets } from "@/components/molecules/FilterBar";
 
@@ -13,12 +12,12 @@ interface SP {
   entity?: string;
 }
 
+// Public per agents.md: signals are a "public web page" output channel.
 export default async function SignalsPage({
   searchParams,
 }: {
   searchParams: Promise<SP>;
 }) {
-  await requireSignedIn();
   const sp = await searchParams;
   let signals: SignalRow[] = [];
   let facets: Facets = { types: [], directions: [], confidences: [], topEntities: [] };
@@ -62,7 +61,15 @@ function Header() {
       <h1 className="mt-3 text-3xl font-medium tracking-tight">Signals</h1>
       <p className="mt-2 max-w-2xl text-sm text-zinc-400">
         Every published signal cites at least two sources, predicts direction with a confidence
-        band, and is auto-scored on the public hit-rate ledger.
+        band, and is auto-scored on the public hit-rate ledger. Subscribe via{" "}
+        <a
+          className="text-[var(--color-accent)] hover:underline"
+          href="/signals/rss"
+          aria-label="RSS feed for all signals"
+        >
+          /signals/rss
+        </a>
+        .
       </p>
     </header>
   );

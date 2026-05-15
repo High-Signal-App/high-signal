@@ -1,13 +1,12 @@
 import { notFound } from "next/navigation";
 import { api } from "@/lib/api";
-import { requireSignedIn } from "@/lib/require-auth";
 import { DirectionPill } from "@/components/atoms/DirectionPill";
 import { ConfidenceBadge } from "@/components/atoms/ConfidenceBadge";
 
 export const dynamic = "force-dynamic";
 
+// Public per agents.md: individual signals are part of the public web channel.
 export default async function SignalDetail({ params }: { params: Promise<{ slug: string }> }) {
-  await requireSignedIn();
   const { slug } = await params;
   let data;
   try {
