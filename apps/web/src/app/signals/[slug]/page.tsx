@@ -1,9 +1,47 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { api } from "@/lib/api";
 import { DirectionPill } from "@/components/atoms/DirectionPill";
 import { ConfidenceBadge } from "@/components/atoms/ConfidenceBadge";
 
 export const dynamic = "force-dynamic";
+
+function deriveHeadline(bodyMd: string): string {
+  const first = (bodyMd ?? "").split("\n").find((line) => line.trim().length > 0) ?? "";
+  return first.replace(/^#+\s*/, "").trim() || "Signal";
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  try {
+    const { signal } = await api.signal(slug);
+    const headline = deriveHeadline(signal.bodyMd ?? "");
+    const description = `${signal.direction.toUpperCase()} · ${signal.confidence} confidence · ${signal.signalType.replaceAll("_", " ")}`;
+    const ogImage = `/api/og?title=${encodeURIComponent(headline)}`;
+    return {
+      title: headline,
+      description,
+      openGraph: {
+        title: headline,
+        description,
+        type: "article",
+        images: [{ url: ogImage, width: 1200, height: 630, alt: headline }],
+      },
+      twitter: {
+        card: "summary_large_image",
+        title: headline,
+        description,
+        images: [ogImage],
+      },
+    };
+  } catch {
+    return { title: "Signal" };
+  }
+}
 
 // Public per agents.md: individual signals are part of the public web channel.
 export default async function SignalDetail({ params }: { params: Promise<{ slug: string }> }) {
