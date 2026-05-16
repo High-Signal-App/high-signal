@@ -17,7 +17,7 @@
     "dev:api": "pnpm --filter @high-signal/api dev",
     "build": "pnpm -r build",
     "typecheck": "pnpm -r typecheck",
-    "test": "pnpm -r test",
+    "test": "pnpm -r test && pnpm signals:test",
     "lint": "pnpm -r lint",
     "db:migrate:local": "pnpm --filter @high-signal/db migrate:local",
     "db:migrate:remote": "pnpm --filter @high-signal/db migrate:remote",
