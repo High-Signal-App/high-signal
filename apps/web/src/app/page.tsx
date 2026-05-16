@@ -33,6 +33,7 @@ export default function HomePage() {
 
       <RouteList
         items={[
+          { href: "/ideas", title: "idea flow", sub: "product thesis check" },
           { href: "/signals", title: "signal feed", sub: "unified stream" },
           { href: "/watchlist", title: "unified watchlist", sub: "action digest" },
           { href: "/dashboard", title: "signal dashboard", sub: "premium workspace" },

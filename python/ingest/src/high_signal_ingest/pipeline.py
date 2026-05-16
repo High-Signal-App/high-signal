@@ -15,7 +15,7 @@ from .graph import spillover_ids
 from .seed import load_entities
 from .sources import edgar, gdelt, github, gov, hkex, ir, markets, news, reddit, youtube
 from .types import Event
-from .generator import generate
+from .generator import fallback_candidate, generate
 from .writer import emit
 
 Source = Literal[
@@ -31,6 +31,8 @@ Source = Literal[
     "markets",
     "all",
 ]
+
+FALLBACK_DRAFT_LIMIT = 3
 
 
 def fetch(source: Source, days: int) -> list[Event]:
@@ -89,10 +91,24 @@ def cluster_and_generate(events: list[Event]) -> list[str]:
 
     written: list[str] = []
     for entity_id, evs in by_entity.items():
-        distinct_urls = {e.source_url for e in evs if e.source_url}
-        if len(distinct_urls) < 2:
-            continue
         cand = generate(entity_id, evs, _spillover_candidates(entity_id))
+        if cand:
+            written.append(emit(cand))
+    if not written:
+        written.extend(_emit_fallback_drafts(by_entity))
+    return written
+
+
+def _emit_fallback_drafts(by_entity: dict[str, list[Event]]) -> list[str]:
+    """Emit a small fallback batch when model generation yields nothing."""
+    written: list[str] = []
+    ranked = sorted(
+        by_entity.items(),
+        key=lambda item: (len({e.source_url for e in item[1] if e.source_url}), len(item[1])),
+        reverse=True,
+    )
+    for entity_id, evs in ranked[:FALLBACK_DRAFT_LIMIT]:
+        cand = fallback_candidate(entity_id, evs, _spillover_candidates(entity_id))
         if cand:
             written.append(emit(cand))
     return written
@@ -128,20 +144,24 @@ def run(source: Source, days: int) -> dict:
 
     written: list[str] = []
     low_cluster = 0
+    fallback_by_entity: dict[str, list[Event]] = {}
     for entity_id, evs in by_entity.items():
-        distinct_urls = {e.source_url for e in evs if e.source_url}
-        if len(distinct_urls) < 2:
-            low_cluster += 1
-            continue
         try:
             cand = generate(entity_id, evs, _spillover_candidates(entity_id))
         except Exception as exc:
             errors += 1
             if error_sample is None:
                 error_sample = f"generate {entity_id}: {exc}"[:300]
+            fallback_by_entity[entity_id] = evs
             continue
         if cand:
             written.append(emit(cand))
+        else:
+            fallback_by_entity[entity_id] = evs
+
+    if not written and fallback_by_entity:
+        fallback_written = _emit_fallback_drafts(fallback_by_entity)
+        written.extend(fallback_written)
 
     audit.push_ingest_run(
         source=source,

@@ -22,6 +22,17 @@ It is:
 - how confident the system is
 - what evidence supports the view
 
+For product builders, the same signal layer should answer:
+
+- I have this idea
+- what is the world already pulling toward?
+- where is demand, pain, budget, distribution, or timing improving?
+- what evidence supports or weakens the idea?
+- should I pursue, test, watch, or avoid it?
+
+This is product intelligence, not random insight generation and not only stock
+market prediction.
+
 ## Product Shape
 
 Track important changes around companies, communities, and sectors, then surface evidence-backed directional signals.
@@ -64,6 +75,7 @@ And output:
 ## Core Output Objects
 
 - `Signal card`: what changed, why it matters, affected entities, confidence, sources
+- `Idea flow`: a product idea checked against market, community, mention, news, and resource signals with a decision recommendation
 - `Collection`: a tracked company, community set, market wedge, competitor set, or custom watchlist
 - `Entity page`: company, peer set, supplier/customer links, recent signals, score history
 - `Impact chain`: event -> direct impact -> second-order impact -> watchlist updates

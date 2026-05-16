@@ -11,10 +11,11 @@ The product now has three intended sub-products:
 Active consolidation plan: `plans/0004-platform-consolidation.md`.
 
 ## What it does today
-- Ingests SEC 8-Ks, IR pages, top semis news, Reddit, GitHub releases, hiring signals
+- Ingests SEC filings, IR pages, AI-infra news/blogs, Reddit, GitHub, government feeds, YouTube transcripts, HKEX announcements, GDELT, and prediction markets
 - Extracts events + entities + relationships
+- Drafts daily signal candidates across low / medium / high confidence bands
 - Predicts direction + 2nd-order spillover via supplier/customer/peer graph
-- Publishes signal cards + weekly digest
+- Publishes reviewed signal cards + weekly digest
 - Auto-backtests every signal — public hit-rate ledger updated continuously
 
 ## Why the first market wedge still matters
@@ -33,7 +34,7 @@ workers/api           Hono on Cloudflare Workers + D1 binding + cron
 packages/db           Drizzle schema + migrations (sqlite/D1)
 packages/shared       Cross-package types
 python/ingest         uv-managed: edgartools, Trafilatura, GLiNER, FinBERT, yfinance
-  └ deploys to Modal  Daily cron @ 06:00 UTC triggers full ingest
+  └ GitHub Actions runs daily ingest, markets polling, and scoring
 signals/              Git-versioned, append-only signal markdown
 scripts/              CSV→D1 + signals.md→D1 sync
 ```
@@ -77,11 +78,14 @@ pnpm signals:sync:local
 - Seed corpus: `python/ingest/src/high_signal_ingest/seed/`
 - Example signal: `signals/2026-04-25/example-nvda-h100-lead-time.md`
 - Ingest runbook: `docs/ingest-runbook.md`
+- Source coverage / launch scope: `docs/source-coverage.md`
+- Seeding guide: `docs/seeding.md`
 
 ## Deploy
-- Web → Vercel (`apps/web`)
-- API → Cloudflare Workers (`cd workers/api && pnpm deploy`)
-- Ingest → Modal (`cd python/ingest && uv run modal deploy modal_app.py`)
+- Web → Cloudflare Workers via OpenNext (`.github/workflows/deploy-web.yml`)
+- API → Cloudflare Workers (`.github/workflows/deploy-api.yml`)
+- Ingest / markets / scoring → GitHub Actions cron
+- Modal remains for manual long backfills (`cd python/ingest && uv run modal run modal_app.py::manual_backfill ...`)
 
 ## Naming
 Codename `high-signal` collides with High Signal Labs / High Signal HQ. Final brand TBD post-traction.

@@ -63,4 +63,4 @@ def manual_backfill(start: str, end: str, sources: str = "gdelt", chunk_days: in
 
 if __name__ == "__main__":
     with app.run():
-        print(daily_ingest.remote())
+        print(manual_ingest.remote())

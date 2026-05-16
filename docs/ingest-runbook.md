@@ -16,6 +16,21 @@ and *what blew up?*.
 | `signals/YYYY-MM-DD/*.md`          | Drafted signal markdown that the writer emitted. Source of truth on disk + git.                  |
 | `.tmp/signals-sync-cache-*.json`   | Local skip-cache used by `pnpm signals:sync:*`.                                                  |
 
+## Generation scope
+
+Launch policy lives in `docs/source-coverage.md`.
+
+Current production cadence:
+
+- `cron-ingest.yml`: daily market signal draft run over `all` sources.
+- `cron-markets.yml`: prediction-market resource polling every 4 hours.
+- `cron-score.yml`: daily scoring for matured signal windows.
+- `backfill.yml`: manual historical replay, usually `gdelt,edgar`.
+
+Low-confidence drafts are expected. Single-source or weak-source events should
+enter the review queue as `low` confidence instead of disappearing. Medium/high
+signals still need stronger evidence before publication.
+
 ## Quick checks
 
 ```bash

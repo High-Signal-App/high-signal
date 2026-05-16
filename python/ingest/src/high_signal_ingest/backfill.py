@@ -16,7 +16,7 @@ from typing import Iterable
 
 from . import audit
 from .extract.entities import primary_entity
-from .generator import generate
+from .generator import fallback_candidate, generate
 from .graph import spillover_ids
 from .seed import load_entities
 from .sources import edgar, gdelt
@@ -87,16 +87,14 @@ def run(start: datetime, end: datetime, sources: list[str], window_chunk_days: i
                 total_no_entity += 1
 
         for entity_id, evs in by_entity.items():
-            distinct_urls = {e.source_url for e in evs if e.source_url}
-            if len(distinct_urls) < 2:
-                total_low_cluster += 1
-                continue
             try:
                 cand = generate(entity_id, evs, spillover_ids(entity_id, hops=2, limit=12))
             except Exception as exc:
                 errors += 1
                 print(f"[backfill] generate failed entity={entity_id}: {exc}")
-                continue
+                cand = fallback_candidate(entity_id, evs, spillover_ids(entity_id, hops=2, limit=12))
+            if not cand:
+                cand = fallback_candidate(entity_id, evs, spillover_ids(entity_id, hops=2, limit=12))
             if cand:
                 # Critical for backfill scoring: the signal's `published_at`
                 # must equal the *latest source event date*, not generation
