@@ -68,6 +68,9 @@ type ProductFlowRefreshRecord = {
   prompt: string;
   digest: CommunityDigestSnapshot;
   createdAt: string;
+  refreshStatus?: "accepted" | "rejected";
+  refreshReason?: string;
+  refreshError?: string;
 };
 
 type SaaSMakerTaskCache = {
@@ -723,6 +726,7 @@ function digestText(digest: CommunityDigestSnapshot) {
 }
 
 function sourceRefreshPassesGate(record: ProductFlowRefreshRecord) {
+  if (record.refreshStatus === "rejected") return false;
   if (!isBroadPublicSource(record.sourceId)) return true;
   return passesBroadPublicGate(digestText(record.digest), record.source);
 }
@@ -954,8 +958,89 @@ function summarizeSourceRefresh(input: {
   };
 }
 
+function summarizeRejectedSourceRefresh(input: {
+  source: PersonalSourceRegistry["sources"][number];
+  reason: string;
+  detail: string;
+  posts?: SourcePost[];
+}): CommunityDigestSnapshot {
+  const snapshotDate = productSnapshotTimestamp();
+  const posts = input.posts ?? [];
+  const top = posts[0];
+  return {
+    id: `refresh-${input.source.id}-${snapshotDate.slice(0, 10)}-${input.reason}`,
+    subreddit: input.source.label,
+    period: input.source.period,
+    snapshotDate,
+    summaryText: `${input.source.label} rejected: ${input.detail}`,
+    summary: {
+      keyTrend: {
+        title: `${input.source.label}: ${input.reason.replaceAll("-", " ")}`,
+        desc: input.detail,
+        link: top?.url,
+      },
+      notableDiscussions: posts.slice(0, 4).map((post) => ({
+        title: post.title,
+        desc: post.body.slice(0, 260) || `${post.score} activity score from ${post.sourceLabel}.`,
+        link: post.url,
+      })),
+      keyAction: {
+        title: "Source remediation",
+        desc: input.detail,
+        link: top?.url,
+      },
+    },
+    promptUsed: input.source.intent,
+    sourceCount: posts.length,
+    createdAt: snapshotDate,
+  };
+}
+
+function sourceRefreshRecord(input: {
+  source: PersonalSourceRegistry["sources"][number];
+  digest: CommunityDigestSnapshot;
+  status: "accepted" | "rejected";
+  reason?: string;
+  error?: string;
+}): ProductFlowRefreshRecord {
+  return {
+    source: input.source.type,
+    sourceId: input.source.id,
+    label: input.source.label,
+    target: input.source.target,
+    subreddit: input.source.type === "reddit" ? input.source.target : undefined,
+    period: input.source.period,
+    prompt: input.source.intent,
+    digest: input.digest,
+    createdAt: new Date().toISOString(),
+    refreshStatus: input.status,
+    refreshReason: input.reason,
+    refreshError: input.error,
+  };
+}
+
+async function appendRejectedSourceRefresh(input: {
+  source: PersonalSourceRegistry["sources"][number];
+  reason: string;
+  detail: string;
+  posts?: SourcePost[];
+  error?: string;
+}) {
+  const digest = summarizeRejectedSourceRefresh(input);
+  const record = sourceRefreshRecord({
+    source: input.source,
+    digest,
+    status: "rejected",
+    reason: input.reason,
+    error: input.error,
+  });
+  await appendFile(SOURCE_REFRESH_PATH, `${JSON.stringify(record)}\n`);
+  return record;
+}
+
 async function refreshSources(seed: ProductFlowSeed, registry?: PersonalSourceRegistry) {
-  const records: ProductFlowRefreshRecord[] = [];
+  const acceptedRecords: ProductFlowRefreshRecord[] = [];
+  const rejectedRecords: ProductFlowRefreshRecord[] = [];
   const sources =
     registry?.sources ??
     seed.communities.map((community) => ({
@@ -972,40 +1057,64 @@ async function refreshSources(seed: ProductFlowSeed, registry?: PersonalSourceRe
     try {
       const posts = await fetchRegistrySource(source);
       if (posts.length === 0) {
+        const record = await appendRejectedSourceRefresh({
+          source,
+          reason: "no-fresh-usable-items",
+          detail: `No fresh usable items matched ${source.label} for the ${source.period} window.`,
+        });
+        rejectedRecords.push(record);
         console.log(`- skipped ${source.label}: no fresh usable items`);
         continue;
       }
       const digest = summarizeSourceRefresh({ source, posts });
       const quality = communityDigestEvidenceQuality(digest);
-      const gateRecord: ProductFlowRefreshRecord = {
-        source: source.type,
-        sourceId: source.id,
-        label: source.label,
-        target: source.target,
-        subreddit: source.type === "reddit" ? source.target : undefined,
-        period: source.period,
-        prompt: source.intent,
+      const gateRecord = sourceRefreshRecord({
+        source,
         digest,
-        createdAt: new Date().toISOString(),
-      };
+        status: "accepted",
+      });
       if (!sourceRefreshPassesGate(gateRecord)) {
+        const record = await appendRejectedSourceRefresh({
+          source,
+          reason: "weak-broad-source-match",
+          detail: `${source.label} returned ${posts.length} item(s), but they did not pass the broad public/startup/small-business relevance gate.`,
+          posts,
+        });
+        rejectedRecords.push(record);
         console.log(`- skipped ${source.label}: weak broad-source match`);
         continue;
       }
       if (quality.genericRisk === "high" || quality.repeatedSignalCount < 2) {
-        console.log(`- skipped ${source.label}: weak signal (${quality.noiseFlags.join(", ") || "low repeat count"})`);
+        const detail = quality.noiseFlags.join(", ") || "low repeat count";
+        const record = await appendRejectedSourceRefresh({
+          source,
+          reason: "weak-signal",
+          detail: `${source.label} passed source relevance but failed quality gate: ${detail}.`,
+          posts,
+        });
+        rejectedRecords.push(record);
+        console.log(`- skipped ${source.label}: weak signal (${detail})`);
         continue;
       }
       const record = gateRecord;
-      records.push(record);
+      acceptedRecords.push(record);
       await appendFile(SOURCE_REFRESH_PATH, `${JSON.stringify(record)}\n`);
       console.log(`- refreshed ${source.label}: ${digest.summary?.keyTrend?.title ?? digest.summaryText}`);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
+      const record = await appendRejectedSourceRefresh({
+        source,
+        reason: "fetch-error",
+        detail: `${source.label} could not be fetched: ${message}.`,
+        error: message,
+      });
+      rejectedRecords.push(record);
       console.log(`- failed ${source.label}: ${message}`);
     }
   }
-  console.log(`Wrote ${records.length} refresh record(s) to ${SOURCE_REFRESH_PATH}`);
+  console.log(
+    `Wrote ${acceptedRecords.length} accepted and ${rejectedRecords.length} rejected refresh record(s) to ${SOURCE_REFRESH_PATH}`,
+  );
 }
 
 function parseNumber(value: string) {

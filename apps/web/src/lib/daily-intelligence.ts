@@ -72,6 +72,9 @@ export type ProductFlowRefreshRecord = {
   period: "day" | "week" | "month";
   digest: CommunityDigestSnapshot;
   createdAt: string;
+  refreshStatus?: "accepted" | "rejected";
+  refreshReason?: string;
+  refreshError?: string;
 };
 
 export type DailyBroadInsight = {
@@ -205,14 +208,24 @@ export function latestRefreshRecords(records: ProductFlowRefreshRecord[]) {
 export function acceptedRefreshRecords(records: ProductFlowRefreshRecord[]) {
   return latestRefreshRecords(records).filter((record) => {
     const quality = communityDigestEvidenceQuality(record.digest);
-    return record.digest.sourceCount >= 2 && quality.genericRisk !== "high" && quality.repeatedSignalCount >= 2;
+    return (
+      record.refreshStatus !== "rejected" &&
+      record.digest.sourceCount >= 2 &&
+      quality.genericRisk !== "high" &&
+      quality.repeatedSignalCount >= 2
+    );
   });
 }
 
 export function acceptedRefreshRecordsForDate(records: ProductFlowRefreshRecord[], date: string) {
   return latestRefreshRecords(records.filter((record) => recordDate(record) === date)).filter((record) => {
     const quality = communityDigestEvidenceQuality(record.digest);
-    return record.digest.sourceCount >= 2 && quality.genericRisk !== "high" && quality.repeatedSignalCount >= 2;
+    return (
+      record.refreshStatus !== "rejected" &&
+      record.digest.sourceCount >= 2 &&
+      quality.genericRisk !== "high" &&
+      quality.repeatedSignalCount >= 2
+    );
   });
 }
 
@@ -227,6 +240,8 @@ function recordSourceKey(record: ProductFlowRefreshRecord) {
 function rejectionReasons(record: ProductFlowRefreshRecord) {
   const quality = communityDigestEvidenceQuality(record.digest);
   const reasons: string[] = [];
+  if (record.refreshReason) reasons.push(record.refreshReason);
+  if (record.refreshError) reasons.push("fetch-error");
   if (record.digest.sourceCount < 2) reasons.push("too-few-underlying-items");
   if (quality.genericRisk === "high") reasons.push("high-generic-risk");
   if (quality.repeatedSignalCount < 2) reasons.push("low-product-repeat");
@@ -237,7 +252,7 @@ function rejectionReasons(record: ProductFlowRefreshRecord) {
 function sourceRowForRecord(source: SourceRegistry["sources"][number], record: ProductFlowRefreshRecord): SourceQualityRow {
   const quality = communityDigestEvidenceQuality(record.digest);
   const reasons = rejectionReasons(record);
-  const status: SourceQualityStatus = reasons.length === 0 ? "accepted" : "rejected";
+  const status: SourceQualityStatus = record.refreshStatus === "rejected" || reasons.length > 0 ? "rejected" : "accepted";
   return {
     sourceId: source.id,
     label: source.label,
