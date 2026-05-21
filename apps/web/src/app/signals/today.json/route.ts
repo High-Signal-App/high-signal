@@ -4,6 +4,7 @@ import { assessSignalQuality, type SignalContentCategory } from "@high-signal/sh
 import {
   buildDailyBroadInsights,
   buildDailySourceCoverage,
+  DAILY_INTELLIGENCE_LAYER,
   readSourceRefreshes,
 } from "@/lib/daily-intelligence";
 
@@ -107,6 +108,7 @@ export async function GET(req: Request) {
       categoryCounts,
       intentCounts,
       sentimentCounts,
+      intelligenceLayer: DAILY_INTELLIGENCE_LAYER,
       sourceCoverage,
       items,
       signals: today,

@@ -5,6 +5,7 @@ import { assessSignalQuality, type SignalContentCategory } from "@high-signal/sh
 import {
   buildDailyBroadInsights,
   buildDailySourceCoverage,
+  DAILY_INTELLIGENCE_LAYER,
   readSourceRefreshes,
 } from "@/lib/daily-intelligence";
 
@@ -208,6 +209,15 @@ export default async function SignalsTodayPage({
             <div className="mt-1 font-mono">
               {coverage.acceptedByType.map(({ k, n }) => `${k} ${n}`).join(" / ") || "none"}
             </div>
+          </div>
+        </div>
+        <div className="mt-5 border-t border-zinc-900 pt-4">
+          <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-600">
+            intelligence layer
+          </div>
+          <div className="mt-2 font-mono text-[11px] leading-6 text-zinc-500">
+            {DAILY_INTELLIGENCE_LAYER.broadReadAnnotation.method} · no LLM · HF batch
+            escalation off by default
           </div>
         </div>
       </section>

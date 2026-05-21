@@ -15,6 +15,23 @@ const DATA_ROOT = resolve(process.cwd(), "../../data");
 
 type SourceType = "reddit" | "hacker-news" | "github-issues" | "rss";
 
+export const DAILY_INTELLIGENCE_LAYER = {
+  version: "daily-intelligence-v1",
+  sourceGate: "latest snapshot with >=2 sources, repeated signals, and non-high generic risk",
+  broadReadAnnotation: {
+    method: "deterministic-keyword-v1",
+    llm: false,
+    model: "none",
+    fields: ["contentCategory", "intent", "sentiment", "urgency", "qualityScore"],
+  },
+  batchEscalation: {
+    method: "python-semantic-nlp",
+    llm: false,
+    optionalHuggingFace: true,
+    enabledByDefault: false,
+  },
+} as const;
+
 type SourceRegistry = {
   sources: Array<{
     id: string;
