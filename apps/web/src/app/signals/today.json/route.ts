@@ -1,6 +1,11 @@
 import { api, type SignalRow } from "@/lib/api";
 import { isBackfillSignal } from "@/lib/signal-format";
 import { assessSignalQuality, type SignalContentCategory } from "@high-signal/shared";
+import {
+  buildDailyBroadInsights,
+  buildDailySourceCoverage,
+  readSourceRefreshes,
+} from "@/lib/daily-intelligence";
 
 export const dynamic = "force-dynamic";
 
@@ -37,13 +42,21 @@ export async function GET(req: Request) {
     /* offline */
   }
   const today = all.filter((s) => !category || signalCategory(s) === category);
+  const refreshes = await readSourceRefreshes();
+  const broadInsights = buildDailyBroadInsights(refreshes, date).filter(
+    (item) => !category || item.contentCategory === category,
+  );
+  const sourceCoverage = buildDailySourceCoverage(refreshes);
   return new Response(
     JSON.stringify({
       generatedAt: new Date().toISOString(),
       date,
       category,
       count: today.length,
+      broadInsightCount: broadInsights.length,
+      sourceCoverage,
       signals: today,
+      broadInsights,
     }),
     {
       status: 200,

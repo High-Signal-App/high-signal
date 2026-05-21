@@ -1,15 +1,12 @@
 import { api, type SignalRow } from "@/lib/api";
 import { isBackfillSignal } from "@/lib/signal-format";
 import { SignalCard } from "@/components/molecules/SignalCard";
-import { readFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import { assessSignalQuality, type SignalContentCategory } from "@high-signal/shared";
 import {
-  assessSignalQuality,
-  communityDigestEvidenceQuality,
-  type CommunityDigestSnapshot,
-  type SignalContentCategory,
-} from "@high-signal/shared";
-import sourceRegistry from "../../../../../../data/personal-source-registry.json";
+  buildDailyBroadInsights,
+  buildDailySourceCoverage,
+  readSourceRefreshes,
+} from "@/lib/daily-intelligence";
 
 export const dynamic = "force-dynamic";
 export const metadata = {
@@ -30,29 +27,6 @@ const CATEGORY_LABELS: Record<SignalContentCategory, string> = {
   "policy-regulatory": "policy / regulatory",
   "company-event": "company events",
 };
-const DATA_ROOT = resolve(process.cwd(), "../../data");
-
-type SourceRegistry = {
-  sources: Array<{
-    id: string;
-    type: "reddit" | "hacker-news" | "github-issues" | "rss";
-    label: string;
-    target: string;
-    period: "day" | "week" | "month";
-    intent: string;
-  }>;
-};
-
-type ProductFlowRefreshRecord = {
-  source: "reddit" | "hacker-news" | "github-issues" | "rss";
-  sourceId?: string;
-  label?: string;
-  target?: string;
-  period: "day" | "week" | "month";
-  digest: CommunityDigestSnapshot;
-  createdAt: string;
-};
-
 function utcDate(d = new Date()) {
   return d.toISOString().slice(0, 10);
 }
@@ -88,36 +62,6 @@ function countBy(values: string[]) {
   return Array.from(counts.entries()).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
 }
 
-async function readSourceRefreshes(): Promise<ProductFlowRefreshRecord[]> {
-  try {
-    const raw = await readFile(resolve(DATA_ROOT, "product-flow-refresh.jsonl"), "utf8");
-    return raw
-      .split("\n")
-      .map((line) => line.trim())
-      .filter(Boolean)
-      .map((line) => JSON.parse(line) as ProductFlowRefreshRecord);
-  } catch {
-    return [];
-  }
-}
-
-function latestRefreshRecords(records: ProductFlowRefreshRecord[]) {
-  const latest = new Map<string, ProductFlowRefreshRecord>();
-  for (const record of records) {
-    const key = `${record.sourceId ?? record.label ?? record.target ?? record.source}:${record.period}`.toLowerCase();
-    const previous = latest.get(key);
-    if (!previous || record.digest.snapshotDate > previous.digest.snapshotDate) latest.set(key, record);
-  }
-  return Array.from(latest.values());
-}
-
-function acceptedRefreshRecords(records: ProductFlowRefreshRecord[]) {
-  return latestRefreshRecords(records).filter((record) => {
-    const quality = communityDigestEvidenceQuality(record.digest);
-    return record.digest.sourceCount >= 2 && quality.genericRisk !== "high" && quality.repeatedSignalCount >= 2;
-  });
-}
-
 export default async function SignalsTodayPage({
   searchParams,
 }: {
@@ -147,16 +91,11 @@ export default async function SignalsTodayPage({
   const usable = quality.filter((item) => item.publishable).length;
   const strong = quality.filter((item) => item.band === "strong").length;
   const evidenceCount = today.reduce((sum, signal) => sum + signal.evidenceUrls.length, 0);
-  const registry = sourceRegistry as SourceRegistry;
   const refreshes = await readSourceRefreshes();
-  const acceptedRefreshes = acceptedRefreshRecords(refreshes);
-  const configuredByType = countBy(registry.sources.map((source) => source.type));
-  const acceptedByType = countBy(acceptedRefreshes.map((record) => record.source));
-  const latestSnapshot = acceptedRefreshes
-    .map((record) => record.digest.snapshotDate)
-    .sort()
-    .at(-1);
-  const underlyingItems = acceptedRefreshes.reduce((sum, record) => sum + record.digest.sourceCount, 0);
+  const coverage = buildDailySourceCoverage(refreshes);
+  const broadInsights = buildDailyBroadInsights(refreshes, selectedDate).filter(
+    (item) => !selectedCategory || item.contentCategory === selectedCategory,
+  );
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-16">
@@ -228,10 +167,10 @@ export default async function SignalsTodayPage({
         </div>
         <div className="mt-4 grid gap-px border border-zinc-800 bg-zinc-800 sm:grid-cols-4">
           {[
-            ["configured", registry.sources.length.toString()],
-            ["accepted", acceptedRefreshes.length.toString()],
-            ["underlying items", underlyingItems.toString()],
-            ["latest refresh", latestSnapshot?.slice(0, 10) ?? "none"],
+            ["configured", coverage.configuredSources.toString()],
+            ["accepted", coverage.acceptedSnapshots.toString()],
+            ["underlying items", coverage.underlyingItems.toString()],
+            ["latest refresh", coverage.latestRefreshDate ?? "none"],
           ].map(([label, value]) => (
             <div key={label} className="bg-black p-4">
               <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
@@ -245,13 +184,13 @@ export default async function SignalsTodayPage({
           <div>
             <div className="font-mono uppercase tracking-[0.18em] text-zinc-600">configured</div>
             <div className="mt-1 font-mono">
-              {configuredByType.map(([type, count]) => `${type} ${count}`).join(" / ")}
+              {coverage.configuredByType.map(({ k, n }) => `${k} ${n}`).join(" / ")}
             </div>
           </div>
           <div>
             <div className="font-mono uppercase tracking-[0.18em] text-zinc-600">accepted latest</div>
             <div className="mt-1 font-mono">
-              {acceptedByType.map(([type, count]) => `${type} ${count}`).join(" / ") || "none"}
+              {coverage.acceptedByType.map(({ k, n }) => `${k} ${n}`).join(" / ") || "none"}
             </div>
           </div>
         </div>
@@ -275,6 +214,47 @@ export default async function SignalsTodayPage({
             </a>
           ))}
         </nav>
+      ) : null}
+
+      {broadInsights.length > 0 ? (
+        <section className="mt-8 border-y border-zinc-800 py-6">
+          <div className="flex items-baseline justify-between gap-4">
+            <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
+              broad public / startup / smb reads
+            </div>
+            <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-600">
+              {broadInsights.length} accepted
+            </div>
+          </div>
+          <div className="mt-4 divide-y divide-zinc-800">
+            {broadInsights.slice(0, 12).map((item) => (
+              <a
+                className="block py-4 hover:text-[var(--color-accent)]"
+                href={item.href}
+                key={item.id}
+              >
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
+                  <span>{item.sourceLabel}</span>
+                  <span className="text-zinc-700">·</span>
+                  <span>{item.contentCategory.replaceAll("-", " ")}</span>
+                  <span className="text-zinc-700">·</span>
+                  <span>{item.intent.replaceAll("-", " ")}</span>
+                  <span className="text-zinc-700">·</span>
+                  <span>{item.sentiment}</span>
+                  <span className="text-zinc-700">·</span>
+                  <span>{item.confidence}</span>
+                  <span className="text-zinc-700">·</span>
+                  <span>quality {item.qualityScore}</span>
+                </div>
+                <div className="mt-2 text-lg font-medium leading-snug text-zinc-100">{item.title}</div>
+                <p className="mt-2 max-w-3xl text-sm leading-6 text-zinc-500">{item.summary}</p>
+                <div className="mt-3 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-600">
+                  sources {item.sourceCount} / repeats {item.repeatedSignalCount}
+                </div>
+              </a>
+            ))}
+          </div>
+        </section>
       ) : null}
 
       {today.length === 0 ? (
