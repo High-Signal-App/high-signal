@@ -30,7 +30,9 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
       - name: Smoke production web
-        run: curl --fail --silent --show-error --location --max-time 30 https://high-signal-web.sarthakagrawal927.workers.dev/ >/dev/null
+        run: |
+          curl --fail --silent --show-error --location --max-time 30 https://highsignal.app/ >/dev/null
+          curl --fail --silent --show-error --location --max-time 30 https://highsignal.app/daily.json >/dev/null
 
   deploy-preview:
     if: github.event_name == 'pull_request'
