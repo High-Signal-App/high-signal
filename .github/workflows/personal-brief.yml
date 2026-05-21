@@ -30,11 +30,14 @@ jobs:
       - name: Write daily personal report
         run: pnpm personal:brief report
 
+      - name: Build web daily source snapshot
+        run: pnpm daily:snapshot
+
       - name: Commit refreshed personal brief data
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data reports/personal
+          git add data reports/personal apps/web/src/data/daily-source-refreshes.json
           if git diff --cached --quiet; then
             echo "No personal brief changes to commit."
           else

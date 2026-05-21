@@ -26,6 +26,7 @@
     "product-flow:seed:local": "tsx scripts/seed-product-flow.ts --local",
     "product-flow:seed:remote": "tsx scripts/seed-product-flow.ts --remote",
     "personal:brief": "tsx scripts/personal-command-brief.ts",
+    "daily:snapshot": "tsx scripts/build-daily-source-refreshes.ts",
     "signals:sync:local": "tsx scripts/sync-signals.ts --local",
     "signals:sync:remote": "tsx scripts/sync-signals.ts --remote",
     "signals:publish-drafts:local": "tsx scripts/publish-drafts.ts --local",
