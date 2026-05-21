@@ -1677,42 +1677,42 @@
       "id": "refresh-github-mcp-tools-2026-05-21",
       "subreddit": "GitHub issues: MCP and tools",
       "period": "month",
-      "snapshotDate": "2026-05-21T08:26:58.000Z",
-      "summaryText": "GitHub issues: MCP and tools points toward developer workflow friction. Top item: [BOUNTY] Report a Bug — 5-15 RTC",
+      "snapshotDate": "2026-05-21T12:11:53.863Z",
+      "summaryText": "GitHub issues: MCP and tools points toward complaint-to-spec demand. Top item: [research][P0] codex Mobile + remote-control 深入调研 — 评估对 anet codex runtime 的影响",
       "summary": {
         "keyTrend": {
-          "title": "GitHub issues: MCP and tools: developer workflow friction",
-          "desc": "GitHub issues: MCP and tools points toward developer workflow friction. Top item: [BOUNTY] Report a Bug — 5-15 RTC",
-          "link": "https://github.com/Scottcjn/Rustchain/issues/305"
+          "title": "GitHub issues: MCP and tools: complaint-to-spec demand",
+          "desc": "GitHub issues: MCP and tools points toward complaint-to-spec demand. Top item: [research][P0] codex Mobile + remote-control 深入调研 — 评估对 anet codex runtime 的影响",
+          "link": "https://github.com/sleep2agi/agent-network/issues/120"
         },
         "notableDiscussions": [
           {
-            "title": "[BOUNTY] Report a Bug — 5-15 RTC",
-            "desc": "## Bug Report Bounty — 5-15 RTC\n\nFind and report real bugs in the RustChain ecosystem.\n\n### Severity Tiers\n| Tier | Reward | Examples |\n|------|--------|---------|\n| Low | 5 RTC | UI glitches, typos in error messages, cosmetic issues |\n| Medium | 10 RTC | Inco",
-            "link": "https://github.com/Scottcjn/Rustchain/issues/305"
+            "title": "[research][P0] codex Mobile + remote-control 深入调研 — 评估对 anet codex runtime 的影响",
+            "desc": "## 背景\n\nVincent 2026-05-15 实测 + 反馈：**codex 今天发布 codex Mobile**，支持 CLI 接入：\n\n1. 修改 `~/.codex/config.toml` 添加：\n   ```toml\n   [features]\n   remote-control = true\n   ```\n2. 终端运行：`codex remote-control`\n3. 手机端就能看到\n\nVincent 实测「好用 😃」。\n\n这是 codex 官方新出的 remote-control 能力，",
+            "link": "https://github.com/sleep2agi/agent-network/issues/120"
           },
           {
-            "title": "Setup Experience Bottleneck Profiler with Zero-Dependency Quick Start",
-            "desc": "## Strategic Improvement\n\nSetup currently takes 30 minutes (target: <5 minutes), blocking adoption. Instrument the setup process to measure duration per step, identify bottlenecks, then implement parallel initialization and eliminate slow dependencies. This co",
-            "link": "https://github.com/sethdford/shipwright/issues/511"
+            "title": "MCP server over SSH fails on Windows , connection closes before handshake completes",
+            "desc": "### Before opening, please confirm:\n\n\n- [x] I have [searched for duplicate or closed issues](https://github.com/kirodotdev/Kiro/issues?q=is%3Aissue+)\n\n### Operating System\n\nWindows 11\n\n### Kiro Version\n\n0.11.133\n\n### Bug Description\n\n# MCP server over SSH fail",
+            "link": "https://github.com/kirodotdev/Kiro/issues/8388"
           },
           {
-            "title": "[Project Proposal] Agent Governance Toolkit",
-            "desc": "### Project Name\n\nAgent Governance Toolkit\n\n### Project Description\n\nThe Agent Governance Toolkit is an open-source, multi-language runtime governance framework for autonomous AI agents, developed by Microsoft and released under the MIT license.\n\n**Core scope:",
-            "link": "https://github.com/aaif/project-proposals/issues/19"
+            "title": "Tool Calls Handled Incorrectly when Streaming",
+            "desc": "<img width=\"3113\" height=\"1697\" alt=\"Image\" src=\"https://github.com/user-attachments/assets/e56c069e-a05c-4151-81d9-c4321be01083\" />\n\nUsing a quickie re-constructor in Ruby\n```ruby\nrequire 'json'\n\nfile_path = '/tmp/streaming-extract.json'\n\nresult = \"\"\nFile.for",
+            "link": "https://github.com/guoqingbao/vllm.rs/issues/129"
           }
         ],
         "keyAction": {
           "title": "Personal build implication",
-          "desc": "Convert developer workflow friction into a bug-finding, review, or observability requirement.",
-          "link": "https://github.com/Scottcjn/Rustchain/issues/305"
+          "desc": "Promote only repeated complaints with a clear user, current workaround, and smallest useful spec.",
+          "link": "https://github.com/sleep2agi/agent-network/issues/120"
         }
       },
       "promptUsed": "agent tool integration failures, MCP server auth, reliability and setup complaints",
       "sourceCount": 3,
-      "createdAt": "2026-05-21T08:26:58.000Z"
+      "createdAt": "2026-05-21T12:11:53.863Z"
     },
-    "createdAt": "2026-05-21T08:26:58.000Z"
+    "createdAt": "2026-05-21T12:11:53.863Z"
   },
   {
     "source": "github-issues",
@@ -1725,19 +1725,19 @@
       "id": "refresh-github-copilot-review-2026-05-21",
       "subreddit": "GitHub issues: Copilot review",
       "period": "month",
-      "snapshotDate": "2026-05-21T08:26:58.602Z",
-      "summaryText": "GitHub issues: Copilot review points toward developer workflow friction. Top item: [BOUNTY $150] AGENT: Claude Code sub-agent that reviews a PR and posts a structured comment",
+      "snapshotDate": "2026-05-21T12:11:54.386Z",
+      "summaryText": "GitHub issues: Copilot review points toward developer workflow friction. Top item: [FEAT] -OPERATIONS- multi-model preference wizard + domain-routing workflow",
       "summary": {
         "keyTrend": {
           "title": "GitHub issues: Copilot review: developer workflow friction",
-          "desc": "GitHub issues: Copilot review points toward developer workflow friction. Top item: [BOUNTY $150] AGENT: Claude Code sub-agent that reviews a PR and posts a structured comment",
-          "link": "https://github.com/claude-builders-bounty/claude-builders-bounty/issues/4"
+          "desc": "GitHub issues: Copilot review points toward developer workflow friction. Top item: [FEAT] -OPERATIONS- multi-model preference wizard + domain-routing workflow",
+          "link": "https://github.com/Xipher-Labs/walter-os/issues/24"
         },
         "notableDiscussions": [
           {
-            "title": "[BOUNTY $150] AGENT: Claude Code sub-agent that reviews a PR and posts a structured comment",
-            "desc": "## 💰 Bounty: $150 — powered by [Opire](https://opire.dev)\n\n## Description\nCreate a Claude Code agent that takes a PR diff as input, analyzes it,\nand returns a structured Markdown review comment.\n\n## Acceptance Criteria\n- [ ] Works via CLI: `claude-review --pr",
-            "link": "https://github.com/claude-builders-bounty/claude-builders-bounty/issues/4"
+            "title": "[FEAT] -OPERATIONS- multi-model preference wizard + domain-routing workflow",
+            "desc": "Imported from f0x1777/walter-os#90\n\nOriginal: https://github.com/f0x1777/walter-os/issues/90\nOriginal author: @f0x1777\nOriginal state: open\nOriginal created: 2026-05-12T20:51:39Z\nOriginal updated: 2026-05-12T20:51:39Z\n\n---\n\n**Parent epic:** #69 (v0.3.0 roadmap",
+            "link": "https://github.com/Xipher-Labs/walter-os/issues/24"
           },
           {
             "title": "[aw] No-Op Runs",
@@ -1745,27 +1745,27 @@
             "link": "https://github.com/github/gh-aw/issues/32279"
           },
           {
-            "title": "[factory-manager] Session reports",
-            "desc": "# AI Factory Manager — Session Reports\n\nThis issue is the running log for the **AI Factory Manager** bot. Each run posts a structured session-report comment here (chronologically visible, doesn't clutter the issue list).\n\n## What is the Factory Manager?\n\nThe F",
-            "link": "https://github.com/alvarolobato/powershop-analytics/issues/560"
+            "title": "[BOUNTY $150] AGENT: Claude Code sub-agent that reviews a PR and posts a structured comment",
+            "desc": "## 💰 Bounty: $150 — powered by [Opire](https://opire.dev)\n\n## Description\nCreate a Claude Code agent that takes a PR diff as input, analyzes it,\nand returns a structured Markdown review comment.\n\n## Acceptance Criteria\n- [ ] Works via CLI: `claude-review --pr",
+            "link": "https://github.com/claude-builders-bounty/claude-builders-bounty/issues/4"
           },
           {
-            "title": "Pull Request Dashboard",
-            "desc": "> [!NOTE]\n> Open non-draft PRs grouped by who is expected to act next. Draft PRs are listed separately. The grouping is partly performed by an LLM ([source](https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/main/.github/scripts/pull-req",
-            "link": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/issues/18435"
+            "title": "🔒 Security Scan Report - Findings Detected",
+            "desc": "<!-- security-scan-report -->\n\n# 🔒 Security Scan Report\n\n**Date**: 2026-02-24\n**Commit**: a2c8c6d\n**Branch**: main\n\n**Merged PR**: [#687 - fix: resolve 8 medium-severity bandit findings (B113 timeouts + B604 shell=True)](https://github.com/ayaiayorg/agentic-d",
+            "link": "https://github.com/ayaiayorg/agentic-devtools/issues/690"
           }
         ],
         "keyAction": {
           "title": "Personal build implication",
           "desc": "Convert developer workflow friction into a bug-finding, review, or observability requirement.",
-          "link": "https://github.com/claude-builders-bounty/claude-builders-bounty/issues/4"
+          "link": "https://github.com/Xipher-Labs/walter-os/issues/24"
         }
       },
       "promptUsed": "AI code review complaints, review workflow gaps, suggested change quality",
-      "sourceCount": 4,
-      "createdAt": "2026-05-21T08:26:58.602Z"
+      "sourceCount": 5,
+      "createdAt": "2026-05-21T12:11:54.386Z"
     },
-    "createdAt": "2026-05-21T08:26:58.602Z"
+    "createdAt": "2026-05-21T12:11:54.386Z"
   },
   {
     "source": "github-issues",
@@ -1778,7 +1778,7 @@
       "id": "refresh-github-rag-retrieval-2026-05-21",
       "subreddit": "GitHub issues: RAG retrieval",
       "period": "month",
-      "snapshotDate": "2026-05-21T08:26:59.395Z",
+      "snapshotDate": "2026-05-21T12:11:54.812Z",
       "summaryText": "GitHub issues: RAG retrieval points toward workflow reliability. Top item: Implement RAG pipeline",
       "summary": {
         "keyTrend": {
@@ -1816,9 +1816,9 @@
       },
       "promptUsed": "retrieval and citation failures that create source-provenance requirements",
       "sourceCount": 5,
-      "createdAt": "2026-05-21T08:26:59.395Z"
+      "createdAt": "2026-05-21T12:11:54.812Z"
     },
-    "createdAt": "2026-05-21T08:26:59.395Z"
+    "createdAt": "2026-05-21T12:11:54.812Z"
   },
   {
     "source": "github-issues",
@@ -1831,15 +1831,20 @@
       "id": "refresh-github-otel-ai-2026-05-21",
       "subreddit": "GitHub issues: AI observability",
       "period": "month",
-      "snapshotDate": "2026-05-21T08:27:00.155Z",
-      "summaryText": "GitHub issues: AI observability points toward workflow reliability. Top item: Enable the full OpenTelemetry in BigQuery Agent Analytics",
+      "snapshotDate": "2026-05-21T12:11:55.294Z",
+      "summaryText": "GitHub issues: AI observability points toward workflow reliability. Top item: [Feature/🧑‍🎓 LFX]: Jaeger for GenAI Observability: Specialized Trace Visualization",
       "summary": {
         "keyTrend": {
           "title": "GitHub issues: AI observability: workflow reliability",
-          "desc": "GitHub issues: AI observability points toward workflow reliability. Top item: Enable the full OpenTelemetry in BigQuery Agent Analytics",
-          "link": "https://github.com/GoogleCloudPlatform/BigQuery-Agent-Analytics-SDK/issues/153"
+          "desc": "GitHub issues: AI observability points toward workflow reliability. Top item: [Feature/🧑‍🎓 LFX]: Jaeger for GenAI Observability: Specialized Trace Visualization",
+          "link": "https://github.com/jaegertracing/jaeger/issues/8401"
         },
         "notableDiscussions": [
+          {
+            "title": "[Feature/🧑‍🎓 LFX]: Jaeger for GenAI Observability: Specialized Trace Visualization",
+            "desc": "LFX project: https://mentorship.lfx.linuxfoundation.org/project/46a525b2-568b-4aff-8156-459c8600c759\n\n**Problem Statement**\n\nDistributed tracing is the backbone of GenAI observability. However, observing an AI Agent is fundamentally different from observing a ",
+            "link": "https://github.com/jaegertracing/jaeger/issues/8401"
+          },
           {
             "title": "Enable the full OpenTelemetry in BigQuery Agent Analytics",
             "desc": "compare the schema in cloud tracing and https://docs.cloud.google.com/stackdriver/docs/reference/telemetry/trace-schema and bigquery agent analytics https://adk.dev/integrations/bigquery-agent-analytics/ , 1, draft a detailed schema compare doc , focus on the ",
@@ -1849,24 +1854,19 @@
             "title": "Epic: Assimilate Langfuse into Ouroboros AgentOS plugins",
             "desc": "## Epic: Assimilate Langfuse into Ouroboros as a first-class AgentOS observability and evaluation substrate\n\n### Goal\n\nMake Langfuse feel native inside Ouroboros while preserving the familiar Langfuse user experience: traces, observations, scores, prompts, dat",
             "link": "https://github.com/Q00/ouroboros-plugins/issues/46"
-          },
-          {
-            "title": "🦞 OpenClaw Ecosystem Digest 2026-05-14",
-            "desc": "# OpenClaw Ecosystem Digest 2026-05-14\n\n> Issues: 500 | PRs: 500 | Projects covered: 13 | Generated: 2026-05-14 00:36 UTC\n\n- [OpenClaw](https://github​.com/openclaw/openclaw)\n- [NanoBot](https://github​.com/HKUDS/nanobot)\n- [Hermes Agent](https://github​.com/n",
-            "link": "https://github.com/DenisZheng/agents-radar/issues/804"
           }
         ],
         "keyAction": {
           "title": "Personal build implication",
           "desc": "Collect repeated workflow failures and turn them into one validation artifact before building tooling.",
-          "link": "https://github.com/GoogleCloudPlatform/BigQuery-Agent-Analytics-SDK/issues/153"
+          "link": "https://github.com/jaegertracing/jaeger/issues/8401"
         }
       },
       "promptUsed": "LLM tracing, metrics, observability, evaluation and agent workflow instrumentation",
       "sourceCount": 3,
-      "createdAt": "2026-05-21T08:27:00.155Z"
+      "createdAt": "2026-05-21T12:11:55.294Z"
     },
-    "createdAt": "2026-05-21T08:27:00.155Z"
+    "createdAt": "2026-05-21T12:11:55.294Z"
   },
   {
     "source": "rss",
@@ -1879,7 +1879,7 @@
       "id": "refresh-rss-github-changelog-2026-05-21",
       "subreddit": "GitHub changelog",
       "period": "month",
-      "snapshotDate": "2026-05-21T08:27:02.329Z",
+      "snapshotDate": "2026-05-21T12:11:56.407Z",
       "summaryText": "GitHub changelog points toward developer workflow friction. Top item: Copilot usage metrics reports now use GitHub-owned download URLs",
       "summary": {
         "keyTrend": {
@@ -1917,9 +1917,9 @@
       },
       "promptUsed": "primary-source developer workflow and platform changes around GitHub, Copilot, issues, and CI",
       "sourceCount": 8,
-      "createdAt": "2026-05-21T08:27:02.329Z"
+      "createdAt": "2026-05-21T12:11:56.407Z"
     },
-    "createdAt": "2026-05-21T08:27:02.329Z"
+    "createdAt": "2026-05-21T12:11:56.407Z"
   },
   {
     "source": "rss",
@@ -1932,7 +1932,7 @@
       "id": "refresh-rss-google-developers-2026-05-21",
       "subreddit": "Google Developers blog",
       "period": "month",
-      "snapshotDate": "2026-05-21T08:27:03.941Z",
+      "snapshotDate": "2026-05-21T12:11:56.630Z",
       "summaryText": "Google Developers blog points toward workflow reliability. Top item: Google Tensor SDK Beta with LiteRT",
       "summary": {
         "keyTrend": {
@@ -1970,9 +1970,9 @@
       },
       "promptUsed": "primary-source Google AI, search, Gemini, developer platform and API changes",
       "sourceCount": 6,
-      "createdAt": "2026-05-21T08:27:03.941Z"
+      "createdAt": "2026-05-21T12:11:56.630Z"
     },
-    "createdAt": "2026-05-21T08:27:03.941Z"
+    "createdAt": "2026-05-21T12:11:56.631Z"
   },
   {
     "source": "rss",
@@ -1985,7 +1985,7 @@
       "id": "refresh-rss-shopify-changelog-2026-05-21",
       "subreddit": "Shopify changelog",
       "period": "month",
-      "snapshotDate": "2026-05-21T08:27:04.878Z",
+      "snapshotDate": "2026-05-21T12:12:08.622Z",
       "summaryText": "Shopify changelog points toward small-business operations pressure. Top item: Shop Minis March April 2026 update",
       "summary": {
         "keyTrend": {
@@ -2023,8 +2023,8 @@
       },
       "promptUsed": "primary-source commerce platform changes affecting agentic commerce and app requirements",
       "sourceCount": 7,
-      "createdAt": "2026-05-21T08:27:04.878Z"
+      "createdAt": "2026-05-21T12:12:08.622Z"
     },
-    "createdAt": "2026-05-21T08:27:04.878Z"
+    "createdAt": "2026-05-21T12:12:08.622Z"
   }
 ]
