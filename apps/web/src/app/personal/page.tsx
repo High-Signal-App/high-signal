@@ -445,6 +445,22 @@ export default async function PersonalPage({
               </div>
             </div>
           </div>
+          <div className="mt-6 divide-y divide-[var(--color-line)] border-y border-[var(--color-line)]">
+            {sourceQualityAudit.actions.slice(0, 4).map((action) => (
+              <div key={action.title} className="py-4">
+                <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
+                  {action.priority} / source action
+                </div>
+                <div className="mt-2 text-sm leading-6 text-[var(--color-fg)]">{action.title}</div>
+                <div className="mt-1 text-xs leading-5 text-[var(--color-muted)]">{action.detail}</div>
+                {action.affectedSources.length > 0 ? (
+                  <div className="mt-2 font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--color-muted)]">
+                    {action.affectedSources.join(" / ")}
+                  </div>
+                ) : null}
+              </div>
+            ))}
+          </div>
           <div className="mt-6 grid gap-5 md:grid-cols-3">
             {[
               ["category", countLine(sourceReadCategories)],

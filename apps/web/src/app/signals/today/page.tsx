@@ -267,6 +267,24 @@ export default async function SignalsTodayPage({
                 ))}
             </div>
           ) : null}
+          {sourceQualityAudit.actions.length > 0 ? (
+            <div className="mt-4 divide-y divide-zinc-900 border-t border-zinc-900">
+              {sourceQualityAudit.actions.slice(0, 4).map((action) => (
+                <div key={action.title} className="py-3">
+                  <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
+                    {action.priority} / action
+                  </div>
+                  <div className="mt-1 text-sm leading-5 text-zinc-300">{action.title}</div>
+                  <div className="mt-1 text-xs leading-5 text-zinc-500">{action.detail}</div>
+                  {action.affectedSources.length > 0 ? (
+                    <div className="mt-2 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-600">
+                      {action.affectedSources.join(" / ")}
+                    </div>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          ) : null}
         </div>
         <div className="mt-5 border-t border-zinc-900 pt-4">
           <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-600">

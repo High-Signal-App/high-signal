@@ -132,7 +132,15 @@ export type DailySourceQualityAudit = {
   rejectedUnderlyingItems: number;
   rejectedReasons: Array<{ k: string; n: number }>;
   statusByClass: Array<{ k: string; accepted: number; rejected: number; missing: number }>;
+  actions: SourceQualityAction[];
   rows: SourceQualityRow[];
+};
+
+export type SourceQualityAction = {
+  priority: "high" | "medium" | "low";
+  title: string;
+  detail: string;
+  affectedSources: string[];
 };
 
 function recordDate(record: ProductFlowRefreshRecord) {
@@ -263,6 +271,86 @@ function missingSourceRow(source: SourceRegistry["sources"][number]): SourceQual
   };
 }
 
+function topLabels(rows: SourceQualityRow[], limit = 5) {
+  return rows.slice(0, limit).map((row) => row.label);
+}
+
+function buildSourceQualityActions(input: {
+  configuredSources: number;
+  accepted: SourceQualityRow[];
+  rejected: SourceQualityRow[];
+  missing: SourceQualityRow[];
+  rejectedReasons: Array<{ k: string; n: number }>;
+  statusByClass: Array<{ k: string; accepted: number; rejected: number; missing: number }>;
+}): SourceQualityAction[] {
+  const actions: SourceQualityAction[] = [];
+  const missingRatio = input.missing.length / Math.max(1, input.configuredSources);
+  if (input.missing.length > 0) {
+    const topMissingClasses = input.statusByClass
+      .filter((item) => item.missing > 0)
+      .sort((a, b) => b.missing - a.missing || a.k.localeCompare(b.k))
+      .slice(0, 3)
+      .map((item) => `${item.k} ${item.missing}`)
+      .join(" / ");
+    actions.push({
+      priority: missingRatio >= 0.25 ? "high" : "medium",
+      title: "Refresh missing source snapshots",
+      detail: `${input.missing.length} configured source(s) have no accepted-or-rejected snapshot for this date. Missing classes: ${topMissingClasses || "none"}.`,
+      affectedSources: topLabels(input.missing),
+    });
+  }
+  if (input.rejected.length > 0) {
+    actions.push({
+      priority: input.rejected.length >= 5 ? "high" : "medium",
+      title: "Inspect rejected source snapshots",
+      detail: input.rejectedReasons
+        .slice(0, 4)
+        .map(({ k, n }) => `${k.replaceAll("-", " ")} ${n}`)
+        .join(" / "),
+      affectedSources: topLabels(input.rejected),
+    });
+  }
+  for (const item of input.statusByClass) {
+    if (item.accepted === 0 && item.rejected + item.missing > 0) {
+      const affected = [...input.rejected, ...input.missing]
+        .filter((row) => row.sourceClass === item.k)
+        .map((row) => row.label)
+        .slice(0, 5);
+      actions.push({
+        priority: "high",
+        title: `Restore ${item.k} coverage`,
+        detail: `${item.k} has zero accepted source snapshots for this date (${item.rejected} rejected, ${item.missing} missing).`,
+        affectedSources: affected,
+      });
+    } else if (item.accepted === 1 && item.rejected + item.missing >= 3) {
+      const affected = [...input.rejected, ...input.missing]
+        .filter((row) => row.sourceClass === item.k)
+        .map((row) => row.label)
+        .slice(0, 5);
+      actions.push({
+        priority: "medium",
+        title: `Improve ${item.k} redundancy`,
+        detail: `${item.k} has only one accepted snapshot while ${item.rejected + item.missing} configured source(s) are unavailable or rejected.`,
+        affectedSources: affected,
+      });
+    }
+  }
+  if (!actions.length) {
+    actions.push({
+      priority: "low",
+      title: "Coverage gate healthy",
+      detail: "All configured source groups have accepted coverage and no rejected snapshots for this date.",
+      affectedSources: [],
+    });
+  }
+  return actions
+    .sort((a, b) => {
+      const rank = { high: 0, medium: 1, low: 2 };
+      return rank[a.priority] - rank[b.priority] || a.title.localeCompare(b.title);
+    })
+    .slice(0, 6);
+}
+
 export function buildDailySourceQualityAudit(records: ProductFlowRefreshRecord[], date: string): DailySourceQualityAudit {
   const registry = sourceRegistry as SourceRegistry;
   const dateRecords = latestRefreshRecords(records.filter((record) => recordDate(record) === date));
@@ -280,6 +368,8 @@ export function buildDailySourceQualityAudit(records: ProductFlowRefreshRecord[]
     item[row.status] += 1;
     classMap.set(row.sourceClass, item);
   }
+  const rejectedReasons = countBy(rejected.flatMap((row) => row.reasons));
+  const statusByClass = Array.from(classMap.values()).sort((a, b) => a.k.localeCompare(b.k));
   return {
     date,
     configuredSources: registry.sources.length,
@@ -289,8 +379,16 @@ export function buildDailySourceQualityAudit(records: ProductFlowRefreshRecord[]
     missingSources: missing.length,
     acceptedUnderlyingItems: accepted.reduce((sum, row) => sum + row.sourceCount, 0),
     rejectedUnderlyingItems: rejected.reduce((sum, row) => sum + row.sourceCount, 0),
-    rejectedReasons: countBy(rejected.flatMap((row) => row.reasons)),
-    statusByClass: Array.from(classMap.values()).sort((a, b) => a.k.localeCompare(b.k)),
+    rejectedReasons,
+    statusByClass,
+    actions: buildSourceQualityActions({
+      configuredSources: registry.sources.length,
+      accepted,
+      rejected,
+      missing,
+      rejectedReasons,
+      statusByClass,
+    }),
     rows: rows.sort(
       (a, b) =>
         (a.status === "accepted" ? 0 : a.status === "rejected" ? 1 : 2) -
