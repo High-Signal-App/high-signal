@@ -9,6 +9,7 @@ import {
   type SignalContentCategory,
 } from "@high-signal/shared";
 import sourceRegistry from "../../../../data/personal-source-registry.json";
+import bundledRefreshes from "../data/daily-source-refreshes.json";
 
 const DATA_ROOT = resolve(process.cwd(), "../../data");
 
@@ -79,7 +80,7 @@ export async function readSourceRefreshes(): Promise<ProductFlowRefreshRecord[]>
       .filter(Boolean)
       .map((line) => JSON.parse(line) as ProductFlowRefreshRecord);
   } catch {
-    return [];
+    return bundledRefreshes as ProductFlowRefreshRecord[];
   }
 }
 
