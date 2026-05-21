@@ -446,6 +446,11 @@ export default async function PersonalPage({
                   {item.intent.replaceAll("-", " ")} / {item.sentiment}
                 </div>
                 <div className="mt-2 text-sm leading-6">{item.title}</div>
+                <div className="mt-2 font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--color-muted)]">
+                  tag {item.annotation.method} / model {item.annotation.model} / intent score{" "}
+                  {item.annotation.intentScore.toFixed(2)} / sentiment score{" "}
+                  {item.annotation.sentimentScore.toFixed(2)}
+                </div>
               </a>
             ))}
             {!sourceReads.length ? (

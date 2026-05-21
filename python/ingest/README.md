@@ -68,7 +68,9 @@ signals — useful for Modal alerting. Otherwise `0` on success.
 Daily/community reads use deterministic `analysis.lightweight_nlp` tags first:
 intent, sentiment, urgency, and the exact keyword hits. This is the default for
 automation because it is stable, cheap, and compatible with lightweight Python
-worker-style runtimes.
+worker-style runtimes. Web/API consumers expose the annotation provenance as
+`method`, `model`, `llm`, `intentScore`, and `sentimentScore` so a label is not
+treated as a black-box model judgment.
 
 Batch ingest can opt into local/open Hugging Face classifiers through
 `analysis.semantic_nlp`:

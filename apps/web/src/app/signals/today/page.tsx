@@ -225,8 +225,8 @@ export default async function SignalsTodayPage({
             intelligence layer
           </div>
           <div className="mt-2 font-mono text-[11px] leading-6 text-zinc-500">
-            {DAILY_INTELLIGENCE_LAYER.broadReadAnnotation.method} · no LLM · HF batch
-            escalation off by default
+            {DAILY_INTELLIGENCE_LAYER.broadReadAnnotation.method} · model none · no LLM ·
+            Python/HF batch escalation off by default
           </div>
         </div>
       </section>
@@ -283,8 +283,13 @@ export default async function SignalsTodayPage({
                 </div>
                 <div className="mt-2 text-lg font-medium leading-snug text-zinc-100">{item.title}</div>
                 <p className="mt-2 max-w-3xl text-sm leading-6 text-zinc-500">{item.summary}</p>
-                <div className="mt-3 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-600">
-                  sources {item.sourceCount} / repeats {item.repeatedSignalCount}
+                <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-600">
+                  <span>sources {item.sourceCount}</span>
+                  <span>repeats {item.repeatedSignalCount}</span>
+                  <span>tag {item.annotation.method}</span>
+                  <span>model {item.annotation.model}</span>
+                  <span>intent score {item.annotation.intentScore.toFixed(2)}</span>
+                  <span>sentiment score {item.annotation.sentimentScore.toFixed(2)}</span>
                 </div>
               </a>
             ))}

@@ -10,11 +10,17 @@ export type LightweightIntent =
   | "general";
 
 export type LightweightSentiment = "positive" | "negative" | "neutral" | "mixed";
+export type LightweightNlpMethod = "rules-v1";
 
 export interface LightweightNlpAnnotation {
   intent: LightweightIntent;
   sentiment: LightweightSentiment;
   urgency: "low" | "medium" | "high";
+  method: LightweightNlpMethod;
+  model: "none";
+  llm: false;
+  intentScore: number;
+  sentimentScore: number;
   positiveHits: string[];
   negativeHits: string[];
   intentHits: string[];
@@ -102,6 +108,10 @@ function hits(text: string, terms: string[]) {
   return terms.filter((term) => text.includes(term));
 }
 
+function boundedScore(value: number) {
+  return Math.max(0, Math.min(1, Number(value.toFixed(2))));
+}
+
 export function annotateLightweightNlp(text: string): LightweightNlpAnnotation {
   const lower = normalized(text);
   const intentScores = INTENT_TERMS.map((rule) => ({
@@ -112,6 +122,8 @@ export function annotateLightweightNlp(text: string): LightweightNlpAnnotation {
   const positiveHits = hits(lower, POSITIVE_TERMS);
   const negativeHits = hits(lower, NEGATIVE_TERMS);
   const urgentHits = hits(lower, URGENCY_TERMS);
+  const topIntentHits = intentScores[0]?.hits ?? [];
+  const sentimentHits = positiveHits.length + negativeHits.length;
   let sentiment: LightweightSentiment = "neutral";
   if (positiveHits.length > 0 && negativeHits.length > 0) sentiment = "mixed";
   else if (positiveHits.length > negativeHits.length) sentiment = "positive";
@@ -121,8 +133,13 @@ export function annotateLightweightNlp(text: string): LightweightNlpAnnotation {
     intent: intentScores[0]?.intent ?? "general",
     sentiment,
     urgency: urgentHits.length >= 2 ? "high" : urgentHits.length === 1 ? "medium" : "low",
+    method: "rules-v1",
+    model: "none",
+    llm: false,
+    intentScore: boundedScore(topIntentHits.length / 3),
+    sentimentScore: boundedScore(Math.abs(positiveHits.length - negativeHits.length) / Math.max(1, sentimentHits)),
     positiveHits,
     negativeHits,
-    intentHits: intentScores[0]?.hits ?? [],
+    intentHits: topIntentHits,
   };
 }

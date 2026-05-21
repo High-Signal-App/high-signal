@@ -96,6 +96,7 @@ export async function GET(req: Request) {
       intent: item.intent,
       sentiment: item.sentiment,
       urgency: item.urgency,
+      annotation: item.annotation,
       qualityScore: item.qualityScore,
     })),
   ].sort((a, b) => String(b.observedAt).localeCompare(String(a.observedAt)));

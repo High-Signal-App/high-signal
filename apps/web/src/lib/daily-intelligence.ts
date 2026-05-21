@@ -4,6 +4,7 @@ import {
   annotateLightweightNlp,
   communityDigestEvidenceQuality,
   type CommunityDigestSnapshot,
+  type LightweightNlpAnnotation,
   type LightweightIntent,
   type LightweightSentiment,
   type SignalContentCategory,
@@ -19,10 +20,20 @@ export const DAILY_INTELLIGENCE_LAYER = {
   version: "daily-intelligence-v1",
   sourceGate: "latest snapshot with >=2 sources, repeated signals, and non-high generic risk",
   broadReadAnnotation: {
-    method: "deterministic-keyword-v1",
+    method: "rules-v1",
     llm: false,
     model: "none",
-    fields: ["contentCategory", "intent", "sentiment", "urgency", "qualityScore"],
+    fields: [
+      "contentCategory",
+      "intent",
+      "sentiment",
+      "urgency",
+      "qualityScore",
+      "annotation.method",
+      "annotation.model",
+      "annotation.intentScore",
+      "annotation.sentimentScore",
+    ],
   },
   batchEscalation: {
     method: "python-semantic-nlp",
@@ -64,6 +75,7 @@ export type DailyBroadInsight = {
   intent: LightweightIntent;
   sentiment: LightweightSentiment;
   urgency: "low" | "medium" | "high";
+  annotation: LightweightNlpAnnotation;
   confidence: "low" | "medium" | "high";
   qualityScore: number;
   sourceCount: number;
@@ -192,6 +204,7 @@ export function buildDailyBroadInsights(records: ProductFlowRefreshRecord[], dat
         intent: annotation.intent,
         sentiment: annotation.sentiment,
         urgency: annotation.urgency,
+        annotation,
         confidence: record.digest.sourceCount >= 8 ? "high" : record.digest.sourceCount >= 3 ? "medium" : "low",
         qualityScore: score,
         sourceCount: record.digest.sourceCount,
