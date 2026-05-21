@@ -1668,54 +1668,6 @@
   },
   {
     "source": "github-issues",
-    "sourceId": "github-mcp-tools",
-    "label": "GitHub issues: MCP and tools",
-    "target": "MCP server tool use auth agents integration error",
-    "period": "month",
-    "prompt": "agent tool integration failures, MCP server auth, reliability and setup complaints",
-    "digest": {
-      "id": "refresh-github-mcp-tools-2026-05-21",
-      "subreddit": "GitHub issues: MCP and tools",
-      "period": "month",
-      "snapshotDate": "2026-05-21T12:11:53.863Z",
-      "summaryText": "GitHub issues: MCP and tools points toward complaint-to-spec demand. Top item: [research][P0] codex Mobile + remote-control 深入调研 — 评估对 anet codex runtime 的影响",
-      "summary": {
-        "keyTrend": {
-          "title": "GitHub issues: MCP and tools: complaint-to-spec demand",
-          "desc": "GitHub issues: MCP and tools points toward complaint-to-spec demand. Top item: [research][P0] codex Mobile + remote-control 深入调研 — 评估对 anet codex runtime 的影响",
-          "link": "https://github.com/sleep2agi/agent-network/issues/120"
-        },
-        "notableDiscussions": [
-          {
-            "title": "[research][P0] codex Mobile + remote-control 深入调研 — 评估对 anet codex runtime 的影响",
-            "desc": "## 背景\n\nVincent 2026-05-15 实测 + 反馈：**codex 今天发布 codex Mobile**，支持 CLI 接入：\n\n1. 修改 `~/.codex/config.toml` 添加：\n   ```toml\n   [features]\n   remote-control = true\n   ```\n2. 终端运行：`codex remote-control`\n3. 手机端就能看到\n\nVincent 实测「好用 😃」。\n\n这是 codex 官方新出的 remote-control 能力，",
-            "link": "https://github.com/sleep2agi/agent-network/issues/120"
-          },
-          {
-            "title": "MCP server over SSH fails on Windows , connection closes before handshake completes",
-            "desc": "### Before opening, please confirm:\n\n\n- [x] I have [searched for duplicate or closed issues](https://github.com/kirodotdev/Kiro/issues?q=is%3Aissue+)\n\n### Operating System\n\nWindows 11\n\n### Kiro Version\n\n0.11.133\n\n### Bug Description\n\n# MCP server over SSH fail",
-            "link": "https://github.com/kirodotdev/Kiro/issues/8388"
-          },
-          {
-            "title": "Tool Calls Handled Incorrectly when Streaming",
-            "desc": "<img width=\"3113\" height=\"1697\" alt=\"Image\" src=\"https://github.com/user-attachments/assets/e56c069e-a05c-4151-81d9-c4321be01083\" />\n\nUsing a quickie re-constructor in Ruby\n```ruby\nrequire 'json'\n\nfile_path = '/tmp/streaming-extract.json'\n\nresult = \"\"\nFile.for",
-            "link": "https://github.com/guoqingbao/vllm.rs/issues/129"
-          }
-        ],
-        "keyAction": {
-          "title": "Personal build implication",
-          "desc": "Promote only repeated complaints with a clear user, current workaround, and smallest useful spec.",
-          "link": "https://github.com/sleep2agi/agent-network/issues/120"
-        }
-      },
-      "promptUsed": "agent tool integration failures, MCP server auth, reliability and setup complaints",
-      "sourceCount": 3,
-      "createdAt": "2026-05-21T12:11:53.863Z"
-    },
-    "createdAt": "2026-05-21T12:11:53.863Z"
-  },
-  {
-    "source": "github-issues",
     "sourceId": "github-copilot-review",
     "label": "GitHub issues: Copilot review",
     "target": "Copilot code review bug suggestion workflow",
@@ -1769,59 +1721,6 @@
   },
   {
     "source": "github-issues",
-    "sourceId": "github-rag-retrieval",
-    "label": "GitHub issues: RAG retrieval",
-    "target": "RAG retrieval citation source hallucination chunking",
-    "period": "month",
-    "prompt": "retrieval and citation failures that create source-provenance requirements",
-    "digest": {
-      "id": "refresh-github-rag-retrieval-2026-05-21",
-      "subreddit": "GitHub issues: RAG retrieval",
-      "period": "month",
-      "snapshotDate": "2026-05-21T12:11:54.812Z",
-      "summaryText": "GitHub issues: RAG retrieval points toward workflow reliability. Top item: Implement RAG pipeline",
-      "summary": {
-        "keyTrend": {
-          "title": "GitHub issues: RAG retrieval: workflow reliability",
-          "desc": "GitHub issues: RAG retrieval points toward workflow reliability. Top item: Implement RAG pipeline",
-          "link": "https://github.com/Bibek200619/Omnix/issues/4"
-        },
-        "notableDiscussions": [
-          {
-            "title": "Implement RAG pipeline",
-            "desc": "# RAG Infrastructure Epic\n\nThis epic tracks the full Retrieval-Augmented Generation (RAG) architecture for Omnix.\n\nGoal:\nBuild a scalable, production-ready AI retrieval system with semantic search, workspace-aware memory, streaming responses, and local AI comp",
-            "link": "https://github.com/Bibek200619/Omnix/issues/4"
-          },
-          {
-            "title": "Document gathering and Objectives",
-            "desc": "### Context\n\nIn order to have a broader point of view of the architecture required,  to start with the actual technical implementation and ensure the system is tailored to our specific business needs, I need to start building the **Data Ingestion** and **Chunk",
-            "link": "https://github.com/ROI25engineering/helm-repo/issues/5"
-          },
-          {
-            "title": "Feature: Ingest Agricultural Research Papers & Optimize Vector RAG Pipeline",
-            "desc": "### 🔬 Feature: Ingest Agricultural Research Papers & Optimize Vector RAG Pipeline\n\n#### 1. Context & Architectural Goal\nTo empower the **Syngenta Agri-AI Platform** with premium, scientifically grounded agronomic advice, we will integrate **academic and corpo",
-            "link": "https://github.com/Deeven-Seru/syngenta-agri-ai-platform/issues/48"
-          },
-          {
-            "title": "Effective Context Window",
-            "desc": "RESEARCH PROMPT 2: Effective Context Window and Hallucination Threshold Analysis\n\nYou are a research agent. Your task is to determine, for each reasoning LLM identified as a candidate in the model landscape survey, the practical effective context window for lo",
-            "link": "https://github.com/ragaeeb/rupture-baby/issues/8"
-          }
-        ],
-        "keyAction": {
-          "title": "Personal build implication",
-          "desc": "Collect repeated workflow failures and turn them into one validation artifact before building tooling.",
-          "link": "https://github.com/Bibek200619/Omnix/issues/4"
-        }
-      },
-      "promptUsed": "retrieval and citation failures that create source-provenance requirements",
-      "sourceCount": 5,
-      "createdAt": "2026-05-21T12:11:54.812Z"
-    },
-    "createdAt": "2026-05-21T12:11:54.812Z"
-  },
-  {
-    "source": "github-issues",
     "sourceId": "github-otel-ai",
     "label": "GitHub issues: AI observability",
     "target": "OpenTelemetry LLM tracing metrics agents observability",
@@ -1869,6 +1768,107 @@
     "createdAt": "2026-05-21T12:11:55.294Z"
   },
   {
+    "source": "github-issues",
+    "sourceId": "github-mcp-tools",
+    "label": "GitHub issues: MCP and tools",
+    "target": "MCP server tool use auth agents integration error",
+    "period": "month",
+    "prompt": "agent tool integration failures, MCP server auth, reliability and setup complaints",
+    "digest": {
+      "id": "refresh-github-mcp-tools-2026-05-21",
+      "subreddit": "GitHub issues: MCP and tools",
+      "period": "month",
+      "snapshotDate": "2026-05-21T18:48:44.758Z",
+      "summaryText": "GitHub issues: MCP and tools points toward developer workflow friction. Top item: Setup Experience Bottleneck Profiler with Zero-Dependency Quick Start",
+      "summary": {
+        "keyTrend": {
+          "title": "GitHub issues: MCP and tools: developer workflow friction",
+          "desc": "GitHub issues: MCP and tools points toward developer workflow friction. Top item: Setup Experience Bottleneck Profiler with Zero-Dependency Quick Start",
+          "link": "https://github.com/sethdford/shipwright/issues/511"
+        },
+        "notableDiscussions": [
+          {
+            "title": "Setup Experience Bottleneck Profiler with Zero-Dependency Quick Start",
+            "desc": "## Strategic Improvement\n\nSetup currently takes 30 minutes (target: <5 minutes), blocking adoption. Instrument the setup process to measure duration per step, identify bottlenecks, then implement parallel initialization and eliminate slow dependencies. This co",
+            "link": "https://github.com/sethdford/shipwright/issues/511"
+          },
+          {
+            "title": "[Project Proposal] agentgateway",
+            "desc": "### Project Name\n\nagentgateway\n\n### Project Description\n\nAgentgateway is an open source proxy built on AI-native protocols (such as [MCP](https://modelcontextprotocol.io/introduction) &[ A2A](https://developers.googleblog.com/en/a2a-a-new-era-of-agent-interope",
+            "link": "https://github.com/aaif/project-proposals/issues/11"
+          },
+          {
+            "title": "[feature][P3] 文档优化更新",
+            "desc": "/loop 5m \n\n不改变业务逻辑，不改变功能，每 5 分钟对文档进行优化更新\n\n1、对文档的正确性进行 review 和更新\n2、对文档的 user-fridenly 进行 review 和更新\n3、删除垃圾和过时文档\n\n每轮的更新情况在 https://github.com/sleep2agi/agent-network/issues/10 进行评论",
+            "link": "https://github.com/sleep2agi/agent-network/issues/10"
+          }
+        ],
+        "keyAction": {
+          "title": "Personal build implication",
+          "desc": "Convert developer workflow friction into a bug-finding, review, or observability requirement.",
+          "link": "https://github.com/sethdford/shipwright/issues/511"
+        }
+      },
+      "promptUsed": "agent tool integration failures, MCP server auth, reliability and setup complaints",
+      "sourceCount": 3,
+      "createdAt": "2026-05-21T18:48:44.758Z"
+    },
+    "createdAt": "2026-05-21T18:48:44.758Z"
+  },
+  {
+    "source": "github-issues",
+    "sourceId": "github-rag-retrieval",
+    "label": "GitHub issues: RAG retrieval",
+    "target": "RAG retrieval citation source hallucination chunking",
+    "period": "month",
+    "prompt": "retrieval and citation failures that create source-provenance requirements",
+    "digest": {
+      "id": "refresh-github-rag-retrieval-2026-05-21",
+      "subreddit": "GitHub issues: RAG retrieval",
+      "period": "month",
+      "snapshotDate": "2026-05-21T18:48:45.197Z",
+      "summaryText": "GitHub issues: RAG retrieval points toward workflow reliability. Top item: Implement RAG pipeline",
+      "summary": {
+        "keyTrend": {
+          "title": "GitHub issues: RAG retrieval: workflow reliability",
+          "desc": "GitHub issues: RAG retrieval points toward workflow reliability. Top item: Implement RAG pipeline",
+          "link": "https://github.com/Bibek200619/Omnix/issues/4"
+        },
+        "notableDiscussions": [
+          {
+            "title": "Implement RAG pipeline",
+            "desc": "# RAG Infrastructure Epic\n\nThis epic tracks the full Retrieval-Augmented Generation (RAG) architecture for Omnix.\n\nGoal:\nBuild a scalable, production-ready AI retrieval system with semantic search, workspace-aware memory, streaming responses, and local AI comp",
+            "link": "https://github.com/Bibek200619/Omnix/issues/4"
+          },
+          {
+            "title": "Document gathering and Objectives",
+            "desc": "### Context\n\nIn order to have a broader point of view of the architecture required,  to start with the actual technical implementation and ensure the system is tailored to our specific business needs, I need to start building the **Data Ingestion** and **Chunk",
+            "link": "https://github.com/ROI25engineering/helm-repo/issues/5"
+          },
+          {
+            "title": "Feature: Ingest Agricultural Research Papers & Optimize Vector RAG Pipeline",
+            "desc": "### 🔬 Feature: Ingest Agricultural Research Papers & Optimize Vector RAG Pipeline\n\n#### 1. Context & Architectural Goal\nTo empower the **Syngenta Agri-AI Platform** with premium, scientifically grounded agronomic advice, we will integrate **academic and corpo",
+            "link": "https://github.com/Deeven-Seru/syngenta-agri-ai-platform/issues/48"
+          },
+          {
+            "title": "Effective Context Window",
+            "desc": "RESEARCH PROMPT 2: Effective Context Window and Hallucination Threshold Analysis\n\nYou are a research agent. Your task is to determine, for each reasoning LLM identified as a candidate in the model landscape survey, the practical effective context window for lo",
+            "link": "https://github.com/ragaeeb/rupture-baby/issues/8"
+          }
+        ],
+        "keyAction": {
+          "title": "Personal build implication",
+          "desc": "Collect repeated workflow failures and turn them into one validation artifact before building tooling.",
+          "link": "https://github.com/Bibek200619/Omnix/issues/4"
+        }
+      },
+      "promptUsed": "retrieval and citation failures that create source-provenance requirements",
+      "sourceCount": 5,
+      "createdAt": "2026-05-21T18:48:45.197Z"
+    },
+    "createdAt": "2026-05-21T18:48:45.197Z"
+  },
+  {
     "source": "rss",
     "sourceId": "rss-github-changelog",
     "label": "GitHub changelog",
@@ -1879,15 +1879,20 @@
       "id": "refresh-rss-github-changelog-2026-05-21",
       "subreddit": "GitHub changelog",
       "period": "month",
-      "snapshotDate": "2026-05-21T12:11:56.407Z",
-      "summaryText": "GitHub changelog points toward developer workflow friction. Top item: Copilot usage metrics reports now use GitHub-owned download URLs",
+      "snapshotDate": "2026-05-21T18:48:46.814Z",
+      "summaryText": "GitHub changelog points toward developer workflow friction. Top item: Issue fields are now in public preview for all organizations",
       "summary": {
         "keyTrend": {
           "title": "GitHub changelog: developer workflow friction",
-          "desc": "GitHub changelog points toward developer workflow friction. Top item: Copilot usage metrics reports now use GitHub-owned download URLs",
-          "link": "https://github.blog/changelog/2026-05-20-copilot-usage-metrics-reports-now-use-github-owned-download-urls"
+          "desc": "GitHub changelog points toward developer workflow friction. Top item: Issue fields are now in public preview for all organizations",
+          "link": "https://github.blog/changelog/2026-05-21-issue-fields-are-now-in-public-preview-for-all-organizations"
         },
         "notableDiscussions": [
+          {
+            "title": "Issue fields are now in public preview for all organizations",
+            "desc": "Issue fields are now available in public preview to all GitHub organizations on github.com and GitHub Enterprise Cloud with data residency. When you define typed metadata like Priority, Effort, or&#8230; The post Issue fields are now in public preview for all ",
+            "link": "https://github.blog/changelog/2026-05-21-issue-fields-are-now-in-public-preview-for-all-organizations"
+          },
           {
             "title": "Copilot usage metrics reports now use GitHub-owned download URLs",
             "desc": "As previously announced, the download URLs for Copilot usage metrics reports have migrated from Azure Front Door domains to a stable, GitHub-owned custom domain. This change improves URL stability and&#8230; The post Copilot usage metrics reports now use GitHu",
@@ -1902,24 +1907,19 @@
             "title": "Auto model selection now routes based on your task in VS Code",
             "desc": "GitHub Copilot auto model selection now routes to the best model for your task, using utilization and model health metrics for a high quality, reliable, and token-efficient experience. How it&#8230; The post Auto model selection now routes based on your task i",
             "link": "https://github.blog/changelog/2026-05-20-auto-model-selection-now-routes-based-on-your-task-in-vs-code"
-          },
-          {
-            "title": "Semantic issue search in Copilot Chat",
-            "desc": "You can use natural language in GitHub Copilot Chat on web to quickly find, group, and analyze issues, with context-aware results powered by a new semantic issues index. What&#8217;s new&#8230; The post Semantic issue search in Copilot Chat appeared first on T",
-            "link": "https://github.blog/changelog/2026-05-20-semantic-issue-search-in-copilot-chat"
           }
         ],
         "keyAction": {
           "title": "Personal build implication",
           "desc": "Convert developer workflow friction into a bug-finding, review, or observability requirement.",
-          "link": "https://github.blog/changelog/2026-05-20-copilot-usage-metrics-reports-now-use-github-owned-download-urls"
+          "link": "https://github.blog/changelog/2026-05-21-issue-fields-are-now-in-public-preview-for-all-organizations"
         }
       },
       "promptUsed": "primary-source developer workflow and platform changes around GitHub, Copilot, issues, and CI",
       "sourceCount": 8,
-      "createdAt": "2026-05-21T12:11:56.407Z"
+      "createdAt": "2026-05-21T18:48:46.814Z"
     },
-    "createdAt": "2026-05-21T12:11:56.407Z"
+    "createdAt": "2026-05-21T18:48:46.814Z"
   },
   {
     "source": "rss",
@@ -1932,47 +1932,47 @@
       "id": "refresh-rss-google-developers-2026-05-21",
       "subreddit": "Google Developers blog",
       "period": "month",
-      "snapshotDate": "2026-05-21T12:11:56.630Z",
-      "summaryText": "Google Developers blog points toward workflow reliability. Top item: Google Tensor SDK Beta with LiteRT",
+      "snapshotDate": "2026-05-21T18:48:47.197Z",
+      "summaryText": "Google Developers blog points toward workflow reliability. Top item: Empowering Service Providers and Hardware Partners with Gemini for Home",
       "summary": {
         "keyTrend": {
           "title": "Google Developers blog: workflow reliability",
-          "desc": "Google Developers blog points toward workflow reliability. Top item: Google Tensor SDK Beta with LiteRT",
-          "link": "https://developers.googleblog.com/google-tensor-sdk-beta-with-litert/"
+          "desc": "Google Developers blog points toward workflow reliability. Top item: Empowering Service Providers and Hardware Partners with Gemini for Home",
+          "link": "https://developers.googleblog.com/empowering-service-providers-and-hardware-partners-with-gemini-for-home/"
         },
         "notableDiscussions": [
+          {
+            "title": "Empowering Service Providers and Hardware Partners with Gemini for Home",
+            "desc": "Google is expanding its smart home ecosystem by launching a full-stack Gemini AI offering that integrates advanced camera intelligence, natural language queries, and daily activity summaries. This initiative provides service providers and hardware manufacturer",
+            "link": "https://developers.googleblog.com/empowering-service-providers-and-hardware-partners-with-gemini-for-home/"
+          },
           {
             "title": "Google Tensor SDK Beta with LiteRT",
             "desc": "The Google Tensor ML SDK is graduating to its Beta phase, allowing developers to build and deploy high-performance machine learning models directly onto the TPU of Google Pixel 10 devices. By integrating with LiteRT, Google's edge deployment framework, the SDK",
             "link": "https://developers.googleblog.com/google-tensor-sdk-beta-with-litert/"
           },
           {
-            "title": "One Year of Innovation: Celebrating 100k Members in the Google Cloud x NVIDIA Developer Community",
-            "desc": "The Google Cloud and NVIDIA developer community is celebrating its first anniversary with 100,000 members and a renewed focus on providing builders with advanced AI infrastructure and resources. To accelerate development, the community offers curated learning ",
-            "link": "https://developers.googleblog.com/one-year-of-innovation-celebrating-100k-members-in-the-google-cloud-x-nvidia-developer-community/"
-          },
-          {
-            "title": "All the news from the Google I/O 2026 Developer keynote",
-            "desc": "Google announced the transition from assistive AI to independent agents, highlighting the launch of the Gemini 3.5 series and major updates to its Antigravity agent-first development platform. For mobile developers, the post introduces new Android CLI tools, t",
-            "link": "https://developers.googleblog.com/all-the-news-from-the-google-io-2026-developer-keynote/"
-          },
-          {
             "title": "A Smarter Google AI Edge Gallery: MCP integration, notifications, and session continuity",
             "desc": "The Google AI Edge Gallery app has expanded its on-device AI capabilities by introducing experimental support for the open-source Model Context Protocol (MCP) on Android, allowing Gemma 4 to coordinate complex tasks across external data sources like Google Wor",
             "link": "https://developers.googleblog.com/a-smarter-google-ai-edge-gallery-mcp-integration-notifications-and-session-continuity/"
+          },
+          {
+            "title": "One Year of Innovation: Celebrating 100k Members in the Google Cloud x NVIDIA Developer Community",
+            "desc": "The Google Cloud and NVIDIA developer community is celebrating its first anniversary with 100,000 members and a renewed focus on providing builders with advanced AI infrastructure and resources. To accelerate development, the community offers curated learning ",
+            "link": "https://developers.googleblog.com/one-year-of-innovation-celebrating-100k-members-in-the-google-cloud-x-nvidia-developer-community/"
           }
         ],
         "keyAction": {
           "title": "Personal build implication",
           "desc": "Collect repeated workflow failures and turn them into one validation artifact before building tooling.",
-          "link": "https://developers.googleblog.com/google-tensor-sdk-beta-with-litert/"
+          "link": "https://developers.googleblog.com/empowering-service-providers-and-hardware-partners-with-gemini-for-home/"
         }
       },
       "promptUsed": "primary-source Google AI, search, Gemini, developer platform and API changes",
       "sourceCount": 6,
-      "createdAt": "2026-05-21T12:11:56.630Z"
+      "createdAt": "2026-05-21T18:48:47.197Z"
     },
-    "createdAt": "2026-05-21T12:11:56.631Z"
+    "createdAt": "2026-05-21T18:48:47.197Z"
   },
   {
     "source": "rss",
@@ -1985,7 +1985,7 @@
       "id": "refresh-rss-shopify-changelog-2026-05-21",
       "subreddit": "Shopify changelog",
       "period": "month",
-      "snapshotDate": "2026-05-21T12:12:08.622Z",
+      "snapshotDate": "2026-05-21T18:48:47.771Z",
       "summaryText": "Shopify changelog points toward small-business operations pressure. Top item: Shop Minis March April 2026 update",
       "summary": {
         "keyTrend": {
@@ -2023,8 +2023,8 @@
       },
       "promptUsed": "primary-source commerce platform changes affecting agentic commerce and app requirements",
       "sourceCount": 7,
-      "createdAt": "2026-05-21T12:12:08.622Z"
+      "createdAt": "2026-05-21T18:48:47.771Z"
     },
-    "createdAt": "2026-05-21T12:12:08.622Z"
+    "createdAt": "2026-05-21T18:48:47.771Z"
   }
 ]
