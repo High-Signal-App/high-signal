@@ -39,6 +39,7 @@ function enrichSignal<T extends typeof schema.signals.$inferSelect>(signal: T) {
     contentCategory: quality.contentCategory,
     qualityScore: quality.score,
     qualityBand: quality.band,
+    publishable: quality.publishable,
     sourceClasses: quality.sourceClasses,
     independentSourceCount: quality.independentSourceCount,
     qualityReasons: quality.reasons,
@@ -54,6 +55,7 @@ signalsRoute.get("/", async (c) => {
   const entity = c.req.query("entity");
   const category = c.req.query("category") as SignalContentCategory | undefined;
   const minQuality = Number(c.req.query("minQuality") ?? 0);
+  const includeWeak = c.req.query("includeWeak") === "1";
   const { start, end } = parseDateRange(c);
 
   const conditions: SQL[] = [
@@ -75,6 +77,7 @@ signalsRoute.get("/", async (c) => {
     .limit(category || minQuality ? Math.max(limit, 200) : limit);
   const enriched = rows
     .map(enrichSignal)
+    .filter((signal) => status !== "published" || includeWeak || signal.publishable)
     .filter((signal) => !category || signal.contentCategory === category)
     .filter((signal) => !minQuality || signal.qualityScore >= minQuality)
     .slice(0, limit);
@@ -103,7 +106,7 @@ signalsRoute.get("/facets", async (c) => {
     .limit(500);
   const categoryCounts = new Map<string, number>();
   const sourceClassCounts = new Map<string, number>();
-  for (const signal of recentRows.map(enrichSignal)) {
+  for (const signal of recentRows.map(enrichSignal).filter((signal) => signal.publishable)) {
     categoryCounts.set(signal.contentCategory, (categoryCounts.get(signal.contentCategory) ?? 0) + 1);
     for (const sourceClass of signal.sourceClasses) {
       sourceClassCounts.set(sourceClass, (sourceClassCounts.get(sourceClass) ?? 0) + 1);
@@ -134,6 +137,10 @@ signalsRoute.get("/:slug", async (c) => {
   if (row.reviewStatus === "published" && row.bodyMd.trimStart().startsWith("> _backfill_")) {
     return c.json({ error: "not_found" }, 404);
   }
+  const enrichedRow = enrichSignal(row);
+  if (row.reviewStatus === "published" && !enrichedRow.publishable && c.req.query("includeWeak") !== "1") {
+    return c.json({ error: "not_found" }, 404);
+  }
   const evid = await db(c.env.DB)
     .select()
     .from(schema.evidence)
@@ -142,7 +149,7 @@ signalsRoute.get("/:slug", async (c) => {
     .select()
     .from(schema.scoreRuns)
     .where(eq(schema.scoreRuns.signalId, row.id));
-  return c.json({ signal: enrichSignal(row), evidence: evid, scores });
+  return c.json({ signal: enrichedRow, evidence: evid, scores });
 });
 
 signalsRoute.get("/by-entity/:entityId", async (c) => {
@@ -152,5 +159,5 @@ signalsRoute.get("/by-entity/:entityId", async (c) => {
     .from(schema.signals)
     .where(and(eq(schema.signals.primaryEntityId, entityId), notBackfill()))
     .orderBy(desc(schema.signals.publishedAt));
-  return c.json({ signals: rows.map(enrichSignal) });
+  return c.json({ signals: rows.map(enrichSignal).filter((signal) => signal.publishable) });
 });

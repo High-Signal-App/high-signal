@@ -73,6 +73,7 @@ export interface SignalRow {
   contentCategory?: SignalContentCategory;
   qualityScore?: number;
   qualityBand?: SignalQualityBand;
+  publishable?: boolean;
   sourceClasses?: SourceClass[];
   independentSourceCount?: number;
   qualityReasons?: string[];
