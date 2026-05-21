@@ -5,6 +5,7 @@ import {
   buildDailyBroadInsights,
   buildDailySourceCoverage,
   DAILY_INTELLIGENCE_LAYER,
+  resolveAcceptedRefreshDate,
   readSourceRefreshes,
 } from "@/lib/daily-intelligence";
 
@@ -60,11 +61,12 @@ export async function GET(req: Request) {
   }
   const today = all.filter((s) => !category || signalCategory(s) === category);
   const refreshes = await readSourceRefreshes();
-  const allBroadInsights = buildDailyBroadInsights(refreshes, date);
+  const sourceReadDate = resolveAcceptedRefreshDate(refreshes, date) ?? date;
+  const allBroadInsights = buildDailyBroadInsights(refreshes, sourceReadDate);
   const broadInsights = allBroadInsights.filter(
     (item) => !category || item.contentCategory === category,
   );
-  const sourceCoverage = buildDailySourceCoverage(refreshes, date);
+  const sourceCoverage = buildDailySourceCoverage(refreshes, sourceReadDate);
   const categoryCounts = countBy([
     ...all.map((signal) => signalCategory(signal)),
     ...allBroadInsights.map((item) => item.contentCategory),
@@ -101,6 +103,9 @@ export async function GET(req: Request) {
     JSON.stringify({
       generatedAt: new Date().toISOString(),
       date,
+      requestedDate: date,
+      sourceReadDate,
+      sourceDateShifted: sourceReadDate !== date,
       category,
       count: today.length,
       totalCount: today.length + broadInsights.length,

@@ -5,6 +5,7 @@ import { assessSignalQuality, type SignalContentCategory } from "@high-signal/sh
 import {
   buildDailyBroadInsights,
   buildDailySourceCoverage,
+  resolveAcceptedRefreshDate,
   DAILY_INTELLIGENCE_LAYER,
   readSourceRefreshes,
 } from "@/lib/daily-intelligence";
@@ -79,7 +80,8 @@ export default async function SignalsTodayPage({
     /* offline */
   }
   const refreshes = await readSourceRefreshes();
-  const allBroadInsights = buildDailyBroadInsights(refreshes, selectedDate);
+  const sourceReadDate = resolveAcceptedRefreshDate(refreshes, selectedDate) ?? selectedDate;
+  const allBroadInsights = buildDailyBroadInsights(refreshes, sourceReadDate);
 
   const today = all
     .filter((s) => !selectedCategory || signalCategory(s) === selectedCategory)
@@ -111,7 +113,8 @@ export default async function SignalsTodayPage({
   const evidenceCount =
     today.reduce((sum, signal) => sum + signal.evidenceUrls.length, 0) +
     broadInsights.reduce((sum, item) => sum + item.sourceCount, 0);
-  const coverage = buildDailySourceCoverage(refreshes, selectedDate);
+  const coverage = buildDailySourceCoverage(refreshes, sourceReadDate);
+  const sourceDateShifted = sourceReadDate !== selectedDate;
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-16">
@@ -127,6 +130,12 @@ export default async function SignalsTodayPage({
           {selectedDate} · {totalItems} item{totalItems === 1 ? "" : "s"} · signals{" "}
           {today.length} · reads {broadInsights.length}
         </p>
+        {sourceDateShifted ? (
+          <p className="mt-3 text-sm leading-6 text-zinc-500">
+            No accepted source-read snapshot exists for {selectedDate}; showing reads from{" "}
+            {sourceReadDate}.
+          </p>
+        ) : null}
       </header>
 
       <form className="mt-6 grid gap-3 border-y border-zinc-800 py-4 sm:grid-cols-[1fr_1fr_auto]">

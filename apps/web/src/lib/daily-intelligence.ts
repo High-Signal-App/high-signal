@@ -130,11 +130,10 @@ export function acceptedRefreshRecordsForDate(records: ProductFlowRefreshRecord[
 }
 
 export function acceptedRefreshDates(records: ProductFlowRefreshRecord[]) {
-  const dates = new Set<string>();
-  for (const record of records) {
-    if (acceptedRefreshRecordsForDate(records, recordDate(record)).length > 0) dates.add(recordDate(record));
-  }
-  return Array.from(dates).sort((a, b) => b.localeCompare(a));
+  const candidateDates = new Set(records.map(recordDate));
+  return Array.from(candidateDates)
+    .filter((date) => acceptedRefreshRecordsForDate(records, date).length > 0)
+    .sort((a, b) => b.localeCompare(a));
 }
 
 export function resolveAcceptedRefreshDate(records: ProductFlowRefreshRecord[], preferredDate?: string | null) {
