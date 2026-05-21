@@ -368,3 +368,128 @@ export const communityDigestSnapshots = sqliteTable(
     index("community_digest_snapshots_subreddit_period_idx").on(t.subreddit, t.period),
   ],
 );
+
+export const agentEvaluationAudits = sqliteTable(
+  "agent_evaluation_audits",
+  {
+    id: text("id").primaryKey(),
+    ownerId: text("owner_id").notNull(),
+    brandName: text("brand_name").notNull(),
+    brandUrl: text("brand_url").notNull(),
+    buyerMission: text("buyer_mission").notNull(),
+    targetSegment: text("target_segment"),
+    competitors: text("competitors", { mode: "json" }).notNull().default("[]"),
+    status: text("status", { enum: ["completed", "failed"] }).notNull().default("completed"),
+    overallScore: integer("overall_score").notNull().default(0),
+    recommendationSummary: text("recommendation_summary").notNull(),
+    evidenceText: text("evidence_text"),
+    evidenceUrls: text("evidence_urls", { mode: "json" }).notNull().default("[]"),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    completedAt: integer("completed_at", { mode: "timestamp" }),
+  },
+  (t) => [
+    index("agent_evaluation_audits_owner_created_idx").on(t.ownerId, t.createdAt),
+    index("agent_evaluation_audits_brand_idx").on(t.brandName),
+  ],
+);
+
+export const agentEvaluationResponses = sqliteTable(
+  "agent_evaluation_responses",
+  {
+    id: text("id").primaryKey(),
+    auditId: text("audit_id")
+      .notNull()
+      .references(() => agentEvaluationAudits.id),
+    ownerId: text("owner_id").notNull(),
+    promptKey: text("prompt_key").notNull(),
+    promptText: text("prompt_text").notNull(),
+    surface: text("surface").notNull(),
+    responseText: text("response_text").notNull(),
+    brandMentioned: integer("brand_mentioned", { mode: "boolean" }).notNull().default(false),
+    brandRecommended: integer("brand_recommended", { mode: "boolean" }).notNull().default(false),
+    competitorsMentioned: text("competitors_mentioned", { mode: "json" }).notNull().default("[]"),
+    citations: text("citations", { mode: "json" }).notNull().default("[]"),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [
+    index("agent_evaluation_responses_audit_idx").on(t.auditId),
+    index("agent_evaluation_responses_owner_idx").on(t.ownerId),
+  ],
+);
+
+export const agentEvidenceScores = sqliteTable(
+  "agent_evidence_scores",
+  {
+    id: text("id").primaryKey(),
+    auditId: text("audit_id")
+      .notNull()
+      .references(() => agentEvaluationAudits.id),
+    ownerId: text("owner_id").notNull(),
+    area: text("area").notNull(),
+    status: text("status", { enum: ["missing", "weak", "clear", "strong"] }).notNull(),
+    score: integer("score").notNull(),
+    evidenceUrls: text("evidence_urls", { mode: "json" }).notNull().default("[]"),
+    notes: text("notes").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [
+    index("agent_evidence_scores_audit_idx").on(t.auditId),
+    index("agent_evidence_scores_owner_idx").on(t.ownerId),
+  ],
+);
+
+export const agentEvidenceTasks = sqliteTable(
+  "agent_evidence_tasks",
+  {
+    id: text("id").primaryKey(),
+    auditId: text("audit_id")
+      .notNull()
+      .references(() => agentEvaluationAudits.id),
+    ownerId: text("owner_id").notNull(),
+    area: text("area").notNull(),
+    title: text("title").notNull(),
+    priority: text("priority", { enum: ["high", "medium", "low"] }).notNull(),
+    status: text("status", { enum: ["open", "done"] }).notNull().default("open"),
+    sourceUrl: text("source_url"),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [
+    index("agent_evidence_tasks_audit_idx").on(t.auditId),
+    index("agent_evidence_tasks_owner_status_idx").on(t.ownerId, t.status),
+  ],
+);
+
+export const reelBriefs = sqliteTable(
+  "reel_briefs",
+  {
+    id: text("id").primaryKey(),
+    auditId: text("audit_id")
+      .notNull()
+      .references(() => agentEvaluationAudits.id),
+    ownerId: text("owner_id").notNull(),
+    title: text("title").notNull(),
+    hook: text("hook").notNull(),
+    buyerMission: text("buyer_mission").notNull(),
+    proofPoints: text("proof_points", { mode: "json" }).notNull().default("[]"),
+    visualBeats: text("visual_beats", { mode: "json" }).notNull().default("[]"),
+    caption: text("caption").notNull(),
+    cta: text("cta").notNull(),
+    claimBoundary: text("claim_boundary").notNull(),
+    evidenceUrls: text("evidence_urls", { mode: "json" }).notNull().default("[]"),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [
+    index("reel_briefs_audit_idx").on(t.auditId),
+    index("reel_briefs_owner_idx").on(t.ownerId),
+  ],
+);

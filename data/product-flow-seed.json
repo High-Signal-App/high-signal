@@ -1,0 +1,134 @@
+{
+  "ownerId": "seed_product_flow",
+  "communities": [
+    {
+      "subreddit": "LocalLLaMA",
+      "period": "week",
+      "prompt": "Find product demand, workflow pain, budget/timing, and source-linked buyer signals for AI developer tools.",
+      "digests": [
+        {
+          "snapshotDate": "2026-05-17T00:00:00.000Z",
+          "sourceCount": 12,
+          "summaryText": "Local AI operators keep moving from model comparison toward workflow reliability: provenance, evals, routing, cost control, and repeatable agent state. This supports product ideas that turn noisy AI workflow activity into source-linked decisions rather than another chatbot.",
+          "summary": {
+            "key_trend": {
+              "title": "Operational visibility is the product pull",
+              "desc": "The recurring product signal is not simply local model quality; teams need confidence, provenance, and repeatable workflow state before they trust AI systems in production.",
+              "link": "https://www.reddit.com/r/LocalLLaMA/search/?q=observability%20evaluation%20routing%20cost&restrict_sr=1"
+            },
+            "notable_discussions": [
+              {
+                "title": "Source-linked outputs beat generic answers",
+                "desc": "Operators want to trace claims back to source material before acting on summaries, recommendations, or agent output.",
+                "link": "https://www.reddit.com/r/LocalLLaMA/search/?q=source%20provenance%20citation&restrict_sr=1"
+              },
+              {
+                "title": "Cost and routing are buying criteria",
+                "desc": "Budget ceilings, caching, model routing, and local/cloud tradeoffs show up as practical workflow constraints.",
+                "link": "https://www.reddit.com/r/LocalLLaMA/search/?q=cost%20routing%20budget%20cache&restrict_sr=1"
+              }
+            ],
+            "key_action": {
+              "title": "Test an idea with a provenance-first workflow",
+              "desc": "Prototype a report or dashboard that turns model/community/source flow into evidence-backed actions, not chat output.",
+              "link": "https://www.reddit.com/r/LocalLLaMA/"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "subreddit": "SaaS",
+      "period": "week",
+      "prompt": "Find B2B SaaS product pain, pricing sensitivity, distribution bottlenecks, and buying-intent signals.",
+      "digests": [
+        {
+          "snapshotDate": "2026-05-17T00:00:00.000Z",
+          "sourceCount": 9,
+          "summaryText": "SaaS builders repeatedly ask how to find urgent problems, prove demand before building, and choose distribution. This supports an idea-evaluation workflow that reads external signals and recommends whether to pursue, test, watch, or avoid.",
+          "summary": {
+            "key_trend": {
+              "title": "Validation before build remains the repeated pain",
+              "desc": "Founders want sharper evidence for which ideas have demand, budget, and distribution before they invest build time.",
+              "link": "https://www.reddit.com/r/SaaS/search/?q=validate%20idea%20demand%20pricing&restrict_sr=1"
+            },
+            "notable_discussions": [
+              {
+                "title": "Distribution risk is as important as product risk",
+                "desc": "Threads often shift from feature ideas to acquisition channels, competitor positioning, and proof that users will switch.",
+                "link": "https://www.reddit.com/r/SaaS/search/?q=distribution%20competitors%20switching&restrict_sr=1"
+              }
+            ],
+            "key_action": {
+              "title": "Attach every idea to a validation loop",
+              "desc": "For each idea, capture source evidence, risks, and a smallest paid/manual test before writing production code.",
+              "link": "https://www.reddit.com/r/SaaS/"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "subreddit": "startups",
+      "period": "week",
+      "prompt": "Find startup idea validation, customer discovery, budget, wedge, and timing signals.",
+      "digests": [
+        {
+          "snapshotDate": "2026-05-17T00:00:00.000Z",
+          "sourceCount": 8,
+          "summaryText": "Startup discussion keeps returning to narrow wedges, customer discovery, and evidence of pull. Product intelligence should therefore explain why an idea is timely, who feels the pain, and what test would change the decision.",
+          "summary": {
+            "key_trend": {
+              "title": "Idea quality depends on pull, not novelty",
+              "desc": "The useful signal is repeated pain and willingness to act, not whether the idea sounds interesting.",
+              "link": "https://www.reddit.com/r/startups/search/?q=customer%20discovery%20idea%20validation&restrict_sr=1"
+            },
+            "notable_discussions": [
+              {
+                "title": "Wedge clarity beats broad platforms",
+                "desc": "Founders get pushed toward narrower buyer/workflow definitions before expanding into platform claims.",
+                "link": "https://www.reddit.com/r/startups/search/?q=wedge%20customer%20workflow&restrict_sr=1"
+              }
+            ],
+            "key_action": {
+              "title": "Score ideas by evidence that can change a decision",
+              "desc": "Keep only signals that affect pursue/test/watch/avoid, and kill generic market commentary.",
+              "link": "https://www.reddit.com/r/startups/"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "subreddit": "selfhosted",
+      "period": "week",
+      "prompt": "Find self-hosted product demand around privacy, control, monitoring, cost, and operational workflows.",
+      "digests": [
+        {
+          "snapshotDate": "2026-05-17T00:00:00.000Z",
+          "sourceCount": 7,
+          "summaryText": "Self-hosted users value control, transparency, privacy, and predictable cost. This is useful product-flow evidence for tools that turn data and AI workflows into auditable, user-controlled systems.",
+          "summary": {
+            "key_trend": {
+              "title": "Control and transparency are recurring demand signals",
+              "desc": "Users prefer workflows where data sources, outputs, and system behavior can be inspected and controlled.",
+              "link": "https://www.reddit.com/r/selfhosted/search/?q=monitoring%20privacy%20control%20workflow&restrict_sr=1"
+            },
+            "notable_discussions": [
+              {
+                "title": "Operational dashboards remain sticky",
+                "desc": "Monitoring and alerting products keep showing demand when they reduce manual checking and preserve control.",
+                "link": "https://www.reddit.com/r/selfhosted/search/?q=dashboard%20monitoring%20alerts&restrict_sr=1"
+              }
+            ],
+            "key_action": {
+              "title": "Test trust-first positioning",
+              "desc": "For privacy/control audiences, emphasize local ownership, source traceability, and operational reliability.",
+              "link": "https://www.reddit.com/r/selfhosted/"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

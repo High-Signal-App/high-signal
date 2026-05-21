@@ -15,6 +15,7 @@ import {
   type WatchlistPriority,
 } from "@high-signal/shared";
 
+export const dynamic = "force-dynamic";
 export const metadata = { title: "Unified Watchlist — High Signal" };
 
 function isoDaysAgo(days: number) {

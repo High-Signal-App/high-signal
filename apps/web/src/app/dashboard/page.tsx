@@ -10,6 +10,7 @@ import { api, type ProductDashboardSnapshot } from "@/lib/api";
 import { requireSignedIn } from "@/lib/require-auth";
 import type { MentionBrandConfig, TrackedCommunity } from "@high-signal/shared";
 
+export const dynamic = "force-dynamic";
 export const metadata = { title: "Dashboard — High Signal" };
 
 const brandConfig: MentionBrandConfig = {
@@ -161,6 +162,12 @@ export default async function DashboardPage() {
         empty="No pending surfaces."
         items={[
           {
+            href: "/personal",
+            kicker: "personal usefulness / fleet command",
+            title: "Review what to build, change, watch, or pause",
+            body: "World-flow and community evidence are mapped onto the actual product graph.",
+          },
+          {
             href: "/watchlist",
             kicker: "operator queue / action digest",
             title: "Prioritize unified watchlist items",
@@ -177,6 +184,12 @@ export default async function DashboardPage() {
             kicker: "agent mode / tracked subreddits",
             title: "Productionize tracked subreddit digests",
             body: "Source-linked summaries are mapped; prompt storage, archive pages, and scheduled snapshots remain.",
+          },
+          {
+            href: "/agent-eval",
+            kicker: "agent evaluation / recommendation-worthiness",
+            title: "Run product audits against the buyer-agent checklist",
+            body: "Audit public evidence, generate missing-evidence tasks, and create proof-bound reel briefs.",
           },
         ]}
       />

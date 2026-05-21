@@ -1,0 +1,118 @@
+{
+  "owner": "sarthak",
+  "updatedAt": "2026-05-21T00:00:00.000Z",
+  "products": [
+    {
+      "slug": "high-signal",
+      "name": "High Signal",
+      "description": "Signal intelligence for what to build, what to watch, agent evaluation, communities, and high-level markets.",
+      "stage": "active",
+      "focus": "personal command system for product opportunities",
+      "terms": ["signal", "market", "community", "agent", "evidence", "product", "opportunity", "complaint", "stock"],
+      "opportunitySlugs": [
+        "agent-evaluation",
+        "workflow-observability",
+        "complaint-to-spec",
+        "local-control",
+        "market-regime-watch",
+        "developer-workflow-friction",
+        "launch-distribution",
+        "source-provenance",
+        "small-business-ops",
+        "public-consumer-shift",
+        "regional-constraint-watch"
+      ],
+      "defaultAction": "Make the weekly personal command brief useful before broadening the product."
+    },
+    {
+      "slug": "CodeVetter",
+      "name": "CodeVetter",
+      "description": "AI code review platform for personally reviewing agent-written code and finding real bugs.",
+      "stage": "active",
+      "focus": "self-first trustworthy bug-finding review",
+      "terms": ["code", "review", "agent", "bug", "workflow", "provenance", "evaluation", "developer"],
+      "opportunitySlugs": ["workflow-observability", "complaint-to-spec", "developer-workflow-friction", "source-provenance"],
+      "defaultAction": "Test whether agent-written-code complaints map to a sharper self-review workflow."
+    },
+    {
+      "slug": "saas-maker",
+      "name": "SaaS Maker",
+      "description": "Foundry and fleet cockpit for project metadata, tasks, audits, deployment visibility, and reusable SaaS infrastructure.",
+      "stage": "active",
+      "focus": "fleet operating system and execution bridge",
+      "terms": ["fleet", "tasks", "audit", "deploy", "monitor", "workflow", "project", "operator", "automation"],
+      "opportunitySlugs": ["workflow-observability", "complaint-to-spec", "agent-evaluation", "launch-distribution"],
+      "defaultAction": "Use every High Signal recommendation to create durable fleet tasks and feedback loops."
+    },
+    {
+      "slug": "free-ai",
+      "name": "free-ai",
+      "description": "OpenAI-compatible gateway for free and local LLM providers.",
+      "stage": "active",
+      "focus": "free/local AI infrastructure",
+      "terms": ["local", "free", "ai", "gateway", "model", "cost", "routing", "privacy", "control"],
+      "opportunitySlugs": ["local-control", "workflow-observability", "source-provenance"],
+      "defaultAction": "Watch local/free model trends for routing, cost-control, and privacy workflows."
+    },
+    {
+      "slug": "anime_list",
+      "name": "anime_list",
+      "description": "MAL Explorer and anime/manga browsing/list management product.",
+      "stage": "active",
+      "focus": "media discovery and list experience",
+      "terms": ["anime", "media", "list", "recommendation", "community", "search", "discovery", "viewer"],
+      "opportunitySlugs": ["complaint-to-spec"],
+      "defaultAction": "Track discovery/list complaints and avoid generic recommendation features."
+    },
+    {
+      "slug": "looptv",
+      "name": "LoopTV",
+      "description": "TV-like app for curated YouTube channels and continuous playback.",
+      "stage": "active",
+      "focus": "lean-back video curation",
+      "terms": ["video", "youtube", "curation", "playback", "channel", "catalog", "media", "attention"],
+      "opportunitySlugs": ["complaint-to-spec"],
+      "defaultAction": "Track content-count, playback, and curation failures as product-critical signals."
+    },
+    {
+      "slug": "ai-game",
+      "name": "ai-game",
+      "description": "Persistent AI world simulator and interactive RPG-style multi-agent game.",
+      "stage": "exploratory",
+      "focus": "interactive AI world simulation",
+      "terms": ["game", "agent", "world", "simulation", "interactive", "story", "memory", "video"],
+      "opportunitySlugs": ["workflow-observability", "local-control"],
+      "defaultAction": "Watch agent/game complaints around persistence, narrative control, and performance."
+    },
+    {
+      "slug": "reader",
+      "name": "reader",
+      "description": "Web annotation and document reading tool.",
+      "stage": "watch",
+      "focus": "reading and annotation workflows",
+      "terms": ["reader", "document", "annotation", "source", "research", "provenance", "workflow"],
+      "opportunitySlugs": ["complaint-to-spec", "workflow-observability"],
+      "defaultAction": "Only revive if repeated reading/annotation complaints create a specific wedge."
+    },
+    {
+      "slug": "email-manager",
+      "name": "email-manager",
+      "description": "Unified email management and automation tool.",
+      "stage": "watch",
+      "focus": "email triage and automation",
+      "terms": ["email", "automation", "workflow", "inbox", "agent", "support", "filter"],
+      "opportunitySlugs": ["agent-evaluation", "workflow-observability"],
+      "defaultAction": "Watch agent-mediated inbox and outreach filtering changes."
+    },
+    {
+      "slug": "truehire",
+      "name": "truehire",
+      "description": "AI-powered recruitment and candidate vetting platform.",
+      "stage": "watch",
+      "focus": "candidate vetting and hiring workflows",
+      "terms": ["hiring", "recruiting", "candidate", "vetting", "ai", "workflow", "proof"],
+      "opportunitySlugs": ["agent-evaluation", "complaint-to-spec"],
+      "defaultAction": "Watch hiring proof, screening, and agent-evaluation shifts before investing."
+    }
+  ]
+}

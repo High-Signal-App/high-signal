@@ -1,0 +1,511 @@
+{
+  "updatedAt": "2026-05-21T00:00:00.000Z",
+  "description": "Concise no-secret source registry for the personal command layer. These sources are intentionally small, public, and relevant; this is not broad web scraping.",
+  "sources": [
+    {
+      "id": "reddit-localllama",
+      "type": "reddit",
+      "label": "r/LocalLLaMA",
+      "target": "LocalLLaMA",
+      "period": "week",
+      "limit": 10,
+      "query": "workflow OR eval OR observability OR cost OR routing OR source OR provenance OR agent",
+      "intent": "AI developer workflow pain, local model operations, routing, cost, provenance"
+    },
+    {
+      "id": "reddit-saas",
+      "type": "reddit",
+      "label": "r/SaaS",
+      "target": "SaaS",
+      "period": "week",
+      "limit": 10,
+      "query": "validate OR problem OR pricing OR distribution OR customer OR revenue OR launch",
+      "intent": "B2B SaaS pain, pricing, distribution, validation, buyer intent"
+    },
+    {
+      "id": "reddit-startups",
+      "type": "reddit",
+      "label": "r/startups",
+      "target": "startups",
+      "period": "week",
+      "limit": 10,
+      "query": "customer discovery OR validation OR revenue model OR wedge OR pricing OR problem",
+      "intent": "startup validation, customer discovery, wedge selection, timing"
+    },
+    {
+      "id": "reddit-selfhosted",
+      "type": "reddit",
+      "label": "r/selfhosted",
+      "target": "selfhosted",
+      "period": "week",
+      "limit": 10,
+      "query": "monitoring OR privacy OR control OR dashboard OR alert OR cost OR open source",
+      "intent": "privacy, control, self-hosting, operational dashboards, cost sensitivity"
+    },
+    {
+      "id": "reddit-sideproject",
+      "type": "reddit",
+      "label": "r/SideProject",
+      "target": "SideProject",
+      "period": "week",
+      "limit": 10,
+      "query": "feedback OR launch OR users OR pricing OR problem OR validate OR distribution",
+      "intent": "launch feedback, indie product validation, distribution friction"
+    },
+    {
+      "id": "reddit-experienceddevs",
+      "type": "reddit",
+      "label": "r/ExperiencedDevs",
+      "target": "ExperiencedDevs",
+      "period": "week",
+      "limit": 8,
+      "query": "workflow OR tools OR review OR productivity OR ai OR debugging OR observability",
+      "intent": "senior developer workflow complaints and tool requirements"
+    },
+    {
+      "id": "reddit-smallbusiness",
+      "type": "reddit",
+      "label": "r/smallbusiness",
+      "target": "smallbusiness",
+      "period": "week",
+      "limit": 10,
+      "query": "cashflow OR customers OR rent OR staff OR payroll OR inventory OR reviews OR local OR marketing",
+      "intent": "small business owner pain around cashflow, customers, rent, staff, payroll, reviews, local marketing and inventory"
+    },
+    {
+      "id": "reddit-entrepreneur",
+      "type": "reddit",
+      "label": "r/Entrepreneur",
+      "target": "Entrepreneur",
+      "period": "week",
+      "limit": 10,
+      "query": "customers OR sales OR cashflow OR pricing OR marketing OR lead generation OR operations OR local",
+      "intent": "founder and owner pain around customers, sales, pricing, marketing, cashflow and business operations"
+    },
+    {
+      "id": "reddit-ecommerce",
+      "type": "reddit",
+      "label": "r/ecommerce",
+      "target": "ecommerce",
+      "period": "week",
+      "limit": 10,
+      "query": "shopify OR inventory OR ads OR conversion OR checkout OR returns OR customers OR fulfillment",
+      "intent": "ecommerce operator pain around checkout, inventory, ads, conversion, returns and fulfillment"
+    },
+    {
+      "id": "reddit-shopify",
+      "type": "reddit",
+      "label": "r/shopify",
+      "target": "shopify",
+      "period": "week",
+      "limit": 8,
+      "query": "checkout OR app OR conversion OR inventory OR fulfillment OR returns OR customer OR ads",
+      "intent": "Shopify merchant problems around apps, checkout, conversion, operations and fulfillment"
+    },
+    {
+      "id": "reddit-etsy-sellers",
+      "type": "reddit",
+      "label": "r/EtsySellers",
+      "target": "EtsySellers",
+      "period": "week",
+      "limit": 8,
+      "query": "fees OR shipping OR customer OR orders OR reviews OR inventory OR sales OR support",
+      "intent": "small seller pain around fees, shipping, orders, reviews, support, inventory and sales"
+    },
+    {
+      "id": "reddit-freelance",
+      "type": "reddit",
+      "label": "r/freelance",
+      "target": "freelance",
+      "period": "week",
+      "limit": 8,
+      "query": "clients OR invoice OR payment OR pricing OR scope OR leads OR proposal OR contract",
+      "intent": "freelancer and service business pain around clients, invoices, payment, pricing, leads and scope"
+    },
+    {
+      "id": "reddit-personalfinance",
+      "type": "reddit",
+      "label": "r/personalfinance",
+      "target": "personalfinance",
+      "period": "week",
+      "limit": 8,
+      "query": "budget OR rent OR job OR debt OR subscription OR insurance OR saving OR expensive",
+      "intent": "public consumer budget pressure, affordability, subscriptions, jobs, debt and insurance concerns"
+    },
+    {
+      "id": "reddit-povertyfinance",
+      "type": "reddit",
+      "label": "r/povertyfinance",
+      "target": "povertyfinance",
+      "period": "week",
+      "limit": 8,
+      "query": "rent OR groceries OR job OR budget OR debt OR bills OR assistance OR expensive",
+      "intent": "consumer affordability pressure around rent, groceries, jobs, bills, debt and budgeting"
+    },
+    {
+      "id": "reddit-jobs",
+      "type": "reddit",
+      "label": "r/jobs",
+      "target": "jobs",
+      "period": "week",
+      "limit": 8,
+      "query": "hiring OR interview OR application OR remote OR salary OR layoff OR recruiter OR resume",
+      "intent": "public labor market pain around hiring, applications, recruiters, salaries, layoffs and remote work"
+    },
+    {
+      "id": "reddit-india",
+      "type": "reddit",
+      "label": "r/india",
+      "target": "india",
+      "period": "week",
+      "limit": 8,
+      "query": "startup OR small business OR jobs OR rent OR traffic OR payment OR tax OR regulation",
+      "intent": "India regional constraints around jobs, rent, small business, payments, traffic, taxes and regulation"
+    },
+    {
+      "id": "reddit-bangalore",
+      "type": "reddit",
+      "label": "r/bangalore",
+      "target": "bangalore",
+      "period": "week",
+      "limit": 8,
+      "query": "traffic OR rent OR startup OR jobs OR local business OR delivery OR service OR commute",
+      "intent": "Bangalore local constraints around traffic, rent, jobs, startups, delivery, services and commute"
+    },
+    {
+      "id": "reddit-mumbai",
+      "type": "reddit",
+      "label": "r/mumbai",
+      "target": "mumbai",
+      "period": "week",
+      "limit": 8,
+      "query": "rent OR commute OR local business OR jobs OR delivery OR service OR housing OR traffic",
+      "intent": "Mumbai local constraints around rent, commute, housing, jobs, services and local businesses"
+    },
+    {
+      "id": "reddit-delhi",
+      "type": "reddit",
+      "label": "r/delhi",
+      "target": "delhi",
+      "period": "week",
+      "limit": 8,
+      "query": "pollution OR rent OR traffic OR local business OR jobs OR service OR delivery OR safety",
+      "intent": "Delhi local constraints around pollution, rent, traffic, jobs, services, safety and local businesses"
+    },
+    {
+      "id": "reddit-nyc",
+      "type": "reddit",
+      "label": "r/nyc",
+      "target": "nyc",
+      "period": "week",
+      "limit": 8,
+      "query": "rent OR small business OR restaurant OR jobs OR subway OR local OR permit OR housing",
+      "intent": "NYC local constraints around rent, small business, transit, jobs, permits, restaurants and housing"
+    },
+    {
+      "id": "reddit-bayarea",
+      "type": "reddit",
+      "label": "r/bayarea",
+      "target": "bayarea",
+      "period": "week",
+      "limit": 8,
+      "query": "rent OR startup OR jobs OR commute OR local business OR housing OR transit OR service",
+      "intent": "Bay Area regional constraints around rent, startups, jobs, commute, local business, housing and transit"
+    },
+    {
+      "id": "reddit-openai",
+      "type": "reddit",
+      "label": "r/OpenAI",
+      "target": "OpenAI",
+      "period": "week",
+      "limit": 8,
+      "query": "agent OR api OR pricing OR workflow OR tool OR memory OR citation OR search",
+      "intent": "OpenAI product changes, API complaints, agent/search behavior, workflow requirements"
+    },
+    {
+      "id": "reddit-claudeai",
+      "type": "reddit",
+      "label": "r/ClaudeAI",
+      "target": "ClaudeAI",
+      "period": "week",
+      "limit": 8,
+      "query": "agent OR api OR coding OR workflow OR tool use OR memory OR project OR artifact",
+      "intent": "Claude user pain around coding, agents, projects, tool use, memory, and workflow reliability"
+    },
+    {
+      "id": "reddit-aiagents",
+      "type": "reddit",
+      "label": "r/AI_Agents",
+      "target": "AI_Agents",
+      "period": "week",
+      "limit": 8,
+      "query": "workflow OR tool OR evaluation OR memory OR mcp OR automation OR reliability",
+      "intent": "agent workflow requirements, evaluation issues, tool use, MCP, memory and automation pain"
+    },
+    {
+      "id": "reddit-webdev",
+      "type": "reddit",
+      "label": "r/webdev",
+      "target": "webdev",
+      "period": "week",
+      "limit": 8,
+      "query": "tool OR workflow OR debugging OR deploy OR pricing OR client OR ai OR productivity",
+      "intent": "web developer workflow pain, deployment friction, AI tool adoption, client/product constraints"
+    },
+    {
+      "id": "reddit-devops",
+      "type": "reddit",
+      "label": "r/devops",
+      "target": "devops",
+      "period": "week",
+      "limit": 8,
+      "query": "monitoring OR alert OR workflow OR incident OR cost OR dashboard OR automation OR observability",
+      "intent": "ops workflow, monitoring, observability, cost, incident and automation requirements"
+    },
+    {
+      "id": "hn-agent-eval",
+      "type": "hacker-news",
+      "label": "HN: agent evaluation",
+      "target": "agent evaluation ai search product comparison",
+      "period": "week",
+      "limit": 8,
+      "intent": "world-level agent/search/product-comparison shifts"
+    },
+    {
+      "id": "hn-ai-observability",
+      "type": "hacker-news",
+      "label": "HN: AI observability",
+      "target": "LLM observability evals tracing agents cost",
+      "period": "week",
+      "limit": 8,
+      "intent": "AI workflow reliability, evals, traces, cost, monitoring"
+    },
+    {
+      "id": "hn-product-validation",
+      "type": "hacker-news",
+      "label": "HN: product validation",
+      "target": "startup product validation pricing distribution",
+      "period": "week",
+      "limit": 8,
+      "intent": "product validation, pricing, distribution, customer pull"
+    },
+    {
+      "id": "hn-small-business",
+      "type": "hacker-news",
+      "label": "HN: small business",
+      "target": "small business SaaS payments payroll ecommerce local business",
+      "period": "week",
+      "limit": 8,
+      "intent": "small business software, payments, payroll, ecommerce, local business and SMB workflow changes"
+    },
+    {
+      "id": "hn-consumer-behavior",
+      "type": "hacker-news",
+      "label": "HN: consumer behavior",
+      "target": "consumer subscriptions pricing jobs housing local services",
+      "period": "week",
+      "limit": 8,
+      "intent": "consumer budget, pricing, subscriptions, jobs, housing and local service behavior shifts"
+    },
+    {
+      "id": "hn-ai-coding-agents",
+      "type": "hacker-news",
+      "label": "HN: AI coding agents",
+      "target": "AI coding agents code review developer tools",
+      "period": "week",
+      "limit": 8,
+      "intent": "agent-written code, code review, developer tooling, workflow reliability"
+    },
+    {
+      "id": "hn-mcp-tools",
+      "type": "hacker-news",
+      "label": "HN: MCP and tools",
+      "target": "MCP tools agents tool use integration",
+      "period": "week",
+      "limit": 8,
+      "intent": "agent tool integrations, MCP adoption, auth, reliability, developer workflow requirements"
+    },
+    {
+      "id": "hn-rag-citations",
+      "type": "hacker-news",
+      "label": "HN: RAG citations",
+      "target": "RAG citations hallucination retrieval provenance",
+      "period": "week",
+      "limit": 8,
+      "intent": "source provenance, retrieval quality, hallucination and citation concerns"
+    },
+    {
+      "id": "github-llm-observability",
+      "type": "github-issues",
+      "label": "GitHub issues: LLM observability",
+      "target": "LLM observability tracing evals agent cost",
+      "period": "month",
+      "limit": 8,
+      "intent": "developer complaints that show up as issues around LLM reliability and traces"
+    },
+    {
+      "id": "github-rag-provenance",
+      "type": "github-issues",
+      "label": "GitHub issues: RAG provenance",
+      "target": "RAG citations provenance source links hallucination",
+      "period": "month",
+      "limit": 8,
+      "intent": "source citation, provenance, hallucination and retrieval complaints"
+    },
+    {
+      "id": "github-local-ai",
+      "type": "github-issues",
+      "label": "GitHub issues: local AI",
+      "target": "local AI privacy offline model routing cost",
+      "period": "month",
+      "limit": 8,
+      "intent": "local AI, privacy, offline control, routing and cost requirements"
+    },
+    {
+      "id": "github-mcp-tools",
+      "type": "github-issues",
+      "label": "GitHub issues: MCP and tools",
+      "target": "MCP server tool use auth agents integration error",
+      "period": "month",
+      "limit": 8,
+      "intent": "agent tool integration failures, MCP server auth, reliability and setup complaints"
+    },
+    {
+      "id": "github-copilot-review",
+      "type": "github-issues",
+      "label": "GitHub issues: Copilot review",
+      "target": "Copilot code review bug suggestion workflow",
+      "period": "month",
+      "limit": 8,
+      "intent": "AI code review complaints, review workflow gaps, suggested change quality"
+    },
+    {
+      "id": "github-rag-retrieval",
+      "type": "github-issues",
+      "label": "GitHub issues: RAG retrieval",
+      "target": "RAG retrieval citation source hallucination chunking",
+      "period": "month",
+      "limit": 8,
+      "intent": "retrieval and citation failures that create source-provenance requirements"
+    },
+    {
+      "id": "github-otel-ai",
+      "type": "github-issues",
+      "label": "GitHub issues: AI observability",
+      "target": "OpenTelemetry LLM tracing metrics agents observability",
+      "period": "month",
+      "limit": 8,
+      "intent": "LLM tracing, metrics, observability, evaluation and agent workflow instrumentation"
+    },
+    {
+      "id": "rss-openai-news",
+      "type": "rss",
+      "label": "OpenAI news",
+      "target": "https://openai.com/news/rss.xml",
+      "period": "month",
+      "limit": 8,
+      "query": "agent agents search model api reasoning evals safety enterprise",
+      "intent": "primary-source model, agent, API, and product changes that can create new product requirements"
+    },
+    {
+      "id": "rss-anthropic-release-notes",
+      "type": "rss",
+      "label": "Anthropic release notes",
+      "target": "https://platform.claude.com/docs/en/release-notes/rss.xml",
+      "period": "month",
+      "limit": 8,
+      "query": "agent tool use computer use model api evals citations",
+      "intent": "primary-source Claude/API changes affecting agent workflows, tools, citations, and product expectations"
+    },
+    {
+      "id": "rss-cloudflare-blog",
+      "type": "rss",
+      "label": "Cloudflare blog",
+      "target": "https://blog.cloudflare.com/rss/",
+      "period": "month",
+      "limit": 8,
+      "query": "workers ai agents vectorize durable objects security developer platform",
+      "intent": "primary-source infrastructure and developer-platform changes relevant to app requirements"
+    },
+    {
+      "id": "rss-github-changelog",
+      "type": "rss",
+      "label": "GitHub changelog",
+      "target": "https://github.blog/changelog/feed/",
+      "period": "month",
+      "limit": 8,
+      "query": "copilot actions code review issues security api workflow",
+      "intent": "primary-source developer workflow and platform changes around GitHub, Copilot, issues, and CI"
+    },
+    {
+      "id": "rss-google-developers",
+      "type": "rss",
+      "label": "Google Developers blog",
+      "target": "https://feeds.feedburner.com/GDBcode",
+      "period": "month",
+      "limit": 8,
+      "query": "ai search gemini agent developer api model workflow",
+      "intent": "primary-source Google AI, search, Gemini, developer platform and API changes"
+    },
+    {
+      "id": "rss-stripe-blog",
+      "type": "rss",
+      "label": "Stripe blog",
+      "target": "https://stripe.com/blog/feed.rss",
+      "period": "month",
+      "limit": 8,
+      "query": "checkout billing pricing ai agent payments platform developer",
+      "intent": "primary-source payments, billing, checkout and commerce infrastructure changes"
+    },
+    {
+      "id": "rss-shopify-changelog",
+      "type": "rss",
+      "label": "Shopify changelog",
+      "target": "https://shopify.dev/changelog/feed.xml",
+      "period": "month",
+      "limit": 8,
+      "query": "checkout app api payments catalog storefront ai commerce",
+      "intent": "primary-source commerce platform changes affecting agentic commerce and app requirements"
+    },
+    {
+      "id": "rss-google-news-smb",
+      "type": "rss",
+      "label": "Google News: small business operations",
+      "target": "https://news.google.com/rss/search?q=small%20business%20cashflow%20rent%20hiring%20inventory%20customers&hl=en-US&gl=US&ceid=US:en",
+      "period": "week",
+      "limit": 8,
+      "query": "small business cashflow rent hiring inventory customers",
+      "intent": "current news about small-business operations, cashflow, rent, hiring, inventory and customer demand"
+    },
+    {
+      "id": "rss-google-news-india-startups",
+      "type": "rss",
+      "label": "Google News: India startups and SMB",
+      "target": "https://news.google.com/rss/search?q=India%20startup%20small%20business%20funding%20jobs%20payments%20regulation&hl=en-IN&gl=IN&ceid=IN:en",
+      "period": "week",
+      "limit": 8,
+      "query": "India startup small business funding jobs payments regulation",
+      "intent": "India startup and small-business news around funding, jobs, payments, regulation and regional constraints"
+    },
+    {
+      "id": "rss-google-news-consumer-pressure",
+      "type": "rss",
+      "label": "Google News: consumer pressure",
+      "target": "https://news.google.com/rss/search?q=consumer%20spending%20rent%20jobs%20subscriptions%20prices%20budget&hl=en-US&gl=US&ceid=US:en",
+      "period": "week",
+      "limit": 8,
+      "query": "consumer spending rent jobs subscriptions prices budget",
+      "intent": "consumer affordability, spending, jobs, rent, subscriptions, prices and budget pressure"
+    },
+    {
+      "id": "rss-google-news-regional-india",
+      "type": "rss",
+      "label": "Google News: India regional issues",
+      "target": "https://news.google.com/rss/search?q=India%20city%20traffic%20rent%20jobs%20pollution%20local%20business&hl=en-IN&gl=IN&ceid=IN:en",
+      "period": "week",
+      "limit": 8,
+      "query": "India city traffic rent jobs pollution local business",
+      "intent": "India city and regional issues around traffic, rent, jobs, pollution and local businesses"
+    }
+  ]
+}

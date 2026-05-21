@@ -12,6 +12,12 @@ High Signal becomes the umbrella product:
 
 The existing `mentionpilot` and `agentMode` repos become source repositories for migration. They should not remain independent products once the relevant capabilities are rebuilt or ported into this repo.
 
+The product direction also expands to cover the new marketing split:
+
+> Win human attention, then win agent evaluation.
+
+High Signal should not become a generic reel generator. It should evaluate whether a brand is recommendable by agents, identify the missing public evidence, and generate short-form briefs only when they are grounded in the same evidence layer.
+
 ## Product map
 
 ### 1. Mention Intelligence
@@ -41,7 +47,7 @@ Do not keep unchanged:
 Source repo: `/Users/sarthakagrawal/Desktop/Fleet/agentMode`
 
 Job:
-- Track subreddits and other communities for emerging pain, demand, objections, product ideas, competitor mentions, and narrative shifts.
+- Track subreddits and other communities for emerging pain, smaller app requirements, common complaints, demand, objections, product ideas, competitor mentions, and narrative shifts.
 - Produce source-linked summaries, digests, and alertable signals.
 
 Keep:
@@ -63,7 +69,8 @@ Do not keep unchanged:
 Source repo: current `high-signal`
 
 Job:
-- Track evidence-backed company, sector, and market signals with entity graphs, confidence bands, source bundles, and hit-rate tracking.
+- Track evidence-backed company, sector, stock, and market signals with entity graphs, confidence bands, source bundles, and hit-rate tracking.
+- Cover national and international stocks at a high level first: direction, affected names, sector pressure, spillover, and watch/ignore guidance.
 - Remain public and evidence-first where possible because the public ledger is a trust moat.
 
 Keep:
@@ -77,6 +84,32 @@ Keep:
 
 Change:
 - The AI-infra / semiconductors wedge becomes the first public market collection, not the only long-term product scope.
+- Add Indian public markets as the first national stock watch and US/global markets as the first international watch, but avoid deep single-stock research until high-level signal quality is stable.
+
+### 4. Agent Evaluation Intelligence
+
+Source repo: current `high-signal` plus the future Mention Intelligence migration
+
+Job:
+- Evaluate whether a company, product, or offer is legible, credible, and recommendable to AI assistants, buyer agents, search AI surfaces, and comparison workflows.
+- Turn the strongest evidence and point of view into short-form reel briefs that can win a human's first attention slice before they ask an agent to validate the option.
+
+Keep:
+- Prompt-based AI mention checks from Mention Intelligence.
+- Evidence-first signal cards, citations, and review gates.
+- Community objections, pain, and competitor mentions as negative/positive evidence.
+- Product-flow idea evaluation where it helps define who the offer is for and why it should win.
+
+Add:
+- `agent_evaluation_audit`: assistant answers, recommendation status, cited sources, competitor set, missing evidence, ambiguity penalties, and suggested fixes.
+- `evidence_layer_score`: pricing clarity, proof specificity, comparison coverage, docs quality, policies, integrations, support terms, reviews, third-party validation, and public complaints.
+- `reel_brief`: hook, angle, proof points, visual beats, CTA, claim boundaries, target segment, and linked evidence bundle.
+- Monitoring prompts such as "best tools for X", "compare A vs B", "is X good", "alternatives to X", "complaints about X", and "who should not use X".
+
+Do not add:
+- A generic social scheduler.
+- Mass AI content generation.
+- Reel scripts that invent proof or outrun the evidence layer.
 
 ## Unified domain model
 
@@ -92,6 +125,9 @@ Build toward these core concepts:
 - `run`: ingestion, AI extraction, scoring, or scheduled job audit record.
 - `digest`: scheduled rollup of signals for a collection.
 - `action`: recommended or executed next step; starts as suggested action, later can become agentic execution.
+- `product_opportunity`: world-level change plus app requirement or complaint cluster, translated into what product should be built, for whom, why now, and what to validate next.
+- `agent_evaluation_audit`: structured result of asking agents and search AI surfaces to compare, validate, or reject a brand/offer.
+- `reel_brief`: evidence-backed short-form content plan tied to one collection, audience, and claim boundary.
 
 ## Architecture direction
 
@@ -103,6 +139,10 @@ apps/web
   /mentions       company and brand intelligence
   /communities    subreddit/community intelligence
   /markets        public market/entity intelligence
+  /opportunities  proactive product ideas from world changes and complaints
+  /personal       personal product graph mapped to build/change/watch actions
+  /agent-eval     agent-readiness audits and evidence fixes
+  /reels          evidence-backed short-form briefs
   /signals        unified signal feed
   /review         human review queue
 
@@ -133,10 +173,11 @@ python/ingest
 
 ### Phase 1 — Shell and navigation
 
-- Reframe the web app around High Signal with three product areas:
+- Reframe the web app around High Signal with four product areas:
   - Mentions
   - Communities
   - Markets
+  - Agent Evaluation
 - Keep the current Market Intelligence pages working.
 - Add empty or read-only placeholder routes only if they help migration sequencing.
 
@@ -165,6 +206,15 @@ python/ingest
 - Normalize outputs from Mentions, Communities, and Markets into a single signal feed.
 - Add filters by collection, source, entity, confidence, and signal type.
 - Add action recommendations as a first-class field.
+- Add a proactive opportunity view that answers what should be built from world-level changes, smaller app requirements, and repeated complaint clusters.
+
+### Phase 5a — Agent Evaluation wedge
+
+- Add a narrow audit workflow for one brand or product: target segment, URL, competitors, and buyer mission.
+- Run a fixed prompt matrix across assistants/search AI where available, plus local scoring over pages, docs, pricing, FAQs, policies, reviews, and community mentions.
+- Output a recommendation-worthiness report: what agents say, what evidence they cite, what they miss, why they would not recommend the product, and the highest-leverage fixes.
+- Generate 3-5 reel briefs from only the strongest verified claims: one point of view, one proof object, one target buyer, one CTA.
+- Feed missing-evidence tasks into the review/task workflow before generating more content.
 
 ### Phase 6 — Archive old repos
 
@@ -183,9 +233,12 @@ python/ingest
 ## Acceptance criteria for "consolidated"
 
 - High Signal is the only outward-facing brand.
-- Mentions, Communities, and Markets are visible as product areas in one app shell.
+- Mentions, Communities, Markets, and Agent Evaluation are visible as product areas in one app shell.
+- Product Opportunity Radar can generate build suggestions from existing market/community/mention evidence.
+- Personal Command Brief can map those suggestions onto the user's actual product fleet.
 - AgentMode's Reddit capability exists inside Community Intelligence.
 - Mentionpilot's AI visibility/company monitoring exists inside Mention Intelligence.
+- Agent Evaluation can produce a recommendation-worthiness audit and evidence-backed reel briefs for a single product.
 - Market Intelligence still has evidence-backed signal cards and track-record behavior.
 - Old repos are archived only after the migrated features are verified.
 

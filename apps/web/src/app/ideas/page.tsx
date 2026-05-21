@@ -6,6 +6,7 @@ import {
   MetricGrid,
   PageShell,
   Panel,
+  RouteList,
   SectionHeader,
 } from "@/components/system/HighSignalUI";
 import { api, type SignalRow } from "@/lib/api";
@@ -29,7 +30,7 @@ const fallbackFlows: IdeaFlowEvidence[] = [
     title: "Operators ask for source-linked workflow monitoring",
     summary:
       "Community discussion keeps moving from broad AI hype into monitoring, provenance, repeatable workflows, and cost control.",
-    href: "/discover",
+    href: "/communities",
     observedAt: "2026-05-01T00:00:00.000Z",
     confidence: "medium",
   },
@@ -46,10 +47,10 @@ const fallbackFlows: IdeaFlowEvidence[] = [
   {
     id: "fallback-market-proof",
     source: "market",
-    title: "Market products need evidence trails and hit-rate memory",
+    title: "Market products need evidence trails and source memory",
     summary:
-      "The strongest wedge is not raw prediction; it is a versioned signal ledger with evidence, confidence, and outcomes.",
-    href: "/track-record",
+      "The strongest wedge is not raw prediction; it is a versioned signal ledger with evidence and confidence.",
+    href: "/signals",
     observedAt: "2026-05-01T00:00:00.000Z",
     confidence: "high",
   },
@@ -124,6 +125,16 @@ export default async function IdeasPage({
         Put in a product idea. High Signal checks it against market, community, mention, and
         resource flow so the output is a decision: pursue, test, watch, or avoid.
       </SectionHeader>
+
+      <RouteList
+        items={[
+          {
+            href: "/opportunities",
+            title: "what should be built",
+            sub: "proactive product opportunities",
+          },
+        ]}
+      />
 
       <section className="mt-10 grid gap-8 md:grid-cols-[0.9fr_1.1fr]">
         <Panel eyebrow="input" title="Product idea">

@@ -1,0 +1,44 @@
+{
+  "updatedAt": "2026-05-21T00:00:00.000Z",
+  "description": "High-level national and international market watch for personal product timing. This is product context, not stock advice.",
+  "groups": [
+    {
+      "id": "us-market-beta",
+      "title": "US market risk appetite",
+      "region": "national",
+      "thesis": "Broad US risk-on/risk-off movement changes appetite for new SaaS spending, AI tooling, and experimental product bets.",
+      "productImplication": "When broad US growth/risk appetite weakens, prioritize immediate ROI, cost control, and evidence-backed buyer proof over speculative new surfaces.",
+      "tickers": [
+        { "symbol": "SPY", "name": "S&P 500 ETF", "stooqSymbol": "spy.us", "role": "broad US market" },
+        { "symbol": "QQQ", "name": "Nasdaq 100 ETF", "stooqSymbol": "qqq.us", "role": "US growth and AI software beta" },
+        { "symbol": "IWM", "name": "Russell 2000 ETF", "stooqSymbol": "iwm.us", "role": "small-cap risk appetite" }
+      ]
+    },
+    {
+      "id": "us-ai-infra",
+      "title": "US AI infrastructure bellwethers",
+      "region": "national",
+      "thesis": "AI infrastructure equities are a fast proxy for whether the market is rewarding compute, chips, cloud, and model-platform expansion.",
+      "productImplication": "Strength supports AI-infra and agent-evaluation narratives; weakness pushes High Signal toward cost control, proof, and practical workflow value.",
+      "tickers": [
+        { "symbol": "NVDA", "name": "NVIDIA", "stooqSymbol": "nvda.us", "role": "accelerator demand" },
+        { "symbol": "AMD", "name": "AMD", "stooqSymbol": "amd.us", "role": "accelerator competition" },
+        { "symbol": "AVGO", "name": "Broadcom", "stooqSymbol": "avgo.us", "role": "custom silicon and networking" },
+        { "symbol": "MSFT", "name": "Microsoft", "stooqSymbol": "msft.us", "role": "cloud and AI platform spending" }
+      ]
+    },
+    {
+      "id": "international-ai-supply-chain",
+      "title": "International AI supply chain",
+      "region": "international",
+      "thesis": "International semiconductor and platform bellwethers show whether AI demand is broadening outside US mega-cap narratives.",
+      "productImplication": "When international AI supply-chain names move together, High Signal should look for cross-border supply, policy, and capex signals before recommending market-intelligence builds.",
+      "tickers": [
+        { "symbol": "TSM", "name": "TSMC ADR", "stooqSymbol": "tsm.us", "role": "foundry demand" },
+        { "symbol": "ASML", "name": "ASML ADR", "stooqSymbol": "asml.us", "role": "lithography bottleneck" },
+        { "symbol": "ARM", "name": "Arm Holdings ADR", "stooqSymbol": "arm.us", "role": "architecture and licensing" },
+        { "symbol": "SAP", "name": "SAP ADR", "stooqSymbol": "sap.us", "role": "international enterprise software demand" }
+      ]
+    }
+  ]
+}

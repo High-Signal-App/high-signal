@@ -3,10 +3,10 @@ name: Deploy web
 on:
   push:
     branches: [main]
-    paths: ["apps/web/**", "packages/**"]
+    paths: ["apps/web/**", "packages/**", "data/**", "reports/personal/**"]
   pull_request:
     branches: [main]
-    paths: ["apps/web/**", "packages/**"]
+    paths: ["apps/web/**", "packages/**", "data/**", "reports/personal/**"]
   workflow_dispatch:
 
 jobs:

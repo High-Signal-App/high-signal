@@ -1,0 +1,43 @@
+name: personal-brief
+
+on:
+  schedule:
+    - cron: "30 7 * * *" # daily 07:30 UTC, after source ingest cron
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  refresh-personal-brief:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Refresh personal source evidence
+        run: pnpm personal:brief refresh-sources
+
+      - name: Refresh personal market context
+        run: pnpm personal:brief refresh-markets
+
+      - name: Write daily personal report
+        run: pnpm personal:brief report
+
+      - name: Commit refreshed personal brief data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data reports/personal
+          if git diff --cached --quiet; then
+            echo "No personal brief changes to commit."
+          else
+            git commit -m "chore: refresh personal brief"
+            git push
+          fi

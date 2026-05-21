@@ -46,6 +46,18 @@ Default cadence:
 - Daily 22:30 UTC: score matured signals
 - Manual backfill: `gdelt,edgar` first, then widen only after review quality is stable
 
+Stock scope:
+
+- Track Indian public markets as the national watch layer.
+- Track US/global names and sectors as the international watch layer.
+- Keep the first pass high level: direction, confidence, affected names, sector pressure, and watch/ignore guidance.
+- Do not expand into deep valuation models, full analyst reports, or exhaustive single-stock research yet.
+
+Product opportunity handoff:
+
+- When a market or world-level change implies a new constraint, buyer urgency, budget shift, regulatory requirement, or workflow breakage, it should feed `/opportunities`.
+- The output should say what product might need to be built, who it is for, why now, and what evidence or complaint cluster supports it.
+
 ### Mention Intelligence
 
 Generate product data, not public market signals yet.
@@ -67,6 +79,14 @@ Not launch-ready as unified signals until the outcome metric is defined:
 ### Community Intelligence
 
 Generate source-linked digests, not public market signals yet.
+
+Community Intelligence should also observe smaller app requirements and common complaints:
+
+- repeated missing features
+- common workflow friction
+- support or setup complaints
+- requests for integrations, control, monitoring, pricing clarity, privacy, or reliability
+- repeated "how do I do X" questions that imply an app/tool gap
 
 Ready now:
 
@@ -168,6 +188,7 @@ Do not expand launch positioning around these yet:
 - broad Indian markets
 - mobile or Slack/Discord alerts
 - generalized multi-wedge market intelligence
+- deep single-stock research before the high-level national/international watch layer works
 
 These can wait until the AI-infra market collection has a stable daily review
 queue and enough scored outcomes to make the track record meaningful.

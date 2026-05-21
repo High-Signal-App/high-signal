@@ -7,13 +7,16 @@ Also read and follow the shared fleet-level agent standard at `../AGENTS.md`. Tr
 ## Purpose
 **High Signal is the umbrella product for extracting actionable signals from noisy public and semi-public information streams.** The current AI-infra / semiconductors signal log remains the first Market Intelligence collection, but it is no longer the whole product direction.
 
-Full product brief: `SPEC.md`. Active top-level build plan: `plans/0004-platform-consolidation.md`. Market artifact plan: `plans/0001-research-artifact-first.md`.
+Full product brief: `SPEC.md`. Active top-level build plan: `plans/0004-platform-consolidation.md`. Agent evaluation plan: `plans/0006-agent-evaluation-attention-layer.md`. Market artifact plan: `plans/0001-research-artifact-first.md`.
 
 ## Locked decisions
 - **Umbrella brand**: High Signal
-- **Sub-products**: Mention Intelligence, Community Intelligence, Market Intelligence
+- **Sub-products**: Mention Intelligence, Community Intelligence, Market Intelligence, Agent Evaluation Intelligence
 - **Migration sources**: Mention Intelligence from `/Users/sarthakagrawal/Desktop/Fleet/mentionpilot`; Community Intelligence from `/Users/sarthakagrawal/Desktop/Fleet/agentMode`
 - **First Market Intelligence wedge**: AI infra / semiconductors
+- **Market scope**: high-level national and international stock/sector watch; no deep single-stock research until the signal pipeline is mature
+- **Product opportunity scope**: High Signal should proactively say what products need to be built because world-level changes, smaller app requirements, and common complaint clusters create new demand
+- **First Agent Evaluation wedge**: agent-readiness audits for startups/SaaS/products, paired with evidence-backed reel briefs that translate the audit into human attention hooks
 - **Market horizon**: weekly digest + on-event signal cards
 - **Market output channels**: public web page + RSS + Twitter thread per signal + weekly Substack digest
 - **Codename**: `high-signal` (rebrand TBD post-traction; collision with High Signal Labs / HQ)
@@ -63,6 +66,8 @@ research/              # Domain notes, source experiments, prompt drafts, market
 - **Confidence as a band** — `low` / `medium` / `high`, calibrated post-hoc against hit-rate
 - **Public hit-rate ledger from day 1** — moat that competitors can't copy without rebuilding
 - **Manual review queue** — first 4 weeks, every signal + every new graph edge gates through human review
+- **World change → product opportunity** — major changes and repeated app complaints should become concrete product ideas with target user, why-now, evidence, and next validation step
+- **Human attention + agent evaluation** — short-form content earns consideration; structured evidence earns recommendation
 
 ## UI direction (locked)
 **Futurist + very clean.** Visual credibility = signal credibility.
@@ -93,6 +98,7 @@ Reuse user's `@saas-maker/*` packages instead of rebuilding:
 ## Out of scope (resist)
 - Multi-wedge expansion before hit-rate is real
 - Agent UI / chat-over-docs (saturated by AlphaSense, Brightwave, Hebbia)
+- Generic reel generation without evidence, positioning, or agent-readiness scoring
 - Licensed datasets (premature)
 - Vector retrieval (defer until evidence search is the bottleneck)
 - Paid SaaS, billing, multi-tenancy

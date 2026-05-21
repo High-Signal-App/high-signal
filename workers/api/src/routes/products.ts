@@ -5,15 +5,26 @@ import { BADGE_WIDGET_JS } from "../lib/badge-widget";
 import { generateCommunityDigest } from "../lib/community-research";
 import { searchExternalMentions } from "../lib/external-monitors";
 import { runMentionCheck } from "../lib/mention-execution";
-import { normalizeCommunitySummary } from "@high-signal/shared";
+import { buildAgentEvaluationAudit, normalizeCommunitySummary } from "@high-signal/shared";
 import type {
+  AgentEvaluationAudit,
+  AgentEvaluationAuditDetail,
+  AgentEvaluationCompetitor,
   AIPlatform,
   CompetitorProfile,
   CommunityDigestSnapshot,
   CommunitySummary,
+  EvidenceScoreStatus,
+  AgentAuditStatus,
+  AgentTaskPriority,
+  AgentTaskStatus,
   MentionBrandConfig,
   MentionCheck,
   MentionPrompt,
+  PersistedAgentPromptResult,
+  PersistedEvidenceLayerScore,
+  PersistedMissingEvidenceTask,
+  PersistedReelBrief,
   ProductDashboardSnapshot,
   TrackedCommunity,
 } from "@high-signal/shared";
@@ -49,6 +60,15 @@ type NewDigestBody = Partial<{
   promptUsed: string;
   sourceCount: number;
   snapshotDate: string;
+}>;
+type NewAgentAuditBody = Partial<{
+  brandName: string;
+  brandUrl: string;
+  buyerMission: string;
+  targetSegment: string | null;
+  competitors: AgentEvaluationCompetitor[];
+  evidenceText: string | null;
+  evidenceUrls: string[];
 }>;
 
 export const productsRoute = new Hono<{ Bindings: Env }>();
@@ -101,6 +121,126 @@ productsRoute.get("/dashboard", async (c) => {
       latestDigests,
     }),
   );
+});
+
+productsRoute.get("/agent-eval/audits", async (c) => {
+  const ownerId = requireOwner(c);
+  if (!ownerId) return c.json({ error: "missing_owner" }, 400);
+
+  const rows = await db(c.env.DB)
+    .select()
+    .from(schema.agentEvaluationAudits)
+    .where(eq(schema.agentEvaluationAudits.ownerId, ownerId))
+    .orderBy(desc(schema.agentEvaluationAudits.createdAt))
+    .limit(clampedLimit(c.req.query("limit"), 10, 50));
+
+  return c.json({ audits: rows.map(toAgentEvaluationAudit) });
+});
+
+productsRoute.post("/agent-eval/audits", async (c) => {
+  const ownerId = requireOwner(c);
+  if (!ownerId) return c.json({ error: "missing_owner" }, 400);
+
+  const body = await safeJson<NewAgentAuditBody>(c.req);
+  const parsed = parseAgentAuditInput(ownerId, body);
+  if ("error" in parsed) return c.json({ error: parsed.error }, 400);
+
+  const result = buildAgentEvaluationAudit(parsed.input);
+  const now = new Date();
+  const auditId = crypto.randomUUID();
+  const database = db(c.env.DB);
+
+  const [audit] = await database
+    .insert(schema.agentEvaluationAudits)
+    .values({
+      id: auditId,
+      ownerId,
+      brandName: parsed.input.brandName,
+      brandUrl: parsed.input.brandUrl,
+      buyerMission: parsed.input.buyerMission,
+      targetSegment: parsed.input.targetSegment ?? null,
+      competitors: parsed.input.competitors ?? [],
+      status: "completed",
+      overallScore: result.overallScore,
+      recommendationSummary: result.recommendationSummary,
+      evidenceText: parsed.input.evidenceText ?? null,
+      evidenceUrls: parsed.input.evidenceUrls ?? [],
+      createdAt: now,
+      completedAt: now,
+    })
+    .returning();
+
+  await database.insert(schema.agentEvaluationResponses).values(
+    result.prompts.map((prompt) => ({
+      id: crypto.randomUUID(),
+      auditId,
+      ownerId,
+      promptKey: prompt.promptKey,
+      promptText: prompt.promptText,
+      surface: prompt.surface,
+      responseText: prompt.responseText,
+      brandMentioned: prompt.brandMentioned,
+      brandRecommended: prompt.brandRecommended,
+      competitorsMentioned: prompt.competitorsMentioned,
+      citations: prompt.citations,
+      createdAt: now,
+    })),
+  );
+  await database.insert(schema.agentEvidenceScores).values(
+    result.scores.map((score) => ({
+      id: crypto.randomUUID(),
+      auditId,
+      ownerId,
+      area: score.area,
+      status: score.status,
+      score: score.score,
+      evidenceUrls: score.evidenceUrls,
+      notes: score.notes,
+      createdAt: now,
+    })),
+  );
+  if (result.tasks.length) {
+    await database.insert(schema.agentEvidenceTasks).values(
+      result.tasks.map((task) => ({
+        id: crypto.randomUUID(),
+        auditId,
+        ownerId,
+        area: task.area,
+        title: task.title,
+        priority: task.priority,
+        status: task.status,
+        sourceUrl: task.sourceUrl ?? null,
+        createdAt: now,
+      })),
+    );
+  }
+  await database.insert(schema.reelBriefs).values(
+    result.reelBriefs.map((brief) => ({
+      id: crypto.randomUUID(),
+      auditId,
+      ownerId,
+      title: brief.title,
+      hook: brief.hook,
+      buyerMission: brief.buyerMission,
+      proofPoints: brief.proofPoints,
+      visualBeats: brief.visualBeats,
+      caption: brief.caption,
+      cta: brief.cta,
+      claimBoundary: brief.claimBoundary,
+      evidenceUrls: brief.evidenceUrls,
+      createdAt: now,
+    })),
+  );
+
+  return c.json(await loadAgentEvaluationAudit(c.env.DB, ownerId, audit.id), 201);
+});
+
+productsRoute.get("/agent-eval/audits/:id", async (c) => {
+  const ownerId = requireOwner(c);
+  if (!ownerId) return c.json({ error: "missing_owner" }, 400);
+  const detail = await loadAgentEvaluationAudit(c.env.DB, ownerId, c.req.param("id"));
+  if (!detail) return c.json({ error: "not_found" }, 404);
+  return c.json(detail);
 });
 
 productsRoute.get("/mentions/configs", async (c) => {
@@ -599,6 +739,134 @@ function toCommunityDigestSnapshot(
   };
 }
 
+function toAgentEvaluationAudit(
+  row: typeof schema.agentEvaluationAudits.$inferSelect,
+): AgentEvaluationAudit {
+  return {
+    id: row.id,
+    ownerId: row.ownerId,
+    brandName: row.brandName,
+    brandUrl: row.brandUrl,
+    buyerMission: row.buyerMission,
+    targetSegment: row.targetSegment,
+    competitors: objectArray<AgentEvaluationCompetitor>(row.competitors).filter((item) =>
+      Boolean(item.name),
+    ),
+    status: row.status as AgentAuditStatus,
+    overallScore: row.overallScore,
+    recommendationSummary: row.recommendationSummary,
+    evidenceText: row.evidenceText,
+    evidenceUrls: stringArray(row.evidenceUrls),
+    createdAt: row.createdAt.toISOString(),
+    completedAt: row.completedAt?.toISOString() ?? null,
+  };
+}
+
+function toAgentPromptResult(
+  row: typeof schema.agentEvaluationResponses.$inferSelect,
+): PersistedAgentPromptResult {
+  return {
+    id: row.id,
+    auditId: row.auditId,
+    promptKey: row.promptKey,
+    promptText: row.promptText,
+    surface: row.surface,
+    responseText: row.responseText,
+    brandMentioned: row.brandMentioned,
+    brandRecommended: row.brandRecommended,
+    competitorsMentioned: objectArray<AgentEvaluationCompetitor>(row.competitorsMentioned).filter(
+      (item) => Boolean(item.name),
+    ),
+    citations: stringArray(row.citations),
+    createdAt: row.createdAt.toISOString(),
+  };
+}
+
+function toEvidenceLayerScore(
+  row: typeof schema.agentEvidenceScores.$inferSelect,
+): PersistedEvidenceLayerScore {
+  return {
+    id: row.id,
+    auditId: row.auditId,
+    area: row.area,
+    status: row.status as EvidenceScoreStatus,
+    score: row.score,
+    evidenceUrls: stringArray(row.evidenceUrls),
+    notes: row.notes,
+    createdAt: row.createdAt.toISOString(),
+  };
+}
+
+function toMissingEvidenceTask(
+  row: typeof schema.agentEvidenceTasks.$inferSelect,
+): PersistedMissingEvidenceTask {
+  return {
+    id: row.id,
+    auditId: row.auditId,
+    area: row.area,
+    title: row.title,
+    priority: row.priority as AgentTaskPriority,
+    status: row.status as AgentTaskStatus,
+    sourceUrl: row.sourceUrl,
+    createdAt: row.createdAt.toISOString(),
+  };
+}
+
+function toReelBrief(row: typeof schema.reelBriefs.$inferSelect): PersistedReelBrief {
+  return {
+    id: row.id,
+    auditId: row.auditId,
+    title: row.title,
+    hook: row.hook,
+    buyerMission: row.buyerMission,
+    proofPoints: stringArray(row.proofPoints),
+    visualBeats: stringArray(row.visualBeats),
+    caption: row.caption,
+    cta: row.cta,
+    claimBoundary: row.claimBoundary,
+    evidenceUrls: stringArray(row.evidenceUrls),
+    createdAt: row.createdAt.toISOString(),
+  };
+}
+
+async function loadAgentEvaluationAudit(
+  d1: D1Database,
+  ownerId: string,
+  id: string,
+): Promise<AgentEvaluationAuditDetail | null> {
+  const database = db(d1);
+  const [audit] = await database
+    .select()
+    .from(schema.agentEvaluationAudits)
+    .where(and(eq(schema.agentEvaluationAudits.ownerId, ownerId), eq(schema.agentEvaluationAudits.id, id)))
+    .limit(1);
+  if (!audit) return null;
+
+  const [prompts, scores, tasks, reelBriefs] = await Promise.all([
+    database
+      .select()
+      .from(schema.agentEvaluationResponses)
+      .where(eq(schema.agentEvaluationResponses.auditId, id)),
+    database
+      .select()
+      .from(schema.agentEvidenceScores)
+      .where(eq(schema.agentEvidenceScores.auditId, id)),
+    database
+      .select()
+      .from(schema.agentEvidenceTasks)
+      .where(eq(schema.agentEvidenceTasks.auditId, id)),
+    database.select().from(schema.reelBriefs).where(eq(schema.reelBriefs.auditId, id)),
+  ]);
+
+  return {
+    audit: toAgentEvaluationAudit(audit),
+    prompts: prompts.map(toAgentPromptResult),
+    scores: scores.map(toEvidenceLayerScore),
+    tasks: tasks.map(toMissingEvidenceTask),
+    reelBriefs: reelBriefs.map(toReelBrief),
+  };
+}
+
 async function getConfig(d1: D1Database, id: string) {
   const [row] = await db(d1)
     .select()
@@ -694,6 +962,55 @@ function parseTrackedCommunityInput(
       isPublic: body.isPublic ?? existing?.isPublic ?? false,
       createdAt: existing?.createdAt ?? new Date(),
       updatedAt: new Date(),
+    },
+  };
+}
+
+function parseAgentAuditInput(
+  ownerId: string,
+  body: NewAgentAuditBody,
+):
+  | {
+      input: {
+        ownerId: string;
+        brandName: string;
+        brandUrl: string;
+        buyerMission: string;
+        targetSegment: string | null;
+        competitors: AgentEvaluationCompetitor[];
+        evidenceText: string | null;
+        evidenceUrls: string[];
+      };
+    }
+  | { error: string } {
+  const brandName = body.brandName?.trim() ?? "";
+  const brandUrl = body.brandUrl?.trim() ?? "";
+  const buyerMission = body.buyerMission?.trim() ?? "";
+  if (!brandName) return { error: "missing_brand_name" };
+  if (!/^https?:\/\//i.test(brandUrl)) return { error: "invalid_brand_url" };
+  if (!buyerMission) return { error: "missing_buyer_mission" };
+  const competitors = (body.competitors ?? [])
+    .map((competitor) => ({
+      name: competitor.name?.trim() ?? "",
+      url: competitor.url?.trim() || undefined,
+    }))
+    .filter((competitor) => competitor.name);
+  if (competitors.length > 8) return { error: "too_many_competitors" };
+  const evidenceUrls = [
+    brandUrl,
+    ...(body.evidenceUrls ?? []).filter((url) => /^https?:\/\//i.test(url)),
+  ];
+
+  return {
+    input: {
+      ownerId,
+      brandName,
+      brandUrl,
+      buyerMission,
+      targetSegment: body.targetSegment?.trim() || null,
+      competitors,
+      evidenceText: body.evidenceText?.trim() || null,
+      evidenceUrls: [...new Set(evidenceUrls)],
     },
   };
 }

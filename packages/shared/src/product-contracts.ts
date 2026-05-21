@@ -1,5 +1,5 @@
 export type AIPlatform = "openai" | "anthropic" | "google" | "perplexity" | "custom";
-export type ProductSurface = "mentions" | "communities" | "markets";
+export type ProductSurface = "mentions" | "communities" | "markets" | "agent-eval";
 export type WorkflowStatus = "draft" | "running" | "completed" | "failed";
 
 export interface CompetitorProfile {

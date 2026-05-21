@@ -30,4 +30,7 @@ export interface SignalCard {
 export * from "./mention-intelligence";
 export * from "./product-contracts";
 export * from "./idea-intelligence";
+export * from "./market-watch";
+export * from "./agent-evaluation";
+export * from "./personal-usefulness";
 export * from "./watchlist";

@@ -75,6 +75,23 @@ Not:
 source -> generic interesting news
 ```
 
+The reviewed seed artifact lives at `data/product-flow-seed.json` and writes to
+the existing Community Intelligence tables that `/ideas` already reads through
+`/products/communities/discover`.
+
+Commands:
+
+```bash
+pnpm product-flow:seed:local
+pnpm product-flow:seed:remote
+```
+
+After seeding locally, start the API/web stack and check:
+
+```bash
+curl "http://localhost:8787/products/communities/discover?period=week"
+```
+
 ## Minimum Useful Seed
 
 For idea intelligence to be credible:
@@ -96,4 +113,3 @@ Kill a seed item when:
 - it has no clear buyer, workflow, pain, timing, distribution, or budget implication
 - it is duplicate syndication
 - it only says "interesting"
-

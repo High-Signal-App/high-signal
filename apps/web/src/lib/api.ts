@@ -1,7 +1,19 @@
 // Default to deployed prod API. Override at build time with NEXT_PUBLIC_API_BASE for local dev.
-import type { CommunityDigestSnapshot, ProductDashboardSnapshot } from "@high-signal/shared";
+import type {
+  AgentEvaluationAudit,
+  AgentEvaluationAuditDetail,
+  AgentEvaluationCompetitor,
+  CommunityDigestSnapshot,
+  ProductDashboardSnapshot,
+} from "@high-signal/shared";
 
-export type { CommunityDigestSnapshot, ProductDashboardSnapshot } from "@high-signal/shared";
+export type {
+  AgentEvaluationAudit,
+  AgentEvaluationAuditDetail,
+  AgentEvaluationCompetitor,
+  CommunityDigestSnapshot,
+  ProductDashboardSnapshot,
+} from "@high-signal/shared";
 
 const API_BASE =
   process.env["NEXT_PUBLIC_API_BASE"] ?? "https://high-signal-api.sarthakagrawal927.workers.dev";
@@ -261,5 +273,33 @@ export const api = {
   productCommunityDigests: (subreddit: string, period: "day" | "week" | "month" = "week") =>
     fetchJson<{ digests: CommunityDigestSnapshot[] }>(
       `/products/communities/${encodeURIComponent(subreddit)}/${period}/digests`,
+    ),
+  agentEvaluationAudits: (ownerId: string, limit = 10) =>
+    fetchJson<{ audits: AgentEvaluationAudit[] }>(
+      `/products/agent-eval/audits?${new URLSearchParams({ owner: ownerId, limit: String(limit) })}`,
+    ),
+  createAgentEvaluationAudit: (
+    ownerId: string,
+    input: {
+      brandName: string;
+      brandUrl: string;
+      buyerMission: string;
+      targetSegment?: string | null;
+      competitors?: AgentEvaluationCompetitor[];
+      evidenceText?: string | null;
+      evidenceUrls?: string[];
+    },
+  ) =>
+    fetchJson<AgentEvaluationAuditDetail>(
+      `/products/agent-eval/audits?${new URLSearchParams({ owner: ownerId })}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
+      },
+    ),
+  agentEvaluationAudit: (ownerId: string, id: string) =>
+    fetchJson<AgentEvaluationAuditDetail>(
+      `/products/agent-eval/audits/${encodeURIComponent(id)}?${new URLSearchParams({ owner: ownerId })}`,
     ),
 };

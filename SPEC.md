@@ -4,7 +4,7 @@ Research brief updated: 2026-05-01
 
 Current top-level direction: High Signal is the umbrella product for signal extraction. The prior AI-infra / semiconductors wedge remains the first **Market Intelligence** collection, not the whole product. See `plans/0004-platform-consolidation.md`.
 
-Signal intelligence for companies and sectors, driven by news, filings, docs, and related-entity shifts.
+Signal intelligence for companies and sectors, driven by news, filings, docs, related-entity shifts, AI-assistant answers, and public evidence surfaces.
 
 ## Working Thesis
 
@@ -26,12 +26,24 @@ For product builders, the same signal layer should answer:
 
 - I have this idea
 - what is the world already pulling toward?
+- what products should be built because a world-level change created new constraints, budgets, behavior, or urgency?
+- what smaller app requirements and common complaints are repeating before the market names the category?
 - where is demand, pain, budget, distribution, or timing improving?
 - what evidence supports or weakens the idea?
 - should I pursue, test, watch, or avoid it?
 
 This is product intelligence, not random insight generation and not only stock
 market prediction.
+
+For operators and brands, the next product layer should answer:
+
+- when a human discovers us through a reel, what should they remember?
+- when they ask an agent to evaluate us, what will the agent find?
+- are we legible, credible, and recommendable versus alternatives?
+- what evidence, pricing, proof, docs, reviews, comparisons, or policies are missing?
+- what short-form content should create the first attention slice without making claims the evidence layer cannot support?
+
+This is agent-evaluation intelligence, not generic SEO and not generic content generation.
 
 ## Product Shape
 
@@ -40,6 +52,7 @@ Track important changes around companies, communities, and sectors, then surface
 The system should ingest:
 - AI assistant responses
 - brand/company mentions
+- product pages, pricing pages, docs, policies, FAQs, case studies, comparison pages, reviews, and public complaints
 - subreddit and forum discussion
 - news
 - earnings / filings
@@ -56,7 +69,11 @@ Then it should build relationships across:
 - products, launches, and features
 
 And output:
+- proactive product opportunities: what to build, for whom, why now, and what evidence supports it
 - company visibility and share-of-voice signals
+- agent-readiness audits and recommendation-worthiness scores
+- missing-evidence tasks for pricing, proof, docs, comparisons, support, security, integrations, and policies
+- reel briefs that turn the strongest proof or point of view into a human attention hook
 - community pain, demand, and narrative signals
 - directional scenarios
 - sector pressure changes
@@ -75,7 +92,11 @@ And output:
 ## Core Output Objects
 
 - `Signal card`: what changed, why it matters, affected entities, confidence, sources
+- `Product opportunity`: world-level change -> app requirement or complaint cluster -> product to build -> target user -> next validation step
+- `Personal command brief`: product opportunity -> actual owned product -> build/change/watch/pause recommendation -> next action
 - `Idea flow`: a product idea checked against market, community, mention, news, and resource signals with a decision recommendation
+- `Agent evaluation audit`: how assistants and buyer agents are likely to compare, trust, cite, or reject a brand based on public evidence
+- `Reel brief`: hook, thesis, proof points, visual beats, CTA, and claim boundaries for short-form content tied back to the evidence bundle
 - `Collection`: a tracked company, community set, market wedge, competitor set, or custom watchlist
 - `Entity page`: company, peer set, supplier/customer links, recent signals, score history
 - `Impact chain`: event -> direct impact -> second-order impact -> watchlist updates
@@ -88,7 +109,8 @@ The first Market Intelligence wedge starts with one specific domain:
 - AI infra / semiconductors
 
 Future collections can include:
-- Indian public markets
+- Indian public markets as the first national stock watch
+- US/global public markets and international sector watchlists
 - enterprise SaaS categories
 - a company/brand watchlist
 - a subreddit/community watchlist
@@ -110,10 +132,12 @@ The first buyer should care about:
 ## MVP Direction
 
 - one app shell under the High Signal brand
-- three product areas: Mention Intelligence, Community Intelligence, Market Intelligence
+- four product areas: Mention Intelligence, Community Intelligence, Market Intelligence, Agent Evaluation Intelligence
 - one migrated workflow at a time
 - one forecast horizon only
+- proactive product opportunity radar from world-level changes, app requirements, and complaint clusters
 - company + sector watchlists
+- high-level national and international stock watch; defer deep single-stock research
 - entity graph showing related names
 - daily or weekly signal digest
 - evidence trail for every signal
