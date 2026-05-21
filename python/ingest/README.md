@@ -17,9 +17,9 @@ needs `yfinance`; `edgar` needs `SEC_USER_AGENT="<name> <email>"`.
 
 | Var              | Purpose                                                                  |
 | ---------------- | ------------------------------------------------------------------------ |
-| `AI_BASE_URL`    | OpenAI-compatible base URL for the signal generator LLM.                 |
+| `AI_BASE_URL`    | OpenAI-compatible base URL for the signal generator LLM. Defaults to DeepSeek in GitHub Actions. |
 | `AI_API_KEY`     | API key for the above.                                                   |
-| `AI_MODEL`       | Model name (e.g. `gpt-4o-mini`).                                         |
+| `AI_MODEL`       | Model name. GitHub Actions defaults to `deepseek-v4-flash`.              |
 | `SEC_USER_AGENT` | Required by EDGAR. Format: `"Sarthak Agrawal sarthak@example.com"`.       |
 | `API_BASE`       | Optional. Base URL of the high-signal API. If unset, audit pushes no-op. |
 | `ADMIN_TOKEN`    | Optional. Bearer token for `/admin/*` audit endpoints.                   |

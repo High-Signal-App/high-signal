@@ -22,9 +22,9 @@ jobs:
         env:
           ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
           API_BASE: ${{ secrets.API_BASE }}
-          AI_BASE_URL: https://free-ai-gateway.sarthakagrawal927.workers.dev/v1
+          AI_BASE_URL: ${{ secrets.AI_BASE_URL || 'https://api.deepseek.com' }}
           AI_API_KEY: ${{ secrets.AI_API_KEY }}
-          AI_MODEL: auto
+          AI_MODEL: ${{ secrets.AI_MODEL || 'deepseek-v4-flash' }}
           AI_PROJECT_ID: high-signal
           SEC_USER_AGENT: "high-signal sarthakagrawal927@gmail.com"
         run: |
