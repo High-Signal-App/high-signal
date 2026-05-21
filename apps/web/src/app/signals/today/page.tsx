@@ -238,9 +238,9 @@ export default async function SignalsTodayPage({
                   <span className="text-zinc-700">·</span>
                   <span>{item.contentCategory.replaceAll("-", " ")}</span>
                   <span className="text-zinc-700">·</span>
-                  <span>{item.intent.replaceAll("-", " ")}</span>
+                  <span>intent {item.intent.replaceAll("-", " ")}</span>
                   <span className="text-zinc-700">·</span>
-                  <span>{item.sentiment}</span>
+                  <span>sentiment {item.sentiment}</span>
                   <span className="text-zinc-700">·</span>
                   <span>{item.confidence}</span>
                   <span className="text-zinc-700">·</span>
