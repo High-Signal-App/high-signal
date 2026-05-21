@@ -64,7 +64,7 @@ export async function GET(req: Request) {
   const broadInsights = allBroadInsights.filter(
     (item) => !category || item.contentCategory === category,
   );
-  const sourceCoverage = buildDailySourceCoverage(refreshes);
+  const sourceCoverage = buildDailySourceCoverage(refreshes, date);
   const categoryCounts = countBy([
     ...all.map((signal) => signalCategory(signal)),
     ...allBroadInsights.map((item) => item.contentCategory),

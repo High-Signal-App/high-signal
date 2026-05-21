@@ -13,6 +13,7 @@ import {
   buildDailySourceCoverage,
   DAILY_INTELLIGENCE_LAYER,
   readSourceRefreshes as readBundledSourceRefreshes,
+  resolveAcceptedRefreshDate,
 } from "@/lib/daily-intelligence";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
@@ -34,6 +35,7 @@ import {
   type PersonalProductProfile,
   type PersonalRecommendationFeedback,
   type PersonalTaskSyncRecord,
+  type SignalContentCategory,
 } from "@high-signal/shared";
 
 export const dynamic = "force-dynamic";
@@ -282,12 +284,14 @@ function firstReportLines(markdown: string, limit = 220) {
 export default async function PersonalPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ date?: string }>;
+  searchParams?: Promise<{ date?: string; sourceDate?: string; readCategory?: string }>;
 }) {
   const params = (await searchParams) ?? {};
   const reports = (reportIndex as PersonalReportIndex).reports.slice().sort((a, b) => b.date.localeCompare(a.date));
   const requestedDate = safeDate(params.date);
+  const requestedSourceDate = safeDate(params.sourceDate);
   const selectedReport = reports.find((report) => report.date === requestedDate) ?? reports[0] ?? null;
+  const selectedReadCategory = (params.readCategory || "") as SignalContentCategory | "";
   const ownerId = productGraph.owner;
   const [signalsResult, dashboardResult, discoverResult] = await Promise.allSettled([
     api.signals({ status: "published" }),
@@ -299,10 +303,15 @@ export default async function PersonalPage({
   const discover = discoverResult.status === "fulfilled" ? discoverResult.value.items : [];
   const refreshes = await readSourceRefreshes();
   const marketRefreshes = await readMarketRefreshes();
-  const sourceCoverage = buildDailySourceCoverage(refreshes);
-  const sourceReadDate = sourceCoverage.latestRefreshDate ?? new Date().toISOString().slice(0, 10);
-  const sourceReads = buildDailyBroadInsights(refreshes, sourceReadDate);
-  const sourceReadCategories = countByValues(sourceReads.map((item) => item.contentCategory));
+  const sourceReadDate =
+    resolveAcceptedRefreshDate(refreshes, requestedSourceDate ?? requestedDate ?? selectedReport?.date) ??
+    new Date().toISOString().slice(0, 10);
+  const sourceCoverage = buildDailySourceCoverage(refreshes, sourceReadDate);
+  const sourceReadsAll = buildDailyBroadInsights(refreshes, sourceReadDate);
+  const sourceReads = sourceReadsAll.filter(
+    (item) => !selectedReadCategory || item.contentCategory === selectedReadCategory,
+  );
+  const sourceReadCategories = countByValues(sourceReadsAll.map((item) => item.contentCategory));
   const sourceReadIntents = countByValues(sourceReads.map((item) => item.intent));
   const sourceReadSentiments = countByValues(sourceReads.map((item) => item.sentiment));
   const evidence = [
@@ -366,6 +375,39 @@ export default async function PersonalPage({
             {DAILY_INTELLIGENCE_LAYER.broadReadAnnotation.method}; no LLM is used for this daily
             annotation pass.
           </p>
+          <form action="/personal" className="mt-5 grid gap-3 border-y border-[var(--color-line)] py-4 md:grid-cols-[1fr_1fr_auto]">
+            <input name="date" type="hidden" value={selectedReport?.date ?? ""} />
+            <label className="flex flex-col gap-2 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
+              source date
+              <input
+                className="border border-[var(--color-line)] bg-transparent px-3 py-2 text-sm text-[var(--color-fg)] outline-none focus:border-[var(--color-accent)]"
+                defaultValue={sourceReadDate}
+                name="sourceDate"
+                type="date"
+              />
+            </label>
+            <label className="flex flex-col gap-2 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
+              content type
+              <select
+                className="border border-[var(--color-line)] bg-black px-3 py-2 text-sm text-[var(--color-fg)] outline-none focus:border-[var(--color-accent)]"
+                defaultValue={selectedReadCategory}
+                name="readCategory"
+              >
+                <option value="">all</option>
+                {sourceReadCategories.map(([category, count]) => (
+                  <option key={category} value={category}>
+                    {category.replaceAll("-", " ")} ({count})
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button
+              className="border border-[var(--color-line)] px-4 py-2 font-mono text-xs uppercase tracking-[0.18em] text-[var(--color-fg)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] md:self-end"
+              type="submit"
+            >
+              load
+            </button>
+          </form>
           <MetricGrid
             items={[
               { label: "configured", value: sourceCoverage.configuredSources.toString() },
@@ -391,6 +433,12 @@ export default async function PersonalPage({
             ))}
           </div>
           <div className="mt-6 divide-y divide-[var(--color-line)] border-y border-[var(--color-line)]">
+            <a
+              className="block py-4 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-accent)] hover:underline"
+              href={`/daily?date=${sourceReadDate}${selectedReadCategory ? `&category=${selectedReadCategory}` : ""}`}
+            >
+              open full daily read view
+            </a>
             {sourceReads.slice(0, 8).map((item) => (
               <a key={item.id} className="block py-4 hover:text-[var(--color-accent)]" href={item.href}>
                 <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">

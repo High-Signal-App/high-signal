@@ -111,7 +111,7 @@ export default async function SignalsTodayPage({
   const evidenceCount =
     today.reduce((sum, signal) => sum + signal.evidenceUrls.length, 0) +
     broadInsights.reduce((sum, item) => sum + item.sourceCount, 0);
-  const coverage = buildDailySourceCoverage(refreshes);
+  const coverage = buildDailySourceCoverage(refreshes, selectedDate);
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-16">

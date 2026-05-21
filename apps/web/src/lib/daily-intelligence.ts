@@ -80,6 +80,10 @@ export type DailySourceCoverage = {
   acceptedByType: Array<{ k: SourceType; n: number }>;
 };
 
+function recordDate(record: ProductFlowRefreshRecord) {
+  return record.digest.snapshotDate.slice(0, 10);
+}
+
 function countBy<T extends string>(values: T[]) {
   const counts = new Map<T, number>();
   for (const value of values) counts.set(value, (counts.get(value) ?? 0) + 1);
@@ -118,6 +122,29 @@ export function acceptedRefreshRecords(records: ProductFlowRefreshRecord[]) {
   });
 }
 
+export function acceptedRefreshRecordsForDate(records: ProductFlowRefreshRecord[], date: string) {
+  return latestRefreshRecords(records.filter((record) => recordDate(record) === date)).filter((record) => {
+    const quality = communityDigestEvidenceQuality(record.digest);
+    return record.digest.sourceCount >= 2 && quality.genericRisk !== "high" && quality.repeatedSignalCount >= 2;
+  });
+}
+
+export function acceptedRefreshDates(records: ProductFlowRefreshRecord[]) {
+  const dates = new Set<string>();
+  for (const record of records) {
+    if (acceptedRefreshRecordsForDate(records, recordDate(record)).length > 0) dates.add(recordDate(record));
+  }
+  return Array.from(dates).sort((a, b) => b.localeCompare(a));
+}
+
+export function resolveAcceptedRefreshDate(records: ProductFlowRefreshRecord[], preferredDate?: string | null) {
+  const dates = acceptedRefreshDates(records);
+  if (!dates.length) return null;
+  if (!preferredDate) return dates[0] ?? null;
+  if (dates.includes(preferredDate)) return preferredDate;
+  return dates.find((date) => date < preferredDate) ?? dates[0] ?? null;
+}
+
 function classifyBroadInsight(record: ProductFlowRefreshRecord): SignalContentCategory {
   const text = `${record.sourceId ?? ""} ${record.label ?? ""} ${record.target ?? ""} ${record.digest.promptUsed} ${record.digest.summaryText}`.toLowerCase();
   if (/\b(india|bangalore|mumbai|delhi|nyc|bayarea|regional|local|rent|traffic|housing|pollution|permit)\b/.test(text)) {
@@ -147,15 +174,14 @@ function qualityScore(record: ProductFlowRefreshRecord) {
 }
 
 export function buildDailyBroadInsights(records: ProductFlowRefreshRecord[], date: string) {
-  return acceptedRefreshRecords(records)
-    .filter((record) => record.digest.snapshotDate.slice(0, 10) === date)
+  return acceptedRefreshRecordsForDate(records, date)
     .map((record): DailyBroadInsight => {
       const quality = communityDigestEvidenceQuality(record.digest);
       const score = qualityScore(record);
       const keyTrend = record.digest.summary?.keyTrend;
       const label = record.label ?? record.sourceId ?? record.target ?? record.source;
       const summary = keyTrend?.desc ?? record.digest.summaryText;
-      const annotation = annotateLightweightNlp(`${keyTrend?.title ?? ""} ${summary} ${record.digest.promptUsed}`);
+      const annotation = annotateLightweightNlp(`${keyTrend?.title ?? ""} ${summary} ${record.digest.promptUsed ?? ""}`);
       return {
         id: `${record.sourceId ?? label}-${record.digest.snapshotDate}`,
         title: keyTrend?.title ?? `${label}: ${classifyBroadInsight(record).replaceAll("-", " ")}`,
@@ -177,9 +203,9 @@ export function buildDailyBroadInsights(records: ProductFlowRefreshRecord[], dat
     .sort((a, b) => b.qualityScore - a.qualityScore || b.observedAt.localeCompare(a.observedAt));
 }
 
-export function buildDailySourceCoverage(records: ProductFlowRefreshRecord[]): DailySourceCoverage {
+export function buildDailySourceCoverage(records: ProductFlowRefreshRecord[], date?: string): DailySourceCoverage {
   const registry = sourceRegistry as SourceRegistry;
-  const accepted = acceptedRefreshRecords(records);
+  const accepted = date ? acceptedRefreshRecordsForDate(records, date) : acceptedRefreshRecords(records);
   const latestRefreshDate =
     accepted
       .map((record) => record.digest.snapshotDate)
