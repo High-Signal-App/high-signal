@@ -95,7 +95,7 @@ Inspection queries are in `../../docs/ingest-runbook.md`.
 Source and confidence policy is documented in `../../docs/source-coverage.md`.
 For launch, Market Intelligence is the primary signal product:
 
-- Daily `all` runs should draft from news, EDGAR, IR, Reddit, GitHub, gov, YouTube, GDELT, HKEX, and market resources.
-- Low-confidence single-source drafts are expected; review decides whether they publish.
+- Daily `all` runs should generate published signals from news, EDGAR, IR, Reddit, GitHub, gov, YouTube, GDELT, HKEX, and market resources.
+- Low-confidence single-source signals are expected; review is for correction or takedown after publish.
 - Prediction markets are polled as contextual resources and stored quotes, not as standalone public signals by default.
 - Mention and Community Intelligence generate dashboard data/digests today; they should not join the unified public signal feed until their outcome metrics are defined.

@@ -27,6 +27,18 @@ export function FilterBar({ facets }: { facets: Facets }) {
 
   return (
     <div className="mt-6 flex flex-wrap gap-x-6 gap-y-3 border-y border-zinc-800 py-4 font-mono text-[10px] uppercase tracking-[0.18em]">
+      <Group label="content">
+        {facets.types.slice(0, 12).map((d) => (
+          <Chip
+            key={d.k}
+            on={active("type", d.k)}
+            onClick={() => set("type", d.k)}
+            label={d.k.replaceAll("_", " ")}
+            count={d.n}
+          />
+        ))}
+      </Group>
+
       <Group label="dir">
         {facets.directions.map((d) => (
           <Chip
@@ -47,18 +59,6 @@ export function FilterBar({ facets }: { facets: Facets }) {
             on={active("confidence", d.k)}
             onClick={() => set("confidence", d.k)}
             label={d.k}
-            count={d.n}
-          />
-        ))}
-      </Group>
-
-      <Group label="type">
-        {facets.types.slice(0, 12).map((d) => (
-          <Chip
-            key={d.k}
-            on={active("type", d.k)}
-            onClick={() => set("type", d.k)}
-            label={d.k.replaceAll("_", " ")}
             count={d.n}
           />
         ))}

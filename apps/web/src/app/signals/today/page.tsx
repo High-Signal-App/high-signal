@@ -1,4 +1,5 @@
 import { api, type SignalRow } from "@/lib/api";
+import { isBackfillSignal } from "@/lib/signal-format";
 import { SignalCard } from "@/components/molecules/SignalCard";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +20,7 @@ export default async function SignalsTodayPage() {
   let all: SignalRow[] = [];
   try {
     const r = await api.signals({});
-    all = r.signals;
+    all = r.signals.filter((signal) => !isBackfillSignal(signal));
   } catch {
     /* offline */
   }

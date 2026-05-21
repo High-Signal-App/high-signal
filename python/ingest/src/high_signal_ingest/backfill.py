@@ -3,8 +3,8 @@
   uv run python -m high_signal_ingest.backfill --start 2025-04-25 --end 2026-04-25 --sources gdelt,edgar
   uv run python -m high_signal_ingest.backfill --start 2025-10-01 --end 2025-12-31 --sources gdelt
 
-All pushed signals carry `backfilled: true` (via review_status='draft' + body
-header marker) so /track-record can split live vs backfill hit-rates.
+All pushed signals use a `bf-` slug prefix and body header marker so
+/track-record can split live vs backfill hit-rates.
 """
 
 from __future__ import annotations

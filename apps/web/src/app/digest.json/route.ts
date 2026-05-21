@@ -1,4 +1,5 @@
 import { api } from "@/lib/api";
+import { isBackfillSignal } from "@/lib/signal-format";
 
 export const dynamic = "force-dynamic";
 
@@ -8,7 +9,7 @@ export async function GET() {
   let signals: Awaited<ReturnType<typeof api.digestWeekly>>["signals"] = [];
   try {
     const r = await api.digestWeekly();
-    signals = r.signals;
+    signals = r.signals.filter((signal) => !isBackfillSignal(signal));
     since = r.since;
   } catch {
     /* offline */

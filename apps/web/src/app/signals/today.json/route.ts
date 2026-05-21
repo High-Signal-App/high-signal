@@ -1,4 +1,5 @@
 import { api, type SignalRow } from "@/lib/api";
+import { isBackfillSignal } from "@/lib/signal-format";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +13,7 @@ export async function GET() {
   let all: SignalRow[] = [];
   try {
     const r = await api.signals({});
-    all = r.signals;
+    all = r.signals.filter((signal) => !isBackfillSignal(signal));
   } catch {
     /* offline */
   }

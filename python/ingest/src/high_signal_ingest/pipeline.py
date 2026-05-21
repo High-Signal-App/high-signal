@@ -1,4 +1,4 @@
-"""Orchestrator: source → events → cluster by entity → signal candidate → review draft."""
+"""Orchestrator: source → events → cluster by entity → auto-published signal."""
 
 from __future__ import annotations
 
@@ -79,7 +79,7 @@ def _spillover_candidates(primary: str) -> list[str]:
 
 
 def cluster_and_generate(events: list[Event]) -> list[str]:
-    """Cluster events by primary entity, then call LLM to draft signals."""
+    """Cluster events by primary entity, then call LLM to generate signals."""
     by_entity: dict[str, list[Event]] = defaultdict(list)
     for ev in events:
         eid = ev.primary_entity_id

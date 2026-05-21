@@ -1,14 +1,14 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { api } from "@/lib/api";
+import { isBackfillSignal, signalHeadline, signalSummary } from "@/lib/signal-format";
 import { DirectionPill } from "@/components/atoms/DirectionPill";
 import { ConfidenceBadge } from "@/components/atoms/ConfidenceBadge";
 
 export const dynamic = "force-dynamic";
 
 function deriveHeadline(bodyMd: string): string {
-  const first = (bodyMd ?? "").split("\n").find((line) => line.trim().length > 0) ?? "";
-  return first.replace(/^#+\s*/, "").trim() || "Signal";
+  return signalHeadline(bodyMd, "signal");
 }
 
 export async function generateMetadata({
@@ -53,19 +53,21 @@ export default async function SignalDetail({ params }: { params: Promise<{ slug:
     return notFound();
   }
   const { signal, evidence, scores } = data;
-  const headline = (signal.bodyMd ?? "").split("\n")[0].replace(/^#\s*/, "");
+  if (isBackfillSignal(signal)) return notFound();
+  const headline = signalHeadline(signal.bodyMd, signal.slug);
+  const summary = signalSummary(signal.bodyMd, signal.slug, 720);
 
   return (
-    <main className="mx-auto max-w-3xl px-6 py-16">
+    <main className="mx-auto max-w-4xl px-6 py-16">
       <a
         href="/signals"
         className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500 hover:text-zinc-300"
       >
         ← signals
       </a>
-      <header className="mt-3 border-b border-zinc-800 pb-6">
-        <div className="flex items-baseline justify-between gap-4">
-          <div className="flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
+      <header className="mt-3 border-b border-zinc-800 pb-8">
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2 font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
             <span>{new Date(signal.publishedAt).toISOString().slice(0, 10)}</span>
             <span className="text-zinc-700">·</span>
             <a
@@ -77,19 +79,22 @@ export default async function SignalDetail({ params }: { params: Promise<{ slug:
             <span className="text-zinc-700">·</span>
             <span>{signal.signalType.replaceAll("_", " ")}</span>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex shrink-0 items-center gap-3">
             <ConfidenceBadge confidence={signal.confidence} />
             <DirectionPill direction={signal.direction} />
           </div>
         </div>
-        <h1 className="mt-4 text-2xl font-medium tracking-tight">{headline}</h1>
+        <h1 className="mt-5 max-w-3xl text-3xl font-medium leading-tight tracking-tight">{headline}</h1>
+        {summary && <p className="mt-5 max-w-3xl text-base leading-7 text-zinc-300">{summary}</p>}
+        <div className="mt-6 flex items-center gap-5 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500">
+          <span>
+            window <span className="nums text-zinc-300">{signal.predictedWindowDays}d</span>
+          </span>
+          <span>
+            evidence <span className="nums text-zinc-300">{evidence.length}</span>
+          </span>
+        </div>
       </header>
-
-      <article className="prose prose-invert prose-sm mt-8 max-w-none prose-a:text-[var(--color-accent)] prose-headings:font-medium prose-strong:text-zinc-100">
-        <pre className="whitespace-pre-wrap break-words border-none bg-transparent p-0 font-sans text-sm leading-relaxed text-zinc-300">
-          {signal.bodyMd}
-        </pre>
-      </article>
 
       <section className="mt-12 border-t border-zinc-800 pt-6">
         <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">evidence</h2>

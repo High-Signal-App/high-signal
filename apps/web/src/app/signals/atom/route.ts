@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 
 import { api } from "@/lib/api";
 import { signalExcerpt, signalHeadline } from "@/lib/rss";
+import { isBackfillSignal } from "@/lib/signal-format";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +28,7 @@ export async function GET() {
   let signals: Awaited<ReturnType<typeof api.signals>>["signals"] = [];
   try {
     const r = await api.signals();
-    signals = r.signals;
+    signals = r.signals.filter((signal) => !isBackfillSignal(signal));
   } catch {
     /* API offline */
   }

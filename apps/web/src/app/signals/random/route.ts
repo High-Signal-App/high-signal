@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { api } from "@/lib/api";
+import { isBackfillSignal } from "@/lib/signal-format";
 
 export const dynamic = "force-dynamic";
 
@@ -11,10 +12,11 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     const { signals } = await api.signals();
-    if (signals.length === 0) {
+    const publicSignals = signals.filter((signal) => !isBackfillSignal(signal));
+    if (publicSignals.length === 0) {
       redirect("/signals");
     }
-    const pick = signals[Math.floor(Math.random() * signals.length)];
+    const pick = publicSignals[Math.floor(Math.random() * publicSignals.length)];
     redirect(`/signals/${pick.slug}`);
   } catch {
     redirect("/signals");

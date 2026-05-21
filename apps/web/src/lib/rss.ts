@@ -75,8 +75,20 @@ ${items}
  */
 export function signalHeadline(bodyMd: string | undefined, slug: string): string {
   if (!bodyMd) return slug;
-  const first = bodyMd.split("\n")[0] ?? "";
-  const cleaned = first.replace(/^#+\s*/, "").trim();
+  const first = bodyMd
+    .split("\n")
+    .map((line) =>
+      line
+        .replace(/^>\s*/, "")
+        .replace(/^#+\s*/, "")
+        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, "$1")
+        .replace(/https?:\/\/\S+/g, "")
+        .replace(/[_*`]/g, "")
+        .replace(/\s+/g, " ")
+        .trim(),
+    )
+    .find((line) => line.length > 0 && !line.toLowerCase().includes("backfill")) ?? "";
+  const cleaned = first.trim();
   return cleaned.length > 0 ? cleaned : slug;
 }
 
@@ -84,7 +96,21 @@ export function signalHeadline(bodyMd: string | undefined, slug: string): string
 export function signalExcerpt(bodyMd: string | undefined, maxChars = 800): string {
   if (!bodyMd) return "";
   // Drop the first line (used as title) and any leading whitespace.
-  const rest = bodyMd.split("\n").slice(1).join("\n").trim();
+  const rest = bodyMd
+    .split("\n")
+    .slice(1)
+    .map((line) =>
+      line
+        .replace(/^>\s*/, "")
+        .replace(/^#+\s*/, "")
+        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, "$1")
+        .replace(/https?:\/\/\S+/g, "")
+        .replace(/[_*`]/g, "")
+        .replace(/\s+/g, " ")
+        .trim(),
+    )
+    .filter((line) => line.length > 0 && !line.toLowerCase().includes("backfill"))
+    .join(" ");
   if (rest.length === 0) return "";
   if (rest.length <= maxChars) return rest;
   return rest.slice(0, maxChars).replace(/\s+\S*$/, "") + "…";

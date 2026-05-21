@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { and, desc, gte, eq } from "drizzle-orm";
+import { and, desc, gte, eq, sql } from "drizzle-orm";
 import { db, schema } from "../db";
 
 type Env = { DB: D1Database };
@@ -15,6 +15,7 @@ digestRoute.get("/weekly", async (c) => {
       and(
         eq(schema.signals.reviewStatus, "published"),
         gte(schema.signals.publishedAt, new Date(sinceMs)),
+        sql`${schema.signals.bodyMd} NOT LIKE '> _backfill_%'`,
       ),
     )
     .orderBy(desc(schema.signals.publishedAt));
@@ -25,7 +26,7 @@ digestRoute.get("/rss", async (c) => {
   const rows = await db(c.env.DB)
     .select()
     .from(schema.signals)
-    .where(eq(schema.signals.reviewStatus, "published"))
+    .where(and(eq(schema.signals.reviewStatus, "published"), sql`${schema.signals.bodyMd} NOT LIKE '> _backfill_%'`))
     .orderBy(desc(schema.signals.publishedAt))
     .limit(50);
 
