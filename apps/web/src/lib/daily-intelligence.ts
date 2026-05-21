@@ -22,7 +22,7 @@ export const DAILY_INTELLIGENCE_LAYER = {
   version: "daily-intelligence-v1",
   sourceGate: "latest snapshot with >=2 sources, repeated signals, and non-high generic risk",
   broadReadAnnotation: {
-    method: "rules-v1",
+    method: "semantic-rules-v2",
     llm: false,
     model: "none",
     fields: [
@@ -30,6 +30,12 @@ export const DAILY_INTELLIGENCE_LAYER = {
       "intent",
       "sentiment",
       "urgency",
+      "signalLayer",
+      "domains",
+      "painScore",
+      "buyerIntentScore",
+      "actionabilityScore",
+      "productRequirement",
       "qualityScore",
       "annotation.method",
       "annotation.model",
@@ -45,10 +51,10 @@ export const DAILY_INTELLIGENCE_LAYER = {
   },
   edgeAnnotationService: {
     env: "HIGH_SIGNAL_ANNOTATION_ENDPOINT",
-    method: "rules-v1",
+    method: "semantic-rules-v2",
     llm: false,
     enabledByDefault: false,
-    fallback: "local rules-v1 annotation",
+    fallback: "local semantic-rules-v2 annotation",
   },
 } as const;
 

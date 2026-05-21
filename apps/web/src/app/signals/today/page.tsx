@@ -356,6 +356,12 @@ export default async function SignalsTodayPage({
                   <span>model {item.annotation.model}</span>
                   <span>intent score {item.annotation.intentScore.toFixed(2)}</span>
                   <span>sentiment score {item.annotation.sentimentScore.toFixed(2)}</span>
+                  <span>layer {item.annotation.signalLayer.replaceAll("-", " ")}</span>
+                  <span>domains {item.annotation.domains.join("/") || "none"}</span>
+                  <span>pain {item.annotation.painScore.toFixed(2)}</span>
+                  <span>buyer {item.annotation.buyerIntentScore.toFixed(2)}</span>
+                  <span>action {item.annotation.actionabilityScore.toFixed(2)}</span>
+                  <span>requirement {item.annotation.productRequirement ? "yes" : "no"}</span>
                 </div>
               </a>
             ))}

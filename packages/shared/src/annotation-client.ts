@@ -38,14 +38,21 @@ function isAnnotation(value: unknown): value is LightweightNlpAnnotation {
     typeof item.intent === "string" &&
     typeof item.sentiment === "string" &&
     typeof item.urgency === "string" &&
-    item.method === "rules-v1" &&
+    (item.method === "rules-v1" || item.method === "semantic-rules-v2") &&
     item.model === "none" &&
     item.llm === false &&
     typeof item.intentScore === "number" &&
     typeof item.sentimentScore === "number" &&
     Array.isArray(item.positiveHits) &&
     Array.isArray(item.negativeHits) &&
-    Array.isArray(item.intentHits)
+    Array.isArray(item.intentHits) &&
+    typeof item.signalLayer === "string" &&
+    Array.isArray(item.domains) &&
+    Array.isArray(item.productSignals) &&
+    typeof item.painScore === "number" &&
+    typeof item.buyerIntentScore === "number" &&
+    typeof item.actionabilityScore === "number" &&
+    typeof item.productRequirement === "boolean"
   );
 }
 

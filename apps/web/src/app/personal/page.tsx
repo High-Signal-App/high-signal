@@ -54,6 +54,9 @@ type ProductFlowRefreshRecord = {
   prompt?: string;
   digest: CommunityDigestSnapshot;
   createdAt: string;
+  refreshStatus?: "accepted" | "rejected";
+  refreshReason?: string;
+  refreshError?: string;
 };
 
 type PersonalReportIndex = {
@@ -235,7 +238,12 @@ function evidenceFromRefreshes(records: ProductFlowRefreshRecord[]): IdeaFlowEvi
   return latestRefreshRecords(records)
     .filter((record) => {
       const quality = communityDigestEvidenceQuality(record.digest);
-      return record.digest.sourceCount >= 2 && quality.genericRisk !== "high" && quality.repeatedSignalCount >= 2;
+      return (
+        record.refreshStatus !== "rejected" &&
+        record.digest.sourceCount >= 2 &&
+        quality.genericRisk !== "high" &&
+        quality.repeatedSignalCount >= 2
+      );
     })
     .map((record) => {
       const sourceKey = record.sourceId ?? record.subreddit ?? record.target ?? record.label ?? record.source;
@@ -494,7 +502,13 @@ export default async function PersonalPage({
                 <div className="mt-2 font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--color-muted)]">
                   tag {item.annotation.method} / model {item.annotation.model} / intent score{" "}
                   {item.annotation.intentScore.toFixed(2)} / sentiment score{" "}
-                  {item.annotation.sentimentScore.toFixed(2)}
+                  {item.annotation.sentimentScore.toFixed(2)} / layer{" "}
+                  {item.annotation.signalLayer.replaceAll("-", " ")} / domains{" "}
+                  {item.annotation.domains.join("/") || "none"} / pain{" "}
+                  {item.annotation.painScore.toFixed(2)} / buyer{" "}
+                  {item.annotation.buyerIntentScore.toFixed(2)} / action{" "}
+                  {item.annotation.actionabilityScore.toFixed(2)} / requirement{" "}
+                  {item.annotation.productRequirement ? "yes" : "no"}
                 </div>
               </a>
             ))}

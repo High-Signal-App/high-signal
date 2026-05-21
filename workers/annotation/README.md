@@ -4,13 +4,14 @@ Cloudflare Python Worker boundary for cheap source-read annotation.
 
 It is intentionally rule-first:
 
-- `method`: `rules-v1`
+- `method`: `semantic-rules-v2`
 - `model`: `none`
 - `llm`: `false`
 
-Use this for latency-sensitive intent/sentiment tagging at the edge. Keep
-Hugging Face classifiers in batch ingest until we verify their runtime/package
-fit under Python Workers.
+Use this for latency-sensitive intent, sentiment, domain, pain, buyer-intent,
+and actionability tagging at the edge. Keep Hugging Face classifiers in batch
+ingest or a separate compatible runtime until we verify their package fit under
+Python Workers.
 
 ## Endpoints
 
@@ -42,14 +43,21 @@ Response:
       "intent": "developer-workflow",
       "sentiment": "negative",
       "urgency": "medium",
-      "method": "rules-v1",
+      "method": "semantic-rules-v2",
       "model": "none",
       "llm": false,
       "intentScore": 1,
       "sentimentScore": 1,
       "positiveHits": [],
       "negativeHits": ["broken"],
-      "intentHits": ["github", "ci", "deploy", "workflow"]
+      "intentHits": ["github", "ci", "deploy", "workflow"],
+      "signalLayer": "app-complaint",
+      "domains": ["developer"],
+      "productSignals": ["github", "ci", "deploy", "workflow", "broken"],
+      "painScore": 0.33,
+      "buyerIntentScore": 0,
+      "actionabilityScore": 0.83,
+      "productRequirement": true
     }
   ]
 }
@@ -77,7 +85,7 @@ to it explicitly.
 ## TypeScript consumers
 
 Use `annotateTexts` from `@high-signal/shared` instead of hand-writing service
-calls. It validates the response shape and falls back to local `rules-v1`
+calls. It validates the response shape and falls back to local `semantic-rules-v2`
 annotation if the Worker is unavailable or returns a malformed payload.
 
 ```ts
