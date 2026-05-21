@@ -4,12 +4,14 @@ import { useRouter, useSearchParams } from "next/navigation";
 
 export interface Facets {
   types: { k: string; n: number }[];
+  categories?: { k: string; n: number }[];
   directions: { k: string; n: number }[];
   confidences: { k: string; n: number }[];
   topEntities: { k: string; n: number }[];
+  sourceClasses?: { k: string; n: number }[];
 }
 
-const ORDER = ["type", "direction", "confidence", "entity"] as const;
+const ORDER = ["category", "type", "direction", "confidence", "entity"] as const;
 type Key = (typeof ORDER)[number];
 
 export function FilterBar({ facets }: { facets: Facets }) {
@@ -27,6 +29,20 @@ export function FilterBar({ facets }: { facets: Facets }) {
 
   return (
     <div className="mt-6 flex flex-wrap gap-x-6 gap-y-3 border-y border-zinc-800 py-4 font-mono text-[10px] uppercase tracking-[0.18em]">
+      {(facets.categories?.length ?? 0) > 0 && (
+        <Group label="kind">
+          {facets.categories!.slice(0, 9).map((d) => (
+            <Chip
+              key={d.k}
+              on={active("category", d.k)}
+              onClick={() => set("category", d.k)}
+              label={d.k.replaceAll("-", " ")}
+              count={d.n}
+            />
+          ))}
+        </Group>
+      )}
+
       <Group label="content">
         {facets.types.slice(0, 12).map((d) => (
           <Chip

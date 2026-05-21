@@ -18,6 +18,12 @@ export function SignalCard({ s }: { s: SignalRow }) {
           <span className="text-zinc-700">·</span>
           <span className="text-[var(--color-accent)]">{s.primaryEntityId}</span>
           <span className="text-zinc-700">·</span>
+          {s.contentCategory && (
+            <>
+              <span>{s.contentCategory.replaceAll("-", " ")}</span>
+              <span className="text-zinc-700">·</span>
+            </>
+          )}
           <span>{s.signalType.replaceAll("_", " ")}</span>
         </div>
         <div className="flex shrink-0 items-center gap-3">
@@ -49,6 +55,12 @@ export function SignalCard({ s }: { s: SignalRow }) {
         <span>
           evidence <span className="nums text-zinc-300">{s.evidenceUrls.length}</span>
         </span>
+        {typeof s.qualityScore === "number" && (
+          <span>
+            quality <span className="nums text-zinc-300">{s.qualityScore}</span>
+          </span>
+        )}
+        {s.sourceClasses?.length ? <span>{s.sourceClasses.join(" / ")}</span> : null}
       </div>
     </Link>
   );

@@ -2,6 +2,7 @@ import { api, type Direction, type Confidence, type SignalRow } from "@/lib/api"
 import { isBackfillSignal } from "@/lib/signal-format";
 import { SignalCard } from "@/components/molecules/SignalCard";
 import { FilterBar, type Facets } from "@/components/molecules/FilterBar";
+import { assessSignalQuality, type SignalContentCategory } from "@high-signal/shared";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Signals — High Signal" };
@@ -11,9 +12,10 @@ interface SP {
   direction?: Direction;
   confidence?: Confidence;
   entity?: string;
+  category?: SignalContentCategory;
 }
 
-const FILTER_KEYS = new Set(["type", "direction", "confidence", "entity"]);
+const FILTER_KEYS = new Set(["category", "type", "direction", "confidence", "entity"]);
 
 const signalTabs = [
   { href: "/signals/today", label: "daily" },
@@ -37,6 +39,18 @@ function countBy<T extends string>(values: T[]) {
 function facetsFromSignals(signals: SignalRow[]): Facets {
   return {
     types: countBy(signals.map((signal) => signal.signalType)),
+    categories: countBy(
+      signals.map(
+        (signal) =>
+          signal.contentCategory ??
+          assessSignalQuality({
+            signalType: signal.signalType,
+            confidence: signal.confidence,
+            evidenceUrls: signal.evidenceUrls,
+            bodyMd: signal.bodyMd,
+          }).contentCategory,
+      ),
+    ),
     directions: countBy(signals.map((signal) => signal.direction)),
     confidences: countBy(signals.map((signal) => signal.confidence)),
     topEntities: countBy(signals.map((signal) => signal.primaryEntityId)).slice(0, 20),
@@ -51,7 +65,7 @@ export default async function SignalsPage({
 }) {
   const sp = await searchParams;
   let signals: SignalRow[] = [];
-  let facets: Facets = { types: [], directions: [], confidences: [], topEntities: [] };
+  let facets: Facets = { types: [], categories: [], directions: [], confidences: [], topEntities: [] };
   try {
     const [s, f] = await Promise.all([api.signals(sp), api.facets()]);
     signals = s.signals.filter((signal) => !isBackfillSignal(signal));

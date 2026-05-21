@@ -34,3 +34,4 @@ export * from "./market-watch";
 export * from "./agent-evaluation";
 export * from "./personal-usefulness";
 export * from "./watchlist";
+export * from "./signal-intelligence";

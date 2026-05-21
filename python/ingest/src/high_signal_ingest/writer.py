@@ -15,16 +15,16 @@ from pathlib import Path
 import httpx
 import yaml
 
+from .quality import assess_signal_quality
 from .types import SignalCandidate
 
 
 LOGGER = logging.getLogger(__name__)
-FALLBACK_MARKER = "Fallback draft generated"
 
 
 def _review_status(candidate: SignalCandidate) -> str:
-    """Fallback candidates are internal review drafts, not public signals."""
-    return "draft" if FALLBACK_MARKER in candidate.body_md else "published"
+    """Only evidence-ready candidates enter the public feed."""
+    return "published" if assess_signal_quality(candidate).publishable else "draft"
 
 
 def _default_signals_root() -> Path:
@@ -58,6 +58,11 @@ def write_signal(candidate: SignalCandidate, root: Path | None = None) -> Path:
         "supersedes": candidate.supersedes_signal_id,
         "review_status": _review_status(candidate),
     }
+    quality = assess_signal_quality(candidate)
+    front["content_category"] = quality.content_category
+    front["quality_score"] = quality.score
+    front["quality_band"] = quality.band
+    front["quality_reasons"] = quality.reasons
     body = candidate.body_md.strip()
     fp.write_text(
         f"---\n{yaml.safe_dump(front, sort_keys=False).strip()}\n---\n\n{body}\n",

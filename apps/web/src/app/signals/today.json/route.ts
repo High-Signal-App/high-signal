@@ -1,26 +1,47 @@
 import { api, type SignalRow } from "@/lib/api";
 import { isBackfillSignal } from "@/lib/signal-format";
+import { assessSignalQuality, type SignalContentCategory } from "@high-signal/shared";
 
 export const dynamic = "force-dynamic";
 
-function isWithinLast24h(publishedAt: SignalRow["publishedAt"]): boolean {
-  const t = new Date(publishedAt).getTime();
-  return Number.isFinite(t) && Date.now() - t < 24 * 60 * 60 * 1000;
+function utcDate(d = new Date()) {
+  return d.toISOString().slice(0, 10);
 }
 
-/** JSON twin of /signals/today — last 24h of signals, freshest first. */
-export async function GET() {
+function safeDate(value: string | null) {
+  return value && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : utcDate();
+}
+
+function signalCategory(signal: SignalRow): SignalContentCategory {
+  return (
+    signal.contentCategory ??
+    assessSignalQuality({
+      signalType: signal.signalType,
+      confidence: signal.confidence,
+      evidenceUrls: signal.evidenceUrls,
+      bodyMd: signal.bodyMd,
+    }).contentCategory
+  );
+}
+
+/** JSON twin of /signals/today — one UTC date of signals, freshest first. */
+export async function GET(req: Request) {
+  const url = new URL(req.url);
+  const date = safeDate(url.searchParams.get("date"));
+  const category = url.searchParams.get("category") as SignalContentCategory | null;
   let all: SignalRow[] = [];
   try {
-    const r = await api.signals({});
+    const r = await api.signals({ date, limit: 200 });
     all = r.signals.filter((signal) => !isBackfillSignal(signal));
   } catch {
     /* offline */
   }
-  const today = all.filter((s) => isWithinLast24h(s.publishedAt));
+  const today = all.filter((s) => !category || signalCategory(s) === category);
   return new Response(
     JSON.stringify({
       generatedAt: new Date().toISOString(),
+      date,
+      category,
       count: today.length,
       signals: today,
     }),

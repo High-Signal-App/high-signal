@@ -6,6 +6,7 @@ import type {
   CommunityDigestSnapshot,
   ProductDashboardSnapshot,
 } from "@high-signal/shared";
+import type { SignalContentCategory, SignalQualityBand, SourceClass } from "@high-signal/shared";
 
 export type {
   AgentEvaluationAudit,
@@ -69,6 +70,12 @@ export interface SignalRow {
   spilloverEntityIds: string[];
   reviewStatus: "draft" | "published" | "corrected";
   bodyMd: string;
+  contentCategory?: SignalContentCategory;
+  qualityScore?: number;
+  qualityBand?: SignalQualityBand;
+  sourceClasses?: SourceClass[];
+  independentSourceCount?: number;
+  qualityReasons?: string[];
 }
 
 export interface EntityRow {
@@ -190,10 +197,16 @@ export interface BacktestWorkbench {
 
 export interface SignalFilters {
   type?: string;
+  category?: SignalContentCategory;
   direction?: Direction;
   confidence?: Confidence;
   entity?: string;
   status?: "draft" | "published" | "corrected";
+  date?: string;
+  from?: string;
+  to?: string;
+  limit?: number;
+  minQuality?: number;
 }
 
 export interface Facets {
@@ -201,6 +214,8 @@ export interface Facets {
   directions: { k: string; n: number }[];
   confidences: { k: string; n: number }[];
   topEntities: { k: string; n: number }[];
+  categories?: { k: SignalContentCategory; n: number }[];
+  sourceClasses?: { k: SourceClass; n: number }[];
 }
 
 function qs(o: SignalFilters): string {
