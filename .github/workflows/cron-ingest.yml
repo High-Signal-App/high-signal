@@ -17,7 +17,7 @@ on:
 jobs:
   ingest:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 30
     defaults:
       run:
         working-directory: python/ingest
@@ -37,6 +37,8 @@ jobs:
           AI_PROJECT_ID: high-signal
           SEC_USER_AGENT: "high-signal sarthakagrawal927@gmail.com"
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EDGAR_TICKER_LIMIT: "25"
+          SIGNAL_CLUSTER_LIMIT: "40"
         run: |
           uv run python -m high_signal_ingest.pipeline \
             --source "${{ inputs.source || 'all' }}" \

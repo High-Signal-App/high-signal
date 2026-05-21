@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from collections import defaultdict
 from datetime import datetime, timezone
@@ -33,15 +34,25 @@ Source = Literal[
 ]
 
 FALLBACK_DRAFT_LIMIT = 3
+DEFAULT_DAILY_EDGAR_TICKER_LIMIT = 25
+DEFAULT_SIGNAL_CLUSTER_LIMIT = 40
+
+
+def _int_env(name: str, default: int) -> int:
+    try:
+        return max(1, int(os.environ.get(name, default)))
+    except (TypeError, ValueError):
+        return default
 
 
 def fetch(source: Source, days: int) -> list[Event]:
     out: list[Event] = []
     if source in {"edgar", "all"}:
         tickers = [e.ticker for e in load_entities() if e.ticker and e.type == "public"]
+        ticker_limit = _int_env("EDGAR_TICKER_LIMIT", DEFAULT_DAILY_EDGAR_TICKER_LIMIT)
         # 8-K is event-driven; 10-Q/K only checked weekly to keep volume bounded
         forms = ("8-K", "10-Q", "10-K") if days >= 7 else ("8-K",)
-        out.extend(edgar.fetch_recent(tickers[:80], days=days, forms=forms))
+        out.extend(edgar.fetch_recent(tickers[:ticker_limit], days=days, forms=forms))
     if source in {"news", "all"}:
         out.extend(news.fetch_all(days=days, tier_max=2, fetch_body=True))
     if source in {"reddit", "all"}:
@@ -78,6 +89,24 @@ def _spillover_candidates(primary: str) -> list[str]:
     return spillover_ids(primary, hops=2, limit=12)
 
 
+def _ranked_entity_groups(by_entity: dict[str, list[Event]]) -> list[tuple[str, list[Event]]]:
+    """Prioritize clusters with independent URLs and multiple source families."""
+
+    return sorted(
+        by_entity.items(),
+        key=lambda item: (
+            len({e.source.split(":")[0] for e in item[1]}),
+            len({e.source_url for e in item[1] if e.source_url}),
+            len(item[1]),
+        ),
+        reverse=True,
+    )
+
+
+def _cluster_limit() -> int:
+    return _int_env("SIGNAL_CLUSTER_LIMIT", DEFAULT_SIGNAL_CLUSTER_LIMIT)
+
+
 def cluster_and_generate(events: list[Event]) -> list[str]:
     """Cluster events by primary entity, then call LLM to generate signals."""
     by_entity: dict[str, list[Event]] = defaultdict(list)
@@ -90,7 +119,7 @@ def cluster_and_generate(events: list[Event]) -> list[str]:
             by_entity[eid].append(ev)
 
     written: list[str] = []
-    for entity_id, evs in by_entity.items():
+    for entity_id, evs in _ranked_entity_groups(by_entity)[:_cluster_limit()]:
         cand = generate(entity_id, evs, _spillover_candidates(entity_id))
         if cand:
             written.append(emit(cand))
@@ -145,7 +174,7 @@ def run(source: Source, days: int) -> dict:
     written: list[str] = []
     low_cluster = 0
     fallback_by_entity: dict[str, list[Event]] = {}
-    for entity_id, evs in by_entity.items():
+    for entity_id, evs in _ranked_entity_groups(by_entity)[:_cluster_limit()]:
         try:
             cand = generate(entity_id, evs, _spillover_candidates(entity_id))
         except Exception as exc:
