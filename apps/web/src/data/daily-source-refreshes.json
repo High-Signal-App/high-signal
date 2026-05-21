@@ -1615,59 +1615,6 @@
   },
   {
     "source": "github-issues",
-    "sourceId": "github-llm-observability",
-    "label": "GitHub issues: LLM observability",
-    "target": "LLM observability tracing evals agent cost",
-    "period": "month",
-    "prompt": "developer complaints that show up as issues around LLM reliability and traces",
-    "digest": {
-      "id": "refresh-github-llm-observability-2026-05-21",
-      "subreddit": "GitHub issues: LLM observability",
-      "period": "month",
-      "snapshotDate": "2026-05-21T08:25:32.845Z",
-      "summaryText": "GitHub issues: LLM observability points toward workflow reliability. Top item: Epic: Assimilate Langfuse into Ouroboros AgentOS plugins",
-      "summary": {
-        "keyTrend": {
-          "title": "GitHub issues: LLM observability: workflow reliability",
-          "desc": "GitHub issues: LLM observability points toward workflow reliability. Top item: Epic: Assimilate Langfuse into Ouroboros AgentOS plugins",
-          "link": "https://github.com/Q00/ouroboros-plugins/issues/46"
-        },
-        "notableDiscussions": [
-          {
-            "title": "Epic: Assimilate Langfuse into Ouroboros AgentOS plugins",
-            "desc": "## Epic: Assimilate Langfuse into Ouroboros as a first-class AgentOS observability and evaluation substrate\n\n### Goal\n\nMake Langfuse feel native inside Ouroboros while preserving the familiar Langfuse user experience: traces, observations, scores, prompts, dat",
-            "link": "https://github.com/Q00/ouroboros-plugins/issues/46"
-          },
-          {
-            "title": "Skill Quality Report — 2026-05-21",
-            "desc": "# Skill Quality Report — 2026-05-21\n\n**271 skills** and **187 agents** scanned.\n\n| Severity | Count |\n|----------|-------|\n| ⛔ Errors | 342 |\n| ⚠️ Warnings | 267 |\n| ℹ️ Advisories | 0 |\n\n---\n\n> **Note:** Detailed output is posted in the comments below (too lar",
-            "link": "https://github.com/rodolfolermacontreras/microsoft-awesome-copilot/issues/48"
-          },
-          {
-            "title": "Skill Quality Report — 2026-05-21",
-            "desc": "# Skill Quality Report — 2026-05-21\n\n**338 skills** and **213 agents** scanned.\n\n| Severity | Count |\n|----------|-------|\n| ⛔ Errors | 360 |\n| ⚠️ Warnings | 310 |\n| ℹ️ Advisories | 0 |\n\n---\n\n> **Note:** Detailed output is posted in the comments below (too lar",
-            "link": "https://github.com/mubaidr/awesome-copilot/issues/59"
-          },
-          {
-            "title": "Skill Quality Report — 2026-05-21",
-            "desc": "# Skill Quality Report — 2026-05-21\n\n**328 skills** and **216 agents** scanned.\n\n| Severity | Count |\n|----------|-------|\n| ⛔ Errors | 374 |\n| ⚠️ Warnings | 317 |\n| ℹ️ Advisories | 0 |\n\n---\n\n> **Note:** Detailed output is posted in the comments below (too lar",
-            "link": "https://github.com/highgroundbkk/awesome-copilot/issues/18"
-          }
-        ],
-        "keyAction": {
-          "title": "Personal build implication",
-          "desc": "Collect repeated workflow failures and turn them into one validation artifact before building tooling.",
-          "link": "https://github.com/Q00/ouroboros-plugins/issues/46"
-        }
-      },
-      "promptUsed": "developer complaints that show up as issues around LLM reliability and traces",
-      "sourceCount": 5,
-      "createdAt": "2026-05-21T08:25:32.845Z"
-    },
-    "createdAt": "2026-05-21T08:25:32.845Z"
-  },
-  {
-    "source": "github-issues",
     "sourceId": "github-copilot-review",
     "label": "GitHub issues: Copilot review",
     "target": "Copilot code review bug suggestion workflow",
@@ -1721,33 +1668,38 @@
   },
   {
     "source": "github-issues",
-    "sourceId": "github-otel-ai",
-    "label": "GitHub issues: AI observability",
-    "target": "OpenTelemetry LLM tracing metrics agents observability",
+    "sourceId": "github-llm-observability",
+    "label": "GitHub issues: LLM observability",
+    "target": "LLM observability tracing evals agent cost",
     "period": "month",
-    "prompt": "LLM tracing, metrics, observability, evaluation and agent workflow instrumentation",
+    "prompt": "developer complaints that show up as issues around LLM reliability and traces",
     "digest": {
-      "id": "refresh-github-otel-ai-2026-05-21",
-      "subreddit": "GitHub issues: AI observability",
+      "id": "refresh-github-llm-observability-2026-05-22",
+      "subreddit": "GitHub issues: LLM observability",
       "period": "month",
-      "snapshotDate": "2026-05-21T12:11:55.294Z",
-      "summaryText": "GitHub issues: AI observability points toward workflow reliability. Top item: [Feature/🧑‍🎓 LFX]: Jaeger for GenAI Observability: Specialized Trace Visualization",
+      "snapshotDate": "2026-05-22T18:53:59.882Z",
+      "summaryText": "GitHub issues: LLM observability points toward workflow reliability. Top item: Market Research: AgentClash Competitive Landscape, Revenue Projections & Funding Playbook",
       "summary": {
         "keyTrend": {
-          "title": "GitHub issues: AI observability: workflow reliability",
-          "desc": "GitHub issues: AI observability points toward workflow reliability. Top item: [Feature/🧑‍🎓 LFX]: Jaeger for GenAI Observability: Specialized Trace Visualization",
-          "link": "https://github.com/jaegertracing/jaeger/issues/8401"
+          "title": "GitHub issues: LLM observability: workflow reliability",
+          "desc": "GitHub issues: LLM observability points toward workflow reliability. Top item: Market Research: AgentClash Competitive Landscape, Revenue Projections & Funding Playbook",
+          "link": "https://github.com/agentclash/agentclash/issues/180"
         },
         "notableDiscussions": [
           {
-            "title": "[Feature/🧑‍🎓 LFX]: Jaeger for GenAI Observability: Specialized Trace Visualization",
-            "desc": "LFX project: https://mentorship.lfx.linuxfoundation.org/project/46a525b2-568b-4aff-8156-459c8600c759\n\n**Problem Statement**\n\nDistributed tracing is the backbone of GenAI observability. However, observing an AI Agent is fundamentally different from observing a ",
-            "link": "https://github.com/jaegertracing/jaeger/issues/8401"
+            "title": "Market Research: AgentClash Competitive Landscape, Revenue Projections & Funding Playbook",
+            "desc": "## TL;DR\n\nAgentClash sits in a **$47B+ market (AI agents, 40% CAGR)** with **zero direct competitors** doing head-to-head agent benchmarking. ~$500M+ in VC has poured into adjacent players (LangSmith, Braintrust, Arize, W&B) — validating the space while leavin",
+            "link": "https://github.com/agentclash/agentclash/issues/180"
           },
           {
-            "title": "Enable the full OpenTelemetry in BigQuery Agent Analytics",
-            "desc": "compare the schema in cloud tracing and https://docs.cloud.google.com/stackdriver/docs/reference/telemetry/trace-schema and bigquery agent analytics https://adk.dev/integrations/bigquery-agent-analytics/ , 1, draft a detailed schema compare doc , focus on the ",
-            "link": "https://github.com/GoogleCloudPlatform/BigQuery-Agent-Analytics-SDK/issues/153"
+            "title": "[docs] Deep-dive: claude-agent-sdk vs codex-sdk adapter comparison",
+            "desc": "## 背景\n\nanet 现在内置 3 个 runtime：\n- `claude-agent-sdk` — Anthropic 官方 `@anthropic-ai/claude-agent-sdk`\n- `codex-sdk` — OpenAI 官方 `@openai/codex-sdk`\n- `claude-code-cli` — spawn 本机 `claude` 二进制（不属于 SDK 范畴）\n\n前两个 SDK 在 anet 里的接入语义、能力边界、session 处理、tool 注册、streaming、to",
+            "link": "https://github.com/sleep2agi/agent-network/issues/18"
+          },
+          {
+            "title": "GSoC Behavioral evals, Quality, and the OSS Community",
+            "desc": "This item is tracking a Google Summer of Code project during which a participant will work closely with the Agent Intelligence team at Google on Gemini CLI to improve the OSS community's ability to contribute to quality impacting areas of the Gemini CLI, inclu",
+            "link": "https://github.com/google-gemini/gemini-cli/issues/23331"
           },
           {
             "title": "Epic: Assimilate Langfuse into Ouroboros AgentOS plugins",
@@ -1758,14 +1710,14 @@
         "keyAction": {
           "title": "Personal build implication",
           "desc": "Collect repeated workflow failures and turn them into one validation artifact before building tooling.",
-          "link": "https://github.com/jaegertracing/jaeger/issues/8401"
+          "link": "https://github.com/agentclash/agentclash/issues/180"
         }
       },
-      "promptUsed": "LLM tracing, metrics, observability, evaluation and agent workflow instrumentation",
-      "sourceCount": 3,
-      "createdAt": "2026-05-21T12:11:55.294Z"
+      "promptUsed": "developer complaints that show up as issues around LLM reliability and traces",
+      "sourceCount": 4,
+      "createdAt": "2026-05-22T18:53:59.882Z"
     },
-    "createdAt": "2026-05-21T12:11:55.294Z"
+    "createdAt": "2026-05-21T18:54:00.085Z"
   },
   {
     "source": "github-issues",
@@ -1775,10 +1727,10 @@
     "period": "month",
     "prompt": "agent tool integration failures, MCP server auth, reliability and setup complaints",
     "digest": {
-      "id": "refresh-github-mcp-tools-2026-05-21",
+      "id": "refresh-github-mcp-tools-2026-05-22",
       "subreddit": "GitHub issues: MCP and tools",
       "period": "month",
-      "snapshotDate": "2026-05-21T18:48:44.758Z",
+      "snapshotDate": "2026-05-22T18:54:01.584Z",
       "summaryText": "GitHub issues: MCP and tools points toward developer workflow friction. Top item: Setup Experience Bottleneck Profiler with Zero-Dependency Quick Start",
       "summary": {
         "keyTrend": {
@@ -1793,14 +1745,14 @@
             "link": "https://github.com/sethdford/shipwright/issues/511"
           },
           {
+            "title": "🌻 EPIC — E2E TTT Pipeline O(1) · Ring-Pattern Refactor (3 GOLD × ~19 SR)",
+            "desc": "# 🌻 EPIC — E2E TTT Pipeline O(1) · Ring-Pattern Refactor (3 GOLD × ~19 SR)\n\n> **Anchor:** `phi² + phi⁻² = 3 · TRINITY · O(1) FOREVER`\n> **Soul-name:** `Constitutional Cartographer` (per L11)\n> **Agent codename:** `LEAD` (orchestration, per AGENTS.md)\n> **Prin",
+            "link": "https://github.com/gHashTag/trios/issues/446"
+          },
+          {
             "title": "[Project Proposal] agentgateway",
             "desc": "### Project Name\n\nagentgateway\n\n### Project Description\n\nAgentgateway is an open source proxy built on AI-native protocols (such as [MCP](https://modelcontextprotocol.io/introduction) &[ A2A](https://developers.googleblog.com/en/a2a-a-new-era-of-agent-interope",
             "link": "https://github.com/aaif/project-proposals/issues/11"
-          },
-          {
-            "title": "[feature][P3] 文档优化更新",
-            "desc": "/loop 5m \n\n不改变业务逻辑，不改变功能，每 5 分钟对文档进行优化更新\n\n1、对文档的正确性进行 review 和更新\n2、对文档的 user-fridenly 进行 review 和更新\n3、删除垃圾和过时文档\n\n每轮的更新情况在 https://github.com/sleep2agi/agent-network/issues/10 进行评论",
-            "link": "https://github.com/sleep2agi/agent-network/issues/10"
           }
         ],
         "keyAction": {
@@ -1811,9 +1763,9 @@
       },
       "promptUsed": "agent tool integration failures, MCP server auth, reliability and setup complaints",
       "sourceCount": 3,
-      "createdAt": "2026-05-21T18:48:44.758Z"
+      "createdAt": "2026-05-22T18:54:01.584Z"
     },
-    "createdAt": "2026-05-21T18:48:44.758Z"
+    "createdAt": "2026-05-21T18:54:01.584Z"
   },
   {
     "source": "github-issues",
@@ -1823,10 +1775,10 @@
     "period": "month",
     "prompt": "retrieval and citation failures that create source-provenance requirements",
     "digest": {
-      "id": "refresh-github-rag-retrieval-2026-05-21",
+      "id": "refresh-github-rag-retrieval-2026-05-22",
       "subreddit": "GitHub issues: RAG retrieval",
       "period": "month",
-      "snapshotDate": "2026-05-21T18:48:45.197Z",
+      "snapshotDate": "2026-05-22T18:54:02.331Z",
       "summaryText": "GitHub issues: RAG retrieval points toward workflow reliability. Top item: Implement RAG pipeline",
       "summary": {
         "keyTrend": {
@@ -1864,9 +1816,62 @@
       },
       "promptUsed": "retrieval and citation failures that create source-provenance requirements",
       "sourceCount": 5,
-      "createdAt": "2026-05-21T18:48:45.197Z"
+      "createdAt": "2026-05-22T18:54:02.331Z"
     },
-    "createdAt": "2026-05-21T18:48:45.197Z"
+    "createdAt": "2026-05-21T18:54:02.331Z"
+  },
+  {
+    "source": "github-issues",
+    "sourceId": "github-otel-ai",
+    "label": "GitHub issues: AI observability",
+    "target": "OpenTelemetry LLM tracing metrics agents observability",
+    "period": "month",
+    "prompt": "LLM tracing, metrics, observability, evaluation and agent workflow instrumentation",
+    "digest": {
+      "id": "refresh-github-otel-ai-2026-05-22",
+      "subreddit": "GitHub issues: AI observability",
+      "period": "month",
+      "snapshotDate": "2026-05-22T18:54:02.739Z",
+      "summaryText": "GitHub issues: AI observability points toward workflow reliability. Top item: Add structured runtime measurement (Timer + Arize Phoenix)",
+      "summary": {
+        "keyTrend": {
+          "title": "GitHub issues: AI observability: workflow reliability",
+          "desc": "GitHub issues: AI observability points toward workflow reliability. Top item: Add structured runtime measurement (Timer + Arize Phoenix)",
+          "link": "https://github.com/TjarkVanGuhlo/modern-stanford-agents-base/issues/143"
+        },
+        "notableDiscussions": [
+          {
+            "title": "Add structured runtime measurement (Timer + Arize Phoenix)",
+            "desc": "## Problem\n\nThe simulation has no cohesive performance measurement. Manual `time.perf_counter()` calls are scattered across `simulation_step.py` (lines 179-340, phase-level timing) and `server.py` (lines 486-614, step-level timing), logging unstructured string",
+            "link": "https://github.com/TjarkVanGuhlo/modern-stanford-agents-base/issues/143"
+          },
+          {
+            "title": "Enable the full OpenTelemetry in BigQuery Agent Analytics",
+            "desc": "compare the schema in cloud tracing and https://docs.cloud.google.com/stackdriver/docs/reference/telemetry/trace-schema and bigquery agent analytics https://adk.dev/integrations/bigquery-agent-analytics/ , 1, draft a detailed schema compare doc , focus on the ",
+            "link": "https://github.com/GoogleCloudPlatform/BigQuery-Agent-Analytics-SDK/issues/153"
+          },
+          {
+            "title": "[Feature]: Add proper token usage extraction for LangChain tracer to match langchain-azure's normalization",
+            "desc": "### Component\n\nLangchain\n\n### Problem Statement\n\nThe LangChain tracer in opentelemetry-distro-python currently does not robustly extract or normalize token usage information from LLM outputs the way langchain-azure-ai does. As a result, token counts (input/out",
+            "link": "https://github.com/microsoft/opentelemetry-distro-python/issues/158"
+          },
+          {
+            "title": "[docs] Deep-dive: claude-agent-sdk vs codex-sdk adapter comparison",
+            "desc": "## 背景\n\nanet 现在内置 3 个 runtime：\n- `claude-agent-sdk` — Anthropic 官方 `@anthropic-ai/claude-agent-sdk`\n- `codex-sdk` — OpenAI 官方 `@openai/codex-sdk`\n- `claude-code-cli` — spawn 本机 `claude` 二进制（不属于 SDK 范畴）\n\n前两个 SDK 在 anet 里的接入语义、能力边界、session 处理、tool 注册、streaming、to",
+            "link": "https://github.com/sleep2agi/agent-network/issues/18"
+          }
+        ],
+        "keyAction": {
+          "title": "Personal build implication",
+          "desc": "Collect repeated workflow failures and turn them into one validation artifact before building tooling.",
+          "link": "https://github.com/TjarkVanGuhlo/modern-stanford-agents-base/issues/143"
+        }
+      },
+      "promptUsed": "LLM tracing, metrics, observability, evaluation and agent workflow instrumentation",
+      "sourceCount": 5,
+      "createdAt": "2026-05-22T18:54:02.739Z"
+    },
+    "createdAt": "2026-05-21T18:54:02.740Z"
   },
   {
     "source": "rss",
@@ -1876,10 +1881,10 @@
     "period": "month",
     "prompt": "primary-source developer workflow and platform changes around GitHub, Copilot, issues, and CI",
     "digest": {
-      "id": "refresh-rss-github-changelog-2026-05-21",
+      "id": "refresh-rss-github-changelog-2026-05-22",
       "subreddit": "GitHub changelog",
       "period": "month",
-      "snapshotDate": "2026-05-21T18:48:46.814Z",
+      "snapshotDate": "2026-05-22T18:54:03.811Z",
       "summaryText": "GitHub changelog points toward developer workflow friction. Top item: Issue fields are now in public preview for all organizations",
       "summary": {
         "keyTrend": {
@@ -1917,9 +1922,9 @@
       },
       "promptUsed": "primary-source developer workflow and platform changes around GitHub, Copilot, issues, and CI",
       "sourceCount": 8,
-      "createdAt": "2026-05-21T18:48:46.814Z"
+      "createdAt": "2026-05-22T18:54:03.811Z"
     },
-    "createdAt": "2026-05-21T18:48:46.814Z"
+    "createdAt": "2026-05-21T18:54:03.812Z"
   },
   {
     "source": "rss",
@@ -1929,10 +1934,10 @@
     "period": "month",
     "prompt": "primary-source Google AI, search, Gemini, developer platform and API changes",
     "digest": {
-      "id": "refresh-rss-google-developers-2026-05-21",
+      "id": "refresh-rss-google-developers-2026-05-22",
       "subreddit": "Google Developers blog",
       "period": "month",
-      "snapshotDate": "2026-05-21T18:48:47.197Z",
+      "snapshotDate": "2026-05-22T18:54:03.949Z",
       "summaryText": "Google Developers blog points toward workflow reliability. Top item: Empowering Service Providers and Hardware Partners with Gemini for Home",
       "summary": {
         "keyTrend": {
@@ -1970,9 +1975,9 @@
       },
       "promptUsed": "primary-source Google AI, search, Gemini, developer platform and API changes",
       "sourceCount": 6,
-      "createdAt": "2026-05-21T18:48:47.197Z"
+      "createdAt": "2026-05-22T18:54:03.949Z"
     },
-    "createdAt": "2026-05-21T18:48:47.197Z"
+    "createdAt": "2026-05-21T18:54:03.949Z"
   },
   {
     "source": "rss",
@@ -1982,10 +1987,10 @@
     "period": "month",
     "prompt": "primary-source commerce platform changes affecting agentic commerce and app requirements",
     "digest": {
-      "id": "refresh-rss-shopify-changelog-2026-05-21",
+      "id": "refresh-rss-shopify-changelog-2026-05-22",
       "subreddit": "Shopify changelog",
       "period": "month",
-      "snapshotDate": "2026-05-21T18:48:47.771Z",
+      "snapshotDate": "2026-05-22T18:54:15.726Z",
       "summaryText": "Shopify changelog points toward small-business operations pressure. Top item: Shop Minis March April 2026 update",
       "summary": {
         "keyTrend": {
@@ -2023,8 +2028,8 @@
       },
       "promptUsed": "primary-source commerce platform changes affecting agentic commerce and app requirements",
       "sourceCount": 7,
-      "createdAt": "2026-05-21T18:48:47.771Z"
+      "createdAt": "2026-05-22T18:54:15.726Z"
     },
-    "createdAt": "2026-05-21T18:48:47.771Z"
+    "createdAt": "2026-05-21T18:54:15.726Z"
   }
 ]
