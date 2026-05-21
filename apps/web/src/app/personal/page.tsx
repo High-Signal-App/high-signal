@@ -11,6 +11,7 @@ import { api, type SignalRow } from "@/lib/api";
 import {
   buildDailyBroadInsightsWithAnnotations,
   buildDailySourceCoverage,
+  buildDailySourceQualityAudit,
   DAILY_INTELLIGENCE_LAYER,
   defaultDailyAnnotationOptions,
   readSourceRefreshes as readBundledSourceRefreshes,
@@ -308,6 +309,7 @@ export default async function PersonalPage({
     resolveAcceptedRefreshDate(refreshes, requestedSourceDate ?? requestedDate ?? selectedReport?.date) ??
     new Date().toISOString().slice(0, 10);
   const sourceCoverage = buildDailySourceCoverage(refreshes, sourceReadDate);
+  const sourceQualityAudit = buildDailySourceQualityAudit(refreshes, sourceReadDate);
   const sourceReadsAll = await buildDailyBroadInsightsWithAnnotations(
     refreshes,
     sourceReadDate,
@@ -417,10 +419,32 @@ export default async function PersonalPage({
             items={[
               { label: "configured", value: sourceCoverage.configuredSources.toString() },
               { label: "accepted", value: sourceCoverage.acceptedSnapshots.toString() },
+              { label: "rejected", value: sourceQualityAudit.rejectedSnapshots.toString() },
+              { label: "missing", value: sourceQualityAudit.missingSources.toString() },
               { label: "items", value: sourceCoverage.underlyingItems.toString() },
               { label: "reads", value: sourceReads.length.toString() },
             ]}
           />
+          <div className="mt-6 grid gap-5 md:grid-cols-2">
+            <div className="border border-[var(--color-line)] p-4">
+              <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
+                quality gate
+              </div>
+              <div className="mt-3 break-words font-mono text-xs leading-6 text-[var(--color-fg)]">
+                {sourceQualityAudit.acceptedSnapshots} accepted / {sourceQualityAudit.rejectedSnapshots} rejected /{" "}
+                {sourceQualityAudit.missingSources} missing
+              </div>
+            </div>
+            <div className="border border-[var(--color-line)] p-4">
+              <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
+                reject reasons
+              </div>
+              <div className="mt-3 break-words font-mono text-xs leading-6 text-[var(--color-fg)]">
+                {sourceQualityAudit.rejectedReasons.map(({ k, n }) => `${k.replaceAll("-", " ")} ${n}`).join(" / ") ||
+                  "none"}
+              </div>
+            </div>
+          </div>
           <div className="mt-6 grid gap-5 md:grid-cols-3">
             {[
               ["category", countLine(sourceReadCategories)],

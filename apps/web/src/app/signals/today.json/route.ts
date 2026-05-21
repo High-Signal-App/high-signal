@@ -4,6 +4,7 @@ import { assessSignalQuality, type SignalContentCategory } from "@high-signal/sh
 import {
   buildDailyBroadInsightsWithAnnotations,
   buildDailySourceCoverage,
+  buildDailySourceQualityAudit,
   DAILY_INTELLIGENCE_LAYER,
   defaultDailyAnnotationOptions,
   resolveAcceptedRefreshDate,
@@ -72,6 +73,7 @@ export async function GET(req: Request) {
     (item) => !category || item.contentCategory === category,
   );
   const sourceCoverage = buildDailySourceCoverage(refreshes, sourceReadDate);
+  const sourceQualityAudit = buildDailySourceQualityAudit(refreshes, sourceReadDate);
   const categoryCounts = countBy([
     ...all.map((signal) => signalCategory(signal)),
     ...allBroadInsights.map((item) => item.contentCategory),
@@ -121,6 +123,7 @@ export async function GET(req: Request) {
       sentimentCounts,
       intelligenceLayer: DAILY_INTELLIGENCE_LAYER,
       sourceCoverage,
+      sourceQualityAudit,
       items,
       signals: today,
       broadInsights,

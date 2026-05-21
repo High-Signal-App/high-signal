@@ -59,6 +59,7 @@ type SourceRegistry = {
     label: string;
     target: string;
     period: "day" | "week" | "month";
+    query?: string;
     intent: string;
   }>;
 };
@@ -103,6 +104,37 @@ export type DailySourceCoverage = {
 
 export type DailyAnnotationOptions = AnnotationClientOptions;
 
+export type SourceQualityStatus = "accepted" | "rejected" | "missing";
+
+export type SourceQualityRow = {
+  sourceId: string;
+  label: string;
+  sourceType: SourceType;
+  sourceClass: string;
+  status: SourceQualityStatus;
+  snapshotDate: string | null;
+  sourceCount: number;
+  repeatedSignalCount: number;
+  genericRisk: "low" | "medium" | "high" | "missing";
+  reasons: string[];
+  noiseFlags: string[];
+  title: string | null;
+};
+
+export type DailySourceQualityAudit = {
+  date: string;
+  configuredSources: number;
+  observedSnapshots: number;
+  acceptedSnapshots: number;
+  rejectedSnapshots: number;
+  missingSources: number;
+  acceptedUnderlyingItems: number;
+  rejectedUnderlyingItems: number;
+  rejectedReasons: Array<{ k: string; n: number }>;
+  statusByClass: Array<{ k: string; accepted: number; rejected: number; missing: number }>;
+  rows: SourceQualityRow[];
+};
+
 function recordDate(record: ProductFlowRefreshRecord) {
   return record.digest.snapshotDate.slice(0, 10);
 }
@@ -113,6 +145,30 @@ function countBy<T extends string>(values: T[]) {
   return Array.from(counts.entries())
     .map(([k, n]) => ({ k, n }))
     .sort((a, b) => b.n - a.n || a.k.localeCompare(b.k));
+}
+
+function sourceClass(source: SourceRegistry["sources"][number]) {
+  const id = source.id.toLowerCase();
+  const text = `${source.label} ${source.target} ${source.query ?? ""} ${source.intent}`.toLowerCase();
+  if (/india|bangalore|mumbai|delhi|nyc|bayarea|regional/.test(id) || /regional|city|local constraints/.test(text)) {
+    return "regional";
+  }
+  if (
+    /smallbusiness|small-business|ecommerce|shopify|etsy|freelance|seller|merchant/.test(id) ||
+    /small business|ecommerce|shopify|etsy|freelance|seller|merchant/.test(text)
+  ) {
+    return "small-business";
+  }
+  if (/personalfinance|povertyfinance|jobs|consumer/.test(id) || /consumer|budget|affordability|labor market|jobs/.test(text)) {
+    return "public-consumer";
+  }
+  if (/saas|startup|sideproject|entrepreneur|product-validation/.test(id) || /startup|validation|launch|distribution/.test(text)) {
+    return "startup-builder";
+  }
+  if (/market|stripe|payments|commerce|cloudflare|github|google|openai|anthropic|rss-/.test(id)) {
+    return "platform-primary";
+  }
+  return "ai-dev";
 }
 
 export async function readSourceRefreshes(): Promise<ProductFlowRefreshRecord[]> {
@@ -150,6 +206,99 @@ export function acceptedRefreshRecordsForDate(records: ProductFlowRefreshRecord[
     const quality = communityDigestEvidenceQuality(record.digest);
     return record.digest.sourceCount >= 2 && quality.genericRisk !== "high" && quality.repeatedSignalCount >= 2;
   });
+}
+
+function sourceKey(source: SourceRegistry["sources"][number]) {
+  return `${source.id}:${source.period}`.toLowerCase();
+}
+
+function recordSourceKey(record: ProductFlowRefreshRecord) {
+  return `${record.sourceId ?? record.label ?? record.target ?? record.source}:${record.period}`.toLowerCase();
+}
+
+function rejectionReasons(record: ProductFlowRefreshRecord) {
+  const quality = communityDigestEvidenceQuality(record.digest);
+  const reasons: string[] = [];
+  if (record.digest.sourceCount < 2) reasons.push("too-few-underlying-items");
+  if (quality.genericRisk === "high") reasons.push("high-generic-risk");
+  if (quality.repeatedSignalCount < 2) reasons.push("low-product-repeat");
+  reasons.push(...quality.noiseFlags);
+  return Array.from(new Set(reasons));
+}
+
+function sourceRowForRecord(source: SourceRegistry["sources"][number], record: ProductFlowRefreshRecord): SourceQualityRow {
+  const quality = communityDigestEvidenceQuality(record.digest);
+  const reasons = rejectionReasons(record);
+  const status: SourceQualityStatus = reasons.length === 0 ? "accepted" : "rejected";
+  return {
+    sourceId: source.id,
+    label: source.label,
+    sourceType: source.type,
+    sourceClass: sourceClass(source),
+    status,
+    snapshotDate: record.digest.snapshotDate,
+    sourceCount: record.digest.sourceCount,
+    repeatedSignalCount: quality.repeatedSignalCount,
+    genericRisk: quality.genericRisk,
+    reasons,
+    noiseFlags: quality.noiseFlags,
+    title: record.digest.summary?.keyTrend?.title ?? record.digest.summaryText ?? null,
+  };
+}
+
+function missingSourceRow(source: SourceRegistry["sources"][number]): SourceQualityRow {
+  return {
+    sourceId: source.id,
+    label: source.label,
+    sourceType: source.type,
+    sourceClass: sourceClass(source),
+    status: "missing",
+    snapshotDate: null,
+    sourceCount: 0,
+    repeatedSignalCount: 0,
+    genericRisk: "missing",
+    reasons: ["no-snapshot-for-date"],
+    noiseFlags: [],
+    title: null,
+  };
+}
+
+export function buildDailySourceQualityAudit(records: ProductFlowRefreshRecord[], date: string): DailySourceQualityAudit {
+  const registry = sourceRegistry as SourceRegistry;
+  const dateRecords = latestRefreshRecords(records.filter((record) => recordDate(record) === date));
+  const recordsByKey = new Map(dateRecords.map((record) => [recordSourceKey(record), record]));
+  const rows = registry.sources.map((source) => {
+    const record = recordsByKey.get(sourceKey(source));
+    return record ? sourceRowForRecord(source, record) : missingSourceRow(source);
+  });
+  const accepted = rows.filter((row) => row.status === "accepted");
+  const rejected = rows.filter((row) => row.status === "rejected");
+  const missing = rows.filter((row) => row.status === "missing");
+  const classMap = new Map<string, { k: string; accepted: number; rejected: number; missing: number }>();
+  for (const row of rows) {
+    const item = classMap.get(row.sourceClass) ?? { k: row.sourceClass, accepted: 0, rejected: 0, missing: 0 };
+    item[row.status] += 1;
+    classMap.set(row.sourceClass, item);
+  }
+  return {
+    date,
+    configuredSources: registry.sources.length,
+    observedSnapshots: dateRecords.length,
+    acceptedSnapshots: accepted.length,
+    rejectedSnapshots: rejected.length,
+    missingSources: missing.length,
+    acceptedUnderlyingItems: accepted.reduce((sum, row) => sum + row.sourceCount, 0),
+    rejectedUnderlyingItems: rejected.reduce((sum, row) => sum + row.sourceCount, 0),
+    rejectedReasons: countBy(rejected.flatMap((row) => row.reasons)),
+    statusByClass: Array.from(classMap.values()).sort((a, b) => a.k.localeCompare(b.k)),
+    rows: rows.sort(
+      (a, b) =>
+        (a.status === "accepted" ? 0 : a.status === "rejected" ? 1 : 2) -
+          (b.status === "accepted" ? 0 : b.status === "rejected" ? 1 : 2) ||
+        a.sourceClass.localeCompare(b.sourceClass) ||
+        a.label.localeCompare(b.label),
+    ),
+  };
 }
 
 export function acceptedRefreshDates(records: ProductFlowRefreshRecord[]) {

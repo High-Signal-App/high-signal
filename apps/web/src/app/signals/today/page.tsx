@@ -5,6 +5,7 @@ import { assessSignalQuality, type SignalContentCategory } from "@high-signal/sh
 import {
   buildDailyBroadInsightsWithAnnotations,
   buildDailySourceCoverage,
+  buildDailySourceQualityAudit,
   resolveAcceptedRefreshDate,
   DAILY_INTELLIGENCE_LAYER,
   defaultDailyAnnotationOptions,
@@ -119,6 +120,7 @@ export default async function SignalsTodayPage({
     today.reduce((sum, signal) => sum + signal.evidenceUrls.length, 0) +
     broadInsights.reduce((sum, item) => sum + item.sourceCount, 0);
   const coverage = buildDailySourceCoverage(refreshes, sourceReadDate);
+  const sourceQualityAudit = buildDailySourceQualityAudit(refreshes, sourceReadDate);
   const sourceDateShifted = sourceReadDate !== selectedDate;
 
   return (
@@ -181,6 +183,7 @@ export default async function SignalsTodayPage({
           ["usable", `${usable}/${totalItems}`],
           ["strong", strong.toString()],
           ["evidence", evidenceCount.toString()],
+          ["gate", `${sourceQualityAudit.acceptedSnapshots} ok / ${sourceQualityAudit.rejectedSnapshots} reject / ${sourceQualityAudit.missingSources} missing`],
           ["sources", sourceClasses.map(([k, n]) => `${k} ${n}`).join(" / ") || "none"],
         ].map(([label, value]) => (
           <div key={label} className="bg-black p-4">
@@ -196,10 +199,12 @@ export default async function SignalsTodayPage({
         <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
           source coverage
         </div>
-        <div className="mt-4 grid gap-px border border-zinc-800 bg-zinc-800 sm:grid-cols-4">
+        <div className="mt-4 grid gap-px border border-zinc-800 bg-zinc-800 sm:grid-cols-6">
           {[
             ["configured", coverage.configuredSources.toString()],
             ["accepted", coverage.acceptedSnapshots.toString()],
+            ["rejected", sourceQualityAudit.rejectedSnapshots.toString()],
+            ["missing", sourceQualityAudit.missingSources.toString()],
             ["underlying items", coverage.underlyingItems.toString()],
             ["latest refresh", coverage.latestRefreshDate ?? "none"],
           ].map(([label, value]) => (
@@ -224,6 +229,44 @@ export default async function SignalsTodayPage({
               {coverage.acceptedByType.map(({ k, n }) => `${k} ${n}`).join(" / ") || "none"}
             </div>
           </div>
+        </div>
+        <div className="mt-5 border-t border-zinc-900 pt-4">
+          <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-600">
+            quality gate
+          </div>
+          <div className="mt-2 grid gap-4 text-xs leading-6 text-zinc-500 sm:grid-cols-2">
+            <div>
+              <div className="font-mono uppercase tracking-[0.18em] text-zinc-600">reject reasons</div>
+              <div className="mt-1 font-mono">
+                {sourceQualityAudit.rejectedReasons.map(({ k, n }) => `${k.replaceAll("-", " ")} ${n}`).join(" / ") || "none"}
+              </div>
+            </div>
+            <div>
+              <div className="font-mono uppercase tracking-[0.18em] text-zinc-600">by class</div>
+              <div className="mt-1 font-mono">
+                {sourceQualityAudit.statusByClass
+                  .map(({ k, accepted, rejected, missing }) => `${k} ${accepted}/${rejected}/${missing}`)
+                  .join(" / ")}
+              </div>
+            </div>
+          </div>
+          {sourceQualityAudit.rejectedSnapshots > 0 ? (
+            <div className="mt-4 divide-y divide-zinc-900 border-t border-zinc-900">
+              {sourceQualityAudit.rows
+                .filter((row) => row.status === "rejected")
+                .slice(0, 4)
+                .map((row) => (
+                  <div key={row.sourceId} className="py-3">
+                    <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
+                      rejected / {row.sourceClass} / {row.label}
+                    </div>
+                    <div className="mt-1 text-xs leading-5 text-zinc-500">
+                      {row.reasons.map((reason) => reason.replaceAll("-", " ")).join(" / ")}
+                    </div>
+                  </div>
+                ))}
+            </div>
+          ) : null}
         </div>
         <div className="mt-5 border-t border-zinc-900 pt-4">
           <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-600">
