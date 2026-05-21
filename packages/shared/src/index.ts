@@ -36,3 +36,4 @@ export * from "./personal-usefulness";
 export * from "./watchlist";
 export * from "./signal-intelligence";
 export * from "./lightweight-nlp";
+export * from "./annotation-client";

@@ -73,3 +73,17 @@ uv run pywrangler deploy
 
 This worker is not on the production request path until the web/API app binds
 to it explicitly.
+
+## TypeScript consumers
+
+Use `annotateTexts` from `@high-signal/shared` instead of hand-writing service
+calls. It validates the response shape and falls back to local `rules-v1`
+annotation if the Worker is unavailable or returns a malformed payload.
+
+```ts
+import { annotateTexts } from "@high-signal/shared";
+
+const annotations = await annotateTexts(["Need QuickBooks integration."], {
+  endpoint: process.env.HIGH_SIGNAL_ANNOTATION_ENDPOINT,
+});
+```

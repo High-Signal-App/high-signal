@@ -32,7 +32,7 @@
     "signals:publish-drafts:local": "tsx scripts/publish-drafts.ts --local",
     "signals:publish-drafts:remote": "tsx scripts/publish-drafts.ts --remote",
     "signals:test": "tsx scripts/sync-signals.test.ts",
-    "annotation:test": "python -m unittest discover workers/annotation/tests",
+    "annotation:test": "python -m unittest discover workers/annotation/tests && tsx scripts/annotation-contract.test.ts",
     "ingest:local": "cd python/ingest && uv run python -m high_signal_ingest.pipeline --source all --days 1",
     "ingest:preflight": "cd python/ingest && uv run python -m high_signal_ingest.preflight",
     "prepare": "husky"
