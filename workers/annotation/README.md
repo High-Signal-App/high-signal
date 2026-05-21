@@ -1,0 +1,75 @@
+# high-signal/annotation worker
+
+Cloudflare Python Worker boundary for cheap source-read annotation.
+
+It is intentionally rule-first:
+
+- `method`: `rules-v1`
+- `model`: `none`
+- `llm`: `false`
+
+Use this for latency-sensitive intent/sentiment tagging at the edge. Keep
+Hugging Face classifiers in batch ingest until we verify their runtime/package
+fit under Python Workers.
+
+## Endpoints
+
+```bash
+GET /health
+POST /annotate
+```
+
+Request:
+
+```json
+{ "text": "GitHub CI deploy workflow is broken and blocking review." }
+```
+
+Batch request:
+
+```json
+{ "texts": ["Looking for pricing alternatives.", "Local rent pressure is hurting shops."] }
+```
+
+Response:
+
+```json
+{
+  "ok": true,
+  "count": 1,
+  "annotations": [
+    {
+      "intent": "developer-workflow",
+      "sentiment": "negative",
+      "urgency": "medium",
+      "method": "rules-v1",
+      "model": "none",
+      "llm": false,
+      "intentScore": 1,
+      "sentimentScore": 1,
+      "positiveHits": [],
+      "negativeHits": ["broken"],
+      "intentHits": ["github", "ci", "deploy", "workflow"]
+    }
+  ]
+}
+```
+
+## Local checks
+
+```bash
+python -m unittest discover workers/annotation/tests
+```
+
+## Cloudflare dev/deploy
+
+Python Workers are beta and use the `python_workers` compatibility flag.
+
+```bash
+cd workers/annotation
+uv run pywrangler dev
+uv run pywrangler deploy
+```
+
+This worker is not on the production request path until the web/API app binds
+to it explicitly.
