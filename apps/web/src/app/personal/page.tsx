@@ -9,9 +9,10 @@ import {
 } from "@/components/system/HighSignalUI";
 import { api, type SignalRow } from "@/lib/api";
 import {
-  buildDailyBroadInsights,
+  buildDailyBroadInsightsWithAnnotations,
   buildDailySourceCoverage,
   DAILY_INTELLIGENCE_LAYER,
+  defaultDailyAnnotationOptions,
   readSourceRefreshes as readBundledSourceRefreshes,
   resolveAcceptedRefreshDate,
 } from "@/lib/daily-intelligence";
@@ -307,7 +308,11 @@ export default async function PersonalPage({
     resolveAcceptedRefreshDate(refreshes, requestedSourceDate ?? requestedDate ?? selectedReport?.date) ??
     new Date().toISOString().slice(0, 10);
   const sourceCoverage = buildDailySourceCoverage(refreshes, sourceReadDate);
-  const sourceReadsAll = buildDailyBroadInsights(refreshes, sourceReadDate);
+  const sourceReadsAll = await buildDailyBroadInsightsWithAnnotations(
+    refreshes,
+    sourceReadDate,
+    defaultDailyAnnotationOptions(),
+  );
   const sourceReads = sourceReadsAll.filter(
     (item) => !selectedReadCategory || item.contentCategory === selectedReadCategory,
   );

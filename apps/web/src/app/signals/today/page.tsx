@@ -3,10 +3,11 @@ import { isBackfillSignal } from "@/lib/signal-format";
 import { SignalCard } from "@/components/molecules/SignalCard";
 import { assessSignalQuality, type SignalContentCategory } from "@high-signal/shared";
 import {
-  buildDailyBroadInsights,
+  buildDailyBroadInsightsWithAnnotations,
   buildDailySourceCoverage,
   resolveAcceptedRefreshDate,
   DAILY_INTELLIGENCE_LAYER,
+  defaultDailyAnnotationOptions,
   readSourceRefreshes,
 } from "@/lib/daily-intelligence";
 
@@ -81,7 +82,11 @@ export default async function SignalsTodayPage({
   }
   const refreshes = await readSourceRefreshes();
   const sourceReadDate = resolveAcceptedRefreshDate(refreshes, selectedDate) ?? selectedDate;
-  const allBroadInsights = buildDailyBroadInsights(refreshes, sourceReadDate);
+  const allBroadInsights = await buildDailyBroadInsightsWithAnnotations(
+    refreshes,
+    sourceReadDate,
+    defaultDailyAnnotationOptions(),
+  );
 
   const today = all
     .filter((s) => !selectedCategory || signalCategory(s) === selectedCategory)

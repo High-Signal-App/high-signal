@@ -1,8 +1,10 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import {
+  annotateTexts,
   annotateLightweightNlp,
   communityDigestEvidenceQuality,
+  type AnnotationClientOptions,
   type CommunityDigestSnapshot,
   type LightweightNlpAnnotation,
   type LightweightIntent,
@@ -40,6 +42,13 @@ export const DAILY_INTELLIGENCE_LAYER = {
     llm: false,
     optionalHuggingFace: true,
     enabledByDefault: false,
+  },
+  edgeAnnotationService: {
+    env: "HIGH_SIGNAL_ANNOTATION_ENDPOINT",
+    method: "rules-v1",
+    llm: false,
+    enabledByDefault: false,
+    fallback: "local rules-v1 annotation",
   },
 } as const;
 
@@ -91,6 +100,8 @@ export type DailySourceCoverage = {
   configuredByType: Array<{ k: SourceType; n: number }>;
   acceptedByType: Array<{ k: SourceType; n: number }>;
 };
+
+export type DailyAnnotationOptions = AnnotationClientOptions;
 
 function recordDate(record: ProductFlowRefreshRecord) {
   return record.digest.snapshotDate.slice(0, 10);
@@ -184,35 +195,69 @@ function qualityScore(record: ProductFlowRefreshRecord) {
   return Math.max(0, Math.min(100, sourceScore + repeatScore + 20 - riskPenalty));
 }
 
+function annotationText(record: ProductFlowRefreshRecord) {
+  const keyTrend = record.digest.summary?.keyTrend;
+  const summary = keyTrend?.desc ?? record.digest.summaryText;
+  return `${keyTrend?.title ?? ""} ${summary} ${record.digest.promptUsed ?? ""}`;
+}
+
+function buildDailyBroadInsight(record: ProductFlowRefreshRecord, annotation: LightweightNlpAnnotation): DailyBroadInsight {
+  const quality = communityDigestEvidenceQuality(record.digest);
+  const score = qualityScore(record);
+  const keyTrend = record.digest.summary?.keyTrend;
+  const label = record.label ?? record.sourceId ?? record.target ?? record.source;
+  const summary = keyTrend?.desc ?? record.digest.summaryText;
+  return {
+    id: `${record.sourceId ?? label}-${record.digest.snapshotDate}`,
+    title: keyTrend?.title ?? `${label}: ${classifyBroadInsight(record).replaceAll("-", " ")}`,
+    summary,
+    href: keyTrend?.link ?? `/personal#${encodeURIComponent(record.sourceId ?? label)}`,
+    sourceLabel: label,
+    sourceType: record.source,
+    contentCategory: classifyBroadInsight(record),
+    intent: annotation.intent,
+    sentiment: annotation.sentiment,
+    urgency: annotation.urgency,
+    annotation,
+    confidence: record.digest.sourceCount >= 8 ? "high" : record.digest.sourceCount >= 3 ? "medium" : "low",
+    qualityScore: score,
+    sourceCount: record.digest.sourceCount,
+    repeatedSignalCount: quality.repeatedSignalCount,
+    observedAt: record.digest.snapshotDate,
+  };
+}
+
+function sortBroadInsights(insights: DailyBroadInsight[]) {
+  return insights.sort((a, b) => b.qualityScore - a.qualityScore || b.observedAt.localeCompare(a.observedAt));
+}
+
 export function buildDailyBroadInsights(records: ProductFlowRefreshRecord[], date: string) {
-  return acceptedRefreshRecordsForDate(records, date)
-    .map((record): DailyBroadInsight => {
-      const quality = communityDigestEvidenceQuality(record.digest);
-      const score = qualityScore(record);
-      const keyTrend = record.digest.summary?.keyTrend;
-      const label = record.label ?? record.sourceId ?? record.target ?? record.source;
-      const summary = keyTrend?.desc ?? record.digest.summaryText;
-      const annotation = annotateLightweightNlp(`${keyTrend?.title ?? ""} ${summary} ${record.digest.promptUsed ?? ""}`);
-      return {
-        id: `${record.sourceId ?? label}-${record.digest.snapshotDate}`,
-        title: keyTrend?.title ?? `${label}: ${classifyBroadInsight(record).replaceAll("-", " ")}`,
-        summary,
-        href: keyTrend?.link ?? `/personal#${encodeURIComponent(record.sourceId ?? label)}`,
-        sourceLabel: label,
-        sourceType: record.source,
-        contentCategory: classifyBroadInsight(record),
-        intent: annotation.intent,
-        sentiment: annotation.sentiment,
-        urgency: annotation.urgency,
-        annotation,
-        confidence: record.digest.sourceCount >= 8 ? "high" : record.digest.sourceCount >= 3 ? "medium" : "low",
-        qualityScore: score,
-        sourceCount: record.digest.sourceCount,
-        repeatedSignalCount: quality.repeatedSignalCount,
-        observedAt: record.digest.snapshotDate,
-      };
-    })
-    .sort((a, b) => b.qualityScore - a.qualityScore || b.observedAt.localeCompare(a.observedAt));
+  return sortBroadInsights(
+    acceptedRefreshRecordsForDate(records, date).map((record) =>
+      buildDailyBroadInsight(record, annotateLightweightNlp(annotationText(record))),
+    ),
+  );
+}
+
+export async function buildDailyBroadInsightsWithAnnotations(
+  records: ProductFlowRefreshRecord[],
+  date: string,
+  options: DailyAnnotationOptions = {},
+) {
+  const accepted = acceptedRefreshRecordsForDate(records, date);
+  const texts = accepted.map(annotationText);
+  const annotations = await annotateTexts(texts, options);
+  return sortBroadInsights(
+    accepted.map((record, index) =>
+      buildDailyBroadInsight(record, annotations[index] ?? annotateLightweightNlp(texts[index] ?? "")),
+    ),
+  );
+}
+
+export function defaultDailyAnnotationOptions(): DailyAnnotationOptions {
+  return {
+    endpoint: process.env["HIGH_SIGNAL_ANNOTATION_ENDPOINT"] ?? null,
+  };
 }
 
 export function buildDailySourceCoverage(records: ProductFlowRefreshRecord[], date?: string): DailySourceCoverage {

@@ -2,9 +2,10 @@ import { api, type SignalRow } from "@/lib/api";
 import { isBackfillSignal } from "@/lib/signal-format";
 import { assessSignalQuality, type SignalContentCategory } from "@high-signal/shared";
 import {
-  buildDailyBroadInsights,
+  buildDailyBroadInsightsWithAnnotations,
   buildDailySourceCoverage,
   DAILY_INTELLIGENCE_LAYER,
+  defaultDailyAnnotationOptions,
   resolveAcceptedRefreshDate,
   readSourceRefreshes,
 } from "@/lib/daily-intelligence";
@@ -62,7 +63,11 @@ export async function GET(req: Request) {
   const today = all.filter((s) => !category || signalCategory(s) === category);
   const refreshes = await readSourceRefreshes();
   const sourceReadDate = resolveAcceptedRefreshDate(refreshes, date) ?? date;
-  const allBroadInsights = buildDailyBroadInsights(refreshes, sourceReadDate);
+  const allBroadInsights = await buildDailyBroadInsightsWithAnnotations(
+    refreshes,
+    sourceReadDate,
+    defaultDailyAnnotationOptions(),
+  );
   const broadInsights = allBroadInsights.filter(
     (item) => !category || item.contentCategory === category,
   );
