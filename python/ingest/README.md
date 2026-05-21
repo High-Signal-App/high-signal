@@ -23,6 +23,9 @@ needs `yfinance`; `edgar` needs `SEC_USER_AGENT="<name> <email>"`.
 | `SEC_USER_AGENT` | Required by EDGAR. Format: `"Sarthak Agrawal sarthak@example.com"`.       |
 | `API_BASE`       | Optional. Base URL of the high-signal API. If unset, audit pushes no-op. |
 | `ADMIN_TOKEN`    | Optional. Bearer token for `/admin/*` audit endpoints.                   |
+| `HIGH_SIGNAL_ENABLE_HF_NLP` | Optional. Set to `1` to enrich deterministic intent/sentiment tags with local Hugging Face pipelines. |
+| `HIGH_SIGNAL_HF_SENTIMENT_MODEL` | Optional. HF sentiment model. Defaults to DistilBERT SST-2 when HF NLP is enabled. |
+| `HIGH_SIGNAL_HF_INTENT_MODEL` | Optional. HF zero-shot model for intent classification. If unset, intent stays rule-based. |
 
 The Modal Secret `high-signal` should hold all of the above.
 
@@ -32,6 +35,7 @@ The Modal Secret `high-signal` should hold all of the above.
 src/high_signal_ingest/
   sources/        edgar, news, reddit, ir, github, gov, youtube, gdelt, hkex, markets
   extract/        entities.py (primary entity from text), relation extractors
+  analysis/       deterministic intent/sentiment tags; optional HF enrichment
   score/          finbert sentiment, backtest helpers
   seed/           ai_infra_entities.csv, relationships.csv (load_entities())
   audit.py        Best-effort POST to /admin/* — never raises into pipeline
@@ -58,6 +62,26 @@ uv run python -m high_signal_ingest.preflight
 
 Exit code is `2` when the fetch step errored and produced zero drafted
 signals — useful for Modal alerting. Otherwise `0` on success.
+
+## Intelligence layer
+
+Daily/community reads use deterministic `analysis.lightweight_nlp` tags first:
+intent, sentiment, urgency, and the exact keyword hits. This is the default for
+automation because it is stable, cheap, and compatible with lightweight Python
+worker-style runtimes.
+
+Batch ingest can opt into local/open Hugging Face classifiers through
+`analysis.semantic_nlp`:
+
+```python
+from high_signal_ingest.analysis.semantic_nlp import annotate
+
+annotation = annotate(text, use_hf=True)
+```
+
+The HF pass never calls an LLM API and never blocks publication if model loading
+fails; it falls back to `rules-v1`. Use it for higher-quality batch enrichment,
+not for latency-sensitive edge request handling.
 
 ## Deploy to Modal
 
