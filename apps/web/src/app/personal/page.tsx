@@ -17,6 +17,14 @@ import {
   readSourceRefreshes as readBundledSourceRefreshes,
   resolveAcceptedRefreshDate,
 } from "@/lib/daily-intelligence";
+import {
+  dailyReadMatches,
+  dailyReadQuery,
+  READ_DOMAINS,
+  READ_SIGNAL_LAYERS,
+  safeReadDomain,
+  safeReadLayer,
+} from "@/lib/daily-read-filters";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import marketWatch from "../../../../../data/personal-market-watch.json";
@@ -294,7 +302,14 @@ function firstReportLines(markdown: string, limit = 220) {
 export default async function PersonalPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ date?: string; sourceDate?: string; readCategory?: string }>;
+  searchParams?: Promise<{
+    date?: string;
+    sourceDate?: string;
+    readCategory?: string;
+    layer?: string;
+    domain?: string;
+    requirement?: string;
+  }>;
 }) {
   const params = (await searchParams) ?? {};
   const reports = (reportIndex as PersonalReportIndex).reports.slice().sort((a, b) => b.date.localeCompare(a.date));
@@ -302,6 +317,9 @@ export default async function PersonalPage({
   const requestedSourceDate = safeDate(params.sourceDate);
   const selectedReport = reports.find((report) => report.date === requestedDate) ?? reports[0] ?? null;
   const selectedReadCategory = (params.readCategory || "") as SignalContentCategory | "";
+  const selectedReadLayer = safeReadLayer(params.layer);
+  const selectedReadDomain = safeReadDomain(params.domain);
+  const selectedRequirement = params.requirement === "yes";
   const ownerId = productGraph.owner;
   const [signalsResult, dashboardResult, discoverResult] = await Promise.allSettled([
     api.signals({ status: "published" }),
@@ -323,10 +341,26 @@ export default async function PersonalPage({
     sourceReadDate,
     defaultDailyAnnotationOptions(),
   );
-  const sourceReads = sourceReadsAll.filter(
-    (item) => !selectedReadCategory || item.contentCategory === selectedReadCategory,
+  const sourceReadFilters = {
+    category: selectedReadCategory,
+    layer: selectedReadLayer,
+    domain: selectedReadDomain,
+    requirement: selectedRequirement,
+  };
+  const sourceReads = sourceReadsAll.filter((item) => dailyReadMatches(item, sourceReadFilters));
+  const sourceReadCategories = countByValues(
+    sourceReadsAll
+      .filter((item) =>
+        dailyReadMatches(item, {
+          layer: selectedReadLayer,
+          domain: selectedReadDomain,
+          requirement: selectedRequirement,
+        }),
+      )
+      .map((item) => item.contentCategory),
   );
-  const sourceReadCategories = countByValues(sourceReadsAll.map((item) => item.contentCategory));
+  const sourceReadLayers = countByValues(sourceReadsAll.map((item) => item.annotation.signalLayer));
+  const sourceReadDomains = countByValues(sourceReadsAll.flatMap((item) => item.annotation.domains));
   const sourceReadIntents = countByValues(sourceReads.map((item) => item.intent));
   const sourceReadSentiments = countByValues(sourceReads.map((item) => item.sentiment));
   const evidence = [
@@ -390,7 +424,7 @@ export default async function PersonalPage({
             {DAILY_INTELLIGENCE_LAYER.broadReadAnnotation.method}; no LLM is used for this daily
             annotation pass.
           </p>
-          <form action="/personal" className="mt-5 grid gap-3 border-y border-[var(--color-line)] py-4 md:grid-cols-[1fr_1fr_auto]">
+          <form action="/personal" className="mt-5 grid gap-3 border-y border-[var(--color-line)] py-4 md:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_1fr_1fr_auto]">
             <input name="date" type="hidden" value={selectedReport?.date ?? ""} />
             <label className="flex flex-col gap-2 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
               source date
@@ -416,8 +450,49 @@ export default async function PersonalPage({
                 ))}
               </select>
             </label>
+            <label className="flex flex-col gap-2 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
+              layer
+              <select
+                className="border border-[var(--color-line)] bg-black px-3 py-2 text-sm text-[var(--color-fg)] outline-none focus:border-[var(--color-accent)]"
+                defaultValue={selectedReadLayer}
+                name="layer"
+              >
+                <option value="">all</option>
+                {READ_SIGNAL_LAYERS.map(({ value, label }) => (
+                  <option key={value} value={value}>
+                    {label} ({sourceReadLayers.find(([k]) => k === value)?.[1] ?? 0})
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex flex-col gap-2 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
+              domain
+              <select
+                className="border border-[var(--color-line)] bg-black px-3 py-2 text-sm text-[var(--color-fg)] outline-none focus:border-[var(--color-accent)]"
+                defaultValue={selectedReadDomain}
+                name="domain"
+              >
+                <option value="">all</option>
+                {READ_DOMAINS.map(({ value, label }) => (
+                  <option key={value} value={value}>
+                    {label} ({sourceReadDomains.find(([k]) => k === value)?.[1] ?? 0})
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex flex-col gap-2 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
+              requirement
+              <select
+                className="border border-[var(--color-line)] bg-black px-3 py-2 text-sm text-[var(--color-fg)] outline-none focus:border-[var(--color-accent)]"
+                defaultValue={selectedRequirement ? "yes" : ""}
+                name="requirement"
+              >
+                <option value="">all</option>
+                <option value="yes">yes</option>
+              </select>
+            </label>
             <button
-              className="border border-[var(--color-line)] px-4 py-2 font-mono text-xs uppercase tracking-[0.18em] text-[var(--color-fg)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] md:self-end"
+              className="border border-[var(--color-line)] px-4 py-2 font-mono text-xs uppercase tracking-[0.18em] text-[var(--color-fg)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] lg:self-end"
               type="submit"
             >
               load
@@ -472,6 +547,8 @@ export default async function PersonalPage({
           <div className="mt-6 grid gap-5 md:grid-cols-3">
             {[
               ["category", countLine(sourceReadCategories)],
+              ["layer", countLine(sourceReadLayers)],
+              ["domain", countLine(sourceReadDomains.slice(0, 5))],
               ["intent", countLine(sourceReadIntents.slice(0, 5))],
               ["sentiment", countLine(sourceReadSentiments)],
             ].map(([label, value]) => (
@@ -488,7 +565,13 @@ export default async function PersonalPage({
           <div className="mt-6 divide-y divide-[var(--color-line)] border-y border-[var(--color-line)]">
             <a
               className="block py-4 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-accent)] hover:underline"
-              href={`/daily?date=${sourceReadDate}${selectedReadCategory ? `&category=${selectedReadCategory}` : ""}`}
+              href={`/daily?${dailyReadQuery({
+                date: sourceReadDate,
+                category: selectedReadCategory,
+                layer: selectedReadLayer,
+                domain: selectedReadDomain,
+                requirement: selectedRequirement,
+              })}`}
             >
               open full daily read view
             </a>

@@ -3,6 +3,15 @@ import { isBackfillSignal } from "@/lib/signal-format";
 import { SignalCard } from "@/components/molecules/SignalCard";
 import { assessSignalQuality, type SignalContentCategory } from "@high-signal/shared";
 import {
+  dailyReadMatches,
+  dailyReadQuery,
+  hasReadOnlyFilter,
+  READ_DOMAINS,
+  READ_SIGNAL_LAYERS,
+  safeReadDomain,
+  safeReadLayer,
+} from "@/lib/daily-read-filters";
+import {
   buildDailyBroadInsightsWithAnnotations,
   buildDailySourceCoverage,
   buildDailySourceQualityAudit,
@@ -69,11 +78,21 @@ function countBy(values: string[]) {
 export default async function SignalsTodayPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ date?: string; category?: string }>;
+  searchParams?: Promise<{ date?: string; category?: string; layer?: string; domain?: string; requirement?: string }>;
 }) {
   const params = (await searchParams) ?? {};
   const selectedDate = safeDate(params.date);
   const selectedCategory = (params.category || "") as SignalContentCategory | "";
+  const selectedLayer = safeReadLayer(params.layer);
+  const selectedDomain = safeReadDomain(params.domain);
+  const selectedRequirement = params.requirement === "yes";
+  const readFilters = {
+    category: selectedCategory,
+    layer: selectedLayer,
+    domain: selectedDomain,
+    requirement: selectedRequirement,
+  };
+  const hasReadFilter = hasReadOnlyFilter(readFilters);
   let all: SignalRow[] = [];
   try {
     const r = await api.signals({ date: selectedDate, limit: 200 });
@@ -89,22 +108,30 @@ export default async function SignalsTodayPage({
     defaultDailyAnnotationOptions(),
   );
 
-  const today = all
+  const today = (hasReadFilter ? [] : all)
     .filter((s) => !selectedCategory || signalCategory(s) === selectedCategory)
     .sort((a, b) => {
       const c = (CONFIDENCE_RANK[a.confidence] ?? 9) - (CONFIDENCE_RANK[b.confidence] ?? 9);
       if (c !== 0) return c;
       return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
     });
-  const broadInsights = allBroadInsights.filter(
-    (item) => !selectedCategory || item.contentCategory === selectedCategory,
-  );
+  const broadInsights = allBroadInsights.filter((item) => dailyReadMatches(item, readFilters));
   const totalItems = today.length + broadInsights.length;
   const allItemsCount = all.length + allBroadInsights.length;
   const categories = countBy([
-    ...all.map((signal) => signalCategory(signal)),
-    ...allBroadInsights.map((item) => item.contentCategory),
+    ...(hasReadFilter ? [] : all.map((signal) => signalCategory(signal))),
+    ...allBroadInsights
+      .filter((item) =>
+        dailyReadMatches(item, {
+          layer: selectedLayer,
+          domain: selectedDomain,
+          requirement: selectedRequirement,
+        }),
+      )
+      .map((item) => item.contentCategory),
   ]);
+  const layerCounts = countBy(allBroadInsights.map((item) => item.annotation.signalLayer));
+  const domainCounts = countBy(allBroadInsights.flatMap((item) => item.annotation.domains));
   const quality = today.map(signalQuality);
   const sourceClasses = countBy([
     ...quality.flatMap((item) => item.sourceClasses),
@@ -145,7 +172,7 @@ export default async function SignalsTodayPage({
         ) : null}
       </header>
 
-      <form className="mt-6 grid gap-3 border-y border-zinc-800 py-4 sm:grid-cols-[1fr_1fr_auto]">
+      <form className="mt-6 grid gap-3 border-y border-zinc-800 py-4 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_1fr_1fr_auto]">
         <label className="flex flex-col gap-2 font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
           date
           <input
@@ -170,8 +197,49 @@ export default async function SignalsTodayPage({
             ))}
           </select>
         </label>
+        <label className="flex flex-col gap-2 font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
+          layer
+          <select
+            className="border border-zinc-800 bg-black px-3 py-2 text-sm text-zinc-100 outline-none focus:border-[var(--color-accent)]"
+            defaultValue={selectedLayer}
+            name="layer"
+          >
+            <option value="">all</option>
+            {READ_SIGNAL_LAYERS.map(({ value, label }) => (
+              <option key={value} value={value}>
+                {label} ({layerCounts.find(([k]) => k === value)?.[1] ?? 0})
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-2 font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
+          domain
+          <select
+            className="border border-zinc-800 bg-black px-3 py-2 text-sm text-zinc-100 outline-none focus:border-[var(--color-accent)]"
+            defaultValue={selectedDomain}
+            name="domain"
+          >
+            <option value="">all</option>
+            {READ_DOMAINS.map(({ value, label }) => (
+              <option key={value} value={value}>
+                {label} ({domainCounts.find(([k]) => k === value)?.[1] ?? 0})
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-2 font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
+          requirement
+          <select
+            className="border border-zinc-800 bg-black px-3 py-2 text-sm text-zinc-100 outline-none focus:border-[var(--color-accent)]"
+            defaultValue={selectedRequirement ? "yes" : ""}
+            name="requirement"
+          >
+            <option value="">all</option>
+            <option value="yes">yes</option>
+          </select>
+        </label>
         <button
-          className="border border-zinc-800 px-4 py-2 font-mono text-xs uppercase tracking-[0.18em] text-zinc-100 hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] sm:self-end"
+          className="border border-zinc-800 px-4 py-2 font-mono text-xs uppercase tracking-[0.18em] text-zinc-100 hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] lg:self-end"
           type="submit"
         >
           load
@@ -301,14 +369,14 @@ export default async function SignalsTodayPage({
         <nav className="mt-4 flex flex-wrap gap-2 font-mono text-[10px] uppercase tracking-[0.18em]">
           <a
             className={`border px-2.5 py-1 ${!selectedCategory ? "border-[var(--color-accent)] text-[var(--color-accent)]" : "border-zinc-800 text-zinc-500 hover:text-zinc-200"}`}
-            href={`/signals/today?date=${selectedDate}`}
+            href={`/signals/today?${dailyReadQuery({ date: selectedDate, layer: selectedLayer, domain: selectedDomain, requirement: selectedRequirement })}`}
           >
             all {allItemsCount}
           </a>
           {categories.map(([category, count]) => (
             <a
               className={`border px-2.5 py-1 ${selectedCategory === category ? "border-[var(--color-accent)] text-[var(--color-accent)]" : "border-zinc-800 text-zinc-500 hover:text-zinc-200"}`}
-              href={`/signals/today?date=${selectedDate}&category=${category}`}
+              href={`/signals/today?${dailyReadQuery({ date: selectedDate, category, layer: selectedLayer, domain: selectedDomain, requirement: selectedRequirement })}`}
               key={category}
             >
               {(CATEGORY_LABELS[category as SignalContentCategory] ?? category).toLowerCase()} {count}

@@ -2,6 +2,12 @@ import { api, type SignalRow } from "@/lib/api";
 import { isBackfillSignal } from "@/lib/signal-format";
 import { assessSignalQuality, type SignalContentCategory } from "@high-signal/shared";
 import {
+  dailyReadMatches,
+  hasReadOnlyFilter,
+  safeReadDomain,
+  safeReadLayer,
+} from "@/lib/daily-read-filters";
+import {
   buildDailyBroadInsightsWithAnnotations,
   buildDailySourceCoverage,
   buildDailySourceQualityAudit,
@@ -54,6 +60,16 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const date = safeDate(url.searchParams.get("date"));
   const category = url.searchParams.get("category") as SignalContentCategory | null;
+  const layer = safeReadLayer(url.searchParams.get("layer"));
+  const domain = safeReadDomain(url.searchParams.get("domain"));
+  const requirement = url.searchParams.get("requirement") === "yes";
+  const readFilters = {
+    category: category ?? "",
+    layer,
+    domain,
+    requirement,
+  };
+  const hasReadFilter = hasReadOnlyFilter(readFilters);
   let all: SignalRow[] = [];
   try {
     const r = await api.signals({ date, limit: 200 });
@@ -61,7 +77,7 @@ export async function GET(req: Request) {
   } catch {
     /* offline */
   }
-  const today = all.filter((s) => !category || signalCategory(s) === category);
+  const today = (hasReadFilter ? [] : all).filter((s) => !category || signalCategory(s) === category);
   const refreshes = await readSourceRefreshes();
   const sourceReadDate = resolveAcceptedRefreshDate(refreshes, date) ?? date;
   const allBroadInsights = await buildDailyBroadInsightsWithAnnotations(
@@ -69,17 +85,26 @@ export async function GET(req: Request) {
     sourceReadDate,
     defaultDailyAnnotationOptions(),
   );
-  const broadInsights = allBroadInsights.filter(
-    (item) => !category || item.contentCategory === category,
-  );
+  const broadInsights = allBroadInsights.filter((item) => dailyReadMatches(item, readFilters));
   const sourceCoverage = buildDailySourceCoverage(refreshes, sourceReadDate);
   const sourceQualityAudit = buildDailySourceQualityAudit(refreshes, sourceReadDate);
   const categoryCounts = countBy([
-    ...all.map((signal) => signalCategory(signal)),
-    ...allBroadInsights.map((item) => item.contentCategory),
+    ...(hasReadFilter ? [] : all.map((signal) => signalCategory(signal))),
+    ...allBroadInsights
+      .filter((item) =>
+        dailyReadMatches(item, {
+          layer,
+          domain,
+          requirement,
+        }),
+      )
+      .map((item) => item.contentCategory),
   ]);
   const intentCounts = countBy(broadInsights.map((item) => item.intent));
   const sentimentCounts = countBy(broadInsights.map((item) => item.sentiment));
+  const layerCounts = countBy(allBroadInsights.map((item) => item.annotation.signalLayer));
+  const domainCounts = countBy(allBroadInsights.flatMap((item) => item.annotation.domains));
+  const productRequirementCount = allBroadInsights.filter((item) => item.annotation.productRequirement).length;
   const items = [
     ...today.map((signal) => ({
       kind: "signal" as const,
@@ -115,12 +140,18 @@ export async function GET(req: Request) {
       sourceReadDate,
       sourceDateShifted: sourceReadDate !== date,
       category,
+      layer,
+      domain,
+      requirement,
       count: today.length,
       totalCount: today.length + broadInsights.length,
       broadInsightCount: broadInsights.length,
       categoryCounts,
       intentCounts,
       sentimentCounts,
+      layerCounts,
+      domainCounts,
+      productRequirementCount,
       intelligenceLayer: DAILY_INTELLIGENCE_LAYER,
       sourceCoverage,
       sourceQualityAudit,
