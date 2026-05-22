@@ -19,6 +19,7 @@ import {
   readSourceRefreshes as readBundledSourceRefreshes,
   resolveAcceptedRefreshDate,
 } from "@/lib/daily-intelligence";
+import { buildMarketWatchSnapshot, formatMarketPct, marketDirectionTone } from "@/lib/market-watch";
 import {
   dailyReadMatches,
   dailyReadQuery,
@@ -375,6 +376,7 @@ export default async function PersonalPage({
   const requirementQueue = buildDailyRequirementQueue(sourceReads, 8, products);
   const taskExportCount = requirementQueue.filter((item) => item.taskDraft).length;
   const annotationRuntime = await dailyAnnotationRuntime();
+  const marketSnapshot = buildMarketWatchSnapshot();
   const evidence = [
     ...evidenceFromMarketRefreshes(marketRefreshes),
     ...evidenceFromMarketWatchConfig(marketWatch as MarketWatchConfig),
@@ -427,6 +429,60 @@ export default async function PersonalPage({
           { label: "Task sync", value: pendingSync.toString(), sub: "accepted tasks pending" },
         ]}
       />
+
+      <section className="mt-10 border-y border-[var(--color-line)] py-6">
+        <div className="flex flex-wrap items-baseline justify-between gap-4">
+          <div>
+            <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-accent)]">
+              Market Context
+            </div>
+            <h2 className="mt-2 text-2xl font-medium tracking-tight">
+              High-level national and international stocks
+            </h2>
+          </div>
+          <a
+            className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-accent)] hover:underline"
+            href="/markets"
+          >
+            open markets
+          </a>
+        </div>
+        <p className="mt-3 max-w-3xl text-sm leading-6 text-[var(--color-muted)]">
+          Stooq refresh {marketSnapshot.freshnessStatus}
+          {marketSnapshot.latestRefreshAt ? ` / ${marketSnapshot.latestRefreshAt.slice(0, 16).replace("T", " ")} UTC` : ""}
+          . This is product timing context, not a stock call.
+        </p>
+        <div className="mt-5 grid gap-px border border-[var(--color-line)] bg-[var(--color-line)] md:grid-cols-3">
+          {marketSnapshot.groups.map((group) => (
+            <a
+              className="block bg-[var(--color-bg)] p-4 hover:text-[var(--color-accent)]"
+              href={`/markets#${group.id}`}
+              key={group.id}
+            >
+              <div className="flex items-baseline justify-between gap-4">
+                <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
+                  {group.region}
+                </div>
+                <div className={`font-mono text-[10px] uppercase tracking-[0.18em] ${marketDirectionTone(group.direction)}`}>
+                  {group.direction} / {formatMarketPct(group.averageChangePct)}
+                </div>
+              </div>
+              <div className="mt-3 text-sm font-medium leading-5">{group.title}</div>
+              <div className="mt-3 text-xs leading-5 text-[var(--color-muted)]">
+                {group.productImplication}
+              </div>
+              <div className="mt-3 font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--color-muted)]">
+                {group.quotes
+                  .slice()
+                  .sort((a, b) => Math.abs(b.changePct) - Math.abs(a.changePct))
+                  .slice(0, 3)
+                  .map((quote) => `${quote.symbol} ${formatMarketPct(quote.changePct)}`)
+                  .join(" / ") || "no quotes"}
+              </div>
+            </a>
+          ))}
+        </div>
+      </section>
 
       <div className="mt-10">
         <Panel eyebrow="source intelligence" title="What the reads layer is watching">
