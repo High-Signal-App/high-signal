@@ -99,6 +99,16 @@ Each step is independently runnable and idempotent — re-running upserts rather
 6. **Embeddings** — one `pgvector` embedding per document and per repo.
 7. **Score + feed** — compute the 3-factor `signal_score`; build keyword + semantic search and the ranked top-50 feed.
 
+## Competitive review — adopted from `digg.com/ai` (2026-05-23)
+
+Review of the Digg AI news aggregator; full notes in `research/competitors/digg-ai.md`. Three mechanics are worth adopting — folded in here as follow-on enhancements, built *after* the core feed works, not before:
+
+- **Story clustering.** AI news fragments across many documents about one event (a launch, a paper, a repo). Consolidate them into a single *story* unit — a `stories` table or a `cluster_id` on `documents`, populated by a clustering pass over embeddings + shared entities/links after pipeline step 6. The feed then ranks stories, not raw documents.
+- **Velocity as a 4th score factor.** Recency ≠ velocity. Add the *rate* at which new mentions/links accumulate for a document/story across sources over a short window — this is what surfaces things early ("before it trends") rather than merely "recently". Keep it bot-discounted; never rank on raw engagement.
+- **Entity momentum.** Lab computes per-entity change-in-attention (this window vs. prior) to surface "who/what is rising" — a later overlay on the web `/entities` view, not a Phase-1 deliverable.
+
+Rejected and deferred items from the same review (X-only sourcing, engagement-as-ranking, influence-first thesis, X API as a paid source) stay in the research note as open decisions — not plan scope.
+
 ## Non-Goals
 
 - A general web index or crawler archive.
@@ -108,6 +118,7 @@ Each step is independently runnable and idempotent — re-running upserts rather
 - A second datastore of any kind (ClickHouse, DuckDB, Meilisearch, Qdrant).
 - Any non-laptop infra.
 - Paid AI in the default path.
+- Paid data sources — the milestone uses only free sources (HN, GitHub, papers, blogs). The X/Twitter API and other paid feeds are a deferred post-milestone decision; see `research/competitors/digg-ai.md`.
 
 ## Acceptance criteria
 
