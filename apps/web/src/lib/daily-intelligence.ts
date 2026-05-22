@@ -114,7 +114,8 @@ export type DailySourceCoverage = {
 export type DailyAnnotationOptions = AnnotationClientOptions;
 
 export type DailyAnnotationRuntime = {
-  activePath: "cloudflare-python-worker" | "local-typescript-fallback";
+  activePath: "cloudflare-service-binding" | "public-http-endpoint" | "local-typescript-fallback";
+  serviceBindingConfigured: boolean;
   endpointConfigured: boolean;
   method: "semantic-rules-v2";
   llm: false;
@@ -123,6 +124,8 @@ export type DailyAnnotationRuntime = {
   huggingFaceEnabledByDefault: false;
   fallback: "local semantic-rules-v2 annotation";
 };
+
+type FetchBinding = { fetch: typeof fetch };
 
 export type SourceQualityStatus = "accepted" | "rejected" | "missing";
 
@@ -525,7 +528,7 @@ export async function buildDailyBroadInsightsWithAnnotations(
 ) {
   const accepted = acceptedRefreshRecordsForDate(records, date);
   const texts = accepted.map(annotationText);
-  const annotations = await annotateTexts(texts, options);
+  const annotations = await annotateTexts(texts, await resolveDailyAnnotationOptions(options));
   return sortBroadInsights(
     accepted.map((record, index) =>
       buildDailyBroadInsight(record, annotations[index] ?? annotateLightweightNlp(texts[index] ?? "")),
@@ -539,10 +542,46 @@ export function defaultDailyAnnotationOptions(): DailyAnnotationOptions {
   };
 }
 
-export function dailyAnnotationRuntime(): DailyAnnotationRuntime {
+async function getAnnotationBinding(): Promise<FetchBinding | null> {
+  if (typeof process === "undefined") return null;
+  try {
+    const mod = await import("@opennextjs/cloudflare");
+    const ctx = (
+      mod as unknown as {
+        getCloudflareContext?: (...args: unknown[]) => { env?: Record<string, unknown> };
+      }
+    ).getCloudflareContext?.();
+    const annotation = ctx?.env?.["ANNOTATION"];
+    if (annotation && typeof (annotation as { fetch?: unknown }).fetch === "function") {
+      return annotation as FetchBinding;
+    }
+  } catch {
+    /* not in Worker context */
+  }
+  return null;
+}
+
+async function resolveDailyAnnotationOptions(options: DailyAnnotationOptions): Promise<DailyAnnotationOptions> {
+  if (options.endpoint || options.fetcher) return options;
+  const binding = await getAnnotationBinding();
+  if (!binding) return defaultDailyAnnotationOptions();
+  return {
+    endpoint: "https://annotation/annotate",
+    fetcher: (input, init) => binding.fetch(input, init),
+    timeoutMs: options.timeoutMs,
+  };
+}
+
+export async function dailyAnnotationRuntime(): Promise<DailyAnnotationRuntime> {
+  const serviceBindingConfigured = Boolean(await getAnnotationBinding());
   const endpointConfigured = Boolean(process.env["HIGH_SIGNAL_ANNOTATION_ENDPOINT"]?.trim());
   return {
-    activePath: endpointConfigured ? "cloudflare-python-worker" : "local-typescript-fallback",
+    activePath: serviceBindingConfigured
+      ? "cloudflare-service-binding"
+      : endpointConfigured
+        ? "public-http-endpoint"
+        : "local-typescript-fallback",
+    serviceBindingConfigured,
     endpointConfigured,
     method: "semantic-rules-v2",
     llm: false,

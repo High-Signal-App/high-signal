@@ -152,7 +152,7 @@ export default async function SignalsTodayPage({
   const sourceQualityAudit = buildDailySourceQualityAudit(refreshes, sourceReadDate);
   const sourceDateShifted = sourceReadDate !== selectedDate;
   const requirementQueue = buildDailyRequirementQueue(broadInsights, 6);
-  const annotationRuntime = dailyAnnotationRuntime();
+  const annotationRuntime = await dailyAnnotationRuntime();
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-16">

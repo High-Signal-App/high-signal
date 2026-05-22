@@ -366,7 +366,7 @@ export default async function PersonalPage({
   const sourceReadIntents = countByValues(sourceReads.map((item) => item.intent));
   const sourceReadSentiments = countByValues(sourceReads.map((item) => item.sentiment));
   const requirementQueue = buildDailyRequirementQueue(sourceReads, 8);
-  const annotationRuntime = dailyAnnotationRuntime();
+  const annotationRuntime = await dailyAnnotationRuntime();
   const evidence = [
     ...evidenceFromMarketRefreshes(marketRefreshes),
     ...evidenceFromMarketWatchConfig(marketWatch as MarketWatchConfig),

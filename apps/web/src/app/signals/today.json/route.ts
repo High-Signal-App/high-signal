@@ -108,7 +108,7 @@ export async function GET(req: Request) {
   const domainCounts = countBy(allBroadInsights.flatMap((item) => item.annotation.domains));
   const productRequirementCount = allBroadInsights.filter((item) => item.annotation.productRequirement).length;
   const requirementQueue = buildDailyRequirementQueue(broadInsights, 12);
-  const annotationRuntime = dailyAnnotationRuntime();
+  const annotationRuntime = await dailyAnnotationRuntime();
   const items = [
     ...today.map((signal) => ({
       kind: "signal" as const,

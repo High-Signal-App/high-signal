@@ -1,0 +1,29 @@
+name: Deploy annotation worker
+
+on:
+  push:
+    branches: [main]
+    paths: ["workers/annotation/**", ".github/workflows/deploy-annotation.yml"]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: astral-sh/setup-uv@v8.1.0
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: uv sync --dev
+        working-directory: workers/annotation
+      - run: uv run python -m unittest discover tests
+        working-directory: workers/annotation
+      - run: uv run pywrangler deploy
+        working-directory: workers/annotation
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+      - name: Smoke annotation worker
+        run: |
+          curl --fail --silent --show-error --location --max-time 30 \
+            https://high-signal-annotation.sarthakagrawal927.workers.dev/health >/dev/null
