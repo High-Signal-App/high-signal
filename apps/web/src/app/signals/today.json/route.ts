@@ -109,10 +109,10 @@ export async function GET(req: Request) {
   const sentimentCounts = countBy(broadInsights.map((item) => item.sentiment));
   const layerCounts = countBy(allBroadInsights.map((item) => item.annotation.signalLayer));
   const domainCounts = countBy(allBroadInsights.flatMap((item) => item.annotation.domains));
-  const audienceCounts = countBy(allBroadInsights.map((item) => item.annotation.audience));
-  const requirementTypeCounts = countBy(allBroadInsights.map((item) => item.annotation.requirementType));
-  const qualityGateCounts = countBy(allBroadInsights.map((item) => item.annotation.qualityGate.status));
-  const productRequirementCount = allBroadInsights.filter((item) => item.annotation.productRequirement).length;
+  const audienceCounts = countBy(broadInsights.map((item) => item.annotation.audience));
+  const requirementTypeCounts = countBy(broadInsights.map((item) => item.annotation.requirementType));
+  const qualityGateCounts = countBy(broadInsights.map((item) => item.annotation.qualityGate.status));
+  const productRequirementCount = broadInsights.filter((item) => item.annotation.productRequirement).length;
   const products = productGraph.products as PersonalProductProfile[];
   const requirementQueue = buildDailyRequirementQueue(broadInsights, 12, products);
   const taskExports = buildDailyRequirementTaskExports(requirementQueue);
