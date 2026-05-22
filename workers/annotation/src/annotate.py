@@ -18,6 +18,8 @@ Intent = Literal[
 Sentiment = Literal["positive", "negative", "neutral", "mixed"]
 Urgency = Literal["low", "medium", "high"]
 Method = Literal["rules-v1", "semantic-rules-v2"]
+ClassifierVersion = Literal["semantic-rules-v2.1"]
+ConfidenceBand = Literal["low", "medium", "high"]
 SignalLayer = Literal["world-change", "app-complaint", "market-watch", "general"]
 Audience = Literal[
     "agent-operators",
@@ -66,13 +68,18 @@ class Annotation:
     sentiment: Sentiment
     urgency: Urgency
     method: Method
+    classifierVersion: ClassifierVersion
     model: Literal["none"]
     llm: Literal[False]
     intentScore: float
+    intentConfidence: ConfidenceBand
     sentimentScore: float
+    sentimentPolarity: float
     positiveHits: list[str]
     negativeHits: list[str]
     intentHits: list[str]
+    evidenceDensity: float
+    signalStrength: float
     signalLayer: SignalLayer
     domains: list[Domain]
     productSignals: list[str]
@@ -497,6 +504,10 @@ def _bounded_score(value: float) -> float:
     return max(0.0, min(1.0, round(value, 2)))
 
 
+def _bounded_signed_score(value: float) -> float:
+    return max(-1.0, min(1.0, round(value, 2)))
+
+
 def _unique(values: list[str]) -> list[str]:
     seen: set[str] = set()
     out: list[str] = []
@@ -629,6 +640,18 @@ def _quality_gate(
     )
 
 
+def _intent_confidence(
+    intent_score: float,
+    domains: list[Domain],
+    product_requirement: bool,
+) -> ConfidenceBand:
+    if intent_score >= 0.67 and domains:
+        return "high"
+    if intent_score >= 0.34 or domains or product_requirement:
+        return "medium"
+    return "low"
+
+
 def annotate_text(text: str) -> Annotation:
     lower = text.lower()
     intent_scores = [
@@ -658,6 +681,7 @@ def annotate_text(text: str) -> Annotation:
     market_hits = next((hits for domain, hits in domain_scores if domain == "market"), [])
     sentiment_hits = len(positive_hits) + len(negative_hits)
     intent = intent_scores[0][0] if intent_scores else "general"
+    intent_score = _bounded_score(len(top_intent_hits) / 3)
     pain_score = _bounded_score((len(pain_hits) + len(negative_hits)) / 6)
     buyer_intent_score = _bounded_score(len(buyer_intent_hits) / 4)
     actionability_score = _bounded_score(
@@ -685,6 +709,36 @@ def annotate_text(text: str) -> Annotation:
         domains,
         product_requirement,
     )
+    sentiment_polarity = _bounded_signed_score(
+        (len(positive_hits) - len(negative_hits)) / max(1, sentiment_hits)
+    )
+    evidence_density = _bounded_score(
+        len(
+            _unique(
+                top_intent_hits
+                + positive_hits
+                + negative_hits
+                + urgent_hits
+                + world_hits
+                + pain_hits
+                + buyer_intent_hits
+                + actionability_hits
+                + domains
+            )
+        )
+        / 12
+    )
+    signal_strength = _bounded_score(
+        opportunity_score * 0.55
+        + evidence_density * 0.2
+        + intent_score * 0.15
+        + abs(sentiment_polarity) * 0.1
+    )
+    intent_confidence = _intent_confidence(
+        intent_score,
+        domains,
+        product_requirement,
+    )
 
     if positive_hits and negative_hits:
         sentiment: Sentiment = "mixed"
@@ -700,15 +754,20 @@ def annotate_text(text: str) -> Annotation:
         sentiment=sentiment,
         urgency=urgency,
         method="semantic-rules-v2",
+        classifierVersion="semantic-rules-v2.1",
         model="none",
         llm=False,
-        intentScore=_bounded_score(len(top_intent_hits) / 3),
+        intentScore=intent_score,
+        intentConfidence=intent_confidence,
         sentimentScore=_bounded_score(
             abs(len(positive_hits) - len(negative_hits)) / max(1, sentiment_hits)
         ),
+        sentimentPolarity=sentiment_polarity,
         positiveHits=positive_hits,
         negativeHits=negative_hits,
         intentHits=top_intent_hits,
+        evidenceDensity=evidence_density,
+        signalStrength=signal_strength,
         signalLayer=signal_layer,
         domains=domains,
         productSignals=_unique(

@@ -11,6 +11,8 @@ export type LightweightIntent =
 
 export type LightweightSentiment = "positive" | "negative" | "neutral" | "mixed";
 export type LightweightNlpMethod = "rules-v1" | "semantic-rules-v2";
+export type LightweightClassifierVersion = "semantic-rules-v2.1";
+export type LightweightConfidenceBand = "low" | "medium" | "high";
 export type LightweightSignalLayer = "world-change" | "app-complaint" | "market-watch" | "general";
 export type LightweightAudience =
   | "agent-operators"
@@ -53,13 +55,18 @@ export interface LightweightNlpAnnotation {
   sentiment: LightweightSentiment;
   urgency: "low" | "medium" | "high";
   method: LightweightNlpMethod;
+  classifierVersion: LightweightClassifierVersion;
   model: "none";
   llm: false;
   intentScore: number;
+  intentConfidence: LightweightConfidenceBand;
   sentimentScore: number;
+  sentimentPolarity: number;
   positiveHits: string[];
   negativeHits: string[];
   intentHits: string[];
+  evidenceDensity: number;
+  signalStrength: number;
   signalLayer: LightweightSignalLayer;
   domains: LightweightDomain[];
   productSignals: string[];
@@ -278,6 +285,10 @@ function boundedScore(value: number) {
   return Math.max(0, Math.min(1, Number(value.toFixed(2))));
 }
 
+function boundedSignedScore(value: number) {
+  return Math.max(-1, Math.min(1, Number(value.toFixed(2))));
+}
+
 function unique<T>(values: T[]) {
   return Array.from(new Set(values));
 }
@@ -377,6 +388,16 @@ function qualityGateFor(input: {
   } as const;
 }
 
+function intentConfidenceFor(input: {
+  intentScore: number;
+  domains: LightweightDomain[];
+  productRequirement: boolean;
+}): LightweightConfidenceBand {
+  if (input.intentScore >= 0.67 && input.domains.length > 0) return "high";
+  if (input.intentScore >= 0.34 || input.domains.length > 0 || input.productRequirement) return "medium";
+  return "low";
+}
+
 export function annotateLightweightNlp(text: string): LightweightNlpAnnotation {
   const lower = normalized(text);
   const intentScores = INTENT_TERMS.map((rule) => ({
@@ -404,6 +425,7 @@ export function annotateLightweightNlp(text: string): LightweightNlpAnnotation {
   const topIntentHits = intentScores[0]?.hits ?? [];
   const sentimentHits = positiveHits.length + negativeHits.length;
   const intent = intentScores[0]?.intent ?? "general";
+  const intentScore = boundedScore(topIntentHits.length / 3);
   const painScore = boundedScore((painHits.length + negativeHits.length) / 6);
   const buyerIntentScore = boundedScore(buyerIntentHits.length / 4);
   const actionabilityScore = boundedScore((actionabilityHits.length + topIntentHits.length) / 6);
@@ -425,6 +447,28 @@ export function annotateLightweightNlp(text: string): LightweightNlpAnnotation {
     domains: domainValues,
     productRequirement,
   });
+  const sentimentPolarity = boundedSignedScore((positiveHits.length - negativeHits.length) / Math.max(1, sentimentHits));
+  const evidenceDensity = boundedScore(
+    unique([
+      ...topIntentHits,
+      ...positiveHits,
+      ...negativeHits,
+      ...urgentHits,
+      ...worldHits,
+      ...painHits,
+      ...buyerIntentHits,
+      ...actionabilityHits,
+      ...domainValues,
+    ]).length / 12,
+  );
+  const signalStrength = boundedScore(
+    opportunityScore * 0.55 + evidenceDensity * 0.2 + intentScore * 0.15 + Math.abs(sentimentPolarity) * 0.1,
+  );
+  const intentConfidence = intentConfidenceFor({
+    intentScore,
+    domains: domainValues,
+    productRequirement,
+  });
   const requirementType = requirementTypeFor({
     intent,
     domains: domainValues,
@@ -443,13 +487,18 @@ export function annotateLightweightNlp(text: string): LightweightNlpAnnotation {
     sentiment,
     urgency,
     method: "semantic-rules-v2",
+    classifierVersion: "semantic-rules-v2.1",
     model: "none",
     llm: false,
-    intentScore: boundedScore(topIntentHits.length / 3),
+    intentScore,
+    intentConfidence,
     sentimentScore: boundedScore(Math.abs(positiveHits.length - negativeHits.length) / Math.max(1, sentimentHits)),
+    sentimentPolarity,
     positiveHits,
     negativeHits,
     intentHits: topIntentHits,
+    evidenceDensity,
+    signalStrength,
     signalLayer,
     domains: domainValues,
     productSignals: unique([

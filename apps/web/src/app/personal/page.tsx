@@ -703,8 +703,9 @@ export default async function PersonalPage({
                 <div className="mt-2 text-sm leading-6">{item.title}</div>
                 <div className="mt-2 font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--color-muted)]">
                   tag {item.annotation.method} / model {item.annotation.model} / intent score{" "}
-                  {item.annotation.intentScore.toFixed(2)} / sentiment score{" "}
-                  {item.annotation.sentimentScore.toFixed(2)} / layer{" "}
+                  {item.annotation.intentScore.toFixed(2)} / confidence {item.annotation.intentConfidence} / sentiment score{" "}
+                  {item.annotation.sentimentScore.toFixed(2)} / polarity {item.annotation.sentimentPolarity.toFixed(2)} / strength{" "}
+                  {item.annotation.signalStrength.toFixed(2)} / layer{" "}
                   {item.annotation.signalLayer.replaceAll("-", " ")} / domains{" "}
                   {item.annotation.domains.join("/") || "none"} / pain{" "}
                   {item.annotation.painScore.toFixed(2)} / buyer{" "}

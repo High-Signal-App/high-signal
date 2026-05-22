@@ -552,8 +552,13 @@ export default async function SignalsTodayPage({
                   <span>repeats {item.repeatedSignalCount}</span>
                   <span>tag {item.annotation.method}</span>
                   <span>model {item.annotation.model}</span>
+                  <span>version {item.annotation.classifierVersion}</span>
                   <span>intent score {item.annotation.intentScore.toFixed(2)}</span>
+                  <span>intent confidence {item.annotation.intentConfidence}</span>
                   <span>sentiment score {item.annotation.sentimentScore.toFixed(2)}</span>
+                  <span>polarity {item.annotation.sentimentPolarity.toFixed(2)}</span>
+                  <span>evidence density {item.annotation.evidenceDensity.toFixed(2)}</span>
+                  <span>signal strength {item.annotation.signalStrength.toFixed(2)}</span>
                   <span>layer {item.annotation.signalLayer.replaceAll("-", " ")}</span>
                   <span>domains {item.annotation.domains.join("/") || "none"}</span>
                   <span>pain {item.annotation.painScore.toFixed(2)}</span>

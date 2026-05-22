@@ -31,6 +31,7 @@ export async function GET() {
       intelligenceLayer: DAILY_INTELLIGENCE_LAYER,
       implementation: {
         currentMethod: DAILY_INTELLIGENCE_LAYER.broadReadAnnotation.method,
+        classifierVersion: "semantic-rules-v2.1",
         currentModel: "none",
         llm: false,
         activeExecutionPath: runtime.activePath,

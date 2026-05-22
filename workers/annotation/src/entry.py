@@ -65,6 +65,7 @@ class Default(WorkerEntrypoint):
                     "ok": True,
                     "service": "high-signal-annotation",
                     "method": "semantic-rules-v2",
+                    "classifierVersion": "semantic-rules-v2.1",
                     "model": "none",
                     "llm": False,
                 }

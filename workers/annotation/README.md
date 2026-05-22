@@ -5,6 +5,7 @@ Cloudflare Python Worker boundary for cheap source-read annotation.
 It is intentionally rule-first:
 
 - `method`: `semantic-rules-v2`
+- `classifierVersion`: `semantic-rules-v2.1`
 - `model`: `none`
 - `llm`: `false`
 
@@ -45,13 +46,18 @@ Response:
       "sentiment": "negative",
       "urgency": "medium",
       "method": "semantic-rules-v2",
+      "classifierVersion": "semantic-rules-v2.1",
       "model": "none",
       "llm": false,
       "intentScore": 1,
+      "intentConfidence": "high",
       "sentimentScore": 1,
+      "sentimentPolarity": -1,
       "positiveHits": [],
       "negativeHits": ["broken"],
       "intentHits": ["github", "ci", "deploy", "workflow"],
+      "evidenceDensity": 0.58,
+      "signalStrength": 0.67,
       "signalLayer": "app-complaint",
       "domains": ["developer"],
       "productSignals": ["github", "ci", "deploy", "workflow", "broken"],

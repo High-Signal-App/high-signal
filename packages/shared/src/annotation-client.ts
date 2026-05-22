@@ -40,13 +40,18 @@ function isAnnotation(value: unknown): value is LightweightNlpAnnotation {
     typeof item.sentiment === "string" &&
     typeof item.urgency === "string" &&
     (item.method === "rules-v1" || item.method === "semantic-rules-v2") &&
+    item.classifierVersion === "semantic-rules-v2.1" &&
     item.model === "none" &&
     item.llm === false &&
     typeof item.intentScore === "number" &&
+    typeof item.intentConfidence === "string" &&
     typeof item.sentimentScore === "number" &&
+    typeof item.sentimentPolarity === "number" &&
     Array.isArray(item.positiveHits) &&
     Array.isArray(item.negativeHits) &&
     Array.isArray(item.intentHits) &&
+    typeof item.evidenceDensity === "number" &&
+    typeof item.signalStrength === "number" &&
     typeof item.signalLayer === "string" &&
     Array.isArray(item.domains) &&
     Array.isArray(item.productSignals) &&
