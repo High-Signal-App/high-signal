@@ -83,6 +83,7 @@ export type ProductFlowRefreshRecord = {
   period: "day" | "week" | "month";
   digest: CommunityDigestSnapshot;
   createdAt: string;
+  historyKind?: "seeded-replay";
   refreshStatus?: "accepted" | "rejected";
   refreshReason?: string;
   refreshError?: string;
@@ -164,6 +165,25 @@ export type DailySourceQualityAudit = {
   rows: SourceQualityRow[];
 };
 
+export type DailyAutomationStatus = {
+  workflow: "personal-brief";
+  schedule: "daily 07:30 UTC";
+  sourcePath: "data/product-flow-refresh.jsonl";
+  bundledPath: "apps/web/src/data/daily-source-refreshes.json";
+  deployPath: "personal-brief commit -> deploy-web";
+  freshnessStatus: "fresh" | "stale" | "empty";
+  freshnessHours: number | null;
+  latestObservedAt: string | null;
+  latestAcceptedAt: string | null;
+  latestAcceptedDate: string | null;
+  configuredSources: number;
+  observedSnapshots: number;
+  acceptedSnapshots: number;
+  rejectedSnapshots: number;
+  missingSources: number;
+  acceptedUnderlyingItems: number;
+};
+
 export type SourceQualityAction = {
   priority: "high" | "medium" | "low";
   title: string;
@@ -173,6 +193,25 @@ export type SourceQualityAction = {
 
 function recordDate(record: ProductFlowRefreshRecord) {
   return record.digest.snapshotDate.slice(0, 10);
+}
+
+function isSeededReplay(record: ProductFlowRefreshRecord) {
+  return record.historyKind === "seeded-replay";
+}
+
+function latestTimestamp(records: ProductFlowRefreshRecord[]) {
+  return records
+    .map((record) => record.digest.snapshotDate)
+    .filter(Boolean)
+    .sort()
+    .at(-1) ?? null;
+}
+
+function hoursSince(now: Date, iso: string | null) {
+  if (!iso) return null;
+  const age = (now.getTime() - new Date(iso).getTime()) / 36e5;
+  if (!Number.isFinite(age)) return null;
+  return Math.max(0, Math.round(age * 10) / 10);
 }
 
 function countBy<T extends string>(values: T[]) {
@@ -439,6 +478,37 @@ export function buildDailySourceQualityAudit(records: ProductFlowRefreshRecord[]
         a.sourceClass.localeCompare(b.sourceClass) ||
         a.label.localeCompare(b.label),
     ),
+  };
+}
+
+export function buildDailyAutomationStatus(
+  records: ProductFlowRefreshRecord[],
+  now = new Date(),
+): DailyAutomationStatus {
+  const liveRecords = records.filter((record) => !isSeededReplay(record));
+  const acceptedLiveRecords = acceptedRefreshRecords(liveRecords);
+  const latestAcceptedAt = latestTimestamp(acceptedLiveRecords);
+  const latestAcceptedDate = latestAcceptedAt?.slice(0, 10) ?? null;
+  const latestObservedAt = latestTimestamp(liveRecords);
+  const freshnessHours = hoursSince(now, latestAcceptedAt);
+  const qualityAudit = latestAcceptedDate ? buildDailySourceQualityAudit(records, latestAcceptedDate) : null;
+  return {
+    workflow: "personal-brief",
+    schedule: "daily 07:30 UTC",
+    sourcePath: "data/product-flow-refresh.jsonl",
+    bundledPath: "apps/web/src/data/daily-source-refreshes.json",
+    deployPath: "personal-brief commit -> deploy-web",
+    freshnessStatus: freshnessHours === null ? "empty" : freshnessHours <= 36 ? "fresh" : "stale",
+    freshnessHours,
+    latestObservedAt,
+    latestAcceptedAt,
+    latestAcceptedDate,
+    configuredSources: (sourceRegistry as SourceRegistry).sources.length,
+    observedSnapshots: qualityAudit?.observedSnapshots ?? 0,
+    acceptedSnapshots: qualityAudit?.acceptedSnapshots ?? 0,
+    rejectedSnapshots: qualityAudit?.rejectedSnapshots ?? 0,
+    missingSources: qualityAudit?.missingSources ?? (sourceRegistry as SourceRegistry).sources.length,
+    acceptedUnderlyingItems: qualityAudit?.acceptedUnderlyingItems ?? 0,
   };
 }
 

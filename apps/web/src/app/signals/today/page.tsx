@@ -13,6 +13,7 @@ import {
 } from "@/lib/daily-read-filters";
 import { DAILY_REQUIREMENT_GATE, buildDailyRequirementQueue } from "@/lib/daily-requirements";
 import {
+  buildDailyAutomationStatus,
   buildDailyBroadInsightsWithAnnotations,
   buildDailySourceCoverage,
   buildDailySourceQualityAudit,
@@ -155,6 +156,7 @@ export default async function SignalsTodayPage({
     broadInsights.reduce((sum, item) => sum + item.sourceCount, 0);
   const coverage = buildDailySourceCoverage(refreshes, sourceReadDate);
   const sourceQualityAudit = buildDailySourceQualityAudit(refreshes, sourceReadDate);
+  const automationStatus = buildDailyAutomationStatus(refreshes);
   const sourceDateShifted = sourceReadDate !== selectedDate;
   const products = productGraph.products as PersonalProductProfile[];
   const requirementQueue = buildDailyRequirementQueue(broadInsights, 6, products);
@@ -373,6 +375,12 @@ export default async function SignalsTodayPage({
             active {annotationRuntime.activePath.replaceAll("-", " ")} ·{" "}
             {DAILY_INTELLIGENCE_LAYER.broadReadAnnotation.method} · model none · no LLM · HF batch
             available but off by default
+          </div>
+          <div className="mt-2 font-mono text-[11px] leading-6 text-zinc-500">
+            automation {automationStatus.workflow} · {automationStatus.schedule} ·{" "}
+            {automationStatus.freshnessStatus} · latest accepted{" "}
+            {automationStatus.latestAcceptedDate ?? "none"} · accepted {automationStatus.acceptedSnapshots} / rejected{" "}
+            {automationStatus.rejectedSnapshots} / missing {automationStatus.missingSources}
           </div>
           <div className="mt-3 grid gap-4 text-xs leading-6 text-zinc-500 sm:grid-cols-3">
             {[

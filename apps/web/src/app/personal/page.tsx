@@ -9,6 +9,7 @@ import {
 } from "@/components/system/HighSignalUI";
 import { api, type SignalRow } from "@/lib/api";
 import {
+  buildDailyAutomationStatus,
   buildDailyBroadInsightsWithAnnotations,
   buildDailySourceCoverage,
   buildDailySourceQualityAudit,
@@ -336,6 +337,7 @@ export default async function PersonalPage({
   const sourceReadDate =
     resolveAcceptedRefreshDate(refreshes, requestedSourceDate ?? requestedDate ?? selectedReport?.date) ??
     new Date().toISOString().slice(0, 10);
+  const automationStatus = buildDailyAutomationStatus(refreshes);
   const sourceCoverage = buildDailySourceCoverage(refreshes, sourceReadDate);
   const sourceQualityAudit = buildDailySourceQualityAudit(refreshes, sourceReadDate);
   const sourceReadsAll = await buildDailyBroadInsightsWithAnnotations(
@@ -432,6 +434,10 @@ export default async function PersonalPage({
             {DAILY_INTELLIGENCE_LAYER.broadReadAnnotation.method} through{" "}
             {annotationRuntime.activePath.replaceAll("-", " ")}; no LLM is used for this daily
             annotation pass. Hugging Face enrichment exists only as an optional batch path right now.
+            {" "}
+            Automation is {automationStatus.workflow} at {automationStatus.schedule}, currently{" "}
+            {automationStatus.freshnessStatus}; latest accepted live source is{" "}
+            {automationStatus.latestAcceptedDate ?? "none"}.
           </p>
           <form action="/personal" className="mt-5 grid gap-3 border-y border-[var(--color-line)] py-4 md:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_1fr_1fr_auto]">
             <input name="date" type="hidden" value={selectedReport?.date ?? ""} />
@@ -515,6 +521,8 @@ export default async function PersonalPage({
               { label: "missing", value: sourceQualityAudit.missingSources.toString() },
               { label: "items", value: sourceCoverage.underlyingItems.toString() },
               { label: "reads", value: sourceReads.length.toString() },
+              { label: "freshness", value: automationStatus.freshnessStatus },
+              { label: "automation", value: automationStatus.workflow },
             ]}
           />
           <div className="mt-6 grid gap-5 md:grid-cols-2">

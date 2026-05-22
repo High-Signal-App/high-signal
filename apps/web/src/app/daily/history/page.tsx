@@ -2,6 +2,7 @@ import { dailyReadQuery, READ_DOMAINS, READ_SIGNAL_LAYERS, safeReadDomain, safeR
 import { DAILY_REQUIREMENT_GATE } from "@/lib/daily-requirements";
 import { buildDailyRangeSummary } from "@/lib/daily-range";
 import {
+  buildDailyAutomationStatus,
   DAILY_INTELLIGENCE_LAYER,
   dailyAnnotationRuntime,
   defaultDailyAnnotationOptions,
@@ -77,6 +78,7 @@ export default async function DailyHistoryPage({
   const refreshes = await readSourceRefreshes();
   const products = productGraph.products as PersonalProductProfile[];
   const annotationRuntime = await dailyAnnotationRuntime();
+  const automationStatus = buildDailyAutomationStatus(refreshes);
   const summary = await buildDailyRangeSummary({
     records: refreshes,
     products,
@@ -230,7 +232,7 @@ export default async function DailyHistoryPage({
           ["requirements", summary.totals.requirements.toString()],
           ["task exports", summary.totals.taskExports.toString()],
           ["sources", summary.totals.sourceCount.toString()],
-          ["runtime", annotationRuntime.activePath.replaceAll("-", " ")],
+          ["freshness", automationStatus.freshnessStatus],
         ].map(([label, value]) => (
           <div key={label} className="bg-black p-4">
             <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">{label}</div>
@@ -246,6 +248,11 @@ export default async function DailyHistoryPage({
         <div className="mt-2 font-mono text-[11px] leading-6 text-zinc-500">
           {DAILY_INTELLIGENCE_LAYER.broadReadAnnotation.method} / model none / no LLM /{" "}
           {annotationRuntime.activePath.replaceAll("-", " ")}
+        </div>
+        <div className="mt-2 font-mono text-[11px] leading-6 text-zinc-500">
+          automation / {automationStatus.workflow} / {automationStatus.schedule} / latest accepted{" "}
+          {automationStatus.latestAcceptedDate ?? "none"} / accepted {automationStatus.acceptedSnapshots} / rejected{" "}
+          {automationStatus.rejectedSnapshots} / missing {automationStatus.missingSources}
         </div>
         <div className="mt-2 font-mono text-[11px] leading-6 text-zinc-500">
           requirement gate / score {DAILY_REQUIREMENT_GATE.minScore}+ / sources{" "}

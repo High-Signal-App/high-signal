@@ -2,6 +2,7 @@ import { dailyReadMatches, safeReadDomain, safeReadLayer } from "@/lib/daily-rea
 import { DAILY_REQUIREMENT_GATE, buildDailyRequirementQueue } from "@/lib/daily-requirements";
 import { buildDailyRequirementTaskExports } from "@/lib/daily-task-export";
 import {
+  buildDailyAutomationStatus,
   buildDailyBroadInsightsWithAnnotations,
   dailyAnnotationRuntime,
   defaultDailyAnnotationOptions,
@@ -47,6 +48,7 @@ export async function GET(req: Request) {
   const requirementQueue = buildDailyRequirementQueue(broadInsights, 50, products);
   const taskExports = buildDailyRequirementTaskExports(requirementQueue);
   const annotationRuntime = await dailyAnnotationRuntime();
+  const automationStatus = buildDailyAutomationStatus(refreshes);
 
   return new Response(
     JSON.stringify({
@@ -65,6 +67,7 @@ export async function GET(req: Request) {
       tasks: taskExports.map((item) => item.task),
       requirementIds: taskExports.map((item) => item.requirementId),
       annotationRuntime,
+      automationStatus,
     }),
     {
       status: 200,

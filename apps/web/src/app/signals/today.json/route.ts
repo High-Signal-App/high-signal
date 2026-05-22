@@ -9,6 +9,7 @@ import {
 } from "@/lib/daily-read-filters";
 import { buildDailyRequirementQueue } from "@/lib/daily-requirements";
 import {
+  buildDailyAutomationStatus,
   buildDailyBroadInsightsWithAnnotations,
   buildDailySourceCoverage,
   buildDailySourceQualityAudit,
@@ -93,6 +94,7 @@ export async function GET(req: Request) {
   const broadInsights = allBroadInsights.filter((item) => dailyReadMatches(item, readFilters));
   const sourceCoverage = buildDailySourceCoverage(refreshes, sourceReadDate);
   const sourceQualityAudit = buildDailySourceQualityAudit(refreshes, sourceReadDate);
+  const automationStatus = buildDailyAutomationStatus(refreshes);
   const categoryCounts = countBy([
     ...(hasReadFilter ? [] : all.map((signal) => signalCategory(signal))),
     ...allBroadInsights
@@ -172,6 +174,7 @@ export async function GET(req: Request) {
       taskExports,
       intelligenceLayer: DAILY_INTELLIGENCE_LAYER,
       annotationRuntime,
+      automationStatus,
       sourceCoverage,
       sourceQualityAudit,
       items,

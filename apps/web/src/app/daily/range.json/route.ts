@@ -2,6 +2,7 @@ import { safeReadDomain, safeReadLayer } from "@/lib/daily-read-filters";
 import { DAILY_REQUIREMENT_GATE } from "@/lib/daily-requirements";
 import { buildDailyRangeSummary } from "@/lib/daily-range";
 import {
+  buildDailyAutomationStatus,
   DAILY_INTELLIGENCE_LAYER,
   dailyAnnotationRuntime,
   defaultDailyAnnotationOptions,
@@ -32,6 +33,7 @@ export async function GET(req: Request) {
   const refreshes = await readSourceRefreshes();
   const products = productGraph.products as PersonalProductProfile[];
   const annotationRuntime = await dailyAnnotationRuntime();
+  const automationStatus = buildDailyAutomationStatus(refreshes);
   const summary = await buildDailyRangeSummary({
     records: refreshes,
     filters: {
@@ -60,6 +62,7 @@ export async function GET(req: Request) {
       requirementGate: DAILY_REQUIREMENT_GATE,
       intelligenceLayer: DAILY_INTELLIGENCE_LAYER,
       annotationRuntime,
+      automationStatus,
     }),
     {
       status: 200,
