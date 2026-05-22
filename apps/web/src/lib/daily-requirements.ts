@@ -3,6 +3,7 @@ import type {
   LightweightDomain,
   LightweightSignalLayer,
   PersonalActionKind,
+  PersonalActionTask,
   PersonalProductProfile,
   SignalContentCategory,
 } from "@high-signal/shared";
@@ -34,6 +35,7 @@ export type DailyRequirementItem = {
   }>;
   fleetTarget: DailyRequirementFleetTarget | null;
   alternativeFleetTargets: DailyRequirementFleetTarget[];
+  taskDraft: PersonalActionTask | null;
   sourceCount: number;
   repeatedSignalCount: number;
   suggestedBuild: string;
@@ -217,6 +219,40 @@ function fleetTargetsFor(
     .slice(0, 3);
 }
 
+function taskStatusFor(action: PersonalActionKind): PersonalActionTask["status"] {
+  if (action === "build" || action === "change") return "todo";
+  if (action === "watch") return "later";
+  return "rejected";
+}
+
+function taskDraftFor(input: {
+  item: DailyBroadInsight;
+  score: number;
+  priority: DailyRequirementPriority;
+  target: DailyRequirementFleetTarget | null;
+  whyNow: string;
+  nextStep: string;
+  acceptanceCriteria: string[];
+}): PersonalActionTask | null {
+  if (!input.target) return null;
+  return {
+    id: `daily-requirement-task-${input.item.id}`,
+    recommendationId: `daily-requirement-${input.item.id}`,
+    productSlug: input.target.productSlug,
+    productName: input.target.productName,
+    title: `[High Signal Requirement] ${input.target.action.toUpperCase()} ${input.target.productName}: ${input.item.title}`,
+    status: taskStatusFor(input.target.action),
+    priority: input.priority,
+    action: input.target.action,
+    rationale: `${input.whyNow} Fit: ${input.target.reason}.`,
+    nextStep: input.nextStep,
+    acceptanceCriteria: input.acceptanceCriteria,
+    evidenceUrls: [input.item.href],
+    saasMakerProjectSlug: input.target.productSlug,
+    syncStatus: "pending",
+  };
+}
+
 function userLabelFor(item: DailyBroadInsight) {
   const domain = primaryDomain(item);
   if (domain === "small-business") return "small business operator";
@@ -314,6 +350,19 @@ export function buildDailyRequirementQueue(
       const suggestedBuild = suggestedBuildFor(item);
       const scoreBreakdown = scoreBreakdownFor(item);
       const fleetTargets = fleetTargetsFor(item, products);
+      const priority = priorityFor(score);
+      const whyNow = `${item.sourceLabel} produced a ${item.annotation.signalLayer.replaceAll("-", " ")} signal with ${item.sourceCount} underlying item(s), ${item.repeatedSignalCount} repeated product cue(s), and ${item.annotation.domains.join("/") || "no"} domain tag(s).`;
+      const nextStep = nextStepFor(item);
+      const acceptanceCriteria = acceptanceCriteriaFor(item);
+      const taskDraft = taskDraftFor({
+        item,
+        score,
+        priority,
+        target: fleetTargets[0] ?? null,
+        whyNow,
+        nextStep,
+        acceptanceCriteria,
+      });
       return {
         id: `requirement-${item.id}`,
         title: item.title,
@@ -325,7 +374,7 @@ export function buildDailyRequirementQueue(
         domains: item.annotation.domains,
         intent: item.intent,
         sentiment: item.sentiment,
-        priority: priorityFor(score),
+        priority,
         score,
         painScore: item.annotation.painScore,
         buyerIntentScore: item.annotation.buyerIntentScore,
@@ -334,13 +383,14 @@ export function buildDailyRequirementQueue(
         scoreBreakdown,
         fleetTarget: fleetTargets[0] ?? null,
         alternativeFleetTargets: fleetTargets.slice(1),
+        taskDraft,
         sourceCount: item.sourceCount,
         repeatedSignalCount: item.repeatedSignalCount,
         suggestedBuild,
-        whyNow: `${item.sourceLabel} produced a ${item.annotation.signalLayer.replaceAll("-", " ")} signal with ${item.sourceCount} underlying item(s), ${item.repeatedSignalCount} repeated product cue(s), and ${item.annotation.domains.join("/") || "no"} domain tag(s).`,
-        nextStep: nextStepFor(item),
+        whyNow,
+        nextStep,
         userStory: `As a ${userLabelFor(item)}, I need ${item.title.toLowerCase()} so I can decide what to change or validate next.`,
-        acceptanceCriteria: acceptanceCriteriaFor(item),
+        acceptanceCriteria,
         validationArtifact: validationArtifactFor(item),
         smallestTest: `Publish a ${validationArtifactFor(item)} for this requirement and check whether the same pain repeats in the next source refresh.`,
       };

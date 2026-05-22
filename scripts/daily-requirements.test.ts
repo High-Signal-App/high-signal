@@ -58,6 +58,10 @@ const developerQueue = buildDailyRequirementQueue([insight({})], 3, products);
 assert.equal(developerQueue.length, 1);
 assert.equal(developerQueue[0]?.fleetTarget?.productSlug, "CodeVetter");
 assert.match(developerQueue[0]?.fleetTarget?.reason ?? "", /developer-workflow-friction|product term/);
+assert.equal(developerQueue[0]?.taskDraft?.saasMakerProjectSlug, "CodeVetter");
+assert.equal(developerQueue[0]?.taskDraft?.status, "todo");
+assert.equal(developerQueue[0]?.taskDraft?.syncStatus, "pending");
+assert.match(developerQueue[0]?.taskDraft?.title ?? "", /CodeVetter/);
 
 const regionalQueue = buildDailyRequirementQueue(
   [
@@ -77,5 +81,6 @@ const regionalQueue = buildDailyRequirementQueue(
 );
 assert.equal(regionalQueue[0]?.fleetTarget?.productSlug, "high-signal");
 assert.equal(regionalQueue[0]?.fleetTarget?.action, "change");
+assert.equal(regionalQueue[0]?.taskDraft?.saasMakerProjectSlug, "high-signal");
 
 console.log("daily-requirements.test.ts: ok");

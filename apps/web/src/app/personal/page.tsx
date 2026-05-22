@@ -578,6 +578,12 @@ export default async function PersonalPage({
                         </div>
                       </div>
                     ) : null}
+                    {item.taskDraft ? (
+                      <div className="mt-3 font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--color-muted)]">
+                        task draft / {item.taskDraft.saasMakerProjectSlug} / {item.taskDraft.status} /{" "}
+                        {item.taskDraft.priority}
+                      </div>
+                    ) : null}
                     <div className="mt-3 grid gap-2 text-xs leading-5 text-[var(--color-muted)] md:grid-cols-2">
                       <div>
                         <span className="font-mono uppercase tracking-[0.16em]">artifact</span>{" "}

@@ -430,6 +430,12 @@ export default async function SignalsTodayPage({
                         </div>
                       </div>
                     ) : null}
+                    {item.taskDraft ? (
+                      <div className="mt-3 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-600">
+                        task draft / {item.taskDraft.saasMakerProjectSlug} / {item.taskDraft.status} /{" "}
+                        {item.taskDraft.priority}
+                      </div>
+                    ) : null}
                     <div className="mt-3 grid gap-2 text-xs leading-5 text-zinc-500 sm:grid-cols-2">
                       <div>
                         <span className="font-mono uppercase tracking-[0.16em] text-zinc-600">artifact</span>{" "}
