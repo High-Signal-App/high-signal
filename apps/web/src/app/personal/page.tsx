@@ -574,7 +574,7 @@ export default async function PersonalPage({
                   </a>
                   <a
                     className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)] hover:text-[var(--color-accent)]"
-                    href={`/daily/range.json?${dailyReadQuery({
+                    href={`/daily/history?${dailyReadQuery({
                       to: sourceReadDate,
                       days: 30,
                       category: selectedReadCategory,
@@ -584,7 +584,7 @@ export default async function PersonalPage({
                       includeTasks: true,
                     })}`}
                   >
-                    range 30d
+                    history 30d
                   </a>
                 </div>
               </div>

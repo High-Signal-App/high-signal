@@ -431,7 +431,7 @@ export default async function SignalsTodayPage({
                 </a>
                 <a
                   className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500 hover:text-[var(--color-accent)]"
-                  href={`/daily/range.json?${dailyReadQuery({
+                  href={`/daily/history?${dailyReadQuery({
                     to: sourceReadDate,
                     days: 30,
                     category: selectedCategory,
@@ -441,7 +441,7 @@ export default async function SignalsTodayPage({
                     includeTasks: true,
                   })}`}
                 >
-                  range 30d
+                  history 30d
                 </a>
               </div>
               <div className="mt-4 divide-y divide-zinc-900 border-y border-zinc-900">

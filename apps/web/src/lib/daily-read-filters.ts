@@ -70,6 +70,7 @@ export function dailyReadQuery(input: {
   if (input.layer) params.set("layer", input.layer);
   if (input.domain) params.set("domain", input.domain);
   if (input.requirement === true || input.requirement === "yes") params.set("requirement", "yes");
+  if (input.requirement === false || input.requirement === "no") params.set("requirement", "no");
   if (input.includeTasks === true || input.includeTasks === "yes") params.set("includeTasks", "yes");
   return params.toString();
 }
