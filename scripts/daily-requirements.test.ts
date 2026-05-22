@@ -1,0 +1,81 @@
+#!/usr/bin/env tsx
+import assert from "node:assert/strict";
+import { buildDailyRequirementQueue } from "../apps/web/src/lib/daily-requirements";
+import type { DailyBroadInsight } from "../apps/web/src/lib/daily-intelligence";
+import productGraph from "../data/personal-product-graph.json";
+import type { LightweightNlpAnnotation, PersonalProductProfile } from "@high-signal/shared";
+
+function annotation(overrides: Partial<LightweightNlpAnnotation>): LightweightNlpAnnotation {
+  return {
+    intent: "feature-request",
+    sentiment: "negative",
+    urgency: "medium",
+    method: "semantic-rules-v2",
+    model: "none",
+    llm: false,
+    intentScore: 1,
+    sentimentScore: 1,
+    positiveHits: [],
+    negativeHits: ["broken"],
+    intentHits: ["need", "workflow"],
+    signalLayer: "app-complaint",
+    domains: ["developer"],
+    productSignals: ["github", "ci", "deploy", "workflow", "bug", "review"],
+    painScore: 0.5,
+    buyerIntentScore: 0,
+    actionabilityScore: 0.83,
+    productRequirement: true,
+    ...overrides,
+  };
+}
+
+function insight(overrides: Partial<DailyBroadInsight>): DailyBroadInsight {
+  const baseAnnotation = annotation({});
+  return {
+    id: "test",
+    title: "GitHub CI deploy workflow is broken and needs review",
+    summary: "Developers need clearer bug review and deploy workflow visibility.",
+    href: "https://example.com/test",
+    sourceLabel: "test source",
+    sourceType: "reddit",
+    contentCategory: "product-opportunity",
+    intent: baseAnnotation.intent,
+    sentiment: baseAnnotation.sentiment,
+    urgency: baseAnnotation.urgency,
+    annotation: baseAnnotation,
+    confidence: "medium",
+    qualityScore: 75,
+    sourceCount: 4,
+    repeatedSignalCount: 4,
+    observedAt: "2026-05-22T00:00:00.000Z",
+    ...overrides,
+  };
+}
+
+const products = productGraph.products as PersonalProductProfile[];
+
+const developerQueue = buildDailyRequirementQueue([insight({})], 3, products);
+assert.equal(developerQueue.length, 1);
+assert.equal(developerQueue[0]?.fleetTarget?.productSlug, "CodeVetter");
+assert.match(developerQueue[0]?.fleetTarget?.reason ?? "", /developer-workflow-friction|product term/);
+
+const regionalQueue = buildDailyRequirementQueue(
+  [
+    insight({
+      title: "Local permit delays and rent pressure are hurting shops",
+      summary: "Regional operators need a tracker for city constraints and local business impact.",
+      contentCategory: "regional-issue",
+      annotation: annotation({
+        intent: "regional-pressure",
+        domains: ["regional", "small-business"],
+        productSignals: ["local", "permit", "rent", "city", "small business"],
+      }),
+    }),
+  ],
+  3,
+  products,
+);
+assert.equal(regionalQueue[0]?.fleetTarget?.productSlug, "high-signal");
+assert.equal(regionalQueue[0]?.fleetTarget?.action, "change");
+
+console.log("daily-requirements.test.ts: ok");

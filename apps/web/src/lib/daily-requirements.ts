@@ -1,5 +1,11 @@
 import type { DailyBroadInsight } from "@/lib/daily-intelligence";
-import type { LightweightDomain, LightweightSignalLayer, SignalContentCategory } from "@high-signal/shared";
+import type {
+  LightweightDomain,
+  LightweightSignalLayer,
+  PersonalActionKind,
+  PersonalProductProfile,
+  SignalContentCategory,
+} from "@high-signal/shared";
 
 export type DailyRequirementPriority = "critical" | "high" | "medium" | "low";
 
@@ -26,6 +32,8 @@ export type DailyRequirementItem = {
     contribution: number;
     max: number;
   }>;
+  fleetTarget: DailyRequirementFleetTarget | null;
+  alternativeFleetTargets: DailyRequirementFleetTarget[];
   sourceCount: number;
   repeatedSignalCount: number;
   suggestedBuild: string;
@@ -37,6 +45,15 @@ export type DailyRequirementItem = {
   smallestTest: string;
 };
 
+export type DailyRequirementFleetTarget = {
+  productSlug: string;
+  productName: string;
+  action: PersonalActionKind;
+  fitScore: number;
+  reason: string;
+  defaultAction: string;
+};
+
 const DOMAIN_BUILD: Partial<Record<LightweightDomain, string>> = {
   "agent-evaluation": "Agent-readiness evidence surface",
   consumer: "Consumer pressure radar",
@@ -46,6 +63,27 @@ const DOMAIN_BUILD: Partial<Record<LightweightDomain, string>> = {
   regional: "Regional constraint tracker",
   "small-business": "Small-business operations artifact",
   startup: "Startup validation artifact",
+};
+
+const DOMAIN_OPPORTUNITIES: Partial<Record<LightweightDomain, string[]>> = {
+  "agent-evaluation": ["agent-evaluation", "source-provenance"],
+  consumer: ["public-consumer-shift", "complaint-to-spec"],
+  developer: ["developer-workflow-friction", "workflow-observability", "source-provenance"],
+  market: ["market-regime-watch"],
+  operations: ["workflow-observability", "small-business-ops", "complaint-to-spec"],
+  regional: ["regional-constraint-watch", "public-consumer-shift", "complaint-to-spec"],
+  "small-business": ["small-business-ops", "complaint-to-spec", "workflow-observability"],
+  startup: ["launch-distribution", "complaint-to-spec", "agent-evaluation"],
+};
+
+const CATEGORY_OPPORTUNITIES: Partial<Record<SignalContentCategory, string[]>> = {
+  "agent-evaluation": ["agent-evaluation", "source-provenance"],
+  "customer-complaint": ["complaint-to-spec", "small-business-ops"],
+  "market-pulse": ["market-regime-watch"],
+  "policy-regulatory": ["regional-constraint-watch", "public-consumer-shift"],
+  "product-opportunity": ["complaint-to-spec", "workflow-observability"],
+  "regional-issue": ["regional-constraint-watch", "public-consumer-shift"],
+  "startup-move": ["launch-distribution", "complaint-to-spec"],
 };
 
 function priorityFor(score: number): DailyRequirementPriority {
@@ -62,6 +100,121 @@ function primaryDomain(item: DailyBroadInsight): LightweightDomain | null {
 function suggestedBuildFor(item: DailyBroadInsight) {
   const domain = primaryDomain(item);
   return domain ? DOMAIN_BUILD[domain] ?? "Source-linked validation artifact" : "Source-linked validation artifact";
+}
+
+function requirementOpportunitySlugs(item: DailyBroadInsight) {
+  return Array.from(
+    new Set([
+      ...item.annotation.domains.flatMap((domain) => DOMAIN_OPPORTUNITIES[domain] ?? []),
+      ...(CATEGORY_OPPORTUNITIES[item.contentCategory] ?? []),
+      item.annotation.productRequirement ? "complaint-to-spec" : "",
+    ].filter(Boolean)),
+  );
+}
+
+function normalizedTextFor(item: DailyBroadInsight) {
+  return [
+    item.title,
+    item.summary,
+    item.sourceLabel,
+    item.contentCategory,
+    item.annotation.signalLayer,
+    ...item.annotation.domains,
+    ...item.annotation.productSignals,
+  ]
+    .join(" ")
+    .toLowerCase();
+}
+
+function productTermScore(product: PersonalProductProfile, text: string) {
+  return product.terms.reduce((sum, term) => {
+    const normalizedTerm = term.toLowerCase();
+    if (!normalizedTerm) return sum;
+    return text.includes(normalizedTerm) ? sum + 7 : sum;
+  }, 0);
+}
+
+function stageAdjustment(product: PersonalProductProfile) {
+  if (product.stage === "active") return 8;
+  if (product.stage === "exploratory") return 2;
+  return -6;
+}
+
+function productSpecificBoost(product: PersonalProductProfile, item: DailyBroadInsight, text: string) {
+  if (
+    product.slug === "CodeVetter" &&
+    (item.annotation.domains.includes("developer") || /bug|review|github|ci|deploy|code/.test(text))
+  ) {
+    return 18;
+  }
+  if (
+    product.slug === "saas-maker" &&
+    /fleet|task|audit|deploy|monitor|ops|workflow|automation|project/.test(text)
+  ) {
+    return 18;
+  }
+  if (product.slug === "free-ai" && /local|privacy|model|routing|cost|open source|self-hosted/.test(text)) {
+    return 18;
+  }
+  if (
+    product.slug === "high-signal" &&
+    (item.annotation.signalLayer === "world-change" ||
+      item.annotation.domains.some((domain) =>
+        ["agent-evaluation", "market", "regional", "small-business", "startup", "consumer"].includes(domain),
+      ))
+  ) {
+    return 12;
+  }
+  return 0;
+}
+
+function targetActionFor(input: {
+  product: PersonalProductProfile;
+  fitScore: number;
+  requirementScore: number;
+  item: DailyBroadInsight;
+}): PersonalActionKind {
+  if (input.fitScore < 24) return "pause";
+  if (input.product.stage === "watch") return input.fitScore >= 48 ? "watch" : "pause";
+  if (input.requirementScore >= 70 && input.fitScore >= 58) return "build";
+  if (input.requirementScore >= 45 && input.fitScore >= 38) return "change";
+  return "watch";
+}
+
+function fleetTargetsFor(
+  item: DailyBroadInsight,
+  products: PersonalProductProfile[] = [],
+): DailyRequirementFleetTarget[] {
+  if (!products.length) return [];
+  const text = normalizedTextFor(item);
+  const opportunitySlugs = requirementOpportunitySlugs(item);
+  const requirementScore = scoreFor(item);
+  return products
+    .map((product) => {
+      const opportunityHits = opportunitySlugs.filter((slug) => product.opportunitySlugs?.includes(slug) ?? false);
+      const termScore = productTermScore(product, text);
+      const fitScore = Math.min(
+        100,
+        opportunityHits.length * 16 + termScore + stageAdjustment(product) + productSpecificBoost(product, item, text),
+      );
+      const action = targetActionFor({ product, fitScore, requirementScore, item });
+      return {
+        productSlug: product.slug,
+        productName: product.name,
+        action,
+        fitScore,
+        reason:
+          opportunityHits.length > 0
+            ? `matches ${opportunityHits.slice(0, 3).join(", ")}`
+            : termScore > 0
+              ? `matches ${Math.ceil(termScore / 7)} product term(s)`
+              : `${product.stage} product with weak direct match`,
+        defaultAction: product.defaultAction,
+      };
+    })
+    .filter((target) => target.action !== "pause")
+    .sort((a, b) => b.fitScore - a.fitScore || a.productName.localeCompare(b.productName))
+    .slice(0, 3);
 }
 
 function userLabelFor(item: DailyBroadInsight) {
@@ -149,13 +302,18 @@ function scoreBreakdownFor(item: DailyBroadInsight): DailyRequirementItem["score
   ];
 }
 
-export function buildDailyRequirementQueue(insights: DailyBroadInsight[], limit = 12): DailyRequirementItem[] {
+export function buildDailyRequirementQueue(
+  insights: DailyBroadInsight[],
+  limit = 12,
+  products: PersonalProductProfile[] = [],
+): DailyRequirementItem[] {
   return insights
     .filter((item) => item.annotation.productRequirement)
     .map((item) => {
       const score = scoreFor(item);
       const suggestedBuild = suggestedBuildFor(item);
       const scoreBreakdown = scoreBreakdownFor(item);
+      const fleetTargets = fleetTargetsFor(item, products);
       return {
         id: `requirement-${item.id}`,
         title: item.title,
@@ -174,6 +332,8 @@ export function buildDailyRequirementQueue(insights: DailyBroadInsight[], limit 
         actionabilityScore: item.annotation.actionabilityScore,
         qualityScore: item.qualityScore,
         scoreBreakdown,
+        fleetTarget: fleetTargets[0] ?? null,
+        alternativeFleetTargets: fleetTargets.slice(1),
         sourceCount: item.sourceCount,
         repeatedSignalCount: item.repeatedSignalCount,
         suggestedBuild,

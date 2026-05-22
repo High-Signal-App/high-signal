@@ -18,6 +18,8 @@ import {
   resolveAcceptedRefreshDate,
   readSourceRefreshes,
 } from "@/lib/daily-intelligence";
+import productGraph from "../../../../../../data/personal-product-graph.json";
+import type { PersonalProductProfile } from "@high-signal/shared";
 
 export const dynamic = "force-dynamic";
 
@@ -107,7 +109,8 @@ export async function GET(req: Request) {
   const layerCounts = countBy(allBroadInsights.map((item) => item.annotation.signalLayer));
   const domainCounts = countBy(allBroadInsights.flatMap((item) => item.annotation.domains));
   const productRequirementCount = allBroadInsights.filter((item) => item.annotation.productRequirement).length;
-  const requirementQueue = buildDailyRequirementQueue(broadInsights, 12);
+  const products = productGraph.products as PersonalProductProfile[];
+  const requirementQueue = buildDailyRequirementQueue(broadInsights, 12, products);
   const annotationRuntime = await dailyAnnotationRuntime();
   const items = [
     ...today.map((signal) => ({

@@ -17,7 +17,7 @@
     "dev:api": "pnpm --filter @high-signal/api dev",
     "build": "pnpm -r build",
     "typecheck": "pnpm -r typecheck",
-    "test": "pnpm -r test && pnpm signals:test && pnpm annotation:test",
+    "test": "pnpm -r test && pnpm signals:test && pnpm annotation:test && pnpm requirements:test",
     "lint": "pnpm -r lint",
     "db:migrate:local": "pnpm --filter @high-signal/db migrate:local",
     "db:migrate:remote": "pnpm --filter @high-signal/db migrate:remote",
@@ -33,6 +33,7 @@
     "signals:publish-drafts:remote": "tsx scripts/publish-drafts.ts --remote",
     "signals:test": "tsx scripts/sync-signals.test.ts",
     "annotation:test": "python -m unittest discover workers/annotation/tests && tsx scripts/annotation-contract.test.ts",
+    "requirements:test": "tsx scripts/daily-requirements.test.ts",
     "ingest:local": "cd python/ingest && uv run python -m high_signal_ingest.pipeline --source all --days 1",
     "ingest:preflight": "cd python/ingest && uv run python -m high_signal_ingest.preflight",
     "prepare": "husky"

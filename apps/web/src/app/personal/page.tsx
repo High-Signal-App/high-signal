@@ -365,7 +365,8 @@ export default async function PersonalPage({
   const sourceReadDomains = countByValues(sourceReadsAll.flatMap((item) => item.annotation.domains));
   const sourceReadIntents = countByValues(sourceReads.map((item) => item.intent));
   const sourceReadSentiments = countByValues(sourceReads.map((item) => item.sentiment));
-  const requirementQueue = buildDailyRequirementQueue(sourceReads, 8);
+  const products = productGraph.products as PersonalProductProfile[];
+  const requirementQueue = buildDailyRequirementQueue(sourceReads, 8, products);
   const annotationRuntime = await dailyAnnotationRuntime();
   const evidence = [
     ...evidenceFromMarketRefreshes(marketRefreshes),
@@ -377,7 +378,6 @@ export default async function PersonalPage({
     ...fallbackFlows,
   ];
   const opportunities = generateProductOpportunities(evidence);
-  const products = productGraph.products as PersonalProductProfile[];
   const [feedback, decisions, taskSync, snapshots] = await Promise.all([
     readFeedback(),
     readDecisions(),
@@ -567,6 +567,17 @@ export default async function PersonalPage({
                     </div>
                     <div className="mt-2 text-sm leading-6 text-[var(--color-fg)]">{item.title}</div>
                     <div className="mt-1 text-xs leading-5 text-[var(--color-muted)]">{item.nextStep}</div>
+                    {item.fleetTarget ? (
+                      <div className="mt-3 border border-[var(--color-line)] p-3">
+                        <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--color-muted)]">
+                          target {item.fleetTarget.action} / {item.fleetTarget.productName} / fit{" "}
+                          {item.fleetTarget.fitScore}
+                        </div>
+                        <div className="mt-1 text-xs leading-5 text-[var(--color-muted)]">
+                          {item.fleetTarget.reason}. {item.fleetTarget.defaultAction}
+                        </div>
+                      </div>
+                    ) : null}
                     <div className="mt-3 grid gap-2 text-xs leading-5 text-[var(--color-muted)] md:grid-cols-2">
                       <div>
                         <span className="font-mono uppercase tracking-[0.16em]">artifact</span>{" "}

@@ -22,6 +22,8 @@ import {
   defaultDailyAnnotationOptions,
   readSourceRefreshes,
 } from "@/lib/daily-intelligence";
+import productGraph from "../../../../../../data/personal-product-graph.json";
+import type { PersonalProductProfile } from "@high-signal/shared";
 
 export const dynamic = "force-dynamic";
 export const metadata = {
@@ -151,7 +153,8 @@ export default async function SignalsTodayPage({
   const coverage = buildDailySourceCoverage(refreshes, sourceReadDate);
   const sourceQualityAudit = buildDailySourceQualityAudit(refreshes, sourceReadDate);
   const sourceDateShifted = sourceReadDate !== selectedDate;
-  const requirementQueue = buildDailyRequirementQueue(broadInsights, 6);
+  const products = productGraph.products as PersonalProductProfile[];
+  const requirementQueue = buildDailyRequirementQueue(broadInsights, 6, products);
   const annotationRuntime = await dailyAnnotationRuntime();
 
   return (
@@ -416,6 +419,17 @@ export default async function SignalsTodayPage({
                     </div>
                     <div className="mt-2 text-base font-medium leading-snug text-zinc-100">{item.title}</div>
                     <p className="mt-2 text-xs leading-5 text-zinc-500">{item.nextStep}</p>
+                    {item.fleetTarget ? (
+                      <div className="mt-3 border border-zinc-900 p-3">
+                        <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-600">
+                          target {item.fleetTarget.action} / {item.fleetTarget.productName} / fit{" "}
+                          {item.fleetTarget.fitScore}
+                        </div>
+                        <div className="mt-1 text-xs leading-5 text-zinc-500">
+                          {item.fleetTarget.reason}. {item.fleetTarget.defaultAction}
+                        </div>
+                      </div>
+                    ) : null}
                     <div className="mt-3 grid gap-2 text-xs leading-5 text-zinc-500 sm:grid-cols-2">
                       <div>
                         <span className="font-mono uppercase tracking-[0.16em] text-zinc-600">artifact</span>{" "}
