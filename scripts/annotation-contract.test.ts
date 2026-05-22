@@ -56,6 +56,25 @@ async function main() {
   });
   assert.deepEqual(remoteAnnotations, tsAnnotations);
 
+  const manyTexts = Array.from({ length: 31 }, (_, i) => `${SAMPLES[i % SAMPLES.length]} #${i}`);
+  const manyExpected = manyTexts.map(annotateLightweightNlp);
+  const batchSizes: number[] = [];
+  const chunkedRemoteAnnotations = await annotateTexts(manyTexts, {
+    endpoint: "https://annotation.example/annotate",
+    fetcher: async (_url, init) => {
+      const payload = JSON.parse(String(init?.body ?? "{}")) as { text?: string; texts?: string[] };
+      const texts = payload.text ? [payload.text] : (payload.texts ?? []);
+      batchSizes.push(texts.length);
+      const annotations = texts.map(annotateLightweightNlp);
+      return new Response(JSON.stringify({ ok: true, count: annotations.length, annotations }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    },
+  });
+  assert.deepEqual(chunkedRemoteAnnotations, manyExpected);
+  assert.deepEqual(batchSizes, [25, 6]);
+
   const fallbackAnnotations = await annotateTexts(SAMPLES, {
     endpoint: "https://annotation.example/annotate",
     fetcher: async () =>

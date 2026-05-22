@@ -25,6 +25,7 @@ export interface AnnotationClientOptions {
 }
 
 const DEFAULT_TIMEOUT_MS = 2000;
+const MAX_REMOTE_BATCH = 25;
 
 function normalizeTexts(texts: string | string[]) {
   const items = Array.isArray(texts) ? texts : [texts];
@@ -124,6 +125,14 @@ async function postJson(
   }
 }
 
+function remoteBatches(texts: string[]) {
+  const batches: string[][] = [];
+  for (let i = 0; i < texts.length; i += MAX_REMOTE_BATCH) {
+    batches.push(texts.slice(i, i + MAX_REMOTE_BATCH));
+  }
+  return batches;
+}
+
 export async function annotateTexts(
   texts: string | string[],
   options: AnnotationClientOptions = {},
@@ -137,9 +146,13 @@ export async function annotateTexts(
   const fetcher = options.fetcher ?? globalThis.fetch;
   if (!fetcher) return normalized.map(annotateLightweightNlp);
 
-  const response = await postJson(fetcher, endpoint, normalized, options.timeoutMs ?? DEFAULT_TIMEOUT_MS);
-  if (!response.ok || response.annotations.length !== normalized.length) {
-    return normalized.map(annotateLightweightNlp);
+  const annotations: LightweightNlpAnnotation[] = [];
+  for (const batch of remoteBatches(normalized)) {
+    const response = await postJson(fetcher, endpoint, batch, options.timeoutMs ?? DEFAULT_TIMEOUT_MS);
+    if (!response.ok || response.annotations.length !== batch.length) {
+      return normalized.map(annotateLightweightNlp);
+    }
+    annotations.push(...response.annotations);
   }
-  return response.annotations;
+  return annotations;
 }
