@@ -30,6 +30,7 @@ import {
 import { DAILY_REQUIREMENT_GATE, buildDailyRequirementQueue } from "@/lib/daily-requirements";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import bundledMarketRefreshes from "../../data/market-refreshes.json";
 import marketWatch from "../../../../../data/personal-market-watch.json";
 import productGraph from "../../../../../data/personal-product-graph.json";
 import reportIndex from "../../../../../data/personal-report-index.json";
@@ -224,7 +225,7 @@ async function readMarketRefreshes(): Promise<MarketRefreshRecord[]> {
       .filter(Boolean)
       .map((line) => JSON.parse(line) as MarketRefreshRecord);
   } catch {
-    return [];
+    return bundledMarketRefreshes as MarketRefreshRecord[];
   }
 }
 
