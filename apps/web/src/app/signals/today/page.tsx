@@ -413,6 +413,17 @@ export default async function SignalsTodayPage({
                     </div>
                     <div className="mt-2 text-base font-medium leading-snug text-zinc-100">{item.title}</div>
                     <p className="mt-2 text-xs leading-5 text-zinc-500">{item.nextStep}</p>
+                    <div className="mt-3 grid gap-2 text-xs leading-5 text-zinc-500 sm:grid-cols-2">
+                      <div>
+                        <span className="font-mono uppercase tracking-[0.16em] text-zinc-600">artifact</span>{" "}
+                        {item.validationArtifact}
+                      </div>
+                      <div>
+                        <span className="font-mono uppercase tracking-[0.16em] text-zinc-600">test</span>{" "}
+                        {item.smallestTest}
+                      </div>
+                    </div>
+                    <div className="mt-2 text-xs leading-5 text-zinc-600">{item.acceptanceCriteria[0]}</div>
                   </a>
                 ))}
               </div>

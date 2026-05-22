@@ -564,6 +564,19 @@ export default async function PersonalPage({
                     </div>
                     <div className="mt-2 text-sm leading-6 text-[var(--color-fg)]">{item.title}</div>
                     <div className="mt-1 text-xs leading-5 text-[var(--color-muted)]">{item.nextStep}</div>
+                    <div className="mt-3 grid gap-2 text-xs leading-5 text-[var(--color-muted)] md:grid-cols-2">
+                      <div>
+                        <span className="font-mono uppercase tracking-[0.16em]">artifact</span>{" "}
+                        {item.validationArtifact}
+                      </div>
+                      <div>
+                        <span className="font-mono uppercase tracking-[0.16em]">test</span>{" "}
+                        {item.smallestTest}
+                      </div>
+                    </div>
+                    <div className="mt-2 text-xs leading-5 text-[var(--color-muted)]">
+                      {item.acceptanceCriteria[0]}
+                    </div>
                     <div className="mt-2 font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--color-muted)]">
                       {item.domains.join("/") || "no domain"} / pain {item.painScore.toFixed(2)} / buyer{" "}
                       {item.buyerIntentScore.toFixed(2)} / action {item.actionabilityScore.toFixed(2)}

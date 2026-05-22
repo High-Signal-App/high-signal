@@ -25,6 +25,10 @@ export type DailyRequirementItem = {
   suggestedBuild: string;
   whyNow: string;
   nextStep: string;
+  userStory: string;
+  acceptanceCriteria: string[];
+  validationArtifact: string;
+  smallestTest: string;
 };
 
 const DOMAIN_BUILD: Partial<Record<LightweightDomain, string>> = {
@@ -54,6 +58,19 @@ function suggestedBuildFor(item: DailyBroadInsight) {
   return domain ? DOMAIN_BUILD[domain] ?? "Source-linked validation artifact" : "Source-linked validation artifact";
 }
 
+function userLabelFor(item: DailyBroadInsight) {
+  const domain = primaryDomain(item);
+  if (domain === "small-business") return "small business operator";
+  if (domain === "developer") return "developer or technical operator";
+  if (domain === "regional") return "local operator";
+  if (domain === "startup") return "startup builder";
+  if (domain === "agent-evaluation") return "founder being evaluated by AI/search agents";
+  if (domain === "operations") return "operations owner";
+  if (domain === "consumer") return "consumer-facing product owner";
+  if (domain === "market") return "market-aware product operator";
+  return "product operator";
+}
+
 function nextStepFor(item: DailyBroadInsight) {
   if (item.annotation.buyerIntentScore >= 0.5) {
     return "Create a small offer or comparison page and validate whether the buyer intent repeats tomorrow.";
@@ -65,6 +82,24 @@ function nextStepFor(item: DailyBroadInsight) {
     return "Collect two more examples of the pain and identify the current workaround before building.";
   }
   return "Keep watching until the requirement repeats with stronger pain, buyer intent, or implementation detail.";
+}
+
+function validationArtifactFor(item: DailyBroadInsight) {
+  if (item.annotation.buyerIntentScore >= 0.5) return "offer/comparison page";
+  if (item.annotation.actionabilityScore >= 0.67) return "one-page requirement spec";
+  if (item.annotation.painScore >= 0.34) return "pain teardown with current workaround";
+  return "watch note with repeat evidence";
+}
+
+function acceptanceCriteriaFor(item: DailyBroadInsight) {
+  const criteria = [
+    `Cites ${Math.max(2, Math.min(item.sourceCount, 5))} source item(s) behind the requirement.`,
+    `States the target user, current pain, and current workaround in one screen.`,
+    `Defines one manual validation step that can be completed within 48 hours.`,
+  ];
+  if (item.annotation.buyerIntentScore >= 0.25) criteria.push("Includes an explicit price/alternative/comparison check.");
+  if (item.annotation.actionabilityScore >= 0.34) criteria.push("Includes clear acceptance criteria for the smallest shippable version.");
+  return criteria;
 }
 
 function scoreFor(item: DailyBroadInsight) {
@@ -106,6 +141,10 @@ export function buildDailyRequirementQueue(insights: DailyBroadInsight[], limit 
         suggestedBuild,
         whyNow: `${item.sourceLabel} produced a ${item.annotation.signalLayer.replaceAll("-", " ")} signal with ${item.sourceCount} underlying item(s), ${item.repeatedSignalCount} repeated product cue(s), and ${item.annotation.domains.join("/") || "no"} domain tag(s).`,
         nextStep: nextStepFor(item),
+        userStory: `As a ${userLabelFor(item)}, I need ${item.title.toLowerCase()} so I can decide what to change or validate next.`,
+        acceptanceCriteria: acceptanceCriteriaFor(item),
+        validationArtifact: validationArtifactFor(item),
+        smallestTest: `Publish a ${validationArtifactFor(item)} for this requirement and check whether the same pain repeats in the next source refresh.`,
       };
     })
     .sort((a, b) => b.score - a.score || b.qualityScore - a.qualityScore || a.title.localeCompare(b.title))
