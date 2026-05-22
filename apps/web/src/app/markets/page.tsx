@@ -7,7 +7,7 @@ import {
   SectionHeader,
   StatGrid,
 } from "@/components/system/HighSignalUI";
-import { buildMarketWatchSnapshot, formatMarketPct, marketDirectionTone } from "@/lib/market-watch";
+import { buildMarketWatchSnapshot, formatMarketPct, marketDirectionTone, marketRefreshDates } from "@/lib/market-watch";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Market Intelligence - High Signal" };
@@ -23,8 +23,19 @@ function latestQuoteDate(group: ReturnType<typeof buildMarketWatchSnapshot>["gro
     .at(-1) ?? "no quote";
 }
 
-export default async function MarketsPage() {
-  const snapshot = buildMarketWatchSnapshot();
+function safeDate(value?: string) {
+  return value && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : undefined;
+}
+
+export default async function MarketsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ date?: string }>;
+}) {
+  const params = (await searchParams) ?? {};
+  const selectedDate = safeDate(params.date);
+  const snapshot = buildMarketWatchSnapshot(new Date(), selectedDate);
+  const dates = marketRefreshDates();
   return (
     <PageShell>
       <BackLink />
@@ -52,15 +63,53 @@ export default async function MarketsPage() {
             value: snapshot.quoteCount.toString(),
             sub: `${snapshot.source.toUpperCase()} high-level watchlist feed`,
           },
+          {
+            label: "Selected",
+            value: snapshot.selectedRefreshDate ?? "none",
+            sub: snapshot.selectedRefreshAt
+              ? `snapshot ${snapshot.selectedRefreshAt.slice(0, 16).replace("T", " ")} UTC`
+              : "no selected snapshot",
+          },
         ]}
       />
+
+      <form className="mt-8 grid gap-3 border-y border-[var(--color-line)] py-4 md:grid-cols-[1fr_auto_auto]">
+        <label className="flex flex-col gap-2 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
+          date
+          <input
+            className="border border-[var(--color-line)] bg-transparent px-3 py-2 text-sm text-[var(--color-fg)] outline-none focus:border-[var(--color-accent)]"
+            defaultValue={selectedDate ?? snapshot.selectedRefreshDate ?? ""}
+            name="date"
+            type="date"
+          />
+        </label>
+        <button
+          className="border border-[var(--color-line)] px-4 py-2 font-mono text-xs uppercase tracking-[0.18em] text-[var(--color-fg)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] md:self-end"
+          type="submit"
+        >
+          load
+        </button>
+        <a
+          className="border border-[var(--color-line)] px-4 py-2 text-center font-mono text-xs uppercase tracking-[0.18em] text-[var(--color-muted)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] md:self-end"
+          href="/markets/history"
+        >
+          history
+        </a>
+      </form>
+
+      {snapshot.sourceDateShifted ? (
+        <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">
+          No market snapshot exists for {snapshot.requestedDate}; showing the latest prior snapshot from{" "}
+          {snapshot.selectedRefreshDate}.
+        </p>
+      ) : null}
 
       <section className="mt-10 grid gap-8 md:grid-cols-3">
         <Panel eyebrow="source" title="Stooq snapshots">
           <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">
             The daily automation refreshes a compact watchlist from Stooq and bundles the latest
             records into the web app. JSON export is available at{" "}
-            <a className="text-[var(--color-accent)] hover:underline" href="/markets.json">
+            <a className="text-[var(--color-accent)] hover:underline" href={`/markets.json${snapshot.selectedRefreshDate ? `?date=${snapshot.selectedRefreshDate}` : ""}`}>
               /markets.json
             </a>
             .
@@ -83,7 +132,7 @@ export default async function MarketsPage() {
       <MetricGrid
         items={[
           { label: "groups", value: snapshot.groupCount.toString() },
-          { label: "history", value: snapshot.history.length.toString() },
+          { label: "history", value: `${dates.length}d / ${snapshot.history.length} refreshes` },
           {
             label: "direction",
             value: snapshot.directionCounts.map(({ k, n }) => `${k} ${n}`).join(" / ") || "none",
@@ -154,6 +203,7 @@ export default async function MarketsPage() {
       <RouteList
         items={[
           { href: "/personal", title: "personal brief", sub: "market context converted into product decisions" },
+          { href: "/markets/history", title: "market history", sub: "date archive for stock context snapshots" },
           { href: "/daily", title: "daily", sub: "source reads and requirement queue" },
           { href: "/signals", title: "signals", sub: "published market and company signals" },
           { href: "/entities", title: "entities", sub: "company and sector graph" },

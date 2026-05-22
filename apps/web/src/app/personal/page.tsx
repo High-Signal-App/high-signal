@@ -452,6 +452,17 @@ export default async function PersonalPage({
           {marketSnapshot.latestRefreshAt ? ` / ${marketSnapshot.latestRefreshAt.slice(0, 16).replace("T", " ")} UTC` : ""}
           . This is product timing context, not a stock call.
         </p>
+        <div className="mt-3 flex flex-wrap gap-4 font-mono text-[10px] uppercase tracking-[0.18em]">
+          <a className="text-[var(--color-accent)] hover:underline" href="/markets/history">
+            market history
+          </a>
+          <a
+            className="text-[var(--color-muted)] hover:text-[var(--color-accent)]"
+            href={`/markets.json${marketSnapshot.selectedRefreshDate ? `?date=${marketSnapshot.selectedRefreshDate}` : ""}`}
+          >
+            markets json
+          </a>
+        </div>
         <div className="mt-5 grid gap-px border border-[var(--color-line)] bg-[var(--color-line)] md:grid-cols-3">
           {marketSnapshot.groups.map((group) => (
             <a
