@@ -47,6 +47,6 @@
     "storybook": "10.3.6",
     "tailwindcss": "4",
     "typescript": "6.0.3",
-    "wrangler": "4.85.0"
+    "wrangler": "4.94.0"
   }
 }
