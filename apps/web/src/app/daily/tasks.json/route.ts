@@ -1,5 +1,5 @@
 import { dailyReadMatches, safeReadDomain, safeReadLayer } from "@/lib/daily-read-filters";
-import { buildDailyRequirementQueue } from "@/lib/daily-requirements";
+import { DAILY_REQUIREMENT_GATE, buildDailyRequirementQueue } from "@/lib/daily-requirements";
 import { buildDailyRequirementTaskExports } from "@/lib/daily-task-export";
 import {
   buildDailyBroadInsightsWithAnnotations,
@@ -60,6 +60,7 @@ export async function GET(req: Request) {
       domain,
       requirement,
       count: taskExports.length,
+      requirementGate: DAILY_REQUIREMENT_GATE,
       taskExports,
       tasks: taskExports.map((item) => item.task),
       requirementIds: taskExports.map((item) => item.requirementId),

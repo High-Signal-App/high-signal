@@ -56,6 +56,16 @@ export type DailyRequirementFleetTarget = {
   defaultAction: string;
 };
 
+export const DAILY_REQUIREMENT_GATE = {
+  minScore: 50,
+  minSourceCount: 3,
+  minRepeatedSignalCount: 3,
+  acceptedTargetActions: ["build", "change"] as PersonalActionKind[],
+  rejectedAnnotationStatuses: ["weak"] as const,
+  description:
+    "Only publishes requirements with score >= 50, >=3 source items, >=3 repeated product cues, a non-weak annotation gate, and a build/change fleet target.",
+} as const;
+
 const DOMAIN_BUILD: Partial<Record<LightweightDomain, string>> = {
   "agent-evaluation": "Agent-readiness evidence surface",
   consumer: "Consumer pressure radar",
@@ -93,6 +103,20 @@ function priorityFor(score: number): DailyRequirementPriority {
   if (score >= 62) return "high";
   if (score >= 45) return "medium";
   return "low";
+}
+
+function passesDailyRequirementGate(input: {
+  item: DailyBroadInsight;
+  score: number;
+  fleetTarget: DailyRequirementFleetTarget | null;
+}) {
+  if (!input.item.annotation.productRequirement) return false;
+  if (input.item.annotation.qualityGate.status === "weak") return false;
+  if (input.item.sourceCount < DAILY_REQUIREMENT_GATE.minSourceCount) return false;
+  if (input.item.repeatedSignalCount < DAILY_REQUIREMENT_GATE.minRepeatedSignalCount) return false;
+  if (input.score < DAILY_REQUIREMENT_GATE.minScore) return false;
+  if (!input.fleetTarget) return false;
+  return DAILY_REQUIREMENT_GATE.acceptedTargetActions.includes(input.fleetTarget.action);
 }
 
 function primaryDomain(item: DailyBroadInsight): LightweightDomain | null {
@@ -344,12 +368,12 @@ export function buildDailyRequirementQueue(
   products: PersonalProductProfile[] = [],
 ): DailyRequirementItem[] {
   return insights
-    .filter((item) => item.annotation.productRequirement)
-    .map((item) => {
+    .map<DailyRequirementItem | null>((item) => {
       const score = scoreFor(item);
       const suggestedBuild = suggestedBuildFor(item);
       const scoreBreakdown = scoreBreakdownFor(item);
       const fleetTargets = fleetTargetsFor(item, products);
+      const fleetTarget = fleetTargets[0] ?? null;
       const priority = priorityFor(score);
       const whyNow = `${item.sourceLabel} produced a ${item.annotation.signalLayer.replaceAll("-", " ")} signal with ${item.sourceCount} underlying item(s), ${item.repeatedSignalCount} repeated product cue(s), and ${item.annotation.domains.join("/") || "no"} domain tag(s).`;
       const nextStep = nextStepFor(item);
@@ -358,11 +382,12 @@ export function buildDailyRequirementQueue(
         item,
         score,
         priority,
-        target: fleetTargets[0] ?? null,
+        target: fleetTarget,
         whyNow,
         nextStep,
         acceptanceCriteria,
       });
+      if (!passesDailyRequirementGate({ item, score, fleetTarget })) return null;
       return {
         id: `requirement-${item.id}`,
         title: item.title,
@@ -381,7 +406,7 @@ export function buildDailyRequirementQueue(
         actionabilityScore: item.annotation.actionabilityScore,
         qualityScore: item.qualityScore,
         scoreBreakdown,
-        fleetTarget: fleetTargets[0] ?? null,
+        fleetTarget,
         alternativeFleetTargets: fleetTargets.slice(1),
         taskDraft,
         sourceCount: item.sourceCount,
@@ -395,6 +420,7 @@ export function buildDailyRequirementQueue(
         smallestTest: `Publish a ${validationArtifactFor(item)} for this requirement and check whether the same pain repeats in the next source refresh.`,
       };
     })
+    .filter((item): item is DailyRequirementItem => item !== null)
     .sort((a, b) => b.score - a.score || b.qualityScore - a.qualityScore || a.title.localeCompare(b.title))
     .slice(0, limit);
 }

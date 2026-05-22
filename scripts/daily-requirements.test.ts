@@ -98,4 +98,57 @@ assert.equal(regionalQueue[0]?.fleetTarget?.productSlug, "high-signal");
 assert.equal(regionalQueue[0]?.fleetTarget?.action, "change");
 assert.equal(regionalQueue[0]?.taskDraft?.saasMakerProjectSlug, "high-signal");
 
+const weakQueue = buildDailyRequirementQueue(
+  [
+    insight({
+      id: "weak",
+      title: "General discussion about a possible workflow",
+      sourceCount: 2,
+      repeatedSignalCount: 1,
+      qualityScore: 40,
+      annotation: annotation({
+        painScore: 0.17,
+        buyerIntentScore: 0,
+        actionabilityScore: 0.34,
+        productRequirement: true,
+        qualityGate: {
+          status: "review",
+          score: 31,
+          reasons: ["product-requirement", "actionable"],
+        },
+      }),
+    }),
+  ],
+  3,
+  products,
+);
+assert.equal(weakQueue.length, 0);
+
+const watchOnlyQueue = buildDailyRequirementQueue(
+  [
+    insight({
+      id: "watch-only",
+      title: "Local control preference repeats but has no immediate product action",
+      sourceCount: 8,
+      repeatedSignalCount: 4,
+      qualityScore: 100,
+      annotation: annotation({
+        domains: ["consumer"],
+        productSignals: ["local", "privacy", "cost"],
+        painScore: 0.34,
+        buyerIntentScore: 0,
+        actionabilityScore: 0.34,
+        qualityGate: {
+          status: "review",
+          score: 44,
+          reasons: ["product-requirement", "pain", "actionable", "domain-tagged"],
+        },
+      }),
+    }),
+  ],
+  3,
+  products,
+);
+assert.equal(watchOnlyQueue.length, 0);
+
 console.log("daily-requirements.test.ts: ok");

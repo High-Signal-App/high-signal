@@ -26,7 +26,7 @@ import {
   safeReadDomain,
   safeReadLayer,
 } from "@/lib/daily-read-filters";
-import { buildDailyRequirementQueue } from "@/lib/daily-requirements";
+import { DAILY_REQUIREMENT_GATE, buildDailyRequirementQueue } from "@/lib/daily-requirements";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import marketWatch from "../../../../../data/personal-market-watch.json";
@@ -587,6 +587,11 @@ export default async function PersonalPage({
                     history 30d
                   </a>
                 </div>
+              </div>
+              <div className="mt-2 font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--color-muted)]">
+                gate score {DAILY_REQUIREMENT_GATE.minScore}+ / sources{" "}
+                {DAILY_REQUIREMENT_GATE.minSourceCount}+ / repeats{" "}
+                {DAILY_REQUIREMENT_GATE.minRepeatedSignalCount}+ / build-change only
               </div>
               <div className="mt-4 divide-y divide-[var(--color-line)] border-y border-[var(--color-line)]">
                 {requirementQueue.map((item) => (

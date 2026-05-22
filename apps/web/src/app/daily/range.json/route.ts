@@ -1,4 +1,5 @@
 import { safeReadDomain, safeReadLayer } from "@/lib/daily-read-filters";
+import { DAILY_REQUIREMENT_GATE } from "@/lib/daily-requirements";
 import { buildDailyRangeSummary } from "@/lib/daily-range";
 import {
   DAILY_INTELLIGENCE_LAYER,
@@ -56,6 +57,7 @@ export async function GET(req: Request) {
       domain,
       requirement,
       includeTasks,
+      requirementGate: DAILY_REQUIREMENT_GATE,
       intelligenceLayer: DAILY_INTELLIGENCE_LAYER,
       annotationRuntime,
     }),

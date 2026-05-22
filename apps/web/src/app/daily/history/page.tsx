@@ -1,4 +1,5 @@
 import { dailyReadQuery, READ_DOMAINS, READ_SIGNAL_LAYERS, safeReadDomain, safeReadLayer } from "@/lib/daily-read-filters";
+import { DAILY_REQUIREMENT_GATE } from "@/lib/daily-requirements";
 import { buildDailyRangeSummary } from "@/lib/daily-range";
 import {
   DAILY_INTELLIGENCE_LAYER,
@@ -245,6 +246,11 @@ export default async function DailyHistoryPage({
         <div className="mt-2 font-mono text-[11px] leading-6 text-zinc-500">
           {DAILY_INTELLIGENCE_LAYER.broadReadAnnotation.method} / model none / no LLM /{" "}
           {annotationRuntime.activePath.replaceAll("-", " ")}
+        </div>
+        <div className="mt-2 font-mono text-[11px] leading-6 text-zinc-500">
+          requirement gate / score {DAILY_REQUIREMENT_GATE.minScore}+ / sources{" "}
+          {DAILY_REQUIREMENT_GATE.minSourceCount}+ / repeats{" "}
+          {DAILY_REQUIREMENT_GATE.minRepeatedSignalCount}+ / build-change only
         </div>
         <div className="mt-4 grid gap-4 text-xs leading-6 text-zinc-500 md:grid-cols-3">
           <div>

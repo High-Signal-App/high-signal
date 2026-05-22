@@ -11,7 +11,7 @@ import {
   safeReadDomain,
   safeReadLayer,
 } from "@/lib/daily-read-filters";
-import { buildDailyRequirementQueue } from "@/lib/daily-requirements";
+import { DAILY_REQUIREMENT_GATE, buildDailyRequirementQueue } from "@/lib/daily-requirements";
 import {
   buildDailyBroadInsightsWithAnnotations,
   buildDailySourceCoverage,
@@ -443,6 +443,11 @@ export default async function SignalsTodayPage({
                 >
                   history 30d
                 </a>
+              </div>
+              <div className="mt-2 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-600">
+                gate score {DAILY_REQUIREMENT_GATE.minScore}+ / sources{" "}
+                {DAILY_REQUIREMENT_GATE.minSourceCount}+ / repeats{" "}
+                {DAILY_REQUIREMENT_GATE.minRepeatedSignalCount}+ / build-change only
               </div>
               <div className="mt-4 divide-y divide-zinc-900 border-y border-zinc-900">
                 {requirementQueue.map((item) => (
