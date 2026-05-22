@@ -429,6 +429,20 @@ export default async function SignalsTodayPage({
                 >
                   export {taskExportCount} task{taskExportCount === 1 ? "" : "s"}
                 </a>
+                <a
+                  className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500 hover:text-[var(--color-accent)]"
+                  href={`/daily/range.json?${dailyReadQuery({
+                    to: sourceReadDate,
+                    days: 30,
+                    category: selectedCategory,
+                    layer: selectedLayer,
+                    domain: selectedDomain,
+                    requirement: true,
+                    includeTasks: true,
+                  })}`}
+                >
+                  range 30d
+                </a>
               </div>
               <div className="mt-4 divide-y divide-zinc-900 border-y border-zinc-900">
                 {requirementQueue.map((item) => (

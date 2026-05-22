@@ -51,17 +51,25 @@ export function dailyReadQuery(input: {
   sourceDate?: string | null;
   category?: string | null;
   readCategory?: string | null;
+  from?: string | null;
+  to?: string | null;
+  days?: number | string | null;
   layer?: string | null;
   domain?: string | null;
   requirement?: boolean | string | null;
+  includeTasks?: boolean | string | null;
 }) {
   const params = new URLSearchParams();
   if (input.date) params.set("date", input.date);
   if (input.sourceDate) params.set("sourceDate", input.sourceDate);
   if (input.category) params.set("category", input.category);
   if (input.readCategory) params.set("readCategory", input.readCategory);
+  if (input.from) params.set("from", input.from);
+  if (input.to) params.set("to", input.to);
+  if (input.days) params.set("days", String(input.days));
   if (input.layer) params.set("layer", input.layer);
   if (input.domain) params.set("domain", input.domain);
   if (input.requirement === true || input.requirement === "yes") params.set("requirement", "yes");
+  if (input.includeTasks === true || input.includeTasks === "yes") params.set("includeTasks", "yes");
   return params.toString();
 }

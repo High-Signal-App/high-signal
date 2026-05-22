@@ -555,22 +555,38 @@ export default async function PersonalPage({
           </div>
           {requirementQueue.length > 0 ? (
             <div className="mt-6 border-y border-[var(--color-line)] py-5">
-              <div className="flex items-baseline justify-between gap-4">
+              <div className="flex flex-wrap items-baseline justify-between gap-4">
                 <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
                   requirement queue
                 </div>
-                <a
-                  className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-accent)] hover:underline"
-                  href={`/daily/tasks.json?${dailyReadQuery({
-                    date: sourceReadDate,
-                    category: selectedReadCategory,
-                    layer: selectedReadLayer,
-                    domain: selectedReadDomain,
-                    requirement: true,
-                  })}`}
-                >
-                  export {taskExportCount} task{taskExportCount === 1 ? "" : "s"}
-                </a>
+                <div className="flex flex-wrap gap-3">
+                  <a
+                    className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-accent)] hover:underline"
+                    href={`/daily/tasks.json?${dailyReadQuery({
+                      date: sourceReadDate,
+                      category: selectedReadCategory,
+                      layer: selectedReadLayer,
+                      domain: selectedReadDomain,
+                      requirement: true,
+                    })}`}
+                  >
+                    export {taskExportCount} task{taskExportCount === 1 ? "" : "s"}
+                  </a>
+                  <a
+                    className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)] hover:text-[var(--color-accent)]"
+                    href={`/daily/range.json?${dailyReadQuery({
+                      to: sourceReadDate,
+                      days: 30,
+                      category: selectedReadCategory,
+                      layer: selectedReadLayer,
+                      domain: selectedReadDomain,
+                      requirement: true,
+                      includeTasks: true,
+                    })}`}
+                  >
+                    range 30d
+                  </a>
+                </div>
               </div>
               <div className="mt-4 divide-y divide-[var(--color-line)] border-y border-[var(--color-line)]">
                 {requirementQueue.map((item) => (
