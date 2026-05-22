@@ -19,6 +19,35 @@ Sentiment = Literal["positive", "negative", "neutral", "mixed"]
 Urgency = Literal["low", "medium", "high"]
 Method = Literal["rules-v1", "semantic-rules-v2"]
 SignalLayer = Literal["world-change", "app-complaint", "market-watch", "general"]
+Audience = Literal[
+    "agent-operators",
+    "consumers",
+    "developers",
+    "general",
+    "market-operators",
+    "regional-public",
+    "small-business-owners",
+    "startup-builders",
+]
+RequirementType = Literal[
+    "add-integration",
+    "automate-workflow",
+    "fix-bug",
+    "improve-pricing",
+    "local-ops",
+    "monitor-market",
+    "research-only",
+    "validate-demand",
+]
+DecisionStage = Literal[
+    "buyer-evaluation",
+    "general-awareness",
+    "market-monitoring",
+    "pain-discovery",
+    "solution-request",
+    "world-change-watch",
+]
+QualityGateStatus = Literal["strong", "review", "weak"]
 Domain = Literal[
     "agent-evaluation",
     "consumer",
@@ -51,6 +80,11 @@ class Annotation:
     buyerIntentScore: float
     actionabilityScore: float
     productRequirement: bool
+    audience: Audience
+    requirementType: RequirementType
+    decisionStage: DecisionStage
+    opportunityScore: float
+    qualityGate: dict[str, object]
 
     def to_dict(self) -> dict[str, object]:
         return asdict(self)
@@ -294,6 +328,46 @@ ACTIONABILITY_TERMS = (
     "checklist",
 )
 
+INTEGRATION_TERMS = (
+    "integration",
+    "support for",
+    "quickbooks",
+    "shopify",
+    "stripe",
+    "api",
+    "webhook",
+)
+
+AUTOMATION_TERMS = (
+    "automate",
+    "workflow",
+    "dashboard",
+    "template",
+    "calculator",
+    "checklist",
+    "report",
+)
+
+PRICING_TERMS = (
+    "pricing",
+    "budget",
+    "pay",
+    "expensive",
+    "worth it",
+    "subscription",
+    "trial",
+)
+
+BUG_TERMS = (
+    "broken",
+    "bug",
+    "doesn't work",
+    "not working",
+    "outage",
+    "blocked",
+    "issue",
+)
+
 DOMAIN_TERMS: list[tuple[Domain, tuple[str, ...]]] = [
     (
         "agent-evaluation",
@@ -449,6 +523,112 @@ def _signal_layer(
     return "general"
 
 
+def _audience(domains: list[Domain]) -> Audience:
+    if "agent-evaluation" in domains:
+        return "agent-operators"
+    if "developer" in domains:
+        return "developers"
+    if "small-business" in domains or "operations" in domains:
+        return "small-business-owners"
+    if "startup" in domains:
+        return "startup-builders"
+    if "regional" in domains:
+        return "regional-public"
+    if "market" in domains:
+        return "market-operators"
+    if "consumer" in domains:
+        return "consumers"
+    return "general"
+
+
+def _requirement_type(
+    intent: Intent,
+    domains: list[Domain],
+    integration_hits: list[str],
+    automation_hits: list[str],
+    pricing_hits: list[str],
+    bug_hits: list[str],
+) -> RequirementType:
+    if intent == "market-signal" or "market" in domains:
+        return "monitor-market"
+    if intent == "regional-pressure" or "regional" in domains:
+        return "local-ops"
+    if intent == "startup-validation" or "startup" in domains:
+        return "validate-demand"
+    if integration_hits:
+        return "add-integration"
+    if bug_hits:
+        return "fix-bug"
+    if automation_hits:
+        return "automate-workflow"
+    if intent == "purchase-intent" or pricing_hits:
+        return "improve-pricing"
+    return "research-only"
+
+
+def _decision_stage(intent: Intent, signal_layer: SignalLayer, pain_score: float) -> DecisionStage:
+    if intent == "purchase-intent":
+        return "buyer-evaluation"
+    if intent == "feature-request":
+        return "solution-request"
+    if signal_layer == "market-watch":
+        return "market-monitoring"
+    if signal_layer == "world-change":
+        return "world-change-watch"
+    if pain_score > 0 or intent in ("complaint", "operational-risk"):
+        return "pain-discovery"
+    return "general-awareness"
+
+
+def _quality_gate(
+    pain_score: float,
+    buyer_intent_score: float,
+    actionability_score: float,
+    urgency: Urgency,
+    domains: list[Domain],
+    product_requirement: bool,
+) -> tuple[float, dict[str, object]]:
+    domain_bonus = 0.08 if domains else 0.0
+    urgency_bonus = 0.12 if urgency == "high" else 0.06 if urgency == "medium" else 0.0
+    opportunity_score = _bounded_score(
+        pain_score * 0.3
+        + buyer_intent_score * 0.25
+        + actionability_score * 0.3
+        + domain_bonus
+        + urgency_bonus
+    )
+    reasons: list[str] = []
+    if product_requirement:
+        reasons.append("product-requirement")
+    if pain_score >= 0.34:
+        reasons.append("pain")
+    if buyer_intent_score >= 0.25:
+        reasons.append("buyer-intent")
+    if actionability_score >= 0.34:
+        reasons.append("actionable")
+    if domains:
+        reasons.append("domain-tagged")
+    if urgency != "low":
+        reasons.append(f"{urgency}-urgency")
+    if not reasons:
+        reasons.append("weak-explicit-signal")
+    status: QualityGateStatus = (
+        "strong"
+        if opportunity_score >= 0.7 and product_requirement
+        else "review"
+        if opportunity_score >= 0.38 or product_requirement
+        else "weak"
+    )
+    return (
+        opportunity_score,
+        {
+            "status": status,
+            "score": round(opportunity_score * 100),
+            "reasons": reasons,
+        },
+    )
+
+
 def annotate_text(text: str) -> Annotation:
     lower = text.lower()
     intent_scores = [
@@ -465,6 +645,10 @@ def annotate_text(text: str) -> Annotation:
     pain_hits = _hits(lower, PAIN_TERMS)
     buyer_intent_hits = _hits(lower, BUYER_INTENT_TERMS)
     actionability_hits = _hits(lower, ACTIONABILITY_TERMS)
+    integration_hits = _hits(lower, INTEGRATION_TERMS)
+    automation_hits = _hits(lower, AUTOMATION_TERMS)
+    pricing_hits = _hits(lower, PRICING_TERMS)
+    bug_hits = _hits(lower, BUG_TERMS)
     domain_scores = [
         (domain, hits)
         for domain, terms in DOMAIN_TERMS
@@ -479,6 +663,28 @@ def annotate_text(text: str) -> Annotation:
     actionability_score = _bounded_score(
         (len(actionability_hits) + len(top_intent_hits)) / 6
     )
+    urgency: Urgency = "high" if len(urgent_hits) >= 2 else "medium" if urgent_hits else "low"
+    signal_layer = _signal_layer(
+        intent,
+        market_hits,
+        world_hits,
+        pain_hits,
+        actionability_hits,
+    )
+    domains = [domain for domain, _ in domain_scores[:4]]
+    product_requirement = (
+        pain_score >= 0.34
+        or buyer_intent_score >= 0.25
+        or actionability_score >= 0.34
+    )
+    opportunity_score, quality_gate = _quality_gate(
+        pain_score,
+        buyer_intent_score,
+        actionability_score,
+        urgency,
+        domains,
+        product_requirement,
+    )
 
     if positive_hits and negative_hits:
         sentiment: Sentiment = "mixed"
@@ -492,7 +698,7 @@ def annotate_text(text: str) -> Annotation:
     return Annotation(
         intent=intent,
         sentiment=sentiment,
-        urgency="high" if len(urgent_hits) >= 2 else "medium" if urgent_hits else "low",
+        urgency=urgency,
         method="semantic-rules-v2",
         model="none",
         llm=False,
@@ -503,14 +709,8 @@ def annotate_text(text: str) -> Annotation:
         positiveHits=positive_hits,
         negativeHits=negative_hits,
         intentHits=top_intent_hits,
-        signalLayer=_signal_layer(
-            intent,
-            market_hits,
-            world_hits,
-            pain_hits,
-            actionability_hits,
-        ),
-        domains=[domain for domain, _ in domain_scores[:4]],
+        signalLayer=signal_layer,
+        domains=domains,
         productSignals=_unique(
             top_intent_hits
             + pain_hits
@@ -521,9 +721,17 @@ def annotate_text(text: str) -> Annotation:
         painScore=pain_score,
         buyerIntentScore=buyer_intent_score,
         actionabilityScore=actionability_score,
-        productRequirement=(
-            pain_score >= 0.34
-            or buyer_intent_score >= 0.25
-            or actionability_score >= 0.34
+        productRequirement=product_requirement,
+        audience=_audience(domains),
+        requirementType=_requirement_type(
+            intent,
+            domains,
+            integration_hits,
+            automation_hits,
+            pricing_hits,
+            bug_hits,
         ),
+        decisionStage=_decision_stage(intent, signal_layer, pain_score),
+        opportunityScore=opportunity_score,
+        qualityGate=quality_gate,
     )

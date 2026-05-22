@@ -52,7 +52,16 @@ function isAnnotation(value: unknown): value is LightweightNlpAnnotation {
     typeof item.painScore === "number" &&
     typeof item.buyerIntentScore === "number" &&
     typeof item.actionabilityScore === "number" &&
-    typeof item.productRequirement === "boolean"
+    typeof item.productRequirement === "boolean" &&
+    typeof item.audience === "string" &&
+    typeof item.requirementType === "string" &&
+    typeof item.decisionStage === "string" &&
+    typeof item.opportunityScore === "number" &&
+    Boolean(item.qualityGate) &&
+    typeof item.qualityGate === "object" &&
+    typeof item.qualityGate.status === "string" &&
+    typeof item.qualityGate.score === "number" &&
+    Array.isArray(item.qualityGate.reasons)
   );
 }
 

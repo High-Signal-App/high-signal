@@ -12,6 +12,32 @@ export type LightweightIntent =
 export type LightweightSentiment = "positive" | "negative" | "neutral" | "mixed";
 export type LightweightNlpMethod = "rules-v1" | "semantic-rules-v2";
 export type LightweightSignalLayer = "world-change" | "app-complaint" | "market-watch" | "general";
+export type LightweightAudience =
+  | "agent-operators"
+  | "consumers"
+  | "developers"
+  | "general"
+  | "market-operators"
+  | "regional-public"
+  | "small-business-owners"
+  | "startup-builders";
+export type LightweightRequirementType =
+  | "add-integration"
+  | "automate-workflow"
+  | "fix-bug"
+  | "improve-pricing"
+  | "local-ops"
+  | "monitor-market"
+  | "research-only"
+  | "validate-demand";
+export type LightweightDecisionStage =
+  | "buyer-evaluation"
+  | "general-awareness"
+  | "market-monitoring"
+  | "pain-discovery"
+  | "solution-request"
+  | "world-change-watch";
+export type LightweightQualityGateStatus = "strong" | "review" | "weak";
 export type LightweightDomain =
   | "agent-evaluation"
   | "consumer"
@@ -41,6 +67,15 @@ export interface LightweightNlpAnnotation {
   buyerIntentScore: number;
   actionabilityScore: number;
   productRequirement: boolean;
+  audience: LightweightAudience;
+  requirementType: LightweightRequirementType;
+  decisionStage: LightweightDecisionStage;
+  opportunityScore: number;
+  qualityGate: {
+    status: LightweightQualityGateStatus;
+    score: number;
+    reasons: string[];
+  };
 }
 
 const INTENT_TERMS: Array<{ intent: LightweightIntent; terms: string[] }> = [
@@ -182,6 +217,11 @@ const ACTIONABILITY_TERMS = [
   "checklist",
 ];
 
+const INTEGRATION_TERMS = ["integration", "support for", "quickbooks", "shopify", "stripe", "api", "webhook"];
+const AUTOMATION_TERMS = ["automate", "workflow", "dashboard", "template", "calculator", "checklist", "report"];
+const PRICING_TERMS = ["pricing", "budget", "pay", "expensive", "worth it", "subscription", "trial"];
+const BUG_TERMS = ["broken", "bug", "doesn't work", "not working", "outage", "blocked", "issue"];
+
 const DOMAIN_TERMS: Array<{ domain: LightweightDomain; terms: string[] }> = [
   {
     domain: "agent-evaluation",
@@ -257,6 +297,86 @@ function signalLayerFor(input: {
   return "general";
 }
 
+function audienceFor(domains: LightweightDomain[]): LightweightAudience {
+  if (domains.includes("agent-evaluation")) return "agent-operators";
+  if (domains.includes("developer")) return "developers";
+  if (domains.includes("small-business") || domains.includes("operations")) return "small-business-owners";
+  if (domains.includes("startup")) return "startup-builders";
+  if (domains.includes("regional")) return "regional-public";
+  if (domains.includes("market")) return "market-operators";
+  if (domains.includes("consumer")) return "consumers";
+  return "general";
+}
+
+function requirementTypeFor(input: {
+  intent: LightweightIntent;
+  domains: LightweightDomain[];
+  integrationHits: string[];
+  automationHits: string[];
+  pricingHits: string[];
+  bugHits: string[];
+}): LightweightRequirementType {
+  if (input.intent === "market-signal" || input.domains.includes("market")) return "monitor-market";
+  if (input.intent === "regional-pressure" || input.domains.includes("regional")) return "local-ops";
+  if (input.intent === "startup-validation" || input.domains.includes("startup")) return "validate-demand";
+  if (input.integrationHits.length > 0) return "add-integration";
+  if (input.bugHits.length > 0) return "fix-bug";
+  if (input.automationHits.length > 0) return "automate-workflow";
+  if (input.intent === "purchase-intent" || input.pricingHits.length > 0) return "improve-pricing";
+  return "research-only";
+}
+
+function decisionStageFor(input: {
+  intent: LightweightIntent;
+  signalLayer: LightweightSignalLayer;
+  painScore: number;
+}): LightweightDecisionStage {
+  if (input.intent === "purchase-intent") return "buyer-evaluation";
+  if (input.intent === "feature-request") return "solution-request";
+  if (input.signalLayer === "market-watch") return "market-monitoring";
+  if (input.signalLayer === "world-change") return "world-change-watch";
+  if (input.painScore > 0 || input.intent === "complaint" || input.intent === "operational-risk") {
+    return "pain-discovery";
+  }
+  return "general-awareness";
+}
+
+function qualityGateFor(input: {
+  painScore: number;
+  buyerIntentScore: number;
+  actionabilityScore: number;
+  urgency: "low" | "medium" | "high";
+  domains: LightweightDomain[];
+  productRequirement: boolean;
+}) {
+  const domainBonus = input.domains.length > 0 ? 0.08 : 0;
+  const urgencyBonus = input.urgency === "high" ? 0.12 : input.urgency === "medium" ? 0.06 : 0;
+  const opportunityScore = boundedScore(
+    input.painScore * 0.3 + input.buyerIntentScore * 0.25 + input.actionabilityScore * 0.3 + domainBonus + urgencyBonus,
+  );
+  const reasons: string[] = [];
+  if (input.productRequirement) reasons.push("product-requirement");
+  if (input.painScore >= 0.34) reasons.push("pain");
+  if (input.buyerIntentScore >= 0.25) reasons.push("buyer-intent");
+  if (input.actionabilityScore >= 0.34) reasons.push("actionable");
+  if (input.domains.length > 0) reasons.push("domain-tagged");
+  if (input.urgency !== "low") reasons.push(`${input.urgency}-urgency`);
+  if (!reasons.length) reasons.push("weak-explicit-signal");
+  return {
+    opportunityScore,
+    qualityGate: {
+      status:
+        opportunityScore >= 0.7 && input.productRequirement
+          ? "strong"
+          : opportunityScore >= 0.38 || input.productRequirement
+            ? "review"
+            : "weak",
+      score: Math.round(opportunityScore * 100),
+      reasons,
+    },
+  } as const;
+}
+
 export function annotateLightweightNlp(text: string): LightweightNlpAnnotation {
   const lower = normalized(text);
   const intentScores = INTENT_TERMS.map((rule) => ({
@@ -271,6 +391,10 @@ export function annotateLightweightNlp(text: string): LightweightNlpAnnotation {
   const painHits = hits(lower, PAIN_TERMS);
   const buyerIntentHits = hits(lower, BUYER_INTENT_TERMS);
   const actionabilityHits = hits(lower, ACTIONABILITY_TERMS);
+  const integrationHits = hits(lower, INTEGRATION_TERMS);
+  const automationHits = hits(lower, AUTOMATION_TERMS);
+  const pricingHits = hits(lower, PRICING_TERMS);
+  const bugHits = hits(lower, BUG_TERMS);
   const marketHits = hits(lower, DOMAIN_TERMS.find((item) => item.domain === "market")?.terms ?? []);
   const domains = DOMAIN_TERMS.map((rule) => ({
     domain: rule.domain,
@@ -290,6 +414,25 @@ export function annotateLightweightNlp(text: string): LightweightNlpAnnotation {
     painHits,
     actionabilityHits,
   });
+  const domainValues = unique(domains.map((rule) => rule.domain)).slice(0, 4);
+  const urgency = urgentHits.length >= 2 ? "high" : urgentHits.length === 1 ? "medium" : "low";
+  const productRequirement = painScore >= 0.34 || buyerIntentScore >= 0.25 || actionabilityScore >= 0.34;
+  const { opportunityScore, qualityGate } = qualityGateFor({
+    painScore,
+    buyerIntentScore,
+    actionabilityScore,
+    urgency,
+    domains: domainValues,
+    productRequirement,
+  });
+  const requirementType = requirementTypeFor({
+    intent,
+    domains: domainValues,
+    integrationHits,
+    automationHits,
+    pricingHits,
+    bugHits,
+  });
   let sentiment: LightweightSentiment = "neutral";
   if (positiveHits.length > 0 && negativeHits.length > 0) sentiment = "mixed";
   else if (positiveHits.length > negativeHits.length) sentiment = "positive";
@@ -298,7 +441,7 @@ export function annotateLightweightNlp(text: string): LightweightNlpAnnotation {
   return {
     intent,
     sentiment,
-    urgency: urgentHits.length >= 2 ? "high" : urgentHits.length === 1 ? "medium" : "low",
+    urgency,
     method: "semantic-rules-v2",
     model: "none",
     llm: false,
@@ -308,7 +451,7 @@ export function annotateLightweightNlp(text: string): LightweightNlpAnnotation {
     negativeHits,
     intentHits: topIntentHits,
     signalLayer,
-    domains: unique(domains.map((rule) => rule.domain)).slice(0, 4),
+    domains: domainValues,
     productSignals: unique([
       ...topIntentHits,
       ...painHits,
@@ -319,6 +462,11 @@ export function annotateLightweightNlp(text: string): LightweightNlpAnnotation {
     painScore,
     buyerIntentScore,
     actionabilityScore,
-    productRequirement: painScore >= 0.34 || buyerIntentScore >= 0.25 || actionabilityScore >= 0.34,
+    productRequirement,
+    audience: audienceFor(domainValues),
+    requirementType,
+    decisionStage: decisionStageFor({ intent, signalLayer, painScore }),
+    opportunityScore,
+    qualityGate,
   };
 }

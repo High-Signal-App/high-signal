@@ -37,6 +37,13 @@ function pythonAnnotations(texts: string[]) {
 
 const tsAnnotations = SAMPLES.map(annotateLightweightNlp);
 assert.deepEqual(pythonAnnotations(SAMPLES), tsAnnotations);
+assert.equal(tsAnnotations[0]?.audience, "regional-public");
+assert.equal(tsAnnotations[0]?.requirementType, "local-ops");
+assert.equal(tsAnnotations[0]?.decisionStage, "pain-discovery");
+assert.equal(tsAnnotations[0]?.qualityGate.status, "review");
+assert.equal(tsAnnotations[1]?.decisionStage, "buyer-evaluation");
+assert.equal(tsAnnotations[2]?.requirementType, "fix-bug");
+assert.equal(tsAnnotations[3]?.requirementType, "monitor-market");
 
 async function main() {
   const remoteAnnotations = await annotateTexts(SAMPLES, {

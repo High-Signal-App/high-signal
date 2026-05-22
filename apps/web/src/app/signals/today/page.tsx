@@ -136,6 +136,9 @@ export default async function SignalsTodayPage({
   ]);
   const layerCounts = countBy(allBroadInsights.map((item) => item.annotation.signalLayer));
   const domainCounts = countBy(allBroadInsights.flatMap((item) => item.annotation.domains));
+  const audienceCounts = countBy(broadInsights.map((item) => item.annotation.audience));
+  const requirementTypeCounts = countBy(broadInsights.map((item) => item.annotation.requirementType));
+  const qualityGateCounts = countBy(broadInsights.map((item) => item.annotation.qualityGate.status));
   const quality = today.map(signalQuality);
   const sourceClasses = countBy([
     ...quality.flatMap((item) => item.sourceClasses),
@@ -371,6 +374,18 @@ export default async function SignalsTodayPage({
             {DAILY_INTELLIGENCE_LAYER.broadReadAnnotation.method} · model none · no LLM · HF batch
             available but off by default
           </div>
+          <div className="mt-3 grid gap-4 text-xs leading-6 text-zinc-500 sm:grid-cols-3">
+            {[
+              ["audience", audienceCounts.map(([k, n]) => `${k.replaceAll("-", " ")} ${n}`).join(" / ") || "none"],
+              ["requirement type", requirementTypeCounts.map(([k, n]) => `${k.replaceAll("-", " ")} ${n}`).join(" / ") || "none"],
+              ["content gate", qualityGateCounts.map(([k, n]) => `${k} ${n}`).join(" / ") || "none"],
+            ].map(([label, value]) => (
+              <div key={label}>
+                <div className="font-mono uppercase tracking-[0.18em] text-zinc-600">{label}</div>
+                <div className="mt-1 font-mono">{value}</div>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -512,6 +527,13 @@ export default async function SignalsTodayPage({
                   <span>buyer {item.annotation.buyerIntentScore.toFixed(2)}</span>
                   <span>action {item.annotation.actionabilityScore.toFixed(2)}</span>
                   <span>requirement {item.annotation.productRequirement ? "yes" : "no"}</span>
+                  <span>audience {item.annotation.audience.replaceAll("-", " ")}</span>
+                  <span>type {item.annotation.requirementType.replaceAll("-", " ")}</span>
+                  <span>stage {item.annotation.decisionStage.replaceAll("-", " ")}</span>
+                  <span>opportunity {item.annotation.opportunityScore.toFixed(2)}</span>
+                  <span>
+                    gate {item.annotation.qualityGate.status} {item.annotation.qualityGate.score}
+                  </span>
                 </div>
               </a>
             ))}

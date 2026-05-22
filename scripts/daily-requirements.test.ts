@@ -26,6 +26,15 @@ function annotation(overrides: Partial<LightweightNlpAnnotation>): LightweightNl
     buyerIntentScore: 0,
     actionabilityScore: 0.83,
     productRequirement: true,
+    audience: "developers",
+    requirementType: "fix-bug",
+    decisionStage: "pain-discovery",
+    opportunityScore: 0.71,
+    qualityGate: {
+      status: "strong",
+      score: 71,
+      reasons: ["product-requirement", "pain", "actionable", "domain-tagged", "medium-urgency"],
+    },
     ...overrides,
   };
 }

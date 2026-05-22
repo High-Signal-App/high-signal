@@ -365,6 +365,9 @@ export default async function PersonalPage({
   const sourceReadDomains = countByValues(sourceReadsAll.flatMap((item) => item.annotation.domains));
   const sourceReadIntents = countByValues(sourceReads.map((item) => item.intent));
   const sourceReadSentiments = countByValues(sourceReads.map((item) => item.sentiment));
+  const sourceReadAudiences = countByValues(sourceReads.map((item) => item.annotation.audience));
+  const sourceReadRequirementTypes = countByValues(sourceReads.map((item) => item.annotation.requirementType));
+  const sourceReadQualityGates = countByValues(sourceReads.map((item) => item.annotation.qualityGate.status));
   const products = productGraph.products as PersonalProductProfile[];
   const requirementQueue = buildDailyRequirementQueue(sourceReads, 8, products);
   const taskExportCount = requirementQueue.filter((item) => item.taskDraft).length;
@@ -628,6 +631,9 @@ export default async function PersonalPage({
               ["category", countLine(sourceReadCategories)],
               ["layer", countLine(sourceReadLayers)],
               ["domain", countLine(sourceReadDomains.slice(0, 5))],
+              ["audience", countLine(sourceReadAudiences.slice(0, 5))],
+              ["requirement", countLine(sourceReadRequirementTypes.slice(0, 5))],
+              ["gate", countLine(sourceReadQualityGates)],
               ["intent", countLine(sourceReadIntents.slice(0, 5))],
               ["sentiment", countLine(sourceReadSentiments)],
             ].map(([label, value]) => (
@@ -670,7 +676,12 @@ export default async function PersonalPage({
                   {item.annotation.painScore.toFixed(2)} / buyer{" "}
                   {item.annotation.buyerIntentScore.toFixed(2)} / action{" "}
                   {item.annotation.actionabilityScore.toFixed(2)} / requirement{" "}
-                  {item.annotation.productRequirement ? "yes" : "no"}
+                  {item.annotation.productRequirement ? "yes" : "no"} / audience{" "}
+                  {item.annotation.audience.replaceAll("-", " ")} / type{" "}
+                  {item.annotation.requirementType.replaceAll("-", " ")} / stage{" "}
+                  {item.annotation.decisionStage.replaceAll("-", " ")} / opportunity{" "}
+                  {item.annotation.opportunityScore.toFixed(2)} / gate{" "}
+                  {item.annotation.qualityGate.status} {item.annotation.qualityGate.score}
                 </div>
               </a>
             ))}

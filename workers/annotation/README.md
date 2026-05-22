@@ -9,7 +9,8 @@ It is intentionally rule-first:
 - `llm`: `false`
 
 Use this for latency-sensitive intent, sentiment, domain, pain, buyer-intent,
-and actionability tagging at the edge. Keep Hugging Face classifiers in batch
+actionability, audience, requirement-type, decision-stage, opportunity-score,
+and quality-gate tagging at the edge. Keep Hugging Face classifiers in batch
 ingest or a separate compatible runtime until we verify their package fit under
 Python Workers.
 
@@ -57,7 +58,16 @@ Response:
       "painScore": 0.33,
       "buyerIntentScore": 0,
       "actionabilityScore": 0.83,
-      "productRequirement": true
+      "productRequirement": true,
+      "audience": "developers",
+      "requirementType": "fix-bug",
+      "decisionStage": "pain-discovery",
+      "opportunityScore": 0.71,
+      "qualityGate": {
+        "status": "strong",
+        "score": 71,
+        "reasons": ["product-requirement", "pain", "actionable", "domain-tagged", "medium-urgency"]
+      }
     }
   ]
 }
