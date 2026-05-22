@@ -495,12 +495,26 @@ const BROAD_PUBLIC_SOURCE_IDS = new Set([
   "reddit-delhi",
   "reddit-nyc",
   "reddit-bayarea",
+  "reddit-london",
+  "reddit-toronto",
+  "reddit-ukpersonalfinance",
+  "reddit-personalfinancecanada",
+  "reddit-marketing",
+  "reddit-sales",
+  "reddit-accounting",
+  "reddit-cscareerquestions",
+  "reddit-developersindia",
+  "reddit-indiehackers",
   "hn-small-business",
   "hn-consumer-behavior",
   "rss-google-news-smb",
   "rss-google-news-india-startups",
   "rss-google-news-consumer-pressure",
   "rss-google-news-regional-india",
+  "rss-google-news-us-local-business",
+  "rss-google-news-eu-startups",
+  "rss-google-news-ai-regulation",
+  "rss-google-news-creator-economy",
 ]);
 
 const BROAD_PUBLIC_DOMAIN_TERMS = [
@@ -518,6 +532,7 @@ const BROAD_PUBLIC_DOMAIN_TERMS = [
   "consumer",
   "contract",
   "conversion",
+  "creator",
   "customer",
   "customers",
   "debt",
@@ -539,19 +554,25 @@ const BROAD_PUBLIC_DOMAIN_TERMS = [
   "lead",
   "leads",
   "local business",
+  "mortgage",
   "order",
   "orders",
+  "outreach",
   "pay",
   "payment",
   "payments",
   "payroll",
   "permit",
+  "permits",
   "pollution",
   "pricing",
   "recruiter",
   "regulation",
   "rent",
   "resume",
+  "restaurant",
+  "restaurants",
+  "retail",
   "returns",
   "review",
   "reviews",
@@ -564,6 +585,7 @@ const BROAD_PUBLIC_DOMAIN_TERMS = [
   "small business",
   "staff",
   "subscription",
+  "subscriptions",
   "support",
   "tax",
   "traffic",
@@ -1527,19 +1549,22 @@ function compactReportText(value: string, maxLength = 180) {
 function sourceClass(source: PersonalSourceRegistry["sources"][number]) {
   const id = source.id.toLowerCase();
   const text = `${source.label} ${source.target} ${source.intent}`.toLowerCase();
-  if (/india|bangalore|mumbai|delhi|nyc|bayarea|regional/.test(id) || /regional|city|local constraints/.test(text)) {
+  if (/india|bangalore|mumbai|delhi|nyc|bayarea|london|toronto|regional/.test(id) || /regional|city|local constraints/.test(text)) {
     return "regional";
   }
   if (
-    /smallbusiness|small-business|ecommerce|shopify|etsy|freelance|seller|merchant/.test(id) ||
-    /small business|ecommerce|shopify|etsy|freelance|seller|merchant/.test(text)
+    /smallbusiness|small-business|ecommerce|shopify|etsy|freelance|seller|merchant|marketing|sales|accounting|creator/.test(id) ||
+    /small business|ecommerce|shopify|etsy|freelance|seller|merchant|marketing|sales|accounting|creator/.test(text)
   ) {
     return "small-business";
   }
   if (/personalfinance|povertyfinance|jobs|consumer/.test(id) || /consumer|budget|affordability|labor market|jobs/.test(text)) {
     return "public-consumer";
   }
-  if (/saas|startup|sideproject|entrepreneur|product-validation/.test(id) || /startup|validation|launch|distribution/.test(text)) {
+  if (
+    /saas|startup|sideproject|entrepreneur|indiehackers|productmanagement|product-validation/.test(id) ||
+    /startup|validation|launch|distribution|product management|roadmap|prioritization/.test(text)
+  ) {
     return "startup-builder";
   }
   if (/market|stripe|payments|commerce|cloudflare|github|google|openai|anthropic|rss-/.test(id)) {

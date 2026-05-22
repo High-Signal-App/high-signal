@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-05-21T00:00:00.000Z",
+  "updatedAt": "2026-05-22T00:00:00.000Z",
   "description": "Concise no-secret source registry for the personal command layer. These sources are intentionally small, public, and relevant; this is not broad web scraping.",
   "sources": [
     {
@@ -213,6 +213,116 @@
       "intent": "Bay Area regional constraints around rent, startups, jobs, commute, local business, housing and transit"
     },
     {
+      "id": "reddit-london",
+      "type": "reddit",
+      "label": "r/london",
+      "target": "london",
+      "period": "week",
+      "limit": 8,
+      "query": "rent OR commute OR small business OR jobs OR local service OR housing OR transit OR cost",
+      "intent": "London regional constraints around rent, commute, jobs, local services, small business and cost of living"
+    },
+    {
+      "id": "reddit-toronto",
+      "type": "reddit",
+      "label": "r/toronto",
+      "target": "toronto",
+      "period": "week",
+      "limit": 8,
+      "query": "rent OR commute OR small business OR jobs OR housing OR transit OR local service OR cost",
+      "intent": "Toronto regional constraints around rent, commute, jobs, housing, local services, small business and cost of living"
+    },
+    {
+      "id": "reddit-ukpersonalfinance",
+      "type": "reddit",
+      "label": "r/UKPersonalFinance",
+      "target": "UKPersonalFinance",
+      "period": "week",
+      "limit": 8,
+      "query": "rent OR bills OR budget OR debt OR job OR mortgage OR insurance OR subscription",
+      "intent": "UK consumer affordability pressure around rent, bills, debt, jobs, mortgages, insurance and subscriptions"
+    },
+    {
+      "id": "reddit-personalfinancecanada",
+      "type": "reddit",
+      "label": "r/PersonalFinanceCanada",
+      "target": "PersonalFinanceCanada",
+      "period": "week",
+      "limit": 8,
+      "query": "rent OR mortgage OR job OR budget OR debt OR bills OR insurance OR expensive",
+      "intent": "Canada consumer affordability pressure around rent, mortgages, jobs, bills, debt, insurance and budgeting"
+    },
+    {
+      "id": "reddit-marketing",
+      "type": "reddit",
+      "label": "r/marketing",
+      "target": "marketing",
+      "period": "week",
+      "limit": 8,
+      "query": "lead OR leads OR conversion OR ads OR attribution OR pricing OR client OR small business",
+      "intent": "small-business and startup marketing pain around leads, ads, attribution, conversion, clients and pricing"
+    },
+    {
+      "id": "reddit-sales",
+      "type": "reddit",
+      "label": "r/sales",
+      "target": "sales",
+      "period": "week",
+      "limit": 8,
+      "query": "lead OR prospect OR outreach OR crm OR quota OR pipeline OR pricing OR customer",
+      "intent": "sales workflow pain around leads, outreach, CRM, pipeline, pricing, customers and buyer behavior"
+    },
+    {
+      "id": "reddit-accounting",
+      "type": "reddit",
+      "label": "r/Accounting",
+      "target": "Accounting",
+      "period": "week",
+      "limit": 8,
+      "query": "client OR small business OR tax OR invoice OR workflow OR software OR deadline OR payroll",
+      "intent": "accounting and back-office pain around clients, small business, tax, invoices, payroll, deadlines and workflow"
+    },
+    {
+      "id": "reddit-cscareerquestions",
+      "type": "reddit",
+      "label": "r/cscareerquestions",
+      "target": "cscareerquestions",
+      "period": "week",
+      "limit": 8,
+      "query": "interview OR job OR resume OR recruiter OR salary OR remote OR layoff OR application",
+      "intent": "developer labor-market pressure around interviews, jobs, resumes, recruiters, salaries, remote work and layoffs"
+    },
+    {
+      "id": "reddit-developersindia",
+      "type": "reddit",
+      "label": "r/developersIndia",
+      "target": "developersIndia",
+      "period": "week",
+      "limit": 8,
+      "query": "job OR interview OR startup OR client OR salary OR remote OR workflow OR tool",
+      "intent": "India developer and startup labor-market pain around jobs, interviews, clients, salaries, remote work and tools"
+    },
+    {
+      "id": "reddit-indiehackers",
+      "type": "reddit",
+      "label": "r/indiehackers",
+      "target": "indiehackers",
+      "period": "week",
+      "limit": 8,
+      "query": "customer OR pricing OR launch OR distribution OR revenue OR validation OR marketing OR onboarding",
+      "intent": "indie builder pain around customer discovery, pricing, launch, distribution, revenue, validation and onboarding"
+    },
+    {
+      "id": "reddit-productmanagement",
+      "type": "reddit",
+      "label": "r/ProductManagement",
+      "target": "ProductManagement",
+      "period": "week",
+      "limit": 8,
+      "query": "customer OR roadmap OR research OR prioritization OR feature OR feedback OR stakeholder OR metrics",
+      "intent": "product-management pain around customer research, roadmaps, prioritization, feedback, stakeholders and metrics"
+    },
+    {
       "id": "reddit-openai",
       "type": "reddit",
       "label": "r/OpenAI",
@@ -398,6 +508,24 @@
       "intent": "LLM tracing, metrics, observability, evaluation and agent workflow instrumentation"
     },
     {
+      "id": "github-nextjs-deploy",
+      "type": "github-issues",
+      "label": "GitHub issues: Next.js deploy",
+      "target": "Next.js deployment app router edge runtime error",
+      "period": "month",
+      "limit": 8,
+      "intent": "developer complaints about Next.js deploys, app router, edge runtime, build errors and production workflow friction"
+    },
+    {
+      "id": "github-cloudflare-workers",
+      "type": "github-issues",
+      "label": "GitHub issues: Cloudflare Workers",
+      "target": "Cloudflare Workers durable objects deploy bindings error pricing",
+      "period": "month",
+      "limit": 8,
+      "intent": "developer complaints about Cloudflare Workers, Durable Objects, bindings, deploy failures, pricing and platform workflow"
+    },
+    {
       "id": "rss-openai-news",
       "type": "rss",
       "label": "OpenAI news",
@@ -506,6 +634,46 @@
       "limit": 8,
       "query": "India city traffic rent jobs pollution local business",
       "intent": "India city and regional issues around traffic, rent, jobs, pollution and local businesses"
+    },
+    {
+      "id": "rss-google-news-us-local-business",
+      "type": "rss",
+      "label": "Google News: US local business",
+      "target": "https://news.google.com/rss/search?q=US%20local%20business%20rent%20labor%20permits%20restaurants%20retail&hl=en-US&gl=US&ceid=US:en",
+      "period": "week",
+      "limit": 8,
+      "query": "US local business rent labor permits restaurants retail",
+      "intent": "US local-business constraints around rent, labor, permits, restaurants, retail and local demand"
+    },
+    {
+      "id": "rss-google-news-eu-startups",
+      "type": "rss",
+      "label": "Google News: Europe startups and SMB",
+      "target": "https://news.google.com/rss/search?q=Europe%20startup%20small%20business%20funding%20jobs%20regulation%20payments&hl=en-GB&gl=GB&ceid=GB:en",
+      "period": "week",
+      "limit": 8,
+      "query": "Europe startup small business funding jobs regulation payments",
+      "intent": "Europe startup and small-business signals around funding, jobs, payments, regulation and market constraints"
+    },
+    {
+      "id": "rss-google-news-ai-regulation",
+      "type": "rss",
+      "label": "Google News: AI regulation and agents",
+      "target": "https://news.google.com/rss/search?q=AI%20regulation%20agents%20search%20privacy%20copyright%20enterprise%20software&hl=en-US&gl=US&ceid=US:en",
+      "period": "week",
+      "limit": 8,
+      "query": "AI regulation agents search privacy copyright enterprise software",
+      "intent": "world-level AI regulation, agent, privacy, copyright and enterprise-software changes that affect product requirements"
+    },
+    {
+      "id": "rss-google-news-creator-economy",
+      "type": "rss",
+      "label": "Google News: creator and content businesses",
+      "target": "https://news.google.com/rss/search?q=creator%20economy%20small%20business%20subscriptions%20ads%20platform%20income&hl=en-US&gl=US&ceid=US:en",
+      "period": "week",
+      "limit": 8,
+      "query": "creator economy small business subscriptions ads platform income",
+      "intent": "creator and content-business signals around platform shifts, subscriptions, ads, income and small-business monetization"
     }
   ]
 }

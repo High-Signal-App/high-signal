@@ -186,19 +186,22 @@ function countBy<T extends string>(values: T[]) {
 function sourceClass(source: SourceRegistry["sources"][number]) {
   const id = source.id.toLowerCase();
   const text = `${source.label} ${source.target} ${source.query ?? ""} ${source.intent}`.toLowerCase();
-  if (/india|bangalore|mumbai|delhi|nyc|bayarea|regional/.test(id) || /regional|city|local constraints/.test(text)) {
+  if (/india|bangalore|mumbai|delhi|nyc|bayarea|london|toronto|regional/.test(id) || /regional|city|local constraints/.test(text)) {
     return "regional";
   }
   if (
-    /smallbusiness|small-business|ecommerce|shopify|etsy|freelance|seller|merchant/.test(id) ||
-    /small business|ecommerce|shopify|etsy|freelance|seller|merchant/.test(text)
+    /smallbusiness|small-business|ecommerce|shopify|etsy|freelance|seller|merchant|marketing|sales|accounting|creator/.test(id) ||
+    /small business|ecommerce|shopify|etsy|freelance|seller|merchant|marketing|sales|accounting|creator/.test(text)
   ) {
     return "small-business";
   }
   if (/personalfinance|povertyfinance|jobs|consumer/.test(id) || /consumer|budget|affordability|labor market|jobs/.test(text)) {
     return "public-consumer";
   }
-  if (/saas|startup|sideproject|entrepreneur|product-validation/.test(id) || /startup|validation|launch|distribution/.test(text)) {
+  if (
+    /saas|startup|sideproject|entrepreneur|indiehackers|productmanagement|product-validation/.test(id) ||
+    /startup|validation|launch|distribution|product management|roadmap|prioritization/.test(text)
+  ) {
     return "startup-builder";
   }
   if (/market|stripe|payments|commerce|cloudflare|github|google|openai|anthropic|rss-/.test(id)) {
