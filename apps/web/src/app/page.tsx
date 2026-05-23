@@ -43,6 +43,7 @@ export default function HomePage() {
           { href: "/signals", title: "all signals", sub: "filter by content, entity, confidence" },
           { href: "/digest", title: "weekly digest", sub: "rss + email-ready" },
           { href: "/personal", title: "personal command brief", sub: "what to build/change/watch" },
+          { href: "/teardowns", title: "manual teardowns", sub: "approved task outputs" },
           { href: "/opportunities", title: "what to build", sub: "world-change product radar" },
           { href: "/ideas", title: "idea flow", sub: "product thesis check" },
           { href: "/dashboard", title: "workspace", sub: "combined product intelligence" },

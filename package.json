@@ -41,6 +41,7 @@
     "daily-automation:test": "tsx scripts/daily-automation-status.test.ts",
     "daily-source-audit:test": "tsx scripts/daily-source-audit.test.ts",
     "market-snapshot:test": "tsx scripts/market-snapshot.test.ts",
+    "task-teardowns:test": "tsx scripts/approved-task-teardowns.test.ts",
     "ingest:local": "cd python/ingest && uv run python -m high_signal_ingest.pipeline --source all --days 1",
     "ingest:preflight": "cd python/ingest && uv run python -m high_signal_ingest.preflight",
     "prepare": "husky"

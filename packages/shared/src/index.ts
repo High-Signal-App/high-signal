@@ -33,6 +33,7 @@ export * from "./idea-intelligence";
 export * from "./market-watch";
 export * from "./agent-evaluation";
 export * from "./personal-usefulness";
+export * from "./approved-task-teardowns";
 export * from "./watchlist";
 export * from "./signal-intelligence";
 export * from "./lightweight-nlp";
