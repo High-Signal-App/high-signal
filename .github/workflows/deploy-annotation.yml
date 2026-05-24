@@ -23,6 +23,7 @@ jobs:
         working-directory: workers/annotation
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || '7d048325699a5acddb44d3be31cf6ba9' }}
       - name: Smoke annotation worker
         run: |
           curl --fail --silent --show-error --location --max-time 30 --retry 5 --retry-delay 3 --retry-all-errors \

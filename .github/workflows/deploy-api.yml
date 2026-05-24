@@ -19,6 +19,7 @@ jobs:
       - uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CF_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || '7d048325699a5acddb44d3be31cf6ba9' }}
           workingDirectory: workers/api
       - name: Smoke production API
         run: curl --fail --silent --show-error --location --max-time 30 https://high-signal-api.sarthakagrawal927.workers.dev/health >/dev/null
