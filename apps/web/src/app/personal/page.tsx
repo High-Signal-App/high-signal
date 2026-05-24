@@ -7,6 +7,7 @@ import {
   SectionHeader,
   StatGrid,
 } from "@/components/system/HighSignalUI";
+import { MarkdownView } from "@/components/system/MarkdownView";
 import { api, type SignalRow } from "@/lib/api";
 import {
   buildDailyAutomationStatus,
@@ -414,20 +415,106 @@ export default async function PersonalPage({
   return (
     <PageShell max="max-w-5xl">
       <BackLink />
-      <SectionHeader eyebrow="personal command brief" title="What should I do next?">
-        A decision page for your product fleet. It turns world changes, app complaints, and market
-        context into a ranked action, the reason, the evidence, and the next step.
+      <SectionHeader eyebrow="planning brief" title="What should I do next?">
+        Use this page to choose one product move. It should answer: what to do, why now, what
+        evidence supports it, and what smallest validation step comes next.
       </SectionHeader>
 
       <StatGrid
         items={[
-          { label: "Usefulness", value: `${brief.usefulnessAudit.score}/100`, sub: brief.usefulnessAudit.readiness },
-          { label: "Best action", value: topAction ? topAction.action : "none", sub: topAction?.productName ?? "no recommendation" },
-          { label: "Open actions", value: brief.recommendations.length.toString(), sub: "build / change / watch" },
+          { label: "Decision", value: topAction ? topAction.action : "none", sub: topAction?.productName ?? "no recommendation" },
+          { label: "Confidence", value: `${brief.usefulnessAudit.score}/100`, sub: brief.usefulnessAudit.readiness },
           { label: "Freshness", value: brief.freshness.evidenceAgeDays === null ? "?" : `${brief.freshness.evidenceAgeDays}d`, sub: "latest evidence age" },
-          { label: "Evidence", value: `${brief.evidenceBreakdown.worldChange}/${brief.evidenceBreakdown.appComplaint}/${brief.evidenceBreakdown.marketWatch}`, sub: "world / complaints / markets" },
-          { label: "Task sync", value: pendingSync.toString(), sub: "accepted tasks pending" },
+          { label: "Actions", value: brief.recommendations.length.toString(), sub: "build / change / watch" },
+          { label: "Evidence mix", value: `${brief.evidenceBreakdown.worldChange}/${brief.evidenceBreakdown.appComplaint}/${brief.evidenceBreakdown.marketWatch}`, sub: "world / complaints / markets" },
+          { label: "Task backlog", value: pendingSync.toString(), sub: "accepted tasks pending" },
         ]}
+      />
+
+      <section className="mt-10 grid gap-px border border-[var(--color-line)] bg-[var(--color-line)] md:grid-cols-4">
+        {[
+          ["1", "Decision", topAction ? `${topAction.action} / ${topAction.productName}` : "No ranked action yet"],
+          ["2", "Reason", topAction?.whyNow ?? "Need more evidence before a recommendation is useful"],
+          ["3", "Proof", topAction ? `${topAction.evidence.length} linked source${topAction.evidence.length === 1 ? "" : "s"}` : "no evidence"],
+          ["4", "Next step", topAction?.nextStep ?? "Refresh the evidence inputs"],
+        ].map(([step, title, body]) => (
+          <div key={step} className="bg-[var(--color-bg)] p-5">
+            <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-accent)]">
+              {step}
+            </div>
+            <div className="mt-4 text-lg font-medium">{title}</div>
+            <p className="mt-2 text-sm leading-6 text-[var(--color-muted)]">{body}</p>
+          </div>
+        ))}
+      </section>
+
+      {topAction ? (
+        <Panel
+          eyebrow={`${topAction.priority} priority / current recommendation`}
+          title={
+            <span id={topAction.id}>
+              <span className={actionTone(topAction.action)}>{topAction.action}</span> /{" "}
+              {topAction.productName}
+            </span>
+          }
+        >
+          <p className="mt-4 text-xl leading-8">{topAction.title}</p>
+          <p className="mt-4 text-sm leading-6 text-[var(--color-muted)]">
+            {topAction.suggestedChange}
+          </p>
+          <MetricGrid
+            items={[
+              { label: "score", value: topAction.score.toString() },
+              { label: "evidence", value: topAction.evidence.length.toString() },
+              { label: "sources", value: topAction.sourceDiversity.toString() },
+              { label: "decision", value: topAction.decisionStatus ?? "open" },
+            ]}
+          />
+          <div className="mt-6 grid gap-6 md:grid-cols-2">
+            <div>
+              <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-accent)]">
+                why this is first
+              </div>
+              <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">{topAction.whyNow}</p>
+            </div>
+            <div>
+              <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-accent)]">
+                next step
+              </div>
+              <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">{topAction.nextStep}</p>
+            </div>
+          </div>
+          <div className="mt-6 border-t border-[var(--color-line)] pt-5">
+            <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
+              evidence
+            </div>
+            <div className="mt-3 divide-y divide-[var(--color-line)]">
+              {topAction.evidence.slice(0, 5).map((evidenceItem) => (
+                <a
+                  key={evidenceItem.id}
+                  className="block py-3 hover:text-[var(--color-accent)]"
+                  href={evidenceItem.href}
+                >
+                  <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
+                    {evidenceItem.source} / {evidenceItem.confidence}
+                  </div>
+                  <div className="mt-1 text-sm">{evidenceItem.title}</div>
+                </a>
+              ))}
+            </div>
+          </div>
+        </Panel>
+      ) : null}
+
+      <FeedList
+        eyebrow="other viable actions"
+        empty="No secondary actions yet."
+        items={nextActions.map((item) => ({
+          href: `/personal#${item.id}`,
+          kicker: `${item.productName} / ${item.action} / ${item.priority} / score ${item.score}`,
+          title: item.title,
+          body: item.nextStep,
+        }))}
       />
 
       <section className="mt-10 border-y border-[var(--color-line)] py-6">
@@ -496,22 +583,32 @@ export default async function PersonalPage({
       </section>
 
       <div className="mt-10">
-        <Panel eyebrow="source intelligence" title="What the reads layer is watching">
+        <Panel eyebrow="daily reads" title="What the source layer is watching">
           <p className="mt-4 text-sm leading-6 text-[var(--color-muted)]">
-            Latest accepted source date: {sourceReadDate}. Labels use{" "}
-            {DAILY_INTELLIGENCE_LAYER.broadReadAnnotation.method} through{" "}
-            {annotationRuntime.activePath.replaceAll("-", " ")}; no LLM is used for this daily
-            annotation pass. Hugging Face enrichment exists only as an optional batch path right now.
-            {" "}
-            Automation is {automationStatus.workflow} at {automationStatus.schedule}, currently{" "}
-            {automationStatus.freshnessStatus}; latest accepted live source is{" "}
-            {automationStatus.latestAcceptedDate ?? "none"}.
-            {" "}
-            <a className="text-[var(--color-accent)] hover:underline" href="/daily/annotation.json">
-              Annotation diagnostics
-            </a>
-            .
+            Latest accepted source date: {sourceReadDate}. This section explains the reads behind
+            the recommendations above; use the filters when you want to inspect a narrower slice.
           </p>
+          <details className="mt-4 border-t border-[var(--color-line)] pt-4">
+            <summary className="cursor-pointer font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-accent)]">
+              inspect source filters and diagnostics
+            </summary>
+          <details className="mt-4">
+            <summary className="cursor-pointer font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)] hover:text-[var(--color-accent)]">
+              automation and annotation details
+            </summary>
+            <p className="mt-3 text-xs leading-6 text-[var(--color-muted)]">
+              Labels use {DAILY_INTELLIGENCE_LAYER.broadReadAnnotation.method} through{" "}
+              {annotationRuntime.activePath.replaceAll("-", " ")}. No LLM is used for this daily
+              annotation pass. Hugging Face enrichment is optional and off by default. Automation is{" "}
+              {automationStatus.workflow} at {automationStatus.schedule}, currently{" "}
+              {automationStatus.freshnessStatus}; latest accepted live source is{" "}
+              {automationStatus.latestAcceptedDate ?? "none"}.{" "}
+              <a className="text-[var(--color-accent)] hover:underline" href="/daily/annotation.json">
+                Annotation diagnostics
+              </a>
+              .
+            </p>
+          </details>
           <form action="/personal" className="mt-5 grid gap-3 border-y border-[var(--color-line)] py-4 md:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_1fr_1fr_auto]">
             <input name="date" type="hidden" value={selectedReport?.date ?? ""} />
             <label className="flex flex-col gap-2 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
@@ -626,27 +723,34 @@ export default async function PersonalPage({
               sources json
             </a>
           </div>
-          <div className="mt-6 divide-y divide-[var(--color-line)] border-y border-[var(--color-line)]">
-            {sourceQualityAudit.actions.slice(0, 4).map((action) => (
-              <div key={action.title} className="py-4">
-                <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
-                  {action.priority} / source action
-                </div>
-                <div className="mt-2 text-sm leading-6 text-[var(--color-fg)]">{action.title}</div>
-                <div className="mt-1 text-xs leading-5 text-[var(--color-muted)]">{action.detail}</div>
-                {action.affectedSources.length > 0 ? (
-                  <div className="mt-2 font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--color-muted)]">
-                    {action.affectedSources.join(" / ")}
+          {sourceQualityAudit.actions.length > 0 ? (
+            <details className="mt-6 border-y border-[var(--color-line)] py-4">
+              <summary className="cursor-pointer font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-accent)]">
+                source fixes to review
+              </summary>
+              <div className="mt-3 divide-y divide-[var(--color-line)]">
+                {sourceQualityAudit.actions.slice(0, 4).map((action) => (
+                  <div key={action.title} className="py-4">
+                    <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
+                      {action.priority} / source action
+                    </div>
+                    <div className="mt-2 text-sm leading-6 text-[var(--color-fg)]">{action.title}</div>
+                    <div className="mt-1 text-xs leading-5 text-[var(--color-muted)]">{action.detail}</div>
+                    {action.affectedSources.length > 0 ? (
+                      <div className="mt-2 font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--color-muted)]">
+                        {action.affectedSources.join(" / ")}
+                      </div>
+                    ) : null}
                   </div>
-                ) : null}
+                ))}
               </div>
-            ))}
-          </div>
+            </details>
+          ) : null}
           {requirementQueue.length > 0 ? (
             <div className="mt-6 border-y border-[var(--color-line)] py-5">
               <div className="flex flex-wrap items-baseline justify-between gap-4">
                 <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
-                  requirement queue
+                  product work queue
                 </div>
                 <div className="flex flex-wrap gap-3">
                   <a
@@ -690,10 +794,18 @@ export default async function PersonalPage({
                 </div>
               </div>
               <div className="mt-2 font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--color-muted)]">
-                gate score {DAILY_REQUIREMENT_GATE.minScore}+ / sources{" "}
-                {DAILY_REQUIREMENT_GATE.minSourceCount}+ / repeats{" "}
-                {DAILY_REQUIREMENT_GATE.minRepeatedSignalCount}+ / build-change only
+                accepted reads that are concrete enough to become product tasks
               </div>
+              <details className="mt-2">
+                <summary className="cursor-pointer font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--color-muted)] hover:text-[var(--color-accent)]">
+                  task selection rule
+                </summary>
+                <div className="mt-2 font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--color-muted)]">
+                  gate score {DAILY_REQUIREMENT_GATE.minScore}+ / sources{" "}
+                  {DAILY_REQUIREMENT_GATE.minSourceCount}+ / repeats{" "}
+                  {DAILY_REQUIREMENT_GATE.minRepeatedSignalCount}+ / build-change only
+                </div>
+              </details>
               <div className="mt-4 divide-y divide-[var(--color-line)] border-y border-[var(--color-line)]">
                 {requirementQueue.map((item) => (
                   <a key={item.id} className="block py-4 hover:text-[var(--color-accent)]" href={item.href}>
@@ -719,56 +831,40 @@ export default async function PersonalPage({
                         {item.taskDraft.priority}
                       </div>
                     ) : null}
-                    <div className="mt-3 grid gap-2 text-xs leading-5 text-[var(--color-muted)] md:grid-cols-2">
-                      <div>
-                        <span className="font-mono uppercase tracking-[0.16em]">artifact</span>{" "}
-                        {item.validationArtifact}
-                      </div>
-                      <div>
-                        <span className="font-mono uppercase tracking-[0.16em]">test</span>{" "}
-                        {item.smallestTest}
-                      </div>
-                    </div>
-                    <div className="mt-2 text-xs leading-5 text-[var(--color-muted)]">
-                      {item.acceptanceCriteria[0]}
-                    </div>
-                    <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--color-muted)]">
-                      {item.scoreBreakdown.map((part) => (
-                        <span key={part.label}>
-                          {part.label.replaceAll("-", " ")} {part.contribution}/{part.max}
-                        </span>
-                      ))}
-                    </div>
                     <div className="mt-2 font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--color-muted)]">
-                      {item.domains.join("/") || "no domain"} / pain {item.painScore.toFixed(2)} / buyer{" "}
-                      {item.buyerIntentScore.toFixed(2)} / action {item.actionabilityScore.toFixed(2)}
+                      {item.domains.join("/") || "no domain"} / validation: {item.smallestTest}
                     </div>
                   </a>
                 ))}
               </div>
             </div>
           ) : null}
-          <div className="mt-6 grid gap-5 md:grid-cols-3">
-            {[
-              ["category", countLine(sourceReadCategories)],
-              ["layer", countLine(sourceReadLayers)],
-              ["domain", countLine(sourceReadDomains.slice(0, 5))],
-              ["audience", countLine(sourceReadAudiences.slice(0, 5))],
-              ["requirement", countLine(sourceReadRequirementTypes.slice(0, 5))],
-              ["gate", countLine(sourceReadQualityGates)],
-              ["intent", countLine(sourceReadIntents.slice(0, 5))],
-              ["sentiment", countLine(sourceReadSentiments)],
-            ].map(([label, value]) => (
-              <div key={label} className="border border-[var(--color-line)] p-4">
-                <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
-                  {label}
+          <details className="mt-6">
+            <summary className="cursor-pointer font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)] hover:text-[var(--color-accent)]">
+              read breakdown
+            </summary>
+            <div className="mt-4 grid gap-5 md:grid-cols-3">
+              {[
+                ["category", countLine(sourceReadCategories)],
+                ["layer", countLine(sourceReadLayers)],
+                ["domain", countLine(sourceReadDomains.slice(0, 5))],
+                ["audience", countLine(sourceReadAudiences.slice(0, 5))],
+                ["requirement", countLine(sourceReadRequirementTypes.slice(0, 5))],
+                ["gate", countLine(sourceReadQualityGates)],
+                ["intent", countLine(sourceReadIntents.slice(0, 5))],
+                ["sentiment", countLine(sourceReadSentiments)],
+              ].map(([label, value]) => (
+                <div key={label} className="border border-[var(--color-line)] p-4">
+                  <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
+                    {label}
+                  </div>
+                  <div className="mt-3 break-words font-mono text-xs leading-6 text-[var(--color-fg)]">
+                    {value}
+                  </div>
                 </div>
-                <div className="mt-3 break-words font-mono text-xs leading-6 text-[var(--color-fg)]">
-                  {value}
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          </details>
           <div className="mt-6 divide-y divide-[var(--color-line)] border-y border-[var(--color-line)]">
             <a
               className="block py-4 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-accent)] hover:underline"
@@ -790,20 +886,9 @@ export default async function PersonalPage({
                 </div>
                 <div className="mt-2 text-sm leading-6">{item.title}</div>
                 <div className="mt-2 font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--color-muted)]">
-                  tag {item.annotation.method} / model {item.annotation.model} / intent score{" "}
-                  {item.annotation.intentScore.toFixed(2)} / confidence {item.annotation.intentConfidence} / sentiment score{" "}
-                  {item.annotation.sentimentScore.toFixed(2)} / polarity {item.annotation.sentimentPolarity.toFixed(2)} / strength{" "}
-                  {item.annotation.signalStrength.toFixed(2)} / layer{" "}
-                  {item.annotation.signalLayer.replaceAll("-", " ")} / domains{" "}
-                  {item.annotation.domains.join("/") || "none"} / pain{" "}
-                  {item.annotation.painScore.toFixed(2)} / buyer{" "}
-                  {item.annotation.buyerIntentScore.toFixed(2)} / action{" "}
-                  {item.annotation.actionabilityScore.toFixed(2)} / requirement{" "}
-                  {item.annotation.productRequirement ? "yes" : "no"} / audience{" "}
-                  {item.annotation.audience.replaceAll("-", " ")} / type{" "}
-                  {item.annotation.requirementType.replaceAll("-", " ")} / stage{" "}
-                  {item.annotation.decisionStage.replaceAll("-", " ")} / opportunity{" "}
-                  {item.annotation.opportunityScore.toFixed(2)} / gate{" "}
+                  layer {item.annotation.signalLayer.replaceAll("-", " ")} / domains{" "}
+                  {item.annotation.domains.join("/") || "none"} / requirement{" "}
+                  {item.annotation.productRequirement ? "yes" : "no"} / gate{" "}
                   {item.annotation.qualityGate.status} {item.annotation.qualityGate.score}
                 </div>
               </a>
@@ -814,83 +899,9 @@ export default async function PersonalPage({
               </p>
             ) : null}
           </div>
+          </details>
         </Panel>
       </div>
-
-      <section className="mt-10 grid gap-px border border-[var(--color-line)] bg-[var(--color-line)] md:grid-cols-4">
-        {[
-          ["1", "Do this first", topAction?.title ?? "No ranked action yet"],
-          ["2", "Check why", topAction?.whyNow ?? "Need more evidence before a recommendation is useful"],
-          ["3", "Use evidence", topAction ? `${topAction.evidence.length} linked source${topAction.evidence.length === 1 ? "" : "s"}` : "no evidence"],
-          ["4", "Review history", selectedReport?.date ?? "no archive"],
-        ].map(([step, title, body]) => (
-          <div key={step} className="bg-[var(--color-bg)] p-5">
-            <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-accent)]">
-              {step}
-            </div>
-            <div className="mt-4 text-lg font-medium">{title}</div>
-            <p className="mt-2 text-sm leading-6 text-[var(--color-muted)]">{body}</p>
-          </div>
-        ))}
-      </section>
-
-      {topAction ? (
-        <Panel
-          eyebrow={`${topAction.priority} priority / ${topAction.signalLayer.replaceAll("-", " ")}`}
-          title={
-            <span id={topAction.id}>
-              <span className={actionTone(topAction.action)}>{topAction.action}</span> /{" "}
-              {topAction.productName}
-            </span>
-          }
-        >
-          <p className="mt-4 text-xl leading-8">{topAction.title}</p>
-          <p className="mt-4 text-sm leading-6 text-[var(--color-muted)]">
-            {topAction.suggestedChange}
-          </p>
-          <MetricGrid
-            items={[
-              { label: "score", value: topAction.score.toString() },
-              { label: "evidence", value: topAction.evidence.length.toString() },
-              { label: "sources", value: topAction.sourceDiversity.toString() },
-              { label: "decision", value: topAction.decisionStatus ?? "open" },
-            ]}
-          />
-          <div className="mt-6 grid gap-6 md:grid-cols-2">
-            <div>
-              <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-accent)]">
-                why now
-              </div>
-              <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">{topAction.whyNow}</p>
-            </div>
-            <div>
-              <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-accent)]">
-                next step
-              </div>
-              <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">{topAction.nextStep}</p>
-            </div>
-          </div>
-          <div className="mt-6 border-t border-[var(--color-line)] pt-5">
-            <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
-              evidence
-            </div>
-            <div className="mt-3 divide-y divide-[var(--color-line)]">
-              {topAction.evidence.slice(0, 5).map((evidenceItem) => (
-                <a
-                  key={evidenceItem.id}
-                  className="block py-3 hover:text-[var(--color-accent)]"
-                  href={evidenceItem.href}
-                >
-                  <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
-                    {evidenceItem.source} / {evidenceItem.confidence}
-                  </div>
-                  <div className="mt-1 text-sm">{evidenceItem.title}</div>
-                </a>
-              ))}
-            </div>
-          </div>
-        </Panel>
-      ) : null}
 
       {brief.freshness.warnings.length ? (
         <section className="mt-10 border-y border-[var(--color-line)]">
@@ -906,17 +917,6 @@ export default async function PersonalPage({
           </div>
         </section>
       ) : null}
-
-      <FeedList
-        eyebrow="next actions"
-        empty="No secondary actions yet."
-        items={nextActions.map((item) => ({
-          href: `/personal#${item.id}`,
-          kicker: `${item.productName} / ${item.action} / ${item.priority} / score ${item.score}`,
-          title: item.title,
-          body: item.nextStep,
-        }))}
-      />
 
       <section className="mt-10 grid gap-6 lg:grid-cols-3">
         <Panel eyebrow="world changes" title={brief.evidenceBreakdown.worldChange}>
@@ -1077,11 +1077,11 @@ export default async function PersonalPage({
             />
             <details className="mt-6 border border-[var(--color-line)] p-4">
               <summary className="cursor-pointer font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-accent)]">
-                open report markdown
+                open report
               </summary>
-              <pre className="mt-4 max-h-[48rem] overflow-auto whitespace-pre-wrap font-mono text-xs leading-6 text-[var(--color-muted)]">
-                {firstReportLines(selectedReport.markdown)}
-              </pre>
+              <div className="mt-5 max-h-[48rem] overflow-auto pr-2">
+                <MarkdownView markdown={firstReportLines(selectedReport.markdown)} />
+              </div>
             </details>
           </>
         ) : (

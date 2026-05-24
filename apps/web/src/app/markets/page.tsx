@@ -39,9 +39,9 @@ export default async function MarketsPage({
   return (
     <PageShell>
       <BackLink />
-      <SectionHeader eyebrow="market signal layer" title="Market Intelligence">
-        High-level national and international stock context for product timing. This is market
-        awareness and product-context routing, not investment advice or deep single-stock research.
+      <SectionHeader eyebrow="market context" title="Market Intelligence">
+        Broad market movement that may affect product timing, buyer mood, or infrastructure spend.
+        This is not investment advice or deep single-stock research.
       </SectionHeader>
 
       <StatGrid
@@ -105,7 +105,7 @@ export default async function MarketsPage({
       ) : null}
 
       <section className="mt-10 grid gap-8 md:grid-cols-3">
-        <Panel eyebrow="source" title="Stooq snapshots">
+        <Panel eyebrow="source" title="Market snapshots">
           <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">
             The daily automation refreshes a compact watchlist from Stooq and bundles the latest
             records into the web app. JSON export is available at{" "}
@@ -115,15 +115,15 @@ export default async function MarketsPage({
             .
           </p>
         </Panel>
-        <Panel eyebrow="constraint" title="No deep dive yet">
+        <Panel eyebrow="scope" title="Broad context only">
           <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">
             The page tracks broad direction, movers, and product implication. It deliberately avoids
             valuation models, analyst-style calls, and trade recommendations.
           </p>
         </Panel>
-        <Panel eyebrow="routing" title="Product context">
+        <Panel eyebrow="use" title="Where this matters">
           <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">
-            Market changes feed the personal brief only when they shift positioning, buyer urgency,
+            Market changes feed the planning brief only when they shift positioning, buyer urgency,
             infrastructure budget mood, or the evidence needed for a product bet.
           </p>
         </Panel>
@@ -202,9 +202,9 @@ export default async function MarketsPage({
 
       <RouteList
         items={[
-          { href: "/personal", title: "personal brief", sub: "market context converted into product decisions" },
+          { href: "/personal", title: "planning brief", sub: "market context converted into product decisions" },
           { href: "/markets/history", title: "market history", sub: "date archive for stock context snapshots" },
-          { href: "/daily", title: "daily", sub: "source reads and requirement queue" },
+          { href: "/daily", title: "daily read", sub: "fresh source reads and product work" },
           { href: "/signals", title: "signals", sub: "published market and company signals" },
           { href: "/entities", title: "entities", sub: "company and sector graph" },
         ]}

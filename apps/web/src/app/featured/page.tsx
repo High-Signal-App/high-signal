@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import { ConfidenceBadge } from "@/components/atoms/ConfidenceBadge";
 import { DirectionPill } from "@/components/atoms/DirectionPill";
+import { MarkdownView } from "@/components/system/MarkdownView";
 import { api } from "@/lib/api";
 import { isBackfillSignal, signalHeadline, signalSummary } from "@/lib/signal-format";
 
@@ -61,6 +62,7 @@ export default async function FeaturedPage() {
   if (isBackfillSignal(signal)) notFound();
   const headline = signalHeadline(signal.bodyMd, signal.slug);
   const body = signalSummary(signal.bodyMd, signal.slug, 720);
+  const bodyMarkdown = signal.bodyMd.replace(/^\s*#\s+.+\n+/, "").trim();
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-16 text-zinc-300">
@@ -95,9 +97,9 @@ export default async function FeaturedPage() {
         <h1 className="mt-4 text-3xl font-medium tracking-tight text-white">
           {headline}
         </h1>
-        <p className="mt-4 whitespace-pre-line text-sm leading-7 text-zinc-300">
-          {body || "(no body)"}
-        </p>
+        <div className="mt-5">
+          {bodyMarkdown ? <MarkdownView markdown={bodyMarkdown} /> : <p>{body || "(no body)"}</p>}
+        </div>
         <p className="mt-6 font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
           window {signal.predictedWindowDays}d · evidence {evidence.length}
         </p>

@@ -6,6 +6,7 @@ import {
   Panel,
   SectionHeader,
 } from "@/components/system/HighSignalUI";
+import { MarkdownView } from "@/components/system/MarkdownView";
 import { api, type CommunityDigestSnapshot } from "@/lib/api";
 import { requireSignedIn } from "@/lib/require-auth";
 import { redditSourceLink } from "@high-signal/shared";
@@ -66,9 +67,13 @@ export default async function CommunityArchivePage({
 
       <section className="mt-10 grid gap-8 md:grid-cols-[1.1fr_0.9fr]">
         <Panel eyebrow="latest summary" title={latest?.summary?.keyTrend?.title ?? "No digest yet"}>
-          <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">
-            {latest?.summaryText ?? "No source-linked digest has been generated for this community period."}
-          </p>
+          <div className="mt-3">
+            <MarkdownView
+              markdown={
+                latest?.summaryText ?? "No source-linked digest has been generated for this community period."
+              }
+            />
+          </div>
         </Panel>
 
         <Panel eyebrow="archive periods">
@@ -95,17 +100,20 @@ export default async function CommunityArchivePage({
           {keyItems.map((item) => {
             const href = redditSourceLink(subreddit, item.sourceId) ?? item.link ?? "#";
             return (
-              <a
+              <article
                 key={`${item.title}-${href}`}
-                href={href}
-                className="bg-[var(--color-bg)] p-5 hover:text-[var(--color-accent)]"
+                className="bg-[var(--color-bg)] p-5"
               >
                 <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
                   source
                 </div>
-                <h2 className="mt-5 text-lg font-medium tracking-tight">{item.title}</h2>
-                <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">{item.desc}</p>
-              </a>
+                <a className="mt-5 block text-lg font-medium tracking-tight hover:text-[var(--color-accent)]" href={href}>
+                  {item.title}
+                </a>
+                <div className="mt-3">
+                  <MarkdownView markdown={item.desc} />
+                </div>
+              </article>
             );
           })}
         </section>

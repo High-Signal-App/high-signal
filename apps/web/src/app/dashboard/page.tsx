@@ -86,9 +86,9 @@ export default async function DashboardPage() {
   return (
     <PageShell>
       <BackLink />
-      <SectionHeader eyebrow="premium command surface" title="Signal Dashboard">
-        One workspace for company mention checks, tracked communities, and market signals. This is
-        the first destination surface for the Mentionpilot and Agent Mode migrations.
+      <SectionHeader eyebrow="workspace" title="Signal Dashboard">
+        A single place to check brand mentions, tracked communities, and market context before
+        deciding what needs attention.
       </SectionHeader>
 
       <MetricGrid
@@ -158,38 +158,38 @@ export default async function DashboardPage() {
       </section>
 
       <FeedList
-        eyebrow="next migration surfaces"
+        eyebrow="next work areas"
         empty="No pending surfaces."
         items={[
           {
             href: "/personal",
-            kicker: "personal usefulness / fleet command",
+            kicker: "planning brief",
             title: "Review what to build, change, watch, or pause",
-            body: "World-flow and community evidence are mapped onto the actual product graph.",
+            body: "Evidence is mapped onto the current product fleet.",
           },
           {
             href: "/watchlist",
-            kicker: "operator queue / action digest",
+            kicker: "watchlist",
             title: "Prioritize unified watchlist items",
-            body: "Mention checks, community digests, and market signals roll up into one action surface.",
+            body: "Mention checks, community digests, and market signals roll up into one queue.",
           },
           {
             href: "/mentions",
-            kicker: "mentionpilot / prompt checks",
+            kicker: "mentions",
             title: "Productionize brand configs, prompts, checks, and reports",
-            body: "Contracts are mapped; persistent routes and storage remain before archive parity.",
+            body: "Keep brand and competitor checks easy to inspect.",
           },
           {
             href: "/communities",
-            kicker: "agent mode / tracked subreddits",
+            kicker: "communities",
             title: "Productionize tracked subreddit digests",
-            body: "Source-linked summaries are mapped; prompt storage, archive pages, and scheduled snapshots remain.",
+            body: "Turn recurring public complaints into readable source-linked summaries.",
           },
           {
             href: "/agent-eval",
-            kicker: "agent evaluation / recommendation-worthiness",
+            kicker: "agent evaluation",
             title: "Run product audits against the buyer-agent checklist",
-            body: "Audit public evidence, generate missing-evidence tasks, and create proof-bound reel briefs.",
+            body: "Find missing evidence and the product proof needed for recommendation.",
           },
         ]}
       />

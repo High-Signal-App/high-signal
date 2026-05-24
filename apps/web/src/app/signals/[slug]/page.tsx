@@ -2,13 +2,19 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { api } from "@/lib/api";
 import { isBackfillSignal, signalHeadline, signalSummary } from "@/lib/signal-format";
+import { pricedInContext, pricedInTone } from "@/lib/price-context";
 import { DirectionPill } from "@/components/atoms/DirectionPill";
 import { ConfidenceBadge } from "@/components/atoms/ConfidenceBadge";
+import { MarkdownView } from "@/components/system/MarkdownView";
 
 export const dynamic = "force-dynamic";
 
 function deriveHeadline(bodyMd: string): string {
   return signalHeadline(bodyMd, "signal");
+}
+
+function markdownWithoutFirstHeading(markdown: string) {
+  return markdown.replace(/^\s*#\s+.+\n+/, "").trim();
 }
 
 export async function generateMetadata({
@@ -56,6 +62,8 @@ export default async function SignalDetail({ params }: { params: Promise<{ slug:
   if (isBackfillSignal(signal)) return notFound();
   const headline = signalHeadline(signal.bodyMd, signal.slug);
   const summary = signalSummary(signal.bodyMd, signal.slug, 720);
+  const price = pricedInContext(signal.primaryEntityId, signal.direction);
+  const bodyMarkdown = markdownWithoutFirstHeading(signal.bodyMd);
 
   return (
     <main className="mx-auto max-w-4xl px-6 py-16">
@@ -93,8 +101,84 @@ export default async function SignalDetail({ params }: { params: Promise<{ slug:
           <span>
             evidence <span className="nums text-zinc-300">{evidence.length}</span>
           </span>
+          {price.price ? (
+            <span>
+              price{" "}
+              <span className="nums text-zinc-300">
+                {price.price.ticker} ${price.price.currentPrice.toFixed(2)}
+              </span>
+            </span>
+          ) : null}
         </div>
       </header>
+
+      {price.status !== "unknown" ? (
+        <section className="mt-8 border-y border-zinc-800 py-5">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">
+                priced-in check
+              </div>
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-zinc-400">{price.reason}</p>
+            </div>
+            <span
+              className={`shrink-0 border px-2 py-1 font-mono text-[10px] uppercase tracking-[0.16em] ${pricedInTone(price.status)}`}
+            >
+              {price.label}
+            </span>
+          </div>
+          {price.price ? (
+            <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500">
+              <span>
+                as of <span className="nums text-zinc-300">{price.price.asOf}</span>
+              </span>
+              <span>
+                7d{" "}
+                <span className="nums text-zinc-300">
+                  {price.price.move7d === null
+                    ? "n/a"
+                    : `${price.price.move7d >= 0 ? "+" : ""}${price.price.move7d.toFixed(0)}%`}
+                </span>
+              </span>
+              <span>
+                45d{" "}
+                <span className="nums text-zinc-300">
+                  {price.price.move45d === null
+                    ? "n/a"
+                    : `${price.price.move45d >= 0 ? "+" : ""}${price.price.move45d.toFixed(0)}%`}
+                </span>
+              </span>
+              <span>
+                90d{" "}
+                <span className="nums text-zinc-300">
+                  {price.price.move90d === null
+                    ? "n/a"
+                    : `${price.price.move90d >= 0 ? "+" : ""}${price.price.move90d.toFixed(0)}%`}
+                </span>
+              </span>
+              <a
+                className="text-[var(--color-accent)] hover:underline"
+                href={price.price.sourceUrl}
+                rel="noreferrer"
+                target="_blank"
+              >
+                yahoo
+              </a>
+            </div>
+          ) : null}
+        </section>
+      ) : null}
+
+      {bodyMarkdown ? (
+        <section className="mt-12 border-t border-zinc-800 pt-6">
+          <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">
+            signal brief
+          </h2>
+          <div className="mt-5">
+            <MarkdownView markdown={bodyMarkdown} />
+          </div>
+        </section>
+      ) : null}
 
       <section className="mt-12 border-t border-zinc-800 pt-6">
         <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">evidence</h2>

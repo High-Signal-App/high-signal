@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { SignalRow } from "@/lib/api";
 import { DirectionPill } from "@/components/atoms/DirectionPill";
 import { ConfidenceBadge } from "@/components/atoms/ConfidenceBadge";
+import { MarkdownView } from "@/components/system/MarkdownView";
 
 const API_BASE =
   process.env["NEXT_PUBLIC_API_BASE"] ?? "https://high-signal-api.sarthakagrawal927.workers.dev";
@@ -183,9 +184,9 @@ function ReviewRow({
         <summary className="cursor-pointer font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500 hover:text-zinc-300">
           body + evidence
         </summary>
-        <pre className="mt-3 max-h-72 overflow-auto whitespace-pre-wrap break-words border border-zinc-900 bg-zinc-950/50 p-3 font-sans text-xs leading-relaxed text-zinc-300">
-          {s.bodyMd}
-        </pre>
+        <div className="mt-3 max-h-72 overflow-auto border border-zinc-900 bg-zinc-950/50 p-4">
+          <MarkdownView markdown={s.bodyMd} />
+        </div>
         {s.evidenceUrls.length > 0 && (
           <ul className="mt-2 space-y-1 font-mono text-[10px]">
             {s.evidenceUrls.map((u) => (

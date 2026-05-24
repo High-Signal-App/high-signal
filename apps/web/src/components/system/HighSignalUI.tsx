@@ -38,7 +38,7 @@ export function PageShell({
   max?: "max-w-4xl" | "max-w-5xl";
   children: ReactNode;
 }) {
-  return <main className={`mx-auto ${max} px-6 py-20`}>{children}</main>;
+  return <main className={`mx-auto ${max} px-5 py-14 sm:px-6 sm:py-16`}>{children}</main>;
 }
 
 export function BackLink({ href = "/", children = "back to high signal" }) {
@@ -70,7 +70,7 @@ export function HeroHeader({
         <span>{eyebrow}</span>
       </div>
       <h1
-        className={`mt-4 font-medium tracking-tight ${size === "lg" ? "text-5xl" : "text-4xl"}`}
+        className={`mt-4 font-medium tracking-tight ${size === "lg" ? "text-4xl sm:text-5xl" : "text-3xl sm:text-4xl"}`}
       >
         {title}
       </h1>
@@ -93,7 +93,7 @@ export function SectionHeader({
       <div className="font-mono text-xs uppercase tracking-[0.2em] text-[var(--color-accent)]">
         {eyebrow}
       </div>
-      <h1 className="mt-4 text-4xl font-medium tracking-tight">{title}</h1>
+      <h1 className="mt-4 text-3xl font-medium tracking-tight sm:text-4xl">{title}</h1>
       <p className="mt-4 max-w-2xl text-[var(--color-muted)]">{children}</p>
     </header>
   );
@@ -120,10 +120,17 @@ export function ProductAreaGrid({ items }: { items: ProductArea[] }) {
 }
 
 export function StatGrid({ items }: { items: StatItem[] }) {
+  const columnClass =
+    items.length === 4
+      ? "sm:grid-cols-2 lg:grid-cols-4"
+      : items.length % 3 === 0
+        ? "sm:grid-cols-2 lg:grid-cols-3"
+        : "grid-cols-[repeat(auto-fit,minmax(180px,1fr))]";
+
   return (
-    <section className="mt-10 grid gap-px border border-[var(--color-line)] bg-[var(--color-line)] md:grid-cols-3">
+    <section className={`mt-10 grid gap-px ${columnClass}`}>
       {items.map((item) => (
-        <div key={item.label} className="bg-[var(--color-bg)] p-5">
+        <div key={item.label} className="border border-[var(--color-line)] bg-[var(--color-bg)] p-5">
           <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
             {item.label}
           </div>
@@ -142,15 +149,15 @@ export function RouteList({ items }: { items: NavItem[] }) {
         <a
           key={item.href}
           href={item.href}
-          className="group flex items-center justify-between gap-6 py-4 transition-colors hover:bg-white/[0.02]"
+          className="group grid gap-2 py-4 transition-colors hover:bg-white/[0.02] sm:grid-cols-[minmax(0,1fr)_minmax(12rem,0.8fr)] sm:items-baseline"
         >
-          <span className="flex items-baseline gap-4">
+          <span className="flex min-w-0 flex-wrap items-baseline gap-x-4 gap-y-1">
             <span className="text-[var(--color-muted)] group-hover:text-[var(--color-accent)]">
               {item.href}
             </span>
             <span className="text-[var(--color-fg)]">{item.title}</span>
           </span>
-          <span className="text-right text-[var(--color-muted)]">{item.sub}</span>
+          <span className="text-[var(--color-muted)] sm:text-right">{item.sub}</span>
         </a>
       ))}
     </nav>
@@ -225,9 +232,9 @@ export function CommandButton({ children }: { children: ReactNode }) {
 
 export function MetricGrid({ items }: { items: MetricItem[] }) {
   return (
-    <div className="mt-6 grid grid-cols-2 gap-px bg-[var(--color-line)] text-sm md:grid-cols-4">
+    <div className="mt-6 grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-px text-sm">
       {items.map((item) => (
-        <div key={item.label} className="bg-[var(--color-bg)] p-4">
+        <div key={item.label} className="border border-[var(--color-line)] bg-[var(--color-bg)] p-4">
           <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
             {item.label}
           </div>

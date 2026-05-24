@@ -114,14 +114,14 @@ export default async function OpportunitiesPage() {
   return (
     <PageShell max="max-w-5xl">
       <BackLink />
-      <SectionHeader eyebrow="product opportunity radar" title="What Should Be Built">
-        High Signal watches world-level changes, smaller app requirements, and repeated complaints,
-        then turns them into concrete product opportunities with evidence and a next step.
+      <SectionHeader eyebrow="product ideas" title="What Should Be Built">
+        Product opportunities backed by market signals, community complaints, and repeated requests.
+        Each item explains the user, why now, and the smallest next step.
       </SectionHeader>
 
       <StatGrid
         items={[
-          { label: "World flow", value: evidence.length.toString(), sub: "market + community inputs" },
+          { label: "Evidence", value: evidence.length.toString(), sub: "market + community inputs" },
           { label: "Build now", value: nowCount.toString(), sub: "strongest opportunities" },
           { label: "Complaints", value: complaintEvidence.toString(), sub: "requirement-shaped signals" },
         ]}

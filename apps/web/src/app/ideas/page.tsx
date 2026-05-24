@@ -121,17 +121,17 @@ export default async function IdeasPage({
   return (
     <PageShell max="max-w-5xl">
       <BackLink />
-      <SectionHeader eyebrow="idea intelligence" title="Idea Flow">
-        Put in a product idea. High Signal checks it against market, community, mention, and
-        resource flow so the output is a decision: pursue, test, watch, or avoid.
+      <SectionHeader eyebrow="idea checker" title="Should I build this?">
+        Paste a product idea. High Signal compares it with current evidence and returns a plain
+        decision: pursue, test, watch, or avoid.
       </SectionHeader>
 
       <RouteList
         items={[
           {
             href: "/opportunities",
-            title: "what should be built",
-            sub: "proactive product opportunities",
+            title: "What should be built",
+            sub: "product opportunities already found",
           },
         ]}
       />

@@ -1,58 +1,80 @@
-import { HeroHeader, PageShell, ProductAreaGrid, RouteList } from "@/components/system/HighSignalUI";
+import { HeroHeader, PageShell, RouteList, StatGrid } from "@/components/system/HighSignalUI";
 
 export default function HomePage() {
   return (
     <PageShell>
-      <HeroHeader eyebrow="v0 / open lab / signal intelligence" title="High Signal">
-        Evidence-first signal intelligence across markets, communities, mentions, agent evaluation,
-        and personal product decisions. The product is open while the sharpest surfaces mature.
+      <HeroHeader eyebrow="daily product-decision brief" title="High Signal">
+        Start here when you want to know what changed, whether the market already priced it in, and
+        what product move is actually worth making next.
       </HeroHeader>
 
-      <ProductAreaGrid
+      <section className="mt-10 border-y border-[var(--color-line)] py-8">
+        <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-accent)]">
+          what to expect
+        </div>
+        <div className="mt-6 grid gap-6 md:grid-cols-3">
+          {[
+            {
+              step: "1",
+              title: "Read what changed",
+              body: "Daily market, community, and product signals are grouped into a short feed instead of scattered research tabs.",
+            },
+            {
+              step: "2",
+              title: "Check if it is late",
+              body: "Public-company signals include a priced-in check, so true news does not get mistaken for a fresh opportunity.",
+            },
+            {
+              step: "3",
+              title: "Decide what to do",
+              body: "The personal brief turns the useful signals into build, change, watch, or ignore decisions for the product fleet.",
+            },
+          ].map((item) => (
+            <div key={item.step}>
+              <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
+                {item.step}
+              </div>
+              <h2 className="mt-3 text-xl font-medium tracking-tight">{item.title}</h2>
+              <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">{item.body}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <StatGrid
         items={[
           {
-            href: "/markets",
-            title: "Market Intelligence",
-            kicker: "market",
-            body: "High-level national and international stock, sector, and company signals.",
+            label: "first click",
+            value: "Daily read",
+            sub: "scan today's source-linked signals",
           },
           {
-            href: "/communities",
-            title: "Community Intelligence",
-            kicker: "public demand",
-            body: "Repeated complaints, app requirements, founder pain, and regional issues.",
+            label: "market guardrail",
+            value: "priced in?",
+            sub: "current Yahoo price context on public tickers",
           },
           {
-            href: "/mentions",
-            title: "Mention Intelligence",
-            kicker: "brand",
-            body: "Company, competitor, AI visibility, citation, and share-of-voice checks.",
-          },
-          {
-            href: "/agent-eval",
-            title: "Agent Evaluation",
-            kicker: "recommendable",
-            body: "Audit whether a brand is legible, credible, and worth recommending to agents.",
+            label: "final output",
+            value: "next move",
+            sub: "what to build, change, watch, or ignore",
           },
         ]}
       />
 
       <RouteList
         items={[
-          { href: "/signals/today", title: "daily", sub: "freshest 24h signal view" },
-          { href: "/signals", title: "all signals", sub: "filter by content, entity, confidence" },
-          { href: "/digest", title: "weekly digest", sub: "rss + email-ready" },
-          { href: "/personal", title: "personal command brief", sub: "what to build/change/watch" },
-          { href: "/teardowns", title: "manual teardowns", sub: "approved task outputs" },
-          { href: "/opportunities", title: "what to build", sub: "world-change product radar" },
-          { href: "/ideas", title: "idea flow", sub: "product thesis check" },
-          { href: "/dashboard", title: "workspace", sub: "combined product intelligence" },
-          { href: "/watchlist", title: "watchlist", sub: "open action queue" },
+          { href: "/signals/today", title: "Start here", sub: "today's readable signal feed" },
+          { href: "/personal", title: "Planning brief", sub: "one recommended next product move" },
+          { href: "/signals", title: "All signals", sub: "archive with priced-in checks and filters" },
+          { href: "/markets", title: "Market context", sub: "broad prices and sector movement" },
+          { href: "/opportunities", title: "What to build", sub: "product ideas backed by evidence" },
+          { href: "/ideas", title: "Idea checker", sub: "test a product thesis against evidence" },
+          { href: "/dashboard", title: "Workspace", sub: "mentions, communities, and markets together" },
         ]}
       />
 
       <footer className="mt-16 font-mono text-[11px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
-        evidence-first / source-linked / action-oriented
+        read the change / check the price / decide the product move
       </footer>
     </PageShell>
   );

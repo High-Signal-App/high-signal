@@ -30,6 +30,48 @@ Active consolidation plan: `plans/0004-platform-consolidation.md`.
 ## Status
 Scaffolded as the Market Intelligence artifact. Worker API + Next.js web + Python ingest + 274 entities + 175 relationships + 31 signal types + 168 sources all committed. Awaiting consolidation work for Mention Intelligence, Community Intelligence, and Agent Evaluation Intelligence.
 
+## Will discuss: Signal Studio and playgrounds
+**Signal Studio** is the recommended first playground: a visual content lab that turns High Signal findings into polished marketing assets. It should feel like a futuristic marketing command center, not a boring dashboard. It can be playground-quality visually while still producing assets useful for selling High Signal.
+
+Inputs:
+- Company URL
+- Product positioning
+- Competitor names
+- High Signal audit findings
+- One target buyer persona
+
+Outputs:
+- AI visibility audit snapshot
+- Competitor comparison page
+- LinkedIn carousel
+- Short-form reel script
+- Landing page teardown
+- "Why we lose to competitor X" brief
+- Launch announcement
+- Weekly founder update
+
+Other playgrounds worth adding:
+- **AI SERP Theater** — show simulated buyer-agent searches visually: prompts enter, AI assistants answer, competitors appear/disappear, and citations light up. Strong demo surface for High Signal.
+- **Competitor Roast Machine** — enter two SaaS sites and generate a brutal but useful comparison across positioning, trust, AI visibility, homepage clarity, pricing clarity, and content gaps. Fun, shareable, lead-gen friendly.
+- **Launch Page Forge** — given a product idea, generate five landing page angles, a pricing page, comparison page, demo script, outbound emails, and social posts. Useful for the fleet and visually attractive.
+- **Market Pulse Wall** — a live wall of signals: Reddit complaints, AI search mentions, GitHub trends, news, pricing changes, and founder posts. Potential High Signal "wow" screen.
+- **Prompt-to-Campaign** — type a goal like "sell High Signal to devtool founders" and generate the campaign: ICP, message, landing section, posts, cold emails, ad concepts, and demo flow.
+
+Worth folding into core High Signal:
+- AI fact-checker / source surfacer
+- Hyperlocal/community intelligence
+- Market pulse / geo heatmap
+- AI visibility / recommendation tracking
+- Competitor monitoring
+
+Worth playgrounding as marketing tools:
+- Prompt-to-campaign generator
+- Competitor roast/comparison machine
+- AI SERP theater
+- Launch page forge
+- Signal-to-reel/carousel generator
+- "Put in an idea, get the go/no-go brief"
+
 ## Architecture
 ```
 apps/web              Next.js 16 + Tailwind v4 — futurist + clean UI
@@ -83,6 +125,7 @@ pnpm signals:sync:local
 
 ## Quick links
 - Spec: `SPEC.md`
+- Commercial handoff: `docs/high-signal-handoff.md`
 - Consolidation plan: `plans/0004-platform-consolidation.md`
 - Plan: `plans/0001-research-artifact-first.md`
 - Product opportunity radar: `/opportunities`

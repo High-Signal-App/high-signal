@@ -28,6 +28,7 @@
     "personal:brief": "tsx scripts/personal-command-brief.ts",
     "daily:snapshot": "tsx scripts/build-daily-source-refreshes.ts",
     "market:snapshot": "tsx scripts/build-market-refreshes.ts",
+    "price:snapshot": "tsx scripts/build-price-context.ts",
     "daily:seed-history": "tsx scripts/seed-daily-source-history.ts",
     "signals:sync:local": "tsx scripts/sync-signals.ts --local",
     "signals:sync:remote": "tsx scripts/sync-signals.ts --remote",
