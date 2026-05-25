@@ -212,12 +212,11 @@ async function main(): Promise<void> {
   if (toJudge.length === 0) return;
   const isPublished = new Set(published.map((s) => s.slug));
 
-  let published = 0;
+  let publishedCount = 0;
   let killed = 0;
   let held = 0;
   let errors = 0;
 
-  let publishedCount = 0;
   for (const signal of toJudge) {
     let verdict: VerdictResult;
     try {
