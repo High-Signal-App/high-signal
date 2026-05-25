@@ -26,6 +26,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${SITE_URL}/sectors`, lastModified: now, changeFrequency: "weekly", priority: 0.6 },
     { url: `${SITE_URL}/opportunities`, lastModified: now, changeFrequency: "weekly", priority: 0.6 },
     { url: `${SITE_URL}/ideas`, lastModified: now, changeFrequency: "weekly", priority: 0.55 },
+    { url: `${SITE_URL}/methodology`, lastModified: now, changeFrequency: "monthly", priority: 0.85 },
+    { url: `${SITE_URL}/signals/types`, lastModified: now, changeFrequency: "daily", priority: 0.75 },
+    { url: `${SITE_URL}/agent-eval/seo`, lastModified: now, changeFrequency: "monthly", priority: 0.7 },
     { url: `${SITE_URL}/about`, lastModified: now, changeFrequency: "monthly", priority: 0.5 },
     { url: `${SITE_URL}/digest/rss`, lastModified: now, changeFrequency: "weekly", priority: 0.4 },
     { url: `${SITE_URL}/digest/atom`, lastModified: now, changeFrequency: "weekly", priority: 0.4 },
@@ -35,9 +38,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   let signalEntries: MetadataRoute.Sitemap = [];
   let entityEntries: MetadataRoute.Sitemap = [];
+  let entityMonthEntries: MetadataRoute.Sitemap = [];
+  let signalTypeEntries: MetadataRoute.Sitemap = [];
+
+  let allSignals: Awaited<ReturnType<typeof api.signals>>["signals"] = [];
   try {
-    const { signals } = await api.signals();
-    signalEntries = signals
+    const data = await api.signals({ limit: 1000 });
+    allSignals = data.signals;
+    signalEntries = allSignals
       .filter((signal) => !isBackfillSignal(signal))
       .slice(0, 1000)
       .map((s) => ({
@@ -47,8 +55,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         priority: 0.7,
       }));
   } catch {
-    /* API offline — return static-only sitemap. */
+    /* API offline */
   }
+
   try {
     const { entities } = await api.entities();
     entityEntries = entities.slice(0, 500).map((e) => ({
@@ -61,5 +70,38 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     /* API offline */
   }
 
-  return [...staticRoutes, ...signalEntries, ...entityEntries];
+  // Derive entity-month archive URLs from the signals we already pulled.
+  // Programmatic *but* every URL has real content — this is the right kind
+  // of scale for SEO, not the thin-page kind.
+  const entityMonths = new Map<string, Date>();
+  for (const s of allSignals) {
+    if (isBackfillSignal(s)) continue;
+    const d = new Date(s.publishedAt);
+    const period = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+    const key = `${s.primaryEntityId}|${period}`;
+    const prev = entityMonths.get(key);
+    if (!prev || d > prev) entityMonths.set(key, d);
+  }
+  entityMonthEntries = Array.from(entityMonths.entries())
+    .slice(0, 5000)
+    .map(([key, lastSeen]) => {
+      const [id, period] = key.split("|");
+      return {
+        url: `${SITE_URL}/entities/${id}/${period}`,
+        lastModified: lastSeen,
+        changeFrequency: "weekly" as const,
+        priority: 0.55,
+      };
+    });
+
+  // Per-signal-type taxonomy pages.
+  const signalTypes = Array.from(new Set(allSignals.filter((s) => !isBackfillSignal(s)).map((s) => s.signalType)));
+  signalTypeEntries = signalTypes.map((t) => ({
+    url: `${SITE_URL}/signals/types/${t}`,
+    lastModified: now,
+    changeFrequency: "daily" as const,
+    priority: 0.7,
+  }));
+
+  return [...staticRoutes, ...signalEntries, ...entityEntries, ...entityMonthEntries, ...signalTypeEntries];
 }

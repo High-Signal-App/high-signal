@@ -8,10 +8,14 @@
  */
 
 import {
+  buildBreadcrumbJsonLd,
+  buildEntityMonthJsonLd,
   buildFaqJsonLd,
   buildHomeJsonLd,
+  buildMethodologyJsonLd,
   buildOrganizationJsonLd,
   buildSignalArticleJsonLd,
+  buildSignalTypeTaxonomyJsonLd,
   buildTrackRecordDatasetJsonLd,
 } from "../apps/web/src/components/seo/json-ld-builders";
 import { SITE_URL } from "../apps/web/src/lib/site";
@@ -121,6 +125,75 @@ console.log("\nFAQ JSON-LD");
   const first = (block.mainEntity as Array<{ "@type": string; name: string; acceptedAnswer: { "@type": string; text: string } }>)[0];
   check("first item is Question", first["@type"] === "Question");
   check("first item answer type", first.acceptedAnswer["@type"] === "Answer");
+}
+
+console.log("\nBreadcrumbList JSON-LD");
+{
+  const block = buildBreadcrumbJsonLd([
+    { name: "Home", path: "/" },
+    { name: "Signals", path: "/signals" },
+    { name: "TSMC", path: "/signals/types/capex_raise" },
+  ]);
+  check("type BreadcrumbList", block["@type"] === "BreadcrumbList");
+  check("3 items in list",
+    Array.isArray(block.itemListElement) && (block.itemListElement as unknown[]).length === 3);
+  const items = block.itemListElement as Array<{ position: number; item: string }>;
+  check("positions 1..3", items[0].position === 1 && items[1].position === 2 && items[2].position === 3);
+  check("relative paths resolved to absolute", isAbsoluteUrl(items[0].item) && isAbsoluteUrl(items[2].item));
+}
+
+console.log("\nMethodology (Article + HowTo) JSON-LD");
+{
+  const blocks = buildMethodologyJsonLd({
+    steps: [
+      { name: "Ingest", text: "Pull from sources." },
+      { name: "Score", text: "Tag quality." },
+      { name: "Publish", text: "Auto-judge." },
+    ],
+  });
+  check("returns 2 blocks (Article + HowTo)", blocks.length === 2);
+  check("first is Article", blocks[0]["@type"] === "Article");
+  check("second is HowTo", blocks[1]["@type"] === "HowTo");
+  const howto = blocks[1];
+  check("HowTo has 3 steps", Array.isArray(howto.step) && (howto.step as unknown[]).length === 3);
+  const steps = howto.step as Array<{ "@type": string; position: number; name: string }>;
+  check("each step is HowToStep with position", steps.every((s, i) => s["@type"] === "HowToStep" && s.position === i + 1));
+}
+
+console.log("\nSignal-type taxonomy (CollectionPage + Dataset) JSON-LD");
+{
+  const blocks = buildSignalTypeTaxonomyJsonLd({
+    signalType: "capex_raise",
+    family: "supply-demand",
+    totalCount: 12,
+    hitRate: 0.75,
+    sampleSize: 16,
+  });
+  check("returns 2 blocks", blocks.length === 2);
+  check("CollectionPage first", blocks[0]["@type"] === "CollectionPage");
+  check("Dataset second", blocks[1]["@type"] === "Dataset");
+  const dataset = blocks[1];
+  check("Dataset variableMeasured has 3 entries",
+    Array.isArray(dataset.variableMeasured) && (dataset.variableMeasured as unknown[]).length === 3);
+  check("Dataset url is absolute",
+    typeof dataset.url === "string" && isAbsoluteUrl(dataset.url));
+  check("Dataset description references family",
+    typeof dataset.description === "string" && dataset.description.includes("supply demand"));
+}
+
+console.log("\nEntity-month CollectionPage JSON-LD");
+{
+  const block = buildEntityMonthJsonLd({
+    entityName: "TSMC",
+    entityId: "TSM",
+    period: "2026-05",
+    signalCount: 4,
+  });
+  check("CollectionPage type", block["@type"] === "CollectionPage");
+  check("url is /entities/TSM/2026-05", block.url === `${SITE_URL}/entities/TSM/2026-05`);
+  check("about.name is entity", (block.about as { name: string }).name === "TSMC");
+  check("description includes count",
+    typeof block.description === "string" && block.description.includes("4 signal"));
 }
 
 console.log(`\nseo-json-ld.test.ts: ${total - failures}/${total} passed`);

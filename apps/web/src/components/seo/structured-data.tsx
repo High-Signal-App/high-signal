@@ -1,9 +1,13 @@
 import {
+  buildBreadcrumbJsonLd,
+  buildEntityMonthJsonLd,
+  buildFaqJsonLd,
   buildHomeJsonLd,
+  buildMethodologyJsonLd,
   buildOrganizationJsonLd,
   buildSignalArticleJsonLd,
+  buildSignalTypeTaxonomyJsonLd,
   buildTrackRecordDatasetJsonLd,
-  buildFaqJsonLd,
 } from "@/components/seo/json-ld-builders";
 
 /**
@@ -75,4 +79,39 @@ export function FaqJsonLd({
   items: Array<{ question: string; answer: string }>;
 }): React.JSX.Element {
   return <LdJson data={buildFaqJsonLd(items)} />;
+}
+
+export function BreadcrumbJsonLd({
+  trail,
+}: {
+  trail: Array<{ name: string; path: string }>;
+}): React.JSX.Element {
+  return <LdJson data={buildBreadcrumbJsonLd(trail)} />;
+}
+
+export function MethodologyJsonLd({
+  steps,
+}: {
+  steps: Array<{ name: string; text: string }>;
+}): React.JSX.Element {
+  return <LdJson data={buildMethodologyJsonLd({ steps })} />;
+}
+
+export function SignalTypeTaxonomyJsonLd(props: {
+  signalType: string;
+  family: string;
+  totalCount: number;
+  hitRate: number | null;
+  sampleSize: number;
+}): React.JSX.Element {
+  return <LdJson data={buildSignalTypeTaxonomyJsonLd(props)} />;
+}
+
+export function EntityMonthJsonLd(props: {
+  entityName: string;
+  entityId: string;
+  period: string;
+  signalCount: number;
+}): React.JSX.Element {
+  return <LdJson data={buildEntityMonthJsonLd(props)} />;
 }

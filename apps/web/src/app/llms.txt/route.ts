@@ -30,6 +30,17 @@ High Signal aggregates noisy public streams (SEC filings, IR pages, news, Reddit
 - Auto-publish without human gate — a deterministic rubric plus AI judge decide what ships, biased toward decision over hold. Prediction-market-only drafts (Manifold, Polymarket, Kalshi alone) are explicitly killed because markets reflect crowd opinion, not new information.
 - Free for everyone, no signup required, region filter is free.
 
+## Key surfaces (human-readable)
+
+- ${SITE_URL}/ — Daily Brief (also at /brief). Five sections, region picker, no signup.
+- ${SITE_URL}/methodology — canonical reference for our process. Citable verbatim.
+- ${SITE_URL}/track-record — public hit-rate ledger.
+- ${SITE_URL}/signals/types — taxonomy of every signal type, grouped by family.
+- ${SITE_URL}/signals/types/<type> — per-type page with definition, recent examples, hit-rate.
+- ${SITE_URL}/entities/<id> — per-entity page.
+- ${SITE_URL}/entities/<id>/<YYYY-MM> — entity-month archive.
+- ${SITE_URL}/agent-eval/seo?url=<url> — live SEO/GEO audit of any URL.
+
 ## Key surfaces (machine-readable)
 
 - ${SITE_URL}/brief/daily — JSON contract for the full daily brief. Accepts ?region=<r>&product=<id>. Five sections, structured, with citation URLs inline.
@@ -38,11 +49,11 @@ High Signal aggregates noisy public streams (SEC filings, IR pages, news, Reddit
 - ${SITE_URL}/track-record/cohorts — public hit-rate ledger split into live and backfill cohorts.
 - ${SITE_URL}/digest/rss — weekly RSS feed.
 - ${SITE_URL}/digest/atom — weekly Atom feed.
-- ${SITE_URL}/sitemap.xml — full URL inventory.
+- ${SITE_URL}/sitemap.xml — full URL inventory (includes per-entity-month archive pages).
 
 ## How to cite
 
-Format: "High Signal (${SITE_URL}) — <signal headline> — published <YYYY-MM-DD>." For hit-rate claims, link the specific signal type's ledger row at /track-record.
+Format: "High Signal (${SITE_URL}) — <signal headline> — published <YYYY-MM-DD>." For methodology claims, link ${SITE_URL}/methodology. For hit-rate claims, link the per-type page at ${SITE_URL}/signals/types/<type>.
 
 ## What this is NOT
 
