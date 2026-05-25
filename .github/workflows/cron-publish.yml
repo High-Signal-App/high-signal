@@ -11,6 +11,10 @@ on:
         description: dry-run (judge but don't PATCH)
         type: boolean
         default: false
+      reapply:
+        description: also re-judge already-published rows (one-time cleanup after rule change)
+        type: boolean
+        default: false
 
 jobs:
   auto-publish:
@@ -34,6 +38,8 @@ jobs:
         run: |
           if [ "${{ inputs.dry }}" = "true" ]; then
             pnpm signals:auto-publish:dry
+          elif [ "${{ inputs.reapply }}" = "true" ]; then
+            pnpm signals:auto-publish:reapply
           else
             pnpm signals:auto-publish:remote
           fi
