@@ -1,5 +1,6 @@
 import { BriefSections } from "@/components/brief/BriefSections";
 import { ProductPicker } from "@/components/brief/ProductPicker";
+import { HomeJsonLd } from "@/components/seo/structured-data";
 // Auth + ownerId checks intentionally still imported below — the brief route
 // still prefers real D1 brand data when an authenticated owner has any.
 import { RegionPicker } from "@/components/brief/RegionPicker";
@@ -55,6 +56,7 @@ export default async function HomePage({
 
   return (
     <PageShell>
+      <HomeJsonLd />
       <HeroHeader eyebrow={heroEyebrow} title="What changed today">
         High Signal aggregates technology, startup, and finance sources, curates them, and
         synthesizes the day into five sections. Pick any product and any region to see how the

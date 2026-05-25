@@ -6,6 +6,7 @@ import { pricedInContext, pricedInTone } from "@/lib/price-context";
 import { DirectionPill } from "@/components/atoms/DirectionPill";
 import { ConfidenceBadge } from "@/components/atoms/ConfidenceBadge";
 import { MarkdownView } from "@/components/system/MarkdownView";
+import { SignalArticleJsonLd } from "@/components/seo/structured-data";
 
 export const dynamic = "force-dynamic";
 
@@ -67,6 +68,18 @@ export default async function SignalDetail({ params }: { params: Promise<{ slug:
 
   return (
     <main className="mx-auto max-w-4xl px-6 py-16">
+      <SignalArticleJsonLd
+        headline={headline}
+        slug={signal.slug}
+        publishedAt={new Date(signal.publishedAt).toISOString()}
+        bodyMd={signal.bodyMd}
+        entityName={signal.primaryEntityId}
+        evidenceUrls={signal.evidenceUrls}
+        direction={signal.direction}
+        confidence={signal.confidence}
+        predictedWindowDays={signal.predictedWindowDays}
+        signalType={signal.signalType}
+      />
       <a
         href="/signals"
         className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500 hover:text-zinc-300"

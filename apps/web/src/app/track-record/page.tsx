@@ -1,8 +1,13 @@
 import { requireAdmin } from "@/lib/clerk-admin";
 import { api, type TrackBucket } from "@/lib/api";
+import { TrackRecordDatasetJsonLd } from "@/components/seo/structured-data";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Track record — High Signal" };
+export const metadata = {
+  title: "Public hit-rate ledger",
+  description:
+    "Every published High Signal market call scored against subsequent market moves. Live forward predictions and historical-replay calibrations, broken down by signal type. The moat is the number being public.",
+};
 
 interface Cohorts {
   live: TrackBucket[];
@@ -42,8 +47,12 @@ export default async function TrackRecordPage() {
     /* offline */
   }
 
+  const liveCount = cohorts.live.reduce((sum, b) => sum + b.total, 0);
+  const backfillCount = cohorts.backfill.reduce((sum, b) => sum + b.total, 0);
+
   return (
     <main className="mx-auto max-w-5xl px-6 py-16">
+      <TrackRecordDatasetJsonLd liveCount={liveCount} backfillCount={backfillCount} />
       <a
         href="/"
         className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500 hover:text-zinc-300"
