@@ -10,6 +10,7 @@
 
 import {
   deterministicVerdict,
+  evidenceCoverage,
   isPredictionMarketOnly,
   type JudgeableSignal,
   type Verdict,
@@ -175,6 +176,87 @@ check(
   },
   "kill",
   "neither pipeline blessing nor",
+);
+
+console.log("\nauto-publish rubric — evidence-relevance (the Gemini Omni bug)");
+// Body cites The Verge only; the other 4 URLs are adjacent-news-stuffing.
+const GEMINI_OMNI_BODY = `Google has released Gemini Omni, a new family of generative AI models that can turn any input type into video ([The Verge](https://www.theverge.com/tech/936507/gemini-omni-hands-on-deepfake-ai-video)). The Omni Flash model, available in Google's Flow platform, improves upon the previous Veo model by allowing video inputs and better character consistency. However, a hands-on review highlights persistent artifacts like inconsistent objects and sudden orientation changes, indicating the technology is still maturing. The launch reinforces Google's commitment to AI despite competition from Microsoft, Meta, and Amazon, and could drive demand for compute infrastructure from NVIDIA. The mixed reception suggests no immediate competitive advantage, leading to a neutral directional outlook.`;
+check(
+  "kill on evidence-stuffing (Gemini Omni real bug)",
+  {
+    evidenceUrls: [
+      "https://www.tomshardware.com/tech-industry/samsungs-bonus-dispute-spreads-to-chip-packaging-divisions-threatening-hbm-delivery-schedules",
+      "https://www.tomshardware.com/tech-industry/micron-begins-producing-americas-most-advanced-dram-at-its-virginia-fab",
+      "https://www.tomshardware.com/pc-components/ssds/huawei-introduces-122tb-ssd-without-using-sanctioned-3d-nand-chips",
+      "https://www.cnbc.com/2026/05/23/microsofts-new-responsible-tech-lead-on-high-speed-ai-development.html",
+      "https://www.theverge.com/tech/936507/gemini-omni-hands-on-deepfake-ai-video",
+    ],
+    bodyMd: GEMINI_OMNI_BODY,
+    publishable: true,
+    independentSourceCount: 3,
+    sourceClasses: ["news", "other"],
+  },
+  "kill",
+  "evidence-stuffing",
+);
+check(
+  "publish when body actually references each evidence URL",
+  {
+    evidenceUrls: [
+      "https://www.theverge.com/tech/936507/gemini-omni-hands-on-deepfake-ai-video",
+      "https://blog.google/products/gemini/omni-launch-2026/",
+    ],
+    bodyMd:
+      "Google launched Gemini Omni ([The Verge](https://www.theverge.com/tech/936507/gemini-omni-hands-on-deepfake-ai-video)) " +
+      "with an official rollout post ([Google blog](https://blog.google/products/gemini/omni-launch-2026/)). " +
+      "Body discusses launch implications, competition with Microsoft, and demand for NVIDIA compute — clear directional claim about Google's AI position." +
+      "More body. More body. More body. More body. More body. More body. More body. More body.",
+    publishable: true,
+    independentSourceCount: 2,
+    sourceClasses: ["news", "blog"],
+  },
+  "publish",
+  "independent source classes",
+);
+check(
+  "skip relevance check when body is too short to evaluate",
+  {
+    evidenceUrls: ["https://a.com/foo", "https://b.com/bar"],
+    bodyMd: "Short body.", // < EVIDENCE_RELEVANCE_MIN_BODY_CHARS
+    publishable: true,
+    independentSourceCount: 2,
+    sourceClasses: ["news", "ir"],
+  },
+  "publish",
+  "independent source classes",
+);
+
+console.log("\nevidenceCoverage helper");
+checkBool(
+  "1.0 when body references every URL",
+  evidenceCoverage({
+    evidenceUrls: ["https://reuters.com/x", "https://bloomberg.com/y"],
+    bodyMd: "Source: https://reuters.com/x and https://bloomberg.com/y",
+  }) === 1,
+  true,
+);
+checkBool(
+  "fractional when only some URLs are referenced",
+  Math.abs(
+    evidenceCoverage({
+      evidenceUrls: [
+        "https://a.com/uniquefirsttopic-launches-today",
+        "https://b.com/anothercompletelyseparatetopic-deepdive",
+      ],
+      bodyMd: "We cite the uniquefirsttopic launch in detail here.", // matches only URL1's slug
+    }) - 0.5,
+  ) < 0.01,
+  true,
+);
+checkBool(
+  "1.0 when evidenceUrls is empty (cite-or-kill handles separately)",
+  evidenceCoverage({ evidenceUrls: [], bodyMd: "x" }) === 1,
+  true,
 );
 
 console.log("\nisPredictionMarketOnly");

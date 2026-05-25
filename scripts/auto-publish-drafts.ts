@@ -114,7 +114,8 @@ async function patchReviewStatus(
 }
 
 // Pure helpers live in ./auto-publish-rules.ts so they're testable without
-// the script's side-effects. See that file for the policy rationale.
+// the script's side-effects. SignalRow's surface is a superset of
+// JudgeableSignal so we can pass it straight through to deterministicVerdict.
 
 const JUDGE_SYSTEM = `You are the final gate on the High Signal Daily Brief. \
 You decide whether a draft signal SHIPS, gets KILLED, or HOLDS.
@@ -127,8 +128,12 @@ a specific window. Vague "things may happen" content is KILL.
 3. Prediction-market-only drafts (Manifold, Polymarket, Kalshi alone) without \
 news/IR/SEC/blog corroboration are KILL — markets reflect crowd opinion, not \
 new information.
-4. Hedge with low confidence is fine. Empty content is not.
-5. Bias toward decision. Only HOLD when the evidence genuinely splits — never \
+4. Evidence-relevance — every URL in the evidence list must be substantively \
+about the signal's claim. Drafts whose body cites only some URLs while the \
+rest are adjacent-news-stuffing (e.g. a Google/Gemini signal with Samsung SSD \
+links) are KILL. Don't count noise as corroboration.
+5. Hedge with low confidence is fine. Empty content is not.
+6. Bias toward decision. Only HOLD when the evidence genuinely splits — never \
 as a comfortable middle ground.
 
 Return strict JSON: {"verdict":"publish"|"kill"|"hold","reason":"<one short sentence>"}.`;

@@ -11,7 +11,7 @@ import {
 } from "@/components/system/HighSignalUI";
 import { api, type CommunityDigestSnapshot, type TrackedCommunity } from "@/lib/api";
 import { redditSourceLink } from "@high-signal/shared";
-import { requireSignedIn } from "@/lib/require-auth";
+import { getRequestAuth, requireSignedIn } from "@/lib/require-auth";
 import { revalidatePath } from "next/cache";
 
 export const dynamic = "force-dynamic";
@@ -67,14 +67,24 @@ export default async function CommunitiesPage({
 }: {
   searchParams?: Promise<{ subreddit?: string; q?: string }>;
 }) {
-  const { userId, orgId } = await requireSignedIn();
-  const ownerId = orgId ?? userId;
+  // Page is public — anonymous visitors see the discover feed and ad-hoc
+  // lookup. Personal tracked-community CRUD still requires sign-in (the
+  // server actions above call `requireSignedIn`).
+  const auth = await getRequestAuth();
+  const userId = (auth && "userId" in auth && auth.userId) || null;
+  const ownerId =
+    (auth && "orgId" in auth && auth.orgId) || userId || "anonymous";
+  const isSignedIn = Boolean(userId);
   const params = (await searchParams) ?? {};
   const subreddit = (params.subreddit ?? "LocalLLaMA").replace(/^r\//i, "").trim();
   const query = (params.q ?? "AI agents").trim();
 
   const [dashboardResult, discoverResult, communityResult, mentionsResult] = await Promise.allSettled([
-    api.productDashboard(ownerId),
+    // Skip the per-owner dashboard fetch entirely when anonymous —
+    // there's nothing to render for them.
+    isSignedIn
+      ? api.productDashboard(ownerId)
+      : Promise.resolve(null as unknown as Awaited<ReturnType<typeof api.productDashboard>>),
     api.productCommunityDiscover("week"),
     api.redditCommunity(subreddit),
     api.redditMentions(query, 8),

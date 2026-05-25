@@ -10,7 +10,7 @@ import {
   SectionHeader,
 } from "@/components/system/HighSignalUI";
 import { api, type SignalRow } from "@/lib/api";
-import { requireSignedIn } from "@/lib/require-auth";
+import { getRequestAuth } from "@/lib/require-auth";
 import {
   analyzeIdeaAgainstFlow,
   type CommunityDigestSnapshot,
@@ -97,14 +97,20 @@ export default async function IdeasPage({
 }: {
   searchParams?: Promise<{ idea?: string }>;
 }) {
-  const { userId, orgId } = await requireSignedIn();
-  const ownerId = orgId ?? userId;
+  // Public surface — any visitor can type a thesis and see it scored
+  // against published signals + community digests. Per-owner dashboard
+  // is only fetched when signed in.
+  const auth = await getRequestAuth();
+  const userId = (auth && "userId" in auth && auth.userId) || null;
+  const ownerId = (auth && "orgId" in auth && auth.orgId) || userId || "";
   const params = (await searchParams) ?? {};
   const idea = (params.idea ?? DEFAULT_IDEA).trim();
 
   const [signalsResult, dashboardResult, discoverResult] = await Promise.allSettled([
     api.signals({ status: "published" }),
-    api.productDashboard(ownerId),
+    ownerId
+      ? api.productDashboard(ownerId)
+      : Promise.resolve(null as unknown as Awaited<ReturnType<typeof api.productDashboard>>),
     api.productCommunityDiscover("week"),
   ]);
   const signals = signalsResult.status === "fulfilled" ? signalsResult.value.signals : [];

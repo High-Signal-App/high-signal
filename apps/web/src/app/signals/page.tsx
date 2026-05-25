@@ -124,7 +124,17 @@ function Header() {
       <p className="mt-2 max-w-2xl text-sm text-zinc-400">
         Every published signal cites at least two sources and predicts direction with a confidence
         band. Use Daily for the freshest slice, or filter this feed by content type, entity,
-        direction, and confidence. Subscribe via{" "}
+        direction, and confidence.
+      </p>
+      <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-500">
+        <strong className="text-zinc-300">Most signals are low-confidence by design.</strong> A
+        pipeline that only published high-conviction calls would either be lying or be silent for
+        weeks. Low-confidence with a clear directional read and two sources is still useful — and
+        when it&apos;s wrong, the public ledger at{" "}
+        <a className="text-[var(--color-accent)] hover:underline" href="/track-record">
+          /track-record
+        </a>{" "}
+        will say so. Subscribe via{" "}
         <a
           className="text-[var(--color-accent)] hover:underline"
           href="/signals/rss"

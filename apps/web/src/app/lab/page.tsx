@@ -2,7 +2,6 @@ import {
   BackLink,
   FeedList,
   PageShell,
-  Panel,
   SectionHeader,
   StatGrid,
 } from "@/components/system/HighSignalUI";
@@ -99,34 +98,111 @@ export default async function LabPage({
         </button>
       </form>
 
-      {!result ? (
-        <Panel eyebrow="not provisioned" title="Lab substrate not running">
-          <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">
-            The Lab Postgres index has not been provisioned yet. Bring up the local stack with
-            <code className="mx-1 border border-[var(--color-line)] px-1 py-0.5 text-xs">
-              docker compose -f python/lab/docker-compose.yml up -d
-            </code>
-            then run
-            <code className="mx-1 border border-[var(--color-line)] px-1 py-0.5 text-xs">
-              uv run python -m high_signal_lab.ingest
-            </code>
-            to populate the index.
-          </p>
-        </Panel>
-      ) : null}
+      {!result ? <LabPreview /> : null}
 
-      <FeedList
-        eyebrow={`${byCluster ? "by cluster / " : ""}${query || source ? `results / ${items.length}` : `latest / ${items.length}`}`}
-        empty="No documents in the Lab index match this query."
-        items={items.map((item) => ({
-          href: item.url,
-          kicker: `${item.source} / score ${item.score.toFixed(2)}${
-            item.clusterId ? ` / cluster ${item.clusterId.slice(0, 6)}` : ""
-          } / ${item.publishedAt?.slice(0, 10) ?? "—"}`,
-          title: item.title,
-          body: item.summary ?? null,
-        }))}
-      />
+      {result ? (
+        <FeedList
+          eyebrow={`${byCluster ? "by cluster / " : ""}${query || source ? `results / ${items.length}` : `latest / ${items.length}`}`}
+          empty="No documents in the Lab index match this query."
+          items={items.map((item) => ({
+            href: item.url,
+            kicker: `${item.source} / score ${item.score.toFixed(2)}${
+              item.clusterId ? ` / cluster ${item.clusterId.slice(0, 6)}` : ""
+            } / ${item.publishedAt?.slice(0, 10) ?? "—"}`,
+            title: item.title,
+            body: item.summary ?? null,
+          }))}
+        />
+      ) : null}
     </PageShell>
+  );
+}
+
+/**
+ * Renders a canned preview of what /lab looks like when the local
+ * substrate is running. Avoids the "Lab not running → empty page →
+ * looks broken" reaction. The preview rows are clearly labelled and
+ * link to the operator runbook for anyone who wants to spin it up.
+ */
+function LabPreview() {
+  const previewItems = [
+    {
+      source: "hn",
+      score: 0.86,
+      title: "Show HN: a local-first Postgres + pgvector substrate for discovery",
+      summary:
+        "Reference example. With Lab running, the top of this feed shows ranked HN items by 4-factor signal score (HN discussion + recency + velocity + GitHub momentum).",
+      cluster: "ab12cd",
+      publishedAt: "2026-05-24",
+    },
+    {
+      source: "hn-linked",
+      score: 0.78,
+      title: "Article extraction + one-hop link materialisation (Trafilatura)",
+      summary:
+        "Each HN submission's linked page becomes a document of its own, with outbound links recorded as `links` rows so subsequent passes can materialise them.",
+      cluster: "ef34gh",
+      publishedAt: "2026-05-23",
+    },
+    {
+      source: "github-trending",
+      score: 0.71,
+      title: "github.com/trending scraper → repos table (no API key)",
+      summary:
+        "Daily / weekly / monthly trending in Python, Rust, TypeScript, Go. Star count feeds the GitHub-momentum factor in the scorer.",
+      cluster: "ij56kl",
+      publishedAt: "2026-05-22",
+    },
+    {
+      source: "one-hop",
+      score: 0.64,
+      title: "Story clustering (union-find over shared link targets + embedding cosine)",
+      summary:
+        "Documents that point at the same upstream get the same cluster_id so the feed can collapse near-duplicates into one row.",
+      cluster: "mn78op",
+      publishedAt: "2026-05-21",
+    },
+  ];
+  return (
+    <>
+      <section className="mt-8 border border-[var(--color-line)] bg-white/[0.02] p-5">
+        <div className="flex flex-wrap items-baseline gap-3 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
+          <span className="text-[var(--color-accent)]">preview only</span>
+          <span>· Lab substrate is local-first; bring it up to see live data</span>
+        </div>
+        <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--color-muted)]">
+          The rows below are a static preview of what /lab shows when the local Postgres
+          substrate is running. The Lab is intentionally local-only — it ranks raw discovery
+          material (Hacker News, GitHub trending, one-hop link extraction) so the operator can
+          turn the top of the ranking into cited signals in the public brief. See{" "}
+          <a
+            className="text-[var(--color-accent)] hover:underline"
+            href="https://github.com/sarthakagrawal927/high-signal/tree/main/python/lab"
+            rel="noreferrer"
+            target="_blank"
+          >
+            python/lab
+          </a>{" "}
+          for the runbook.
+        </p>
+      </section>
+
+      <section className="mt-6 border-t border-[var(--color-line)]">
+        {previewItems.map((item) => (
+          <article key={item.title} className="border-b border-[var(--color-line)] py-5">
+            <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
+              {item.source} / score {item.score.toFixed(2)} / cluster {item.cluster} /{" "}
+              {item.publishedAt} <span className="text-[var(--color-accent)]">(preview)</span>
+            </div>
+            <h3 className="mt-2 text-lg font-medium tracking-tight text-[var(--color-fg)]">
+              {item.title}
+            </h3>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--color-muted)]">
+              {item.summary}
+            </p>
+          </article>
+        ))}
+      </section>
+    </>
   );
 }

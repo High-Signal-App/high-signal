@@ -7,7 +7,7 @@ import {
   SectionHeader,
 } from "@/components/system/HighSignalUI";
 import { api, type ProductDashboardSnapshot } from "@/lib/api";
-import { requireSignedIn } from "@/lib/require-auth";
+import { getRequestAuth } from "@/lib/require-auth";
 import type { MentionBrandConfig, TrackedCommunity } from "@high-signal/shared";
 
 export const dynamic = "force-dynamic";
@@ -67,13 +67,20 @@ function fallbackDashboard(ownerId: string): ProductDashboardSnapshot {
 }
 
 export default async function DashboardPage() {
-  const { userId, orgId } = await requireSignedIn();
-  const ownerId = orgId ?? userId;
+  // Public surface — anonymous visitors see the fallback dashboard
+  // shape (sample tracked communities + brand config). Signed-in users
+  // see their real data instead.
+  const auth = await getRequestAuth();
+  const userId = (auth && "userId" in auth && auth.userId) || null;
+  const ownerId =
+    (auth && "orgId" in auth && auth.orgId) || userId || "anonymous";
   let dashboard = fallbackDashboard(ownerId);
-  try {
-    dashboard = await api.productDashboard(ownerId);
-  } catch {
-    /* Local fallback keeps the dashboard useful before product tables are seeded. */
+  if (userId) {
+    try {
+      dashboard = await api.productDashboard(ownerId);
+    } catch {
+      /* Local fallback keeps the dashboard useful before product tables are seeded. */
+    }
   }
 
   const activeBrand = dashboard.mentions.configs[0] ?? brandConfig;

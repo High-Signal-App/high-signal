@@ -18,6 +18,68 @@ export interface JudgeableSignal {
   independentSourceCount?: number;
   qualityReasons?: string[];
   sourceClasses?: string[];
+  /**
+   * The signal's prose. Used to detect evidence-stuffing — drafts where
+   * the URL list contains items the body never references (the pipeline
+   * sometimes attaches adjacent news by proximity rather than relevance).
+   */
+  bodyMd?: string;
+}
+
+/**
+ * Below this body length we can't reliably judge whether the body
+ * references each URL — skip the relevance check.
+ */
+export const EVIDENCE_RELEVANCE_MIN_BODY_CHARS = 400;
+/**
+ * Minimum fraction of evidence URLs the body must actually reference
+ * (by full URL OR by a unique slug token) to be considered coherent.
+ */
+export const EVIDENCE_RELEVANCE_THRESHOLD = 0.5;
+
+function uniqueSlugTokens(url: string): string[] {
+  try {
+    const parsed = new URL(url);
+    const slug = parsed.pathname.split("/").filter(Boolean).pop() ?? "";
+    return slug
+      .split(/[-_]/)
+      .map((token) => token.toLowerCase())
+      .filter((token) => token.length >= 4)
+      .slice(0, 8);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Returns the fraction of evidence URLs the body actually references.
+ * A URL counts as referenced if the full URL appears verbatim OR at
+ * least one of its meaningful slug tokens (length ≥ 4) appears in the
+ * body (case-insensitive). Empty evidence → 1 (vacuously true, the
+ * cite-or-kill rule handles that case earlier).
+ */
+export function evidenceCoverage(signal: JudgeableSignal): number {
+  const urls = signal.evidenceUrls ?? [];
+  if (urls.length === 0) return 1;
+  const body = (signal.bodyMd ?? "").toLowerCase();
+  if (!body) return 1;
+  let referenced = 0;
+  for (const url of urls) {
+    if (body.includes(url.toLowerCase())) {
+      referenced++;
+      continue;
+    }
+    const tokens = uniqueSlugTokens(url);
+    if (tokens.length === 0) {
+      // No meaningful slug to check — give it the benefit of the doubt.
+      referenced++;
+      continue;
+    }
+    if (tokens.some((tok) => body.includes(tok))) {
+      referenced++;
+    }
+  }
+  return referenced / urls.length;
 }
 
 /**
@@ -72,6 +134,23 @@ export function deterministicVerdict(signal: JudgeableSignal): VerdictResult {
     return {
       verdict: "kill",
       reason: "prediction-market-only — crowd opinion, not new information",
+      source: "rule",
+    };
+  }
+
+  // Evidence-relevance — catches the pattern where the pipeline attaches
+  // adjacent news URLs that the body never actually references, inflating
+  // the independent-source-class count for free. Discovered 2026-05-26 by
+  // an external reviewer who spotted a Gemini Omni signal citing
+  // unrelated Samsung / Micron / Huawei SSD links as evidence.
+  if (
+    (signal.bodyMd ?? "").length >= EVIDENCE_RELEVANCE_MIN_BODY_CHARS &&
+    evidenceCoverage(signal) < EVIDENCE_RELEVANCE_THRESHOLD
+  ) {
+    const pct = Math.round(evidenceCoverage(signal) * 100);
+    return {
+      verdict: "kill",
+      reason: `evidence-stuffing — body references only ${pct}% of declared evidence URLs`,
       source: "rule",
     };
   }

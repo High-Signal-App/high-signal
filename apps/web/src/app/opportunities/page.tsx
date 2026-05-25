@@ -8,7 +8,7 @@ import {
   StatGrid,
 } from "@/components/system/HighSignalUI";
 import { api, type SignalRow } from "@/lib/api";
-import { requireSignedIn } from "@/lib/require-auth";
+import { getRequestAuth } from "@/lib/require-auth";
 import {
   generateProductOpportunities,
   type CommunityDigestSnapshot,
@@ -87,11 +87,16 @@ function horizonTone(horizon: string) {
 }
 
 export default async function OpportunitiesPage() {
-  const { userId, orgId } = await requireSignedIn();
-  const ownerId = orgId ?? userId;
+  // Public surface — anonymous visitors see the cross-source evidence
+  // grid. Per-owner dashboard is fetched only when signed in.
+  const auth = await getRequestAuth();
+  const userId = (auth && "userId" in auth && auth.userId) || null;
+  const ownerId = (auth && "orgId" in auth && auth.orgId) || userId || "";
   const [signalsResult, dashboardResult, discoverResult] = await Promise.allSettled([
     api.signals({ status: "published" }),
-    api.productDashboard(ownerId),
+    ownerId
+      ? api.productDashboard(ownerId)
+      : Promise.resolve(null as unknown as Awaited<ReturnType<typeof api.productDashboard>>),
     api.productCommunityDiscover("week"),
   ]);
   const signals = signalsResult.status === "fulfilled" ? signalsResult.value.signals : [];

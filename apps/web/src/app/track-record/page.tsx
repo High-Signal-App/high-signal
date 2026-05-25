@@ -64,7 +64,16 @@ export default async function TrackRecordPage() {
           public hit-rate ledger
         </div>
         <h1 className="mt-3 text-3xl font-medium tracking-tight">Track record</h1>
-        <p className="mt-2 max-w-2xl text-sm text-zinc-400">
+        {liveCount > 0 && liveCount < 10 ? (
+          <p className="mt-4 border border-amber-500/40 bg-amber-500/[0.04] p-3 text-sm leading-6 text-amber-100">
+            <strong>Sample warning:</strong> the live cohort below has only {liveCount} scored
+            prediction{liveCount === 1 ? "" : "s"}. Any rate on a sample this small is statistically
+            meaningless — read it as &ldquo;direction of travel,&rdquo; not as a reliable accuracy
+            claim. Wait until n ≥ 10 (per signal type) before trusting it. The number is what it is;
+            we&apos;d rather expose that than dress it up.
+          </p>
+        ) : null}
+        <p className="mt-3 max-w-2xl text-sm text-zinc-400">
           Every published market signal scored against subsequent market moves. Read Live first; use
           Backfill only to calibrate the scoring system.
           <br />
