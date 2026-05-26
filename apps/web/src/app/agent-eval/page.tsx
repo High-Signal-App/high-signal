@@ -219,6 +219,13 @@ export default async function AgentEvalPage({
         agents. Then turn only verified proof into short-form attention briefs.
       </SectionHeader>
 
+      <p className="mt-6 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
+        new to this →{" "}
+        <a href="/agent-eval/sample" className="text-[var(--color-accent)] hover:underline">
+          read a sample report
+        </a>
+      </p>
+
       <StatGrid
         items={[
           { label: "Input", value: "URL + mission", sub: "product, buyer, competitors" },

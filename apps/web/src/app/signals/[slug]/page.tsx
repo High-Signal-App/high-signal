@@ -237,6 +237,10 @@ export default async function SignalDetail({ params }: { params: Promise<{ slug:
         </section>
       )}
 
+      <p className="mt-10 border-l-2 border-zinc-800 pl-3 font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
+        Decision support, not stock advice. This signal is research with cited evidence — not a recommendation to buy, sell, or hold any security.
+      </p>
+
       {scores.length > 0 && (
         <section className="mt-12 border-t border-zinc-800 pt-6">
           <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">

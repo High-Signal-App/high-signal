@@ -43,3 +43,4 @@ export * from "./signal-families";
 export * from "./brief";
 export * from "./seed-products";
 export * from "./seed-content";
+export * from "./sample-competitor-prompts";

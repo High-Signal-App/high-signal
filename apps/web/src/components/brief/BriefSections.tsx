@@ -267,6 +267,9 @@ export function BriefSections({ brief }: { brief: BriefSnapshot }) {
           </Link>
         }
       >
+        <p className="mb-4 border-l-2 border-[var(--color-line)] pl-3 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
+          Decision support, not stock advice. Cited signals to inform your research — not a recommendation to buy, sell, or hold.
+        </p>
         <div className="border-t border-[var(--color-line)]">
           {brief.stocks.map((item) => (
             <StockItem key={`${item.signalSlug}-${item.entityId}`} item={item} />
