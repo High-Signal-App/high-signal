@@ -1708,5 +1708,176 @@
         ]
       }
     ]
+  },
+  {
+    "source": "stooq",
+    "createdAt": "2026-05-28T11:06:57.396Z",
+    "groups": [
+      {
+        "id": "us-market-beta",
+        "title": "US market risk appetite",
+        "region": "national",
+        "thesis": "Broad US risk-on/risk-off movement changes appetite for new SaaS spending, AI tooling, and experimental product bets.",
+        "productImplication": "When broad US growth/risk appetite weakens, prioritize immediate ROI, cost control, and evidence-backed buyer proof over speculative new surfaces.",
+        "direction": "mixed",
+        "averageChangePct": -0.2687143355654759,
+        "quotes": [
+          {
+            "symbol": "SPY",
+            "name": "S&P 500 ETF",
+            "role": "broad US market",
+            "stooqSymbol": "spy.us",
+            "date": "2026-05-27",
+            "time": "22:00:20",
+            "open": 750.88,
+            "close": 750.46,
+            "changePct": -0.055934370338797015,
+            "volume": 42106286
+          },
+          {
+            "symbol": "QQQ",
+            "name": "Nasdaq 100 ETF",
+            "role": "US growth and AI software beta",
+            "stooqSymbol": "qqq.us",
+            "date": "2026-05-27",
+            "time": "22:00:19",
+            "open": 732.96,
+            "close": 729.45,
+            "changePct": -0.47888015717092214,
+            "volume": 35148674
+          },
+          {
+            "symbol": "IWM",
+            "name": "Russell 2000 ETF",
+            "role": "small-cap risk appetite",
+            "stooqSymbol": "iwm.us",
+            "date": "2026-05-27",
+            "time": "22:00:19",
+            "open": 291.16,
+            "close": 290.37,
+            "changePct": -0.2713284791867085,
+            "volume": 24519854
+          }
+        ]
+      },
+      {
+        "id": "us-ai-infra",
+        "title": "US AI infrastructure bellwethers",
+        "region": "national",
+        "thesis": "AI infrastructure equities are a fast proxy for whether the market is rewarding compute, chips, cloud, and model-platform expansion.",
+        "productImplication": "Strength supports AI-infra and agent-evaluation narratives; weakness pushes High Signal toward cost control, proof, and practical workflow value.",
+        "direction": "risk-off",
+        "averageChangePct": -0.8784812085118906,
+        "quotes": [
+          {
+            "symbol": "NVDA",
+            "name": "NVIDIA",
+            "role": "accelerator demand",
+            "stooqSymbol": "nvda.us",
+            "date": "2026-05-27",
+            "time": "22:00:19",
+            "open": 214.12,
+            "close": 212.6,
+            "changePct": -0.7098823089856203,
+            "volume": 167601173
+          },
+          {
+            "symbol": "AMD",
+            "name": "AMD",
+            "role": "accelerator competition",
+            "stooqSymbol": "amd.us",
+            "date": "2026-05-27",
+            "time": "22:00:19",
+            "open": 508,
+            "close": 495.54,
+            "changePct": -2.452755905511807,
+            "volume": 27589332
+          },
+          {
+            "symbol": "AVGO",
+            "name": "Broadcom",
+            "role": "custom silicon and networking",
+            "stooqSymbol": "avgo.us",
+            "date": "2026-05-27",
+            "time": "22:00:19",
+            "open": 425.07,
+            "close": 421.86,
+            "changePct": -0.7551697367492365,
+            "volume": 17601013
+          },
+          {
+            "symbol": "MSFT",
+            "name": "Microsoft",
+            "role": "cloud and AI platform spending",
+            "stooqSymbol": "msft.us",
+            "date": "2026-05-27",
+            "time": "22:00:19",
+            "open": 411.01,
+            "close": 412.67,
+            "changePct": 0.40388311719910097,
+            "volume": 28901479
+          }
+        ]
+      },
+      {
+        "id": "international-ai-supply-chain",
+        "title": "International AI supply chain",
+        "region": "international",
+        "thesis": "International semiconductor and platform bellwethers show whether AI demand is broadening outside US mega-cap narratives.",
+        "productImplication": "When international AI supply-chain names move together, High Signal should look for cross-border supply, policy, and capex signals before recommending market-intelligence builds.",
+        "direction": "risk-off",
+        "averageChangePct": -2.281197154264022,
+        "quotes": [
+          {
+            "symbol": "TSM",
+            "name": "TSMC ADR",
+            "role": "foundry demand",
+            "stooqSymbol": "tsm.us",
+            "date": "2026-05-27",
+            "time": "22:00:34",
+            "open": 427.015,
+            "close": 422.73,
+            "changePct": -1.003477629591459,
+            "volume": 14695620
+          },
+          {
+            "symbol": "ASML",
+            "name": "ASML ADR",
+            "role": "lithography bottleneck",
+            "stooqSymbol": "asml.us",
+            "date": "2026-05-27",
+            "time": "22:00:19",
+            "open": 1637.35,
+            "close": 1597.87,
+            "changePct": -2.4112132409075655,
+            "volume": 1363624
+          },
+          {
+            "symbol": "ARM",
+            "name": "Arm Holdings ADR",
+            "role": "architecture and licensing",
+            "stooqSymbol": "arm.us",
+            "date": "2026-05-27",
+            "time": "22:00:19",
+            "open": 320.535,
+            "close": 302.71,
+            "changePct": -5.561015177749713,
+            "volume": 9356318
+          },
+          {
+            "symbol": "SAP",
+            "name": "SAP ADR",
+            "role": "international enterprise software demand",
+            "stooqSymbol": "sap.us",
+            "date": "2026-05-27",
+            "time": "22:00:21",
+            "open": 174.4,
+            "close": 174.14,
+            "changePct": -0.14908256880735052,
+            "volume": 1995130
+          }
+        ]
+      }
+    ]
   }
 ]
