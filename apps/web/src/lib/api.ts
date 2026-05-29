@@ -259,6 +259,17 @@ export const api = {
       marketQuotes?: MarketQuote[];
     }>(`/entities/${id}`),
   trackRecord: () => fetchJson<{ buckets: TrackBucket[] }>("/track-record"),
+  trackRecordLabels: () =>
+    fetchJson<{
+      generatedAt: string;
+      backtestDays: number;
+      labels: Record<
+        "breakout" | "divergence",
+        { n: number; hits: number; rate: number; lift: number | null }
+      >;
+      unlabeled: { n: number; hits: number; rate: number };
+      baseline: { n: number; hits: number; rate: number };
+    }>("/track-record/labels"),
   trackRecordCohorts: () =>
     fetchJson<{ live: TrackBucket[]; backfill: TrackBucket[]; all: TrackBucket[] }>(
       "/track-record/cohorts",

@@ -8,12 +8,24 @@
 
 import { Hono } from "hono";
 import seedEntities from "../lib/seed-entities.json";
+import labelBacktest from "../lib/label-backtest.json";
 import {
   articleFromWikiUrl,
   buildPageviewsUrl,
   summarize,
   type AttentionResult,
 } from "./attention";
+
+interface LabelStats {
+  n: number;
+  hits: number;
+  rate: number;
+  lift: number | null;
+}
+
+const BREAKOUT_STATS = (labelBacktest.labels.breakout as LabelStats) ?? null;
+const DIVERGENCE_STATS = (labelBacktest.labels.divergence as LabelStats) ?? null;
+const BASELINE_RATE = (labelBacktest.baseline?.rate as number | undefined) ?? null;
 
 type Env = { DB: D1Database };
 
@@ -273,14 +285,32 @@ convergenceRoute.get("/", async (c) => {
       // null otherwise.
       let label: "breakout" | "divergence" | null = null;
       let labelReason: string | null = null;
+      let labelStats: LabelStats | null = null;
       const trend = attention?.trend;
       if (trend && row.source_count >= 3) {
         if (trend.direction === "up" && trend.deltaPct >= 25) {
           label = "breakout";
-          labelReason = `attention +${trend.deltaPct.toFixed(0)}% over prior 7d while ${row.source_count} sources fire`;
+          labelStats = BREAKOUT_STATS;
         } else if (trend.direction === "down") {
           label = "divergence";
-          labelReason = `${row.source_count} sources fire but attention ${trend.deltaPct.toFixed(0)}% (pre-news lead)`;
+          labelStats = DIVERGENCE_STATS;
+        }
+        if (label) {
+          // Compose reason: trigger + measured backtest performance.
+          // "Cite-or-kill" — every label carries its own hit-rate inline.
+          const triggerText =
+            label === "breakout"
+              ? `attention +${trend.deltaPct.toFixed(0)}% over prior 7d while ${row.source_count} sources fire`
+              : `${row.source_count} sources fire but attention ${trend.deltaPct.toFixed(0)}% (pre-news lead)`;
+          if (labelStats && BASELINE_RATE) {
+            const rateLabel = `${(labelStats.rate * 100).toFixed(0)}%`;
+            const liftLabel = labelStats.lift ? `${labelStats.lift.toFixed(2)}× baseline` : "";
+            labelReason =
+              `${triggerText} · backtest: ${rateLabel} next-24h hit-rate ` +
+              `(${liftLabel}, n=${labelStats.n})`;
+          } else {
+            labelReason = triggerText;
+          }
         }
       }
       return {

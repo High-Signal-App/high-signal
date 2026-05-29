@@ -1,0 +1,28 @@
+{
+  "generatedAt": "2026-05-29T21:41:24.673712+00:00",
+  "backtestDays": 14,
+  "labels": {
+    "breakout": {
+      "n": 17,
+      "hits": 10,
+      "rate": 0.5882,
+      "lift": 1.714
+    },
+    "divergence": {
+      "n": 95,
+      "hits": 43,
+      "rate": 0.4526,
+      "lift": 1.319
+    }
+  },
+  "unlabeled": {
+    "n": 162,
+    "hits": 41,
+    "rate": 0.2531
+  },
+  "baseline": {
+    "n": 274,
+    "hits": 94,
+    "rate": 0.3431
+  }
+}

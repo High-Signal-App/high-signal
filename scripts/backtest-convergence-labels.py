@@ -278,6 +278,37 @@ def main() -> int:
     with_trend = [r for r in rows if r["trend_dir"]]
     print(f"\n  rows with attention trend data: {len(with_trend):,} / {len(rows):,}")
     print(f"  CSV written to: {out_path}")
+
+    # Compute summary stats and write JSON for the Worker to import.
+    def stats(matching: list[dict]) -> dict:
+        n = len(matching)
+        hits = sum(r["next_24h_signal"] for r in matching)
+        rate = hits / n if n else 0.0
+        return {"n": n, "hits": hits, "rate": round(rate, 4)}
+
+    breakout_stats = stats([r for r in rows if r["label"] == "breakout"])
+    divergence_stats = stats([r for r in rows if r["label"] == "divergence"])
+    unlabeled_stats = stats([r for r in rows if r["label"] == ""])
+    baseline_stats = stats(rows)
+
+    def lift(s: dict) -> Optional[float]:
+        if not s["n"] or not baseline_stats["rate"]:
+            return None
+        return round(s["rate"] / baseline_stats["rate"], 3)
+
+    summary = {
+        "generatedAt": now.isoformat(),
+        "backtestDays": BACKTEST_DAYS,
+        "labels": {
+            "breakout": {**breakout_stats, "lift": lift(breakout_stats)},
+            "divergence": {**divergence_stats, "lift": lift(divergence_stats)},
+        },
+        "unlabeled": unlabeled_stats,
+        "baseline": baseline_stats,
+    }
+    worker_path = REPO / "workers/api/src/lib/label-backtest.json"
+    worker_path.write_text(json.dumps(summary, indent=2) + "\n")
+    print(f"  Summary JSON: {worker_path}")
     return 0
 
 
