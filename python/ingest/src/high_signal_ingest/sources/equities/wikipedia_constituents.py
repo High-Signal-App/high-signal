@@ -30,7 +30,15 @@ from .universe import TickerSpec
 
 
 LOGGER = logging.getLogger(__name__)
-USER_AGENT = "high-signal/0.1 wikipedia-constituents"
+
+# Wikipedia's User-Agent policy (meta.wikimedia.org/wiki/User-Agent_policy)
+# rejects generic UAs from cloud IPs with 403. Must include tool + contact.
+USER_AGENT = (
+    "high-signal-equities/0.1 "
+    "(+https://github.com/sarthakagrawal927/high-signal; "
+    "contact: sarthak@vaultwealth.com) "
+    "wikipedia-constituents"
+)
 HTTP_TIMEOUT = httpx.Timeout(30.0, connect=10.0)
 
 
