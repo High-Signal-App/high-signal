@@ -111,9 +111,9 @@ Legend used in the notes:
 
 ### Markets / prediction
 - [x] **Prediction markets — Polymarket + Manifold** *(10 AI-infra keywords)* — `python/ingest/sources/markets.py`
-  - [ ] Add **Kalshi** *(US-regulated real-money exchange)*
-  - [ ] Add **Metaculus** *(reputation-based long-horizon forecasters)*
-  - [ ] **Broaden Polymarket coverage** beyond keyword filter — volume / new categories / odds drift are the actual signal ("new kinds of gambling people do")
+  - [x] Add **Kalshi** *(US-regulated real-money exchange — cursor-paginated, no-auth read)*
+  - [x] **Broaden Polymarket coverage** beyond keyword filter — top-N by 24h volume firehose ("new kinds of gambling people do")
+  - [ ] Add **Metaculus** *(reputation-based long-horizon forecasters — API now requires auth)*
 
 ### News
 - [x] **GDELT 2.0 DOC API** *(39 themed queries, semi-focused)* — `python/ingest/sources/gdelt.py`

@@ -1,8 +1,14 @@
-"""Prediction-market adapter — Polymarket + Manifold Markets.
+"""Prediction-market adapter — Polymarket + Manifold + Kalshi.
 
-Pulls AI-infra / semi-related markets and emits both Event objects (for audit)
-and quote dicts (for direct /admin/quotes push). Quotes are time-series so we
-re-poll every 4h via cron-markets.yml.
+Pulls active markets and emits both Event objects (for audit) and quote dicts
+(for direct /admin/quotes push). Quotes are time-series so we re-poll every
+4h via cron-markets.yml.
+
+Two scopes per source:
+- Keyword-filtered: AI-infra / semi markets (legacy, fed brief section 1)
+- Firehose / top-by-volume: "what people are betting big on right now"
+  irrespective of topic — the broader signal Kalshi and Polymarket actually
+  represent ("new kinds of gambling people do").
 """
 
 from __future__ import annotations
@@ -11,7 +17,7 @@ import hashlib
 import logging
 import os
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Optional
 
 import httpx
 
@@ -24,6 +30,9 @@ USER_AGENT = "high-signal/0.1 markets-ingest"
 
 POLYMARKET_BASE = "https://gamma-api.polymarket.com/markets"
 MANIFOLD_BASE = "https://api.manifold.markets/v0/search-markets"
+# Kalshi migrated to the elections subdomain in 2024 after their election market
+# launch. The trading-api alias still works but elections is now canonical.
+KALSHI_BASE = "https://api.elections.kalshi.com/trade-api/v2/markets"
 
 DEFAULT_KEYWORDS: list[str] = [
     "NVIDIA",
@@ -173,6 +182,224 @@ def _extract_poly_prob(m: dict) -> float | None:
     return None
 
 
+def fetch_polymarket_firehose(top_n: int = 200) -> tuple[list[Event], list[dict]]:
+    """Pull the highest-volume currently-active Polymarket markets (no keyword).
+
+    This is the "what's popular right now" signal — political, crypto, sports,
+    macro, whatever is moving the most money, irrespective of AI/semi topic.
+    """
+    events: list[Event] = []
+    quotes: list[dict] = []
+    seen_ids: set[str] = set()
+    timeout = httpx.Timeout(30.0, connect=10.0)
+    headers = {"User-Agent": USER_AGENT}
+    fetched_at = _now()
+
+    with httpx.Client(headers=headers, timeout=timeout, follow_redirects=True) as client:
+        try:
+            r = client.get(
+                POLYMARKET_BASE,
+                params={
+                    "active": "true",
+                    "closed": "false",
+                    "limit": min(top_n, 500),
+                    "order": "volume24hr",
+                    "ascending": "false",
+                },
+            )
+            if r.status_code != 200:
+                LOGGER.warning("polymarket firehose status=%s", r.status_code)
+                return events, quotes
+            data = r.json()
+        except (httpx.HTTPError, ValueError) as exc:
+            LOGGER.warning("polymarket firehose error: %s", exc)
+            return events, quotes
+
+        markets = data if isinstance(data, list) else data.get("data") or []
+        for m in markets:
+            mid = str(m.get("id") or m.get("conditionId") or "")
+            if not mid or mid in seen_ids:
+                continue
+            seen_ids.add(mid)
+            question = (m.get("question") or m.get("title") or "").strip()
+            if not question:
+                continue
+            prob = _extract_poly_prob(m)
+            if prob is None:
+                continue
+            slug = m.get("slug")
+            url = _poly_url(slug, mid)
+            volume = _safe_float(m.get("volumeNum") or m.get("volume"))
+            resolved = bool(m.get("closed") or m.get("resolved"))
+            resolved_outcome = (m.get("winningOutcome") or m.get("resolution")) if resolved else None
+            entity_id = _resolve_entity(question)
+            raw_hash = _hash("polymarket-firehose", mid, fetched_at.strftime("%Y%m%d%H"))
+
+            events.append(
+                Event(
+                    id=raw_hash[:16],
+                    source="market:polymarket",
+                    source_url=url,
+                    published_at=fetched_at,
+                    title=question[:300],
+                    content=f"Polymarket top market '{question}': YES={prob:.2%}",
+                    primary_entity_id=entity_id,
+                    raw_hash=raw_hash,
+                )
+            )
+            quotes.append(
+                {
+                    "source": "polymarket",
+                    "marketId": mid,
+                    "entityId": entity_id,
+                    "question": question[:500],
+                    "outcome": "yes",
+                    "prob": prob,
+                    "volume": volume,
+                    "resolved": resolved,
+                    "resolvedOutcome": resolved_outcome,
+                    "marketUrl": url,
+                    "fetchedAt": fetched_at.isoformat(),
+                }
+            )
+    return events, quotes
+
+
+# --- Kalshi -----------------------------------------------------------------
+
+
+def _kalshi_market_url(ticker: str) -> str:
+    return f"https://kalshi.com/markets/{ticker}"
+
+
+def _kalshi_prob(m: dict) -> Optional[float]:
+    """Extract YES probability (0–1) from a Kalshi market dict.
+
+    Kalshi prices are in cents (0–100). Prefer ``last_price``; fall back to
+    the ``(yes_bid + yes_ask) / 2`` midpoint when last is missing.
+    """
+
+    def _cents_to_prob(v: Any) -> Optional[float]:
+        f = _safe_float(v)
+        if f is None or not (0 <= f <= 100):
+            return None
+        return f / 100.0
+
+    last = _cents_to_prob(m.get("last_price"))
+    if last is not None:
+        return last
+    bid = m.get("yes_bid")
+    ask = m.get("yes_ask")
+    if bid is None or ask is None:
+        return None
+    bid_f = _safe_float(bid)
+    ask_f = _safe_float(ask)
+    if bid_f is None or ask_f is None:
+        return None
+    mid = (bid_f + ask_f) / 2
+    if not (0 <= mid <= 100):
+        return None
+    return mid / 100.0
+
+
+def parse_kalshi_market(m: dict) -> Optional[dict]:
+    """One Kalshi market dict → one quote dict (or None to skip)."""
+    if not isinstance(m, dict):
+        return None
+    ticker = str(m.get("ticker") or "").strip()
+    if not ticker:
+        return None
+    prob = _kalshi_prob(m)
+    if prob is None:
+        return None
+    question = (
+        (m.get("title") or m.get("subtitle") or m.get("yes_sub_title") or "").strip()
+    )
+    if not question:
+        question = ticker  # fallback so the row carries something useful
+    volume = _safe_float(m.get("volume"))
+    status = (m.get("status") or "").lower()
+    resolved = status in {"settled", "determined", "closed"}
+    resolved_outcome = m.get("result") if resolved else None
+    return {
+        "source": "kalshi",
+        "marketId": ticker,
+        "entityId": _resolve_entity(question),
+        "question": question[:500],
+        "outcome": "yes",
+        "prob": prob,
+        "volume": volume,
+        "resolved": resolved,
+        "resolvedOutcome": resolved_outcome,
+        "marketUrl": _kalshi_market_url(ticker),
+        "fetchedAt": _now().isoformat(),
+    }
+
+
+def parse_kalshi_response(response: Optional[dict]) -> list[dict]:
+    """Parse the `/v2/markets` list response into quote dicts."""
+    if not response or not isinstance(response, dict):
+        return []
+    out: list[dict] = []
+    for m in response.get("markets") or []:
+        q = parse_kalshi_market(m)
+        if q is not None:
+            out.append(q)
+    return out
+
+
+def fetch_kalshi(top_n: int = 200, max_pages: int = 4) -> tuple[list[Event], list[dict]]:
+    """Pull active Kalshi markets via cursor pagination.
+
+    Kalshi caps `limit` at 200; we walk pages until we have ~`top_n` rows
+    or pagination exhausts. No auth needed for read.
+    """
+    events: list[Event] = []
+    quotes: list[dict] = []
+    timeout = httpx.Timeout(30.0, connect=10.0)
+    headers = {"User-Agent": USER_AGENT}
+    fetched_at = _now()
+    cursor: Optional[str] = None
+    page_limit = min(200, top_n)
+
+    with httpx.Client(headers=headers, timeout=timeout, follow_redirects=True) as client:
+        for _ in range(max_pages):
+            params: dict[str, Any] = {"limit": page_limit, "status": "open"}
+            if cursor:
+                params["cursor"] = cursor
+            try:
+                r = client.get(KALSHI_BASE, params=params)
+                if r.status_code != 200:
+                    LOGGER.warning("kalshi status=%s", r.status_code)
+                    break
+                data = r.json()
+            except (httpx.HTTPError, ValueError) as exc:
+                LOGGER.warning("kalshi error: %s", exc)
+                break
+
+            for q in parse_kalshi_response(data):
+                quotes.append(q)
+                raw_hash = _hash("kalshi", q["marketId"], fetched_at.strftime("%Y%m%d%H"))
+                events.append(
+                    Event(
+                        id=raw_hash[:16],
+                        source="market:kalshi",
+                        source_url=q["marketUrl"],
+                        published_at=fetched_at,
+                        title=q["question"][:300],
+                        content=f"Kalshi market '{q['question']}': YES={q['prob']:.2%}",
+                        primary_entity_id=q["entityId"],
+                        raw_hash=raw_hash,
+                    )
+                )
+
+            cursor = data.get("cursor") if isinstance(data, dict) else None
+            if not cursor or len(quotes) >= top_n:
+                break
+
+    return events, quotes
+
+
 # --- Manifold ---------------------------------------------------------------
 
 
@@ -253,23 +480,39 @@ def fetch_manifold(keywords: list[str] | None = None) -> tuple[list[Event], list
 
 
 def fetch_all(
-    keywords: list[str] | None = None, days: int = 30
+    keywords: list[str] | None = None,
+    days: int = 30,
+    firehose_top_n: int = 200,
 ) -> tuple[list[Event], list[dict]]:
-    """Run both Polymarket + Manifold. Returns (events, quotes)."""
+    """Run all four scopes: Polymarket (keyword + firehose), Manifold, Kalshi.
+
+    Returns (events, quotes). Failures in one source are logged and skipped;
+    the others still run.
+    """
     events: list[Event] = []
     quotes: list[dict] = []
-    try:
-        e1, q1 = fetch_polymarket(keywords, days=days)
-        events.extend(e1)
-        quotes.extend(q1)
-    except Exception as exc:
-        LOGGER.warning("polymarket fetch failed: %s", exc)
-    try:
-        e2, q2 = fetch_manifold(keywords)
-        events.extend(e2)
-        quotes.extend(q2)
-    except Exception as exc:
-        LOGGER.warning("manifold fetch failed: %s", exc)
+    seen_quote_ids: set[tuple[str, str]] = set()
+
+    def _extend(source_name: str, fetcher):
+        try:
+            evts, qs = fetcher()
+        except Exception as exc:  # noqa: BLE001 — third-party network calls
+            LOGGER.warning("%s fetch failed: %s", source_name, exc)
+            return
+        events.extend(evts)
+        # Dedupe quotes within a single run (firehose and keyword may both
+        # surface a hot Polymarket market — keep the first only).
+        for q in qs:
+            key = (q["source"], q["marketId"])
+            if key in seen_quote_ids:
+                continue
+            seen_quote_ids.add(key)
+            quotes.append(q)
+
+    _extend("polymarket (keyword)",   lambda: fetch_polymarket(keywords, days=days))
+    _extend("polymarket (firehose)",  lambda: fetch_polymarket_firehose(top_n=firehose_top_n))
+    _extend("manifold",               lambda: fetch_manifold(keywords))
+    _extend("kalshi",                 lambda: fetch_kalshi(top_n=firehose_top_n))
     return events, quotes
 
 
