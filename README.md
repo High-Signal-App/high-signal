@@ -41,6 +41,98 @@ Pricing: free. No paid tier, no billing. Region is a free filter.
 
 For day-to-day stack and conventions, read `agents.md` (canonical).
 
+## Data pipelines
+
+Status of every public-source ingest that feeds the brief.
+**Tick the box when wired.** Items left unticked are either deferred or
+partially landed (notes call out *which* part remains).
+
+Legend used in the notes:
+- **wired** — ingest runs in the daily cron and writes to D1 / git markdown / artifact.
+- **partial** — some of the source's surface is in, but the canonical scope (forms, sub-feeds, sub-tier columns) isn't complete yet.
+- **deferred** — wiring exists but not on the daily path (e.g., a v2 of the source).
+
+### Capital, filings, money
+- [x] **SEC EDGAR — 8-K / 10-Q / 10-K** — `python/ingest/sources/edgar.py`
+- [ ] **SEC EDGAR — Form D** *(every priced US Reg D round; biggest current gap)*
+- [ ] **SEC EDGAR — S-1** *(IPO prospectuses)*
+- [ ] **SEC EDGAR — Form 4** *(insider transactions, with cluster-detection filter)*
+- [ ] **SEC EDGAR — 13F-HR** *(institutional holdings, 45-day-lagged)*
+- [ ] **USPTO PatentsView API** *(12–24mo product lookahead)*
+- [ ] **Companies House (UK)** *(non-US incorporations + filings)*
+- [x] **HKEX issuer announcements** — `python/ingest/sources/hkex.py`
+- [x] **IR pages** — `python/ingest/sources/ir.py`
+- [x] **GLEIF LEI** *(enrichment / entity resolution)* — *(planned: bulk download + cross-source join key)*
+
+### Equities snapshot pipeline (`/equities`)
+- [x] **Universe build** — S&P 500 + Russell 1000 + S&P 400 + S&P 600 + Wikipedia international + ai_infra_entities + curated ETFs/indices + crypto top 100 → **3,226 unique tickers** — `python/ingest/sources/equities/universe.py`
+- [x] **yfinance closes** — daily EOD via batched download — `python/ingest/sources/equities/yf.py`
+- [x] **Tier 1 derivations** — ret_1d/30d/90d/1y/5y (local + USD), volatility, 52-week, SMA50/200, golden/death cross, beta vs SPY — `python/ingest/sources/equities/snapshot.py`
+- [x] **Page** — sortable / filterable table at `/equities`
+- [x] **Cron** — `cron-equities.yml`, 21:30 UTC weekdays; bot auto-commits refresh
+- [ ] **Tier 2** — ECB FX daily, FRED risk-free rates (DGS3MO/DGS10), Wikipedia pageviews per ticker, Wikidata sector/industry, dividend yield
+- [ ] **Tier 3** — SEC XBRL market cap + fundamentals (US), Form 4 insider summary 90d, FINRA short interest biweekly, 13F top 10 holders quarterly, earnings calendar from 8-K item 2.02, GDELT/Reddit/HN mention counts per entity
+
+### Jobs (leading capital indicator)
+- [ ] **Greenhouse + Lever + Ashby public job boards** *(one fetcher template, ~2k startup companies enumerated)*
+
+### Builder activity
+- [x] **GitHub releases** *(11 AI-infra repos)* — `python/ingest/sources/github.py`
+- [x] **GitHub trending** *(5 languages × daily/weekly/monthly)* — `python/ingest/lab/github_trending.py`
+- [x] **GitHub stars (personal + ≥ 5k-star repos)** — `../starboard`
+- [ ] **GitHub Archive (BigQuery)** *(full public-event firehose)*
+- [ ] **Hugging Face Hub** *(models / datasets / spaces + download trends)*
+- [ ] **PyPI** *(package releases + download trends)*
+- [ ] **npm registry** *(package releases + download trends)*
+- [ ] **OSV.dev** *(package-ecosystem vulnerability advisories)*
+
+### Research
+- [x] **arXiv** — `../researchPapers/arxiv.py` (top-10k CS papers, URL extraction)
+- [x] **OpenAlex** — `../researchPapers/openalex.py` (citation graph)
+- [ ] **Semantic Scholar v2** *(deferred; client + batch endpoint exist)*
+
+### Discourse
+- [x] **Hacker News** — `python/ingest/lab/ingest.py` (Firebase API + outbound-link extraction)
+- [x] **Reddit** *(7 subs — hardware/semi-heavy)* — `python/ingest/sources/reddit.py`
+  - [ ] Broaden to startup subs (`r/startups`, `r/SaaS`, `r/IndieHackers`, `r/ExperiencedDevs`, `r/webdev`, `r/devops`, …)
+- [x] **YouTube transcripts** *(8 hardware/macro channels)* — `python/ingest/sources/youtube.py`
+  - [ ] Add founder channels (Y Combinator, a16z, All-In, Lenny's, Pragmatic Engineer)
+- [ ] **Bluesky AT Protocol firehose** *(real founder/researcher presence)*
+- [ ] **Lobste.rs** *(RSS + JSON)*
+- [ ] **Substack RSS pool** *(curated ~200 tech/startup writers — Stratechery, Pragmatic Engineer, Lenny's, etc.)*
+- [ ] **Techmeme RSS** *(meta-curation)*
+- [ ] **Podcast Index → Whisper** *(Acquired, Lenny's, Dwarkesh, Lex, All-In, 20VC, Latent Space, …)*
+
+### Policy & standards
+- [x] **Federal Register** *(narrow filter — BIS export controls + Commerce only)* — `python/ingest/sources/gov.py`
+  - [ ] Broaden filter (AI EOs, FTC merger guidelines, SEC private-fund rules, FCC, USCIS, FAA, FDA)
+- [ ] **Regulations.gov** *(rulemaking dockets + comments)*
+- [ ] **SAM.gov + SBIR.gov** *(federal contracts + SBIR topics)*
+
+### Markets / prediction
+- [x] **Prediction markets — Polymarket + Manifold** *(10 AI-infra keywords)* — `python/ingest/sources/markets.py`
+  - [ ] Add **Kalshi** *(US-regulated real-money exchange)*
+  - [ ] Add **Metaculus** *(reputation-based long-horizon forecasters)*
+  - [ ] **Broaden Polymarket coverage** beyond keyword filter — volume / new categories / odds drift are the actual signal ("new kinds of gambling people do")
+
+### News
+- [x] **GDELT 2.0 DOC API** *(39 themed queries, semi-focused)* — `python/ingest/sources/gdelt.py`
+- [x] **News + blog RSS pool** *(50+ tiered feeds)* — `python/ingest/sources/news.py` + `seed/sources.yaml`
+- [ ] **The Guardian Open Platform** *(free key, 5000/day, full text — only mainstream news with a usable free tier)*
+
+### Attention
+- [ ] **Wikipedia Pageviews API** *(per-company/product attention curves — biggest signal-per-LOC in this list)*
+- [ ] **Wayback Machine CDX** *(diff company `/careers`, `/pricing`, `/about` pages over time — pivots show up here first)*
+- [ ] **Wikidata SPARQL** *(entity resolution + sector/industry classification)*
+
+### Security
+- [ ] **NVD CVE API**
+- [ ] **CISA KEV catalog** *(actively exploited vulnerabilities)*
+
+---
+
+**Naming convention**: ingest sources live under `python/ingest/src/high_signal_ingest/sources/`; sources that produce a web surface own a route under `apps/web/src/app/`; cron workflows live in `.github/workflows/cron-*.yml`. Each new pipeline gets a row in this list — keep it the canonical status board.
+
 ## Will discuss: Signal Studio and playgrounds
 **Signal Studio** is the recommended first playground: a visual content lab that turns High Signal findings into polished marketing assets. It should feel like a futuristic marketing command center, not a boring dashboard. It can be playground-quality visually while still producing assets useful for selling High Signal.
 
