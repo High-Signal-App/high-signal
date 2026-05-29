@@ -299,13 +299,16 @@ def build_universe(client: Optional[httpx.Client] = None) -> list[TickerSpec]:
         )
     try:
         # Imported here to avoid a module-level import cycle (wikipedia_constituents
-        # imports TickerSpec from this module).
-        from .wikipedia_constituents import fetch_all_wikipedia_constituents
+        # imports TickerSpec + SEED_DIR from this module).
+        from .wikipedia_constituents import load_or_fetch_wikipedia_constituents
 
         specs: list[TickerSpec] = []
         specs.extend(fetch_sp500_constituents(client=client))
         specs.extend(load_ai_infra_entities())
-        specs.extend(fetch_all_wikipedia_constituents(client=client))
+        # Cron path reads from the committed wikipedia_constituents_cache.json
+        # because GH Actions IPs get 403'd by Wikipedia. Local refresh:
+        #   uv run python -m high_signal_ingest.refresh_equities_universe
+        specs.extend(load_or_fetch_wikipedia_constituents(client=client))
         specs.extend(load_seed_csv(SEED_DIR / "equities_indices.csv"))
         specs.extend(load_seed_csv(SEED_DIR / "equities_etfs.csv"))
         specs.extend(fetch_coingecko_top_n(100, client=client))

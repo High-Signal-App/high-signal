@@ -18,21 +18,28 @@ Russell 3000, Nikkei 225, HSI Composite, NIFTY 100.
 
 from __future__ import annotations
 
+import dataclasses
+import json
 import logging
 import warnings
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Optional
 
 import httpx
 import pandas as pd
 
-from .universe import TickerSpec
+from .universe import SEED_DIR, TickerSpec
 
 
 LOGGER = logging.getLogger(__name__)
 
 # Wikipedia's User-Agent policy (meta.wikimedia.org/wiki/User-Agent_policy)
-# rejects generic UAs from cloud IPs with 403. Must include tool + contact.
+# rejects generic UAs from cloud IPs with 403 regardless of contact info — the
+# IP-range itself is filtered. We work around this by caching the constituent
+# lists to a committed JSON file (they change quarterly, not daily), so the
+# cron in GH Actions never needs to hit Wikipedia. Local refresh via:
+#   uv run python -m high_signal_ingest.refresh_equities_universe
 USER_AGENT = (
     "high-signal-equities/0.1 "
     "(+https://github.com/sarthakagrawal927/high-signal; "
@@ -40,6 +47,7 @@ USER_AGENT = (
     "wikipedia-constituents"
 )
 HTTP_TIMEOUT = httpx.Timeout(30.0, connect=10.0)
+CACHE_PATH = SEED_DIR / "wikipedia_constituents_cache.json"
 
 
 @dataclass(frozen=True)
@@ -343,3 +351,50 @@ def fetch_all_wikipedia_constituents(
     finally:
         if owns_client:
             client.close()
+
+
+# ─── cache layer ──────────────────────────────────────────────────────────
+
+
+def write_cache(specs: list[TickerSpec], path: Path = CACHE_PATH) -> Path:
+    """Serialize constituent specs to a JSON cache file (committed to repo)."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "version": 1,
+        "rows": [dataclasses.asdict(s) for s in specs],
+    }
+    path.write_text(json.dumps(payload, indent=2) + "\n")
+    return path
+
+
+def read_cache(path: Path = CACHE_PATH) -> list[TickerSpec]:
+    """Load constituent specs from the cache file. Returns [] if absent."""
+    if not path.exists():
+        return []
+    try:
+        payload = json.loads(path.read_text())
+        rows = payload.get("rows", [])
+        return [TickerSpec(**row) for row in rows]
+    except (json.JSONDecodeError, TypeError) as exc:
+        LOGGER.warning("wikipedia cache load error: %s", exc)
+        return []
+
+
+def load_or_fetch_wikipedia_constituents(
+    refresh: bool = False,
+    client: Optional[httpx.Client] = None,
+) -> list[TickerSpec]:
+    """Read from cache if present (the cron path), else fetch fresh (local).
+
+    Pass ``refresh=True`` to force re-fetching and rewriting the cache.
+    """
+    if not refresh:
+        cached = read_cache()
+        if cached:
+            LOGGER.info("wikipedia constituents: loaded %d rows from cache", len(cached))
+            return cached
+    specs = fetch_all_wikipedia_constituents(client=client)
+    if specs:
+        write_cache(specs)
+        LOGGER.info("wikipedia constituents: cached %d rows to %s", len(specs), CACHE_PATH)
+    return specs
