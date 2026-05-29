@@ -493,3 +493,203 @@ export const reelBriefs = sqliteTable(
     index("reel_briefs_owner_idx").on(t.ownerId),
   ],
 );
+
+// ─── Equities snapshot pipeline (migration 0006) ──────────────────────────
+// Universe of ~5,000 tickers; closes table is 5y rolling; ticker_snapshot
+// holds the Tier 1/2/3 derived fields refreshed daily.
+
+export const tickers = sqliteTable(
+  "tickers",
+  {
+    ticker: text("ticker").primaryKey(),
+    symbol: text("symbol").notNull(),
+    exchange: text("exchange").notNull(),
+    name: text("name"),
+    assetClass: text("asset_class", {
+      enum: ["equity", "etf", "index", "crypto"],
+    }).notNull(),
+    currency: text("currency"),
+    country: text("country"),
+    sector: text("sector"),
+    industry: text("industry"),
+    wikidataId: text("wikidata_id"),
+    cik: text("cik"),
+    isin: text("isin"),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    updatedAt: integer("updated_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [
+    index("tickers_exchange_idx").on(t.exchange),
+    index("tickers_asset_class_idx").on(t.assetClass),
+    index("tickers_country_idx").on(t.country),
+    index("tickers_cik_idx").on(t.cik),
+  ],
+);
+
+export const closes = sqliteTable(
+  "closes",
+  {
+    ticker: text("ticker")
+      .notNull()
+      .references(() => tickers.ticker),
+    date: integer("date").notNull(),
+    close: real("close").notNull(),
+    volume: real("volume"),
+  },
+  (t) => [
+    index("closes_date_idx").on(t.date),
+    uniqueIndex("closes_pk").on(t.ticker, t.date),
+  ],
+);
+
+export const tickerSnapshot = sqliteTable(
+  "ticker_snapshot",
+  {
+    ticker: text("ticker")
+      .primaryKey()
+      .references(() => tickers.ticker),
+
+    // Tier 1 — derived from closes
+    lastClose: real("last_close"),
+    lastDate: integer("last_date"),
+    ret1d: real("ret_1d"),
+    ret30d: real("ret_30d"),
+    ret90d: real("ret_90d"),
+    ret1y: real("ret_1y"),
+    ret5y: real("ret_5y"),
+    ret1dUsd: real("ret_1d_usd"),
+    ret30dUsd: real("ret_30d_usd"),
+    ret90dUsd: real("ret_90d_usd"),
+    ret1yUsd: real("ret_1y_usd"),
+    ret5yUsd: real("ret_5y_usd"),
+    volumeAvg30d: real("volume_avg_30d"),
+    volatility30d: real("volatility_30d"),
+    high52w: real("high_52w"),
+    low52w: real("low_52w"),
+    distTo52wHigh: real("dist_to_52w_high"),
+    distTo52wLow: real("dist_to_52w_low"),
+    maxDrawdown1y: real("max_drawdown_1y"),
+    maxDrawdown5y: real("max_drawdown_5y"),
+    sma50: real("sma_50"),
+    sma200: real("sma_200"),
+    goldenCross: integer("golden_cross", { mode: "boolean" }).default(false),
+    deathCross: integer("death_cross", { mode: "boolean" }).default(false),
+    betaVsSpy: real("beta_vs_spy"),
+    relStrengthSpy90d: real("rel_strength_spy_90d"),
+
+    // Tier 2
+    dividendYield: real("dividend_yield"),
+    fxToUsd: real("fx_to_usd"),
+    wikipediaPageviews7dAvg: real("wikipedia_pageviews_7d_avg"),
+
+    // Tier 3 — mostly US via SEC; nullable for international
+    marketCap: real("market_cap"),
+    sharesOutstanding: real("shares_outstanding"),
+    revenueLatest: real("revenue_latest"),
+    revenueYoy: real("revenue_yoy"),
+    netIncomeLatest: real("net_income_latest"),
+    netIncomeYoy: real("net_income_yoy"),
+    fcfLatest: real("fcf_latest"),
+    grossMargin: real("gross_margin"),
+    operatingMargin: real("operating_margin"),
+    shortInterestShares: real("short_interest_shares"),
+    shortInterestPct: real("short_interest_pct"),
+    insiderBuys90d: integer("insider_buys_90d"),
+    insiderSells90d: integer("insider_sells_90d"),
+    insiderNetShares90d: real("insider_net_shares_90d"),
+    earningsNext: text("earnings_next"),
+    earningsLast: text("earnings_last"),
+    mentionsGdelt30d: integer("mentions_gdelt_30d"),
+    mentionsReddit30d: integer("mentions_reddit_30d"),
+    mentionsHn30d: integer("mentions_hn_30d"),
+
+    updatedAt: integer("updated_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [index("ticker_snapshot_updated_idx").on(t.updatedAt)],
+);
+
+export const indexMemberships = sqliteTable(
+  "index_memberships",
+  {
+    ticker: text("ticker")
+      .notNull()
+      .references(() => tickers.ticker),
+    indexName: text("index_name").notNull(),
+    addedAt: integer("added_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [
+    index("index_memberships_index_idx").on(t.indexName),
+    uniqueIndex("index_memberships_pk").on(t.ticker, t.indexName),
+  ],
+);
+
+export const fxRates = sqliteTable(
+  "fx_rates",
+  {
+    currency: text("currency").notNull(),
+    date: integer("date").notNull(),
+    rateToUsd: real("rate_to_usd").notNull(),
+  },
+  (t) => [
+    index("fx_rates_date_idx").on(t.date),
+    uniqueIndex("fx_rates_pk").on(t.currency, t.date),
+  ],
+);
+
+export const riskFreeRates = sqliteTable(
+  "risk_free_rates",
+  {
+    series: text("series").notNull(),
+    date: integer("date").notNull(),
+    value: real("value").notNull(),
+  },
+  (t) => [uniqueIndex("risk_free_rates_pk").on(t.series, t.date)],
+);
+
+export const institutionalHolders = sqliteTable(
+  "institutional_holders",
+  {
+    ticker: text("ticker")
+      .notNull()
+      .references(() => tickers.ticker),
+    filerCik: text("filer_cik").notNull(),
+    asOfDate: integer("as_of_date").notNull(),
+    filerName: text("filer_name"),
+    shares: real("shares"),
+    valueUsd: real("value_usd"),
+  },
+  (t) => [
+    index("institutional_holders_asof_idx").on(t.asOfDate),
+    uniqueIndex("institutional_holders_pk").on(t.ticker, t.filerCik, t.asOfDate),
+  ],
+);
+
+export const insiderTransactions = sqliteTable(
+  "insider_transactions",
+  {
+    ticker: text("ticker")
+      .notNull()
+      .references(() => tickers.ticker),
+    filingId: text("filing_id").notNull(),
+    filingDate: integer("filing_date").notNull(),
+    insiderName: text("insider_name"),
+    relationship: text("relationship"),
+    transactionType: text("transaction_type"),
+    shares: real("shares"),
+    price: real("price"),
+    totalValue: real("total_value"),
+  },
+  (t) => [
+    index("insider_transactions_filing_date_idx").on(t.filingDate),
+    index("insider_transactions_ticker_date_idx").on(t.ticker, t.filingDate),
+    uniqueIndex("insider_transactions_pk").on(t.ticker, t.filingId),
+  ],
+);

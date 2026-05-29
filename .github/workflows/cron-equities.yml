@@ -1,0 +1,82 @@
+name: cron-equities
+
+# Daily after US close: pull universe + closes via yfinance, compute the
+# Tier 1 snapshot, regenerate the two web data bundles that depend on it
+# (equities-snapshot.json + price-context.json), and commit the artifacts.
+# A push to main triggers deploy-web.yml automatically.
+
+on:
+  schedule:
+    - cron: "30 21 * * 1-5"  # 9:30pm UTC weekdays = ~16:30 ET, post-close
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: "Only process the first N tickers (smoke test). Empty = full run."
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+jobs:
+  equities:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # ── Python: build universe + snapshot JSONL ─────────────────────────
+      - uses: astral-sh/setup-uv@v8.1.0
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+      - name: uv sync
+        working-directory: python/ingest
+        run: uv sync
+      - name: equities daily snapshot
+        working-directory: python/ingest
+        env:
+          LIMIT_FLAG: ${{ github.event.inputs.limit && format('--limit {0}', github.event.inputs.limit) || '' }}
+        run: |
+          uv run python -m high_signal_ingest.equities_daily --batch 50 $LIMIT_FLAG
+
+      # ── Node: regenerate the web data bundles that depend on JSONL ──────
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - name: pnpm install
+        run: pnpm install --frozen-lockfile
+      - name: build equities-snapshot.json
+        run: pnpm equities:snapshot
+      - name: build price-context.json
+        run: pnpm price:snapshot
+
+      # ── Commit + push so deploy-web picks it up ─────────────────────────
+      - name: commit refreshed artifacts
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/equities-snapshot.jsonl \
+                  apps/web/src/data/equities-snapshot.json \
+                  apps/web/src/data/price-context.json
+          if git diff --staged --quiet; then
+            echo "no changes to commit"
+          else
+            git commit -m "chore(equities): refresh daily snapshot"
+            git push
+          fi
+
+      # ── Always upload the JSONL as an artifact for debugging ────────────
+      - name: upload snapshot artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: equities-snapshot
+          path: data/equities-snapshot.jsonl
+          if-no-files-found: warn
+          retention-days: 14

@@ -1,0 +1,31 @@
+ticker,symbol,exchange,name,asset_class,currency,country
+^GSPC,SPX,US,S&P 500 Index,index,USD,US
+^IXIC,IXIC,US,Nasdaq Composite Index,index,USD,US
+^NDX,NDX,US,Nasdaq 100 Index,index,USD,US
+^DJI,DJI,US,Dow Jones Industrial Average,index,USD,US
+^RUT,RUT,US,Russell 2000 Index,index,USD,US
+^VIX,VIX,US,CBOE Volatility Index,index,USD,US
+^FTSE,FTSE,L,FTSE 100 Index,index,GBP,UK
+^FTMC,FTMC,L,FTSE 250 Index,index,GBP,UK
+^STOXX50E,SX5E,XEU,Euro Stoxx 50,index,EUR,EU
+^STOXX,SXXP,XEU,STOXX Europe 600,index,EUR,EU
+^GDAXI,DAX,DE,DAX Index,index,EUR,DE
+^FCHI,CAC,PA,CAC 40 Index,index,EUR,FR
+^IBEX,IBEX,MC,IBEX 35 Index,index,EUR,ES
+^FTSEMIB.MI,FTSEMIB,MI,FTSE MIB Index,index,EUR,IT
+^N225,N225,T,Nikkei 225,index,JPY,JP
+^TPX,TPX,T,TOPIX,index,JPY,JP
+^HSI,HSI,HK,Hang Seng Index,index,HKD,HK
+^HSCE,HSCE,HK,Hang Seng China Enterprises,index,HKD,HK
+^HSTECH,HSTECH,HK,Hang Seng Tech Index,index,HKD,HK
+^SSEC,SSEC,SS,Shanghai Composite,index,CNY,CN
+^KS11,KS11,KS,KOSPI Composite,index,KRW,KR
+^TWII,TWII,TW,TAIEX,index,TWD,TW
+^AXJO,AXJO,AX,S&P/ASX 200,index,AUD,AU
+^GSPTSE,TSX,TO,S&P/TSX Composite,index,CAD,CA
+^BVSP,BVSP,SA,IBOVESPA,index,BRL,BR
+^MXX,MXX,MX,IPC Mexico,index,MXN,MX
+^NSEI,NSEI,NS,NIFTY 50,index,INR,IN
+^BSESN,BSESN,BO,BSE SENSEX,index,INR,IN
+^JN0U.JO,JTOPI,JO,FTSE/JSE Top 40,index,ZAR,ZA
+^XU100.IS,XU100,IS,Borsa Istanbul 100,index,TRY,TR

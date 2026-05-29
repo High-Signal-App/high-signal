@@ -1,0 +1,84 @@
+# Universe definition for the equities snapshot pipeline.
+# Phase 1 reach: ~500 (S&P 500) + ~165 (seeds) + ~100 (crypto) ≈ 770 tickers.
+# Phase 1.5b adds Wikipedia constituent lists for international indices
+# below, lifting the universe to the ~5,000-ticker target.
+
+indices:
+  # ─── US ─────────────────────────────────────────────────────────────────
+  - id: sp_500
+    name: S&P 500
+    country: US
+    source: datasets_sp500
+    csv_url: https://raw.githubusercontent.com/datasets/s-and-p-500-companies/main/data/constituents.csv
+    expected_size: 500
+
+  # ─── Europe ─────────────────────────────────────────────────────────────
+  - id: stoxx_600
+    name: STOXX Europe 600
+    country: EU
+    source: wikipedia
+    wikipedia_url: https://en.wikipedia.org/wiki/STOXX_Europe_600
+    expected_size: 600
+
+  # ─── Japan ──────────────────────────────────────────────────────────────
+  - id: nikkei_225
+    name: Nikkei 225
+    country: JP
+    source: wikipedia
+    wikipedia_url: https://en.wikipedia.org/wiki/Nikkei_225
+    expected_size: 225
+
+  # ─── Hong Kong / China ──────────────────────────────────────────────────
+  - id: hsi_composite
+    name: Hang Seng Composite Index
+    country: HK
+    source: wikipedia
+    wikipedia_url: https://en.wikipedia.org/wiki/Hang_Seng_Composite_Index
+    expected_size: 500
+
+  # ─── Canada ─────────────────────────────────────────────────────────────
+  - id: tsx_60
+    name: S&P/TSX 60
+    country: CA
+    source: wikipedia
+    wikipedia_url: https://en.wikipedia.org/wiki/S%26P/TSX_60
+    expected_size: 60
+
+  # ─── Australia ──────────────────────────────────────────────────────────
+  - id: asx_200
+    name: S&P/ASX 200
+    country: AU
+    source: wikipedia
+    wikipedia_url: https://en.wikipedia.org/wiki/S%26P/ASX_200
+    expected_size: 200
+
+  # ─── India ──────────────────────────────────────────────────────────────
+  - id: nifty_100
+    name: NIFTY 100
+    country: IN
+    source: wikipedia
+    wikipedia_url: https://en.wikipedia.org/wiki/NIFTY_100
+    expected_size: 100
+
+  # ─── Korea ──────────────────────────────────────────────────────────────
+  - id: kospi_200
+    name: KOSPI 200
+    country: KR
+    source: wikipedia
+    wikipedia_url: https://en.wikipedia.org/wiki/KOSPI_200
+    expected_size: 200
+
+# ETFs + indices-as-tickers — curated CSV files in this same seed/ dir.
+etfs_csv: equities_etfs.csv
+indices_csv: equities_indices.csv
+
+# Top-N crypto by market cap, pulled live from CoinGecko at universe-build time.
+crypto:
+  source: coingecko
+  top_n: 100
+  endpoint: https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1
+
+# Closes are fetched from yfinance (Yahoo Finance). The exchange-suffix
+# mapping lives in code at sources/equities/yf.py (_EXCHANGE_TO_YF_SUFFIX).
+# Stooq was the original choice but locked its free CSV endpoint behind a
+# captcha-issued API key in 2026 — keep an eye on whether they relax it.
