@@ -303,6 +303,17 @@ export const api = {
           source_url: string;
           published_at: number;
         }>;
+        marketQuote: {
+          source: string;
+          marketId: string;
+          question: string;
+          marketUrl: string;
+          probNow: number;
+          probPrior: number | null;
+          probChange: number | null;
+          fetchedAtNow: number;
+          fetchedAtPrior: number | null;
+        } | null;
       }>;
     }>(`/convergence?hours=${hours}&min_sources=${minSources}`),
   digestWeekly: () =>

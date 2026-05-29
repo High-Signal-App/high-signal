@@ -30,6 +30,18 @@ interface RecentEvent {
   published_at: number;
 }
 
+interface MarketVelocityRow {
+  entity_id: string;
+  source: string;
+  market_id: string;
+  question: string;
+  prob_now: number;
+  fetched_at_now: number;
+  prob_prior: number | null;
+  fetched_at_prior: number | null;
+  market_url: string;
+}
+
 export const convergenceRoute = new Hono<{ Bindings: Env }>();
 
 convergenceRoute.get("/", async (c) => {
@@ -89,6 +101,57 @@ convergenceRoute.get("/", async (c) => {
       .results ?? [];
   }
 
+  // Velocity overlay: for each entity in the summary, find the latest
+  // prediction-market quote + the immediately prior tick's prob so we can
+  // surface 4h drift. LAG() gives us the previous fetch per (entity, source,
+  // market). We look back 12h to cover one cron-markets gap (4h cadence).
+  let velocity: MarketVelocityRow[] = [];
+  if (entityIds.length > 0) {
+    const placeholders = entityIds.map(() => "?").join(",");
+    const velocityWindow = Math.floor(Date.now() / 1000) - 12 * 3600;
+    velocity = (await c.env.DB.prepare(
+      `WITH ranked AS (
+         SELECT
+           entity_id,
+           source,
+           market_id,
+           question,
+           prob,
+           fetched_at,
+           market_url,
+           LAG(prob) OVER (
+             PARTITION BY entity_id, source, market_id
+             ORDER BY fetched_at
+           ) AS prob_prior,
+           LAG(fetched_at) OVER (
+             PARTITION BY entity_id, source, market_id
+             ORDER BY fetched_at
+           ) AS fetched_at_prior,
+           ROW_NUMBER() OVER (
+             PARTITION BY entity_id
+             ORDER BY fetched_at DESC
+           ) AS rn
+         FROM market_quotes
+         WHERE entity_id IN (${placeholders})
+           AND resolved = 0
+           AND fetched_at >= ?
+       )
+       SELECT
+         entity_id, source, market_id, question, market_url,
+         prob       AS prob_now,
+         fetched_at AS fetched_at_now,
+         prob_prior,
+         fetched_at_prior
+       FROM ranked
+       WHERE rn = 1`,
+    )
+      .bind(...entityIds, velocityWindow)
+      .all<MarketVelocityRow>())
+      .results ?? [];
+  }
+  const velocityByEntity = new Map<string, MarketVelocityRow>();
+  for (const v of velocity) velocityByEntity.set(v.entity_id, v);
+
   // Attach recent events to each summary row for the response.
   const recentByEntity = new Map<string, RecentEvent[]>();
   for (const ev of recent) {
@@ -101,17 +164,35 @@ convergenceRoute.get("/", async (c) => {
     generatedAt: new Date().toISOString(),
     windowHours: hours,
     minSources,
-    rows: summary.map((row) => ({
-      entityId: row.primary_entity_id,
-      name: row.entity_name,
-      ticker: row.entity_ticker,
-      sector: row.entity_sector,
-      sourceCount: row.source_count,
-      eventCount: row.event_count,
-      sources: (row.sources ?? "").split(",").filter(Boolean),
-      latestAt: row.latest_at,
-      earliestAt: row.earliest_at,
-      recent: recentByEntity.get(row.primary_entity_id ?? "") ?? [],
-    })),
+    rows: summary.map((row) => {
+      const eid = row.primary_entity_id ?? "";
+      const v = velocityByEntity.get(eid);
+      const marketQuote = v
+        ? {
+            source: v.source,
+            marketId: v.market_id,
+            question: v.question,
+            marketUrl: v.market_url,
+            probNow: v.prob_now,
+            probPrior: v.prob_prior,
+            probChange: v.prob_prior != null ? v.prob_now - v.prob_prior : null,
+            fetchedAtNow: v.fetched_at_now,
+            fetchedAtPrior: v.fetched_at_prior,
+          }
+        : null;
+      return {
+        entityId: row.primary_entity_id,
+        name: row.entity_name,
+        ticker: row.entity_ticker,
+        sector: row.entity_sector,
+        sourceCount: row.source_count,
+        eventCount: row.event_count,
+        sources: (row.sources ?? "").split(",").filter(Boolean),
+        latestAt: row.latest_at,
+        earliestAt: row.earliest_at,
+        recent: recentByEntity.get(eid) ?? [],
+        marketQuote,
+      };
+    }),
   });
 });
