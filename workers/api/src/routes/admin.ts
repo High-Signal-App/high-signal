@@ -474,3 +474,63 @@ function inferSourceType(url: string): string {
   if (url.includes("twitter.com") || url.includes("x.com")) return "x";
   return "web";
 }
+
+// ─── /admin/backfill-entities ─────────────────────────────────────────────
+// One-shot repair: re-runs the regex-word-boundary gazetteer match on events
+// with primary_entity_id NULL that were ingested before the Python matcher
+// was fixed to handle $TICKER. Mirrors python/.../extract/entities.py.
+
+import { buildPatterns, matchEntity, type GazetteerEntity } from "../lib/gazetteer";
+
+adminRoute.post("/backfill-entities", async (c) => {
+  const hours = Math.min(Math.max(Number(c.req.query("hours") ?? 7 * 24), 1), 90 * 24);
+  const limit = Math.min(Math.max(Number(c.req.query("limit") ?? 2000), 1), 20000);
+  const dryRun = c.req.query("dry_run") === "1";
+  const since = Math.floor(Date.now() / 1000) - hours * 3600;
+
+  const entities = (await c.env.DB.prepare(
+    "SELECT id, name, ticker, metadata FROM entities",
+  ).all<GazetteerEntity>())
+    .results ?? [];
+  const patterns = buildPatterns(entities);
+
+  const events = (await c.env.DB.prepare(
+    `SELECT id, title, content
+     FROM events
+     WHERE primary_entity_id IS NULL
+       AND published_at >= ?
+     ORDER BY published_at DESC
+     LIMIT ?`,
+  )
+    .bind(since, limit)
+    .all<{ id: string; title: string | null; content: string | null }>())
+    .results ?? [];
+
+  const matches: Array<{ id: string; eid: string }> = [];
+  for (const ev of events) {
+    const haystack = `${ev.title ?? ""} ${ev.content ?? ""}`;
+    const eid = matchEntity(haystack, patterns);
+    if (eid) matches.push({ id: ev.id, eid });
+  }
+
+  if (!dryRun) {
+    const stmts = matches.map((m) =>
+      c.env.DB.prepare(
+        "UPDATE events SET primary_entity_id = ? WHERE id = ? AND primary_entity_id IS NULL",
+      ).bind(m.eid, m.id),
+    );
+    if (stmts.length > 0) {
+      // D1 batch — single round-trip
+      await c.env.DB.batch(stmts);
+    }
+  }
+
+  return c.json({
+    scannedEntities: entities.length,
+    patternsCompiled: patterns.length,
+    scannedEvents: events.length,
+    matched: matches.length,
+    stillNull: events.length - matches.length,
+    dryRun,
+  });
+});
