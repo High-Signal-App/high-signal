@@ -44,6 +44,7 @@ _EXCHANGE_TO_YF_SUFFIX: dict[str, str] = {
     "HE": ".HE",
     "VI": ".VI",
     "WA": ".WA",
+    "IR": ".IR",     # Ireland (Euronext Dublin)
     "JP": ".T",      # Tokyo: 7203.JP → 7203.T
     "T": ".T",       # already in yfinance form
     "HK": ".HK",

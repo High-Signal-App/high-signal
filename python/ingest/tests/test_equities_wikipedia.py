@@ -244,6 +244,30 @@ def test_parse_wikipedia_table_drops_bloomberg_unknown_country() -> None:
     assert specs[0].symbol == "AAPL"
 
 
+def test_normalize_hk_strips_sehk_prefix_and_pads() -> None:
+    from high_signal_ingest.sources.equities.wikipedia_constituents import _normalize_for_exchange
+    assert _normalize_for_exchange("SEHK:\xa05", "HK") == "0005"
+    assert _normalize_for_exchange("SEHK: 700", "HK") == "0700"
+    assert _normalize_for_exchange("700", "HK") == "0700"
+    assert _normalize_for_exchange("0981", "HK") == "0981"
+    assert _normalize_for_exchange("700.HK", "HK") == "0700"
+    assert _normalize_for_exchange("00700", "HK") == "00700"  # already padded longer
+
+
+def test_normalize_stockholm_class_shares() -> None:
+    from high_signal_ingest.sources.equities.wikipedia_constituents import _normalize_for_exchange
+    assert _normalize_for_exchange("VOLV B", "ST") == "VOLV-B"
+    assert _normalize_for_exchange("ELUXb", "ST") == "ELUX-B"
+    assert _normalize_for_exchange("ATCOa", "ST") == "ATCO-A"
+    assert _normalize_for_exchange("HMB", "ST") == "HMB"  # no class share → unchanged
+    assert _normalize_for_exchange("ASSA B", "ST") == "ASSA-B"
+
+
+def test_normalize_unknown_exchange_passthrough() -> None:
+    from high_signal_ingest.sources.equities.wikipedia_constituents import _normalize_for_exchange
+    assert _normalize_for_exchange("AAPL", "US") == "AAPL"
+
+
 def test_parse_wikipedia_table_empty_df() -> None:
     spec = WikipediaIndexSpec(
         id="x", name="x", url="x", table_index=0, ticker_col="Symbol", default_exchange="US",

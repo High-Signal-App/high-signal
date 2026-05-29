@@ -112,7 +112,7 @@ _COUNTRY_NAME_TO_EXCHANGE: dict[str, tuple[str, str]] = {
     "Norway": ("OL", "NOK"),
     "Austria": ("VI", "EUR"),
     "Portugal": ("LS", "EUR"),
-    "Ireland": ("ID", "EUR"),
+    "Ireland": ("IR", "EUR"),  # yfinance uses .IR, not .ID
     "Poland": ("WA", "PLN"),
     "Czech Republic": ("PR", "CZK"),
     "Luxembourg": ("LU", "EUR"),
@@ -124,6 +124,46 @@ _COUNTRY_NAME_TO_EXCHANGE: dict[str, tuple[str, str]] = {
 
 
 SPECS: list[WikipediaIndexSpec] = [
+    # ─── US broader-than-S&P-500 ───────────────────────────────────────────
+    # Russell 1000 = ~1000 large/mid US (supersets S&P 500). Dedupe wins
+    # whichever record loaded first → sp500 fetcher gives us CIKs.
+    WikipediaIndexSpec(
+        id="russell_1000",
+        name="Russell 1000",
+        url="https://en.wikipedia.org/wiki/Russell_1000_Index",
+        table_index=3,
+        ticker_col="Symbol",
+        name_col="Company",
+        sector_col="GICS Sector",
+        default_exchange="US",
+        default_country="US",
+        currency="USD",
+    ),
+    WikipediaIndexSpec(
+        id="sp_midcap_400",
+        name="S&P MidCap 400",
+        url="https://en.wikipedia.org/wiki/List_of_S%26P_400_companies",
+        table_index=0,
+        ticker_col="Symbol",
+        name_col="Security",
+        sector_col="GICS Sector",
+        default_exchange="US",
+        default_country="US",
+        currency="USD",
+    ),
+    WikipediaIndexSpec(
+        id="sp_smallcap_600",
+        name="S&P SmallCap 600",
+        url="https://en.wikipedia.org/wiki/List_of_S%26P_600_companies",
+        table_index=0,
+        ticker_col="Symbol",
+        name_col="Security",
+        sector_col="GICS Sector",
+        default_exchange="US",
+        default_country="US",
+        currency="USD",
+    ),
+    # ─── International ─────────────────────────────────────────────────────
     WikipediaIndexSpec(
         id="stoxx_600",
         name="STOXX Europe 600",
@@ -227,6 +267,39 @@ def parse_bloomberg_ticker(
     return sym.strip(), None, None, None
 
 
+def _normalize_for_exchange(sym: str, exchange: str) -> str:
+    """Per-exchange ticker fixups so yfinance can resolve them.
+
+    HK numerics need 4-digit zero-padding (``700`` → ``0700``) and the
+    Wikipedia ``SEHK:`` prefix stripped. Stockholm class shares need
+    hyphen + uppercase normalization (``VOLV B`` / ``ELUXb`` → ``VOLV-B``).
+    """
+    sym = sym.strip().replace("\xa0", "")
+
+    if exchange == "HK":
+        # Strip "SEHK:" or similar exchange-prefix
+        if ":" in sym:
+            sym = sym.rsplit(":", 1)[1].strip()
+        # Trailing ``.HK`` from "SEHK: 5.HK" already-suffixed entries
+        if sym.upper().endswith(".HK"):
+            sym = sym[:-3].strip()
+        # 4-digit zero-pad if numeric
+        if sym.isdigit():
+            return sym.zfill(4)
+        return sym
+
+    if exchange == "ST":
+        # Space-separated class: "VOLV B" → "VOLV-B"
+        if " " in sym:
+            return sym.replace(" ", "-").upper()
+        # Trailing lowercase class letter: "ELUXb" → "ELUX-B"
+        if len(sym) >= 2 and sym[-1].islower() and sym[:-1].isalpha():
+            return f"{sym[:-1].upper()}-{sym[-1].upper()}"
+        return sym
+
+    return sym
+
+
 def _clean(value) -> Optional[str]:
     if value is None:
         return None
@@ -272,6 +345,9 @@ def parse_wikipedia_table(
             exchange = spec.default_exchange or "US"
             country = spec.default_country
             currency = spec.currency
+
+        # Per-exchange ticker normalization (HK zero-pad, Stockholm class shares, etc.)
+        sym = _normalize_for_exchange(sym, exchange)
 
         if not sym:
             continue
