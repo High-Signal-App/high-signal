@@ -94,11 +94,24 @@ export function parseSparql(
  * stored string. Covers both forms.
  */
 export function buildSparql(ticker: string): string {
-  // P249 = ticker; P17 = country; P452 = industry; P414 = stock exchange;
-  // P5531 = CIK; P946 = ISIN; P31 = instance of (used to filter to companies)
+  // P249 = ticker symbol; P17 = country; P452 = industry; P414 = stock exchange;
+  // P5531 = CIK; P946 = ISIN.
+  //
+  // Wikidata stores ticker symbols in TWO patterns and you only get one or
+  // the other depending on the editor:
+  //   1. Direct claim:  Subject --P249--> "NVDA"  (most cleanly editable)
+  //   2. As a qualifier on the stock-exchange claim:
+  //        Subject --P414--> Q83533 (NASDAQ) --P249 qualifier--> "NVDA"
+  //
+  // Verified live: NVIDIA (Q182477) uses pattern (2). UNION catches both.
   const escaped = ticker.replace(/"/g, '\\"');
   return `SELECT ?item ?itemLabel ?countryLabel ?industryLabel ?exchangeLabel ?article ?cik ?isin WHERE {
-  ?item p:P249/ps:P249 ?tk .
+  {
+    ?item wdt:P249 ?tk .
+  } UNION {
+    ?item p:P414 ?stmt .
+    ?stmt pq:P249 ?tk .
+  }
   FILTER(REGEX(STR(?tk), "(^|[^A-Za-z0-9])${escaped}([^A-Za-z0-9]|$)", "i"))
   OPTIONAL { ?item wdt:P17 ?country }
   OPTIONAL { ?item wdt:P452 ?industry }

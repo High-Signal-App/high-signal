@@ -9,11 +9,11 @@ const fetcher = app as unknown as {
 const originalFetch = globalThis.fetch;
 
 describe("enrich pure helpers", () => {
-  it("buildSparql uses a regex filter on P249 (not literal equality)", () => {
+  it("buildSparql UNIONs the direct-claim and exchange-qualifier patterns", () => {
     const q = buildSparql("NVDA");
-    // p:P249/ps:P249 + REGEX is the path that catches both "NVDA" and
-    // qualified forms like "NASDAQ: NVDA".
-    expect(q).toContain("p:P249/ps:P249");
+    expect(q).toContain("wdt:P249");        // direct claim form
+    expect(q).toContain("p:P414");           // exchange statement form
+    expect(q).toContain("pq:P249");          // P249 as qualifier on it
     expect(q).toContain("REGEX");
     expect(q).toContain("NVDA");
     expect(q).toContain("?countryLabel");
