@@ -57,6 +57,22 @@ function ConvergenceCallout({
               {row.ticker ?? row.entityId}
             </a>
             {row.name ? <span className="text-zinc-400">{row.name}</span> : null}
+            {row.label === "breakout" ? (
+              <span
+                className="rounded border border-amber-600/60 px-1.5 py-0 font-mono text-[10px] uppercase tracking-[0.18em] text-amber-300"
+                title={row.labelReason ?? ""}
+              >
+                breakout
+              </span>
+            ) : null}
+            {row.label === "divergence" ? (
+              <span
+                className="rounded border border-violet-600/60 px-1.5 py-0 font-mono text-[10px] uppercase tracking-[0.18em] text-violet-300"
+                title={row.labelReason ?? ""}
+              >
+                divergence
+              </span>
+            ) : null}
             <span className="ml-auto font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500">
               {row.sourceCount} src · {row.eventCount} ev
               {row.marketQuote && row.marketQuote.probChange != null ? (

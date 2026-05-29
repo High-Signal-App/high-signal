@@ -263,6 +263,26 @@ convergenceRoute.get("/", async (c) => {
             trendDeltaPct: attention.trend?.deltaPct ?? null,
           }
         : null;
+
+      // ─── Derived label ─────────────────────────────────────────────────
+      // "breakout"   = multi-source convergence + attention surging (≥25%).
+      //                Mainstream attention catching up — late but visible.
+      // "divergence" = multi-source convergence + attention falling. The
+      //                event hasn't crossed into public attention yet. This
+      //                is the pre-news lead time slot — most actionable.
+      // null otherwise.
+      let label: "breakout" | "divergence" | null = null;
+      let labelReason: string | null = null;
+      const trend = attention?.trend;
+      if (trend && row.source_count >= 3) {
+        if (trend.direction === "up" && trend.deltaPct >= 25) {
+          label = "breakout";
+          labelReason = `attention +${trend.deltaPct.toFixed(0)}% over prior 7d while ${row.source_count} sources fire`;
+        } else if (trend.direction === "down") {
+          label = "divergence";
+          labelReason = `${row.source_count} sources fire but attention ${trend.deltaPct.toFixed(0)}% (pre-news lead)`;
+        }
+      }
       return {
         entityId: row.primary_entity_id,
         name: row.entity_name,
@@ -282,6 +302,8 @@ convergenceRoute.get("/", async (c) => {
         recent: recentByEntity.get(eid) ?? [],
         marketQuote,
         attention: attentionSummary,
+        label,
+        labelReason,
       };
     }),
   });

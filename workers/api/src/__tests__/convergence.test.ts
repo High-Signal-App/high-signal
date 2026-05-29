@@ -130,6 +130,109 @@ describe("/convergence", () => {
     expect(body.rows[0].marketQuote!.probChange).toBeCloseTo(0.17, 5);
   });
 
+  it("labels rows as 'breakout' when ≥3 sources fire AND attention surges ≥25%", async () => {
+    const db = mockDb({
+      summary: [
+        {
+          primary_entity_id: "NVDA",
+          entity_name: "NVIDIA",
+          entity_ticker: "NVDA",
+          entity_sector: null,
+          source_count: 4,
+          event_count: 10,
+          sources: "news,reddit,ir,market:polymarket",
+          latest_at: 1700000000,
+          earliest_at: 1699900000,
+          first_seen_ever: 1500000000,
+        },
+      ],
+      recent: [],
+      velocity: [],
+    });
+    // Mock Wikipedia: NVDA attention up 40% over prior week
+    globalThis.fetch = vi.fn(async () => {
+      const items = [
+        ...Array.from({ length: 7 }, (_, i) => ({ timestamp: `2026050${i + 1}00`, views: 1000 })),
+        ...Array.from({ length: 7 }, (_, i) => ({ timestamp: `2026051${i + 1}00`, views: 1400 })),
+      ];
+      return new Response(JSON.stringify({ items }), {
+        headers: { "content-type": "application/json" },
+      });
+    });
+    const res = await fetcher.fetch(new Request("http://t/convergence"), envWithDb(db));
+    const body = (await res.json()) as { rows: Array<{ label: string | null; labelReason: string | null }> };
+    expect(body.rows[0].label).toBe("breakout");
+    expect(body.rows[0].labelReason).toMatch(/attention/);
+  });
+
+  it("labels rows as 'divergence' when ≥3 sources fire AND attention is dropping", async () => {
+    const db = mockDb({
+      summary: [
+        {
+          primary_entity_id: "NVDA",
+          entity_name: "NVIDIA",
+          entity_ticker: "NVDA",
+          entity_sector: null,
+          source_count: 5,
+          event_count: 30,
+          sources: "news,reddit,ir,market:polymarket,gdelt:nvda",
+          latest_at: 1700000000,
+          earliest_at: 1699900000,
+          first_seen_ever: 1500000000,
+        },
+      ],
+      recent: [],
+      velocity: [],
+    });
+    // Attention -40% (sharp drop)
+    globalThis.fetch = vi.fn(async () => {
+      const items = [
+        ...Array.from({ length: 7 }, (_, i) => ({ timestamp: `2026050${i + 1}00`, views: 2000 })),
+        ...Array.from({ length: 7 }, (_, i) => ({ timestamp: `2026051${i + 1}00`, views: 1200 })),
+      ];
+      return new Response(JSON.stringify({ items }), {
+        headers: { "content-type": "application/json" },
+      });
+    });
+    const res = await fetcher.fetch(new Request("http://t/convergence"), envWithDb(db));
+    const body = (await res.json()) as { rows: Array<{ label: string | null }> };
+    expect(body.rows[0].label).toBe("divergence");
+  });
+
+  it("does NOT label flat-trend or sub-25% gains", async () => {
+    const db = mockDb({
+      summary: [
+        {
+          primary_entity_id: "NVDA",
+          entity_name: "NVIDIA",
+          entity_ticker: "NVDA",
+          entity_sector: null,
+          source_count: 3,
+          event_count: 5,
+          sources: "news,reddit,ir",
+          latest_at: 1700000000,
+          earliest_at: 1699900000,
+          first_seen_ever: 1500000000,
+        },
+      ],
+      recent: [],
+      velocity: [],
+    });
+    // ~10% gain — under the 25% breakout threshold + over the 5% flat band.
+    globalThis.fetch = vi.fn(async () => {
+      const items = [
+        ...Array.from({ length: 7 }, (_, i) => ({ timestamp: `2026050${i + 1}00`, views: 1000 })),
+        ...Array.from({ length: 7 }, (_, i) => ({ timestamp: `2026051${i + 1}00`, views: 1100 })),
+      ];
+      return new Response(JSON.stringify({ items }), {
+        headers: { "content-type": "application/json" },
+      });
+    });
+    const res = await fetcher.fetch(new Request("http://t/convergence"), envWithDb(db));
+    const body = (await res.json()) as { rows: Array<{ label: string | null }> };
+    expect(body.rows[0].label).toBeNull();
+  });
+
   it("marketQuote is null when no market_quote exists for the entity", async () => {
     const db = mockDb({
       summary: [

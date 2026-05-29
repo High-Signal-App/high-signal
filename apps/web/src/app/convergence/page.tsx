@@ -129,6 +129,22 @@ export default async function ConvergencePage({ searchParams }: Props) {
                       new
                     </span>
                   ) : null}
+                  {row.label === "breakout" ? (
+                    <span
+                      className="ml-2 rounded border border-amber-600/60 px-1.5 py-0 font-mono text-[10px] uppercase tracking-[0.18em] text-amber-300"
+                      title={row.labelReason ?? ""}
+                    >
+                      breakout
+                    </span>
+                  ) : null}
+                  {row.label === "divergence" ? (
+                    <span
+                      className="ml-2 rounded border border-violet-600/60 px-1.5 py-0 font-mono text-[10px] uppercase tracking-[0.18em] text-violet-300"
+                      title={row.labelReason ?? ""}
+                    >
+                      divergence
+                    </span>
+                  ) : null}
                 </div>
                 <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500">
                   <span className="text-[var(--color-accent)]">{row.sourceCount} sources</span>

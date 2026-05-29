@@ -322,6 +322,8 @@ export const api = {
           trendDirection: "up" | "down" | "flat" | null;
           trendDeltaPct: number | null;
         } | null;
+        label: "breakout" | "divergence" | null;
+        labelReason: string | null;
       }>;
     }>(`/convergence?hours=${hours}&min_sources=${minSources}`),
   enrichTicker: (token: string) =>
