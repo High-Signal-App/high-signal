@@ -12,6 +12,7 @@ import { productsRoute } from "./routes/products";
 import { briefRoute } from "./routes/brief";
 import { convergenceRoute } from "./routes/convergence";
 import { unmappedRoute } from "./routes/unmapped";
+import { enrichRoute } from "./routes/enrich";
 
 type Env = {
   DB: D1Database;
@@ -40,6 +41,7 @@ app.route("/products", productsRoute);
 app.route("/brief", briefRoute);
 app.route("/convergence", convergenceRoute);
 app.route("/unmapped", unmappedRoute);
+app.route("/enrich", enrichRoute);
 
 export default {
   fetch: app.fetch,

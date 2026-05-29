@@ -316,6 +316,21 @@ export const api = {
         } | null;
       }>;
     }>(`/convergence?hours=${hours}&min_sources=${minSources}`),
+  enrichTicker: (token: string) =>
+    fetchJson<{
+      enrichment: {
+        ticker: string;
+        wikidataId: string | null;
+        name: string | null;
+        country: string | null;
+        industry: string | null;
+        exchange: string | null;
+        wikiUrl: string | null;
+        cik: string | null;
+        isin: string | null;
+      };
+      csvRow: string;
+    }>(`/enrich/ticker?token=${encodeURIComponent(token)}`),
   unmapped: (hours = 24, top = 30) =>
     fetchJson<{
       generatedAt: string;

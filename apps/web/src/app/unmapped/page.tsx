@@ -1,4 +1,5 @@
 import { api } from "@/lib/api";
+import { PromoteButton } from "@/components/unmapped/PromoteButton";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Gazetteer Candidates — High Signal" };
@@ -100,7 +101,7 @@ export default async function UnmappedPage({ searchParams }: Props) {
                     {c.count} mentions
                   </span>
                 </div>
-                <div className="flex flex-wrap gap-1.5">
+                <div className="flex flex-wrap items-center gap-1.5">
                   {c.sources.map((s) => (
                     <span
                       key={s}
@@ -109,6 +110,7 @@ export default async function UnmappedPage({ searchParams }: Props) {
                       {s}
                     </span>
                   ))}
+                  <PromoteButton token={c.token} />
                 </div>
               </header>
               {c.samples.length > 0 ? (
