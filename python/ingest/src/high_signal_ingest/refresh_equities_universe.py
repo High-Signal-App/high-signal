@@ -15,7 +15,6 @@ import logging
 import sys
 
 from .sources.equities.wikipedia_constituents import (
-    CACHE_PATH,
     fetch_all_wikipedia_constituents,
     write_cache,
 )
