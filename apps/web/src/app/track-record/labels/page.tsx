@@ -45,7 +45,7 @@ export default async function LabelTrackRecord() {
           key: "breakout",
           label: "breakout",
           stats: data.labels.breakout,
-          desc: "≥3 sources fire AND attention surging ≥25% — mainstream catching up",
+          desc: "≥3 sources fire AND attention surging ≥15% — mainstream catching up",
         },
         {
           key: "divergence",

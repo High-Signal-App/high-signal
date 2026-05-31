@@ -14,7 +14,7 @@ from . import audit
 from .extract.entities import primary_entity
 from .graph import spillover_ids
 from .seed import load_entities
-from .sources import edgar, gdelt, github, gov, hkex, ir, markets, news, reddit, youtube
+from .sources import cisa_kev, edgar, gdelt, github, gov, hkex, ir, lobsters, markets, news, reddit, techmeme, youtube
 from .types import Event
 from .generator import fallback_candidate, generate
 from .writer import emit
@@ -30,6 +30,9 @@ Source = Literal[
     "gdelt",
     "hkex",
     "markets",
+    "cisa-kev",
+    "lobsters",
+    "techmeme",
     "all",
 ]
 
@@ -81,6 +84,12 @@ def fetch(source: Source, days: int) -> list[Event]:
             logging.getLogger(__name__).info(
                 "markets: pushed %d quotes (of %d)", pushed, len(market_quotes)
             )
+    if source in {"cisa-kev", "all"}:
+        out.extend(cisa_kev.fetch_all(days=max(days, 7)))
+    if source in {"lobsters", "all"}:
+        out.extend(lobsters.fetch_all(days=max(days, 3)))
+    if source in {"techmeme", "all"}:
+        out.extend(techmeme.fetch_all(days=max(days, 3)))
     return out
 
 
@@ -107,14 +116,26 @@ def _cluster_limit() -> int:
     return _int_env("SIGNAL_CLUSTER_LIMIT", DEFAULT_SIGNAL_CLUSTER_LIMIT)
 
 
+def _event_entity(ev: Event) -> str | None:
+    if ev.primary_entity_id:
+        return ev.primary_entity_id
+    # KEV vendor/product names are often short or generic ("Lite", "Core",
+    # "Console"). Avoid broad ticker gazetteer matches; the adapter already
+    # applies exact vendor/product mapping for tracked entities.
+    if ev.source == "cisa-kev":
+        return None
+    if ev.source.startswith("youtube:"):
+        text = f"{ev.title or ''}\n{(ev.content or '')[:600]}"
+    else:
+        text = f"{ev.title or ''}\n{(ev.content or '')[:4000]}"
+    return primary_entity(text)
+
+
 def cluster_and_generate(events: list[Event]) -> list[str]:
     """Cluster events by primary entity, then call LLM to generate signals."""
     by_entity: dict[str, list[Event]] = defaultdict(list)
     for ev in events:
-        eid = ev.primary_entity_id
-        if not eid:
-            text = f"{ev.title or ''}\n{(ev.content or '')[:4000]}"
-            eid = primary_entity(text)
+        eid = _event_entity(ev)
         if eid:
             by_entity[eid].append(ev)
 
@@ -162,10 +183,7 @@ def run(source: Source, days: int) -> dict:
     by_entity: dict[str, list[Event]] = defaultdict(list)
     no_entity = 0
     for ev in events:
-        eid = ev.primary_entity_id
-        if not eid:
-            text = f"{ev.title or ''}\n{(ev.content or '')[:4000]}"
-            eid = primary_entity(text)
+        eid = _event_entity(ev)
         if eid:
             by_entity[eid].append(ev)
         else:
@@ -231,6 +249,8 @@ def main() -> None:
             "gdelt",
             "hkex",
             "markets",
+            "cisa-kev",
+            "lobsters",
             "all",
         ],
         default="all",

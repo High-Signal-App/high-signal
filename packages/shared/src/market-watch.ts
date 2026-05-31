@@ -6,7 +6,7 @@ export type MarketWatchDirection = "risk-on" | "risk-off" | "mixed";
 export interface MarketWatchTicker {
   symbol: string;
   name: string;
-  stooqSymbol: string;
+  ticker: string;
   role: string;
 }
 
@@ -29,7 +29,7 @@ export interface MarketQuote {
   symbol: string;
   name: string;
   role: string;
-  stooqSymbol: string;
+  ticker: string;
   date: string;
   time: string;
   open: number;
@@ -50,7 +50,7 @@ export interface MarketRefreshGroup {
 }
 
 export interface MarketRefreshRecord {
-  source: "stooq";
+  source: "yahoo" | "stooq";
   createdAt: string;
   groups: MarketRefreshGroup[];
 }

@@ -54,6 +54,7 @@
     "market-snapshot:test": "tsx scripts/market-snapshot.test.ts",
     "task-teardowns:test": "tsx scripts/approved-task-teardowns.test.ts",
     "ingest:local": "cd python/ingest && uv run python -m high_signal_ingest.pipeline --source all --days 1",
+    "source:quality": "cd python/ingest && uv run python -m high_signal_ingest.source_quality",
     "ingest:preflight": "cd python/ingest && uv run python -m high_signal_ingest.preflight",
     "prepare": "husky"
   },

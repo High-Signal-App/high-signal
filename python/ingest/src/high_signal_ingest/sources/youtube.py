@@ -1,4 +1,4 @@
-"""YouTube transcripts adapter — Asianometry / ServeTheHome / TechTechPotato.
+"""YouTube transcripts adapter — technical, market, and founder/operator channels.
 
 Pulls latest videos via the channel RSS (free, no key) and grabs transcripts via
 `youtube-transcript-api` (free). No API quota issues.
@@ -26,14 +26,21 @@ DEFAULT_CONCURRENCY = 4
 
 # (channel_id, name, default_entity_id_or_None)
 DEFAULT_CHANNELS: list[tuple[str, str, str | None]] = [
-    ("UCMjK6zS9TGgjxk1eg-NKlmw", "Asianometry", None),  # semis history + analysis
-    ("UCmAVu-9-O9SYSqHy7gcgjyQ", "ServeTheHome", None),  # data center hardware
+    ("UC1LpsuAUaKoMzzJSEt5WImw", "Asianometry", None),  # semis history + analysis
+    ("UCv6J_jJa8GJqFwQNgNrMuww", "ServeTheHome", None),  # data center hardware
     ("UC1r0DG-KEPyqOeW6o79PByw", "TechTechPotato", None),  # Ian Cutress, semis deep dives
-    ("UCJ6q9Ie29ajGqKApbLqfBOg", "Bloomberg Television", None),  # earnings + macro
-    ("UCN5ROrkwjhPCMUvFceHqCRg", "TaiwanPlus News", "TSM"),  # Taiwan-side semis context
-    ("UCDoUpjjQchxK9KpyCbPbWXg", "DW News (English)", None),  # EU/Asia angle
-    ("UCt-2PtYkQS_-mBwqOyjlIfg", "CNBC International TV", None),
-    ("UCef1-8eOpJgud7szVPlZQAQ", "WSJ News", None),
+    ("UCIALMKvObZNtJ6AmdCLP7Lg", "Bloomberg Television", None),  # earnings + macro
+    ("UCCJBSLNtozkO-NqjpPZujiQ", "TaiwanPlus News", "TSM"),  # Taiwan-side semis context
+    ("UCknLrEdhRCp1aegoMqRaCZg", "DW News (English)", None),  # EU/Asia angle
+    ("UCo7a6riBFJ3tkeHjvkXPn1g", "CNBC International TV", None),
+    ("UCMliswJ7oukCeW35GSayhRA", "WSJ News", None),
+    ("UCcefcZRL2oaA_uBNeo5UOWg", "Y Combinator", None),
+    ("UC9cn0TuPq4dnbTY-CBsm8XA", "a16z", None),
+    ("UCESLZhusAkFfsNsApnjF_Cg", "All-In Podcast", None),
+    ("UC6t1O76G0jYXOAoYCm153dA", "Lenny's Podcast", None),
+    ("UCPbwhExawYrn9xxI21TFfyw", "The Pragmatic Engineer", None),
+    ("UCf0PBRjhf0rF8fWBIxTuoWA", "20VC with Harry Stebbings", None),
+    ("UCxBcwypKK-W3GHd_RZ9FZrQ", "Latent Space", None),
 ]
 
 
@@ -60,6 +67,11 @@ def _fetch_transcript(video_id: str) -> str:
     except Exception as exc:
         LOGGER.debug("transcript failed video=%s error=%s", video_id, exc)
         return ""
+
+
+def _fallback_summary(entry: dict) -> str:
+    summary = (entry.get("summary") or entry.get("description") or "").strip()
+    return summary[:30_000] if len(summary) >= 300 else ""
 
 
 async def fetch_channel_async(
@@ -90,8 +102,9 @@ async def fetch_channel_async(
         video_id = entry.get("yt_videoid") or link.split("v=")[-1].split("&")[0]
         # Transcript fetch is sync + can take 5-10s; offload to thread
         transcript = await asyncio.to_thread(_fetch_transcript, video_id)
-        if not transcript:
-            # Skip if transcript missing — title alone is too thin
+        content = transcript or _fallback_summary(entry)
+        if not content:
+            # Skip if transcript and description are both missing — title alone is too thin.
             continue
         raw_hash = _hash("youtube", channel_id, video_id)
         out.append(
@@ -101,7 +114,7 @@ async def fetch_channel_async(
                 source_url=link,
                 published_at=pub,
                 title=f"{name}: {title}",
-                content=transcript,
+                content=content,
                 primary_entity_id=entity_id,
                 raw_hash=raw_hash,
             )

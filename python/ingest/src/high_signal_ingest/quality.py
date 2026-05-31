@@ -24,6 +24,7 @@ ContentCategory = Literal[
     "regional-issue",
     "agent-evaluation",
     "policy-regulatory",
+    "security-risk",
     "company-event",
 ]
 
@@ -116,11 +117,12 @@ def classify_content_category(signal_type: str, body_md: str) -> ContentCategory
     rules: list[tuple[ContentCategory, tuple[str, ...]]] = [
         ("market-pulse", ("market", "prediction", "probability", "quote", "stock", "equity", "ipo", "analyst")),
         ("customer-complaint", ("complaint", "review", "churn", "support", "refund", "bug", "missing", "friction")),
-        ("product-opportunity", ("product", "launch", "developer", "workflow", "requirement", "adoption", "integration")),
+        ("security-risk", ("cve", "vulnerability", "ransomware", "exploit", "exploited", "privilege_escalation", "remote_code_execution", "malicious_code", "cisa", "kev", "security_risk", "supply_chain_compromise")),
+        ("product-opportunity", ("product", "launch", "developer", "workflow", "requirement", "adoption", "integration", "devtool_trust", "ai_pricing_pressure")),
         ("startup-move", ("startup", "funding", "m_and_a", "acquisition", "partnership", "talent", "hiring")),
         ("regional-issue", ("regional", "india", "china", "taiwan", "korea", "eu", "local", "city")),
         ("agent-evaluation", ("agent", "llm", "ai_answer", "retrievability", "comparison", "evidence_layer")),
-        ("policy-regulatory", ("regulatory", "policy", "export", "restriction", "antitrust", "lawsuit", "probe", "gov")),
+        ("policy-regulatory", ("regulatory", "policy", "export", "restriction", "antitrust", "lawsuit", "probe", "gov", "ai_policy_competition")),
     ]
     for category, terms in rules:
         if any(_clean(term) in text for term in terms):

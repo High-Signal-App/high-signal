@@ -34,6 +34,7 @@ const CATEGORY_LABELS: Array<{ value: SignalContentCategory; label: string }> = 
   { value: "regional-issue", label: "regional issues" },
   { value: "agent-evaluation", label: "agent evaluation" },
   { value: "policy-regulatory", label: "policy / regulatory" },
+  { value: "security-risk", label: "security risk" },
   { value: "company-event", label: "company events" },
 ];
 

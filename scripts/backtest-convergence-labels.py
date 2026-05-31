@@ -35,7 +35,7 @@ BACKTEST_DAYS = 14            # how many days to evaluate
 DATA_WINDOW_DAYS = 21          # how much history to pull (covers backtest + attention's 14-day window)
 WIKI_UA = "high-signal-backtest/0.1 (contact: sarthak@vaultwealth.com)"
 MIN_SOURCES = 3
-ATTENTION_BREAKOUT_DELTA_PCT = 25.0
+ATTENTION_BREAKOUT_DELTA_PCT = 15.0
 ATTENTION_FLAT_BAND_PCT = 5.0
 
 

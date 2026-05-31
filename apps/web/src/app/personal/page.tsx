@@ -225,7 +225,8 @@ async function readMarketRefreshes(): Promise<MarketRefreshRecord[]> {
       .split("\n")
       .map((line) => line.trim())
       .filter(Boolean)
-      .map((line) => JSON.parse(line) as MarketRefreshRecord);
+      .map((line) => JSON.parse(line) as MarketRefreshRecord)
+      .filter((record) => record.source === "yahoo");
   } catch {
     return bundledMarketRefreshes as MarketRefreshRecord[];
   }
@@ -535,7 +536,7 @@ export default async function PersonalPage({
           </a>
         </div>
         <p className="mt-3 max-w-3xl text-sm leading-6 text-[var(--color-muted)]">
-          Stooq refresh {marketSnapshot.freshnessStatus}
+          Yahoo EOD refresh {marketSnapshot.freshnessStatus}
           {marketSnapshot.latestRefreshAt ? ` / ${marketSnapshot.latestRefreshAt.slice(0, 16).replace("T", " ")} UTC` : ""}
           . This is product timing context, not a stock call.
         </p>

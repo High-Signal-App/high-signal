@@ -55,6 +55,10 @@ const FAMILY_BY_PREFIX: Array<{ family: SignalFamily; prefixes: string[] }> = [
       "ai_pipeline",
       "genai",
       "llm",
+      "ai_edge",
+      "ai_pricing",
+      "industrial_ai",
+      "physical_ai",
     ],
   },
   {
@@ -106,6 +110,8 @@ const FAMILY_BY_PREFIX: Array<{ family: SignalFamily; prefixes: string[] }> = [
       "github_stars",
       "downloads",
       "active_devs",
+      "developer_ecosystem",
+      "devtool",
     ],
   },
   {
@@ -119,6 +125,9 @@ const FAMILY_BY_PREFIX: Array<{ family: SignalFamily; prefixes: string[] }> = [
       "sanctions",
       "ftc",
       "sec_enforcement",
+      "security",
+      "policy_competition",
+      "regional_compute",
     ],
   },
 ];

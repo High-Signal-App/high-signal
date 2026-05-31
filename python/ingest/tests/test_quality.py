@@ -79,3 +79,25 @@ def test_quality_blocks_fallback_body() -> None:
 
     assert q.publishable is False
     assert "fallback_or_backfill" in q.reasons
+
+
+def test_quality_classifies_security_risk() -> None:
+    q = assess_signal_quality(
+        _candidate(
+            evidence_urls=[
+                "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-41091",
+                "https://github.com/example/project/security/advisories/GHSA-test",
+            ],
+            signal_type="known_exploited_vulnerability",
+            confidence="medium",
+            body=(
+                "CISA KEV added CVE-2026-41091 after active exploitation. The vendor "
+                "advisory confirms the vulnerability and the required mitigation path, "
+                "making this a security-risk candidate for tracked developer infrastructure."
+            ),
+        )
+    )
+
+    assert q.content_category == "security-risk"
+    assert "official" in q.source_classes
+    assert "developer" in q.source_classes

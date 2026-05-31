@@ -1,28 +1,28 @@
 {
-  "generatedAt": "2026-05-29T21:41:24.673712+00:00",
+  "generatedAt": "2026-05-31T07:02:29.560021+00:00",
   "backtestDays": 14,
   "labels": {
     "breakout": {
-      "n": 17,
-      "hits": 10,
-      "rate": 0.5882,
-      "lift": 1.714
+      "n": 29,
+      "hits": 16,
+      "rate": 0.5517,
+      "lift": 1.309
     },
     "divergence": {
-      "n": 95,
-      "hits": 43,
-      "rate": 0.4526,
-      "lift": 1.319
+      "n": 92,
+      "hits": 45,
+      "rate": 0.4891,
+      "lift": 1.16
     }
   },
   "unlabeled": {
-    "n": 162,
-    "hits": 41,
-    "rate": 0.2531
+    "n": 140,
+    "hits": 49,
+    "rate": 0.35
   },
   "baseline": {
-    "n": 274,
-    "hits": 94,
-    "rate": 0.3431
+    "n": 261,
+    "hits": 110,
+    "rate": 0.4215
   }
 }

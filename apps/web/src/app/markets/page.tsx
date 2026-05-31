@@ -107,8 +107,8 @@ export default async function MarketsPage({
       <section className="mt-10 grid gap-8 md:grid-cols-3">
         <Panel eyebrow="source" title="Market snapshots">
           <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">
-            The daily automation refreshes a compact watchlist from Stooq and bundles the latest
-            records into the web app. JSON export is available at{" "}
+            The daily automation derives this compact watchlist from the canonical equities snapshot
+            and bundles the latest records into the web app. JSON export is available at{" "}
             <a className="text-[var(--color-accent)] hover:underline" href={`/markets.json${snapshot.selectedRefreshDate ? `?date=${snapshot.selectedRefreshDate}` : ""}`}>
               /markets.json
             </a>

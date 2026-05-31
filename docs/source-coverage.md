@@ -38,6 +38,25 @@ Generate daily draft signals from:
 - `youtube` — transcripts from selected technical / market channels.
 - `hkex` — HK-listed AI and semiconductor announcements.
 - `markets` — prediction-market quotes; these are resources for context and scoring, not primary signal cards.
+- `cisa-kev` — known exploited vulnerabilities only; security-risk candidates for mapped infra/devtool entities, not a broad CVE feed.
+- `lobsters` — small technical weak-signal source; useful for developer/infrastructure adoption and risk discussion, not a broad social feed.
+- `techmeme` — meta-curation/corroboration source for mainstream tech/business stories; useful when a weak or primary event has crossed into broader attention.
+
+### Source Role Policy
+
+Every source must have a role before it is added. More data is not useful unless
+it improves candidate discovery, corroboration, entity mapping, or an explicit
+lens.
+
+- **Primary evidence** — official filings, IR pages, government catalogs, vendor advisories, GitHub releases, and other sources that can anchor a claim.
+- **Corroboration** — trusted news, GDELT, Techmeme-style meta-curation, and independent reporting that confirms a primary event is broader than one page.
+- **Weak-signal candidates** — Reddit, HN, YouTube transcripts, Substack, prediction markets, and community chatter. These can start review items but should not auto-publish alone.
+- **Enrichment** — Wikidata, GLEIF, Wikipedia pageviews, equities snapshots, and other sources that improve mapping, context, or ranking but are rarely a signal by themselves.
+- **Lens-specific intelligence** — Wayback/CDX, competitor page diffs, AI answer checks, review sites, and similar product/competitor sources belong to Mention or Agent Eval until their outcome metric is defined.
+
+Add sources in curated batches. A source should be removed or demoted if it
+mostly creates unmapped events, duplicate syndication waves, or drafts with no
+decision attached.
 
 Default cadence:
 
@@ -48,6 +67,10 @@ Default cadence:
 
 Stock scope:
 
+- **Single stock-price ingress**: public equity / ETF / index / crypto EOD prices come from `python/ingest/src/high_signal_ingest/equities_daily.py` via the shared yfinance adapter and are persisted first as `data/equities-snapshot.jsonl`.
+- **No second quote fetchers**: new scripts, workflows, web pages, source adapters, and scoring jobs should not call Yahoo, Stooq, Alpha Vantage, Polygon, IEX, Tiingo, or exchange quote APIs directly for stock prices. They should read `data/equities-snapshot.jsonl` or, after the planned DB migration, D1 `closes` / `ticker_snapshot`.
+- **Generated bundles are not sources**: `apps/web/src/data/equities-snapshot.json`, `apps/web/src/data/price-context.json`, `apps/web/src/data/market-refreshes.json`, and `workers/api/src/lib/known-tickers.json` are derived caches.
+- **Prediction market quotes are not stock quotes**: `market_quotes` is reserved for Polymarket / Manifold / Kalshi probability data and should not be mixed with EOD equity prices.
 - Track Indian public markets as the national watch layer.
 - Track US/global names and sectors as the international watch layer.
 - Keep the first pass high level: direction, confidence, affected names, sector pressure, and watch/ignore guidance.
@@ -101,6 +124,15 @@ Not launch-ready as unified signals until the outcome metric is defined:
 - post/comment velocity
 - manually marked usefulness
 - buying-intent conversion
+
+### Security Risk
+
+Generate candidates from CISA KEV only when the vulnerable vendor/product maps
+to a tracked entity, a security-sensitive developer ecosystem, or a repeated
+cross-source pattern. KEV is authoritative enough to preserve as raw evidence,
+but public signal cards still need a clear action and preferably a second
+source such as a vendor advisory, GitHub advisory, HN discussion, or credible
+security reporting.
 
 ## Confidence Policy
 

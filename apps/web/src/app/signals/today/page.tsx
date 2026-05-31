@@ -44,6 +44,7 @@ const CATEGORY_LABELS: Record<SignalContentCategory, string> = {
   "regional-issue": "regional issues",
   "agent-evaluation": "agent evaluation",
   "policy-regulatory": "policy / regulatory",
+  "security-risk": "security risk",
   "company-event": "company events",
 };
 function utcDate(d = new Date()) {

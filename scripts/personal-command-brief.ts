@@ -73,6 +73,15 @@ type ProductFlowRefreshRecord = {
   refreshError?: string;
 };
 
+type EquitySnapshotRow = {
+  ticker: string;
+  symbol?: string | null;
+  last_close?: number | null;
+  last_date?: number | null;
+  ret_1d?: number | null;
+  volume_avg_30d?: number | null;
+};
+
 type SaaSMakerTaskCache = {
   tasks: Array<{
     id: string;
@@ -89,6 +98,7 @@ const TASK_SYNC_PATH = resolve(ROOT, "data/personal-task-sync.jsonl");
 const SOURCE_REGISTRY_PATH = resolve(ROOT, "data/personal-source-registry.json");
 const SOURCE_REFRESH_PATH = resolve(ROOT, "data/product-flow-refresh.jsonl");
 const MARKET_REFRESH_PATH = resolve(ROOT, "data/personal-market-refresh.jsonl");
+const EQUITIES_SNAPSHOT_PATH = resolve(ROOT, "data/equities-snapshot.jsonl");
 const BRIEF_SNAPSHOT_PATH = resolve(ROOT, "data/personal-brief-snapshots.jsonl");
 const COMPLAINT_CLUSTER_LEDGER_PATH = resolve(ROOT, "data/personal-complaint-clusters.jsonl");
 const REEL_BRIEF_LEDGER_PATH = resolve(ROOT, "data/personal-reel-briefs.jsonl");
@@ -223,7 +233,8 @@ async function readMarketRefreshes(): Promise<MarketRefreshRecord[]> {
       .split("\n")
       .map((line) => line.trim())
       .filter(Boolean)
-      .map((line) => JSON.parse(line) as MarketRefreshRecord);
+      .map((line) => JSON.parse(line) as MarketRefreshRecord)
+      .filter((record) => record.source === "yahoo");
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return [];
     throw error;
@@ -1139,58 +1150,61 @@ async function refreshSources(seed: ProductFlowSeed, registry?: PersonalSourceRe
   );
 }
 
-function parseNumber(value: string) {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : null;
+function dateFromSnapshot(value: number | null | undefined) {
+  if (!value) return new Date().toISOString().slice(0, 10);
+  const raw = String(value);
+  return `${raw.slice(0, 4)}-${raw.slice(4, 6)}-${raw.slice(6, 8)}`;
 }
 
-async function fetchStooqQuote(ticker: MarketWatchGroup["tickers"][number]): Promise<MarketQuote | null> {
-  const response = await fetch(
-    `https://stooq.com/q/l/?${new URLSearchParams({
-      s: ticker.stooqSymbol,
-      f: "sd2t2ohlcv",
-      h: "",
-      e: "csv",
-    })}`,
-    { headers: { "User-Agent": "HighSignalPersonal/1.0 (market refresh)" } },
-  );
-  if (!response.ok) throw new Error(`stooq_${response.status}`);
-  const [, row = ""] = (await response.text()).trim().split("\n");
-  const [symbol = "", date = "", time = "", openRaw = "", , , closeRaw = "", volumeRaw = ""] = row
-    .split(",")
-    .map((value) => value.trim());
-  const open = parseNumber(openRaw);
-  const close = parseNumber(closeRaw);
-  const volume = parseNumber(volumeRaw);
-  if (!symbol || !date || !time || open === null || close === null) return null;
+async function readEquitiesSnapshot() {
+  const raw = await readFile(EQUITIES_SNAPSHOT_PATH, "utf8");
+  const rows = raw
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => JSON.parse(line) as EquitySnapshotRow);
+  const byTicker = new Map<string, EquitySnapshotRow>();
+  const bySymbol = new Map<string, EquitySnapshotRow>();
+  for (const row of rows) {
+    if (row.ticker) byTicker.set(row.ticker, row);
+    if (row.symbol && !bySymbol.has(row.symbol)) bySymbol.set(row.symbol, row);
+  }
+  return { byTicker, bySymbol };
+}
+
+function quoteFromSnapshot(
+  ticker: MarketWatchGroup["tickers"][number],
+  snapshots: Awaited<ReturnType<typeof readEquitiesSnapshot>>,
+): MarketQuote | null {
+  const row = snapshots.byTicker.get(ticker.ticker) ?? snapshots.bySymbol.get(ticker.symbol);
+  if (!row || typeof row.last_close !== "number") return null;
+  const changePct = typeof row.ret_1d === "number" ? row.ret_1d * 100 : 0;
+  const open = typeof row.ret_1d === "number" && row.ret_1d > -1 ? row.last_close / (1 + row.ret_1d) : row.last_close;
   return {
     symbol: ticker.symbol,
     name: ticker.name,
     role: ticker.role,
-    stooqSymbol: ticker.stooqSymbol,
-    date,
-    time,
+    ticker: ticker.ticker,
+    date: dateFromSnapshot(row.last_date),
+    time: "eod",
     open,
-    close,
-    changePct: ((close - open) / open) * 100,
-    volume: volume ?? 0,
+    close: row.last_close,
+    changePct,
+    volume: row.volume_avg_30d ?? 0,
   };
 }
 
 async function refreshMarkets(config: MarketWatchConfig) {
+  const snapshots = await readEquitiesSnapshot();
   const groups = [];
   for (const group of config.groups) {
-    const quotes = (
-      await Promise.all(
-        group.tickers.map((ticker) =>
-          fetchStooqQuote(ticker).catch((error) => {
-            const message = error instanceof Error ? error.message : String(error);
-            console.log(`- failed ${ticker.symbol}: ${message}`);
-            return null;
-          }),
-        ),
-      )
-    ).filter((quote): quote is MarketQuote => Boolean(quote));
+    const quotes = group.tickers
+      .map((ticker) => {
+        const quote = quoteFromSnapshot(ticker, snapshots);
+        if (!quote) console.log(`- missing equities snapshot row for ${ticker.symbol} (${ticker.ticker})`);
+        return quote;
+      })
+      .filter((quote): quote is MarketQuote => Boolean(quote));
     const averageChangePct =
       quotes.length > 0 ? quotes.reduce((sum, quote) => sum + quote.changePct, 0) / quotes.length : 0;
     groups.push({
@@ -1212,7 +1226,7 @@ async function refreshMarkets(config: MarketWatchConfig) {
     console.log(`- refreshed ${group.title}: ${marketDirection(averageChangePct)} ${movers || "no usable quotes"}`);
   }
   const record: MarketRefreshRecord = {
-    source: "stooq",
+    source: "yahoo",
     createdAt: new Date().toISOString(),
     groups,
   };

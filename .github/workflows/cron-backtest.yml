@@ -1,6 +1,6 @@
 name: cron-backtest
 
-# Weekly refresh of the breakout/divergence label hit-rates that get
+# Daily refresh of the breakout/divergence label hit-rates that get
 # rendered on /convergence tooltips and /track-record/labels. The
 # script replays historical convergence labels against the events +
 # signals tables, computes the next-24h hit-rate per label, and writes
@@ -14,7 +14,7 @@ name: cron-backtest
 
 on:
   schedule:
-    - cron: "0 9 * * 1"  # Mondays 09:00 UTC — well clear of cron-equities (21:30 UTC)
+    - cron: "0 9 * * *"  # Daily 09:00 UTC — well clear of cron-equities (21:30 UTC)
   workflow_dispatch:
 
 permissions:

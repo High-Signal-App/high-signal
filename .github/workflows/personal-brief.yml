@@ -24,6 +24,7 @@ jobs:
       - name: Refresh personal source evidence
         run: pnpm personal:brief refresh-sources
 
+      # Reads data/equities-snapshot.jsonl; do not add a second quote provider here.
       - name: Refresh personal market context
         run: pnpm personal:brief refresh-markets
 

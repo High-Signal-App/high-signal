@@ -1,8 +1,8 @@
 name: cron-equities
 
-# Daily after US close: pull universe + closes via yfinance, compute the
-# Tier 1 snapshot, regenerate the two web data bundles that depend on it
-# (equities-snapshot.json + price-context.json), and commit the artifacts.
+# Daily after US close: this is the only scheduled public stock-price ingress.
+# Pull universe + closes via yfinance, compute the Tier 1 snapshot, regenerate
+# derived bundles, and commit the artifacts.
 # A push to main triggers deploy-web.yml automatically.
 
 on:

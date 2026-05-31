@@ -7,6 +7,10 @@ writes a JSONL artifact under ``data/equities-snapshot.jsonl``. The snapshot
 is the only persisted artifact; daily closes are held in memory and discarded
 after compute (the snapshot row carries all derived fields we need).
 
+This module is the only stock-price ingress. Other workflows should consume
+``data/equities-snapshot.jsonl`` or the future D1 ``closes`` /
+``ticker_snapshot`` tables, not add their own Yahoo/Stooq/etc. fetchers.
+
 Tier 2 (FX, dividend yield, Wikipedia pageviews) and Tier 3 (SEC XBRL,
 Form 4, 13F, FINRA short interest, mentions joins) fields are left as
 ``None`` until those ingestors land.

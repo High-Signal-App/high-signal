@@ -21,7 +21,7 @@ export default async function MarketsHistoryPage() {
     <PageShell>
       <BackLink href="/markets">back to markets</BackLink>
       <SectionHeader eyebrow="market archive" title="Market History">
-        Date-browsable Stooq snapshots for the high-level national and international stock watchlist.
+        Date-browsable snapshots derived from the canonical equities feed for the high-level national and international stock watchlist.
       </SectionHeader>
 
       <MetricGrid

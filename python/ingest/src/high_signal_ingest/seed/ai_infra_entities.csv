@@ -273,4 +273,23 @@ UEC,,Ultra Ethernet Consortium,sector,US,networking,ai-ethernet-fabric,UEC|Ultra
 LITHO,,EUV Lithography,sector,NL,semicap,extreme-ultraviolet-lithography,EUV|EUVL,https://en.wikipedia.org/wiki/Extreme_ultraviolet_lithography,https://www.asml.com
 GAAFET,,Gate-All-Around FET,sector,US,foundry,nanosheet-transistor,GAAFET|Nanosheet,https://en.wikipedia.org/wiki/Multigate_device,https://www.tsmc.com
 BACKSIDE,,Backside Power Delivery,sector,US,foundry,bspdn,Backside Power|BSPDN,https://en.wikipedia.org/wiki/Backside_power_delivery_network,https://www.intel.com
+PANW,PANW,Palo Alto Networks,public,US,security,network-security,Palo Alto Networks|PAN-OS,https://en.wikipedia.org/wiki/Palo_Alto_Networks,https://investors.paloaltonetworks.com
+TRENDMICRO,4704.T,Trend Micro,public,JP,security,endpoint-security,Trend Micro|Apex One,https://en.wikipedia.org/wiki/Trend_Micro,https://www.trendmicro.com/en_us/about/investor-relations.html
+DRUPAL,,Drupal,product,BE,software,cms,Drupal|Drupal Core,https://en.wikipedia.org/wiki/Drupal,https://www.drupal.org
+LANGFLOW,,Langflow,product,US,software,ai-agent-workflow,Langflow,https://www.langflow.org,https://www.langflow.org
+NX,,Nx,product,US,software,developer-tooling,Nx|Nx Console|Nrwl,https://nx.dev,https://nx.dev
+TANSTACK,,TanStack,product,US,software,developer-tooling,TanStack|React Query|TanStack Query,https://tanstack.com,https://tanstack.com
+LITESPEED,,LiteSpeed Technologies,private,US,software,web-server,LiteSpeed|LiteSpeed Web Server|LiteSpeed Cache|LiteSpeed cPanel Plugin,https://en.wikipedia.org/wiki/LiteSpeed_Web_Server,https://www.litespeedtech.com
 BYTEDANCE,,ByteDance,private,CN,hyperscaler,china-hyperscaler,ByteDance|TikTok,https://en.wikipedia.org/wiki/ByteDance,https://www.bytedance.com
+NIXOS,,NixOS,product,NL,software,linux-distribution,NixOS|Nix,https://en.wikipedia.org/wiki/NixOS,https://nixos.org
+ZIG,,Zig,product,US,software,programming-language,Zig|Ziglang,https://en.wikipedia.org/wiki/Zig_(programming_language),https://ziglang.org
+RUSTLANG,,Rust,product,US,software,programming-language,Rust|Rust language|Rustlang,https://en.wikipedia.org/wiki/Rust_(programming_language),https://www.rust-lang.org
+FLUTTER,,Flutter,product,US,software,app-framework,Flutter|Flutter desktop,https://en.wikipedia.org/wiki/Flutter_(software),https://flutter.dev
+CANONICAL,,Canonical,private,UK,software,linux-enterprise,Canonical|Ubuntu,https://en.wikipedia.org/wiki/Canonical_(company),https://canonical.com
+GITHUB,,GitHub,product,US,software,developer-platform,GitHub|GitHub Copilot|Copilot,https://en.wikipedia.org/wiki/GitHub,https://github.com
+LITELLM,,LiteLLM,product,US,software,llm-gateway,LiteLLM|BerriAI LiteLLM|BerriAI,https://github.com/BerriAI/litellm,https://www.litellm.ai
+IVANTI,,Ivanti,private,US,security,endpoint-management,Ivanti|Endpoint Manager Mobile|EPMM,https://en.wikipedia.org/wiki/Ivanti,https://www.ivanti.com
+ZAMA,,Zama,private,FR,software,confidential-computing,Zama|cUSDC,https://www.zama.ai,https://www.zama.ai
+CIRCLE,,Circle Internet Group,public,US,finance,stablecoin-infra,Circle|USDC,https://en.wikipedia.org/wiki/Circle_(company),https://www.circle.com
+SOFTBANK,9984.T,SoftBank Group,public,JP,capital,ai-infrastructure-investor,SoftBank|SoftBank Group,https://en.wikipedia.org/wiki/SoftBank_Group,https://group.softbank/en/ir
+FERC,,Federal Energy Regulatory Commission,sector,US,regulator,energy-regulator,FERC|Federal Energy Regulatory Commission,https://en.wikipedia.org/wiki/Federal_Energy_Regulatory_Commission,https://www.ferc.gov

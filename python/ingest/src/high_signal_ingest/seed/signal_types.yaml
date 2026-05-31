@@ -316,6 +316,151 @@
   confidence_floor: medium
   source_priority: [mlperf, ir_pdf, news_tier1, analyst_note]
 
+- id: security_risk
+  name: Known exploited security risk
+  description: CISA KEV, vendor advisory, or credible reporting shows active exploitation against a tracked product, developer tool, or infrastructure vendor.
+  primary_entity_types: [public_company, product, software, security]
+  spillover_pattern: [customers, developer_ecosystem, managed_service_providers, security_buyers]
+  default_window_days: 14
+  evidence_anchors:
+    - 'sources: CISA KEV catalog, vendor advisory, GitHub advisory, credible security reporting'
+    - 'language: "known exploited", "active exploitation", "supply-chain compromise", "emergency patch"'
+  trigger_examples:
+    - CISA adds Nx Console and TanStack supply-chain compromise entries to KEV
+    - CISA adds PAN-OS zero-day to KEV
+    - CISA adds Langflow RCE to KEV after public exploitation
+  direction_hint: negative_for_affected_vendor_positive_for_security_urgency
+  confidence_floor: high
+  source_priority: [gov_filing, vendor_advisory, news_tier1]
+
+- id: devtool_trust
+  name: Developer tooling trust pressure
+  description: Developer tools, package ecosystems, extensions, or AI coding tools see trust erosion from security, pricing, reliability, or governance changes.
+  primary_entity_types: [product, software, developer_platform]
+  spillover_pattern: [developer_workflows, platform_alternatives, security_buyers]
+  default_window_days: 21
+  evidence_anchors:
+    - 'sources: GitHub advisory/blog/docs, CISA KEV, developer community threads, credible developer press'
+    - 'language: "supply-chain", "usage-based billing", "token credits", "extension compromise", "breaking change"'
+  trigger_examples:
+    - GitHub Copilot moves from request-based pricing to usage-based AI Credits
+    - Malicious package compromises developer extensions
+    - Major framework maintenance changes hands
+  direction_hint: product_opportunity
+  confidence_floor: medium
+  source_priority: [official_docs, developer_blog, community, news_tier1]
+
+- id: ai_edge_hardware
+  name: AI edge / PC hardware shift
+  description: AI compute moves from cloud-only infrastructure into PCs, workstations, phones, or edge devices with named silicon and OEM partners.
+  primary_entity_types: [chip_designer, hyperscaler, oem]
+  spillover_pattern: [pc_oems, software_platforms, edge_ai_apps, memory]
+  default_window_days: 45
+  evidence_anchors:
+    - 'sources: OEM announcement, chip vendor announcement, conference disclosure, tier-1 reporting'
+    - 'language: "AI PC", "on-device AI", "NPU", "SoC", "Windows on Arm", "local inference"'
+  trigger_examples:
+    - Microsoft and NVIDIA unveil Windows PCs powered by NVIDIA SoCs
+    - Apple ships a new local AI hardware requirement
+  direction_hint: positive_for_edge_compute_ecosystem
+  confidence_floor: medium
+  source_priority: [ir_pdf, official_blog, news_tier1]
+
+- id: ai_pricing_pressure
+  name: AI pricing pressure / model-cost reset
+  description: AI products move from flat or request-based packaging to usage-based billing, creating buyer pushback or new demand for cost controls.
+  primary_entity_types: [developer_platform, hyperscaler, software]
+  spillover_pattern: [developer_tools, ai_gateways, spend_management, open_source_alternatives]
+  default_window_days: 30
+  evidence_anchors:
+    - 'sources: official pricing docs, product changelog, customer backlash, trusted tech press'
+    - 'language: "usage-based", "token", "credits", "billing preview", "cost controls", "budget cap"'
+  trigger_examples:
+    - GitHub Copilot replaces PRUs with AI Credits
+    - AI coding agent moves premium model access to token billing
+  direction_hint: product_opportunity
+  confidence_floor: medium
+  source_priority: [official_docs, news_tier1, community]
+
+- id: ai_policy_competition
+  name: AI policy / political competition
+  description: AI companies, backers, or industry coalitions compete through lobbying, PACs, regulatory campaigns, or government influence.
+  primary_entity_types: [private_company, public_company, regulator]
+  spillover_pattern: [regulation, model_access, procurement, public_trust]
+  default_window_days: 90
+  evidence_anchors:
+    - 'sources: lobbying disclosures, campaign finance reporting, credible political press'
+    - 'language: "super PAC", "lobbying", "policy campaign", "regulatory capture", "procurement"'
+  trigger_examples:
+    - Anthropic-backed and OpenAI-backed groups fund competing AI policy campaigns
+  direction_hint: strategic_risk
+  confidence_floor: medium
+  source_priority: [gov_filing, news_tier1, official_statement]
+
+- id: regional_compute_buildout
+  name: Regional AI compute buildout
+  description: Sovereigns, regions, or large investors announce AI compute clusters, data center campuses, or national AI infrastructure plans.
+  primary_entity_types: [hyperscaler, neocloud, sovereign, power]
+  spillover_pattern: [power_grid, semicap, regional_policy, real_estate]
+  default_window_days: 90
+  evidence_anchors:
+    - 'sources: government announcement, investor release, data center filing, tier-1 business press'
+    - 'language: "AI computing cluster", "GW", "MW", "sovereign AI", "data center campus"'
+  trigger_examples:
+    - SoftBank pledges AI compute clusters in France
+    - National AI infrastructure fund backs GPU campuses
+  direction_hint: positive_for_regional_ai_infra
+  confidence_floor: medium
+  source_priority: [gov_filing, ir_pdf, news_tier1]
+
+- id: developer_ecosystem_drift
+  name: Developer ecosystem drift
+  description: Technical communities show meaningful movement around languages, frameworks, distros, runtimes, or maintainership.
+  primary_entity_types: [product, software, developer_platform]
+  spillover_pattern: [developer_tools, cloud_images, package_ecosystems, enterprise_support]
+  default_window_days: 45
+  evidence_anchors:
+    - 'sources: project release notes, maintainer announcement, developer communities, GitHub activity'
+    - 'language: "released", "roadmap", "maintainer", "migration", "breaking change", "adoption"'
+  trigger_examples:
+    - NixOS releases new version with developer-infra implications
+    - Canonical takes over Flutter desktop maintenance
+    - Zig compiler/linker improvements change deployment ergonomics
+  direction_hint: weak_signal
+  confidence_floor: low
+  source_priority: [developer_blog, github, community]
+
+- id: industrial_ai_adoption
+  name: Industrial AI adoption
+  description: Non-software industrial firms deploy AI in call centers, manufacturing, field operations, or internal workflows with concrete operating outcomes.
+  primary_entity_types: [public_company, industrial, operations]
+  spillover_pattern: [enterprise_ai_tools, systems_integrators, automation_vendors]
+  default_window_days: 60
+  evidence_anchors:
+    - 'sources: company case study, credible business press, earnings commentary'
+    - 'language: "call center", "manufacturing", "field service", "productivity", "AI assistant"'
+  trigger_examples:
+    - Schneider Electric uses AI in call centers and manufacturing
+  direction_hint: positive_for_practical_enterprise_ai
+  confidence_floor: medium
+  source_priority: [ir_pdf, official_blog, news_tier1]
+
+- id: physical_ai_acceleration
+  name: Robotics / physical AI acceleration
+  description: Capital, customer deployment, or technical progress accelerates in robotics, autonomous vehicles, embodied AI, or industrial automation.
+  primary_entity_types: [startup, public_company, sector]
+  spillover_pattern: [chips, sensors, factories, industrial_software]
+  default_window_days: 75
+  evidence_anchors:
+    - 'sources: funding data, customer deployment, regulatory filing, credible business press'
+    - 'language: "robotics", "physical AI", "robotaxi", "factory automation", "humanoid"'
+  trigger_examples:
+    - Physical AI funding exceeds prior-cycle levels
+    - Robotaxi companies face scaled deployment constraints
+  direction_hint: positive_for_robotics_ecosystem
+  confidence_floor: medium
+  source_priority: [news_tier1, funding_database, official_blog]
+
 - id: hyperscaler_internal_chip
   name: Hyperscaler internal silicon progress
   description: Material progress, ramp, or stumble on hyperscaler-owned ASIC (TPU, Trainium, Maia, MTIA, Axion, Cobalt).

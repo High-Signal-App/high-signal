@@ -95,6 +95,7 @@ const CATEGORY_OPPORTUNITIES: Partial<Record<SignalContentCategory, string[]>> =
   "policy-regulatory": ["regional-constraint-watch", "public-consumer-shift"],
   "product-opportunity": ["complaint-to-spec", "workflow-observability"],
   "regional-issue": ["regional-constraint-watch", "public-consumer-shift"],
+  "security-risk": ["platform-risk-watch", "developer-trust-proof"],
   "startup-move": ["launch-distribution", "complaint-to-spec"],
 };
 

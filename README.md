@@ -67,6 +67,9 @@ Legend used in the notes:
 - [x] **GLEIF LEI** *(enrichment / entity resolution)* — *(planned: bulk download + cross-source join key)*
 
 ### Equities snapshot pipeline (`/equities`)
+- **Stock-price source of truth** — all public equity / ETF / index / crypto EOD prices enter through `python/ingest/src/high_signal_ingest/equities_daily.py`, which uses the shared yfinance adapter and writes `data/equities-snapshot.jsonl`. Do **not** add direct quote fetchers in web scripts, personal workflows, signal scoring, or source adapters; consume this artifact or the D1 `closes` / `ticker_snapshot` tables once that migration is active.
+- **Derived artifacts only** — `apps/web/src/data/equities-snapshot.json`, `apps/web/src/data/price-context.json`, `apps/web/src/data/market-refreshes.json`, and `workers/api/src/lib/known-tickers.json` are build outputs derived from `data/equities-snapshot.jsonl`, not independent market-data sources.
+- **Prediction markets are separate** — `market_quotes` means Polymarket / Manifold / Kalshi probabilities, not stock quotes. Never use that table as equity-price evidence.
 - [x] **Universe build** — S&P 500 + Russell 1000 + S&P 400 + S&P 600 + Wikipedia international + ai_infra_entities + curated ETFs/indices + crypto top 100 → **3,226 unique tickers** — `python/ingest/sources/equities/universe.py`
 - [x] **yfinance closes** — daily EOD via batched download — `python/ingest/sources/equities/yf.py`
 - [x] **Tier 1 derivations** — ret_1d/30d/90d/1y/5y (local + USD), volatility, 52-week, SMA50/200, golden/death cross, beta vs SPY — `python/ingest/sources/equities/snapshot.py`
@@ -95,14 +98,12 @@ Legend used in the notes:
 
 ### Discourse
 - [x] **Hacker News** — `python/ingest/lab/ingest.py` (Firebase API + outbound-link extraction)
-- [x] **Reddit** *(7 subs — hardware/semi-heavy)* — `python/ingest/sources/reddit.py`
-  - [ ] Broaden to startup subs (`r/startups`, `r/SaaS`, `r/IndieHackers`, `r/ExperiencedDevs`, `r/webdev`, `r/devops`, …)
-- [x] **YouTube transcripts** *(8 hardware/macro channels)* — `python/ingest/sources/youtube.py`
-  - [ ] Add founder channels (Y Combinator, a16z, All-In, Lenny's, Pragmatic Engineer)
+- [x] **Reddit** *(13 subs — hardware/semi-heavy + startup/dev/operator)* — `python/ingest/sources/reddit.py`
+- [x] **YouTube transcripts** *(15 hardware/macro/founder/operator channels)* — `python/ingest/sources/youtube.py`
 - [ ] **Bluesky AT Protocol firehose** *(real founder/researcher presence)*
-- [ ] **Lobste.rs** *(RSS + JSON)*
+- [x] **Lobste.rs** *(small technical RSS weak-signal source; curated alternative to broad social firehose)* — `python/ingest/sources/lobsters.py`
 - [ ] **Substack RSS pool** *(curated ~200 tech/startup writers — Stratechery, Pragmatic Engineer, Lenny's, etc.)*
-- [ ] **Techmeme RSS** *(meta-curation)*
+- [x] **Techmeme RSS** *(meta-curation / corroboration source, not primary evidence)* — `python/ingest/sources/techmeme.py`
 - [ ] **Podcast Index → Whisper** *(Acquired, Lenny's, Dwarkesh, Lex, All-In, 20VC, Latent Space, …)*
 
 ### Policy & standards
@@ -112,6 +113,7 @@ Legend used in the notes:
 - [ ] **SAM.gov + SBIR.gov** *(federal contracts + SBIR topics)*
 
 ### Markets / prediction
+- Scope note: this lane is for forecast/probability markets only. It must not fetch or store equity prices; equity movement context belongs to the equities snapshot pipeline above.
 - [x] **Prediction markets — Polymarket + Manifold** *(10 AI-infra keywords)* — `python/ingest/sources/markets.py`
   - [x] Add **Kalshi** *(US-regulated real-money exchange — cursor-paginated, no-auth read)*
   - [x] **Broaden Polymarket coverage** beyond keyword filter — top-N by 24h volume firehose ("new kinds of gambling people do")
@@ -124,12 +126,14 @@ Legend used in the notes:
 
 ### Attention
 - [x] **Wikipedia Pageviews API** — `GET /attention/:article?days=30` returns daily series + 7-vs-prior-7 trend. Overlaid on `/convergence` for the top 15 entities (avg/day + ±%). 275-entity seed JSON bundled in the Worker; no D1 round-trip.
-- [ ] **Wayback Machine CDX** *(diff company `/careers`, `/pricing`, `/about` pages over time — pivots show up here first)*
 - [ ] **Wikidata SPARQL** *(entity resolution + sector/industry classification)*
+
+### Competitor / product intelligence
+- [ ] **Wayback Machine CDX** *(Mention / Agent Eval lane, not general aggregation: diff tracked company `/careers`, `/pricing`, `/about`, `/docs`, and `/compare` pages for positioning, hiring, pricing, and evidence-surface changes)*
 
 ### Security
 - [ ] **NVD CVE API**
-- [ ] **CISA KEV catalog** *(actively exploited vulnerabilities)*
+- [x] **CISA KEV catalog** *(known exploited vulnerabilities only; structured security-risk candidates, not a broad CVE firehose)* — `python/ingest/sources/cisa_kev.py`
 
 ---
 
@@ -141,10 +145,10 @@ Pending work, in the order it's expected to ship. Items move into the
 sections above (with their pipeline / route / cron) as they land.
 
 1. **Rotate Cloudflare API token** — `CF_API_TOKEN` is currently broken in GitHub Actions, so all CI deploys (deploy-api, deploy-web, cron-backtest) fail with code 10000. Local `wrangler deploy` is the workaround. Rotate at `dash.cloudflare.com/profile/api-tokens` with: Account → Workers Scripts:Edit, Account → D1:Edit, User → User Details:Read. Unblocks every cron above.
-2. **SEC EDGAR — Form D ingest** — see the row under "Capital, filings, money" above. Surfaces private-company funding (Anthropic, OpenAI, etc.). Slots in as `python/ingest/src/high_signal_ingest/sources/edgar/form_d.py` + new convergence rows.
-3. **Loosen breakout label threshold** — currently +25% week-over-week pageview delta. `/track-record/labels` shows n=17 for breakout, too thin to retune. Revisit once 4+ weeks of weekly cron data accumulate.
-4. **Promote candidates from `/unmapped` to seed** — manually walk the bare-entity list (Stargate, Extropic AI, Metaculus, MicroStrategy, …) into `ai_infra_entities.csv` so they get mapped on the next ingest. Each promotion shrinks the unmapped surface.
-5. **Backtest cron frequency** — currently weekly (Mondays 09:00 UTC). If `/track-record/labels` numbers feel stale on the convergence page, bump to daily (cheap script, ~30s end-to-end).
+2. **Review the source-quality report after the next full ingest** — `pnpm source:quality -- --json` measures fetched events, mapped entities, duplicate-ish source families, and unmapped samples for Reddit / YouTube / CISA KEV / Lobste.rs without writing signals.
+3. **Promote candidates from `/unmapped` to seed** — keep walking recurring high-signal entities into `ai_infra_entities.csv` so they get mapped on the next ingest. The first security/devtool batch is in: Palo Alto Networks, Trend Micro, Drupal, Langflow, Nx, TanStack, and LiteSpeed.
+4. **Monitor the loosened breakout threshold** — breakout now triggers at +15% week-over-week pageview delta. Let the daily backtest build enough observations before retuning again.
+5. **SEC EDGAR — Form D ingest** — high value but heavier. Keep it near the end of this source-expansion pass unless private-company funding becomes the immediate bottleneck.
 
 ## Will discuss: Signal Studio and playgrounds
 **Signal Studio** is the recommended first playground: a visual content lab that turns High Signal findings into polished marketing assets. It should feel like a futuristic marketing command center, not a boring dashboard. It can be playground-quality visually while still producing assets useful for selling High Signal.

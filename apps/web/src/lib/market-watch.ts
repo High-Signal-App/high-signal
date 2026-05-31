@@ -6,8 +6,8 @@ export type MarketWatchFreshness = "fresh" | "stale" | "empty";
 
 export type MarketWatchSnapshot = {
   generatedAt: string;
-  source: "stooq";
-  sourceUrl: "https://stooq.com/";
+  source: "yahoo" | "stooq";
+  sourceUrl: string;
   description: string;
   configUpdatedAt: string;
   requestedDate: string | null;
@@ -87,8 +87,8 @@ export function buildMarketWatchSnapshot(now = new Date(), preferredDate?: strin
   const groups = selected?.groups ?? [];
   return {
     generatedAt: now.toISOString(),
-    source: "stooq",
-    sourceUrl: "https://stooq.com/",
+    source: selected?.source ?? latest?.source ?? "yahoo",
+    sourceUrl: "https://finance.yahoo.com/",
     description: config.description,
     configUpdatedAt: config.updatedAt,
     requestedDate: preferredDate ?? null,

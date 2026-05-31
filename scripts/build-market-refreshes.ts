@@ -12,7 +12,7 @@ function parseRecords(raw: string) {
     .map((line) => line.trim())
     .filter(Boolean)
     .map((line) => JSON.parse(line) as MarketRefreshRecord)
-    .filter((record) => record.source === "stooq" && record.createdAt && Array.isArray(record.groups));
+    .filter((record) => record.source === "yahoo" && record.createdAt && Array.isArray(record.groups));
 }
 
 async function main() {

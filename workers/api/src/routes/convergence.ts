@@ -26,6 +26,7 @@ interface LabelStats {
 const BREAKOUT_STATS = (labelBacktest.labels.breakout as LabelStats) ?? null;
 const DIVERGENCE_STATS = (labelBacktest.labels.divergence as LabelStats) ?? null;
 const BASELINE_RATE = (labelBacktest.baseline?.rate as number | undefined) ?? null;
+const ATTENTION_BREAKOUT_DELTA_PCT = 15;
 
 type Env = { DB: D1Database };
 
@@ -277,7 +278,7 @@ convergenceRoute.get("/", async (c) => {
         : null;
 
       // ─── Derived label ─────────────────────────────────────────────────
-      // "breakout"   = multi-source convergence + attention surging (≥25%).
+      // "breakout"   = multi-source convergence + attention surging.
       //                Mainstream attention catching up — late but visible.
       // "divergence" = multi-source convergence + attention falling. The
       //                event hasn't crossed into public attention yet. This
@@ -288,7 +289,7 @@ convergenceRoute.get("/", async (c) => {
       let labelStats: LabelStats | null = null;
       const trend = attention?.trend;
       if (trend && row.source_count >= 3) {
-        if (trend.direction === "up" && trend.deltaPct >= 25) {
+        if (trend.direction === "up" && trend.deltaPct >= ATTENTION_BREAKOUT_DELTA_PCT) {
           label = "breakout";
           labelStats = BREAKOUT_STATS;
         } else if (trend.direction === "down") {

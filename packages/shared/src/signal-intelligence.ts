@@ -7,6 +7,7 @@ export type SignalContentCategory =
   | "regional-issue"
   | "agent-evaluation"
   | "policy-regulatory"
+  | "security-risk"
   | "company-event";
 
 export type SourceClass =
@@ -68,8 +69,25 @@ const CATEGORY_RULES: Array<{ category: SignalContentCategory; terms: string[] }
     terms: ["complaint", "review", "churn", "support", "refund", "bug", "missing", "friction"],
   },
   {
+    category: "security-risk",
+    terms: [
+      "cve",
+      "vulnerability",
+      "ransomware",
+      "exploit",
+      "exploited",
+      "privilege_escalation",
+      "remote_code_execution",
+      "malicious_code",
+      "cisa",
+      "kev",
+      "security_risk",
+      "supply-chain compromise",
+    ],
+  },
+  {
     category: "product-opportunity",
-    terms: ["product", "launch", "developer", "workflow", "requirement", "adoption", "integration"],
+    terms: ["product", "launch", "developer", "workflow", "requirement", "adoption", "integration", "devtool_trust", "ai_pricing_pressure"],
   },
   {
     category: "startup-move",
@@ -85,7 +103,7 @@ const CATEGORY_RULES: Array<{ category: SignalContentCategory; terms: string[] }
   },
   {
     category: "policy-regulatory",
-    terms: ["regulatory", "policy", "export", "restriction", "antitrust", "lawsuit", "probe", "gov"],
+    terms: ["regulatory", "policy", "export", "restriction", "antitrust", "lawsuit", "probe", "gov", "ai_policy_competition"],
   },
 ];
 

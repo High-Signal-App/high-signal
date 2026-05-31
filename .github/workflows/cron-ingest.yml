@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       source:
-        description: source filter (all|news|edgar|reddit|ir|github|youtube|gov|gdelt|hkex|markets)
+        description: source filter (all|news|edgar|reddit|ir|github|youtube|gov|gdelt|hkex|markets|cisa-kev|lobsters|techmeme)
         type: string
         default: all
       days:
