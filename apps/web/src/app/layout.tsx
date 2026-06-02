@@ -84,18 +84,23 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const clerkConfigured = Boolean(
+    process.env["NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY"] && process.env["CLERK_SECRET_KEY"],
+  );
+  const app = (
+    <AnalyticsProvider>
+      <PrimaryNav />
+      {clerkConfigured ? <AuthNav /> : null}
+      {children}
+      <SaaSMakerFeedback />
+    </AnalyticsProvider>
+  );
+
   return (
     <html lang="en">
       <body className="min-h-dvh font-sans antialiased">
         <SiteOrganizationJsonLd />
-        <ClerkProvider>
-          <AnalyticsProvider>
-            <PrimaryNav />
-            <AuthNav />
-            {children}
-            <SaaSMakerFeedback />
-          </AnalyticsProvider>
-        </ClerkProvider>
+        {clerkConfigured ? <ClerkProvider>{app}</ClerkProvider> : app}
       </body>
     </html>
   );

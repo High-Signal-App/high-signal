@@ -36,6 +36,16 @@ class Relationship(BaseModel):
     note: Optional[str] = None
 
 
+class SourceDocument(BaseModel):
+    canonical_url: Optional[str] = None
+    fetched_at: Optional[datetime] = None
+    published_at: Optional[datetime] = None
+    raw_hash: Optional[str] = None
+    raw_text: Optional[str] = None
+    raw_json: Optional[dict] = None
+    parsed_fields: Optional[dict] = None
+
+
 class Event(BaseModel):
     id: str
     source: str
@@ -45,6 +55,7 @@ class Event(BaseModel):
     content: Optional[str] = None
     primary_entity_id: Optional[str] = None
     raw_hash: str
+    source_document: Optional[SourceDocument] = None
 
 
 class EvidenceItem(BaseModel):

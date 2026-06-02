@@ -71,6 +71,7 @@ def push_events(events: Iterable[Event], fetch_run_id: str | None) -> int:
             "primaryEntityId": e.primary_entity_id,
             "rawHash": e.raw_hash,
             "fetchRunId": fetch_run_id,
+            "sourceDocument": _source_document_payload(e),
         }
         for e in events
     ]
@@ -83,6 +84,22 @@ def push_events(events: Iterable[Event], fetch_run_id: str | None) -> int:
         if _post("/admin/events", {"events": payload[i : i + chunk]}):
             total += len(payload[i : i + chunk])
     return total
+
+
+def _source_document_payload(event: Event) -> dict[str, Any] | None:
+    doc = event.source_document
+    if doc is None:
+        return None
+    raw = doc.model_dump(mode="json", exclude_none=True)
+    return {
+        "canonicalUrl": raw.get("canonical_url"),
+        "fetchedAt": raw.get("fetched_at"),
+        "publishedAt": raw.get("published_at"),
+        "rawHash": raw.get("raw_hash"),
+        "rawText": raw.get("raw_text"),
+        "rawJson": raw.get("raw_json"),
+        "parsedFields": raw.get("parsed_fields"),
+    }
 
 
 def push_llm_run(

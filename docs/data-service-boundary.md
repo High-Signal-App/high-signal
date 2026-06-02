@@ -1,7 +1,7 @@
 # Data Service Boundary
 
-Status: architecture direction
-Updated: 2026-05-31
+Status: phase 1 started
+Updated: 2026-06-02
 
 High Signal should remain the insight product, not the long-term data warehouse.
 The current source adapters are useful and should stay working, but they are an
@@ -68,13 +68,25 @@ tables to compensate.
 
 ## Migration Path
 
-Phase 1: keep adapters local, add raw-document preservation.
+Phase 1: keep adapters local, add raw-document preservation. **Started in
+migration `0007_source_documents.sql`.**
 
 - Add a `source_documents` / `source_payloads` store.
 - Store canonical URL, source, fetched timestamp, raw hash, raw JSON/text, and
   parsed fields JSON.
 - Let `events` reference the source document where possible.
 - Keep `signals/YYYY-MM-DD/*.md` as the signal source of truth.
+
+Current implementation:
+
+- `source_documents` stores document-level payload fields without adding
+  source-specific columns to signal tables.
+- `events.source_document_id` points back to the preserved document.
+- `/admin/events` writes a default source document from every incoming event.
+- Python adapters can optionally attach `Event.source_document` when they have
+  richer raw JSON or parsed fields worth preserving.
+- Existing adapters do not need to change immediately; their flattened event
+  payload still creates a minimal source document.
 
 Phase 2: separate ingestion execution.
 
@@ -102,6 +114,7 @@ Phase 3: make High Signal an insight layer only.
 
 ## Next Small Step
 
-The next code step should be a minimal `source_documents` table plus a helper
-that adapters can optionally use. Do not extract a new service before raw
-payload preservation exists and the existing daily brief remains green.
+Attach richer `Event.source_document` payloads to the highest-structure
+adapters first: SEC XBRL, Form D, USAspending, Podcast Index, and package
+registries. Do not extract a new service before those adapters prove the raw
+payload store helps with replay, dedupe, or insight generation.

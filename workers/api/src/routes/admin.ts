@@ -219,6 +219,17 @@ interface EventInput {
   primaryEntityId?: string | null;
   rawHash: string;
   fetchRunId?: string | null;
+  sourceDocument?: SourceDocumentInput | null;
+}
+
+interface SourceDocumentInput {
+  canonicalUrl?: string | null;
+  fetchedAt?: string | null;
+  publishedAt?: string | null;
+  rawHash?: string | null;
+  rawText?: string | null;
+  rawJson?: unknown;
+  parsedFields?: unknown;
 }
 
 adminRoute.post("/events", async (c) => {
@@ -227,7 +238,24 @@ adminRoute.post("/events", async (c) => {
   let inserted = 0;
   for (const e of events) {
     const id = await sha16(e.rawHash);
+    const sourceDocument = normalizeSourceDocument(e);
+    const sourceDocumentId = await sha16(`source-document:${sourceDocument.rawHash}`);
     try {
+      await db(c.env.DB)
+        .insert(schema.sourceDocuments)
+        .values({
+          id: sourceDocumentId,
+          source: e.source,
+          canonicalUrl: sourceDocument.canonicalUrl,
+          fetchedAt: sourceDocument.fetchedAt,
+          publishedAt: sourceDocument.publishedAt,
+          rawHash: sourceDocument.rawHash,
+          rawText: sourceDocument.rawText,
+          rawJson: sourceDocument.rawJson,
+          parsedFields: sourceDocument.parsedFields,
+          createdAt: new Date(),
+        })
+        .onConflictDoNothing({ target: schema.sourceDocuments.rawHash });
       await db(c.env.DB)
         .insert(schema.events)
         .values({
@@ -239,6 +267,7 @@ adminRoute.post("/events", async (c) => {
           content: e.content ?? null,
           primaryEntityId: e.primaryEntityId ?? null,
           rawHash: e.rawHash,
+          sourceDocumentId,
           fetchRunId: e.fetchRunId ?? null,
         })
         .onConflictDoNothing({ target: schema.events.rawHash });
@@ -249,6 +278,26 @@ adminRoute.post("/events", async (c) => {
   }
   return c.json({ inserted });
 });
+
+function normalizeSourceDocument(e: EventInput) {
+  const doc = e.sourceDocument ?? {};
+  const publishedAt = doc.publishedAt ?? e.publishedAt;
+  return {
+    canonicalUrl: doc.canonicalUrl ?? e.sourceUrl,
+    fetchedAt: doc.fetchedAt ? new Date(doc.fetchedAt) : new Date(),
+    publishedAt: publishedAt ? new Date(publishedAt) : null,
+    rawHash: doc.rawHash ?? e.rawHash,
+    rawText: doc.rawText ?? e.content ?? null,
+    rawJson: doc.rawJson ?? null,
+    parsedFields: doc.parsedFields ?? {
+      eventId: e.rawHash,
+      sourceUrl: e.sourceUrl,
+      title: e.title ?? null,
+      primaryEntityId: e.primaryEntityId ?? null,
+      fetchRunId: e.fetchRunId ?? null,
+    },
+  };
+}
 
 interface LlmRunInput {
   signalSlug?: string | null;

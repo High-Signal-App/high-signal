@@ -47,6 +47,30 @@ export const relationships = sqliteTable(
   ],
 );
 
+export const sourceDocuments = sqliteTable(
+  "source_documents",
+  {
+    id: text("id").primaryKey(),
+    source: text("source").notNull(),
+    canonicalUrl: text("canonical_url").notNull(),
+    fetchedAt: integer("fetched_at", { mode: "timestamp" }).notNull(),
+    publishedAt: integer("published_at", { mode: "timestamp" }),
+    rawHash: text("raw_hash").notNull(),
+    rawText: text("raw_text"),
+    rawJson: text("raw_json", { mode: "json" }),
+    parsedFields: text("parsed_fields", { mode: "json" }),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [
+    uniqueIndex("source_documents_raw_hash_idx").on(t.rawHash),
+    index("source_documents_source_idx").on(t.source),
+    index("source_documents_url_idx").on(t.canonicalUrl),
+    index("source_documents_fetched_idx").on(t.fetchedAt),
+  ],
+);
+
 export const events = sqliteTable(
   "events",
   {
@@ -58,6 +82,7 @@ export const events = sqliteTable(
     content: text("content"),
     primaryEntityId: text("primary_entity_id").references(() => entities.id),
     rawHash: text("raw_hash").notNull(),
+    sourceDocumentId: text("source_document_id").references(() => sourceDocuments.id),
     fetchRunId: text("fetch_run_id"),
     ingestedAt: integer("ingested_at", { mode: "timestamp" })
       .notNull()
@@ -67,6 +92,7 @@ export const events = sqliteTable(
     uniqueIndex("events_raw_hash_idx").on(t.rawHash),
     index("events_published_idx").on(t.publishedAt),
     index("events_primary_entity_idx").on(t.primaryEntityId),
+    index("events_source_document_idx").on(t.sourceDocumentId),
     index("events_fetch_run_idx").on(t.fetchRunId),
   ],
 );
