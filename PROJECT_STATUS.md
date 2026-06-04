@@ -1,10 +1,10 @@
-# High Signal project status
+# Project Status
 
 Last updated: 2026-06-03
 
 This is the single project-status doc for High Signal. It tracks what is done, what is planned next, and what is deferred/parked. Detailed supporting docs can exist, but this file is the first place to check before changing product scope.
 
-## Current scope
+## Current Scope
 
 High Signal is an evidence-backed daily intelligence brief.
 
@@ -123,7 +123,7 @@ Parked scope:
 - Modal support remains for ad-hoc/backfill use.
 - Package scripts exist for DB migrations/seeding, signal sync, auto-publish, source quality, snapshots, and tests.
 
-## Planned next
+## Planned Next
 
 1. Clarify event semantics.
    - Current `events` are normalized source observations.
@@ -152,7 +152,7 @@ Parked scope:
    - Confirm active GitHub Actions and cron paths are green.
    - Visually verify the active web surfaces in browser before release.
 
-## Deferred / parked
+## Deferred / Parked
 
 ### Lab
 
