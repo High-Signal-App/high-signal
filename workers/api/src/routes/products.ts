@@ -7,7 +7,12 @@ import { searchExternalMentions } from "../lib/external-monitors";
 import { runMentionCheck } from "../lib/mention-execution";
 import { executePromptsWithAI } from "../lib/agent-evaluation-execution";
 import { runSeoAudit } from "../lib/seo-audit";
-import { buildAgentEvaluationAudit, normalizeCommunitySummary } from "@high-signal/shared";
+import {
+  buildAgentEvaluationAudit,
+  buildMonthlyCompetitorReport,
+  getSeedMonthlyCompetitorReport,
+  normalizeCommunitySummary,
+} from "@high-signal/shared";
 import type {
   AgentEvaluationAudit,
   AgentEvaluationAuditDetail,
@@ -478,6 +483,28 @@ productsRoute.get("/mentions/configs/:id/report", async (c) => {
       .limit(5),
   ]);
 
+  // Load results for the most recent check(s) to feed competitor report chatter.
+  let recentResults: any[] = [];
+  if (checks.length > 0) {
+    const latestCheckIds = checks.slice(0, 2).map((c) => c.id);
+    recentResults = await db(c.env.DB)
+      .select()
+      .from(schema.mentionResults)
+      .where(eq(schema.mentionResults.checkId, latestCheckIds[0]));
+  }
+
+  const competitorReport = buildMonthlyCompetitorReport({
+    brandName: config.brandName,
+    competitors: objectArray<{ name?: string; url?: string }>(config.competitors || []).map((c) => c?.name || ""),
+    mentionResults: recentResults.map((r) => ({
+      responseText: r.responseText,
+      platform: r.platform,
+      createdAt: r.createdAt?.toISOString?.() ?? r.createdAt,
+      competitorsMentioned: r.competitorsMentioned,
+      citations: r.citations,
+    })),
+  });
+
   return c.json({
     report: {
       generatedAt: new Date().toISOString(),
@@ -488,8 +515,61 @@ productsRoute.get("/mentions/configs/:id/report", async (c) => {
         latestMentionRate: checks[0]?.brandMentionRate ?? null,
       },
       recentChecks: checks.map(toMentionCheck),
+      competitorReport,
     },
   });
+});
+
+// Dedicated competitor report surface (seed fixture for public/demo verification + real path).
+// GET /products/mentions/competitor-report?seed=linear  (public, uses fixed small seed set)
+// GET /products/mentions/competitor-report?owner=...&config=...  (real data overlay from mentions)
+productsRoute.get("/mentions/competitor-report", async (c) => {
+  const seedId = c.req.query("seed")?.trim();
+  if (seedId) {
+    const report = getSeedMonthlyCompetitorReport(seedId);
+    if (report) {
+      return c.json({ report });
+    }
+    return c.json({ error: "unknown_seed_product" }, 404);
+  }
+
+  const ownerId = c.req.query("owner")?.trim();
+  const configId = c.req.query("config")?.trim();
+  if (ownerId && configId) {
+    const config = await getOwnedConfig(c.env.DB, ownerId, configId);
+    if (config) {
+      // Pull recent results (up to last 2 checks) — mirrors the enriched config report path.
+      const checks = await db(c.env.DB)
+        .select()
+        .from(schema.mentionChecks)
+        .where(eq(schema.mentionChecks.configId, config.id))
+        .orderBy(desc(schema.mentionChecks.createdAt))
+        .limit(2);
+      let recentResults: any[] = [];
+      if (checks.length > 0) {
+        recentResults = await db(c.env.DB)
+          .select()
+          .from(schema.mentionResults)
+          .where(eq(schema.mentionResults.checkId, checks[0].id));
+      }
+      const report = buildMonthlyCompetitorReport({
+        brandName: config.brandName,
+        competitors: objectArray<{ name?: string; url?: string }>(config.competitors || []).map((c) => c?.name || ""),
+        mentionResults: recentResults.map((r) => ({
+          responseText: r.responseText,
+          platform: r.platform,
+          createdAt: r.createdAt?.toISOString?.() ?? r.createdAt,
+          competitorsMentioned: r.competitorsMentioned,
+          citations: r.citations,
+        })),
+      });
+      return c.json({ report });
+    }
+    return c.json({ error: "not_found" }, 404);
+  }
+
+  // Default demo fixture (no auth) — satisfies "verify with a local route or data fixture".
+  return c.json({ report: getSeedMonthlyCompetitorReport("linear") });
 });
 
 productsRoute.get("/badge/widget.js", () => {

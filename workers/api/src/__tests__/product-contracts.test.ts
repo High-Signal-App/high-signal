@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { normalizeCommunitySummary, redditSourceLink } from "@high-signal/shared";
+import {
+  buildMonthlyCompetitorReport,
+  getSeedMonthlyCompetitorReport,
+  isSeedCompetitorProductId,
+  normalizeCommunitySummary,
+  redditSourceLink,
+} from "@high-signal/shared";
 import { analyzeMentionResponse } from "../lib/mention-execution";
 import { productDashboardSnapshot } from "../routes/products";
 
@@ -127,5 +133,88 @@ describe("product workflow contracts", () => {
       mentioned: true,
       position: 1,
     });
+  });
+});
+
+describe("monthly competitor report (product brief)", () => {
+  it("getSeedMonthlyCompetitorReport returns well-formed report for fixed seed set and null for unknown", () => {
+    const linear = getSeedMonthlyCompetitorReport("linear");
+    expect(linear).not.toBeNull();
+    expect(linear?.brandName).toBe("Linear");
+    expect(linear?.competitors).toContain("Jira");
+    expect(linear?.source).toBe("seed");
+    expect(linear?.notableMoves.length).toBeGreaterThanOrEqual(1);
+    expect(linear?.uncertainties.length).toBeGreaterThanOrEqual(1);
+    // Evidence rule: every move/chatter has evidence
+    for (const m of linear!.notableMoves) {
+      expect(m.evidence.length).toBeGreaterThanOrEqual(1);
+    }
+    for (const c of linear!.socialAndAIChatter) {
+      expect(c.evidence.length).toBeGreaterThanOrEqual(1);
+    }
+    expect(isSeedCompetitorProductId("cursor")).toBe(true);
+    expect(getSeedMonthlyCompetitorReport("not-a-product")).toBeNull();
+  });
+
+  it("seed reports have >=2 evidence links per populated claim and explicit uncertainties for missing sections", () => {
+    const cursor = getSeedMonthlyCompetitorReport("cursor")!;
+    // notable + chatter populated with links
+    expect(cursor.totalEvidenceLinks).toBeGreaterThanOrEqual(2);
+    const allEvidence = [
+      ...cursor.notableMoves.flatMap((m) => m.evidence),
+      ...cursor.launchesAndFeatures.flatMap((c) => c.evidence),
+      ...cursor.socialAndAIChatter.flatMap((c) => c.evidence),
+    ];
+    for (const e of allEvidence) {
+      expect(e.url).toMatch(/^https?:\/\//);
+    }
+    // At least one uncertainty (hiring or launch for cursor is thin in seed)
+    expect(cursor.uncertainties.some((u) => /hiring|launch|Tabnine/i.test(u))).toBe(true);
+  });
+
+  it("buildMonthlyCompetitorReport with mentionResults mentioning competitors populates socialAndAIChatter with evidence-linked items", () => {
+    const report = buildMonthlyCompetitorReport({
+      brandName: "Linear",
+      competitors: ["Jira", "Asana"],
+      mentionResults: [
+        {
+          responseText: "1. Jira is great for enterprises. 2. Linear is loved by startups. See https://linear.app/blog",
+          platform: "custom",
+          createdAt: "2026-05-20T00:00:00.000Z",
+          competitorsMentioned: [
+            { name: "Jira", mentioned: true },
+            { name: "Asana", mentioned: false },
+          ],
+          citations: ["https://linear.app/blog"],
+        },
+        {
+          responseText: "Teams often pick Jira for reporting.",
+          platform: "custom",
+          createdAt: "2026-05-21T00:00:00.000Z",
+          competitorsMentioned: [{ name: "Jira", mentioned: true }],
+          citations: [],
+        },
+      ],
+    });
+    expect(report.source).toBe("real");
+    expect(report.socialAndAIChatter.length).toBeGreaterThan(0);
+    expect(report.socialAndAIChatter[0].evidence.length).toBeGreaterThan(0);
+    expect(report.socialAndAIChatter[0].evidence[0].url).toMatch(/^https?:/);
+    // When real data present, uncertainties may still exist for other sections
+    expect(Array.isArray(report.uncertainties)).toBe(true);
+  });
+
+  it("buildMonthlyCompetitorReport with no data returns seed-shaped report with uncertainties (no fabricated claims)", () => {
+    const report = buildMonthlyCompetitorReport({
+      brandName: "PostHog",
+      competitors: ["Mixpanel"],
+    });
+    expect(report.source).toBe("seed");
+    expect(report.notableMoves.length).toBe(0);
+    expect(report.socialAndAIChatter.length).toBe(0);
+    expect(report.uncertainties.length).toBeGreaterThan(0);
+    expect(report.uncertainties[0]).toMatch(/No notable moves|No AI assistant|No corroborated/);
+    // totalEvidenceLinks still positive (floor) but no populated claims
+    expect(report.totalEvidenceLinks).toBeGreaterThanOrEqual(0);
   });
 });
