@@ -52,6 +52,8 @@
     "daily-automation:test": "tsx scripts/daily-automation-status.test.ts",
     "daily-source-audit:test": "tsx scripts/daily-source-audit.test.ts",
     "market-snapshot:test": "tsx scripts/market-snapshot.test.ts",
+    "competitor-perception:prototype": "tsx scripts/competitor-perception-inbox.ts",
+    "competitor-perception:test": "tsx scripts/competitor-perception-inbox.test.ts",
     "task-teardowns:test": "tsx scripts/approved-task-teardowns.test.ts",
     "ingest:local": "cd python/ingest && uv run python -m high_signal_ingest.pipeline --source all --days 1",
     "source:quality": "cd python/ingest && uv run python -m high_signal_ingest.source_quality",

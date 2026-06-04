@@ -1,0 +1,52 @@
+[
+  {
+    "id": "m1",
+    "brand": "high-signal",
+    "competitor": false,
+    "source": "hn",
+    "url": "https://example.com/hn/high-signal-brief",
+    "author": "operator42",
+    "publishedAt": "2026-06-01T10:00:00Z",
+    "text": "High Signal's daily brief is useful, but I cannot tell which recommendations came from Reddit versus SEC filings."
+  },
+  {
+    "id": "m2",
+    "brand": "high-signal",
+    "competitor": false,
+    "source": "reddit",
+    "url": "https://example.com/r/saas/high-signal-source-gap",
+    "author": "founder_ops",
+    "publishedAt": "2026-06-02T09:30:00Z",
+    "text": "The product ideas are strong. I want a source trail and confidence score before I send them to my team."
+  },
+  {
+    "id": "m3",
+    "brand": "alpha-sense",
+    "competitor": true,
+    "source": "linkedin",
+    "url": "https://example.com/posts/alpha-sense-enterprise",
+    "author": "research-lead",
+    "publishedAt": "2026-06-02T12:00:00Z",
+    "text": "AlphaSense feels polished for enterprise research, but it is priced and packaged for big teams."
+  },
+  {
+    "id": "m4",
+    "brand": "perplexity",
+    "competitor": true,
+    "source": "x",
+    "url": "https://example.com/x/perplexity-citations",
+    "author": "growth_pm",
+    "publishedAt": "2026-06-03T08:15:00Z",
+    "text": "Perplexity citations are easy to inspect, but it does not turn repeated complaints into a product backlog."
+  },
+  {
+    "id": "m5",
+    "brand": "high-signal",
+    "competitor": false,
+    "source": "customer-call",
+    "url": "https://example.com/calls/founder-brief",
+    "author": "design-partner",
+    "publishedAt": "2026-06-03T15:45:00Z",
+    "text": "Pricing should stay simple. I would pay for a monthly competitor perception report if it gives specific copy and roadmap changes."
+  }
+]
