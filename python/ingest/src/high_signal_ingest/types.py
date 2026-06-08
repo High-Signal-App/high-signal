@@ -38,6 +38,7 @@ class Relationship(BaseModel):
 
 class SourceDocument(BaseModel):
     canonical_url: Optional[str] = None
+    document_key: Optional[str] = None
     fetched_at: Optional[datetime] = None
     published_at: Optional[datetime] = None
     raw_hash: Optional[str] = None

@@ -93,6 +93,7 @@ def _source_document_payload(event: Event) -> dict[str, Any] | None:
     raw = doc.model_dump(mode="json", exclude_none=True)
     return {
         "canonicalUrl": raw.get("canonical_url"),
+        "documentKey": raw.get("document_key"),
         "fetchedAt": raw.get("fetched_at"),
         "publishedAt": raw.get("published_at"),
         "rawHash": raw.get("raw_hash"),

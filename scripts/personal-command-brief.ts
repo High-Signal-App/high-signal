@@ -5,6 +5,11 @@ import { resolve } from "node:path";
 import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
 import {
+  buildDailySourceQualityAudit,
+  resolveAcceptedRefreshDate,
+  type ProductFlowRefreshRecord as DailyProductFlowRefreshRecord,
+} from "../apps/web/src/lib/daily-intelligence";
+import {
   buildPersonalCommandBrief,
   communityDigestEvidenceQuality,
   evidenceFromMarketRefreshes,
@@ -277,7 +282,7 @@ function isAction(value: string): value is PersonalActionKind {
 }
 
 function evidenceFromSeed(seed: ProductFlowSeed): IdeaFlowEvidence[] {
-  return seed.communities.flatMap((community) =>
+  return annotateEvidenceDuplicates(seed.communities.flatMap((community) =>
     community.digests.map((digest) => ({
       id: `seed-${community.subreddit}-${digest.snapshotDate}`,
       source: "community" as const,
@@ -288,11 +293,11 @@ function evidenceFromSeed(seed: ProductFlowSeed): IdeaFlowEvidence[] {
       confidence: digest.sourceCount >= 8 ? "high" : digest.sourceCount >= 3 ? "medium" : "low",
       quality: communityDigestEvidenceQuality(digest),
     })),
-  );
+  ));
 }
 
 function evidenceFromRefreshes(records: ProductFlowRefreshRecord[]): IdeaFlowEvidence[] {
-  return latestRefreshRecords(records)
+  return annotateEvidenceDuplicates(latestRefreshRecords(records)
     .filter((record) => record.digest.sourceCount >= 2)
     .filter((record) => sourceRefreshPassesGate(record))
     .filter((record) => {
@@ -310,7 +315,40 @@ function evidenceFromRefreshes(records: ProductFlowRefreshRecord[]): IdeaFlowEvi
       observedAt: record.digest.snapshotDate,
       confidence: record.digest.sourceCount >= 8 ? "high" : record.digest.sourceCount >= 3 ? "medium" : "low",
       quality: communityDigestEvidenceQuality(record.digest),
-    }));
+    })));
+}
+
+function canonicalEvidenceHref(href: string) {
+  if (!href || href.startsWith("/")) return href;
+  try {
+    const url = new URL(href);
+    url.hash = "";
+    for (const key of Array.from(url.searchParams.keys())) {
+      if (/^utm_|^ref$|^fbclid$|^gclid$|^mc_cid$|^mc_eid$/i.test(key)) {
+        url.searchParams.delete(key);
+      }
+    }
+    url.hostname = url.hostname.replace(/^www\./, "");
+    return url.toString().replace(/\/$/, "");
+  } catch {
+    return href.trim();
+  }
+}
+
+function annotateEvidenceDuplicates(evidence: IdeaFlowEvidence[]): IdeaFlowEvidence[] {
+  const counts = evidence.reduce<Record<string, number>>((acc, item) => {
+    const href = canonicalEvidenceHref(item.href);
+    acc[href] = (acc[href] ?? 0) + 1;
+    return acc;
+  }, {});
+  return evidence.map((item) => {
+    const canonicalHref = canonicalEvidenceHref(item.href);
+    return {
+      ...item,
+      canonicalHref,
+      duplicateCount: Math.max(0, (counts[canonicalHref] ?? 1) - 1),
+    };
+  });
 }
 
 function latestRefreshRecords(records: ProductFlowRefreshRecord[]) {
@@ -1246,6 +1284,9 @@ function printBrief(brief: ReturnType<typeof buildPersonalCommandBrief>) {
   console.log(`Decision items: ${brief.decisionCount}`);
   console.log(`Latest evidence: ${brief.freshness.latestEvidenceAt ?? "none"}`);
   console.log(`Quality flags: noisy ${brief.freshness.noisyEvidenceCount}, thin ${brief.freshness.thinEvidenceCount}`);
+  console.log(
+    `Quality gate: ${brief.qualityGate.status} (${brief.qualityGate.score}/100, ${brief.qualityGate.uniqueEvidenceUrls} unique URLs, ${brief.qualityGate.sourceFamilies} source families)`,
+  );
   if (brief.freshness.warnings.length) {
     console.log(`Freshness warnings: ${brief.freshness.warnings.join(" | ")}`);
   }
@@ -1257,6 +1298,15 @@ function printBrief(brief: ReturnType<typeof buildPersonalCommandBrief>) {
   }
   for (const gap of brief.usefulnessAudit.gaps.slice(0, 8)) {
     console.log(`- gap: ${gap}`);
+  }
+  console.log("");
+
+  console.log("## Insight Lanes");
+  for (const lane of brief.laneScores.slice(0, 5)) {
+    console.log(
+      `- [${lane.confidence}] ${lane.title}: score ${lane.score}, ${lane.uniqueEvidenceUrls} unique URLs, ${lane.sourceDiversity} source families`,
+    );
+    console.log(`  - Next: ${lane.nextStep}`);
   }
   console.log("");
 
@@ -1616,6 +1666,8 @@ function sourceCoverageLines(input: {
   refreshes: ProductFlowRefreshRecord[];
 }) {
   const accepted = acceptedRefreshRecords(input.refreshes);
+  const auditDate = resolveAcceptedRefreshDate(input.refreshes as DailyProductFlowRefreshRecord[]);
+  const audit = auditDate ? buildDailySourceQualityAudit(input.refreshes as DailyProductFlowRefreshRecord[], auditDate) : null;
   const registryById = new Map(input.sourceRegistry.sources.map((source) => [source.id, source]));
   const configuredByType = countBy(input.sourceRegistry.sources.map((source) => source.type));
   const configuredByClass = countBy(input.sourceRegistry.sources.map(sourceClass));
@@ -1647,6 +1699,11 @@ function sourceCoverageLines(input: {
     `- Configured by class: ${formatCounts(configuredByClass)}`,
     `- Accepted by class: ${formatCounts(acceptedByClass)}`,
     `- Configured sources without an accepted latest snapshot: ${skippedConfigured}`,
+    `- Source health: ${
+      audit?.healthByStatus.map((item) => `${item.k} ${item.n}`).join(", ") ?? "none"
+    }`,
+    `- Unique accepted evidence URLs: ${audit?.uniqueEvidenceUrls ?? 0}`,
+    `- Duplicate accepted evidence URLs: ${audit?.duplicateEvidenceUrls ?? 0}`,
   ];
 }
 
@@ -1824,6 +1881,10 @@ function renderReport(input: {
     `- Evidence age days: ${brief.freshness.evidenceAgeDays ?? "unknown"}`,
     `- Noisy evidence items: ${brief.freshness.noisyEvidenceCount}`,
     `- Thin evidence items: ${brief.freshness.thinEvidenceCount}`,
+    `- Duplicate evidence items: ${brief.freshness.duplicateEvidenceCount}`,
+    `- Quality gate: ${brief.qualityGate.status} (${brief.qualityGate.score}/100)`,
+    `- Quality gate unique URLs: ${brief.qualityGate.uniqueEvidenceUrls}`,
+    `- Quality gate source families: ${brief.qualityGate.sourceFamilies}`,
     "",
     "## Data Coverage",
     ...sourceCoverageLines({ sourceRegistry: input.sourceRegistry, refreshes: input.refreshes }),
@@ -1841,6 +1902,14 @@ function renderReport(input: {
     ...(brief.usefulnessAudit.gaps.length
       ? brief.usefulnessAudit.gaps.map((gap) => `- Gap: ${gap}`)
       : ["- No gaps detected by the current audit."]),
+    "",
+    "## Insight Lanes",
+    ...brief.laneScores.slice(0, 5).flatMap((lane) => [
+      `- ${lane.title}: ${lane.score}/100 (${lane.confidence})`,
+      `  - Evidence: ${lane.evidenceCount} items, ${lane.uniqueEvidenceUrls} unique URLs, ${lane.sourceDiversity} source families`,
+      `  - Top recommendations: ${lane.topRecommendationIds.join(", ") || "none"}`,
+      `  - Next: ${lane.nextStep}`,
+    ]),
     "",
     "## Changed Since Last Brief",
     `- Previous: ${brief.changeSummary.previousGeneratedAt ?? "none"}`,
@@ -1998,13 +2067,13 @@ async function buildBrief(options: { now?: Date; previousSnapshot?: PersonalBrie
     readMarketRefreshes(),
     readBriefSnapshots(),
   ]);
-  const evidence = [
+  const evidence = annotateEvidenceDuplicates([
     ...evidenceFromMarketRefreshes(marketRefreshes),
     ...evidenceFromMarketWatchConfig(marketWatch),
     ...evidenceFromRefreshes(refreshes),
     ...evidenceFromSeed(seed),
     ...fallbackFlows,
-  ];
+  ]);
   const opportunities = generateProductOpportunities(evidence);
   const brief = buildPersonalCommandBrief({
     products: graph.products,

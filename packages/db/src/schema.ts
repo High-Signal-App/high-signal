@@ -53,6 +53,7 @@ export const sourceDocuments = sqliteTable(
     id: text("id").primaryKey(),
     source: text("source").notNull(),
     canonicalUrl: text("canonical_url").notNull(),
+    documentKey: text("document_key").notNull(),
     fetchedAt: integer("fetched_at", { mode: "timestamp" }).notNull(),
     publishedAt: integer("published_at", { mode: "timestamp" }),
     rawHash: text("raw_hash").notNull(),
@@ -64,7 +65,8 @@ export const sourceDocuments = sqliteTable(
       .$defaultFn(() => new Date()),
   },
   (t) => [
-    uniqueIndex("source_documents_raw_hash_idx").on(t.rawHash),
+    uniqueIndex("source_documents_document_key_idx").on(t.documentKey),
+    index("source_documents_raw_hash_idx").on(t.rawHash),
     index("source_documents_source_idx").on(t.source),
     index("source_documents_url_idx").on(t.canonicalUrl),
     index("source_documents_fetched_idx").on(t.fetchedAt),

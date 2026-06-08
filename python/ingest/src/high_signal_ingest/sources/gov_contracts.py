@@ -14,7 +14,7 @@ from typing import Any
 
 import httpx
 
-from ..types import Event
+from ..types import Event, SourceDocument
 
 
 USER_AGENT = "high-signal/0.1 gov-contracts-ingest"
@@ -84,6 +84,18 @@ def sbir_events_from_response(payload: list[Any], since: datetime) -> list[Event
                 content=content[:20_000] or None,
                 primary_entity_id=None,
                 raw_hash=raw_hash,
+                source_document=SourceDocument(
+                    canonical_url=award_link or "https://www.sbir.gov/awards",
+                    published_at=published,
+                    raw_hash=raw_hash,
+                    raw_json=row,
+                    parsed_fields={
+                        "program": "sbir",
+                        "firm": firm,
+                        "agency": row.get("agency"),
+                        "phase": row.get("phase"),
+                    },
+                ),
             )
         )
     return out
@@ -112,6 +124,17 @@ def sam_events_from_response(payload: dict[str, Any], since: datetime) -> list[E
                 or None,
                 primary_entity_id=None,
                 raw_hash=raw_hash,
+                source_document=SourceDocument(
+                    canonical_url=str(row.get("uiLink") or "https://sam.gov/content/opportunities"),
+                    published_at=published,
+                    raw_hash=raw_hash,
+                    raw_json=row,
+                    parsed_fields={
+                        "program": "sam",
+                        "noticeId": notice_id,
+                        "solicitationNumber": row.get("solicitationNumber"),
+                    },
+                ),
             )
         )
     return out
@@ -159,6 +182,18 @@ def usaspending_events_from_response(
                 content=content[:20_000] or None,
                 primary_entity_id=None,
                 raw_hash=raw_hash,
+                source_document=SourceDocument(
+                    canonical_url=f"https://www.usaspending.gov/award/{award_id}",
+                    published_at=started,
+                    raw_hash=raw_hash,
+                    raw_json=row,
+                    parsed_fields={
+                        "program": "usaspending",
+                        "keyword": keyword,
+                        "awardId": award_id,
+                        "recipient": recipient,
+                    },
+                ),
             )
         )
     return out

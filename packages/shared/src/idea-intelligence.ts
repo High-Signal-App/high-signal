@@ -19,6 +19,8 @@ export interface IdeaFlowEvidence {
   title: string;
   summary: string;
   href: string;
+  canonicalHref?: string;
+  duplicateCount?: number;
   observedAt: string;
   confidence: "low" | "medium" | "high";
   polarity?: IdeaFlowPolarity;

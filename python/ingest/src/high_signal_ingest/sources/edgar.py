@@ -15,7 +15,7 @@ from typing import Any, Iterable, Iterator
 
 import httpx
 
-from ..types import Event
+from ..types import Event, SourceDocument
 
 
 # Forms most likely to carry directional signals
@@ -115,6 +115,18 @@ def form_d_events_from_search(query: str, payload: dict[str, Any], since: dateti
                 or None,
                 primary_entity_id=None,
                 raw_hash=raw_hash,
+                source_document=SourceDocument(
+                    canonical_url=_filing_archive_url(str(ciks[0]), accession),
+                    published_at=filed_at,
+                    raw_hash=raw_hash,
+                    raw_json=source,
+                    parsed_fields={
+                        "form": form,
+                        "query": query,
+                        "accession": accession,
+                        "cik": str(ciks[0]),
+                    },
+                ),
             )
         )
     return out

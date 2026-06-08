@@ -67,6 +67,7 @@ Parked scope:
 - Source inventory and source audit docs exist:
   - `docs/data-source-audit.md`
   - `docs/data-source-inventory.csv`
+- Source availability diagnostic exists: `pnpm source:diagnose` reports which optional credentials/tools are present without printing secret values.
 - Source document handling has been tightened in the working tree:
   - `source_documents.document_key` represents source + canonical URL.
   - Source documents are intended to dedupe by document key, not by raw hash alone.
@@ -132,6 +133,7 @@ Parked scope:
 2. Keep source pipeline small and quality-gated.
    - Every active source must have a canonical key, freshness expectation, dedupe rule, use in the brief, and culling rule.
    - Do not add more sources just to increase volume.
+   - Use `pnpm source:diagnose` before `pnpm source:quality` when a source looks empty, so missing credentials/tools are not confused with poor source yield.
 
 3. Make source-of-truth ownership explicit.
    - D1 tables should own canonical app state.
@@ -173,6 +175,8 @@ Parked as a product direction. Communities can feed ideas/trends, but `/communit
 ### Broad source expansion
 
 Parked. Add sources only when they materially improve corroboration, novelty, entity coverage, or hit-rate.
+
+The `mvanhorn/last30days-skill` workflow is useful as an operator research reference, but it should not be imported as a production dependency or source of truth. Adopt the good patterns: recent-window research, source availability diagnostics, people-weighted attention, raw evidence trails, and cross-source clustering.
 
 ### Paid plans and billing
 

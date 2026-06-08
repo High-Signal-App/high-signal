@@ -15,7 +15,7 @@ from typing import Any
 
 import httpx
 
-from ..types import Event
+from ..types import Event, SourceDocument
 
 
 USER_AGENT = "high-signal/0.1 package-registry-ingest"
@@ -87,6 +87,17 @@ def npm_events_from_metadata(
                 content=description[:20_000] or None,
                 primary_entity_id=package.entity_id,
                 raw_hash=raw_hash,
+                source_document=SourceDocument(
+                    canonical_url=evidence_url,
+                    published_at=published,
+                    raw_hash=raw_hash,
+                    raw_json=meta,
+                    parsed_fields={
+                        "ecosystem": package.ecosystem,
+                        "package": package.name,
+                        "version": version,
+                    },
+                ),
             )
         )
     return out
@@ -127,6 +138,17 @@ def pypi_events_from_metadata(
                 content=description[:20_000] or None,
                 primary_entity_id=package.entity_id,
                 raw_hash=raw_hash,
+                source_document=SourceDocument(
+                    canonical_url=source_url,
+                    published_at=published,
+                    raw_hash=raw_hash,
+                    raw_json={"info": info, "files": files},
+                    parsed_fields={
+                        "ecosystem": package.ecosystem,
+                        "package": package.name,
+                        "version": version,
+                    },
+                ),
             )
         )
     return out

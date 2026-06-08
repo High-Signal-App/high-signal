@@ -4,6 +4,8 @@
 
 Also read and follow the shared fleet-level agent standard at `../AGENTS.md`. Treat this repository as owned product code: protect production stability, keep changes scoped, verify work, and record durable follow-up tasks when something remains incomplete or blocked.
 
+Before broad product or architecture work, read `PROJECT_STATUS.md`. It is the single high-level status ledger for what is done, planned next, and deferred/parked in this project. Update it whenever active scope, shipped features, planned work, or deferred work changes.
+
 ## Purpose
 **High Signal is one product: a daily synthesized brief.** It aggregates noisy public sources (Reddit, news, Hacker News, YouTube transcripts, SEC filings, GitHub, IR pages, etc.), curates and cleans them, and emits an end-of-day message answering five questions for the operator. Everything else in this repo — Markets, Communities, Mentions, Agent Eval, Lab — is an **intelligence helper** feeding that brief, not a standalone product.
 

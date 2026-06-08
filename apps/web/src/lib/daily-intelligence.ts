@@ -139,6 +139,7 @@ export type DailyAnnotationRuntime = {
 type FetchBinding = { fetch: typeof fetch };
 
 export type SourceQualityStatus = "accepted" | "rejected" | "missing";
+export type SourceHealthStatus = "fresh" | "stale" | "blocked" | "low-yield" | "duplicate-heavy";
 
 export type SourceQualityRow = {
   sourceId: string;
@@ -146,6 +147,7 @@ export type SourceQualityRow = {
   sourceType: SourceType;
   sourceClass: string;
   status: SourceQualityStatus;
+  healthStatus: SourceHealthStatus;
   snapshotDate: string | null;
   sourceCount: number;
   repeatedSignalCount: number;
@@ -153,6 +155,8 @@ export type SourceQualityRow = {
   reasons: string[];
   noiseFlags: string[];
   title: string | null;
+  uniqueEvidenceUrls: number;
+  duplicateEvidenceUrls: number;
 };
 
 export type DailySourceQualityAudit = {
@@ -164,7 +168,10 @@ export type DailySourceQualityAudit = {
   missingSources: number;
   acceptedUnderlyingItems: number;
   rejectedUnderlyingItems: number;
+  uniqueEvidenceUrls: number;
+  duplicateEvidenceUrls: number;
   rejectedReasons: Array<{ k: string; n: number }>;
+  healthByStatus: Array<{ k: SourceHealthStatus; n: number }>;
   statusByClass: Array<{ k: string; accepted: number; rejected: number; missing: number }>;
   actions: SourceQualityAction[];
   rows: SourceQualityRow[];
@@ -198,6 +205,42 @@ export type SourceQualityAction = {
 
 function recordDate(record: ProductFlowRefreshRecord) {
   return record.digest.snapshotDate.slice(0, 10);
+}
+
+function canonicalEvidenceUrl(url: string | undefined | null) {
+  if (!url) return "";
+  if (url.startsWith("/")) return url;
+  try {
+    const parsed = new URL(url);
+    parsed.hash = "";
+    for (const key of Array.from(parsed.searchParams.keys())) {
+      if (/^utm_|^ref$|^fbclid$|^gclid$|^mc_cid$|^mc_eid$/i.test(key)) {
+        parsed.searchParams.delete(key);
+      }
+    }
+    parsed.hostname = parsed.hostname.replace(/^www\./, "");
+    return parsed.toString().replace(/\/$/, "");
+  } catch {
+    return url.trim();
+  }
+}
+
+function evidenceUrlsForRecord(record: ProductFlowRefreshRecord) {
+  return [
+    record.digest.summary?.keyTrend?.link,
+    record.digest.summary?.keyAction?.link,
+    ...(record.digest.summary?.notableDiscussions ?? []).map((item) => item.link),
+  ]
+    .map(canonicalEvidenceUrl)
+    .filter(Boolean);
+}
+
+function evidenceDedupeForRecord(record: ProductFlowRefreshRecord) {
+  const urls = evidenceUrlsForRecord(record);
+  return {
+    uniqueEvidenceUrls: new Set(urls).size,
+    duplicateEvidenceUrls: Math.max(0, urls.length - new Set(urls).size),
+  };
 }
 
 function isSeededReplay(record: ProductFlowRefreshRecord) {
@@ -325,12 +368,21 @@ function sourceRowForRecord(source: SourceRegistry["sources"][number], record: P
   const quality = communityDigestEvidenceQuality(record.digest);
   const reasons = rejectionReasons(record);
   const status: SourceQualityStatus = record.refreshStatus === "rejected" || reasons.length > 0 ? "rejected" : "accepted";
+  const dedupe = evidenceDedupeForRecord(record);
+  const healthStatus: SourceHealthStatus = record.refreshError
+    ? "blocked"
+    : status === "accepted" && dedupe.duplicateEvidenceUrls > 0 && dedupe.uniqueEvidenceUrls <= 1
+      ? "duplicate-heavy"
+      : status === "rejected" || record.refreshReason === "weak-signal" || quality.repeatedSignalCount < 2
+        ? "low-yield"
+        : "fresh";
   return {
     sourceId: source.id,
     label: source.label,
     sourceType: source.type,
     sourceClass: sourceClass(source),
     status,
+    healthStatus,
     snapshotDate: record.digest.snapshotDate,
     sourceCount: record.digest.sourceCount,
     repeatedSignalCount: quality.repeatedSignalCount,
@@ -338,6 +390,8 @@ function sourceRowForRecord(source: SourceRegistry["sources"][number], record: P
     reasons,
     noiseFlags: quality.noiseFlags,
     title: record.digest.summary?.keyTrend?.title ?? record.digest.summaryText ?? null,
+    uniqueEvidenceUrls: dedupe.uniqueEvidenceUrls,
+    duplicateEvidenceUrls: dedupe.duplicateEvidenceUrls,
   };
 }
 
@@ -348,6 +402,7 @@ function missingSourceRow(source: SourceRegistry["sources"][number]): SourceQual
     sourceType: source.type,
     sourceClass: sourceClass(source),
     status: "missing",
+    healthStatus: "stale",
     snapshotDate: null,
     sourceCount: 0,
     repeatedSignalCount: 0,
@@ -355,6 +410,8 @@ function missingSourceRow(source: SourceRegistry["sources"][number]): SourceQual
     reasons: ["no-snapshot-for-date"],
     noiseFlags: [],
     title: null,
+    uniqueEvidenceUrls: 0,
+    duplicateEvidenceUrls: 0,
   };
 }
 
@@ -368,6 +425,7 @@ function buildSourceQualityActions(input: {
   rejected: SourceQualityRow[];
   missing: SourceQualityRow[];
   rejectedReasons: Array<{ k: string; n: number }>;
+  healthByStatus: Array<{ k: SourceHealthStatus; n: number }>;
   statusByClass: Array<{ k: string; accepted: number; rejected: number; missing: number }>;
 }): SourceQualityAction[] {
   const actions: SourceQualityAction[] = [];
@@ -395,6 +453,24 @@ function buildSourceQualityActions(input: {
         .map(({ k, n }) => `${k.replaceAll("-", " ")} ${n}`)
         .join(" / "),
       affectedSources: topLabels(input.rejected),
+    });
+  }
+  const duplicateHeavy = input.accepted.filter((row) => row.healthStatus === "duplicate-heavy");
+  if (duplicateHeavy.length > 0) {
+    actions.push({
+      priority: "medium",
+      title: "Collapse duplicate-heavy evidence",
+      detail: `${duplicateHeavy.length} accepted source snapshot(s) repeat the same evidence URL and should not add confidence by themselves.`,
+      affectedSources: topLabels(duplicateHeavy),
+    });
+  }
+  const blocked = [...input.rejected, ...input.missing].filter((row) => row.healthStatus === "blocked");
+  if (blocked.length > 0) {
+    actions.push({
+      priority: "high",
+      title: "Repair blocked sources",
+      detail: `${blocked.length} source snapshot(s) are blocked by fetch or auth errors.`,
+      affectedSources: topLabels(blocked),
     });
   }
   for (const item of input.statusByClass) {
@@ -456,7 +532,12 @@ export function buildDailySourceQualityAudit(records: ProductFlowRefreshRecord[]
     classMap.set(row.sourceClass, item);
   }
   const rejectedReasons = countBy(rejected.flatMap((row) => row.reasons));
+  const healthByStatus = countBy(rows.map((row) => row.healthStatus));
   const statusByClass = Array.from(classMap.values()).sort((a, b) => a.k.localeCompare(b.k));
+  const acceptedSourceIds = new Set(accepted.map((row) => row.sourceId));
+  const acceptedEvidenceUrls = dateRecords
+    .filter((record) => record.sourceId && acceptedSourceIds.has(record.sourceId))
+    .flatMap(evidenceUrlsForRecord);
   return {
     date,
     configuredSources: registry.sources.length,
@@ -466,7 +547,10 @@ export function buildDailySourceQualityAudit(records: ProductFlowRefreshRecord[]
     missingSources: missing.length,
     acceptedUnderlyingItems: accepted.reduce((sum, row) => sum + row.sourceCount, 0),
     rejectedUnderlyingItems: rejected.reduce((sum, row) => sum + row.sourceCount, 0),
+    uniqueEvidenceUrls: new Set(acceptedEvidenceUrls).size,
+    duplicateEvidenceUrls: accepted.reduce((sum, row) => sum + row.duplicateEvidenceUrls, 0),
     rejectedReasons,
+    healthByStatus,
     statusByClass,
     actions: buildSourceQualityActions({
       configuredSources: registry.sources.length,
@@ -474,6 +558,7 @@ export function buildDailySourceQualityAudit(records: ProductFlowRefreshRecord[]
       rejected,
       missing,
       rejectedReasons,
+      healthByStatus,
       statusByClass,
     }),
     rows: rows.sort(

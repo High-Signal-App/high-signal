@@ -17,7 +17,7 @@ from typing import Any
 
 import httpx
 
-from ..types import Event
+from ..types import Event, SourceDocument
 
 
 USER_AGENT = "high-signal/0.1 podcast-index-ingest"
@@ -88,6 +88,17 @@ def events_from_response(feed: PodcastFeed, payload: dict[str, Any], since: date
                 content=str(item.get("description") or "")[:20_000] or None,
                 primary_entity_id=None,
                 raw_hash=raw_hash,
+                source_document=SourceDocument(
+                    canonical_url=str(item.get("link") or item.get("enclosureUrl") or ""),
+                    published_at=published,
+                    raw_hash=raw_hash,
+                    raw_json=item,
+                    parsed_fields={
+                        "feedId": feed.feed_id,
+                        "feedName": feed.name,
+                        "episodeId": episode_id,
+                    },
+                ),
             )
         )
     return out

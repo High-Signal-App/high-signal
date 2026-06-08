@@ -31,6 +31,8 @@ export interface PersonalProductRecommendation {
   signalLayer: ProductSignalLayer;
   evidence: IdeaFlowEvidence[];
   sourceDiversity: number;
+  uniqueEvidenceUrls: number;
+  duplicateEvidenceUrls: number;
   score: number;
   feedbackAdjustment: number;
   decisionStatus?: PersonalDecisionStatus;
@@ -141,7 +143,30 @@ export interface PersonalBriefFreshness {
   staleAcceptedDecisionCount: number;
   noisyEvidenceCount: number;
   thinEvidenceCount: number;
+  duplicateEvidenceCount: number;
   warnings: string[];
+}
+
+export interface PersonalInsightLaneScore {
+  id: string;
+  title: string;
+  score: number;
+  confidence: "low" | "medium" | "high";
+  evidenceCount: number;
+  uniqueEvidenceUrls: number;
+  sourceDiversity: number;
+  topRecommendationIds: string[];
+  whyNow: string;
+  nextStep: string;
+}
+
+export interface PersonalBriefQualityGate {
+  status: "ready" | "thin-day" | "blocked";
+  score: number;
+  uniqueEvidenceUrls: number;
+  sourceFamilies: number;
+  highConfidenceDuplicateSignals: number;
+  reasons: string[];
 }
 
 export interface PersonalUsefulnessAudit {
@@ -185,9 +210,49 @@ export interface PersonalCommandBrief {
   freshness: PersonalBriefFreshness;
   changeSummary: PersonalBriefChangeSummary;
   complaintClusters: PersonalComplaintCluster[];
+  laneScores: PersonalInsightLaneScore[];
+  qualityGate: PersonalBriefQualityGate;
   reelBriefs: PersonalReelBrief[];
   usefulnessAudit: PersonalUsefulnessAudit;
 }
+
+const INSIGHT_LANE_DEFS = [
+  {
+    id: "ai-workflow-reliability",
+    title: "AI workflow reliability",
+    opportunityIds: ["workflow-observability", "developer-workflow-friction"],
+    terms: ["workflow", "observability", "trace", "routing", "cost", "failure", "debug", "eval"],
+    nextStep: "Collect app-builder complaints and ship a source-linked teardown before building tooling.",
+  },
+  {
+    id: "agent-readiness",
+    title: "Agent-readiness",
+    opportunityIds: ["agent-evaluation"],
+    terms: ["agent", "recommend", "visibility", "ai search", "proof", "trust"],
+    nextStep: "Run owned-product audits and convert every missing proof area into a page or task.",
+  },
+  {
+    id: "complaint-to-spec",
+    title: "Complaint-to-spec",
+    opportunityIds: ["complaint-to-spec"],
+    terms: ["complaint", "pain", "manual", "missing", "friction", "validation"],
+    nextStep: "Promote only repeated complaints with a named user, workaround, and validation artifact.",
+  },
+  {
+    id: "source-provenance",
+    title: "Source provenance",
+    opportunityIds: ["source-provenance"],
+    terms: ["citation", "source", "provenance", "hallucination", "retrieval", "evidence"],
+    nextStep: "Turn citation/provenance failures into source-linked UI requirements.",
+  },
+  {
+    id: "launch-distribution-friction",
+    title: "Launch and distribution friction",
+    opportunityIds: ["launch-distribution"],
+    terms: ["launch", "distribution", "growth", "pricing", "onboarding", "users"],
+    nextStep: "Convert repeated distribution pain into one manual validation artifact.",
+  },
+];
 
 const COMPLAINT_CLUSTER_DEFS = [
   {
@@ -230,6 +295,42 @@ const COMPLAINT_CLUSTER_DEFS = [
 function termHits(text: string, terms: string[]) {
   const lower = text.toLowerCase();
   return terms.filter((term) => lower.includes(term.toLowerCase())).length;
+}
+
+function canonicalEvidenceHref(href: string) {
+  if (!href || href.startsWith("/")) return href;
+  try {
+    const url = new URL(href);
+    url.hash = "";
+    for (const key of Array.from(url.searchParams.keys())) {
+      if (/^utm_|^ref$|^fbclid$|^gclid$|^mc_cid$|^mc_eid$/i.test(key)) {
+        url.searchParams.delete(key);
+      }
+    }
+    url.hostname = url.hostname.replace(/^www\./, "");
+    return url.toString().replace(/\/$/, "");
+  } catch {
+    return href.trim();
+  }
+}
+
+function evidenceFamily(item: IdeaFlowEvidence) {
+  if (item.source !== "news") return item.source;
+  if (item.href.startsWith("/")) return item.source;
+  try {
+    return new URL(item.href).hostname.replace(/^www\./, "");
+  } catch {
+    return item.source;
+  }
+}
+
+function uniqueEvidenceUrlCount(evidence: IdeaFlowEvidence[]) {
+  return new Set(evidence.map((item) => item.canonicalHref ?? canonicalEvidenceHref(item.href)).filter(Boolean)).size;
+}
+
+function duplicateEvidenceUrlCount(evidence: IdeaFlowEvidence[]) {
+  const urls = evidence.map((item) => item.canonicalHref ?? canonicalEvidenceHref(item.href)).filter(Boolean);
+  return Math.max(0, urls.length - new Set(urls).size);
 }
 
 function productOpportunityText(opportunity: ProductOpportunity) {
@@ -337,6 +438,7 @@ function usefulnessAuditFrom(input: {
   complaintClusters: PersonalComplaintCluster[];
   reelBriefs: PersonalReelBrief[];
   evidenceBreakdown: PersonalCommandBrief["evidenceBreakdown"];
+  qualityGate: PersonalBriefQualityGate;
 }): PersonalUsefulnessAudit {
   const acceptedTodoTasks = input.actionTasks.filter((task) => task.status === "todo");
   const syncedAcceptedTasks = acceptedTodoTasks.filter((task) => task.syncStatus === "created");
@@ -358,6 +460,7 @@ function usefulnessAuditFrom(input: {
     input.changeSummary.newRecommendations.length > 0 ||
     input.changeSummary.actionChanged.length > 0 ||
     input.changeSummary.scoreMoved.length > 0;
+  const qualityGateReady = input.qualityGate.status === "ready";
 
   const score = Math.max(
     0,
@@ -370,8 +473,9 @@ function usefulnessAuditFrom(input: {
     (hasChangeTracking ? 10 : 0) +
     Math.min(10, highConfidenceClusters * 6) +
     (evidenceBackedReelBriefs >= 3 ? 10 : 0) +
-      (input.freshness.noisyEvidenceCount <= 2 ? 5 : 0)
-    ) - nonHighSignalCriticalBuilds * 8,
+      (input.freshness.noisyEvidenceCount <= 2 ? 5 : 0) +
+      (qualityGateReady ? 10 : 0)
+    ) - nonHighSignalCriticalBuilds * 8 - (qualityGateReady ? 0 : 10),
   );
 
   const gaps = [
@@ -389,6 +493,7 @@ function usefulnessAuditFrom(input: {
     highConfidenceClusters === 0 ? "Complaint clusters are still low confidence; require repeated evidence before building." : null,
     evidenceBackedReelBriefs < 3 ? "Need at least three evidence-backed reel briefs tied to High Signal recommendations." : null,
     input.freshness.noisyEvidenceCount > 2 ? "Too much noisy community evidence is entering the brief." : null,
+    !qualityGateReady ? `Daily quality gate is ${input.qualityGate.status}: ${input.qualityGate.reasons.join(" / ")}` : null,
   ].filter((item): item is string => Boolean(item));
 
   const strengths = [
@@ -402,6 +507,7 @@ function usefulnessAuditFrom(input: {
     hasChangeTracking ? "Changed-since-last-brief tracking is active." : null,
     highConfidenceClusters > 0 ? "At least one complaint cluster has repeated evidence." : null,
     evidenceBackedReelBriefs >= 3 ? "Evidence-backed reel briefs translate top recommendations into human-attention hooks." : null,
+    qualityGateReady ? "Daily quality gate has enough unique evidence and source-family coverage." : null,
   ].filter((item): item is string => Boolean(item));
 
   return {
@@ -510,7 +616,7 @@ function opportunityIdFromRecommendation(item: PersonalProductRecommendation) {
 }
 
 function uniqueEvidenceUrls(item: PersonalProductRecommendation) {
-  return Array.from(new Set(item.evidence.map((evidence) => evidence.href).filter(Boolean)));
+  return Array.from(new Set(item.evidence.map((evidence) => evidence.canonicalHref ?? canonicalEvidenceHref(evidence.href)).filter(Boolean)));
 }
 
 function reelHookFor(item: PersonalProductRecommendation) {
@@ -659,6 +765,7 @@ function freshnessFor(input: {
   const thinEvidenceCount = input.evidence.filter(
     (item) => item.quality && item.quality.repeatedSignalCount < 2,
   ).length;
+  const duplicateEvidenceCount = duplicateEvidenceUrlCount(input.evidence);
   const evidenceAgeDays = latestEvidence?.age ?? null;
   const warnings = [
     evidenceAgeDays === null ? "No dated evidence is available for this brief." : null,
@@ -667,6 +774,7 @@ function freshnessFor(input: {
     staleAcceptedDecisionCount > 0 ? `${staleAcceptedDecisionCount} accepted decision(s) need review.` : null,
     noisyEvidenceCount > 0 ? `${noisyEvidenceCount} evidence item(s) were filtered or downranked for generic/noisy community patterns.` : null,
     thinEvidenceCount > 0 ? `${thinEvidenceCount} evidence item(s) have weak repeated-product-intent support.` : null,
+    duplicateEvidenceCount > 0 ? `${duplicateEvidenceCount} evidence item(s) repeat an already-counted URL.` : null,
   ].filter((item): item is string => Boolean(item));
 
   return {
@@ -676,8 +784,83 @@ function freshnessFor(input: {
     staleAcceptedDecisionCount,
     noisyEvidenceCount,
     thinEvidenceCount,
+    duplicateEvidenceCount,
     warnings,
   };
+}
+
+function qualityGateFor(evidence: IdeaFlowEvidence[], recommendations: PersonalProductRecommendation[]): PersonalBriefQualityGate {
+  const uniqueEvidenceUrls = uniqueEvidenceUrlCount(evidence);
+  const sourceFamilies = new Set(evidence.map(evidenceFamily)).size;
+  const highConfidenceDuplicateSignals = recommendations.filter(
+    (item) => item.priority === "critical" && item.duplicateEvidenceUrls > 0 && item.uniqueEvidenceUrls < 2,
+  ).length;
+  const reasons = [
+    uniqueEvidenceUrls < 12 ? `unique evidence URLs below target (${uniqueEvidenceUrls}/12)` : null,
+    sourceFamilies < 4 ? `source families below target (${sourceFamilies}/4)` : null,
+    highConfidenceDuplicateSignals > 0
+      ? `${highConfidenceDuplicateSignals} high-confidence recommendation(s) rely on duplicate evidence`
+      : null,
+  ].filter((item): item is string => Boolean(item));
+  const score = Math.max(
+    0,
+    Math.min(100, uniqueEvidenceUrls * 4 + sourceFamilies * 10 - highConfidenceDuplicateSignals * 18),
+  );
+  return {
+    status:
+      highConfidenceDuplicateSignals > 0 || uniqueEvidenceUrls < 4 || sourceFamilies < 2
+        ? "blocked"
+        : reasons.length > 0
+          ? "thin-day"
+          : "ready",
+    score,
+    uniqueEvidenceUrls,
+    sourceFamilies,
+    highConfidenceDuplicateSignals,
+    reasons: reasons.length ? reasons : ["quality gate passed"],
+  };
+}
+
+function laneScoresFor(recommendations: PersonalProductRecommendation[]): PersonalInsightLaneScore[] {
+  return INSIGHT_LANE_DEFS.map((lane) => {
+    const matching = recommendations.filter((item) => {
+      const opportunityId = opportunityIdFromRecommendation(item);
+      const text = `${item.title} ${item.whyNow} ${item.suggestedChange} ${item.evidence
+        .map((evidence) => `${evidence.title} ${evidence.summary}`)
+        .join(" ")}`;
+      return lane.opportunityIds.includes(opportunityId) || termHits(text, lane.terms) > 0;
+    });
+    const evidence = matching.flatMap((item) => item.evidence);
+    const uniqueUrls = uniqueEvidenceUrlCount(evidence);
+    const families = new Set(evidence.map(evidenceFamily)).size;
+    const score = Math.max(
+      0,
+      Math.min(
+        100,
+        matching.reduce((max, item) => Math.max(max, item.score), 0) * 0.55 +
+          Math.min(uniqueUrls, 6) * 7 +
+          Math.min(families, 4) * 6,
+      ),
+    );
+    const confidence: PersonalInsightLaneScore["confidence"] =
+      uniqueUrls >= 4 && families >= 2 ? "high" : uniqueUrls >= 2 ? "medium" : "low";
+    return {
+      id: lane.id,
+      title: lane.title,
+      score: Math.round(score),
+      confidence,
+      evidenceCount: evidence.length,
+      uniqueEvidenceUrls: uniqueUrls,
+      sourceDiversity: families,
+      topRecommendationIds: matching
+        .slice()
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 3)
+        .map((item) => item.id),
+      whyNow: matching[0]?.whyNow ?? "No strong matching recommendation yet.",
+      nextStep: lane.nextStep,
+    };
+  }).sort((a, b) => b.score - a.score || a.title.localeCompare(b.title));
 }
 
 export function snapshotFromPersonalBrief(brief: PersonalCommandBrief): PersonalBriefSnapshot {
@@ -828,6 +1011,7 @@ export function buildPersonalCommandBrief(input: {
       );
       const action = actionFrom(product, opportunity, score);
       const decision = decisionByRecommendation.get(`${product.slug}-${opportunity.id}`);
+      const uniqueUrls = uniqueEvidenceUrlCount(opportunity.evidence);
       return {
         id: `${product.slug}-${opportunity.id}`,
         productSlug: product.slug,
@@ -842,6 +1026,8 @@ export function buildPersonalCommandBrief(input: {
         signalLayer: opportunity.signalLayer,
         evidence: opportunity.evidence,
         sourceDiversity: opportunity.sourceDiversity,
+        uniqueEvidenceUrls: uniqueUrls,
+        duplicateEvidenceUrls: duplicateEvidenceUrlCount(opportunity.evidence),
         score,
         feedbackAdjustment: Math.round(feedbackAdjustment),
         decisionStatus: decision?.status,
@@ -876,6 +1062,8 @@ export function buildPersonalCommandBrief(input: {
   const freshness = freshnessFor({ now, evidence: input.evidence, decisions });
   const changeSummary = changeSummaryFrom({ recommendations: ranked, previousSnapshot: input.previousSnapshot });
   const complaintClusters = buildComplaintClusters(input.evidence);
+  const qualityGate = qualityGateFor(input.evidence, ranked);
+  const laneScores = laneScoresFor(ranked);
   const reelBriefs = buildPersonalReelBriefs(ranked);
   return {
     generatedAt: now.toISOString(),
@@ -890,6 +1078,8 @@ export function buildPersonalCommandBrief(input: {
     freshness,
     changeSummary,
     complaintClusters,
+    laneScores,
+    qualityGate,
     reelBriefs,
     usefulnessAudit: usefulnessAuditFrom({
       recommendations: ranked,
@@ -899,6 +1089,7 @@ export function buildPersonalCommandBrief(input: {
       complaintClusters,
       reelBriefs,
       evidenceBreakdown,
+      qualityGate,
     }),
     operatingQuestions: [
       "Which recommendation would change what I build this week?",

@@ -210,7 +210,7 @@ adminRoute.delete("/signals/:slug", async (c) => {
 
 // Audit ingest — bulk-insert raw events, llm_runs, ingest_runs from Modal.
 
-interface EventInput {
+export interface EventInput {
   source: string;
   sourceUrl: string;
   publishedAt: string;
@@ -222,8 +222,9 @@ interface EventInput {
   sourceDocument?: SourceDocumentInput | null;
 }
 
-interface SourceDocumentInput {
+export interface SourceDocumentInput {
   canonicalUrl?: string | null;
+  documentKey?: string | null;
   fetchedAt?: string | null;
   publishedAt?: string | null;
   rawHash?: string | null;
@@ -239,7 +240,20 @@ adminRoute.post("/events", async (c) => {
   for (const e of events) {
     const id = await sha16(e.rawHash);
     const sourceDocument = normalizeSourceDocument(e);
-    const sourceDocumentId = await sha16(`source-document:${sourceDocument.rawHash}`);
+    const sourceDocumentId = await sha16(`source-document:${sourceDocument.documentKey}`);
+    const sourceDocumentUpdate = {
+      canonicalUrl: sourceDocument.canonicalUrl,
+      fetchedAt: sourceDocument.fetchedAt,
+      publishedAt: sourceDocument.publishedAt,
+      rawHash: sourceDocument.rawHash,
+      ...(sourceDocument.explicit
+        ? {
+            rawText: sourceDocument.rawText,
+            rawJson: sourceDocument.rawJson,
+            parsedFields: sourceDocument.parsedFields,
+          }
+        : {}),
+    };
     try {
       await db(c.env.DB)
         .insert(schema.sourceDocuments)
@@ -247,6 +261,7 @@ adminRoute.post("/events", async (c) => {
           id: sourceDocumentId,
           source: e.source,
           canonicalUrl: sourceDocument.canonicalUrl,
+          documentKey: sourceDocument.documentKey,
           fetchedAt: sourceDocument.fetchedAt,
           publishedAt: sourceDocument.publishedAt,
           rawHash: sourceDocument.rawHash,
@@ -255,7 +270,10 @@ adminRoute.post("/events", async (c) => {
           parsedFields: sourceDocument.parsedFields,
           createdAt: new Date(),
         })
-        .onConflictDoNothing({ target: schema.sourceDocuments.rawHash });
+        .onConflictDoUpdate({
+          target: schema.sourceDocuments.documentKey,
+          set: sourceDocumentUpdate,
+        });
       await db(c.env.DB)
         .insert(schema.events)
         .values({
@@ -279,11 +297,14 @@ adminRoute.post("/events", async (c) => {
   return c.json({ inserted });
 });
 
-function normalizeSourceDocument(e: EventInput) {
+export function normalizeSourceDocument(e: EventInput) {
   const doc = e.sourceDocument ?? {};
   const publishedAt = doc.publishedAt ?? e.publishedAt;
+  const canonicalUrl = canonicalSourceUrl(doc.canonicalUrl ?? e.sourceUrl);
   return {
-    canonicalUrl: doc.canonicalUrl ?? e.sourceUrl,
+    explicit: e.sourceDocument != null,
+    canonicalUrl,
+    documentKey: doc.documentKey ?? sourceDocumentKey(e.source, canonicalUrl),
     fetchedAt: doc.fetchedAt ? new Date(doc.fetchedAt) : new Date(),
     publishedAt: publishedAt ? new Date(publishedAt) : null,
     rawHash: doc.rawHash ?? e.rawHash,
@@ -297,6 +318,28 @@ function normalizeSourceDocument(e: EventInput) {
       fetchRunId: e.fetchRunId ?? null,
     },
   };
+}
+
+export function canonicalSourceUrl(value: string) {
+  if (!value) return value;
+  if (value.startsWith("/")) return value.trim();
+  try {
+    const url = new URL(value);
+    url.hash = "";
+    for (const key of Array.from(url.searchParams.keys())) {
+      if (/^utm_|^ref$|^fbclid$|^gclid$|^mc_cid$|^mc_eid$/i.test(key)) {
+        url.searchParams.delete(key);
+      }
+    }
+    url.hostname = url.hostname.replace(/^www\./, "");
+    return url.toString().replace(/\/$/, "");
+  } catch {
+    return value.trim();
+  }
+}
+
+export function sourceDocumentKey(source: string, canonicalUrl: string) {
+  return `${source}:${canonicalUrl}`.toLowerCase();
 }
 
 interface LlmRunInput {

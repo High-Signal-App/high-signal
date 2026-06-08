@@ -87,6 +87,8 @@ Current implementation:
   richer raw JSON or parsed fields worth preserving.
 - Existing adapters do not need to change immediately; their flattened event
   payload still creates a minimal source document.
+- Rich payload hooks are attached for the first high-structure adapters: SEC
+  XBRL, Form D, USAspending/SBIR/SAM.gov, Podcast Index, and npm/PyPI releases.
 
 Phase 2: separate ingestion execution.
 
@@ -114,7 +116,15 @@ Phase 3: make High Signal an insight layer only.
 
 ## Next Small Step
 
-Attach richer `Event.source_document` payloads to the highest-structure
-adapters first: SEC XBRL, Form D, USAspending, Podcast Index, and package
-registries. Do not extract a new service before those adapters prove the raw
-payload store helps with replay, dedupe, or insight generation.
+Use the preserved payloads to improve replay and de-duplication:
+
+- compare structured source rows against the flattened `events` output
+- collapse repeated evidence before confidence scoring
+- expose source-health states (`fresh`, `stale`, `blocked`, `low-yield`,
+  `duplicate-heavy`) in source audits
+- bring up Lab only on the cheap path first: HN ingest, materialize, GitHub
+  trending, cluster, and score. Keep embeddings, entity extraction, and
+  summarization off until the basic feed proves useful.
+
+Do not extract a new service before those steps prove the raw payload store helps
+with replay, dedupe, or insight generation.

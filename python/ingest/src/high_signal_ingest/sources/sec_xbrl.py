@@ -16,7 +16,7 @@ from typing import Any
 import httpx
 
 from ..seed import load_entities
-from ..types import Event
+from ..types import Event, SourceDocument
 
 
 USER_AGENT = "high-signal/0.1 sec-xbrl-ingest"
@@ -108,6 +108,17 @@ def event_from_companyfacts(
         content=content[:20_000] or None,
         primary_entity_id=entity_id,
         raw_hash=raw_hash,
+        source_document=SourceDocument(
+            canonical_url=f"https://data.sec.gov/api/xbrl/companyfacts/CIK{cik}.json",
+            published_at=latest_filed,
+            raw_hash=raw_hash,
+            raw_json={"latest": latest},
+            parsed_fields={
+                "ticker": ticker,
+                "cik": cik,
+                "facts": sorted(latest.keys()),
+            },
+        ),
     )
 
 

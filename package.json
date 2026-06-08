@@ -56,6 +56,7 @@
     "competitor-perception:test": "tsx scripts/competitor-perception-inbox.test.ts",
     "task-teardowns:test": "tsx scripts/approved-task-teardowns.test.ts",
     "ingest:local": "cd python/ingest && uv run python -m high_signal_ingest.pipeline --source all --days 1",
+    "source:diagnose": "cd python/ingest && uv run python -m high_signal_ingest.source_diagnose",
     "source:quality": "cd python/ingest && uv run python -m high_signal_ingest.source_quality",
     "ingest:preflight": "cd python/ingest && uv run python -m high_signal_ingest.preflight",
     "prepare": "husky"
