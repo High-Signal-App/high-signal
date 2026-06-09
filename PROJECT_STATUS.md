@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-06-03
+Last updated: 2026-06-09
 
 This is the single project-status doc for High Signal. It tracks what is done, what is planned next, and what is deferred/parked. Detailed supporting docs can exist, but this file is the first place to check before changing product scope.
 
@@ -123,6 +123,10 @@ Parked scope:
 - GitHub Actions exist for CI, ingest, score, publish, markets, equities, backtest, weekly, personal brief, backfill, and deploy.
 - Modal support remains for ad-hoc/backfill use.
 - Package scripts exist for DB migrations/seeding, signal sync, auto-publish, source quality, snapshots, and tests.
+- Production deploy was verified on 2026-06-09:
+  - `high-signal-api` deployed at version `eedfd365-510b-4877-904f-99c890be11cf`.
+  - `high-signal-web` deployed at version `a275a754-5d6f-4106-8455-59f6ef61e272`.
+  - Apex and `www` smoke checks passed via public Cloudflare DNS resolution, and browser render passed at 1280px.
 
 ## Planned Next
 
@@ -150,9 +154,8 @@ Parked scope:
    - Do not expand them into unrelated content/SEO products unless explicitly approved.
 
 6. Verify production/data readiness.
-   - Confirm latest D1 migrations remotely before treating remote data as current.
-   - Confirm active GitHub Actions and cron paths are green.
-   - Visually verify the active web surfaces in browser before release.
+   - Apply remote D1 migration `0008_source_document_keys.sql` before treating source-document dedupe semantics as current.
+   - Keep deploy workflow and cron health green after the next pushed product change.
 
 ## Deferred / Parked
 

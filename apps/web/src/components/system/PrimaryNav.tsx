@@ -81,7 +81,7 @@ export function PrimaryNav() {
           {OPS.map((link) => {
             const active = link.match(pathname);
             return (
-              <li key={link.href} className="ml-auto">
+              <li key={link.href} className="ml-auto hidden min-[1380px]:list-item">
                 <Link
                   href={link.href as Route}
                   className={
