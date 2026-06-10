@@ -5,6 +5,7 @@ import { AnalyticsProvider } from "@/components/posthog-provider";
 import { SaaSMakerFeedback } from "@/components/saasmaker-feedback";
 import { AuthNav } from "@/components/auth/AuthNav";
 import { PrimaryNav } from "@/components/system/PrimaryNav";
+import { SiteFooter } from "@/components/system/SiteFooter";
 import { SiteOrganizationJsonLd } from "@/components/seo/structured-data";
 import {
   SITE_DESCRIPTION,
@@ -92,6 +93,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <PrimaryNav />
       {clerkConfigured ? <AuthNav /> : null}
       {children}
+      <SiteFooter />
       <SaaSMakerFeedback />
     </AnalyticsProvider>
   );
