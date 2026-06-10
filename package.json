@@ -31,6 +31,7 @@
     "price:snapshot": "tsx scripts/build-price-context.ts",
     "equities:snapshot": "tsx scripts/build-equities-snapshot.ts",
     "tickers:bundle": "tsx scripts/build-known-tickers.ts",
+    "drank:sync": "tsx scripts/sync-drank-domains.ts",
     "daily:seed-history": "tsx scripts/seed-daily-source-history.ts",
     "signals:sync:local": "tsx scripts/sync-signals.ts --local",
     "signals:sync:remote": "tsx scripts/sync-signals.ts --remote",

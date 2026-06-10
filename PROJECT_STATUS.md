@@ -90,6 +90,14 @@ Parked scope:
 - Real AI execution is wired when `HIGH_SIGNAL_AI_API_KEY` or `OPENAI_API_KEY` is set; deterministic fallback exists without a key.
 - Agent evidence tasks feed the brief's product-improvement section.
 
+### Domains (web authority lens)
+- New integration at `/domains`.
+- Consumes shared DR (Domain Rating) leaderboard and community nominations from the companion standalone "drank" app (Vercel, localStorage predictions, GitHub Action pipeline for global data).
+- DR treated as a high-signal for website/source authority/quality.
+- Full interactive features (predictions, personal lists, charts) live in the independent drank app at https://drank-sand.vercel.app.
+- Data available via local `data/dr-domains.json` (synced with `pnpm drank:sync`) or runtime fetch.
+- Linked from PrimaryNav under lenses.
+
 ### Markets and equities
 
 - Narrow Markets lens remains active.

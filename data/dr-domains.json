@@ -1,0 +1,25 @@
+{
+  "lastUpdated": "2026-06-10T13:55:00.000Z",
+  "sites": [
+    "google.com", "youtube.com", "facebook.com", "instagram.com", "x.com", "linkedin.com",
+    "wikipedia.org", "amazon.com", "github.com", "openai.com"
+  ],
+  "domains": {
+    "google.com": { "history": [{ "ts": 1781098796780, "dr": 99 }] },
+    "youtube.com": { "history": [{ "ts": 1781098796780, "dr": 99 }] },
+    "facebook.com": { "history": [{ "ts": 1781098796780, "dr": 100 }] },
+    "instagram.com": { "history": [{ "ts": 1781098796780, "dr": 100 }] },
+    "x.com": { "history": [{ "ts": 1781098796780, "dr": 97 }] },
+    "linkedin.com": { "history": [{ "ts": 1781098796780, "dr": 99 }] },
+    "wikipedia.org": { "history": [{ "ts": 1781098796780, "dr": 97 }] },
+    "amazon.com": { "history": [{ "ts": 1781098796780, "dr": 96 }] },
+    "github.com": { "history": [{ "ts": 1781098796780, "dr": 97 }] },
+    "openai.com": { "history": [{ "ts": 1781098796780, "dr": 93 }] }
+  },
+  "communityNominations": [
+    { "domain": "cursor.com", "note": "Rapidly growing AI editor" },
+    { "domain": "perplexity.ai", "note": "Search disruption" }
+  ],
+  "source": "drank",
+  "sourceUrl": "https://drank-sand.vercel.app"
+}

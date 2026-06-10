@@ -43,6 +43,10 @@ Pricing: free. No paid tier, no billing. Region is a free filter.
 
 For day-to-day stack and conventions, read `agents.md` (canonical).
 
+## Integrations & companion tools
+
+- **drank** (Web Authority / Domain Signals): A companion tool and data source for tracking high-signal websites via Ahrefs Domain Rating. The live leaderboard and community nominations are surfaced at `/domains` in this app. Full interactive predictions and personal tracking live at the standalone [drank app](https://drank-sand.vercel.app). Data is shared via public GitHub-backed JSON.
+
 ## Data pipelines
 
 Status of every public-source ingest that feeds the brief.

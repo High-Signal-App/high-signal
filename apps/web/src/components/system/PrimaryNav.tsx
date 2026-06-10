@@ -19,6 +19,7 @@ const LENSES: NavLink[] = [
   { href: "/markets", label: "markets", match: (p) => p.startsWith("/markets") || p.startsWith("/signals") || p.startsWith("/entities") || p.startsWith("/sectors") || p.startsWith("/watchlist") },
   { href: "/mentions", label: "mentions", match: (p) => p.startsWith("/mentions") },
   { href: "/agent-eval", label: "agent eval", match: (p) => p.startsWith("/agent-eval") },
+  { href: "/domains", label: "domains", match: (p) => p.startsWith("/domains") },
 ];
 
 const OPS: NavLink[] = [
