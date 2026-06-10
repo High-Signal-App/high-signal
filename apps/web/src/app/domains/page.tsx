@@ -22,9 +22,8 @@ interface DrankData {
 async function getDrankData(): Promise<DrankData> {
   try {
     // Prefer locally synced copy (see scripts/sync-drank-domains.ts)
-    // @ts-expect-error - dynamic import for local data asset
-    const local = await import("../../../../../../data/dr-domains.json");
-    const d = local?.default || local || {};
+    const local = await import("../../../../../data/dr-domains.json");
+    const d = local.default ?? local;
     if (d.domains && Object.keys(d.domains).length > 0) {
       return {
         lastUpdated: d.lastUpdated,
@@ -34,24 +33,32 @@ async function getDrankData(): Promise<DrankData> {
     }
   } catch {}
 
-  const res = await fetch(RAW_DATA_URL, {
-    next: { revalidate: 3600 },
-  });
+  try {
+    const res = await fetch(RAW_DATA_URL, {
+      next: { revalidate: 3600 },
+    });
 
-  if (!res.ok) {
+    if (!res.ok) {
+      return {
+        lastUpdated: new Date().toISOString(),
+        domains: {},
+        communityNominations: [],
+      };
+    }
+
+    const remote = await res.json();
+    return {
+      lastUpdated: remote.lastUpdated,
+      domains: remote.domains || {},
+      communityNominations: remote.communityNominations || [],
+    };
+  } catch {
     return {
       lastUpdated: new Date().toISOString(),
       domains: {},
       communityNominations: [],
     };
   }
-
-  const remote = await res.json();
-  return {
-    lastUpdated: remote.lastUpdated,
-    domains: remote.domains || {},
-    communityNominations: remote.communityNominations || [],
-  };
 }
 
 function getCurrentDR(history: Array<{ ts: number; dr: number }> = []): number | null {
@@ -64,14 +71,13 @@ function get7dDelta(history: Array<{ ts: number; dr: number }> = []): number | n
   const sorted = [...history].sort((a, b) => a.ts - b.ts);
   const latest = sorted[sorted.length - 1];
   const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-  let base = sorted[0];
   for (let i = sorted.length - 2; i >= 0; i--) {
     if (sorted[i].ts <= weekAgo) {
-      base = sorted[i];
-      break;
+      return latest.dr - sorted[i].dr;
     }
   }
-  return latest.dr - base.dr;
+  // No data point old enough to compute a true 7-day delta.
+  return null;
 }
 
 export default async function DomainsPage() {
@@ -83,7 +89,10 @@ export default async function DomainsPage() {
       const delta = get7dDelta(entry.history);
       return { domain, dr, delta, history: entry.history };
     })
-    .filter((d): d is any => d.dr !== null)
+    .filter(
+      (d): d is { domain: string; dr: number; delta: number | null; history: Array<{ ts: number; dr: number }> } =>
+        d.dr !== null,
+    )
     .sort((a, b) => b.dr - a.dr);
 
   const nominations = data.communityNominations || [];
@@ -107,9 +116,11 @@ export default async function DomainsPage() {
           >
             Open full drank app for predictions &amp; tracking →
           </a>
-          <span className="text-[var(--color-muted)] text-xs">
-            Last updated: {new Date(data.lastUpdated).toLocaleDateString()}
-          </span>
+          {data.lastUpdated && !Number.isNaN(new Date(data.lastUpdated).getTime()) && (
+            <span className="text-[var(--color-muted)] text-xs">
+              Last updated: {new Date(data.lastUpdated).toLocaleDateString()}
+            </span>
+          )}
         </div>
 
         <div className="mt-10">
@@ -134,7 +145,7 @@ export default async function DomainsPage() {
                     const rank = idx + 1;
                     const drStr = item.dr.toFixed(1);
                     const deltaStr = item.delta !== null ? (item.delta > 0 ? "+" : "") + item.delta.toFixed(1) : "—";
-                    const deltaClass = item.delta !== null && item.delta > 0 ? "text-emerald-400" : item.delta !== null && item.delta < 0 ? "text-red-400" : "text-[var(--color-muted)]";
+                    const deltaClass = item.delta !== null && item.delta > 0 ? "text-emerald-400" : item.delta !== null && item.delta < 0 ? "text-rose-400" : "text-[var(--color-muted)]";
                     return (
                       <tr key={item.domain} className="hover:bg-[var(--color-bg-elevated)]">
                         <td className="px-4 py-3 font-mono text-[var(--color-muted)] tabular-nums">#{rank}</td>
