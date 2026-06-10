@@ -11,7 +11,7 @@
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-const RAW_BASE = "https://raw.githubusercontent.com/sarthakagrawal927/drank/main/data";
+const RAW_BASE = "https://raw.githubusercontent.com/sarthak-fleet/drank/main/data";
 const OUT_PATH = join(process.cwd(), "data/dr-domains.json");
 
 async function main() {
