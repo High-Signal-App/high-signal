@@ -9,7 +9,7 @@ import {
   SectionHeader,
   StatGrid,
 } from "@/components/system/HighSignalUI";
-import { api, type MentionCheck, type MentionPrompt } from "@/lib/api";
+import { api } from "@/lib/api";
 import { analyzeMentionVisibility, type AIPlatform } from "@high-signal/shared";
 import { requireSignedIn } from "@/lib/require-auth";
 import { revalidatePath } from "next/cache";
@@ -98,16 +98,19 @@ export default async function MentionsPage({
   const dashboard = dashboardResult[0].status === "fulfilled" ? dashboardResult[0].value : null;
 
   const configs = dashboard?.mentions.configs ?? [];
-  const prompts = dashboard?.mentions.prompts ?? [];
-  const recentChecks = dashboard?.mentions.recentChecks ?? [];
   const activeConfigId = params.config ?? configs[0]?.id ?? "";
   const activeConfig = configs.find((c) => c.id === activeConfigId) ?? configs[0] ?? null;
-  const promptsForConfig = activeConfig
-    ? prompts.filter((p: MentionPrompt) => prompts.length && p.id)
+  const [promptsResult, checksResult] = activeConfig
+    ? await Promise.allSettled([
+        api.mentionConfigPrompts(ownerId, activeConfig.id),
+        api.mentionConfigChecks(ownerId, activeConfig.id),
+      ])
     : [];
-  const checksForConfig = activeConfig
-    ? recentChecks.filter((c: MentionCheck) => c.companyId === ownerId)
-    : [];
+  const promptsForConfig =
+    activeConfig && promptsResult?.status === "fulfilled" ? promptsResult.value.prompts : [];
+  const checksForConfig =
+    activeConfig && checksResult?.status === "fulfilled" ? checksResult.value.checks : [];
+  const recentChecks = dashboard?.mentions.recentChecks ?? [];
 
   const previewBrand = (params.previewBrand ?? activeConfig?.brandName ?? "High Signal").trim();
   const previewText = (params.previewText ?? SAMPLE_TEXT).trim();
@@ -131,7 +134,7 @@ export default async function MentionsPage({
       <StatGrid
         items={[
           { label: "brand configs", value: configs.length.toString(), sub: "tracked products" },
-          { label: "prompts", value: prompts.length.toString(), sub: "across all configs" },
+          { label: "prompts", value: promptsForConfig.length.toString(), sub: "active config" },
           {
             label: "latest mention rate",
             value: recentChecks[0]?.brandMentionRate != null
