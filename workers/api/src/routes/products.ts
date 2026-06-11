@@ -806,6 +806,7 @@ function toMentionCheck(row: typeof schema.mentionChecks.$inferSelect): MentionC
   return {
     id: row.id,
     companyId: row.ownerId,
+    configId: row.configId,
     status: row.status,
     totalQueries: row.totalQueries,
     completedQueries: row.completedQueries,

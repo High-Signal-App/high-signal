@@ -345,7 +345,7 @@ export default async function MentionsPage({
         eyebrow="check history"
         empty="No checks across configs yet."
         items={recentChecks.map((check) => ({
-          href: `/mentions?config=${encodeURIComponent(check.companyId)}`,
+          href: `/mentions?config=${encodeURIComponent(check.configId)}`,
           kicker: `${check.createdAt.slice(0, 16).replace("T", " ")} / ${check.status}`,
           title:
             check.summary ??
