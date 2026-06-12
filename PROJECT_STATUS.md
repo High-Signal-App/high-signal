@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-06-09
+Last updated: 2026-06-12
 
 This is the single project-status doc for High Signal. It tracks what is done, what is planned next, and what is deferred/parked. Detailed supporting docs can exist, but this file is the first place to check before changing product scope.
 
@@ -164,6 +164,12 @@ Parked scope:
 6. Verify production/data readiness.
    - Apply remote D1 migration `0008_source_document_keys.sql` before treating source-document dedupe semantics as current.
    - Keep deploy workflow and cron health green after the next pushed product change.
+
+7. Evaluate the three new product proposals now captured in `plans/0008` through `plans/0010`.
+   - `plans/0008-signal-provenance-editor.md`
+   - `plans/0009-brief-distribution-and-subscription-routing.md`
+   - `plans/0010-entity-watchlists-and-impact-chains.md`
+   - Treat these as the current top-priority feature candidates until one is promoted into active scope.
 
 ## Deferred / Parked
 

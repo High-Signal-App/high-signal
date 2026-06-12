@@ -44,6 +44,18 @@ Output:
 - Reusable provenance for agent-eval audits and reel briefs.
 - Cleaner support for "cite or kill" as a product rule instead of a slogan.
 
+## Target User
+
+- Review operators who need to decide whether a claim should publish.
+- Future internal editors who need to understand why a claim existed.
+- Operators who want to explain a signal to a teammate without losing the source trail.
+
+## Rollout Slice
+
+1. Start with signal detail pages and the review queue only.
+2. Add provenance editing for new draft claims before touching historical claims.
+3. Backfill only the most recent published items once the workflow is stable.
+
 ## Scope
 
 ### Add
@@ -58,12 +70,20 @@ Output:
 - Full collaborative Google-docs style comment threads.
 - Arbitrary freeform notebook behavior.
 
+## Dependencies
+
+- Existing evidence storage and markdown signal frontmatter.
+- Review queue state transitions.
+- Shared claim IDs in the brief and agent-eval outputs.
+
 ## Acceptance criteria
 
 - Any published signal claim can show its supporting evidence chain.
 - Corrections are visible as new claim versions, not overwrites.
 - Review can distinguish support, contradiction, and context.
 - The editor is usable on the existing review queue without creating a separate admin system.
+- A reviewer can answer "why did this ship?" in under a minute from the claim record alone.
+- The provenance trail survives correction without mutating the original evidence set.
 
 ## Risks
 
