@@ -142,7 +142,7 @@ export default async function BriefPage({
         title="What changed today"
       >
         Synthesized from the lenses below. Five sections — three on the world, two on whichever
-        product you've picked. Every claim cites at least one source.
+        product you've picked. Every claim cites at least two sources.
       </HeroHeader>
 
       <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-y border-[var(--color-line)] py-3">

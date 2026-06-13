@@ -32,6 +32,7 @@ export interface MentionPrompt {
 export interface MentionCheck {
   id: string;
   companyId: string;
+  configId: string;
   status: Exclude<WorkflowStatus, "draft">;
   totalQueries: number;
   completedQueries: number;

@@ -60,7 +60,7 @@ export default async function HomePage({
       <HeroHeader eyebrow={heroEyebrow} title="What changed today">
         High Signal aggregates technology, startup, and finance sources, curates them, and
         synthesizes the day into five sections. Pick any product and any region to see how the
-        brief recomposes. Every claim cites at least one source.
+        brief recomposes. Every claim cites at least two sources.
         {selectedProduct ? null : spotlightName ? (
           <>
             {" "}

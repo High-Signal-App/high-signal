@@ -9,7 +9,7 @@ import {
   SectionHeader,
   StatGrid,
 } from "@/components/system/HighSignalUI";
-import { api, type MentionCheck, type MentionPrompt } from "@/lib/api";
+import { api } from "@/lib/api";
 import { analyzeMentionVisibility, type AIPlatform } from "@high-signal/shared";
 import { requireSignedIn } from "@/lib/require-auth";
 import { revalidatePath } from "next/cache";
@@ -98,16 +98,18 @@ export default async function MentionsPage({
   const dashboard = dashboardResult[0].status === "fulfilled" ? dashboardResult[0].value : null;
 
   const configs = dashboard?.mentions.configs ?? [];
-  const prompts = dashboard?.mentions.prompts ?? [];
-  const recentChecks = dashboard?.mentions.recentChecks ?? [];
   const activeConfigId = params.config ?? configs[0]?.id ?? "";
   const activeConfig = configs.find((c) => c.id === activeConfigId) ?? configs[0] ?? null;
-  const promptsForConfig = activeConfig
-    ? prompts.filter((p: MentionPrompt) => prompts.length && p.id)
+  const [promptsResult, checksResult] = activeConfig
+    ? await Promise.allSettled([
+        api.mentionConfigPrompts(ownerId, activeConfig.id),
+        api.mentionConfigChecks(ownerId, activeConfig.id),
+      ])
     : [];
-  const checksForConfig = activeConfig
-    ? recentChecks.filter((c: MentionCheck) => c.companyId === ownerId)
-    : [];
+  const promptsForConfig =
+    activeConfig && promptsResult?.status === "fulfilled" ? promptsResult.value.prompts : [];
+  const checksForConfig =
+    activeConfig && checksResult?.status === "fulfilled" ? checksResult.value.checks : [];
 
   const previewBrand = (params.previewBrand ?? activeConfig?.brandName ?? "High Signal").trim();
   const previewText = (params.previewText ?? SAMPLE_TEXT).trim();
@@ -131,14 +133,14 @@ export default async function MentionsPage({
       <StatGrid
         items={[
           { label: "brand configs", value: configs.length.toString(), sub: "tracked products" },
-          { label: "prompts", value: prompts.length.toString(), sub: "across all configs" },
+          { label: "prompts", value: promptsForConfig.length.toString(), sub: "active config" },
           {
             label: "latest mention rate",
-            value: recentChecks[0]?.brandMentionRate != null
-              ? `${Math.round((recentChecks[0]?.brandMentionRate ?? 0) * 100)}%`
+            value: checksForConfig[0]?.brandMentionRate != null
+              ? `${Math.round((checksForConfig[0]?.brandMentionRate ?? 0) * 100)}%`
               : "—",
-            sub: recentChecks[0]
-              ? `check ${recentChecks[0].createdAt.slice(0, 10)}`
+            sub: checksForConfig[0]
+              ? `check ${checksForConfig[0].createdAt.slice(0, 10)}`
               : "no checks yet",
           },
         ]}
@@ -341,8 +343,8 @@ export default async function MentionsPage({
       <FeedList
         eyebrow="check history"
         empty="No checks across configs yet."
-        items={recentChecks.map((check) => ({
-          href: `/mentions?config=${encodeURIComponent(check.companyId)}`,
+        items={checksForConfig.map((check) => ({
+          href: `/mentions?config=${encodeURIComponent(check.configId)}`,
           kicker: `${check.createdAt.slice(0, 16).replace("T", " ")} / ${check.status}`,
           title:
             check.summary ??

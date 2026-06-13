@@ -118,7 +118,7 @@ function buildCollections(dashboard: ProductDashboardSnapshot | null, signals: S
   const mentionItems: WatchlistItem[] = [];
   for (const config of dashboard?.mentions.configs ?? []) {
     const latestCheck = dashboard?.mentions.recentChecks.find(
-      (check) => check.companyId === config.companyId,
+      (check) => check.configId === config.id,
     );
     const mentionRate = latestCheck?.brandMentionRate ?? null;
     mentionItems.push({
@@ -144,7 +144,9 @@ function buildCollections(dashboard: ProductDashboardSnapshot | null, signals: S
   const communityItems: WatchlistItem[] = [];
   for (const community of dashboard?.communities.tracked ?? []) {
     const latestDigest = dashboard?.communities.latestDigests.find(
-      (digest) => digest.subreddit.toLowerCase() === community.subreddit.toLowerCase(),
+      (digest) =>
+        digest.subreddit.toLowerCase() === community.subreddit.toLowerCase() &&
+        digest.period === community.period,
     );
     communityItems.push({
       id: `community-${community.id}`,
