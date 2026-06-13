@@ -119,6 +119,12 @@ function AuditResult({ detail }: { detail: AgentEvaluationAuditDetail }) {
               </span>
             ))}
           </div>
+          <a
+            href={`/agent-eval/${encodeURIComponent(detail.audit.id)}/attributes`}
+            className="mt-5 inline-block border border-[var(--color-line)] px-3 py-2 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
+          >
+            view attribute grid →
+          </a>
         </Panel>
       </section>
 

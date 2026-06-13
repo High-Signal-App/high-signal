@@ -221,6 +221,13 @@ export default async function WatchlistPage() {
         action digest keeps High Signal from becoming three disconnected feeds.
       </SectionHeader>
 
+      <a
+        href="/watchlist/entities"
+        className="mt-6 inline-block border border-[var(--color-line)] px-3 py-2 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
+      >
+        watched entities + impact chain →
+      </a>
+
       <MetricGrid
         items={[
           { label: "active items", value: digest.totalItems.toString() },

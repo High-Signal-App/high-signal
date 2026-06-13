@@ -16,7 +16,8 @@ const PRIMARY: NavLink[] = [
 ];
 
 const LENSES: NavLink[] = [
-  { href: "/markets", label: "markets", match: (p) => p.startsWith("/markets") || p.startsWith("/signals") || p.startsWith("/entities") || p.startsWith("/sectors") || p.startsWith("/watchlist") },
+  { href: "/markets", label: "markets", match: (p) => p.startsWith("/markets") || p.startsWith("/signals") || p.startsWith("/entities") || p.startsWith("/sectors") },
+  { href: "/watchlist/entities", label: "watchlist", match: (p) => p.startsWith("/watchlist") },
   { href: "/mentions", label: "mentions", match: (p) => p.startsWith("/mentions") },
   { href: "/agent-eval", label: "agent eval", match: (p) => p.startsWith("/agent-eval") },
   { href: "/domains", label: "domains", match: (p) => p.startsWith("/domains") },
@@ -24,6 +25,8 @@ const LENSES: NavLink[] = [
 
 const OPS: NavLink[] = [
   { href: "/review", label: "review", match: (p) => p.startsWith("/review") },
+  { href: "/settings/delivery", label: "settings", match: (p) => p.startsWith("/settings") },
+  { href: "/explore", label: "explore", match: (p) => p.startsWith("/explore") },
 ];
 
 export function PrimaryNav() {
@@ -79,10 +82,13 @@ export function PrimaryNav() {
               </li>
             );
           })}
-          {OPS.map((link) => {
+          {OPS.map((link, idx) => {
             const active = link.match(pathname);
             return (
-              <li key={link.href} className="ml-auto hidden min-[1380px]:list-item">
+              <li
+                key={link.href}
+                className={`hidden md:list-item ${idx === 0 ? "md:ml-auto" : ""}`}
+              >
                 <Link
                   href={link.href as Route}
                   className={

@@ -14,6 +14,9 @@ import { convergenceRoute } from "./routes/convergence";
 import { unmappedRoute } from "./routes/unmapped";
 import { enrichRoute } from "./routes/enrich";
 import { attentionRoute } from "./routes/attention";
+import { claimsRoute } from "./routes/claims";
+import { deliveryRoute } from "./routes/delivery";
+import { watchlistsRoute } from "./routes/watchlists";
 
 type Env = {
   DB: D1Database;
@@ -44,6 +47,9 @@ app.route("/convergence", convergenceRoute);
 app.route("/unmapped", unmappedRoute);
 app.route("/enrich", enrichRoute);
 app.route("/attention", attentionRoute);
+app.route("/claims", claimsRoute);
+app.route("/delivery", deliveryRoute);
+app.route("/watchlists", watchlistsRoute);
 
 export default {
   fetch: app.fetch,

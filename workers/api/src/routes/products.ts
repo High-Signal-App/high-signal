@@ -1,7 +1,8 @@
 import { Hono } from "hono";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, gte } from "drizzle-orm";
 import { db, schema } from "../db";
 import { BADGE_WIDGET_JS } from "../lib/badge-widget";
+import { sha16 } from "../lib/ids";
 import { generateCommunityDigest } from "../lib/community-research";
 import { searchExternalMentions } from "../lib/external-monitors";
 import { runMentionCheck } from "../lib/mention-execution";
@@ -10,8 +11,17 @@ import { runSeoAudit } from "../lib/seo-audit";
 import {
   buildAgentEvaluationAudit,
   buildMonthlyCompetitorReport,
+  buildVisibilityMatrix,
+  classifyOwnership,
+  computeShareOfVoice,
+  computeTrends,
   getSeedMonthlyCompetitorReport,
+  hostOf,
   normalizeCommunitySummary,
+  sortAttributes,
+  type AttributeRow,
+  type MatrixRow,
+  type MentionRow,
 } from "@high-signal/shared";
 import type {
   AgentEvaluationAudit,
@@ -1179,6 +1189,306 @@ function isAIPlatform(value: string): value is AIPlatform {
 function isRedditPeriod(value: string): value is "day" | "week" | "month" {
   return ["day", "week", "month"].includes(value);
 }
+
+// ─── Plan 0011 — OpenLens visibility surface ──────────────────────────────
+// All routes are read-only (they project from mention_results /
+// agent_evidence_scores / agent_evidence_tasks) except cited-sources/refresh
+// which rebuilds the cited_url_index for a brand from the latest run window.
+
+async function loadOwnedBrand(d1: D1Database, ownerId: string, brandId: string) {
+  if (!ownerId) return null;
+  const [brand] = await db(d1)
+    .select()
+    .from(schema.mentionBrandConfigs)
+    .where(
+      and(
+        eq(schema.mentionBrandConfigs.id, brandId),
+        eq(schema.mentionBrandConfigs.ownerId, ownerId),
+      ),
+    )
+    .limit(1);
+  return brand ?? null;
+}
+
+async function loadMentionRowsForBrand(d1: D1Database, brandId: string, windowDays: number) {
+  const since = new Date(Date.now() - windowDays * 24 * 3600 * 1000);
+  return db(d1)
+    .select()
+    .from(schema.mentionResults)
+    .where(
+      and(
+        eq(schema.mentionResults.configId, brandId),
+        gte(schema.mentionResults.createdAt, since),
+      ),
+    )
+    .orderBy(desc(schema.mentionResults.createdAt))
+    .limit(5000);
+}
+
+productsRoute.get("/mentions/:brandId/visibility-matrix", async (c) => {
+  const ownerId = requireOwner(c);
+  const brandId = c.req.param("brandId");
+  if (!(await loadOwnedBrand(c.env.DB, ownerId, brandId))) {
+    return c.json({ error: "brand_not_found" }, 404);
+  }
+  const windowDays = clampedLimit(c.req.query("window") ?? "30", 30, 365);
+  const rows = await loadMentionRowsForBrand(c.env.DB, brandId, windowDays);
+
+  // Map mention_results rows to MatrixRow. prompt_text is needed to render the
+  // human label; fetch prompts in one query.
+  const promptIds = Array.from(new Set(rows.map((r) => r.promptId)));
+  const prompts =
+    promptIds.length > 0
+      ? await c.env.DB.prepare(
+          `SELECT id, prompt_text FROM mention_prompts WHERE id IN (${promptIds
+            .map(() => "?")
+            .join(",")})`,
+        )
+          .bind(...promptIds)
+          .all<{ id: string; prompt_text: string }>()
+      : { results: [] };
+  const promptMap = new Map((prompts.results ?? []).map((p) => [p.id, p.prompt_text]));
+
+  const matrix: MatrixRow[] = rows.map((r) => ({
+    prompt: promptMap.get(r.promptId) ?? r.promptId,
+    promptKey: r.promptId,
+    platform: r.platform,
+    brandMentioned: r.brandMentioned,
+    brandRecommended: false, // mention_results carries brandCited; recommended lives in agent-eval responses
+    competitorsMentioned: ((r.competitorsMentioned as unknown) as string[]) ?? [],
+    citations: ((r.citations as unknown) as string[]) ?? [],
+    runAt: r.createdAt.toISOString(),
+  }));
+  return c.json({ cells: buildVisibilityMatrix(matrix), windowDays, runs: rows.length });
+});
+
+function toMentionRows(rows: Array<typeof schema.mentionResults.$inferSelect>): MentionRow[] {
+  return rows.map((r) => ({
+    brandMentioned: r.brandMentioned,
+    brandRecommended: false,
+    competitorsMentioned: ((r.competitorsMentioned as unknown) as string[]) ?? [],
+    citations: ((r.citations as unknown) as string[]) ?? [],
+    brandCited: r.brandCited,
+    platform: r.platform,
+    createdAt: r.createdAt.toISOString(),
+  }));
+}
+
+productsRoute.get("/mentions/:brandId/share-of-voice", async (c) => {
+  const ownerId = requireOwner(c);
+  const brandId = c.req.param("brandId");
+  if (!(await loadOwnedBrand(c.env.DB, ownerId, brandId))) {
+    return c.json({ error: "brand_not_found" }, 404);
+  }
+  const windowDays = clampedLimit(c.req.query("window") ?? "30", 30, 365);
+  const rows = await loadMentionRowsForBrand(c.env.DB, brandId, windowDays);
+  return c.json(computeShareOfVoice(toMentionRows(rows), windowDays));
+});
+
+productsRoute.get("/mentions/:brandId/cited-sources", async (c) => {
+  const ownerId = requireOwner(c);
+  const brandId = c.req.param("brandId");
+  if (!(await loadOwnedBrand(c.env.DB, ownerId, brandId))) {
+    return c.json({ error: "brand_not_found" }, 404);
+  }
+  const ownership = c.req.query("ownership");
+  const topic = c.req.query("topic");
+  const rows = await db(c.env.DB)
+    .select()
+    .from(schema.citedUrlIndex)
+    .where(eq(schema.citedUrlIndex.brandId, brandId))
+    .orderBy(desc(schema.citedUrlIndex.mentionRunCount))
+    .limit(200);
+  const filtered = rows.filter((r) => {
+    if (ownership && r.ownership !== ownership) return false;
+    if (topic && r.topic !== topic) return false;
+    return true;
+  });
+  return c.json({ sources: filtered });
+});
+
+productsRoute.post("/mentions/:brandId/cited-sources/refresh", async (c) => {
+  const ownerId = requireOwner(c);
+  const brandId = c.req.param("brandId");
+  const brand = await loadOwnedBrand(c.env.DB, ownerId, brandId);
+  if (!brand) return c.json({ error: "brand_not_found" }, 404);
+
+  const windowDays = clampedLimit(c.req.query("window") ?? "30", 30, 365);
+  const rows = await loadMentionRowsForBrand(c.env.DB, brandId, windowDays);
+  const competitors = ((brand.competitors as unknown) as Array<{ id?: string; name?: string; url?: string }>) ?? [];
+  const competitorUrls = competitors
+    .filter((c) => c.url)
+    .map((c) => ({ id: c.id ?? c.name ?? c.url!, url: c.url! }));
+  const brandIdentity = {
+    brandUrl: brand.brandUrl ?? null,
+    competitorUrls,
+  };
+
+  const agg = new Map<
+    string,
+    {
+      url: string;
+      host: string;
+      ownership: ReturnType<typeof classifyOwnership>["ownership"];
+      competitorId?: string;
+      platforms: Set<string>;
+      first: Date;
+      last: Date;
+      count: number;
+    }
+  >();
+
+  for (const r of rows) {
+    const citations = ((r.citations as unknown) as string[]) ?? [];
+    for (const url of citations) {
+      const h = hostOf(url);
+      if (!h) continue;
+      const existing = agg.get(url);
+      const { ownership, competitorId } = classifyOwnership(url, brandIdentity);
+      const platforms = existing?.platforms ?? new Set<string>();
+      platforms.add(r.platform);
+      const first = existing ? (r.createdAt < existing.first ? r.createdAt : existing.first) : r.createdAt;
+      const last = existing ? (r.createdAt > existing.last ? r.createdAt : existing.last) : r.createdAt;
+      agg.set(url, {
+        url,
+        host: h,
+        ownership,
+        competitorId,
+        platforms,
+        first,
+        last,
+        count: (existing?.count ?? 0) + 1,
+      });
+    }
+  }
+
+  let upserts = 0;
+  for (const entry of agg.values()) {
+    const id = await sha16(`cited:${brandId}:${entry.url}`);
+    await db(c.env.DB)
+      .insert(schema.citedUrlIndex)
+      .values({
+        id,
+        brandId,
+        topic: "",
+        url: entry.url,
+        host: entry.host,
+        ownership: entry.ownership,
+        competitorId: entry.competitorId ?? null,
+        firstSeenAt: entry.first,
+        lastSeenAt: entry.last,
+        platforms: Array.from(entry.platforms),
+        mentionRunCount: entry.count,
+      })
+      .onConflictDoUpdate({
+        target: [schema.citedUrlIndex.brandId, schema.citedUrlIndex.url],
+        set: {
+          ownership: entry.ownership,
+          competitorId: entry.competitorId ?? null,
+          lastSeenAt: entry.last,
+          platforms: Array.from(entry.platforms),
+          mentionRunCount: entry.count,
+        },
+      });
+    upserts++;
+  }
+
+  return c.json({ upserts, windowDays });
+});
+
+productsRoute.get("/mentions/:brandId/trends", async (c) => {
+  const ownerId = requireOwner(c);
+  const brandId = c.req.param("brandId");
+  if (!(await loadOwnedBrand(c.env.DB, ownerId, brandId))) {
+    return c.json({ error: "brand_not_found" }, 404);
+  }
+  const windowDays = clampedLimit(c.req.query("window") ?? "30", 30, 365);
+  const rows = await loadMentionRowsForBrand(c.env.DB, brandId, windowDays);
+  return c.json({ points: computeTrends(toMentionRows(rows), windowDays, Date.now()) });
+});
+
+productsRoute.get("/mentions/:brandId/report", async (c) => {
+  const ownerId = requireOwner(c);
+  const brandId = c.req.param("brandId");
+  if (!(await loadOwnedBrand(c.env.DB, ownerId, brandId))) {
+    return c.json({ error: "brand_not_found" }, 404);
+  }
+  const windowDays = clampedLimit(c.req.query("window") ?? "30", 30, 365);
+  const rows = await loadMentionRowsForBrand(c.env.DB, brandId, windowDays);
+  const mentionRows = toMentionRows(rows);
+  const sov = computeShareOfVoice(mentionRows, windowDays);
+  const points = computeTrends(mentionRows, windowDays, Date.now());
+
+  const matrixRows: MatrixRow[] = rows.map((r) => ({
+    prompt: r.promptId,
+    promptKey: r.promptId,
+    platform: r.platform,
+    brandMentioned: r.brandMentioned,
+    brandRecommended: false,
+    competitorsMentioned: ((r.competitorsMentioned as unknown) as string[]) ?? [],
+    citations: ((r.citations as unknown) as string[]) ?? [],
+    runAt: r.createdAt.toISOString(),
+  }));
+  const matrix = buildVisibilityMatrix(matrixRows);
+
+  const cited = await db(c.env.DB)
+    .select()
+    .from(schema.citedUrlIndex)
+    .where(eq(schema.citedUrlIndex.brandId, brandId))
+    .orderBy(desc(schema.citedUrlIndex.mentionRunCount))
+    .limit(20);
+
+  return c.json({
+    windowDays,
+    summary: {
+      runs: sov.runs,
+      brandMentionRate: sov.brandMentionRate,
+      brandCitationRate: sov.brandCitationRate,
+      trendPoints: points.length,
+    },
+    matrix,
+    shareOfVoice: sov,
+    citedSources: cited,
+  });
+});
+
+// Agent-eval attribute grid. Reads agent_evidence_scores + open tasks.
+productsRoute.get("/agent-eval/:auditId/attributes", async (c) => {
+  const ownerId = requireOwner(c);
+  if (!ownerId) return c.json({ error: "missing_owner" }, 401);
+  const auditId = c.req.param("auditId");
+  const [audit] = await db(c.env.DB)
+    .select({ id: schema.agentEvaluationAudits.id })
+    .from(schema.agentEvaluationAudits)
+    .where(
+      and(
+        eq(schema.agentEvaluationAudits.id, auditId),
+        eq(schema.agentEvaluationAudits.ownerId, ownerId),
+      ),
+    )
+    .limit(1);
+  if (!audit) return c.json({ error: "audit_not_found" }, 404);
+  const scores = await db(c.env.DB)
+    .select()
+    .from(schema.agentEvidenceScores)
+    .where(eq(schema.agentEvidenceScores.auditId, auditId));
+  const tasks = await db(c.env.DB)
+    .select()
+    .from(schema.agentEvidenceTasks)
+    .where(eq(schema.agentEvidenceTasks.auditId, auditId));
+  const taskCountByArea = new Map<string, number>();
+  for (const t of tasks) {
+    if (t.status === "open") taskCountByArea.set(t.area, (taskCountByArea.get(t.area) ?? 0) + 1);
+  }
+  const rows: AttributeRow[] = scores.map((s) => ({
+    area: s.area,
+    status: s.status,
+    evidenceUrls: ((s.evidenceUrls as unknown) as string[]) ?? [],
+    notes: s.notes,
+    taskCount: taskCountByArea.get(s.area) ?? 0,
+  }));
+  return c.json({ attributes: sortAttributes(rows) });
+});
 
 function clampedLimit(value: string | undefined, fallback: number, max: number) {
   const parsed = Number(value ?? fallback);

@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, real, index, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, real, index, primaryKey, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 export const entities = sqliteTable(
   "entities",
@@ -719,5 +719,255 @@ export const insiderTransactions = sqliteTable(
     index("insider_transactions_filing_date_idx").on(t.filingDate),
     index("insider_transactions_ticker_date_idx").on(t.ticker, t.filingDate),
     uniqueIndex("insider_transactions_pk").on(t.ticker, t.filingId),
+  ],
+);
+
+// ─── Claim provenance (migration 0009) ─────────────────────────────────────
+// Plan 0008. Structured ledger of atomic claims, their evidence-link roles,
+// and a per-claim timeline. Signals + evidence remain canonical; claims are
+// an additive index the /review editor and auto-publish rules read.
+
+export const claimRecords = sqliteTable(
+  "claim_records",
+  {
+    id: text("id").primaryKey(),
+    signalId: text("signal_id"),
+    briefItemId: text("brief_item_id"),
+    agentEvalResponseId: text("agent_eval_response_id"),
+    surface: text("surface", { enum: ["signal", "brief", "agent_eval"] }).notNull(),
+    assertion: text("assertion").notNull(),
+    confidenceBand: text("confidence_band", { enum: ["low", "medium", "high"] })
+      .notNull()
+      .default("medium"),
+    reviewStatus: text("review_status", {
+      enum: ["draft", "held", "published", "killed", "corrected"],
+    })
+      .notNull()
+      .default("draft"),
+    publishReason: text("publish_reason"),
+    parentClaimId: text("parent_claim_id"),
+    version: integer("version").notNull().default(1),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    publishedAt: integer("published_at", { mode: "timestamp" }),
+    correctedAt: integer("corrected_at", { mode: "timestamp" }),
+  },
+  (t) => [
+    index("claim_records_signal_idx").on(t.signalId),
+    index("claim_records_parent_idx").on(t.parentClaimId),
+    index("claim_records_surface_status_idx").on(t.surface, t.reviewStatus),
+  ],
+);
+
+export const claimEvidenceLinks = sqliteTable(
+  "claim_evidence_links",
+  {
+    id: text("id").primaryKey(),
+    claimId: text("claim_id")
+      .notNull()
+      .references(() => claimRecords.id),
+    evidenceUrl: text("evidence_url").notNull(),
+    sourceDocumentId: text("source_document_id"),
+    role: text("role", {
+      enum: ["primary", "corroboration", "contradiction", "context"],
+    }).notNull(),
+    weight: integer("weight").notNull().default(1),
+    notes: text("notes"),
+    addedAt: integer("added_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    addedBy: text("added_by"),
+  },
+  (t) => [
+    index("claim_evidence_claim_idx").on(t.claimId),
+    index("claim_evidence_url_idx").on(t.evidenceUrl),
+    index("claim_evidence_doc_idx").on(t.sourceDocumentId),
+  ],
+);
+
+export const claimTimelineEvents = sqliteTable(
+  "claim_timeline_events",
+  {
+    id: text("id").primaryKey(),
+    claimId: text("claim_id")
+      .notNull()
+      .references(() => claimRecords.id),
+    kind: text("kind", {
+      enum: [
+        "created",
+        "evidence_added",
+        "evidence_removed",
+        "status_change",
+        "correction_filed",
+      ],
+    }).notNull(),
+    payload: text("payload", { mode: "json" }).notNull().default("{}"),
+    actor: text("actor"),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [index("claim_timeline_claim_idx").on(t.claimId, t.createdAt)],
+);
+
+// ─── Brief delivery (migration 0010) ──────────────────────────────────────
+// Plan 0009. Channel-aware delivery for the daily brief.
+
+export const deliveryPreferences = sqliteTable(
+  "delivery_preferences",
+  {
+    userId: text("user_id").notNull(),
+    channel: text("channel", { enum: ["email", "rss", "digest_json"] }).notNull(),
+    enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
+    email: text("email"),
+    region: text("region").notNull().default("global"),
+    timezone: text("timezone").notNull().default("UTC"),
+    localWindowStart: text("local_window_start").notNull().default("07:00"),
+    connectedBrandId: text("connected_brand_id"),
+    rssToken: text("rss_token"),
+    updatedAt: integer("updated_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [
+    primaryKey({ columns: [t.userId, t.channel] }),
+    index("delivery_preferences_channel_idx").on(t.channel, t.enabled),
+  ],
+);
+
+export const deliveryLog = sqliteTable(
+  "delivery_log",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull(),
+    channel: text("channel").notNull(),
+    briefDate: text("brief_date").notNull(),
+    status: text("status", { enum: ["queued", "sent", "failed", "skipped"] }).notNull(),
+    reason: text("reason"),
+    providerMessageId: text("provider_message_id"),
+    attempt: integer("attempt").notNull().default(1),
+    sentAt: integer("sent_at", { mode: "timestamp" }),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [
+    uniqueIndex("delivery_log_user_day_chan_idx").on(t.userId, t.channel, t.briefDate),
+    index("delivery_log_status_idx").on(t.status, t.createdAt),
+  ],
+);
+
+export const deliverySnapshots = sqliteTable(
+  "delivery_snapshots",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull(),
+    briefDate: text("brief_date").notNull(),
+    region: text("region").notNull(),
+    snapshotJson: text("snapshot_json", { mode: "json" }).notNull(),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [index("delivery_snapshots_user_day_idx").on(t.userId, t.briefDate)],
+);
+
+// ─── Watchlists (migration 0011) ──────────────────────────────────────────
+// Plan 0010.
+
+export const watchlists = sqliteTable(
+  "watchlists",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull(),
+    name: text("name").notNull().default("default"),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [uniqueIndex("watchlists_user_name_idx").on(t.userId, t.name)],
+);
+
+export const watchlistEntities = sqliteTable(
+  "watchlist_entities",
+  {
+    id: text("id").primaryKey(),
+    watchlistId: text("watchlist_id")
+      .notNull()
+      .references(() => watchlists.id),
+    entityId: text("entity_id").notNull(),
+    horizon: text("horizon", { enum: ["day", "week", "month"] }).notNull().default("week"),
+    addedAt: integer("added_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    note: text("note"),
+  },
+  (t) => [
+    uniqueIndex("watchlist_entities_unique_idx").on(t.watchlistId, t.entityId),
+    index("watchlist_entities_entity_idx").on(t.entityId),
+  ],
+);
+
+export const watchlistSuppressions = sqliteTable(
+  "watchlist_suppressions",
+  {
+    id: text("id").primaryKey(),
+    watchlistId: text("watchlist_id")
+      .notNull()
+      .references(() => watchlists.id),
+    kind: text("kind", {
+      enum: ["signal_type", "edge_type", "second_order_from"],
+    }).notNull(),
+    value: text("value").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [index("watchlist_suppressions_wl_idx").on(t.watchlistId)],
+);
+
+export const watchlistDeltaLog = sqliteTable(
+  "watchlist_delta_log",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull(),
+    watchlistId: text("watchlist_id").notNull(),
+    entityId: text("entity_id").notNull(),
+    signalId: text("signal_id").notNull(),
+    deltaKind: text("delta_kind", { enum: ["direct", "second_order"] }).notNull(),
+    surfacedAt: integer("surfaced_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [index("watchlist_delta_user_idx").on(t.userId, t.surfacedAt)],
+);
+
+// ─── Cited URL index (migration 0012) ─────────────────────────────────────
+// Plan 0011 — OpenLens steal list.
+
+export const citedUrlIndex = sqliteTable(
+  "cited_url_index",
+  {
+    id: text("id").primaryKey(),
+    brandId: text("brand_id").notNull(),
+    topic: text("topic").notNull().default(""),
+    url: text("url").notNull(),
+    host: text("host").notNull(),
+    ownership: text("ownership", {
+      enum: ["owned", "competitor", "third_party", "unknown"],
+    })
+      .notNull()
+      .default("unknown"),
+    competitorId: text("competitor_id"),
+    firstSeenAt: integer("first_seen_at", { mode: "timestamp" }).notNull(),
+    lastSeenAt: integer("last_seen_at", { mode: "timestamp" }).notNull(),
+    platforms: text("platforms", { mode: "json" }).notNull().default("[]"),
+    mentionRunCount: integer("mention_run_count").notNull().default(0),
+  },
+  (t) => [
+    index("cited_url_brand_topic_idx").on(t.brandId, t.topic),
+    index("cited_url_host_idx").on(t.host),
+    uniqueIndex("cited_url_brand_url_idx").on(t.brandId, t.url),
   ],
 );

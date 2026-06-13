@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { api } from "@/lib/api";
 import { SignalCard } from "@/components/molecules/SignalCard";
 import { SpilloverGraph } from "@/components/organisms/SpilloverGraph";
+import WatchButton from "./WatchButton";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +32,10 @@ export default async function EntityPage({ params }: { params: Promise<{ id: str
           {entity.sector && <span>{entity.sector}</span>}
           <span>{entity.type}</span>
         </div>
-        <h1 className="mt-2 text-3xl font-medium tracking-tight">{entity.name}</h1>
+        <div className="mt-2 flex items-start justify-between gap-4">
+          <h1 className="text-3xl font-medium tracking-tight">{entity.name}</h1>
+          <WatchButton entityId={entity.id} />
+        </div>
       </header>
 
       <section className="mt-10 grid gap-12 md:grid-cols-[480px_1fr] md:gap-8">

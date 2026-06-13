@@ -14,6 +14,19 @@ import type {
   TrackedCommunity,
 } from "@high-signal/shared";
 import type { SignalContentCategory, SignalQualityBand, SourceClass } from "@high-signal/shared";
+import type {
+  ClaimRecord as ClaimRecordJson,
+  ClaimEvidenceLink as ClaimEvidenceLinkJson,
+  ClaimTimelineEvent as ClaimTimelineEventJson,
+  EvidenceRollup as ClaimRollupJson,
+} from "@high-signal/shared";
+
+export type {
+  ClaimRecord as ClaimRecordJson,
+  ClaimEvidenceLink as ClaimEvidenceLinkJson,
+  ClaimTimelineEvent as ClaimTimelineEventJson,
+  EvidenceRollup as ClaimRollupJson,
+} from "@high-signal/shared";
 
 export type {
   AgentEvaluationAudit,
@@ -250,6 +263,23 @@ export const api = {
       evidence: Array<{ id: string; url: string; sourceType: string; excerpt: string | null }>;
       scores: Array<{ id: string; outcome: Outcome; windowDays: number; forwardReturn: number | null }>;
     }>(`/signals/${slug}`),
+  claimsBySignal: (slug: string) =>
+    fetchJson<{
+      claims: Array<
+        ClaimRecordJson & {
+          evidence: ClaimEvidenceLinkJson[];
+          rollup: ClaimRollupJson;
+        }
+      >;
+    }>(`/claims/by-signal/${slug}`),
+  claim: (id: string) =>
+    fetchJson<{
+      claim: ClaimRecordJson & {
+        evidence: ClaimEvidenceLinkJson[];
+        timeline: ClaimTimelineEventJson[];
+      };
+      rollup: ClaimRollupJson;
+    }>(`/claims/${id}`),
   entities: () => fetchJson<{ entities: EntityRow[] }>("/entities"),
   entity: (id: string) =>
     fetchJson<{
@@ -479,6 +509,111 @@ export const api = {
   mentionConfigs: (ownerId: string) =>
     fetchJson<{ configs: MentionBrandConfig[] }>(
       `/products/mentions/configs?${new URLSearchParams({ owner: ownerId })}`,
+    ),
+  visibilityMatrix: (ownerId: string, brandId: string, window = 30) =>
+    fetchJson<{
+      cells: Array<{
+        prompt: string;
+        platform: string;
+        brandMentioned: boolean;
+        brandRecommended: boolean;
+        competitors: string[];
+        citationsCount: number;
+        runAt: string;
+      }>;
+      windowDays: number;
+      runs: number;
+    }>(
+      `/products/mentions/${encodeURIComponent(brandId)}/visibility-matrix?window=${window}&owner=${encodeURIComponent(ownerId)}`,
+    ),
+  shareOfVoice: (ownerId: string, brandId: string, window = 30) =>
+    fetchJson<{
+      windowDays: number;
+      runs: number;
+      brandMentionRate: number;
+      brandRecommendationRate: number;
+      brandCitationRate: number;
+      competitorShare: Record<string, number>;
+      citationShare: Record<string, number>;
+    }>(
+      `/products/mentions/${encodeURIComponent(brandId)}/share-of-voice?window=${window}&owner=${encodeURIComponent(ownerId)}`,
+    ),
+  citedSources: (ownerId: string, brandId: string, ownership?: string) =>
+    fetchJson<{
+      sources: Array<{
+        id: string;
+        url: string;
+        host: string;
+        ownership: "owned" | "competitor" | "third_party" | "unknown";
+        competitorId: string | null;
+        firstSeenAt: string;
+        lastSeenAt: string;
+        platforms: string[];
+        mentionRunCount: number;
+      }>;
+    }>(
+      `/products/mentions/${encodeURIComponent(brandId)}/cited-sources?owner=${encodeURIComponent(ownerId)}${ownership ? `&ownership=${ownership}` : ""}`,
+    ),
+  mentionTrends: (ownerId: string, brandId: string, window = 30) =>
+    fetchJson<{
+      points: Array<{
+        date: string;
+        runs: number;
+        mentionRate: number;
+        recommendationRate: number;
+        citedHosts: number;
+      }>;
+    }>(
+      `/products/mentions/${encodeURIComponent(brandId)}/trends?window=${window}&owner=${encodeURIComponent(ownerId)}`,
+    ),
+  mentionReport: (ownerId: string, brandId: string, window = 30) =>
+    fetchJson<{
+      windowDays: number;
+      summary: {
+        runs: number;
+        brandMentionRate: number;
+        brandCitationRate: number;
+        trendPoints: number;
+      };
+      matrix: Array<{
+        prompt: string;
+        platform: string;
+        brandMentioned: boolean;
+        brandRecommended: boolean;
+        competitors: string[];
+        citationsCount: number;
+        runAt: string;
+      }>;
+      shareOfVoice: {
+        windowDays: number;
+        runs: number;
+        brandMentionRate: number;
+        brandRecommendationRate: number;
+        brandCitationRate: number;
+        competitorShare: Record<string, number>;
+        citationShare: Record<string, number>;
+      };
+      citedSources: Array<{
+        id: string;
+        url: string;
+        host: string;
+        ownership: string;
+        mentionRunCount: number;
+      }>;
+    }>(
+      `/products/mentions/${encodeURIComponent(brandId)}/report?window=${window}&owner=${encodeURIComponent(ownerId)}`,
+    ),
+  agentEvalAttributes: (ownerId: string, auditId: string) =>
+    fetchJson<{
+      attributes: Array<{
+        area: string;
+        status: "missing" | "weak" | "clear" | "strong";
+        evidenceUrls: string[];
+        notes: string;
+        taskCount: number;
+      }>;
+    }>(
+      `/products/agent-eval/${encodeURIComponent(auditId)}/attributes?owner=${encodeURIComponent(ownerId)}`,
     ),
   createMentionConfig: (
     ownerId: string,

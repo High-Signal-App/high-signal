@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-06-12
+Last updated: 2026-06-13
 
 This is the single project-status doc for High Signal. It tracks what is done, what is planned next, and what is deferred/parked. Detailed supporting docs can exist, but this file is the first place to check before changing product scope.
 
@@ -33,8 +33,10 @@ Parked scope:
 
 - Next.js web app and Cloudflare Worker API monorepo are in place.
 - Clerk auth is wired for the app shell with admin helpers.
-- Primary nav now reflects active scope: brief, track record, markets, mentions, agent eval, review.
+- Primary nav now reflects active scope: brief, track record, lenses (markets, watchlist, mentions, agent eval, domains), ops (review, settings, explore).
 - Public/support pages exist: about, methodology, featured, API docs, privacy, terms, auth pages.
+- `/explore` ships a canonical sitemap of every reachable surface (brief, signals + evidence, entities, lenses, ideas/opportunities/teardowns, equities, operator/admin, docs), with `new | operator | admin | parked` flags. The site footer now groups links into Product / Lenses / Operator / Legal so nothing built becomes invisible from the homepage.
+- Plan 0008/0009/0010/0011 surfaces are reachable from primary nav and the footer: `/watchlist/entities` (nav lenses), `/settings/delivery` (nav ops + footer), `/mentions/[brandId]` (linked from each row in `/mentions`), `/agent-eval/[auditId]/attributes` (linked from each audit panel in `/agent-eval`), `/admin/delivery` (linked from `/explore` under operator/admin).
 
 ### Daily brief
 
@@ -56,6 +58,10 @@ Parked scope:
 - Signal sync scripts exist for local and remote D1.
 - Signal feed/detail/today/type/entity surfaces exist.
 - Review queue supports draft, published, corrected, and killed statuses.
+- Signal provenance editor scaffolded (plan 0008): migration `0009_claim_provenance.sql` with `claim_records`, `claim_evidence_links`, `claim_timeline_events`; worker public reads at `/claims/*`; admin writes at `/admin/claims/*`; inline provenance editor in `/review` with role-tagged evidence chips and status transitions; public provenance section on `/signals/[slug]`; 29 unit tests in `scripts/claim-provenance.test.ts`. Migration not yet applied to local/remote D1.
+- Brief distribution scaffolded (plan 0009): migration `0010_brief_delivery.sql` with `delivery_preferences`, `delivery_log` (unique day-channel idx), `delivery_snapshots`; worker `/delivery/*` + cron `/delivery/internal/run`; email transport uses Cloudflare's native `send_email` binding (`workers/api/wrangler.toml` declares `[[send_email]] name = "SEND_EMAIL"`; worker reads `env.SEND_EMAIL` + `env.EMAIL_FROM`; MIME built inline, no third-party API); `/settings/delivery` + `/admin/delivery` pages; new `/api/delivery/[...path]` Clerk-only proxy; 24 unit tests in `scripts/brief-delivery.test.ts`. Email Routing setup on the zone + DKIM/SPF + destination-address verification are operator follow-ups.
+- Watchlists + impact chains scaffolded (plan 0010): migration `0011_watchlists.sql` with `watchlists`, `watchlist_entities`, `watchlist_suppressions`, `watchlist_delta_log`; worker `/watchlists/*` (CRUD + suppressions + impact); pure composer in `packages/shared/src/watchlist-impact.ts` with observed/inferred labelling and priority math; `/watchlist/entities` page; Watch button on `/entities/[id]`; new `/api/watchlists/[...path]` Clerk-only proxy; 20 unit tests in `scripts/watchlist-impact.test.ts`. Brief composer `watching` section integration is the next concrete follow-up.
+- OpenLens visibility surface scaffolded (plan 0011): migration `0012_cited_url_index.sql` with `cited_url_index`; new worker routes under `/products/mentions/:brandId/{visibility-matrix,share-of-voice,cited-sources,cited-sources/refresh,trends,report}` and `/products/agent-eval/:auditId/attributes`; ownership classifier + share-of-voice + trend math in `packages/shared/src/openlens-visibility.ts`; `/mentions/[brandId]` page with visibility / sources / trends / report tabs; `/agent-eval/[auditId]/attributes` grid; 22 unit tests in `scripts/openlens-visibility.test.ts`. Topic/prompt copy rename across existing /mentions surface is a follow-up.
 - Auto-publish rules exist and are tested.
 - Track record is public and uses score runs/hit-rate logic.
 - Hit-rate family fallback exists so new signal types can borrow family-level confidence when direct history is thin.
@@ -165,11 +171,13 @@ Parked scope:
    - Apply remote D1 migration `0008_source_document_keys.sql` before treating source-document dedupe semantics as current.
    - Keep deploy workflow and cron health green after the next pushed product change.
 
-7. Evaluate the three new product proposals now captured in `plans/0008` through `plans/0010`.
-   - `plans/0008-signal-provenance-editor.md`
-   - `plans/0009-brief-distribution-and-subscription-routing.md`
-   - `plans/0010-entity-watchlists-and-impact-chains.md`
-   - Treat these as the current top-priority feature candidates until one is promoted into active scope.
+7. Plans 0008–0011 have all been promoted into active scope and scaffolded (see Done).
+   - Migrations to apply (in order, idempotent): `0009_claim_provenance.sql`, `0010_brief_delivery.sql`, `0011_watchlists.sql`, `0012_cited_url_index.sql`. Run `pnpm db:migrate:local` and `pnpm db:migrate:remote`.
+   - Operator follow-ups:
+     - 0008: refactor `scripts/auto-publish-drafts.ts` to read `claim_records` instead of free-form `evidenceUrls`; lazy backfill of existing signals into structured claims on first `/review` open.
+     - 0009: enable Email Routing on the zone, verify DKIM/SPF for the sending domain, and either set `allowed_destination_addresses` on the `[[send_email]]` binding to a fixed allow-list or accept Cloudflare's per-destination verification flow. Set `EMAIL_FROM` and `API_BASE` in worker `[vars]` (without `API_BASE` the cron logs an explicit error and skips every user). Add a GitHub Actions workflow that POSTs to `/delivery/internal/run` hourly with the worker `ADMIN_TOKEN`.
+     - 0010: wire the watching section into `workers/api/src/routes/brief.ts` so `/brief/daily?owner=…` includes it when the user has at least one watched entity.
+     - 0011: rename product copy from keyword/query to topic/prompt across `apps/web/src/app/mentions/page.tsx`; trigger `POST /products/mentions/:brandId/cited-sources/refresh` after each mention check.
 
 ## Deferred / Parked
 

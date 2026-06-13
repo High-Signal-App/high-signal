@@ -226,6 +226,12 @@ export default async function MentionsPage({
                     </div>
                   </div>
                   <div className="flex gap-2">
+                    <a
+                      href={`/mentions/${encodeURIComponent(config.id)}`}
+                      className="border border-[var(--color-line)] px-3 py-2 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
+                    >
+                      visibility
+                    </a>
                     <form action={runCheck}>
                       <input type="hidden" name="configId" value={config.id} />
                       <button

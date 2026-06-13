@@ -22,3 +22,14 @@ binding = "DB"
 database_name = "high-signal-db"
 database_id = "ebeab72b-61ab-4588-936c-1da6652a2ce4"
 migrations_dir = "../../packages/db/migrations"
+
+# Plan 0009 — Cloudflare Email Routing native send binding. The brief cron in
+# workers/api/src/routes/delivery.ts dispatches through env.SEND_EMAIL.
+# Setup checklist (operator):
+#   1. Add Email Routing to the zone (Dashboard → Email → Email Routing).
+#   2. Verify DKIM/SPF for the sending domain (high-signal.app).
+#   3. Either set `allowed_destination_addresses` below to a fixed list, or
+#      leave it open and rely on Email Routing's per-destination verification.
+#   4. Configure `EMAIL_FROM` in [vars] (defaults to brief@high-signal.app).
+[[send_email]]
+name = "SEND_EMAIL"

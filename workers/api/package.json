@@ -14,7 +14,6 @@
     "@high-signal/shared": "workspace:*",
     "@saas-maker/ai": "^0.1.0",
     "@saas-maker/foundry-db": "^0.1.0",
-    "@saas-maker/foundry-email": "^0.1.0",
     "@saas-maker/ops": "^0.1.1",
     "jose": "^5.9.6",
     "drizzle-orm": "0.45.2",

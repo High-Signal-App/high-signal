@@ -65,6 +65,13 @@ export default async function SignalDetail({ params }: { params: Promise<{ slug:
   // Drafts, killed, and corrected rows 404 — they live in /review for
   // operators with admin access.
   if (signal.reviewStatus !== "published") return notFound();
+  let claims: Awaited<ReturnType<typeof api.claimsBySignal>>["claims"] = [];
+  try {
+    const c = await api.claimsBySignal(slug);
+    claims = c.claims;
+  } catch {
+    // Claims surface is additive; a fetch failure should not 404 the signal.
+  }
   const headline = signalHeadline(signal.bodyMd, signal.slug);
   const summary = signalSummary(signal.bodyMd, signal.slug, 720);
   const price = pricedInContext(signal.primaryEntityId, signal.direction);
@@ -196,6 +203,72 @@ export default async function SignalDetail({ params }: { params: Promise<{ slug:
           </div>
         </section>
       ) : null}
+
+      {claims.length > 0 && (
+        <section className="mt-12 border-t border-zinc-800 pt-6">
+          <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">
+            provenance
+          </h2>
+          <ul className="mt-4 space-y-3">
+            {claims
+              .filter((claim) => claim.reviewStatus === "published" || claim.reviewStatus === "corrected")
+              .map((claim) => (
+                <li key={claim.id} className="border border-zinc-900 p-3">
+                  <div className="flex flex-wrap items-baseline justify-between gap-2 font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
+                    <span>
+                      claim · v{claim.version} ·{" "}
+                      <span
+                        className={
+                          claim.reviewStatus === "published"
+                            ? "text-emerald-400"
+                            : "text-zinc-400"
+                        }
+                      >
+                        {claim.reviewStatus}
+                      </span>
+                    </span>
+                    <span className="text-zinc-500">
+                      P{claim.rollup.primary} · C{claim.rollup.corroboration}
+                      {claim.rollup.contradiction > 0 ? (
+                        <span className="text-amber-400"> · X{claim.rollup.contradiction}</span>
+                      ) : null}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-sm text-zinc-200">{claim.assertion}</p>
+                  {claim.evidence.length > 0 && (
+                    <ul className="mt-2 space-y-1 font-mono text-[10px]">
+                      {claim.evidence.map((link) => (
+                        <li key={link.id} className="flex items-center gap-2">
+                          <span
+                            className={`border px-1.5 py-0.5 uppercase tracking-[0.18em] ${
+                              link.role === "primary"
+                                ? "border-emerald-500/40 text-emerald-300"
+                                : link.role === "corroboration"
+                                  ? "border-cyan-500/40 text-cyan-300"
+                                  : link.role === "contradiction"
+                                    ? "border-amber-500/40 text-amber-300"
+                                    : "border-zinc-800 text-zinc-500"
+                            }`}
+                          >
+                            {link.role}
+                          </span>
+                          <a
+                            href={link.evidenceUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="flex-1 truncate text-zinc-400 hover:text-zinc-200 hover:underline"
+                          >
+                            {link.evidenceUrl}
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </li>
+              ))}
+          </ul>
+        </section>
+      )}
 
       <section className="mt-12 border-t border-zinc-800 pt-6">
         <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">evidence</h2>
