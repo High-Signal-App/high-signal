@@ -1,6 +1,6 @@
 # Plan 0006 - Agent Evaluation And Attention Layer
 
-Status: proposed
+Status: active (core workflow shipped; follow-on gaps remain)
 Created: 2026-05-20
 Depends on: `plans/0004-platform-consolidation.md`
 
