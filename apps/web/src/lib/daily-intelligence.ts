@@ -4,6 +4,8 @@ import {
   annotateTexts,
   annotateLightweightNlp,
   communityDigestEvidenceQuality,
+  countBy,
+  hoursSince,
   type AnnotationClientOptions,
   type CommunityDigestSnapshot,
   type LightweightNlpAnnotation,
@@ -253,21 +255,6 @@ function latestTimestamp(records: ProductFlowRefreshRecord[]) {
     .filter(Boolean)
     .sort()
     .at(-1) ?? null;
-}
-
-function hoursSince(now: Date, iso: string | null) {
-  if (!iso) return null;
-  const age = (now.getTime() - new Date(iso).getTime()) / 36e5;
-  if (!Number.isFinite(age)) return null;
-  return Math.max(0, Math.round(age * 10) / 10);
-}
-
-function countBy<T extends string>(values: T[]) {
-  const counts = new Map<T, number>();
-  for (const value of values) counts.set(value, (counts.get(value) ?? 0) + 1);
-  return Array.from(counts.entries())
-    .map(([k, n]) => ({ k, n }))
-    .sort((a, b) => b.n - a.n || a.k.localeCompare(b.k));
 }
 
 function sourceClass(source: SourceRegistry["sources"][number]) {

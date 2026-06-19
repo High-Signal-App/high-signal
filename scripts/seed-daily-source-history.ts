@@ -1,6 +1,7 @@
 #!/usr/bin/env tsx
 import { readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import { addDays } from "@high-signal/shared";
 
 type SourceType = "reddit" | "hacker-news" | "github-issues" | "rss";
 
@@ -51,12 +52,6 @@ function keyFor(record: Pick<ProductFlowRefreshRecord, "sourceId" | "label" | "t
 
 function dayKey(record: ProductFlowRefreshRecord) {
   return `${datePart(record)}:${keyFor(record)}`;
-}
-
-function addDays(date: string, days: number) {
-  const next = new Date(`${date}T00:00:00.000Z`);
-  next.setUTCDate(next.getUTCDate() + days);
-  return next.toISOString().slice(0, 10);
 }
 
 function isoFor(date: string, index: number) {

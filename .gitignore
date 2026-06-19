@@ -35,3 +35,8 @@ cache.bin
 
 # CF Pages build output
 apps/web/.cf-pages-bundle/
+
+# Local agent-tooling runtime artifacts (session logs/state, not product code)
+.omx/
+.symphony/
+.clawpatch/

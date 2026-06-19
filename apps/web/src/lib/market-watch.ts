@@ -1,5 +1,6 @@
 import marketWatchConfig from "../../../../data/personal-market-watch.json";
 import bundledMarketRefreshes from "../data/market-refreshes.json";
+import { countBy, hoursSince } from "@high-signal/shared";
 import type { MarketRefreshGroup, MarketRefreshRecord, MarketWatchConfig } from "@high-signal/shared";
 
 export type MarketWatchFreshness = "fresh" | "stale" | "empty";
@@ -48,21 +49,6 @@ export function resolveMarketRefreshRecord(records: MarketRefreshRecord[], prefe
     sorted.at(-1) ??
     null
   );
-}
-
-function hoursSince(now: Date, iso: string | null) {
-  if (!iso) return null;
-  const value = (now.getTime() - new Date(iso).getTime()) / 36e5;
-  if (!Number.isFinite(value)) return null;
-  return Math.max(0, Math.round(value * 10) / 10);
-}
-
-function countBy(values: string[]) {
-  const counts = new Map<string, number>();
-  for (const value of values) counts.set(value, (counts.get(value) ?? 0) + 1);
-  return Array.from(counts.entries())
-    .map(([k, n]) => ({ k, n }))
-    .sort((a, b) => b.n - a.n || a.k.localeCompare(b.k));
 }
 
 export function marketDirectionTone(direction: string) {

@@ -8,6 +8,7 @@ import {
   type DailyAnnotationOptions,
   type ProductFlowRefreshRecord,
 } from "./daily-intelligence";
+import { addDays, countBy } from "@high-signal/shared";
 import type {
   LightweightAudience,
   LightweightDomain,
@@ -72,12 +73,6 @@ function isDate(value: string | null | undefined) {
   return Boolean(value && /^\d{4}-\d{2}-\d{2}$/.test(value));
 }
 
-function addDays(date: string, days: number) {
-  const next = new Date(`${date}T00:00:00.000Z`);
-  next.setUTCDate(next.getUTCDate() + days);
-  return next.toISOString().slice(0, 10);
-}
-
 function compareDate(a: string, b: string) {
   return a.localeCompare(b);
 }
@@ -85,14 +80,6 @@ function compareDate(a: string, b: string) {
 function clampDays(value: number) {
   if (!Number.isFinite(value)) return 7;
   return Math.max(1, Math.min(MAX_DAYS, Math.trunc(value)));
-}
-
-function countBy<T extends string>(values: T[]) {
-  const counts = new Map<T, number>();
-  for (const value of values) counts.set(value, (counts.get(value) ?? 0) + 1);
-  return Array.from(counts.entries())
-    .map(([k, n]) => ({ k, n }))
-    .sort((a, b) => b.n - a.n || a.k.localeCompare(b.k));
 }
 
 export function resolveDailyRangeDates(input: {
