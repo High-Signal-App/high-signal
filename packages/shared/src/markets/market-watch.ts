@@ -1,4 +1,4 @@
-import type { IdeaFlowEvidence } from "./idea-intelligence";
+import type { IdeaFlowEvidence } from "../ideas/idea-intelligence";
 
 export type MarketWatchRegion = "national" | "international";
 export type MarketWatchDirection = "risk-on" | "risk-off" | "mixed";

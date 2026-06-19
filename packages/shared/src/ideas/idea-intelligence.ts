@@ -1,4 +1,4 @@
-import type { CommunityDigestSnapshot } from "./product-contracts";
+import type { CommunityDigestSnapshot } from "../core/product-contracts";
 
 export type IdeaFlowSource = "market" | "community" | "mention" | "news" | "resource";
 export type IdeaFlowPolarity = "supporting" | "contradicting" | "watching";

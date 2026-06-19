@@ -1,4 +1,4 @@
-import type { IdeaFlowEvidence, ProductOpportunity, ProductSignalLayer } from "./idea-intelligence";
+import type { IdeaFlowEvidence, ProductOpportunity, ProductSignalLayer } from "../ideas/idea-intelligence";
 
 export type ProductStage = "active" | "exploratory" | "watch";
 export type PersonalActionKind = "build" | "change" | "watch" | "pause";

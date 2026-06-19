@@ -16,9 +16,9 @@ import type {
   BriefIdeaItem,
   BriefStockItem,
   BriefTrendItem,
-} from "./brief";
-import type { Region } from "./region";
-import { familyForSignalType } from "./signal-families";
+} from "../core/brief";
+import type { Region } from "../primitives/region";
+import { familyForSignalType } from "../primitives/signal-families";
 
 export interface SeedStockSignal {
   entityId: string;

@@ -1,52 +1,15 @@
-export type Direction = "up" | "down" | "neutral";
-export type Confidence = "low" | "medium" | "high";
-export type ReviewStatus = "draft" | "published" | "corrected" | "killed";
-export type Outcome = "hit" | "miss" | "push" | "pending";
+// @high-signal/shared — public barrel.
+// Source is grouped by product domain under src/<domain>/; this file re-exports
+// every domain so existing `@high-signal/shared` imports keep working unchanged.
+// Layering (acyclic): primitives <- core <- {nlp, ideas, content} <- {markets, personal} ...
 
-export type RelationshipType =
-  | "supplier"
-  | "customer"
-  | "peer"
-  | "subsidiary"
-  | "partner"
-  | "competitor";
-
-export type EntityType = "public" | "private" | "sector" | "product";
-
-export interface SignalCard {
-  id: string;
-  slug: string;
-  signalType: string;
-  primaryEntityId: string;
-  direction: Direction;
-  confidence: Confidence;
-  predictedWindowDays: number;
-  publishedAt: string;
-  evidenceUrls: string[];
-  spilloverEntityIds: string[];
-  bodyMd: string;
-}
-
-export * from "./mention-intelligence";
-export * from "./product-contracts";
-export * from "./idea-intelligence";
-export * from "./market-watch";
-export * from "./agent-evaluation";
-export * from "./personal-usefulness";
-export * from "./approved-task-teardowns";
+export * from "./primitives";
+export * from "./core";
+export * from "./nlp";
+export * from "./ideas";
+export * from "./markets";
+export * from "./mentions";
+export * from "./agent-eval";
+export * from "./personal";
 export * from "./watchlist";
-export * from "./signal-intelligence";
-export * from "./lightweight-nlp";
-export * from "./annotation-client";
-export * from "./region";
-export * from "./signal-families";
-export * from "./brief";
-export * from "./seed-products";
-export * from "./seed-content";
-export * from "./sample-competitor-prompts";
-export * from "./competitor-report";
-export * from "./claim-provenance";
-export * from "./brief-delivery";
-export * from "./watchlist-impact";
-export * from "./openlens-visibility";
-export * from "./helpers";
+export * from "./content";

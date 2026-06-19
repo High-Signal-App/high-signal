@@ -19,7 +19,7 @@
  * sanity-check the metrics against intuition.
  */
 
-import type { Region } from "./region";
+import type { Region } from "../primitives/region";
 
 export interface SeedProductImprovement {
   area: string;

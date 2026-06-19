@@ -6,7 +6,7 @@
  * (citations + hit-rate where applicable) without a second round-trip.
  */
 
-import type { Region } from "./region";
+import type { Region } from "../primitives/region";
 
 export type BriefSectionKey =
   | "stocks"

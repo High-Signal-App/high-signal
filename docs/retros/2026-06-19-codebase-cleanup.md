@@ -1,6 +1,24 @@
 # Codebase cleanup pass — 2026-06-19
 
-Scope (set by operator): structural cleanup, **no** git-history rewrite, subapps **only if clearly warranted**.
+Scope (set by operator): structural cleanup, **no** git-history rewrite, subapps
+**only if clearly warranted**. Follow-up directive: the repo is several merged
+products — keep them all in-project but **structure them better** (do not extract
+to separate packages/repos).
+
+## Restructure: group `packages/shared` by domain (follow-up)
+
+`packages/shared/src` was 22 flat modules mixing 10+ domains. Regrouped into
+domain subfolders (`primitives`, `core`, `nlp`, `ideas`, `markets`, `mentions`,
+`agent-eval`, `personal`, `watchlist`, `content`), each with an `index.ts`
+barrel; the package root re-exports all barrels so **every `@high-signal/shared`
+import is unchanged** (verified: no external file imports deep/relative paths
+into `src`). Internal relative imports rewired along the acyclic layering.
+Inline core types moved to `primitives/types.ts`. `git mv` used throughout to
+preserve history. `pnpm typecheck` green on all 4 TS workspaces; shared/worker
+vitest + claim-provenance/brief-delivery/watchlist-impact/openlens/seo suites
+pass. The `personal` operator-tool subsystem is now a single shared domain;
+its full cross-repo boundary is documented in `docs/codebase-structure.md`
+(the new canonical module/ownership map). No deployable topology change.
 
 ## What changed
 
