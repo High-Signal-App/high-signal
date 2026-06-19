@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
     paths: ["workers/api/**", "packages/**"]
+  workflow_dispatch:
 
 jobs:
   deploy:
