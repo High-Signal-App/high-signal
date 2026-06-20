@@ -1,6 +1,6 @@
 name = "high-signal-web"
 account_id = "7d048325699a5acddb44d3be31cf6ba9"
-main = ".open-next/worker.js"
+main = "worker.mjs"
 compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
 workers_dev = true

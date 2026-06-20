@@ -1,0 +1,31 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: var(--font-geist-sans);
+  --color-bg: oklch(0.16 0 0);
+  --color-fg: oklch(0.96 0 0);
+  --color-muted: oklch(0.55 0 0);
+  --color-line: oklch(0.27 0 0);
+  --color-accent: oklch(0.78 0.18 195);
+}
+
+:root {
+  --font-geist-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  min-height: 100svh;
+  background: var(--color-bg);
+  color: var(--color-fg);
+  font-family: var(--font-geist-sans);
+}
+
+.hs-hero-copy {
+  content-visibility: auto;
+  contain-intrinsic-size: 1px 120px;
+}

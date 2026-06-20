@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build --webpack",
-    "cf:build": "opennextjs-cloudflare build",
+    "cf:build": "opennextjs-cloudflare build && opennextjs-cloudflare populateCache local && pnpm --filter high-signal-landing-astro build && node scripts/run-overlay-astro-landing.mjs --strict",
     "deploy": "pnpm cf:build && opennextjs-cloudflare deploy",
     "start": "next start",
     "storybook": "storybook dev -p 6006",
@@ -14,13 +14,11 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "typecheck": "tsc --noEmit",
-    "lint": "echo 'lint: skipped (eslint-config-next compat broken with ESLint 10)'"
+    "lint": "eslint src e2e"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.2.9",
     "@high-signal/shared": "workspace:*",
-    "@saas-maker/ai": "^0.1.0",
-    "@saas-maker/analytics-sdk": "^0.2.1",
     "@saas-maker/changelog-widget": "^0.2.1",
     "@saas-maker/feedback": "^0.2.1",
     "@saas-maker/testimonials": "^0.2.1",
