@@ -4,10 +4,13 @@
   "private": true,
   "packageManager": "pnpm@10.28.0",
   "devDependencies": {
-    "@saas-maker/eslint-config": "^1.0.1",
-    "@saas-maker/prettier-config": "^1.0.0",
-    "@saas-maker/tsconfig": "^1.0.0",
+    "eslint": "10.2.1",
+    "eslint-config-next": "16.2.4",
+    "eslint-config-prettier": "10.1.8",
+    "eslint-plugin-simple-import-sort": "13.0.0",
     "husky": "9.1.7",
+    "prettier": "3.8.3",
+    "prettier-plugin-tailwindcss": "0.8.0",
     "next": "16.2.4",
     "tsx": "4.21.0"
   },
@@ -70,6 +73,5 @@
     "overrides": {
       "@cloudflare/workers-types": "4.20260425.1"
     }
-  },
-  "prettier": "@saas-maker/prettier-config"
+  }
 }

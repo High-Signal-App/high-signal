@@ -1,3 +1,10 @@
 {
-  "extends": "@saas-maker/tsconfig/next.json"
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "jsx": "preserve",
+    "plugins": [{ "name": "next" }],
+    "paths": { "@/*": ["./apps/web/src/*"] }
+  },
+  "include": [],
+  "exclude": ["node_modules"]
 }

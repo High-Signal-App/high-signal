@@ -1,5 +1,4 @@
-import { fetchChatCompletion } from "@saas-maker/ai";
-import type { AIConfig } from "@saas-maker/ai";
+import { fetchChatCompletion, type AIConfig } from "./openai-chat";
 import { normalizeCommunitySummary } from "@high-signal/shared";
 import type { CommunitySummary } from "@high-signal/shared";
 import type { DB } from "../db";

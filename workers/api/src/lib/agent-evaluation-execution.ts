@@ -1,5 +1,4 @@
-import { fetchChatCompletion } from "@saas-maker/ai";
-import type { AIConfig } from "@saas-maker/ai";
+import { fetchChatCompletion, type AIConfig } from "./openai-chat";
 import type {
   AgentEvaluationCompetitor,
   AgentEvaluationInput,
