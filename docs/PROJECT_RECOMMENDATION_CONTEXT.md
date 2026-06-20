@@ -1,8 +1,10 @@
 # Project Recommendation Context
 
-Generated: 2026-06-06T21:14:19.566Z
+Generated: 2026-06-06T21:14:19.566Z (tooling note refreshed 2026-06-20)
 
 This file is a CodeVetter Repo Unpacked-inspired audit written for Starboard recommendations. It is intentionally local, evidence-oriented, and safe to commit: it records product context, feature areas, stack inventory, and recommendation guidance without secrets or environment values.
+
+**2026-06-20:** Removed `@saas-maker/eslint-config`, `@saas-maker/prettier-config`, `@saas-maker/tsconfig`, `@saas-maker/ops`, `@saas-maker/ai`, and `@saas-maker/analytics-sdk`. Local eslint/tsconfig + `workers/api/src/lib/ai-client.ts`; root lint via Biome.
 
 ## Project Identity
 
@@ -113,9 +115,6 @@ Development dependencies:
 - `@cloudflare/workers-types`
 - `@opennextjs/cloudflare`
 - `@playwright/test`
-- `@saas-maker/eslint-config`
-- `@saas-maker/prettier-config`
-- `@saas-maker/tsconfig`
 - `@storybook/addon-docs`
 - `@storybook/nextjs`
 - `@tailwindcss/postcss`
