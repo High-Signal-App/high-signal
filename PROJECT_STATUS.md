@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-06-13
+Last updated: 2026-06-20
 
 This is the single project-status doc for High Signal. It tracks what is done, what is planned next, and what is deferred/parked. Detailed supporting docs can exist, but this file is the first place to check before changing product scope.
 
@@ -33,7 +33,7 @@ Parked scope:
 
 - Next.js web app and Cloudflare Worker API monorepo are in place.
 - Clerk auth is wired for the app shell with admin helpers.
-- Primary nav now reflects active scope: brief, track record, lenses (markets, watchlist, mentions, agent eval, domains), ops (review, settings, explore).
+- Primary nav now reflects active scope: brief, track record, lenses (markets, watchlist, mentions, agent eval, domains), ops (review, settings, explore). Removed dead `/discover` nav link (communities product is parked; link caused prod smoke 404).
 - Public/support pages exist: about, methodology, featured, API docs, privacy, terms, auth pages.
 - `/explore` ships a canonical sitemap of every reachable surface (brief, signals + evidence, entities, lenses, ideas/opportunities/teardowns, equities, operator/admin, docs), with `new | operator | admin | parked` flags. The site footer now groups links into Product / Lenses / Operator / Legal so nothing built becomes invisible from the homepage.
 - Plan 0008/0009/0010/0011 surfaces are reachable from primary nav and the footer: `/watchlist/entities` (nav lenses), `/settings/delivery` (nav ops + footer), `/mentions/[brandId]` (linked from each row in `/mentions`), `/agent-eval/[auditId]/attributes` (linked from each audit panel in `/agent-eval`), `/admin/delivery` (linked from `/explore` under operator/admin).
