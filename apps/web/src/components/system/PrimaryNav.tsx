@@ -72,13 +72,11 @@ const PRODUCTS: NavProduct[] = [
     label: "communities",
     match: (p) =>
       p.startsWith("/communities") ||
-      p.startsWith("/discover") ||
       p.startsWith("/ideas") ||
       p.startsWith("/opportunities") ||
       p.startsWith("/teardowns"),
     items: [
       { href: "/communities", label: "communities", hint: "tracked subreddits + digests" },
-      { href: "/discover", label: "discover", hint: "public community feed" },
       { href: "/ideas", label: "ideas", hint: "business ideas to build" },
       { href: "/opportunities", label: "opportunities", hint: "demand-signal deep views" },
       { href: "/teardowns", label: "teardowns", hint: "product teardowns" },
