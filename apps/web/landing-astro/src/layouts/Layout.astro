@@ -35,6 +35,18 @@ const SITE_URL = 'https://highsignal.app';
     </style>
   </head>
   <body>
+    <script is:inline>
+      (function () {
+        var c = document.cookie;
+        if (
+          c.indexOf('__session') !== -1 ||
+          c.indexOf('__clerk') !== -1 ||
+          c.indexOf('__client') !== -1
+        ) {
+          location.replace('/signals/today');
+        }
+      })();
+    </script>
     <slot />
   </body>
 </html>
