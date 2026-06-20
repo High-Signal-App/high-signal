@@ -1,0 +1,53 @@
+---
+import Layout from '@/layouts/Layout.astro';
+
+const TITLE = 'High Signal — Daily Brief on technology, startups, and finance';
+const DESCRIPTION =
+  'One daily brief from 20+ noisy public sources — SEC filings, Reddit, Hacker News, YouTube transcripts, GitHub, prediction markets, and more. Every claim cites at least two independent sources.';
+---
+
+<Layout title={TITLE} description={DESCRIPTION}>
+  <div class="mx-auto flex min-h-svh w-full max-w-6xl flex-col px-5 py-8 sm:px-6 sm:py-12">
+    <header class="flex items-center justify-between gap-4 border-b border-[var(--color-line)] pb-6">
+      <a href="/" class="text-sm font-medium tracking-tight text-[var(--color-fg)] no-underline">
+        High Signal
+      </a>
+      <nav class="flex items-center gap-4 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
+        <a href="/signals/today" class="no-underline hover:text-[var(--color-fg)]">Signals</a>
+        <a href="/daily" class="no-underline hover:text-[var(--color-fg)]">Daily</a>
+        <a href="/sign-in" class="no-underline hover:text-[var(--color-fg)]">Sign in</a>
+      </nav>
+    </header>
+
+    <main class="flex flex-1 flex-col justify-center py-10 sm:py-16">
+      <header class="border-b border-[var(--color-line)] pb-8">
+        <div class="flex items-baseline gap-3 font-mono text-xs uppercase tracking-[0.2em] text-[var(--color-muted)]">
+          <span class="size-1.5 rounded-full bg-[var(--color-accent)]"></span>
+          <span>daily brief / global</span>
+        </div>
+        <h1 class="mt-4 text-5xl font-medium tracking-tight sm:text-6xl">What changed today</h1>
+        <p class="hs-hero-copy mt-4 max-w-2xl text-sm leading-relaxed text-[var(--color-muted)] sm:text-base">
+          One daily brief from 20+ noisy public sources — SEC filings, Reddit, Hacker News, YouTube
+          transcripts, GitHub, prediction markets, government feeds, and more. Five sections: stocks
+          watching for a boom, business ideas, new lifestyle trends, how the market sees your brand,
+          and ideas to improve it. Every claim cites at least two independent sources.
+        </p>
+      </header>
+
+      <div class="mt-8 flex flex-wrap items-center gap-3">
+        <a
+          href="/daily"
+          class="inline-flex h-11 items-center justify-center rounded-md bg-[var(--color-accent)] px-5 text-sm font-medium text-black no-underline transition-opacity hover:opacity-90"
+        >
+          Read today&apos;s brief
+        </a>
+        <a
+          href="/signals/today"
+          class="inline-flex h-11 items-center justify-center rounded-md border border-[var(--color-line)] px-5 text-sm font-medium text-[var(--color-fg)] no-underline transition-colors hover:border-[var(--color-muted)]"
+        >
+          Browse signals
+        </a>
+      </div>
+    </main>
+  </div>
+</Layout>
