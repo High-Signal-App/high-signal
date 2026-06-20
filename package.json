@@ -4,9 +4,7 @@
   "private": true,
   "packageManager": "pnpm@10.28.0",
   "devDependencies": {
-    "@saas-maker/eslint-config": "^1.0.1",
-    "@saas-maker/prettier-config": "^1.0.0",
-    "@saas-maker/tsconfig": "^1.0.0",
+    "@biomejs/biome": "2.5.0",
     "husky": "9.1.7",
     "next": "16.2.4",
     "tsx": "4.21.0"
@@ -63,12 +61,14 @@
     "source:diagnose": "cd python/ingest && uv run python -m high_signal_ingest.source_diagnose",
     "source:quality": "cd python/ingest && uv run python -m high_signal_ingest.source_quality",
     "ingest:preflight": "cd python/ingest && uv run python -m high_signal_ingest.preflight",
+    "format": "biome format --write .",
+    "format:check": "biome format .",
+    "check": "biome check .",
     "prepare": "husky"
   },
   "pnpm": {
     "overrides": {
       "@cloudflare/workers-types": "4.20260425.1"
     }
-  },
-  "prettier": "@saas-maker/prettier-config"
+  }
 }
