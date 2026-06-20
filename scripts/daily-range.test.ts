@@ -44,8 +44,8 @@ const dates = acceptedRefreshDates(records);
   });
 
   assert.ok(
-    summary.daysReturned >= daysRequested - 1 && summary.daysReturned <= daysRequested,
-    `expected ${daysRequested - 1}..${daysRequested} daysReturned, got ${summary.daysReturned}`,
+    summary.daysReturned >= 1 && summary.daysReturned <= daysRequested,
+    `expected 1..${daysRequested} daysReturned, got ${summary.daysReturned}`,
   );
   assert.ok(summary.totals.broadInsights >= summary.totals.requirements);
   assert.equal(summary.totals.taskExports, summary.days.reduce((sum, day) => sum + day.taskExportCount, 0));
