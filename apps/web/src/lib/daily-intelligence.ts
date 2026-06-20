@@ -62,7 +62,9 @@ export const DAILY_INTELLIGENCE_LAYER = {
     enabledByDefault: false,
   },
   edgeAnnotationService: {
-    env: "HIGH_SIGNAL_ANNOTATION_ENDPOINT",
+    // The remote `high-signal-annotation` worker was decommissioned; it only
+    // duplicated the local classifier. Annotation now runs local-only.
+    env: null,
     method: "semantic-rules-v2",
     llm: false,
     enabledByDefault: false,
@@ -137,8 +139,6 @@ export type DailyAnnotationRuntime = {
   huggingFaceEnabledByDefault: false;
   fallback: "local semantic-rules-v2 annotation";
 };
-
-type FetchBinding = { fetch: typeof fetch };
 
 export type SourceQualityStatus = "accepted" | "rejected" | "missing";
 export type SourceHealthStatus = "fresh" | "stale" | "blocked" | "low-yield" | "duplicate-heavy";
@@ -695,53 +695,24 @@ export async function annotateDailyTexts(texts: string[], options: DailyAnnotati
   return annotateTexts(texts, await resolveDailyAnnotationOptions(options));
 }
 
+// The remote `high-signal-annotation` worker was decommissioned — its logic
+// only duplicated the local `annotateLightweightNlp` classifier. Daily
+// annotation now always runs locally; these options are kept as no-ops so the
+// public API surface (and `DailyAnnotationOptions` consumers) stay stable.
 export function defaultDailyAnnotationOptions(): DailyAnnotationOptions {
-  return {
-    endpoint: process.env["HIGH_SIGNAL_ANNOTATION_ENDPOINT"] ?? null,
-  };
+  return {};
 }
 
-async function getAnnotationBinding(): Promise<FetchBinding | null> {
-  if (typeof process === "undefined") return null;
-  try {
-    const mod = await import("@opennextjs/cloudflare");
-    const ctx = (
-      mod as unknown as {
-        getCloudflareContext?: (...args: unknown[]) => { env?: Record<string, unknown> };
-      }
-    ).getCloudflareContext?.();
-    const annotation = ctx?.env?.["ANNOTATION"];
-    if (annotation && typeof (annotation as { fetch?: unknown }).fetch === "function") {
-      return annotation as FetchBinding;
-    }
-  } catch {
-    /* not in Worker context */
-  }
-  return null;
-}
-
-async function resolveDailyAnnotationOptions(options: DailyAnnotationOptions): Promise<DailyAnnotationOptions> {
-  if (options.endpoint || options.fetcher) return options;
-  const binding = await getAnnotationBinding();
-  if (!binding) return defaultDailyAnnotationOptions();
-  return {
-    endpoint: "https://annotation/annotate",
-    fetcher: (input, init) => binding.fetch(input, init),
-    timeoutMs: options.timeoutMs,
-  };
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+async function resolveDailyAnnotationOptions(_options: DailyAnnotationOptions): Promise<DailyAnnotationOptions> {
+  return {};
 }
 
 export async function dailyAnnotationRuntime(): Promise<DailyAnnotationRuntime> {
-  const serviceBindingConfigured = Boolean(await getAnnotationBinding());
-  const endpointConfigured = Boolean(process.env["HIGH_SIGNAL_ANNOTATION_ENDPOINT"]?.trim());
   return {
-    activePath: serviceBindingConfigured
-      ? "cloudflare-service-binding"
-      : endpointConfigured
-        ? "public-http-endpoint"
-        : "local-typescript-fallback",
-    serviceBindingConfigured,
-    endpointConfigured,
+    activePath: "local-typescript-fallback",
+    serviceBindingConfigured: false,
+    endpointConfigured: false,
     method: "semantic-rules-v2",
     llm: false,
     model: "none",

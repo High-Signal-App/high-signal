@@ -36,7 +36,3 @@ NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = "pk_test_ZmFpci1ob3JuZXQtMjcuY2xlcmsuYWNjb3V
 [[services]]
 binding = "API"
 service = "high-signal-api"
-
-[[services]]
-binding = "ANNOTATION"
-service = "high-signal-annotation"

@@ -4,11 +4,17 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 import os
+import random
 import sys
+import threading
+import time
 from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
-from typing import Literal
+from typing import Callable, Literal
+from urllib.parse import urlsplit
 
 from . import audit
 from .extract.entities import primary_entity
@@ -90,6 +96,15 @@ FALLBACK_DRAFT_LIMIT = 3
 DEFAULT_DAILY_EDGAR_TICKER_LIMIT = 25
 DEFAULT_SIGNAL_CLUSTER_LIMIT = 40
 
+# Bounded-concurrency fetch tuning (all env-overridable).
+DEFAULT_FETCH_CONCURRENCY = 8  # max source adapters in flight at once
+DEFAULT_PER_HOST_CONCURRENCY = 1  # never hit one host from >1 adapter at once
+DEFAULT_FETCH_RETRIES = 3  # attempts per adapter on transient failure
+DEFAULT_FETCH_BACKOFF_BASE = 0.75  # seconds; exponential with full jitter
+DEFAULT_FETCH_BACKOFF_CAP = 20.0  # seconds; ceiling on a single backoff sleep
+
+_log = logging.getLogger(__name__)
+
 
 def _int_env(name: str, default: int) -> int:
     try:
@@ -98,86 +113,237 @@ def _int_env(name: str, default: int) -> int:
         return default
 
 
-def fetch(source: Source, days: int) -> list[Event]:
-    out: list[Event] = []
+def _float_env(name: str, default: float) -> float:
+    try:
+        return max(0.0, float(os.environ.get(name, default)))
+    except (TypeError, ValueError):
+        return default
+
+
+def _host_key(url: str | None) -> str:
+    """Registrable-ish host key so adapters on the same provider share a slot.
+
+    Collapses subdomains to the last two labels (e.g. ``efts.sec.gov`` and
+    ``www.sec.gov`` both map to ``sec.gov``) so SEC/EDGAR adapters never run
+    concurrently against the same provider and trip its rate limits.
+    """
+    if not url:
+        return "_none"
+    host = (urlsplit(url).hostname or "").lower()
+    if not host:
+        return "_none"
+    parts = host.split(".")
+    return ".".join(parts[-2:]) if len(parts) >= 2 else host
+
+
+class _HostGate:
+    """Per-host bounded concurrency, lazily creating one semaphore per host."""
+
+    def __init__(self, per_host: int) -> None:
+        self._per_host = max(1, per_host)
+        self._lock = threading.Lock()
+        self._sems: dict[str, threading.Semaphore] = {}
+
+    def _sem(self, host: str) -> threading.Semaphore:
+        with self._lock:
+            sem = self._sems.get(host)
+            if sem is None:
+                sem = threading.Semaphore(self._per_host)
+                self._sems[host] = sem
+            return sem
+
+    def run(self, host: str, fn: Callable[[], list[Event]]) -> list[Event]:
+        sem = self._sem(host)
+        with sem:
+            return fn()
+
+
+def _with_backoff(
+    name: str,
+    fn: Callable[[], list[Event]],
+    *,
+    retries: int,
+    base: float,
+    cap: float,
+    failures: list[str],
+) -> list[Event]:
+    """Run ``fn`` with bounded retries and exponential full-jitter backoff.
+
+    Stdlib-only (tenacity is not a dependency of this package). The final
+    failure is swallowed (returns ``[]``) and appended to ``failures`` — a
+    single flaky source must never abort the rest of the run, but the caller
+    still surfaces it via the run's ``errors``/``error_sample`` audit fields.
+    """
+    attempt = 0
+    while True:
+        try:
+            return fn()
+        except Exception as exc:  # noqa: BLE001 — isolate per-source failures
+            attempt += 1
+            if attempt >= retries:
+                _log.warning("source %s failed after %d attempts: %s", name, attempt, exc)
+                failures.append(f"{name}: {exc}")
+                return []
+            sleep_for = min(cap, base * (2 ** (attempt - 1)))
+            sleep_for = random.uniform(0, sleep_for)  # full jitter to spread 429s
+            _log.info(
+                "source %s attempt %d failed (%s); retrying in %.2fs",
+                name,
+                attempt,
+                exc,
+                sleep_for,
+            )
+            time.sleep(sleep_for)
+
+
+def _fetch_tasks(source: Source, days: int) -> list[tuple[str, str, Callable[[], list[Event]]]]:
+    """Build ``(name, host_key, callable)`` descriptors for the selected sources.
+
+    Each callable encapsulates the per-source window/cap logic so the executor
+    can run them concurrently. Existing env caps (e.g. ``EDGAR_TICKER_LIMIT``)
+    are honoured here exactly as before.
+    """
+    tasks: list[tuple[str, str, Callable[[], list[Event]]]] = []
+
+    def add(name: str, host: str, fn: Callable[[], list[Event]]) -> None:
+        tasks.append((name, _host_key(host), fn))
+
     if source in {"edgar", "all"}:
-        tickers = [e.ticker for e in load_entities() if e.ticker and e.type == "public"]
-        ticker_limit = _int_env("EDGAR_TICKER_LIMIT", DEFAULT_DAILY_EDGAR_TICKER_LIMIT)
-        # Daily stays 8-K only; wider runs add capital/ownership forms and Form D search.
-        if days >= 7:
-            out.extend(edgar.fetch_expanded(tickers[:ticker_limit], days=days))
-        else:
-            out.extend(edgar.fetch_recent(tickers[:ticker_limit], days=days, forms=("8-K",)))
+        def _edgar() -> list[Event]:
+            tickers = [e.ticker for e in load_entities() if e.ticker and e.type == "public"]
+            ticker_limit = _int_env("EDGAR_TICKER_LIMIT", DEFAULT_DAILY_EDGAR_TICKER_LIMIT)
+            # Daily stays 8-K only; wider runs add capital/ownership forms and Form D search.
+            if days >= 7:
+                return edgar.fetch_expanded(tickers[:ticker_limit], days=days)
+            return edgar.fetch_recent(tickers[:ticker_limit], days=days, forms=("8-K",))
+
+        add("edgar", "https://www.sec.gov", _edgar)
     if source in {"news", "all"}:
-        out.extend(news.fetch_all(days=days, tier_max=2, fetch_body=True))
+        add("news", "https://newsapi.org", lambda: news.fetch_all(days=days, tier_max=2, fetch_body=True))
     if source in {"reddit", "all"}:
-        out.extend(reddit.fetch_all(days=days))
+        add("reddit", "https://www.reddit.com", lambda: reddit.fetch_all(days=days))
     if source in {"ir", "all"}:
-        out.extend(ir.fetch_all())
+        add("ir", "https://www.ir.example", lambda: ir.fetch_all())
     if source in {"github", "all"}:
-        out.extend(github.fetch_all(days=max(days, 7)))
+        add("github", "https://api.github.com", lambda: github.fetch_all(days=max(days, 7)))
     if source in {"github-archive", "all"}:
-        out.extend(github_archive.fetch_all(days=days))
+        add("github-archive", "https://data.gharchive.org", lambda: github_archive.fetch_all(days=days))
     if source in {"gov", "all"}:
-        out.extend(gov.fetch_all(days=max(days, 3)))
+        add("gov", "https://www.federalregister.gov", lambda: gov.fetch_all(days=max(days, 3)))
     if source in {"huggingface", "all"}:
-        out.extend(huggingface.fetch_all(days=max(days, 7)))
+        add("huggingface", "https://huggingface.co", lambda: huggingface.fetch_all(days=max(days, 7)))
     if source in {"youtube", "all"}:
-        out.extend(youtube.fetch_all(days=max(days, 7)))
+        add("youtube", "https://www.youtube.com", lambda: youtube.fetch_all(days=max(days, 7)))
     if source in {"bluesky", "all"}:
-        out.extend(bluesky.fetch_all(days=max(days, 7)))
+        add("bluesky", "https://bsky.social", lambda: bluesky.fetch_all(days=max(days, 7)))
     if source in {"gdelt", "all"}:
         # Smaller default for daily; backfill driver pulls bigger windows
-        out.extend(gdelt.fetch_all(days=max(days, 1), max_records_per_query=100))
+        add(
+            "gdelt",
+            "https://api.gdeltproject.org",
+            lambda: gdelt.fetch_all(days=max(days, 1), max_records_per_query=100),
+        )
     if source in {"hkex", "all"}:
-        out.extend(hkex.fetch_all(days=max(days, 3)))
+        add("hkex", "https://www1.hkexnews.hk", lambda: hkex.fetch_all(days=max(days, 3)))
     if source in {"markets", "all"}:
-        market_events, market_quotes = markets.fetch_all(days=max(days, 30))
-        out.extend(market_events)
-        # Quotes are the primary output of the markets source — push directly.
-        pushed = markets.push_quotes(market_quotes)
-        if pushed:
-            import logging
+        def _markets() -> list[Event]:
+            market_events, market_quotes = markets.fetch_all(days=max(days, 30))
+            # Quotes are the primary output of the markets source — push directly.
+            pushed = markets.push_quotes(market_quotes)
+            if pushed:
+                _log.info("markets: pushed %d quotes (of %d)", pushed, len(market_quotes))
+            return market_events
 
-            logging.getLogger(__name__).info(
-                "markets: pushed %d quotes (of %d)", pushed, len(market_quotes)
-            )
+        add("markets", "https://gamma-api.polymarket.com", _markets)
     if source in {"cisa-kev", "all"}:
-        out.extend(cisa_kev.fetch_all(days=max(days, 7)))
+        add("cisa-kev", "https://www.cisa.gov", lambda: cisa_kev.fetch_all(days=max(days, 7)))
     if source in {"lobsters", "all"}:
-        out.extend(lobsters.fetch_all(days=max(days, 3)))
+        add("lobsters", "https://lobste.rs", lambda: lobsters.fetch_all(days=max(days, 3)))
     if source in {"substack", "all"}:
-        out.extend(substack.fetch_all(days=max(days, 7)))
+        add("substack", "https://substack.com", lambda: substack.fetch_all(days=max(days, 7)))
     if source in {"techmeme", "all"}:
-        out.extend(techmeme.fetch_all(days=max(days, 3)))
+        add("techmeme", "https://www.techmeme.com", lambda: techmeme.fetch_all(days=max(days, 3)))
     if source in {"packages", "all"}:
-        out.extend(package_registries.fetch_all(days=max(days, 7)))
+        add("packages", "https://www.npmjs.com", lambda: package_registries.fetch_all(days=max(days, 7)))
     if source in {"jobs", "all"}:
-        out.extend(jobs.fetch_all(days=max(days, 14)))
+        add("jobs", "https://boards.greenhouse.io", lambda: jobs.fetch_all(days=max(days, 14)))
     if source in {"nvd", "all"}:
-        out.extend(nvd.fetch_all(days=max(days, 14)))
+        add("nvd", "https://services.nvd.nist.gov", lambda: nvd.fetch_all(days=max(days, 14)))
     if source in {"guardian", "all"}:
-        out.extend(guardian.fetch_all(days=max(days, 7)))
+        add("guardian", "https://content.guardianapis.com", lambda: guardian.fetch_all(days=max(days, 7)))
     if source in {"patents", "all"}:
-        out.extend(patents.fetch_all(days=max(days, 365)))
+        add("patents", "https://api.patentsview.org", lambda: patents.fetch_all(days=max(days, 365)))
     if source in {"gov-contracts", "all"}:
-        out.extend(gov_contracts.fetch_all(days=max(days, 30)))
+        add("gov-contracts", "https://api.www.sbir.gov", lambda: gov_contracts.fetch_all(days=max(days, 30)))
     if source == "wikidata":
-        out.extend(wikidata.fetch_all(days=days))
+        add("wikidata", "https://www.wikidata.org", lambda: wikidata.fetch_all(days=days))
     if source in {"semantic-scholar", "all"}:
-        out.extend(semantic_scholar.fetch_all(days=max(days, 30)))
+        add(
+            "semantic-scholar",
+            "https://api.semanticscholar.org",
+            lambda: semantic_scholar.fetch_all(days=max(days, 30)),
+        )
     if source in {"regulations", "all"}:
-        out.extend(regulations.fetch_all(days=max(days, 30)))
+        add("regulations", "https://api.regulations.gov", lambda: regulations.fetch_all(days=max(days, 30)))
     if source == "companies-house":
-        out.extend(companies_house.fetch_all(days=days))
+        add(
+            "companies-house",
+            "https://api.company-information.service.gov.uk",
+            lambda: companies_house.fetch_all(days=days),
+        )
     if source in {"metaculus", "all"}:
-        out.extend(metaculus.fetch_all(days=max(days, 30)))
+        add("metaculus", "https://www.metaculus.com", lambda: metaculus.fetch_all(days=max(days, 30)))
     if source in {"podcast-index", "all"}:
-        out.extend(podcast_index.fetch_all(days=max(days, 14)))
+        add("podcast-index", "https://api.podcastindex.org", lambda: podcast_index.fetch_all(days=max(days, 14)))
     if source in {"macro-rates", "all"}:
-        out.extend(macro_rates.fetch_all(days=max(days, 30)))
+        add("macro-rates", "https://www.ecb.europa.eu", lambda: macro_rates.fetch_all(days=max(days, 30)))
     if source in {"sec-xbrl", "all"}:
-        out.extend(sec_xbrl.fetch_all(days=max(days, 120)))
+        # Shares the sec.gov host gate with `edgar` so the two never hammer SEC together.
+        add("sec-xbrl", "https://www.sec.gov", lambda: sec_xbrl.fetch_all(days=max(days, 120)))
+
+    return tasks
+
+
+def fetch(source: Source, days: int, failures: list[str] | None = None) -> list[Event]:
+    """Fetch all selected sources concurrently with bounded, per-host-capped I/O.
+
+    Adapters are independent network jobs (most sync, a few async-wrapped); we
+    fan them out across a thread pool capped by ``FETCH_CONCURRENCY`` while a
+    per-host semaphore (``FETCH_PER_HOST_CONCURRENCY``) serialises adapters that
+    hit the same provider. Each adapter call retries transient failures with
+    exponential full-jitter backoff to ride out 429s without aborting the run.
+
+    Per-source failures that exhaust their retries are appended (as
+    ``"<source>: <error>"`` strings) to ``failures`` when provided, so the
+    caller can record them in the run audit without one bad source killing the
+    rest of the batch.
+    """
+    sink: list[str] = failures if failures is not None else []
+    tasks = _fetch_tasks(source, days)
+    if not tasks:
+        return []
+
+    concurrency = min(_int_env("FETCH_CONCURRENCY", DEFAULT_FETCH_CONCURRENCY), len(tasks))
+    per_host = _int_env("FETCH_PER_HOST_CONCURRENCY", DEFAULT_PER_HOST_CONCURRENCY)
+    retries = _int_env("FETCH_RETRIES", DEFAULT_FETCH_RETRIES)
+    base = _float_env("FETCH_BACKOFF_BASE", DEFAULT_FETCH_BACKOFF_BASE)
+    cap = _float_env("FETCH_BACKOFF_CAP", DEFAULT_FETCH_BACKOFF_CAP)
+
+    gate = _HostGate(per_host)
+    out: list[Event] = []
+
+    def _run(name: str, host: str, fn: Callable[[], list[Event]]) -> list[Event]:
+        return gate.run(
+            host,
+            lambda: _with_backoff(name, fn, retries=retries, base=base, cap=cap, failures=sink),
+        )
+
+    with ThreadPoolExecutor(max_workers=concurrency, thread_name_prefix="ingest-fetch") as pool:
+        futures = {pool.submit(_run, name, host, fn): name for name, host, fn in tasks}
+        for future in as_completed(futures):
+            events = future.result()  # _with_backoff swallows exceptions -> [] on failure
+            if events:
+                out.extend(events)
     return out
 
 
@@ -258,12 +424,17 @@ def run(source: Source, days: int) -> dict:
     errors = 0
     error_sample: str | None = None
 
+    fetch_failures: list[str] = []
     try:
-        events = fetch(source, days)
+        events = fetch(source, days, failures=fetch_failures)
     except Exception as exc:
         events = []
         errors += 1
         error_sample = f"fetch: {exc}"[:300]
+    if fetch_failures:
+        errors += len(fetch_failures)
+        if error_sample is None:
+            error_sample = f"fetch: {fetch_failures[0]}"[:300]
 
     # Persist raw events for replay/debug regardless of downstream outcome
     audit.push_events(events, fetch_run_id)

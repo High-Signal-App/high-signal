@@ -1,5 +1,5 @@
-import { fetchChatCompletion } from "@saas-maker/ai";
-import type { AIConfig } from "@saas-maker/ai";
+import { fetchChatCompletion, FREE_AI_DEFAULT_ENDPOINT } from "./ai-client";
+import type { AIConfig } from "./ai-client";
 import { normalizeCommunitySummary } from "@high-signal/shared";
 import type { CommunitySummary } from "@high-signal/shared";
 import type { DB } from "../db";
@@ -215,9 +215,9 @@ function resolveEndpointConfig(env: Env): AIConfig | null {
   const apiKey = env.HIGH_SIGNAL_AI_API_KEY || env.OPENAI_API_KEY;
   if (!apiKey) return null;
   return {
-    endpointUrl: env.HIGH_SIGNAL_AI_ENDPOINT_URL || "https://api.openai.com/v1/chat/completions",
+    endpointUrl: env.HIGH_SIGNAL_AI_ENDPOINT_URL || FREE_AI_DEFAULT_ENDPOINT,
     apiKey,
-    model: env.HIGH_SIGNAL_AI_MODEL || "gpt-4o-mini",
+    model: env.HIGH_SIGNAL_AI_MODEL || "auto",
   };
 }
 

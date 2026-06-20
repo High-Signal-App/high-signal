@@ -115,11 +115,11 @@ research/              # Domain notes, source experiments, prompt drafts, market
 
 ## saas-maker integrations
 Reuse user's `@saas-maker/*` packages instead of rebuilding:
-- `@saas-maker/ai` — AI provider in web + worker (signal generation, summarization)
-- `@saas-maker/ops` — worker observability
-- `@saas-maker/foundry-db` — D1/Drizzle helpers in worker
-- `@saas-maker/foundry-email` — weekly digest email
-- `@saas-maker/analytics-sdk` — usage events on web
+- AI provider — calls the `free-ai` gateway directly via `workers/api/src/lib/ai-client.ts` (no `@saas-maker/ai` package; signal generation, summarization)
+- DB — own `@high-signal/db` workspace package (Drizzle on Cloudflare D1, schema in `packages/db/src/schema.ts`); no shared SaaS Maker DB package (dropped the unused `@saas-maker/foundry-db` / `@saas-maker/ops`)
+- Observability — PostHog directly (no `@saas-maker/ops`)
+- Email — `cloudflare:email` binding (`workers/api/src/lib/email.ts`); no SaaS Maker email package
+- Analytics — PostHog directly (`apps/web/src/lib/foundry-monitoring.ts`); no SaaS Maker analytics package
 - `@saas-maker/feedback-widget` — feedback on every signal card
 - `@saas-maker/waitlist-widget` — pre-launch landing
 - `@saas-maker/{eslint,prettier,tsconfig}-config` — shared tooling

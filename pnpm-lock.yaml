@@ -38,19 +38,7 @@ importers:
       '@high-signal/shared':
         specifier: workspace:*
         version: link:../../packages/shared
-      '@saas-maker/ai':
-        specifier: ^0.1.0
-        version: 0.1.0(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
-      '@saas-maker/analytics-sdk':
-        specifier: ^0.2.1
-        version: 0.2.1
-      '@saas-maker/changelog-widget':
-        specifier: ^0.2.1
-        version: 0.2.1(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
       '@saas-maker/feedback':
-        specifier: ^0.2.1
-        version: 0.2.1(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
-      '@saas-maker/testimonials':
         specifier: ^0.2.1
         version: 0.2.1(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
       clsx:
@@ -157,15 +145,6 @@ importers:
       '@high-signal/shared':
         specifier: workspace:*
         version: link:../../packages/shared
-      '@saas-maker/ai':
-        specifier: ^0.1.0
-        version: 0.1.0(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
-      '@saas-maker/foundry-db':
-        specifier: ^0.1.0
-        version: 0.1.0(drizzle-orm@0.45.2(@cloudflare/workers-types@4.20260425.1)(@opentelemetry/api@1.9.1)(gel@2.2.0))
-      '@saas-maker/ops':
-        specifier: ^0.1.1
-        version: 0.1.1
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(@cloudflare/workers-types@4.20260425.1)(@opentelemetry/api@1.9.1)(gel@2.2.0)
@@ -2342,28 +2321,6 @@ packages:
   '@rtsao/scc@1.1.0':
     resolution: {integrity: sha512-zt6OdqaDoOnJ1ZYsCYGt9YmWzDXl4vQdKTyJev62gFhRGKdx7mcT54V9KIjg+d2wi9EXsPvAPKe7i7WjfVWB8g==}
 
-  '@saas-maker/ai@0.1.0':
-    resolution: {integrity: sha512-bRkPhPBLuumk2MOrBAaP5HtTnLZq0J2xu5jsi1N1O9UOMZfPqWnukekOmmLYntZa6n4NbNuCXm3FurOBngGBRQ==}
-    peerDependencies:
-      '@ai-sdk/openai-compatible': '>=1.0.0'
-      ai: '>=4.0.0'
-      react: '>=18'
-      react-dom: '>=18'
-    peerDependenciesMeta:
-      '@ai-sdk/openai-compatible':
-        optional: true
-      ai:
-        optional: true
-
-  '@saas-maker/analytics-sdk@0.2.1':
-    resolution: {integrity: sha512-UBwow0iFf4ntbBybUl9ALaZIXsTs/0g8G3yEMILYZdnS6vldoyzRwq4khGEVfK6Rt17x498ZY0IonHzoyVgOFw==}
-
-  '@saas-maker/changelog-widget@0.2.1':
-    resolution: {integrity: sha512-tAQb6hr5mOzbyQxKUNWePlllsdNDquHW0G2FG7u9Um2BzgNNi8WF94M5Khz/SlvVoSYvKl1yMFX6sxnj07kynw==}
-    peerDependencies:
-      react: '>=18'
-      react-dom: '>=18'
-
   '@saas-maker/eslint-config@1.0.2':
     resolution: {integrity: sha512-kHCz6sY8obhwVLUsVqTr1C7f++vMPwh3k4hTufwIBoai49FoYG3lOb6cNyGhapAtyOB3DgeBdDV3zE/PAxRYXw==}
     peerDependencies:
@@ -2375,26 +2332,8 @@ packages:
       react: '>=18'
       react-dom: '>=18'
 
-  '@saas-maker/foundry-db@0.1.0':
-    resolution: {integrity: sha512-SUKWMMeZCn7ErA+ZdkgNe9kaqHCLYpT+jU4MzKN6CXZys/gRFHdWd+zWlxj5ju8t9IG1Z/vinuqupH51qSiyIw==}
-    peerDependencies:
-      '@libsql/client': '>=0.6.0'
-      drizzle-orm: '>=0.30.0'
-    peerDependenciesMeta:
-      '@libsql/client':
-        optional: true
-
-  '@saas-maker/ops@0.1.1':
-    resolution: {integrity: sha512-MdCt9Q6B5F6c/sGtjfbBD949vr64693j+oyM+umQAIo8ovAtVCqduvMo9N/BDkD4o1FYec8e05fUnmnXmQa0Vg==}
-
   '@saas-maker/prettier-config@1.0.0':
     resolution: {integrity: sha512-SIEj/4cwEOGnWj6aQzvIQh+BuHZ3DWo4YVYtplgpCIgP9IW01h+x+8Lh648L9boRfGwBDsJq5D0oHly7Ckmjqg==}
-
-  '@saas-maker/testimonials@0.2.1':
-    resolution: {integrity: sha512-mioGG90lztefuWFKCFPDyv8fmL0+Na2eniHlKuc2Ug35sahIgGqdWsjjTFsVIvuY59gaVyj+iJMV4KmVTeTwBA==}
-    peerDependencies:
-      react: '>=18'
-      react-dom: '>=18'
 
   '@saas-maker/tsconfig@1.0.0':
     resolution: {integrity: sha512-23PwZHje/WL6cBOQlZJ3IFxQaWmHvs8FMBPshDCBdCEZLfpLMD7Jpga/D1z42eVpF2X6d9sz1MwdTV5hOE2X+w==}
@@ -8715,18 +8654,6 @@ snapshots:
 
   '@rtsao/scc@1.1.0': {}
 
-  '@saas-maker/ai@0.1.0(react-dom@19.2.5(react@19.2.5))(react@19.2.5)':
-    dependencies:
-      react: 19.2.5
-      react-dom: 19.2.5(react@19.2.5)
-
-  '@saas-maker/analytics-sdk@0.2.1': {}
-
-  '@saas-maker/changelog-widget@0.2.1(react-dom@19.2.5(react@19.2.5))(react@19.2.5)':
-    dependencies:
-      react: 19.2.5
-      react-dom: 19.2.5(react@19.2.5)
-
   '@saas-maker/eslint-config@1.0.2(@typescript-eslint/parser@8.59.0(eslint@9.39.4(jiti@2.6.1))(typescript@6.0.3))(eslint@9.39.4(jiti@2.6.1))(typescript@6.0.3)':
     dependencies:
       '@eslint/js': 9.39.4
@@ -8751,19 +8678,7 @@ snapshots:
       react: 19.2.5
       react-dom: 19.2.5(react@19.2.5)
 
-  '@saas-maker/foundry-db@0.1.0(drizzle-orm@0.45.2(@cloudflare/workers-types@4.20260425.1)(@opentelemetry/api@1.9.1)(gel@2.2.0))':
-    dependencies:
-      '@saas-maker/ops': 0.1.1
-      drizzle-orm: 0.45.2(@cloudflare/workers-types@4.20260425.1)(@opentelemetry/api@1.9.1)(gel@2.2.0)
-
-  '@saas-maker/ops@0.1.1': {}
-
   '@saas-maker/prettier-config@1.0.0': {}
-
-  '@saas-maker/testimonials@0.2.1(react-dom@19.2.5(react@19.2.5))(react@19.2.5)':
-    dependencies:
-      react: 19.2.5
-      react-dom: 19.2.5(react@19.2.5)
 
   '@saas-maker/tsconfig@1.0.0': {}
 

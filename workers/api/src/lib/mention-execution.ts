@@ -1,6 +1,6 @@
-import { fetchChatCompletion } from "@saas-maker/ai";
+import { fetchChatCompletion, FREE_AI_DEFAULT_ENDPOINT } from "./ai-client";
 import { eq } from "drizzle-orm";
-import type { AIConfig } from "@saas-maker/ai";
+import type { AIConfig } from "./ai-client";
 import type { DB } from "../db";
 import { schema } from "../db";
 
@@ -188,11 +188,11 @@ async function queryEndpoint(config: AIConfig, prompt: string) {
 
 function resolveEndpointConfig(config: ConfigRow, env: Env): AIConfig | null {
   const apiKey = env.HIGH_SIGNAL_AI_API_KEY || env.OPENAI_API_KEY;
-  const model = config.aiModel || env.HIGH_SIGNAL_AI_MODEL || "gpt-4o-mini";
+  const model = config.aiModel || env.HIGH_SIGNAL_AI_MODEL || "auto";
   if (!apiKey || !model) return null;
   return {
     endpointUrl:
-      config.aiEndpointUrl || env.HIGH_SIGNAL_AI_ENDPOINT_URL || "https://api.openai.com/v1/chat/completions",
+      config.aiEndpointUrl || env.HIGH_SIGNAL_AI_ENDPOINT_URL || FREE_AI_DEFAULT_ENDPOINT,
     apiKey,
     model,
   };
