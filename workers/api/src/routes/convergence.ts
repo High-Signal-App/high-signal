@@ -130,10 +130,19 @@ convergenceRoute.get("/", async (c) => {
 
   // Recent 3 event titles per entity in the window (for the brief callout).
   const entityIds = summary.map((r) => r.primary_entity_id).filter((x): x is string => Boolean(x));
-  let recent: RecentEvent[] = [];
-  if (entityIds.length > 0) {
+
+  // The three overlays below — recent-events, market-velocity, and the
+  // Wikimedia attention fetches — each depend only on `summary`/`entityIds`
+  // and never read each other's output, so they run concurrently. The two D1
+  // reads then overlap the (slow) external attention HTTP latency instead of
+  // serializing behind it.
+  const ATTENTION_TOP_N = 15;
+  const topEntities = summary.slice(0, ATTENTION_TOP_N);
+
+  const recentQuery = async (): Promise<RecentEvent[]> => {
+    if (entityIds.length === 0) return [];
     const placeholders = entityIds.map(() => "?").join(",");
-    recent = (await c.env.DB.prepare(
+    return (await c.env.DB.prepare(
       `SELECT primary_entity_id, source, title, source_url, published_at
        FROM (
          SELECT primary_entity_id, source, title, source_url, published_at,
@@ -151,17 +160,17 @@ convergenceRoute.get("/", async (c) => {
       .bind(...entityIds, since)
       .all<RecentEvent>())
       .results ?? [];
-  }
+  };
 
   // Velocity overlay: for each entity in the summary, find the latest
   // prediction-market quote + the immediately prior tick's prob so we can
   // surface 4h drift. LAG() gives us the previous fetch per (entity, source,
   // market). We look back 12h to cover one cron-markets gap (4h cadence).
-  let velocity: MarketVelocityRow[] = [];
-  if (entityIds.length > 0) {
+  const velocityQuery = async (): Promise<MarketVelocityRow[]> => {
+    if (entityIds.length === 0) return [];
     const placeholders = entityIds.map(() => "?").join(",");
     const velocityWindow = Math.floor(Date.now() / 1000) - 12 * 3600;
-    velocity = (await c.env.DB.prepare(
+    return (await c.env.DB.prepare(
       `WITH ranked AS (
          SELECT
            entity_id,
@@ -204,7 +213,27 @@ convergenceRoute.get("/", async (c) => {
       .bind(...entityIds, velocityWindow)
       .all<MarketVelocityRow>())
       .results ?? [];
-  }
+  };
+
+  // Attention overlay — top-N entities only (limit parallel Wikimedia fetches).
+  const attentionQuery = () =>
+    Promise.allSettled(
+      topEntities.map(async (row) => {
+        const eid = row.primary_entity_id ?? "";
+        const wikiUrl = SEED_WIKI_BY_ID.get(eid)?.wiki_url ?? null;
+        const article = articleFromWikiUrl(wikiUrl);
+        if (!article) return { eid, result: null };
+        const result = await fetchAttention(article, 30);
+        return { eid, result };
+      }),
+    );
+
+  const [recent, velocity, attentionResults] = await Promise.all([
+    recentQuery(),
+    velocityQuery(),
+    attentionQuery(),
+  ]);
+
   const velocityByEntity = new Map<string, MarketVelocityRow>();
   for (const v of velocity) velocityByEntity.set(v.entity_id, v);
 
@@ -216,20 +245,7 @@ convergenceRoute.get("/", async (c) => {
     recentByEntity.set(ev.primary_entity_id, list);
   }
 
-  // Attention overlay — top-N entities only (limit parallel Wikimedia fetches).
-  const ATTENTION_TOP_N = 15;
   const attentionByEntity = new Map<string, AttentionResult | null>();
-  const topEntities = summary.slice(0, ATTENTION_TOP_N);
-  const attentionResults = await Promise.allSettled(
-    topEntities.map(async (row) => {
-      const eid = row.primary_entity_id ?? "";
-      const wikiUrl = SEED_WIKI_BY_ID.get(eid)?.wiki_url ?? null;
-      const article = articleFromWikiUrl(wikiUrl);
-      if (!article) return { eid, result: null };
-      const result = await fetchAttention(article, 30);
-      return { eid, result };
-    }),
-  );
   for (const r of attentionResults) {
     if (r.status === "fulfilled" && r.value) {
       attentionByEntity.set(r.value.eid, r.value.result);

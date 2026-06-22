@@ -521,37 +521,41 @@ async function buildPerception(
 
   if (!configs.length) return [];
 
-  const out: BriefPerceptionItem[] = [];
-  for (const config of configs) {
-    const [latestCheck] = await database
-      .select()
-      .from(schema.mentionChecks)
-      .where(
-        and(eq(schema.mentionChecks.configId, config.id), eq(schema.mentionChecks.status, "completed")),
-      )
-      .orderBy(desc(schema.mentionChecks.createdAt))
-      .limit(1);
-    if (!latestCheck) continue;
-    const results = await database
-      .select()
-      .from(schema.mentionResults)
-      .where(eq(schema.mentionResults.checkId, latestCheck.id));
-    const mentioned = results.filter((r) => r.brandMentioned);
-    const positive = mentioned.filter((r) => r.brandSentiment === "positive").length;
-    const competitorMentions = results.reduce((sum, r) => {
-      const list = Array.isArray(r.competitorsMentioned) ? r.competitorsMentioned : [];
-      return sum + list.filter((c) => c && typeof c === "object" && (c as { mentioned?: boolean }).mentioned).length;
-    }, 0);
-    out.push({
-      brandName: config.brandName,
-      mentionRate: latestCheck.brandMentionRate ?? (results.length ? mentioned.length / results.length : null),
-      positiveShare: mentioned.length ? positive / mentioned.length : null,
-      competitorPresence: results.length ? competitorMentions / results.length : null,
-      latestCheckAt: (latestCheck.completedAt ?? latestCheck.createdAt)?.toISOString() ?? null,
-      configId: config.id,
-    });
-  }
-  return out;
+  // Each config's latestCheck → results is a real dependency (sequential
+  // within a config), but the ≤4 configs are independent of each other, so we
+  // fan them out concurrently and preserve input order on the way out.
+  const perConfig = await Promise.all(
+    configs.map(async (config): Promise<BriefPerceptionItem | null> => {
+      const [latestCheck] = await database
+        .select()
+        .from(schema.mentionChecks)
+        .where(
+          and(eq(schema.mentionChecks.configId, config.id), eq(schema.mentionChecks.status, "completed")),
+        )
+        .orderBy(desc(schema.mentionChecks.createdAt))
+        .limit(1);
+      if (!latestCheck) return null;
+      const results = await database
+        .select()
+        .from(schema.mentionResults)
+        .where(eq(schema.mentionResults.checkId, latestCheck.id));
+      const mentioned = results.filter((r) => r.brandMentioned);
+      const positive = mentioned.filter((r) => r.brandSentiment === "positive").length;
+      const competitorMentions = results.reduce((sum, r) => {
+        const list = Array.isArray(r.competitorsMentioned) ? r.competitorsMentioned : [];
+        return sum + list.filter((c) => c && typeof c === "object" && (c as { mentioned?: boolean }).mentioned).length;
+      }, 0);
+      return {
+        brandName: config.brandName,
+        mentionRate: latestCheck.brandMentionRate ?? (results.length ? mentioned.length / results.length : null),
+        positiveShare: mentioned.length ? positive / mentioned.length : null,
+        competitorPresence: results.length ? competitorMentions / results.length : null,
+        latestCheckAt: (latestCheck.completedAt ?? latestCheck.createdAt)?.toISOString() ?? null,
+        configId: config.id,
+      };
+    }),
+  );
+  return perConfig.filter((item): item is BriefPerceptionItem => item !== null);
 }
 
 async function buildImprovements(
