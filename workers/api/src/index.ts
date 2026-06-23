@@ -9,7 +9,7 @@ import { sectorsRoute } from "./routes/sectors";
 import { marketsRoute } from "./routes/markets";
 import { communitiesRoute } from "./routes/communities";
 import { productsRoute } from "./routes/products";
-import { briefRoute } from "./routes/brief";
+import { briefRoute, precomputeBriefSnapshots } from "./routes/brief";
 import { convergenceRoute } from "./routes/convergence";
 import { unmappedRoute } from "./routes/unmapped";
 import { enrichRoute } from "./routes/enrich";
@@ -58,8 +58,18 @@ export default {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
     });
+
+    // Brief precompute runs on every cron trigger regardless of Modal config.
+    // This populates daily_brief_snapshots so /brief/daily does 1 D1 lookup
+    // instead of 5-14 sequential queries.
+    ctx.waitUntil(
+      precomputeBriefSnapshots(env).catch((err) =>
+        console.error("[cron] brief precompute failed:", err),
+      ),
+    );
+
     if (!env.MODAL_TRIGGER_TOKEN) {
-      console.log("[cron] MODAL_TRIGGER_TOKEN not set — skipping all dispatch");
+      console.log("[cron] MODAL_TRIGGER_TOKEN not set — skipping Modal dispatch");
       return;
     }
     // 06:00 UTC daily — kick ingest + scoring sweep in parallel

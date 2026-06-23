@@ -3,6 +3,7 @@ import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
 import { AnalyticsProvider } from "@/components/posthog-provider";
 import { SaaSMakerFeedback } from "@/components/saasmaker-feedback";
+import { VitalsReporter } from "@/components/VitalsReporter";
 import { AuthNav } from "@/components/auth/AuthNav";
 import { PrimaryNav } from "@/components/system/PrimaryNav";
 import { SiteFooter } from "@/components/system/SiteFooter";
@@ -95,6 +96,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       {children}
       <SiteFooter />
       <SaaSMakerFeedback />
+      <VitalsReporter />
     </AnalyticsProvider>
   );
 
