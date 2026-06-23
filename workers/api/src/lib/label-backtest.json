@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-20T11:07:15.490389+00:00",
+  "generatedAt": "2026-06-23T11:51:29.537896+00:00",
   "backtestDays": 14,
   "labels": {
     "breakout": {
@@ -16,13 +16,13 @@
     }
   },
   "unlabeled": {
-    "n": 3,
-    "hits": 2,
-    "rate": 0.6667
+    "n": 0,
+    "hits": 0,
+    "rate": 0.0
   },
   "baseline": {
-    "n": 3,
-    "hits": 2,
-    "rate": 0.6667
+    "n": 0,
+    "hits": 0,
+    "rate": 0.0
   }
 }
