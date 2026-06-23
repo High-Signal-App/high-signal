@@ -12,10 +12,10 @@ cpu_ms = 30000
 [vars]
 ENVIRONMENT = "production"
 
-# Cron triggers intentionally not declared here. Daily ingest + scoring run via
-# GitHub Actions workflows (.github/workflows/cron-ingest.yml + cron-score.yml).
-# The worker `scheduled` handler in src/index.ts is a fallback Modal dispatch
-# that no-ops unless MODAL_TRIGGER_URL is set — kept for ad-hoc operator runs.
+# Cron triggers — brief precompute runs every 30 min to keep snapshots fresh.
+# Daily ingest + scoring also run via GitHub Actions workflows.
+[triggers]
+crons = ["*/30 * * * *"]
 
 [[d1_databases]]
 binding = "DB"

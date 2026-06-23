@@ -38,7 +38,17 @@ import {
 } from "@high-signal/shared";
 import { db, schema } from "../db";
 
-type Env = { DB: D1Database };
+type Env = { DB: D1Database; BRIEF_CACHE?: KVNamespace };
+
+// Precomputed snapshot regions — the cron precomputes these so the API
+// does a single D1 lookup instead of 5-14 sequential queries.
+const PRECOMPUTED_REGIONS: Region[] = [
+  "global",
+  "north-america",
+  "europe",
+  "south-asia",
+  "east-asia",
+];
 
 export const STOCKS_LIMIT = 12;
 export const IDEAS_LIMIT = 10;
@@ -149,6 +159,28 @@ briefRoute.get("/daily", async (c) => {
   const productId = c.req.query("product")?.trim() ?? "";
 
   const database = db(c.env.DB);
+
+  // Fast path: try precomputed snapshot for public sections (no owner).
+  // Personal sections (perception/improvements) always need live queries
+  // since they depend on the specific owner.
+  if (!ownerId) {
+    const today = new Date().toISOString().slice(0, 10);
+    const snapshot = await tryGetPrecomputedSnapshot(database, today, region);
+    if (snapshot) {
+      // If a product query param is supplied, overlay the seed product's
+      // personal sections on top of the precomputed public sections.
+      if (productId) {
+        const seeded = renderFromSeed(productId);
+        if (seeded) {
+          snapshot.perception = seeded.perception;
+          snapshot.improvements = seeded.improvements;
+          snapshot.hasBrand = true;
+        }
+      }
+      return c.json(snapshot);
+    }
+  }
+
   const countries = countriesForRegion(region);
 
   // Each section is independently fault-tolerant: a missing table, empty
@@ -599,4 +631,112 @@ async function buildImprovements(
     }
   }
   return out;
+}
+
+// ---------------------------------------------------------------------------
+// Precomputed snapshot helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Try to read a precomputed brief snapshot from D1. Returns null if the
+ * snapshot doesn't exist (before cron runs, fresh deploy, etc.) so the
+ * caller falls back to the live query path.
+ */
+async function tryGetPrecomputedSnapshot(
+  database: ReturnType<typeof db>,
+  date: string,
+  region: Region,
+): Promise<BriefSnapshot | null> {
+  try {
+    const rows = await database
+      .select({ briefJson: schema.dailyBriefSnapshots.briefJson })
+      .from(schema.dailyBriefSnapshots)
+      .where(
+        and(
+          eq(schema.dailyBriefSnapshots.date, date),
+          eq(schema.dailyBriefSnapshots.region, region),
+        ),
+      )
+      .limit(1);
+    if (rows.length === 0) return null;
+    return JSON.parse(rows[0].briefJson) as BriefSnapshot;
+  } catch {
+    // Table might not exist yet (pre-migration) — silently fall back.
+    return null;
+  }
+}
+
+/**
+ * Precompute brief snapshots for all configured regions. Called by the
+ * scheduled cron handler. Each region's public sections (stocks, ideas,
+ * trends) are computed once and stored as JSON. The API then does a
+ * single D1 lookup instead of 5-14 sequential queries.
+ */
+export async function precomputeBriefSnapshots(
+  env: { DB: D1Database },
+): Promise<void> {
+  const database = db(env.DB);
+  const today = new Date().toISOString().slice(0, 10);
+  const nowIso = new Date().toISOString();
+
+  for (const region of PRECOMPUTED_REGIONS) {
+    try {
+      const countries = countriesForRegion(region);
+
+      let [stocks, ideas, trends] = await Promise.all([
+        safe(() => buildStocks(database, countries), "stocks"),
+        safe(() => buildIdeas(database, region, countries), "ideas"),
+        safe(() => buildTrends(database, region, countries), "trends"),
+      ]);
+
+      if (stocks.length === 0) stocks = fallbackStocks(region, STOCKS_LIMIT);
+      if (ideas.length === 0) ideas = fallbackIdeas(region, IDEAS_LIMIT);
+      if (trends.length === 0) trends = fallbackTrends(region, TRENDS_LIMIT);
+
+      // Spotlight rotation for anonymous visitors (personal sections).
+      const spotlight = pickSpotlight(region);
+      let perception: BriefPerceptionItem[] = [];
+      let improvements: BriefImprovementItem[] = [];
+      let hasBrand = false;
+      if (spotlight) {
+        const seeded = renderFromSeed(spotlight.id);
+        if (seeded) {
+          perception = seeded.perception;
+          improvements = seeded.improvements;
+          hasBrand = true;
+        }
+      }
+
+      const snapshot: BriefSnapshot = {
+        generatedAt: nowIso,
+        region,
+        hasBrand,
+        stocks,
+        ideas,
+        trends,
+        perception,
+        improvements,
+      };
+
+      await database
+        .insert(schema.dailyBriefSnapshots)
+        .values({
+          date: today,
+          region,
+          briefJson: JSON.stringify(snapshot),
+          computedAt: nowIso,
+        })
+        .onConflictDoUpdate({
+          target: [schema.dailyBriefSnapshots.date, schema.dailyBriefSnapshots.region],
+          set: {
+            briefJson: JSON.stringify(snapshot),
+            computedAt: nowIso,
+          },
+        });
+
+      console.log(`[brief-precompute] ${region}: ${stocks.length} stocks, ${ideas.length} ideas, ${trends.length} trends`);
+    } catch (err) {
+      console.error(`[brief-precompute] ${region} failed:`, err);
+    }
+  }
 }

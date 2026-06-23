@@ -971,3 +971,35 @@ export const citedUrlIndex = sqliteTable(
     uniqueIndex("cited_url_brand_url_idx").on(t.brandId, t.url),
   ],
 );
+
+// ─── Daily brief snapshots (migration 0013) ───────────────────────────────
+// Precomputed brief JSON per region per day, populated by cron.
+// Eliminates 5-14 sequential D1 queries per /brief/daily request.
+
+export const dailyBriefSnapshots = sqliteTable(
+  "daily_brief_snapshots",
+  {
+    date: text("date").notNull(),
+    region: text("region").notNull().default("global"),
+    briefJson: text("brief_json").notNull(),
+    computedAt: text("computed_at").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.date, t.region] })],
+);
+
+// ─── Signal hit-rate cache (migration 0013) ───────────────────────────────
+// Precomputed hit-rate per signal type/family, refreshed hourly.
+
+export const signalHitRateCache = sqliteTable(
+  "signal_hit_rate_cache",
+  {
+    signalType: text("signal_type").notNull(),
+    family: text("family").notNull(),
+    hits: integer("hits").notNull().default(0),
+    misses: integer("misses").notNull().default(0),
+    pushes: integer("pushes").notNull().default(0),
+    sampleCount: integer("sample_count").notNull().default(0),
+    computedAt: text("computed_at").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.signalType, t.family] })],
+);
