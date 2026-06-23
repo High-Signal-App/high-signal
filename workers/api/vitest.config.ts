@@ -10,5 +10,21 @@ export default defineConfig({
       // that transitively import the email/delivery route can load under node.
       "cloudflare:email": resolve(__dirname, "test/stubs/cloudflare-email.ts"),
     },
+    coverage: {
+      provider: 'v8',
+      include: ['src/**/*.{ts,tsx}'],
+      exclude: [
+        'src/**/*.test.{ts,tsx}',
+        'src/**/*.d.ts',
+        'src/**/types.ts',
+        'src/**/index.ts',
+        'src/**/*.config.{ts,js}',
+        'src/**/__tests__/**',
+      ],
+      thresholds: {
+        lines: 34,
+        functions: 30,
+      },
+    },
   },
 });
