@@ -1,0 +1,375 @@
+{
+  "sources": [
+    {
+      "id": "courtlistener",
+      "provider": "CourtListener (litigation)",
+      "domains": "finance",
+      "access": "keyless",
+      "official": true,
+      "windowDays": 30,
+      "role": "corroboration",
+      "keeps": "case name, court, nature of suit"
+    },
+    {
+      "id": "gov-contracts",
+      "provider": "SAM / SBIR / USAspending",
+      "domains": "startups",
+      "access": "optional-key:SAM_API_KEY",
+      "official": true,
+      "windowDays": 30,
+      "role": "corroboration",
+      "keeps": "award/solicitation title, agency"
+    },
+    {
+      "id": "legistar",
+      "provider": "Legistar/Granicus (municipal)",
+      "domains": "finance",
+      "access": "keyless",
+      "official": true,
+      "windowDays": 30,
+      "role": "corroboration",
+      "keeps": "matter title, body, file no."
+    },
+    {
+      "id": "openstates",
+      "provider": "OpenStates (state bills)",
+      "domains": "finance",
+      "access": "free-key:OPENSTATES_API_KEY",
+      "official": true,
+      "windowDays": 30,
+      "role": "corroboration",
+      "keeps": "bill id, title, latest action"
+    },
+    {
+      "id": "regulations",
+      "provider": "Regulations.gov",
+      "domains": "finance",
+      "access": "free-key:REGULATIONS_GOV_API_KEY",
+      "official": true,
+      "windowDays": 30,
+      "role": "corroboration",
+      "keeps": "docket, comment window"
+    },
+    {
+      "id": "companies-house",
+      "provider": "UK Companies House",
+      "domains": "startups",
+      "access": "free-key:COMPANIES_HOUSE_API_KEY",
+      "official": true,
+      "windowDays": 1,
+      "role": "entity",
+      "keeps": "filing type, company"
+    },
+    {
+      "id": "edgar",
+      "provider": "SEC EDGAR",
+      "domains": "finance",
+      "access": "keyless",
+      "official": true,
+      "windowDays": 1,
+      "role": "entity",
+      "keeps": "form type, filing date, items"
+    },
+    {
+      "id": "github",
+      "provider": "GitHub API",
+      "domains": "technology",
+      "access": "keyless",
+      "official": false,
+      "windowDays": 7,
+      "role": "entity",
+      "keeps": "repo, release, stars delta"
+    },
+    {
+      "id": "hkex",
+      "provider": "HKEXnews",
+      "domains": "finance",
+      "access": "keyless",
+      "official": true,
+      "windowDays": 3,
+      "role": "entity",
+      "keeps": "filing title, issuer"
+    },
+    {
+      "id": "huggingface",
+      "provider": "Hugging Face Hub",
+      "domains": "technology",
+      "access": "keyless",
+      "official": false,
+      "windowDays": 7,
+      "role": "entity",
+      "keeps": "model/dataset, downloads"
+    },
+    {
+      "id": "ir",
+      "provider": "Investor-relations pages",
+      "domains": "finance",
+      "access": "keyless",
+      "official": true,
+      "windowDays": 1,
+      "role": "entity",
+      "keeps": "headline, IR url"
+    },
+    {
+      "id": "jobs",
+      "provider": "Greenhouse/Lever/Ashby",
+      "domains": "startups",
+      "access": "keyless",
+      "official": false,
+      "windowDays": 14,
+      "role": "entity",
+      "keeps": "role, company, location"
+    },
+    {
+      "id": "news",
+      "provider": "NewsAPI + RSS",
+      "domains": "technology",
+      "access": "free-key:NEWSAPI_KEY",
+      "official": false,
+      "windowDays": 1,
+      "role": "entity",
+      "keeps": "headline, source, snippet"
+    },
+    {
+      "id": "patents",
+      "provider": "USPTO PatentsView",
+      "domains": "technology",
+      "access": "keyless",
+      "official": false,
+      "windowDays": 365,
+      "role": "entity",
+      "keeps": "patent title, assignee"
+    },
+    {
+      "id": "sec-xbrl",
+      "provider": "SEC XBRL frames",
+      "domains": "finance",
+      "access": "keyless",
+      "official": true,
+      "windowDays": 120,
+      "role": "entity",
+      "keeps": "fundamental metric + value"
+    },
+    {
+      "id": "wikidata",
+      "provider": "Wikidata",
+      "domains": "technology",
+      "access": "keyless",
+      "official": false,
+      "windowDays": 1,
+      "role": "entity",
+      "keeps": "entity enrichment fields"
+    },
+    {
+      "id": "eia",
+      "provider": "EIA energy",
+      "domains": "finance",
+      "access": "free-key:EIA_API_KEY",
+      "official": true,
+      "windowDays": 120,
+      "role": "numeric",
+      "keeps": "state, period, electricity price"
+    },
+    {
+      "id": "macro-rates",
+      "provider": "ECB FX + FRED",
+      "domains": "finance",
+      "access": "optional-key:FRED_API_KEY",
+      "official": false,
+      "windowDays": 30,
+      "role": "numeric",
+      "keeps": "series id, observation value"
+    },
+    {
+      "id": "bluesky",
+      "provider": "Bluesky",
+      "domains": "technology",
+      "access": "optional-key:BLUESKY_*",
+      "official": false,
+      "windowDays": 7,
+      "role": "thematic",
+      "keeps": "post text, author"
+    },
+    {
+      "id": "cisa-kev",
+      "provider": "CISA KEV",
+      "domains": "technology",
+      "access": "keyless",
+      "official": true,
+      "windowDays": 7,
+      "role": "thematic",
+      "keeps": "CVE id, vendor, due date"
+    },
+    {
+      "id": "gdelt",
+      "provider": "GDELT",
+      "domains": "finance",
+      "access": "keyless",
+      "official": false,
+      "windowDays": 1,
+      "role": "thematic",
+      "keeps": "event, tone, mentions"
+    },
+    {
+      "id": "github-archive",
+      "provider": "GH Archive",
+      "domains": "technology",
+      "access": "keyless",
+      "official": false,
+      "windowDays": 1,
+      "role": "thematic",
+      "keeps": "event type, repo"
+    },
+    {
+      "id": "gov",
+      "provider": "Federal Register + agency RSS",
+      "domains": "finance",
+      "access": "keyless",
+      "official": true,
+      "windowDays": 3,
+      "role": "thematic",
+      "keeps": "rule/notice title, agency"
+    },
+    {
+      "id": "guardian",
+      "provider": "The Guardian",
+      "domains": "technology",
+      "access": "free-key:GUARDIAN_API_KEY",
+      "official": false,
+      "windowDays": 7,
+      "role": "thematic",
+      "keeps": "headline, section"
+    },
+    {
+      "id": "hackernews",
+      "provider": "HN (Algolia)",
+      "domains": "technology",
+      "access": "keyless",
+      "official": false,
+      "windowDays": 7,
+      "role": "thematic",
+      "keeps": "title, points, comments, link"
+    },
+    {
+      "id": "lobsters",
+      "provider": "Lobste.rs",
+      "domains": "technology",
+      "access": "keyless",
+      "official": false,
+      "windowDays": 3,
+      "role": "thematic",
+      "keeps": "story title, tags"
+    },
+    {
+      "id": "markets",
+      "provider": "Polymarket/Manifold/Kalshi",
+      "domains": "finance",
+      "access": "keyless",
+      "official": false,
+      "windowDays": 30,
+      "role": "thematic",
+      "keeps": "question, probability (quote)"
+    },
+    {
+      "id": "metaculus",
+      "provider": "Metaculus",
+      "domains": "finance",
+      "access": "optional-key:METACULUS_TOKEN",
+      "official": false,
+      "windowDays": 30,
+      "role": "thematic",
+      "keeps": "question, community forecast"
+    },
+    {
+      "id": "nvd",
+      "provider": "NVD (CVE)",
+      "domains": "technology",
+      "access": "keyless",
+      "official": false,
+      "windowDays": 14,
+      "role": "thematic",
+      "keeps": "CVE id, CVSS, summary"
+    },
+    {
+      "id": "packages",
+      "provider": "npm / PyPI + OSV",
+      "domains": "technology",
+      "access": "keyless",
+      "official": false,
+      "windowDays": 7,
+      "role": "thematic",
+      "keeps": "package, version, advisory"
+    },
+    {
+      "id": "podcast-index",
+      "provider": "Podcast Index",
+      "domains": "technology",
+      "access": "optional-key:PODCAST_INDEX_*",
+      "official": false,
+      "windowDays": 14,
+      "role": "thematic",
+      "keeps": "episode title, summary"
+    },
+    {
+      "id": "reddit",
+      "provider": "Reddit",
+      "domains": "startups",
+      "access": "keyless",
+      "official": false,
+      "windowDays": 1,
+      "role": "thematic",
+      "keeps": "post title, subreddit, score"
+    },
+    {
+      "id": "semantic-scholar",
+      "provider": "Semantic Scholar",
+      "domains": "technology",
+      "access": "keyless",
+      "official": false,
+      "windowDays": 30,
+      "role": "thematic",
+      "keeps": "paper title, abstract snippet"
+    },
+    {
+      "id": "stackexchange",
+      "provider": "Stack Overflow",
+      "domains": "technology",
+      "access": "keyless",
+      "official": false,
+      "windowDays": 30,
+      "role": "thematic",
+      "keeps": "question, tags, score"
+    },
+    {
+      "id": "substack",
+      "provider": "Substack RSS",
+      "domains": "technology",
+      "access": "keyless",
+      "official": false,
+      "windowDays": 7,
+      "role": "thematic",
+      "keeps": "post title, summary"
+    },
+    {
+      "id": "techmeme",
+      "provider": "Techmeme",
+      "domains": "technology",
+      "access": "keyless",
+      "official": false,
+      "windowDays": 3,
+      "role": "thematic",
+      "keeps": "headline"
+    },
+    {
+      "id": "youtube",
+      "provider": "YouTube transcripts",
+      "domains": "technology",
+      "access": "optional-key:YOUTUBE_API_KEY",
+      "official": false,
+      "windowDays": 7,
+      "role": "thematic",
+      "keeps": "video title, transcript snippet"
+    }
+  ],
+  "count": 37
+}

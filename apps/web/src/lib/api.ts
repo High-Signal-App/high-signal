@@ -253,8 +253,21 @@ function qs(o: SignalFilters): string {
   return e.length ? `?${new URLSearchParams(e as [string, string][]).toString()}` : '';
 }
 
+export interface DataSourceLive {
+  id: string;
+  count: number;
+  lastAt: number;
+  samples: Array<{ title: string | null; url: string; publishedAt: number }>;
+}
+export interface DataSourcesResponse {
+  sources: DataSourceLive[];
+  total: number;
+  available: boolean;
+}
+
 export const api = {
   signals: (f: SignalFilters = {}) => fetchJson<{ signals: SignalRow[] }>(`/signals${qs(f)}`),
+  dataSources: () => fetchJson<DataSourcesResponse>('/data/sources'),
   facets: () => fetchJson<Facets>('/signals/facets'),
   signal: (slug: string) =>
     fetchJson<{

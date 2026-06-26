@@ -17,6 +17,7 @@ import { attentionRoute } from "./routes/attention";
 import { claimsRoute } from "./routes/claims";
 import { deliveryRoute } from "./routes/delivery";
 import { watchlistsRoute } from "./routes/watchlists";
+import { dataRoute } from "./routes/data";
 
 type Env = {
   DB: D1Database;
@@ -50,6 +51,7 @@ app.route("/attention", attentionRoute);
 app.route("/claims", claimsRoute);
 app.route("/delivery", deliveryRoute);
 app.route("/watchlists", watchlistsRoute);
+app.route("/data", dataRoute);
 
 export default {
   fetch: app.fetch,
