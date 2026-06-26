@@ -54,6 +54,8 @@ CATALOG: list[CatalogEntry] = [
     CatalogEntry("reddit", "Reddit", "startups", "keyless", False, 1, "thematic", "post title, subreddit, score"),
     CatalogEntry("hackernews", "HN (Algolia)", "technology", "keyless", False, 7, "thematic", "title, points, comments, link"),
     CatalogEntry("stackexchange", "Stack Overflow", "technology", "keyless", False, 30, "thematic", "question, tags, score"),
+    CatalogEntry("producthunt", "Product Hunt (RSS)", "startups", "keyless", False, 7, "thematic", "product name, tagline, link"),
+    CatalogEntry("google-trends", "Google Trends (RSS)", "startups", "keyless", False, 2, "thematic", "trending search term, approx traffic"),
     CatalogEntry("lobsters", "Lobste.rs", "technology", "keyless", False, 3, "thematic", "story title, tags"),
     CatalogEntry("bluesky", "Bluesky", "technology", "optional-key:BLUESKY_*", False, 7, "thematic", "post text, author"),
     CatalogEntry("youtube", "YouTube transcripts", "technology", "optional-key:YOUTUBE_API_KEY", False, 7, "thematic", "video title, transcript snippet"),
@@ -74,6 +76,7 @@ CATALOG: list[CatalogEntry] = [
     # --- Markets / forecasting --------------------------------------------
     CatalogEntry("markets", "Polymarket/Manifold/Kalshi", "finance", "keyless", False, 30, "thematic", "question, probability (quote)"),
     CatalogEntry("metaculus", "Metaculus", "finance", "optional-key:METACULUS_TOKEN", False, 30, "thematic", "question, community forecast"),
+    CatalogEntry("coingecko", "CoinGecko", "finance", "keyless", False, 1, "thematic", "trending coin / 24h mover, rank, price"),
     # --- Macro / energy / reference ---------------------------------------
     CatalogEntry("macro-rates", "ECB FX + FRED", "finance", "optional-key:FRED_API_KEY", False, 30, "numeric", "series id, observation value"),
     CatalogEntry("eia", "EIA energy", "finance", "free-key:EIA_API_KEY", True, 120, "numeric", "state, period, electricity price"),

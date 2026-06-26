@@ -47,6 +47,9 @@ DEFAULT_SOURCES = [
     "openstates",
     "hackernews",
     "stackexchange",
+    "producthunt",
+    "coingecko",
+    "google-trends",
 ]
 AUDITABLE_SOURCES = [
     "edgar",
@@ -84,6 +87,9 @@ AUDITABLE_SOURCES = [
     "openstates",
     "hackernews",
     "stackexchange",
+    "producthunt",
+    "coingecko",
+    "google-trends",
 ]
 
 
