@@ -37,6 +37,15 @@ def test_score_event_scores_and_classifies_intent() -> None:
     assert op.intent in {"purchase-intent", "complaint", "feature-request"}
 
 
+def test_draft_reply_returns_none_without_ai_key(monkeypatch) -> None:
+    monkeypatch.delenv("AI_API_KEY", raising=False)
+    monkeypatch.delenv("HF_TOKEN", raising=False)
+    op = opportunities.score_event(_ev("Looking for a vector database"), ["vector database"])
+    assert op is not None
+    # No key configured → graceful None (no crash, no draft).
+    assert opportunities.draft_reply(op, "Acme", "vector DB for RAG") is None
+
+
 def test_rank_orders_by_score_and_filters_min() -> None:
     strong = _ev("Best vector database for RAG? pricing and vendor recommendations", "")
     weak = _ev("vector database mentioned once in passing")
