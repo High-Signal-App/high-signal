@@ -201,6 +201,7 @@ export function MarkdownView({ markdown }: { markdown: string }) {
           return (
             <Tag
               className="pt-2 text-lg font-medium leading-snug tracking-tight text-zinc-100"
+              // biome-ignore lint/suspicious/noArrayIndexKey: parsed markdown blocks are positionally stable and never reordered (the list is fully rebuilt when the markdown prop changes)
               key={index}
             >
               {inline(block.text)}
@@ -209,6 +210,7 @@ export function MarkdownView({ markdown }: { markdown: string }) {
         }
         if (block.type === 'paragraph') {
           return (
+            // biome-ignore lint/suspicious/noArrayIndexKey: parsed markdown blocks are positionally stable and never reordered (the list is fully rebuilt when the markdown prop changes)
             <p className="max-w-3xl" key={index}>
               {inline(block.lines.join(' '))}
             </p>
@@ -218,9 +220,11 @@ export function MarkdownView({ markdown }: { markdown: string }) {
           return (
             <blockquote
               className="border-l border-[var(--color-accent)] pl-4 text-zinc-300"
+              // biome-ignore lint/suspicious/noArrayIndexKey: parsed markdown blocks are positionally stable and never reordered (the list is fully rebuilt when the markdown prop changes)
               key={index}
             >
               {block.lines.map((line, lineIndex) => (
+                // biome-ignore lint/suspicious/noArrayIndexKey: parsed markdown blocks are positionally stable and never reordered (the list is fully rebuilt when the markdown prop changes)
                 <p className="mt-2 first:mt-0" key={lineIndex}>
                   {inline(line)}
                 </p>
@@ -233,10 +237,12 @@ export function MarkdownView({ markdown }: { markdown: string }) {
           return (
             <Tag
               className={`${block.ordered ? 'list-decimal' : 'list-disc'} space-y-2 pl-5`}
+              // biome-ignore lint/suspicious/noArrayIndexKey: parsed markdown blocks are positionally stable and never reordered (the list is fully rebuilt when the markdown prop changes)
               key={index}
             >
               {block.items.map((item, itemIndex) => (
-                <li key={`${itemIndex}-${item}`}>{inline(item)}</li>
+                // biome-ignore lint/suspicious/noArrayIndexKey: parsed markdown blocks are positionally stable and never reordered (the list is fully rebuilt when the markdown prop changes)
+                <li key={itemIndex}>{inline(item)}</li>
               ))}
             </Tag>
           );
@@ -245,6 +251,7 @@ export function MarkdownView({ markdown }: { markdown: string }) {
           return (
             <pre
               className="overflow-x-auto border border-zinc-800 bg-black p-4 font-mono text-xs leading-6 text-zinc-300"
+              // biome-ignore lint/suspicious/noArrayIndexKey: parsed markdown blocks are positionally stable and never reordered (the list is fully rebuilt when the markdown prop changes)
               key={index}
             >
               <code>{block.code}</code>
@@ -253,6 +260,7 @@ export function MarkdownView({ markdown }: { markdown: string }) {
         }
         if (block.type === 'table') {
           return (
+            // biome-ignore lint/suspicious/noArrayIndexKey: parsed markdown blocks are positionally stable and never reordered (the list is fully rebuilt when the markdown prop changes)
             <div className="overflow-x-auto border border-zinc-800" key={index}>
               <table className="w-full min-w-[36rem] text-left text-xs">
                 <thead className="font-mono uppercase tracking-[0.16em] text-zinc-500">
@@ -266,10 +274,12 @@ export function MarkdownView({ markdown }: { markdown: string }) {
                 </thead>
                 <tbody>
                   {block.rows.map((row, rowIndex) => (
+                    // biome-ignore lint/suspicious/noArrayIndexKey: parsed markdown blocks are positionally stable and never reordered (the list is fully rebuilt when the markdown prop changes)
                     <tr key={rowIndex}>
                       {row.map((cell, cellIndex) => (
                         <td
                           className="border-b border-zinc-900 px-3 py-2 align-top"
+                          // biome-ignore lint/suspicious/noArrayIndexKey: parsed markdown blocks are positionally stable and never reordered (the list is fully rebuilt when the markdown prop changes)
                           key={cellIndex}
                         >
                           {inline(cell)}
@@ -282,6 +292,7 @@ export function MarkdownView({ markdown }: { markdown: string }) {
             </div>
           );
         }
+        // biome-ignore lint/suspicious/noArrayIndexKey: parsed markdown blocks are positionally stable and never reordered (the list is fully rebuilt when the markdown prop changes)
         return <hr className="border-zinc-800" key={index} />;
       })}
     </div>

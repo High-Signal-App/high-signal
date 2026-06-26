@@ -69,8 +69,8 @@ function CandidateCard({ c, nowSec }: { c: Candidate; nowSec: number }) {
       </header>
       {c.samples.length > 0 ? (
         <ul className="mt-3 space-y-1.5 border-t border-zinc-900 pt-3 text-sm">
-          {c.samples.map((s, i) => (
-            <li key={i} className="flex flex-wrap gap-2 text-zinc-300">
+          {c.samples.map((s) => (
+            <li key={s.source_url} className="flex flex-wrap gap-2 text-zinc-300">
               <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-600">
                 {s.source}
               </span>

@@ -147,6 +147,7 @@ export function PrimaryNav() {
   }, [openId, close]);
 
   // Collapse any open dropdown after navigation.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: pathname is an intentional trigger (run on route change), not consumed in the body.
   useEffect(() => {
     close();
   }, [pathname, close]);

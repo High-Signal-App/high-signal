@@ -109,8 +109,8 @@ async function VisibilityTab({
           </tr>
         </thead>
         <tbody>
-          {cells.map((c, i) => (
-            <tr key={i}>
+          {cells.map((c) => (
+            <tr key={`${c.prompt}-${c.platform}`}>
               <td className="border-b border-zinc-900 py-2 text-zinc-200">{c.prompt}</td>
               <td className="border-b border-zinc-900 py-2 text-zinc-300">{c.platform}</td>
               <td className="border-b border-zinc-900 py-2">

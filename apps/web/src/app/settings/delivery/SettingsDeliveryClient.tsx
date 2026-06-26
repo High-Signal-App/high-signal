@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 interface Pref {
   userId: string;
@@ -55,11 +55,7 @@ export default function SettingsDeliveryClient() {
     localWindowStart: '07:00',
   });
 
-  useEffect(() => {
-    void load();
-  }, []);
-
-  async function load() {
+  const load = useCallback(async () => {
     try {
       const p = await fetch('/api/delivery/preferences', { credentials: 'include' });
       if (p.ok) {
@@ -82,7 +78,11 @@ export default function SettingsDeliveryClient() {
     } catch (e) {
       setErr(String(e));
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   async function save() {
     setBusy(true);
@@ -198,6 +198,7 @@ export default function SettingsDeliveryClient() {
         </div>
         <div className="mt-5 flex gap-2 font-mono text-[10px] uppercase tracking-[0.18em]">
           <button
+            type="button"
             disabled={busy}
             onClick={save}
             className="border border-[var(--color-accent)] px-3 py-1 text-[var(--color-accent)] hover:bg-white/[0.04] disabled:opacity-30"
@@ -205,6 +206,7 @@ export default function SettingsDeliveryClient() {
             save
           </button>
           <button
+            type="button"
             disabled={busy}
             onClick={test}
             className="border border-zinc-700 px-3 py-1 text-zinc-300 hover:bg-white/[0.02] disabled:opacity-30"

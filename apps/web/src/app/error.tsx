@@ -21,10 +21,15 @@ export default function ErrorBoundary({
           {error.message || 'An unexpected error occurred.'}
         </p>
         <div className="flex gap-3 justify-center">
-          <button onClick={reset} className="px-4 py-2 rounded border hover:opacity-80">
+          <button
+            type="button"
+            onClick={reset}
+            className="px-4 py-2 rounded border hover:opacity-80"
+          >
             Try again
           </button>
           <button
+            type="button"
             onClick={() => window.location.replace('/')}
             className="px-4 py-2 rounded border hover:opacity-80"
           >

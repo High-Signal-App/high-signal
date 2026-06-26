@@ -11,9 +11,9 @@ export function ConfidenceBadge({ confidence }: { confidence: Confidence }) {
   return (
     <span className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-400">
       <span className="flex gap-0.5">
-        {Array.from({ length: 3 }).map((_, i) => (
+        {['pip-1', 'pip-2', 'pip-3'].map((pipId, i) => (
           <span
-            key={i}
+            key={pipId}
             className={`block h-2 w-0.5 ${i < t.pips ? 'bg-[var(--color-accent)]' : 'bg-zinc-700'}`}
           />
         ))}
