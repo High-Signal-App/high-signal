@@ -71,7 +71,9 @@ jobs:
             echo "no changes to commit"
           else
             git commit -m "chore(equities): refresh daily snapshot"
-            git push
+            # --no-verify: bot data-commits must not run the husky pre-push
+            # code-lint hook (biome check). Lint is gated by CI, not by data crons.
+            git push --no-verify
           fi
 
       # ── Always upload the JSONL as an artifact for debugging ────────────
