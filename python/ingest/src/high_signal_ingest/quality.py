@@ -52,6 +52,9 @@ OFFICIAL_DOMAINS = (
     "europa.eu",
     "federalregister.gov",
     "hkexnews.hk",
+    "legistar.com",
+    "courtlistener.com",
+    "openstates.org",
 )
 NEWS_DOMAINS = (
     "reuters.com",
@@ -70,7 +73,7 @@ NEWS_DOMAINS = (
 )
 MARKET_DOMAINS = ("manifold.markets", "polymarket.com", "kalshi.com", "finance.yahoo.com")
 COMMUNITY_DOMAINS = ("reddit.com", "news.ycombinator.com", "producthunt.com")
-DEVELOPER_DOMAINS = ("github.com", "github.blog", "developers.google.com", "cloudflare.com", "stripe.com")
+DEVELOPER_DOMAINS = ("github.com", "github.blog", "developers.google.com", "cloudflare.com", "stripe.com", "stackoverflow.com")
 REVIEW_DOMAINS = ("g2.com", "capterra.com", "trustpilot.com", "apps.shopify.com")
 REGIONAL_DOMAINS = ("timesofindia.indiatimes.com", "thehindu.com", "livemint.com", "indianexpress.com")
 

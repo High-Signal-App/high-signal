@@ -108,7 +108,7 @@ LAMBDA,,Lambda Labs,private,US,neocloud,gpu-cloud,Lambda|Lambda Labs,https://lam
 VAST,,Vast Data,private,US,neocloud,ai-storage,VAST Data,https://en.wikipedia.org/wiki/VAST_Data,https://vastdata.com
 VOLTAGEPARK,,Voltage Park,private,US,neocloud,gpu-cloud,Voltage Park,https://www.voltagepark.com,https://www.voltagepark.com
 CRUSOE,,Crusoe Energy Systems,private,US,neocloud,gpu-cloud-flare-gas,Crusoe,https://en.wikipedia.org/wiki/Crusoe_Energy_Systems,https://crusoe.ai
-TOGETHER,,Together AI,private,US,neocloud,inference-cloud,Together|Together.ai,https://www.together.ai,https://www.together.ai
+TOGETHER,,Together AI,private,US,neocloud,inference-cloud,Together AI|Together.ai,https://www.together.ai,https://www.together.ai
 FIREWORKS,,Fireworks AI,private,US,neocloud,inference-cloud,Fireworks|Fireworks.ai,https://fireworks.ai,https://fireworks.ai
 ANYSCALE,,Anyscale Inc.,private,US,neocloud,ray-compute,Anyscale,https://www.anyscale.com,https://www.anyscale.com
 RUNPOD,,RunPod Inc.,private,US,neocloud,gpu-cloud,RunPod,https://www.runpod.io,https://www.runpod.io
@@ -130,8 +130,8 @@ DUK,DUK,Duke Energy,public,US,power,utility,Duke Energy,https://en.wikipedia.org
 AEP,AEP,American Electric Power,public,US,power,utility,AEP,https://en.wikipedia.org/wiki/American_Electric_Power,https://www.aep.com/investors
 PCG,PCG,PG&E Corporation,public,US,power,california-utility,PG&E|PGE,https://en.wikipedia.org/wiki/PG%26E_Corporation,https://investor.pgecorp.com
 EXC,EXC,Exelon Corporation,public,US,power,utility,Exelon,https://en.wikipedia.org/wiki/Exelon,https://investors.exeloncorp.com
-SO,SO,Southern Company,public,US,power,southeast-utility,Southern Co,https://en.wikipedia.org/wiki/Southern_Company,https://investor.southerncompany.com
-D,D,Dominion Energy,public,US,power,utility,Dominion,https://en.wikipedia.org/wiki/Dominion_Energy,https://investors.dominionenergy.com
+SO,SO,Southern Company,public,US,power,southeast-utility,Southern Co|Georgia Power,https://en.wikipedia.org/wiki/Southern_Company,https://investor.southerncompany.com
+D,D,Dominion Energy,public,US,power,utility,Dominion|Dominion Energy Virginia|Virginia Electric and Power,https://en.wikipedia.org/wiki/Dominion_Energy,https://investors.dominionenergy.com
 ETR,ETR,Entergy Corporation,public,US,power,nuclear-utility,Entergy,https://en.wikipedia.org/wiki/Entergy,https://www.entergy.com/investor_relations/
 PPL,PPL,PPL Corporation,public,US,power,utility,PPL,https://en.wikipedia.org/wiki/PPL_Corporation,https://www.pplweb.com/investors
 SMR,SMR,NuScale Power,public,US,power,small-modular-reactor,NuScale|SMR,https://en.wikipedia.org/wiki/NuScale_Power,https://ir.nuscalepower.com
@@ -226,7 +226,7 @@ FIGURE,,Figure AI,private,US,robotics,humanoid,Figure|Figure AI,https://en.wikip
 ONEX,,1X Technologies,private,NO,robotics,humanoid,1X|Halodi,https://www.1x.tech,https://www.1x.tech
 AGILITY,,Agility Robotics,private,US,robotics,humanoid-digit,Agility|Digit,https://en.wikipedia.org/wiki/Agility_Robotics,https://agilityrobotics.com
 APPTRONIK,,Apptronik Inc.,private,US,robotics,humanoid-apollo,Apptronik|Apollo,https://en.wikipedia.org/wiki/Apptronik,https://apptronik.com
-SANCTUARY,,Sanctuary AI,private,CA,robotics,humanoid-phoenix,Sanctuary AI|Phoenix,https://www.sanctuary.ai,https://www.sanctuary.ai
+SANCTUARY,,Sanctuary AI,private,CA,robotics,humanoid-phoenix,Sanctuary AI,https://www.sanctuary.ai,https://www.sanctuary.ai
 UNITREE,,Unitree Robotics,private,CN,robotics,humanoid-quadruped,Unitree,https://en.wikipedia.org/wiki/Unitree_Robotics,https://www.unitree.com
 SYMBOTIC,SYM,Symbotic Inc.,public,US,robotics,warehouse-automation,Symbotic,https://en.wikipedia.org/wiki/Symbotic,https://ir.symbotic.com
 ABB,ABBNY,ABB Robotics,public,CH,robotics,industrial-robotics,ABB Robotics,https://en.wikipedia.org/wiki/ABB,https://global.abb/group/en/investors
@@ -293,3 +293,27 @@ ZAMA,,Zama,private,FR,software,confidential-computing,Zama|cUSDC,https://www.zam
 CIRCLE,,Circle Internet Group,public,US,finance,stablecoin-infra,Circle|USDC,https://en.wikipedia.org/wiki/Circle_(company),https://www.circle.com
 SOFTBANK,9984.T,SoftBank Group,public,JP,capital,ai-infrastructure-investor,SoftBank|SoftBank Group,https://en.wikipedia.org/wiki/SoftBank_Group,https://group.softbank/en/ir
 FERC,,Federal Energy Regulatory Commission,sector,US,regulator,energy-regulator,FERC|Federal Energy Regulatory Commission,https://en.wikipedia.org/wiki/Federal_Energy_Regulatory_Commission,https://www.ferc.gov
+VANTAGE_DC,,Vantage Data Centers,private,US,neocloud,data-center-operator,Vantage Data Centers,https://en.wikipedia.org/wiki/Vantage_Data_Centers,https://vantage-dc.com
+QTS_DC,,QTS Data Centers,private,US,neocloud,data-center-operator,QTS Data Centers|QTS Realty,https://en.wikipedia.org/wiki/QTS_Realty_Trust,https://www.qtsdatacenters.com
+CLOUDHQ,,CloudHQ,private,US,neocloud,data-center-operator,CloudHQ,https://www.cloudhq.com,https://www.cloudhq.com
+STACK_INFRA,,STACK Infrastructure,private,US,neocloud,data-center-operator,STACK Infrastructure,https://www.stackinfra.com,https://www.stackinfra.com
+ALIGNED_DC,,Aligned Data Centers,private,US,neocloud,data-center-operator,Aligned Data Centers,https://www.aligneddc.com,https://www.aligneddc.com
+CYRUSONE,,CyrusOne,private,US,neocloud,data-center-operator,CyrusOne,https://en.wikipedia.org/wiki/CyrusOne,https://www.cyrusone.com
+COMPASS_DC,,Compass Datacenters,private,US,neocloud,data-center-operator,Compass Datacenters,https://www.compassdatacenters.com,https://www.compassdatacenters.com
+EDGECONNEX,,EdgeConneX,private,US,neocloud,data-center-operator,EdgeConneX,https://en.wikipedia.org/wiki/EdgeConneX,https://www.edgeconnex.com
+SWITCH_DC,,Switch Inc,private,US,neocloud,data-center-operator,Switch Datacenters|Switch Data Centers,https://en.wikipedia.org/wiki/Switch_(company),https://www.switch.com
+SABEY,,Sabey Data Centers,private,US,neocloud,data-center-operator,Sabey Data Centers,https://sabeydatacenters.com,https://sabeydatacenters.com
+DATABANK,,DataBank,private,US,neocloud,data-center-operator,DataBank Holdings,https://www.databank.com,https://www.databank.com
+FLEXENTIAL,,Flexential,private,US,neocloud,data-center-operator,Flexential,https://en.wikipedia.org/wiki/Flexential,https://www.flexential.com
+PRIME_DC,,Prime Data Centers,private,US,neocloud,data-center-operator,Prime Data Centers,https://www.primedatacenters.com,https://www.primedatacenters.com
+POWERHOUSE_DC,,PowerHouse Data Centers,private,US,neocloud,data-center-operator,PowerHouse Data Centers,https://powerhousedc.com,https://powerhousedc.com
+FIVEC_DC,,5C Data Centers,private,US,neocloud,data-center-operator,5C Data Centers,https://www.5cdatacenters.com,https://www.5cdatacenters.com
+NTT_DC,,NTT Global Data Centers,private,JP,neocloud,data-center-operator,NTT Global Data Centers,https://services.global.ntt,https://services.global.ntt
+YONDR,,Yondr Group,private,UK,neocloud,data-center-operator,Yondr Group,https://www.yondrgroup.com,https://www.yondrgroup.com
+CORSCALE,,Corscale Data Centers,private,US,neocloud,data-center-operator,Corscale Data Centers,https://www.corscale.com,https://www.corscale.com
+COLOGIX,,Cologix,private,US,neocloud,data-center-operator,Cologix,https://en.wikipedia.org/wiki/Cologix,https://www.cologix.com
+APS_UTIL,,Arizona Public Service,private,US,power,electric-utility,Arizona Public Service,https://en.wikipedia.org/wiki/Arizona_Public_Service,https://www.aps.com
+SRP_UTIL,,Salt River Project,private,US,power,public-power-utility,Salt River Project,https://en.wikipedia.org/wiki/Salt_River_Project,https://www.srpnet.com
+POR,POR,Portland General Electric,public,US,power,electric-utility,Portland General Electric,https://en.wikipedia.org/wiki/Portland_General_Electric,https://investors.portlandgeneral.com
+XEL,XEL,Xcel Energy,public,US,power,electric-utility,Xcel Energy,https://en.wikipedia.org/wiki/Xcel_Energy,https://investors.xcelenergy.com
+EVRG,EVRG,Evergy,public,US,power,electric-utility,Evergy Inc,https://en.wikipedia.org/wiki/Evergy,https://investors.evergy.com

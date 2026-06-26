@@ -107,3 +107,36 @@ def test_primary_entity() -> None:
     )
     p = primary_entity(text)
     assert p in {"AMD", "TSM"}
+
+
+def test_data_center_operators_map_from_municipal_text() -> None:
+    # Corroboration mechanism: when a municipal record names a tracked
+    # data-center operator, the item must attach to that entity so it can
+    # cluster with other sources and clear the cite-or-kill gate.
+    cases = {
+        "Conditional Use Permit application by Compass Datacenters LLC": "COMPASS_DC",
+        "Special Use Permit for Vantage Data Centers campus": "VANTAGE_DC",
+        "Authorization to Grant 5C Data Centers a Binding Waiver": "FIVEC_DC",
+        "Power purchase agreement with Arizona Public Service": "APS_UTIL",
+    }
+    for text, eid in cases.items():
+        assert eid in gazetteer_match(text), f"{eid} not matched in {text!r}"
+
+
+def test_generic_operator_names_do_not_false_match() -> None:
+    # Disambiguated-alias rule: generic words must NOT pull in operators.
+    noise = [
+        "switch the lights off in the council chamber",
+        "the proposal is aligned with the comprehensive plan",
+        "approval of a tract of land for subdivision",
+        "a stack of permits was reviewed",
+        "prime downtown location rezoning",
+    ]
+    for text in noise:
+        assert gazetteer_match(text) == [], f"unexpected match in {text!r}"
+
+
+def test_sanctuary_phoenix_alias_collision_removed() -> None:
+    # Sanctuary AI's humanoid robot "Phoenix" used to be a bare alias, so every
+    # "Phoenix AZ" municipal item false-matched it. The alias was removed.
+    assert "SANCTUARY" not in gazetteer_match("Phoenix AZ City Council rezoning hearing")

@@ -43,3 +43,6 @@ apps/web/.cf-pages-bundle/
 .omx/
 .symphony/
 .clawpatch/
+
+# Generated, regenerable data samples (one query away from source — not a store)
+data-directory/

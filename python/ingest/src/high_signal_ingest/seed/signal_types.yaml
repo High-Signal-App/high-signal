@@ -651,3 +651,22 @@
   direction_hint: negative_for_supply_positive_for_pricing
   confidence_floor: high
   source_priority: [gov_filing, edgar_8k, news_tier1]
+
+- id: data_center_buildout
+  name: Data-center / fab buildout (municipal land-use)
+  description: A data center, chip fab, or supporting power infrastructure advancing through local government — rezoning, conditional-use permit, development agreement, power-purchase or substation approval. Leading indicator that surfaces in council records before national coverage; valid even when only a local operator/LLC (not a public-equity entity) is named.
+  primary_entity_types: [neocloud, hyperscaler, power, grid, foundry]
+  spillover_pattern: [power, grid, cooling, networking, real_estate, financing]
+  default_window_days: 45
+  evidence_anchors:
+    - 'municipal records: rezoning ordinance, conditional/special use permit, development agreement, comprehensive plan amendment, site plan'
+    - 'energy: power-purchase agreement, substation / transmission-line approval, megawatt load request'
+    - 'sources: Legistar/Granicus agenda + minutes, county board packets, planning commission docs'
+  trigger_examples:
+    - Prince William supervisors approve PW Digital Gateway data-center rezoning
+    - Maricopa County grants a conditional-use permit for a hyperscale campus
+    - San Jose adopts Data Center Uniform Standards
+    - Loudoun County approves a substation to serve new data-center load
+  direction_hint: positive_for_suppliers
+  confidence_floor: medium
+  source_priority: [gov_filing, news_tier1, ir_pdf]

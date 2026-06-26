@@ -24,23 +24,28 @@ from .sources import (
     bluesky,
     cisa_kev,
     companies_house,
+    courtlistener,
     edgar,
+    eia,
     gdelt,
     github,
     github_archive,
     gov,
     gov_contracts,
     guardian,
+    hackernews,
     huggingface,
     hkex,
     ir,
     jobs,
+    legistar,
     lobsters,
     macro_rates,
     markets,
     metaculus,
     news,
     nvd,
+    openstates,
     package_registries,
     patents,
     podcast_index,
@@ -48,6 +53,7 @@ from .sources import (
     regulations,
     sec_xbrl,
     semantic_scholar,
+    stackexchange,
     substack,
     techmeme,
     wikidata,
@@ -89,6 +95,12 @@ Source = Literal[
     "podcast-index",
     "macro-rates",
     "sec-xbrl",
+    "legistar",
+    "courtlistener",
+    "openstates",
+    "hackernews",
+    "stackexchange",
+    "eia",
     "all",
 ]
 
@@ -300,6 +312,24 @@ def _fetch_tasks(source: Source, days: int) -> list[tuple[str, str, Callable[[],
     if source in {"sec-xbrl", "all"}:
         # Shares the sec.gov host gate with `edgar` so the two never hammer SEC together.
         add("sec-xbrl", "https://www.sec.gov", lambda: sec_xbrl.fetch_all(days=max(days, 120)))
+    if source in {"legistar", "all"}:
+        # Municipal land-use moves slowly; widen the window so daily runs still
+        # catch newly-introduced data-center / fab / rezoning matters.
+        add("legistar", "https://webapi.legistar.com", lambda: legistar.fetch_all(days=max(days, 30)))
+    if source in {"courtlistener", "all"}:
+        # Litigation moves slowly; widen the window so daily runs catch newly
+        # filed antitrust / IP / M&A opinions.
+        add("courtlistener", "https://www.courtlistener.com", lambda: courtlistener.fetch_all(days=max(days, 30)))
+    if source in {"openstates", "all"}:
+        # Skipped without OPENSTATES_API_KEY; state bills move on a weeks cadence.
+        add("openstates", "https://v3.openstates.org", lambda: openstates.fetch_all(days=max(days, 30)))
+    if source in {"hackernews", "all"}:
+        add("hackernews", "https://hn.algolia.com", lambda: hackernews.fetch_all(days=max(days, 7)))
+    if source in {"stackexchange", "all"}:
+        add("stackexchange", "https://api.stackexchange.com", lambda: stackexchange.fetch_all(days=max(days, 30)))
+    if source in {"eia", "all"}:
+        # Skipped without EIA_API_KEY; monthly series, so widen the window.
+        add("eia", "https://api.eia.gov", lambda: eia.fetch_all(days=max(days, 120)))
 
     return tasks
 
@@ -529,6 +559,12 @@ def main() -> None:
             "podcast-index",
             "macro-rates",
             "sec-xbrl",
+            "legistar",
+            "courtlistener",
+            "openstates",
+            "hackernews",
+            "stackexchange",
+            "eia",
             "all",
         ],
         default="all",
