@@ -61,6 +61,7 @@ from .sources import (
 )
 from .types import Event
 from .dedupe import dedupe_exact
+from .utils import event_text
 from .generator import fallback_candidate, generate, thematic_candidate
 from .writer import emit
 
@@ -454,8 +455,7 @@ def _emit_thematic_drafts(events: list[Event]) -> list[str]:
     for ev in events:
         if not ev.source_url:
             continue
-        themes = classify_themes(f"{ev.title or ''}\n{(ev.content or '')[:600]}")
-        for theme in themes:
+        for theme in classify_themes(event_text(ev)):
             if theme in _THEME_SIGNALS:
                 buckets[theme].append(ev)
 

@@ -34,6 +34,7 @@ from . import pipeline
 from .analysis.lightweight_nlp import annotate
 from .dedupe import dedupe_events
 from .types import Event
+from .utils import source_family
 
 # Community / discussion sources — the surfaces where a founder can find and
 # engage prospects (the RedShip surface, generalised beyond Reddit).
@@ -84,13 +85,14 @@ def score_event(ev: Event, keywords: list[str]) -> Opportunity | None:
     title = ev.title or ""
     body = ev.content or ""
     low = f"{title}\n{body}".lower()
-    matched = [k for k in keywords if k.lower() in low]
+    kw_low = [k.lower() for k in keywords]  # lower once, not twice per event
+    matched = [k for k, kl in zip(keywords, kw_low) if kl in low]
     if not matched:
         return None
 
     # Keyword relevance (0-50): title hits weigh more than body hits.
     title_low = title.lower()
-    title_hits = sum(1 for k in keywords if k.lower() in title_low)
+    title_hits = sum(1 for kl in kw_low if kl in title_low)
     kw_points = min(50, title_hits * 18 + len(matched) * 8)
 
     ann = annotate(low)
@@ -120,7 +122,7 @@ def rank_opportunities(
 
 def run(keywords: list[str], source: str, days: int, min_score: int) -> list[Opportunity]:
     events = pipeline.fetch(source, days)  # type: ignore[arg-type]
-    community = [e for e in events if e.source.split(":", 1)[0] in COMMUNITY_SOURCES]
+    community = [e for e in events if source_family(e.source) in COMMUNITY_SOURCES]
     # Collapse duplicates so the same opportunity never appears twice.
     return rank_opportunities(dedupe_events(community), keywords, min_score=min_score)
 
