@@ -160,8 +160,31 @@ def to_markdown() -> str:
     return "\n".join(lines)
 
 
+def to_dicts() -> list[dict[str, object]]:
+    """Catalog as plain dicts — consumed by the web data-explore page (JSON)."""
+    return [
+        {
+            "id": e.id,
+            "provider": e.provider,
+            "domains": e.domains,
+            "access": e.access,
+            "official": e.official,
+            "windowDays": e.window_days,
+            "role": e.role,
+            "keeps": e.keeps,
+        }
+        for e in sorted(CATALOG, key=lambda x: (x.role, x.id))
+    ]
+
+
 def main() -> None:
-    print(to_markdown())
+    import json
+    import sys
+
+    if "--json" in sys.argv[1:]:
+        print(json.dumps({"sources": to_dicts(), "count": len(CATALOG)}, indent=2))
+    else:
+        print(to_markdown())
 
 
 if __name__ == "__main__":

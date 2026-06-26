@@ -48,6 +48,12 @@ const GROUPS: Group[] = [
     title: 'Signals + evidence',
     blurb: 'Public claims store. Every signal carries cited evidence; provenance shows why.',
     surfaces: [
+      {
+        href: '/data',
+        label: 'Data sources',
+        note: 'All 37 ingestion sources — storage, history, and live availability.',
+        flag: 'new',
+      },
       { href: '/signals', label: 'Signal feed', note: 'All published signals with filters.' },
       { href: '/signals/today', label: "Today's signals", note: "Just today's window." },
       { href: '/signals/types', label: 'Signals by type', note: 'Browse by signal type.' },
