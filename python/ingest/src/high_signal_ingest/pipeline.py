@@ -22,6 +22,7 @@ from .graph import spillover_ids
 from .seed import load_entities
 from .sources import (
     appstore,
+    bls,
     bluesky,
     cisa_kev,
     coingecko,
@@ -113,6 +114,7 @@ Source = Literal[
     "google-trends",
     "appstore",
     "defillama",
+    "bls",
     "all",
 ]
 
@@ -352,6 +354,8 @@ def _fetch_tasks(source: Source, days: int) -> list[tuple[str, str, Callable[[],
         add("appstore", "https://rss.applemarketingtools.com", lambda: appstore.fetch_all(days=days))
     if source in {"defillama", "all"}:
         add("defillama", "https://api.llama.fi", lambda: defillama.fetch_all(days=days))
+    if source in {"bls", "all"}:
+        add("bls", "https://api.bls.gov", lambda: bls.fetch_all(days=max(days, 120)))
 
     return tasks
 
@@ -645,6 +649,7 @@ def main() -> None:
             "google-trends",
             "appstore",
             "defillama",
+            "bls",
             "all",
         ],
         default="all",

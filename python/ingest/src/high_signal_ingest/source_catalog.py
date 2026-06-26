@@ -79,6 +79,7 @@ CATALOG: list[CatalogEntry] = [
     CatalogEntry("metaculus", "Metaculus", "finance", "optional-key:METACULUS_TOKEN", False, 30, "thematic", "question, community forecast"),
     CatalogEntry("coingecko", "CoinGecko", "finance", "keyless", False, 1, "thematic", "trending coin / 24h mover, rank, price"),
     CatalogEntry("defillama", "DeFiLlama", "finance", "keyless", False, 1, "thematic", "protocol TVL + 1d move, category"),
+    CatalogEntry("bls", "BLS economic data", "finance", "optional-key:BLS_API_KEY", True, 120, "numeric", "CPI / unemployment / payrolls latest print"),
     # --- Macro / energy / reference ---------------------------------------
     CatalogEntry("macro-rates", "ECB FX + FRED", "finance", "optional-key:FRED_API_KEY", False, 30, "numeric", "series id, observation value"),
     CatalogEntry("eia", "EIA energy", "finance", "free-key:EIA_API_KEY", True, 120, "numeric", "state, period, electricity price"),
