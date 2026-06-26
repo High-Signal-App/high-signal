@@ -193,9 +193,9 @@ export default async function DomainsPage() {
               community nominations
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
-              {nominations.map((n, i) => (
+              {nominations.map((n) => (
                 <a
-                  key={i}
+                  key={n.domain}
                   href={DRANK_APP_URL}
                   target="_blank"
                   rel="noopener noreferrer"

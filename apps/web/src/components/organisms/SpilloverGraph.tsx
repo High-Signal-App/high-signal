@@ -89,9 +89,9 @@ export function SpilloverGraph({
         aria-label={`${primary} relationship graph`}
       >
         {/* concentric rings */}
-        {[0.55, 0.75, 1].map((scale, i) => (
+        {[0.55, 0.75, 1].map((scale) => (
           <circle
-            key={i}
+            key={scale}
             cx={CENTER}
             cy={CENTER}
             r={RADIUS * scale}

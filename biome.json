@@ -43,9 +43,9 @@
     "enabled": true,
     "rules": {
       "recommended": true,
-      "a11y": { "useButtonType": "warn" },
-      "correctness": { "useExhaustiveDependencies": "warn" },
-      "suspicious": { "noArrayIndexKey": "warn" }
+      "a11y": { "useButtonType": "error" },
+      "correctness": { "useExhaustiveDependencies": "error" },
+      "suspicious": { "noArrayIndexKey": "error" }
     }
   },
   "assist": { "enabled": true, "actions": { "source": { "organizeImports": "off" } } }

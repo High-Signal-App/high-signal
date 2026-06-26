@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 interface WatchEntity {
   id: string;
@@ -44,11 +44,7 @@ export default function EntityWatchlistClient() {
   const [supKind, setSupKind] = useState<Suppression['kind']>('signal_type');
   const [supValue, setSupValue] = useState('');
 
-  useEffect(() => {
-    void load();
-  }, []);
-
-  async function load() {
+  const load = useCallback(async () => {
     setErr(null);
     try {
       const [eR, sR, iR] = await Promise.all([
@@ -71,7 +67,11 @@ export default function EntityWatchlistClient() {
     } catch (e) {
       setErr(String(e));
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   async function removeSuppression(ruleId: string) {
     setBusy(true);
@@ -182,6 +182,7 @@ export default function EntityWatchlistClient() {
             className="flex-1 border border-zinc-800 bg-transparent px-2 py-1 text-sm text-zinc-200 placeholder:text-zinc-600"
           />
           <button
+            type="button"
             disabled={busy || !entityId.trim()}
             onClick={addEntity}
             className="border border-[var(--color-accent)] px-3 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-accent)] hover:bg-white/[0.04] disabled:opacity-30"
@@ -200,6 +201,7 @@ export default function EntityWatchlistClient() {
                 <div className="flex items-center gap-2">
                   <span className="text-zinc-500">{e.horizon}</span>
                   <button
+                    type="button"
                     onClick={() => removeEntity(e.entityId)}
                     disabled={busy}
                     className="border border-zinc-800 px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-zinc-500 hover:bg-white/[0.02]"
@@ -234,6 +236,7 @@ export default function EntityWatchlistClient() {
             className="flex-1 border border-zinc-800 bg-transparent px-2 py-1 text-sm text-zinc-200 placeholder:text-zinc-600"
           />
           <button
+            type="button"
             disabled={busy || !supValue.trim()}
             onClick={addSuppression}
             className="border border-zinc-700 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-300 hover:bg-white/[0.02] disabled:opacity-30"
@@ -252,6 +255,7 @@ export default function EntityWatchlistClient() {
                   <span className="text-zinc-500">{s.kind}</span> = {s.value}
                 </span>
                 <button
+                  type="button"
                   onClick={() => removeSuppression(s.id)}
                   disabled={busy}
                   className="border border-zinc-800 px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-zinc-500 hover:bg-white/[0.02]"
@@ -305,6 +309,7 @@ export default function EntityWatchlistClient() {
               <p className="mt-1 font-mono text-[10px] text-zinc-500">{item.why}</p>
               <div className="mt-2 flex gap-2 font-mono text-[10px] uppercase tracking-[0.18em]">
                 <button
+                  type="button"
                   onClick={() => removeEntity(item.watchedEntityId)}
                   className="border border-zinc-800 px-2 py-0.5 text-zinc-500 hover:bg-white/[0.02]"
                 >

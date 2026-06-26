@@ -223,8 +223,8 @@ export default async function ConvergencePage({ searchParams }: Props) {
               ) : null}
               {row.recent.length > 0 ? (
                 <ul className="mt-3 space-y-1.5 border-t border-zinc-900 pt-3 text-sm">
-                  {row.recent.map((ev, i) => (
-                    <li key={i} className="flex flex-wrap gap-2 text-zinc-300">
+                  {row.recent.map((ev) => (
+                    <li key={ev.source_url} className="flex flex-wrap gap-2 text-zinc-300">
                       <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-600">
                         {ev.source}
                       </span>

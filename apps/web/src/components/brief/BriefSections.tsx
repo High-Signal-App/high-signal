@@ -310,8 +310,11 @@ export function BriefSections({ brief }: { brief: BriefSnapshot }) {
         }
       >
         <div className="border-t border-[var(--color-line)]">
-          {brief.ideas.map((item, i) => (
-            <IdeaItem key={`${item.title}-${i}`} item={item} />
+          {brief.ideas.map((item) => (
+            <IdeaItem
+              key={`${item.surfacedAt}-${item.subreddit ?? 'opportunity'}-${item.title}`}
+              item={item}
+            />
           ))}
         </div>
       </SectionShell>
@@ -324,8 +327,8 @@ export function BriefSections({ brief }: { brief: BriefSnapshot }) {
         empty="No new trend clusters in the latest community sweep."
       >
         <div className="border-t border-[var(--color-line)]">
-          {brief.trends.map((item, i) => (
-            <TrendItem key={`${item.title}-${i}`} item={item} />
+          {brief.trends.map((item) => (
+            <TrendItem key={`${item.surfacedAt}-${item.subreddit}-${item.title}`} item={item} />
           ))}
         </div>
       </SectionShell>
@@ -368,8 +371,8 @@ export function BriefSections({ brief }: { brief: BriefSnapshot }) {
         }
       >
         <div className="border-t border-[var(--color-line)]">
-          {brief.improvements.map((item, i) => (
-            <ImprovementItem key={`${item.auditId}-${i}`} item={item} />
+          {brief.improvements.map((item) => (
+            <ImprovementItem key={`${item.auditId}-${item.area}-${item.task}`} item={item} />
           ))}
         </div>
       </SectionShell>

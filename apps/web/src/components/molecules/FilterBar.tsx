@@ -94,6 +94,7 @@ export function FilterBar({ facets }: { facets: Facets }) {
 
       {sp.size > 0 && (
         <button
+          type="button"
           className="text-zinc-500 underline-offset-4 hover:text-zinc-200 hover:underline"
           onClick={() => router.push('/signals')}
         >
@@ -134,6 +135,7 @@ function Chip({
         : 'border-zinc-700 text-zinc-300';
   return (
     <button
+      type="button"
       onClick={onClick}
       className={`flex items-center gap-1.5 border px-2 py-0.5 transition-colors ${toneClass} ${
         on ? 'bg-white/[0.04] text-white' : 'hover:bg-white/[0.02]'

@@ -8,12 +8,18 @@ export function AuthNav() {
       <Show when="signed-out">
         <>
           <SignInButton mode="modal">
-            <button className="border border-[var(--color-line)] bg-[var(--color-bg)] px-3 py-2 text-[var(--color-muted)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]">
+            <button
+              type="button"
+              className="border border-[var(--color-line)] bg-[var(--color-bg)] px-3 py-2 text-[var(--color-muted)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
+            >
               sign in
             </button>
           </SignInButton>
           <SignUpButton mode="modal">
-            <button className="border border-[var(--color-accent)] bg-[var(--color-accent)] px-3 py-2 text-black">
+            <button
+              type="button"
+              className="border border-[var(--color-accent)] bg-[var(--color-accent)] px-3 py-2 text-black"
+            >
               request access
             </button>
           </SignUpButton>

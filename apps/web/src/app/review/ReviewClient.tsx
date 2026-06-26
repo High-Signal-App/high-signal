@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { SignalRow, ClaimRecordJson, ClaimEvidenceLinkJson, ClaimRollupJson } from '@/lib/api';
 import { DirectionPill } from '@/components/atoms/DirectionPill';
 import { ConfidenceBadge } from '@/components/atoms/ConfidenceBadge';
@@ -24,11 +24,7 @@ export default function ReviewPage() {
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
-  useEffect(() => {
-    void refresh();
-  }, [status]);
-
-  async function refresh() {
+  const refresh = useCallback(async () => {
     setErr(null);
     try {
       const r = await fetch(`${API_BASE}/signals?status=${status}&limit=200`);
@@ -37,7 +33,11 @@ export default function ReviewPage() {
     } catch (e) {
       setErr(String(e));
     }
-  }
+  }, [status]);
+
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
 
   async function adminFetch(url: string, init: RequestInit): Promise<Response | null> {
     setErr(null);
@@ -104,6 +104,7 @@ export default function ReviewPage() {
         {(['draft', 'published', 'corrected'] as Status[]).map((s) => (
           <button
             key={s}
+            type="button"
             onClick={() => setStatus(s)}
             className={`border px-3 py-1 ${
               status === s
@@ -115,6 +116,7 @@ export default function ReviewPage() {
           </button>
         ))}
         <button
+          type="button"
           onClick={() => refresh()}
           className="ml-auto border border-zinc-800 px-3 py-1 text-zinc-400 hover:bg-white/[0.02]"
         >
@@ -259,7 +261,7 @@ function ProvenancePanel({ slug, onErr }: { slug: string; onErr: (e: string | nu
   const [newAssertion, setNewAssertion] = useState('');
   const [busy, setBusy] = useState(false);
 
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const r = await fetch(`${API_BASE}/claims/by-signal/${slug}`);
@@ -270,11 +272,11 @@ function ProvenancePanel({ slug, onErr }: { slug: string; onErr: (e: string | nu
     } finally {
       setLoading(false);
     }
-  }
+  }, [slug, onErr]);
 
   useEffect(() => {
     if (open) void load();
-  }, [open]);
+  }, [open, load]);
 
   async function adminPost(url: string, body: unknown): Promise<Response | null> {
     onErr(null);
@@ -410,6 +412,7 @@ function ProvenancePanel({ slug, onErr }: { slug: string; onErr: (e: string | nu
                 className="flex-1 border border-zinc-800 bg-transparent px-2 py-1 text-xs text-zinc-200 placeholder:text-zinc-600"
               />
               <button
+                type="button"
                 disabled={busy || !newAssertion.trim()}
                 onClick={createClaim}
                 className="border border-zinc-700 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-300 hover:bg-white/[0.02] disabled:opacity-30"
@@ -488,6 +491,7 @@ function ClaimEditor({
               </a>
               {!frozen && (
                 <button
+                  type="button"
                   onClick={() => onRemoveEvidence(link.id)}
                   disabled={busy}
                   className="border border-zinc-800 px-1.5 py-0.5 text-zinc-500 hover:bg-white/[0.02] disabled:opacity-30"
@@ -519,6 +523,7 @@ function ClaimEditor({
             <option value="context">context</option>
           </select>
           <button
+            type="button"
             disabled={busy || !url.trim()}
             onClick={() => {
               onAddEvidence(url, role);
@@ -535,6 +540,7 @@ function ClaimEditor({
         {claim.reviewStatus !== 'published' && claim.reviewStatus !== 'corrected' && (
           <>
             <button
+              type="button"
               disabled={busy}
               onClick={() => {
                 const reason =
@@ -546,6 +552,7 @@ function ClaimEditor({
               publish claim
             </button>
             <button
+              type="button"
               disabled={busy}
               onClick={() => onSetStatus('held')}
               className="border border-zinc-700 px-3 py-1 text-zinc-300 hover:bg-white/[0.02] disabled:opacity-30"
@@ -553,6 +560,7 @@ function ClaimEditor({
               hold
             </button>
             <button
+              type="button"
               disabled={busy}
               onClick={() => onSetStatus('killed')}
               className="border border-rose-500/40 px-3 py-1 text-rose-300 hover:bg-rose-500/[0.05] disabled:opacity-30"
@@ -563,6 +571,7 @@ function ClaimEditor({
         )}
         {claim.reviewStatus === 'published' && (
           <button
+            type="button"
             disabled={busy}
             onClick={onFileCorrection}
             className="border border-zinc-700 px-3 py-1 text-zinc-300 hover:bg-white/[0.02] disabled:opacity-30"
@@ -601,6 +610,7 @@ function ActionButton({
         : 'border-zinc-700 text-zinc-300 hover:bg-white/[0.02]';
   return (
     <button
+      type="button"
       onClick={onClick}
       disabled={disabled}
       className={`border px-3 py-1 transition-colors disabled:cursor-not-allowed disabled:opacity-30 ${cls}`}

@@ -41,6 +41,7 @@ export default function WatchButton({ entityId }: { entityId: string }) {
   return (
     <div className="flex flex-col items-end gap-1">
       <button
+        type="button"
         disabled={busy}
         onClick={watch}
         className="border border-zinc-700 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-300 hover:bg-white/[0.02] disabled:opacity-30"

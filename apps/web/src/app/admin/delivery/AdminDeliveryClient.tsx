@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 interface Summary {
   days: number;
@@ -14,11 +14,7 @@ export default function AdminDeliveryClient() {
   const [err, setErr] = useState<string | null>(null);
   const [days, setDays] = useState(7);
 
-  useEffect(() => {
-    void load(days);
-  }, [days]);
-
-  async function load(d: number) {
+  const load = useCallback(async (d: number) => {
     setErr(null);
     try {
       const r = await fetch(`/api/admin/delivery/summary?days=${d}`, { credentials: 'include' });
@@ -31,7 +27,11 @@ export default function AdminDeliveryClient() {
     } catch (e) {
       setErr(String(e));
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    void load(days);
+  }, [days, load]);
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-16">
@@ -52,6 +52,7 @@ export default function AdminDeliveryClient() {
         {[7, 14, 30, 90].map((d) => (
           <button
             key={d}
+            type="button"
             onClick={() => setDays(d)}
             className={`border px-3 py-1 ${
               days === d
@@ -119,8 +120,8 @@ export default function AdminDeliveryClient() {
                 </tr>
               </thead>
               <tbody>
-                {summary.perDay.map((r, i) => (
-                  <tr key={i}>
+                {summary.perDay.map((r) => (
+                  <tr key={`${r.brief_date}-${r.status}-${r.reason ?? 'none'}`}>
                     <td className="border-b border-zinc-900 py-2 text-zinc-300">{r.brief_date}</td>
                     <td className="border-b border-zinc-900 py-2 text-zinc-300">{r.status}</td>
                     <td className="border-b border-zinc-900 py-2 text-zinc-500">
