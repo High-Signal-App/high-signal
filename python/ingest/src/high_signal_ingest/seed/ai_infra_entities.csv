@@ -317,3 +317,4 @@ SRP_UTIL,,Salt River Project,private,US,power,public-power-utility,Salt River Pr
 POR,POR,Portland General Electric,public,US,power,electric-utility,Portland General Electric,https://en.wikipedia.org/wiki/Portland_General_Electric,https://investors.portlandgeneral.com
 XEL,XEL,Xcel Energy,public,US,power,electric-utility,Xcel Energy,https://en.wikipedia.org/wiki/Xcel_Energy,https://investors.xcelenergy.com
 EVRG,EVRG,Evergy,public,US,power,electric-utility,Evergy Inc,https://en.wikipedia.org/wiki/Evergy,https://investors.evergy.com
+THEME_DATACENTER,,Data-Center Buildout,sector,US,power,thematic-bucket,,,

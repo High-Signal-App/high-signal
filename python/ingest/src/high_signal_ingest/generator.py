@@ -253,6 +253,66 @@ def fallback_candidate(
     )
 
 
+def thematic_candidate(
+    theme_entity_id: str,
+    signal_type: str,
+    events: Iterable[Event],
+) -> SignalCandidate | None:
+    """Build an entity-less *thematic* signal (e.g. data-center buildout).
+
+    For events that don't name a tracked company but cluster on a theme backed
+    by multiple independent sources. Unlike :func:`fallback_candidate`, the body
+    is a real evidence walkthrough (no "fallback draft" marker), so it is not
+    auto-killed by the quality gate and can publish on its own ≥2-source merit.
+    Returns ``None`` unless at least two distinct source URLs are present.
+    """
+    evs = [e for e in events if e.source_url]
+    urls = list(dict.fromkeys(e.source_url for e in evs))
+    if len(urls) < 2:
+        return None
+    evs = sorted(evs, key=lambda e: e.published_at, reverse=True)[:6]
+    text = "\n".join(f"{e.title or ''}\n{e.content or ''}" for e in evs)
+    sources = sorted({e.source.split(":")[0] for e in evs})
+    theme_label = signal_type.replace("_", " ")
+    headline = (evs[0].title or theme_label).strip()
+    direction = _guess_direction(text)
+    confidence = _source_strength(evs)
+    urls_md = "\n".join(f"- [{e.title or e.source_url}]({e.source_url})" for e in evs)
+    body_md = (
+        f"# {theme_label.title()}: {headline[:90]}\n\n"
+        f"A **{theme_label}** pattern corroborated by {len(urls)} sources across "
+        f"{len(sources)} channels ({', '.join(sources)}). These items don't name a "
+        "single tracked company — they describe a thematic shift (land-use, energy, "
+        "or capacity moves) that precedes named-entity activity.\n\n"
+        f"## Evidence\n\n{urls_md}\n\n"
+        "## Read\n\n"
+        f"Directional read is `{direction}`. Reviewer should confirm the theme is "
+        "material, attach any tracked entities the buildout implicates (operators, "
+        "utilities, suppliers), and adjust the window before publishing."
+    )
+    slug = f"{theme_entity_id.lower()}-{_slugify(headline)}"
+    return SignalCandidate(
+        slug=slug,
+        signal_type=signal_type,
+        primary_entity_id=theme_entity_id,
+        direction=cast(Direction, direction),
+        confidence=cast(Confidence, confidence),
+        predicted_window_days=30,
+        published_at=max(e.published_at for e in evs),
+        evidence=[
+            EvidenceItem(
+                url=e.source_url,
+                source_type=e.source.split(":")[0],
+                excerpt=(e.content or "")[:300] if e.content else None,
+                published_at=e.published_at,
+            )
+            for e in evs
+        ],
+        spillover_entity_ids=[],
+        body_md=body_md,
+    )
+
+
 def _ai_complete(prompt: str, content: str) -> tuple[dict | None, dict]:
     """Call OpenAI-compatible endpoint. Returns (parsed_json, audit_meta).
 

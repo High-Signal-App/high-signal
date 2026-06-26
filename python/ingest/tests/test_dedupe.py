@@ -19,10 +19,16 @@ def _ev(source: str, title: str, url: str, content: str = "", day: int = 20) -> 
     )
 
 
-def test_canonical_url_normalises() -> None:
-    a = dedupe.canonical_url("https://www.Example.com/Article/?utm=x#frag")
+def test_canonical_url_strips_tracking_keeps_id() -> None:
+    # Tracking params dropped, host/scheme/fragment normalised.
+    a = dedupe.canonical_url("https://www.Example.com/Article/?utm_source=x&fbclid=y#frag")
     b = dedupe.canonical_url("http://example.com/Article")
     assert a == b == "example.com/article"
+    # But a meaningful query param (the record id) is KEPT — distinct ids must
+    # not collapse (Legistar `?ID=`, `item?id=`).
+    assert dedupe.canonical_url("https://x.legistar.com/D.aspx?ID=1") != dedupe.canonical_url(
+        "https://x.legistar.com/D.aspx?ID=2"
+    )
 
 
 def test_merges_on_shared_external_url() -> None:
@@ -55,3 +61,25 @@ def test_dedupe_events_returns_one_per_story() -> None:
     a = _ev("hackernews", "same story here now", "https://h/1", content="Link: https://x.com/a")
     b = _ev("reddit", "same story here now today", "https://r/2", content="Link: https://x.com/a")
     assert len(dedupe.dedupe_events([a, b])) == 1
+
+
+def test_dedupe_exact_collapses_same_url_keeps_distinct() -> None:
+    # Same article re-reported across two feeds (same canonical URL) -> collapse,
+    # keeping the higher-authority representative.
+    feed1 = _ev("gdelt", "Acme ships chip", "https://acme.com/news/")
+    feed2 = _ev("news", "Acme ships chip", "https://acme.com/news?utm_source=x")
+    # A genuinely different source/URL about the same topic -> KEPT (corroboration).
+    other = _ev("courtlistener", "Acme antitrust suit", "https://courtlistener.com/o/9/")
+    out = dedupe.dedupe_exact([feed1, feed2, other])
+    assert len(out) == 2  # two feeds collapse to one; distinct URL preserved
+    urls = {dedupe.external_url(e) for e in out}
+    assert "acme.com/news" in urls and "courtlistener.com/o/9" in urls
+    # representative of the collapsed pair is the higher-authority `news`
+    rep = next(e for e in out if dedupe.external_url(e) == "acme.com/news")
+    assert rep.source == "news"
+
+
+def test_dedupe_exact_keeps_events_without_url() -> None:
+    a = _ev("reddit", "discussion", "")
+    b = _ev("reddit", "another", "")
+    assert len(dedupe.dedupe_exact([a, b])) == 2

@@ -21,12 +21,24 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from urllib.parse import urlsplit
+from urllib.parse import parse_qsl, urlsplit
 
 from .extract.entities import gazetteer_match
 from .types import Event
 
 JACCARD_THRESHOLD = 0.6
+
+# Tracking / analytics query params to drop (they don't identify the resource).
+# Everything else is KEPT — for many sites the query *is* the identifier
+# (Legistar `?ID=`, `item?id=`), so stripping all query would wrongly collapse
+# distinct records into one.
+_TRACKING_PARAMS = frozenset(
+    {
+        "utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content",
+        "fbclid", "gclid", "msclkid", "mc_cid", "mc_eid", "ref", "ref_src",
+        "ref_url", "source", "cmpid", "igshid", "spm", "_hsenc", "_hsmi",
+    }
+)
 
 # Source-prefix noise to strip before tokenising titles ("HN: ", "arXiv: ",
 # "Stack Overflow [pytorch]: ", "Court opinion: ", "Phoenix AZ — Council: ").
@@ -56,7 +68,17 @@ def canonical_url(url: str | None) -> str:
         return url.strip().lower()
     host = (parts.hostname or "").removeprefix("www.").lower()
     path = parts.path.rstrip("/").lower()
-    return f"{host}{path}" if host else url.strip().lower()
+    # Keep meaningful query params (the query is often the record id), drop only
+    # tracking junk; sort for stability.
+    kept = sorted(
+        (k.lower(), v)
+        for k, v in parse_qsl(parts.query, keep_blank_values=False)
+        if k.lower() not in _TRACKING_PARAMS
+    )
+    query = "?" + "&".join(f"{k}={v}" for k, v in kept) if kept else ""
+    if not host:
+        return url.strip().lower()
+    return f"{host}{path}{query}"
 
 
 _LINK_RE = re.compile(r"Link:\s*(https?://\S+)", re.IGNORECASE)
@@ -176,3 +198,42 @@ def dedupe(events: list[Event]) -> list[Story]:
 def dedupe_events(events: list[Event]) -> list[Event]:
     """Convenience: one representative Event per story (duplicates removed)."""
     return [s.representative for s in dedupe(events)]
+
+
+def dedupe_exact(events: list[Event]) -> list[Event]:
+    """Collapse only events sharing a canonical external URL (true duplicates).
+
+    Unlike :func:`dedupe`, this does NOT merge near-duplicate *different*-URL
+    stories — those are kept, because two independent sources covering the same
+    thing is cite-or-kill corroboration, not noise. This is the safe variant for
+    the ingest write path: it removes the same article re-reported across RSS
+    feeds / queries (same URL, different `raw_hash`) without weakening the
+    distinct-source evidence behind a signal. Events with no resolvable URL are
+    always kept. Order is otherwise preserved (first occurrence wins its slot).
+    """
+    best_by_url: dict[str, Event] = {}
+    order: list[Event] = []
+    for ev in events:
+        url = external_url(ev)
+        if not url:
+            order.append(ev)
+            continue
+        cur = best_by_url.get(url)
+        if cur is None:
+            best_by_url[url] = ev
+            order.append(ev)  # reserve first-seen position; representative may swap
+        elif _rank(ev) > _rank(cur):
+            best_by_url[url] = ev
+    # Rebuild: replace each reserved first-seen with the winning representative.
+    seen: set[str] = set()
+    out: list[Event] = []
+    for ev in order:
+        url = external_url(ev)
+        if not url:
+            out.append(ev)
+            continue
+        if url in seen:
+            continue
+        seen.add(url)
+        out.append(best_by_url[url])
+    return out
