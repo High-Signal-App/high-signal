@@ -24,7 +24,6 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from collections import defaultdict
 from dataclasses import asdict, dataclass, field
 
 from . import pipeline
