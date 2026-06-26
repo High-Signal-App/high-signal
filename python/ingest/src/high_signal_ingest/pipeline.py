@@ -21,11 +21,13 @@ from .extract.entities import primary_entity
 from .graph import spillover_ids
 from .seed import load_entities
 from .sources import (
+    appstore,
     bluesky,
     cisa_kev,
     coingecko,
     companies_house,
     courtlistener,
+    defillama,
     edgar,
     eia,
     gdelt,
@@ -109,6 +111,8 @@ Source = Literal[
     "producthunt",
     "coingecko",
     "google-trends",
+    "appstore",
+    "defillama",
     "all",
 ]
 
@@ -344,6 +348,10 @@ def _fetch_tasks(source: Source, days: int) -> list[tuple[str, str, Callable[[],
         add("coingecko", "https://api.coingecko.com", lambda: coingecko.fetch_all(days=days))
     if source in {"google-trends", "all"}:
         add("google-trends", "https://trends.google.com", lambda: google_trends.fetch_all(days=max(days, 2)))
+    if source in {"appstore", "all"}:
+        add("appstore", "https://rss.applemarketingtools.com", lambda: appstore.fetch_all(days=days))
+    if source in {"defillama", "all"}:
+        add("defillama", "https://api.llama.fi", lambda: defillama.fetch_all(days=days))
 
     return tasks
 
@@ -635,6 +643,8 @@ def main() -> None:
             "producthunt",
             "coingecko",
             "google-trends",
+            "appstore",
+            "defillama",
             "all",
         ],
         default="all",
