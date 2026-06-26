@@ -14,8 +14,18 @@ def _gazetteer() -> dict[str, str]:
     return entity_gazetteer(load_entities())
 
 
+# Tickers/aliases that are also common English words. Matching these
+# case-insensitively pollutes the entity map across every text source
+# ("net income" → Cloudflare, "meta-learning" → Meta, "onto" → Onto Innovation).
+# For these terms we match ONLY the uppercase ticker or a ``$TICKER`` form (the
+# unambiguous company reference); the lowercase word is ignored. Each of these
+# entities still matches via its distinctive full name / alias (Cloudflare,
+# Snowflake, FormFactor, Onto Innovation, Arm Holdings, Meta Platforms/Facebook).
+_COMMON_WORD_TICKERS = frozenset({"net", "onto", "form", "snow", "arm", "meta"})
+
+
 @lru_cache(maxsize=1)
-def _compiled_patterns() -> list[tuple[re.Pattern[str], str]]:
+def _compiled_patterns() -> list[tuple[re.Pattern[str], str, bool]]:
     """Pre-compile ``(?<!\\w)TERM(?!\\w)`` patterns per gazetteer entry.
 
     Lookaround boundaries (not ``\\b``) so terms that start with non-word
@@ -23,12 +33,21 @@ def _compiled_patterns() -> list[tuple[re.Pattern[str], str]]:
     word-to-nonword transition before ``^``. The lookaround form just asks
     "no word char on either side," which works for ``^GSPC``, ``$ASML``,
     ``BRK-B``, ``ASML.``, and plain ``NVDA`` alike.
+
+    Each entry is ``(pattern, entity_id, case_sensitive)``. Common-word tickers
+    compile a case-sensitive ``$?TICKER`` pattern run against the original text;
+    everything else matches case-insensitively against the lowercased text.
     """
-    out: list[tuple[re.Pattern[str], str]] = []
+    out: list[tuple[re.Pattern[str], str, bool]] = []
     for term, eid in _gazetteer().items():
         if len(term) < 3:
             continue
-        out.append((re.compile(rf"(?<!\w){re.escape(term)}(?!\w)"), eid))
+        if term in _COMMON_WORD_TICKERS:
+            out.append(
+                (re.compile(rf"(?<![\w$])\$?{re.escape(term.upper())}(?!\w)"), eid, True)
+            )
+        else:
+            out.append((re.compile(rf"(?<!\w){re.escape(term)}(?!\w)"), eid, False))
     return out
 
 
@@ -38,8 +57,8 @@ def gazetteer_match(text: str) -> list[str]:
         return []
     needle = text.lower()
     hits: set[str] = set()
-    for pattern, eid in _compiled_patterns():
-        if pattern.search(needle):
+    for pattern, eid, case_sensitive in _compiled_patterns():
+        if pattern.search(text if case_sensitive else needle):
             hits.add(eid)
     return sorted(hits)
 
