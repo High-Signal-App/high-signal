@@ -48,6 +48,8 @@ jobs:
           PODCAST_INDEX_SECRET: ${{ secrets.PODCAST_INDEX_SECRET }}
           FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
           SEMANTIC_SCHOLAR_API_KEY: ${{ secrets.SEMANTIC_SCHOLAR_API_KEY }}
+          EIA_API_KEY: ${{ secrets.EIA_API_KEY }}
+          OPENSTATES_API_KEY: ${{ secrets.OPENSTATES_API_KEY }}
           EDGAR_TICKER_LIMIT: "25"
           SIGNAL_CLUSTER_LIMIT: "40"
         run: |
