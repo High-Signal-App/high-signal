@@ -23,6 +23,7 @@ from .seed import load_entities
 from .sources import (
     bluesky,
     cisa_kev,
+    coingecko,
     companies_house,
     courtlistener,
     edgar,
@@ -30,6 +31,7 @@ from .sources import (
     gdelt,
     github,
     github_archive,
+    google_trends,
     gov,
     gov_contracts,
     guardian,
@@ -49,6 +51,7 @@ from .sources import (
     package_registries,
     patents,
     podcast_index,
+    producthunt,
     reddit,
     regulations,
     sec_xbrl,
@@ -103,6 +106,9 @@ Source = Literal[
     "hackernews",
     "stackexchange",
     "eia",
+    "producthunt",
+    "coingecko",
+    "google-trends",
     "all",
 ]
 
@@ -332,6 +338,12 @@ def _fetch_tasks(source: Source, days: int) -> list[tuple[str, str, Callable[[],
     if source in {"eia", "all"}:
         # Skipped without EIA_API_KEY; monthly series, so widen the window.
         add("eia", "https://api.eia.gov", lambda: eia.fetch_all(days=max(days, 120)))
+    if source in {"producthunt", "all"}:
+        add("producthunt", "https://www.producthunt.com", lambda: producthunt.fetch_all(days=max(days, 7)))
+    if source in {"coingecko", "all"}:
+        add("coingecko", "https://api.coingecko.com", lambda: coingecko.fetch_all(days=days))
+    if source in {"google-trends", "all"}:
+        add("google-trends", "https://trends.google.com", lambda: google_trends.fetch_all(days=max(days, 2)))
 
     return tasks
 
@@ -620,6 +632,9 @@ def main() -> None:
             "hackernews",
             "stackexchange",
             "eia",
+            "producthunt",
+            "coingecko",
+            "google-trends",
             "all",
         ],
         default="all",
