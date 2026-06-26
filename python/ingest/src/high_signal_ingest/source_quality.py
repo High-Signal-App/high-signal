@@ -42,6 +42,11 @@ DEFAULT_SOURCES = [
     "podcast-index",
     "macro-rates",
     "sec-xbrl",
+    "legistar",
+    "courtlistener",
+    "openstates",
+    "hackernews",
+    "stackexchange",
 ]
 AUDITABLE_SOURCES = [
     "edgar",
@@ -74,6 +79,11 @@ AUDITABLE_SOURCES = [
     "podcast-index",
     "macro-rates",
     "sec-xbrl",
+    "legistar",
+    "courtlistener",
+    "openstates",
+    "hackernews",
+    "stackexchange",
 ]
 
 
