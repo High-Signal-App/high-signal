@@ -67,7 +67,9 @@ def events_from_response(payload: dict[str, Any], since: datetime) -> list[Event
             Event(
                 id=raw_hash[:16],
                 source="eia",
-                source_url=SERIES_URL,
+                # Distinct per (state, period) so write-path dedup doesn't
+                # collapse all rows sharing the data.php landing page.
+                source_url=f"{SERIES_URL}?state={state}&period={period}",
                 published_at=published,
                 title=f"EIA industrial electricity price {state}: {price} ({period})",
                 content=f"{state} industrial retail electricity price for {period}: {price} {units}.",

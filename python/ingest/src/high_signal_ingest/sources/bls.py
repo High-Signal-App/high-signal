@@ -65,7 +65,9 @@ def events_from_response(payload: dict, since: datetime) -> list[Event]:
             Event(
                 id=raw_hash[:16],
                 source="bls",
-                source_url=SERIES_PAGE,
+                # Distinct per series so write-path dedup doesn't collapse all
+                # prints sharing the news.release landing page.
+                source_url=f"{SERIES_PAGE}?series={sid}",
                 published_at=published,
                 title=f"BLS {label}: {value} ({latest.get('periodName')} {year})",
                 content=f"{label} = {value} {unit} for {latest.get('periodName')} {year}.",

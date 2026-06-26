@@ -32,7 +32,7 @@ def test_reviews_from_feed_skips_metadata_and_parses() -> None:
     ev = events[0]
     assert ev.source == "appstore-reviews"
     assert "ChatGPT (1★): Crashes constantly" in ev.title
-    assert ev.source_url == "https://apps.apple.com/r/999"
+    assert ev.source_url == "https://apps.apple.com/r/999?reviewId=999"  # distinct per review
 
 
 def test_reviews_from_feed_honours_window() -> None:
