@@ -25,6 +25,7 @@ from urllib.parse import parse_qsl, urlsplit
 
 from .extract.entities import gazetteer_match
 from .types import Event
+from .utils import event_text, source_family
 
 JACCARD_THRESHOLD = 0.6
 
@@ -53,10 +54,6 @@ _SOURCE_RANK = {
     "legistar": 8, "openstates": 8, "regulations": 8, "gov": 8, "gov-contracts": 8,
     "cisa-kev": 7, "eia": 7, "news": 6, "guardian": 6, "techmeme": 6, "gdelt": 5,
 }
-
-
-def _family(source: str) -> str:
-    return (source or "").split(":", 1)[0]
 
 
 def canonical_url(url: str | None) -> str:
@@ -132,25 +129,27 @@ class Story:
 
     @property
     def distinct_sources(self) -> int:
-        return len({_family(e.source) for e in self.members})
+        return len({source_family(e.source) for e in self.members})
 
     @property
     def sources(self) -> list[str]:
-        return sorted({_family(e.source) for e in self.members})
+        return sorted({source_family(e.source) for e in self.members})
 
     @property
     def links(self) -> list[str]:
-        seen: list[str] = []
+        seen: set[str] = set()
+        out: list[str] = []
         for e in self.members:
             if e.source_url and e.source_url not in seen:
-                seen.append(e.source_url)
-        return seen
+                seen.add(e.source_url)
+                out.append(e.source_url)
+        return out
 
 
 def _rank(ev: Event) -> tuple[int, str]:
     # Higher authority first; tie-break newest.
     ts = ev.published_at.isoformat() if ev.published_at else ""
-    return (_SOURCE_RANK.get(_family(ev.source), 0), ts)
+    return (_SOURCE_RANK.get(source_family(ev.source), 0), ts)
 
 
 def dedupe(events: list[Event]) -> list[Story]:
@@ -161,7 +160,7 @@ def dedupe(events: list[Event]) -> list[Story]:
     urls = [external_url(e) for e in events]
     tokens = [title_tokens(e.title) for e in events]
     days = [e.published_at.date().isoformat() if e.published_at else None for e in events]
-    ents = [frozenset(gazetteer_match(f"{e.title or ''}\n{(e.content or '')[:300]}")) for e in events]
+    ents = [frozenset(gazetteer_match(event_text(e, 300))) for e in events]
 
     # 1) Shared canonical URL — strongest signal. Bucket by URL.
     by_url: dict[str, list[int]] = {}
@@ -211,29 +210,21 @@ def dedupe_exact(events: list[Event]) -> list[Event]:
     distinct-source evidence behind a signal. Events with no resolvable URL are
     always kept. Order is otherwise preserved (first occurrence wins its slot).
     """
+    # Phase 1: pick the highest-authority representative per canonical URL.
     best_by_url: dict[str, Event] = {}
-    order: list[Event] = []
+    for ev in events:
+        url = external_url(ev)
+        if url and (url not in best_by_url or _rank(ev) > _rank(best_by_url[url])):
+            best_by_url[url] = ev
+    # Phase 2: walk original order, emitting each URL once (no-URL events always
+    # kept) — preserves first-seen ordering, swaps in the chosen representative.
+    seen: set[str] = set()
+    out: list[Event] = []
     for ev in events:
         url = external_url(ev)
         if not url:
-            order.append(ev)
-            continue
-        cur = best_by_url.get(url)
-        if cur is None:
-            best_by_url[url] = ev
-            order.append(ev)  # reserve first-seen position; representative may swap
-        elif _rank(ev) > _rank(cur):
-            best_by_url[url] = ev
-    # Rebuild: replace each reserved first-seen with the winning representative.
-    seen: set[str] = set()
-    out: list[Event] = []
-    for ev in order:
-        url = external_url(ev)
-        if not url:
             out.append(ev)
-            continue
-        if url in seen:
-            continue
-        seen.add(url)
-        out.append(best_by_url[url])
+        elif url not in seen:
+            seen.add(url)
+            out.append(best_by_url[url])
     return out

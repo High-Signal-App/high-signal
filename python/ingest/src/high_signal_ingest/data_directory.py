@@ -26,16 +26,17 @@ from pathlib import Path
 from . import pipeline
 from .dedupe import dedupe
 from .extract.entities import gazetteer_match
-from .grouping import classify_themes, source_family
+from .grouping import classify_themes
 from .source_catalog import CATALOG, by_id
 from .types import Event
+from .utils import event_text, source_family
 
 # Repo-root/data-directory (this file is .../python/ingest/src/high_signal_ingest/).
 _DEFAULT_OUT = Path(__file__).resolve().parents[4] / "data-directory"
 
 
 def _sample(ev: Event) -> dict[str, object]:
-    text = f"{ev.title or ''}\n{(ev.content or '')[:600]}"
+    text = event_text(ev)
     return {
         "title": ev.title,
         "link": ev.source_url,

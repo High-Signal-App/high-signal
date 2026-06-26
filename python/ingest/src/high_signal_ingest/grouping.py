@@ -23,12 +23,14 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from dataclasses import asdict, dataclass, field
 
 from . import pipeline
 from .extract.entities import gazetteer_match
 from .types import Event
+from .utils import event_text, source_family  # noqa: F401  (source_family re-exported)
 
 
 # Keyword → theme buckets. Multi-label: an event can land in several themes.
@@ -55,14 +57,16 @@ THEME_BUCKETS: list[tuple[str, tuple[str, ...]]] = [
 ]
 
 
+# Precompile one alternation regex per theme (terms are static) — cheaper than
+# scanning every term per event.
+_THEME_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
+    (theme, re.compile("|".join(re.escape(t) for t in terms))) for theme, terms in THEME_BUCKETS
+]
+
+
 def classify_themes(text: str) -> list[str]:
     low = text.lower()
-    return [theme for theme, terms in THEME_BUCKETS if any(t in low for t in terms)]
-
-
-def source_family(source: str) -> str:
-    """Collapse `legistar:phoenix` / `macro-rates:fred:dgs10` to the family."""
-    return (source or "unknown").split(":", 1)[0]
+    return [theme for theme, pat in _THEME_PATTERNS if pat.search(low)]
 
 
 @dataclass
@@ -82,10 +86,6 @@ class ConvergenceGroup:
     distinct_sources: int
     sources: list[str]
     sample_titles: list[str]
-
-
-def _event_text(ev: Event) -> str:
-    return f"{ev.title or ''}\n{(ev.content or '')[:600]}"
 
 
 def group_events(events: list[Event]) -> dict[str, dict[str, Group]]:
@@ -108,7 +108,7 @@ def group_events(events: list[Event]) -> dict[str, dict[str, Group]]:
             g.titles.append(ev.title[:120])
 
     for ev in events:
-        text = _event_text(ev)
+        text = event_text(ev)
         for eid in gazetteer_match(text):
             add("entity", eid, ev)
         for theme in classify_themes(text):
