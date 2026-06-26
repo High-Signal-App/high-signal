@@ -50,6 +50,8 @@ DEFAULT_SOURCES = [
     "producthunt",
     "coingecko",
     "google-trends",
+    "appstore",
+    "defillama",
 ]
 AUDITABLE_SOURCES = [
     "edgar",
@@ -90,6 +92,8 @@ AUDITABLE_SOURCES = [
     "producthunt",
     "coingecko",
     "google-trends",
+    "appstore",
+    "defillama",
 ]
 
 
