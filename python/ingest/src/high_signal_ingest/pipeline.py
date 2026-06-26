@@ -22,6 +22,7 @@ from .graph import spillover_ids
 from .seed import load_entities
 from .sources import (
     appstore,
+    appstore_reviews,
     bls,
     bluesky,
     cisa_kev,
@@ -53,6 +54,7 @@ from .sources import (
     openstates,
     package_registries,
     patents,
+    playstore_reviews,
     podcast_index,
     producthunt,
     reddit,
@@ -115,6 +117,8 @@ Source = Literal[
     "appstore",
     "defillama",
     "bls",
+    "appstore-reviews",
+    "playstore-reviews",
     "all",
 ]
 
@@ -356,6 +360,10 @@ def _fetch_tasks(source: Source, days: int) -> list[tuple[str, str, Callable[[],
         add("defillama", "https://api.llama.fi", lambda: defillama.fetch_all(days=days))
     if source in {"bls", "all"}:
         add("bls", "https://api.bls.gov", lambda: bls.fetch_all(days=max(days, 120)))
+    if source in {"appstore-reviews", "all"}:
+        add("appstore-reviews", "https://itunes.apple.com", lambda: appstore_reviews.fetch_all(days=max(days, 14)))
+    if source in {"playstore-reviews", "all"}:
+        add("playstore-reviews", "https://play.google.com", lambda: playstore_reviews.fetch_all(days=max(days, 14)))
 
     return tasks
 
@@ -650,6 +658,8 @@ def main() -> None:
             "appstore",
             "defillama",
             "bls",
+            "appstore-reviews",
+            "playstore-reviews",
             "all",
         ],
         default="all",
