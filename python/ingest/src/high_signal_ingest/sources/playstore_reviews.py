@@ -70,7 +70,9 @@ def reviews_to_events(app: str, rows: list[dict], since: datetime) -> list[Event
             Event(
                 id=raw_hash[:16],
                 source="playstore-reviews",
-                source_url=f"https://play.google.com/store/apps/details?id={r.get('_appId', '')}",
+                # reviewId makes it distinct per review (else dedup collapses an
+                # app's reviews, which share the app URL).
+                source_url=f"https://play.google.com/store/apps/details?id={r.get('_appId', '')}&reviewId={rid}",
                 published_at=published,
                 title=f"Play Store review — {app} ({score}★): {content[:60]}"[:300],
                 content=f"{score}★ review of {app}: {content}"[:20_000] or None,

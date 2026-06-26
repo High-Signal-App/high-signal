@@ -18,6 +18,7 @@ import hashlib
 import logging
 from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
+from urllib.parse import quote_plus
 
 import feedparser
 import httpx
@@ -64,7 +65,9 @@ def events_from_feed(geo: str, xml: str, since: datetime) -> list[Event]:
             Event(
                 id=raw_hash[:16],
                 source=f"google-trends:{geo.lower()}",
-                source_url=f"https://trends.google.com/trending?geo={geo}",
+                # Per-term explore URL — distinct per item so write-path dedup
+                # doesn't collapse all trends sharing one landing page.
+                source_url=f"https://trends.google.com/trends/explore?q={quote_plus(term)}&geo={geo}",
                 published_at=published,
                 title=f"Trending search ({geo}): {term}",
                 content=(f"Approx. searches: {traffic}." if traffic else "Trending search term."),

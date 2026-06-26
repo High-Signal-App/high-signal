@@ -65,12 +65,15 @@ def reviews_from_feed(app: str, payload: dict, since: datetime) -> list[Event]:
         if not rid or not title or published is None or published < since:
             continue
         raw_hash = _hash("appstore-reviews", rid)
-        link = (e.get("link") or {}).get("attributes", {}).get("href", REVIEWS_URL.format(app_id=""))
+        link = (e.get("link") or {}).get("attributes", {}).get("href", "https://apps.apple.com")
+        # Distinct per review so write-path dedup doesn't collapse all of an
+        # app's reviews (they share the app link).
+        source_url = f"{link}{'&' if '?' in link else '?'}reviewId={rid}"
         out.append(
             Event(
                 id=raw_hash[:16],
                 source="appstore-reviews",
-                source_url=link,
+                source_url=source_url,
                 published_at=published,
                 title=f"App Store review — {app} ({rating}★): {title}"[:300],
                 content=f"{rating}★ review of {app}: {body}"[:20_000] or None,
