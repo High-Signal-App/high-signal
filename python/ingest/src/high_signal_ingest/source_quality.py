@@ -53,6 +53,8 @@ DEFAULT_SOURCES = [
     "appstore",
     "defillama",
     "bls",
+    "appstore-reviews",
+    "playstore-reviews",
 ]
 AUDITABLE_SOURCES = [
     "edgar",
@@ -96,6 +98,8 @@ AUDITABLE_SOURCES = [
     "appstore",
     "defillama",
     "bls",
+    "appstore-reviews",
+    "playstore-reviews",
 ]
 
 

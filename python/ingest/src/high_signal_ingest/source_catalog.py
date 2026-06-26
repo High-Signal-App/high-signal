@@ -57,6 +57,8 @@ CATALOG: list[CatalogEntry] = [
     CatalogEntry("producthunt", "Product Hunt (RSS)", "startups", "keyless", False, 7, "thematic", "product name, tagline, link"),
     CatalogEntry("google-trends", "Google Trends (RSS)", "startups", "keyless", False, 2, "thematic", "trending search term, approx traffic"),
     CatalogEntry("appstore", "Apple App Store charts", "startups", "keyless", False, 1, "thematic", "app name, developer, chart rank"),
+    CatalogEntry("appstore-reviews", "App Store reviews (iTunes RSS)", "startups", "keyless", False, 14, "thematic", "review rating, title, text"),
+    CatalogEntry("playstore-reviews", "Google Play reviews", "startups", "keyless", False, 14, "thematic", "review rating, text"),
     CatalogEntry("lobsters", "Lobste.rs", "technology", "keyless", False, 3, "thematic", "story title, tags"),
     CatalogEntry("bluesky", "Bluesky", "technology", "optional-key:BLUESKY_*", False, 7, "thematic", "post text, author"),
     CatalogEntry("youtube", "YouTube transcripts", "technology", "optional-key:YOUTUBE_API_KEY", False, 7, "thematic", "video title, transcript snippet"),
