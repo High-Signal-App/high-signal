@@ -83,9 +83,16 @@ def load_sources() -> list[dict]:
 
 
 def entity_gazetteer(entities: Iterable[Entity]) -> dict[str, str]:
-    """Build a name/alias/ticker → entity_id lookup table."""
+    """Build a name/alias/ticker → entity_id lookup table.
+
+    ``THEME_*`` ids are synthetic thematic buckets (e.g. data-center buildout)
+    used only to attach entity-less thematic signals to a valid entity row; they
+    are never *detected* from text, so they are excluded from the gazetteer.
+    """
     lut: dict[str, str] = {}
     for e in entities:
+        if e.id.startswith("THEME_"):
+            continue
         lut[e.name.lower()] = e.id
         if e.ticker:
             lut[e.ticker.lower()] = e.id

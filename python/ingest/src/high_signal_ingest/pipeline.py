@@ -60,7 +60,8 @@ from .sources import (
     youtube,
 )
 from .types import Event
-from .generator import fallback_candidate, generate
+from .dedupe import dedupe_exact
+from .generator import fallback_candidate, generate, thematic_candidate
 from .writer import emit
 
 Source = Literal[
@@ -433,6 +434,47 @@ def cluster_and_generate(events: list[Event]) -> list[str]:
     return written
 
 
+# Themes that publish as entity-less thematic signals → (theme_entity_id, signal_type).
+_THEME_SIGNALS: dict[str, tuple[str, str]] = {
+    "data-center-buildout": ("THEME_DATACENTER", "data_center_buildout"),
+}
+_THEMATIC_DRAFT_LIMIT = 5
+
+
+def _emit_thematic_drafts(events: list[Event]) -> list[str]:
+    """Cluster entity-less events by theme and emit thematic signal drafts.
+
+    Additive and strictly gated: a theme produces a draft only when its events
+    span ≥ 2 distinct sources AND carry ≥ 2 distinct URLs (cite-or-kill), so a
+    lone item never publishes on a theme. Bounded by ``_THEMATIC_DRAFT_LIMIT``.
+    """
+    from .grouping import classify_themes  # lazy: grouping imports this module
+
+    buckets: dict[str, list[Event]] = defaultdict(list)
+    for ev in events:
+        if not ev.source_url:
+            continue
+        themes = classify_themes(f"{ev.title or ''}\n{(ev.content or '')[:600]}")
+        for theme in themes:
+            if theme in _THEME_SIGNALS:
+                buckets[theme].append(ev)
+
+    written: list[str] = []
+    for theme, evs in buckets.items():
+        if len(written) >= _THEMATIC_DRAFT_LIMIT:
+            break
+        evs = dedupe_exact(evs)
+        sources = {e.source.split(":", 1)[0] for e in evs}
+        urls = {e.source_url for e in evs if e.source_url}
+        if len(sources) < 2 or len(urls) < 2:
+            continue
+        entity_id, signal_type = _THEME_SIGNALS[theme]
+        cand = thematic_candidate(entity_id, signal_type, evs)
+        if cand:
+            written.append(emit(cand))
+    return written
+
+
 def _emit_fallback_drafts(by_entity: dict[str, list[Event]]) -> list[str]:
     """Emit a small fallback batch when model generation yields nothing."""
     written: list[str] = []
@@ -469,14 +511,21 @@ def run(source: Source, days: int) -> dict:
     # Persist raw events for replay/debug regardless of downstream outcome
     audit.push_events(events, fetch_run_id)
 
+    # Collapse exact duplicates (same canonical URL re-reported across feeds /
+    # queries) before clustering — keeps distinct-URL events so a signal's
+    # cross-source corroboration is preserved. Raw events above are untouched.
+    deduped = dedupe_exact(events)
+    duplicates_collapsed = len(events) - len(deduped)
+
     by_entity: dict[str, list[Event]] = defaultdict(list)
-    no_entity = 0
-    for ev in events:
+    no_entity_events: list[Event] = []
+    for ev in deduped:
         eid = _event_entity(ev)
         if eid:
             by_entity[eid].append(ev)
         else:
-            no_entity += 1
+            no_entity_events.append(ev)
+    no_entity = len(no_entity_events)
 
     written: list[str] = []
     low_cluster = 0
@@ -499,6 +548,11 @@ def run(source: Source, days: int) -> dict:
         fallback_written = _emit_fallback_drafts(fallback_by_entity)
         written.extend(fallback_written)
 
+    # Thematic signals from entity-less events (additive; never touches the
+    # entity path above). Strictly gated by cite-or-kill — see _emit_thematic_drafts.
+    thematic_written = _emit_thematic_drafts(no_entity_events)
+    written.extend(thematic_written)
+
     audit.push_ingest_run(
         source=source,
         started_at=started_at,
@@ -515,6 +569,7 @@ def run(source: Source, days: int) -> dict:
     return {
         "fetch_run_id": fetch_run_id,
         "events": len(events),
+        "duplicates_collapsed": duplicates_collapsed,
         "events_no_entity": no_entity,
         "events_low_cluster": low_cluster,
         "signals_drafted": len(written),
