@@ -52,6 +52,7 @@ DEFAULT_SOURCES = [
     "google-trends",
     "appstore",
     "defillama",
+    "bls",
 ]
 AUDITABLE_SOURCES = [
     "edgar",
@@ -94,6 +95,7 @@ AUDITABLE_SOURCES = [
     "google-trends",
     "appstore",
     "defillama",
+    "bls",
 ]
 
 
