@@ -136,6 +136,20 @@ def test_generic_operator_names_do_not_false_match() -> None:
         assert gazetteer_match(text) == [], f"unexpected match in {text!r}"
 
 
+def test_common_word_tickers_only_match_uppercase_or_dollar() -> None:
+    # Common-word tickers (NET/META/SNOW/FORM/ONTO/ARM) must NOT match the
+    # lowercase English word, but MUST still match the uppercase/$ ticker form
+    # and the distinctive full name.
+    assert "NET" not in gazetteer_match("net income rose on strong margins")
+    assert "META" not in gazetteer_match("a paper on meta-learning methods")
+    assert "SNOW" not in gazetteer_match("snow fell overnight")
+    assert "FORM" not in gazetteer_match("please fill out the form")
+    # Uppercase ticker / $-prefixed / full name still resolve.
+    assert "NET" in gazetteer_match("Cloudflare guidance; $NET up 4%")
+    assert "META" in gazetteer_match("Meta Platforms and Facebook ad revenue")
+    assert "SNOW" in gazetteer_match("Snowflake Q3 results")
+
+
 def test_sanctuary_phoenix_alias_collision_removed() -> None:
     # Sanctuary AI's humanoid robot "Phoenix" used to be a bare alias, so every
     # "Phoenix AZ" municipal item false-matched it. The alias was removed.
