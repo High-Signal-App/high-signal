@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from 'next/navigation';
 
 export interface Facets {
   types: { k: string; n: number }[];
@@ -11,7 +11,7 @@ export interface Facets {
   sourceClasses?: { k: string; n: number }[];
 }
 
-const ORDER = ["category", "type", "direction", "confidence", "entity"] as const;
+const ORDER = ['category', 'type', 'direction', 'confidence', 'entity'] as const;
 type Key = (typeof ORDER)[number];
 
 export function FilterBar({ facets }: { facets: Facets }) {
@@ -34,9 +34,9 @@ export function FilterBar({ facets }: { facets: Facets }) {
           {facets.categories!.slice(0, 9).map((d) => (
             <Chip
               key={d.k}
-              on={active("category", d.k)}
-              onClick={() => set("category", d.k)}
-              label={d.k.replaceAll("-", " ")}
+              on={active('category', d.k)}
+              onClick={() => set('category', d.k)}
+              label={d.k.replaceAll('-', ' ')}
               count={d.n}
             />
           ))}
@@ -47,9 +47,9 @@ export function FilterBar({ facets }: { facets: Facets }) {
         {facets.types.slice(0, 12).map((d) => (
           <Chip
             key={d.k}
-            on={active("type", d.k)}
-            onClick={() => set("type", d.k)}
-            label={d.k.replaceAll("_", " ")}
+            on={active('type', d.k)}
+            onClick={() => set('type', d.k)}
+            label={d.k.replaceAll('_', ' ')}
             count={d.n}
           />
         ))}
@@ -59,11 +59,11 @@ export function FilterBar({ facets }: { facets: Facets }) {
         {facets.directions.map((d) => (
           <Chip
             key={d.k}
-            on={active("direction", d.k)}
-            onClick={() => set("direction", d.k)}
+            on={active('direction', d.k)}
+            onClick={() => set('direction', d.k)}
             label={d.k}
             count={d.n}
-            tone={d.k === "up" ? "up" : d.k === "down" ? "down" : "muted"}
+            tone={d.k === 'up' ? 'up' : d.k === 'down' ? 'down' : 'muted'}
           />
         ))}
       </Group>
@@ -72,8 +72,8 @@ export function FilterBar({ facets }: { facets: Facets }) {
         {facets.confidences.map((d) => (
           <Chip
             key={d.k}
-            on={active("confidence", d.k)}
-            onClick={() => set("confidence", d.k)}
+            on={active('confidence', d.k)}
+            onClick={() => set('confidence', d.k)}
             label={d.k}
             count={d.n}
           />
@@ -84,8 +84,8 @@ export function FilterBar({ facets }: { facets: Facets }) {
         {facets.topEntities.slice(0, 10).map((d) => (
           <Chip
             key={d.k}
-            on={active("entity", d.k)}
-            onClick={() => set("entity", d.k)}
+            on={active('entity', d.k)}
+            onClick={() => set('entity', d.k)}
             label={d.k}
             count={d.n}
           />
@@ -95,7 +95,7 @@ export function FilterBar({ facets }: { facets: Facets }) {
       {sp.size > 0 && (
         <button
           className="text-zinc-500 underline-offset-4 hover:text-zinc-200 hover:underline"
-          onClick={() => router.push("/signals")}
+          onClick={() => router.push('/signals')}
         >
           clear
         </button>
@@ -118,25 +118,25 @@ function Chip({
   count,
   on,
   onClick,
-  tone = "muted",
+  tone = 'muted',
 }: {
   label: string;
   count: number;
   on: boolean;
   onClick: () => void;
-  tone?: "up" | "down" | "muted";
+  tone?: 'up' | 'down' | 'muted';
 }) {
   const toneClass =
-    tone === "up"
-      ? "border-emerald-500/40 text-emerald-400"
-      : tone === "down"
-        ? "border-rose-500/40 text-rose-400"
-        : "border-zinc-700 text-zinc-300";
+    tone === 'up'
+      ? 'border-emerald-500/40 text-emerald-400'
+      : tone === 'down'
+        ? 'border-rose-500/40 text-rose-400'
+        : 'border-zinc-700 text-zinc-300';
   return (
     <button
       onClick={onClick}
       className={`flex items-center gap-1.5 border px-2 py-0.5 transition-colors ${toneClass} ${
-        on ? "bg-white/[0.04] text-white" : "hover:bg-white/[0.02]"
+        on ? 'bg-white/[0.04] text-white' : 'hover:bg-white/[0.02]'
       }`}
     >
       {label}

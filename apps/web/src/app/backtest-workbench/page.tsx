@@ -4,15 +4,15 @@ import {
   PageShell,
   Panel,
   SectionHeader,
-} from "@/components/system/HighSignalUI";
-import { api, type BacktestWorkbench, type BacktestWorkbenchBucket } from "@/lib/api";
-import { requireSignedIn } from "@/lib/require-auth";
+} from '@/components/system/HighSignalUI';
+import { api, type BacktestWorkbench, type BacktestWorkbenchBucket } from '@/lib/api';
+import { requireSignedIn } from '@/lib/require-auth';
 
-export const dynamic = "force-dynamic";
-export const metadata = { title: "Backtest Workbench — High Signal" };
+export const dynamic = 'force-dynamic';
+export const metadata = { title: 'Backtest Workbench — High Signal' };
 
 const emptyWorkbench: BacktestWorkbench = {
-  cohort: "live",
+  cohort: 'live',
   summary: {
     signals: 0,
     matured: 0,
@@ -27,25 +27,25 @@ const emptyWorkbench: BacktestWorkbench = {
 };
 
 function pct(value: number | null) {
-  return value == null ? "—" : `${Math.round(value * 100)}%`;
+  return value == null ? '—' : `${Math.round(value * 100)}%`;
 }
 
 function score(value: number | null) {
-  return value == null ? "—" : value.toString();
+  return value == null ? '—' : value.toString();
 }
 
-function actionTone(action: BacktestWorkbenchBucket["recommendedAction"]) {
-  if (action === "promote") return "text-[var(--color-up)]";
-  if (action === "retire-or-rewrite") return "text-[var(--color-down)]";
-  if (action === "tighten-thesis") return "text-amber-300";
-  return "text-[var(--color-accent)]";
+function actionTone(action: BacktestWorkbenchBucket['recommendedAction']) {
+  if (action === 'promote') return 'text-[var(--color-up)]';
+  if (action === 'retire-or-rewrite') return 'text-[var(--color-down)]';
+  if (action === 'tighten-thesis') return 'text-amber-300';
+  return 'text-[var(--color-accent)]';
 }
 
 function bandTone(band: string) {
-  if (band === "compound") return "text-[var(--color-up)]";
-  if (band === "retire") return "text-[var(--color-down)]";
-  if (band === "watch") return "text-amber-300";
-  return "text-[var(--color-muted)]";
+  if (band === 'compound') return 'text-[var(--color-up)]';
+  if (band === 'retire') return 'text-[var(--color-down)]';
+  if (band === 'watch') return 'text-amber-300';
+  return 'text-[var(--color-muted)]';
 }
 
 export default async function BacktestWorkbenchPage() {
@@ -53,7 +53,7 @@ export default async function BacktestWorkbenchPage() {
 
   let workbench = emptyWorkbench;
   try {
-    workbench = await api.backtestWorkbench("live");
+    workbench = await api.backtestWorkbench('live');
   } catch {
     /* Offline fallback keeps the route renderable before D1 is seeded. */
   }
@@ -69,10 +69,10 @@ export default async function BacktestWorkbenchPage() {
 
       <MetricGrid
         items={[
-          { label: "cohort", value: workbench.cohort },
-          { label: "matured", value: workbench.summary.matured.toString() },
-          { label: "avg action score", value: score(workbench.summary.avgActionScore) },
-          { label: "evidence-ready", value: pct(workbench.summary.evidenceReadyRate) },
+          { label: 'cohort', value: workbench.cohort },
+          { label: 'matured', value: workbench.summary.matured.toString() },
+          { label: 'avg action score', value: score(workbench.summary.avgActionScore) },
+          { label: 'evidence-ready', value: pct(workbench.summary.evidenceReadyRate) },
         ]}
       />
 
@@ -106,10 +106,18 @@ export default async function BacktestWorkbenchPage() {
                 <tr>
                   <th className="border-b border-[var(--color-line)] px-3 py-3 text-left">type</th>
                   <th className="border-b border-[var(--color-line)] px-3 py-3 text-right">n</th>
-                  <th className="border-b border-[var(--color-line)] px-3 py-3 text-right">hit-rate</th>
-                  <th className="border-b border-[var(--color-line)] px-3 py-3 text-right">action score</th>
-                  <th className="border-b border-[var(--color-line)] px-3 py-3 text-right">evidence</th>
-                  <th className="border-b border-[var(--color-line)] px-3 py-3 text-right">decision</th>
+                  <th className="border-b border-[var(--color-line)] px-3 py-3 text-right">
+                    hit-rate
+                  </th>
+                  <th className="border-b border-[var(--color-line)] px-3 py-3 text-right">
+                    action score
+                  </th>
+                  <th className="border-b border-[var(--color-line)] px-3 py-3 text-right">
+                    evidence
+                  </th>
+                  <th className="border-b border-[var(--color-line)] px-3 py-3 text-right">
+                    decision
+                  </th>
                 </tr>
               </thead>
               <tbody className="nums">
@@ -158,9 +166,7 @@ export default async function BacktestWorkbenchPage() {
                 <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
                   {example.signalType} / {example.confidence} / {example.outcome}
                 </div>
-                <h2 className="mt-2 text-lg">
-                  {example.title ?? example.slug}
-                </h2>
+                <h2 className="mt-2 text-lg">{example.title ?? example.slug}</h2>
               </div>
               <div className="text-left md:text-right">
                 <div className="nums text-2xl">{score(example.actionScore)}</div>
@@ -172,8 +178,10 @@ export default async function BacktestWorkbenchPage() {
               </div>
             </div>
             <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">
-              {example.evidenceCount} evidence links · {example.windowDays}d window · return{" "}
-              {example.forwardReturn == null ? "pending" : `${(example.forwardReturn * 100).toFixed(1)}%`}
+              {example.evidenceCount} evidence links · {example.windowDays}d window · return{' '}
+              {example.forwardReturn == null
+                ? 'pending'
+                : `${(example.forwardReturn * 100).toFixed(1)}%`}
             </p>
           </a>
         ))}

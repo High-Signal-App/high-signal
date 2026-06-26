@@ -1,12 +1,12 @@
-"use client";
+'use client';
 
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import type { Route } from "next";
-import { DEMO_REGIONS, regionLabel, type Region } from "@high-signal/shared";
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import type { Route } from 'next';
+import { DEMO_REGIONS, regionLabel, type Region } from '@high-signal/shared';
 
 export function RegionPicker({ active }: { active: Region }) {
   const router = useRouter();
-  const pathname = usePathname() ?? "/";
+  const pathname = usePathname() ?? '/';
   const searchParams = useSearchParams();
 
   return (
@@ -17,10 +17,10 @@ export function RegionPicker({ active }: { active: Region }) {
         onChange={(event) => {
           const params = new URLSearchParams(searchParams ?? undefined);
           const next = event.target.value;
-          if (!next || next === "global") {
-            params.delete("region");
+          if (!next || next === 'global') {
+            params.delete('region');
           } else {
-            params.set("region", next);
+            params.set('region', next);
           }
           const query = params.toString();
           const href = (query ? `${pathname}?${query}` : pathname) as Route;

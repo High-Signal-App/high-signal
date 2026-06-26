@@ -4,13 +4,13 @@ import {
   Panel,
   SectionHeader,
   StatGrid,
-} from "@/components/system/HighSignalUI";
-import { api, type LabFeedResult } from "@/lib/api";
-import { requireSignedIn } from "@/lib/require-auth";
-import type { Route } from "next";
+} from '@/components/system/HighSignalUI';
+import { api, type LabFeedResult } from '@/lib/api';
+import { requireSignedIn } from '@/lib/require-auth';
+import type { Route } from 'next';
 
-export const dynamic = "force-dynamic";
-export const metadata = { title: "Lab candidates — High Signal" };
+export const dynamic = 'force-dynamic';
+export const metadata = { title: 'Lab candidates — High Signal' };
 
 export default async function LabCandidatesPage({
   searchParams,
@@ -19,15 +19,15 @@ export default async function LabCandidatesPage({
 }) {
   await requireSignedIn();
   const params = (await searchParams) ?? {};
-  const query = (params.q ?? "").trim();
-  const source = (params.source ?? "").trim();
+  const query = (params.q ?? '').trim();
+  const source = (params.source ?? '').trim();
 
   let result: LabFeedResult | null = null;
   let error: string | null = null;
   try {
     result = await api.labFeed({ query, source, limit: 30 });
   } catch (e) {
-    error = e instanceof Error ? e.message : "lab_unreachable";
+    error = e instanceof Error ? e.message : 'lab_unreachable';
   }
 
   const items = result?.items ?? [];
@@ -35,7 +35,7 @@ export default async function LabCandidatesPage({
 
   return (
     <PageShell>
-      <BackLink href={"/review" as Route}>back to review</BackLink>
+      <BackLink href={'/review' as Route}>back to review</BackLink>
       <SectionHeader eyebrow="discovery → curation" title="Lab candidates">
         Top-scored documents from the local Lab substrate, ranked. Click <strong>draft</strong> on
         anything worth shipping as a signal — you'll get a pre-filled markdown template to drop into
@@ -48,19 +48,19 @@ export default async function LabCandidatesPage({
       <StatGrid
         items={[
           {
-            label: "candidates",
+            label: 'candidates',
             value: items.length.toString(),
-            sub: error ? `lab unreachable: ${error}` : "ranked by 4-factor signal score",
+            sub: error ? `lab unreachable: ${error}` : 'ranked by 4-factor signal score',
           },
           {
-            label: "documents indexed",
-            value: stats?.documents.toLocaleString() ?? "—",
-            sub: "in the local Lab Postgres",
+            label: 'documents indexed',
+            value: stats?.documents.toLocaleString() ?? '—',
+            sub: 'in the local Lab Postgres',
           },
           {
-            label: "last ingest",
-            value: stats?.lastIngestAt?.slice(0, 16).replace("T", " ") ?? "—",
-            sub: "UTC",
+            label: 'last ingest',
+            value: stats?.lastIngestAt?.slice(0, 16).replace('T', ' ') ?? '—',
+            sub: 'UTC',
           },
         ]}
       />
@@ -68,17 +68,19 @@ export default async function LabCandidatesPage({
       {error ? (
         <Panel eyebrow="lab not reachable" title="LAB_API_URL is not set or the FastAPI is down">
           <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">
-            The candidates view reads from your local Lab substrate via{" "}
-            <code className="border border-[var(--color-line)] px-1 py-0.5 text-xs">LAB_API_URL</code>.
-            Bring it up with{" "}
+            The candidates view reads from your local Lab substrate via{' '}
+            <code className="border border-[var(--color-line)] px-1 py-0.5 text-xs">
+              LAB_API_URL
+            </code>
+            . Bring it up with{' '}
             <code className="border border-[var(--color-line)] px-1 py-0.5 text-xs">
               docker compose -f python/lab/docker-compose.yml up -d
-            </code>{" "}
-            then{" "}
+            </code>{' '}
+            then{' '}
             <code className="border border-[var(--color-line)] px-1 py-0.5 text-xs">
               uv run python -m high_signal_lab.server
             </code>
-            , and export{" "}
+            , and export{' '}
             <code className="border border-[var(--color-line)] px-1 py-0.5 text-xs">
               LAB_API_URL=http://localhost:8765
             </code>
@@ -116,7 +118,8 @@ export default async function LabCandidatesPage({
 
       <section className="mt-8 border-t border-[var(--color-line)]">
         {items.map((item) => {
-          const draftHref = `/review/lab-candidates/draft?id=${encodeURIComponent(item.id)}&url=${encodeURIComponent(item.url)}&title=${encodeURIComponent(item.title)}` as Route;
+          const draftHref =
+            `/review/lab-candidates/draft?id=${encodeURIComponent(item.id)}&url=${encodeURIComponent(item.url)}&title=${encodeURIComponent(item.title)}` as Route;
           return (
             <article
               key={item.id}

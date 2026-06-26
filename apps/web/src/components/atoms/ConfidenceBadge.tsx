@@ -1,9 +1,9 @@
-import type { Confidence } from "@/lib/api";
+import type { Confidence } from '@/lib/api';
 
 const TIERS: Record<Confidence, { label: string; pips: number }> = {
-  low: { label: "low", pips: 1 },
-  medium: { label: "med", pips: 2 },
-  high: { label: "high", pips: 3 },
+  low: { label: 'low', pips: 1 },
+  medium: { label: 'med', pips: 2 },
+  high: { label: 'high', pips: 3 },
 };
 
 export function ConfidenceBadge({ confidence }: { confidence: Confidence }) {
@@ -14,9 +14,7 @@ export function ConfidenceBadge({ confidence }: { confidence: Confidence }) {
         {Array.from({ length: 3 }).map((_, i) => (
           <span
             key={i}
-            className={`block h-2 w-0.5 ${
-              i < t.pips ? "bg-[var(--color-accent)]" : "bg-zinc-700"
-            }`}
+            className={`block h-2 w-0.5 ${i < t.pips ? 'bg-[var(--color-accent)]' : 'bg-zinc-700'}`}
           />
         ))}
       </span>

@@ -1,23 +1,19 @@
-import { notFound } from "next/navigation";
+import { notFound } from 'next/navigation';
 
-import { ConfidenceBadge } from "@/components/atoms/ConfidenceBadge";
-import { DirectionPill } from "@/components/atoms/DirectionPill";
-import { api } from "@/lib/api";
-import { signalHeadline } from "@/lib/rss";
+import { ConfidenceBadge } from '@/components/atoms/ConfidenceBadge';
+import { DirectionPill } from '@/components/atoms/DirectionPill';
+import { api } from '@/lib/api';
+import { signalHeadline } from '@/lib/rss';
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
 
 /**
  * /embed/[slug] — chromeless single-signal card designed to be iframed
  * into blogs, dashboards, or Substack posts. No nav, no footer.
  */
-export default async function EmbedSignal({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}) {
+export default async function EmbedSignal({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  let data;
+  let data: Awaited<ReturnType<typeof api.signal>>;
   try {
     data = await api.signal(slug);
   } catch {
@@ -35,7 +31,7 @@ export default async function EmbedSignal({
             <span className="text-zinc-700">·</span>
             <span className="text-[var(--color-accent)]">{signal.primaryEntityId}</span>
             <span className="text-zinc-700">·</span>
-            <span>{signal.signalType.replaceAll("_", " ")}</span>
+            <span>{signal.signalType.replaceAll('_', ' ')}</span>
           </div>
           <div className="flex items-center gap-2">
             <ConfidenceBadge confidence={signal.confidence} />

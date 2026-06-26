@@ -1,7 +1,7 @@
-import { requireAdmin } from "@/lib/clerk-admin";
-import { api } from "@/lib/api";
+import { requireAdmin } from '@/lib/clerk-admin';
+import { api } from '@/lib/api';
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
   const admin = await requireAdmin(request);
@@ -21,8 +21,8 @@ export async function GET(request: Request) {
   return new Response(JSON.stringify({ generatedAt: new Date().toISOString(), cohorts }), {
     status: 200,
     headers: {
-      "Content-Type": "application/json; charset=utf-8",
-      "Cache-Control": "private, no-store",
+      'Content-Type': 'application/json; charset=utf-8',
+      'Cache-Control': 'private, no-store',
     },
   });
 }

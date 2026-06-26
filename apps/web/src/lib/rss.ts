@@ -6,11 +6,11 @@
 
 function escapeXml(s: string): string {
   return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;");
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
 }
 
 export interface RssItem {
@@ -37,21 +37,21 @@ export function buildRssXml(feed: RssFeed): string {
     .map((item) => {
       const cats = (item.categories ?? [])
         .map((c) => `      <category>${escapeXml(c)}</category>`)
-        .join("\n");
+        .join('\n');
       return [
-        "    <item>",
+        '    <item>',
         `      <title>${escapeXml(item.title)}</title>`,
         `      <link>${escapeXml(item.link)}</link>`,
         `      <guid isPermaLink="true">${escapeXml(item.guid)}</guid>`,
         `      <pubDate>${item.pubDate.toUTCString()}</pubDate>`,
         `      <description>${escapeXml(item.description)}</description>`,
         cats,
-        "    </item>",
+        '    </item>',
       ]
         .filter((line) => line.length > 0)
-        .join("\n");
+        .join('\n');
     })
-    .join("\n");
+    .join('\n');
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
@@ -59,7 +59,7 @@ export function buildRssXml(feed: RssFeed): string {
     <title>${escapeXml(feed.title)}</title>
     <link>${escapeXml(feed.link)}</link>
     <description>${escapeXml(feed.description)}</description>
-    <language>${feed.language ?? "en"}</language>
+    <language>${feed.language ?? 'en'}</language>
     <lastBuildDate>${last.toUTCString()}</lastBuildDate>
     <atom:link href="${escapeXml(feed.link)}" rel="self" type="application/rss+xml" />
 ${items}
@@ -75,43 +75,44 @@ ${items}
  */
 export function signalHeadline(bodyMd: string | undefined, slug: string): string {
   if (!bodyMd) return slug;
-  const first = bodyMd
-    .split("\n")
-    .map((line) =>
-      line
-        .replace(/^>\s*/, "")
-        .replace(/^#+\s*/, "")
-        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, "$1")
-        .replace(/https?:\/\/\S+/g, "")
-        .replace(/[_*`]/g, "")
-        .replace(/\s+/g, " ")
-        .trim(),
-    )
-    .find((line) => line.length > 0 && !line.toLowerCase().includes("backfill")) ?? "";
+  const first =
+    bodyMd
+      .split('\n')
+      .map((line) =>
+        line
+          .replace(/^>\s*/, '')
+          .replace(/^#+\s*/, '')
+          .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1')
+          .replace(/https?:\/\/\S+/g, '')
+          .replace(/[_*`]/g, '')
+          .replace(/\s+/g, ' ')
+          .trim()
+      )
+      .find((line) => line.length > 0 && !line.toLowerCase().includes('backfill')) ?? '';
   const cleaned = first.trim();
   return cleaned.length > 0 ? cleaned : slug;
 }
 
 /** A short plain-text excerpt of a signal body, suitable for RSS description. */
 export function signalExcerpt(bodyMd: string | undefined, maxChars = 800): string {
-  if (!bodyMd) return "";
+  if (!bodyMd) return '';
   // Drop the first line (used as title) and any leading whitespace.
   const rest = bodyMd
-    .split("\n")
+    .split('\n')
     .slice(1)
     .map((line) =>
       line
-        .replace(/^>\s*/, "")
-        .replace(/^#+\s*/, "")
-        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, "$1")
-        .replace(/https?:\/\/\S+/g, "")
-        .replace(/[_*`]/g, "")
-        .replace(/\s+/g, " ")
-        .trim(),
+        .replace(/^>\s*/, '')
+        .replace(/^#+\s*/, '')
+        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1')
+        .replace(/https?:\/\/\S+/g, '')
+        .replace(/[_*`]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim()
     )
-    .filter((line) => line.length > 0 && !line.toLowerCase().includes("backfill"))
-    .join(" ");
-  if (rest.length === 0) return "";
+    .filter((line) => line.length > 0 && !line.toLowerCase().includes('backfill'))
+    .join(' ');
+  if (rest.length === 0) return '';
   if (rest.length <= maxChars) return rest;
-  return rest.slice(0, maxChars).replace(/\s+\S*$/, "") + "…";
+  return rest.slice(0, maxChars).replace(/\s+\S*$/, '') + '…';
 }

@@ -1,17 +1,14 @@
-import {
-  BackLink,
-  HeroHeader,
-  PageShell,
-} from "@/components/system/HighSignalUI";
+import { BackLink, HeroHeader, PageShell } from '@/components/system/HighSignalUI';
 
 export const metadata = {
-  title: "Domains — Web Authority Signals | High Signal",
-  description: "Leaderboard of high-signal websites by Ahrefs Domain Rating (DR). Companion lens powered by the drank app.",
+  title: 'Domains — Web Authority Signals | High Signal',
+  description:
+    'Leaderboard of high-signal websites by Ahrefs Domain Rating (DR). Companion lens powered by the drank app.',
 };
 
 const RAW_DATA_URL =
-  "https://raw.githubusercontent.com/sarthak-fleet/drank/main/data/global-dr.json";
-const DRANK_APP_URL = "https://drank-sand.vercel.app";
+  'https://raw.githubusercontent.com/sarthak-fleet/drank/main/data/global-dr.json';
+const DRANK_APP_URL = 'https://drank-sand.vercel.app';
 
 interface DrankData {
   lastUpdated: string;
@@ -22,7 +19,7 @@ interface DrankData {
 async function getDrankData(): Promise<DrankData> {
   try {
     // Prefer locally synced copy (see scripts/sync-drank-domains.ts)
-    const local = await import("../../../../../data/dr-domains.json");
+    const local = await import('../../../../../data/dr-domains.json');
     const d = local.default ?? local;
     if (d.domains && Object.keys(d.domains).length > 0) {
       return {
@@ -90,8 +87,14 @@ export default async function DomainsPage() {
       return { domain, dr, delta, history: entry.history };
     })
     .filter(
-      (d): d is { domain: string; dr: number; delta: number | null; history: Array<{ ts: number; dr: number }> } =>
-        d.dr !== null,
+      (
+        d
+      ): d is {
+        domain: string;
+        dr: number;
+        delta: number | null;
+        history: Array<{ ts: number; dr: number }>;
+      } => d.dr !== null
     )
     .sort((a, b) => b.dr - a.dr);
 
@@ -103,8 +106,8 @@ export default async function DomainsPage() {
         <BackLink href="/">back to high signal</BackLink>
 
         <HeroHeader eyebrow="web lens • powered by drank" title="Domains">
-          Leaderboard of websites by Ahrefs Domain Rating (DR) — a strong external signal of backlink authority
-          and source quality. Data is shared and updated weekly.
+          Leaderboard of websites by Ahrefs Domain Rating (DR) — a strong external signal of
+          backlink authority and source quality. Data is shared and updated weekly.
         </HeroHeader>
 
         <div className="mt-4 flex flex-wrap items-center gap-3 text-sm">
@@ -139,19 +142,35 @@ export default async function DomainsPage() {
               </thead>
               <tbody className="divide-y divide-[var(--color-line)]">
                 {ranked.length === 0 ? (
-                  <tr><td colSpan={4} className="px-4 py-8 text-center text-[var(--color-muted)]">No data.</td></tr>
+                  <tr>
+                    <td colSpan={4} className="px-4 py-8 text-center text-[var(--color-muted)]">
+                      No data.
+                    </td>
+                  </tr>
                 ) : (
                   ranked.slice(0, 25).map((item, idx) => {
                     const rank = idx + 1;
                     const drStr = item.dr.toFixed(1);
-                    const deltaStr = item.delta !== null ? (item.delta > 0 ? "+" : "") + item.delta.toFixed(1) : "—";
-                    const deltaClass = item.delta !== null && item.delta > 0 ? "text-emerald-400" : item.delta !== null && item.delta < 0 ? "text-rose-400" : "text-[var(--color-muted)]";
+                    const deltaStr =
+                      item.delta !== null
+                        ? (item.delta > 0 ? '+' : '') + item.delta.toFixed(1)
+                        : '—';
+                    const deltaClass =
+                      item.delta !== null && item.delta > 0
+                        ? 'text-emerald-400'
+                        : item.delta !== null && item.delta < 0
+                          ? 'text-rose-400'
+                          : 'text-[var(--color-muted)]';
                     return (
                       <tr key={item.domain} className="hover:bg-[var(--color-bg-elevated)]">
-                        <td className="px-4 py-3 font-mono text-[var(--color-muted)] tabular-nums">#{rank}</td>
+                        <td className="px-4 py-3 font-mono text-[var(--color-muted)] tabular-nums">
+                          #{rank}
+                        </td>
                         <td className="px-4 py-3 font-medium">{item.domain}</td>
                         <td className="px-4 py-3 text-right font-semibold tabular-nums">{drStr}</td>
-                        <td className={`px-4 py-3 text-right tabular-nums ${deltaClass}`}>{deltaStr}</td>
+                        <td className={`px-4 py-3 text-right tabular-nums ${deltaClass}`}>
+                          {deltaStr}
+                        </td>
                       </tr>
                     );
                   })
@@ -160,7 +179,11 @@ export default async function DomainsPage() {
             </table>
           </div>
           <p className="mt-2 text-xs text-[var(--color-muted)]">
-            Interactive predictions and personal tracking live in the standalone <a href={DRANK_APP_URL} target="_blank" rel="noopener noreferrer" className="underline">drank</a> app.
+            Interactive predictions and personal tracking live in the standalone{' '}
+            <a href={DRANK_APP_URL} target="_blank" rel="noopener noreferrer" className="underline">
+              drank
+            </a>{' '}
+            app.
           </p>
         </div>
 
@@ -171,10 +194,18 @@ export default async function DomainsPage() {
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               {nominations.map((n, i) => (
-                <a key={i} href={DRANK_APP_URL} target="_blank" rel="noopener noreferrer" className="block rounded border border-[var(--color-line)] bg-[var(--color-bg)] p-4 hover:border-[var(--color-accent)]">
+                <a
+                  key={i}
+                  href={DRANK_APP_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block rounded border border-[var(--color-line)] bg-[var(--color-bg)] p-4 hover:border-[var(--color-accent)]"
+                >
                   <div className="font-mono font-medium">{n.domain}</div>
                   {n.note && <div className="mt-1 text-sm text-[var(--color-muted)]">{n.note}</div>}
-                  <div className="mt-2 text-xs text-[var(--color-accent)]">Track &amp; predict in drank →</div>
+                  <div className="mt-2 text-xs text-[var(--color-accent)]">
+                    Track &amp; predict in drank →
+                  </div>
                 </a>
               ))}
             </div>
@@ -183,11 +214,16 @@ export default async function DomainsPage() {
 
         <div className="mt-12 rounded border border-[var(--color-line)] bg-[var(--color-bg-elevated)] p-6 text-sm text-[var(--color-muted)]">
           <p>
-            This lens is powered by the independent <a href={DRANK_APP_URL} target="_blank" rel="noopener noreferrer" className="underline">drank</a> companion app.
-            The shared DR data (global sites + history + nominations) is maintained in a public GitHub JSON updated by Actions and consumed here.
+            This lens is powered by the independent{' '}
+            <a href={DRANK_APP_URL} target="_blank" rel="noopener noreferrer" className="underline">
+              drank
+            </a>{' '}
+            companion app. The shared DR data (global sites + history + nominations) is maintained
+            in a public GitHub JSON updated by Actions and consumed here.
           </p>
           <p className="mt-2">
-            Use drank for the full experience: localStorage personal lists, "I think this will be at the top" predictions, detailed charts, and export.
+            Use drank for the full experience: localStorage personal lists, "I think this will be at
+            the top" predictions, detailed charts, and export.
           </p>
         </div>
       </div>

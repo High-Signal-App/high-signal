@@ -1,19 +1,15 @@
-import type { Metadata } from "next";
-import {
-  BackLink,
-  PageShell,
-  SectionHeader,
-} from "@/components/system/HighSignalUI";
-import { BreadcrumbJsonLd } from "@/components/seo/structured-data";
-import { api, type SignalRow } from "@/lib/api";
-import { familyForSignalType, familyLabel, type SignalFamily } from "@high-signal/shared";
-import { SITE_URL } from "@/lib/site";
+import type { Metadata } from 'next';
+import { BackLink, PageShell, SectionHeader } from '@/components/system/HighSignalUI';
+import { BreadcrumbJsonLd } from '@/components/seo/structured-data';
+import { api, type SignalRow } from '@/lib/api';
+import { familyForSignalType, familyLabel, type SignalFamily } from '@high-signal/shared';
+import { SITE_URL } from '@/lib/site';
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
 export const metadata: Metadata = {
-  title: "Signal types — taxonomy of every call we publish",
+  title: 'Signal types — taxonomy of every call we publish',
   description:
-    "Every signal type High Signal publishes, grouped by family with the all-time count. Click into a type for its definition, recent examples, and public hit-rate.",
+    'Every signal type High Signal publishes, grouped by family with the all-time count. Click into a type for its definition, recent examples, and public hit-rate.',
   alternates: { canonical: `${SITE_URL}/signals/types` },
 };
 
@@ -25,7 +21,7 @@ interface TypeRow {
 }
 
 function dateLabel(raw: string | null): string {
-  if (!raw) return "—";
+  if (!raw) return '—';
   return raw.slice(0, 10);
 }
 
@@ -59,8 +55,7 @@ export default async function SignalTypesIndexPage() {
     byFamily.set(row.family, bucket);
   }
   const families = Array.from(byFamily.entries()).sort(
-    (a, b) =>
-      b[1].reduce((sum, r) => sum + r.total, 0) - a[1].reduce((sum, r) => sum + r.total, 0),
+    (a, b) => b[1].reduce((sum, r) => sum + r.total, 0) - a[1].reduce((sum, r) => sum + r.total, 0)
   );
 
   return (
@@ -68,9 +63,9 @@ export default async function SignalTypesIndexPage() {
       <BackLink href="/signals">back to signals</BackLink>
       <BreadcrumbJsonLd
         trail={[
-          { name: "Home", path: "/" },
-          { name: "Signals", path: "/signals" },
-          { name: "Types", path: "/signals/types" },
+          { name: 'Home', path: '/' },
+          { name: 'Signals', path: '/signals' },
+          { name: 'Types', path: '/signals/types' },
         ]}
       />
 
@@ -98,7 +93,7 @@ export default async function SignalTypesIndexPage() {
                     className="text-base text-[var(--color-fg)] hover:text-[var(--color-accent)]"
                     href={`/signals/types/${row.type}`}
                   >
-                    {row.type.replaceAll("_", " ")}
+                    {row.type.replaceAll('_', ' ')}
                   </a>
                   <span className="font-mono text-[11px] text-[var(--color-muted)]">
                     {row.total} signals

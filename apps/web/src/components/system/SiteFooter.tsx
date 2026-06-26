@@ -1,7 +1,7 @@
-import Link from "next/link";
-import type { Route } from "next";
+import Link from 'next/link';
+import type { Route } from 'next';
 
-import { SITE_URL } from "@/lib/site";
+import { SITE_URL } from '@/lib/site';
 
 interface FooterLink {
   href: string;
@@ -9,33 +9,33 @@ interface FooterLink {
 }
 
 const PRODUCT: FooterLink[] = [
-  { href: "/", label: "Brief" },
-  { href: "/signals", label: "Signals" },
-  { href: "/track-record", label: "Track record" },
-  { href: "/watchlist/entities", label: "Watched entities" },
+  { href: '/', label: 'Brief' },
+  { href: '/signals', label: 'Signals' },
+  { href: '/track-record', label: 'Track record' },
+  { href: '/watchlist/entities', label: 'Watched entities' },
 ];
 
 const LENSES: FooterLink[] = [
-  { href: "/markets", label: "Markets" },
-  { href: "/mentions", label: "Mentions" },
-  { href: "/agent-eval", label: "Agent Eval" },
-  { href: "/domains", label: "Domains" },
-  { href: "/communities", label: "Communities" },
-  { href: "/lab", label: "Lab" },
+  { href: '/markets', label: 'Markets' },
+  { href: '/mentions', label: 'Mentions' },
+  { href: '/agent-eval', label: 'Agent Eval' },
+  { href: '/domains', label: 'Domains' },
+  { href: '/communities', label: 'Communities' },
+  { href: '/lab', label: 'Lab' },
 ];
 
 const OPERATOR: FooterLink[] = [
-  { href: "/review", label: "Review queue" },
-  { href: "/settings/delivery", label: "Delivery preferences" },
-  { href: "/explore", label: "Explore all features" },
-  { href: "/api-docs", label: "API docs" },
+  { href: '/review', label: 'Review queue' },
+  { href: '/settings/delivery', label: 'Delivery preferences' },
+  { href: '/explore', label: 'Explore all features' },
+  { href: '/api-docs', label: 'API docs' },
 ];
 
 const LEGAL: FooterLink[] = [
-  { href: "/about", label: "About" },
-  { href: "/methodology", label: "Methodology" },
-  { href: "/privacy", label: "Privacy" },
-  { href: "/terms", label: "Terms" },
+  { href: '/about', label: 'About' },
+  { href: '/methodology', label: 'Methodology' },
+  { href: '/privacy', label: 'Privacy' },
+  { href: '/terms', label: 'Terms' },
 ];
 
 export function SiteFooter() {

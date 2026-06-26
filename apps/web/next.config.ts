@@ -1,9 +1,9 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next';
 
 const config: NextConfig = {
-  output: "standalone",
+  output: 'standalone',
   typedRoutes: true,
-  transpilePackages: ["@high-signal/shared"],
+  transpilePackages: ['@high-signal/shared'],
   images: { unoptimized: true },
   typescript: { ignoreBuildErrors: true },
 };

@@ -4,12 +4,13 @@ import {
   readSourceRefreshes,
   resolveAcceptedRefreshDate,
   type SourceQualityStatus,
-} from "@/lib/daily-intelligence";
+} from '@/lib/daily-intelligence';
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
 export const metadata = {
-  title: "Source Audit - High Signal",
-  description: "Daily source coverage, rejection reasons, and quality-gate status for High Signal reads.",
+  title: 'Source Audit - High Signal',
+  description:
+    'Daily source coverage, rejection reasons, and quality-gate status for High Signal reads.',
 };
 
 function utcDate(d = new Date()) {
@@ -21,13 +22,13 @@ function safeDate(value?: string) {
 }
 
 function statusClass(status: SourceQualityStatus) {
-  if (status === "accepted") return "border-emerald-500/35 text-emerald-300";
-  if (status === "rejected") return "border-red-500/45 text-red-300";
-  return "border-zinc-700 text-zinc-500";
+  if (status === 'accepted') return 'border-emerald-500/35 text-emerald-300';
+  if (status === 'rejected') return 'border-red-500/45 text-red-300';
+  return 'border-zinc-700 text-zinc-500';
 }
 
 function labelList(items: Array<{ k: string; n: number }>) {
-  return items.map(({ k, n }) => `${k.replaceAll("-", " ")} ${n}`).join(" / ") || "none";
+  return items.map(({ k, n }) => `${k.replaceAll('-', ' ')} ${n}`).join(' / ') || 'none';
 }
 
 export default async function DailySourcesPage({
@@ -37,10 +38,10 @@ export default async function DailySourcesPage({
 }) {
   const params = (await searchParams) ?? {};
   const requestedDate = safeDate(params.date);
-  const selectedStatus = ["accepted", "rejected", "missing"].includes(params.status ?? "")
+  const selectedStatus = ['accepted', 'rejected', 'missing'].includes(params.status ?? '')
     ? (params.status as SourceQualityStatus)
-    : "";
-  const selectedClass = params.class ?? "";
+    : '';
+  const selectedClass = params.class ?? '';
   const refreshes = await readSourceRefreshes();
   const sourceReadDate = resolveAcceptedRefreshDate(refreshes, requestedDate) ?? requestedDate;
   const sourceDateShifted = sourceReadDate !== requestedDate;
@@ -50,7 +51,7 @@ export default async function DailySourcesPage({
   const rows = audit.rows.filter(
     (row) =>
       (!selectedStatus || row.status === selectedStatus) &&
-      (!selectedClass || row.sourceClass === selectedClass),
+      (!selectedClass || row.sourceClass === selectedClass)
   );
   const query = new URLSearchParams({
     date: sourceReadDate,
@@ -71,8 +72,8 @@ export default async function DailySourcesPage({
           <div>
             <h1 className="text-3xl font-medium tracking-tight">Source Audit</h1>
             <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
-              {sourceReadDate} / {audit.configuredSources} configured / {audit.acceptedSnapshots} accepted /{" "}
-              {audit.rejectedSnapshots} rejected / {audit.missingSources} missing
+              {sourceReadDate} / {audit.configuredSources} configured / {audit.acceptedSnapshots}{' '}
+              accepted / {audit.rejectedSnapshots} rejected / {audit.missingSources} missing
             </p>
           </div>
           <a
@@ -84,7 +85,8 @@ export default async function DailySourcesPage({
         </div>
         {sourceDateShifted ? (
           <p className="mt-3 text-sm leading-6 text-zinc-500">
-            No accepted source-read snapshot exists for {requestedDate}; showing audit rows from {sourceReadDate}.
+            No accepted source-read snapshot exists for {requestedDate}; showing audit rows from{' '}
+            {sourceReadDate}.
           </p>
         ) : null}
       </header>
@@ -137,15 +139,17 @@ export default async function DailySourcesPage({
 
       <section className="mt-6 grid gap-px border border-zinc-800 bg-zinc-800 md:grid-cols-6">
         {[
-          ["observed", audit.observedSnapshots.toString()],
-          ["accepted", audit.acceptedSnapshots.toString()],
-          ["rejected", audit.rejectedSnapshots.toString()],
-          ["missing", audit.missingSources.toString()],
-          ["accepted items", audit.acceptedUnderlyingItems.toString()],
-          ["freshness", automationStatus.freshnessStatus],
+          ['observed', audit.observedSnapshots.toString()],
+          ['accepted', audit.acceptedSnapshots.toString()],
+          ['rejected', audit.rejectedSnapshots.toString()],
+          ['missing', audit.missingSources.toString()],
+          ['accepted items', audit.acceptedUnderlyingItems.toString()],
+          ['freshness', automationStatus.freshnessStatus],
         ].map(([label, value]) => (
           <div key={label} className="bg-black p-4">
-            <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">{label}</div>
+            <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
+              {label}
+            </div>
             <div className="mt-3 break-words font-mono text-sm text-zinc-200">{value}</div>
           </div>
         ))}
@@ -154,24 +158,32 @@ export default async function DailySourcesPage({
       <section className="mt-6 border-y border-zinc-800 py-5">
         <div className="grid gap-5 md:grid-cols-3">
           <div>
-            <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-600">by class</div>
+            <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-600">
+              by class
+            </div>
             <div className="mt-2 font-mono text-xs leading-6 text-zinc-400">
               {audit.statusByClass
-                .map(({ k, accepted, rejected, missing }) => `${k} ${accepted}/${rejected}/${missing}`)
-                .join(" / ")}
+                .map(
+                  ({ k, accepted, rejected, missing }) => `${k} ${accepted}/${rejected}/${missing}`
+                )
+                .join(' / ')}
             </div>
           </div>
           <div>
-            <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-600">reject reasons</div>
+            <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-600">
+              reject reasons
+            </div>
             <div className="mt-2 font-mono text-xs leading-6 text-zinc-400">
               {labelList(audit.rejectedReasons)}
             </div>
           </div>
           <div>
-            <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-600">automation</div>
+            <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-600">
+              automation
+            </div>
             <div className="mt-2 font-mono text-xs leading-6 text-zinc-400">
-              {automationStatus.workflow} / {automationStatus.schedule} / latest{" "}
-              {automationStatus.latestAcceptedDate ?? "none"}
+              {automationStatus.workflow} / {automationStatus.schedule} / latest{' '}
+              {automationStatus.latestAcceptedDate ?? 'none'}
             </div>
           </div>
         </div>
@@ -185,7 +197,7 @@ export default async function DailySourcesPage({
               <div className="mt-1 text-xs leading-5 text-zinc-500">{action.detail}</div>
               {action.affectedSources.length > 0 ? (
                 <div className="mt-2 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-600">
-                  {action.affectedSources.join(" / ")}
+                  {action.affectedSources.join(' / ')}
                 </div>
               ) : null}
             </div>
@@ -205,16 +217,20 @@ export default async function DailySourcesPage({
                   <span className="text-zinc-700">/</span>
                   <span>{row.sourceId}</span>
                 </div>
-                <h2 className="mt-2 text-lg font-medium tracking-tight text-zinc-100">{row.label}</h2>
+                <h2 className="mt-2 text-lg font-medium tracking-tight text-zinc-100">
+                  {row.label}
+                </h2>
               </div>
-              <div className={`border px-3 py-1 font-mono text-[10px] uppercase tracking-[0.18em] ${statusClass(row.status)}`}>
+              <div
+                className={`border px-3 py-1 font-mono text-[10px] uppercase tracking-[0.18em] ${statusClass(row.status)}`}
+              >
                 {row.status}
               </div>
             </div>
             <div className="mt-4 grid gap-4 text-xs leading-6 text-zinc-500 md:grid-cols-5">
               <div>
                 <div className="font-mono uppercase tracking-[0.18em] text-zinc-600">snapshot</div>
-                <div className="mt-1 font-mono">{row.snapshotDate?.slice(0, 10) ?? "none"}</div>
+                <div className="mt-1 font-mono">{row.snapshotDate?.slice(0, 10) ?? 'none'}</div>
               </div>
               <div>
                 <div className="font-mono uppercase tracking-[0.18em] text-zinc-600">items</div>
@@ -225,13 +241,15 @@ export default async function DailySourcesPage({
                 <div className="mt-1 font-mono">{row.repeatedSignalCount}</div>
               </div>
               <div>
-                <div className="font-mono uppercase tracking-[0.18em] text-zinc-600">generic risk</div>
+                <div className="font-mono uppercase tracking-[0.18em] text-zinc-600">
+                  generic risk
+                </div>
                 <div className="mt-1 font-mono">{row.genericRisk}</div>
               </div>
               <div>
                 <div className="font-mono uppercase tracking-[0.18em] text-zinc-600">reasons</div>
                 <div className="mt-1 font-mono">
-                  {row.reasons.map((reason) => reason.replaceAll("-", " ")).join(" / ") || "none"}
+                  {row.reasons.map((reason) => reason.replaceAll('-', ' ')).join(' / ') || 'none'}
                 </div>
               </div>
             </div>

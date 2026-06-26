@@ -1,3 +1,3 @@
-export { GET } from "../signals/today.json/route";
+export { GET } from '../signals/today.json/route';
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';

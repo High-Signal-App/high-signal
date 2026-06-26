@@ -1,12 +1,12 @@
-import { requireAdmin } from "@/lib/clerk-admin";
-import { api, type TrackBucket } from "@/lib/api";
-import { TrackRecordDatasetJsonLd } from "@/components/seo/structured-data";
+import { requireAdmin } from '@/lib/clerk-admin';
+import { api, type TrackBucket } from '@/lib/api';
+import { TrackRecordDatasetJsonLd } from '@/components/seo/structured-data';
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
 export const metadata = {
-  title: "Public hit-rate ledger",
+  title: 'Public hit-rate ledger',
   description:
-    "Every published High Signal market call scored against subsequent market moves. Live forward predictions and historical-replay calibrations, broken down by signal type. The moat is the number being public.",
+    'Every published High Signal market call scored against subsequent market moves. Live forward predictions and historical-replay calibrations, broken down by signal type. The moat is the number being public.',
 };
 
 interface Cohorts {
@@ -24,7 +24,7 @@ function summarizeBuckets(buckets: TrackBucket[]) {
       acc.total += bucket.total;
       return acc;
     },
-    { hit: 0, miss: 0, push: 0, total: 0 },
+    { hit: 0, miss: 0, push: 0, total: 0 }
   );
 }
 
@@ -33,7 +33,7 @@ function hitRateFrom(summary: ReturnType<typeof summarizeBuckets>) {
 }
 
 function formatHitRate(value: number | null) {
-  return value != null ? `${(value * 100).toFixed(0)}%` : "—";
+  return value != null ? `${(value * 100).toFixed(0)}%` : '—';
 }
 
 export default async function TrackRecordPage() {
@@ -67,7 +67,7 @@ export default async function TrackRecordPage() {
         {liveCount > 0 && liveCount < 10 ? (
           <p className="mt-4 border border-amber-500/40 bg-amber-500/[0.04] p-3 text-sm leading-6 text-amber-100">
             <strong>Sample warning:</strong> the live cohort below has only {liveCount} scored
-            prediction{liveCount === 1 ? "" : "s"}. Any rate on a sample this small is statistically
+            prediction{liveCount === 1 ? '' : 's'}. Any rate on a sample this small is statistically
             meaningless — read it as &ldquo;direction of travel,&rdquo; not as a reliable accuracy
             claim. Wait until n ≥ 10 (per signal type) before trusting it. The number is what it is;
             we&apos;d rather expose that than dress it up.
@@ -84,9 +84,21 @@ export default async function TrackRecordPage() {
       </header>
 
       <section className="mt-8 grid gap-px border border-zinc-800 bg-zinc-800 md:grid-cols-3">
-        <GuideItem label="Use for trust" value="Live" body="Forward predictions made before the scoring window closed." />
-        <GuideItem label="Use for tuning" value="Backfill" body="Historical replay. Useful, but not proof of product quality." />
-        <GuideItem label="Do not overread" value="Combined" body="Mixed view for debugging only; it should not be marketed yet." />
+        <GuideItem
+          label="Use for trust"
+          value="Live"
+          body="Forward predictions made before the scoring window closed."
+        />
+        <GuideItem
+          label="Use for tuning"
+          value="Backfill"
+          body="Historical replay. Useful, but not proof of product quality."
+        />
+        <GuideItem
+          label="Do not overread"
+          value="Combined"
+          body="Mixed view for debugging only; it should not be marketed yet."
+        />
       </section>
 
       <section className="mt-10 grid grid-cols-1 gap-6 lg:grid-cols-[1.15fr_0.85fr]">
@@ -147,13 +159,13 @@ function CohortBlock({
 }: {
   title: string;
   subtitle: string;
-  tone: "accent" | "muted";
+  tone: 'accent' | 'muted';
   buckets: TrackBucket[];
   note: string;
 }) {
   const overall = summarizeBuckets(buckets);
   const overallHitRate = hitRateFrom(overall);
-  const titleClass = tone === "accent" ? "text-[var(--color-accent)]" : "text-zinc-400";
+  const titleClass = tone === 'accent' ? 'text-[var(--color-accent)]' : 'text-zinc-400';
 
   return (
     <div className="border border-zinc-800 bg-zinc-950/40 p-5">
@@ -167,9 +179,7 @@ function CohortBlock({
       </div>
       <div className="nums mt-4 flex items-baseline gap-4">
         <div>
-          <div className="text-3xl font-medium">
-            {formatHitRate(overallHitRate)}
-          </div>
+          <div className="text-3xl font-medium">{formatHitRate(overallHitRate)}</div>
           <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
             hit-rate
           </div>
@@ -182,7 +192,11 @@ function CohortBlock({
       </div>
       <p className="mt-4 border-t border-zinc-900 pt-3 text-sm leading-6 text-zinc-500">{note}</p>
       <div className="mt-4">
-        <BucketTable buckets={buckets} emptyHint={`no ${title.toLowerCase()} scored signals`} compact />
+        <BucketTable
+          buckets={buckets}
+          emptyHint={`no ${title.toLowerCase()} scored signals`}
+          compact
+        />
       </div>
     </div>
   );
@@ -195,10 +209,10 @@ function Stat({
 }: {
   label: string;
   value: number;
-  tone: "up" | "down" | "muted";
+  tone: 'up' | 'down' | 'muted';
 }) {
   const cls =
-    tone === "up" ? "text-emerald-400" : tone === "down" ? "text-rose-400" : "text-zinc-500";
+    tone === 'up' ? 'text-emerald-400' : tone === 'down' ? 'text-rose-400' : 'text-zinc-500';
   return (
     <div>
       <div className={`text-xl font-medium ${cls}`}>{value}</div>
@@ -219,7 +233,7 @@ function BucketTable({
   if (buckets.length === 0) {
     return (
       <div
-        className={`border border-dashed border-zinc-800 ${compact ? "p-4" : "p-10"} text-center font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500`}
+        className={`border border-dashed border-zinc-800 ${compact ? 'p-4' : 'p-10'} text-center font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500`}
       >
         {emptyHint}
       </div>
@@ -245,7 +259,9 @@ function BucketTable({
             <tr key={b.signalType}>
               <td className="border-b border-zinc-900 py-1.5 font-mono text-xs">{b.signalType}</td>
               <td className="border-b border-zinc-900 py-1.5 text-right">{b.total}</td>
-              <td className="border-b border-zinc-900 py-1.5 text-right text-emerald-400">{b.hit}</td>
+              <td className="border-b border-zinc-900 py-1.5 text-right text-emerald-400">
+                {b.hit}
+              </td>
               <td className="border-b border-zinc-900 py-1.5 text-right text-rose-400">{b.miss}</td>
               <td className="border-b border-zinc-900 py-1.5 text-right text-zinc-500">{b.push}</td>
               <td className="border-b border-zinc-900 py-1.5 text-right">

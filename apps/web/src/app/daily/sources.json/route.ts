@@ -4,9 +4,9 @@ import {
   readSourceRefreshes,
   resolveAcceptedRefreshDate,
   type SourceQualityStatus,
-} from "@/lib/daily-intelligence";
+} from '@/lib/daily-intelligence';
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
 
 function utcDate(d = new Date()) {
   return d.toISOString().slice(0, 10);
@@ -18,12 +18,12 @@ function safeDate(value: string | null) {
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
-  const requestedDate = safeDate(url.searchParams.get("date"));
-  const status = url.searchParams.get("status");
-  const selectedStatus = ["accepted", "rejected", "missing"].includes(status ?? "")
+  const requestedDate = safeDate(url.searchParams.get('date'));
+  const status = url.searchParams.get('status');
+  const selectedStatus = ['accepted', 'rejected', 'missing'].includes(status ?? '')
     ? (status as SourceQualityStatus)
-    : "";
-  const selectedClass = url.searchParams.get("class") ?? "";
+    : '';
+  const selectedClass = url.searchParams.get('class') ?? '';
   const refreshes = await readSourceRefreshes();
   const sourceReadDate = resolveAcceptedRefreshDate(refreshes, requestedDate) ?? requestedDate;
   const sourceQualityAudit = buildDailySourceQualityAudit(refreshes, sourceReadDate);
@@ -31,7 +31,7 @@ export async function GET(req: Request) {
   const filteredRows = sourceQualityAudit.rows.filter(
     (row) =>
       (!selectedStatus || row.status === selectedStatus) &&
-      (!selectedClass || row.sourceClass === selectedClass),
+      (!selectedClass || row.sourceClass === selectedClass)
   );
 
   return new Response(
@@ -51,9 +51,9 @@ export async function GET(req: Request) {
     {
       status: 200,
       headers: {
-        "Content-Type": "application/json; charset=utf-8",
-        "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
+        'Content-Type': 'application/json; charset=utf-8',
+        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
       },
-    },
+    }
   );
 }

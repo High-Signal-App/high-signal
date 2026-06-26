@@ -1,7 +1,7 @@
-import { api } from "@/lib/api";
+import { api } from '@/lib/api';
 
-export const dynamic = "force-dynamic";
-export const metadata = { title: "Cross-Source Convergence — High Signal" };
+export const dynamic = 'force-dynamic';
+export const metadata = { title: 'Cross-Source Convergence — High Signal' };
 
 interface Props {
   searchParams: Promise<{ hours?: string; min_sources?: string }>;
@@ -24,8 +24,8 @@ function Chip({ label, active, href }: { label: string; active: boolean; href: s
       href={href}
       className={`rounded border px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.18em] ${
         active
-          ? "border-[var(--color-accent)] text-[var(--color-accent)]"
-          : "border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200"
+          ? 'border-[var(--color-accent)] text-[var(--color-accent)]'
+          : 'border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200'
       }`}
     >
       {label}
@@ -63,10 +63,10 @@ export default async function ConvergencePage({ searchParams }: Props) {
       <header className="mt-3 border-b border-zinc-800 pb-6">
         <h1 className="text-3xl font-medium tracking-tight">Cross-source convergence</h1>
         <p className="mt-2 max-w-2xl text-sm text-zinc-400">
-          Entities hit by <strong>≥ {minSources}</strong> distinct sources in the last{" "}
+          Entities hit by <strong>≥ {minSources}</strong> distinct sources in the last{' '}
           <strong>{hours}h</strong>. The strongest pre-news pattern in the system: when news,
-          Reddit, EDGAR, IR, and prediction markets fire on the same name within hours, something
-          is happening.{" "}
+          Reddit, EDGAR, IR, and prediction markets fire on the same name within hours, something is
+          happening.{' '}
           <span className="text-zinc-600">
             Not investment advice — surface for triage, not for trading.
           </span>
@@ -116,9 +116,7 @@ export default async function ConvergencePage({ searchParams }: Props) {
                   >
                     {row.ticker ?? row.entityId}
                   </a>
-                  {row.name ? (
-                    <span className="ml-2 text-sm text-zinc-400">{row.name}</span>
-                  ) : null}
+                  {row.name ? <span className="ml-2 text-sm text-zinc-400">{row.name}</span> : null}
                   {row.sector ? (
                     <span className="ml-2 font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-600">
                       {row.sector}
@@ -129,18 +127,18 @@ export default async function ConvergencePage({ searchParams }: Props) {
                       new
                     </span>
                   ) : null}
-                  {row.label === "breakout" ? (
+                  {row.label === 'breakout' ? (
                     <span
                       className="ml-2 rounded border border-amber-600/60 px-1.5 py-0 font-mono text-[10px] uppercase tracking-[0.18em] text-amber-300"
-                      title={row.labelReason ?? ""}
+                      title={row.labelReason ?? ''}
                     >
                       breakout
                     </span>
                   ) : null}
-                  {row.label === "divergence" ? (
+                  {row.label === 'divergence' ? (
                     <span
                       className="ml-2 rounded border border-violet-600/60 px-1.5 py-0 font-mono text-[10px] uppercase tracking-[0.18em] text-violet-300"
-                      title={row.labelReason ?? ""}
+                      title={row.labelReason ?? ''}
                     >
                       divergence
                     </span>
@@ -176,15 +174,14 @@ export default async function ConvergencePage({ searchParams }: Props) {
                   {row.attention.trendDirection && row.attention.trendDeltaPct != null ? (
                     <span
                       className={`ml-auto font-mono text-[11px] ${
-                        row.attention.trendDirection === "up"
-                          ? "text-emerald-300"
-                          : row.attention.trendDirection === "down"
-                            ? "text-red-300"
-                            : "text-zinc-500"
+                        row.attention.trendDirection === 'up'
+                          ? 'text-emerald-300'
+                          : row.attention.trendDirection === 'down'
+                            ? 'text-red-300'
+                            : 'text-zinc-500'
                       }`}
                     >
-                      7d vs prior:{" "}
-                      {row.attention.trendDeltaPct >= 0 ? "+" : ""}
+                      7d vs prior: {row.attention.trendDeltaPct >= 0 ? '+' : ''}
                       {row.attention.trendDeltaPct.toFixed(0)}%
                     </span>
                   ) : null}
@@ -210,13 +207,13 @@ export default async function ConvergencePage({ searchParams }: Props) {
                     <span
                       className={`font-mono text-[11px] ${
                         row.marketQuote.probChange > 0.02
-                          ? "text-emerald-300"
+                          ? 'text-emerald-300'
                           : row.marketQuote.probChange < -0.02
-                            ? "text-red-300"
-                            : "text-zinc-500"
+                            ? 'text-red-300'
+                            : 'text-zinc-500'
                       }`}
                     >
-                      {row.marketQuote.probChange >= 0 ? "+" : ""}
+                      {row.marketQuote.probChange >= 0 ? '+' : ''}
                       {(row.marketQuote.probChange * 100).toFixed(1)} pp
                     </span>
                   ) : (

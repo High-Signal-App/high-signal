@@ -1,5 +1,5 @@
-import Link from "next/link";
-import type { Route } from "next";
+import Link from 'next/link';
+import type { Route } from 'next';
 import type {
   BriefImprovementItem,
   BriefIdeaItem,
@@ -7,7 +7,7 @@ import type {
   BriefSnapshot,
   BriefStockItem,
   BriefTrendItem,
-} from "@high-signal/shared";
+} from '@high-signal/shared';
 
 interface SectionShellProps {
   eyebrow: string;
@@ -46,7 +46,9 @@ function SectionShell({
       </header>
       <div className="mt-6">
         {isEmpty ? (
-          <p className="text-sm leading-6 text-[var(--color-muted)]">{empty ?? "Nothing here yet."}</p>
+          <p className="text-sm leading-6 text-[var(--color-muted)]">
+            {empty ?? 'Nothing here yet.'}
+          </p>
         ) : (
           children
         )}
@@ -55,32 +57,32 @@ function SectionShell({
   );
 }
 
-function directionTone(direction: "up" | "down" | "neutral") {
-  if (direction === "up") return "text-emerald-300";
-  if (direction === "down") return "text-rose-300";
-  return "text-[var(--color-muted)]";
+function directionTone(direction: 'up' | 'down' | 'neutral') {
+  if (direction === 'up') return 'text-emerald-300';
+  if (direction === 'down') return 'text-rose-300';
+  return 'text-[var(--color-muted)]';
 }
 
 function formatPct(value: number | null) {
-  if (value == null) return "—";
+  if (value == null) return '—';
   return `${(value * 100).toFixed(0)}%`;
 }
 
 function StockItem({ item }: { item: BriefStockItem }) {
   const bandCopy =
-    item.hitRateBand === "direct"
-      ? "this signal type"
-      : item.hitRateBand === "family"
-        ? `family rate — ${item.signalFamily.replaceAll("-", " ")}`
-        : item.hitRateBand === "early"
-          ? "early calls"
-          : "no live calls yet";
+    item.hitRateBand === 'direct'
+      ? 'this signal type'
+      : item.hitRateBand === 'family'
+        ? `family rate — ${item.signalFamily.replaceAll('-', ' ')}`
+        : item.hitRateBand === 'early'
+          ? 'early calls'
+          : 'no live calls yet';
   const hitRateColor =
     item.hitRate == null
-      ? "text-[var(--color-muted)]"
+      ? 'text-[var(--color-muted)]'
       : item.hitRate >= 0.5
-        ? "text-[var(--color-accent)]"
-        : "text-rose-300";
+        ? 'text-[var(--color-accent)]'
+        : 'text-rose-300';
   return (
     <article className="grid gap-3 border-b border-[var(--color-line)] py-5 md:grid-cols-[1fr_220px]">
       <div>
@@ -88,7 +90,7 @@ function StockItem({ item }: { item: BriefStockItem }) {
           <span className="text-[var(--color-fg)]">{item.entityName}</span>
           {item.ticker ? <span>· {item.ticker}</span> : null}
           {item.country ? <span>· {item.country}</span> : null}
-          <span>· {item.signalType.replaceAll("_", " ")}</span>
+          <span>· {item.signalType.replaceAll('_', ' ')}</span>
           <span className={directionTone(item.direction)}>{item.direction}</span>
           <span>· {item.confidence}</span>
           <span>· {item.predictedWindowDays}d window</span>
@@ -103,8 +105,13 @@ function StockItem({ item }: { item: BriefStockItem }) {
           <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1 font-mono text-[10px] text-[var(--color-muted)]">
             {item.evidenceUrls.slice(0, 4).map((cite) => (
               <li key={cite.url}>
-                <a className="hover:text-[var(--color-accent)]" href={cite.url} rel="noreferrer" target="_blank">
-                  {cite.source ?? new URL(cite.url).hostname.replace(/^www\./, "")}
+                <a
+                  className="hover:text-[var(--color-accent)]"
+                  href={cite.url}
+                  rel="noreferrer"
+                  target="_blank"
+                >
+                  {cite.source ?? new URL(cite.url).hostname.replace(/^www\./, '')}
                 </a>
               </li>
             ))}
@@ -114,15 +121,17 @@ function StockItem({ item }: { item: BriefStockItem }) {
       <div className="border border-[var(--color-line)] p-3 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
         <div>{bandCopy}</div>
         <div className={`mt-2 text-xl font-medium ${hitRateColor}`}>
-          {item.hitRate == null ? "no live calls yet" : `${(item.hitRate * 100).toFixed(0)}% hit-rate`}
+          {item.hitRate == null
+            ? 'no live calls yet'
+            : `${(item.hitRate * 100).toFixed(0)}% hit-rate`}
         </div>
         <div className="mt-1 text-[var(--color-muted)]">
           {item.hitRateSample
-            ? `${item.hitRateSample} scored ${item.hitRateBand === "family" ? "across family" : "calls"}`
-            : "pending — backfill not counted"}
+            ? `${item.hitRateSample} scored ${item.hitRateBand === 'family' ? 'across family' : 'calls'}`
+            : 'pending — backfill not counted'}
         </div>
         <Link
-          href={"/track-record" as Route}
+          href={'/track-record' as Route}
           className="mt-3 block underline-offset-4 hover:text-[var(--color-accent)] hover:underline"
         >
           full ledger →
@@ -136,10 +145,13 @@ function IdeaItem({ item }: { item: BriefIdeaItem }) {
   return (
     <article className="border-b border-[var(--color-line)] py-5">
       <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
-        {item.source} {item.subreddit ? `/ r/${item.subreddit}` : ""} · {item.surfacedAt.slice(0, 10)}
+        {item.source} {item.subreddit ? `/ r/${item.subreddit}` : ''} ·{' '}
+        {item.surfacedAt.slice(0, 10)}
       </div>
       <h3 className="mt-2 text-lg font-medium tracking-tight">{item.title}</h3>
-      <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--color-muted)]">{item.description}</p>
+      <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--color-muted)]">
+        {item.description}
+      </p>
       {item.evidenceUrls.length ? (
         <ul className="mt-2 flex flex-wrap gap-4 font-mono text-[10px]">
           {item.evidenceUrls.slice(0, 3).map((cite) => (
@@ -167,7 +179,9 @@ function TrendItem({ item }: { item: BriefTrendItem }) {
         r/{item.subreddit} · {item.surfacedAt.slice(0, 10)}
       </div>
       <h3 className="mt-2 text-lg font-medium tracking-tight">{item.title}</h3>
-      <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--color-muted)]">{item.description}</p>
+      <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--color-muted)]">
+        {item.description}
+      </p>
       {item.evidenceUrls[0] ? (
         <a
           className="mt-2 inline-block font-mono text-[10px] text-[var(--color-muted)] hover:text-[var(--color-accent)]"
@@ -187,7 +201,7 @@ function PerceptionItem({ item }: { item: BriefPerceptionItem }) {
     <article className="grid gap-3 border-b border-[var(--color-line)] py-5 md:grid-cols-[1fr_repeat(3,minmax(0,110px))]">
       <div>
         <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
-          {item.latestCheckAt?.slice(0, 16).replace("T", " ") ?? "no check yet"}
+          {item.latestCheckAt?.slice(0, 16).replace('T', ' ') ?? 'no check yet'}
         </div>
         <Link
           href={`/mentions?config=${encodeURIComponent(item.configId)}` as Route}
@@ -224,11 +238,11 @@ function ImprovementItem({ item }: { item: BriefImprovementItem }) {
       <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
         <div
           className={
-            item.priority === "high"
-              ? "text-rose-300"
-              : item.priority === "medium"
-                ? "text-amber-300"
-                : "text-[var(--color-muted)]"
+            item.priority === 'high'
+              ? 'text-rose-300'
+              : item.priority === 'medium'
+                ? 'text-amber-300'
+                : 'text-[var(--color-muted)]'
           }
         >
           {item.priority}
@@ -260,7 +274,7 @@ export function BriefSections({ brief }: { brief: BriefSnapshot }) {
         empty="No qualifying market signals this window. The ingest cron hasn't surfaced a fresh call yet."
         action={
           <Link
-            href={"/markets" as Route}
+            href={'/markets' as Route}
             className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)] hover:text-[var(--color-accent)]"
           >
             markets lens →
@@ -268,7 +282,8 @@ export function BriefSections({ brief }: { brief: BriefSnapshot }) {
         }
       >
         <p className="mb-4 border-l-2 border-[var(--color-line)] pl-3 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
-          Decision support, not stock advice. Cited signals to inform your research — not a recommendation to buy, sell, or hold.
+          Decision support, not stock advice. Cited signals to inform your research — not a
+          recommendation to buy, sell, or hold.
         </p>
         <div className="border-t border-[var(--color-line)]">
           {brief.stocks.map((item) => (
@@ -285,16 +300,10 @@ export function BriefSections({ brief }: { brief: BriefSnapshot }) {
         empty="No fresh demand clusters surfaced from the tracked communities yet."
         action={
           <div className="flex gap-4 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
-            <Link
-              href={"/opportunities" as Route}
-              className="hover:text-[var(--color-accent)]"
-            >
+            <Link href={'/opportunities' as Route} className="hover:text-[var(--color-accent)]">
               deeper view →
             </Link>
-            <Link
-              href={"/communities" as Route}
-              className="hover:text-[var(--color-accent)]"
-            >
+            <Link href={'/communities' as Route} className="hover:text-[var(--color-accent)]">
               communities lens →
             </Link>
           </div>
@@ -329,7 +338,7 @@ export function BriefSections({ brief }: { brief: BriefSnapshot }) {
         empty="No perception data — switch product in the picker."
         action={
           <Link
-            href={"/mentions" as Route}
+            href={'/mentions' as Route}
             className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)] hover:text-[var(--color-accent)]"
           >
             mentions lens →
@@ -351,7 +360,7 @@ export function BriefSections({ brief }: { brief: BriefSnapshot }) {
         empty="No open tasks for this product."
         action={
           <Link
-            href={"/agent-eval" as Route}
+            href={'/agent-eval' as Route}
             className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)] hover:text-[var(--color-accent)]"
           >
             agent eval lens →

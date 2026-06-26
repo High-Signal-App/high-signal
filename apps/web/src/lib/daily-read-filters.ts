@@ -1,37 +1,39 @@
-import type { DailyBroadInsight } from "@/lib/daily-intelligence";
-import type { LightweightDomain, LightweightSignalLayer } from "@high-signal/shared";
+import type { DailyBroadInsight } from '@/lib/daily-intelligence';
+import type { LightweightDomain, LightweightSignalLayer } from '@high-signal/shared';
 
 export const READ_SIGNAL_LAYERS: Array<{ value: LightweightSignalLayer; label: string }> = [
-  { value: "app-complaint", label: "app complaints" },
-  { value: "world-change", label: "world changes" },
-  { value: "market-watch", label: "market watch" },
-  { value: "general", label: "general" },
+  { value: 'app-complaint', label: 'app complaints' },
+  { value: 'world-change', label: 'world changes' },
+  { value: 'market-watch', label: 'market watch' },
+  { value: 'general', label: 'general' },
 ];
 
 export const READ_DOMAINS: Array<{ value: LightweightDomain; label: string }> = [
-  { value: "agent-evaluation", label: "agent evaluation" },
-  { value: "consumer", label: "consumer" },
-  { value: "developer", label: "developer" },
-  { value: "market", label: "market" },
-  { value: "operations", label: "operations" },
-  { value: "regional", label: "regional" },
-  { value: "small-business", label: "small business" },
-  { value: "startup", label: "startup" },
+  { value: 'agent-evaluation', label: 'agent evaluation' },
+  { value: 'consumer', label: 'consumer' },
+  { value: 'developer', label: 'developer' },
+  { value: 'market', label: 'market' },
+  { value: 'operations', label: 'operations' },
+  { value: 'regional', label: 'regional' },
+  { value: 'small-business', label: 'small business' },
+  { value: 'startup', label: 'startup' },
 ];
 
 export type DailyReadFilters = {
   category?: string;
-  layer?: LightweightSignalLayer | "";
-  domain?: LightweightDomain | "";
+  layer?: LightweightSignalLayer | '';
+  domain?: LightweightDomain | '';
   requirement?: boolean;
 };
 
-export function safeReadLayer(value?: string | null): LightweightSignalLayer | "" {
-  return READ_SIGNAL_LAYERS.some((item) => item.value === value) ? (value as LightweightSignalLayer) : "";
+export function safeReadLayer(value?: string | null): LightweightSignalLayer | '' {
+  return READ_SIGNAL_LAYERS.some((item) => item.value === value)
+    ? (value as LightweightSignalLayer)
+    : '';
 }
 
-export function safeReadDomain(value?: string | null): LightweightDomain | "" {
-  return READ_DOMAINS.some((item) => item.value === value) ? (value as LightweightDomain) : "";
+export function safeReadDomain(value?: string | null): LightweightDomain | '' {
+  return READ_DOMAINS.some((item) => item.value === value) ? (value as LightweightDomain) : '';
 }
 
 export function hasReadOnlyFilter(filters: DailyReadFilters) {
@@ -60,17 +62,18 @@ export function dailyReadQuery(input: {
   includeTasks?: boolean | string | null;
 }) {
   const params = new URLSearchParams();
-  if (input.date) params.set("date", input.date);
-  if (input.sourceDate) params.set("sourceDate", input.sourceDate);
-  if (input.category) params.set("category", input.category);
-  if (input.readCategory) params.set("readCategory", input.readCategory);
-  if (input.from) params.set("from", input.from);
-  if (input.to) params.set("to", input.to);
-  if (input.days) params.set("days", String(input.days));
-  if (input.layer) params.set("layer", input.layer);
-  if (input.domain) params.set("domain", input.domain);
-  if (input.requirement === true || input.requirement === "yes") params.set("requirement", "yes");
-  if (input.requirement === false || input.requirement === "no") params.set("requirement", "no");
-  if (input.includeTasks === true || input.includeTasks === "yes") params.set("includeTasks", "yes");
+  if (input.date) params.set('date', input.date);
+  if (input.sourceDate) params.set('sourceDate', input.sourceDate);
+  if (input.category) params.set('category', input.category);
+  if (input.readCategory) params.set('readCategory', input.readCategory);
+  if (input.from) params.set('from', input.from);
+  if (input.to) params.set('to', input.to);
+  if (input.days) params.set('days', String(input.days));
+  if (input.layer) params.set('layer', input.layer);
+  if (input.domain) params.set('domain', input.domain);
+  if (input.requirement === true || input.requirement === 'yes') params.set('requirement', 'yes');
+  if (input.requirement === false || input.requirement === 'no') params.set('requirement', 'no');
+  if (input.includeTasks === true || input.includeTasks === 'yes')
+    params.set('includeTasks', 'yes');
   return params.toString();
 }

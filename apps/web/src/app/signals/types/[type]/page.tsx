@@ -1,5 +1,5 @@
-import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
 import {
   BackLink,
   FeedList,
@@ -7,17 +7,14 @@ import {
   Panel,
   SectionHeader,
   StatGrid,
-} from "@/components/system/HighSignalUI";
-import {
-  BreadcrumbJsonLd,
-  SignalTypeTaxonomyJsonLd,
-} from "@/components/seo/structured-data";
-import { api, type SignalRow } from "@/lib/api";
-import { signalHeadline } from "@/lib/signal-format";
-import { familyForSignalType, familyLabel } from "@high-signal/shared";
-import { SITE_URL } from "@/lib/site";
+} from '@/components/system/HighSignalUI';
+import { BreadcrumbJsonLd, SignalTypeTaxonomyJsonLd } from '@/components/seo/structured-data';
+import { api, type SignalRow } from '@/lib/api';
+import { signalHeadline } from '@/lib/signal-format';
+import { familyForSignalType, familyLabel } from '@high-signal/shared';
+import { SITE_URL } from '@/lib/site';
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
 
 export async function generateMetadata({
   params,
@@ -26,7 +23,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { type } = await params;
   const family = familyForSignalType(type);
-  const human = type.replaceAll("_", " ");
+  const human = type.replaceAll('_', ' ');
   return {
     title: `${human} signals`,
     description: `Every High Signal call tagged ${human}. Family: ${familyLabel(family)}. Hit-rate, recent examples, and citation policy on one page.`,
@@ -34,16 +31,19 @@ export async function generateMetadata({
   };
 }
 
-export default async function SignalTypePage({
-  params,
-}: {
-  params: Promise<{ type: string }>;
-}) {
+export default async function SignalTypePage({ params }: { params: Promise<{ type: string }> }) {
   const { type } = await params;
   if (!/^[a-z][a-z0-9_]*$/i.test(type)) notFound();
 
   let signals: SignalRow[] = [];
-  let buckets: { signalType: string; total: number; hit: number; miss: number; push: number; hitRate: number | null }[] = [];
+  let buckets: {
+    signalType: string;
+    total: number;
+    hit: number;
+    miss: number;
+    push: number;
+    hitRate: number | null;
+  }[] = [];
 
   try {
     const data = await api.signals({ type, limit: 500 });
@@ -71,18 +71,19 @@ export default async function SignalTypePage({
   const familyTypes = buckets.filter((b) => familyForSignalType(b.signalType) === family);
   const familyHits = familyTypes.reduce((sum, b) => sum + b.hit, 0);
   const familyMisses = familyTypes.reduce((sum, b) => sum + b.miss, 0);
-  const familyHitRate = familyHits + familyMisses > 0 ? familyHits / (familyHits + familyMisses) : null;
+  const familyHitRate =
+    familyHits + familyMisses > 0 ? familyHits / (familyHits + familyMisses) : null;
 
-  const human = type.replaceAll("_", " ");
+  const human = type.replaceAll('_', ' ');
 
   return (
     <PageShell>
       <BackLink href="/signals/types">back to types</BackLink>
       <BreadcrumbJsonLd
         trail={[
-          { name: "Home", path: "/" },
-          { name: "Signals", path: "/signals" },
-          { name: "Types", path: "/signals/types" },
+          { name: 'Home', path: '/' },
+          { name: 'Signals', path: '/signals' },
+          { name: 'Types', path: '/signals/types' },
           { name: human, path: `/signals/types/${type}` },
         ]}
       />
@@ -103,37 +104,34 @@ export default async function SignalTypePage({
       <StatGrid
         items={[
           {
-            label: "all-time signals",
+            label: 'all-time signals',
             value: signals.length.toString(),
-            sub: "published only",
+            sub: 'published only',
           },
           {
-            label: "direct hit-rate",
-            value: hitRate != null ? `${Math.round(hitRate * 100)}%` : "—",
-            sub:
-              sample > 0
-                ? `${sample} scored predictions`
-                : "no scored predictions yet",
+            label: 'direct hit-rate',
+            value: hitRate != null ? `${Math.round(hitRate * 100)}%` : '—',
+            sub: sample > 0 ? `${sample} scored predictions` : 'no scored predictions yet',
           },
           {
-            label: "family hit-rate",
-            value: familyHitRate != null ? `${Math.round(familyHitRate * 100)}%` : "—",
+            label: 'family hit-rate',
+            value: familyHitRate != null ? `${Math.round(familyHitRate * 100)}%` : '—',
             sub: `${familyHits + familyMisses} across ${familyLabel(family)}`,
           },
           {
-            label: "family",
+            label: 'family',
             value: familyLabel(family),
-            sub: "see signal-families.ts for mapping",
+            sub: 'see signal-families.ts for mapping',
           },
         ]}
       />
 
       <Panel eyebrow="definition" title={`What is a ${human} signal?`}>
         <p className="mt-3 max-w-3xl text-sm leading-6 text-[var(--color-muted)]">
-          A {human} signal is any High-Signal-published call tagged{" "}
+          A {human} signal is any High-Signal-published call tagged{' '}
           <code className="text-[var(--color-fg)]">{type}</code> by the ingest pipeline. The exact
-          extraction rules live in <code className="text-[var(--color-fg)]">python/ingest</code>
-          {" "}and the family rollup in{" "}
+          extraction rules live in <code className="text-[var(--color-fg)]">python/ingest</code> and
+          the family rollup in{' '}
           <a className="text-[var(--color-accent)] hover:underline" href="/methodology">
             /methodology
           </a>

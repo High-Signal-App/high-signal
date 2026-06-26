@@ -1,9 +1,9 @@
-import Link from "next/link";
-import type { SignalRow } from "@/lib/api";
-import { signalHeadline, signalSummary } from "@/lib/signal-format";
-import { pricedInContext, pricedInTone } from "@/lib/price-context";
-import { DirectionPill } from "../atoms/DirectionPill";
-import { ConfidenceBadge } from "../atoms/ConfidenceBadge";
+import Link from 'next/link';
+import type { SignalRow } from '@/lib/api';
+import { signalHeadline, signalSummary } from '@/lib/signal-format';
+import { pricedInContext, pricedInTone } from '@/lib/price-context';
+import { DirectionPill } from '../atoms/DirectionPill';
+import { ConfidenceBadge } from '../atoms/ConfidenceBadge';
 
 export function SignalCard({ s }: { s: SignalRow }) {
   const headline = signalHeadline(s.bodyMd, s.slug);
@@ -22,14 +22,14 @@ export function SignalCard({ s }: { s: SignalRow }) {
           <span className="text-zinc-700">·</span>
           {s.contentCategory && (
             <>
-              <span>{s.contentCategory.replaceAll("-", " ")}</span>
+              <span>{s.contentCategory.replaceAll('-', ' ')}</span>
               <span className="text-zinc-700">·</span>
             </>
           )}
-          <span>{s.signalType.replaceAll("_", " ")}</span>
+          <span>{s.signalType.replaceAll('_', ' ')}</span>
         </div>
         <div className="flex shrink-0 items-center gap-3">
-          {price.status !== "unknown" ? (
+          {price.status !== 'unknown' ? (
             <span
               className={`border px-2 py-1 font-mono text-[10px] uppercase tracking-[0.16em] ${pricedInTone(price.status)}`}
               title={price.reason}
@@ -65,26 +65,23 @@ export function SignalCard({ s }: { s: SignalRow }) {
         <span>
           evidence <span className="nums text-zinc-300">{s.evidenceUrls.length}</span>
         </span>
-        {typeof s.qualityScore === "number" && (
+        {typeof s.qualityScore === 'number' && (
           <span>
             quality <span className="nums text-zinc-300">{s.qualityScore}</span>
           </span>
         )}
         {price.price ? (
           <span title={price.reason}>
-            {price.price.ticker}{" "}
-            <span className="nums text-zinc-300">
-              ${price.price.currentPrice.toFixed(2)}
-            </span>{" "}
-            / 45d{" "}
+            {price.price.ticker}{' '}
+            <span className="nums text-zinc-300">${price.price.currentPrice.toFixed(2)}</span> / 45d{' '}
             <span className="nums text-zinc-300">
               {price.price.move45d === null
-                ? "n/a"
-                : `${price.price.move45d >= 0 ? "+" : ""}${price.price.move45d.toFixed(0)}%`}
+                ? 'n/a'
+                : `${price.price.move45d >= 0 ? '+' : ''}${price.price.move45d.toFixed(0)}%`}
             </span>
           </span>
         ) : null}
-        {s.sourceClasses?.length ? <span>{s.sourceClasses.join(" / ")}</span> : null}
+        {s.sourceClasses?.length ? <span>{s.sourceClasses.join(' / ')}</span> : null}
       </div>
     </Link>
   );

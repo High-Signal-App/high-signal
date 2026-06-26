@@ -1,18 +1,18 @@
-import type { Metadata } from "next";
-import Link from "next/link";
-import type { Route } from "next";
+import type { Metadata } from 'next';
+import Link from 'next/link';
+import type { Route } from 'next';
 
 export const metadata: Metadata = {
-  title: "Explore — every surface in High Signal",
+  title: 'Explore — every surface in High Signal',
   description:
-    "Sitemap of every reachable page in High Signal — the daily brief, lenses (markets, mentions, agent eval, domains, communities, lab), settings, operator surfaces, and supporting docs.",
+    'Sitemap of every reachable page in High Signal — the daily brief, lenses (markets, mentions, agent eval, domains, communities, lab), settings, operator surfaces, and supporting docs.',
 };
 
 interface Surface {
   href: string;
   label: string;
   note: string;
-  flag?: "new" | "operator" | "admin" | "parked";
+  flag?: 'new' | 'operator' | 'admin' | 'parked';
 }
 
 interface Group {
@@ -23,103 +23,211 @@ interface Group {
 
 const GROUPS: Group[] = [
   {
-    title: "Daily Brief",
-    blurb: "The product. One synthesized brief per day, region-scoped, with cited evidence.",
+    title: 'Daily Brief',
+    blurb: 'The product. One synthesized brief per day, region-scoped, with cited evidence.',
     surfaces: [
-      { href: "/", label: "Brief (homepage)", note: "Anonymous + signed-in homepage. Five sections." },
-      { href: "/brief", label: "Brief (full surface)", note: "Same content as homepage, deep-linkable region/product." },
-      { href: "/settings/delivery", label: "Delivery preferences", note: "Email channel, timezone, region. Plan 0009.", flag: "new" },
+      {
+        href: '/',
+        label: 'Brief (homepage)',
+        note: 'Anonymous + signed-in homepage. Five sections.',
+      },
+      {
+        href: '/brief',
+        label: 'Brief (full surface)',
+        note: 'Same content as homepage, deep-linkable region/product.',
+      },
+      {
+        href: '/settings/delivery',
+        label: 'Delivery preferences',
+        note: 'Email channel, timezone, region. Plan 0009.',
+        flag: 'new',
+      },
     ],
   },
   {
-    title: "Signals + evidence",
-    blurb: "Public claims store. Every signal carries cited evidence; provenance shows why.",
+    title: 'Signals + evidence',
+    blurb: 'Public claims store. Every signal carries cited evidence; provenance shows why.',
     surfaces: [
-      { href: "/signals", label: "Signal feed", note: "All published signals with filters." },
-      { href: "/signals/today", label: "Today's signals", note: "Just today's window." },
-      { href: "/signals/types", label: "Signals by type", note: "Browse by signal type." },
-      { href: "/track-record", label: "Track record", note: "Public hit-rate ledger." },
-      { href: "/track-record/labels", label: "Track record (labels)", note: "Per-label rates: breakout vs divergence." },
-      { href: "/digest", label: "Weekly digest", note: "Curated weekly read." },
+      { href: '/signals', label: 'Signal feed', note: 'All published signals with filters.' },
+      { href: '/signals/today', label: "Today's signals", note: "Just today's window." },
+      { href: '/signals/types', label: 'Signals by type', note: 'Browse by signal type.' },
+      { href: '/track-record', label: 'Track record', note: 'Public hit-rate ledger.' },
+      {
+        href: '/track-record/labels',
+        label: 'Track record (labels)',
+        note: 'Per-label rates: breakout vs divergence.',
+      },
+      { href: '/digest', label: 'Weekly digest', note: 'Curated weekly read.' },
     ],
   },
   {
-    title: "Entities",
-    blurb: "Companies, products, sectors, and the spillover graph between them.",
+    title: 'Entities',
+    blurb: 'Companies, products, sectors, and the spillover graph between them.',
     surfaces: [
-      { href: "/entities", label: "Entity directory", note: "All entities in the graph." },
-      { href: "/sectors", label: "Sector pressure", note: "Per-sector hit rates and momentum." },
-      { href: "/watchlist/entities", label: "Watched entities", note: "Personal watchlist + impact chain. Plan 0010.", flag: "new" },
-      { href: "/convergence", label: "Convergence", note: "Multi-source clustering of fresh mentions." },
-      { href: "/unmapped", label: "Unmapped entities", note: "Surface entities seen by ingest but not in graph." },
+      { href: '/entities', label: 'Entity directory', note: 'All entities in the graph.' },
+      { href: '/sectors', label: 'Sector pressure', note: 'Per-sector hit rates and momentum.' },
+      {
+        href: '/watchlist/entities',
+        label: 'Watched entities',
+        note: 'Personal watchlist + impact chain. Plan 0010.',
+        flag: 'new',
+      },
+      {
+        href: '/convergence',
+        label: 'Convergence',
+        note: 'Multi-source clustering of fresh mentions.',
+      },
+      {
+        href: '/unmapped',
+        label: 'Unmapped entities',
+        note: 'Surface entities seen by ingest but not in graph.',
+      },
     ],
   },
   {
-    title: "Lenses",
-    blurb: "Engine-room surfaces that feed the brief.",
+    title: 'Lenses',
+    blurb: 'Engine-room surfaces that feed the brief.',
     surfaces: [
-      { href: "/markets", label: "Markets", note: "Narrow markets lens." },
-      { href: "/markets/history", label: "Markets history", note: "Historical market context." },
-      { href: "/mentions", label: "Mentions", note: "Brand mention intelligence." },
-      { href: "/agent-eval", label: "Agent Eval", note: "Agent-readiness audits + reel briefs. Sample audit at /agent-eval/sample; SEO variant at /agent-eval/seo." },
-      { href: "/domains", label: "Domains", note: "Domain rating (DR) leaderboard via the drank app." },
-      { href: "/communities", label: "Communities", note: "Tracked subreddits + digests. Parked.", flag: "parked" },
-      { href: "/lab", label: "Lab", note: "Local-first ingest substrate + ranked feed. Parked.", flag: "parked" },
+      { href: '/markets', label: 'Markets', note: 'Narrow markets lens.' },
+      { href: '/markets/history', label: 'Markets history', note: 'Historical market context.' },
+      { href: '/mentions', label: 'Mentions', note: 'Brand mention intelligence.' },
+      {
+        href: '/agent-eval',
+        label: 'Agent Eval',
+        note: 'Agent-readiness audits + reel briefs. Sample audit at /agent-eval/sample; SEO variant at /agent-eval/seo.',
+      },
+      {
+        href: '/domains',
+        label: 'Domains',
+        note: 'Domain rating (DR) leaderboard via the drank app.',
+      },
+      {
+        href: '/communities',
+        label: 'Communities',
+        note: 'Tracked subreddits + digests. Parked.',
+        flag: 'parked',
+      },
+      {
+        href: '/lab',
+        label: 'Lab',
+        note: 'Local-first ingest substrate + ranked feed. Parked.',
+        flag: 'parked',
+      },
     ],
   },
   {
-    title: "Ideas, opportunities, teardowns",
-    blurb: "Deep views that branch from the brief.",
+    title: 'Ideas, opportunities, teardowns',
+    blurb: 'Deep views that branch from the brief.',
     surfaces: [
-      { href: "/ideas", label: "Ideas", note: "Business ideas to build — surfaced from communities + tech." },
-      { href: "/opportunities", label: "Opportunities", note: "Concrete opportunities with evidence." },
-      { href: "/teardowns", label: "Teardowns", note: "Product teardowns and approved task outcomes." },
-      { href: "/featured", label: "Featured", note: "Featured selections from the editorial." },
+      {
+        href: '/ideas',
+        label: 'Ideas',
+        note: 'Business ideas to build — surfaced from communities + tech.',
+      },
+      {
+        href: '/opportunities',
+        label: 'Opportunities',
+        note: 'Concrete opportunities with evidence.',
+      },
+      {
+        href: '/teardowns',
+        label: 'Teardowns',
+        note: 'Product teardowns and approved task outcomes.',
+      },
+      { href: '/featured', label: 'Featured', note: 'Featured selections from the editorial.' },
     ],
   },
   {
-    title: "Equities",
-    blurb: "Equity snapshot pipeline. Parked as a product direction.",
+    title: 'Equities',
+    blurb: 'Equity snapshot pipeline. Parked as a product direction.',
     surfaces: [
-      { href: "/equities", label: "Equities snapshot", note: "5k-ticker rolling closes + derived fields. Parked.", flag: "parked" },
-      { href: "/backtest-workbench", label: "Backtest workbench", note: "Cohort + label backtest UI." },
-      { href: "/dashboard", label: "Dashboard", note: "Operator dashboard view." },
+      {
+        href: '/equities',
+        label: 'Equities snapshot',
+        note: '5k-ticker rolling closes + derived fields. Parked.',
+        flag: 'parked',
+      },
+      {
+        href: '/backtest-workbench',
+        label: 'Backtest workbench',
+        note: 'Cohort + label backtest UI.',
+      },
+      { href: '/dashboard', label: 'Dashboard', note: 'Operator dashboard view.' },
     ],
   },
   {
-    title: "Operator + admin",
-    blurb: "Internal surfaces and the review queue.",
+    title: 'Operator + admin',
+    blurb: 'Internal surfaces and the review queue.',
     surfaces: [
-      { href: "/review", label: "Review queue", note: "Inline claim provenance editor. Plan 0008.", flag: "operator" },
-      { href: "/review/lab-candidates", label: "Lab candidates", note: "Top Lab docs ready to become signals.", flag: "operator" },
-      { href: "/admin/delivery", label: "Delivery admin", note: "Per-day delivery counts + failure reasons. Plan 0009.", flag: "admin" },
-      { href: "/daily", label: "Daily cockpit", note: "Operator daily working view. Parked surface.", flag: "operator" },
-      { href: "/daily/history", label: "Daily history", note: "Snapshot history.", flag: "operator" },
-      { href: "/daily/sources", label: "Daily sources", note: "Source registry + diagnostics.", flag: "operator" },
-      { href: "/daily/tasks", label: "Daily tasks", note: "Requirements queue.", flag: "operator" },
-      { href: "/personal", label: "Personal brief", note: "Sarthak's command brief. Internal.", flag: "operator" },
-      { href: "/watchlist", label: "Unified watchlist", note: "Operator cross-surface action queue." },
+      {
+        href: '/review',
+        label: 'Review queue',
+        note: 'Inline claim provenance editor. Plan 0008.',
+        flag: 'operator',
+      },
+      {
+        href: '/review/lab-candidates',
+        label: 'Lab candidates',
+        note: 'Top Lab docs ready to become signals.',
+        flag: 'operator',
+      },
+      {
+        href: '/admin/delivery',
+        label: 'Delivery admin',
+        note: 'Per-day delivery counts + failure reasons. Plan 0009.',
+        flag: 'admin',
+      },
+      {
+        href: '/daily',
+        label: 'Daily cockpit',
+        note: 'Operator daily working view. Parked surface.',
+        flag: 'operator',
+      },
+      {
+        href: '/daily/history',
+        label: 'Daily history',
+        note: 'Snapshot history.',
+        flag: 'operator',
+      },
+      {
+        href: '/daily/sources',
+        label: 'Daily sources',
+        note: 'Source registry + diagnostics.',
+        flag: 'operator',
+      },
+      { href: '/daily/tasks', label: 'Daily tasks', note: 'Requirements queue.', flag: 'operator' },
+      {
+        href: '/personal',
+        label: 'Personal brief',
+        note: "Sarthak's command brief. Internal.",
+        flag: 'operator',
+      },
+      {
+        href: '/watchlist',
+        label: 'Unified watchlist',
+        note: 'Operator cross-surface action queue.',
+      },
     ],
   },
   {
-    title: "Docs + API",
-    blurb: "How High Signal works, and how to call it.",
+    title: 'Docs + API',
+    blurb: 'How High Signal works, and how to call it.',
     surfaces: [
-      { href: "/about", label: "About", note: "What High Signal is." },
-      { href: "/methodology", label: "Methodology", note: "How evidence-first scoring works." },
-      { href: "/api-docs", label: "API docs", note: "Worker API reference." },
-      { href: "/privacy", label: "Privacy", note: "Privacy policy." },
-      { href: "/terms", label: "Terms", note: "Terms of use." },
+      { href: '/about', label: 'About', note: 'What High Signal is.' },
+      { href: '/methodology', label: 'Methodology', note: 'How evidence-first scoring works.' },
+      { href: '/api-docs', label: 'API docs', note: 'Worker API reference.' },
+      { href: '/privacy', label: 'Privacy', note: 'Privacy policy.' },
+      { href: '/terms', label: 'Terms', note: 'Terms of use.' },
     ],
   },
 ];
 
-function flagLabel(flag?: Surface["flag"]): { text: string; tone: string } | null {
+function flagLabel(flag?: Surface['flag']): { text: string; tone: string } | null {
   if (!flag) return null;
-  if (flag === "new") return { text: "new", tone: "border-emerald-500/40 text-emerald-300" };
-  if (flag === "admin") return { text: "admin", tone: "border-rose-500/40 text-rose-300" };
-  if (flag === "operator") return { text: "operator", tone: "border-zinc-700 text-zinc-400" };
-  return { text: "parked", tone: "border-amber-500/40 text-amber-300" };
+  if (flag === 'new') return { text: 'new', tone: 'border-emerald-500/40 text-emerald-300' };
+  if (flag === 'admin') return { text: 'admin', tone: 'border-rose-500/40 text-rose-300' };
+  if (flag === 'operator') return { text: 'operator', tone: 'border-zinc-700 text-zinc-400' };
+  return { text: 'parked', tone: 'border-amber-500/40 text-amber-300' };
 }
 
 export default function ExplorePage() {

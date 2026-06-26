@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
 
 interface Pref {
   userId: string;
@@ -18,24 +18,41 @@ interface LogRow {
   id: string;
   channel: string;
   briefDate: string;
-  status: "queued" | "sent" | "failed" | "skipped";
+  status: 'queued' | 'sent' | 'failed' | 'skipped';
   reason: string | null;
   attempt: number;
   sentAt: string | null;
   createdAt: string;
 }
 
-const REGIONS = ["global", "na", "eu", "south-asia", "east-asia", "sea", "latam", "mena", "africa", "oceania"];
+const REGIONS = [
+  'global',
+  'na',
+  'eu',
+  'south-asia',
+  'east-asia',
+  'sea',
+  'latam',
+  'mena',
+  'africa',
+  'oceania',
+];
 
 export default function SettingsDeliveryClient() {
   const [log, setLog] = useState<LogRow[]>([]);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const [draft, setDraft] = useState<{ enabled: boolean; region: string; timezone: string; localWindowStart: string }>({
+  const [draft, setDraft] = useState<{
+    enabled: boolean;
+    region: string;
+    timezone: string;
+    localWindowStart: string;
+  }>({
     enabled: true,
-    region: "global",
-    timezone: typeof Intl !== "undefined" ? Intl.DateTimeFormat().resolvedOptions().timeZone : "UTC",
-    localWindowStart: "07:00",
+    region: 'global',
+    timezone:
+      typeof Intl !== 'undefined' ? Intl.DateTimeFormat().resolvedOptions().timeZone : 'UTC',
+    localWindowStart: '07:00',
   });
 
   useEffect(() => {
@@ -44,10 +61,10 @@ export default function SettingsDeliveryClient() {
 
   async function load() {
     try {
-      const p = await fetch("/api/delivery/preferences", { credentials: "include" });
+      const p = await fetch('/api/delivery/preferences', { credentials: 'include' });
       if (p.ok) {
         const j = (await p.json()) as { preferences: Pref[] };
-        const email = j.preferences.find((x) => x.channel === "email");
+        const email = j.preferences.find((x) => x.channel === 'email');
         if (email) {
           setDraft({
             enabled: email.enabled,
@@ -57,7 +74,7 @@ export default function SettingsDeliveryClient() {
           });
         }
       }
-      const l = await fetch("/api/delivery/log", { credentials: "include" });
+      const l = await fetch('/api/delivery/log', { credentials: 'include' });
       if (l.ok) {
         const j = (await l.json()) as { log: LogRow[] };
         setLog(j.log);
@@ -71,11 +88,11 @@ export default function SettingsDeliveryClient() {
     setBusy(true);
     setErr(null);
     try {
-      const r = await fetch("/api/delivery/preferences", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ channel: "email", ...draft }),
+      const r = await fetch('/api/delivery/preferences', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ channel: 'email', ...draft }),
       });
       if (!r.ok) setErr(`save ${r.status}`);
       else await load();
@@ -88,18 +105,18 @@ export default function SettingsDeliveryClient() {
     setBusy(true);
     setErr(null);
     try {
-      const r = await fetch("/api/delivery/test", {
-        method: "POST",
-        credentials: "include",
+      const r = await fetch('/api/delivery/test', {
+        method: 'POST',
+        credentials: 'include',
       });
       if (!r.ok) setErr(`test ${r.status}`);
-      else alert("test queued — check your inbox");
+      else alert('test queued — check your inbox');
     } finally {
       setBusy(false);
     }
   }
 
-  const recentFailed = log.find((l) => l.status === "failed");
+  const recentFailed = log.find((l) => l.status === 'failed');
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-16">
@@ -123,12 +140,14 @@ export default function SettingsDeliveryClient() {
       )}
       {recentFailed && (
         <div className="mt-4 border border-amber-500/40 bg-amber-500/[0.03] p-3 font-mono text-[11px] text-amber-300">
-          last delivery failed ({recentFailed.briefDate}): {recentFailed.reason ?? "unknown"}
+          last delivery failed ({recentFailed.briefDate}): {recentFailed.reason ?? 'unknown'}
         </div>
       )}
 
       <section className="mt-8 border border-zinc-800 p-5">
-        <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">email channel</div>
+        <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">
+          email channel
+        </div>
         <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
           <label className="flex items-center gap-2">
             <input
@@ -140,7 +159,9 @@ export default function SettingsDeliveryClient() {
             <span className="text-sm text-zinc-200">enabled</span>
           </label>
           <label className="flex flex-col gap-1">
-            <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">region</span>
+            <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
+              region
+            </span>
             <select
               value={draft.region}
               onChange={(e) => setDraft({ ...draft, region: e.target.value })}
@@ -154,7 +175,9 @@ export default function SettingsDeliveryClient() {
             </select>
           </label>
           <label className="flex flex-col gap-1">
-            <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">timezone</span>
+            <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
+              timezone
+            </span>
             <input
               value={draft.timezone}
               onChange={(e) => setDraft({ ...draft, timezone: e.target.value })}
@@ -162,7 +185,9 @@ export default function SettingsDeliveryClient() {
             />
           </label>
           <label className="flex flex-col gap-1">
-            <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">window start (HH:MM local)</span>
+            <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
+              window start (HH:MM local)
+            </span>
             <input
               value={draft.localWindowStart}
               onChange={(e) => setDraft({ ...draft, localWindowStart: e.target.value })}
@@ -200,19 +225,22 @@ export default function SettingsDeliveryClient() {
         )}
         <ul className="mt-4 space-y-1 font-mono text-[10px]">
           {log.map((l) => (
-            <li key={l.id} className="flex items-center justify-between gap-4 border-b border-zinc-900 py-2">
+            <li
+              key={l.id}
+              className="flex items-center justify-between gap-4 border-b border-zinc-900 py-2"
+            >
               <span className="text-zinc-500">
                 {l.briefDate} · {l.channel}
               </span>
               <span
                 className={
-                  l.status === "sent"
-                    ? "text-emerald-400"
-                    : l.status === "failed"
-                      ? "text-rose-400"
-                      : l.status === "skipped"
-                        ? "text-zinc-500"
-                        : "text-zinc-300"
+                  l.status === 'sent'
+                    ? 'text-emerald-400'
+                    : l.status === 'failed'
+                      ? 'text-rose-400'
+                      : l.status === 'skipped'
+                        ? 'text-zinc-500'
+                        : 'text-zinc-300'
                 }
               >
                 {l.status}

@@ -1,7 +1,7 @@
-import type { NextRequest } from "next/server";
-import { requireSignedIn } from "@/lib/require-auth";
+import type { NextRequest } from 'next/server';
+import { requireSignedIn } from '@/lib/require-auth';
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
 
 /**
  * Hands the operator a pre-filled signal markdown file derived from a Lab
@@ -13,9 +13,9 @@ export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
   await requireSignedIn();
   const url = new URL(request.url);
-  const id = url.searchParams.get("id") ?? "";
-  const sourceUrl = url.searchParams.get("url") ?? "";
-  const title = (url.searchParams.get("title") ?? "untitled candidate").trim();
+  const id = url.searchParams.get('id') ?? '';
+  const sourceUrl = url.searchParams.get('url') ?? '';
+  const title = (url.searchParams.get('title') ?? 'untitled candidate').trim();
 
   const today = new Date().toISOString().slice(0, 10);
   const slug = slugify(title) || `lab-${id || Date.now()}`;
@@ -24,8 +24,8 @@ export async function GET(request: NextRequest) {
   return new Response(markdown, {
     status: 200,
     headers: {
-      "Content-Type": "text/markdown; charset=utf-8",
-      "Content-Disposition": `attachment; filename="${today}-${slug}.md"`,
+      'Content-Type': 'text/markdown; charset=utf-8',
+      'Content-Disposition': `attachment; filename="${today}-${slug}.md"`,
     },
   });
 }
@@ -33,13 +33,18 @@ export async function GET(request: NextRequest) {
 function slugify(value: string): string {
   return value
     .toLowerCase()
-    .replace(/[^\w\s-]+/g, "")
+    .replace(/[^\w\s-]+/g, '')
     .trim()
-    .replace(/\s+/g, "-")
+    .replace(/\s+/g, '-')
     .slice(0, 64);
 }
 
-function template(input: { slug: string; title: string; sourceUrl: string; today: string }): string {
+function template(input: {
+  slug: string;
+  title: string;
+  sourceUrl: string;
+  today: string;
+}): string {
   return `---
 slug: ${input.slug}
 signal_type: TODO_FILL_IN
@@ -49,7 +54,7 @@ confidence: low
 predicted_window_days: 14
 published_at: ${input.today}T12:00:00Z
 evidence_urls:
-  - ${input.sourceUrl || "TODO_PRIMARY_SOURCE_URL"}
+  - ${input.sourceUrl || 'TODO_PRIMARY_SOURCE_URL'}
   - TODO_SECONDARY_SOURCE_URL
 spillover_entity_ids: []
 supersedes: null
@@ -73,7 +78,7 @@ in the predicted window?)
 
 ## Evidence
 
-- ${input.sourceUrl || "PRIMARY"} — what this confirms
+- ${input.sourceUrl || 'PRIMARY'} — what this confirms
 - SECONDARY — what this corroborates
 
 ## Spillover

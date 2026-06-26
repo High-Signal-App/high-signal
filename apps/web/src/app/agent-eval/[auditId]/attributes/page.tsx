@@ -1,8 +1,8 @@
-import { api } from "@/lib/api";
-import { requireSignedIn } from "@/lib/require-auth";
+import { api } from '@/lib/api';
+import { requireSignedIn } from '@/lib/require-auth';
 
-export const dynamic = "force-dynamic";
-export const metadata = { title: "Attributes — Agent Eval" };
+export const dynamic = 'force-dynamic';
+export const metadata = { title: 'Attributes — Agent Eval' };
 
 export default async function AgentEvalAttributesPage({
   params,
@@ -12,7 +12,7 @@ export default async function AgentEvalAttributesPage({
   const { userId, orgId } = await requireSignedIn();
   const ownerId = orgId ?? userId;
   const { auditId } = await params;
-  let attributes: Awaited<ReturnType<typeof api.agentEvalAttributes>>["attributes"] = [];
+  let attributes: Awaited<ReturnType<typeof api.agentEvalAttributes>>['attributes'] = [];
   try {
     const r = await api.agentEvalAttributes(ownerId, auditId);
     attributes = r.attributes;
@@ -45,23 +45,23 @@ export default async function AgentEvalAttributesPage({
             <li key={a.area} className="border border-zinc-800 p-4">
               <div className="flex items-baseline justify-between gap-2">
                 <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
-                  {a.area.replaceAll("_", " ")}
+                  {a.area.replaceAll('_', ' ')}
                 </span>
                 <span
                   className={`border px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.18em] ${
-                    a.status === "strong"
-                      ? "border-emerald-500/40 text-emerald-300"
-                      : a.status === "clear"
-                        ? "border-cyan-500/40 text-cyan-300"
-                        : a.status === "weak"
-                          ? "border-amber-500/40 text-amber-300"
-                          : "border-rose-500/40 text-rose-300"
+                    a.status === 'strong'
+                      ? 'border-emerald-500/40 text-emerald-300'
+                      : a.status === 'clear'
+                        ? 'border-cyan-500/40 text-cyan-300'
+                        : a.status === 'weak'
+                          ? 'border-amber-500/40 text-amber-300'
+                          : 'border-rose-500/40 text-rose-300'
                   }`}
                 >
                   {a.status}
                 </span>
               </div>
-              <p className="mt-2 text-sm text-zinc-300">{a.notes || "no notes"}</p>
+              <p className="mt-2 text-sm text-zinc-300">{a.notes || 'no notes'}</p>
               {a.evidenceUrls.length > 0 && (
                 <ul className="mt-3 space-y-1 font-mono text-[10px]">
                   {a.evidenceUrls.slice(0, 5).map((u) => (
@@ -80,7 +80,7 @@ export default async function AgentEvalAttributesPage({
               )}
               {a.taskCount > 0 && (
                 <div className="mt-3 font-mono text-[10px] uppercase tracking-[0.18em] text-rose-300">
-                  {a.taskCount} open task{a.taskCount === 1 ? "" : "s"}
+                  {a.taskCount} open task{a.taskCount === 1 ? '' : 's'}
                 </div>
               )}
             </li>

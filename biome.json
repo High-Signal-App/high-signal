@@ -19,7 +19,9 @@
       "!**/.storybook",
       "!signals/**",
       "!python/**",
-      "!packages/db/migrations/**"
+      "!packages/db/migrations/**",
+      "!**/*.css",
+      "!**/*.svg"
     ]
   },
   "formatter": {
@@ -37,6 +39,14 @@
       "jsxQuoteStyle": "double"
     }
   },
-  "linter": { "enabled": true, "rules": { "recommended": true } },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "a11y": { "useButtonType": "warn" },
+      "correctness": { "useExhaustiveDependencies": "warn" },
+      "suspicious": { "noArrayIndexKey": "warn" }
+    }
+  },
   "assist": { "enabled": true, "actions": { "source": { "organizeImports": "off" } } }
 }

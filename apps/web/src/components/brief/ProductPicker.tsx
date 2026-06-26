@@ -1,12 +1,12 @@
-"use client";
+'use client';
 
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import type { Route } from "next";
-import { SEED_PRODUCTS, type SeedProduct } from "@high-signal/shared";
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import type { Route } from 'next';
+import { SEED_PRODUCTS, type SeedProduct } from '@high-signal/shared';
 
 export function ProductPicker({ active }: { active: string }) {
   const router = useRouter();
-  const pathname = usePathname() ?? "/";
+  const pathname = usePathname() ?? '/';
   const searchParams = useSearchParams();
 
   return (
@@ -17,10 +17,10 @@ export function ProductPicker({ active }: { active: string }) {
         onChange={(event) => {
           const params = new URLSearchParams(searchParams ?? undefined);
           const next = event.target.value;
-          if (!next || next === "spotlight") {
-            params.delete("product");
+          if (!next || next === 'spotlight') {
+            params.delete('product');
           } else {
-            params.set("product", next);
+            params.set('product', next);
           }
           const query = params.toString();
           const href = (query ? `${pathname}?${query}` : pathname) as Route;
@@ -29,7 +29,7 @@ export function ProductPicker({ active }: { active: string }) {
         className="border border-[var(--color-line)] bg-[var(--color-bg)] px-2 py-1 text-[var(--color-fg)] outline-none focus:border-[var(--color-accent)]"
       >
         <option value="spotlight">spotlight (rotating)</option>
-        {(["technology", "startups", "finance"] as const).map((domain) => (
+        {(['technology', 'startups', 'finance'] as const).map((domain) => (
           <optgroup key={domain} label={domain}>
             {SEED_PRODUCTS.filter((p: SeedProduct) => p.domain === domain).map((p) => (
               <option key={p.id} value={p.id}>

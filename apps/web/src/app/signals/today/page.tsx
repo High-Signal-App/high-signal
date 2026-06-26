@@ -1,8 +1,8 @@
-import { api, type SignalRow } from "@/lib/api";
-import { isBackfillSignal } from "@/lib/signal-format";
-import { SignalCard } from "@/components/molecules/SignalCard";
-import { BackLink, PageShell } from "@/components/system/HighSignalUI";
-import { assessSignalQuality, type SignalContentCategory } from "@high-signal/shared";
+import { api, type SignalRow } from '@/lib/api';
+import { isBackfillSignal } from '@/lib/signal-format';
+import { SignalCard } from '@/components/molecules/SignalCard';
+import { BackLink, PageShell } from '@/components/system/HighSignalUI';
+import { assessSignalQuality, type SignalContentCategory } from '@high-signal/shared';
 import {
   dailyReadMatches,
   dailyReadQuery,
@@ -11,8 +11,8 @@ import {
   READ_SIGNAL_LAYERS,
   safeReadDomain,
   safeReadLayer,
-} from "@/lib/daily-read-filters";
-import { DAILY_REQUIREMENT_GATE, buildDailyRequirementQueue } from "@/lib/daily-requirements";
+} from '@/lib/daily-read-filters';
+import { DAILY_REQUIREMENT_GATE, buildDailyRequirementQueue } from '@/lib/daily-requirements';
 import {
   buildDailyAutomationStatus,
   buildDailyBroadInsightsWithAnnotations,
@@ -23,29 +23,29 @@ import {
   DAILY_INTELLIGENCE_LAYER,
   defaultDailyAnnotationOptions,
   readSourceRefreshes,
-} from "@/lib/daily-intelligence";
-import productGraph from "../../../../../../data/personal-product-graph.json";
-import type { PersonalProductProfile } from "@high-signal/shared";
+} from '@/lib/daily-intelligence';
+import productGraph from '../../../../../../data/personal-product-graph.json';
+import type { PersonalProductProfile } from '@high-signal/shared';
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
 export const metadata = {
-  title: "Today — High Signal",
+  title: 'Today — High Signal',
   description:
-    "Signals published in the last 24 hours, sorted by confidence. The morning-coffee surface for analysts who only have time for the freshest reads.",
+    'Signals published in the last 24 hours, sorted by confidence. The morning-coffee surface for analysts who only have time for the freshest reads.',
 };
 
 const CONFIDENCE_RANK: Record<string, number> = { high: 0, medium: 1, low: 2 };
 const CATEGORY_LABELS: Record<SignalContentCategory, string> = {
-  "ai-infra": "AI infra",
-  "market-pulse": "market pulse",
-  "product-opportunity": "product opportunities",
-  "customer-complaint": "customer complaints",
-  "startup-move": "startup moves",
-  "regional-issue": "regional issues",
-  "agent-evaluation": "agent evaluation",
-  "policy-regulatory": "policy / regulatory",
-  "security-risk": "security risk",
-  "company-event": "company events",
+  'ai-infra': 'AI infra',
+  'market-pulse': 'market pulse',
+  'product-opportunity': 'product opportunities',
+  'customer-complaint': 'customer complaints',
+  'startup-move': 'startup moves',
+  'regional-issue': 'regional issues',
+  'agent-evaluation': 'agent evaluation',
+  'policy-regulatory': 'policy / regulatory',
+  'security-risk': 'security risk',
+  'company-event': 'company events',
 };
 function utcDate(d = new Date()) {
   return d.toISOString().slice(0, 10);
@@ -85,14 +85,20 @@ function countBy(values: string[]) {
 export default async function SignalsTodayPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ date?: string; category?: string; layer?: string; domain?: string; requirement?: string }>;
+  searchParams?: Promise<{
+    date?: string;
+    category?: string;
+    layer?: string;
+    domain?: string;
+    requirement?: string;
+  }>;
 }) {
   const params = (await searchParams) ?? {};
   const selectedDate = safeDate(params.date);
-  const selectedCategory = (params.category || "") as SignalContentCategory | "";
+  const selectedCategory = (params.category || '') as SignalContentCategory | '';
   const selectedLayer = safeReadLayer(params.layer);
   const selectedDomain = safeReadDomain(params.domain);
-  const selectedRequirement = params.requirement === "yes";
+  const selectedRequirement = params.requirement === 'yes';
   const readFilters = {
     category: selectedCategory,
     layer: selectedLayer,
@@ -112,7 +118,7 @@ export default async function SignalsTodayPage({
   const allBroadInsights = await buildDailyBroadInsightsWithAnnotations(
     refreshes,
     sourceReadDate,
-    defaultDailyAnnotationOptions(),
+    defaultDailyAnnotationOptions()
   );
 
   const today = (hasReadFilter ? [] : all)
@@ -133,21 +139,25 @@ export default async function SignalsTodayPage({
           layer: selectedLayer,
           domain: selectedDomain,
           requirement: selectedRequirement,
-        }),
+        })
       )
       .map((item) => item.contentCategory),
   ]);
   const layerCounts = countBy(allBroadInsights.map((item) => item.annotation.signalLayer));
   const domainCounts = countBy(allBroadInsights.flatMap((item) => item.annotation.domains));
   const audienceCounts = countBy(broadInsights.map((item) => item.annotation.audience));
-  const requirementTypeCounts = countBy(broadInsights.map((item) => item.annotation.requirementType));
-  const qualityGateCounts = countBy(broadInsights.map((item) => item.annotation.qualityGate.status));
+  const requirementTypeCounts = countBy(
+    broadInsights.map((item) => item.annotation.requirementType)
+  );
+  const qualityGateCounts = countBy(
+    broadInsights.map((item) => item.annotation.qualityGate.status)
+  );
   const quality = today.map(signalQuality);
   const usable =
     quality.filter((item) => item.publishable).length +
     broadInsights.filter((item) => item.qualityScore >= 45).length;
   const strong =
-    quality.filter((item) => item.band === "strong").length +
+    quality.filter((item) => item.band === 'strong').length +
     broadInsights.filter((item) => item.qualityScore >= 70).length;
   const evidenceCount =
     today.reduce((sum, signal) => sum + signal.evidenceUrls.length, 0) +
@@ -167,16 +177,16 @@ export default async function SignalsTodayPage({
       <header className="mt-3 border-b border-zinc-800 pb-6">
         <h1 className="text-3xl font-medium tracking-tight sm:text-4xl">Daily read</h1>
         <p className="mt-3 max-w-3xl text-sm leading-6 text-zinc-500">
-          Fresh signals and source-linked reads for one day. Use this page to see what changed,
-          why it matters, and which items should turn into product work.
+          Fresh signals and source-linked reads for one day. Use this page to see what changed, why
+          it matters, and which items should turn into product work.
         </p>
         <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
-          {selectedDate} · {totalItems} item{totalItems === 1 ? "" : "s"} · signals{" "}
-          {today.length} · reads {broadInsights.length}
+          {selectedDate} · {totalItems} item{totalItems === 1 ? '' : 's'} · signals {today.length} ·
+          reads {broadInsights.length}
         </p>
         {sourceDateShifted ? (
           <p className="mt-3 text-sm leading-6 text-zinc-500">
-            No accepted source-read snapshot exists for {selectedDate}; showing reads from{" "}
+            No accepted source-read snapshot exists for {selectedDate}; showing reads from{' '}
             {sourceReadDate}.
           </p>
         ) : null}
@@ -241,7 +251,7 @@ export default async function SignalsTodayPage({
           requirement
           <select
             className="border border-zinc-800 bg-black px-3 py-2 text-sm text-zinc-100 outline-none focus:border-[var(--color-accent)]"
-            defaultValue={selectedRequirement ? "yes" : ""}
+            defaultValue={selectedRequirement ? 'yes' : ''}
             name="requirement"
           >
             <option value="">all</option>
@@ -258,11 +268,14 @@ export default async function SignalsTodayPage({
 
       <section className="mt-6 grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-px border border-zinc-800 bg-zinc-800">
         {[
-          ["useful", `${usable}/${totalItems}`],
-          ["strong reads", strong.toString()],
-          ["evidence", evidenceCount.toString()],
-          ["tasks", taskExportCount.toString()],
-          ["source health", `${sourceQualityAudit.acceptedSnapshots} ok / ${sourceQualityAudit.rejectedSnapshots} rejected / ${sourceQualityAudit.missingSources} missing`],
+          ['useful', `${usable}/${totalItems}`],
+          ['strong reads', strong.toString()],
+          ['evidence', evidenceCount.toString()],
+          ['tasks', taskExportCount.toString()],
+          [
+            'source health',
+            `${sourceQualityAudit.acceptedSnapshots} ok / ${sourceQualityAudit.rejectedSnapshots} rejected / ${sourceQualityAudit.missingSources} missing`,
+          ],
         ].map(([label, value]) => (
           <div key={label} className="bg-black p-4">
             <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
@@ -283,12 +296,12 @@ export default async function SignalsTodayPage({
         </p>
         <div className="mt-4 grid gap-px border border-zinc-800 bg-zinc-800 sm:grid-cols-6">
           {[
-            ["configured", coverage.configuredSources.toString()],
-            ["accepted", coverage.acceptedSnapshots.toString()],
-            ["rejected", sourceQualityAudit.rejectedSnapshots.toString()],
-            ["missing", sourceQualityAudit.missingSources.toString()],
-            ["underlying items", coverage.underlyingItems.toString()],
-            ["latest refresh", coverage.latestRefreshDate ?? "none"],
+            ['configured', coverage.configuredSources.toString()],
+            ['accepted', coverage.acceptedSnapshots.toString()],
+            ['rejected', sourceQualityAudit.rejectedSnapshots.toString()],
+            ['missing', sourceQualityAudit.missingSources.toString()],
+            ['underlying items', coverage.underlyingItems.toString()],
+            ['latest refresh', coverage.latestRefreshDate ?? 'none'],
           ].map(([label, value]) => (
             <div key={label} className="bg-black p-4">
               <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
@@ -302,13 +315,15 @@ export default async function SignalsTodayPage({
           <div>
             <div className="font-mono uppercase tracking-[0.18em] text-zinc-600">configured</div>
             <div className="mt-1 font-mono">
-              {coverage.configuredByType.map(({ k, n }) => `${k} ${n}`).join(" / ")}
+              {coverage.configuredByType.map(({ k, n }) => `${k} ${n}`).join(' / ')}
             </div>
           </div>
           <div>
-            <div className="font-mono uppercase tracking-[0.18em] text-zinc-600">accepted latest</div>
+            <div className="font-mono uppercase tracking-[0.18em] text-zinc-600">
+              accepted latest
+            </div>
             <div className="mt-1 font-mono">
-              {coverage.acceptedByType.map(({ k, n }) => `${k} ${n}`).join(" / ") || "none"}
+              {coverage.acceptedByType.map(({ k, n }) => `${k} ${n}`).join(' / ') || 'none'}
             </div>
           </div>
         </div>
@@ -318,24 +333,31 @@ export default async function SignalsTodayPage({
           </div>
           <div className="mt-2 grid gap-4 text-xs leading-6 text-zinc-500 sm:grid-cols-2">
             <div>
-              <div className="font-mono uppercase tracking-[0.18em] text-zinc-600">reject reasons</div>
+              <div className="font-mono uppercase tracking-[0.18em] text-zinc-600">
+                reject reasons
+              </div>
               <div className="mt-1 font-mono">
-                {sourceQualityAudit.rejectedReasons.map(({ k, n }) => `${k.replaceAll("-", " ")} ${n}`).join(" / ") || "none"}
+                {sourceQualityAudit.rejectedReasons
+                  .map(({ k, n }) => `${k.replaceAll('-', ' ')} ${n}`)
+                  .join(' / ') || 'none'}
               </div>
             </div>
             <div>
               <div className="font-mono uppercase tracking-[0.18em] text-zinc-600">by class</div>
               <div className="mt-1 font-mono">
                 {sourceQualityAudit.statusByClass
-                  .map(({ k, accepted, rejected, missing }) => `${k} ${accepted}/${rejected}/${missing}`)
-                  .join(" / ")}
+                  .map(
+                    ({ k, accepted, rejected, missing }) =>
+                      `${k} ${accepted}/${rejected}/${missing}`
+                  )
+                  .join(' / ')}
               </div>
             </div>
           </div>
           {sourceQualityAudit.rejectedSnapshots > 0 ? (
             <div className="mt-4 divide-y divide-zinc-900 border-t border-zinc-900">
               {sourceQualityAudit.rows
-                .filter((row) => row.status === "rejected")
+                .filter((row) => row.status === 'rejected')
                 .slice(0, 4)
                 .map((row) => (
                   <div key={row.sourceId} className="py-3">
@@ -343,7 +365,7 @@ export default async function SignalsTodayPage({
                       rejected / {row.sourceClass} / {row.label}
                     </div>
                     <div className="mt-1 text-xs leading-5 text-zinc-500">
-                      {row.reasons.map((reason) => reason.replaceAll("-", " ")).join(" / ")}
+                      {row.reasons.map((reason) => reason.replaceAll('-', ' ')).join(' / ')}
                     </div>
                   </div>
                 ))}
@@ -360,7 +382,7 @@ export default async function SignalsTodayPage({
                   <div className="mt-1 text-xs leading-5 text-zinc-500">{action.detail}</div>
                   {action.affectedSources.length > 0 ? (
                     <div className="mt-2 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-600">
-                      {action.affectedSources.join(" / ")}
+                      {action.affectedSources.join(' / ')}
                     </div>
                   ) : null}
                 </div>
@@ -373,15 +395,16 @@ export default async function SignalsTodayPage({
             intelligence layer
           </div>
           <div className="mt-2 font-mono text-[11px] leading-6 text-zinc-500">
-            active {annotationRuntime.activePath.replaceAll("-", " ")} ·{" "}
+            active {annotationRuntime.activePath.replaceAll('-', ' ')} ·{' '}
             {DAILY_INTELLIGENCE_LAYER.broadReadAnnotation.method} · model none · no LLM · HF batch
             available but off by default
           </div>
           <div className="mt-2 font-mono text-[11px] leading-6 text-zinc-500">
-            automation {automationStatus.workflow} · {automationStatus.schedule} ·{" "}
-            {automationStatus.freshnessStatus} · latest accepted{" "}
-            {automationStatus.latestAcceptedDate ?? "none"} · accepted {automationStatus.acceptedSnapshots} / rejected{" "}
-            {automationStatus.rejectedSnapshots} / missing {automationStatus.missingSources}
+            automation {automationStatus.workflow} · {automationStatus.schedule} ·{' '}
+            {automationStatus.freshnessStatus} · latest accepted{' '}
+            {automationStatus.latestAcceptedDate ?? 'none'} · accepted{' '}
+            {automationStatus.acceptedSnapshots} / rejected {automationStatus.rejectedSnapshots} /
+            missing {automationStatus.missingSources}
           </div>
           <a
             className="mt-2 block font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-accent)] hover:underline"
@@ -397,9 +420,21 @@ export default async function SignalsTodayPage({
           </a>
           <div className="mt-3 grid gap-4 text-xs leading-6 text-zinc-500 sm:grid-cols-3">
             {[
-              ["audience", audienceCounts.map(([k, n]) => `${k.replaceAll("-", " ")} ${n}`).join(" / ") || "none"],
-              ["requirement type", requirementTypeCounts.map(([k, n]) => `${k.replaceAll("-", " ")} ${n}`).join(" / ") || "none"],
-              ["content gate", qualityGateCounts.map(([k, n]) => `${k} ${n}`).join(" / ") || "none"],
+              [
+                'audience',
+                audienceCounts.map(([k, n]) => `${k.replaceAll('-', ' ')} ${n}`).join(' / ') ||
+                  'none',
+              ],
+              [
+                'requirement type',
+                requirementTypeCounts
+                  .map(([k, n]) => `${k.replaceAll('-', ' ')} ${n}`)
+                  .join(' / ') || 'none',
+              ],
+              [
+                'content gate',
+                qualityGateCounts.map(([k, n]) => `${k} ${n}`).join(' / ') || 'none',
+              ],
             ].map(([label, value]) => (
               <div key={label}>
                 <div className="font-mono uppercase tracking-[0.18em] text-zinc-600">{label}</div>
@@ -413,18 +448,19 @@ export default async function SignalsTodayPage({
       {categories.length > 0 ? (
         <nav className="mt-4 flex flex-wrap gap-2 font-mono text-[10px] uppercase tracking-[0.18em]">
           <a
-            className={`border px-2.5 py-1 ${!selectedCategory ? "border-[var(--color-accent)] text-[var(--color-accent)]" : "border-zinc-800 text-zinc-500 hover:text-zinc-200"}`}
+            className={`border px-2.5 py-1 ${!selectedCategory ? 'border-[var(--color-accent)] text-[var(--color-accent)]' : 'border-zinc-800 text-zinc-500 hover:text-zinc-200'}`}
             href={`/signals/today?${dailyReadQuery({ date: selectedDate, layer: selectedLayer, domain: selectedDomain, requirement: selectedRequirement })}`}
           >
             all {allItemsCount}
           </a>
           {categories.map(([category, count]) => (
             <a
-              className={`border px-2.5 py-1 ${selectedCategory === category ? "border-[var(--color-accent)] text-[var(--color-accent)]" : "border-zinc-800 text-zinc-500 hover:text-zinc-200"}`}
+              className={`border px-2.5 py-1 ${selectedCategory === category ? 'border-[var(--color-accent)] text-[var(--color-accent)]' : 'border-zinc-800 text-zinc-500 hover:text-zinc-200'}`}
               href={`/signals/today?${dailyReadQuery({ date: selectedDate, category, layer: selectedLayer, domain: selectedDomain, requirement: selectedRequirement })}`}
               key={category}
             >
-              {(CATEGORY_LABELS[category as SignalContentCategory] ?? category).toLowerCase()} {count}
+              {(CATEGORY_LABELS[category as SignalContentCategory] ?? category).toLowerCase()}{' '}
+              {count}
             </a>
           ))}
         </nav>
@@ -449,7 +485,7 @@ export default async function SignalsTodayPage({
                       requirement: true,
                     })}`}
                   >
-                    open {taskExportCount} task{taskExportCount === 1 ? "" : "s"}
+                    open {taskExportCount} task{taskExportCount === 1 ? '' : 's'}
                   </a>
                   <a
                     className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500 hover:text-[var(--color-accent)]"
@@ -487,8 +523,8 @@ export default async function SignalsTodayPage({
                   task selection rule
                 </summary>
                 <div className="mt-2 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-600">
-                  gate score {DAILY_REQUIREMENT_GATE.minScore}+ / sources{" "}
-                  {DAILY_REQUIREMENT_GATE.minSourceCount}+ / repeats{" "}
+                  gate score {DAILY_REQUIREMENT_GATE.minScore}+ / sources{' '}
+                  {DAILY_REQUIREMENT_GATE.minSourceCount}+ / repeats{' '}
                   {DAILY_REQUIREMENT_GATE.minRepeatedSignalCount}+ / build-change only
                 </div>
               </details>
@@ -502,7 +538,7 @@ export default async function SignalsTodayPage({
                       <span className="text-zinc-700">·</span>
                       <span>{item.suggestedBuild}</span>
                       <span className="text-zinc-700">·</span>
-                      <span>{item.domains.join("/") || "no domain"}</span>
+                      <span>{item.domains.join('/') || 'no domain'}</span>
                     </div>
                     <a
                       className="mt-2 block text-base font-medium leading-snug text-zinc-100 hover:text-[var(--color-accent)]"
@@ -514,7 +550,7 @@ export default async function SignalsTodayPage({
                     {item.fleetTarget ? (
                       <div className="mt-3 border border-zinc-900 p-3">
                         <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-600">
-                          target {item.fleetTarget.action} / {item.fleetTarget.productName} / fit{" "}
+                          target {item.fleetTarget.action} / {item.fleetTarget.productName} / fit{' '}
                           {item.fleetTarget.fitScore}
                         </div>
                         <div className="mt-1 text-xs leading-5 text-zinc-500">
@@ -524,8 +560,8 @@ export default async function SignalsTodayPage({
                     ) : null}
                     {item.taskDraft ? (
                       <div className="mt-3 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-600">
-                        task draft / {item.taskDraft.saasMakerProjectSlug} / {item.taskDraft.status} /{" "}
-                        {item.taskDraft.priority}
+                        task draft / {item.taskDraft.saasMakerProjectSlug} / {item.taskDraft.status}{' '}
+                        / {item.taskDraft.priority}
                       </div>
                     ) : null}
                     <details className="mt-3 text-xs leading-5 text-zinc-500">
@@ -534,11 +570,15 @@ export default async function SignalsTodayPage({
                       </summary>
                       <div className="mt-3 grid gap-2 sm:grid-cols-2">
                         <div>
-                          <span className="font-mono uppercase tracking-[0.16em] text-zinc-600">artifact</span>{" "}
+                          <span className="font-mono uppercase tracking-[0.16em] text-zinc-600">
+                            artifact
+                          </span>{' '}
                           {item.validationArtifact}
                         </div>
                         <div>
-                          <span className="font-mono uppercase tracking-[0.16em] text-zinc-600">test</span>{" "}
+                          <span className="font-mono uppercase tracking-[0.16em] text-zinc-600">
+                            test
+                          </span>{' '}
                           {item.smallestTest}
                         </div>
                       </div>
@@ -546,7 +586,7 @@ export default async function SignalsTodayPage({
                       <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-600">
                         {item.scoreBreakdown.map((part) => (
                           <span key={part.label}>
-                            {part.label.replaceAll("-", " ")} {part.contribution}/{part.max}
+                            {part.label.replaceAll('-', ' ')} {part.contribution}/{part.max}
                           </span>
                         ))}
                       </div>
@@ -574,22 +614,24 @@ export default async function SignalsTodayPage({
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
                   <span>{item.sourceLabel}</span>
                   <span className="text-zinc-700">·</span>
-                  <span>{item.contentCategory.replaceAll("-", " ")}</span>
+                  <span>{item.contentCategory.replaceAll('-', ' ')}</span>
                   <span className="text-zinc-700">·</span>
                   <span>{item.confidence}</span>
                   <span className="text-zinc-700">·</span>
                   <span>quality {item.qualityScore}</span>
                 </div>
-                <div className="mt-2 text-lg font-medium leading-snug text-zinc-100">{item.title}</div>
+                <div className="mt-2 text-lg font-medium leading-snug text-zinc-100">
+                  {item.title}
+                </div>
                 <p className="mt-2 max-w-3xl text-sm leading-6 text-zinc-500">{item.summary}</p>
                 <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-600">
                   <span>sources {item.sourceCount}</span>
                   <span>repeats {item.repeatedSignalCount}</span>
-                  <span>layer {item.annotation.signalLayer.replaceAll("-", " ")}</span>
-                  <span>domains {item.annotation.domains.join("/") || "none"}</span>
-                  <span>requirement {item.annotation.productRequirement ? "yes" : "no"}</span>
-                  <span>audience {item.annotation.audience.replaceAll("-", " ")}</span>
-                  <span>type {item.annotation.requirementType.replaceAll("-", " ")}</span>
+                  <span>layer {item.annotation.signalLayer.replaceAll('-', ' ')}</span>
+                  <span>domains {item.annotation.domains.join('/') || 'none'}</span>
+                  <span>requirement {item.annotation.productRequirement ? 'yes' : 'no'}</span>
+                  <span>audience {item.annotation.audience.replaceAll('-', ' ')}</span>
+                  <span>type {item.annotation.requirementType.replaceAll('-', ' ')}</span>
                   <span>
                     gate {item.annotation.qualityGate.status} {item.annotation.qualityGate.score}
                   </span>
@@ -602,10 +644,10 @@ export default async function SignalsTodayPage({
 
       {totalItems === 0 ? (
         <p className="mt-10 text-sm text-zinc-500">
-          Nothing for this date/filter. Check the weekly{" "}
+          Nothing for this date/filter. Check the weekly{' '}
           <a href="/digest" className="text-[var(--color-accent)] hover:underline">
             digest
-          </a>{" "}
+          </a>{' '}
           instead.
         </p>
       ) : today.length > 0 ? (

@@ -1,7 +1,7 @@
-import { api } from "@/lib/api";
+import { api } from '@/lib/api';
 
-export const dynamic = "force-dynamic";
-export const metadata = { title: "Sectors — High Signal" };
+export const dynamic = 'force-dynamic';
+export const metadata = { title: 'Sectors — High Signal' };
 
 interface Props {
   searchParams: Promise<{ days?: string }>;
@@ -33,7 +33,10 @@ export default async function SectorsPage({ searchParams }: Props) {
         <h1 className="text-3xl font-medium tracking-tight">Sectors</h1>
         <p className="mt-2 max-w-2xl text-sm text-zinc-400">
           Net direction = confidence-weighted, time-decayed sum of signal directions per AI-infra
-          sector. Hit-rate from matured signals only. <span className="text-zinc-600">Not investment advice — directional read on signal flow.</span>
+          sector. Hit-rate from matured signals only.{' '}
+          <span className="text-zinc-600">
+            Not investment advice — directional read on signal flow.
+          </span>
         </p>
         <WindowChips active={days} />
       </header>
@@ -76,9 +79,11 @@ export default async function SectorsPage({ searchParams }: Props) {
                     {s.signalCount}
                   </td>
                   <td className="border-b border-zinc-900 py-2 text-right">
-                    {s.hitRate != null
-                      ? `${(s.hitRate * 100).toFixed(0)}%`
-                      : <span className="text-zinc-600">—</span>}
+                    {s.hitRate != null ? (
+                      `${(s.hitRate * 100).toFixed(0)}%`
+                    ) : (
+                      <span className="text-zinc-600">—</span>
+                    )}
                   </td>
                   <td className="border-b border-zinc-900 py-2">
                     <div className="flex flex-wrap gap-1">
@@ -113,8 +118,8 @@ function WindowChips({ active }: { active: number }) {
           href={`?days=${d}`}
           className={`border px-2 py-0.5 ${
             d === active
-              ? "border-[var(--color-accent)] bg-white/[0.04] text-white"
-              : "border-zinc-800 text-zinc-400 hover:bg-white/[0.02]"
+              ? 'border-[var(--color-accent)] bg-white/[0.04] text-white'
+              : 'border-zinc-800 text-zinc-400 hover:bg-white/[0.02]'
           }`}
         >
           {d}d
@@ -144,8 +149,10 @@ function DirBar({ netPct, value }: { netPct: number; value: number }) {
           />
         )}
       </div>
-      <span className={`nums w-12 font-mono text-[11px] ${isUp ? "text-emerald-400" : "text-rose-400"}`}>
-        {value > 0 ? "+" : ""}
+      <span
+        className={`nums w-12 font-mono text-[11px] ${isUp ? 'text-emerald-400' : 'text-rose-400'}`}
+      >
+        {value > 0 ? '+' : ''}
         {value.toFixed(2)}
       </span>
     </div>

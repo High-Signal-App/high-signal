@@ -1,18 +1,18 @@
-import { headers } from "next/headers";
+import { headers } from 'next/headers';
 
-import { api } from "@/lib/api";
-import { signalExcerpt, signalHeadline } from "@/lib/rss";
-import { isBackfillSignal } from "@/lib/signal-format";
+import { api } from '@/lib/api';
+import { signalExcerpt, signalHeadline } from '@/lib/rss';
+import { isBackfillSignal } from '@/lib/signal-format';
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
 
 function escapeXml(s: string): string {
   return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;");
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
 }
 
 /**
@@ -21,11 +21,11 @@ function escapeXml(s: string): string {
  */
 export async function GET() {
   const h = await headers();
-  const proto = h.get("x-forwarded-proto") ?? "https";
-  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost";
+  const proto = h.get('x-forwarded-proto') ?? 'https';
+  const host = h.get('x-forwarded-host') ?? h.get('host') ?? 'localhost';
   const base = `${proto}://${host}`;
 
-  let signals: Awaited<ReturnType<typeof api.signals>>["signals"] = [];
+  let signals: Awaited<ReturnType<typeof api.signals>>['signals'] = [];
   try {
     const r = await api.signals();
     signals = r.signals.filter((signal) => !isBackfillSignal(signal));
@@ -34,9 +34,7 @@ export async function GET() {
   }
 
   const updated =
-    signals.length > 0
-      ? new Date(signals[0].publishedAt).toISOString()
-      : new Date().toISOString();
+    signals.length > 0 ? new Date(signals[0].publishedAt).toISOString() : new Date().toISOString();
 
   const entries = signals
     .map(
@@ -49,9 +47,9 @@ export async function GET() {
     <category term="${escapeXml(s.signalType)}" />
     <category term="${escapeXml(s.direction)}" />
     <category term="${escapeXml(s.confidence)}" />
-  </entry>`,
+  </entry>`
     )
-    .join("\n");
+    .join('\n');
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
@@ -67,8 +65,8 @@ ${entries}
   return new Response(xml, {
     status: 200,
     headers: {
-      "Content-Type": "application/atom+xml; charset=utf-8",
-      "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
+      'Content-Type': 'application/atom+xml; charset=utf-8',
+      'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
     },
   });
 }

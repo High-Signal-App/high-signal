@@ -8,7 +8,7 @@ import {
   buildSignalArticleJsonLd,
   buildSignalTypeTaxonomyJsonLd,
   buildTrackRecordDatasetJsonLd,
-} from "@/components/seo/json-ld-builders";
+} from '@/components/seo/json-ld-builders';
 
 /**
  * Schema.org JSON-LD components for GEO (generative-engine optimization).
@@ -32,7 +32,7 @@ function LdJson({ data }: LdJsonProps): React.JSX.Element {
   return (
     <script
       type="application/ld+json"
-      // eslint-disable-next-line react/no-danger
+      // biome-ignore lint/security/noDangerouslySetInnerHtml: trusted server-side JSON-LD payload (no user content); documented Next.js path
       dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
     />
   );
@@ -65,8 +65,8 @@ export function SignalArticleJsonLd(props: {
   bodyMd: string;
   entityName: string;
   evidenceUrls: string[];
-  direction: "up" | "down" | "neutral";
-  confidence: "low" | "medium" | "high";
+  direction: 'up' | 'down' | 'neutral';
+  confidence: 'low' | 'medium' | 'high';
   predictedWindowDays: number;
   signalType: string;
 }): React.JSX.Element {

@@ -1,7 +1,7 @@
-import { api, type EntityRow } from "@/lib/api";
+import { api, type EntityRow } from '@/lib/api';
 
-export const dynamic = "force-dynamic";
-export const metadata = { title: "Entities — High Signal" };
+export const dynamic = 'force-dynamic';
+export const metadata = { title: 'Entities — High Signal' };
 
 // Public: the entity corpus is part of the signal context that consumers
 // of /signals need to navigate the spillover graph.
@@ -16,7 +16,7 @@ export default async function EntitiesPage() {
 
   const bySector = new Map<string, EntityRow[]>();
   for (const e of entities) {
-    const k = e.sector ?? "other";
+    const k = e.sector ?? 'other';
     bySector.set(k, [...(bySector.get(k) ?? []), e]);
   }
 
@@ -40,7 +40,7 @@ export default async function EntitiesPage() {
           .map(([sector, list]) => (
             <section key={sector}>
               <h2 className="border-b border-zinc-800 pb-2 font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">
-                {sector} <span className="text-zinc-700">·</span>{" "}
+                {sector} <span className="text-zinc-700">·</span>{' '}
                 <span className="nums">{list.length}</span>
               </h2>
               <ul className="mt-4 grid grid-cols-2 gap-x-8 gap-y-1 sm:grid-cols-3 lg:grid-cols-4">

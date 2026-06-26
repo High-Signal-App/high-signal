@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { useState } from "react";
+import { useState } from 'react';
 
 export default function WatchButton({ entityId }: { entityId: string }) {
   const [busy, setBusy] = useState(false);
@@ -11,14 +11,14 @@ export default function WatchButton({ entityId }: { entityId: string }) {
     setBusy(true);
     setErr(null);
     try {
-      const r = await fetch("/api/watchlists/default/entities", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
+      const r = await fetch('/api/watchlists/default/entities', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ entityId }),
       });
       if (!r.ok) {
-        if (r.status === 401) setErr("sign in to watch");
+        if (r.status === 401) setErr('sign in to watch');
         else setErr(`watch ${r.status}`);
       } else {
         setDone(true);

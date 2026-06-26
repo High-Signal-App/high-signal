@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from "@storybook/nextjs";
+import type { Meta, StoryObj } from '@storybook/nextjs';
 import {
   BackLink,
   CommandButton,
@@ -12,19 +12,19 @@ import {
   RouteList,
   SectionHeader,
   StatGrid,
-} from "./HighSignalUI";
+} from './HighSignalUI';
 
 const meta = {
-  title: "Design System/High Signal UI",
+  title: 'Design System/High Signal UI',
   parameters: {
     docs: {
       description: {
         component:
-          "Core layout primitives for the High Signal product family. These components define the shared visual language for Mentions, Communities, and Markets.",
+          'Core layout primitives for the High Signal product family. These components define the shared visual language for Mentions, Communities, and Markets.',
       },
     },
   },
-  tags: ["autodocs"],
+  tags: ['autodocs'],
 } satisfies Meta;
 
 export default meta;
@@ -39,30 +39,30 @@ export const ProductShell: Story = {
       <ProductAreaGrid
         items={[
           {
-            href: "/mentions",
-            title: "Mention Intelligence",
-            kicker: "company",
-            body: "Brand, competitor, AI visibility, citation, and share-of-voice signals.",
+            href: '/mentions',
+            title: 'Mention Intelligence',
+            kicker: 'company',
+            body: 'Brand, competitor, AI visibility, citation, and share-of-voice signals.',
           },
           {
-            href: "/communities",
-            title: "Community Intelligence",
-            kicker: "subreddit",
-            body: "Community pain, demand, narrative, and product-opportunity signals.",
+            href: '/communities',
+            title: 'Community Intelligence',
+            kicker: 'subreddit',
+            body: 'Community pain, demand, narrative, and product-opportunity signals.',
           },
           {
-            href: "/markets",
-            title: "Market Intelligence",
-            kicker: "entity graph",
-            body: "Evidence-backed company and sector signals with confidence and hit-rate tracking.",
+            href: '/markets',
+            title: 'Market Intelligence',
+            kicker: 'entity graph',
+            body: 'Evidence-backed company and sector signals with confidence and hit-rate tracking.',
           },
         ]}
       />
       <RouteList
         items={[
-          { href: "/signals", title: "signal feed", sub: "unified stream" },
-          { href: "/review", title: "review queue", sub: "human approval" },
-          { href: "/track-record", title: "track record", sub: "market signals" },
+          { href: '/signals', title: 'signal feed', sub: 'unified stream' },
+          { href: '/review', title: 'review queue', sub: 'human approval' },
+          { href: '/track-record', title: 'track record', sub: 'market signals' },
         ]}
       />
     </PageShell>
@@ -79,9 +79,9 @@ export const SubProductPage: Story = {
       </SectionHeader>
       <StatGrid
         items={[
-          { label: "Source repo", value: "agentMode", sub: "Reddit fetcher + snapshots" },
-          { label: "Primary object", value: "community", sub: "subreddits, prompts, digests" },
-          { label: "First migration", value: "tracked subreddits", sub: "source-linked summaries" },
+          { label: 'Source repo', value: 'agentMode', sub: 'Reddit fetcher + snapshots' },
+          { label: 'Primary object', value: 'community', sub: 'subreddits, prompts, digests' },
+          { label: 'First migration', value: 'tracked subreddits', sub: 'source-linked summaries' },
         ]}
       />
     </PageShell>
@@ -112,10 +112,10 @@ export const WorkSurface: Story = {
         <Panel eyebrow="analysis result">
           <MetricGrid
             items={[
-              { label: "mentioned", value: "yes" },
-              { label: "sentiment", value: "positive" },
-              { label: "position", value: "1" },
-              { label: "cited", value: "yes" },
+              { label: 'mentioned', value: 'yes' },
+              { label: 'sentiment', value: 'positive' },
+              { label: 'position', value: '1' },
+              { label: 'cited', value: 'yes' },
             ]}
           />
         </Panel>
@@ -125,10 +125,10 @@ export const WorkSurface: Story = {
         empty="No sources found."
         items={[
           {
-            href: "https://reddit.com",
-            kicker: "r/LocalLLaMA / post / score 128",
-            title: "Teams are looking for better AI visibility monitoring",
-            body: "Discussion indicates demand for source-linked recommendations rather than dashboards.",
+            href: 'https://reddit.com',
+            kicker: 'r/LocalLLaMA / post / score 128',
+            title: 'Teams are looking for better AI visibility monitoring',
+            body: 'Discussion indicates demand for source-linked recommendations rather than dashboards.',
           },
         ]}
       />
@@ -145,10 +145,10 @@ export const DashboardSurface: Story = {
       </SectionHeader>
       <MetricGrid
         items={[
-          { label: "brand", value: "High Signal" },
-          { label: "platforms", value: "3" },
-          { label: "communities", value: "2" },
-          { label: "markets", value: "live" },
+          { label: 'brand', value: 'High Signal' },
+          { label: 'platforms', value: '3' },
+          { label: 'communities', value: '2' },
+          { label: 'markets', value: 'live' },
         ]}
       />
       <section className="mt-10 grid gap-8 md:grid-cols-2">

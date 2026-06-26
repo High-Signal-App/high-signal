@@ -1,6 +1,6 @@
-import { dailyReadMatches, safeReadDomain, safeReadLayer } from "@/lib/daily-read-filters";
-import { DAILY_REQUIREMENT_GATE, buildDailyRequirementQueue } from "@/lib/daily-requirements";
-import { buildDailyRequirementTaskExports } from "@/lib/daily-task-export";
+import { dailyReadMatches, safeReadDomain, safeReadLayer } from '@/lib/daily-read-filters';
+import { DAILY_REQUIREMENT_GATE, buildDailyRequirementQueue } from '@/lib/daily-requirements';
+import { buildDailyRequirementTaskExports } from '@/lib/daily-task-export';
 import {
   buildDailyAutomationStatus,
   buildDailyBroadInsightsWithAnnotations,
@@ -8,11 +8,11 @@ import {
   defaultDailyAnnotationOptions,
   resolveAcceptedRefreshDate,
   readSourceRefreshes,
-} from "@/lib/daily-intelligence";
-import productGraph from "../../../../../../data/personal-product-graph.json";
-import type { PersonalProductProfile, SignalContentCategory } from "@high-signal/shared";
+} from '@/lib/daily-intelligence';
+import productGraph from '../../../../../../data/personal-product-graph.json';
+import type { PersonalProductProfile, SignalContentCategory } from '@high-signal/shared';
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
 
 function utcDate(d = new Date()) {
   return d.toISOString().slice(0, 10);
@@ -24,25 +24,25 @@ function safeDate(value: string | null) {
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
-  const date = safeDate(url.searchParams.get("date"));
-  const category = url.searchParams.get("category") as SignalContentCategory | null;
-  const layer = safeReadLayer(url.searchParams.get("layer"));
-  const domain = safeReadDomain(url.searchParams.get("domain"));
-  const requirement = url.searchParams.get("requirement") !== "no";
+  const date = safeDate(url.searchParams.get('date'));
+  const category = url.searchParams.get('category') as SignalContentCategory | null;
+  const layer = safeReadLayer(url.searchParams.get('layer'));
+  const domain = safeReadDomain(url.searchParams.get('domain'));
+  const requirement = url.searchParams.get('requirement') !== 'no';
   const refreshes = await readSourceRefreshes();
   const sourceReadDate = resolveAcceptedRefreshDate(refreshes, date) ?? date;
   const allBroadInsights = await buildDailyBroadInsightsWithAnnotations(
     refreshes,
     sourceReadDate,
-    defaultDailyAnnotationOptions(),
+    defaultDailyAnnotationOptions()
   );
   const broadInsights = allBroadInsights.filter((item) =>
     dailyReadMatches(item, {
-      category: category ?? "",
+      category: category ?? '',
       layer,
       domain,
       requirement,
-    }),
+    })
   );
   const products = productGraph.products as PersonalProductProfile[];
   const requirementQueue = buildDailyRequirementQueue(broadInsights, 50, products);
@@ -72,9 +72,9 @@ export async function GET(req: Request) {
     {
       status: 200,
       headers: {
-        "Content-Type": "application/json; charset=utf-8",
-        "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
+        'Content-Type': 'application/json; charset=utf-8',
+        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
       },
-    },
+    }
   );
 }

@@ -1,6 +1,6 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from '@playwright/test';
 
-test("home renders", async ({ page }) => {
-  await page.goto("/");
-  await expect(page.getByRole("heading", { name: "High Signal" })).toBeVisible();
+test('home renders', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.getByRole('heading', { name: 'High Signal' })).toBeVisible();
 });

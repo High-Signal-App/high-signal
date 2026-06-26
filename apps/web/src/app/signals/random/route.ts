@@ -1,9 +1,9 @@
-import { redirect } from "next/navigation";
+import { redirect } from 'next/navigation';
 
-import { api } from "@/lib/api";
-import { isBackfillSignal } from "@/lib/signal-format";
+import { api } from '@/lib/api';
+import { isBackfillSignal } from '@/lib/signal-format';
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
 
 /**
  * /signals/random — bounces to a random published signal. Useful for
@@ -14,11 +14,11 @@ export async function GET() {
     const { signals } = await api.signals();
     const publicSignals = signals.filter((signal) => !isBackfillSignal(signal));
     if (publicSignals.length === 0) {
-      redirect("/signals");
+      redirect('/signals');
     }
     const pick = publicSignals[Math.floor(Math.random() * publicSignals.length)];
     redirect(`/signals/${pick.slug}`);
   } catch {
-    redirect("/signals");
+    redirect('/signals');
   }
 }

@@ -8,9 +8,9 @@
  * without scraping the whole site.
  */
 
-import { SITE_NAME, SITE_TAGLINE, SITE_URL } from "@/lib/site";
+import { SITE_NAME, SITE_TAGLINE, SITE_URL } from '@/lib/site';
 
-export const dynamic = "force-static";
+export const dynamic = 'force-static';
 
 export function GET(): Response {
   const body = `# ${SITE_NAME}
@@ -81,8 +81,8 @@ Last updated: ${new Date().toISOString().slice(0, 10)}
   return new Response(body, {
     status: 200,
     headers: {
-      "Content-Type": "text/markdown; charset=utf-8",
-      "Cache-Control": "public, max-age=3600",
+      'Content-Type': 'text/markdown; charset=utf-8',
+      'Cache-Control': 'public, max-age=3600',
     },
   });
 }

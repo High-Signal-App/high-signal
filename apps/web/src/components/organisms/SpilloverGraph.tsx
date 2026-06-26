@@ -2,31 +2,31 @@
  * Polar SVG layout — primary entity at center; related entities on rings keyed
  * by relationship type. Edge weight → line opacity. Pure SSR-friendly.
  */
-import type { RelationshipRow } from "@/lib/api";
+import type { RelationshipRow } from '@/lib/api';
 
 interface Node {
   id: string;
-  type: RelationshipRow["type"];
+  type: RelationshipRow['type'];
   weight: number;
   inbound: boolean;
 }
 
-const TYPE_ORDER: RelationshipRow["type"][] = [
-  "supplier",
-  "customer",
-  "peer",
-  "partner",
-  "competitor",
-  "subsidiary",
+const TYPE_ORDER: RelationshipRow['type'][] = [
+  'supplier',
+  'customer',
+  'peer',
+  'partner',
+  'competitor',
+  'subsidiary',
 ];
 
-const TYPE_COLOR: Record<RelationshipRow["type"], string> = {
-  supplier: "#7dd3fc", // cyan
-  customer: "#a7f3d0", // emerald-200
-  peer: "#fbbf24", // amber
-  partner: "#c4b5fd", // violet
-  competitor: "#fca5a5", // rose
-  subsidiary: "#9ca3af", // gray
+const TYPE_COLOR: Record<RelationshipRow['type'], string> = {
+  supplier: '#7dd3fc', // cyan
+  customer: '#a7f3d0', // emerald-200
+  peer: '#fbbf24', // amber
+  partner: '#c4b5fd', // violet
+  competitor: '#fca5a5', // rose
+  subsidiary: '#9ca3af', // gray
 };
 
 const SIZE = 480;
@@ -48,7 +48,7 @@ export function SpilloverGraph({
   }));
 
   // Group by type, then place each group in its own arc segment
-  const groups = new Map<RelationshipRow["type"], Node[]>();
+  const groups = new Map<RelationshipRow['type'], Node[]>();
   for (const n of nodes) {
     const arr = groups.get(n.type) ?? [];
     arr.push(n);
@@ -60,7 +60,10 @@ export function SpilloverGraph({
   if (presentTypes.length > 0) {
     const slice = (2 * Math.PI) / presentTypes.length;
     presentTypes.forEach((type, ti) => {
-      const list = groups.get(type)!.slice().sort((a, b) => b.weight - a.weight);
+      const list = groups
+        .get(type)!
+        .slice()
+        .sort((a, b) => b.weight - a.weight);
       const start = ti * slice;
       const end = start + slice;
       list.forEach((node, ni) => {
@@ -102,7 +105,7 @@ export function SpilloverGraph({
         {/* edges */}
         {arcs.map(({ node, x, y }) => (
           <line
-            key={node.id + ":" + node.type}
+            key={node.id + ':' + node.type}
             x1={CENTER}
             y1={CENTER}
             x2={x}
@@ -120,9 +123,9 @@ export function SpilloverGraph({
           const sinA = Math.sin(Math.atan2(y - CENTER, x - CENTER));
           const lx = x + cosA * labelOffset;
           const ly = y + sinA * labelOffset;
-          const anchor = cosA > 0.3 ? "start" : cosA < -0.3 ? "end" : "middle";
+          const anchor = cosA > 0.3 ? 'start' : cosA < -0.3 ? 'end' : 'middle';
           return (
-            <g key={node.id + ":" + node.type + ":node"}>
+            <g key={node.id + ':' + node.type + ':node'}>
               <circle
                 cx={x}
                 cy={y}

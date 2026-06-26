@@ -1,10 +1,10 @@
-import type { Metadata } from "next";
-import Link from "next/link";
+import type { Metadata } from 'next';
+import Link from 'next/link';
 
 export const metadata: Metadata = {
-  title: "API & feeds — High Signal",
+  title: 'API & feeds — High Signal',
   description:
-    "Public endpoints — RSS feeds, signal redirects, sitemap. Build dashboards on top, subscribe via your reader.",
+    'Public endpoints — RSS feeds, signal redirects, sitemap. Build dashboards on top, subscribe via your reader.',
 };
 
 interface Endpoint {
@@ -15,29 +15,29 @@ interface Endpoint {
 
 const ENDPOINTS: Endpoint[] = [
   {
-    path: "/signals/rss",
-    format: "RSS 2.0",
-    description: "Every published signal as an ongoing feed.",
+    path: '/signals/rss',
+    format: 'RSS 2.0',
+    description: 'Every published signal as an ongoing feed.',
   },
   {
-    path: "/digest/rss",
-    format: "RSS 2.0",
-    description: "Last 7 days of signals — designed for inbox readers.",
+    path: '/digest/rss',
+    format: 'RSS 2.0',
+    description: 'Last 7 days of signals — designed for inbox readers.',
   },
   {
-    path: "/signals/random",
-    format: "302 redirect",
-    description: "Bounces to a random published signal — share-link friendly.",
+    path: '/signals/random',
+    format: '302 redirect',
+    description: 'Bounces to a random published signal — share-link friendly.',
   },
   {
-    path: "/sitemap.xml",
-    format: "XML",
-    description: "All public pages + each published signal.",
+    path: '/sitemap.xml',
+    format: 'XML',
+    description: 'All public pages + each published signal.',
   },
   {
-    path: "/robots.txt",
-    format: "text",
-    description: "Crawler rules — public surfaces only, /dashboard and /api/ disallowed.",
+    path: '/robots.txt',
+    format: 'text',
+    description: 'Crawler rules — public surfaces only, /dashboard and /api/ disallowed.',
   },
 ];
 
@@ -50,13 +50,10 @@ export default function ApiDocsPage() {
       >
         ← high signal
       </Link>
-      <h1 className="mt-3 text-3xl font-medium tracking-tight text-white">
-        API & feeds
-      </h1>
+      <h1 className="mt-3 text-3xl font-medium tracking-tight text-white">API & feeds</h1>
       <p className="mt-3 text-sm text-zinc-400">
-        High Signal is built to be consumable, not just visited. Subscribe
-        via RSS, embed snippets in your own dashboard, or bounce visitors
-        through the public redirects.
+        High Signal is built to be consumable, not just visited. Subscribe via RSS, embed snippets
+        in your own dashboard, or bounce visitors through the public redirects.
       </p>
 
       <table className="mt-10 w-full text-sm">

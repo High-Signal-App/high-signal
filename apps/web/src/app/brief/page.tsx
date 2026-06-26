@@ -1,17 +1,17 @@
-import { BriefSections } from "@/components/brief/BriefSections";
-import { ProductPicker } from "@/components/brief/ProductPicker";
-import { RegionPicker } from "@/components/brief/RegionPicker";
-import { HeroHeader, PageShell } from "@/components/system/HighSignalUI";
-import { api, type BriefSnapshot } from "@/lib/api";
-import { getRequestAuth } from "@/lib/require-auth";
-import { findSeedProduct, isRegion, regionLabel, type Region } from "@high-signal/shared";
+import { BriefSections } from '@/components/brief/BriefSections';
+import { ProductPicker } from '@/components/brief/ProductPicker';
+import { RegionPicker } from '@/components/brief/RegionPicker';
+import { HeroHeader, PageShell } from '@/components/system/HighSignalUI';
+import { api, type BriefSnapshot } from '@/lib/api';
+import { getRequestAuth } from '@/lib/require-auth';
+import { findSeedProduct, isRegion, regionLabel, type Region } from '@high-signal/shared';
 
-export const dynamic = "force-dynamic";
-export const metadata = { title: "Daily Brief — High Signal" };
+export const dynamic = 'force-dynamic';
+export const metadata = { title: 'Daily Brief — High Signal' };
 
 const EMPTY_BRIEF: BriefSnapshot = {
   generatedAt: new Date().toISOString(),
-  region: "global",
+  region: 'global',
   hasBrand: false,
   stocks: [],
   ideas: [],
@@ -57,18 +57,18 @@ function ConvergenceCallout({
               {row.ticker ?? row.entityId}
             </a>
             {row.name ? <span className="text-zinc-400">{row.name}</span> : null}
-            {row.label === "breakout" ? (
+            {row.label === 'breakout' ? (
               <span
                 className="rounded border border-amber-600/60 px-1.5 py-0 font-mono text-[10px] uppercase tracking-[0.18em] text-amber-300"
-                title={row.labelReason ?? ""}
+                title={row.labelReason ?? ''}
               >
                 breakout
               </span>
             ) : null}
-            {row.label === "divergence" ? (
+            {row.label === 'divergence' ? (
               <span
                 className="rounded border border-violet-600/60 px-1.5 py-0 font-mono text-[10px] uppercase tracking-[0.18em] text-violet-300"
-                title={row.labelReason ?? ""}
+                title={row.labelReason ?? ''}
               >
                 divergence
               </span>
@@ -79,21 +79,21 @@ function ConvergenceCallout({
                 <span
                   className={`ml-2 ${
                     row.marketQuote.probChange > 0.02
-                      ? "text-emerald-300"
+                      ? 'text-emerald-300'
                       : row.marketQuote.probChange < -0.02
-                        ? "text-red-300"
-                        : ""
+                        ? 'text-red-300'
+                        : ''
                   }`}
                 >
-                  {row.marketQuote.probChange >= 0 ? "+" : ""}
+                  {row.marketQuote.probChange >= 0 ? '+' : ''}
                   {(row.marketQuote.probChange * 100).toFixed(0)}pp
                 </span>
               ) : null}
             </span>
             <div className="basis-full pl-0">
               <span className="font-mono text-[10px] text-zinc-600">
-                {row.sources.slice(0, 6).join(" · ")}
-                {row.sources.length > 6 ? ` · +${row.sources.length - 6}` : ""}
+                {row.sources.slice(0, 6).join(' · ')}
+                {row.sources.length > 6 ? ` · +${row.sources.length - 6}` : ''}
               </span>
             </div>
           </li>
@@ -109,15 +109,15 @@ export default async function BriefPage({
   searchParams?: Promise<{ region?: string; product?: string }>;
 }) {
   const params = (await searchParams) ?? {};
-  const rawRegion = (params.region ?? "global").toLowerCase().trim();
-  const region: Region = isRegion(rawRegion) ? rawRegion : "global";
-  const productParam = (params.product ?? "").trim();
+  const rawRegion = (params.region ?? 'global').toLowerCase().trim();
+  const region: Region = isRegion(rawRegion) ? rawRegion : 'global';
+  const productParam = (params.product ?? '').trim();
   const selectedProduct = productParam ? findSeedProduct(productParam) : null;
-  const activeProductId = selectedProduct ? selectedProduct.id : "spotlight";
+  const activeProductId = selectedProduct ? selectedProduct.id : 'spotlight';
 
   const auth = await getRequestAuth();
-  const userId = (auth && "userId" in auth && auth.userId) || null;
-  const ownerId = (auth && "orgId" in auth && auth.orgId) || userId || "";
+  const userId = (auth && 'userId' in auth && auth.userId) || null;
+  const ownerId = (auth && 'orgId' in auth && auth.orgId) || userId || '';
 
   // Brief + convergence load in parallel; convergence failure doesn't block the brief.
   let brief: BriefSnapshot = EMPTY_BRIEF;
@@ -130,14 +130,14 @@ export default async function BriefPage({
     }),
     api.convergence(24, 3),
   ]);
-  if (briefRes.status === "fulfilled") brief = briefRes.value;
-  if (convergenceRes.status === "fulfilled") convergence = convergenceRes.value;
+  if (briefRes.status === 'fulfilled') brief = briefRes.value;
+  if (convergenceRes.status === 'fulfilled') convergence = convergenceRes.value;
 
   return (
     <PageShell>
       <HeroHeader
         eyebrow={`daily brief / ${regionLabel(region).toLowerCase()}${
-          selectedProduct ? ` / ${selectedProduct.brandName.toLowerCase()}` : ""
+          selectedProduct ? ` / ${selectedProduct.brandName.toLowerCase()}` : ''
         }`}
         title="What changed today"
       >
@@ -151,7 +151,7 @@ export default async function BriefPage({
           <ProductPicker active={activeProductId} />
         </div>
         <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
-          generated {brief.generatedAt.slice(0, 16).replace("T", " ")} UTC
+          generated {brief.generatedAt.slice(0, 16).replace('T', ' ')} UTC
         </div>
       </div>
 

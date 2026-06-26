@@ -1,11 +1,11 @@
-import { BackLink, MetricGrid, PageShell, SectionHeader } from "@/components/system/HighSignalUI";
-import { buildMarketWatchSnapshot, formatMarketPct, marketDirectionTone } from "@/lib/market-watch";
+import { BackLink, MetricGrid, PageShell, SectionHeader } from '@/components/system/HighSignalUI';
+import { buildMarketWatchSnapshot, formatMarketPct, marketDirectionTone } from '@/lib/market-watch';
 
-export const dynamic = "force-dynamic";
-export const metadata = { title: "Market History - High Signal" };
+export const dynamic = 'force-dynamic';
+export const metadata = { title: 'Market History - High Signal' };
 
 function formatTimestamp(value: string) {
-  return value.slice(0, 16).replace("T", " ");
+  return value.slice(0, 16).replace('T', ' ');
 }
 
 export default async function MarketsHistoryPage() {
@@ -13,23 +13,25 @@ export default async function MarketsHistoryPage() {
   const history = snapshot.history.slice().sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   const dates = Array.from(new Set(history.map((record) => record.createdAt.slice(0, 10))));
   const quoteCount = history.reduce(
-    (sum, record) => sum + record.groups.reduce((groupSum, group) => groupSum + group.quotes.length, 0),
-    0,
+    (sum, record) =>
+      sum + record.groups.reduce((groupSum, group) => groupSum + group.quotes.length, 0),
+    0
   );
 
   return (
     <PageShell>
       <BackLink href="/markets">back to markets</BackLink>
       <SectionHeader eyebrow="market archive" title="Market History">
-        Date-browsable snapshots derived from the canonical equities feed for the high-level national and international stock watchlist.
+        Date-browsable snapshots derived from the canonical equities feed for the high-level
+        national and international stock watchlist.
       </SectionHeader>
 
       <MetricGrid
         items={[
-          { label: "dates", value: dates.length.toString() },
-          { label: "refreshes", value: history.length.toString() },
-          { label: "quotes", value: quoteCount.toString() },
-          { label: "latest", value: snapshot.latestRefreshAt?.slice(0, 10) ?? "none" },
+          { label: 'dates', value: dates.length.toString() },
+          { label: 'refreshes', value: history.length.toString() },
+          { label: 'quotes', value: quoteCount.toString() },
+          { label: 'latest', value: snapshot.latestRefreshAt?.slice(0, 10) ?? 'none' },
         ]}
       />
 
@@ -59,7 +61,9 @@ export default async function MarketsHistoryPage() {
                     <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
                       {group.region}
                     </div>
-                    <div className={`font-mono text-[10px] uppercase tracking-[0.18em] ${marketDirectionTone(group.direction)}`}>
+                    <div
+                      className={`font-mono text-[10px] uppercase tracking-[0.18em] ${marketDirectionTone(group.direction)}`}
+                    >
                       {group.direction} / {formatMarketPct(group.averageChangePct)}
                     </div>
                   </div>
@@ -70,7 +74,7 @@ export default async function MarketsHistoryPage() {
                       .sort((a, b) => Math.abs(b.changePct) - Math.abs(a.changePct))
                       .slice(0, 3)
                       .map((quote) => `${quote.symbol} ${formatMarketPct(quote.changePct)}`)
-                      .join(" / ")}
+                      .join(' / ')}
                   </div>
                 </div>
               ))}

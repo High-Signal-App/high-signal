@@ -8,56 +8,56 @@ import {
   Panel,
   SectionHeader,
   StatGrid,
-} from "@/components/system/HighSignalUI";
-import { api, type CommunityDigestSnapshot, type TrackedCommunity } from "@/lib/api";
-import { redditSourceLink } from "@high-signal/shared";
-import { getRequestAuth, requireSignedIn } from "@/lib/require-auth";
-import { revalidatePath } from "next/cache";
+} from '@/components/system/HighSignalUI';
+import { api, type CommunityDigestSnapshot, type TrackedCommunity } from '@/lib/api';
+import { redditSourceLink } from '@high-signal/shared';
+import { getRequestAuth, requireSignedIn } from '@/lib/require-auth';
+import { revalidatePath } from 'next/cache';
 
-export const dynamic = "force-dynamic";
-export const metadata = { title: "Community Intelligence — High Signal" };
+export const dynamic = 'force-dynamic';
+export const metadata = { title: 'Community Intelligence — High Signal' };
 
 async function trackSubreddit(formData: FormData) {
-  "use server";
+  'use server';
   const { userId, orgId } = await requireSignedIn();
   const ownerId = orgId ?? userId;
-  const subreddit = `${formData.get("newSubreddit") ?? ""}`.replace(/^r\//i, "").trim();
-  const prompt = `${formData.get("newPrompt") ?? ""}`.trim() || null;
-  const period = `${formData.get("newPeriod") ?? "week"}`;
-  const isPublic = formData.get("newPublic") === "on";
+  const subreddit = `${formData.get('newSubreddit') ?? ''}`.replace(/^r\//i, '').trim();
+  const prompt = `${formData.get('newPrompt') ?? ''}`.trim() || null;
+  const period = `${formData.get('newPeriod') ?? 'week'}`;
+  const isPublic = formData.get('newPublic') === 'on';
   if (!subreddit) return;
   await api.createTrackedCommunity(ownerId, {
     subreddit,
     prompt,
-    period: period === "day" || period === "month" ? period : "week",
+    period: period === 'day' || period === 'month' ? period : 'week',
     isPublic,
   });
-  revalidatePath("/communities");
+  revalidatePath('/communities');
 }
 
 async function generateDigest(formData: FormData) {
-  "use server";
+  'use server';
   const { userId, orgId } = await requireSignedIn();
   const ownerId = orgId ?? userId;
-  const id = `${formData.get("trackedId") ?? ""}`.trim();
+  const id = `${formData.get('trackedId') ?? ''}`.trim();
   if (!id) return;
   await api.generateCommunityDigest(ownerId, id);
-  revalidatePath("/communities");
+  revalidatePath('/communities');
 }
 
 async function removeTracked(formData: FormData) {
-  "use server";
+  'use server';
   const { userId, orgId } = await requireSignedIn();
   const ownerId = orgId ?? userId;
-  const id = `${formData.get("trackedId") ?? ""}`.trim();
+  const id = `${formData.get('trackedId') ?? ''}`.trim();
   if (!id) return;
   await api.deleteTrackedCommunity(ownerId, id);
-  revalidatePath("/communities");
+  revalidatePath('/communities');
 }
 
 function digestForTracked(
   tracked: TrackedCommunity,
-  digests: CommunityDigestSnapshot[],
+  digests: CommunityDigestSnapshot[]
 ): CommunityDigestSnapshot | undefined {
   return digests.find((d) => d.subreddit === tracked.subreddit && d.period === tracked.period);
 }
@@ -71,29 +71,29 @@ export default async function CommunitiesPage({
   // lookup. Personal tracked-community CRUD still requires sign-in (the
   // server actions above call `requireSignedIn`).
   const auth = await getRequestAuth();
-  const userId = (auth && "userId" in auth && auth.userId) || null;
-  const ownerId =
-    (auth && "orgId" in auth && auth.orgId) || userId || "anonymous";
+  const userId = (auth && 'userId' in auth && auth.userId) || null;
+  const ownerId = (auth && 'orgId' in auth && auth.orgId) || userId || 'anonymous';
   const isSignedIn = Boolean(userId);
   const params = (await searchParams) ?? {};
-  const subreddit = (params.subreddit ?? "LocalLLaMA").replace(/^r\//i, "").trim();
-  const query = (params.q ?? "AI agents").trim();
+  const subreddit = (params.subreddit ?? 'LocalLLaMA').replace(/^r\//i, '').trim();
+  const query = (params.q ?? 'AI agents').trim();
 
-  const [dashboardResult, discoverResult, communityResult, mentionsResult] = await Promise.allSettled([
-    // Skip the per-owner dashboard fetch entirely when anonymous —
-    // there's nothing to render for them.
-    isSignedIn
-      ? api.productDashboard(ownerId)
-      : Promise.resolve(null as unknown as Awaited<ReturnType<typeof api.productDashboard>>),
-    api.productCommunityDiscover("week"),
-    api.redditCommunity(subreddit),
-    api.redditMentions(query, 8),
-  ]);
+  const [dashboardResult, discoverResult, communityResult, mentionsResult] =
+    await Promise.allSettled([
+      // Skip the per-owner dashboard fetch entirely when anonymous —
+      // there's nothing to render for them.
+      isSignedIn
+        ? api.productDashboard(ownerId)
+        : Promise.resolve(null as unknown as Awaited<ReturnType<typeof api.productDashboard>>),
+      api.productCommunityDiscover('week'),
+      api.redditCommunity(subreddit),
+      api.redditMentions(query, 8),
+    ]);
 
-  const dashboard = dashboardResult.status === "fulfilled" ? dashboardResult.value : null;
-  const discover = discoverResult.status === "fulfilled" ? discoverResult.value.items : [];
-  const community = communityResult.status === "fulfilled" ? communityResult.value.community : null;
-  const mentions = mentionsResult.status === "fulfilled" ? mentionsResult.value.mentions : [];
+  const dashboard = dashboardResult.status === 'fulfilled' ? dashboardResult.value : null;
+  const discover = discoverResult.status === 'fulfilled' ? discoverResult.value.items : [];
+  const community = communityResult.status === 'fulfilled' ? communityResult.value.community : null;
+  const mentions = mentionsResult.status === 'fulfilled' ? mentionsResult.value.mentions : [];
 
   const tracked = dashboard?.communities.tracked ?? [];
   const latestDigests = dashboard?.communities.latestDigests ?? [];
@@ -108,9 +108,21 @@ export default async function CommunitiesPage({
 
       <StatGrid
         items={[
-          { label: "tracked", value: tracked.length.toString(), sub: "subreddits in your watchlist" },
-          { label: "digests", value: latestDigests.length.toString(), sub: "recent source-linked snapshots" },
-          { label: "discover", value: discover.length.toString(), sub: "public digests across users" },
+          {
+            label: 'tracked',
+            value: tracked.length.toString(),
+            sub: 'subreddits in your watchlist',
+          },
+          {
+            label: 'digests',
+            value: latestDigests.length.toString(),
+            sub: 'recent source-linked snapshots',
+          },
+          {
+            label: 'discover',
+            value: discover.length.toString(),
+            sub: 'public digests across users',
+          },
         ]}
       />
 
@@ -128,12 +140,7 @@ export default async function CommunitiesPage({
         <Panel eyebrow="add tracked subreddit">
           <form action={trackSubreddit}>
             <Field label="Subreddit" name="newSubreddit" defaultValue="LocalLLaMA" />
-            <Field
-              label="Digest prompt (optional)"
-              name="newPrompt"
-              defaultValue=""
-              multiline
-            />
+            <Field label="Digest prompt (optional)" name="newPrompt" defaultValue="" multiline />
             <label className="mt-5 block text-sm text-[var(--color-muted)]">
               Period
               <select
@@ -177,9 +184,9 @@ export default async function CommunitiesPage({
               </p>
               <MetricGrid
                 items={[
-                  { label: "subs", value: community.subscribers.toLocaleString() },
-                  { label: "active", value: community.activeUsers?.toLocaleString() ?? "—" },
-                  { label: "nsfw", value: community.nsfw ? "yes" : "no" },
+                  { label: 'subs', value: community.subscribers.toLocaleString() },
+                  { label: 'active', value: community.activeUsers?.toLocaleString() ?? '—' },
+                  { label: 'nsfw', value: community.nsfw ? 'yes' : 'no' },
                 ]}
               />
             </div>
@@ -210,13 +217,18 @@ export default async function CommunitiesPage({
                         r/{row.subreddit}
                       </a>
                       <span>{row.period}</span>
-                      {row.isPublic ? <span className="text-[var(--color-accent)]">public</span> : null}
+                      {row.isPublic ? (
+                        <span className="text-[var(--color-accent)]">public</span>
+                      ) : null}
                     </div>
                     {keyTrend ? (
                       <>
                         <a
                           className="mt-3 block text-lg font-medium tracking-tight hover:text-[var(--color-accent)]"
-                          href={link ?? `/communities/${encodeURIComponent(row.subreddit)}/${row.period}`}
+                          href={
+                            link ??
+                            `/communities/${encodeURIComponent(row.subreddit)}/${row.period}`
+                          }
                         >
                           {keyTrend.title}
                         </a>
@@ -224,7 +236,8 @@ export default async function CommunitiesPage({
                           {keyTrend.desc}
                         </p>
                         <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
-                          snapshot {digest!.snapshotDate.slice(0, 10)} / {digest!.sourceCount} sources
+                          snapshot {digest!.snapshotDate.slice(0, 10)} / {digest!.sourceCount}{' '}
+                          sources
                         </p>
                       </>
                     ) : (
@@ -277,7 +290,7 @@ export default async function CommunitiesPage({
         items={mentions.map((mention) => ({
           href: mention.permalink,
           kicker: `r/${mention.subreddit} / ${mention.type} / score ${mention.score}`,
-          title: mention.title || mention.body || "Untitled mention",
+          title: mention.title || mention.body || 'Untitled mention',
           body: mention.selftext,
         }))}
       />

@@ -1,15 +1,15 @@
-import { notFound } from "next/navigation";
-import { api } from "@/lib/api";
-import { SignalCard } from "@/components/molecules/SignalCard";
-import { SpilloverGraph } from "@/components/organisms/SpilloverGraph";
-import WatchButton from "./WatchButton";
+import { notFound } from 'next/navigation';
+import { api } from '@/lib/api';
+import { SignalCard } from '@/components/molecules/SignalCard';
+import { SpilloverGraph } from '@/components/organisms/SpilloverGraph';
+import WatchButton from './WatchButton';
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
 
 // Public: individual entity pages list the public signals tied to that entity.
 export default async function EntityPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  let data;
+  let data: Awaited<ReturnType<typeof api.entity>>;
   try {
     data = await api.entity(id);
   } catch {
@@ -64,7 +64,7 @@ export default async function EntityPage({ params }: { params: Promise<{ id: str
               .sort((a, b) => b.weight - a.weight)
               .map((r) => {
                 const other = r.fromEntityId === entity.id ? r.toEntityId : r.fromEntityId;
-                const dir = r.fromEntityId === entity.id ? "→" : "←";
+                const dir = r.fromEntityId === entity.id ? '→' : '←';
                 return (
                   <li
                     key={r.id}
@@ -72,10 +72,7 @@ export default async function EntityPage({ params }: { params: Promise<{ id: str
                   >
                     <span className="flex items-baseline gap-3">
                       <span className="text-zinc-600">{dir}</span>
-                      <a
-                        href={`/entities/${other}`}
-                        className="text-zinc-200 hover:text-white"
-                      >
+                      <a href={`/entities/${other}`} className="text-zinc-200 hover:text-white">
                         {other}
                       </a>
                       <span className="text-[10px] uppercase tracking-[0.18em] text-zinc-500">
@@ -100,12 +97,10 @@ export default async function EntityPage({ params }: { params: Promise<{ id: str
             {marketQuotes.map((q) => {
               const pct = Math.round(q.prob * 100);
               const tone =
-                pct >= 65 ? "text-emerald-400" : pct <= 35 ? "text-rose-400" : "text-zinc-300";
+                pct >= 65 ? 'text-emerald-400' : pct <= 35 ? 'text-rose-400' : 'text-zinc-300';
               return (
                 <li key={q.id} className="flex items-baseline gap-4 py-3">
-                  <span
-                    className={`nums w-14 shrink-0 font-mono text-lg font-medium ${tone}`}
-                  >
+                  <span className={`nums w-14 shrink-0 font-mono text-lg font-medium ${tone}`}>
                     {pct}%
                   </span>
                   <a
@@ -126,7 +121,7 @@ export default async function EntityPage({ params }: { params: Promise<{ id: str
                   )}
                   {q.resolved && (
                     <span className="border border-zinc-700 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-400">
-                      resolved {q.resolvedOutcome ?? ""}
+                      resolved {q.resolvedOutcome ?? ''}
                     </span>
                   )}
                 </li>

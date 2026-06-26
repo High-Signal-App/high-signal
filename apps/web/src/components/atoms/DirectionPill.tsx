@@ -1,9 +1,9 @@
-import type { Direction } from "@/lib/api";
+import type { Direction } from '@/lib/api';
 
 const STYLES: Record<Direction, string> = {
-  up: "border-emerald-500/40 text-emerald-400",
-  down: "border-rose-500/40 text-rose-400",
-  neutral: "border-zinc-600 text-zinc-400",
+  up: 'border-emerald-500/40 text-emerald-400',
+  down: 'border-rose-500/40 text-rose-400',
+  neutral: 'border-zinc-600 text-zinc-400',
 };
 
 export function DirectionPill({ direction }: { direction: Direction }) {

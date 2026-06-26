@@ -1,6 +1,6 @@
-import { api } from "@/lib/api";
+import { api } from '@/lib/api';
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
 
 /**
  * JSON twin of /sectors. Lets external dashboards plot net-direction
@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
  */
 export async function GET(req: Request) {
   const url = new URL(req.url);
-  const days = Math.min(Math.max(Number(url.searchParams.get("days") ?? 60), 7), 365);
+  const days = Math.min(Math.max(Number(url.searchParams.get('days') ?? 60), 7), 365);
 
   let data: Awaited<ReturnType<typeof api.sectors>> = { days, sectors: [] };
   try {
@@ -17,14 +17,11 @@ export async function GET(req: Request) {
     /* offline */
   }
 
-  return new Response(
-    JSON.stringify({ generatedAt: new Date().toISOString(), ...data }),
-    {
-      status: 200,
-      headers: {
-        "Content-Type": "application/json; charset=utf-8",
-        "Cache-Control": "public, s-maxage=600, stale-while-revalidate=1200",
-      },
+  return new Response(JSON.stringify({ generatedAt: new Date().toISOString(), ...data }), {
+    status: 200,
+    headers: {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Cache-Control': 'public, s-maxage=600, stale-while-revalidate=1200',
     },
-  );
+  });
 }

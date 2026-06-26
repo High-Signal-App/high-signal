@@ -1,46 +1,46 @@
-import type { DailyRequirementItem } from "@/lib/daily-requirements";
-import type { PersonalActionTask } from "@high-signal/shared";
+import type { DailyRequirementItem } from '@/lib/daily-requirements';
+import type { PersonalActionTask } from '@high-signal/shared';
 
 export type DailyRequirementTaskExport = {
   id: string;
   requirementId: string;
   projectSlug: string;
   title: string;
-  priority: "high" | "medium" | "low";
-  status: PersonalActionTask["status"];
-  action: PersonalActionTask["action"];
+  priority: 'high' | 'medium' | 'low';
+  status: PersonalActionTask['status'];
+  action: PersonalActionTask['action'];
   description: string;
   acceptanceCriteria: string[];
   evidenceUrls: string[];
   task: PersonalActionTask;
 };
 
-function taskPriority(task: PersonalActionTask): DailyRequirementTaskExport["priority"] {
-  return task.priority === "critical" ? "high" : task.priority;
+function taskPriority(task: PersonalActionTask): DailyRequirementTaskExport['priority'] {
+  return task.priority === 'critical' ? 'high' : task.priority;
 }
 
 function taskDescription(task: PersonalActionTask) {
-  const acceptance = task.acceptanceCriteria.map((criterion) => `- ${criterion}`).join("\n");
-  const evidence = task.evidenceUrls.map((url) => `- ${url}`).join("\n");
+  const acceptance = task.acceptanceCriteria.map((criterion) => `- ${criterion}`).join('\n');
+  const evidence = task.evidenceUrls.map((url) => `- ${url}`).join('\n');
   return [
     task.rationale,
-    "",
+    '',
     `Next step: ${task.nextStep}`,
-    "",
-    "Acceptance:",
+    '',
+    'Acceptance:',
     acceptance,
-    evidence ? "" : null,
-    evidence ? "Evidence:" : null,
+    evidence ? '' : null,
+    evidence ? 'Evidence:' : null,
     evidence || null,
-    "",
+    '',
     `Generated from High Signal daily requirement: ${task.recommendationId}`,
   ]
     .filter((line) => line !== null)
-    .join("\n");
+    .join('\n');
 }
 
 export function buildDailyRequirementTaskExports(
-  requirements: DailyRequirementItem[],
+  requirements: DailyRequirementItem[]
 ): DailyRequirementTaskExport[] {
   return requirements
     .map((requirement) => {

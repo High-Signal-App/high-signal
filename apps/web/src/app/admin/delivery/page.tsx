@@ -1,7 +1,7 @@
-import { requireAdmin } from "@/lib/clerk-admin";
-import AdminDeliveryClient from "./AdminDeliveryClient";
+import { requireAdmin } from '@/lib/clerk-admin';
+import AdminDeliveryClient from './AdminDeliveryClient';
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
 
 export default async function AdminDeliveryPage() {
   const admin = await requireAdmin();

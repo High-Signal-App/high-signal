@@ -1,14 +1,14 @@
-import { api, type SignalRow } from "@/lib/api";
-import { isBackfillSignal } from "@/lib/signal-format";
-import { SignalCard } from "@/components/molecules/SignalCard";
+import { api, type SignalRow } from '@/lib/api';
+import { isBackfillSignal } from '@/lib/signal-format';
+import { SignalCard } from '@/components/molecules/SignalCard';
 
-export const dynamic = "force-dynamic";
-export const metadata = { title: "Weekly digest — High Signal" };
+export const dynamic = 'force-dynamic';
+export const metadata = { title: 'Weekly digest — High Signal' };
 
 // Public per agents.md: weekly digest is a public output channel.
 export default async function DigestPage() {
   let signals: SignalRow[] = [];
-  let since = "";
+  let since = '';
   try {
     const r = await api.digestWeekly();
     signals = r.signals.filter((signal) => !isBackfillSignal(signal));
@@ -27,7 +27,7 @@ export default async function DigestPage() {
       <header className="mt-3 border-b border-zinc-800 pb-6">
         <h1 className="text-3xl font-medium tracking-tight">Weekly digest</h1>
         <p className="mt-2 max-w-2xl text-sm text-zinc-400">
-          All signals published in the last 7 days. RSS:{" "}
+          All signals published in the last 7 days. RSS:{' '}
           <a className="text-[var(--color-accent)]" href="/digest/rss">
             /digest/rss
           </a>

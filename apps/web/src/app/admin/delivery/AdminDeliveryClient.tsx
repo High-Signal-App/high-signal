@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
 
 interface Summary {
   days: number;
@@ -21,7 +21,7 @@ export default function AdminDeliveryClient() {
   async function load(d: number) {
     setErr(null);
     try {
-      const r = await fetch(`/api/admin/delivery/summary?days=${d}`, { credentials: "include" });
+      const r = await fetch(`/api/admin/delivery/summary?days=${d}`, { credentials: 'include' });
       if (!r.ok) {
         setErr(`load ${r.status}`);
         return;
@@ -55,8 +55,8 @@ export default function AdminDeliveryClient() {
             onClick={() => setDays(d)}
             className={`border px-3 py-1 ${
               days === d
-                ? "border-[var(--color-accent)] bg-white/[0.04] text-white"
-                : "border-zinc-800 text-zinc-400 hover:bg-white/[0.02]"
+                ? 'border-[var(--color-accent)] bg-white/[0.04] text-white'
+                : 'border-zinc-800 text-zinc-400 hover:bg-white/[0.02]'
             }`}
           >
             {d}d
@@ -73,9 +73,11 @@ export default function AdminDeliveryClient() {
       {summary && (
         <>
           <section className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
-            {(["sent", "skipped", "failed", "queued"] as const).map((s) => (
+            {(['sent', 'skipped', 'failed', 'queued'] as const).map((s) => (
               <div key={s} className="border border-zinc-800 p-4">
-                <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">{s}</div>
+                <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
+                  {s}
+                </div>
                 <div className="mt-2 nums text-2xl text-zinc-100">{summary.totals[s] ?? 0}</div>
               </div>
             ))}
@@ -89,7 +91,10 @@ export default function AdminDeliveryClient() {
               {Object.entries(summary.byReason)
                 .sort(([, a], [, b]) => b - a)
                 .map(([reason, n]) => (
-                  <li key={reason} className="flex items-center justify-between border-b border-zinc-900 py-2">
+                  <li
+                    key={reason}
+                    className="flex items-center justify-between border-b border-zinc-900 py-2"
+                  >
                     <span className="text-zinc-300">{reason}</span>
                     <span className="nums text-zinc-500">{n}</span>
                   </li>
@@ -118,8 +123,12 @@ export default function AdminDeliveryClient() {
                   <tr key={i}>
                     <td className="border-b border-zinc-900 py-2 text-zinc-300">{r.brief_date}</td>
                     <td className="border-b border-zinc-900 py-2 text-zinc-300">{r.status}</td>
-                    <td className="border-b border-zinc-900 py-2 text-zinc-500">{r.reason ?? "—"}</td>
-                    <td className="nums border-b border-zinc-900 py-2 text-right text-zinc-300">{r.n}</td>
+                    <td className="border-b border-zinc-900 py-2 text-zinc-500">
+                      {r.reason ?? '—'}
+                    </td>
+                    <td className="nums border-b border-zinc-900 py-2 text-right text-zinc-300">
+                      {r.n}
+                    </td>
                   </tr>
                 ))}
               </tbody>

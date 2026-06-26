@@ -1,21 +1,21 @@
-import type { Metadata } from "next";
-import { notFound } from "next/navigation";
-import { api } from "@/lib/api";
-import { isBackfillSignal, signalHeadline, signalSummary } from "@/lib/signal-format";
-import { pricedInContext, pricedInTone } from "@/lib/price-context";
-import { DirectionPill } from "@/components/atoms/DirectionPill";
-import { ConfidenceBadge } from "@/components/atoms/ConfidenceBadge";
-import { MarkdownView } from "@/components/system/MarkdownView";
-import { SignalArticleJsonLd } from "@/components/seo/structured-data";
+import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
+import { api } from '@/lib/api';
+import { isBackfillSignal, signalHeadline, signalSummary } from '@/lib/signal-format';
+import { pricedInContext, pricedInTone } from '@/lib/price-context';
+import { DirectionPill } from '@/components/atoms/DirectionPill';
+import { ConfidenceBadge } from '@/components/atoms/ConfidenceBadge';
+import { MarkdownView } from '@/components/system/MarkdownView';
+import { SignalArticleJsonLd } from '@/components/seo/structured-data';
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
 
 function deriveHeadline(bodyMd: string): string {
-  return signalHeadline(bodyMd, "signal");
+  return signalHeadline(bodyMd, 'signal');
 }
 
 function markdownWithoutFirstHeading(markdown: string) {
-  return markdown.replace(/^\s*#\s+.+\n+/, "").trim();
+  return markdown.replace(/^\s*#\s+.+\n+/, '').trim();
 }
 
 export async function generateMetadata({
@@ -26,8 +26,8 @@ export async function generateMetadata({
   const { slug } = await params;
   try {
     const { signal } = await api.signal(slug);
-    const headline = deriveHeadline(signal.bodyMd ?? "");
-    const description = `${signal.direction.toUpperCase()} · ${signal.confidence} confidence · ${signal.signalType.replaceAll("_", " ")}`;
+    const headline = deriveHeadline(signal.bodyMd ?? '');
+    const description = `${signal.direction.toUpperCase()} · ${signal.confidence} confidence · ${signal.signalType.replaceAll('_', ' ')}`;
     const ogImage = `/api/og?title=${encodeURIComponent(headline)}`;
     return {
       title: headline,
@@ -35,25 +35,25 @@ export async function generateMetadata({
       openGraph: {
         title: headline,
         description,
-        type: "article",
+        type: 'article',
         images: [{ url: ogImage, width: 1200, height: 630, alt: headline }],
       },
       twitter: {
-        card: "summary_large_image",
+        card: 'summary_large_image',
         title: headline,
         description,
         images: [ogImage],
       },
     };
   } catch {
-    return { title: "Signal" };
+    return { title: 'Signal' };
   }
 }
 
 // Public per agents.md: individual signals are part of the public web channel.
 export default async function SignalDetail({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  let data;
+  let data: Awaited<ReturnType<typeof api.signal>>;
   try {
     data = await api.signal(slug);
   } catch {
@@ -64,8 +64,8 @@ export default async function SignalDetail({ params }: { params: Promise<{ slug:
   // Public detail surface should only render published signals.
   // Drafts, killed, and corrected rows 404 — they live in /review for
   // operators with admin access.
-  if (signal.reviewStatus !== "published") return notFound();
-  let claims: Awaited<ReturnType<typeof api.claimsBySignal>>["claims"] = [];
+  if (signal.reviewStatus !== 'published') return notFound();
+  let claims: Awaited<ReturnType<typeof api.claimsBySignal>>['claims'] = [];
   try {
     const c = await api.claimsBySignal(slug);
     claims = c.claims;
@@ -109,14 +109,16 @@ export default async function SignalDetail({ params }: { params: Promise<{ slug:
               {signal.primaryEntityId}
             </a>
             <span className="text-zinc-700">·</span>
-            <span>{signal.signalType.replaceAll("_", " ")}</span>
+            <span>{signal.signalType.replaceAll('_', ' ')}</span>
           </div>
           <div className="flex shrink-0 items-center gap-3">
             <ConfidenceBadge confidence={signal.confidence} />
             <DirectionPill direction={signal.direction} />
           </div>
         </div>
-        <h1 className="mt-5 max-w-3xl text-3xl font-medium leading-tight tracking-tight">{headline}</h1>
+        <h1 className="mt-5 max-w-3xl text-3xl font-medium leading-tight tracking-tight">
+          {headline}
+        </h1>
         {summary && <p className="mt-5 max-w-3xl text-base leading-7 text-zinc-300">{summary}</p>}
         <div className="mt-6 flex items-center gap-5 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500">
           <span>
@@ -127,7 +129,7 @@ export default async function SignalDetail({ params }: { params: Promise<{ slug:
           </span>
           {price.price ? (
             <span>
-              price{" "}
+              price{' '}
               <span className="nums text-zinc-300">
                 {price.price.ticker} ${price.price.currentPrice.toFixed(2)}
               </span>
@@ -136,7 +138,7 @@ export default async function SignalDetail({ params }: { params: Promise<{ slug:
         </div>
       </header>
 
-      {price.status !== "unknown" ? (
+      {price.status !== 'unknown' ? (
         <section className="mt-8 border-y border-zinc-800 py-5">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
@@ -157,27 +159,27 @@ export default async function SignalDetail({ params }: { params: Promise<{ slug:
                 as of <span className="nums text-zinc-300">{price.price.asOf}</span>
               </span>
               <span>
-                7d{" "}
+                7d{' '}
                 <span className="nums text-zinc-300">
                   {price.price.move7d === null
-                    ? "n/a"
-                    : `${price.price.move7d >= 0 ? "+" : ""}${price.price.move7d.toFixed(0)}%`}
+                    ? 'n/a'
+                    : `${price.price.move7d >= 0 ? '+' : ''}${price.price.move7d.toFixed(0)}%`}
                 </span>
               </span>
               <span>
-                45d{" "}
+                45d{' '}
                 <span className="nums text-zinc-300">
                   {price.price.move45d === null
-                    ? "n/a"
-                    : `${price.price.move45d >= 0 ? "+" : ""}${price.price.move45d.toFixed(0)}%`}
+                    ? 'n/a'
+                    : `${price.price.move45d >= 0 ? '+' : ''}${price.price.move45d.toFixed(0)}%`}
                 </span>
               </span>
               <span>
-                90d{" "}
+                90d{' '}
                 <span className="nums text-zinc-300">
                   {price.price.move90d === null
-                    ? "n/a"
-                    : `${price.price.move90d >= 0 ? "+" : ""}${price.price.move90d.toFixed(0)}%`}
+                    ? 'n/a'
+                    : `${price.price.move90d >= 0 ? '+' : ''}${price.price.move90d.toFixed(0)}%`}
                 </span>
               </span>
               <a
@@ -211,17 +213,17 @@ export default async function SignalDetail({ params }: { params: Promise<{ slug:
           </h2>
           <ul className="mt-4 space-y-3">
             {claims
-              .filter((claim) => claim.reviewStatus === "published" || claim.reviewStatus === "corrected")
+              .filter(
+                (claim) => claim.reviewStatus === 'published' || claim.reviewStatus === 'corrected'
+              )
               .map((claim) => (
                 <li key={claim.id} className="border border-zinc-900 p-3">
                   <div className="flex flex-wrap items-baseline justify-between gap-2 font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
                     <span>
-                      claim · v{claim.version} ·{" "}
+                      claim · v{claim.version} ·{' '}
                       <span
                         className={
-                          claim.reviewStatus === "published"
-                            ? "text-emerald-400"
-                            : "text-zinc-400"
+                          claim.reviewStatus === 'published' ? 'text-emerald-400' : 'text-zinc-400'
                         }
                       >
                         {claim.reviewStatus}
@@ -241,13 +243,13 @@ export default async function SignalDetail({ params }: { params: Promise<{ slug:
                         <li key={link.id} className="flex items-center gap-2">
                           <span
                             className={`border px-1.5 py-0.5 uppercase tracking-[0.18em] ${
-                              link.role === "primary"
-                                ? "border-emerald-500/40 text-emerald-300"
-                                : link.role === "corroboration"
-                                  ? "border-cyan-500/40 text-cyan-300"
-                                  : link.role === "contradiction"
-                                    ? "border-amber-500/40 text-amber-300"
-                                    : "border-zinc-800 text-zinc-500"
+                              link.role === 'primary'
+                                ? 'border-emerald-500/40 text-emerald-300'
+                                : link.role === 'corroboration'
+                                  ? 'border-cyan-500/40 text-cyan-300'
+                                  : link.role === 'contradiction'
+                                    ? 'border-amber-500/40 text-amber-300'
+                                    : 'border-zinc-800 text-zinc-500'
                             }`}
                           >
                             {link.role}
@@ -311,7 +313,8 @@ export default async function SignalDetail({ params }: { params: Promise<{ slug:
       )}
 
       <p className="mt-10 border-l-2 border-zinc-800 pl-3 font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
-        Decision support, not stock advice. This signal is research with cited evidence — not a recommendation to buy, sell, or hold any security.
+        Decision support, not stock advice. This signal is research with cited evidence — not a
+        recommendation to buy, sell, or hold any security.
       </p>
 
       {scores.length > 0 && (
@@ -332,16 +335,16 @@ export default async function SignalDetail({ params }: { params: Promise<{ slug:
                 <tr key={s.id}>
                   <td className="nums border-b border-zinc-900 py-2">{s.windowDays}d</td>
                   <td className="nums border-b border-zinc-900 py-2">
-                    {s.forwardReturn != null ? `${s.forwardReturn.toFixed(2)}%` : "—"}
+                    {s.forwardReturn != null ? `${s.forwardReturn.toFixed(2)}%` : '—'}
                   </td>
                   <td className="border-b border-zinc-900 py-2">
                     <span
                       className={
-                        s.outcome === "hit"
-                          ? "text-emerald-400"
-                          : s.outcome === "miss"
-                            ? "text-rose-400"
-                            : "text-zinc-400"
+                        s.outcome === 'hit'
+                          ? 'text-emerald-400'
+                          : s.outcome === 'miss'
+                            ? 'text-rose-400'
+                            : 'text-zinc-400'
                       }
                     >
                       {s.outcome}

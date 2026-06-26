@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { ReactNode } from 'react';
 
 export interface ProductArea {
   href: string;
@@ -32,16 +32,16 @@ export interface FeedItem {
 }
 
 export function PageShell({
-  max = "max-w-5xl",
+  max = 'max-w-5xl',
   children,
 }: {
-  max?: "max-w-4xl" | "max-w-5xl";
+  max?: 'max-w-4xl' | 'max-w-5xl';
   children: ReactNode;
 }) {
   return <main className={`mx-auto ${max} px-5 py-14 sm:px-6 sm:py-16`}>{children}</main>;
 }
 
-export function BackLink({ href = "/", children = "back to high signal" }) {
+export function BackLink({ href = '/', children = 'back to high signal' }) {
   return (
     <a
       href={href}
@@ -56,12 +56,12 @@ export function HeroHeader({
   eyebrow,
   title,
   children,
-  size = "lg",
+  size = 'lg',
 }: {
   eyebrow: string;
   title: string;
   children: ReactNode;
-  size?: "md" | "lg";
+  size?: 'md' | 'lg';
 }) {
   return (
     <header className="border-b border-[var(--color-line)] pb-8">
@@ -70,7 +70,7 @@ export function HeroHeader({
         <span>{eyebrow}</span>
       </div>
       <h1
-        className={`mt-4 font-medium tracking-tight ${size === "lg" ? "text-4xl sm:text-5xl" : "text-3xl sm:text-4xl"}`}
+        className={`mt-4 font-medium tracking-tight ${size === 'lg' ? 'text-4xl sm:text-5xl' : 'text-3xl sm:text-4xl'}`}
       >
         {title}
       </h1>
@@ -122,15 +122,18 @@ export function ProductAreaGrid({ items }: { items: ProductArea[] }) {
 export function StatGrid({ items }: { items: StatItem[] }) {
   const columnClass =
     items.length === 4
-      ? "sm:grid-cols-2 lg:grid-cols-4"
+      ? 'sm:grid-cols-2 lg:grid-cols-4'
       : items.length % 3 === 0
-        ? "sm:grid-cols-2 lg:grid-cols-3"
-        : "grid-cols-[repeat(auto-fit,minmax(180px,1fr))]";
+        ? 'sm:grid-cols-2 lg:grid-cols-3'
+        : 'grid-cols-[repeat(auto-fit,minmax(180px,1fr))]';
 
   return (
     <section className={`mt-10 grid gap-px ${columnClass}`}>
       {items.map((item) => (
-        <div key={item.label} className="border border-[var(--color-line)] bg-[var(--color-bg)] p-5">
+        <div
+          key={item.label}
+          className="border border-[var(--color-line)] bg-[var(--color-bg)] p-5"
+        >
           <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
             {item.label}
           </div>
@@ -234,7 +237,10 @@ export function MetricGrid({ items }: { items: MetricItem[] }) {
   return (
     <div className="mt-6 grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-px text-sm">
       {items.map((item) => (
-        <div key={item.label} className="border border-[var(--color-line)] bg-[var(--color-bg)] p-4">
+        <div
+          key={item.label}
+          className="border border-[var(--color-line)] bg-[var(--color-bg)] p-4"
+        >
           <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
             {item.label}
           </div>
@@ -261,7 +267,11 @@ export function FeedList({
       </div>
       <div className="divide-y divide-[var(--color-line)]">
         {items.map((item) => (
-          <a key={item.href} href={item.href} className="block py-5 hover:text-[var(--color-accent)]">
+          <a
+            key={item.href}
+            href={item.href}
+            className="block py-5 hover:text-[var(--color-accent)]"
+          >
             <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
               {item.kicker}
             </div>
@@ -271,7 +281,9 @@ export function FeedList({
             ) : null}
           </a>
         ))}
-        {items.length === 0 ? <p className="py-5 text-sm text-[var(--color-muted)]">{empty}</p> : null}
+        {items.length === 0 ? (
+          <p className="py-5 text-sm text-[var(--color-muted)]">{empty}</p>
+        ) : null}
       </div>
     </section>
   );

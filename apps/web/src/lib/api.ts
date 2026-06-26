@@ -12,21 +12,21 @@ import type {
   ProductDashboardSnapshot,
   Region,
   TrackedCommunity,
-} from "@high-signal/shared";
-import type { SignalContentCategory, SignalQualityBand, SourceClass } from "@high-signal/shared";
+} from '@high-signal/shared';
+import type { SignalContentCategory, SignalQualityBand, SourceClass } from '@high-signal/shared';
 import type {
   ClaimRecord as ClaimRecordJson,
   ClaimEvidenceLink as ClaimEvidenceLinkJson,
   ClaimTimelineEvent as ClaimTimelineEventJson,
   EvidenceRollup as ClaimRollupJson,
-} from "@high-signal/shared";
+} from '@high-signal/shared';
 
 export type {
   ClaimRecord as ClaimRecordJson,
   ClaimEvidenceLink as ClaimEvidenceLinkJson,
   ClaimTimelineEvent as ClaimTimelineEventJson,
   EvidenceRollup as ClaimRollupJson,
-} from "@high-signal/shared";
+} from '@high-signal/shared';
 
 export type {
   AgentEvaluationAudit,
@@ -41,25 +41,25 @@ export type {
   ProductDashboardSnapshot,
   Region,
   TrackedCommunity,
-} from "@high-signal/shared";
+} from '@high-signal/shared';
 
 const API_BASE =
-  process.env["NEXT_PUBLIC_API_BASE"] ?? "https://high-signal-api.sarthakagrawal927.workers.dev";
+  process.env['NEXT_PUBLIC_API_BASE'] ?? 'https://high-signal-api.sarthakagrawal927.workers.dev';
 
 // Service binding when running inside the high-signal-web Worker (avoids CF
 // "fetch loop" guard that blocks workers.dev → workers.dev fetches in the same
 // account). Resolved lazily so it works in both Worker SSR and `next dev`.
 async function getBinding(): Promise<{ fetch: typeof fetch } | null> {
-  if (typeof process === "undefined") return null;
+  if (typeof process === 'undefined') return null;
   try {
-    const mod = await import("@opennextjs/cloudflare");
+    const mod = await import('@opennextjs/cloudflare');
     const ctx = (
       mod as unknown as {
         getCloudflareContext?: (...args: unknown[]) => { env?: Record<string, unknown> };
       }
     ).getCloudflareContext?.();
-    const api = ctx?.env?.["API"];
-    if (api && typeof (api as { fetch?: unknown }).fetch === "function") {
+    const api = ctx?.env?.['API'];
+    if (api && typeof (api as { fetch?: unknown }).fetch === 'function') {
       return api as { fetch: typeof fetch };
     }
   } catch {
@@ -74,15 +74,15 @@ async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
   if (binding) {
     r = await binding.fetch(`https://api${path}`, init);
   } else {
-    r = await fetch(`${API_BASE}${path}`, { ...init, cache: "no-store" });
+    r = await fetch(`${API_BASE}${path}`, { ...init, cache: 'no-store' });
   }
   if (!r.ok) throw new Error(`api ${path} ${r.status}`);
   return r.json() as Promise<T>;
 }
 
-export type Direction = "up" | "down" | "neutral";
-export type Confidence = "low" | "medium" | "high";
-export type Outcome = "hit" | "miss" | "push" | "pending";
+export type Direction = 'up' | 'down' | 'neutral';
+export type Confidence = 'low' | 'medium' | 'high';
+export type Outcome = 'hit' | 'miss' | 'push' | 'pending';
 
 export interface SignalRow {
   id: string;
@@ -95,7 +95,7 @@ export interface SignalRow {
   publishedAt: number;
   evidenceUrls: string[];
   spilloverEntityIds: string[];
-  reviewStatus: "draft" | "published" | "corrected" | "killed";
+  reviewStatus: 'draft' | 'published' | 'corrected' | 'killed';
   bodyMd: string;
   contentCategory?: SignalContentCategory;
   qualityScore?: number;
@@ -110,18 +110,18 @@ export interface EntityRow {
   id: string;
   ticker: string | null;
   name: string;
-  type: "public" | "private" | "sector" | "product";
+  type: 'public' | 'private' | 'sector' | 'product';
   country: string | null;
   sector: string | null;
 }
 
 export interface MarketQuote {
   id: string;
-  source: "polymarket" | "manifold" | "kalshi";
+  source: 'polymarket' | 'manifold' | 'kalshi';
   marketId: string;
   entityId: string | null;
   question: string;
-  outcome: "yes" | "no" | "binary";
+  outcome: 'yes' | 'no' | 'binary';
   prob: number;
   volume: number | null;
   resolved: boolean;
@@ -134,7 +134,7 @@ export interface RelationshipRow {
   id: string;
   fromEntityId: string;
   toEntityId: string;
-  type: "supplier" | "customer" | "peer" | "subsidiary" | "partner" | "competitor";
+  type: 'supplier' | 'customer' | 'peer' | 'subsidiary' | 'partner' | 'competitor';
   weight: number;
   verified: boolean;
 }
@@ -160,7 +160,7 @@ export interface RedditMention {
   comments: number;
   url: string;
   permalink: string;
-  type: "post" | "comment";
+  type: 'post' | 'comment';
   body: string | null;
   createdAt: string;
 }
@@ -190,7 +190,7 @@ export interface BacktestWorkbenchExample {
   windowDays: number;
   isBackfill: number;
   actionScore: number | null;
-  actionBand: "compound" | "usable" | "watch" | "retire" | "pending";
+  actionBand: 'compound' | 'usable' | 'watch' | 'retire' | 'pending';
 }
 
 export interface BacktestWorkbenchBucket {
@@ -204,12 +204,12 @@ export interface BacktestWorkbenchBucket {
   hitRate: number | null;
   avgActionScore: number | null;
   evidenceReadyRate: number;
-  recommendedAction: "promote" | "keep-testing" | "tighten-thesis" | "retire-or-rewrite";
+  recommendedAction: 'promote' | 'keep-testing' | 'tighten-thesis' | 'retire-or-rewrite';
   examples: BacktestWorkbenchExample[];
 }
 
 export interface BacktestWorkbench {
-  cohort: "all" | "live" | "backfill";
+  cohort: 'all' | 'live' | 'backfill';
   summary: {
     signals: number;
     matured: number;
@@ -229,7 +229,7 @@ export interface SignalFilters {
   direction?: Direction;
   confidence?: Confidence;
   entity?: string;
-  status?: "draft" | "published" | "corrected" | "killed";
+  status?: 'draft' | 'published' | 'corrected' | 'killed';
   date?: string;
   from?: string;
   to?: string;
@@ -248,20 +248,24 @@ export interface Facets {
 
 function qs(o: SignalFilters): string {
   const e = Object.entries(o)
-    .filter(([, v]) => v != null && v !== "")
+    .filter(([, v]) => v != null && v !== '')
     .map(([k, v]) => [k, String(v)] as [string, string]);
-  return e.length ? `?${new URLSearchParams(e as [string, string][]).toString()}` : "";
+  return e.length ? `?${new URLSearchParams(e as [string, string][]).toString()}` : '';
 }
 
 export const api = {
-  signals: (f: SignalFilters = {}) =>
-    fetchJson<{ signals: SignalRow[] }>(`/signals${qs(f)}`),
-  facets: () => fetchJson<Facets>("/signals/facets"),
+  signals: (f: SignalFilters = {}) => fetchJson<{ signals: SignalRow[] }>(`/signals${qs(f)}`),
+  facets: () => fetchJson<Facets>('/signals/facets'),
   signal: (slug: string) =>
     fetchJson<{
       signal: SignalRow;
       evidence: Array<{ id: string; url: string; sourceType: string; excerpt: string | null }>;
-      scores: Array<{ id: string; outcome: Outcome; windowDays: number; forwardReturn: number | null }>;
+      scores: Array<{
+        id: string;
+        outcome: Outcome;
+        windowDays: number;
+        forwardReturn: number | null;
+      }>;
     }>(`/signals/${slug}`),
   claimsBySignal: (slug: string) =>
     fetchJson<{
@@ -280,7 +284,7 @@ export const api = {
       };
       rollup: ClaimRollupJson;
     }>(`/claims/${id}`),
-  entities: () => fetchJson<{ entities: EntityRow[] }>("/entities"),
+  entities: () => fetchJson<{ entities: EntityRow[] }>('/entities'),
   entity: (id: string) =>
     fetchJson<{
       entity: EntityRow;
@@ -288,23 +292,23 @@ export const api = {
       signals: SignalRow[];
       marketQuotes?: MarketQuote[];
     }>(`/entities/${id}`),
-  trackRecord: () => fetchJson<{ buckets: TrackBucket[] }>("/track-record"),
+  trackRecord: () => fetchJson<{ buckets: TrackBucket[] }>('/track-record'),
   trackRecordLabels: () =>
     fetchJson<{
       generatedAt: string;
       backtestDays: number;
       labels: Record<
-        "breakout" | "divergence",
+        'breakout' | 'divergence',
         { n: number; hits: number; rate: number; lift: number | null }
       >;
       unlabeled: { n: number; hits: number; rate: number };
       baseline: { n: number; hits: number; rate: number };
-    }>("/track-record/labels"),
+    }>('/track-record/labels'),
   trackRecordCohorts: () =>
     fetchJson<{ live: TrackBucket[]; backfill: TrackBucket[]; all: TrackBucket[] }>(
-      "/track-record/cohorts",
+      '/track-record/cohorts'
     ),
-  backtestWorkbench: (cohort: "all" | "live" | "backfill" = "live") =>
+  backtestWorkbench: (cohort: 'all' | 'live' | 'backfill' = 'live') =>
     fetchJson<BacktestWorkbench>(`/track-record/workbench?cohort=${cohort}`),
   sectors: (days = 60) =>
     fetchJson<{
@@ -360,10 +364,10 @@ export const api = {
         attention: {
           totalViews: number;
           avgPerDay: number;
-          trendDirection: "up" | "down" | "flat" | null;
+          trendDirection: 'up' | 'down' | 'flat' | null;
           trendDeltaPct: number | null;
         } | null;
-        label: "breakout" | "divergence" | null;
+        label: 'breakout' | 'divergence' | null;
         labelReason: string | null;
       }>;
     }>(`/convergence?hours=${hours}&min_sources=${minSources}`),
@@ -381,7 +385,7 @@ export const api = {
         isin: string | null;
       };
       csvRow: string;
-      source: "wikidata" | "wikipedia" | "fallback";
+      source: 'wikidata' | 'wikipedia' | 'fallback';
     }>(`/enrich/ticker?token=${encodeURIComponent(token)}`),
   unmapped: (hours = 24, top = 30) =>
     fetchJson<{
@@ -422,31 +426,30 @@ export const api = {
         }>;
       }>;
     }>(`/unmapped?hours=${hours}&top=${top}`),
-  digestWeekly: () =>
-    fetchJson<{ since: string; signals: SignalRow[] }>("/digest/weekly"),
+  digestWeekly: () => fetchJson<{ since: string; signals: SignalRow[] }>('/digest/weekly'),
   redditCommunity: (subreddit: string) =>
     fetchJson<{ community: RedditCommunity }>(
-      `/communities/reddit/${encodeURIComponent(subreddit)}`,
+      `/communities/reddit/${encodeURIComponent(subreddit)}`
     ),
   redditMentions: (query: string, limit = 10) =>
     fetchJson<{ mentions: RedditMention[]; total: number }>(
-      `/communities/reddit-mentions?${new URLSearchParams({ q: query, limit: String(limit) })}`,
+      `/communities/reddit-mentions?${new URLSearchParams({ q: query, limit: String(limit) })}`
     ),
   productDashboard: (ownerId: string) =>
     fetchJson<ProductDashboardSnapshot>(
-      `/products/dashboard?${new URLSearchParams({ owner: ownerId })}`,
+      `/products/dashboard?${new URLSearchParams({ owner: ownerId })}`
     ),
-  productCommunityDiscover: (period: "day" | "week" | "month" = "week") =>
+  productCommunityDiscover: (period: 'day' | 'week' | 'month' = 'week') =>
     fetchJson<{ items: CommunityDigestSnapshot[] }>(
-      `/products/communities/discover?${new URLSearchParams({ period })}`,
+      `/products/communities/discover?${new URLSearchParams({ period })}`
     ),
-  productCommunityDigests: (subreddit: string, period: "day" | "week" | "month" = "week") =>
+  productCommunityDigests: (subreddit: string, period: 'day' | 'week' | 'month' = 'week') =>
     fetchJson<{ digests: CommunityDigestSnapshot[] }>(
-      `/products/communities/${encodeURIComponent(subreddit)}/${period}/digests`,
+      `/products/communities/${encodeURIComponent(subreddit)}/${period}/digests`
     ),
   agentEvaluationAudits: (ownerId: string, limit = 10) =>
     fetchJson<{ audits: AgentEvaluationAudit[] }>(
-      `/products/agent-eval/audits?${new URLSearchParams({ owner: ownerId, limit: String(limit) })}`,
+      `/products/agent-eval/audits?${new URLSearchParams({ owner: ownerId, limit: String(limit) })}`
     ),
   createAgentEvaluationAudit: (
     ownerId: string,
@@ -458,57 +461,60 @@ export const api = {
       competitors?: AgentEvaluationCompetitor[];
       evidenceText?: string | null;
       evidenceUrls?: string[];
-    },
+    }
   ) =>
     fetchJson<AgentEvaluationAuditDetail>(
       `/products/agent-eval/audits?${new URLSearchParams({ owner: ownerId })}`,
       {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(input),
-      },
+      }
     ),
   agentEvaluationAudit: (ownerId: string, id: string) =>
     fetchJson<AgentEvaluationAuditDetail>(
-      `/products/agent-eval/audits/${encodeURIComponent(id)}?${new URLSearchParams({ owner: ownerId })}`,
+      `/products/agent-eval/audits/${encodeURIComponent(id)}?${new URLSearchParams({ owner: ownerId })}`
     ),
   seoAudit: (url: string) =>
-    fetchJson<SeoAuditReport>(
-      `/products/agent-eval/seo-audit?${new URLSearchParams({ url })}`,
-    ),
+    fetchJson<SeoAuditReport>(`/products/agent-eval/seo-audit?${new URLSearchParams({ url })}`),
   trackedCommunities: (ownerId: string) =>
     fetchJson<{ communities: TrackedCommunity[] }>(
-      `/products/communities/tracked?${new URLSearchParams({ owner: ownerId })}`,
+      `/products/communities/tracked?${new URLSearchParams({ owner: ownerId })}`
     ),
   createTrackedCommunity: (
     ownerId: string,
-    input: { subreddit: string; prompt?: string | null; period?: "day" | "week" | "month"; isPublic?: boolean },
+    input: {
+      subreddit: string;
+      prompt?: string | null;
+      period?: 'day' | 'week' | 'month';
+      isPublic?: boolean;
+    }
   ) =>
     fetchJson<{ community: TrackedCommunity }>(
       `/products/communities/tracked?${new URLSearchParams({ owner: ownerId })}`,
       {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(input),
-      },
+      }
     ),
   deleteTrackedCommunity: (ownerId: string, id: string) =>
     fetchJson<{ ok: true }>(
       `/products/communities/tracked/${encodeURIComponent(id)}?${new URLSearchParams({ owner: ownerId })}`,
-      { method: "DELETE" },
+      { method: 'DELETE' }
     ),
   generateCommunityDigest: (ownerId: string, id: string) =>
     fetchJson<{ digest: CommunityDigestSnapshot }>(
       `/products/communities/tracked/${encodeURIComponent(id)}/digests?${new URLSearchParams({ owner: ownerId })}`,
       {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: "{}",
-      },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{}',
+      }
     ),
   mentionConfigs: (ownerId: string) =>
     fetchJson<{ configs: MentionBrandConfig[] }>(
-      `/products/mentions/configs?${new URLSearchParams({ owner: ownerId })}`,
+      `/products/mentions/configs?${new URLSearchParams({ owner: ownerId })}`
     ),
   visibilityMatrix: (ownerId: string, brandId: string, window = 30) =>
     fetchJson<{
@@ -524,7 +530,7 @@ export const api = {
       windowDays: number;
       runs: number;
     }>(
-      `/products/mentions/${encodeURIComponent(brandId)}/visibility-matrix?window=${window}&owner=${encodeURIComponent(ownerId)}`,
+      `/products/mentions/${encodeURIComponent(brandId)}/visibility-matrix?window=${window}&owner=${encodeURIComponent(ownerId)}`
     ),
   shareOfVoice: (ownerId: string, brandId: string, window = 30) =>
     fetchJson<{
@@ -536,7 +542,7 @@ export const api = {
       competitorShare: Record<string, number>;
       citationShare: Record<string, number>;
     }>(
-      `/products/mentions/${encodeURIComponent(brandId)}/share-of-voice?window=${window}&owner=${encodeURIComponent(ownerId)}`,
+      `/products/mentions/${encodeURIComponent(brandId)}/share-of-voice?window=${window}&owner=${encodeURIComponent(ownerId)}`
     ),
   citedSources: (ownerId: string, brandId: string, ownership?: string) =>
     fetchJson<{
@@ -544,7 +550,7 @@ export const api = {
         id: string;
         url: string;
         host: string;
-        ownership: "owned" | "competitor" | "third_party" | "unknown";
+        ownership: 'owned' | 'competitor' | 'third_party' | 'unknown';
         competitorId: string | null;
         firstSeenAt: string;
         lastSeenAt: string;
@@ -552,7 +558,7 @@ export const api = {
         mentionRunCount: number;
       }>;
     }>(
-      `/products/mentions/${encodeURIComponent(brandId)}/cited-sources?owner=${encodeURIComponent(ownerId)}${ownership ? `&ownership=${ownership}` : ""}`,
+      `/products/mentions/${encodeURIComponent(brandId)}/cited-sources?owner=${encodeURIComponent(ownerId)}${ownership ? `&ownership=${ownership}` : ''}`
     ),
   mentionTrends: (ownerId: string, brandId: string, window = 30) =>
     fetchJson<{
@@ -564,7 +570,7 @@ export const api = {
         citedHosts: number;
       }>;
     }>(
-      `/products/mentions/${encodeURIComponent(brandId)}/trends?window=${window}&owner=${encodeURIComponent(ownerId)}`,
+      `/products/mentions/${encodeURIComponent(brandId)}/trends?window=${window}&owner=${encodeURIComponent(ownerId)}`
     ),
   mentionReport: (ownerId: string, brandId: string, window = 30) =>
     fetchJson<{
@@ -601,19 +607,19 @@ export const api = {
         mentionRunCount: number;
       }>;
     }>(
-      `/products/mentions/${encodeURIComponent(brandId)}/report?window=${window}&owner=${encodeURIComponent(ownerId)}`,
+      `/products/mentions/${encodeURIComponent(brandId)}/report?window=${window}&owner=${encodeURIComponent(ownerId)}`
     ),
   agentEvalAttributes: (ownerId: string, auditId: string) =>
     fetchJson<{
       attributes: Array<{
         area: string;
-        status: "missing" | "weak" | "clear" | "strong";
+        status: 'missing' | 'weak' | 'clear' | 'strong';
         evidenceUrls: string[];
         notes: string;
         taskCount: number;
       }>;
     }>(
-      `/products/agent-eval/${encodeURIComponent(auditId)}/attributes?owner=${encodeURIComponent(ownerId)}`,
+      `/products/agent-eval/${encodeURIComponent(auditId)}/attributes?owner=${encodeURIComponent(ownerId)}`
     ),
   createMentionConfig: (
     ownerId: string,
@@ -625,76 +631,74 @@ export const api = {
       platforms?: AIPlatform[];
       aiEndpointUrl?: string | null;
       aiModel?: string | null;
-      checkSchedule?: "daily" | "weekly" | null;
+      checkSchedule?: 'daily' | 'weekly' | null;
       badgeEnabled?: boolean;
-    },
+    }
   ) =>
     fetchJson<{ config: MentionBrandConfig }>(
       `/products/mentions/configs?${new URLSearchParams({ owner: ownerId })}`,
       {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(input),
-      },
+      }
     ),
   deleteMentionConfig: (ownerId: string, id: string) =>
     fetchJson<{ ok: true }>(
       `/products/mentions/configs/${encodeURIComponent(id)}?${new URLSearchParams({ owner: ownerId })}`,
-      { method: "DELETE" },
+      { method: 'DELETE' }
     ),
   mentionConfigPrompts: (ownerId: string, configId: string) =>
     fetchJson<{ prompts: MentionPrompt[] }>(
-      `/products/mentions/configs/${encodeURIComponent(configId)}/prompts?${new URLSearchParams({ owner: ownerId })}`,
+      `/products/mentions/configs/${encodeURIComponent(configId)}/prompts?${new URLSearchParams({ owner: ownerId })}`
     ),
   createMentionPrompt: (
     ownerId: string,
     configId: string,
-    input: { promptText: string; category?: string | null },
+    input: { promptText: string; category?: string | null }
   ) =>
     fetchJson<{ prompt: MentionPrompt }>(
       `/products/mentions/configs/${encodeURIComponent(configId)}/prompts?${new URLSearchParams({ owner: ownerId })}`,
       {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(input),
-      },
+      }
     ),
   mentionConfigChecks: (ownerId: string, configId: string) =>
     fetchJson<{ checks: MentionCheck[] }>(
-      `/products/mentions/configs/${encodeURIComponent(configId)}/checks?${new URLSearchParams({ owner: ownerId })}`,
+      `/products/mentions/configs/${encodeURIComponent(configId)}/checks?${new URLSearchParams({ owner: ownerId })}`
     ),
   runMentionCheck: (ownerId: string, configId: string) =>
     fetchJson<{ check: MentionCheck }>(
       `/products/mentions/configs/${encodeURIComponent(configId)}/checks?${new URLSearchParams({ owner: ownerId })}`,
       {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: "{}",
-      },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{}',
+      }
     ),
-  brief: (
-    params: { region?: Region; ownerId?: string; productId?: string } = {},
-  ) => {
+  brief: (params: { region?: Region; ownerId?: string; productId?: string } = {}) => {
     const search = new URLSearchParams();
-    if (params.region) search.set("region", params.region);
-    if (params.ownerId) search.set("owner", params.ownerId);
-    if (params.productId) search.set("product", params.productId);
+    if (params.region) search.set('region', params.region);
+    if (params.ownerId) search.set('owner', params.ownerId);
+    if (params.productId) search.set('product', params.productId);
     const suffix = search.toString();
-    return fetchJson<BriefSnapshot>(`/brief/daily${suffix ? `?${suffix}` : ""}`);
+    return fetchJson<BriefSnapshot>(`/brief/daily${suffix ? `?${suffix}` : ''}`);
   },
   labFeed: async (
-    params: { query?: string; source?: string; limit?: number; byCluster?: boolean } = {},
+    params: { query?: string; source?: string; limit?: number; byCluster?: boolean } = {}
   ) => {
-    const base = process.env["LAB_API_URL"] ?? process.env["NEXT_PUBLIC_LAB_API_URL"];
-    if (!base) throw new Error("lab_not_configured");
+    const base = process.env['LAB_API_URL'] ?? process.env['NEXT_PUBLIC_LAB_API_URL'];
+    if (!base) throw new Error('lab_not_configured');
     const search = new URLSearchParams();
-    if (params.query) search.set("q", params.query);
-    if (params.source) search.set("source", params.source);
-    if (params.limit) search.set("limit", String(params.limit));
-    if (params.byCluster) search.set("by_cluster", "true");
+    if (params.query) search.set('q', params.query);
+    if (params.source) search.set('source', params.source);
+    if (params.limit) search.set('limit', String(params.limit));
+    if (params.byCluster) search.set('by_cluster', 'true');
     const suffix = search.toString();
-    const r = await fetch(`${base.replace(/\/$/, "")}/feed${suffix ? `?${suffix}` : ""}`, {
-      cache: "no-store",
+    const r = await fetch(`${base.replace(/\/$/, '')}/feed${suffix ? `?${suffix}` : ''}`, {
+      cache: 'no-store',
     });
     if (!r.ok) throw new Error(`lab ${r.status}`);
     return (await r.json()) as LabFeedResult;
@@ -704,8 +708,8 @@ export const api = {
 export interface SeoCheckResult {
   key: string;
   title: string;
-  axis: "seo" | "geo" | "both";
-  status: "strong" | "clear" | "weak" | "missing";
+  axis: 'seo' | 'geo' | 'both';
+  status: 'strong' | 'clear' | 'weak' | 'missing';
   notes: string;
   recommendation: string;
 }
@@ -718,7 +722,7 @@ export interface SeoAuditReport {
   score: number;
   seoScore: number;
   geoScore: number;
-  band: "strong" | "clear" | "weak" | "missing";
+  band: 'strong' | 'clear' | 'weak' | 'missing';
   checks: SeoCheckResult[];
   evidenceUrls: string[];
   error: string | null;

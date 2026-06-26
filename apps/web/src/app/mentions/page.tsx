@@ -8,82 +8,85 @@ import {
   Panel,
   SectionHeader,
   StatGrid,
-} from "@/components/system/HighSignalUI";
-import { api } from "@/lib/api";
-import { analyzeMentionVisibility, type AIPlatform } from "@high-signal/shared";
-import { requireSignedIn } from "@/lib/require-auth";
-import { revalidatePath } from "next/cache";
+} from '@/components/system/HighSignalUI';
+import { api } from '@/lib/api';
+import { analyzeMentionVisibility, type AIPlatform } from '@high-signal/shared';
+import { requireSignedIn } from '@/lib/require-auth';
+import { revalidatePath } from 'next/cache';
 
-export const dynamic = "force-dynamic";
-export const metadata = { title: "Mention Intelligence — High Signal" };
+export const dynamic = 'force-dynamic';
+export const metadata = { title: 'Mention Intelligence — High Signal' };
 
-const PLATFORM_OPTIONS: AIPlatform[] = ["openai", "anthropic", "google", "perplexity", "custom"];
+const PLATFORM_OPTIONS: AIPlatform[] = ['openai', 'anthropic', 'google', 'perplexity', 'custom'];
 
 async function createConfig(formData: FormData) {
-  "use server";
+  'use server';
   const { userId, orgId } = await requireSignedIn();
   const ownerId = orgId ?? userId;
-  const brandName = `${formData.get("brandName") ?? ""}`.trim();
-  const brandUrl = `${formData.get("brandUrl") ?? ""}`.trim() || null;
-  const aliasesRaw = `${formData.get("brandAliases") ?? ""}`.trim();
+  const brandName = `${formData.get('brandName') ?? ''}`.trim();
+  const brandUrl = `${formData.get('brandUrl') ?? ''}`.trim() || null;
+  const aliasesRaw = `${formData.get('brandAliases') ?? ''}`.trim();
   const brandAliases = aliasesRaw
-    ? aliasesRaw.split(",").map((s) => s.trim()).filter(Boolean)
+    ? aliasesRaw
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean)
     : [];
-  const competitorsRaw = `${formData.get("competitors") ?? ""}`.trim();
+  const competitorsRaw = `${formData.get('competitors') ?? ''}`.trim();
   const competitors = competitorsRaw
-    .split("\n")
+    .split('\n')
     .map((line) => {
-      const [name, url] = line.split(",").map((s) => s.trim());
+      const [name, url] = line.split(',').map((s) => s.trim());
       return name ? { name, url: url || undefined } : null;
     })
     .filter((c): c is { name: string; url: string | undefined } => Boolean(c));
-  const platforms = formData.getAll("platforms").map((v) => String(v)) as AIPlatform[];
+  const platforms = formData.getAll('platforms').map((v) => String(v)) as AIPlatform[];
   if (!brandName) return;
   await api.createMentionConfig(ownerId, {
     brandName,
     brandUrl,
     brandAliases,
     competitors,
-    platforms: platforms.length ? platforms : ["openai"],
-    badgeEnabled: formData.get("badgeEnabled") === "on",
+    platforms: platforms.length ? platforms : ['openai'],
+    badgeEnabled: formData.get('badgeEnabled') === 'on',
   });
-  revalidatePath("/mentions");
+  revalidatePath('/mentions');
 }
 
 async function deleteConfig(formData: FormData) {
-  "use server";
+  'use server';
   const { userId, orgId } = await requireSignedIn();
   const ownerId = orgId ?? userId;
-  const id = `${formData.get("configId") ?? ""}`.trim();
+  const id = `${formData.get('configId') ?? ''}`.trim();
   if (!id) return;
   await api.deleteMentionConfig(ownerId, id);
-  revalidatePath("/mentions");
+  revalidatePath('/mentions');
 }
 
 async function addPrompt(formData: FormData) {
-  "use server";
+  'use server';
   const { userId, orgId } = await requireSignedIn();
   const ownerId = orgId ?? userId;
-  const configId = `${formData.get("configId") ?? ""}`.trim();
-  const promptText = `${formData.get("promptText") ?? ""}`.trim();
-  const category = `${formData.get("category") ?? ""}`.trim() || null;
+  const configId = `${formData.get('configId') ?? ''}`.trim();
+  const promptText = `${formData.get('promptText') ?? ''}`.trim();
+  const category = `${formData.get('category') ?? ''}`.trim() || null;
   if (!configId || !promptText) return;
   await api.createMentionPrompt(ownerId, configId, { promptText, category });
-  revalidatePath("/mentions");
+  revalidatePath('/mentions');
 }
 
 async function runCheck(formData: FormData) {
-  "use server";
+  'use server';
   const { userId, orgId } = await requireSignedIn();
   const ownerId = orgId ?? userId;
-  const configId = `${formData.get("configId") ?? ""}`.trim();
+  const configId = `${formData.get('configId') ?? ''}`.trim();
   if (!configId) return;
   await api.runMentionCheck(ownerId, configId);
-  revalidatePath("/mentions");
+  revalidatePath('/mentions');
 }
 
 const SAMPLE_TEXT =
-  "1. High Signal is a reliable way to track market and community signals. 2. Brandwatch is broader for social listening. See https://highsignal.ai for the product.";
+  '1. High Signal is a reliable way to track market and community signals. 2. Brandwatch is broader for social listening. See https://highsignal.ai for the product.';
 
 export default async function MentionsPage({
   searchParams,
@@ -95,10 +98,10 @@ export default async function MentionsPage({
   const params = (await searchParams) ?? {};
 
   const dashboardResult = await Promise.allSettled([api.productDashboard(ownerId)]);
-  const dashboard = dashboardResult[0].status === "fulfilled" ? dashboardResult[0].value : null;
+  const dashboard = dashboardResult[0].status === 'fulfilled' ? dashboardResult[0].value : null;
 
   const configs = dashboard?.mentions.configs ?? [];
-  const activeConfigId = params.config ?? configs[0]?.id ?? "";
+  const activeConfigId = params.config ?? configs[0]?.id ?? '';
   const activeConfig = configs.find((c) => c.id === activeConfigId) ?? configs[0] ?? null;
   const [promptsResult, checksResult] = activeConfig
     ? await Promise.allSettled([
@@ -107,18 +110,18 @@ export default async function MentionsPage({
       ])
     : [];
   const promptsForConfig =
-    activeConfig && promptsResult?.status === "fulfilled" ? promptsResult.value.prompts : [];
+    activeConfig && promptsResult?.status === 'fulfilled' ? promptsResult.value.prompts : [];
   const checksForConfig =
-    activeConfig && checksResult?.status === "fulfilled" ? checksResult.value.checks : [];
+    activeConfig && checksResult?.status === 'fulfilled' ? checksResult.value.checks : [];
 
-  const previewBrand = (params.previewBrand ?? activeConfig?.brandName ?? "High Signal").trim();
+  const previewBrand = (params.previewBrand ?? activeConfig?.brandName ?? 'High Signal').trim();
   const previewText = (params.previewText ?? SAMPLE_TEXT).trim();
   const previewAnalysis = analyzeMentionVisibility({
     text: previewText,
     brandName: previewBrand,
     brandUrl: activeConfig?.brandUrl ?? null,
     competitors: activeConfig?.competitors.map((c) => ({ name: c.name })) ?? [
-      { name: "Brandwatch" },
+      { name: 'Brandwatch' },
     ],
   });
 
@@ -132,16 +135,17 @@ export default async function MentionsPage({
 
       <StatGrid
         items={[
-          { label: "brand configs", value: configs.length.toString(), sub: "tracked products" },
-          { label: "prompts", value: promptsForConfig.length.toString(), sub: "active config" },
+          { label: 'brand configs', value: configs.length.toString(), sub: 'tracked products' },
+          { label: 'prompts', value: promptsForConfig.length.toString(), sub: 'active config' },
           {
-            label: "latest mention rate",
-            value: checksForConfig[0]?.brandMentionRate != null
-              ? `${Math.round((checksForConfig[0]?.brandMentionRate ?? 0) * 100)}%`
-              : "—",
+            label: 'latest mention rate',
+            value:
+              checksForConfig[0]?.brandMentionRate != null
+                ? `${Math.round((checksForConfig[0]?.brandMentionRate ?? 0) * 100)}%`
+                : '—',
             sub: checksForConfig[0]
               ? `check ${checksForConfig[0].createdAt.slice(0, 10)}`
-              : "no checks yet",
+              : 'no checks yet',
           },
         ]}
       />
@@ -169,7 +173,7 @@ export default async function MentionsPage({
             <Field
               label="Competitors (one per line, optional ,url)"
               name="competitors"
-              defaultValue={"Brandwatch\nAlphaSense\nExploding Topics"}
+              defaultValue={'Brandwatch\nAlphaSense\nExploding Topics'}
               multiline
             />
             <div className="mt-5 space-y-2 text-sm text-[var(--color-muted)]">
@@ -181,7 +185,7 @@ export default async function MentionsPage({
                       type="checkbox"
                       name="platforms"
                       value={platform}
-                      defaultChecked={platform === "openai"}
+                      defaultChecked={platform === 'openai'}
                       className="size-4 accent-[var(--color-accent)]"
                     />
                     {platform}
@@ -210,7 +214,7 @@ export default async function MentionsPage({
                 <div
                   key={config.id}
                   className={`grid gap-3 py-4 md:grid-cols-[1.2fr_auto] ${
-                    config.id === activeConfig?.id ? "" : "opacity-80"
+                    config.id === activeConfig?.id ? '' : 'opacity-80'
                   }`}
                 >
                   <div>
@@ -221,8 +225,8 @@ export default async function MentionsPage({
                       {config.brandName}
                     </a>
                     <div className="mt-1 text-xs text-[var(--color-muted)]">
-                      {config.platforms.join(" / ") || "no platforms"} ·{" "}
-                      {config.competitors.length} competitors
+                      {config.platforms.join(' / ') || 'no platforms'} · {config.competitors.length}{' '}
+                      competitors
                     </div>
                   </div>
                   <div className="flex gap-2">
@@ -263,7 +267,12 @@ export default async function MentionsPage({
           <Panel eyebrow={`prompts / ${activeConfig.brandName}`}>
             <form action={addPrompt}>
               <input type="hidden" name="configId" value={activeConfig.id} />
-              <Field label="Prompt" name="promptText" defaultValue="best tools for AI signal tracking" multiline />
+              <Field
+                label="Prompt"
+                name="promptText"
+                defaultValue="best tools for AI signal tracking"
+                multiline
+              />
               <Field label="Category" name="category" defaultValue="discovery" />
               <CommandButton>add prompt</CommandButton>
             </form>
@@ -277,7 +286,7 @@ export default async function MentionsPage({
                   {promptsForConfig.slice(0, 10).map((prompt) => (
                     <li key={prompt.id} className="border border-[var(--color-line)] p-3">
                       <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
-                        {prompt.category ?? "uncategorized"}
+                        {prompt.category ?? 'uncategorized'}
                       </div>
                       <p className="mt-2 leading-6 text-[var(--color-fg)]">{prompt.promptText}</p>
                     </li>
@@ -289,14 +298,16 @@ export default async function MentionsPage({
 
           <Panel eyebrow={`recent checks / ${activeConfig.brandName}`}>
             {checksForConfig.length === 0 ? (
-              <p className="mt-5 text-sm text-[var(--color-muted)]">No checks yet for this brand.</p>
+              <p className="mt-5 text-sm text-[var(--color-muted)]">
+                No checks yet for this brand.
+              </p>
             ) : (
               <div className="mt-5 divide-y divide-[var(--color-line)] border-y border-[var(--color-line)]">
                 {checksForConfig.map((check) => (
                   <div key={check.id} className="grid grid-cols-[1fr_auto] gap-3 py-3 text-sm">
                     <div>
                       <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
-                        {check.createdAt.slice(0, 16).replace("T", " ")} / {check.status}
+                        {check.createdAt.slice(0, 16).replace('T', ' ')} / {check.status}
                       </div>
                       <p className="mt-2 leading-6 text-[var(--color-fg)]">
                         {check.summary ?? `${check.completedQueries}/${check.totalQueries} queries`}
@@ -305,13 +316,13 @@ export default async function MentionsPage({
                     <div
                       className={`font-mono text-sm ${
                         check.brandMentionRate != null && check.brandMentionRate >= 0.5
-                          ? "text-[var(--color-accent)]"
-                          : "text-[var(--color-muted)]"
+                          ? 'text-[var(--color-accent)]'
+                          : 'text-[var(--color-muted)]'
                       }`}
                     >
                       {check.brandMentionRate != null
                         ? `${Math.round(check.brandMentionRate * 100)}%`
-                        : "—"}
+                        : '—'}
                     </div>
                   </div>
                 ))}
@@ -331,15 +342,20 @@ export default async function MentionsPage({
           <form className="mt-6 grid gap-4 md:grid-cols-[0.9fr_1.1fr]">
             <div>
               <Field label="Brand" name="previewBrand" defaultValue={previewBrand} />
-              <Field label="Model response" name="previewText" defaultValue={previewText} multiline />
+              <Field
+                label="Model response"
+                name="previewText"
+                defaultValue={previewText}
+                multiline
+              />
               <CommandButton>analyze</CommandButton>
             </div>
             <MetricGrid
               items={[
-                { label: "mentioned", value: previewAnalysis.brandMentioned ? "yes" : "no" },
-                { label: "sentiment", value: previewAnalysis.brandSentiment ?? "none" },
-                { label: "position", value: previewAnalysis.brandPosition?.toString() ?? "—" },
-                { label: "brand cited", value: previewAnalysis.brandCited ? "yes" : "no" },
+                { label: 'mentioned', value: previewAnalysis.brandMentioned ? 'yes' : 'no' },
+                { label: 'sentiment', value: previewAnalysis.brandSentiment ?? 'none' },
+                { label: 'position', value: previewAnalysis.brandPosition?.toString() ?? '—' },
+                { label: 'brand cited', value: previewAnalysis.brandCited ? 'yes' : 'no' },
               ]}
             />
           </form>
@@ -351,11 +367,11 @@ export default async function MentionsPage({
         empty="No checks across configs yet."
         items={checksForConfig.map((check) => ({
           href: `/mentions?config=${encodeURIComponent(check.configId)}`,
-          kicker: `${check.createdAt.slice(0, 16).replace("T", " ")} / ${check.status}`,
+          kicker: `${check.createdAt.slice(0, 16).replace('T', ' ')} / ${check.status}`,
           title:
             check.summary ??
             `${check.completedQueries}/${check.totalQueries} queries · ${
-              check.brandMentionRate != null ? `${Math.round(check.brandMentionRate * 100)}%` : "—"
+              check.brandMentionRate != null ? `${Math.round(check.brandMentionRate * 100)}%` : '—'
             }`,
           body: null,
         }))}

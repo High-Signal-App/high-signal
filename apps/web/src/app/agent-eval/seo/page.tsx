@@ -6,28 +6,28 @@ import {
   Panel,
   SectionHeader,
   StatGrid,
-} from "@/components/system/HighSignalUI";
-import { api, type SeoAuditReport } from "@/lib/api";
-import { SITE_URL } from "@/lib/site";
+} from '@/components/system/HighSignalUI';
+import { api, type SeoAuditReport } from '@/lib/api';
+import { SITE_URL } from '@/lib/site';
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
 export const metadata = {
-  title: "SEO + GEO audit",
+  title: 'SEO + GEO audit',
   description:
-    "Live SEO + GEO audit for any URL. Grades canonical, OG, Twitter, Schema.org JSON-LD, llms.txt, robots, sitemap, RSS — the technical primitives that decide whether you surface in Google + Bing AND in ChatGPT / Claude / Perplexity / Gemini.",
+    'Live SEO + GEO audit for any URL. Grades canonical, OG, Twitter, Schema.org JSON-LD, llms.txt, robots, sitemap, RSS — the technical primitives that decide whether you surface in Google + Bing AND in ChatGPT / Claude / Perplexity / Gemini.',
 };
 
-const STATUS_TONE: Record<SeoAuditReport["band"], string> = {
-  strong: "text-[var(--color-accent)]",
-  clear: "text-zinc-100",
-  weak: "text-amber-300",
-  missing: "text-rose-300",
+const STATUS_TONE: Record<SeoAuditReport['band'], string> = {
+  strong: 'text-[var(--color-accent)]',
+  clear: 'text-zinc-100',
+  weak: 'text-amber-300',
+  missing: 'text-rose-300',
 };
 
-const AXIS_LABEL: Record<"seo" | "geo" | "both", string> = {
-  seo: "SEO",
-  geo: "GEO",
-  both: "SEO + GEO",
+const AXIS_LABEL: Record<'seo' | 'geo' | 'both', string> = {
+  seo: 'SEO',
+  geo: 'GEO',
+  both: 'SEO + GEO',
 };
 
 const DEFAULT_URL = SITE_URL; // eat our own dog food — audit ourselves by default.
@@ -46,13 +46,16 @@ export default async function SeoAuditPage({
     report = await api.seoAudit(targetUrl);
     if (report.error) error = report.error;
   } catch (e) {
-    error = e instanceof Error ? e.message : "audit_failed";
+    error = e instanceof Error ? e.message : 'audit_failed';
   }
 
   return (
     <PageShell>
       <BackLink href="/agent-eval">back to agent eval</BackLink>
-      <SectionHeader eyebrow="seo + geo audit" title="Is your site legible to humans AND citable by agents?">
+      <SectionHeader
+        eyebrow="seo + geo audit"
+        title="Is your site legible to humans AND citable by agents?"
+      >
         Live grade of the technical primitives that decide whether you appear in Google + Bing (SEO)
         and whether ChatGPT, Claude, Perplexity, and Gemini can extract structured facts about you
         (GEO). Defaults to <code className="text-[var(--color-fg)]">highsignal.app</code> so you can
@@ -69,8 +72,8 @@ export default async function SeoAuditPage({
       {error ? (
         <Panel eyebrow="audit error" title={error}>
           <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">
-            The auditor couldn&apos;t complete a clean fetch. Common causes: site blocks
-            non-browser user agents, HTTP/2 negotiation failed, or the path returned a non-2xx.
+            The auditor couldn&apos;t complete a clean fetch. Common causes: site blocks non-browser
+            user agents, HTTP/2 negotiation failed, or the path returned a non-2xx.
           </p>
         </Panel>
       ) : null}
@@ -80,24 +83,24 @@ export default async function SeoAuditPage({
           <StatGrid
             items={[
               {
-                label: "overall",
+                label: 'overall',
                 value: `${report.score}/100`,
                 sub: `band: ${report.band}`,
               },
               {
-                label: "seo axis",
+                label: 'seo axis',
                 value: `${report.seoScore}/100`,
-                sub: "indexed by google + bing",
+                sub: 'indexed by google + bing',
               },
               {
-                label: "geo axis",
+                label: 'geo axis',
                 value: `${report.geoScore}/100`,
-                sub: "citable by ai assistants",
+                sub: 'citable by ai assistants',
               },
               {
-                label: "checks",
+                label: 'checks',
                 value: report.checks.length.toString(),
-                sub: `${report.checks.filter((c) => c.status === "strong").length} strong`,
+                sub: `${report.checks.filter((c) => c.status === 'strong').length} strong`,
               },
             ]}
           />
@@ -127,7 +130,7 @@ export default async function SeoAuditPage({
                   <p className="mt-3 text-sm leading-6 text-[var(--color-fg)]">
                     <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-accent)]">
                       fix
-                    </span>{" "}
+                    </span>{' '}
                     — {check.recommendation}
                   </p>
                 </div>
@@ -158,7 +161,7 @@ export default async function SeoAuditPage({
           ) : null}
 
           <p className="mt-8 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
-            audited {report.finalUrl} at {report.fetchedAt.slice(0, 16).replace("T", " ")} UTC
+            audited {report.finalUrl} at {report.fetchedAt.slice(0, 16).replace('T', ' ')} UTC
           </p>
         </>
       ) : null}

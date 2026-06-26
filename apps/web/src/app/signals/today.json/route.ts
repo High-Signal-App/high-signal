@@ -1,13 +1,13 @@
-import { api, type SignalRow } from "@/lib/api";
-import { isBackfillSignal } from "@/lib/signal-format";
-import { assessSignalQuality, type SignalContentCategory } from "@high-signal/shared";
+import { api, type SignalRow } from '@/lib/api';
+import { isBackfillSignal } from '@/lib/signal-format';
+import { assessSignalQuality, type SignalContentCategory } from '@high-signal/shared';
 import {
   dailyReadMatches,
   hasReadOnlyFilter,
   safeReadDomain,
   safeReadLayer,
-} from "@/lib/daily-read-filters";
-import { buildDailyRequirementQueue } from "@/lib/daily-requirements";
+} from '@/lib/daily-read-filters';
+import { buildDailyRequirementQueue } from '@/lib/daily-requirements';
 import {
   buildDailyAutomationStatus,
   buildDailyBroadInsightsWithAnnotations,
@@ -18,12 +18,12 @@ import {
   defaultDailyAnnotationOptions,
   resolveAcceptedRefreshDate,
   readSourceRefreshes,
-} from "@/lib/daily-intelligence";
-import { buildDailyRequirementTaskExports } from "@/lib/daily-task-export";
-import productGraph from "../../../../../../data/personal-product-graph.json";
-import type { PersonalProductProfile } from "@high-signal/shared";
+} from '@/lib/daily-intelligence';
+import { buildDailyRequirementTaskExports } from '@/lib/daily-task-export';
+import productGraph from '../../../../../../data/personal-product-graph.json';
+import type { PersonalProductProfile } from '@high-signal/shared';
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
 
 function utcDate(d = new Date()) {
   return d.toISOString().slice(0, 10);
@@ -55,22 +55,22 @@ function countBy(values: string[]) {
 
 function signalTitle(signal: SignalRow) {
   const line = signal.bodyMd
-    .split("\n")
+    .split('\n')
     .map((item) => item.trim())
     .find(Boolean);
-  return (line ?? `${signal.primaryEntityId} ${signal.signalType}`).replace(/^#+\s*/, "");
+  return (line ?? `${signal.primaryEntityId} ${signal.signalType}`).replace(/^#+\s*/, '');
 }
 
 /** JSON twin of /signals/today — one UTC date of signals, freshest first. */
 export async function GET(req: Request) {
   const url = new URL(req.url);
-  const date = safeDate(url.searchParams.get("date"));
-  const category = url.searchParams.get("category") as SignalContentCategory | null;
-  const layer = safeReadLayer(url.searchParams.get("layer"));
-  const domain = safeReadDomain(url.searchParams.get("domain"));
-  const requirement = url.searchParams.get("requirement") === "yes";
+  const date = safeDate(url.searchParams.get('date'));
+  const category = url.searchParams.get('category') as SignalContentCategory | null;
+  const layer = safeReadLayer(url.searchParams.get('layer'));
+  const domain = safeReadDomain(url.searchParams.get('domain'));
+  const requirement = url.searchParams.get('requirement') === 'yes';
   const readFilters = {
-    category: category ?? "",
+    category: category ?? '',
     layer,
     domain,
     requirement,
@@ -83,13 +83,15 @@ export async function GET(req: Request) {
   } catch {
     /* offline */
   }
-  const today = (hasReadFilter ? [] : all).filter((s) => !category || signalCategory(s) === category);
+  const today = (hasReadFilter ? [] : all).filter(
+    (s) => !category || signalCategory(s) === category
+  );
   const refreshes = await readSourceRefreshes();
   const sourceReadDate = resolveAcceptedRefreshDate(refreshes, date) ?? date;
   const allBroadInsights = await buildDailyBroadInsightsWithAnnotations(
     refreshes,
     sourceReadDate,
-    defaultDailyAnnotationOptions(),
+    defaultDailyAnnotationOptions()
   );
   const broadInsights = allBroadInsights.filter((item) => dailyReadMatches(item, readFilters));
   const sourceCoverage = buildDailySourceCoverage(refreshes, sourceReadDate);
@@ -103,7 +105,7 @@ export async function GET(req: Request) {
           layer,
           domain,
           requirement,
-        }),
+        })
       )
       .map((item) => item.contentCategory),
   ]);
@@ -112,16 +114,22 @@ export async function GET(req: Request) {
   const layerCounts = countBy(allBroadInsights.map((item) => item.annotation.signalLayer));
   const domainCounts = countBy(allBroadInsights.flatMap((item) => item.annotation.domains));
   const audienceCounts = countBy(broadInsights.map((item) => item.annotation.audience));
-  const requirementTypeCounts = countBy(broadInsights.map((item) => item.annotation.requirementType));
-  const qualityGateCounts = countBy(broadInsights.map((item) => item.annotation.qualityGate.status));
-  const productRequirementCount = broadInsights.filter((item) => item.annotation.productRequirement).length;
+  const requirementTypeCounts = countBy(
+    broadInsights.map((item) => item.annotation.requirementType)
+  );
+  const qualityGateCounts = countBy(
+    broadInsights.map((item) => item.annotation.qualityGate.status)
+  );
+  const productRequirementCount = broadInsights.filter(
+    (item) => item.annotation.productRequirement
+  ).length;
   const products = productGraph.products as PersonalProductProfile[];
   const requirementQueue = buildDailyRequirementQueue(broadInsights, 12, products);
   const taskExports = buildDailyRequirementTaskExports(requirementQueue);
   const annotationRuntime = await dailyAnnotationRuntime();
   const items = [
     ...today.map((signal) => ({
-      kind: "signal" as const,
+      kind: 'signal' as const,
       id: signal.slug,
       title: signalTitle(signal),
       href: `/signals/${signal.slug}`,
@@ -131,7 +139,7 @@ export async function GET(req: Request) {
       sourceCount: signal.evidenceUrls.length,
     })),
     ...broadInsights.map((item) => ({
-      kind: "broad-insight" as const,
+      kind: 'broad-insight' as const,
       id: item.id,
       title: item.title,
       href: item.href,
@@ -184,9 +192,9 @@ export async function GET(req: Request) {
     {
       status: 200,
       headers: {
-        "Content-Type": "application/json; charset=utf-8",
-        "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
+        'Content-Type': 'application/json; charset=utf-8',
+        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
       },
-    },
+    }
   );
 }

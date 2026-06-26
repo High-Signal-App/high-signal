@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { Show, SignInButton, SignUpButton, UserButton } from "@clerk/nextjs";
+import { Show, SignInButton, SignUpButton, UserButton } from '@clerk/nextjs';
 
 export function AuthNav() {
   return (
@@ -27,7 +27,7 @@ export function AuthNav() {
           <UserButton
             appearance={{
               elements: {
-                avatarBox: "size-8",
+                avatarBox: 'size-8',
               },
             }}
           />

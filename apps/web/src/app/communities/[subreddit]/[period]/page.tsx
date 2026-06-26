@@ -5,15 +5,15 @@ import {
   PageShell,
   Panel,
   SectionHeader,
-} from "@/components/system/HighSignalUI";
-import { MarkdownView } from "@/components/system/MarkdownView";
-import { api, type CommunityDigestSnapshot } from "@/lib/api";
-import { requireSignedIn } from "@/lib/require-auth";
-import { redditSourceLink } from "@high-signal/shared";
+} from '@/components/system/HighSignalUI';
+import { MarkdownView } from '@/components/system/MarkdownView';
+import { api, type CommunityDigestSnapshot } from '@/lib/api';
+import { requireSignedIn } from '@/lib/require-auth';
+import { redditSourceLink } from '@high-signal/shared';
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
 
-const periods = ["day", "week", "month"] as const;
+const periods = ['day', 'week', 'month'] as const;
 
 export async function generateMetadata({
   params,
@@ -32,8 +32,8 @@ export default async function CommunityArchivePage({
   await requireSignedIn();
   const { subreddit, period: rawPeriod } = await params;
   const period = periods.includes(rawPeriod as (typeof periods)[number])
-    ? (rawPeriod as "day" | "week" | "month")
-    : "week";
+    ? (rawPeriod as 'day' | 'week' | 'month')
+    : 'week';
   let digests: CommunityDigestSnapshot[] = [];
   try {
     const result = await api.productCommunityDigests(subreddit, period);
@@ -44,9 +44,11 @@ export default async function CommunityArchivePage({
 
   const latest = digests[0];
   const keyItems = latest
-    ? [latest.summary?.keyTrend, ...(latest.summary?.notableDiscussions ?? []), latest.summary?.keyAction].filter(
-        (item): item is NonNullable<typeof item> => Boolean(item),
-      )
+    ? [
+        latest.summary?.keyTrend,
+        ...(latest.summary?.notableDiscussions ?? []),
+        latest.summary?.keyAction,
+      ].filter((item): item is NonNullable<typeof item> => Boolean(item))
     : [];
 
   return (
@@ -58,19 +60,20 @@ export default async function CommunityArchivePage({
 
       <MetricGrid
         items={[
-          { label: "period", value: period },
-          { label: "digests", value: digests.length.toString() },
-          { label: "sources", value: String(latest?.sourceCount ?? 0) },
-          { label: "latest", value: latest?.snapshotDate.slice(0, 10) ?? "none" },
+          { label: 'period', value: period },
+          { label: 'digests', value: digests.length.toString() },
+          { label: 'sources', value: String(latest?.sourceCount ?? 0) },
+          { label: 'latest', value: latest?.snapshotDate.slice(0, 10) ?? 'none' },
         ]}
       />
 
       <section className="mt-10 grid gap-8 md:grid-cols-[1.1fr_0.9fr]">
-        <Panel eyebrow="latest summary" title={latest?.summary?.keyTrend?.title ?? "No digest yet"}>
+        <Panel eyebrow="latest summary" title={latest?.summary?.keyTrend?.title ?? 'No digest yet'}>
           <div className="mt-3">
             <MarkdownView
               markdown={
-                latest?.summaryText ?? "No source-linked digest has been generated for this community period."
+                latest?.summaryText ??
+                'No source-linked digest has been generated for this community period.'
               }
             />
           </div>
@@ -84,8 +87,8 @@ export default async function CommunityArchivePage({
                 href={`/communities/${encodeURIComponent(subreddit)}/${option}`}
                 className={`border px-3 py-2 ${
                   option === period
-                    ? "border-[var(--color-accent)] text-[var(--color-fg)]"
-                    : "border-[var(--color-line)] text-[var(--color-muted)] hover:text-[var(--color-accent)]"
+                    ? 'border-[var(--color-accent)] text-[var(--color-fg)]'
+                    : 'border-[var(--color-line)] text-[var(--color-muted)] hover:text-[var(--color-accent)]'
                 }`}
               >
                 {option}
@@ -98,16 +101,16 @@ export default async function CommunityArchivePage({
       {keyItems.length > 0 ? (
         <section className="mt-10 grid gap-px border border-[var(--color-line)] bg-[var(--color-line)] md:grid-cols-3">
           {keyItems.map((item) => {
-            const href = redditSourceLink(subreddit, item.sourceId) ?? item.link ?? "#";
+            const href = redditSourceLink(subreddit, item.sourceId) ?? item.link ?? '#';
             return (
-              <article
-                key={`${item.title}-${href}`}
-                className="bg-[var(--color-bg)] p-5"
-              >
+              <article key={`${item.title}-${href}`} className="bg-[var(--color-bg)] p-5">
                 <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
                   source
                 </div>
-                <a className="mt-5 block text-lg font-medium tracking-tight hover:text-[var(--color-accent)]" href={href}>
+                <a
+                  className="mt-5 block text-lg font-medium tracking-tight hover:text-[var(--color-accent)]"
+                  href={href}
+                >
                   {item.title}
                 </a>
                 <div className="mt-3">

@@ -5,20 +5,20 @@ import {
   Panel,
   SectionHeader,
   StatGrid,
-} from "@/components/system/HighSignalUI";
-import { readFile } from "node:fs/promises";
-import { resolve } from "node:path";
+} from '@/components/system/HighSignalUI';
+import { readFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
 import {
   buildApprovedTaskTeardowns,
   type ApprovedTaskTeardown,
   type PersonalComplaintCluster,
   type PersonalReelBrief,
-} from "@high-signal/shared";
+} from '@high-signal/shared';
 
-export const dynamic = "force-dynamic";
-export const metadata = { title: "Manual Teardowns — High Signal" };
+export const dynamic = 'force-dynamic';
+export const metadata = { title: 'Manual Teardowns — High Signal' };
 
-const DATA_ROOT = resolve(process.cwd(), "../../data");
+const DATA_ROOT = resolve(process.cwd(), '../../data');
 
 type ComplaintClusterSnapshot = {
   generatedAt: string;
@@ -32,9 +32,9 @@ type ReelBriefSnapshot = {
 
 async function readJsonl<T>(filename: string): Promise<T[]> {
   try {
-    const raw = await readFile(resolve(DATA_ROOT, filename), "utf8");
+    const raw = await readFile(resolve(DATA_ROOT, filename), 'utf8');
     return raw
-      .split("\n")
+      .split('\n')
       .map((line) => line.trim())
       .filter(Boolean)
       .map((line) => JSON.parse(line) as T);
@@ -51,29 +51,31 @@ function taskShortId(taskId: string) {
   return taskId.slice(0, 8);
 }
 
-function statusTone(status: ApprovedTaskTeardown["status"]) {
-  if (status === "ready-for-manual-output") return "text-[var(--color-accent)]";
-  if (status === "needs-source-check") return "text-amber-300";
-  return "text-red-300";
+function statusTone(status: ApprovedTaskTeardown['status']) {
+  if (status === 'ready-for-manual-output') return 'text-[var(--color-accent)]';
+  if (status === 'needs-source-check') return 'text-amber-300';
+  return 'text-red-300';
 }
 
-function modeLabel(mode: ApprovedTaskTeardown["mode"]) {
-  return mode.replaceAll("-", " ");
+function modeLabel(mode: ApprovedTaskTeardown['mode']) {
+  return mode.replaceAll('-', ' ');
 }
 
 function TeardownPanel({ item }: { item: ApprovedTaskTeardown }) {
   return (
     <Panel eyebrow={`${taskShortId(item.taskId)} / ${modeLabel(item.mode)}`} title={item.title}>
-      <div className={`mt-4 font-mono text-[10px] uppercase tracking-[0.18em] ${statusTone(item.status)}`}>
-        {item.status.replaceAll("-", " ")}
+      <div
+        className={`mt-4 font-mono text-[10px] uppercase tracking-[0.18em] ${statusTone(item.status)}`}
+      >
+        {item.status.replaceAll('-', ' ')}
       </div>
       <p className="mt-4 text-sm leading-6 text-[var(--color-muted)]">{item.humanTension}</p>
       <MetricGrid
         items={[
-          { label: "cluster", value: item.clusterTitle },
-          { label: "confidence", value: item.confidence },
-          { label: "repeats", value: item.repeatedSignalCount.toString() },
-          { label: "sources", value: item.sourceCount.toString() },
+          { label: 'cluster', value: item.clusterTitle },
+          { label: 'confidence', value: item.confidence },
+          { label: 'repeats', value: item.repeatedSignalCount.toString() },
+          { label: 'sources', value: item.sourceCount.toString() },
         ]}
       />
 
@@ -81,7 +83,9 @@ function TeardownPanel({ item }: { item: ApprovedTaskTeardown }) {
         <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-accent)]">
           validation artifact
         </div>
-        <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">{item.validationArtifact}</p>
+        <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">
+          {item.validationArtifact}
+        </p>
       </div>
 
       <div className="mt-5 grid gap-5 md:grid-cols-2">
@@ -141,8 +145,8 @@ function TeardownPanel({ item }: { item: ApprovedTaskTeardown }) {
 
 export default async function TeardownsPage() {
   const [clusterSnapshots, reelSnapshots] = await Promise.all([
-    readJsonl<ComplaintClusterSnapshot>("personal-complaint-clusters.jsonl"),
-    readJsonl<ReelBriefSnapshot>("personal-reel-briefs.jsonl"),
+    readJsonl<ComplaintClusterSnapshot>('personal-complaint-clusters.jsonl'),
+    readJsonl<ReelBriefSnapshot>('personal-reel-briefs.jsonl'),
   ]);
   const latestClusters = latestByGeneratedAt(clusterSnapshots);
   const latestReels = latestByGeneratedAt(reelSnapshots);
@@ -152,7 +156,7 @@ export default async function TeardownsPage() {
     reelBriefs: latestReels?.reelBriefs ?? [],
     generatedAt,
   });
-  const ready = teardowns.filter((item) => item.status === "ready-for-manual-output").length;
+  const ready = teardowns.filter((item) => item.status === 'ready-for-manual-output').length;
   const evidenceLinks = new Set(teardowns.flatMap((item) => item.evidenceUrls)).size;
 
   return (
@@ -166,10 +170,22 @@ export default async function TeardownsPage() {
 
       <StatGrid
         items={[
-          { label: "approved tasks", value: teardowns.length.toString(), sub: "only the requested IDs" },
-          { label: "ready outputs", value: `${ready}/${teardowns.length}`, sub: "high-confidence evidence" },
-          { label: "source links", value: evidenceLinks.toString(), sub: "latest snapshots" },
-          { label: "snapshot", value: generatedAt?.slice(0, 10) ?? "none", sub: "complaints + reels" },
+          {
+            label: 'approved tasks',
+            value: teardowns.length.toString(),
+            sub: 'only the requested IDs',
+          },
+          {
+            label: 'ready outputs',
+            value: `${ready}/${teardowns.length}`,
+            sub: 'high-confidence evidence',
+          },
+          { label: 'source links', value: evidenceLinks.toString(), sub: 'latest snapshots' },
+          {
+            label: 'snapshot',
+            value: generatedAt?.slice(0, 10) ?? 'none',
+            sub: 'complaints + reels',
+          },
         ]}
       />
 

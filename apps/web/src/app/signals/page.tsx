@@ -1,11 +1,11 @@
-import { api, type Direction, type Confidence, type SignalRow } from "@/lib/api";
-import { isBackfillSignal } from "@/lib/signal-format";
-import { SignalCard } from "@/components/molecules/SignalCard";
-import { FilterBar, type Facets } from "@/components/molecules/FilterBar";
-import { assessSignalQuality, type SignalContentCategory } from "@high-signal/shared";
+import { api, type Direction, type Confidence, type SignalRow } from '@/lib/api';
+import { isBackfillSignal } from '@/lib/signal-format';
+import { SignalCard } from '@/components/molecules/SignalCard';
+import { FilterBar, type Facets } from '@/components/molecules/FilterBar';
+import { assessSignalQuality, type SignalContentCategory } from '@high-signal/shared';
 
-export const dynamic = "force-dynamic";
-export const metadata = { title: "Signals — High Signal" };
+export const dynamic = 'force-dynamic';
+export const metadata = { title: 'Signals — High Signal' };
 
 interface SP {
   type?: string;
@@ -15,17 +15,17 @@ interface SP {
   category?: SignalContentCategory;
 }
 
-const FILTER_KEYS = new Set(["category", "type", "direction", "confidence", "entity"]);
+const FILTER_KEYS = new Set(['category', 'type', 'direction', 'confidence', 'entity']);
 
 const signalTabs = [
-  { href: "/signals/today", label: "daily" },
-  { href: "/signals", label: "all" },
-  { href: "/digest", label: "weekly" },
-  { href: "/markets", label: "markets" },
-  { href: "/communities", label: "communities" },
-  { href: "/mentions", label: "mentions" },
-  { href: "/agent-eval", label: "agent eval" },
-  { href: "/personal", label: "personal" },
+  { href: '/signals/today', label: 'daily' },
+  { href: '/signals', label: 'all' },
+  { href: '/digest', label: 'weekly' },
+  { href: '/markets', label: 'markets' },
+  { href: '/communities', label: 'communities' },
+  { href: '/mentions', label: 'mentions' },
+  { href: '/agent-eval', label: 'agent eval' },
+  { href: '/personal', label: 'personal' },
 ];
 
 function countBy<T extends string>(values: T[]) {
@@ -48,8 +48,8 @@ function facetsFromSignals(signals: SignalRow[]): Facets {
             confidence: signal.confidence,
             evidenceUrls: signal.evidenceUrls,
             bodyMd: signal.bodyMd,
-          }).contentCategory,
-      ),
+          }).contentCategory
+      )
     ),
     directions: countBy(signals.map((signal) => signal.direction)),
     confidences: countBy(signals.map((signal) => signal.confidence)),
@@ -58,14 +58,16 @@ function facetsFromSignals(signals: SignalRow[]): Facets {
 }
 
 // Public per agents.md: signals are a "public web page" output channel.
-export default async function SignalsPage({
-  searchParams,
-}: {
-  searchParams: Promise<SP>;
-}) {
+export default async function SignalsPage({ searchParams }: { searchParams: Promise<SP> }) {
   const sp = await searchParams;
   let signals: SignalRow[] = [];
-  let facets: Facets = { types: [], categories: [], directions: [], confidences: [], topEntities: [] };
+  let facets: Facets = {
+    types: [],
+    categories: [],
+    directions: [],
+    confidences: [],
+    topEntities: [],
+  };
   try {
     const [s, f] = await Promise.all([api.signals(sp), api.facets()]);
     signals = s.signals.filter((signal) => !isBackfillSignal(signal));
@@ -130,11 +132,11 @@ function Header() {
         <strong className="text-zinc-300">Most signals are low-confidence by design.</strong> A
         pipeline that only published high-conviction calls would either be lying or be silent for
         weeks. Low-confidence with a clear directional read and two sources is still useful — and
-        when it&apos;s wrong, the public ledger at{" "}
+        when it&apos;s wrong, the public ledger at{' '}
         <a className="text-[var(--color-accent)] hover:underline" href="/track-record">
           /track-record
-        </a>{" "}
-        will say so. Subscribe via{" "}
+        </a>{' '}
+        will say so. Subscribe via{' '}
         <a
           className="text-[var(--color-accent)] hover:underline"
           href="/signals/rss"
@@ -148,22 +150,14 @@ function Header() {
   );
 }
 
-function ActiveSummary({
-  count,
-  active,
-}: {
-  count: number;
-  active: [string, unknown][];
-}) {
+function ActiveSummary({ count, active }: { count: number; active: [string, unknown][] }) {
   return (
     <div className="mt-4 flex items-baseline justify-between font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
       <span>
-        <span className="nums text-zinc-300">{count}</span> result{count === 1 ? "" : "s"}
+        <span className="nums text-zinc-300">{count}</span> result{count === 1 ? '' : 's'}
       </span>
       {active.length > 0 && (
-        <span>
-          {active.map(([k, v]) => `${k}=${String(v)}`).join("  ·  ")}
-        </span>
+        <span>{active.map(([k, v]) => `${k}=${String(v)}`).join('  ·  ')}</span>
       )}
     </div>
   );
@@ -172,7 +166,9 @@ function ActiveSummary({
 function Empty({ filtered }: { filtered: boolean }) {
   return (
     <div className="mt-12 border border-dashed border-zinc-800 p-10 text-center font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500">
-      {filtered ? "no signals match these filters" : "no signals published yet — first cards drop after phase 1"}
+      {filtered
+        ? 'no signals match these filters'
+        : 'no signals published yet — first cards drop after phase 1'}
     </div>
   );
 }

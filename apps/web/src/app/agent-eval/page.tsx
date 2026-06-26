@@ -8,14 +8,14 @@ import {
   Panel,
   SectionHeader,
   StatGrid,
-} from "@/components/system/HighSignalUI";
-import { api, type AgentEvaluationAuditDetail, type AgentEvaluationCompetitor } from "@/lib/api";
-import { requireSignedIn } from "@/lib/require-auth";
-import type { Route } from "next";
-import { redirect } from "next/navigation";
+} from '@/components/system/HighSignalUI';
+import { api, type AgentEvaluationAuditDetail, type AgentEvaluationCompetitor } from '@/lib/api';
+import { requireSignedIn } from '@/lib/require-auth';
+import type { Route } from 'next';
+import { redirect } from 'next/navigation';
 
-export const dynamic = "force-dynamic";
-export const metadata = { title: "Agent Evaluation — High Signal" };
+export const dynamic = 'force-dynamic';
+export const metadata = { title: 'Agent Evaluation — High Signal' };
 
 const DEFAULT_EVIDENCE = `High Signal extracts actionable signals from noisy public and semi-public information streams.
 It serves operators and builders who need evidence-backed product, community, mention, and market intelligence.
@@ -24,13 +24,13 @@ Pricing, support policy, refund policy, security docs, and third-party review pa
 
 function parseCompetitors(raw: string): AgentEvaluationCompetitor[] {
   return raw
-    .split("\n")
+    .split('\n')
     .map((line) => line.trim())
     .filter(Boolean)
     .slice(0, 8)
     .map((line) => {
-      const [name, url] = line.split(",").map((part) => part?.trim());
-      return { name: name ?? "", url: url || undefined };
+      const [name, url] = line.split(',').map((part) => part?.trim());
+      return { name: name ?? '', url: url || undefined };
     })
     .filter((competitor) => competitor.name);
 }
@@ -44,29 +44,29 @@ function parseUrls(raw: string): string[] {
 }
 
 function scoreTone(score: number) {
-  if (score >= 75) return "text-[var(--color-accent)]";
-  if (score >= 50) return "text-amber-300";
-  return "text-red-300";
+  if (score >= 75) return 'text-[var(--color-accent)]';
+  if (score >= 50) return 'text-amber-300';
+  return 'text-red-300';
 }
 
 function statusTone(status: string) {
-  if (status === "strong") return "text-[var(--color-accent)]";
-  if (status === "clear") return "text-zinc-100";
-  if (status === "weak") return "text-amber-300";
-  return "text-red-300";
+  if (status === 'strong') return 'text-[var(--color-accent)]';
+  if (status === 'clear') return 'text-zinc-100';
+  if (status === 'weak') return 'text-amber-300';
+  return 'text-red-300';
 }
 
 async function createAudit(formData: FormData) {
-  "use server";
+  'use server';
   const { userId, orgId } = await requireSignedIn();
   const ownerId = orgId ?? userId;
-  const brandName = `${formData.get("brandName") ?? ""}`.trim();
-  const brandUrl = `${formData.get("brandUrl") ?? ""}`.trim();
-  const buyerMission = `${formData.get("buyerMission") ?? ""}`.trim();
-  const targetSegment = `${formData.get("targetSegment") ?? ""}`.trim();
-  const competitors = parseCompetitors(`${formData.get("competitors") ?? ""}`);
-  const evidenceText = `${formData.get("evidenceText") ?? ""}`.trim();
-  const evidenceUrls = parseUrls(`${formData.get("evidenceUrls") ?? ""}`);
+  const brandName = `${formData.get('brandName') ?? ''}`.trim();
+  const brandUrl = `${formData.get('brandUrl') ?? ''}`.trim();
+  const buyerMission = `${formData.get('buyerMission') ?? ''}`.trim();
+  const targetSegment = `${formData.get('targetSegment') ?? ''}`.trim();
+  const competitors = parseCompetitors(`${formData.get('competitors') ?? ''}`);
+  const evidenceText = `${formData.get('evidenceText') ?? ''}`.trim();
+  const evidenceUrls = parseUrls(`${formData.get('evidenceUrls') ?? ''}`);
   const detail = await api.createAgentEvaluationAudit(ownerId, {
     brandName,
     brandUrl,
@@ -80,8 +80,8 @@ async function createAudit(formData: FormData) {
 }
 
 function AuditResult({ detail }: { detail: AgentEvaluationAuditDetail }) {
-  const missing = detail.scores.filter((score) => score.status === "missing").length;
-  const weak = detail.scores.filter((score) => score.status === "weak").length;
+  const missing = detail.scores.filter((score) => score.status === 'missing').length;
+  const weak = detail.scores.filter((score) => score.status === 'weak').length;
   const recommended = detail.prompts.filter((prompt) => prompt.brandRecommended).length;
   const firstReel = detail.reelBriefs[0];
 
@@ -90,17 +90,21 @@ function AuditResult({ detail }: { detail: AgentEvaluationAuditDetail }) {
       <section className="mt-10 grid gap-8 md:grid-cols-[0.85fr_1.15fr]">
         <Panel
           eyebrow="recommendation"
-          title={<span className={scoreTone(detail.audit.overallScore)}>{detail.audit.overallScore}/100</span>}
+          title={
+            <span className={scoreTone(detail.audit.overallScore)}>
+              {detail.audit.overallScore}/100
+            </span>
+          }
         >
           <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">
             {detail.audit.recommendationSummary}
           </p>
           <MetricGrid
             items={[
-              { label: "prompts", value: detail.prompts.length.toString() },
-              { label: "recommended", value: `${recommended}/${detail.prompts.length}` },
-              { label: "missing", value: missing.toString() },
-              { label: "weak", value: weak.toString() },
+              { label: 'prompts', value: detail.prompts.length.toString() },
+              { label: 'recommended', value: `${recommended}/${detail.prompts.length}` },
+              { label: 'missing', value: missing.toString() },
+              { label: 'weak', value: weak.toString() },
             ]}
           />
         </Panel>
@@ -158,7 +162,7 @@ function AuditResult({ detail }: { detail: AgentEvaluationAuditDetail }) {
         empty="No prompt results."
         items={detail.prompts.map((prompt) => ({
           href: `/agent-eval?audit=${detail.audit.id}`,
-          kicker: `${prompt.surface} / ${prompt.brandRecommended ? "recommendable" : "not-ready"}`,
+          kicker: `${prompt.surface} / ${prompt.brandRecommended ? 'recommendable' : 'not-ready'}`,
           title: prompt.promptText,
           body: prompt.responseText,
         }))}
@@ -168,9 +172,7 @@ function AuditResult({ detail }: { detail: AgentEvaluationAuditDetail }) {
         <section className="mt-10 grid gap-8 md:grid-cols-[0.9fr_1.1fr]">
           <Panel eyebrow="attention layer" title="First reel brief">
             <div className="mt-5 text-xl leading-7">{firstReel.hook}</div>
-            <p className="mt-4 text-sm leading-6 text-[var(--color-muted)]">
-              {firstReel.caption}
-            </p>
+            <p className="mt-4 text-sm leading-6 text-[var(--color-muted)]">{firstReel.caption}</p>
             <p className="mt-4 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
               {firstReel.claimBoundary}
             </p>
@@ -214,8 +216,8 @@ export default async function AgentEvalPage({
     api.agentEvaluationAudits(ownerId, 8),
     auditId ? api.agentEvaluationAudit(ownerId, auditId) : Promise.resolve(null),
   ]);
-  const audits = auditsResult.status === "fulfilled" ? auditsResult.value.audits : [];
-  const detail = detailResult.status === "fulfilled" ? detailResult.value : null;
+  const audits = auditsResult.status === 'fulfilled' ? auditsResult.value.audits : [];
+  const detail = detailResult.status === 'fulfilled' ? detailResult.value : null;
 
   return (
     <PageShell max="max-w-5xl">
@@ -226,7 +228,7 @@ export default async function AgentEvalPage({
       </SectionHeader>
 
       <p className="mt-6 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
-        new to this →{" "}
+        new to this →{' '}
         <a href="/agent-eval/sample" className="text-[var(--color-accent)] hover:underline">
           read a sample report
         </a>
@@ -234,9 +236,9 @@ export default async function AgentEvalPage({
 
       <StatGrid
         items={[
-          { label: "Input", value: "URL + mission", sub: "product, buyer, competitors" },
-          { label: "Output", value: "audit + tasks", sub: "scores, gaps, prompt matrix" },
-          { label: "Attention", value: "reel briefs", sub: "proof-bound short-form hooks" },
+          { label: 'Input', value: 'URL + mission', sub: 'product, buyer, competitors' },
+          { label: 'Output', value: 'audit + tasks', sub: 'scores, gaps, prompt matrix' },
+          { label: 'Attention', value: 'reel briefs', sub: 'proof-bound short-form hooks' },
         ]}
       />
 
@@ -258,7 +260,7 @@ export default async function AgentEvalPage({
             <Field
               label="Competitors (one per line, optional comma URL)"
               name="competitors"
-              defaultValue={"AlphaSense\nBrandwatch\nExploding Topics"}
+              defaultValue={'AlphaSense\nBrandwatch\nExploding Topics'}
               multiline
             />
             <Field

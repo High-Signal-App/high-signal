@@ -1,6 +1,6 @@
-import { api } from "@/lib/api";
+import { api } from '@/lib/api';
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
 
 /**
  * Public JSON listing of every entity in the High Signal corpus. Lets
@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
  * the /entities HTML.
  */
 export async function GET() {
-  let entities: Awaited<ReturnType<typeof api.entities>>["entities"] = [];
+  let entities: Awaited<ReturnType<typeof api.entities>>['entities'] = [];
   try {
     const r = await api.entities();
     entities = r.entities;
@@ -19,8 +19,8 @@ export async function GET() {
   return new Response(JSON.stringify({ generatedAt: new Date().toISOString(), entities }), {
     status: 200,
     headers: {
-      "Content-Type": "application/json; charset=utf-8",
-      "Cache-Control": "public, s-maxage=600, stale-while-revalidate=1200",
+      'Content-Type': 'application/json; charset=utf-8',
+      'Cache-Control': 'public, s-maxage=600, stale-while-revalidate=1200',
     },
   });
 }

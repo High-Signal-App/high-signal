@@ -5,49 +5,49 @@ import {
   PageShell,
   Panel,
   SectionHeader,
-} from "@/components/system/HighSignalUI";
-import { api, type ProductDashboardSnapshot } from "@/lib/api";
-import { getRequestAuth } from "@/lib/require-auth";
-import type { MentionBrandConfig, TrackedCommunity } from "@high-signal/shared";
+} from '@/components/system/HighSignalUI';
+import { api, type ProductDashboardSnapshot } from '@/lib/api';
+import { getRequestAuth } from '@/lib/require-auth';
+import type { MentionBrandConfig, TrackedCommunity } from '@high-signal/shared';
 
-export const dynamic = "force-dynamic";
-export const metadata = { title: "Dashboard — High Signal" };
+export const dynamic = 'force-dynamic';
+export const metadata = { title: 'Dashboard — High Signal' };
 
 const brandConfig: MentionBrandConfig = {
-  id: "brand_high_signal",
-  companyId: "company_high_signal",
-  brandName: "High Signal",
-  brandAliases: ["HighSignal", "High Signal Suite"],
-  brandUrl: "https://highsignalsuite.com",
-  competitors: [{ name: "Brandwatch" }, { name: "G2" }],
-  platforms: ["openai", "anthropic", "perplexity"],
+  id: 'brand_high_signal',
+  companyId: 'company_high_signal',
+  brandName: 'High Signal',
+  brandAliases: ['HighSignal', 'High Signal Suite'],
+  brandUrl: 'https://highsignalsuite.com',
+  competitors: [{ name: 'Brandwatch' }, { name: 'G2' }],
+  platforms: ['openai', 'anthropic', 'perplexity'],
   aiEndpointUrl: null,
-  aiModel: "multi-model",
-  createdAt: "2026-05-01T00:00:00.000Z",
-  updatedAt: "2026-05-01T00:00:00.000Z",
+  aiModel: 'multi-model',
+  createdAt: '2026-05-01T00:00:00.000Z',
+  updatedAt: '2026-05-01T00:00:00.000Z',
 };
 
 const trackedCommunities: TrackedCommunity[] = [
   {
-    id: "community_localllama",
-    ownerId: "workspace_default",
-    subreddit: "LocalLLaMA",
+    id: 'community_localllama',
+    ownerId: 'workspace_default',
+    subreddit: 'LocalLLaMA',
     prompt:
-      "Extract operational pain, buying intent, recurring product requests, and source-linked shifts in agent infrastructure.",
-    period: "week",
+      'Extract operational pain, buying intent, recurring product requests, and source-linked shifts in agent infrastructure.',
+    period: 'week',
     isPublic: false,
-    createdAt: "2026-05-01T00:00:00.000Z",
-    updatedAt: "2026-05-01T00:00:00.000Z",
+    createdAt: '2026-05-01T00:00:00.000Z',
+    updatedAt: '2026-05-01T00:00:00.000Z',
   },
   {
-    id: "community_saas",
-    ownerId: "workspace_default",
-    subreddit: "SaaS",
-    prompt: "Find demand, pricing, positioning, and competitor signals for B2B software teams.",
-    period: "week",
+    id: 'community_saas',
+    ownerId: 'workspace_default',
+    subreddit: 'SaaS',
+    prompt: 'Find demand, pricing, positioning, and competitor signals for B2B software teams.',
+    period: 'week',
     isPublic: false,
-    createdAt: "2026-05-01T00:00:00.000Z",
-    updatedAt: "2026-05-01T00:00:00.000Z",
+    createdAt: '2026-05-01T00:00:00.000Z',
+    updatedAt: '2026-05-01T00:00:00.000Z',
   },
 ];
 
@@ -71,9 +71,8 @@ export default async function DashboardPage() {
   // shape (sample tracked communities + brand config). Signed-in users
   // see their real data instead.
   const auth = await getRequestAuth();
-  const userId = (auth && "userId" in auth && auth.userId) || null;
-  const ownerId =
-    (auth && "orgId" in auth && auth.orgId) || userId || "anonymous";
+  const userId = (auth && 'userId' in auth && auth.userId) || null;
+  const ownerId = (auth && 'orgId' in auth && auth.orgId) || userId || 'anonymous';
   let dashboard = fallbackDashboard(ownerId);
   if (userId) {
     try {
@@ -100,10 +99,10 @@ export default async function DashboardPage() {
 
       <MetricGrid
         items={[
-          { label: "brand", value: activeBrand.brandName },
-          { label: "platforms", value: activeBrand.platforms.length.toString() },
-          { label: "prompts", value: promptCount.toString() },
-          { label: "communities", value: communities.length.toString() },
+          { label: 'brand', value: activeBrand.brandName },
+          { label: 'platforms', value: activeBrand.platforms.length.toString() },
+          { label: 'prompts', value: promptCount.toString() },
+          { label: 'communities', value: communities.length.toString() },
         ]}
       />
 
@@ -116,19 +115,19 @@ export default async function DashboardPage() {
           {latestCheck ? (
             <MetricGrid
               items={[
-                { label: "status", value: latestCheck.status },
+                { label: 'status', value: latestCheck.status },
                 {
-                  label: "queries",
+                  label: 'queries',
                   value: `${latestCheck.completedQueries}/${latestCheck.totalQueries}`,
                 },
                 {
-                  label: "mention rate",
+                  label: 'mention rate',
                   value:
                     latestCheck.brandMentionRate == null
-                      ? "unknown"
+                      ? 'unknown'
                       : `${Math.round(latestCheck.brandMentionRate * 100)}%`,
                 },
-                { label: "completed", value: latestCheck.completedAt?.slice(0, 10) ?? "pending" },
+                { label: 'completed', value: latestCheck.completedAt?.slice(0, 10) ?? 'pending' },
               ]}
             />
           ) : null}
@@ -169,34 +168,34 @@ export default async function DashboardPage() {
         empty="No pending surfaces."
         items={[
           {
-            href: "/personal",
-            kicker: "planning brief",
-            title: "Review what to build, change, watch, or pause",
-            body: "Evidence is mapped onto the current product fleet.",
+            href: '/personal',
+            kicker: 'planning brief',
+            title: 'Review what to build, change, watch, or pause',
+            body: 'Evidence is mapped onto the current product fleet.',
           },
           {
-            href: "/watchlist",
-            kicker: "watchlist",
-            title: "Prioritize unified watchlist items",
-            body: "Mention checks, community digests, and market signals roll up into one queue.",
+            href: '/watchlist',
+            kicker: 'watchlist',
+            title: 'Prioritize unified watchlist items',
+            body: 'Mention checks, community digests, and market signals roll up into one queue.',
           },
           {
-            href: "/mentions",
-            kicker: "mentions",
-            title: "Productionize brand configs, prompts, checks, and reports",
-            body: "Keep brand and competitor checks easy to inspect.",
+            href: '/mentions',
+            kicker: 'mentions',
+            title: 'Productionize brand configs, prompts, checks, and reports',
+            body: 'Keep brand and competitor checks easy to inspect.',
           },
           {
-            href: "/communities",
-            kicker: "communities",
-            title: "Productionize tracked subreddit digests",
-            body: "Turn recurring public complaints into readable source-linked summaries.",
+            href: '/communities',
+            kicker: 'communities',
+            title: 'Productionize tracked subreddit digests',
+            body: 'Turn recurring public complaints into readable source-linked summaries.',
           },
           {
-            href: "/agent-eval",
-            kicker: "agent evaluation",
-            title: "Run product audits against the buyer-agent checklist",
-            body: "Find missing evidence and the product proof needed for recommendation.",
+            href: '/agent-eval',
+            kicker: 'agent evaluation',
+            title: 'Run product audits against the buyer-agent checklist',
+            body: 'Find missing evidence and the product proof needed for recommendation.',
           },
         ]}
       />

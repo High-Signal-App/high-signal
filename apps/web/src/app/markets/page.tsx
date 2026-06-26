@@ -6,21 +6,28 @@ import {
   RouteList,
   SectionHeader,
   StatGrid,
-} from "@/components/system/HighSignalUI";
-import { buildMarketWatchSnapshot, formatMarketPct, marketDirectionTone, marketRefreshDates } from "@/lib/market-watch";
+} from '@/components/system/HighSignalUI';
+import {
+  buildMarketWatchSnapshot,
+  formatMarketPct,
+  marketDirectionTone,
+  marketRefreshDates,
+} from '@/lib/market-watch';
 
-export const dynamic = "force-dynamic";
-export const metadata = { title: "Market Intelligence - High Signal" };
+export const dynamic = 'force-dynamic';
+export const metadata = { title: 'Market Intelligence - High Signal' };
 
 function formatNumber(value: number) {
-  return new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(value);
+  return new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(value);
 }
 
-function latestQuoteDate(group: ReturnType<typeof buildMarketWatchSnapshot>["groups"][number]) {
-  return group.quotes
-    .map((quote) => `${quote.date} ${quote.time}`)
-    .sort()
-    .at(-1) ?? "no quote";
+function latestQuoteDate(group: ReturnType<typeof buildMarketWatchSnapshot>['groups'][number]) {
+  return (
+    group.quotes
+      .map((quote) => `${quote.date} ${quote.time}`)
+      .sort()
+      .at(-1) ?? 'no quote'
+  );
 }
 
 function safeDate(value?: string) {
@@ -47,28 +54,28 @@ export default async function MarketsPage({
       <StatGrid
         items={[
           {
-            label: "Freshness",
+            label: 'Freshness',
             value: snapshot.freshnessStatus,
             sub: snapshot.latestRefreshAt
-              ? `latest refresh ${snapshot.latestRefreshAt.slice(0, 16).replace("T", " ")} UTC`
-              : "no market refresh bundled",
+              ? `latest refresh ${snapshot.latestRefreshAt.slice(0, 16).replace('T', ' ')} UTC`
+              : 'no market refresh bundled',
           },
           {
-            label: "Coverage",
+            label: 'Coverage',
             value: `${snapshot.nationalGroupCount}/${snapshot.internationalGroupCount}`,
-            sub: "national / international groups",
+            sub: 'national / international groups',
           },
           {
-            label: "Quotes",
+            label: 'Quotes',
             value: snapshot.quoteCount.toString(),
             sub: `${snapshot.source.toUpperCase()} high-level watchlist feed`,
           },
           {
-            label: "Selected",
-            value: snapshot.selectedRefreshDate ?? "none",
+            label: 'Selected',
+            value: snapshot.selectedRefreshDate ?? 'none',
             sub: snapshot.selectedRefreshAt
-              ? `snapshot ${snapshot.selectedRefreshAt.slice(0, 16).replace("T", " ")} UTC`
-              : "no selected snapshot",
+              ? `snapshot ${snapshot.selectedRefreshAt.slice(0, 16).replace('T', ' ')} UTC`
+              : 'no selected snapshot',
           },
         ]}
       />
@@ -78,7 +85,7 @@ export default async function MarketsPage({
           date
           <input
             className="border border-[var(--color-line)] bg-transparent px-3 py-2 text-sm text-[var(--color-fg)] outline-none focus:border-[var(--color-accent)]"
-            defaultValue={selectedDate ?? snapshot.selectedRefreshDate ?? ""}
+            defaultValue={selectedDate ?? snapshot.selectedRefreshDate ?? ''}
             name="date"
             type="date"
           />
@@ -99,8 +106,8 @@ export default async function MarketsPage({
 
       {snapshot.sourceDateShifted ? (
         <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">
-          No market snapshot exists for {snapshot.requestedDate}; showing the latest prior snapshot from{" "}
-          {snapshot.selectedRefreshDate}.
+          No market snapshot exists for {snapshot.requestedDate}; showing the latest prior snapshot
+          from {snapshot.selectedRefreshDate}.
         </p>
       ) : null}
 
@@ -108,8 +115,11 @@ export default async function MarketsPage({
         <Panel eyebrow="source" title="Market snapshots">
           <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">
             The daily automation derives this compact watchlist from the canonical equities snapshot
-            and bundles the latest records into the web app. JSON export is available at{" "}
-            <a className="text-[var(--color-accent)] hover:underline" href={`/markets.json${snapshot.selectedRefreshDate ? `?date=${snapshot.selectedRefreshDate}` : ""}`}>
+            and bundles the latest records into the web app. JSON export is available at{' '}
+            <a
+              className="text-[var(--color-accent)] hover:underline"
+              href={`/markets.json${snapshot.selectedRefreshDate ? `?date=${snapshot.selectedRefreshDate}` : ''}`}
+            >
               /markets.json
             </a>
             .
@@ -131,15 +141,15 @@ export default async function MarketsPage({
 
       <MetricGrid
         items={[
-          { label: "groups", value: snapshot.groupCount.toString() },
-          { label: "history", value: `${dates.length}d / ${snapshot.history.length} refreshes` },
+          { label: 'groups', value: snapshot.groupCount.toString() },
+          { label: 'history', value: `${dates.length}d / ${snapshot.history.length} refreshes` },
           {
-            label: "direction",
-            value: snapshot.directionCounts.map(({ k, n }) => `${k} ${n}`).join(" / ") || "none",
+            label: 'direction',
+            value: snapshot.directionCounts.map(({ k, n }) => `${k} ${n}`).join(' / ') || 'none',
           },
           {
-            label: "age",
-            value: snapshot.freshnessHours === null ? "n/a" : `${snapshot.freshnessHours}h`,
+            label: 'age',
+            value: snapshot.freshnessHours === null ? 'n/a' : `${snapshot.freshnessHours}h`,
           },
         ]}
       />
@@ -154,11 +164,15 @@ export default async function MarketsPage({
                 </div>
                 <h2 className="mt-2 text-2xl font-medium tracking-tight">{group.title}</h2>
               </div>
-              <div className={`font-mono text-xs uppercase tracking-[0.18em] ${marketDirectionTone(group.direction)}`}>
+              <div
+                className={`font-mono text-xs uppercase tracking-[0.18em] ${marketDirectionTone(group.direction)}`}
+              >
                 {group.direction} / {formatMarketPct(group.averageChangePct)}
               </div>
             </div>
-            <p className="mt-4 max-w-3xl text-sm leading-6 text-[var(--color-muted)]">{group.thesis}</p>
+            <p className="mt-4 max-w-3xl text-sm leading-6 text-[var(--color-muted)]">
+              {group.thesis}
+            </p>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-[var(--color-fg)]">
               {group.productImplication}
             </p>
@@ -175,11 +189,15 @@ export default async function MarketsPage({
                         </div>
                         <div className="mt-2 text-base font-medium">{quote.name}</div>
                       </div>
-                      <div className={`font-mono text-sm ${quote.changePct >= 0 ? "text-emerald-300" : "text-rose-300"}`}>
+                      <div
+                        className={`font-mono text-sm ${quote.changePct >= 0 ? 'text-emerald-300' : 'text-rose-300'}`}
+                      >
                         {formatMarketPct(quote.changePct)}
                       </div>
                     </div>
-                    <div className="mt-3 text-xs leading-5 text-[var(--color-muted)]">{quote.role}</div>
+                    <div className="mt-3 text-xs leading-5 text-[var(--color-muted)]">
+                      {quote.role}
+                    </div>
                     <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--color-muted)]">
                       <span>close {quote.close}</span>
                       <span>open {quote.open}</span>
@@ -195,18 +213,26 @@ export default async function MarketsPage({
 
       {snapshot.groups.length === 0 ? (
         <p className="mt-10 text-sm text-[var(--color-muted)]">
-          No bundled market refresh exists yet. Run `pnpm personal:brief refresh-markets` and
-          `pnpm market:snapshot`.
+          No bundled market refresh exists yet. Run `pnpm personal:brief refresh-markets` and `pnpm
+          market:snapshot`.
         </p>
       ) : null}
 
       <RouteList
         items={[
-          { href: "/personal", title: "planning brief", sub: "market context converted into product decisions" },
-          { href: "/markets/history", title: "market history", sub: "date archive for stock context snapshots" },
-          { href: "/daily", title: "daily read", sub: "fresh source reads and product work" },
-          { href: "/signals", title: "signals", sub: "published market and company signals" },
-          { href: "/entities", title: "entities", sub: "company and sector graph" },
+          {
+            href: '/personal',
+            title: 'planning brief',
+            sub: 'market context converted into product decisions',
+          },
+          {
+            href: '/markets/history',
+            title: 'market history',
+            sub: 'date archive for stock context snapshots',
+          },
+          { href: '/daily', title: 'daily read', sub: 'fresh source reads and product work' },
+          { href: '/signals', title: 'signals', sub: 'published market and company signals' },
+          { href: '/entities', title: 'entities', sub: 'company and sector graph' },
         ]}
       />
     </PageShell>

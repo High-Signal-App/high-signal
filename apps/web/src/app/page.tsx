@@ -1,19 +1,19 @@
-import { BriefSections } from "@/components/brief/BriefSections";
-import { ProductPicker } from "@/components/brief/ProductPicker";
-import { HomeJsonLd } from "@/components/seo/structured-data";
+import { BriefSections } from '@/components/brief/BriefSections';
+import { ProductPicker } from '@/components/brief/ProductPicker';
+import { HomeJsonLd } from '@/components/seo/structured-data';
 // Auth + ownerId checks intentionally still imported below — the brief route
 // still prefers real D1 brand data when an authenticated owner has any.
-import { RegionPicker } from "@/components/brief/RegionPicker";
-import { HeroHeader, PageShell } from "@/components/system/HighSignalUI";
-import { api, type BriefSnapshot } from "@/lib/api";
-import { getRequestAuth } from "@/lib/require-auth";
-import { findSeedProduct, isRegion, regionLabel, type Region } from "@high-signal/shared";
+import { RegionPicker } from '@/components/brief/RegionPicker';
+import { HeroHeader, PageShell } from '@/components/system/HighSignalUI';
+import { api, type BriefSnapshot } from '@/lib/api';
+import { getRequestAuth } from '@/lib/require-auth';
+import { findSeedProduct, isRegion, regionLabel, type Region } from '@high-signal/shared';
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
 
 const EMPTY_BRIEF: BriefSnapshot = {
   generatedAt: new Date().toISOString(),
-  region: "global",
+  region: 'global',
   hasBrand: false,
   stocks: [],
   ideas: [],
@@ -28,15 +28,15 @@ export default async function HomePage({
   searchParams?: Promise<{ region?: string; product?: string }>;
 }) {
   const params = (await searchParams) ?? {};
-  const rawRegion = (params.region ?? "global").toLowerCase().trim();
-  const region: Region = isRegion(rawRegion) ? rawRegion : "global";
-  const productParam = (params.product ?? "").trim();
+  const rawRegion = (params.region ?? 'global').toLowerCase().trim();
+  const region: Region = isRegion(rawRegion) ? rawRegion : 'global';
+  const productParam = (params.product ?? '').trim();
   const selectedProduct = productParam ? findSeedProduct(productParam) : null;
-  const activeProductId = selectedProduct ? selectedProduct.id : "spotlight";
+  const activeProductId = selectedProduct ? selectedProduct.id : 'spotlight';
 
   const auth = await getRequestAuth();
-  const userId = (auth && "userId" in auth && auth.userId) || null;
-  const ownerId = (auth && "orgId" in auth && auth.orgId) || userId || "";
+  const userId = (auth && 'userId' in auth && auth.userId) || null;
+  const ownerId = (auth && 'orgId' in auth && auth.orgId) || userId || '';
 
   let brief: BriefSnapshot = EMPTY_BRIEF;
   try {
@@ -64,7 +64,7 @@ export default async function HomePage({
         and ideas to improve it. Every claim cites at least two independent sources.
         {selectedProduct ? null : spotlightName ? (
           <>
-            {" "}
+            {' '}
             <span className="text-[var(--color-muted)]">
               Personal sections currently spotlighting <em>{spotlightName}</em> — switch via the
               product picker.
@@ -79,7 +79,7 @@ export default async function HomePage({
           <ProductPicker active={activeProductId} />
         </div>
         <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
-          generated {brief.generatedAt.slice(0, 16).replace("T", " ")} UTC
+          generated {brief.generatedAt.slice(0, 16).replace('T', ' ')} UTC
         </div>
       </div>
 

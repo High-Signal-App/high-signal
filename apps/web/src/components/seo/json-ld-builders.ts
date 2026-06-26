@@ -8,39 +8,39 @@
 
 // Relative path (not the @/ alias) so this module is importable from the
 // repo root for unit testing without an apps/web build context.
-import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "../../lib/site";
+import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from '../../lib/site';
 
 export interface JsonLdBlock {
-  "@context": string;
-  "@type": string;
+  '@context': string;
+  '@type': string;
   [k: string]: unknown;
 }
 
 export function buildOrganizationJsonLd(): JsonLdBlock[] {
   return [
     {
-      "@context": "https://schema.org",
-      "@type": "Organization",
-      "@id": `${SITE_URL}/#organization`,
+      '@context': 'https://schema.org',
+      '@type': 'Organization',
+      '@id': `${SITE_URL}/#organization`,
       name: SITE_NAME,
       url: SITE_URL,
       description: SITE_DESCRIPTION,
       logo: `${SITE_URL}/icon.svg`,
-      sameAs: ["https://github.com/sarthak-fleet/high-signal"],
+      sameAs: ['https://github.com/sarthak-fleet/high-signal'],
     },
     {
-      "@context": "https://schema.org",
-      "@type": "WebSite",
-      "@id": `${SITE_URL}/#website`,
+      '@context': 'https://schema.org',
+      '@type': 'WebSite',
+      '@id': `${SITE_URL}/#website`,
       url: SITE_URL,
       name: SITE_NAME,
       description: SITE_DESCRIPTION,
-      publisher: { "@id": `${SITE_URL}/#organization` },
-      inLanguage: "en",
+      publisher: { '@id': `${SITE_URL}/#organization` },
+      inLanguage: 'en',
       potentialAction: {
-        "@type": "SearchAction",
+        '@type': 'SearchAction',
         target: `${SITE_URL}/signals?q={search_term_string}`,
-        "query-input": "required name=search_term_string",
+        'query-input': 'required name=search_term_string',
       },
     },
   ];
@@ -48,15 +48,15 @@ export function buildOrganizationJsonLd(): JsonLdBlock[] {
 
 export function buildHomeJsonLd(): JsonLdBlock {
   return {
-    "@context": "https://schema.org",
-    "@type": "WebApplication",
+    '@context': 'https://schema.org',
+    '@type': 'WebApplication',
     name: `${SITE_NAME} Daily Brief`,
     url: SITE_URL,
-    applicationCategory: "BusinessApplication",
-    operatingSystem: "Web",
+    applicationCategory: 'BusinessApplication',
+    operatingSystem: 'Web',
     description: SITE_DESCRIPTION,
-    offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
-    publisher: { "@id": `${SITE_URL}/#organization` },
+    offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+    publisher: { '@id': `${SITE_URL}/#organization` },
   };
 }
 
@@ -65,26 +65,26 @@ export function buildTrackRecordDatasetJsonLd(opts: {
   backfillCount: number;
 }): JsonLdBlock {
   return {
-    "@context": "https://schema.org",
-    "@type": "Dataset",
+    '@context': 'https://schema.org',
+    '@type': 'Dataset',
     name: `${SITE_NAME} Public Hit-Rate Ledger`,
     description:
       `Every published market signal scored against subsequent market moves. ` +
       `${opts.liveCount} live forward predictions and ${opts.backfillCount} historical-replay calibrations.`,
     url: `${SITE_URL}/track-record`,
-    creator: { "@id": `${SITE_URL}/#organization` },
-    license: "https://creativecommons.org/licenses/by/4.0/",
+    creator: { '@id': `${SITE_URL}/#organization` },
+    license: 'https://creativecommons.org/licenses/by/4.0/',
     distribution: [
       {
-        "@type": "DataDownload",
-        encodingFormat: "application/json",
+        '@type': 'DataDownload',
+        encodingFormat: 'application/json',
         contentUrl: `${SITE_URL}/track-record/track-record.json`,
       },
     ],
     variableMeasured: [
-      { "@type": "PropertyValue", name: "hit-rate", description: "Hits / (hits + misses)" },
-      { "@type": "PropertyValue", name: "sample size" },
-      { "@type": "PropertyValue", name: "signal_type" },
+      { '@type': 'PropertyValue', name: 'hit-rate', description: 'Hits / (hits + misses)' },
+      { '@type': 'PropertyValue', name: 'sample size' },
+      { '@type': 'PropertyValue', name: 'signal_type' },
     ],
   };
 }
@@ -96,41 +96,46 @@ export function buildSignalArticleJsonLd(opts: {
   bodyMd: string;
   entityName: string;
   evidenceUrls: string[];
-  direction: "up" | "down" | "neutral";
-  confidence: "low" | "medium" | "high";
+  direction: 'up' | 'down' | 'neutral';
+  confidence: 'low' | 'medium' | 'high';
   predictedWindowDays: number;
   signalType: string;
 }): JsonLdBlock {
   return {
-    "@context": "https://schema.org",
-    "@type": "AnalysisNewsArticle",
+    '@context': 'https://schema.org',
+    '@type': 'AnalysisNewsArticle',
     headline: opts.headline,
     datePublished: opts.publishedAt,
     dateModified: opts.publishedAt,
-    inLanguage: "en",
-    publisher: { "@id": `${SITE_URL}/#organization` },
-    author: { "@id": `${SITE_URL}/#organization` },
+    inLanguage: 'en',
+    publisher: { '@id': `${SITE_URL}/#organization` },
+    author: { '@id': `${SITE_URL}/#organization` },
     url: `${SITE_URL}/signals/${opts.slug}`,
     mainEntityOfPage: `${SITE_URL}/signals/${opts.slug}`,
     description:
       opts.bodyMd
-        .split("\n")
-        .find((line) => line.trim() && !line.startsWith("#"))
+        .split('\n')
+        .find((line) => line.trim() && !line.startsWith('#'))
         ?.slice(0, 240) ?? opts.headline,
-    about: { "@type": "Thing", name: opts.entityName },
-    keywords: [opts.signalType, opts.direction, opts.confidence, `${opts.predictedWindowDays}d-window`].join(","),
-    citation: opts.evidenceUrls.map((url) => ({ "@type": "WebPage", url })),
+    about: { '@type': 'Thing', name: opts.entityName },
+    keywords: [
+      opts.signalType,
+      opts.direction,
+      opts.confidence,
+      `${opts.predictedWindowDays}d-window`,
+    ].join(','),
+    citation: opts.evidenceUrls.map((url) => ({ '@type': 'WebPage', url })),
   };
 }
 
 export function buildFaqJsonLd(items: Array<{ question: string; answer: string }>): JsonLdBlock {
   return {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
     mainEntity: items.map((item) => ({
-      "@type": "Question",
+      '@type': 'Question',
       name: item.question,
-      acceptedAnswer: { "@type": "Answer", text: item.answer },
+      acceptedAnswer: { '@type': 'Answer', text: item.answer },
     })),
   };
 }
@@ -140,17 +145,15 @@ export function buildFaqJsonLd(items: Array<{ question: string; answer: string }
  * these parents." Google uses it for rich-result rendering and AI
  * assistants use it to understand site topology.
  */
-export function buildBreadcrumbJsonLd(
-  trail: Array<{ name: string; path: string }>,
-): JsonLdBlock {
+export function buildBreadcrumbJsonLd(trail: Array<{ name: string; path: string }>): JsonLdBlock {
   return {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
     itemListElement: trail.map((item, idx) => ({
-      "@type": "ListItem",
+      '@type': 'ListItem',
       position: idx + 1,
       name: item.name,
-      item: item.path.startsWith("http") ? item.path : `${SITE_URL}${item.path}`,
+      item: item.path.startsWith('http') ? item.path : `${SITE_URL}${item.path}`,
     })),
   };
 }
@@ -164,26 +167,26 @@ export function buildMethodologyJsonLd(opts: {
 }): JsonLdBlock[] {
   return [
     {
-      "@context": "https://schema.org",
-      "@type": "Article",
+      '@context': 'https://schema.org',
+      '@type': 'Article',
       headline: `How ${SITE_NAME} works — methodology`,
       url: `${SITE_URL}/methodology`,
       mainEntityOfPage: `${SITE_URL}/methodology`,
-      publisher: { "@id": `${SITE_URL}/#organization` },
-      author: { "@id": `${SITE_URL}/#organization` },
-      datePublished: "2026-05-26",
+      publisher: { '@id': `${SITE_URL}/#organization` },
+      author: { '@id': `${SITE_URL}/#organization` },
+      datePublished: '2026-05-26',
       dateModified: new Date().toISOString().slice(0, 10),
       description:
         "Every rule High Signal's pipeline enforces — cite-or-kill, hit-rate computation, source classes, auto-publish judge, signal families. Citable verbatim.",
     },
     {
-      "@context": "https://schema.org",
-      "@type": "HowTo",
+      '@context': 'https://schema.org',
+      '@type': 'HowTo',
       name: `How ${SITE_NAME} turns noisy public sources into a Daily Brief`,
       description:
-        "The pipeline from raw source ingest through human-readable brief: scrape → extract → score → judge → publish → score-vs-market → surface.",
+        'The pipeline from raw source ingest through human-readable brief: scrape → extract → score → judge → publish → score-vs-market → surface.',
       step: opts.steps.map((step, idx) => ({
-        "@type": "HowToStep",
+        '@type': 'HowToStep',
         position: idx + 1,
         name: step.name,
         text: step.text,
@@ -206,29 +209,29 @@ export function buildSignalTypeTaxonomyJsonLd(opts: {
 }): JsonLdBlock[] {
   return [
     {
-      "@context": "https://schema.org",
-      "@type": "CollectionPage",
-      name: `${opts.signalType.replaceAll("_", " ")} signals — ${SITE_NAME}`,
+      '@context': 'https://schema.org',
+      '@type': 'CollectionPage',
+      name: `${opts.signalType.replaceAll('_', ' ')} signals — ${SITE_NAME}`,
       url: `${SITE_URL}/signals/types/${opts.signalType}`,
-      description: `All published ${opts.signalType.replaceAll("_", " ")} signals with definition, family, and aggregate hit-rate.`,
-      publisher: { "@id": `${SITE_URL}/#organization` },
+      description: `All published ${opts.signalType.replaceAll('_', ' ')} signals with definition, family, and aggregate hit-rate.`,
+      publisher: { '@id': `${SITE_URL}/#organization` },
     },
     {
-      "@context": "https://schema.org",
-      "@type": "Dataset",
+      '@context': 'https://schema.org',
+      '@type': 'Dataset',
       name: `${SITE_NAME} ${opts.signalType} signal track-record`,
-      description: `Hit-rate for ${opts.signalType.replaceAll("_", " ")} signals across ${opts.sampleSize} scored predictions. Family: ${opts.family.replaceAll("-", " ")}.`,
+      description: `Hit-rate for ${opts.signalType.replaceAll('_', ' ')} signals across ${opts.sampleSize} scored predictions. Family: ${opts.family.replaceAll('-', ' ')}.`,
       url: `${SITE_URL}/signals/types/${opts.signalType}`,
-      creator: { "@id": `${SITE_URL}/#organization` },
-      license: "https://creativecommons.org/licenses/by/4.0/",
+      creator: { '@id': `${SITE_URL}/#organization` },
+      license: 'https://creativecommons.org/licenses/by/4.0/',
       variableMeasured: [
         {
-          "@type": "PropertyValue",
-          name: "hit-rate",
-          value: opts.hitRate ?? "insufficient sample",
+          '@type': 'PropertyValue',
+          name: 'hit-rate',
+          value: opts.hitRate ?? 'insufficient sample',
         },
-        { "@type": "PropertyValue", name: "sample size", value: opts.sampleSize },
-        { "@type": "PropertyValue", name: "family", value: opts.family },
+        { '@type': 'PropertyValue', name: 'sample size', value: opts.sampleSize },
+        { '@type': 'PropertyValue', name: 'family', value: opts.family },
       ],
     },
   ];
@@ -244,12 +247,12 @@ export function buildEntityMonthJsonLd(opts: {
   signalCount: number;
 }): JsonLdBlock {
   return {
-    "@context": "https://schema.org",
-    "@type": "CollectionPage",
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
     name: `${opts.entityName} signals — ${opts.period} archive — ${SITE_NAME}`,
     url: `${SITE_URL}/entities/${opts.entityId}/${opts.period}`,
     description: `Every published High Signal call on ${opts.entityName} during ${opts.period}. ${opts.signalCount} signal(s).`,
-    publisher: { "@id": `${SITE_URL}/#organization` },
-    about: { "@type": "Thing", name: opts.entityName },
+    publisher: { '@id': `${SITE_URL}/#organization` },
+    about: { '@type': 'Thing', name: opts.entityName },
   };
 }

@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import type { Route } from "next";
-import { usePathname } from "next/navigation";
-import { useCallback, useEffect, useId, useRef, useState } from "react";
+import Link from 'next/link';
+import type { Route } from 'next';
+import { usePathname } from 'next/navigation';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 
 interface NavLeaf {
   href: string;
@@ -26,103 +26,103 @@ interface NavProduct {
 // feed it. Each product expands to reveal its sub-features.
 const PRODUCTS: NavProduct[] = [
   {
-    href: "/",
-    label: "brief",
-    match: (p) => p === "/" || p.startsWith("/brief") || p.startsWith("/daily") || p.startsWith("/personal"),
-    items: [
-      { href: "/", label: "daily brief", hint: "today’s synthesized brief" },
-      { href: "/daily", label: "daily sources", hint: "what fed the brief" },
-      { href: "/personal", label: "personal", hint: "operator intelligence" },
-    ],
-  },
-  {
-    href: "/track-record",
-    label: "track record",
-    match: (p) => p.startsWith("/track-record"),
-    items: [
-      { href: "/track-record", label: "overview", hint: "public hit-rate ledger" },
-      { href: "/track-record/labels", label: "labels", hint: "hit-rate by signal type" },
-    ],
-  },
-  {
-    href: "/markets",
-    label: "markets",
+    href: '/',
+    label: 'brief',
     match: (p) =>
-      p.startsWith("/markets") ||
-      p.startsWith("/signals") ||
-      p.startsWith("/entities") ||
-      p.startsWith("/sectors") ||
-      p.startsWith("/convergence") ||
-      p.startsWith("/equities") ||
-      p.startsWith("/watchlist") ||
-      p.startsWith("/backtest-workbench"),
+      p === '/' || p.startsWith('/brief') || p.startsWith('/daily') || p.startsWith('/personal'),
     items: [
-      { href: "/markets", label: "markets", hint: "quotes + directional moves" },
-      { href: "/signals", label: "signals", hint: "published signal feed" },
-      { href: "/entities", label: "entities", hint: "companies + spillover map" },
-      { href: "/sectors", label: "sectors", hint: "sector rollups" },
-      { href: "/convergence", label: "convergence", hint: "multi-source agreement" },
-      { href: "/equities", label: "equities", hint: "price context snapshots" },
-      { href: "/watchlist/entities", label: "watchlist", hint: "tracked entities" },
-      { href: "/backtest-workbench", label: "backtest", hint: "label hit-rate workbench" },
+      { href: '/', label: 'daily brief', hint: 'today’s synthesized brief' },
+      { href: '/daily', label: 'daily sources', hint: 'what fed the brief' },
+      { href: '/personal', label: 'personal', hint: 'operator intelligence' },
     ],
   },
   {
-    href: "/communities",
-    label: "communities",
+    href: '/track-record',
+    label: 'track record',
+    match: (p) => p.startsWith('/track-record'),
+    items: [
+      { href: '/track-record', label: 'overview', hint: 'public hit-rate ledger' },
+      { href: '/track-record/labels', label: 'labels', hint: 'hit-rate by signal type' },
+    ],
+  },
+  {
+    href: '/markets',
+    label: 'markets',
     match: (p) =>
-      p.startsWith("/communities") ||
-      p.startsWith("/ideas") ||
-      p.startsWith("/opportunities") ||
-      p.startsWith("/teardowns"),
+      p.startsWith('/markets') ||
+      p.startsWith('/signals') ||
+      p.startsWith('/entities') ||
+      p.startsWith('/sectors') ||
+      p.startsWith('/convergence') ||
+      p.startsWith('/equities') ||
+      p.startsWith('/watchlist') ||
+      p.startsWith('/backtest-workbench'),
     items: [
-      { href: "/communities", label: "communities", hint: "tracked subreddits + digests" },
-      { href: "/ideas", label: "ideas", hint: "business ideas to build" },
-      { href: "/opportunities", label: "opportunities", hint: "demand-signal deep views" },
-      { href: "/teardowns", label: "teardowns", hint: "product teardowns" },
+      { href: '/markets', label: 'markets', hint: 'quotes + directional moves' },
+      { href: '/signals', label: 'signals', hint: 'published signal feed' },
+      { href: '/entities', label: 'entities', hint: 'companies + spillover map' },
+      { href: '/sectors', label: 'sectors', hint: 'sector rollups' },
+      { href: '/convergence', label: 'convergence', hint: 'multi-source agreement' },
+      { href: '/equities', label: 'equities', hint: 'price context snapshots' },
+      { href: '/watchlist/entities', label: 'watchlist', hint: 'tracked entities' },
+      { href: '/backtest-workbench', label: 'backtest', hint: 'label hit-rate workbench' },
     ],
   },
   {
-    href: "/mentions",
-    label: "mentions",
-    match: (p) => p.startsWith("/mentions") || p.startsWith("/domains"),
+    href: '/communities',
+    label: 'communities',
+    match: (p) =>
+      p.startsWith('/communities') ||
+      p.startsWith('/ideas') ||
+      p.startsWith('/opportunities') ||
+      p.startsWith('/teardowns'),
     items: [
-      { href: "/mentions", label: "brands", hint: "perception over your brand" },
-      { href: "/domains", label: "domains", hint: "tracked domains" },
+      { href: '/communities', label: 'communities', hint: 'tracked subreddits + digests' },
+      { href: '/ideas', label: 'ideas', hint: 'business ideas to build' },
+      { href: '/opportunities', label: 'opportunities', hint: 'demand-signal deep views' },
+      { href: '/teardowns', label: 'teardowns', hint: 'product teardowns' },
     ],
   },
   {
-    href: "/agent-eval",
-    label: "agent eval",
-    match: (p) => p.startsWith("/agent-eval"),
+    href: '/mentions',
+    label: 'mentions',
+    match: (p) => p.startsWith('/mentions') || p.startsWith('/domains'),
     items: [
-      { href: "/agent-eval", label: "audits", hint: "how assistants answer" },
-      { href: "/agent-eval/seo", label: "seo audit", hint: "agent-readiness checks" },
+      { href: '/mentions', label: 'brands', hint: 'perception over your brand' },
+      { href: '/domains', label: 'domains', hint: 'tracked domains' },
     ],
   },
   {
-    href: "/lab",
-    label: "lab",
-    match: (p) => p.startsWith("/lab") || p.startsWith("/review/lab-candidates"),
+    href: '/agent-eval',
+    label: 'agent eval',
+    match: (p) => p.startsWith('/agent-eval'),
     items: [
-      { href: "/lab", label: "feed", hint: "local-first ingestion index" },
-      { href: "/review/lab-candidates", label: "candidates", hint: "lab → signal drafts" },
+      { href: '/agent-eval', label: 'audits', hint: 'how assistants answer' },
+      { href: '/agent-eval/seo', label: 'seo audit', hint: 'agent-readiness checks' },
+    ],
+  },
+  {
+    href: '/lab',
+    label: 'lab',
+    match: (p) => p.startsWith('/lab') || p.startsWith('/review/lab-candidates'),
+    items: [
+      { href: '/lab', label: 'feed', hint: 'local-first ingestion index' },
+      { href: '/review/lab-candidates', label: 'candidates', hint: 'lab → signal drafts' },
     ],
   },
 ];
 
 // Utility surfaces — secondary to the products, pushed to the right.
 const OPS: NavLeaf[] = [
-  { href: "/review", label: "review" },
-  { href: "/explore", label: "explore" },
-  { href: "/settings/delivery", label: "settings" },
+  { href: '/review', label: 'review' },
+  { href: '/explore', label: 'explore' },
+  { href: '/settings/delivery', label: 'settings' },
 ];
 
-const linkBase =
-  "font-mono text-[11px] uppercase tracking-[0.18em] transition-colors duration-150";
+const linkBase = 'font-mono text-[11px] uppercase tracking-[0.18em] transition-colors duration-150';
 
 export function PrimaryNav() {
-  const pathname = usePathname() ?? "/";
+  const pathname = usePathname() ?? '/';
   const [openId, setOpenId] = useState<string | null>(null);
   const navRef = useRef<HTMLElement>(null);
   const baseId = useId();
@@ -136,13 +136,13 @@ export function PrimaryNav() {
       if (navRef.current && !navRef.current.contains(e.target as Node)) close();
     };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") close();
+      if (e.key === 'Escape') close();
     };
-    document.addEventListener("pointerdown", onPointerDown);
-    document.addEventListener("keydown", onKey);
+    document.addEventListener('pointerdown', onPointerDown);
+    document.addEventListener('keydown', onKey);
     return () => {
-      document.removeEventListener("pointerdown", onPointerDown);
-      document.removeEventListener("keydown", onKey);
+      document.removeEventListener('pointerdown', onPointerDown);
+      document.removeEventListener('keydown', onKey);
     };
   }, [openId, close]);
 
@@ -158,7 +158,7 @@ export function PrimaryNav() {
     >
       <div className="mx-auto flex max-w-7xl items-center gap-x-4 gap-y-1 px-5 py-3 sm:px-6">
         <Link
-          href={"/" as Route}
+          href={'/' as Route}
           className="shrink-0 font-mono text-[11px] uppercase tracking-[0.22em] text-[var(--color-fg)] transition-colors duration-150 hover:text-[var(--color-accent)]"
         >
           <span className="mr-2 inline-block size-1.5 rounded-full bg-[var(--color-accent)] align-middle" />
@@ -169,7 +169,7 @@ export function PrimaryNav() {
           {PRODUCTS.map((product) => {
             const active = product.match(pathname);
             const open = openId === product.label;
-            const menuId = `${baseId}-${product.label.replace(/\s+/g, "-")}`;
+            const menuId = `${baseId}-${product.label.replace(/\s+/g, '-')}`;
             return (
               <li
                 key={product.label}
@@ -185,19 +185,27 @@ export function PrimaryNav() {
                   onClick={() => setOpenId(open ? null : product.label)}
                   className={`group flex items-center gap-1.5 rounded-sm px-2 py-1 ${linkBase} ${
                     active
-                      ? "text-[var(--color-accent)]"
-                      : "text-[var(--color-fg)] hover:text-[var(--color-accent)]"
+                      ? 'text-[var(--color-accent)]'
+                      : 'text-[var(--color-fg)] hover:text-[var(--color-accent)]'
                   }`}
                 >
                   {product.label}
+                  {/* biome-ignore lint/a11y/noSvgWithoutTitle: decorative chevron, aria-hidden */}
                   <svg
                     aria-hidden
                     viewBox="0 0 10 6"
                     className={`h-[5px] w-[8px] transition-transform duration-200 ${
-                      open ? "rotate-180" : ""
-                    } ${active ? "text-[var(--color-accent)]" : "text-[var(--color-muted)] group-hover:text-[var(--color-accent)]"}`}
+                      open ? 'rotate-180' : ''
+                    } ${active ? 'text-[var(--color-accent)]' : 'text-[var(--color-muted)] group-hover:text-[var(--color-accent)]'}`}
                   >
-                    <path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+                    <path
+                      d="M1 1l4 4 4-4"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.4"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
                   </svg>
                 </button>
 
@@ -219,8 +227,8 @@ export function PrimaryNav() {
                             onClick={close}
                             className={`flex flex-col gap-0.5 px-3 py-2 transition-colors duration-150 ${
                               itemActive
-                                ? "bg-[var(--color-line)]/40 text-[var(--color-accent)]"
-                                : "text-[var(--color-fg)] hover:bg-[var(--color-line)]/30 hover:text-[var(--color-accent)]"
+                                ? 'bg-[var(--color-line)]/40 text-[var(--color-accent)]'
+                                : 'text-[var(--color-fg)] hover:bg-[var(--color-line)]/30 hover:text-[var(--color-accent)]'
                             }`}
                           >
                             <span className="font-mono text-[11px] uppercase tracking-[0.16em]">
@@ -244,15 +252,15 @@ export function PrimaryNav() {
 
         <ul className="hidden items-center gap-x-4 md:flex">
           {OPS.map((link) => {
-            const active = pathname.startsWith(link.href.split("/").slice(0, 2).join("/"));
+            const active = pathname.startsWith(link.href.split('/').slice(0, 2).join('/'));
             return (
               <li key={link.href}>
                 <Link
                   href={link.href as Route}
                   className={`${linkBase} ${
                     active
-                      ? "text-[var(--color-accent)]"
-                      : "text-[var(--color-muted)] hover:text-[var(--color-fg)]"
+                      ? 'text-[var(--color-accent)]'
+                      : 'text-[var(--color-muted)] hover:text-[var(--color-fg)]'
                   }`}
                 >
                   {link.label}

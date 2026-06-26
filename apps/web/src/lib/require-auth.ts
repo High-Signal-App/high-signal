@@ -1,14 +1,14 @@
-import { createClerkClient } from "@clerk/nextjs/server";
-import type { Route } from "next";
-import { headers } from "next/headers";
-import { redirect } from "next/navigation";
+import { createClerkClient } from '@clerk/nextjs/server';
+import type { Route } from 'next';
+import { headers } from 'next/headers';
+import { redirect } from 'next/navigation';
 
-const publishableKey = process.env["NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY"];
-const secretKey = process.env["CLERK_SECRET_KEY"];
+const publishableKey = process.env['NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY'];
+const secretKey = process.env['CLERK_SECRET_KEY'];
 
 function requestFromHeaders(headerList: Headers) {
-  const proto = headerList.get("x-forwarded-proto") ?? "https";
-  const host = headerList.get("x-forwarded-host") ?? headerList.get("host") ?? "localhost";
+  const proto = headerList.get('x-forwarded-proto') ?? 'https';
+  const host = headerList.get('x-forwarded-host') ?? headerList.get('host') ?? 'localhost';
   return new Request(`${proto}://${host}/`, { headers: headerList });
 }
 
@@ -23,10 +23,10 @@ export async function getRequestAuth(request?: Request) {
 
 export async function requireSignedIn() {
   const auth = await getRequestAuth();
-  const userId = auth && "userId" in auth ? auth.userId : null;
-  if (!userId) redirect("/sign-in" as Route);
+  const userId = auth && 'userId' in auth ? auth.userId : null;
+  if (!userId) redirect('/sign-in' as Route);
   return {
     userId,
-    orgId: auth && "orgId" in auth ? auth.orgId : null,
+    orgId: auth && 'orgId' in auth ? auth.orgId : null,
   };
 }

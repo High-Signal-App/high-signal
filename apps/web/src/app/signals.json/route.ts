@@ -1,14 +1,14 @@
-import { api } from "@/lib/api";
-import { isBackfillSignal } from "@/lib/signal-format";
+import { api } from '@/lib/api';
+import { isBackfillSignal } from '@/lib/signal-format';
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
 
 /**
  * JSON twin of /signals/rss. Convenient for callers that want
  * the signal feed without an RSS parser.
  */
 export async function GET() {
-  let signals: Awaited<ReturnType<typeof api.signals>>["signals"] = [];
+  let signals: Awaited<ReturnType<typeof api.signals>>['signals'] = [];
   try {
     const r = await api.signals();
     signals = r.signals.filter((signal) => !isBackfillSignal(signal));
@@ -19,8 +19,8 @@ export async function GET() {
   return new Response(JSON.stringify({ generatedAt: new Date().toISOString(), signals }), {
     status: 200,
     headers: {
-      "Content-Type": "application/json; charset=utf-8",
-      "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
+      'Content-Type': 'application/json; charset=utf-8',
+      'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
     },
   });
 }

@@ -1,21 +1,24 @@
-import type { DailyReadFilters } from "./daily-read-filters";
-import { dailyReadMatches } from "./daily-read-filters";
-import { buildDailyRequirementQueue } from "./daily-requirements";
-import { buildDailyRequirementTaskExports, type DailyRequirementTaskExport } from "./daily-task-export";
+import type { DailyReadFilters } from './daily-read-filters';
+import { dailyReadMatches } from './daily-read-filters';
+import { buildDailyRequirementQueue } from './daily-requirements';
+import {
+  buildDailyRequirementTaskExports,
+  type DailyRequirementTaskExport,
+} from './daily-task-export';
 import {
   acceptedRefreshDates,
   buildDailyBroadInsightsWithAnnotations,
   type DailyAnnotationOptions,
   type ProductFlowRefreshRecord,
-} from "./daily-intelligence";
-import { addDays, countBy } from "@high-signal/shared";
+} from './daily-intelligence';
+import { addDays, countBy } from '@high-signal/shared';
 import type {
   LightweightAudience,
   LightweightDomain,
   LightweightRequirementType,
   LightweightSignalLayer,
   PersonalProductProfile,
-} from "@high-signal/shared";
+} from '@high-signal/shared';
 
 const MAX_DAYS = 31;
 
@@ -88,18 +91,22 @@ export function resolveDailyRangeDates(input: {
   to?: string | null;
   days?: number | null;
 }) {
-  const sortedAvailable = Array.from(new Set(input.availableDates)).filter(isDate).sort(compareDate);
+  const sortedAvailable = Array.from(new Set(input.availableDates))
+    .filter(isDate)
+    .sort(compareDate);
   const latest = sortedAvailable.at(-1) ?? new Date().toISOString().slice(0, 10);
   const requestedTo = isDate(input.to) ? input.to! : latest;
   const days = clampDays(input.days ?? 7);
   const requestedFrom = isDate(input.from) ? input.from! : addDays(requestedTo, 1 - days);
   const from = compareDate(requestedFrom, requestedTo) <= 0 ? requestedFrom : requestedTo;
   const to = compareDate(requestedFrom, requestedTo) <= 0 ? requestedTo : requestedFrom;
-  const availableInRange = sortedAvailable.filter((date) => compareDate(date, from) >= 0 && compareDate(date, to) <= 0);
-  const fallback = sortedAvailable
-    .filter((date) => compareDate(date, to) <= 0)
-    .slice(-days);
-  const dates = (availableInRange.length > 0 ? availableInRange : fallback).slice(-MAX_DAYS).sort((a, b) => b.localeCompare(a));
+  const availableInRange = sortedAvailable.filter(
+    (date) => compareDate(date, from) >= 0 && compareDate(date, to) <= 0
+  );
+  const fallback = sortedAvailable.filter((date) => compareDate(date, to) <= 0).slice(-days);
+  const dates = (availableInRange.length > 0 ? availableInRange : fallback)
+    .slice(-MAX_DAYS)
+    .sort((a, b) => b.localeCompare(a));
   return {
     requestedFrom,
     requestedTo,
@@ -132,7 +139,7 @@ export async function buildDailyRangeSummary(input: {
     const allInsights = await buildDailyBroadInsightsWithAnnotations(
       input.records,
       date,
-      input.annotationOptions,
+      input.annotationOptions
     );
     const insights = allInsights.filter((item) => dailyReadMatches(item, input.filters));
     const requirementQueue = buildDailyRequirementQueue(insights, 20, input.products);
@@ -185,7 +192,7 @@ export async function buildDailyRangeSummary(input: {
       productRequirements: 0,
       sourceCount: 0,
       repeatedSignalCount: 0,
-    },
+    }
   );
   return {
     requestedFrom: range.requestedFrom,

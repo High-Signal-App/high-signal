@@ -1,18 +1,18 @@
-import { headers } from "next/headers";
+import { headers } from 'next/headers';
 
-import { api } from "@/lib/api";
-import { buildRssXml, signalExcerpt, signalHeadline } from "@/lib/rss";
-import { isBackfillSignal } from "@/lib/signal-format";
+import { api } from '@/lib/api';
+import { buildRssXml, signalExcerpt, signalHeadline } from '@/lib/rss';
+import { isBackfillSignal } from '@/lib/signal-format';
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   const h = await headers();
-  const proto = h.get("x-forwarded-proto") ?? "https";
-  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost";
+  const proto = h.get('x-forwarded-proto') ?? 'https';
+  const host = h.get('x-forwarded-host') ?? h.get('host') ?? 'localhost';
   const base = `${proto}://${host}`;
 
-  let signals: Awaited<ReturnType<typeof api.digestWeekly>>["signals"] = [];
+  let signals: Awaited<ReturnType<typeof api.digestWeekly>>['signals'] = [];
   try {
     const r = await api.digestWeekly();
     signals = r.signals.filter((signal) => !isBackfillSignal(signal));
@@ -21,12 +21,11 @@ export async function GET() {
   }
 
   const xml = buildRssXml({
-    title: "High Signal — Weekly digest",
+    title: 'High Signal — Weekly digest',
     link: `${base}/digest`,
     description:
-      "Evidence-backed signals from public and semi-public information streams. Weekly cohort.",
-    lastBuildDate:
-      signals.length > 0 ? new Date(signals[0].publishedAt) : new Date(),
+      'Evidence-backed signals from public and semi-public information streams. Weekly cohort.',
+    lastBuildDate: signals.length > 0 ? new Date(signals[0].publishedAt) : new Date(),
     items: signals.map((s) => ({
       title: signalHeadline(s.bodyMd, s.slug),
       link: `${base}/signals/${s.slug}`,
@@ -40,8 +39,8 @@ export async function GET() {
   return new Response(xml, {
     status: 200,
     headers: {
-      "Content-Type": "application/rss+xml; charset=utf-8",
-      "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
+      'Content-Type': 'application/rss+xml; charset=utf-8',
+      'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
     },
   });
 }

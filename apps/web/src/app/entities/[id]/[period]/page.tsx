@@ -1,27 +1,24 @@
-import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
 import {
   BackLink,
   FeedList,
   PageShell,
   SectionHeader,
   StatGrid,
-} from "@/components/system/HighSignalUI";
-import {
-  BreadcrumbJsonLd,
-  EntityMonthJsonLd,
-} from "@/components/seo/structured-data";
-import { api, type SignalRow } from "@/lib/api";
-import { signalHeadline } from "@/lib/signal-format";
-import { SITE_URL } from "@/lib/site";
+} from '@/components/system/HighSignalUI';
+import { BreadcrumbJsonLd, EntityMonthJsonLd } from '@/components/seo/structured-data';
+import { api, type SignalRow } from '@/lib/api';
+import { signalHeadline } from '@/lib/signal-format';
+import { SITE_URL } from '@/lib/site';
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
 
 const PERIOD_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
 
 function periodWindow(period: string): { start: Date; end: Date } | null {
   if (!PERIOD_RE.test(period)) return null;
-  const [yearStr, monthStr] = period.split("-");
+  const [yearStr, monthStr] = period.split('-');
   const year = Number(yearStr);
   const month = Number(monthStr) - 1; // 0-indexed for Date
   const start = new Date(Date.UTC(year, month, 1));
@@ -69,12 +66,13 @@ export default async function EntityMonthPage({
   const startMs = window.start.getTime();
   const endMs = window.end.getTime();
   const monthSignals = allSignals.filter((s) => {
-    const ts = typeof s.publishedAt === "number" ? s.publishedAt : Date.parse(String(s.publishedAt));
+    const ts =
+      typeof s.publishedAt === 'number' ? s.publishedAt : Date.parse(String(s.publishedAt));
     return ts >= startMs && ts < endMs;
   });
 
-  const ups = monthSignals.filter((s) => s.direction === "up").length;
-  const downs = monthSignals.filter((s) => s.direction === "down").length;
+  const ups = monthSignals.filter((s) => s.direction === 'up').length;
+  const downs = monthSignals.filter((s) => s.direction === 'down').length;
   const types = Array.from(new Set(monthSignals.map((s) => s.signalType)));
 
   return (
@@ -82,8 +80,8 @@ export default async function EntityMonthPage({
       <BackLink href={`/entities/${id}`}>{`back to ${entity.name}`}</BackLink>
       <BreadcrumbJsonLd
         trail={[
-          { name: "Home", path: "/" },
-          { name: "Entities", path: "/entities" },
+          { name: 'Home', path: '/' },
+          { name: 'Entities', path: '/entities' },
           { name: entity.name, path: `/entities/${id}` },
           { name: period, path: `/entities/${id}/${period}` },
         ]}
@@ -96,7 +94,7 @@ export default async function EntityMonthPage({
       />
 
       <SectionHeader
-        eyebrow={`${entity.name}${entity.ticker ? ` · ${entity.ticker}` : ""} · archive`}
+        eyebrow={`${entity.name}${entity.ticker ? ` · ${entity.ticker}` : ''} · archive`}
         title={`${period}`}
       >
         Every published High Signal call on <strong>{entity.name}</strong> during {period}. The
@@ -105,10 +103,18 @@ export default async function EntityMonthPage({
 
       <StatGrid
         items={[
-          { label: "signals this month", value: monthSignals.length.toString(), sub: "published only" },
-          { label: "up calls", value: ups.toString(), sub: "directional bullish" },
-          { label: "down calls", value: downs.toString(), sub: "directional bearish" },
-          { label: "distinct types", value: types.length.toString(), sub: "signal taxonomies seen" },
+          {
+            label: 'signals this month',
+            value: monthSignals.length.toString(),
+            sub: 'published only',
+          },
+          { label: 'up calls', value: ups.toString(), sub: 'directional bullish' },
+          { label: 'down calls', value: downs.toString(), sub: 'directional bearish' },
+          {
+            label: 'distinct types',
+            value: types.length.toString(),
+            sub: 'signal taxonomies seen',
+          },
         ]}
       />
 

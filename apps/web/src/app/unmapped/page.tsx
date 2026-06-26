@@ -1,8 +1,8 @@
-import { api } from "@/lib/api";
-import { PromoteButton } from "@/components/unmapped/PromoteButton";
+import { api } from '@/lib/api';
+import { PromoteButton } from '@/components/unmapped/PromoteButton';
 
-export const dynamic = "force-dynamic";
-export const metadata = { title: "Gazetteer Candidates — High Signal" };
+export const dynamic = 'force-dynamic';
+export const metadata = { title: 'Gazetteer Candidates — High Signal' };
 
 interface Props {
   searchParams: Promise<{ hours?: string; top?: string }>;
@@ -28,8 +28,8 @@ function Chip({ label, active, href }: { label: string; active: boolean; href: s
       href={href}
       className={`rounded border px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.18em] ${
         active
-          ? "border-[var(--color-accent)] text-[var(--color-accent)]"
-          : "border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200"
+          ? 'border-[var(--color-accent)] text-[var(--color-accent)]'
+          : 'border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200'
       }`}
     >
       {label}
@@ -109,9 +109,7 @@ function CandidateSection({
   return (
     <section className="mt-10">
       <div className="flex items-baseline justify-between border-b border-zinc-900 pb-2">
-        <h2 className="font-mono text-[11px] uppercase tracking-[0.2em] text-zinc-300">
-          {title}
-        </h2>
+        <h2 className="font-mono text-[11px] uppercase tracking-[0.2em] text-zinc-300">{title}</h2>
         <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
           {candidates.length} candidates
         </span>
@@ -164,9 +162,9 @@ export default async function UnmappedPage({ searchParams }: Props) {
       <header className="mt-3 border-b border-zinc-800 pb-6">
         <h1 className="text-3xl font-medium tracking-tight">Gazetteer candidates</h1>
         <p className="mt-2 max-w-2xl text-sm text-zinc-400">
-          Tokens that appeared in events with <em>no</em> entity match in the last{" "}
-          <strong>{hours}h</strong> — the strongest candidates to add to{" "}
-          <code className="bg-zinc-900 px-1">ai_infra_entities.csv</code>. Scanned{" "}
+          Tokens that appeared in events with <em>no</em> entity match in the last{' '}
+          <strong>{hours}h</strong> — the strongest candidates to add to{' '}
+          <code className="bg-zinc-900 px-1">ai_infra_entities.csv</code>. Scanned{' '}
           <strong>{data.eventsScanned}</strong> unmapped events.
         </p>
         <div className="mt-4 flex flex-wrap gap-3">
