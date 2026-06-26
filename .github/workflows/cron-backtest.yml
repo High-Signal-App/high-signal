@@ -59,6 +59,9 @@ jobs:
             echo "no changes to commit"
           else
             git commit -m "chore(backtest): refresh label hit-rates"
+            # Rebase on any concurrent push (other crons / human) so the
+            # data-commit applies cleanly instead of a non-fast-forward reject.
+            git pull --rebase --autostash origin "$(git rev-parse --abbrev-ref HEAD)"
             # --no-verify: bot data-commits must not run the husky pre-push
             # code-lint hook (biome check). Lint is gated by CI, not by data crons.
             git push --no-verify
