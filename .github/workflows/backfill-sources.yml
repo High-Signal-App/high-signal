@@ -1,0 +1,63 @@
+name: backfill-sources
+
+# On-demand wide-window backfill to populate the D1 events store for sources the
+# daily `--days 1` cron leaves empty (low-cadence series, newly-added adapters).
+# Distinct from backfill.yml, which is the gdelt/edgar historical-replay job for
+# track-record scoring. Runs one pipeline process per source so one adapter's
+# failure doesn't mask the rest and D1 write volume stays bounded per source.
+#
+# COST: intentionally free. Unlike cron-ingest this sets neither AI_API_KEY nor
+# the AI_BASE_URL DeepSeek override, so generator.py defaults to the free-ai
+# gateway (and falls back to deterministic drafts if it's unavailable). Events
+# are pushed to D1 *before* signal generation, so /data populates regardless.
+# Heavy already-populated sources (gdelt, market, news) are omitted from the
+# default list to stay within Cloudflare D1 free-tier write limits.
+
+on:
+  workflow_dispatch:
+    inputs:
+      sources:
+        description: space-separated source ids (or "all")
+        type: string
+        default: "appstore appstore-reviews playstore-reviews producthunt coingecko defillama google-trends bls eia openstates edgar patents nvd courtlistener legistar wikidata hackernews stackexchange"
+      days:
+        description: lookback days
+        type: string
+        default: "28"
+
+jobs:
+  backfill-sources:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: python/ingest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: astral-sh/setup-uv@v8.1.0
+      - uses: actions/setup-python@v6
+        with: { python-version: "3.11" }
+      - run: uv sync
+      - name: backfill (free AI gateway)
+        env:
+          ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
+          API_BASE: ${{ secrets.API_BASE }}
+          # No AI_API_KEY and no AI_BASE_URL override on purpose — generator.py
+          # then defaults to the free-ai gateway; if that needs a key it isn't
+          # set, generate() falls back to deterministic drafts. Either way: free.
+          AI_PROJECT_ID: high-signal
+          SEC_USER_AGENT: "high-signal sarthakagrawal927@gmail.com"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EIA_API_KEY: ${{ secrets.EIA_API_KEY }}
+          OPENSTATES_API_KEY: ${{ secrets.OPENSTATES_API_KEY }}
+          EDGAR_TICKER_LIMIT: "25"
+          SIGNAL_CLUSTER_LIMIT: "40"
+        run: |
+          fail=0
+          for s in ${{ inputs.sources }}; do
+            echo "::group::$s (days=${{ inputs.days }})"
+            uv run python -m high_signal_ingest.pipeline \
+              --source "$s" --days "${{ inputs.days }}" --json || { echo "[$s] FAILED"; fail=1; }
+            echo "::endgroup::"
+          done
+          exit $fail
