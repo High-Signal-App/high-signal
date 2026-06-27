@@ -161,6 +161,16 @@
       "keeps": "entity enrichment fields"
     },
     {
+      "id": "bls",
+      "provider": "BLS economic data",
+      "domains": "finance",
+      "access": "optional-key:BLS_API_KEY",
+      "official": true,
+      "windowDays": 120,
+      "role": "numeric",
+      "keeps": "CPI / unemployment / payrolls latest print"
+    },
+    {
       "id": "eia",
       "provider": "EIA energy",
       "domains": "finance",
@@ -179,6 +189,26 @@
       "windowDays": 30,
       "role": "numeric",
       "keeps": "series id, observation value"
+    },
+    {
+      "id": "appstore",
+      "provider": "Apple App Store charts",
+      "domains": "startups",
+      "access": "keyless",
+      "official": false,
+      "windowDays": 1,
+      "role": "thematic",
+      "keeps": "app name, developer, chart rank"
+    },
+    {
+      "id": "appstore-reviews",
+      "provider": "App Store reviews (iTunes RSS)",
+      "domains": "startups",
+      "access": "keyless",
+      "official": false,
+      "windowDays": 14,
+      "role": "thematic",
+      "keeps": "review rating, title, text"
     },
     {
       "id": "bluesky",
@@ -201,6 +231,26 @@
       "keeps": "CVE id, vendor, due date"
     },
     {
+      "id": "coingecko",
+      "provider": "CoinGecko",
+      "domains": "finance",
+      "access": "keyless",
+      "official": false,
+      "windowDays": 1,
+      "role": "thematic",
+      "keeps": "trending coin / 24h mover, rank, price"
+    },
+    {
+      "id": "defillama",
+      "provider": "DeFiLlama",
+      "domains": "finance",
+      "access": "keyless",
+      "official": false,
+      "windowDays": 1,
+      "role": "thematic",
+      "keeps": "protocol TVL + 1d move, category"
+    },
+    {
       "id": "gdelt",
       "provider": "GDELT",
       "domains": "finance",
@@ -219,6 +269,16 @@
       "windowDays": 1,
       "role": "thematic",
       "keeps": "event type, repo"
+    },
+    {
+      "id": "google-trends",
+      "provider": "Google Trends (RSS)",
+      "domains": "startups",
+      "access": "keyless",
+      "official": false,
+      "windowDays": 2,
+      "role": "thematic",
+      "keeps": "trending search term, approx traffic"
     },
     {
       "id": "gov",
@@ -301,6 +361,16 @@
       "keeps": "package, version, advisory"
     },
     {
+      "id": "playstore-reviews",
+      "provider": "Google Play reviews",
+      "domains": "startups",
+      "access": "keyless",
+      "official": false,
+      "windowDays": 14,
+      "role": "thematic",
+      "keeps": "review rating, text"
+    },
+    {
       "id": "podcast-index",
       "provider": "Podcast Index",
       "domains": "technology",
@@ -309,6 +379,16 @@
       "windowDays": 14,
       "role": "thematic",
       "keeps": "episode title, summary"
+    },
+    {
+      "id": "producthunt",
+      "provider": "Product Hunt (RSS)",
+      "domains": "startups",
+      "access": "keyless",
+      "official": false,
+      "windowDays": 7,
+      "role": "thematic",
+      "keeps": "product name, tagline, link"
     },
     {
       "id": "reddit",
@@ -371,5 +451,5 @@
       "keeps": "video title, transcript snippet"
     }
   ],
-  "count": 37
+  "count": 45
 }
