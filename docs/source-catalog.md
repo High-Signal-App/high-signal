@@ -19,7 +19,7 @@ Persisted in **Cloudflare D1** (events/signals/evidence) + git-versioned `signal
 
 ## Sources
 
-**37 sources.** Access: `keyless` = no auth; `free-key` = free registration (skipped without the env var, ingest stays green); `optional-key` = works degraded/empty without it. ⚖️ = counts toward the cite-or-kill official-source bar.
+**45 sources.** Access: `keyless` = no auth; `free-key` = free registration (skipped without the env var, ingest stays green); `optional-key` = works degraded/empty without it. ⚖️ = counts toward the cite-or-kill official-source bar.
 
 | Source | Provider | Domain | Access | ⚖️ | History | Role | Extracted fields kept |
 |---|---|---|---|:--:|--:|---|---|
@@ -39,12 +39,18 @@ Persisted in **Cloudflare D1** (events/signals/evidence) + git-versioned `signal
 | `patents` | USPTO PatentsView | technology | keyless |  | 365d | entity | patent title, assignee |
 | `sec-xbrl` | SEC XBRL frames | finance | keyless | ⚖️ | 120d | entity | fundamental metric + value |
 | `wikidata` | Wikidata | technology | keyless |  | 1d | entity | entity enrichment fields |
+| `bls` | BLS economic data | finance | optional-key:BLS_API_KEY | ⚖️ | 120d | numeric | CPI / unemployment / payrolls latest print |
 | `eia` | EIA energy | finance | free-key:EIA_API_KEY | ⚖️ | 120d | numeric | state, period, electricity price |
 | `macro-rates` | ECB FX + FRED | finance | optional-key:FRED_API_KEY |  | 30d | numeric | series id, observation value |
+| `appstore` | Apple App Store charts | startups | keyless |  | 1d | thematic | app name, developer, chart rank |
+| `appstore-reviews` | App Store reviews (iTunes RSS) | startups | keyless |  | 14d | thematic | review rating, title, text |
 | `bluesky` | Bluesky | technology | optional-key:BLUESKY_* |  | 7d | thematic | post text, author |
 | `cisa-kev` | CISA KEV | technology | keyless | ⚖️ | 7d | thematic | CVE id, vendor, due date |
+| `coingecko` | CoinGecko | finance | keyless |  | 1d | thematic | trending coin / 24h mover, rank, price |
+| `defillama` | DeFiLlama | finance | keyless |  | 1d | thematic | protocol TVL + 1d move, category |
 | `gdelt` | GDELT | finance | keyless |  | 1d | thematic | event, tone, mentions |
 | `github-archive` | GH Archive | technology | keyless |  | 1d | thematic | event type, repo |
+| `google-trends` | Google Trends (RSS) | startups | keyless |  | 2d | thematic | trending search term, approx traffic |
 | `gov` | Federal Register + agency RSS | finance | keyless | ⚖️ | 3d | thematic | rule/notice title, agency |
 | `guardian` | The Guardian | technology | free-key:GUARDIAN_API_KEY |  | 7d | thematic | headline, section |
 | `hackernews` | HN (Algolia) | technology | keyless |  | 7d | thematic | title, points, comments, link |
@@ -53,7 +59,9 @@ Persisted in **Cloudflare D1** (events/signals/evidence) + git-versioned `signal
 | `metaculus` | Metaculus | finance | optional-key:METACULUS_TOKEN |  | 30d | thematic | question, community forecast |
 | `nvd` | NVD (CVE) | technology | keyless |  | 14d | thematic | CVE id, CVSS, summary |
 | `packages` | npm / PyPI + OSV | technology | keyless |  | 7d | thematic | package, version, advisory |
+| `playstore-reviews` | Google Play reviews | startups | keyless |  | 14d | thematic | review rating, text |
 | `podcast-index` | Podcast Index | technology | optional-key:PODCAST_INDEX_* |  | 14d | thematic | episode title, summary |
+| `producthunt` | Product Hunt (RSS) | startups | keyless |  | 7d | thematic | product name, tagline, link |
 | `reddit` | Reddit | startups | keyless |  | 1d | thematic | post title, subreddit, score |
 | `semantic-scholar` | Semantic Scholar | technology | keyless |  | 30d | thematic | paper title, abstract snippet |
 | `stackexchange` | Stack Overflow | technology | keyless |  | 30d | thematic | question, tags, score |
