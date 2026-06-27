@@ -14,16 +14,15 @@ Output: Events tagged `source: google-trends`. No key required.
 
 from __future__ import annotations
 
-import hashlib
 import logging
 from datetime import datetime, timedelta, timezone
-from email.utils import parsedate_to_datetime
 from urllib.parse import quote_plus
 
 import feedparser
 import httpx
 
 from ..types import Event
+from ..utils import event_hash, rss_published
 
 USER_AGENT = "high-signal/0.1 google-trends-ingest"
 LOGGER = logging.getLogger(__name__)
@@ -34,21 +33,6 @@ DEFAULT_GEOS: tuple[tuple[str, str], ...] = (
 )
 
 
-def _hash(*parts: str) -> str:
-    return hashlib.sha256("␟".join(parts).encode("utf-8")).hexdigest()
-
-
-def _published(entry: object) -> datetime | None:
-    raw = getattr(entry, "published", None) or getattr(entry, "updated", None)
-    if not raw:
-        return None
-    try:
-        dt = parsedate_to_datetime(str(raw))
-    except (TypeError, ValueError):
-        return None
-    return None if dt is None else (dt.astimezone(timezone.utc) if dt.tzinfo else dt.replace(tzinfo=timezone.utc))
-
-
 def events_from_feed(geo: str, xml: str, since: datetime) -> list[Event]:
     parsed = feedparser.parse(xml)
     out: list[Event] = []
@@ -56,11 +40,11 @@ def events_from_feed(geo: str, xml: str, since: datetime) -> list[Event]:
         term = (getattr(entry, "title", "") or "").strip()
         if not term:
             continue
-        published = _published(entry) or datetime.now(timezone.utc)
+        published = rss_published(entry) or datetime.now(timezone.utc)
         if published < since:
             continue
         traffic = (getattr(entry, "ht_approx_traffic", "") or "").strip()
-        raw_hash = _hash("google-trends", geo, term, published.date().isoformat())
+        raw_hash = event_hash("google-trends", geo, term, published.date().isoformat())
         out.append(
             Event(
                 id=raw_hash[:16],

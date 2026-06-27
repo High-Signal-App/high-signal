@@ -12,7 +12,6 @@ Output: Events tagged `source: hackernews`. No key required.
 
 from __future__ import annotations
 
-import hashlib
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import Any
@@ -20,6 +19,7 @@ from typing import Any
 import httpx
 
 from ..types import Event
+from ..utils import event_hash
 
 
 USER_AGENT = "high-signal/0.1 hackernews-ingest"
@@ -44,10 +44,6 @@ QUERIES: tuple[tuple[str, str, int], ...] = (
     ("open source", "story", 30),
     ("", "show_hn", 8),
 )
-
-
-def _hash(*parts: str) -> str:
-    return hashlib.sha256("␟".join(parts).encode("utf-8")).hexdigest()
 
 
 def events_from_response(payload: dict[str, Any], since: datetime) -> list[Event]:
@@ -78,7 +74,7 @@ def events_from_response(payload: dict[str, Any], since: datetime) -> list[Event
             ]
             if part != ""
         )
-        raw_hash = _hash("hackernews", object_id)
+        raw_hash = event_hash("hackernews", object_id)
         out.append(
             Event(
                 id=raw_hash[:16],

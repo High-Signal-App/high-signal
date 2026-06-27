@@ -12,7 +12,6 @@ limits apply; a handful of calls per run stays well under).
 
 from __future__ import annotations
 
-import hashlib
 import logging
 from datetime import datetime, timezone
 from typing import Any
@@ -20,6 +19,7 @@ from typing import Any
 import httpx
 
 from ..types import Event
+from ..utils import event_hash
 
 USER_AGENT = "high-signal/0.1 coingecko-ingest"
 LOGGER = logging.getLogger(__name__)
@@ -28,12 +28,8 @@ COIN_URL = "https://www.coingecko.com/en/coins/"
 MOVER_THRESHOLD = 15.0  # |24h %| to count as a notable move
 
 
-def _hash(*parts: str) -> str:
-    return hashlib.sha256("␟".join(parts).encode("utf-8")).hexdigest()
-
-
 def _event(coin_id: str, title: str, content: str, now: datetime, kind: str) -> Event:
-    raw_hash = _hash("coingecko", kind, coin_id, now.date().isoformat())
+    raw_hash = event_hash("coingecko", kind, coin_id, now.date().isoformat())
     return Event(
         id=raw_hash[:16],
         source="coingecko",

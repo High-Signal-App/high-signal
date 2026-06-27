@@ -9,8 +9,6 @@ Output: Events tagged `source: producthunt`. No key required.
 
 from __future__ import annotations
 
-import calendar
-import hashlib
 import logging
 from datetime import datetime, timedelta, timezone
 
@@ -18,23 +16,11 @@ import feedparser
 import httpx
 
 from ..types import Event
+from ..utils import event_hash, rss_published
 
 USER_AGENT = "high-signal/0.1 producthunt-ingest"
 LOGGER = logging.getLogger(__name__)
 FEED_URL = "https://www.producthunt.com/feed"
-
-
-def _hash(*parts: str) -> str:
-    return hashlib.sha256("␟".join(parts).encode("utf-8")).hexdigest()
-
-
-def _published(entry: object) -> datetime | None:
-    # feedparser normalises any date format (RFC822 / ISO-8601) into a UTC
-    # struct_time; calendar.timegm reads it as UTC.
-    st = getattr(entry, "published_parsed", None) or getattr(entry, "updated_parsed", None)
-    if not st:
-        return None
-    return datetime.fromtimestamp(calendar.timegm(st), tz=timezone.utc)
 
 
 def events_from_feed(xml: str, since: datetime) -> list[Event]:
@@ -45,11 +31,11 @@ def events_from_feed(xml: str, since: datetime) -> list[Event]:
         link = (getattr(entry, "link", "") or "").strip()
         if not title or not link or title.lower().startswith("product hunt"):
             continue
-        published = _published(entry)
+        published = rss_published(entry)
         if published is None or published < since:
             continue
         summary = (getattr(entry, "summary", "") or "").strip()
-        raw_hash = _hash("producthunt", link)
+        raw_hash = event_hash("producthunt", link)
         out.append(
             Event(
                 id=raw_hash[:16],

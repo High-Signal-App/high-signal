@@ -14,7 +14,6 @@ downstream against the case caption + nature-of-suit text. No key required.
 
 from __future__ import annotations
 
-import hashlib
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import Any
@@ -22,6 +21,7 @@ from typing import Any
 import httpx
 
 from ..types import Event
+from ..utils import event_hash, parse_iso_datetime
 
 
 USER_AGENT = "high-signal/0.1 courtlistener-ingest"
@@ -50,22 +50,6 @@ QUERIES: tuple[str, ...] = (
 PAGES = 2  # follow the `next` cursor this many times per query
 
 
-def _hash(*parts: str) -> str:
-    return hashlib.sha256("␟".join(parts).encode("utf-8")).hexdigest()
-
-
-def _parse_date(value: str | None) -> datetime | None:
-    if not value:
-        return None
-    try:
-        parsed = datetime.fromisoformat(value[:19].replace("Z", "+00:00"))
-        return parsed.astimezone(timezone.utc) if parsed.tzinfo else parsed.replace(
-            tzinfo=timezone.utc
-        )
-    except ValueError:
-        return None
-
-
 def events_from_response(query: str, payload: dict[str, Any], since: datetime) -> list[Event]:
     rows = payload.get("results") if isinstance(payload.get("results"), list) else []
     out: list[Event] = []
@@ -73,7 +57,7 @@ def events_from_response(query: str, payload: dict[str, Any], since: datetime) -
         if not isinstance(row, dict):
             continue
         case_name = str(row.get("caseName") or row.get("caseNameFull") or "").strip()
-        filed = _parse_date(str(row.get("dateFiled") or ""))
+        filed = parse_iso_datetime(str(row.get("dateFiled") or ""))
         path = str(row.get("absolute_url") or "").strip()
         if not case_name or filed is None or filed < since or not path:
             continue
@@ -91,7 +75,7 @@ def events_from_response(query: str, payload: dict[str, Any], since: datetime) -
             ]
             if part != ""
         )
-        raw_hash = _hash("courtlistener", path)
+        raw_hash = event_hash("courtlistener", path)
         out.append(
             Event(
                 id=raw_hash[:16],

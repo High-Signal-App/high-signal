@@ -16,7 +16,6 @@ Output: Events tagged `source: eia`.
 
 from __future__ import annotations
 
-import hashlib
 import logging
 import os
 from datetime import datetime, timedelta, timezone
@@ -25,6 +24,7 @@ from typing import Any
 import httpx
 
 from ..types import Event
+from ..utils import event_hash
 
 
 USER_AGENT = "high-signal/0.1 eia-ingest"
@@ -33,10 +33,6 @@ API_URL = "https://api.eia.gov/v2/electricity/retail-sales/data/"
 SERIES_URL = "https://www.eia.gov/electricity/data.php"
 # Data-center / fab corridors + large grids.
 STATES = ("VA", "TX", "OH", "AZ", "GA", "OR", "NV", "NC", "IA", "WA", "UT", "WI", "NY", "CA")
-
-
-def _hash(*parts: str) -> str:
-    return hashlib.sha256("␟".join(parts).encode("utf-8")).hexdigest()
 
 
 def _period_to_dt(period: str) -> datetime | None:
@@ -62,7 +58,7 @@ def events_from_response(payload: dict[str, Any], since: datetime) -> list[Event
         if not period or not state or price is None or published is None or published < since:
             continue
         units = str(row.get("price-units") or "cents per kilowatthour").strip()
-        raw_hash = _hash("eia", "retail-price-ind", state, period)
+        raw_hash = event_hash("eia", "retail-price-ind", state, period)
         out.append(
             Event(
                 id=raw_hash[:16],

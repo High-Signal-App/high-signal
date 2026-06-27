@@ -10,7 +10,6 @@ signal), deduped per app + chart + day. No key required.
 
 from __future__ import annotations
 
-import hashlib
 import logging
 from datetime import datetime, timezone
 from typing import Any
@@ -18,6 +17,7 @@ from typing import Any
 import httpx
 
 from ..types import Event
+from ..utils import event_hash
 
 USER_AGENT = "high-signal/0.1 appstore-ingest"
 LOGGER = logging.getLogger(__name__)
@@ -25,10 +25,6 @@ API = "https://rss.applemarketingtools.com/api/v2/us/apps"
 # (chart slug, human label, how many). Apple's marketing RSS only serves the
 # top-free apps chart now (paid/grossing return empty).
 CHARTS: tuple[tuple[str, str, int], ...] = (("top-free", "Top Free", 50),)
-
-
-def _hash(*parts: str) -> str:
-    return hashlib.sha256("␟".join(parts).encode("utf-8")).hexdigest()
 
 
 def events_from_chart(chart: str, label: str, payload: dict[str, Any], now: datetime) -> list[Event]:
@@ -43,7 +39,7 @@ def events_from_chart(chart: str, label: str, payload: dict[str, Any], now: date
             continue
         artist = str(app.get("artistName") or "").strip()
         genres = ", ".join(g.get("name", "") for g in app.get("genres", []) if isinstance(g, dict))
-        raw_hash = _hash("appstore", chart, str(app.get("id") or name), now.date().isoformat())
+        raw_hash = event_hash("appstore", chart, str(app.get("id") or name), now.date().isoformat())
         out.append(
             Event(
                 id=raw_hash[:16],

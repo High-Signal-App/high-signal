@@ -11,7 +11,6 @@ Output: Events tagged `source: bls` — latest observation per series.
 
 from __future__ import annotations
 
-import hashlib
 import logging
 import os
 from datetime import datetime, timedelta, timezone
@@ -19,6 +18,7 @@ from datetime import datetime, timedelta, timezone
 import httpx
 
 from ..types import Event
+from ..utils import event_hash
 
 USER_AGENT = "high-signal/0.1 bls-ingest"
 LOGGER = logging.getLogger(__name__)
@@ -36,10 +36,6 @@ SERIES: dict[str, tuple[str, str]] = {
     "WPUFD4": ("PPI (final demand, index)", "index"),
 }
 _MONTH = {f"M{m:02d}": m for m in range(1, 13)}
-
-
-def _hash(*parts: str) -> str:
-    return hashlib.sha256("␟".join(parts).encode("utf-8")).hexdigest()
 
 
 def events_from_response(payload: dict, since: datetime) -> list[Event]:
@@ -60,7 +56,7 @@ def events_from_response(payload: dict, since: datetime) -> list[Event]:
         published = datetime(int(year), month, 1, tzinfo=timezone.utc)
         if published < since:
             continue
-        raw_hash = _hash("bls", sid, year, period)
+        raw_hash = event_hash("bls", sid, year, period)
         out.append(
             Event(
                 id=raw_hash[:16],

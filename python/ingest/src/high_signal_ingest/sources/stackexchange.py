@@ -12,7 +12,6 @@ technology domain thematically. No key required.
 
 from __future__ import annotations
 
-import hashlib
 import html
 import logging
 from datetime import datetime, timedelta, timezone
@@ -21,6 +20,7 @@ from typing import Any
 import httpx
 
 from ..types import Event
+from ..utils import event_hash
 
 
 USER_AGENT = "high-signal/0.1 stackexchange-ingest"
@@ -52,10 +52,6 @@ TAGS: tuple[str, ...] = (
 )
 
 
-def _hash(*parts: str) -> str:
-    return hashlib.sha256("␟".join(parts).encode("utf-8")).hexdigest()
-
-
 def events_from_response(tag: str, payload: dict[str, Any], since: datetime) -> list[Event]:
     items = payload.get("items") if isinstance(payload.get("items"), list) else []
     out: list[Event] = []
@@ -84,7 +80,7 @@ def events_from_response(tag: str, payload: dict[str, Any], since: datetime) -> 
             ]
             if part != ""
         )
-        raw_hash = _hash("stackexchange", str(qid))
+        raw_hash = event_hash("stackexchange", str(qid))
         out.append(
             Event(
                 id=raw_hash[:16],

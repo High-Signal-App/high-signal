@@ -16,7 +16,6 @@ Output: Events tagged `source: openstates`.
 
 from __future__ import annotations
 
-import hashlib
 import logging
 import os
 from dataclasses import dataclass
@@ -26,6 +25,7 @@ from typing import Any
 import httpx
 
 from ..types import Event
+from ..utils import event_hash, parse_iso_datetime
 
 
 USER_AGENT = "high-signal/0.1 openstates-ingest"
@@ -57,22 +57,6 @@ QUERIES: tuple[StateQuery, ...] = (
 )
 
 
-def _hash(*parts: str) -> str:
-    return hashlib.sha256("␟".join(parts).encode("utf-8")).hexdigest()
-
-
-def _parse_date(value: str | None) -> datetime | None:
-    if not value:
-        return None
-    try:
-        parsed = datetime.fromisoformat(value[:19].replace("Z", "+00:00"))
-        return parsed.astimezone(timezone.utc) if parsed.tzinfo else parsed.replace(
-            tzinfo=timezone.utc
-        )
-    except ValueError:
-        return None
-
-
 def events_from_response(query: StateQuery, payload: dict[str, Any], since: datetime) -> list[Event]:
     rows = payload.get("results") if isinstance(payload.get("results"), list) else []
     out: list[Event] = []
@@ -82,7 +66,7 @@ def events_from_response(query: StateQuery, payload: dict[str, Any], since: date
         identifier = str(row.get("identifier") or "").strip()
         title = str(row.get("title") or "").strip()
         url = str(row.get("openstates_url") or "").strip()
-        action = _parse_date(str(row.get("latest_action_date") or ""))
+        action = parse_iso_datetime(str(row.get("latest_action_date") or ""))
         if not identifier or not title or url == "" or action is None or action < since:
             continue
         juris = ""
@@ -103,7 +87,7 @@ def events_from_response(query: StateQuery, payload: dict[str, Any], since: date
             ]
             if part != ""
         )
-        raw_hash = _hash("openstates", url)
+        raw_hash = event_hash("openstates", url)
         out.append(
             Event(
                 id=raw_hash[:16],
