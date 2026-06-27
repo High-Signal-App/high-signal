@@ -11,7 +11,6 @@ Output: Events tagged `source: defillama`. Daily snapshot, deduped per protocol
 
 from __future__ import annotations
 
-import hashlib
 import logging
 from datetime import datetime, timezone
 from typing import Any
@@ -19,6 +18,7 @@ from typing import Any
 import httpx
 
 from ..types import Event
+from ..utils import event_hash
 
 USER_AGENT = "high-signal/0.1 defillama-ingest"
 LOGGER = logging.getLogger(__name__)
@@ -27,10 +27,6 @@ PROTOCOL_URL = "https://defillama.com/protocol/"
 MIN_TVL = 100_000_000.0  # $100M — material protocols only
 MIN_MOVE = 10.0          # |1d %| to count as notable
 MAX_EVENTS = 25
-
-
-def _hash(*parts: str) -> str:
-    return hashlib.sha256("␟".join(parts).encode("utf-8")).hexdigest()
 
 
 def events_from_protocols(rows: list[Any], now: datetime) -> list[Event]:
@@ -53,7 +49,7 @@ def events_from_protocols(rows: list[Any], now: datetime) -> list[Event]:
         chg = float(p["change_1d"])
         tvl_b = p["tvl"] / 1e9
         cat = str(p.get("category") or "").strip()
-        raw_hash = _hash("defillama", slug, now.date().isoformat())
+        raw_hash = event_hash("defillama", slug, now.date().isoformat())
         out.append(
             Event(
                 id=raw_hash[:16],

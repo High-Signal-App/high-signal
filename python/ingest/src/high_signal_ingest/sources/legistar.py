@@ -26,7 +26,7 @@ See PROJECT_STATUS.md for the municipal-source landscape.
 from __future__ import annotations
 
 import asyncio
-import hashlib
+import re
 import logging
 import os
 from datetime import datetime, timedelta, timezone
@@ -35,6 +35,7 @@ from typing import Iterator
 import httpx
 
 from ..types import Event
+from ..utils import event_hash
 
 
 USER_AGENT = "high-signal/0.1 legistar-ingest"
@@ -112,6 +113,7 @@ RELEVANT_TERMS = (
     "battery storage",
     "solar farm",
 )
+_RELEVANT_RE = re.compile("|".join(re.escape(t) for t in RELEVANT_TERMS))
 
 # Procedural MatterTypes that match a keyword but carry no new signal. Kept
 # narrow: a bare consent-agenda wrapper never passes RELEVANT_TERMS anyway, and
@@ -121,10 +123,6 @@ _PROCEDURAL_TYPES = (
     "minutes",
     "communication",
 )
-
-
-def _hash(*parts: str) -> str:
-    return hashlib.sha256("␟".join(parts).encode("utf-8")).hexdigest()
 
 
 def _clients_from_env() -> list[tuple[str, str]]:
@@ -162,7 +160,7 @@ def _is_relevant(matter: dict) -> bool:
     if any(p in type_name for p in _PROCEDURAL_TYPES):
         return False
     text = f"{matter.get('MatterTitle') or ''} {matter.get('MatterName') or ''}".lower()
-    return any(term in text for term in RELEVANT_TERMS)
+    return _RELEVANT_RE.search(text) is not None
 
 
 def events_from_matters(
@@ -203,7 +201,7 @@ def events_from_matters(
             ]
             if part != ""
         )
-        raw_hash = _hash("legistar", code, str(matter_id))
+        raw_hash = event_hash("legistar", code, str(matter_id))
         prefix = f"{name} — {body}" if body else name
         out.append(
             Event(

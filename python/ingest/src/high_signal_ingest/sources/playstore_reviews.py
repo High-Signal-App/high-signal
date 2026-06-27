@@ -15,12 +15,12 @@ Output: Events tagged `source: playstore-reviews`.
 
 from __future__ import annotations
 
-import hashlib
 import logging
 import os
 from datetime import datetime, timedelta, timezone
 
 from ..types import Event
+from ..utils import event_hash
 
 LOGGER = logging.getLogger(__name__)
 # (display name, android package)
@@ -33,10 +33,6 @@ DEFAULT_APPS: tuple[tuple[str, str], ...] = (
     ("Duolingo", "com.duolingo"),
 )
 PER_APP = 30
-
-
-def _hash(*parts: str) -> str:
-    return hashlib.sha256("␟".join(parts).encode("utf-8")).hexdigest()
 
 
 def _apps_from_env() -> list[tuple[str, str]]:
@@ -65,7 +61,7 @@ def reviews_to_events(app: str, rows: list[dict], since: datetime) -> list[Event
         published = at.replace(tzinfo=timezone.utc) if at.tzinfo is None else at.astimezone(timezone.utc)
         if published < since:
             continue
-        raw_hash = _hash("playstore-reviews", rid)
+        raw_hash = event_hash("playstore-reviews", rid)
         out.append(
             Event(
                 id=raw_hash[:16],

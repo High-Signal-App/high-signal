@@ -13,7 +13,6 @@ Output: Events tagged `source: appstore-reviews`.
 
 from __future__ import annotations
 
-import hashlib
 import logging
 import os
 from datetime import datetime, timedelta, timezone
@@ -21,6 +20,7 @@ from datetime import datetime, timedelta, timezone
 import httpx
 
 from ..types import Event
+from ..utils import event_hash
 
 USER_AGENT = "high-signal/0.1 appstore-reviews-ingest"
 LOGGER = logging.getLogger(__name__)
@@ -30,10 +30,6 @@ DEFAULT_APPS = (
     "ChatGPT", "Perplexity AI", "Claude by Anthropic", "Notion", "Cursor",
     "Figma", "Robinhood", "Coinbase", "Duolingo", "Arc Search",
 )
-
-
-def _hash(*parts: str) -> str:
-    return hashlib.sha256("␟".join(parts).encode("utf-8")).hexdigest()
 
 
 def _apps_from_env() -> list[str]:
@@ -64,7 +60,7 @@ def reviews_from_feed(app: str, payload: dict, since: datetime) -> list[Event]:
         published = _parse_dt((e.get("updated") or {}).get("label", ""))
         if not rid or not title or published is None or published < since:
             continue
-        raw_hash = _hash("appstore-reviews", rid)
+        raw_hash = event_hash("appstore-reviews", rid)
         link = (e.get("link") or {}).get("attributes", {}).get("href", "https://apps.apple.com")
         # Distinct per review so write-path dedup doesn't collapse all of an
         # app's reviews (they share the app link).
