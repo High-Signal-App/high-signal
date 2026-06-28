@@ -91,3 +91,54 @@ dataRoute.get("/sources", async (c) => {
     available: true,
   });
 });
+
+/**
+ * GET /data/sources/:id — paginated raw events for one source family, newest
+ * first. Powers the /data/[source] drill-in ("click on data to view it").
+ * Matches the family and any `family:variant` sub-source (e.g. legistar:phoenix).
+ */
+dataRoute.get("/sources/:id", async (c) => {
+  const id = c.req.param("id");
+  const limit = Math.min(Math.max(Number(c.req.query("limit") ?? 50), 1), 200);
+  const offset = Math.max(Number(c.req.query("offset") ?? 0), 0);
+  const database = db(c.env.DB);
+  const match = sql`(${schema.events.source} = ${id} OR ${schema.events.source} LIKE ${id + ":%"})`;
+
+  let total = 0;
+  try {
+    const [row] = await database
+      .select({ n: sql<number>`count(*)` })
+      .from(schema.events)
+      .where(match);
+    total = Number(row?.n ?? 0);
+  } catch {
+    return c.json({ id, total: 0, events: [], hasMore: false, available: false });
+  }
+
+  const rows = await database
+    .select({
+      title: schema.events.title,
+      content: schema.events.content,
+      url: schema.events.sourceUrl,
+      source: schema.events.source,
+      entity: schema.events.primaryEntityId,
+      publishedAt: schema.events.publishedAt,
+    })
+    .from(schema.events)
+    .where(match)
+    .orderBy(desc(schema.events.publishedAt))
+    .limit(limit)
+    .offset(offset);
+
+  const events = rows.map((r) => ({
+    title: r.title,
+    content: r.content,
+    url: r.url,
+    source: r.source,
+    entity: r.entity,
+    publishedAt:
+      r.publishedAt instanceof Date ? Math.floor(r.publishedAt.getTime() / 1000) : Number(r.publishedAt),
+  }));
+
+  return c.json({ id, total, events, hasMore: offset + events.length < total, available: true });
+});

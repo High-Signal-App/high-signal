@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { api, type DataSourceLive } from '@/lib/api';
 import catalog from '@/lib/source-catalog.json';
 
@@ -7,7 +8,7 @@ export const dynamic = 'force-dynamic';
 export const metadata: Metadata = {
   title: 'Data — every source High Signal ingests',
   description:
-    'Explore the data sources behind High Signal: 37 ingestion sources, how each is stored, how much history is pulled, and what data is available right now.',
+    'Explore the data sources behind High Signal: every ingestion source, how each is stored, how much history is pulled, and what data is available right now.',
 };
 
 interface CatalogEntry {
@@ -155,6 +156,14 @@ export default async function DataPage() {
                         Keeps: <span className="text-zinc-400">{s.keeps}</span> · last seen{' '}
                         {relativeDays(l?.lastAt ?? 0, nowSec)}
                       </p>
+                      {count > 0 && (
+                        <Link
+                          href={`/data/${encodeURIComponent(s.id)}`}
+                          className="mt-2 inline-block font-mono text-[11px] text-[var(--color-accent)] underline-offset-2 hover:underline"
+                        >
+                          View all {count.toLocaleString()} events →
+                        </Link>
+                      )}
                       {l?.samples && l.samples.length > 0 && (
                         <ul className="mt-2 space-y-1">
                           {l.samples.map((sm) => (

@@ -50,8 +50,29 @@ jobs:
           SEMANTIC_SCHOLAR_API_KEY: ${{ secrets.SEMANTIC_SCHOLAR_API_KEY }}
           EIA_API_KEY: ${{ secrets.EIA_API_KEY }}
           OPENSTATES_API_KEY: ${{ secrets.OPENSTATES_API_KEY }}
+          # US government APIs (free registration)
+          BEA_API_KEY: ${{ secrets.BEA_API_KEY }}
+          CENSUS_API_KEY: ${{ secrets.CENSUS_API_KEY }}
+          CONGRESS_API_KEY: ${{ secrets.CONGRESS_API_KEY }}
+          FEC_API_KEY: ${{ secrets.FEC_API_KEY }}
+          LDA_API_KEY: ${{ secrets.LDA_API_KEY }}
+          FDA_API_KEY: ${{ secrets.FDA_API_KEY }}
+          USDA_NASS_API_KEY: ${{ secrets.USDA_NASS_API_KEY }}
+          # India government
+          DATA_GOV_IN_API_KEY: ${{ secrets.DATA_GOV_IN_API_KEY }}
+          # Crypto on-chain
+          ETHERSCAN_API_KEY: ${{ secrets.ETHERSCAN_API_KEY }}
+          TOKEN_UNLOCKS_API_KEY: ${{ secrets.TOKEN_UNLOCKS_API_KEY }}
+          # AI benchmarks
+          ARTIFICIAL_ANALYSIS_API_KEY: ${{ secrets.ARTIFICIAL_ANALYSIS_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          # Developer ecosystems
+          LIBRARIES_IO_API_KEY: ${{ secrets.LIBRARIES_IO_API_KEY }}
+          REPLICATE_API_TOKEN: ${{ secrets.REPLICATE_API_TOKEN }}
+          # Batch generation tuning
           EDGAR_TICKER_LIMIT: "25"
           SIGNAL_CLUSTER_LIMIT: "40"
+          SMALL_CLUSTER_THRESHOLD: "4"
         run: |
           uv run python -m high_signal_ingest.pipeline \
             --source "${{ inputs.source || 'all' }}" \

@@ -2123,3 +2123,472 @@
   - power
   extraction_strategy: trafilatura
   notes: ND HPC site; CRWV anchor tenant
+
+# ─── US news (net-new sections / outlets not already above) ──────────────
+- id: bbc-news
+  name: BBC News
+  type: news_outlet
+  url: https://www.bbc.co.uk/news
+  rss: https://feeds.bbci.co.uk/news/rss.xml
+  paywall: none
+  tier: 2
+  topic_tags:
+  - geopolitics
+  - macro
+  extraction_strategy: trafilatura
+  notes: Mainstream international; near-realtime
+- id: bbc-business
+  name: BBC Business
+  type: news_outlet
+  url: https://www.bbc.co.uk/business
+  rss: https://feeds.bbci.co.uk/business/rss.xml
+  paywall: none
+  tier: 2
+  topic_tags:
+  - macro
+  - m_and_a
+  extraction_strategy: trafilatura
+  notes: BBC business/markets section
+- id: cnbc-markets
+  name: CNBC Markets
+  type: news_outlet
+  url: https://www.cnbc.com/markets/
+  rss: https://www.cnbc.com/id/100003114/device/rss/rss.html
+  paywall: none
+  tier: 2
+  topic_tags:
+  - macro
+  - markets
+  extraction_strategy: trafilatura
+  notes: CNBC top news / markets (cnbc-tech already above)
+- id: marketwatch
+  name: MarketWatch
+  type: news_outlet
+  url: https://www.marketwatch.com/
+  rss: http://feeds.marketwatch.com/marketwatch/topstories
+  paywall: none
+  tier: 2
+  topic_tags:
+  - macro
+  - markets
+  extraction_strategy: trafilatura
+  notes: Markets headline feed
+- id: seeking-alpha
+  name: Seeking Alpha
+  type: news_outlet
+  url: https://seekingalpha.com/
+  rss: https://seekingalpha.com/market_currents.xml
+  paywall: partial
+  tier: 2
+  topic_tags:
+  - markets
+  - earnings
+  extraction_strategy: trafilatura
+  notes: Stock analysis / currents feed
+- id: politico
+  name: Politico
+  type: news_outlet
+  url: https://www.politico.com/
+  rss: https://rss.politico.com/politics-news.xml
+  paywall: none
+  tier: 2
+  topic_tags:
+  - policy
+  - geopolitics
+  extraction_strategy: trafilatura
+  notes: Policy / tech / economy intersection
+- id: the-hill
+  name: The Hill
+  type: news_outlet
+  url: https://thehill.com/
+  rss: https://thehill.com/news/feed/
+  paywall: none
+  tier: 2
+  topic_tags:
+  - policy
+  - tech_policy
+  extraction_strategy: trafilatura
+  notes: Policy / tech / business
+- id: semafor
+  name: Semafor
+  type: news_outlet
+  url: https://semafor.com/
+  rss: https://semafor.com/rss.xml
+  paywall: none
+  tier: 2
+  topic_tags:
+  - tech
+  - business
+  - geopolitics
+  extraction_strategy: trafilatura
+  notes: Tech / business / global
+- id: axios
+  name: Axios
+  type: news_outlet
+  url: https://www.axios.com/
+  rss: https://api.axios.com/feed/
+  paywall: none
+  tier: 2
+  topic_tags:
+  - tech
+  - policy
+  - business
+  extraction_strategy: trafilatura
+  notes: Tech policy, AI regulation; known HTML-escaping issue in feed
+- id: washington-post
+  name: Washington Post
+  type: news_outlet
+  url: https://www.washingtonpost.com/
+  rss: https://feeds.washingtonpost.com/rss/business/technology
+  paywall: partial
+  tier: 2
+  topic_tags:
+  - tech
+  - policy
+  extraction_strategy: trafilatura
+  notes: WaPo technology section
+- id: rest-of-world
+  name: Rest of World
+  type: news_outlet
+  url: https://restofworld.org/
+  rss: https://restofworld.org/feed/latest
+  paywall: none
+  tier: 2
+  topic_tags:
+  - tech
+  - geopolitics
+  extraction_strategy: trafilatura
+  notes: Global tech outside US / W. Europe
+- id: fierce-biotech
+  name: Fierce Biotech
+  type: news_outlet
+  url: https://www.fiercebiotech.com/
+  rss: https://www.fiercebiotech.com/rss/xml
+  paywall: none
+  tier: 2
+  topic_tags:
+  - biotech
+  - healthcare
+  extraction_strategy: trafilatura
+  notes: Biotech / healthcare vertical (fierce-network already above)
+- id: retail-dive
+  name: Retail Dive
+  type: news_outlet
+  url: https://www.retaildive.com/
+  rss: https://www.retaildive.com/feeds/news/
+  paywall: none
+  tier: 2
+  topic_tags:
+  - retail
+  - ecommerce
+  extraction_strategy: trafilatura
+  notes: Retail tech / e-commerce vertical
+
+# ─── India news (all net-new — zero India news in sources.yaml today) ────
+- id: india-hindu-business
+  name: The Hindu — Business
+  type: news_outlet
+  url: https://www.thehindu.com/business/
+  rss: https://www.thehindu.com/business/fe/default.rss
+  paywall: none
+  tier: 1
+  topic_tags:
+  - india
+  - macro
+  - markets
+  extraction_strategy: trafilatura
+  notes: Authoritative Indian broadsheet — business/economy
+- id: india-business-standard
+  name: Business Standard
+  type: news_outlet
+  url: https://www.business-standard.com/
+  rss: https://www.business-standard.com/rss/markets_106.rss
+  paywall: none
+  tier: 1
+  topic_tags:
+  - india
+  - markets
+  - companies
+  extraction_strategy: trafilatura
+  notes: Top Indian business daily — markets section
+- id: india-moneycontrol
+  name: Moneycontrol
+  type: news_outlet
+  url: https://www.moneycontrol.com/
+  rss: https://www.moneycontrol.com/rss/latestnews.xml
+  paywall: none
+  tier: 1
+  topic_tags:
+  - india
+  - markets
+  - startups
+  extraction_strategy: trafilatura
+  notes: Indian markets / IPOs / startups
+- id: india-cnbc-tv18
+  name: CNBC TV18
+  type: news_outlet
+  url: https://www.cnbctv18.com/
+  rss: https://www.cnbctv18.com/rss/market.xml
+  paywall: none
+  tier: 1
+  topic_tags:
+  - india
+  - markets
+  - business
+  extraction_strategy: trafilatura
+  notes: Indian markets / business / technology
+- id: india-ht-tech
+  name: Hindustan Times — Tech
+  type: news_outlet
+  url: https://www.hindustantimes.com/tech
+  rss: https://www.hindustantimes.com/feeds/rss/tech-news/rssfeed.xml
+  paywall: none
+  tier: 2
+  topic_tags:
+  - india
+  - tech
+  extraction_strategy: trafilatura
+  notes: Indian tech news
+- id: india-express-business
+  name: Indian Express — Business
+  type: news_outlet
+  url: https://indianexpress.com/business/
+  rss: https://indianexpress.com/feed/business/
+  paywall: none
+  tier: 2
+  topic_tags:
+  - india
+  - business
+  extraction_strategy: trafilatura
+  notes: Indian business / economy
+- id: india-et-markets
+  name: Economic Times — Markets
+  type: news_outlet
+  url: https://economictimes.indiatimes.com/markets
+  rss: https://economictimes.indiatimes.com/markets/rssfeeds/1977021501.cms
+  paywall: none
+  tier: 1
+  topic_tags:
+  - india
+  - markets
+  extraction_strategy: trafilatura
+  notes: ET markets section (non-commercial use only per ToS)
+- id: india-mint-markets
+  name: Mint — Markets
+  type: news_outlet
+  url: https://www.livemint.com/markets
+  rss: https://www.livemint.com/rss/markets
+  paywall: none
+  tier: 1
+  topic_tags:
+  - india
+  - markets
+  extraction_strategy: trafilatura
+  notes: Livemint markets section (non-commercial use only per ToS)
+
+# ─── US startup / VC newsletters (net-new) ───────────────────────────────
+- id: crunchbase-news
+  name: Crunchbase News
+  type: blog
+  url: https://news.crunchbase.com/
+  rss: https://news.crunchbase.com/feed/
+  paywall: none
+  tier: 2
+  topic_tags:
+  - startups
+  - m_and_a
+  - funding
+  extraction_strategy: trafilatura
+  notes: Editorial funding/M&A/IPO news (separate from paid Crunchbase API)
+- id: strictlyvc
+  name: StrictlyVC
+  type: blog
+  url: https://strictlyvc.com/
+  rss: https://feeds.buzzsprout.com/850276.rss
+  paywall: none
+  tier: 2
+  topic_tags:
+  - startups
+  - vc
+  - funding
+  extraction_strategy: trafilatura
+  notes: VC news / deal flow (podcast RSS)
+- id: fortune-termsheet
+  name: Fortune Term Sheet
+  type: blog
+  url: https://fortune.com/newsletter/termsheet/
+  rss: https://fortune.com/newsletter/termsheet/feed/feed
+  paywall: none
+  tier: 2
+  topic_tags:
+  - startups
+  - vc
+  - m_and_a
+  extraction_strategy: trafilatura
+  notes: PE/VC deals, M&A daily newsletter
+- id: a16z-news
+  name: a16z Newsletter
+  type: blog
+  url: https://a16z.news/
+  rss: https://www.a16z.news/feed
+  paywall: none
+  tier: 2
+  topic_tags:
+  - tech
+  - vc
+  - policy
+  extraction_strategy: trafilatura
+  notes: a16z thesis / policy analysis (Substack-hosted)
+- id: indiehackers
+  name: Indie Hackers
+  type: blog
+  url: https://www.indiehackers.com/
+  rss: https://www.indiehackers.com/feed.rss
+  paywall: none
+  tier: 2
+  topic_tags:
+  - startups
+  - saas
+  extraction_strategy: trafilatura
+  notes: Bootstrapped founder signals, real revenue data
+- id: saastr
+  name: SaaStr
+  type: blog
+  url: https://www.saastr.com/
+  rss: https://www.saastr.com/feed/
+  paywall: none
+  tier: 2
+  topic_tags:
+  - startups
+  - saas
+  extraction_strategy: trafilatura
+  notes: SaaS metrics, scaling advice, funding benchmarks
+- id: firstround-review
+  name: First Round Review
+  type: blog
+  url: https://review.firstround.com/
+  rss: https://review.firstround.com/rss
+  paywall: none
+  tier: 2
+  topic_tags:
+  - startups
+  - product
+  extraction_strategy: trafilatura
+  notes: Startup tactics, founder interviews, playbooks
+- id: benedict-evans
+  name: Benedict Evans
+  type: blog
+  url: https://www.ben-evans.com/
+  rss: https://www.ben-evans.com/benedictevans/rss.xml
+  paywall: none
+  tier: 2
+  topic_tags:
+  - tech
+  - ai
+  - strategy
+  extraction_strategy: trafilatura
+  notes: Tech strategy / AI; high-signal analyst
+- id: not-boring
+  name: Not Boring
+  type: blog
+  url: https://www.notboring.co/
+  rss: https://www.notboring.co/feed
+  paywall: partial
+  tier: 2
+  topic_tags:
+  - tech
+  - startups
+  - strategy
+  extraction_strategy: trafilatura
+  notes: Packy McCormick — tech strategy / startups
+- id: the-generalist
+  name: The Generalist
+  type: blog
+  url: https://www.generalist.com/
+  rss: https://www.generalist.com/feed
+  paywall: partial
+  tier: 2
+  topic_tags:
+  - tech
+  - startups
+  - vc
+  extraction_strategy: trafilatura
+  notes: Mario Gabriele — tech, startups, VC
+- id: net-interest
+  name: Net Interest
+  type: blog
+  url: https://www.netinterest.co/
+  rss: https://www.netinterest.co/feed
+  paywall: partial
+  tier: 2
+  topic_tags:
+  - finance
+  - banking
+  extraction_strategy: trafilatura
+  notes: Marc Rubinstein — finance / banking analysis
+- id: margins-diff
+  name: Margins / The Diff
+  type: blog
+  url: https://diff.substack.com/
+  rss: https://byrnehobart.substack.com/feed
+  paywall: partial
+  tier: 2
+  topic_tags:
+  - finance
+  - tech
+  - strategy
+  extraction_strategy: trafilatura
+  notes: "Byrne Hobart — finance / tech (free tier: weekday + weekend)"
+
+# ─── India startup / tech ecosystem (all net-new) ────────────────────────
+- id: india-yourstory
+  name: YourStory
+  type: blog
+  url: https://yourstory.com/
+  rss: http://yourstory.com/feed
+  paywall: none
+  tier: 1
+  topic_tags:
+  - india
+  - startups
+  extraction_strategy: trafilatura
+  notes: India's largest startup platform
+- id: india-inc42
+  name: Inc42
+  type: blog
+  url: https://inc42.com/
+  rss: https://inc42.com/feed
+  paywall: none
+  tier: 1
+  topic_tags:
+  - india
+  - startups
+  - funding
+  extraction_strategy: trafilatura
+  notes: Indian startup ecosystem; 13K+ stories, funding reports
+- id: india-entrackr
+  name: Entrackr
+  type: blog
+  url: https://entrackr.com/
+  rss: https://entrackr.com/rss
+  paywall: none
+  tier: 1
+  topic_tags:
+  - india
+  - startups
+  - funding
+  extraction_strategy: trafilatura
+  notes: Independent Indian startup funding news; weekly reports
+- id: india-analytics-mag
+  name: Analytics India Magazine
+  type: blog
+  url: https://analyticsindiamag.com/
+  rss: http://analyticsindiamag.com/feed
+  paywall: none
+  tier: 2
+  topic_tags:
+  - india
+  - ai
+  - data
+  extraction_strategy: trafilatura
+  notes: Indian AI / data science / tech

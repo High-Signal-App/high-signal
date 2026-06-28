@@ -21,6 +21,7 @@ from .extract.entities import primary_entity
 from .graph import spillover_ids
 from .seed import load_entities
 from .sources import (
+    ai_benchmarks,
     appstore,
     appstore_reviews,
     bls,
@@ -29,12 +30,15 @@ from .sources import (
     coingecko,
     companies_house,
     courtlistener,
+    crypto_onchain,
     defillama,
+    dev_ecosystems,
     edgar,
     eia,
     gdelt,
     github,
     github_archive,
+    global_macro,
     google_trends,
     gov,
     gov_contracts,
@@ -42,6 +46,7 @@ from .sources import (
     hackernews,
     huggingface,
     hkex,
+    india_gov,
     ir,
     jobs,
     legistar,
@@ -64,13 +69,15 @@ from .sources import (
     stackexchange,
     substack,
     techmeme,
+    us_gov_api,
+    us_gov_rss,
     wikidata,
     youtube,
 )
 from .types import Event
 from .dedupe import dedupe_exact
 from .utils import event_text
-from .generator import fallback_candidate, generate, thematic_candidate
+from .generator import fallback_candidate, generate, generate_batch, thematic_candidate
 from .writer import emit
 
 Source = Literal[
@@ -119,12 +126,25 @@ Source = Literal[
     "bls",
     "appstore-reviews",
     "playstore-reviews",
+    "us-gov-rss",
+    "us-gov-api",
+    "india-gov",
+    "global-macro",
+    "crypto-onchain",
+    "ai-benchmarks",
+    "dev-ecosystems",
     "all",
 ]
 
 FALLBACK_DRAFT_LIMIT = 3
 DEFAULT_DAILY_EDGAR_TICKER_LIMIT = 25
 DEFAULT_SIGNAL_CLUSTER_LIMIT = 40
+
+# Batch generation: small clusters (≤ this many events) are merged into graph-
+# connected groups and sent as one LLM call. Large clusters get their own call
+# for quality. Tuned so a typical day's ~40 clusters become ~5-10 LLM calls.
+SMALL_CLUSTER_THRESHOLD = 4
+MAX_BATCH_ENTITIES = 12  # cap entities per batched call (context-window guard)
 
 # Bounded-concurrency fetch tuning (all env-overridable).
 DEFAULT_FETCH_CONCURRENCY = 8  # max source adapters in flight at once
@@ -364,6 +384,20 @@ def _fetch_tasks(source: Source, days: int) -> list[tuple[str, str, Callable[[],
         add("appstore-reviews", "https://itunes.apple.com", lambda: appstore_reviews.fetch_all(days=max(days, 14)))
     if source in {"playstore-reviews", "all"}:
         add("playstore-reviews", "https://play.google.com", lambda: playstore_reviews.fetch_all(days=max(days, 14)))
+    if source in {"us-gov-rss", "all"}:
+        add("us-gov-rss", "https://www.sec.gov", lambda: us_gov_rss.fetch_all(days=max(days, 7)))
+    if source in {"us-gov-api", "all"}:
+        add("us-gov-api", "https://api.bls.gov", lambda: us_gov_api.fetch_all(days=max(days, 30)))
+    if source in {"india-gov", "all"}:
+        add("india-gov", "https://www.sebi.gov.in", lambda: india_gov.fetch_all(days=max(days, 3)))
+    if source in {"global-macro", "all"}:
+        add("global-macro", "https://api.worldbank.org", lambda: global_macro.fetch_all(days=max(days, 30)))
+    if source in {"crypto-onchain", "all"}:
+        add("crypto-onchain", "https://mempool.space", lambda: crypto_onchain.fetch_all(days=days))
+    if source in {"ai-benchmarks", "all"}:
+        add("ai-benchmarks", "https://api.wulong.dev", lambda: ai_benchmarks.fetch_all(days=days))
+    if source in {"dev-ecosystems", "all"}:
+        add("dev-ecosystems", "https://paperswithcode.com", lambda: dev_ecosystems.fetch_all(days=max(days, 7)))
 
     return tasks
 
@@ -432,6 +466,97 @@ def _ranked_entity_groups(by_entity: dict[str, list[Event]]) -> list[tuple[str, 
 
 def _cluster_limit() -> int:
     return _int_env("SIGNAL_CLUSTER_LIMIT", DEFAULT_SIGNAL_CLUSTER_LIMIT)
+
+
+def _small_cluster_threshold() -> int:
+    return _int_env("SMALL_CLUSTER_THRESHOLD", SMALL_CLUSTER_THRESHOLD)
+
+
+def _pre_group_clusters(
+    by_entity: dict[str, list[Event]],
+) -> tuple[list[tuple[str, list[Event]]], list[list[tuple[str, list[Event]]]]]:
+    """Split entity clusters into large (separate LLM call) and small (batched).
+
+    Uses the spillover graph to merge graph-connected small clusters into
+    groups — e.g. NVDA + TSMC + ASML (supply chain) become one batched call
+    instead of three. Unrelated small clusters are batched together up to
+    ``MAX_BATCH_ENTITIES`` per batch.
+
+    Returns ``(large_clusters, small_batches)`` where:
+    - ``large_clusters`` = list of ``(entity_id, events)`` — one LLM call each
+    - ``small_batches`` = list of batches, each a list of ``(entity_id, events)``
+    """
+    threshold = _small_cluster_threshold()
+    ranked = _ranked_entity_groups(by_entity)[:_cluster_limit()]
+
+    large: list[tuple[str, list[Event]]] = []
+    small: dict[str, list[Event]] = {}
+
+    for entity_id, evs in ranked:
+        if len(evs) > threshold:
+            large.append((entity_id, evs))
+        else:
+            small[entity_id] = evs
+
+    if not small:
+        return large, []
+
+    # Build a subgraph induced by the day's small-cluster entities, then find
+    # connected components — entities in the same component are graph-related
+    # (supplier/customer/peer) and can share one LLM call for cross-entity context.
+    import networkx as nx
+
+    from .graph import _graph
+
+    g = _graph()
+    sub = g.subgraph(small.keys()).copy()
+    # Also add undirected edges so peer/competitor relationships connect components
+    components = list(nx.connected_components(sub.to_undirected()))
+
+    # Sort components by total event count (largest first) so the most
+    # consequential batch goes first.
+    components.sort(
+        key=lambda comp: sum(len(small[eid]) for eid in comp if eid in small),
+        reverse=True,
+    )
+
+    batches: list[list[tuple[str, list[Event]]]] = []
+    current_batch: list[tuple[str, list[Event]]] = []
+
+    for comp in components:
+        comp_entities = [(eid, small[eid]) for eid in comp if eid in small]
+        if not comp_entities:
+            continue
+
+        # If adding this component would exceed the batch cap, flush current batch
+        if current_batch and len(current_batch) + len(comp_entities) > MAX_BATCH_ENTITIES:
+            batches.append(current_batch)
+            current_batch = []
+
+        # If the component itself exceeds the cap, split it (rare — means a huge
+        # connected subgraph; just take the top entities by event count)
+        if len(comp_entities) > MAX_BATCH_ENTITIES:
+            comp_entities.sort(key=lambda x: len(x[1]), reverse=True)
+            while comp_entities:
+                if current_batch and len(current_batch) >= MAX_BATCH_ENTITIES:
+                    batches.append(current_batch)
+                    current_batch = []
+                room = MAX_BATCH_ENTITIES - len(current_batch)
+                current_batch.extend(comp_entities[:room])
+                comp_entities = comp_entities[room:]
+        else:
+            current_batch.extend(comp_entities)
+
+    if current_batch:
+        batches.append(current_batch)
+
+    _log.info(
+        "pre-group: %d large clusters (separate calls), %d small clusters in %d batches",
+        len(large),
+        len(small),
+        len(batches),
+    )
+    return large, batches
 
 
 def _event_entity(ev: Event) -> str | None:
@@ -562,7 +687,13 @@ def run(source: Source, days: int) -> dict:
     written: list[str] = []
     low_cluster = 0
     fallback_by_entity: dict[str, list[Event]] = {}
-    for entity_id, evs in _ranked_entity_groups(by_entity)[:_cluster_limit()]:
+
+    # Pre-group clusters: large clusters get their own LLM call; small clusters
+    # are merged by spillover-graph connected components into batched calls.
+    large_clusters, small_batches = _pre_group_clusters(by_entity)
+
+    # Large clusters: one LLM call each (high-quality, lots of evidence)
+    for entity_id, evs in large_clusters:
         try:
             cand = generate(entity_id, evs, _spillover_candidates(entity_id))
         except Exception as exc:
@@ -575,6 +706,31 @@ def run(source: Source, days: int) -> dict:
             written.append(emit(cand))
         else:
             fallback_by_entity[entity_id] = evs
+
+    # Small clusters: batched by graph-connected components (one LLM call per batch)
+    for batch in small_batches:
+        clusters_with_spillover = [
+            (entity_id, evs, _spillover_candidates(entity_id))
+            for entity_id, evs in batch
+        ]
+        try:
+            cands = generate_batch(clusters_with_spillover)
+        except Exception as exc:
+            errors += 1
+            if error_sample is None:
+                error_sample = f"generate_batch {[e for e, _, _ in clusters_with_spillover]}: {exc}"[:300]
+            for entity_id, evs in batch:
+                fallback_by_entity[entity_id] = evs
+            continue
+        # Map candidates back; entities with no candidate go to fallback
+        batch_entity_ids = {eid for eid, _, _ in clusters_with_spillover}
+        emitted_ids = set()
+        for cand in cands:
+            written.append(emit(cand))
+            emitted_ids.add(cand.primary_entity_id)
+        for entity_id, evs in batch:
+            if entity_id not in emitted_ids:
+                fallback_by_entity[entity_id] = evs
 
     if not written and fallback_by_entity:
         fallback_written = _emit_fallback_drafts(fallback_by_entity)
@@ -660,6 +816,13 @@ def main() -> None:
             "bls",
             "appstore-reviews",
             "playstore-reviews",
+            "us-gov-rss",
+            "us-gov-api",
+            "india-gov",
+            "global-macro",
+            "crypto-onchain",
+            "ai-benchmarks",
+            "dev-ecosystems",
             "all",
         ],
         default="all",

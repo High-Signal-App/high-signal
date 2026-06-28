@@ -264,10 +264,34 @@ export interface DataSourcesResponse {
   total: number;
   available: boolean;
 }
+export interface DataSourceEvent {
+  title: string | null;
+  content: string | null;
+  url: string;
+  source: string;
+  entity: string | null;
+  publishedAt: number;
+}
+export interface DataSourceEventsResponse {
+  id: string;
+  total: number;
+  events: DataSourceEvent[];
+  hasMore: boolean;
+  available: boolean;
+}
 
 export const api = {
   signals: (f: SignalFilters = {}) => fetchJson<{ signals: SignalRow[] }>(`/signals${qs(f)}`),
   dataSources: () => fetchJson<DataSourcesResponse>('/data/sources'),
+  dataSourceEvents: (id: string, opts: { limit?: number; offset?: number } = {}) => {
+    const p = new URLSearchParams();
+    if (opts.limit != null) p.set('limit', String(opts.limit));
+    if (opts.offset != null) p.set('offset', String(opts.offset));
+    const q = p.toString();
+    return fetchJson<DataSourceEventsResponse>(
+      `/data/sources/${encodeURIComponent(id)}${q ? `?${q}` : ''}`
+    );
+  },
   facets: () => fetchJson<Facets>('/signals/facets'),
   signal: (slug: string) =>
     fetchJson<{

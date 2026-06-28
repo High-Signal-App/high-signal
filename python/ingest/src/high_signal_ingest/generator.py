@@ -450,3 +450,168 @@ def generate(
     )
     _record(True, slug, "ok")
     return cand
+
+
+# ─── Batch generation (multiple entities in one LLM call) ────────────────
+
+_BATCH_PROMPT_TEMPLATE = """You are a signal extractor for the active High Signal collection:
+AI-infra / semiconductor market intelligence.
+
+You will receive events for MULTIPLE entities in one batch. Your job is to decide
+for EACH entity whether there is an actionable, collection-aligned signal draft.
+Return a JSON ARRAY of signal objects (one per entity that warrants a signal;
+omit entities with no actionable signal).
+
+Output STRICT JSON array (no commentary):
+[
+  {
+    "entity_id": "<the primary entity>",
+    "publish": true|false,
+    "signal_type": "<prefer one of: __SIGNAL_TYPES__; or create a concise snake_case type>",
+    "direction": "up|down|neutral",
+    "confidence": "low|medium|high",
+    "predicted_window_days": <int 5-90>,
+    "spillover_entity_ids": ["TSMC","ASML",...],
+    "headline": "<<= 90 chars>",
+    "body_md": "<150-400 word evidence walkthrough citing each source by URL>"
+  },
+  ...
+]
+
+Rules (same as single-entity, applied per entity):
+- "publish": true only when the event is aligned with the active collection and
+  implies a concrete company, sector, supply-chain, demand, financing, product,
+  regulatory, or competitive change. Use low confidence for weak or single-source
+  aligned items instead of publish=false.
+- Cite every supplied source used in body_md as inline links. Medium/high
+  confidence drafts need ≥ 2 distinct sources; low confidence drafts may use 1.
+- "confidence" calibration:
+  - low: single source, weak source, rumor, or early uncorroborated clue
+  - medium: 2 corroborating sources
+  - high: official filing/press release + corroborating coverage
+- "signal_type" should stay dynamic:
+  - Prefer the configured taxonomy when it fits.
+  - If none fits, create a specific snake_case type.
+  - Do not invent a type for trivia, generic news, or off-collection observations.
+- "spillover_entity_ids" must be a subset of the provided spillover candidates
+  for that entity.
+- Window: capex 30-60d, lead-time 15-30d, design-win 60-90d, restriction 5-20d, earnings 5-15d
+- DIRECTION calibration — DO NOT default to "up". Write out (silently) BOTH the
+  bull case AND the bear case, then pick whichever is materially supported.
+  - Misses, guidance cuts, layoffs, export restrictions, supply-chain hits → "down"
+  - Beats, raises, design wins, capex bumps, partnership ups, ASP up → "up"
+  - PR fluff, vague AI mentions, conflicting reports → "neutral" OR publish=false
+- If events for multiple entities in this batch describe the SAME underlying event
+  (e.g. a supply-chain disruption affecting both supplier and customer), generate
+  a signal for EACH affected entity with the appropriate direction.
+- Return [] (empty array) if no entity has an actionable signal.
+"""
+
+
+def _batch_prompt() -> str:
+    return _BATCH_PROMPT_TEMPLATE.replace("__SIGNAL_TYPES__", ", ".join(signal_type_ids()))
+
+
+BATCH_PROMPT_VERSION = "v2-batch"
+
+
+def generate_batch(
+    clusters: list[tuple[str, list[Event], list[str]]],
+) -> list[SignalCandidate]:
+    """Generate signals for multiple entity clusters in a single LLM call.
+
+    Each cluster is ``(entity_id, events, spillover_candidates)``. Returns a
+    list of ``SignalCandidate`` objects (only for entities where the model
+    returns ``publish: true``). Designed for small clusters (1-4 events) that
+    are graph-related — the model sees cross-entity context in one call.
+    """
+    if not clusters:
+        return []
+
+    # Build the batched user message
+    entity_blocks: list[str] = []
+    entity_events: dict[str, list[Event]] = {}
+    entity_spillovers: dict[str, list[str]] = {}
+    for idx, (entity_id, evs, spillovers) in enumerate(clusters):
+        entity_events[entity_id] = evs
+        entity_spillovers[entity_id] = spillovers
+        blob = "\n".join(
+            f"  - [{e.source}] {e.published_at.isoformat()} | {e.title or ''}\n"
+            f"    URL: {e.source_url}\n"
+            f"    {(e.content or '')[:1500]}"
+            for e in evs
+        )
+        entity_blocks.append(
+            f"=== ENTITY {idx + 1}: {entity_id} ===\n"
+            f"SPILLOVER CANDIDATES: {', '.join(spillovers)}\n"
+            f"EVENTS ({len(evs)}):\n{blob}"
+        )
+
+    user = "\n\n".join(entity_blocks)
+    out, meta = _ai_complete(_batch_prompt(), user)
+    request_blob = {"entities": [eid for eid, _, _ in clusters], "user": meta.pop("request_user", "")}
+
+    def _record(accepted: bool, slug: str | None, reason: str | None) -> None:
+        from . import audit
+
+        audit.push_llm_run(
+            signal_slug=slug,
+            model=meta["model"],
+            prompt_version=BATCH_PROMPT_VERSION,
+            accepted=accepted,
+            reason=reason or meta.get("reason"),
+            request_json=request_blob,
+            response_json=meta.get("raw_response"),
+            tokens_in=meta.get("tokens_in"),
+            tokens_out=meta.get("tokens_out"),
+            latency_ms=meta.get("latency_ms"),
+        )
+
+    if not out:
+        _record(False, None, meta.get("reason") or "no_response")
+        return []
+
+    # Model returns a JSON array; _ai_complete parses to dict, so re-parse if needed
+    items = out if isinstance(out, list) else out.get("signals", out.get("results", []))
+    if not isinstance(items, list):
+        _record(False, None, "unexpected_response_shape")
+        return []
+
+    candidates: list[SignalCandidate] = []
+    for item in items:
+        if not isinstance(item, dict) or not item.get("publish"):
+            continue
+        entity_id = item.get("entity_id", "")
+        evs = entity_events.get(entity_id, [])
+        spillovers = entity_spillovers.get(entity_id, [])
+        if not evs:
+            continue
+        signal_type = _signal_type_id(item.get("signal_type"))
+        headline = item.get("headline", "signal")
+        slug = f"{entity_id.lower()}-{_slugify(headline)}"
+        cand = SignalCandidate(
+            slug=slug,
+            signal_type=signal_type,
+            primary_entity_id=entity_id,
+            direction=item["direction"],
+            confidence=item["confidence"],
+            predicted_window_days=int(item.get("predicted_window_days", 20)),
+            published_at=datetime.now(timezone.utc),
+            evidence=[
+                EvidenceItem(
+                    url=e.source_url,
+                    source_type=e.source.split(":")[0],
+                    excerpt=(e.content or "")[:300] if e.content else None,
+                    published_at=e.published_at,
+                )
+                for e in evs
+            ],
+            spillover_entity_ids=[
+                s for s in item.get("spillover_entity_ids", []) if s in spillovers
+            ],
+            body_md=item.get("body_md", ""),
+        )
+        candidates.append(cand)
+
+    _record(True, None, f"ok:{len(candidates)}/{len(clusters)}")
+    return candidates

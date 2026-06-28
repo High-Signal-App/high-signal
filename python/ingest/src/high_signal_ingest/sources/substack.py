@@ -34,7 +34,7 @@ FEEDS = [
     SubstackFeed("pragmatic-engineer", "The Pragmatic Engineer", "https://newsletter.pragmaticengineer.com/feed"),
     SubstackFeed("lennys-newsletter", "Lenny's Newsletter", "https://www.lennysnewsletter.com/feed"),
     SubstackFeed("latent-space", "Latent Space", "https://www.latent.space/feed"),
-    SubstackFeed("import-ai", "Import AI", "https://importai.substack.com/feed"),
+    # import-ai removed — already in sources.yaml as ml-import-ai (news adapter fetches it)
 ]
 
 RELEVANT_TERMS = (

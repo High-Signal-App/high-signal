@@ -51,6 +51,16 @@
       "keeps": "docket, comment window"
     },
     {
+      "id": "us-gov-rss",
+      "provider": "SEC litigation / FTC / DOJ / CFTC / GAO / Nasdaq halts",
+      "domains": "finance",
+      "access": "keyless",
+      "official": true,
+      "windowDays": 7,
+      "role": "corroboration",
+      "keeps": "release title, agency, halt symbol"
+    },
+    {
       "id": "companies-house",
       "provider": "UK Companies House",
       "domains": "startups",
@@ -99,6 +109,16 @@
       "windowDays": 7,
       "role": "entity",
       "keeps": "model/dataset, downloads"
+    },
+    {
+      "id": "india-gov",
+      "provider": "SEBI / RBI / MOSPI / BSE / NSE / AMFI / NPCI / data.gov.in",
+      "domains": "finance",
+      "access": "optional-key:DATA_GOV_IN_API_KEY",
+      "official": true,
+      "windowDays": 3,
+      "role": "entity",
+      "keeps": "circular, filing, CPI/IIP, NAV, UPI volume"
     },
     {
       "id": "ir",
@@ -171,6 +191,16 @@
       "keeps": "CPI / unemployment / payrolls latest print"
     },
     {
+      "id": "crypto-onchain",
+      "provider": "mempool.space / L2Beat / CoinMetrics / Etherscan / Token Unlocks",
+      "domains": "finance",
+      "access": "optional-key:ETHERSCAN_API_KEY,TOKEN_UNLOCKS_API_KEY",
+      "official": false,
+      "windowDays": 1,
+      "role": "numeric",
+      "keeps": "fees, TVL+stage, active addresses, gas, unlock schedule"
+    },
+    {
       "id": "eia",
       "provider": "EIA energy",
       "domains": "finance",
@@ -181,6 +211,16 @@
       "keeps": "state, period, electricity price"
     },
     {
+      "id": "global-macro",
+      "provider": "IMF / World Bank / BIS / UN Comtrade",
+      "domains": "finance",
+      "access": "keyless",
+      "official": true,
+      "windowDays": 30,
+      "role": "numeric",
+      "keeps": "GDP, CPI, trade, exchange rate, policy rate"
+    },
+    {
       "id": "macro-rates",
       "provider": "ECB FX + FRED",
       "domains": "finance",
@@ -189,6 +229,26 @@
       "windowDays": 30,
       "role": "numeric",
       "keeps": "series id, observation value"
+    },
+    {
+      "id": "us-gov-api",
+      "provider": "CFTC COT / Treasury / BEA / Census / Congress / FEC / LDA / CFPB / FDA / NIH / NSF / USGS / NOAA / USDA",
+      "domains": "finance",
+      "access": "optional-key:BEA_API_KEY,CENSUS_API_KEY,CONGRESS_API_KEY,FEC_API_KEY,LDA_API_KEY,FDA_API_KEY,USDA_NASS_API_KEY",
+      "official": true,
+      "windowDays": 30,
+      "role": "numeric",
+      "keeps": "indicator, value, period; bills, votes, grants, complaints"
+    },
+    {
+      "id": "ai-benchmarks",
+      "provider": "LMSYS Arena / Artificial Analysis / OpenRouter",
+      "domains": "technology",
+      "access": "optional-key:ARTIFICIAL_ANALYSIS_API_KEY,OPENROUTER_API_KEY",
+      "official": false,
+      "windowDays": 1,
+      "role": "thematic",
+      "keeps": "model name, ELO, intelligence index, token usage rank"
     },
     {
       "id": "appstore",
@@ -249,6 +309,16 @@
       "windowDays": 1,
       "role": "thematic",
       "keeps": "protocol TVL + 1d move, category"
+    },
+    {
+      "id": "dev-ecosystems",
+      "provider": "Papers with Code / GitLab / Docker Hub / dev.to / libraries.io / Replicate",
+      "domains": "technology",
+      "access": "optional-key:LIBRARIES_IO_API_KEY,REPLICATE_API_TOKEN",
+      "official": false,
+      "windowDays": 7,
+      "role": "thematic",
+      "keeps": "paper, repo, image, article, package, model"
     },
     {
       "id": "gdelt",
@@ -352,7 +422,7 @@
     },
     {
       "id": "packages",
-      "provider": "npm / PyPI + OSV",
+      "provider": "npm / PyPI / Rust / Java / Ruby / PHP + OSV",
       "domains": "technology",
       "access": "keyless",
       "official": false,
@@ -451,5 +521,5 @@
       "keeps": "video title, transcript snippet"
     }
   ],
-  "count": 45
+  "count": 52
 }

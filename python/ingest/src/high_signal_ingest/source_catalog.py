@@ -46,7 +46,7 @@ CATALOG: list[CatalogEntry] = [
     CatalogEntry("github", "GitHub API", "technology", "keyless", False, 7, "entity", "repo, release, stars delta"),
     CatalogEntry("github-archive", "GH Archive", "technology", "keyless", False, 1, "thematic", "event type, repo"),
     CatalogEntry("huggingface", "Hugging Face Hub", "technology", "keyless", False, 7, "entity", "model/dataset, downloads"),
-    CatalogEntry("packages", "npm / PyPI + OSV", "technology", "keyless", False, 7, "thematic", "package, version, advisory"),
+    CatalogEntry("packages", "npm / PyPI / Rust / Java / Ruby / PHP + OSV", "technology", "keyless", False, 7, "thematic", "package, version, advisory"),
     CatalogEntry("patents", "USPTO PatentsView", "technology", "keyless", False, 365, "entity", "patent title, assignee"),
     # --- Research ----------------------------------------------------------
     CatalogEntry("semantic-scholar", "Semantic Scholar", "technology", "keyless", False, 30, "thematic", "paper title, abstract snippet"),
@@ -91,6 +91,20 @@ CATALOG: list[CatalogEntry] = [
     CatalogEntry("cisa-kev", "CISA KEV", "technology", "keyless", True, 7, "thematic", "CVE id, vendor, due date"),
     # --- Jobs --------------------------------------------------------------
     CatalogEntry("jobs", "Greenhouse/Lever/Ashby", "startups", "keyless", False, 14, "entity", "role, company, location"),
+    # --- US government RSS (enforcement / press / halts) -------------------
+    CatalogEntry("us-gov-rss", "SEC litigation / FTC / DOJ / CFTC / GAO / Nasdaq halts", "finance", "keyless", True, 7, "corroboration", "release title, agency, halt symbol"),
+    # --- US government APIs (macro / legislative / research) ---------------
+    CatalogEntry("us-gov-api", "CFTC COT / Treasury / BEA / Census / Congress / FEC / LDA / CFPB / FDA / NIH / NSF / USGS / NOAA / USDA", "finance", "optional-key:BEA_API_KEY,CENSUS_API_KEY,CONGRESS_API_KEY,FEC_API_KEY,LDA_API_KEY,FDA_API_KEY,USDA_NASS_API_KEY", True, 30, "numeric", "indicator, value, period; bills, votes, grants, complaints"),
+    # --- India government / regulators -------------------------------------
+    CatalogEntry("india-gov", "SEBI / RBI / MOSPI / BSE / NSE / AMFI / NPCI / data.gov.in", "finance", "optional-key:DATA_GOV_IN_API_KEY", True, 3, "entity", "circular, filing, CPI/IIP, NAV, UPI volume"),
+    # --- Global macro (IMF / World Bank / BIS / UN Comtrade) ---------------
+    CatalogEntry("global-macro", "IMF / World Bank / BIS / UN Comtrade", "finance", "keyless", True, 30, "numeric", "GDP, CPI, trade, exchange rate, policy rate"),
+    # --- Crypto on-chain (beyond CoinGecko / DeFiLlama) --------------------
+    CatalogEntry("crypto-onchain", "mempool.space / L2Beat / CoinMetrics / Etherscan / Token Unlocks", "finance", "optional-key:ETHERSCAN_API_KEY,TOKEN_UNLOCKS_API_KEY", False, 1, "numeric", "fees, TVL+stage, active addresses, gas, unlock schedule"),
+    # --- AI benchmarks ------------------------------------------------------
+    CatalogEntry("ai-benchmarks", "LMSYS Arena / Artificial Analysis / OpenRouter", "technology", "optional-key:ARTIFICIAL_ANALYSIS_API_KEY,OPENROUTER_API_KEY", False, 1, "thematic", "model name, ELO, intelligence index, token usage rank"),
+    # --- Developer ecosystems (beyond GitHub / npm / PyPI) ------------------
+    CatalogEntry("dev-ecosystems", "Papers with Code / GitLab / Docker Hub / dev.to / libraries.io / Replicate", "technology", "optional-key:LIBRARIES_IO_API_KEY,REPLICATE_API_TOKEN", False, 7, "thematic", "paper, repo, image, article, package, model"),
 ]
 
 
