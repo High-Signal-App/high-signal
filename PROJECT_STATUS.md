@@ -1,6 +1,6 @@
 # high-signal — PROJECT STATUS
 
-Last updated: 2026-06-20
+Last updated: 2026-06-28
 
 ## Why/What
 
@@ -89,7 +89,7 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 
 - **2026-06-09:** Production deploy verified (web + api Workers).
 - **Migrations 0000–0007:** Applied; canonical D1 schema for signals, evidence, entities, markets, etc.
-- **Migrations 0008–0012:** Scaffolded locally; **NOT applied to remote D1** — plans 0008–0011 blocked on apply.
+- **Migrations 0008–0013:** Applied to remote D1 (2026-06-28). 0008 was manually applied earlier (column + index existed); marked as applied and 0009–0013 applied via `wrangler d1 migrations apply --remote`.
 - **Plan 0007:** Lab substrate — partial (local docker Postgres, HN ingest, scorer, FastAPI feed); parked as product infrastructure.
 - **Plans 0008–0011:** Claim provenance, brief delivery, watchlists, OpenLens visibility — code wired; pending migration apply + follow-ups.
 - **README status date (2026-05-30)** lags this file for day-to-day scope; `PROJECT_STATUS.md` + `package.json` scripts are authoritative.
@@ -235,12 +235,11 @@ Python adapters under `python/ingest/src/high_signal_ingest/sources/` — all wi
 
 ### Planned
 
-1. **Apply pending D1 migrations in order:** `0008_source_document_keys.sql`, `0009_claim_provenance.sql`, `0010_brief_delivery.sql`, `0011_watchlists.sql`, `0012_cited_url_index.sql` — verify with `wrangler d1 migrations list --remote`.
-2. **Plan 0008 follow-ups:** auto-publish reads claim records; lazy historical backfill; brief provenance affordance.
-3. **Plan 0009 follow-ups:** Email Routing operator setup; hourly delivery cron; bounce/retry UX.
-4. **Plan 0010 follow-ups:** wire `watching` section into brief composer; claim linkage.
-5. **Plan 0011 follow-ups:** topic/prompt copy rename; post-check cited-source refresh hook; report token auth.
-6. Clarify event semantics — `normalized_events` vs current `events` as source observations.
+1. **Plan 0008 follow-ups:** auto-publish reads claim records; lazy historical backfill; brief provenance affordance.
+2. **Plan 0009 follow-ups:** Email Routing operator setup; hourly delivery cron; bounce/retry UX.
+3. **Plan 0010 follow-ups:** wire `watching` section into brief composer; claim linkage.
+4. **Plan 0011 follow-ups:** topic/prompt copy rename; post-check cited-source refresh hook; report token auth.
+5. Clarify event semantics — `normalized_events` vs current `events` as source observations.
 7. Keep source pipeline small and quality-gated; run `pnpm source:quality` after full ingest.
 8. Promote `/unmapped` candidates into seed CSV; expand curated adapter lists before new firehoses.
 9. Tighten brief quality — evidence links, hit-rate context, cull weak inputs.
@@ -263,9 +262,8 @@ Python adapters under `python/ingest/src/high_signal_ingest/sources/` — all wi
 
 ### Blocked
 
-- Migrations 0008–0012 scaffolded locally; **remote D1 not applied** — features depending on new tables fail or no-op in production until apply.
 - Brief delivery requires `EMAIL_FROM`, `API_BASE`, Email Routing, destination verification before cron sends real mail.
-- Brief `watching` section not wired despite watchlist scaffold.
+- Brief `watching` section not wired despite watchlist scaffold (migration 0011 now applied — table exists).
 - USPTO PatentsView in ODP transition may return no events.
 - Worker `scheduled` handler no-ops unless `MODAL_TRIGGER_URL` set; daily ingest/scoring primary path is GitHub Actions.
 - `send_email` binding declared in `workers/api/wrangler.toml`; operator checklist in file comments.
