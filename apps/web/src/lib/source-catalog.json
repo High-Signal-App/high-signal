@@ -8,7 +8,8 @@
       "official": true,
       "windowDays": 30,
       "role": "corroboration",
-      "keeps": "case name, court, nature of suit"
+      "keeps": "case name, court, nature of suit",
+      "temporal": "historical"
     },
     {
       "id": "gov-contracts",
@@ -18,7 +19,8 @@
       "official": true,
       "windowDays": 30,
       "role": "corroboration",
-      "keeps": "award/solicitation title, agency"
+      "keeps": "award/solicitation title, agency",
+      "temporal": "historical"
     },
     {
       "id": "legistar",
@@ -28,7 +30,8 @@
       "official": true,
       "windowDays": 30,
       "role": "corroboration",
-      "keeps": "matter title, body, file no."
+      "keeps": "matter title, body, file no.",
+      "temporal": "historical"
     },
     {
       "id": "openstates",
@@ -38,7 +41,8 @@
       "official": true,
       "windowDays": 30,
       "role": "corroboration",
-      "keeps": "bill id, title, latest action"
+      "keeps": "bill id, title, latest action",
+      "temporal": "historical"
     },
     {
       "id": "regulations",
@@ -48,7 +52,8 @@
       "official": true,
       "windowDays": 30,
       "role": "corroboration",
-      "keeps": "docket, comment window"
+      "keeps": "docket, comment window",
+      "temporal": "historical"
     },
     {
       "id": "us-gov-rss",
@@ -58,7 +63,8 @@
       "official": true,
       "windowDays": 7,
       "role": "corroboration",
-      "keeps": "release title, agency, halt symbol"
+      "keeps": "release title, agency, halt symbol",
+      "temporal": "historical"
     },
     {
       "id": "companies-house",
@@ -68,7 +74,8 @@
       "official": true,
       "windowDays": 1,
       "role": "entity",
-      "keeps": "filing type, company"
+      "keeps": "filing type, company",
+      "temporal": "historical"
     },
     {
       "id": "edgar",
@@ -78,7 +85,8 @@
       "official": true,
       "windowDays": 1,
       "role": "entity",
-      "keeps": "form type, filing date, items"
+      "keeps": "form type, filing date, items",
+      "temporal": "historical"
     },
     {
       "id": "github",
@@ -88,7 +96,8 @@
       "official": false,
       "windowDays": 7,
       "role": "entity",
-      "keeps": "repo, release, stars delta"
+      "keeps": "repo, release, stars delta",
+      "temporal": "recent"
     },
     {
       "id": "hkex",
@@ -98,7 +107,8 @@
       "official": true,
       "windowDays": 3,
       "role": "entity",
-      "keeps": "filing title, issuer"
+      "keeps": "filing title, issuer",
+      "temporal": "historical"
     },
     {
       "id": "huggingface",
@@ -108,7 +118,8 @@
       "official": false,
       "windowDays": 7,
       "role": "entity",
-      "keeps": "model/dataset, downloads"
+      "keeps": "model/dataset, downloads",
+      "temporal": "recent"
     },
     {
       "id": "india-gov",
@@ -118,7 +129,8 @@
       "official": true,
       "windowDays": 3,
       "role": "entity",
-      "keeps": "circular, filing, CPI/IIP, NAV, UPI volume"
+      "keeps": "circular, filing, CPI/IIP, NAV, UPI volume",
+      "temporal": "series"
     },
     {
       "id": "ir",
@@ -128,7 +140,8 @@
       "official": true,
       "windowDays": 1,
       "role": "entity",
-      "keeps": "headline, IR url"
+      "keeps": "headline, IR url",
+      "temporal": "recent"
     },
     {
       "id": "jobs",
@@ -138,7 +151,8 @@
       "official": false,
       "windowDays": 14,
       "role": "entity",
-      "keeps": "role, company, location"
+      "keeps": "role, company, location",
+      "temporal": "recent"
     },
     {
       "id": "news",
@@ -148,7 +162,8 @@
       "official": false,
       "windowDays": 1,
       "role": "entity",
-      "keeps": "headline, source, snippet"
+      "keeps": "headline, source, snippet",
+      "temporal": "recent"
     },
     {
       "id": "patents",
@@ -158,7 +173,8 @@
       "official": false,
       "windowDays": 365,
       "role": "entity",
-      "keeps": "patent title, assignee"
+      "keeps": "patent title, assignee",
+      "temporal": "historical"
     },
     {
       "id": "sec-xbrl",
@@ -168,7 +184,8 @@
       "official": true,
       "windowDays": 120,
       "role": "entity",
-      "keeps": "fundamental metric + value"
+      "keeps": "fundamental metric + value",
+      "temporal": "series"
     },
     {
       "id": "wikidata",
@@ -178,7 +195,8 @@
       "official": false,
       "windowDays": 1,
       "role": "entity",
-      "keeps": "entity enrichment fields"
+      "keeps": "entity enrichment fields",
+      "temporal": "recent"
     },
     {
       "id": "bls",
@@ -188,7 +206,8 @@
       "official": true,
       "windowDays": 120,
       "role": "numeric",
-      "keeps": "CPI / unemployment / payrolls latest print"
+      "keeps": "CPI / unemployment / payrolls latest print",
+      "temporal": "series"
     },
     {
       "id": "crypto-onchain",
@@ -198,7 +217,8 @@
       "official": false,
       "windowDays": 1,
       "role": "numeric",
-      "keeps": "fees, TVL+stage, active addresses, gas, unlock schedule"
+      "keeps": "fees, TVL+stage, active addresses, gas, unlock schedule",
+      "temporal": "series"
     },
     {
       "id": "eia",
@@ -208,7 +228,8 @@
       "official": true,
       "windowDays": 120,
       "role": "numeric",
-      "keeps": "state, period, electricity price"
+      "keeps": "state, period, electricity price",
+      "temporal": "series"
     },
     {
       "id": "global-macro",
@@ -218,7 +239,8 @@
       "official": true,
       "windowDays": 30,
       "role": "numeric",
-      "keeps": "GDP, CPI, trade, exchange rate, policy rate"
+      "keeps": "GDP, CPI, trade, exchange rate, policy rate",
+      "temporal": "series"
     },
     {
       "id": "macro-rates",
@@ -228,7 +250,8 @@
       "official": false,
       "windowDays": 30,
       "role": "numeric",
-      "keeps": "series id, observation value"
+      "keeps": "series id, observation value",
+      "temporal": "series"
     },
     {
       "id": "us-gov-api",
@@ -238,7 +261,8 @@
       "official": true,
       "windowDays": 30,
       "role": "numeric",
-      "keeps": "indicator, value, period; bills, votes, grants, complaints"
+      "keeps": "indicator, value, period; bills, votes, grants, complaints",
+      "temporal": "series"
     },
     {
       "id": "ai-benchmarks",
@@ -248,7 +272,8 @@
       "official": false,
       "windowDays": 1,
       "role": "thematic",
-      "keeps": "model name, ELO, intelligence index, token usage rank"
+      "keeps": "model name, ELO, intelligence index, token usage rank",
+      "temporal": "series"
     },
     {
       "id": "appstore",
@@ -258,7 +283,8 @@
       "official": false,
       "windowDays": 1,
       "role": "thematic",
-      "keeps": "app name, developer, chart rank"
+      "keeps": "app name, developer, chart rank",
+      "temporal": "recent"
     },
     {
       "id": "appstore-reviews",
@@ -268,7 +294,8 @@
       "official": false,
       "windowDays": 14,
       "role": "thematic",
-      "keeps": "review rating, title, text"
+      "keeps": "review rating, title, text",
+      "temporal": "recent"
     },
     {
       "id": "bluesky",
@@ -278,7 +305,8 @@
       "official": false,
       "windowDays": 7,
       "role": "thematic",
-      "keeps": "post text, author"
+      "keeps": "post text, author",
+      "temporal": "recent"
     },
     {
       "id": "cisa-kev",
@@ -288,7 +316,8 @@
       "official": true,
       "windowDays": 7,
       "role": "thematic",
-      "keeps": "CVE id, vendor, due date"
+      "keeps": "CVE id, vendor, due date",
+      "temporal": "recent"
     },
     {
       "id": "coingecko",
@@ -298,7 +327,8 @@
       "official": false,
       "windowDays": 1,
       "role": "thematic",
-      "keeps": "trending coin / 24h mover, rank, price"
+      "keeps": "trending coin / 24h mover, rank, price",
+      "temporal": "recent"
     },
     {
       "id": "defillama",
@@ -308,7 +338,8 @@
       "official": false,
       "windowDays": 1,
       "role": "thematic",
-      "keeps": "protocol TVL + 1d move, category"
+      "keeps": "protocol TVL + 1d move, category",
+      "temporal": "recent"
     },
     {
       "id": "dev-ecosystems",
@@ -318,7 +349,8 @@
       "official": false,
       "windowDays": 7,
       "role": "thematic",
-      "keeps": "paper, repo, image, article, package, model"
+      "keeps": "paper, repo, image, article, package, model",
+      "temporal": "recent"
     },
     {
       "id": "gdelt",
@@ -328,7 +360,8 @@
       "official": false,
       "windowDays": 1,
       "role": "thematic",
-      "keeps": "event, tone, mentions"
+      "keeps": "event, tone, mentions",
+      "temporal": "recent"
     },
     {
       "id": "github-archive",
@@ -338,7 +371,8 @@
       "official": false,
       "windowDays": 1,
       "role": "thematic",
-      "keeps": "event type, repo"
+      "keeps": "event type, repo",
+      "temporal": "recent"
     },
     {
       "id": "google-trends",
@@ -348,7 +382,8 @@
       "official": false,
       "windowDays": 2,
       "role": "thematic",
-      "keeps": "trending search term, approx traffic"
+      "keeps": "trending search term, approx traffic",
+      "temporal": "recent"
     },
     {
       "id": "gov",
@@ -358,7 +393,8 @@
       "official": true,
       "windowDays": 3,
       "role": "thematic",
-      "keeps": "rule/notice title, agency"
+      "keeps": "rule/notice title, agency",
+      "temporal": "historical"
     },
     {
       "id": "guardian",
@@ -368,7 +404,8 @@
       "official": false,
       "windowDays": 7,
       "role": "thematic",
-      "keeps": "headline, section"
+      "keeps": "headline, section",
+      "temporal": "recent"
     },
     {
       "id": "hackernews",
@@ -378,7 +415,8 @@
       "official": false,
       "windowDays": 7,
       "role": "thematic",
-      "keeps": "title, points, comments, link"
+      "keeps": "title, points, comments, link",
+      "temporal": "recent"
     },
     {
       "id": "lobsters",
@@ -388,7 +426,8 @@
       "official": false,
       "windowDays": 3,
       "role": "thematic",
-      "keeps": "story title, tags"
+      "keeps": "story title, tags",
+      "temporal": "recent"
     },
     {
       "id": "markets",
@@ -398,7 +437,8 @@
       "official": false,
       "windowDays": 30,
       "role": "thematic",
-      "keeps": "question, probability (quote)"
+      "keeps": "question, probability (quote)",
+      "temporal": "recent"
     },
     {
       "id": "metaculus",
@@ -408,7 +448,8 @@
       "official": false,
       "windowDays": 30,
       "role": "thematic",
-      "keeps": "question, community forecast"
+      "keeps": "question, community forecast",
+      "temporal": "recent"
     },
     {
       "id": "nvd",
@@ -418,7 +459,8 @@
       "official": false,
       "windowDays": 14,
       "role": "thematic",
-      "keeps": "CVE id, CVSS, summary"
+      "keeps": "CVE id, CVSS, summary",
+      "temporal": "historical"
     },
     {
       "id": "packages",
@@ -428,7 +470,8 @@
       "official": false,
       "windowDays": 7,
       "role": "thematic",
-      "keeps": "package, version, advisory"
+      "keeps": "package, version, advisory",
+      "temporal": "recent"
     },
     {
       "id": "playstore-reviews",
@@ -438,7 +481,8 @@
       "official": false,
       "windowDays": 14,
       "role": "thematic",
-      "keeps": "review rating, text"
+      "keeps": "review rating, text",
+      "temporal": "recent"
     },
     {
       "id": "podcast-index",
@@ -448,7 +492,8 @@
       "official": false,
       "windowDays": 14,
       "role": "thematic",
-      "keeps": "episode title, summary"
+      "keeps": "episode title, summary",
+      "temporal": "recent"
     },
     {
       "id": "producthunt",
@@ -458,7 +503,8 @@
       "official": false,
       "windowDays": 7,
       "role": "thematic",
-      "keeps": "product name, tagline, link"
+      "keeps": "product name, tagline, link",
+      "temporal": "recent"
     },
     {
       "id": "reddit",
@@ -468,7 +514,8 @@
       "official": false,
       "windowDays": 1,
       "role": "thematic",
-      "keeps": "post title, subreddit, score"
+      "keeps": "post title, subreddit, score",
+      "temporal": "recent"
     },
     {
       "id": "semantic-scholar",
@@ -478,7 +525,8 @@
       "official": false,
       "windowDays": 30,
       "role": "thematic",
-      "keeps": "paper title, abstract snippet"
+      "keeps": "paper title, abstract snippet",
+      "temporal": "historical"
     },
     {
       "id": "stackexchange",
@@ -488,7 +536,8 @@
       "official": false,
       "windowDays": 30,
       "role": "thematic",
-      "keeps": "question, tags, score"
+      "keeps": "question, tags, score",
+      "temporal": "historical"
     },
     {
       "id": "substack",
@@ -498,7 +547,8 @@
       "official": false,
       "windowDays": 7,
       "role": "thematic",
-      "keeps": "post title, summary"
+      "keeps": "post title, summary",
+      "temporal": "recent"
     },
     {
       "id": "techmeme",
@@ -508,7 +558,8 @@
       "official": false,
       "windowDays": 3,
       "role": "thematic",
-      "keeps": "headline"
+      "keeps": "headline",
+      "temporal": "recent"
     },
     {
       "id": "youtube",
@@ -518,7 +569,8 @@
       "official": false,
       "windowDays": 7,
       "role": "thematic",
-      "keeps": "video title, transcript snippet"
+      "keeps": "video title, transcript snippet",
+      "temporal": "recent"
     }
   ],
   "count": 52

@@ -20,6 +20,7 @@ interface CatalogEntry {
   windowDays: number;
   role: string;
   keeps: string;
+  temporal: 'recent' | 'historical' | 'series';
 }
 
 const ROLE_ORDER = ['entity', 'corroboration', 'thematic', 'numeric'] as const;
@@ -29,6 +30,20 @@ const ROLE_BLURB: Record<string, string> = {
   thematic: 'Topic / keyword (entity-less) — feeds a domain thematically.',
   numeric: 'Time-series values — macro / energy context.',
 };
+
+const TEMPORAL_META = {
+  recent: { label: 'live', title: 'Only the latest events matter — stale after days', icon: '●' },
+  historical: {
+    label: 'archive',
+    title: 'Full history has value — patents, filings, court cases',
+    icon: '▤',
+  },
+  series: {
+    label: 'series',
+    title: 'Time-series: both recent prints and historical trends matter',
+    icon: '∿',
+  },
+} as const;
 
 function accessTone(access: string): string {
   if (access === 'keyless') return 'border-[var(--color-accent)]/40 text-[var(--color-accent)]';
@@ -68,6 +83,11 @@ export default async function DataPage() {
   }
 
   const liveCount = sources.filter((s) => (live[s.id]?.count ?? 0) > 0).length;
+  const temporalCounts = {
+    recent: sources.filter((s) => s.temporal === 'recent').length,
+    historical: sources.filter((s) => s.temporal === 'historical').length,
+    series: sources.filter((s) => s.temporal === 'series').length,
+  };
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-12">
@@ -96,6 +116,15 @@ export default async function DataPage() {
               <span className="text-zinc-100">{liveTotal.toLocaleString()}</span> events in store
             </span>
           )}
+          <span title={TEMPORAL_META.recent.title}>
+            <span className="text-zinc-100">{temporalCounts.recent}</span> live
+          </span>
+          <span title={TEMPORAL_META.historical.title}>
+            <span className="text-zinc-100">{temporalCounts.historical}</span> archive
+          </span>
+          <span title={TEMPORAL_META.series.title}>
+            <span className="text-zinc-100">{temporalCounts.series}</span> series
+          </span>
         </div>
         {!available && (
           <p className="mt-3 font-mono text-[11px] text-amber-400/80">
@@ -142,6 +171,12 @@ export default async function DataPage() {
                           ⚖️
                         </span>
                       )}
+                      <span
+                        className="shrink-0 font-mono text-[10px] text-zinc-600"
+                        title={TEMPORAL_META[s.temporal]?.title}
+                      >
+                        {TEMPORAL_META[s.temporal]?.icon}
+                      </span>
                       <span className="ml-auto shrink-0 font-mono text-xs tabular-nums text-zinc-400">
                         {s.windowDays}d hist
                       </span>
@@ -155,6 +190,20 @@ export default async function DataPage() {
                       <p>
                         Keeps: <span className="text-zinc-400">{s.keeps}</span> · last seen{' '}
                         {relativeDays(l?.lastAt ?? 0, nowSec)}
+                        {s.temporal !== 'recent' && (
+                          <>
+                            {' '}
+                            ·{' '}
+                            <span
+                              className="text-zinc-400"
+                              title={TEMPORAL_META[s.temporal]?.title}
+                            >
+                              {s.temporal === 'series'
+                                ? 'time-series — history matters'
+                                : 'full archive — history matters'}
+                            </span>
+                          </>
+                        )}
                       </p>
                       {count > 0 && (
                         <Link
@@ -190,9 +239,16 @@ export default async function DataPage() {
       })}
 
       <footer className="mt-12 border-t border-zinc-800 pt-4 font-mono text-[11px] text-zinc-600">
-        Full metadata + storage model: <code>docs/source-catalog.md</code>. Grouping &amp; dedupe:{' '}
-        <code>grouping.py</code>, <code>dedupe.py</code>. Catalog is generated from{' '}
-        <code>source_catalog.py</code>.
+        <p className="mb-1">
+          Temporal: <span className="text-zinc-400">●</span> live (recent only) ·{' '}
+          <span className="text-zinc-400">▤</span> archive (full history) ·{' '}
+          <span className="text-zinc-400">∿</span> series (time-series, both recent + historical).
+        </p>
+        <p>
+          Full metadata + storage model: <code>docs/source-catalog.md</code>. Grouping &amp; dedupe:{' '}
+          <code>grouping.py</code>, <code>dedupe.py</code>. Catalog is generated from{' '}
+          <code>source_catalog.py</code>.
+        </p>
       </footer>
     </main>
   );

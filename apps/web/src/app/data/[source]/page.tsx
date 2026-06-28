@@ -16,6 +16,7 @@ interface CatalogEntry {
   windowDays: number;
   role: string;
   keeps: string;
+  temporal: 'recent' | 'historical' | 'series';
 }
 
 function entryFor(source: string): CatalogEntry | undefined {
@@ -96,6 +97,13 @@ export default async function DataSourcePage({
         {entry && (
           <p className="mt-2 text-xs text-zinc-500">
             Keeps: <span className="text-zinc-400">{entry.keeps}</span>
+          </p>
+        )}
+        {entry && entry.temporal !== 'recent' && (
+          <p className="mt-2 text-xs text-amber-400/70">
+            {entry.temporal === 'series'
+              ? 'Time-series source — historical context matters. Use pagination to browse older prints.'
+              : 'Archive source — full history has value. Use pagination to browse older records.'}
           </p>
         )}
       </header>
@@ -179,6 +187,29 @@ export default async function DataSourcePage({
             <span />
           )}
         </nav>
+      )}
+
+      {/* Quick-jump for historical / series sources with deep history */}
+      {entry && entry.temporal !== 'recent' && total > 200 && (
+        <div className="mt-4 flex flex-wrap gap-2 font-mono text-[10px] text-zinc-600">
+          <span className="text-zinc-500">jump:</span>
+          {[
+            0,
+            Math.floor(total / PAGE / 4),
+            Math.floor(total / PAGE / 2),
+            Math.floor((total / PAGE) * 0.75),
+          ]
+            .filter((p, i, arr) => p > 0 && arr.indexOf(p) === i)
+            .map((p) => (
+              <Link
+                key={p}
+                href={`/data/${encodeURIComponent(source)}?p=${p}`}
+                className="rounded border border-zinc-800 px-1.5 py-0.5 hover:text-[var(--color-accent)]"
+              >
+                p{p + 1}
+              </Link>
+            ))}
+        </div>
       )}
     </main>
   );
