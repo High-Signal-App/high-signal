@@ -47,6 +47,18 @@ def _post(path: str, body: dict[str, Any]) -> bool:
         if r.status_code >= 400:
             LOGGER.warning("audit %s failed: %s %s", path, r.status_code, r.text[:200])
             return False
+        # Check response body for partial failures (e.g. D1 inserts that
+        # silently failed in the catch block)
+        try:
+            resp = r.json()
+            if isinstance(resp, dict) and "inserted" in resp:
+                expected = len(body.get("events", []))
+                if resp["inserted"] < expected:
+                    LOGGER.warning(
+                        "audit %s: only %d/%d events inserted", path, resp["inserted"], expected,
+                    )
+        except Exception:
+            pass
         return True
     except Exception as exc:
         LOGGER.warning("audit %s exception: %s", path, exc)
