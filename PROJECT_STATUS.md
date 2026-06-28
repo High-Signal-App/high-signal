@@ -1,6 +1,6 @@
 # high-signal — PROJECT STATUS
 
-Last updated: 2026-06-28
+Last updated: 2026-06-28 (session 2)
 
 ## Why/What
 
@@ -18,8 +18,9 @@ Last updated: 2026-06-28
 - **Deploy:** Cloudflare Workers — `high-signal-web`, `high-signal-api`, D1 `high-signal-db`; annotation worker separate deploy.
 - **Email:** Cloudflare `send_email` binding (`SEND_EMAIL`) for brief delivery (plan 0009).
 - **AI:** OpenAI-compatible endpoint via `AI_BASE_URL`, `AI_API_KEY`, `AI_MODEL`, `HIGH_SIGNAL_AI_API_KEY`.
-- **Ingest sources:** SEC EDGAR, HKEX, yfinance, Polymarket/Manifold/Kalshi/Metaculus, GDELT, RSS, Guardian, FRED, Semantic Scholar, Bluesky, Podcast Index, NVD, CISA KEV, and 40+ other adapters (see ingest pipeline).
-- **Optional source keys:** Guardian, SAM, Regulations.gov, Companies House, Metaculus, Bluesky, Podcast Index, FRED, Semantic Scholar.
+- **Ingest sources:** SEC EDGAR, HKEX, yfinance, Polymarket/Manifold/Kalshi/Metaculus, GDELT, RSS, Guardian, FRED, Semantic Scholar, Bluesky, Podcast Index, NVD, CISA KEV, and 50+ other adapters (see ingest pipeline). 52 catalog sources, 43 with live data in D1 (180K+ events).
+- **Optional source keys:** Guardian, SAM, Companies House, Metaculus, Bluesky, Podcast Index, FRED, Semantic Scholar, Etherscan, Token Unlocks, Artificial Analysis, OpenRouter, Libraries.io, Replicate.
+- **Active source keys (set in GitHub Secrets):** `EIA_API_KEY`, `OPENSTATES_API_KEY`, `FDA_API_KEY`, `CONGRESS_API_KEY`, `FEC_API_KEY`, `BEA_API_KEY`, `CENSUS_API_KEY`, `LDA_API_KEY`, `USDA_NASS_API_KEY`, `REGULATIONS_GOV_API_KEY` — all via a single api.data.gov key (registered autonomously via AgentMail + Playwright).
 - **Legacy cron fallback:** `MODAL_TRIGGER_*` for Modal long backfills only.
 - **Env (representative):** `SEC_USER_AGENT`, `EMAIL_FROM`, `API_BASE` (brief delivery).
 
@@ -198,15 +199,23 @@ Python adapters under `python/ingest/src/high_signal_ingest/sources/` — all wi
 - **Markets:** Polymarket, Manifold, Kalshi, Metaculus (optional token) — probabilities only, not equity prices; **CoinGecko** (`coingecko.py`, keyless) — crypto trending coins + 24h movers (fills the zero crypto-coverage gap), **DeFiLlama** (`defillama.py`, keyless) — on-chain protocol TVL + 1d moves (capital flows, non-redundant with CoinGecko prices). 15 / ~5 events.
 - **Macro:** ECB FX + FRED (`macro_rates.py`); **BLS** (`bls.py`, keyless v1 API, optional `BLS_API_KEY` for v2 limits) — latest CPI / core CPI / unemployment / nonfarm payrolls / earnings / PPI prints as dated events (release-timing gap that FRED's series don't give). 6 events. **SEC Form D** (private fundraising / "who just raised") is already ingested by `edgar` — surfacing it as a startups funding feed is a brief-composition task, not a new source.
 - **News:** GDELT, 50+ RSS feeds, Guardian (optional key).
+- **US government RSS:** `us_gov_rss.py` — SEC litigation, FTC, DOJ, CFTC, GAO, Nasdaq halts (keyless RSS, 42 events). Historical temporal — enforcement actions and halts have lasting relevance.
+- **US government APIs:** `us_gov_api.py` — CFTC COT, Treasury, BEA, Census, Congress, FEC, LDA, CFPB, FDA, NIH, NSF, USGS, NOAA, USDA (1,524 events). Series temporal — macro indicators, legislative tracking, grants. Keyed via api.data.gov.
+- **India government:** `india_gov.py` — SEBI, RBI, MOSPI, BSE, NSE, AMFI, NPCI, data.gov.in (11 events). Series temporal. Keyless except data.gov.in.
+- **Global macro:** `global_macro.py` — IMF, World Bank, BIS, UN Comtrade (39 events). Series temporal. Keyless.
+- **Crypto on-chain:** `crypto_onchain.py` — mempool.space, L2Beat, CoinMetrics, Etherscan, Token Unlocks (4 events). Series temporal. 3 of 5 sub-sources keyless.
+- **AI benchmarks:** `ai_benchmarks.py` — LMSYS Arena (keyless), Artificial Analysis, OpenRouter (1 event). Series temporal. LMSYS works keyless; other two need keys.
+- **Developer ecosystems:** `dev_ecosystems.py` — Papers with Code, GitLab, Docker Hub, dev.to, libraries.io, Replicate (90 events). 4 of 6 sub-sources keyless.
 - **Attention:** Wikipedia pageviews API `GET /attention/:article`; Wikidata enrichment `/enrich/ticker`.
 - **Security:** NVD CVE, CISA KEV.
+- **Temporal relevance classification (2026-06-28):** Each source tagged `recent` (29 sources — news, social, RSS, stale after days), `historical` (14 — patents, filings, court cases, full archive has value), or `series` (9 — macro, rates, benchmarks, on-chain, both recent prints and historical trends matter). Surfaced in the data directory UI with icons (● ▤ ∿) and contextual notes on source detail pages.
 
-**Operator tooling:** `pnpm source:diagnose`, `pnpm source:quality -- --json`, `docs/ingest-runbook.md`, `docs/source-coverage.md`. Source document dedupe by `document_key` (migration `0008_source_document_keys.sql` — pending remote apply). `/admin/events` preserves rich payloads.
+**Operator tooling:** `pnpm source:diagnose`, `pnpm source:quality -- --json`, `docs/ingest-runbook.md`, `docs/source-coverage.md`. Source document dedupe by `document_key` (migration `0008_source_document_keys.sql` — **applied to remote D1** 2026-06-28: column + unique index + backfill). `/admin/events` preserves rich payloads with error logging.
 
 **Data catalog, directory & grouping (2026-06-26 — "get all data and group them, no RAG"):**
 - **Storage model** — *extract info and keep the link*: events persist `source_url` + a short extracted `title`/`content` summary (cap 20 KB, usually <2 KB) + dedup hash; raw HTML/PDF/JSON that's one query away is **not** stored. Footprint ≈ KB/day of new signals, low-MB total in D1.
-- **`docs/source-catalog.md`** — the data-source table (provider, access/auth, history depth, official-class, role, extracted fields). Single source of truth `source_catalog.py` (CATALOG), regenerated via `python -m high_signal_ingest.source_catalog`; a test asserts it matches the pipeline `Source` list (no drift).
-- **`data_directory.py`** — `python -m high_signal_ingest.data_directory` runs the parallel `fetch('all')`, buckets by source, and writes `data-directory/` (git-ignored, regenerable): `INDEX.md` + one JSON of recent samples per source. Verified live: **1,326 samples across 21 live keyless sources** in a 3-day window.
+- **`docs/source-catalog.md`** — the data-source table (provider, access/auth, history depth, official-class, role, temporal relevance, extracted fields). Single source of truth `source_catalog.py` (CATALOG), regenerated via `python -m high_signal_ingest.source_catalog`; a test asserts it matches the pipeline `Source` list (no drift). 52 sources.
+- **`data_directory.py`** — `python -m high_signal_ingest.data_directory` runs the parallel `fetch('all')`, buckets by source, and writes `data-directory/` (git-ignored, regenerable): `INDEX.md` + one JSON of recent samples per source. Verified live: **180,537 events across 43 source families** in D1 (2026-06-28).
 - **`grouping.py`** — deterministic, no-vector grouping of *all* events (incl. entity-less, which the generator drops) by entity + theme (keyword buckets) + source family + day, with a **convergence view** ranking groups by distinct-source corroboration (the cite-or-kill precursor).
 - **`dedupe.py`** — deterministic cross-source de-duplication (no embeddings): union-find over **shared canonical URL** (scheme/www/query/fragment stripped; HN's embedded article link extracted) + **title token-Jaccard** (≥0.6, guarded by same-day or shared entity). Collapses the same story from HN/Reddit/Techmeme/news into one, **keeping the distinct-source count as corroboration** (dedup ≠ discard the signal). Wired into `opportunities.py` (no duplicate opportunities) and `data_directory.py` (INDEX reports raw→unique + corroborated count).
 - **`opportunities.py`** — RedShip-style (redship.io) monitored, scored inbox over the community sources (Reddit/HN/Stack Overflow/Lobsters/Substack): each item scored 0-100 by brand-keyword relevance + buying/pain intent (reuses `analysis.lightweight_nlp`) + recency, ranked. Deterministic; LLM reply-drafts/alerts/SEO-ranking deferred (map to the existing **Mentions**/**Communities** lenses — see below).
@@ -235,11 +244,12 @@ Python adapters under `python/ingest/src/high_signal_ingest/sources/` — all wi
 
 ### Planned
 
-1. **Plan 0008 follow-ups:** auto-publish reads claim records; lazy historical backfill; brief provenance affordance.
-2. **Plan 0009 follow-ups:** Email Routing operator setup; hourly delivery cron; bounce/retry UX.
-3. **Plan 0010 follow-ups:** wire `watching` section into brief composer; claim linkage.
-4. **Plan 0011 follow-ups:** topic/prompt copy rename; post-check cited-source refresh hook; report token auth.
-5. Clarify event semantics — `normalized_events` vs current `events` as source observations.
+1. **Remaining source API keys (manual signup needed):** `FRED_API_KEY` (macro rates — highest value, 2 min signup), `ETHERSCAN_API_KEY` (Ethereum gas, 2 min), `COMPANIES_HOUSE_API_KEY` (UK filings, 3 min). All others have keyless alternatives or are niche — see session notes. AgentMail inbox `highsignal-keys@agentmail.to` is set up for registrations.
+2. **Plan 0008 follow-ups:** auto-publish reads claim records; lazy historical backfill; brief provenance affordance.
+3. **Plan 0009 follow-ups:** Email Routing operator setup; hourly delivery cron; bounce/retry UX.
+4. **Plan 0010 follow-ups:** wire `watching` section into brief composer; claim linkage.
+5. **Plan 0011 follow-ups:** topic/prompt copy rename; post-check cited-source refresh hook; report token auth.
+6. Clarify event semantics — `normalized_events` vs current `events` as source observations.
 7. Keep source pipeline small and quality-gated; run `pnpm source:quality` after full ingest.
 8. Promote `/unmapped` candidates into seed CSV; expand curated adapter lists before new firehoses.
 9. Tighten brief quality — evidence links, hit-rate context, cull weak inputs.
