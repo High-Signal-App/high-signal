@@ -666,7 +666,7 @@ def run(source: Source, days: int) -> dict:
             error_sample = f"fetch: {fetch_failures[0]}"[:300]
 
     # Persist raw events for replay/debug regardless of downstream outcome
-    audit.push_events(events, fetch_run_id)
+    events_pushed = audit.push_events(events, fetch_run_id)
 
     # Collapse exact duplicates (same canonical URL re-reported across feeds /
     # queries) before clustering — keeps distinct-URL events so a signal's
@@ -757,6 +757,7 @@ def run(source: Source, days: int) -> dict:
     return {
         "fetch_run_id": fetch_run_id,
         "events": len(events),
+        "events_pushed": events_pushed,
         "duplicates_collapsed": duplicates_collapsed,
         "events_no_entity": no_entity,
         "events_low_cluster": low_cluster,

@@ -300,8 +300,13 @@ adminRoute.post("/events", async (c) => {
         })
         .onConflictDoNothing({ target: schema.events.rawHash });
       inserted++;
-    } catch {
-      // ignore — dupe or FK miss; raw_hash unique guards the rest
+    } catch (err) {
+      // Log the actual error so silent D1 insert failures are debuggable.
+      // The raw_hash unique constraint guards dedup; other errors (FK miss,
+      // schema mismatch) should surface, not vanish.
+      console.error(
+        `events insert failed: source=${e.source} rawHash=${e.rawHash?.slice(0, 12)} err=${String(err).slice(0, 200)}`,
+      );
     }
   }
   return c.json({ inserted });

@@ -81,8 +81,18 @@ def push_events(events: Iterable[Event], fetch_run_id: str | None) -> int:
     total = 0
     chunk = 50
     for i in range(0, len(payload), chunk):
-        if _post("/admin/events", {"events": payload[i : i + chunk]}):
-            total += len(payload[i : i + chunk])
+        batch = payload[i : i + chunk]
+        ok = _post("/admin/events", {"events": batch})
+        if ok:
+            total += len(batch)
+        else:
+            LOGGER.warning(
+                "push_events chunk %d/%d failed (%d events lost)",
+                i // chunk + 1,
+                (len(payload) + chunk - 1) // chunk,
+                len(batch),
+            )
+    LOGGER.info("push_events: %d/%d events persisted", total, len(payload))
     return total
 
 
