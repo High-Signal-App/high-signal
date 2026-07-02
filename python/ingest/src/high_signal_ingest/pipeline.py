@@ -723,7 +723,6 @@ def run(source: Source, days: int) -> dict:
                 fallback_by_entity[entity_id] = evs
             continue
         # Map candidates back; entities with no candidate go to fallback
-        batch_entity_ids = {eid for eid, _, _ in clusters_with_spillover}
         emitted_ids = set()
         for cand in cands:
             written.append(emit(cand))

@@ -366,7 +366,6 @@ def _fetch_libraries_io(days: int = 7) -> list[Event]:
             )
             if updated is not None and not _within_days(updated, since):
                 continue
-            package_id = str(package.get("id") or f"{platform}:{name}").strip()
             url = (
                 package.get("package_manager_url")
                 or f"https://libraries.io/{platform}/{name}"

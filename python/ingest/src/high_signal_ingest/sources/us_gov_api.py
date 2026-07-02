@@ -125,7 +125,7 @@ def _fetch_cftc_cot(days: int) -> list[Event]:
             Event(
                 id=raw_hash[:16],
                 source="us-gov-api:cftc-cot",
-                source_url=f"https://www.cftc.gov/MarketReports/CommitmentsofTraders/index.htm",
+                source_url="https://www.cftc.gov/MarketReports/CommitmentsofTraders/index.htm",
                 published_at=published,
                 title=f"CFTC CoT: {market} ({report_date})",
                 content=content,
