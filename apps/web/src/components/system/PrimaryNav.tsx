@@ -12,11 +12,6 @@ interface NavItem {
 
 const PRIMARY_ITEMS: NavItem[] = [
   {
-    href: '/',
-    label: 'home',
-    match: (path) => path === '/' || path.startsWith('/dashboard') || path.startsWith('/brief'),
-  },
-  {
     href: '/data',
     label: 'data',
     match: (path) =>
@@ -30,9 +25,10 @@ const PRIMARY_ITEMS: NavItem[] = [
       path.startsWith('/unmapped'),
   },
   {
-    href: '/signals',
+    href: '/',
     label: 'signals',
     match: (path) =>
+      path === '/' ||
       path.startsWith('/signals') ||
       path === '/daily' ||
       path.startsWith('/watchlist') ||
@@ -40,9 +36,10 @@ const PRIMARY_ITEMS: NavItem[] = [
       path.startsWith('/review'),
   },
   {
-    href: '/daily/history',
+    href: '/history',
     label: 'history',
     match: (path) =>
+      path.startsWith('/history') ||
       path.startsWith('/daily/history') ||
       path.startsWith('/track-record') ||
       path.startsWith('/backtest-workbench'),
@@ -75,7 +72,7 @@ export function PrimaryNav() {
   const pathname = usePathname() ?? '/';
 
   return (
-    <nav className="sticky top-0 z-30 border-b border-[var(--color-line)] bg-[var(--color-bg)]/95 backdrop-blur">
+    <nav className="fixed inset-x-0 top-0 z-50 h-14 border-b border-[var(--color-line)] bg-[var(--color-bg)]">
       <div className="mx-auto flex max-w-7xl items-center gap-5 px-4 py-2.5 sm:px-6">
         <Link
           href={'/' as Route}

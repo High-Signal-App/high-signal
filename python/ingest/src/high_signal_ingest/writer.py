@@ -38,6 +38,18 @@ def _default_signals_root() -> Path:
     return Path("/tmp/signals")
 
 
+def _quote_excerpt(value: str | None, max_words: int = 36) -> str | None:
+    if not value:
+        return None
+    words = value.replace("\n", " ").split()
+    if not words:
+        return None
+    out = " ".join(words[:max_words])
+    if len(words) > max_words:
+        out = f"{out}..."
+    return out
+
+
 def write_signal(candidate: SignalCandidate, root: Path | None = None) -> Path:
     root = root or _default_signals_root()
     day = candidate.published_at.strftime("%Y-%m-%d")
@@ -58,6 +70,17 @@ def write_signal(candidate: SignalCandidate, root: Path | None = None) -> Path:
         "supersedes": candidate.supersedes_signal_id,
         "review_status": _review_status(candidate),
     }
+    evidence_quotes = [_quote_excerpt(e.excerpt) or "" for e in candidate.evidence]
+    evidence_source_types = [e.source_type for e in candidate.evidence]
+    evidence_published_at = [
+        e.published_at.isoformat() if e.published_at else "" for e in candidate.evidence
+    ]
+    if any(evidence_quotes):
+        front["evidence_quotes"] = evidence_quotes
+    if any(evidence_source_types):
+        front["evidence_source_types"] = evidence_source_types
+    if any(evidence_published_at):
+        front["evidence_published_at"] = evidence_published_at
     quality = assess_signal_quality(candidate)
     front["content_category"] = quality.content_category
     front["quality_score"] = quality.score
@@ -102,6 +125,15 @@ def push_signal(candidate: SignalCandidate) -> dict:
                 "predictedWindowDays": candidate.predicted_window_days,
                 "publishedAt": candidate.published_at.isoformat(),
                 "evidenceUrls": [e.url for e in candidate.evidence],
+                "evidence": [
+                    {
+                        "url": e.url,
+                        "sourceType": e.source_type,
+                        "excerpt": _quote_excerpt(e.excerpt),
+                        "publishedAt": e.published_at.isoformat() if e.published_at else None,
+                    }
+                    for e in candidate.evidence
+                ],
                 "spilloverEntityIds": candidate.spillover_entity_ids,
                 "reviewStatus": _review_status(candidate),
                 "supersedesSignalId": candidate.supersedes_signal_id,

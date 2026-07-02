@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Route } from 'next';
 import Link from 'next/link';
 import { api, type DataSourceLive } from '@/lib/api';
 import catalog from '@/lib/source-catalog.json';
@@ -58,27 +58,14 @@ function accessLabel(access: string): string {
   return access;
 }
 
-function relativeDays(unixSec: number, nowSec: number): string {
-  if (!unixSec) return '—';
-  const d = Math.floor((nowSec - unixSec) / 86400);
-  if (d <= 0) return 'today';
-  if (d === 1) return '1d ago';
-  return `${d}d ago`;
-}
-
-function uniqueSamples(samples: DataSourceLive['samples'] = []) {
-  const seen = new Set<string>();
-  return samples.filter((sample) => {
-    const key = sample.url || sample.title || '';
-    if (!key || seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
+function isoDay(unixSec: number, fallback: string): string {
+  if (!unixSec) return fallback;
+  return new Date(unixSec * 1000).toISOString().slice(0, 10);
 }
 
 export default async function DataPage() {
   const sources = catalog.sources as CatalogEntry[];
-  const nowSec = Math.floor(Date.now() / 1000);
+  const today = new Date().toISOString().slice(0, 10);
 
   let live: Record<string, DataSourceLive> = {};
   let available = false;
@@ -159,89 +146,63 @@ export default async function DataPage() {
               {rows.map((s) => {
                 const l = live[s.id];
                 const count = l?.count ?? 0;
-                const samples = uniqueSamples(l?.samples);
+                const day = isoDay(l?.lastAt ?? 0, today);
+                const href = `/data/${encodeURIComponent(s.id)}?date=${day}` as Route;
+                const sourceSummary = (
+                  <>
+                    <code className="w-32 shrink-0 truncate font-mono text-sm text-zinc-100 sm:w-40">
+                      {s.id}
+                    </code>
+                    <span className="hidden w-48 shrink-0 truncate text-xs text-zinc-500 sm:block">
+                      {s.provider}
+                    </span>
+                    <span
+                      className={`shrink-0 rounded border px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.12em] ${accessTone(s.access)}`}
+                    >
+                      {accessLabel(s.access)}
+                    </span>
+                    {s.official && (
+                      <span
+                        className="shrink-0 font-mono text-[9px] text-zinc-500"
+                        title="counts toward the cite-or-kill official-source bar"
+                      >
+                        ⚖️
+                      </span>
+                    )}
+                    <span
+                      className="shrink-0 font-mono text-[10px] text-zinc-600"
+                      title={TEMPORAL_META[s.temporal]?.title}
+                    >
+                      {TEMPORAL_META[s.temporal]?.icon}
+                    </span>
+                    <span className="ml-auto hidden shrink-0 font-mono text-xs tabular-nums text-zinc-400 sm:block">
+                      {s.windowDays}d hist
+                    </span>
+                    <span
+                      className={`ml-auto w-14 shrink-0 text-right font-mono text-sm tabular-nums sm:ml-0 sm:w-16 ${count > 0 ? 'text-[var(--color-accent)]' : 'text-zinc-600'}`}
+                    >
+                      {count > 0 ? count.toLocaleString() : '—'}
+                    </span>
+                    <span className="hidden w-24 shrink-0 text-right font-mono text-[10px] tabular-nums text-zinc-600 md:block">
+                      {count > 0 ? day : 'no data'}
+                    </span>
+                  </>
+                );
                 return (
-                  <details key={s.id} className="group py-3">
-                    <summary className="flex cursor-pointer list-none items-center gap-3">
-                      <code className="w-40 shrink-0 truncate font-mono text-sm text-zinc-100">
-                        {s.id}
-                      </code>
-                      <span className="hidden w-48 shrink-0 truncate text-xs text-zinc-500 sm:block">
-                        {s.provider}
-                      </span>
-                      <span
-                        className={`shrink-0 rounded border px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.12em] ${accessTone(s.access)}`}
+                  <div key={s.id} className="group py-2">
+                    {count > 0 ? (
+                      <Link
+                        href={href}
+                        className="-mx-1 flex items-center gap-3 rounded-sm px-1 py-1 transition-colors hover:bg-zinc-950 hover:text-zinc-100"
                       >
-                        {accessLabel(s.access)}
-                      </span>
-                      {s.official && (
-                        <span
-                          className="shrink-0 font-mono text-[9px] text-zinc-500"
-                          title="counts toward the cite-or-kill official-source bar"
-                        >
-                          ⚖️
-                        </span>
-                      )}
-                      <span
-                        className="shrink-0 font-mono text-[10px] text-zinc-600"
-                        title={TEMPORAL_META[s.temporal]?.title}
-                      >
-                        {TEMPORAL_META[s.temporal]?.icon}
-                      </span>
-                      <span className="ml-auto shrink-0 font-mono text-xs tabular-nums text-zinc-400">
-                        {s.windowDays}d hist
-                      </span>
-                      <span
-                        className={`w-16 shrink-0 text-right font-mono text-sm tabular-nums ${count > 0 ? 'text-[var(--color-accent)]' : 'text-zinc-600'}`}
-                      >
-                        {count > 0 ? count.toLocaleString() : '—'}
-                      </span>
-                    </summary>
-                    <div className="mt-2 pl-3 text-xs text-zinc-500">
-                      <p>
-                        Keeps: <span className="text-zinc-400">{s.keeps}</span> · last seen{' '}
-                        {relativeDays(l?.lastAt ?? 0, nowSec)}
-                        {s.temporal !== 'recent' && (
-                          <>
-                            {' '}
-                            ·{' '}
-                            <span
-                              className="text-zinc-400"
-                              title={TEMPORAL_META[s.temporal]?.title}
-                            >
-                              {s.temporal === 'series'
-                                ? 'time-series — history matters'
-                                : 'full archive — history matters'}
-                            </span>
-                          </>
-                        )}
-                      </p>
-                      {count > 0 && (
-                        <Link
-                          href={`/data/${encodeURIComponent(s.id)}`}
-                          className="mt-2 inline-block font-mono text-[11px] text-[var(--color-accent)] underline-offset-2 hover:underline"
-                        >
-                          View all {count.toLocaleString()} events →
-                        </Link>
-                      )}
-                      {samples.length > 0 && (
-                        <ul className="mt-2 space-y-1">
-                          {samples.map((sm) => (
-                            <li key={`${s.id}-${sm.url}`} className="truncate">
-                              <a
-                                href={sm.url}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="text-zinc-400 underline-offset-2 hover:text-[var(--color-accent)] hover:underline"
-                              >
-                                {sm.title ?? sm.url}
-                              </a>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </div>
-                  </details>
+                        {sourceSummary}
+                      </Link>
+                    ) : (
+                      <div className="-mx-1 flex items-center gap-3 px-1 py-1 opacity-60">
+                        {sourceSummary}
+                      </div>
+                    )}
+                  </div>
                 );
               })}
             </div>

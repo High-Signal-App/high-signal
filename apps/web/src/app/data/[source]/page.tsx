@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Route } from 'next';
 import Link from 'next/link';
 import { api, type DataSourceEventsResponse } from '@/lib/api';
 import catalog from '@/lib/source-catalog.json';
@@ -43,21 +43,52 @@ function fmtDate(unixSec: number): string {
   return new Date(unixSec * 1000).toISOString().slice(0, 10);
 }
 
+function todayIso(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function validIsoDay(day: string | undefined): string | null {
+  if (!day || !/^\d{4}-\d{2}-\d{2}$/.test(day)) return null;
+  const parsed = new Date(`${day}T00:00:00.000Z`);
+  return Number.isNaN(parsed.getTime()) ? null : day;
+}
+
+function addDays(day: string, delta: number): string {
+  const d = new Date(`${day}T00:00:00.000Z`);
+  d.setUTCDate(d.getUTCDate() + delta);
+  return d.toISOString().slice(0, 10);
+}
+
+function sourcePath(source: string, opts: { date?: string; all?: boolean; page?: number }): Route {
+  const q = new URLSearchParams();
+  if (opts.all) q.set('all', '1');
+  else if (opts.date) q.set('date', opts.date);
+  if (opts.page && opts.page > 0) q.set('p', String(opts.page));
+  const qs = q.toString();
+  return `/data/${encodeURIComponent(source)}${qs ? `?${qs}` : ''}` as Route;
+}
+
 export default async function DataSourcePage({
   params,
   searchParams,
 }: {
   params: Promise<{ source: string }>;
-  searchParams: Promise<{ p?: string }>;
+  searchParams: Promise<{ p?: string; date?: string; all?: string }>;
 }) {
   const { source } = await params;
-  const { p } = await searchParams;
+  const { p, date, all } = await searchParams;
   const page = Math.max(Number(p ?? 0) || 0, 0);
+  const allHistory = all === '1';
+  const selectedDate = allHistory ? undefined : (validIsoDay(date) ?? todayIso());
   const entry = entryFor(source);
 
   let data: DataSourceEventsResponse | null = null;
   try {
-    data = await api.dataSourceEvents(source, { limit: PAGE, offset: page * PAGE });
+    data = await api.dataSourceEvents(source, {
+      limit: PAGE,
+      offset: page * PAGE,
+      date: selectedDate,
+    });
   } catch {
     /* worker/D1 unreachable */
   }
@@ -84,7 +115,8 @@ export default async function DataSourcePage({
         </div>
         <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1 font-mono text-xs tabular-nums text-zinc-400">
           <span>
-            <span className="text-zinc-100">{total.toLocaleString()}</span> events in store
+            <span className="text-zinc-100">{total.toLocaleString()}</span>{' '}
+            {selectedDate ? `events on ${selectedDate}` : 'events in store'}
           </span>
           {entry && (
             <>
@@ -108,6 +140,46 @@ export default async function DataSourcePage({
         )}
       </header>
 
+      <div className="mb-6 flex flex-wrap items-center gap-2 font-mono text-[11px]">
+        {selectedDate ? (
+          <>
+            <Link
+              href={sourcePath(source, { date: addDays(selectedDate, -1) })}
+              className="rounded border border-zinc-800 px-2 py-1 text-zinc-400 hover:border-zinc-600 hover:text-[var(--color-accent)]"
+            >
+              ← prev day
+            </Link>
+            <span className="rounded border border-zinc-700 px-2 py-1 text-zinc-100">
+              {selectedDate}
+            </span>
+            <Link
+              href={sourcePath(source, { date: addDays(selectedDate, 1) })}
+              className="rounded border border-zinc-800 px-2 py-1 text-zinc-400 hover:border-zinc-600 hover:text-[var(--color-accent)]"
+            >
+              next day →
+            </Link>
+            <Link
+              href={sourcePath(source, { all: true })}
+              className="rounded border border-zinc-800 px-2 py-1 text-zinc-500 hover:border-zinc-600 hover:text-zinc-300"
+            >
+              all history
+            </Link>
+          </>
+        ) : (
+          <>
+            <span className="rounded border border-zinc-700 px-2 py-1 text-zinc-100">
+              all history
+            </span>
+            <Link
+              href={sourcePath(source, { date: todayIso() })}
+              className="rounded border border-zinc-800 px-2 py-1 text-zinc-400 hover:border-zinc-600 hover:text-[var(--color-accent)]"
+            >
+              today
+            </Link>
+          </>
+        )}
+      </div>
+
       {!data && (
         <p className="font-mono text-[11px] text-amber-400/80">
           Events store not reachable — try again once the API is up.
@@ -116,8 +188,11 @@ export default async function DataSourcePage({
 
       {data && events.length === 0 && (
         <p className="text-sm text-zinc-500">
-          No events stored for this source yet. Low-cadence or newly-added sources populate via the{' '}
-          <code className="text-zinc-400">backfill-sources</code> workflow.
+          {selectedDate
+            ? `No events stored for this source on ${selectedDate}. Try adjacent days or all history.`
+            : 'No events stored for this source yet. Low-cadence or newly-added sources populate via the '}
+          {!selectedDate && <code className="text-zinc-400">backfill-sources</code>}
+          {!selectedDate && ' workflow.'}
         </p>
       )}
 
@@ -163,7 +238,7 @@ export default async function DataSourcePage({
         <nav className="mt-8 flex items-center justify-between font-mono text-xs">
           {page > 0 ? (
             <Link
-              href={`/data/${encodeURIComponent(source)}?p=${page - 1}`}
+              href={sourcePath(source, { date: selectedDate, all: allHistory, page: page - 1 })}
               className="text-zinc-400 hover:text-[var(--color-accent)]"
             >
               ← newer
@@ -178,7 +253,7 @@ export default async function DataSourcePage({
           </span>
           {hasMore ? (
             <Link
-              href={`/data/${encodeURIComponent(source)}?p=${page + 1}`}
+              href={sourcePath(source, { date: selectedDate, all: allHistory, page: page + 1 })}
               className="text-zinc-400 hover:text-[var(--color-accent)]"
             >
               older →
@@ -203,7 +278,7 @@ export default async function DataSourcePage({
             .map((p) => (
               <Link
                 key={p}
-                href={`/data/${encodeURIComponent(source)}?p=${p}`}
+                href={sourcePath(source, { all: true, page: p })}
                 className="rounded border border-zinc-800 px-1.5 py-0.5 hover:text-[var(--color-accent)]"
               >
                 p{p + 1}

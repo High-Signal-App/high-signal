@@ -86,6 +86,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const app = (
     <AnalyticsProvider>
       <PrimaryNav />
+      <div aria-hidden="true" className="h-14" />
       {clerkConfigured ? <AuthNav /> : null}
       {children}
       <SiteFooter />

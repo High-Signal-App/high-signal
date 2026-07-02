@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { desc, eq, like, or, sql } from "drizzle-orm";
+import { and, desc, eq, gte, like, lt, or, sql } from "drizzle-orm";
 import { db, schema } from "../db";
 
 type Env = { DB: D1Database };
@@ -23,11 +23,22 @@ const SOURCE_QUERY_ALIASES: Record<string, string[]> = {
 // Collapse `legistar:phoenix` / `macro-rates:fred:dgs10` to the catalog family.
 function family(source: string): string {
   if (source.startsWith("edgar_")) return "edgar";
+  if (source.startsWith("china-news:") || source.startsWith("news:china-news-")) return "china-news";
+  if (source.startsWith("scmp:") || source.startsWith("news:scmp-")) return "scmp";
   const first = (source || "unknown").split(":", 1)[0]!;
   return SOURCE_FAMILY_ALIASES[first] ?? first;
 }
 
 function sourceMatch(id: string) {
+  if (id === "china-news") {
+    return or(
+      like(schema.events.source, "china-news:%"),
+      like(schema.events.source, "news:china-news-%"),
+    );
+  }
+  if (id === "scmp") {
+    return or(like(schema.events.source, "scmp:%"), like(schema.events.source, "news:scmp-%"));
+  }
   const aliases = SOURCE_QUERY_ALIASES[id] ?? [id];
   const conditions = aliases.flatMap((alias) => [
     eq(schema.events.source, alias),
@@ -35,6 +46,15 @@ function sourceMatch(id: string) {
     sql`${schema.events.source} GLOB ${`${alias}_*`}`,
   ]);
   return or(...conditions);
+}
+
+function dayRange(date: string | undefined) {
+  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
+  const start = new Date(`${date}T00:00:00.000Z`);
+  if (Number.isNaN(start.getTime())) return null;
+  const end = new Date(start);
+  end.setUTCDate(end.getUTCDate() + 1);
+  return { start, end };
 }
 
 interface Sample {
@@ -127,18 +147,23 @@ dataRoute.get("/sources/:id", async (c) => {
   const id = c.req.param("id");
   const limit = Math.min(Math.max(Number(c.req.query("limit") ?? 50), 1), 200);
   const offset = Math.max(Number(c.req.query("offset") ?? 0), 0);
+  const date = c.req.query("date");
   const database = db(c.env.DB);
   const match = sourceMatch(id);
+  const range = dayRange(date);
+  const where = range
+    ? and(match, gte(schema.events.publishedAt, range.start), lt(schema.events.publishedAt, range.end))
+    : match;
 
   let total = 0;
   try {
     const [row] = await database
       .select({ n: sql<number>`count(*)` })
       .from(schema.events)
-      .where(match);
+      .where(where);
     total = Number(row?.n ?? 0);
   } catch {
-    return c.json({ id, total: 0, events: [], hasMore: false, available: false });
+    return c.json({ id, date: range ? date : undefined, total: 0, events: [], hasMore: false, available: false });
   }
 
   const rows = await database
@@ -151,7 +176,7 @@ dataRoute.get("/sources/:id", async (c) => {
       publishedAt: schema.events.publishedAt,
     })
     .from(schema.events)
-    .where(match)
+    .where(where)
     .orderBy(desc(schema.events.publishedAt))
     .limit(limit)
     .offset(offset);
@@ -166,5 +191,12 @@ dataRoute.get("/sources/:id", async (c) => {
       r.publishedAt instanceof Date ? Math.floor(r.publishedAt.getTime() / 1000) : Number(r.publishedAt),
   }));
 
-  return c.json({ id, total, events, hasMore: offset + events.length < total, available: true });
+  return c.json({
+    id,
+    date: range ? date : undefined,
+    total,
+    events,
+    hasMore: offset + events.length < total,
+    available: true,
+  });
 });

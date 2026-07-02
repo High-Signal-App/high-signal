@@ -90,10 +90,15 @@ function run() {
       `INSERT OR REPLACE INTO signals (id,slug,signal_type,primary_entity_id,direction,confidence,predicted_window_days,published_at,evidence_urls,spillover_entity_ids,review_status,supersedes_signal_id,body_md) VALUES (${esc(id)},${esc(f.slug)},${esc(f.signal_type)},${esc(f.primary_entity)},${esc(f.direction)},${esc(f.confidence)},${f.predicted_window_days},${publishedAt},${esc(JSON.stringify(f.evidence_urls))},${esc(JSON.stringify(f.spillover_entity_ids ?? []))},${esc(f.review_status)},${esc(f.supersedes ?? null)},${esc(body)});`,
     );
     sql.push(`DELETE FROM evidence WHERE signal_id = ${esc(id)};`);
-    for (const url of f.evidence_urls) {
+    for (const [index, url] of f.evidence_urls.entries()) {
       const eid = createHash("sha256").update(`${id}:${url}`).digest("hex").slice(0, 16);
+      const publishedAtRaw = f.evidence_published_at?.[index];
+      const evidencePublishedAt =
+        publishedAtRaw && Number.isFinite(new Date(publishedAtRaw).getTime())
+          ? Math.floor(new Date(publishedAtRaw).getTime() / 1000)
+          : null;
       sql.push(
-        `INSERT INTO evidence (id,signal_id,url,source_type,excerpt,published_at) VALUES (${esc(eid)},${esc(id)},${esc(url)},'web',NULL,NULL);`,
+        `INSERT INTO evidence (id,signal_id,url,source_type,excerpt,published_at) VALUES (${esc(eid)},${esc(id)},${esc(url)},${esc(f.evidence_source_types?.[index] ?? "web")},${esc(f.evidence_quotes?.[index] || null)},${evidencePublishedAt ?? "NULL"});`,
       );
     }
   }

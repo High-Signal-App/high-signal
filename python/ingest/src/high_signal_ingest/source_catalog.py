@@ -72,6 +72,8 @@ CATALOG: list[CatalogEntry] = [
     # --- News --------------------------------------------------------------
     CatalogEntry("news", "NewsAPI + RSS", "technology", "free-key:NEWSAPI_KEY", False, 1, "entity", "headline, source, snippet", "recent"),
     CatalogEntry("guardian", "The Guardian", "technology", "free-key:GUARDIAN_API_KEY", False, 7, "thematic", "headline, section", "recent"),
+    CatalogEntry("scmp", "South China Morning Post", "technology / finance", "keyless", False, 3, "thematic", "China tech/economy headline, link", "recent"),
+    CatalogEntry("china-news", "TechNode / Pandaily / CGTN", "technology / startups / finance", "keyless", False, 3, "thematic", "China tech/startup/business headline, link", "recent"),
     CatalogEntry("gdelt", "GDELT", "finance", "keyless", False, 1, "thematic", "event, tone, mentions", "recent"),
     # --- Policy & government ----------------------------------------------
     CatalogEntry("gov", "Federal Register + agency RSS", "finance", "keyless", True, 3, "thematic", "rule/notice title, agency", "historical"),

@@ -1,3 +1,3 @@
-export { default, metadata } from './dashboard/page';
+export { default, metadata } from './signals/page';
 
 export const dynamic = 'force-dynamic';

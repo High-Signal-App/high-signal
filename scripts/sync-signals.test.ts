@@ -13,6 +13,12 @@ published_at: 2026-05-01T14:30:00Z
 evidence_urls:
   - https://example.com/a
   - https://example.com/b
+evidence_quotes:
+  - "supplier lead times tightened again"
+  - "customer allocation shifted toward the new cluster"
+evidence_source_types:
+  - news
+  - official
 spillover_entity_ids: [ASML, AMAT]
 supersedes: null
 review_status: draft
@@ -27,6 +33,11 @@ assert.deepEqual(parsed.front.evidence_urls, [
   "https://example.com/a",
   "https://example.com/b",
 ]);
+assert.deepEqual(parsed.front.evidence_quotes, [
+  "supplier lead times tightened again",
+  "customer allocation shifted toward the new cluster",
+]);
+assert.deepEqual(parsed.front.evidence_source_types, ["news", "official"]);
 assert.deepEqual(parsed.front.spillover_entity_ids, ["ASML", "AMAT"]);
 assert.equal(parsed.front.supersedes, null);
 assert.equal(parsed.body, "body text");

@@ -19,7 +19,7 @@ Persisted in **Cloudflare D1** (events/signals/evidence) + git-versioned `signal
 
 ## Sources
 
-**52 sources.** Access: `keyless` = no auth; `free-key` = free registration (skipped without the env var, ingest stays green); `optional-key` = works degraded/empty without it. ⚖️ = counts toward the cite-or-kill official-source bar. **Temporal:** `recent` = only latest events matter; `historical` = full archive has value; `series` = time-series where both recent prints and historical trends matter.
+**54 sources.** Access: `keyless` = no auth; `free-key` = free registration (skipped without the env var, ingest stays green); `optional-key` = works degraded/empty without it. ⚖️ = counts toward the cite-or-kill official-source bar. **Temporal:** `recent` = only latest events matter; `historical` = full archive has value; `series` = time-series where both recent prints and historical trends matter.
 
 | Source | Provider | Domain | Access | ⚖️ | History | Role | Temporal | Extracted fields kept |
 |---|---|---|---|:--:|--:|---|---|---|
@@ -51,6 +51,7 @@ Persisted in **Cloudflare D1** (events/signals/evidence) + git-versioned `signal
 | `appstore` | Apple App Store charts | startups | keyless |  | 1d | thematic | recent | app name, developer, chart rank |
 | `appstore-reviews` | App Store reviews (iTunes RSS) | startups | keyless |  | 14d | thematic | recent | review rating, title, text |
 | `bluesky` | Bluesky | technology | optional-key:BLUESKY_* |  | 7d | thematic | recent | post text, author |
+| `china-news` | TechNode / Pandaily / CGTN | technology / startups / finance | keyless |  | 3d | thematic | recent | China tech/startup/business headline, link |
 | `cisa-kev` | CISA KEV | technology | keyless | ⚖️ | 7d | thematic | recent | CVE id, vendor, due date |
 | `coingecko` | CoinGecko | finance | keyless |  | 1d | thematic | recent | trending coin / 24h mover, rank, price |
 | `defillama` | DeFiLlama | finance | keyless |  | 1d | thematic | recent | protocol TVL + 1d move, category |
@@ -70,6 +71,7 @@ Persisted in **Cloudflare D1** (events/signals/evidence) + git-versioned `signal
 | `podcast-index` | Podcast Index | technology | optional-key:PODCAST_INDEX_* |  | 14d | thematic | recent | episode title, summary |
 | `producthunt` | Product Hunt (RSS) | startups | keyless |  | 7d | thematic | recent | product name, tagline, link |
 | `reddit` | Reddit | startups | keyless |  | 1d | thematic | recent | post title, subreddit, score |
+| `scmp` | South China Morning Post | technology / finance | keyless |  | 3d | thematic | recent | China tech/economy headline, link |
 | `semantic-scholar` | Semantic Scholar | technology | keyless |  | 30d | thematic | historical | paper title, abstract snippet |
 | `stackexchange` | Stack Overflow | technology | keyless |  | 30d | thematic | historical | question, tags, score |
 | `substack` | Substack RSS | technology | keyless |  | 7d | thematic | recent | post title, summary |

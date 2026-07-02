@@ -309,6 +309,17 @@
       "temporal": "recent"
     },
     {
+      "id": "china-news",
+      "provider": "TechNode / Pandaily / CGTN",
+      "domains": "technology / startups / finance",
+      "access": "keyless",
+      "official": false,
+      "windowDays": 3,
+      "role": "thematic",
+      "keeps": "China tech/startup/business headline, link",
+      "temporal": "recent"
+    },
+    {
       "id": "cisa-kev",
       "provider": "CISA KEV",
       "domains": "technology",
@@ -518,6 +529,17 @@
       "temporal": "recent"
     },
     {
+      "id": "scmp",
+      "provider": "South China Morning Post",
+      "domains": "technology / finance",
+      "access": "keyless",
+      "official": false,
+      "windowDays": 3,
+      "role": "thematic",
+      "keeps": "China tech/economy headline, link",
+      "temporal": "recent"
+    },
+    {
       "id": "semantic-scholar",
       "provider": "Semantic Scholar",
       "domains": "technology",
@@ -573,5 +595,5 @@
       "temporal": "recent"
     }
   ],
-  "count": 52
+  "count": 54
 }

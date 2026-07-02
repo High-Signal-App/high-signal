@@ -29,6 +29,13 @@ export function FilterBar({ facets }: { facets: Facets }) {
     router.push(`/signals?${next.toString()}`);
   };
 
+  const clearFacets = () => {
+    const next = new URLSearchParams(Array.from(sp.entries()));
+    for (const key of ORDER) next.delete(key);
+    const query = next.toString();
+    router.push(query ? `/signals?${query}` : '/signals');
+  };
+
   const active = (k: Key, v: string) => sp.get(k) === v;
 
   return (
@@ -64,7 +71,7 @@ export function FilterBar({ facets }: { facets: Facets }) {
           <button
             type="button"
             className="text-zinc-500 underline-offset-4 hover:text-zinc-200 hover:underline"
-            onClick={() => router.push('/signals')}
+            onClick={clearFacets}
           >
             clear
           </button>

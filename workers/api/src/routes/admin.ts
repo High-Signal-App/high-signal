@@ -72,6 +72,12 @@ interface SignalUpsert {
   predictedWindowDays: number;
   publishedAt: string; // ISO
   evidenceUrls: string[];
+  evidence?: Array<{
+    url: string;
+    sourceType?: string | null;
+    excerpt?: string | null;
+    publishedAt?: string | null;
+  }>;
   spilloverEntityIds?: string[];
   reviewStatus?: "draft" | "published" | "corrected" | "killed";
   supersedesSignalId?: string | null;
@@ -141,16 +147,22 @@ adminRoute.post("/sync", async (c) => {
 
     // Replace evidence rows
     await db(c.env.DB).delete(schema.evidence).where(eq(schema.evidence.signalId, id));
+    const evidenceByUrl = new Map((s.evidence ?? []).map((item) => [item.url, item]));
     for (const url of s.evidenceUrls) {
+      const item = evidenceByUrl.get(url);
+      const evidencePublishedAt = item?.publishedAt ? new Date(item.publishedAt) : null;
       await db(c.env.DB)
         .insert(schema.evidence)
         .values({
           id: await sha16(`${id}:${url}`),
           signalId: id,
           url,
-          sourceType: inferSourceType(url),
-          excerpt: null,
-          publishedAt: null,
+          sourceType: item?.sourceType || inferSourceType(url),
+          excerpt: item?.excerpt ?? null,
+          publishedAt:
+            evidencePublishedAt && Number.isFinite(evidencePublishedAt.getTime())
+              ? evidencePublishedAt
+              : null,
         });
     }
     upserts++;

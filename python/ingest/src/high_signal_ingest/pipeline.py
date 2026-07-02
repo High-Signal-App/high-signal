@@ -27,6 +27,7 @@ from .sources import (
     bls,
     bluesky,
     cisa_kev,
+    china_news,
     coingecko,
     companies_house,
     courtlistener,
@@ -65,6 +66,7 @@ from .sources import (
     reddit,
     regulations,
     sec_xbrl,
+    scmp,
     semantic_scholar,
     stackexchange,
     substack,
@@ -94,6 +96,7 @@ Source = Literal[
     "hkex",
     "markets",
     "cisa-kev",
+    "china-news",
     "lobsters",
     "substack",
     "techmeme",
@@ -112,6 +115,7 @@ Source = Literal[
     "podcast-index",
     "macro-rates",
     "sec-xbrl",
+    "scmp",
     "legistar",
     "courtlistener",
     "openstates",
@@ -307,6 +311,8 @@ def _fetch_tasks(source: Source, days: int) -> list[tuple[str, str, Callable[[],
         add("markets", "https://gamma-api.polymarket.com", _markets)
     if source in {"cisa-kev", "all"}:
         add("cisa-kev", "https://www.cisa.gov", lambda: cisa_kev.fetch_all(days=max(days, 7)))
+    if source in {"china-news", "all"}:
+        add("china-news", "https://technode.com", lambda: china_news.fetch_all(days=max(days, 3)))
     if source in {"lobsters", "all"}:
         add("lobsters", "https://lobste.rs", lambda: lobsters.fetch_all(days=max(days, 3)))
     if source in {"substack", "all"}:
@@ -350,6 +356,8 @@ def _fetch_tasks(source: Source, days: int) -> list[tuple[str, str, Callable[[],
     if source in {"sec-xbrl", "all"}:
         # Shares the sec.gov host gate with `edgar` so the two never hammer SEC together.
         add("sec-xbrl", "https://www.sec.gov", lambda: sec_xbrl.fetch_all(days=max(days, 120)))
+    if source in {"scmp", "all"}:
+        add("scmp", "https://www.scmp.com", lambda: scmp.fetch_all(days=max(days, 3)))
     if source in {"legistar", "all"}:
         # Municipal land-use moves slowly; widen the window so daily runs still
         # catch newly-introduced data-center / fab / rezoning matters.
@@ -784,6 +792,7 @@ def main() -> None:
             "hkex",
             "markets",
             "cisa-kev",
+            "china-news",
             "lobsters",
             "substack",
             "techmeme",
@@ -802,6 +811,7 @@ def main() -> None:
             "podcast-index",
             "macro-rates",
             "sec-xbrl",
+            "scmp",
             "legistar",
             "courtlistener",
             "openstates",

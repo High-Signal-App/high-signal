@@ -1,6 +1,6 @@
 # high-signal — PROJECT STATUS
 
-Last updated: 2026-07-02
+Last updated: 2026-07-03
 
 ## Why/What
 
@@ -96,6 +96,7 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 - **Plans 0008–0011:** Claim provenance, brief delivery, watchlists, OpenLens visibility — code wired; pending migration apply + follow-ups.
 - **2026-06-30:** Added and scaffolded plan 0012 after reviewing Octolens, Peekaboo, and Subreddit Signals. Decision: beat them by combining AI visibility, citation/source gaps, community buyer intent, proof tasks, and Daily Brief/report outputs instead of copying separate social-listening, GEO, or Reddit-lead dashboards.
 - **2026-07-02:** Revamped `/` and `/brief` first viewport around the product loop: market change, buyer intent, AI visibility, and proof gaps. The UI now uses a sharper Aceternity-inspired dark grid treatment while keeping the app surface evidence-first and dense.
+- **2026-07-03:** Collapsed the active product shell around data, signals, history, and evals. `/` now renders the signals feed, with Global / US / China / India scopes, default company/idea focus lists, and a fixed sidebar. `/data` is a compact clickable source directory: only sources with stored events open, and they open the latest available source-day view. Signal detail pages link cited evidence back to source-day data when the evidence source maps to the catalog.
 - **README status date (2026-05-30)** lags this file for day-to-day scope; `PROJECT_STATUS.md` + `package.json` scripts are authoritative.
 
 ## Products
@@ -121,7 +122,7 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 
 - Primary nav + `/explore` sitemap: brief, signals, evidence, lenses (markets, watchlist, mentions, agent eval, domains), operator surfaces, legal.
 - Footer grouped Product / Lenses / Operator / Legal.
-- Default `/` is the personalized dashboard. Primary navigation is grouped into `home`, `data`, `signals`, `history`, and `evals`; `/brief` remains the source-linked daily brief.
+- Default `/` is the signals home feed. Primary navigation is grouped into `data`, `signals`, `history`, and `evals`; `/brief` remains the source-linked daily brief.
 - Public pages: `/about`, `/methodology`, `/featured`, `/api-docs`, `/privacy`, `/terms`, `/sign-in`, `/sign-up`.
 - Clerk auth; region picker and seed product pickers on brief.
 - SEO JSON-LD tests (`pnpm seo:test`).
@@ -138,6 +139,8 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 - D1 tables: `signals`, `evidence`, `score_runs`, `entities`, `relationships`, `events`, `source_documents`.
 - Git-versioned markdown store; `pnpm signals:sync:*` scripts.
 - Public routes: `/signals`, `/signals/[slug]`, `/signals/today`, `/signals/types`, `/signals/types/[type]`, `/embed/[slug]`.
+- `/signals` supports Global / US / China / India scopes plus company/idea focus lists. Signed-out users get a default watchlist for immediate testing; signed-in users can replace it with configured mention brands.
+- `/signals/[slug]` shows confidence score, confidence band, source-class reasons, quotes/excerpts, and source-day links back into `/data/:source?date=YYYY-MM-DD` when the evidence maps to the catalog.
 - Worker: `GET /signals`, `/signals/facets`, `/signals/:slug`, `/signals/by-entity/:entityId`.
 - Review queue `/review`; auto-publish rules (`scripts/auto-publish-drafts.ts`, 29+ rule tests).
 - Track record: `/track-record`, `/track-record/labels`, `/backtest-workbench`.

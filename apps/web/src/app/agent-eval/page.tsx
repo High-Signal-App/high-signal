@@ -10,7 +10,15 @@ import {
   StatGrid,
 } from '@/components/system/HighSignalUI';
 import { api, type AgentEvaluationAuditDetail, type AgentEvaluationCompetitor } from '@/lib/api';
-import { requireSignedIn } from '@/lib/require-auth';
+import { getRequestAuth, requireSignedIn } from '@/lib/require-auth';
+import {
+  buildAgentEvaluationAudit,
+  type AgentEvaluationInput,
+  type PersistedAgentPromptResult,
+  type PersistedEvidenceLayerScore,
+  type PersistedMissingEvidenceTask,
+  type PersistedReelBrief,
+} from '@high-signal/shared';
 import type { Route } from 'next';
 import { redirect } from 'next/navigation';
 
@@ -21,6 +29,18 @@ const DEFAULT_EVIDENCE = `High Signal extracts actionable signals from noisy pub
 It serves operators and builders who need evidence-backed product, community, mention, and market intelligence.
 The current product includes public signal cards, source-linked community digests, AI visibility checks, and product-flow idea analysis.
 Pricing, support policy, refund policy, security docs, and third-party review pages still need stronger public evidence.`;
+
+type AgentEvalSearchParams = {
+  audit?: string;
+  local?: string;
+  brandName?: string | string[];
+  brandUrl?: string | string[];
+  buyerMission?: string | string[];
+  targetSegment?: string | string[];
+  competitors?: string | string[];
+  evidenceText?: string | string[];
+  evidenceUrls?: string | string[];
+};
 
 function parseCompetitors(raw: string): AgentEvaluationCompetitor[] {
   return raw
@@ -54,6 +74,84 @@ function statusTone(status: string) {
   if (status === 'clear') return 'text-zinc-100';
   if (status === 'weak') return 'text-amber-300';
   return 'text-red-300';
+}
+
+function localParam(value: string | string[] | undefined) {
+  return Array.isArray(value) ? (value[0] ?? '') : (value ?? '');
+}
+
+function localInput(params: AgentEvalSearchParams): AgentEvaluationInput | null {
+  if (params.local !== '1') return null;
+  const brandName = localParam(params.brandName).trim();
+  const brandUrl = localParam(params.brandUrl).trim();
+  const buyerMission = localParam(params.buyerMission).trim();
+  if (!brandName || !brandUrl || !buyerMission) return null;
+  return {
+    ownerId: 'local',
+    brandName,
+    brandUrl,
+    buyerMission,
+    targetSegment: localParam(params.targetSegment).trim() || null,
+    competitors: parseCompetitors(localParam(params.competitors)),
+    evidenceText: localParam(params.evidenceText).trim() || null,
+    evidenceUrls: parseUrls(localParam(params.evidenceUrls)),
+  };
+}
+
+function buildLocalAuditDetail(input: AgentEvaluationInput): AgentEvaluationAuditDetail {
+  const result = buildAgentEvaluationAudit(input);
+  const now = new Date().toISOString();
+  const auditId = 'local';
+  return {
+    audit: {
+      id: auditId,
+      ownerId: 'local',
+      brandName: input.brandName,
+      brandUrl: input.brandUrl,
+      buyerMission: input.buyerMission,
+      targetSegment: input.targetSegment ?? null,
+      competitors: input.competitors ?? [],
+      status: 'completed',
+      overallScore: result.overallScore,
+      recommendationSummary: result.recommendationSummary,
+      evidenceText: input.evidenceText ?? null,
+      evidenceUrls: input.evidenceUrls ?? [],
+      createdAt: now,
+      completedAt: now,
+    },
+    prompts: result.prompts.map(
+      (prompt, index): PersistedAgentPromptResult => ({
+        ...prompt,
+        id: `local-prompt-${index}`,
+        auditId,
+        createdAt: now,
+      })
+    ),
+    scores: result.scores.map(
+      (score, index): PersistedEvidenceLayerScore => ({
+        ...score,
+        id: `local-score-${index}`,
+        auditId,
+        createdAt: now,
+      })
+    ),
+    tasks: result.tasks.map(
+      (task, index): PersistedMissingEvidenceTask => ({
+        ...task,
+        id: `local-task-${index}`,
+        auditId,
+        createdAt: now,
+      })
+    ),
+    reelBriefs: result.reelBriefs.map(
+      (brief, index): PersistedReelBrief => ({
+        ...brief,
+        id: `local-reel-${index}`,
+        auditId,
+        createdAt: now,
+      })
+    ),
+  };
 }
 
 async function createAudit(formData: FormData) {
@@ -206,18 +304,28 @@ function AuditResult({ detail }: { detail: AgentEvaluationAuditDetail }) {
 export default async function AgentEvalPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ audit?: string }>;
+  searchParams?: Promise<AgentEvalSearchParams>;
 }) {
-  const { userId, orgId } = await requireSignedIn();
-  const ownerId = orgId ?? userId;
+  const auth = await getRequestAuth();
+  const ownerId = auth ? (auth.orgId ?? auth.userId) : null;
   const params = (await searchParams) ?? {};
   const auditId = params.audit;
-  const [auditsResult, detailResult] = await Promise.allSettled([
-    api.agentEvaluationAudits(ownerId, 8),
-    auditId ? api.agentEvaluationAudit(ownerId, auditId) : Promise.resolve(null),
-  ]);
+  const localDetail = localInput(params);
+  const [auditsResult, detailResult] = ownerId
+    ? await Promise.allSettled([
+        api.agentEvaluationAudits(ownerId, 8),
+        auditId ? api.agentEvaluationAudit(ownerId, auditId) : Promise.resolve(null),
+      ])
+    : [
+        { status: 'fulfilled' as const, value: { audits: [] } },
+        { status: 'fulfilled' as const, value: null },
+      ];
   const audits = auditsResult.status === 'fulfilled' ? auditsResult.value.audits : [];
-  const detail = detailResult.status === 'fulfilled' ? detailResult.value : null;
+  const detail = localDetail
+    ? buildLocalAuditDetail(localDetail)
+    : detailResult.status === 'fulfilled'
+      ? detailResult.value
+      : null;
 
   return (
     <PageShell max="max-w-5xl">
@@ -244,7 +352,8 @@ export default async function AgentEvalPage({
 
       <section className="mt-10 grid gap-8 md:grid-cols-[0.95fr_1.05fr]">
         <Panel eyebrow="new audit" title="Recommendation-worthiness">
-          <form action={createAudit}>
+          <form action={ownerId ? createAudit : '/agent-eval'} method={ownerId ? undefined : 'get'}>
+            {!ownerId ? <input type="hidden" name="local" value="1" /> : null}
             <Field label="Brand" name="brandName" defaultValue="High Signal" />
             <Field label="Brand URL" name="brandUrl" defaultValue="https://highsignalsuite.com" />
             <Field
@@ -275,11 +384,20 @@ export default async function AgentEvalPage({
               defaultValue="https://highsignalsuite.com/signals https://highsignalsuite.com/digest"
               multiline
             />
-            <CommandButton>run audit</CommandButton>
+            <CommandButton>{ownerId ? 'run and save audit' : 'run local audit'}</CommandButton>
           </form>
         </Panel>
 
-        <Panel eyebrow="recent audits" title="History">
+        <Panel
+          eyebrow={ownerId ? 'recent audits' : 'local mode'}
+          title={ownerId ? 'History' : 'No login required'}
+        >
+          {!ownerId ? (
+            <p className="mt-5 text-sm leading-6 text-[var(--color-muted)]">
+              You can run the deterministic local evaluator without signing in. Login is only needed
+              to save audit history, rerun previous audits, and attach results to a tracked brand.
+            </p>
+          ) : null}
           <div className="mt-5 divide-y divide-[var(--color-line)] border-y border-[var(--color-line)]">
             {audits.length ? (
               audits.map((audit) => (

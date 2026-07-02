@@ -35,7 +35,7 @@ Output STRICT JSON (no commentary):
   "predicted_window_days": <int 5-90>,
   "spillover_entity_ids": ["TSMC","ASML",...],
   "headline": "<<= 90 chars>",
-  "body_md": "<150-400 word evidence walkthrough citing each source by URL>"
+  "body_md": "<150-400 word evidence walkthrough citing each source by URL, with a short 'What the sources said' quote section>"
 }
 
 Rules:
@@ -45,6 +45,10 @@ Rules:
   aligned items instead of publish=false.
 - Cite every supplied source used in body_md as inline links. Medium/high
   confidence drafts need ≥ 2 distinct sources; low confidence drafts may use 1.
+- Include 2-4 short source quotations or near-verbatim snippets in a section
+  called "What the sources said". Keep each quote under 35 words and tie it to
+  the source URL. If a source does not provide useful quotable text, summarize
+  the concrete datum instead of inventing a quote.
 - "confidence" calibration:
   - low: single source, weak source, rumor, or early uncorroborated clue
   - medium: 2 corroborating sources
@@ -473,7 +477,7 @@ Output STRICT JSON array (no commentary):
     "predicted_window_days": <int 5-90>,
     "spillover_entity_ids": ["TSMC","ASML",...],
     "headline": "<<= 90 chars>",
-    "body_md": "<150-400 word evidence walkthrough citing each source by URL>"
+    "body_md": "<150-400 word evidence walkthrough citing each source by URL, with a short 'What the sources said' quote section>"
   },
   ...
 ]
@@ -485,6 +489,10 @@ Rules (same as single-entity, applied per entity):
   aligned items instead of publish=false.
 - Cite every supplied source used in body_md as inline links. Medium/high
   confidence drafts need ≥ 2 distinct sources; low confidence drafts may use 1.
+- Include 2-4 short source quotations or near-verbatim snippets in a section
+  called "What the sources said". Keep each quote under 35 words and tie it to
+  the source URL. If a source does not provide useful quotable text, summarize
+  the concrete datum instead of inventing a quote.
 - "confidence" calibration:
   - low: single source, weak source, rumor, or early uncorroborated clue
   - medium: 2 corroborating sources

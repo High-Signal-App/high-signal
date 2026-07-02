@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Route } from 'next';
 import { notFound } from 'next/navigation';
 import { api } from '@/lib/api';
 import { isBackfillSignal, signalHeadline, signalSummary } from '@/lib/signal-format';
@@ -7,6 +7,7 @@ import { DirectionPill } from '@/components/atoms/DirectionPill';
 import { ConfidenceBadge } from '@/components/atoms/ConfidenceBadge';
 import { MarkdownView } from '@/components/system/MarkdownView';
 import { SignalArticleJsonLd } from '@/components/seo/structured-data';
+import catalog from '@/lib/source-catalog.json';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,6 +17,58 @@ function deriveHeadline(bodyMd: string): string {
 
 function markdownWithoutFirstHeading(markdown: string) {
   return markdown.replace(/^\s*#\s+.+\n+/, '').trim();
+}
+
+function confidenceCopy(score: number | undefined, independentSources: number | undefined) {
+  if (typeof score !== 'number') return 'Confidence is based on cited evidence and source quality.';
+  const sources = independentSources ?? 0;
+  if (score >= 85)
+    return `Strong evidence: ${sources} independent source class${sources === 1 ? '' : 'es'} support this read.`;
+  if (score >= 65)
+    return `Usable evidence: enough corroboration to publish, with ${sources} independent source class${sources === 1 ? '' : 'es'}.`;
+  if (score >= 45) return 'Watch item: useful signal, but still thin or early.';
+  return 'Draft-grade evidence: keep this out of the public feed unless corroboration improves.';
+}
+
+function hostLabel(url: string) {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '');
+  } catch {
+    return url;
+  }
+}
+
+const CATALOG_SOURCE_IDS = new Set(
+  (catalog.sources as Array<{ id: string }>).map((source) => source.id)
+);
+
+function sourceFamily(sourceType: string) {
+  const raw = sourceType.toLowerCase();
+  if (raw.startsWith('china-news:') || raw.startsWith('news:china-news-')) return 'china-news';
+  if (raw.startsWith('scmp:') || raw.startsWith('news:scmp-')) return 'scmp';
+  if (raw === 'market') return 'markets';
+  if (raw === 'package' || raw === 'osv') return 'packages';
+  if (raw === 'regulations-gov') return 'regulations';
+  const first = raw.split(':', 1)[0] ?? raw;
+  if (CATALOG_SOURCE_IDS.has(first)) return first;
+  return CATALOG_SOURCE_IDS.has(raw) ? raw : null;
+}
+
+function evidenceDay(value: number | string | null | undefined) {
+  if (value == null) return null;
+  const date =
+    typeof value === 'number'
+      ? new Date(value > 1_000_000_000_000 ? value : value * 1000)
+      : new Date(value);
+  if (!Number.isFinite(date.getTime())) return null;
+  return date.toISOString().slice(0, 10);
+}
+
+function evidenceDataHref(sourceType: string, publishedAt: number | string | null | undefined) {
+  const source = sourceFamily(sourceType);
+  const day = evidenceDay(publishedAt);
+  if (!source || !day) return null;
+  return `/data/${encodeURIComponent(source)}?date=${day}` as Route;
 }
 
 export async function generateMetadata({
@@ -127,6 +180,11 @@ export default async function SignalDetail({ params }: { params: Promise<{ slug:
           <span>
             evidence <span className="nums text-zinc-300">{evidence.length}</span>
           </span>
+          {typeof signal.qualityScore === 'number' && (
+            <span>
+              confidence score <span className="nums text-zinc-300">{signal.qualityScore}</span>
+            </span>
+          )}
           {price.price ? (
             <span>
               price{' '}
@@ -137,6 +195,36 @@ export default async function SignalDetail({ params }: { params: Promise<{ slug:
           ) : null}
         </div>
       </header>
+
+      <section className="mt-8 border border-zinc-800 bg-zinc-950/35 p-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">
+              confidence score
+            </h2>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-300">
+              {confidenceCopy(signal.qualityScore, signal.independentSourceCount)}
+            </p>
+          </div>
+          {typeof signal.qualityScore === 'number' && (
+            <div className="nums shrink-0 text-4xl font-medium text-zinc-100">
+              {signal.qualityScore}
+            </div>
+          )}
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500">
+          <span>{signal.confidence} confidence</span>
+          {typeof signal.independentSourceCount === 'number' && (
+            <span>{signal.independentSourceCount} independent source classes</span>
+          )}
+          {signal.sourceClasses?.map((sourceClass) => (
+            <span key={sourceClass}>{sourceClass}</span>
+          ))}
+          {signal.qualityReasons?.map((reason) => (
+            <span key={reason}>{reason.replaceAll('_', ' ')}</span>
+          ))}
+        </div>
+      </section>
 
       {price.status !== 'unknown' ? (
         <section className="mt-8 border-y border-zinc-800 py-5">
@@ -273,23 +361,61 @@ export default async function SignalDetail({ params }: { params: Promise<{ slug:
       )}
 
       <section className="mt-12 border-t border-zinc-800 pt-6">
-        <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">evidence</h2>
-        <ul className="mt-4 space-y-2">
-          {evidence.map((e) => (
-            <li key={e.id} className="border-b border-zinc-900 py-2">
-              <a
-                href={e.url}
-                target="_blank"
-                rel="noreferrer"
-                className="text-sm text-zinc-200 underline-offset-4 hover:underline"
-              >
-                {e.url}
-              </a>
-              <div className="mt-1 font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
-                {e.sourceType}
-              </div>
-            </li>
-          ))}
+        <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">
+          source data used
+        </h2>
+        <ul className="mt-4 space-y-3">
+          {evidence.map((e) => {
+            const dataHref = evidenceDataHref(e.sourceType, e.publishedAt);
+            const day = evidenceDay(e.publishedAt);
+            return (
+              <li key={e.id} className="border border-zinc-900 p-3">
+                <div className="flex flex-wrap items-center gap-2 font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
+                  <span>{e.sourceType}</span>
+                  {day ? (
+                    <>
+                      <span className="text-zinc-700">·</span>
+                      <span>{day}</span>
+                    </>
+                  ) : null}
+                  <span className="text-zinc-700">·</span>
+                  <a
+                    href={e.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="truncate text-zinc-300 underline-offset-4 hover:underline"
+                  >
+                    {hostLabel(e.url)}
+                  </a>
+                  {dataHref ? (
+                    <>
+                      <span className="text-zinc-700">·</span>
+                      <a
+                        href={dataHref}
+                        className="text-[var(--color-accent)] underline-offset-4 hover:underline"
+                      >
+                        source day
+                      </a>
+                    </>
+                  ) : null}
+                </div>
+                {e.excerpt ? (
+                  <blockquote className="mt-3 border-l-2 border-zinc-700 pl-3 text-sm leading-6 text-zinc-300">
+                    “{e.excerpt}”
+                  </blockquote>
+                ) : (
+                  <a
+                    href={e.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-2 block truncate text-sm text-zinc-400 underline-offset-4 hover:underline"
+                  >
+                    {e.url}
+                  </a>
+                )}
+              </li>
+            );
+          })}
         </ul>
       </section>
 

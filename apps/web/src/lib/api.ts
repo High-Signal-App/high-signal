@@ -274,6 +274,7 @@ export interface DataSourceEvent {
 }
 export interface DataSourceEventsResponse {
   id: string;
+  date?: string;
   total: number;
   events: DataSourceEvent[];
   hasMore: boolean;
@@ -318,10 +319,11 @@ export interface IntentOpportunity {
 export const api = {
   signals: (f: SignalFilters = {}) => fetchJson<{ signals: SignalRow[] }>(`/signals${qs(f)}`),
   dataSources: () => fetchJson<DataSourcesResponse>('/data/sources'),
-  dataSourceEvents: (id: string, opts: { limit?: number; offset?: number } = {}) => {
+  dataSourceEvents: (id: string, opts: { limit?: number; offset?: number; date?: string } = {}) => {
     const p = new URLSearchParams();
     if (opts.limit != null) p.set('limit', String(opts.limit));
     if (opts.offset != null) p.set('offset', String(opts.offset));
+    if (opts.date) p.set('date', opts.date);
     const q = p.toString();
     return fetchJson<DataSourceEventsResponse>(
       `/data/sources/${encodeURIComponent(id)}${q ? `?${q}` : ''}`
@@ -331,7 +333,13 @@ export const api = {
   signal: (slug: string) =>
     fetchJson<{
       signal: SignalRow;
-      evidence: Array<{ id: string; url: string; sourceType: string; excerpt: string | null }>;
+      evidence: Array<{
+        id: string;
+        url: string;
+        sourceType: string;
+        excerpt: string | null;
+        publishedAt?: number | string | null;
+      }>;
       scores: Array<{
         id: string;
         outcome: Outcome;

@@ -13,9 +13,12 @@ export interface Front {
   predicted_window_days: number;
   published_at: string;
   evidence_urls: string[];
+  evidence_quotes?: string[];
+  evidence_source_types?: string[];
+  evidence_published_at?: string[];
   spillover_entity_ids?: string[];
   supersedes?: string | null;
-  review_status: "draft" | "published" | "corrected";
+  review_status: "draft" | "published" | "corrected" | "killed";
 }
 
 const REQUIRED_FRONT_KEYS = [
@@ -38,7 +41,7 @@ export function parseTinyYaml(yaml: string): Record<string, unknown> {
     const line = lineRaw.replace(/\s+$/, "");
     if (!line.length) continue;
     if (listKey && line.startsWith("  - ")) {
-      listAcc.push(line.slice(4).trim());
+      listAcc.push(unquote(line.slice(4).trim()));
       continue;
     } else if (listKey) {
       out[listKey] = listAcc;
@@ -63,11 +66,15 @@ export function parseTinyYaml(yaml: string): Record<string, unknown> {
         .map((s) => s.trim())
         .filter(Boolean);
     } else {
-      out[k] = v.replace(/^['"]|['"]$/g, "");
+      out[k] = unquote(v);
     }
   }
   if (listKey) out[listKey] = listAcc;
   return out;
+}
+
+function unquote(value: string): string {
+  return value.replace(/^['"]|['"]$/g, "");
 }
 
 export function parseFrontmatter(md: string): { front: Front; body: string } {
@@ -93,7 +100,7 @@ function validateFront(raw: Record<string, unknown>): Front {
   if (typeof raw.predicted_window_days !== "number") {
     throw new Error("predicted_window_days must be an integer");
   }
-  const allowedReview = new Set(["draft", "published", "corrected"]);
+  const allowedReview = new Set(["draft", "published", "corrected", "killed"]);
   if (!allowedReview.has(String(raw.review_status))) {
     throw new Error(`review_status must be one of ${[...allowedReview].join("|")}`);
   }
