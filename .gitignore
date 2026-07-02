@@ -40,6 +40,7 @@ data/equities-snapshot.jsonl
 apps/web/.cf-pages-bundle/
 
 # Local agent-tooling runtime artifacts (session logs/state, not product code)
+.commandcode/
 .omx/
 .symphony/
 .clawpatch/

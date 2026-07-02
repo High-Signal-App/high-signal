@@ -972,6 +972,59 @@ export const citedUrlIndex = sqliteTable(
   ],
 );
 
+export const intentOpportunities = sqliteTable(
+  "intent_opportunities",
+  {
+    id: text("id").primaryKey(),
+    brandId: text("brand_id")
+      .notNull()
+      .references(() => mentionBrandConfigs.id),
+    ownerId: text("owner_id").notNull(),
+    source: text("source").notNull(),
+    sourceUrl: text("source_url").notNull(),
+    sourceTitle: text("source_title").notNull(),
+    sourceExcerpt: text("source_excerpt").notNull(),
+    platform: text("platform").notNull(),
+    intentStage: text("intent_stage", {
+      enum: [
+        "awareness",
+        "pain",
+        "comparison",
+        "purchase",
+        "proof",
+        "integration",
+        "content",
+      ],
+    }).notNull(),
+    actionType: text("action_type", {
+      enum: [
+        "watch",
+        "reply",
+        "create_proof",
+        "improve_docs",
+        "add_integration",
+        "write_comparison",
+        "content_opportunity",
+      ],
+    }).notNull(),
+    score: integer("score").notNull(),
+    competitors: text("competitors", { mode: "json" }).notNull().default("[]"),
+    matchedKeywords: text("matched_keywords", { mode: "json" }).notNull().default("[]"),
+    evidenceTaskId: text("evidence_task_id"),
+    replyDraft: text("reply_draft"),
+    status: text("status", { enum: ["open", "dismissed", "done"] })
+      .notNull()
+      .default("open"),
+    foundAt: integer("found_at", { mode: "timestamp" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+  },
+  (t) => [
+    uniqueIndex("intent_opportunities_brand_url_idx").on(t.brandId, t.sourceUrl),
+    index("intent_opportunities_brand_score_idx").on(t.brandId, t.status, t.score),
+    index("intent_opportunities_owner_updated_idx").on(t.ownerId, t.updatedAt),
+  ],
+);
+
 // ─── Daily brief snapshots (migration 0013) ───────────────────────────────
 // Precomputed brief JSON per region per day, populated by cron.
 // Eliminates 5-14 sequential D1 queries per /brief/daily request.

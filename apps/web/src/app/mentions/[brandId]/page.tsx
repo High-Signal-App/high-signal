@@ -2,13 +2,58 @@ import Link from 'next/link';
 import type { Route } from 'next';
 import { api } from '@/lib/api';
 import { requireSignedIn } from '@/lib/require-auth';
+import { revalidatePath } from 'next/cache';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Brand visibility — High Signal' };
 
-type Tab = 'visibility' | 'sources' | 'trends' | 'report';
+type Tab = 'visibility' | 'intent' | 'sources' | 'trends' | 'report';
 
-const TABS: Tab[] = ['visibility', 'sources', 'trends', 'report'];
+const TABS: Tab[] = ['visibility', 'intent', 'sources', 'trends', 'report'];
+
+async function refreshIntent(formData: FormData) {
+  'use server';
+  const { userId, orgId } = await requireSignedIn();
+  const ownerId = orgId ?? userId;
+  const brandId = `${formData.get('brandId') ?? ''}`.trim();
+  const windowDays = Math.max(7, Math.min(Number(formData.get('windowDays') ?? 14), 90));
+  if (!brandId) return;
+  await api.refreshIntentOpportunities(ownerId, brandId, windowDays);
+  revalidatePath(`/mentions/${brandId}`);
+}
+
+async function updateIntentStatus(formData: FormData) {
+  'use server';
+  const { userId, orgId } = await requireSignedIn();
+  const ownerId = orgId ?? userId;
+  const brandId = `${formData.get('brandId') ?? ''}`.trim();
+  const opportunityId = `${formData.get('opportunityId') ?? ''}`.trim();
+  const status = `${formData.get('status') ?? ''}`.trim();
+  if (
+    !brandId ||
+    !opportunityId ||
+    (status !== 'open' && status !== 'dismissed' && status !== 'done')
+  ) {
+    return;
+  }
+  await api.updateIntentOpportunity(ownerId, brandId, opportunityId, status);
+  revalidatePath(`/mentions/${brandId}`);
+}
+
+async function generateIntentReplyDraft(formData: FormData) {
+  'use server';
+  const { userId, orgId } = await requireSignedIn();
+  const ownerId = orgId ?? userId;
+  const brandId = `${formData.get('brandId') ?? ''}`.trim();
+  const opportunityId = `${formData.get('opportunityId') ?? ''}`.trim();
+  if (!brandId || !opportunityId) return;
+  try {
+    await api.generateIntentReplyDraft(ownerId, brandId, opportunityId);
+  } catch {
+    // AI keys are optional; the inbox still works without reply drafts.
+  }
+  revalidatePath(`/mentions/${brandId}`);
+}
 
 export default async function BrandVisibilityPage({
   params,
@@ -59,6 +104,9 @@ export default async function BrandVisibilityPage({
       <div className="mt-8">
         {tab === 'visibility' && (
           <VisibilityTab ownerId={ownerId} brandId={brandId} windowDays={windowDays} />
+        )}
+        {tab === 'intent' && (
+          <IntentTab ownerId={ownerId} brandId={brandId} windowDays={windowDays} />
         )}
         {tab === 'sources' && <SourcesTab ownerId={ownerId} brandId={brandId} />}
         {tab === 'trends' && (
@@ -131,6 +179,146 @@ async function VisibilityTab({
           ))}
         </tbody>
       </table>
+    </section>
+  );
+}
+
+async function IntentTab({
+  ownerId,
+  brandId,
+  windowDays,
+}: {
+  ownerId: string;
+  brandId: string;
+  windowDays: number;
+}) {
+  let opportunities: Awaited<ReturnType<typeof api.intentOpportunities>>['opportunities'] = [];
+  try {
+    const r = await api.intentOpportunities(ownerId, brandId, { limit: 40 });
+    opportunities = r.opportunities;
+  } catch {
+    return <EmptyState text="intent inbox unavailable — apply migration 0014 first" />;
+  }
+
+  return (
+    <section>
+      <div className="flex flex-col gap-3 border border-zinc-800 p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">
+            buyer intent inbox
+          </h2>
+          <p className="mt-2 max-w-2xl text-sm text-zinc-400">
+            Scored community and developer-source items where buyers compare, complain, ask for
+            proof, or show purchase intent. These are operator-reviewed actions, not auto-posts.
+          </p>
+        </div>
+        <form action={refreshIntent}>
+          <input type="hidden" name="brandId" value={brandId} />
+          <input type="hidden" name="windowDays" value={Math.min(windowDays, 90)} />
+          <button
+            type="submit"
+            className="border border-[var(--color-accent)] px-3 py-2 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-accent)] hover:bg-white/[0.04]"
+          >
+            refresh
+          </button>
+        </form>
+      </div>
+
+      {opportunities.length === 0 ? (
+        <div className="mt-6">
+          <EmptyState text="no open intent items yet — refresh after ingest has community events" />
+        </div>
+      ) : (
+        <ul className="mt-6 space-y-3">
+          {opportunities.map((item) => (
+            <li key={item.id} className="border border-zinc-800 p-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2 font-mono text-[10px] uppercase tracking-[0.18em]">
+                    <span className="border border-zinc-700 px-1.5 py-0.5 text-zinc-400">
+                      {item.source}
+                    </span>
+                    <span className="border border-cyan-500/40 px-1.5 py-0.5 text-cyan-300">
+                      {item.intentStage}
+                    </span>
+                    <span className="border border-zinc-700 px-1.5 py-0.5 text-zinc-400">
+                      {item.actionType.replaceAll('_', ' ')}
+                    </span>
+                    <span className="nums text-zinc-500">{item.score}</span>
+                  </div>
+                  <a
+                    href={item.sourceUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-3 block truncate text-sm font-medium text-zinc-100 hover:text-[var(--color-accent)]"
+                  >
+                    {item.sourceTitle}
+                  </a>
+                  <p className="mt-2 line-clamp-3 text-sm leading-6 text-zinc-400">
+                    {item.sourceExcerpt}
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500">
+                    {item.competitors.length > 0 && (
+                      <span>competitors: {item.competitors.slice(0, 3).join(', ')}</span>
+                    )}
+                    {item.matchedKeywords.length > 0 && (
+                      <span>matched: {item.matchedKeywords.slice(0, 4).join(', ')}</span>
+                    )}
+                    {item.evidenceTaskId && <span>evidence task linked</span>}
+                    <span>{new Date(item.foundAt).toISOString().slice(0, 10)}</span>
+                  </div>
+                  {item.replyDraft && (
+                    <div className="mt-4 border border-zinc-800 bg-zinc-950/40 p-3">
+                      <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
+                        operator-reviewed reply draft
+                      </div>
+                      <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-zinc-300">
+                        {item.replyDraft}
+                      </p>
+                    </div>
+                  )}
+                </div>
+                <div className="flex shrink-0 flex-wrap gap-2">
+                  {!item.replyDraft && (
+                    <form action={generateIntentReplyDraft}>
+                      <input type="hidden" name="brandId" value={brandId} />
+                      <input type="hidden" name="opportunityId" value={item.id} />
+                      <button
+                        type="submit"
+                        className="border border-zinc-700 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-400 hover:border-cyan-400 hover:text-cyan-300"
+                      >
+                        draft
+                      </button>
+                    </form>
+                  )}
+                  <form action={updateIntentStatus}>
+                    <input type="hidden" name="brandId" value={brandId} />
+                    <input type="hidden" name="opportunityId" value={item.id} />
+                    <input type="hidden" name="status" value="done" />
+                    <button
+                      type="submit"
+                      className="border border-zinc-700 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-400 hover:border-emerald-400 hover:text-emerald-300"
+                    >
+                      done
+                    </button>
+                  </form>
+                  <form action={updateIntentStatus}>
+                    <input type="hidden" name="brandId" value={brandId} />
+                    <input type="hidden" name="opportunityId" value={item.id} />
+                    <input type="hidden" name="status" value="dismissed" />
+                    <button
+                      type="submit"
+                      className="border border-zinc-700 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-400 hover:border-rose-400 hover:text-rose-300"
+                    >
+                      dismiss
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   );
 }
@@ -312,6 +500,31 @@ async function ReportTab({
           ))}
           {report.citedSources.length === 0 && (
             <li className="text-zinc-500">no indexed sources yet</li>
+          )}
+        </ul>
+      </div>
+
+      <div>
+        <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">
+          top intent opportunities
+        </h2>
+        <ul className="mt-3 space-y-1 font-mono text-[11px]">
+          {report.intentOpportunities.slice(0, 10).map((item) => (
+            <li key={item.id} className="flex items-center gap-2 border-b border-zinc-900 py-1">
+              <span className="nums w-8 text-zinc-500">{item.score}</span>
+              <span className="text-zinc-500">{item.intentStage}</span>
+              <a
+                href={item.sourceUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="flex-1 truncate text-zinc-300 hover:underline"
+              >
+                {item.sourceTitle}
+              </a>
+            </li>
+          ))}
+          {report.intentOpportunities.length === 0 && (
+            <li className="text-zinc-500">no intent items yet</li>
           )}
         </ul>
       </div>

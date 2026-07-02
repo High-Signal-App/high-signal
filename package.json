@@ -46,6 +46,7 @@
     "brief-delivery:test": "tsx scripts/brief-delivery.test.ts",
     "watchlist-impact:test": "tsx scripts/watchlist-impact.test.ts",
     "openlens-visibility:test": "tsx scripts/openlens-visibility.test.ts",
+    "intent-opportunities:test": "tsx scripts/intent-opportunities.test.ts",
     "seo:test": "tsx scripts/seo-json-ld.test.ts",
     "signals:test": "tsx scripts/sync-signals.test.ts",
     "requirements:test": "tsx scripts/daily-requirements.test.ts",

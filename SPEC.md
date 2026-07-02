@@ -193,6 +193,21 @@ These are the closest products to the actual `High Signal` concept.
 
 These are not exact copies, but they solve major parts of the same workflow.
 
+- [Octolens](https://octolens.com/)
+  - Role: AI-filtered social listening for SaaS and developer brands.
+  - Verified features: Reddit, X, LinkedIn, GitHub, Hacker News, podcasts/news coverage; Slack/email/webhook/API/MCP delivery; competitor and buying-intent feeds.
+  - Why it matters: sets the integration/workflow bar for Mentions. High Signal must beat it on interpretation, evidence linkage, and Daily Brief actions, not raw notification delivery.
+
+- [Peekaboo](https://www.aipeekaboo.com/)
+  - Role: AI search visibility and analytics platform for brands/agencies.
+  - Verified features: ChatGPT/Gemini/Perplexity/Google AI Mode tracking, AI visibility score, competitor comparison, brand visibility over time, citation/content pickup, GSC/Looker/GA/CMS integrations.
+  - Why it matters: validates the AI-visibility category. High Signal should beat it by connecting visibility gaps to cited evidence tasks, community demand, and recommendation-worthiness rather than generic GEO.
+
+- [Subreddit Signals](https://www.subredditsignals.com/)
+  - Role: Reddit buyer-intent and lead-generation product.
+  - Verified features: buyer-intent classification, subreddit discovery, reply guidance, Reddit/AI traffic attribution, case-study led proof, managed Reddit service.
+  - Why it matters: validates Reddit intent as a paid wedge. High Signal should generalize the intent inbox across sources and keep replies operator-reviewed.
+
 - [AlphaSense](https://www.alpha-sense.com/press/alphasense-launches-autonomous-ai-agent-interviewer-debuts-channel-checks-to-deliver-real-time-market-signals-across-all-sectors-of-the-economy/)
   - Role: market intelligence and agentic research platform.
   - Verified features: Generative Search, Deep Research, workflow agents, expert interviews, channel checks, internal content support.
@@ -328,6 +343,7 @@ The most common feature clusters are:
 - transparent versioned signal history instead of one-off summaries
 - signal hit-rate tracking by signal type
 - a product that feels like "company futures intelligence" rather than "research assistant" or "trading tool"
+- one brand-connected loop that combines AI visibility, cited-source gaps, buyer-intent community posts, proof tasks, and report-ready next actions
 
 ## Data Sources Reality
 

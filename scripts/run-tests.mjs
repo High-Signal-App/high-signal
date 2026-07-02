@@ -34,6 +34,7 @@ const TSX_SUITES = [
   ["brief-delivery", "scripts/brief-delivery.test.ts"],
   ["watchlist-impact", "scripts/watchlist-impact.test.ts"],
   ["openlens-visibility", "scripts/openlens-visibility.test.ts"],
+  ["intent-opportunities", "scripts/intent-opportunities.test.ts"],
 ];
 
 const tsxBin = resolve(ROOT, "node_modules/.bin/tsx");

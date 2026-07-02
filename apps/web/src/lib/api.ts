@@ -280,6 +280,41 @@ export interface DataSourceEventsResponse {
   available: boolean;
 }
 
+export interface IntentOpportunity {
+  id: string;
+  brandId: string;
+  ownerId: string;
+  source: string;
+  sourceUrl: string;
+  sourceTitle: string;
+  sourceExcerpt: string;
+  platform: string;
+  intentStage:
+    | 'awareness'
+    | 'pain'
+    | 'comparison'
+    | 'purchase'
+    | 'proof'
+    | 'integration'
+    | 'content';
+  actionType:
+    | 'watch'
+    | 'reply'
+    | 'create_proof'
+    | 'improve_docs'
+    | 'add_integration'
+    | 'write_comparison'
+    | 'content_opportunity';
+  score: number;
+  competitors: string[];
+  matchedKeywords: string[];
+  evidenceTaskId: string | null;
+  replyDraft: string | null;
+  status: 'open' | 'dismissed' | 'done';
+  foundAt: string;
+  updatedAt: string;
+}
+
 export const api = {
   signals: (f: SignalFilters = {}) => fetchJson<{ signals: SignalRow[] }>(`/signals${qs(f)}`),
   dataSources: () => fetchJson<DataSourcesResponse>('/data/sources'),
@@ -597,6 +632,51 @@ export const api = {
     }>(
       `/products/mentions/${encodeURIComponent(brandId)}/cited-sources?owner=${encodeURIComponent(ownerId)}${ownership ? `&ownership=${ownership}` : ''}`
     ),
+  intentOpportunities: (
+    ownerId: string,
+    brandId: string,
+    opts: { status?: 'open' | 'dismissed' | 'done'; source?: string; limit?: number } = {}
+  ) => {
+    const params = new URLSearchParams({ owner: ownerId });
+    if (opts.status) params.set('status', opts.status);
+    if (opts.source) params.set('source', opts.source);
+    if (opts.limit != null) params.set('limit', String(opts.limit));
+    return fetchJson<{ opportunities: IntentOpportunity[]; status: string }>(
+      `/products/mentions/${encodeURIComponent(brandId)}/intent-opportunities?${params}`
+    );
+  },
+  refreshIntentOpportunities: (ownerId: string, brandId: string, window = 14) =>
+    fetchJson<{ upserts: number; scanned: number; windowDays: number }>(
+      `/products/mentions/${encodeURIComponent(brandId)}/intent-opportunities/refresh?window=${window}&owner=${encodeURIComponent(ownerId)}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{}',
+      }
+    ),
+  updateIntentOpportunity: (
+    ownerId: string,
+    brandId: string,
+    id: string,
+    status: 'open' | 'dismissed' | 'done'
+  ) =>
+    fetchJson<{ opportunity: IntentOpportunity }>(
+      `/products/mentions/${encodeURIComponent(brandId)}/intent-opportunities/${encodeURIComponent(id)}?owner=${encodeURIComponent(ownerId)}`,
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      }
+    ),
+  generateIntentReplyDraft: (ownerId: string, brandId: string, id: string) =>
+    fetchJson<{ opportunity: IntentOpportunity }>(
+      `/products/mentions/${encodeURIComponent(brandId)}/intent-opportunities/${encodeURIComponent(id)}/reply-draft?owner=${encodeURIComponent(ownerId)}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{}',
+      }
+    ),
   mentionTrends: (ownerId: string, brandId: string, window = 30) =>
     fetchJson<{
       points: Array<{
@@ -643,6 +723,7 @@ export const api = {
         ownership: string;
         mentionRunCount: number;
       }>;
+      intentOpportunities: IntentOpportunity[];
     }>(
       `/products/mentions/${encodeURIComponent(brandId)}/report?window=${window}&owner=${encodeURIComponent(ownerId)}`
     ),

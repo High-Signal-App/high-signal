@@ -29,13 +29,15 @@ function SectionShell({
   action,
 }: SectionShellProps) {
   return (
-    <section className="mt-10 border-y border-[var(--color-line)] py-6">
-      <header className="flex flex-wrap items-baseline justify-between gap-3">
+    <section className="mt-8 rounded-md border border-[var(--color-line)] bg-zinc-950/35 p-4 sm:p-5">
+      <header className="grid gap-4 border-b border-[var(--color-line)] pb-5 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
         <div>
           <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-accent)]">
             {eyebrow}
           </div>
-          <h2 className="mt-2 text-2xl font-medium tracking-tight">{title}</h2>
+          <h2 className="mt-2 text-2xl font-medium tracking-tight text-[var(--color-fg)]">
+            {title}
+          </h2>
           {description ? (
             <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--color-muted)]">
               {description}
@@ -44,9 +46,9 @@ function SectionShell({
         </div>
         {action}
       </header>
-      <div className="mt-6">
+      <div>
         {isEmpty ? (
-          <p className="text-sm leading-6 text-[var(--color-muted)]">
+          <p className="pt-5 text-sm leading-6 text-[var(--color-muted)]">
             {empty ?? 'Nothing here yet.'}
           </p>
         ) : (
@@ -84,7 +86,7 @@ function StockItem({ item }: { item: BriefStockItem }) {
         ? 'text-[var(--color-accent)]'
         : 'text-rose-300';
   return (
-    <article className="grid gap-3 border-b border-[var(--color-line)] py-5 md:grid-cols-[1fr_220px]">
+    <article className="grid gap-4 border-b border-[var(--color-line)] py-5 transition-colors last:border-b-0 hover:bg-white/[0.025] md:grid-cols-[1fr_230px] md:px-3">
       <div>
         <div className="flex flex-wrap items-baseline gap-3 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
           <span className="text-[var(--color-fg)]">{item.entityName}</span>
@@ -97,7 +99,7 @@ function StockItem({ item }: { item: BriefStockItem }) {
         </div>
         <Link
           href={`/signals/${encodeURIComponent(item.signalSlug)}` as Route}
-          className="mt-3 block text-lg font-medium tracking-tight hover:text-[var(--color-accent)]"
+          className="mt-3 block text-xl font-medium leading-7 tracking-tight hover:text-[var(--color-accent)]"
         >
           {item.headline}
         </Link>
@@ -118,7 +120,7 @@ function StockItem({ item }: { item: BriefStockItem }) {
           </ul>
         ) : null}
       </div>
-      <div className="border border-[var(--color-line)] p-3 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
+      <div className="rounded-md border border-[var(--color-line)] bg-black/20 p-3 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
         <div>{bandCopy}</div>
         <div className={`mt-2 text-xl font-medium ${hitRateColor}`}>
           {item.hitRate == null
@@ -143,12 +145,12 @@ function StockItem({ item }: { item: BriefStockItem }) {
 
 function IdeaItem({ item }: { item: BriefIdeaItem }) {
   return (
-    <article className="border-b border-[var(--color-line)] py-5">
+    <article className="border-b border-[var(--color-line)] py-5 transition-colors last:border-b-0 hover:bg-white/[0.025] sm:px-3">
       <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
         {item.source} {item.subreddit ? `/ r/${item.subreddit}` : ''} ·{' '}
         {item.surfacedAt.slice(0, 10)}
       </div>
-      <h3 className="mt-2 text-lg font-medium tracking-tight">{item.title}</h3>
+      <h3 className="mt-2 max-w-3xl text-xl font-medium leading-7 tracking-tight">{item.title}</h3>
       <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--color-muted)]">
         {item.description}
       </p>
@@ -174,11 +176,11 @@ function IdeaItem({ item }: { item: BriefIdeaItem }) {
 
 function TrendItem({ item }: { item: BriefTrendItem }) {
   return (
-    <article className="border-b border-[var(--color-line)] py-5">
+    <article className="border-b border-[var(--color-line)] py-5 transition-colors last:border-b-0 hover:bg-white/[0.025] sm:px-3">
       <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
         r/{item.subreddit} · {item.surfacedAt.slice(0, 10)}
       </div>
-      <h3 className="mt-2 text-lg font-medium tracking-tight">{item.title}</h3>
+      <h3 className="mt-2 max-w-3xl text-xl font-medium leading-7 tracking-tight">{item.title}</h3>
       <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--color-muted)]">
         {item.description}
       </p>
@@ -198,31 +200,31 @@ function TrendItem({ item }: { item: BriefTrendItem }) {
 
 function PerceptionItem({ item }: { item: BriefPerceptionItem }) {
   return (
-    <article className="grid gap-3 border-b border-[var(--color-line)] py-5 md:grid-cols-[1fr_repeat(3,minmax(0,110px))]">
+    <article className="grid gap-3 border-b border-[var(--color-line)] py-5 transition-colors last:border-b-0 hover:bg-white/[0.025] md:grid-cols-[1fr_repeat(3,minmax(0,116px))] md:px-3">
       <div>
         <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
           {item.latestCheckAt?.slice(0, 16).replace('T', ' ') ?? 'no check yet'}
         </div>
         <Link
           href={`/mentions?config=${encodeURIComponent(item.configId)}` as Route}
-          className="mt-2 block text-lg font-medium tracking-tight hover:text-[var(--color-accent)]"
+          className="mt-2 block text-xl font-medium tracking-tight hover:text-[var(--color-accent)]"
         >
           {item.brandName}
         </Link>
       </div>
-      <div className="border border-[var(--color-line)] p-3 text-center font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
+      <div className="rounded-md border border-[var(--color-line)] bg-black/20 p-3 text-center font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
         <div>mentioned</div>
         <div className="mt-2 text-lg font-medium text-[var(--color-fg)]">
           {formatPct(item.mentionRate)}
         </div>
       </div>
-      <div className="border border-[var(--color-line)] p-3 text-center font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
+      <div className="rounded-md border border-[var(--color-line)] bg-black/20 p-3 text-center font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
         <div>positive</div>
         <div className="mt-2 text-lg font-medium text-[var(--color-fg)]">
           {formatPct(item.positiveShare)}
         </div>
       </div>
-      <div className="border border-[var(--color-line)] p-3 text-center font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
+      <div className="rounded-md border border-[var(--color-line)] bg-black/20 p-3 text-center font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
         <div>competitors</div>
         <div className="mt-2 text-lg font-medium text-[var(--color-fg)]">
           {formatPct(item.competitorPresence)}
@@ -234,7 +236,7 @@ function PerceptionItem({ item }: { item: BriefPerceptionItem }) {
 
 function ImprovementItem({ item }: { item: BriefImprovementItem }) {
   return (
-    <article className="grid grid-cols-[80px_1fr] gap-4 border-b border-[var(--color-line)] py-5">
+    <article className="grid gap-4 border-b border-[var(--color-line)] py-5 transition-colors last:border-b-0 hover:bg-white/[0.025] sm:grid-cols-[120px_1fr] sm:px-3">
       <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
         <div
           className={
@@ -268,7 +270,7 @@ export function BriefSections({ brief }: { brief: BriefSnapshot }) {
     <>
       <SectionShell
         eyebrow="01 / stocks watching for a boom"
-        title="Where finance and technology overlap"
+        title="Market change with receipts"
         description="Recent published market signals, ranked by direction and confidence. Hit-rate inline so you can size your trust per signal type."
         isEmpty={brief.stocks.length === 0}
         empty="No qualifying market signals this window. The ingest cron hasn't surfaced a fresh call yet."
@@ -281,7 +283,7 @@ export function BriefSections({ brief }: { brief: BriefSnapshot }) {
           </Link>
         }
       >
-        <p className="mb-4 border-l-2 border-[var(--color-line)] pl-3 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
+        <p className="my-4 border-l-2 border-[var(--color-line)] pl-3 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
           Decision support, not stock advice. Cited signals to inform your research — not a
           recommendation to buy, sell, or hold.
         </p>
@@ -294,8 +296,8 @@ export function BriefSections({ brief }: { brief: BriefSnapshot }) {
 
       <SectionShell
         eyebrow="02 / business ideas to build"
-        title="What demand is opening that nobody owns yet"
-        description="Aggregated 'key action' items from community digests. Each idea links back to the source thread."
+        title="Demand threads worth turning into product bets"
+        description="Aggregated key actions from community digests. Each idea links back to the source thread and stays framed as a validation target, not a brainstorm."
         isEmpty={brief.ideas.length === 0}
         empty="No fresh demand clusters surfaced from the tracked communities yet."
         action={
@@ -321,7 +323,7 @@ export function BriefSections({ brief }: { brief: BriefSnapshot }) {
 
       <SectionShell
         eyebrow="03 / new lifestyle trends"
-        title="How people are spending their time and attention"
+        title="Behavior shifts before they become categories"
         description="Key trends from the community digests. Lifestyle drift before it shows up in mainstream coverage."
         isEmpty={brief.trends.length === 0}
         empty="No new trend clusters in the latest community sweep."
@@ -335,7 +337,7 @@ export function BriefSections({ brief }: { brief: BriefSnapshot }) {
 
       <SectionShell
         eyebrow="04 / how the market perceives your products"
-        title="Brand visibility in AI assistants"
+        title="How agents and buyers perceive your product"
         description="Mention rate, sentiment, and competitor presence across the latest checks. Pick another product from the picker to recompose this section."
         isEmpty={brief.perception.length === 0}
         empty="No perception data — switch product in the picker."
@@ -357,7 +359,7 @@ export function BriefSections({ brief }: { brief: BriefSnapshot }) {
 
       <SectionShell
         eyebrow="05 / ideas to improve your products"
-        title="Evidence agents would expect to find but can't"
+        title="Proof tasks that make the product recommendable"
         description="Open missing-evidence tasks ordered by priority, scoped to the picked product."
         isEmpty={brief.improvements.length === 0}
         empty="No open tasks for this product."

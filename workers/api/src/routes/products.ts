@@ -1,8 +1,10 @@
 import { Hono } from "hono";
-import { and, desc, eq, gte } from "drizzle-orm";
+import { and, desc, eq, gte, inArray } from "drizzle-orm";
 import { db, schema } from "../db";
 import { BADGE_WIDGET_JS } from "../lib/badge-widget";
 import { sha16 } from "../lib/ids";
+import { fetchChatCompletion, FREE_AI_DEFAULT_ENDPOINT } from "../lib/ai-client";
+import type { AIConfig } from "../lib/ai-client";
 import { generateCommunityDigest } from "../lib/community-research";
 import { searchExternalMentions } from "../lib/external-monitors";
 import { runMentionCheck } from "../lib/mention-execution";
@@ -15,11 +17,14 @@ import {
   classifyOwnership,
   computeShareOfVoice,
   computeTrends,
+  COMMUNITY_INTENT_SOURCES,
   getSeedMonthlyCompetitorReport,
   hostOf,
   normalizeCommunitySummary,
+  scoreIntentOpportunity,
   sortAttributes,
   type AttributeRow,
+  type IntentOpportunityCandidate,
   type MatrixRow,
   type MentionRow,
 } from "@high-signal/shared";
@@ -87,6 +92,8 @@ type NewAgentAuditBody = Partial<{
   evidenceText: string | null;
   evidenceUrls: string[];
 }>;
+type IntentStatus = "open" | "dismissed" | "done";
+type PatchIntentOpportunityBody = Partial<{ status: IntentStatus }>;
 
 export const productsRoute = new Hono<{ Bindings: Env }>();
 
@@ -457,7 +464,9 @@ productsRoute.post("/mentions/configs/:id/checks", async (c) => {
       config,
       prompts,
       checkId: row.id,
-    }).catch((error) => console.error("High Signal mention check failed:", error)),
+    })
+      .then(() => refreshIntentOpportunitiesForBrand(database, ownerId, config, { windowDays: 14, limit: 50 }))
+      .catch((error) => console.error("High Signal mention check / intent refresh failed:", error)),
   );
 
   return c.json({ check: toMentionCheck(row) }, 201);
@@ -1396,6 +1405,124 @@ productsRoute.post("/mentions/:brandId/cited-sources/refresh", async (c) => {
   return c.json({ upserts, windowDays });
 });
 
+productsRoute.get("/mentions/:brandId/intent-opportunities", async (c) => {
+  const ownerId = requireOwner(c);
+  const brandId = c.req.param("brandId");
+  if (!(await loadOwnedBrand(c.env.DB, ownerId, brandId))) {
+    return c.json({ error: "brand_not_found" }, 404);
+  }
+
+  const status = parseIntentStatus(c.req.query("status")) ?? "open";
+  const source = c.req.query("source")?.trim();
+  const limit = clampedLimit(c.req.query("limit") ?? "25", 25, 100);
+  const rows = await db(c.env.DB)
+    .select()
+    .from(schema.intentOpportunities)
+    .where(
+      and(
+        eq(schema.intentOpportunities.brandId, brandId),
+        eq(schema.intentOpportunities.ownerId, ownerId),
+        eq(schema.intentOpportunities.status, status),
+      ),
+    )
+    .orderBy(desc(schema.intentOpportunities.score), desc(schema.intentOpportunities.updatedAt))
+    .limit(200);
+
+  const filtered = source ? rows.filter((r) => r.source === source) : rows;
+  return c.json({ opportunities: filtered.slice(0, limit), status });
+});
+
+productsRoute.post("/mentions/:brandId/intent-opportunities/refresh", async (c) => {
+  const ownerId = requireOwner(c);
+  const brandId = c.req.param("brandId");
+  const brand = await loadOwnedBrand(c.env.DB, ownerId, brandId);
+  if (!brand) return c.json({ error: "brand_not_found" }, 404);
+
+  const windowDays = clampedLimit(c.req.query("window") ?? "14", 14, 90);
+  const limit = clampedLimit(c.req.query("limit") ?? "50", 50, 200);
+  return c.json(await refreshIntentOpportunitiesForBrand(db(c.env.DB), ownerId, brand, { windowDays, limit }));
+});
+
+productsRoute.patch("/mentions/:brandId/intent-opportunities/:id", async (c) => {
+  const ownerId = requireOwner(c);
+  const brandId = c.req.param("brandId");
+  if (!(await loadOwnedBrand(c.env.DB, ownerId, brandId))) {
+    return c.json({ error: "brand_not_found" }, 404);
+  }
+  const body = await safeJson<PatchIntentOpportunityBody>(c.req);
+  const status = parseIntentStatus(body.status);
+  if (!status) return c.json({ error: "invalid_status" }, 400);
+
+  const [row] = await db(c.env.DB)
+    .update(schema.intentOpportunities)
+    .set({ status, updatedAt: new Date() })
+    .where(
+      and(
+        eq(schema.intentOpportunities.id, c.req.param("id")),
+        eq(schema.intentOpportunities.brandId, brandId),
+        eq(schema.intentOpportunities.ownerId, ownerId),
+      ),
+    )
+    .returning();
+
+  if (!row) return c.json({ error: "not_found" }, 404);
+  return c.json({ opportunity: row });
+});
+
+productsRoute.post("/mentions/:brandId/intent-opportunities/:id/reply-draft", async (c) => {
+  const ownerId = requireOwner(c);
+  const brandId = c.req.param("brandId");
+  const brand = await loadOwnedBrand(c.env.DB, ownerId, brandId);
+  if (!brand) return c.json({ error: "brand_not_found" }, 404);
+
+  const [opportunity] = await db(c.env.DB)
+    .select()
+    .from(schema.intentOpportunities)
+    .where(
+      and(
+        eq(schema.intentOpportunities.id, c.req.param("id")),
+        eq(schema.intentOpportunities.brandId, brandId),
+        eq(schema.intentOpportunities.ownerId, ownerId),
+      ),
+    )
+    .limit(1);
+  if (!opportunity) return c.json({ error: "not_found" }, 404);
+
+  const config = resolveBrandAIConfig(brand, c.env);
+  if (!config) return c.json({ error: "ai_not_configured" }, 409);
+
+  const response = await fetchChatCompletion({
+    config,
+    stream: false,
+    maxTokens: 420,
+    systemPrompt:
+      "You draft short, operator-reviewed community replies for a brand. Never auto-post, never fabricate facts, and include a clear affiliation disclosure when the author would be speaking for the brand.",
+    messages: [
+      {
+        role: "user",
+        content: buildIntentReplyPrompt(brand, opportunity),
+      },
+    ],
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    return c.json({ error: "ai_request_failed", detail: text.slice(0, 200) }, 502);
+  }
+  const json = (await response.json()) as {
+    choices?: Array<{ message?: { content?: string } }>;
+  };
+  const replyDraft = cleanReplyDraft(json.choices?.[0]?.message?.content ?? "");
+  if (!replyDraft) return c.json({ error: "empty_reply_draft" }, 502);
+
+  const [row] = await db(c.env.DB)
+    .update(schema.intentOpportunities)
+    .set({ replyDraft, updatedAt: new Date() })
+    .where(eq(schema.intentOpportunities.id, opportunity.id))
+    .returning();
+
+  return c.json({ opportunity: row });
+});
+
 productsRoute.get("/mentions/:brandId/trends", async (c) => {
   const ownerId = requireOwner(c);
   const brandId = c.req.param("brandId");
@@ -1437,6 +1564,23 @@ productsRoute.get("/mentions/:brandId/report", async (c) => {
     .where(eq(schema.citedUrlIndex.brandId, brandId))
     .orderBy(desc(schema.citedUrlIndex.mentionRunCount))
     .limit(20);
+  let intentOpportunities: Array<typeof schema.intentOpportunities.$inferSelect> = [];
+  try {
+    intentOpportunities = await db(c.env.DB)
+      .select()
+      .from(schema.intentOpportunities)
+      .where(
+        and(
+          eq(schema.intentOpportunities.brandId, brandId),
+          eq(schema.intentOpportunities.ownerId, ownerId),
+          eq(schema.intentOpportunities.status, "open"),
+        ),
+      )
+      .orderBy(desc(schema.intentOpportunities.score), desc(schema.intentOpportunities.updatedAt))
+      .limit(10);
+  } catch (error) {
+    console.error("High Signal intent opportunities unavailable for report:", error);
+  }
 
   return c.json({
     windowDays,
@@ -1449,6 +1593,7 @@ productsRoute.get("/mentions/:brandId/report", async (c) => {
     matrix,
     shareOfVoice: sov,
     citedSources: cited,
+    intentOpportunities,
   });
 });
 
@@ -1489,6 +1634,234 @@ productsRoute.get("/agent-eval/:auditId/attributes", async (c) => {
   }));
   return c.json({ attributes: sortAttributes(rows) });
 });
+
+function parseIntentStatus(value: unknown): IntentStatus | null {
+  return value === "open" || value === "dismissed" || value === "done" ? value : null;
+}
+
+async function refreshIntentOpportunitiesForBrand(
+  database: ReturnType<typeof db>,
+  ownerId: string,
+  brand: typeof schema.mentionBrandConfigs.$inferSelect,
+  options: { windowDays: number; limit: number },
+) {
+  const { windowDays, limit } = options;
+  const since = new Date(Date.now() - windowDays * 24 * 3600 * 1000);
+  const competitors = objectArray<{ name?: string; url?: string }>(brand.competitors || []);
+  const brandAliases = stringArray(brand.brandAliases);
+  const hasSearchTerms = [brand.brandName, ...brandAliases, ...competitors.map((item) => item.name ?? "")]
+    .some((keyword) => keyword.trim().length >= 2);
+  if (!hasSearchTerms) return { upserts: 0, scanned: 0, windowDays };
+
+  const events = await database
+    .select()
+    .from(schema.events)
+    .where(and(gte(schema.events.publishedAt, since), inArray(schema.events.source, [...COMMUNITY_INTENT_SOURCES])))
+    .orderBy(desc(schema.events.publishedAt))
+    .limit(1000);
+
+  const candidates = events
+    .map((event) =>
+      scoreIntentOpportunity(
+        {
+          source: event.source,
+          sourceUrl: event.sourceUrl,
+          title: event.title,
+          content: event.content,
+          publishedAt: event.publishedAt,
+        },
+        {
+          brandName: brand.brandName,
+          brandAliases,
+          competitors,
+        },
+      ),
+    )
+    .filter((item): item is IntentOpportunityCandidate => Boolean(item))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit);
+
+  let upserts = 0;
+  for (const item of candidates) {
+    const id = await sha16(`intent:${brand.id}:${item.sourceUrl}`);
+    const evidenceTaskId = await ensureIntentEvidenceTask(database, ownerId, brand, item);
+    await database
+      .insert(schema.intentOpportunities)
+      .values({
+        id,
+        brandId: brand.id,
+        ownerId,
+        source: item.source,
+        sourceUrl: item.sourceUrl,
+        sourceTitle: item.sourceTitle,
+        sourceExcerpt: item.sourceExcerpt,
+        platform: item.platform,
+        intentStage: item.intentStage,
+        actionType: item.actionType,
+        score: item.score,
+        competitors: item.competitors,
+        matchedKeywords: item.matchedKeywords,
+        evidenceTaskId,
+        replyDraft: null,
+        status: "open",
+        foundAt: item.foundAt,
+        updatedAt: new Date(),
+      })
+      .onConflictDoUpdate({
+        target: [schema.intentOpportunities.brandId, schema.intentOpportunities.sourceUrl],
+        set: {
+          sourceTitle: item.sourceTitle,
+          sourceExcerpt: item.sourceExcerpt,
+          platform: item.platform,
+          intentStage: item.intentStage,
+          actionType: item.actionType,
+          score: item.score,
+          competitors: item.competitors,
+          matchedKeywords: item.matchedKeywords,
+          updatedAt: new Date(),
+        },
+      });
+    if (evidenceTaskId) {
+      await database
+        .update(schema.intentOpportunities)
+        .set({ evidenceTaskId })
+        .where(
+          and(
+            eq(schema.intentOpportunities.brandId, brand.id),
+            eq(schema.intentOpportunities.sourceUrl, item.sourceUrl),
+          ),
+        );
+    }
+    upserts++;
+  }
+
+  return { upserts, scanned: events.length, windowDays };
+}
+
+async function ensureIntentEvidenceTask(
+  database: ReturnType<typeof db>,
+  ownerId: string,
+  brand: typeof schema.mentionBrandConfigs.$inferSelect,
+  item: IntentOpportunityCandidate,
+): Promise<string | null> {
+  const task = intentEvidenceTaskFor(item);
+  if (!task) return null;
+
+  const [audit] = await database
+    .select()
+    .from(schema.agentEvaluationAudits)
+    .where(
+      and(
+        eq(schema.agentEvaluationAudits.ownerId, ownerId),
+        eq(schema.agentEvaluationAudits.brandName, brand.brandName),
+      ),
+    )
+    .orderBy(desc(schema.agentEvaluationAudits.createdAt))
+    .limit(1);
+  if (!audit) return null;
+
+  const [existing] = await database
+    .select()
+    .from(schema.agentEvidenceTasks)
+    .where(
+      and(
+        eq(schema.agentEvidenceTasks.auditId, audit.id),
+        eq(schema.agentEvidenceTasks.sourceUrl, item.sourceUrl),
+        eq(schema.agentEvidenceTasks.status, "open"),
+      ),
+    )
+    .limit(1);
+  if (existing) return existing.id;
+
+  const [created] = await database
+    .insert(schema.agentEvidenceTasks)
+    .values({
+      id: crypto.randomUUID(),
+      auditId: audit.id,
+      ownerId,
+      area: task.area,
+      title: task.title,
+      priority: task.priority,
+      status: "open",
+      sourceUrl: item.sourceUrl,
+      createdAt: new Date(),
+    })
+    .returning();
+  return created?.id ?? null;
+}
+
+function intentEvidenceTaskFor(item: IntentOpportunityCandidate): {
+  area: string;
+  title: string;
+  priority: "high" | "medium" | "low";
+} | null {
+  const title = item.sourceTitle.length > 90 ? `${item.sourceTitle.slice(0, 89).trim()}...` : item.sourceTitle;
+  if (item.actionType === "create_proof") {
+    return { area: "proof", title: `Add proof for buyer question: ${title}`, priority: "high" };
+  }
+  if (item.actionType === "write_comparison") {
+    return { area: "comparisons", title: `Publish comparison response for: ${title}`, priority: "high" };
+  }
+  if (item.actionType === "add_integration") {
+    return { area: "docs", title: `Document integration need from: ${title}`, priority: "medium" };
+  }
+  if (item.actionType === "improve_docs") {
+    return { area: "docs", title: `Clarify docs/support gap from: ${title}`, priority: "medium" };
+  }
+  if (item.actionType === "content_opportunity") {
+    return { area: "positioning", title: `Create content answer for: ${title}`, priority: "medium" };
+  }
+  return null;
+}
+
+function resolveBrandAIConfig(
+  brand: typeof schema.mentionBrandConfigs.$inferSelect,
+  env: Env,
+): AIConfig | null {
+  const apiKey = env.HIGH_SIGNAL_AI_API_KEY || env.OPENAI_API_KEY;
+  const model = brand.aiModel || env.HIGH_SIGNAL_AI_MODEL || "auto";
+  if (!apiKey || !model) return null;
+  return {
+    endpointUrl: brand.aiEndpointUrl || env.HIGH_SIGNAL_AI_ENDPOINT_URL || FREE_AI_DEFAULT_ENDPOINT,
+    apiKey,
+    model,
+  };
+}
+
+function buildIntentReplyPrompt(
+  brand: typeof schema.mentionBrandConfigs.$inferSelect,
+  opportunity: typeof schema.intentOpportunities.$inferSelect,
+) {
+  const competitors = stringArray(opportunity.competitors).join(", ") || "none detected";
+  const matchedKeywords = stringArray(opportunity.matchedKeywords).join(", ") || "none";
+  return [
+    `Brand: ${brand.brandName}`,
+    `Brand URL: ${brand.brandUrl || "not provided"}`,
+    `Intent stage: ${opportunity.intentStage}`,
+    `Suggested action: ${opportunity.actionType}`,
+    `Source: ${opportunity.source}`,
+    `Source title: ${opportunity.sourceTitle}`,
+    `Source excerpt: ${opportunity.sourceExcerpt}`,
+    `Competitors detected: ${competitors}`,
+    `Matched terms: ${matchedKeywords}`,
+    "",
+    "Draft one reply the operator could review before posting.",
+    "Requirements:",
+    "- 90 to 150 words.",
+    "- Sound useful and specific, not salesy.",
+    "- If speaking as the brand, disclose affiliation in the first sentence.",
+    "- Do not claim features, pricing, customers, benchmarks, or integrations not present in the source excerpt.",
+    "- If the best response is not to reply publicly, say so and suggest the private/content follow-up instead.",
+  ].join("\n");
+}
+
+function cleanReplyDraft(value: string) {
+  return value
+    .replace(/^```(?:\w+)?\s*/i, "")
+    .replace(/```$/i, "")
+    .trim()
+    .slice(0, 1800);
+}
 
 function clampedLimit(value: string | undefined, fallback: number, max: number) {
   const parsed = Number(value ?? fallback);
