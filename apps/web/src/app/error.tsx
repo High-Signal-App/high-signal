@@ -2,6 +2,8 @@
 
 import { useEffect } from 'react';
 
+import { capturePageCrash } from '@/lib/foundry-monitoring';
+
 export default function ErrorBoundary({
   error,
   reset,
@@ -11,6 +13,7 @@ export default function ErrorBoundary({
 }) {
   useEffect(() => {
     console.error(error);
+    capturePageCrash(error, 'window_error');
   }, [error]);
 
   return (
