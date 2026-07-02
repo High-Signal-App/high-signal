@@ -66,6 +66,16 @@ function relativeDays(unixSec: number, nowSec: number): string {
   return `${d}d ago`;
 }
 
+function uniqueSamples(samples: DataSourceLive['samples'] = []) {
+  const seen = new Set<string>();
+  return samples.filter((sample) => {
+    const key = sample.url || sample.title || '';
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 export default async function DataPage() {
   const sources = catalog.sources as CatalogEntry[];
   const nowSec = Math.floor(Date.now() / 1000);
@@ -149,6 +159,7 @@ export default async function DataPage() {
               {rows.map((s) => {
                 const l = live[s.id];
                 const count = l?.count ?? 0;
+                const samples = uniqueSamples(l?.samples);
                 return (
                   <details key={s.id} className="group py-3">
                     <summary className="flex cursor-pointer list-none items-center gap-3">
@@ -213,10 +224,10 @@ export default async function DataPage() {
                           View all {count.toLocaleString()} events →
                         </Link>
                       )}
-                      {l?.samples && l.samples.length > 0 && (
+                      {samples.length > 0 && (
                         <ul className="mt-2 space-y-1">
-                          {l.samples.map((sm) => (
-                            <li key={sm.url} className="truncate">
+                          {samples.map((sm) => (
+                            <li key={`${s.id}-${sm.url}`} className="truncate">
                               <a
                                 href={sm.url}
                                 target="_blank"

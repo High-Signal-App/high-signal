@@ -1,10 +1,9 @@
 import { BriefSections } from '@/components/brief/BriefSections';
-import { ProductPicker } from '@/components/brief/ProductPicker';
-import { RegionPicker } from '@/components/brief/RegionPicker';
-import { HeroHeader, PageShell } from '@/components/system/HighSignalUI';
+import { DailyBriefHero } from '@/components/brief/DailyBriefHero';
+import { PageShell } from '@/components/system/HighSignalUI';
 import { api, type BriefSnapshot } from '@/lib/api';
 import { getRequestAuth } from '@/lib/require-auth';
-import { findSeedProduct, isRegion, regionLabel, type Region } from '@high-signal/shared';
+import { findSeedProduct, isRegion, type Region } from '@high-signal/shared';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Daily Brief — High Signal' };
@@ -132,28 +131,17 @@ export default async function BriefPage({
   ]);
   if (briefRes.status === 'fulfilled') brief = briefRes.value;
   if (convergenceRes.status === 'fulfilled') convergence = convergenceRes.value;
+  const spotlightName = brief.perception[0]?.brandName ?? null;
 
   return (
     <PageShell>
-      <HeroHeader
-        eyebrow={`daily brief / ${regionLabel(region).toLowerCase()}${
-          selectedProduct ? ` / ${selectedProduct.brandName.toLowerCase()}` : ''
-        }`}
-        title="What changed today"
-      >
-        Synthesized from the lenses below. Five sections — three on the world, two on whichever
-        product you've picked. Every claim cites at least two sources.
-      </HeroHeader>
-
-      <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-y border-[var(--color-line)] py-3">
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-          <RegionPicker active={region} />
-          <ProductPicker active={activeProductId} />
-        </div>
-        <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
-          generated {brief.generatedAt.slice(0, 16).replace('T', ' ')} UTC
-        </div>
-      </div>
+      <DailyBriefHero
+        activeProductId={activeProductId}
+        generatedAt={brief.generatedAt}
+        region={region}
+        selectedProductName={selectedProduct?.brandName}
+        spotlightName={spotlightName}
+      />
 
       <ConvergenceCallout convergence={convergence} />
 

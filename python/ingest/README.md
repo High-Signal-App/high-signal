@@ -17,12 +17,16 @@ needs `yfinance`; `edgar` needs `SEC_USER_AGENT="<name> <email>"`.
 
 | Var              | Purpose                                                                  |
 | ---------------- | ------------------------------------------------------------------------ |
+| `API_BASE`       | Required for production event/signal persistence. Base URL of the High Signal API. If unset, audit pushes no-op. |
+| `ADMIN_TOKEN`    | Required with `API_BASE` for production writes to `/admin/*` endpoints. |
+| `SEC_USER_AGENT` | Required for production EDGAR/SEC access hygiene. Format: `"Sarthak Agrawal sarthak@example.com"`. |
 | `AI_BASE_URL`    | OpenAI-compatible base URL for the signal generator LLM. Defaults to DeepSeek in GitHub Actions. |
-| `AI_API_KEY`     | API key for the above.                                                   |
+| `AI_API_KEY`     | API key for the above. Without it, fetches still run and deterministic fallback drafts may emit. |
 | `AI_MODEL`       | Model name. GitHub Actions defaults to `deepseek-v4-flash`.              |
-| `SEC_USER_AGENT` | Required by EDGAR. Format: `"Sarthak Agrawal sarthak@example.com"`.       |
-| `API_BASE`       | Optional. Base URL of the high-signal API. If unset, audit pushes no-op. |
-| `ADMIN_TOKEN`    | Optional. Bearer token for `/admin/*` audit endpoints.                   |
+| `GITHUB_TOKEN`   | Optional rate-limit lift for public GitHub API calls.                    |
+| `FRED_API_KEY`   | Optional macro-rates depth; ECB FX still runs without it.                |
+| `ETHERSCAN_API_KEY` | Optional crypto-onchain depth; keyless on-chain sources still run.     |
+| `GUARDIAN_API_KEY`, `COMPANIES_HOUSE_API_KEY`, `REGULATIONS_GOV_API_KEY`, `SAM_API_KEY`, `BLUESKY_IDENTIFIER`/`BLUESKY_APP_PASSWORD`, `PODCAST_INDEX_KEY`/`PODCAST_INDEX_SECRET`, `METACULUS_TOKEN`, `SEMANTIC_SCHOLAR_API_KEY` | Optional or credential-gated source lanes. Missing values skip or degrade only those sources. |
 | `HIGH_SIGNAL_ENABLE_HF_NLP` | Optional. Set to `1` to enrich deterministic intent/sentiment tags with local Hugging Face pipelines. |
 | `HIGH_SIGNAL_HF_SENTIMENT_MODEL` | Optional. HF sentiment model. Defaults to DistilBERT SST-2 when HF NLP is enabled. |
 | `HIGH_SIGNAL_HF_INTENT_MODEL` | Optional. HF zero-shot model for intent classification. If unset, intent stays rule-based. |
@@ -58,6 +62,10 @@ uv run python -m high_signal_ingest.pipeline --source all --days 1 --json
 
 # Preflight: verify env, models, and seed corpus load cleanly
 uv run python -m high_signal_ingest.preflight
+
+# Source/env diagnostic. Production paths should require persistence + SEC identity.
+uv run python -m high_signal_ingest.source_diagnose
+uv run python -m high_signal_ingest.source_diagnose --require-persistence --require-sec-identity
 ```
 
 Exit code is `2` when the fetch step errored and produced zero drafted

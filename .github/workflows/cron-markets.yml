@@ -18,6 +18,12 @@ jobs:
       - uses: actions/setup-python@v6
         with: { python-version: "3.11" }
       - run: uv sync
+      - name: source availability diagnostic
+        env:
+          ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
+          API_BASE: ${{ secrets.API_BASE }}
+          SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT || 'high-signal sarthakagrawal927@gmail.com' }}
+        run: uv run python -m high_signal_ingest.source_diagnose --require-persistence --require-sec-identity
       - name: poll prediction markets
         env:
           ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
@@ -26,6 +32,6 @@ jobs:
           AI_API_KEY: ${{ secrets.AI_API_KEY }}
           AI_MODEL: ${{ secrets.AI_MODEL || 'deepseek-v4-flash' }}
           AI_PROJECT_ID: high-signal
-          SEC_USER_AGENT: "high-signal sarthakagrawal927@gmail.com"
+          SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT || 'high-signal sarthakagrawal927@gmail.com' }}
         run: |
           uv run python -m high_signal_ingest.pipeline --source markets

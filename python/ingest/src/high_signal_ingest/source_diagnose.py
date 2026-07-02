@@ -98,13 +98,16 @@ def checks() -> list[Check]:
             "D1 admin writes",
             ["API_BASE", "ADMIN_TOKEN"],
             required=False,
-            notes="Required only when pushing events/signals/quotes to the Worker API.",
+            notes=(
+                "Required for production event persistence. Without both values, fetches can "
+                "succeed while /data and ingest_runs remain unchanged."
+            ),
         ),
         _env_check(
             "SEC identity",
             ["SEC_USER_AGENT"],
             required=False,
-            notes="Recommended for EDGAR/SEC etiquette; adapters have a fallback identity.",
+            notes="Required for production EDGAR/SEC access hygiene; local adapters have a fallback identity.",
         ),
         _env_check(
             "GitHub API rate limit",
@@ -129,6 +132,32 @@ def checks() -> list[Check]:
             ["REGULATIONS_GOV_API_KEY"],
             required=True,
             notes="Regulatory follow-up source; skipped without this key.",
+        ),
+        _env_check(
+            "OpenStates",
+            ["OPENSTATES_API_KEY"],
+            required=False,
+            notes="Optional for local source audits; state-legislature bills are skipped without this key.",
+        ),
+        _env_check(
+            "EIA energy",
+            ["EIA_API_KEY"],
+            required=False,
+            notes="Optional for local source audits; industrial electricity-price events are skipped without this key.",
+        ),
+        _env_check(
+            "US government API family",
+            [
+                "BEA_API_KEY",
+                "CENSUS_API_KEY",
+                "CONGRESS_API_KEY",
+                "FEC_API_KEY",
+                "LDA_API_KEY",
+                "FDA_API_KEY",
+                "USDA_NASS_API_KEY",
+            ],
+            required=False,
+            notes="Optional depth for us-gov-api; one api.data.gov key can populate these env vars.",
         ),
         _env_check(
             "SAM.gov contracts",
@@ -161,6 +190,12 @@ def checks() -> list[Check]:
             notes="ECB FX still runs; FRED series are skipped without this key.",
         ),
         _env_check(
+            "Etherscan gas/on-chain",
+            ["ETHERSCAN_API_KEY"],
+            required=False,
+            notes="Optional; crypto-onchain still uses keyless mempool.space/L2Beat/CoinMetrics paths.",
+        ),
+        _env_check(
             "Semantic Scholar rate limit",
             ["SEMANTIC_SCHOLAR_API_KEY"],
             required=False,
@@ -187,7 +222,12 @@ def checks() -> list[Check]:
     ]
 
 
-def run(json_output: bool = False) -> int:
+def run(
+    json_output: bool = False,
+    *,
+    require_persistence: bool = False,
+    require_sec_identity: bool = False,
+) -> int:
     rows = checks()
     if json_output:
         print(json.dumps([asdict(row) for row in rows], indent=2))
@@ -198,6 +238,13 @@ def run(json_output: bool = False) -> int:
 
     credential_missing = [row for row in rows if row.status == "credential-missing"]
     unavailable = [row for row in rows if row.status == "unavailable"]
+    fatal: list[str] = []
+    by_name = {row.name: row for row in rows}
+    if require_persistence and by_name["D1 admin writes"].status != "available":
+        fatal.append("D1 admin writes require API_BASE + ADMIN_TOKEN")
+    if require_sec_identity and by_name["SEC identity"].status != "available":
+        fatal.append("SEC identity requires SEC_USER_AGENT")
+
     if unavailable or credential_missing:
         if unavailable:
             print(f"\n{len(unavailable)} required local tool(s) unavailable here.")
@@ -205,14 +252,37 @@ def run(json_output: bool = False) -> int:
             print(f"\n{len(credential_missing)} credential-gated source path(s) unavailable here.")
     else:
         print("\nsource availability diagnostic OK")
+
+    if fatal:
+        print("\nproduction ingest preflight failed:")
+        for item in fatal:
+            print(f"  - {item}")
+        return 1
+
     return 0
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--json", action="store_true")
+    parser.add_argument(
+        "--require-persistence",
+        action="store_true",
+        help="Exit non-zero unless API_BASE and ADMIN_TOKEN are present.",
+    )
+    parser.add_argument(
+        "--require-sec-identity",
+        action="store_true",
+        help="Exit non-zero unless SEC_USER_AGENT is present.",
+    )
     args = parser.parse_args()
-    raise SystemExit(run(json_output=args.json))
+    raise SystemExit(
+        run(
+            json_output=args.json,
+            require_persistence=args.require_persistence,
+            require_sec_identity=args.require_sec_identity,
+        )
+    )
 
 
 if __name__ == "__main__":

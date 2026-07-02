@@ -33,6 +33,20 @@ signals still need stronger evidence before publication.
 
 ## Quick checks
 
+Start with the read-only source diagnostic. It never prints secret values.
+Production ingest/backfill should fail early unless persistence and SEC identity
+are present:
+
+```bash
+pnpm source:diagnose
+cd python/ingest && uv run python -m high_signal_ingest.source_diagnose \
+  --require-persistence --require-sec-identity
+```
+
+`API_BASE` + `ADMIN_TOKEN` are the persistence pair. Without them, source fetches
+can succeed while `events`, `ingest_runs`, `/data`, and quote history stay
+unchanged.
+
 ```bash
 # Recent ingest activity, by source (last 7 days)
 wrangler d1 execute high-signal-db --remote --config workers/api/wrangler.toml \
@@ -60,10 +74,12 @@ The `/admin/health` route surfaces the same shape via HTTP for dashboards.
 ## Triage
 
 1. **No new `ingest_runs` rows since the last cron tick.**
-   - Modal didn't run, or `API_BASE` / `ADMIN_TOKEN` aren't set in the Modal
-     Secret named `high-signal`. Check the Modal app logs:
-     `modal logs high-signal-ingest`. Audit pushes are best-effort and log on
-     failure — see `python/ingest/src/high_signal_ingest/audit.py`.
+   - The workflow/Modal job didn't run, or `API_BASE` / `ADMIN_TOKEN` aren't
+     set for that runtime. Check the GitHub Actions job first; it now runs
+     `source_diagnose --require-persistence --require-sec-identity` before
+     ingest. For Modal, check `modal logs high-signal-ingest`. Audit pushes are
+     best-effort and log on failure — see
+     `python/ingest/src/high_signal_ingest/audit.py`.
 
 2. **Rows exist but `events_fetched = 0` for one source.**
    - Source-specific outage. Inspect the per-source module under

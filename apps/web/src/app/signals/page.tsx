@@ -18,14 +18,10 @@ interface SP {
 const FILTER_KEYS = new Set(['category', 'type', 'direction', 'confidence', 'entity']);
 
 const signalTabs = [
-  { href: '/signals/today', label: 'daily' },
-  { href: '/signals', label: 'all' },
-  { href: '/digest', label: 'weekly' },
-  { href: '/markets', label: 'markets' },
-  { href: '/communities', label: 'communities' },
-  { href: '/mentions', label: 'mentions' },
-  { href: '/agent-eval', label: 'agent eval' },
-  { href: '/personal', label: 'personal' },
+  { href: '/signals/today', label: 'today' },
+  { href: '/signals', label: 'all signals' },
+  { href: '/track-record', label: 'track record' },
+  { href: '/signals/types', label: 'types' },
 ];
 
 function countBy<T extends string>(values: T[]) {
@@ -99,13 +95,9 @@ export default async function SignalsPage({ searchParams }: { searchParams: Prom
 
 function SignalTabs() {
   return (
-    <nav className="mt-5 flex flex-wrap gap-2 border-y border-zinc-800 py-3 font-mono text-[10px] uppercase tracking-[0.18em]">
+    <nav className="mt-6 flex flex-wrap gap-x-5 gap-y-2 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500">
       {signalTabs.map((item) => (
-        <a
-          className="border border-zinc-800 px-2.5 py-1 text-zinc-400 hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
-          href={item.href}
-          key={item.href}
-        >
+        <a className="hover:text-[var(--color-accent)]" href={item.href} key={item.href}>
           {item.label}
         </a>
       ))}
@@ -122,30 +114,24 @@ function Header() {
       >
         ← high signal
       </a>
-      <h1 className="mt-3 text-3xl font-medium tracking-tight">Signals</h1>
-      <p className="mt-2 max-w-2xl text-sm text-zinc-400">
-        Every published signal cites at least two sources and predicts direction with a confidence
-        band. Use Daily for the freshest slice, or filter this feed by content type, entity,
-        direction, and confidence.
-      </p>
-      <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-500">
-        <strong className="text-zinc-300">Most signals are low-confidence by design.</strong> A
-        pipeline that only published high-conviction calls would either be lying or be silent for
-        weeks. Low-confidence with a clear directional read and two sources is still useful — and
-        when it&apos;s wrong, the public ledger at{' '}
-        <a className="text-[var(--color-accent)] hover:underline" href="/track-record">
-          /track-record
-        </a>{' '}
-        will say so. Subscribe via{' '}
-        <a
-          className="text-[var(--color-accent)] hover:underline"
-          href="/signals/rss"
-          aria-label="RSS feed for all signals"
-        >
-          /signals/rss
-        </a>
-        .
-      </p>
+      <div className="mt-3 grid gap-4 md:grid-cols-[minmax(0,1fr)_220px] md:items-end">
+        <div>
+          <h1 className="text-3xl font-medium tracking-tight">Signals</h1>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-400">
+            Published directional reads with cited evidence, confidence, and a public hit-rate
+            trail.
+          </p>
+        </div>
+        <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500 md:text-right">
+          <a className="hover:text-[var(--color-accent)]" href="/signals/rss">
+            rss
+          </a>
+          <span className="mx-2">/</span>
+          <a className="hover:text-[var(--color-accent)]" href="/track-record">
+            ledger
+          </a>
+        </div>
+      </div>
     </header>
   );
 }

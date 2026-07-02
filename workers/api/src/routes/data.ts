@@ -1,14 +1,40 @@
 import { Hono } from "hono";
-import { sql, desc } from "drizzle-orm";
+import { desc, eq, like, or, sql } from "drizzle-orm";
 import { db, schema } from "../db";
 
 type Env = { DB: D1Database };
 
 export const dataRoute = new Hono<{ Bindings: Env }>();
 
-// Collapse `legistar:phoenix` / `macro-rates:fred:dgs10` to the source family.
+const SOURCE_FAMILY_ALIASES: Record<string, string> = {
+  market: "markets",
+  "regulations-gov": "regulations",
+  package: "packages",
+  osv: "packages",
+};
+
+const SOURCE_QUERY_ALIASES: Record<string, string[]> = {
+  edgar: ["edgar"],
+  markets: ["markets", "market"],
+  packages: ["packages", "package", "osv"],
+  regulations: ["regulations", "regulations-gov"],
+};
+
+// Collapse `legistar:phoenix` / `macro-rates:fred:dgs10` to the catalog family.
 function family(source: string): string {
-  return (source || "unknown").split(":", 1)[0]!;
+  if (source.startsWith("edgar_")) return "edgar";
+  const first = (source || "unknown").split(":", 1)[0]!;
+  return SOURCE_FAMILY_ALIASES[first] ?? first;
+}
+
+function sourceMatch(id: string) {
+  const aliases = SOURCE_QUERY_ALIASES[id] ?? [id];
+  const conditions = aliases.flatMap((alias) => [
+    eq(schema.events.source, alias),
+    like(schema.events.source, `${alias}:%`),
+    sql`${schema.events.source} GLOB ${`${alias}_*`}`,
+  ]);
+  return or(...conditions);
 }
 
 interface Sample {
@@ -102,7 +128,7 @@ dataRoute.get("/sources/:id", async (c) => {
   const limit = Math.min(Math.max(Number(c.req.query("limit") ?? 50), 1), 200);
   const offset = Math.max(Number(c.req.query("offset") ?? 0), 0);
   const database = db(c.env.DB);
-  const match = sql`(${schema.events.source} = ${id} OR ${schema.events.source} LIKE ${id + ":%"})`;
+  const match = sourceMatch(id);
 
   let total = 0;
   try {

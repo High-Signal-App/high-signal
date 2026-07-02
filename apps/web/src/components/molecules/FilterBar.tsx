@@ -17,6 +17,10 @@ type Key = (typeof ORDER)[number];
 export function FilterBar({ facets }: { facets: Facets }) {
   const router = useRouter();
   const sp = useSearchParams();
+  const hasAdvanced =
+    (facets.categories?.length ?? 0) > 0 ||
+    facets.types.length > 0 ||
+    facets.topEntities.length > 0;
 
   const set = (key: Key, value: string | null) => {
     const next = new URLSearchParams(Array.from(sp.entries()));
@@ -28,86 +32,98 @@ export function FilterBar({ facets }: { facets: Facets }) {
   const active = (k: Key, v: string) => sp.get(k) === v;
 
   return (
-    <div className="mt-6 flex flex-wrap gap-x-6 gap-y-3 border-y border-zinc-800 py-4 font-mono text-[10px] uppercase tracking-[0.18em]">
-      {(facets.categories?.length ?? 0) > 0 && (
-        <Group label="kind">
-          {facets.categories!.slice(0, 9).map((d) => (
+    <section className="mt-6 border-y border-zinc-800 py-3">
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 font-mono text-[10px] uppercase tracking-[0.14em]">
+        <span className="text-zinc-600">filter</span>
+        <Group label="direction">
+          {facets.directions.map((d) => (
             <Chip
               key={d.k}
-              on={active('category', d.k)}
-              onClick={() => set('category', d.k)}
-              label={d.k.replaceAll('-', ' ')}
+              on={active('direction', d.k)}
+              onClick={() => set('direction', d.k)}
+              label={d.k}
+              count={d.n}
+              tone={d.k === 'up' ? 'up' : d.k === 'down' ? 'down' : 'muted'}
+            />
+          ))}
+        </Group>
+
+        <Group label="confidence">
+          {facets.confidences.map((d) => (
+            <Chip
+              key={d.k}
+              on={active('confidence', d.k)}
+              onClick={() => set('confidence', d.k)}
+              label={d.k}
               count={d.n}
             />
           ))}
         </Group>
-      )}
 
-      <Group label="content">
-        {facets.types.slice(0, 12).map((d) => (
-          <Chip
-            key={d.k}
-            on={active('type', d.k)}
-            onClick={() => set('type', d.k)}
-            label={d.k.replaceAll('_', ' ')}
-            count={d.n}
-          />
-        ))}
-      </Group>
+        {sp.size > 0 && (
+          <button
+            type="button"
+            className="text-zinc-500 underline-offset-4 hover:text-zinc-200 hover:underline"
+            onClick={() => router.push('/signals')}
+          >
+            clear
+          </button>
+        )}
+      </div>
 
-      <Group label="dir">
-        {facets.directions.map((d) => (
-          <Chip
-            key={d.k}
-            on={active('direction', d.k)}
-            onClick={() => set('direction', d.k)}
-            label={d.k}
-            count={d.n}
-            tone={d.k === 'up' ? 'up' : d.k === 'down' ? 'down' : 'muted'}
-          />
-        ))}
-      </Group>
+      {hasAdvanced ? (
+        <details className="mt-3 border-t border-zinc-900 pt-3">
+          <summary className="cursor-pointer font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500 hover:text-zinc-300">
+            advanced facets
+          </summary>
+          <div className="mt-3 grid gap-3 font-mono text-[10px] uppercase tracking-[0.14em]">
+            {(facets.categories?.length ?? 0) > 0 ? (
+              <Group label="kind">
+                {facets.categories?.slice(0, 6).map((d) => (
+                  <Chip
+                    key={d.k}
+                    on={active('category', d.k)}
+                    onClick={() => set('category', d.k)}
+                    label={d.k.replaceAll('-', ' ')}
+                    count={d.n}
+                  />
+                ))}
+              </Group>
+            ) : null}
 
-      <Group label="conf">
-        {facets.confidences.map((d) => (
-          <Chip
-            key={d.k}
-            on={active('confidence', d.k)}
-            onClick={() => set('confidence', d.k)}
-            label={d.k}
-            count={d.n}
-          />
-        ))}
-      </Group>
+            <Group label="type">
+              {facets.types.slice(0, 8).map((d) => (
+                <Chip
+                  key={d.k}
+                  on={active('type', d.k)}
+                  onClick={() => set('type', d.k)}
+                  label={d.k.replaceAll('_', ' ')}
+                  count={d.n}
+                />
+              ))}
+            </Group>
 
-      <Group label="entity">
-        {facets.topEntities.slice(0, 10).map((d) => (
-          <Chip
-            key={d.k}
-            on={active('entity', d.k)}
-            onClick={() => set('entity', d.k)}
-            label={d.k}
-            count={d.n}
-          />
-        ))}
-      </Group>
-
-      {sp.size > 0 && (
-        <button
-          type="button"
-          className="text-zinc-500 underline-offset-4 hover:text-zinc-200 hover:underline"
-          onClick={() => router.push('/signals')}
-        >
-          clear
-        </button>
-      )}
-    </div>
+            <Group label="entity">
+              {facets.topEntities.slice(0, 8).map((d) => (
+                <Chip
+                  key={d.k}
+                  on={active('entity', d.k)}
+                  onClick={() => set('entity', d.k)}
+                  label={d.k}
+                  count={d.n}
+                />
+              ))}
+            </Group>
+          </div>
+        </details>
+      ) : null}
+    </section>
   );
 }
 
 function Group({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex min-w-0 flex-wrap items-center gap-2">
       <span className="text-zinc-500">{label}</span>
       <div className="flex flex-wrap gap-1.5">{children}</div>
     </div>
@@ -137,7 +153,7 @@ function Chip({
     <button
       type="button"
       onClick={onClick}
-      className={`flex items-center gap-1.5 border px-2 py-0.5 transition-colors ${toneClass} ${
+      className={`flex items-center gap-1.5 border px-2 py-0.5 tracking-[0.12em] transition-colors ${toneClass} ${
         on ? 'bg-white/[0.04] text-white' : 'hover:bg-white/[0.02]'
       }`}
     >

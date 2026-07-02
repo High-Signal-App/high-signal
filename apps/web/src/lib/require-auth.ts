@@ -3,7 +3,9 @@ import type { Route } from 'next';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 
+// biome-ignore lint/complexity/useLiteralKeys: TS noPropertyAccessFromIndexSignature requires bracket access here.
 const publishableKey = process.env['NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY'];
+// biome-ignore lint/complexity/useLiteralKeys: TS noPropertyAccessFromIndexSignature requires bracket access here.
 const secretKey = process.env['CLERK_SECRET_KEY'];
 
 function requestFromHeaders(headerList: Headers) {
@@ -15,10 +17,14 @@ function requestFromHeaders(headerList: Headers) {
 export async function getRequestAuth(request?: Request) {
   if (!publishableKey || !secretKey) return null;
 
-  const clerk = createClerkClient({ publishableKey, secretKey });
-  const authRequest = request ?? requestFromHeaders(await headers());
-  const state = await clerk.authenticateRequest(authRequest, { publishableKey, secretKey });
-  return state.toAuth();
+  try {
+    const clerk = createClerkClient({ publishableKey, secretKey });
+    const authRequest = request ?? requestFromHeaders(await headers());
+    const state = await clerk.authenticateRequest(authRequest, { publishableKey, secretKey });
+    return state.toAuth();
+  } catch {
+    return null;
+  }
 }
 
 export async function requireSignedIn() {
