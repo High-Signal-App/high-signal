@@ -1,12 +1,12 @@
 # high-signal — PROJECT STATUS
 
-Last updated: 2026-06-28 (session 2)
+Last updated: 2026-07-02
 
 ## Why/What
 
 **Thesis:** One product — a synthesized **Daily Brief** from many noisy public sources across technology, startups, and finance. Global by default; region is a free filter. Five brief sections: (1) stocks watching, (2) business ideas, (3) lifestyle trends, (4) brand perception (connected brand), (5) product improvements (connected brand). Free; no billing.
 
-**In scope:** Daily Brief (`/` `/brief`), Signals feed, Evidence, Track Record, source ingest pipeline, Markets lens, Communities input, Mentions, Agent Eval, Domains (drank companion), Convergence, Unmapped gazetteer, Equities snapshot, operator review/admin, plans 0008–0011 scaffolds.
+**In scope:** Daily Brief (`/` `/brief`), Signals feed, Evidence, Track Record, source ingest pipeline, Markets lens, Communities input, Mentions, Agent Eval, Domains (drank companion), Convergence, Unmapped gazetteer, Equities snapshot, operator review/admin, plans 0008–0012 scaffolds.
 
 **Out / parked:** Lab as product infrastructure, personal/operator cockpit as headline product, standalone equities terminal, standalone communities product, broad source expansion without quality gates, paid tiers, per-platform Mentions fan-out, knowledgebase service dependency.
 
@@ -35,7 +35,7 @@ Last updated: 2026-06-28 (session 2)
 - Primary nav now reflects active scope: brief, track record, lenses (markets, watchlist, mentions, agent eval, domains), ops (review, settings, explore). Removed dead `/discover` nav link (communities product is parked; link caused prod smoke 404).
 - Public/support pages exist: about, methodology, featured, API docs, privacy, terms, auth pages.
 - `/explore` ships a canonical sitemap of every reachable surface (brief, signals + evidence, entities, lenses, ideas/opportunities/teardowns, equities, operator/admin, docs), with `new | operator | admin | parked` flags. The site footer now groups links into Product / Lenses / Operator / Legal so nothing built becomes invisible from the homepage.
-- Plan 0008/0009/0010/0011 surfaces are reachable from primary nav and the footer: `/watchlist/entities` (nav lenses), `/settings/delivery` (nav ops + footer), `/mentions/[brandId]` (linked from each row in `/mentions`), `/agent-eval/[auditId]/attributes` (linked from each audit panel in `/agent-eval`), `/admin/delivery` (linked from `/explore` under operator/admin).
+- Plan 0008/0009/0010/0011 surfaces are reachable from primary nav and the footer: `/watchlist/entities` (nav lenses), `/settings/delivery` (nav ops + footer), `/mentions/[brandId]` (linked from each row in `/mentions`), `/agent-eval/[auditId]/attributes` (linked from each audit panel in `/agent-eval`), `/admin/delivery` (linked from `/explore` under operator/admin). Plan 0012 adds an `intent` tab under `/mentions/[brandId]`.
 - Removed `@saas-maker/ops`, `@saas-maker/ai`, `@saas-maker/analytics-sdk`, and shared eslint/tsconfig npm deps (2026-06-20). Workers use local `ai-client.ts`; root lint uses Biome.
 
 ### Stack & commands
@@ -88,11 +88,14 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 
 ## Timeline
 
+- **2026-07-02** — Added `app.onError()` global error handler to API worker (`workers/api/src/index.ts`).
 - **2026-06-09:** Production deploy verified (web + api Workers).
 - **Migrations 0000–0007:** Applied; canonical D1 schema for signals, evidence, entities, markets, etc.
 - **Migrations 0008–0013:** Applied to remote D1 (2026-06-28). 0008 was manually applied earlier (column + index existed); marked as applied and 0009–0013 applied via `wrangler d1 migrations apply --remote`.
 - **Plan 0007:** Lab substrate — partial (local docker Postgres, HN ingest, scorer, FastAPI feed); parked as product infrastructure.
 - **Plans 0008–0011:** Claim provenance, brief delivery, watchlists, OpenLens visibility — code wired; pending migration apply + follow-ups.
+- **2026-06-30:** Added and scaffolded plan 0012 after reviewing Octolens, Peekaboo, and Subreddit Signals. Decision: beat them by combining AI visibility, citation/source gaps, community buyer intent, proof tasks, and Daily Brief/report outputs instead of copying separate social-listening, GEO, or Reddit-lead dashboards.
+- **2026-07-02:** Revamped `/` and `/brief` first viewport around the product loop: market change, buyer intent, AI visibility, and proof gaps. The UI now uses a sharper Aceternity-inspired dark grid treatment while keeping the app surface evidence-first and dense.
 - **README status date (2026-05-30)** lags this file for day-to-day scope; `PROJECT_STATUS.md` + `package.json` scripts are authoritative.
 
 ## Products
@@ -118,6 +121,7 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 
 - Primary nav + `/explore` sitemap: brief, signals, evidence, lenses (markets, watchlist, mentions, agent eval, domains), operator surfaces, legal.
 - Footer grouped Product / Lenses / Operator / Legal.
+- Default `/` is the personalized dashboard. Primary navigation is grouped into `home`, `data`, `signals`, `history`, and `evals`; `/brief` remains the source-linked daily brief.
 - Public pages: `/about`, `/methodology`, `/featured`, `/api-docs`, `/privacy`, `/terms`, `/sign-in`, `/sign-up`.
 - Clerk auth; region picker and seed product pickers on brief.
 - SEO JSON-LD tests (`pnpm seo:test`).
@@ -179,6 +183,16 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 - Shared: `packages/shared/src/openlens-visibility.ts`.
 - Web: `/mentions/[brandId]` (visibility, sources, trends, report tabs); `/agent-eval/[auditId]/attributes`.
 - Tests: `scripts/openlens-visibility.test.ts` (22 unit tests).
+
+### Plan 0012 — AI visibility and Reddit intent response (scaffolded)
+
+- Competitor references: Octolens (broad social listening, API/webhooks/MCP, Slack/email), Peekaboo (AI visibility score, AI-engine tracking, citations/content pickup, GSC/Looker/GA/CMS integrations), Subreddit Signals (Reddit buyer-intent classification, subreddit discovery, reply guidance, managed service).
+- Product decision: do not create three standalone products and do not reopen a broad "steal list." Most primitives already exist in Mentions, Agent Eval, plan 0011, `opportunities.py`, and brief sections 4/5.
+- Migration `0014_intent_opportunities.sql` — **NOT applied to local or remote D1**.
+- Worker routes under `/products/mentions/:brandId/intent-opportunities`: list, refresh from recent D1 community events, best-effort Agent Eval evidence-task linking, status update, and optional AI reply-draft generation. Mention checks also trigger a defensive background intent refresh.
+- Web: `/mentions/[brandId]?tab=intent` renders the brand intent inbox with refresh, draft, done, and dismiss actions; linked evidence tasks are indicated inline; report tab includes top open intent items.
+- Remaining: apply migration 0014.
+- Plan file: `plans/0012-ai-visibility-and-reddit-intent-response.md`.
 
 ### Source ingest pipeline
 
@@ -257,6 +271,7 @@ Python adapters under `python/ingest/src/high_signal_ingest/sources/` — all wi
 10. **Entity-less thematic municipal signals — DONE (2026-06-26).** `run()` no longer discards entity-less events: after the entity loop, `_emit_thematic_drafts` clusters them by theme (`grouping.classify_themes`), and themes in `_THEME_SIGNALS` (currently `data-center-buildout` → `THEME_DATACENTER`/`data_center_buildout`) emit a thematic signal **only when backed by ≥2 distinct sources AND ≥2 distinct URLs** (cite-or-kill). Keyed to a seeded `THEME_DATACENTER` pseudo-entity (type=sector, FK-valid, excluded from the gazetteer so it's never *detected* from text). Uses `generator.thematic_candidate` (a real evidence body, not the auto-killed "fallback" marker), so it can publish on its own merit. Additive — never affects the entity path. Add more themes by extending `_THEME_SIGNALS` + seeding a `THEME_*` row. This also unblocks the Tier-B scrapers (NoVA/fab-town records, also entity-less) whenever they're built.
 11. **Common-word ticker/alias collisions in the entity gazetteer — DONE (2026-06-26).** `entity_gazetteer` auto-added every ticker as a case-insensitive word-match, so common-English-word tickers polluted the map across **all** text sources (`net`→Cloudflare on "net income", `meta`→Meta on "meta-learning", plus `onto`/`form`/`snow`/`arm`). Fixed in `extract/entities.py` with **case-aware matching**: these six match only the uppercase/`$`-prefixed ticker form (the unambiguous company ref), not the lowercase word; each still resolves via its distinctive full name (Cloudflare, Snowflake, FormFactor, Onto Innovation, Arm Holdings, Meta Platforms/Facebook). Bare-alias cases `TOGETHER`/`SANCTUARY` fixed earlier by tightening aliases.
 12. **RedShip-style engagement layer (partial — scorer shipped, rest deferred):** redship.io = Reddit monitoring → 0-100 relevance scoring → daily opportunity inbox → reply drafts → SEO-ranking → alerts. Mapping to High Signal: monitoring + scoring + inbox is **shipped** as `opportunities.py` (deterministic, over all community sources, generalised beyond Reddit). Already-existing analogues: the **Mentions** lens (brand/competitor monitoring, checks), **Communities** lens (tracked subs, digests), and the brand-connected Brief sections 4/5. **Net-new pieces:** (a) auto-keyword generation from a submitted website — deferred; (b) **LLM reply-draft suggestions — DONE** (`opportunities.draft_reply`, via the OpenAI-compatible gateway; operator *suggestions*, not auto-posts; `None` without a key; CLI `--reply --brand --brand-blurb`); (c) SEO-opportunity detection (posts ranking on Google) — deferred (needs SERP data); (d) real-time Slack/email/webhook alerts — deferred (worker/Mentions surface). **Reopening trigger for the deferred pieces:** a brand is connected and wants actionable engagement on the web surface.
+13. **Plan 0012 follow-ups:** apply migration 0014. The main intent inbox scaffold, best-effort evidence-task linking, defensive post-check refresh, report section, and operator-reviewed AI reply drafts are in place; this remains a packaging/workflow gap around already-shipped primitives, not a new broad competitor-steal roadmap.
 
 ### Deferred
 
