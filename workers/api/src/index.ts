@@ -53,6 +53,11 @@ app.route("/delivery", deliveryRoute);
 app.route("/watchlists", watchlistsRoute);
 app.route("/data", dataRoute);
 
+app.onError((err, c) => {
+  console.error(`[error] ${c.req.method} ${c.req.path}:`, err.message, err.stack);
+  return c.json({ error: "Internal Server Error" }, 500);
+});
+
 export default {
   fetch: app.fetch,
   async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext) {
