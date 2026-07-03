@@ -1,5 +1,7 @@
 # High Signal
 
+> Current scope and day-to-day status live in [`PROJECT_STATUS.md`](./PROJECT_STATUS.md) (authoritative). This README is setup, architecture, and pipeline reference.
+
 High Signal is **one product**: a synthesized **Daily Brief** assembled from many noisy public sources. It covers three knowledge domains — **technology, startups, finance** — globally by default and filtered to any region a user picks.
 
 The brief has five sections. The first three are public; the last two appear once the user connects a brand.
@@ -30,7 +32,9 @@ Pricing: free. No paid tier, no billing. Region is a free filter.
 - Existing incumbents (AlphaSense, Brightwave, Daloopa) own enterprise research workflows; nobody ships a directed spillover graph + public hit-rate
 - Source layer is fully covered by OSS — no licensed feeds required for v0
 
-## Status (2026-05-30)
+## Status (snapshot 2026-05-30 — superseded by `PROJECT_STATUS.md`)
+
+The bullets below are a historical snapshot. Since then the active shell has collapsed around the Daily Brief + signals / track record / lenses; Lab and the standalone communities product are parked. See `PROJECT_STATUS.md` for what is current.
 
 - **Daily Brief** — primary surface at `/` and `/brief`. Worker route `/brief/daily?region=&owner=` composes the five sections from the lenses below. Region filter free for everyone; default global.
 - **Markets lens** — functional. Ingest + signal log + review queue + public hit-rate ledger at `/track-record`. Feeds brief section 1 with inline hit-rate per signal type.
@@ -39,7 +43,7 @@ Pricing: free. No paid tier, no billing. Region is a free filter.
 - **Agent Eval lens** — deterministic 8-area evidence scorer + reel briefs at `/agent-eval`. Real-AI prompt execution overlays when the same key is set. Feeds brief section 5 (per connected brand).
 - **Cross-source convergence** — `/convergence` page + `GET /convergence?hours=24&min_sources=3` API route. Lists entities hit by ≥ N distinct sources in a rolling window — the strongest pre-news pattern in the system. SQL aggregation against the `events` table; no new ingest. Now also overlays the latest prediction-market quote per entity with 4h prob drift, and a "Watching closely" callout sits above the brief composer pulling the same data. Breakout/divergence labels carry an inline next-24h hit-rate from a backtest replayed weekly by `cron-backtest.yml`; full ledger at `/track-record/labels` and `GET /track-record/labels`.
 - **Gazetteer candidates** — `/unmapped` page + `GET /unmapped?hours=24` API route. Three candidate streams from the same unmapped-events query: (1) **$TICKER** mentions, (2) **bare tickers** — UPPERCASE 3–5 char tokens matched against a 2,502-symbol allowlist derived from the equities universe, (3) **bare entities** — open-world capitalized 1–3 word phrases that survive a stoplist (countries, common nouns, market platforms) + a leading-word stripper ("Will Harvey Weinstein" → "Harvey Weinstein") + corporate-suffix normalization ("Anthropic PBC" → "Anthropic") + a seed-entities dedupe. Each candidate has a "copy CSV row" button that calls `/enrich/ticker?token=$NVDA`, fetches Wikidata SPARQL for company name + country + industry + Wikipedia URL + CIK, and copies a fully-shaped seed-CSV row to the clipboard. Closes the loop: the more sources you ingest → the more candidates surface → one-click promote → next ingest run picks the new entity up.
-- **Lab substrate** (plan `0007`) — Phase 1 expanded: docker-compose Postgres+pgvector, schema, HN ingest with outbound-link extraction, one-hop materialization, GitHub trending scraper, 4-factor scorer (HN + recency + velocity + GitHub-momentum placeholder), union-find story clustering, local sentence-transformer embeddings + semantic search, GLiNER entity extraction, local-LLM summarization (Ollama / vLLM), FastAPI feed at `/lab` with cluster-collapse toggle. Still pending from plan 0007: 14k-repo DB import, GitHub API enrichment for repos, GitHub-momentum factor in scorer.
+- **Lab substrate** (plan `0007`, parked — local discovery substrate only, not product infrastructure) — Phase 1 expanded: docker-compose Postgres+pgvector, schema, HN ingest with outbound-link extraction, one-hop materialization, GitHub trending scraper, 4-factor scorer (HN + recency + velocity + GitHub-momentum placeholder), union-find story clustering, local sentence-transformer embeddings + semantic search, GLiNER entity extraction, local-LLM summarization (Ollama / vLLM), FastAPI feed at `/lab` with cluster-collapse toggle. Still pending from plan 0007: 14k-repo DB import, GitHub API enrichment for repos, GitHub-momentum factor in scorer.
 
 For day-to-day stack and conventions, read `agents.md` (canonical).
 
