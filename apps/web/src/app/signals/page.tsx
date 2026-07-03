@@ -10,7 +10,7 @@ import { SignalCard } from '@/components/molecules/SignalCard';
 import { FilterBar, type Facets } from '@/components/molecules/FilterBar';
 import { assessSignalQuality, type SignalContentCategory } from '@high-signal/shared';
 import { getRequestAuth } from '@/lib/require-auth';
-import { FaqJsonLd } from '@/components/seo/structured-data';
+import { FaqJsonLd, SoftwareApplicationJsonLd } from '@/components/seo/structured-data';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Signals — High Signal' };
@@ -551,6 +551,7 @@ export default async function SignalsPage({ searchParams }: { searchParams: Prom
   return (
     <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:py-8">
       <FaqJsonLd items={LANDING_FAQ} />
+      <SoftwareApplicationJsonLd />
       <div className="grid gap-8 lg:grid-cols-[248px_minmax(0,1fr)]">
         <SignalsSidebar
           configs={configs}
@@ -584,6 +585,7 @@ export default async function SignalsPage({ searchParams }: { searchParams: Prom
         </div>
       </div>
       <LandingFaq />
+      <FleetFooter />
     </main>
   );
 }
@@ -839,5 +841,42 @@ function LandingFaq() {
         ))}
       </div>
     </section>
+  );
+}
+
+const FLEET_LINKS: Array<{ name: string; url: string; blurb: string }> = [
+  { name: 'Foundry', url: 'https://sassmaker.com', blurb: 'SaaS factory floor' },
+  { name: 'Aliveville', url: 'https://aliveville.com', blurb: 'AI world simulator' },
+  { name: 'CodeVetter', url: 'https://codevetter.com', blurb: 'AI code review' },
+  { name: 'Karte', url: 'https://karte.cc', blurb: 'AI link-in-bio' },
+  { name: 'RolePatch', url: 'https://rolepatch.com', blurb: 'AI resume tailoring' },
+  { name: 'Significant Hobbies', url: 'https://significanthobbies.com', blurb: 'Hobby journey mapper' },
+  { name: 'Materia', url: 'https://materia.io', blurb: 'Evidence-graded remedies' },
+];
+
+function FleetFooter() {
+  return (
+    <footer className="mt-16 border-t border-zinc-800 pt-8" aria-labelledby="fleet-heading">
+      <h2
+        id="fleet-heading"
+        className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-600"
+      >
+        more from the fleet
+      </h2>
+      <ul className="mt-4 flex flex-wrap gap-x-6 gap-y-2 font-mono text-[11px] text-zinc-500">
+        {FLEET_LINKS.map((link) => (
+          <li key={link.url}>
+            <a
+              href={link.url}
+              className="text-zinc-500 transition-colors hover:text-[var(--color-accent)]"
+              rel="noopener"
+            >
+              {link.name}
+            </a>
+            <span className="ml-1.5 text-zinc-700">— {link.blurb}</span>
+          </li>
+        ))}
+      </ul>
+    </footer>
   );
 }

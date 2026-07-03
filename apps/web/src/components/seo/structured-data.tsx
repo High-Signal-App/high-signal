@@ -7,6 +7,7 @@ import {
   buildOrganizationJsonLd,
   buildSignalArticleJsonLd,
   buildSignalTypeTaxonomyJsonLd,
+  buildSoftwareApplicationJsonLd,
   buildTrackRecordDatasetJsonLd,
 } from '@/components/seo/json-ld-builders';
 
@@ -49,6 +50,10 @@ export function SiteOrganizationJsonLd(): React.JSX.Element {
 
 export function HomeJsonLd(): React.JSX.Element {
   return <LdJson data={buildHomeJsonLd()} />;
+}
+
+export function SoftwareApplicationJsonLd(): React.JSX.Element {
+  return <LdJson data={buildSoftwareApplicationJsonLd()} />;
 }
 
 export function TrackRecordDatasetJsonLd(props: {

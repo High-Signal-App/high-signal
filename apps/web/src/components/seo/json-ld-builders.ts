@@ -238,6 +238,30 @@ export function buildSignalTypeTaxonomyJsonLd(opts: {
 }
 
 /**
+ * SoftwareApplication — the canonical "this is an app" record for AI
+ * assistants and rich results. Carries the free offer, creator, and
+ * the one-sentence product description used across fleet surfaces.
+ */
+export function buildSoftwareApplicationJsonLd(): JsonLdBlock {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name: SITE_NAME,
+    applicationCategory: 'NewsApplication',
+    operatingSystem: 'Web Browser',
+    url: SITE_URL,
+    description:
+      'One daily brief from 20+ noisy public sources — SEC filings, Reddit, Hacker News, YouTube transcripts, GitHub, prediction markets, and more. Every claim cites at least two independent sources.',
+    offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+    creator: {
+      '@type': 'Person',
+      name: 'Sarthak Agrawal',
+      url: 'https://sarthakagrawal.dev',
+    },
+  };
+}
+
+/**
  * CollectionPage for an entity-month archive (/entities/<id>/<YYYY-MM>).
  */
 export function buildEntityMonthJsonLd(opts: {
