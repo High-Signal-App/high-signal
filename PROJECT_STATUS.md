@@ -149,7 +149,7 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 
 ### Plan 0008 — Signal provenance editor (scaffolded)
 
-- Migration `0009_claim_provenance.sql` — **NOT applied to remote D1**.
+- Migration `0009_claim_provenance.sql` — **Applied to remote D1** (2026-06-28).
 - Tables (local schema): `claim_records`, `claim_evidence_links`, `claim_timeline_events`.
 - Shared helpers: `packages/shared/src/claim-provenance.ts`.
 - Read routes: `GET /claims/:id`, `GET /claims/by-signal/:slug`.
@@ -159,7 +159,7 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 
 ### Plan 0009 — Brief distribution (scaffolded)
 
-- Migration `0010_brief_delivery.sql` — **NOT applied to remote D1**.
+- Migration `0010_brief_delivery.sql` — **Applied to remote D1** (2026-06-28).
 - Tables: `delivery_preferences`, `delivery_log`, `delivery_snapshots`.
 - Worker `/delivery/*`: preferences, log, test, cron `POST /delivery/internal/run`.
 - Email: Cloudflare `send_email` binding; MIME in `workers/api/src/lib/email.ts`.
@@ -169,7 +169,7 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 
 ### Plan 0010 — Entity watchlists & impact chains (scaffolded)
 
-- Migration `0011_watchlists.sql` — **NOT applied to remote D1**.
+- Migration `0011_watchlists.sql` — **Applied to remote D1** (2026-06-28).
 - Tables: `watchlists`, `watchlist_entities`, `watchlist_suppressions`, `watchlist_delta_log`.
 - Worker `/watchlists/*`: list/create, add/remove entities, suppressions CRUD, `GET /:id/impact`.
 - Next.js proxy: `/api/watchlists/[...path]`.
@@ -179,7 +179,7 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 
 ### Plan 0011 — OpenLens visibility (scaffolded)
 
-- Migration `0012_cited_url_index.sql` — **NOT applied to remote D1**.
+- Migration `0012_cited_url_index.sql` — **Applied to remote D1** (2026-06-28).
 - Table: `cited_url_index`.
 - Worker under `/products/mentions/:brandId/*`: visibility-matrix, share-of-voice, cited-sources, trends, report.
 - Worker: `GET /products/agent-eval/:auditId/attributes`.
@@ -191,7 +191,7 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 
 - Competitor references: Octolens (broad social listening, API/webhooks/MCP, Slack/email), Peekaboo (AI visibility score, AI-engine tracking, citations/content pickup, GSC/Looker/GA/CMS integrations), Subreddit Signals (Reddit buyer-intent classification, subreddit discovery, reply guidance, managed service).
 - Product decision: do not create three standalone products and do not reopen a broad "steal list." Most primitives already exist in Mentions, Agent Eval, plan 0011, `opportunities.py`, and brief sections 4/5.
-- Migration `0014_intent_opportunities.sql` — **NOT applied to local or remote D1**.
+- Migration `0014_intent_opportunities.sql` — **Pending on remote D1** (additive: new `intent_opportunities` table + indexes, no data changes). Safe to apply.
 - Worker routes under `/products/mentions/:brandId/intent-opportunities`: list, refresh from recent D1 community events, best-effort Agent Eval evidence-task linking, status update, and optional AI reply-draft generation. Mention checks also trigger a defensive background intent refresh.
 - Web: `/mentions/[brandId]?tab=intent` renders the brand intent inbox with refresh, draft, done, and dismiss actions; linked evidence tasks are indicated inline; report tab includes top open intent items.
 - Remaining: apply migration 0014.
