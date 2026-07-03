@@ -10,6 +10,7 @@ import { SignalCard } from '@/components/molecules/SignalCard';
 import { FilterBar, type Facets } from '@/components/molecules/FilterBar';
 import { assessSignalQuality, type SignalContentCategory } from '@high-signal/shared';
 import { getRequestAuth } from '@/lib/require-auth';
+import { FaqJsonLd } from '@/components/seo/structured-data';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Signals — High Signal' };
@@ -172,6 +173,50 @@ const signalTabs = [
   { href: '/signals', label: 'all signals' },
   { href: '/track-record', label: 'track record' },
   { href: '/signals/types', label: 'types' },
+];
+
+/**
+ * Landing-page FAQ for GEO (generative-engine optimization). AI search
+ * engines lift 35-60 word passages, so each answer is self-contained,
+ * factual, and in that band. Mirrors the wording in agents.md and
+ * /methodology so surfaces stay in sync.
+ */
+const LANDING_FAQ: Array<{ question: string; answer: string }> = [
+  {
+    question: 'What is High Signal?',
+    answer:
+      'High Signal is a daily synthesized intelligence brief covering technology, startups, and finance. It aggregates noisy public sources, curates and cleans them, and emits an end-of-day brief answering five questions for operators. Every claim cites at least two independent sources.',
+  },
+  {
+    question: 'Is High Signal free?',
+    answer:
+      'Yes, everything is free for now. There is no paid tier, no billing, and no paywall. Region filters are free, and all features are accessible without payment. The brief renders identically for anonymous and signed-in users until a brand is connected.',
+  },
+  {
+    question: 'How does High Signal ensure quality?',
+    answer:
+      'Every claim in the brief must cite at least two independent sources. A public hit-rate ledger tracks whether past signals were right. Confidence is rated as low, medium, or high, and calibrated post-hoc against outcomes. Prediction-market-only drafts are killed even when the pipeline marks them publishable.',
+  },
+  {
+    question: 'What sources does High Signal use?',
+    answer:
+      'Reddit, news, Hacker News, YouTube transcripts, SEC filings, GitHub, IR pages, papers, government feeds, and prediction markets. The job is curation and de-duplication, not aggregation volume. Sources are grouped into classes — news, filing, ir, blog, regulator, transcript, repo, and market — so independence is checked by class, not just domain.',
+  },
+  {
+    question: 'What is the hit-rate ledger?',
+    answer:
+      'A public track record showing whether past signals were accurate. It is the competitive moat — competitors cannot copy it without rebuilding the history from scratch. Every published market signal is scored against subsequent moves, and the hit-rate displays inline on each new signal.',
+  },
+  {
+    question: 'Can I filter by region?',
+    answer:
+      'Yes, region is a free filter on every section. The default is global. Users can switch to any region and the brief recomputes scoped to that region\u2019s entities and sources. Preference persists for signed-in users via Clerk publicMetadata.',
+  },
+  {
+    question: 'Does High Signal have an API or RSS feed?',
+    answer:
+      'Yes, RSS and Atom feeds are available at /digest/rss and /digest/atom. Signal-level feeds live at /signals/rss and /signals/atom. There is also an API docs page at /api-docs describing the REST endpoints for signals, entities, and the track record.',
+  },
 ];
 
 const nowIso = new Date(0).toISOString();
@@ -505,6 +550,7 @@ export default async function SignalsPage({ searchParams }: { searchParams: Prom
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:py-8">
+      <FaqJsonLd items={LANDING_FAQ} />
       <div className="grid gap-8 lg:grid-cols-[248px_minmax(0,1fr)]">
         <SignalsSidebar
           configs={configs}
@@ -537,6 +583,7 @@ export default async function SignalsPage({ searchParams }: { searchParams: Prom
           )}
         </div>
       </div>
+      <LandingFaq />
     </main>
   );
 }
@@ -769,5 +816,28 @@ function Empty({
             ? 'no signals match these filters'
             : 'no signals published yet — first cards drop after phase 1'}
     </div>
+  );
+}
+
+function LandingFaq() {
+  return (
+    <section className="mt-16 border-t border-zinc-800 pt-10" aria-labelledby="faq-heading">
+      <h2
+        id="faq-heading"
+        className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--color-accent)]"
+      >
+        frequently asked
+      </h2>
+      <div className="mt-6 divide-y divide-zinc-800 border-y border-zinc-800">
+        {LANDING_FAQ.map((item) => (
+          <details key={item.question} className="group py-5">
+            <summary className="cursor-pointer text-base font-medium tracking-tight text-zinc-100 hover:text-[var(--color-accent)]">
+              {item.question}
+            </summary>
+            <p className="mt-3 max-w-3xl text-sm leading-6 text-zinc-400">{item.answer}</p>
+          </details>
+        ))}
+      </div>
+    </section>
   );
 }
