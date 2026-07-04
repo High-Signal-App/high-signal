@@ -850,13 +850,17 @@ const FLEET_LINKS: Array<{ name: string; url: string; blurb: string }> = [
   { name: 'CodeVetter', url: 'https://codevetter.com', blurb: 'AI code review' },
   { name: 'Karte', url: 'https://karte.cc', blurb: 'AI link-in-bio' },
   { name: 'RolePatch', url: 'https://rolepatch.com', blurb: 'AI resume tailoring' },
-  { name: 'Significant Hobbies', url: 'https://significanthobbies.com', blurb: 'Hobby journey mapper' },
+  {
+    name: 'Significant Hobbies',
+    url: 'https://significanthobbies.com',
+    blurb: 'Hobby journey mapper',
+  },
   { name: 'Materia', url: 'https://materia.io', blurb: 'Evidence-graded remedies' },
 ];
 
 function FleetFooter() {
   return (
-    <footer className="mt-16 border-t border-zinc-800 pt-8" aria-labelledby="fleet-heading">
+    <footer className="mt-16 border-t border-zinc-800 pt-8">
       <h2
         id="fleet-heading"
         className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-600"
