@@ -1,6 +1,6 @@
 # high-signal — PROJECT STATUS
 
-Last updated: 2026-07-03
+Last updated: 2026-07-04
 
 ## Why/What
 
@@ -88,6 +88,7 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 
 ## Timeline
 
+- **2026-07-04** — Completed plan 0009 brief email delivery (wired the sweep into the `*/30` `scheduled()` cron, live-brief compose, HMAC one-click unsubscribe, 3-strike auto-disable; fixed 3 typecheck errors that left the feature non-compiling). Added `rankEvidenceUrls` to fix a credibility-critical defect: brief citations were leading with off-entity/low-authority sources (Bajaj article under HCL, crates.io under Alphabet, Manifold markets under Intel). Then fixed the root cause upstream in the Python generator: title-weighted attribution with a min-strength floor + a conservative evidence-relevance filter, so off-entity events are no longer attributed or cited (Planned #14, DONE). Test suites 15 → 16 (TS) + `test_entity_attribution.py` (11, Python).
 - **2026-07-02** — Added `app.onError()` global error handler to API worker (`workers/api/src/index.ts`).
 - **2026-06-09:** Production deploy verified (web + api Workers).
 - **Migrations 0000–0007:** Applied; canonical D1 schema for signals, evidence, entities, markets, etc.
@@ -263,13 +264,18 @@ Python adapters under `python/ingest/src/high_signal_ingest/sources/` — all wi
 
 1. **Remaining source API keys (manual signup needed):** `FRED_API_KEY` (macro rates — highest value, 2 min signup), `ETHERSCAN_API_KEY` (Ethereum gas, 2 min), `COMPANIES_HOUSE_API_KEY` (UK filings, 3 min). All others have keyless alternatives or are niche — see session notes. AgentMail inbox `highsignal-keys@agentmail.to` is set up for registrations.
 2. **Plan 0008 follow-ups:** auto-publish reads claim records; lazy historical backfill; brief provenance affordance.
-3. **Plan 0009 follow-ups:** Email Routing operator setup; hourly delivery cron; bounce/retry UX.
+3. **Plan 0009 follow-ups:** Email Routing operator setup (DKIM/SPF + `EMAIL_FROM`) is the only remaining blocker. Delivery is otherwise complete: the `*/30` cron now runs the sweep in `scheduled()` (fail-closed + idempotent), live-brief compose feeds the email, one-click unsubscribe (HMAC token, RFC 8058 `List-Unsubscribe`) works from any mail client, and 3 consecutive failures auto-disable a channel.
 4. **Plan 0010 follow-ups:** wire `watching` section into brief composer; claim linkage.
 5. **Plan 0011 follow-ups:** topic/prompt copy rename; post-check cited-source refresh hook; report token auth.
 6. Clarify event semantics — `normalized_events` vs current `events` as source observations.
 7. Keep source pipeline small and quality-gated; run `pnpm source:quality` after full ingest.
 8. Promote `/unmapped` candidates into seed CSV; expand curated adapter lists before new firehoses.
 9. Tighten brief quality — evidence links, hit-rate context, cull weak inputs.
+14. **Evidence attribution — DONE (2026-07-04, credibility-critical).** The live `/brief/daily` (2026-07-04) showed evidence URLs mis-attributed to the wrong entity: HCL `design_win` cited a Bajaj Housing Finance article; Alphabet `capex` cited `crates.io/hashbrown`; Intel `partnership` led with Manifold prediction markets. Root cause: attribution (`_event_entity` → `primary_entity`) scanned the full scraped body (`content[:4000]`) and returned the alphabetically-first gazetteer hit, so a single incidental mention in a "top movers" widget / related-article rail / crate description won. Fixed across three layers:
+    - **Attribution** (`extract/entities.py`): `primary_entity` is now title-weighted (`entity_scores`: title match ×4 + body ×1) with a min-strength floor (`_MIN_PRIMARY_SCORE=2`) — an entity mentioned once outside the title is too incidental to own the event → returns None. `_event_entity` scores title + an 800-char lead only (not `[:4000]`). Adapter-assigned `primary_entity_id` (filings/IR) stays authoritative.
+    - **Evidence relevance** (`generator.py` `_relevant_events`, applied in `generate` + `generate_batch`): drops an event from a candidate's evidence when its title+lead names *other* tracked entities but neither the subject nor a spillover candidate. Conservative — events naming no tracked entity (bare filings) are kept.
+    - **Display** (`brief.ts` `rankEvidenceUrls`, shipped earlier): the two citations a reader sees lead with the strongest/on-topic source.
+    Tests: `tests/test_entity_attribution.py` (11, pins the real defects) + `scripts/evidence-ranking.test.ts` (12). **Declined:** a relevance floor in `auto-publish-rules.ts` — it would duplicate the gazetteer in TS; generation-layer filtering is the correct home, and the existing market-only KILL + evidence ranking cover the display/market concerns.
 13. **FINRA short interest (deferred — feasible, fiddly):** free + non-scraping positioning signal (days-to-cover, squeeze risk; maps to tickers). API confirmed accessible at `api.finra.org/data/group/otcMarket/name/consolidatedShortInterest?format=json` (returns real rows at small limits), but the data-platform API caps `limit` low, rate-limits aggressively, and needs offset-pagination + a latest-settlement-period filter to surface notable shorts. Needs a focused pass with proper pagination + backoff; not worth blocking the clean sources. Reopen when wanted.
 10. **Entity-less thematic municipal signals — DONE (2026-06-26).** `run()` no longer discards entity-less events: after the entity loop, `_emit_thematic_drafts` clusters them by theme (`grouping.classify_themes`), and themes in `_THEME_SIGNALS` (currently `data-center-buildout` → `THEME_DATACENTER`/`data_center_buildout`) emit a thematic signal **only when backed by ≥2 distinct sources AND ≥2 distinct URLs** (cite-or-kill). Keyed to a seeded `THEME_DATACENTER` pseudo-entity (type=sector, FK-valid, excluded from the gazetteer so it's never *detected* from text). Uses `generator.thematic_candidate` (a real evidence body, not the auto-killed "fallback" marker), so it can publish on its own merit. Additive — never affects the entity path. Add more themes by extending `_THEME_SIGNALS` + seeding a `THEME_*` row. This also unblocks the Tier-B scrapers (NoVA/fab-town records, also entity-less) whenever they're built.
 11. **Common-word ticker/alias collisions in the entity gazetteer — DONE (2026-06-26).** `entity_gazetteer` auto-added every ticker as a case-insensitive word-match, so common-English-word tickers polluted the map across **all** text sources (`net`→Cloudflare on "net income", `meta`→Meta on "meta-learning", plus `onto`/`form`/`snow`/`arm`). Fixed in `extract/entities.py` with **case-aware matching**: these six match only the uppercase/`$`-prefixed ticker form (the unambiguous company ref), not the lowercase word; each still resolves via its distinctive full name (Cloudflare, Snowflake, FormFactor, Onto Innovation, Arm Holdings, Meta Platforms/Facebook). Bare-alias cases `TOGETHER`/`SANCTUARY` fixed earlier by tightening aliases.

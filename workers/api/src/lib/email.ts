@@ -32,6 +32,9 @@ export interface SendBriefArgs {
   briefDate: string;
   region: string;
   body: BriefEmailBody;
+  /** One-click unsubscribe URL. When present it is rendered in the footer and
+   * emitted as List-Unsubscribe headers (RFC 8058). */
+  unsubscribeUrl?: string;
 }
 
 export interface SendResult {
@@ -40,22 +43,39 @@ export interface SendResult {
   providerMessageId?: string;
 }
 
+// Fail-closed transport gate. Both the binding AND an explicit EMAIL_FROM must
+// be configured — we never fall back to a default sender on a domain whose
+// outbound DKIM/SPF may not exist yet. Callers check this before touching
+// delivery_log so an unconfigured deploy is a clean no-op, not a failure storm.
+export function emailTransportStatus(
+  env: EmailEnv,
+): { ready: true } | { ready: false; reason: "no_send_email_binding" | "email_from_unset" } {
+  if (!env.SEND_EMAIL) return { ready: false, reason: "no_send_email_binding" };
+  if (!env.EMAIL_FROM) return { ready: false, reason: "email_from_unset" };
+  return { ready: true };
+}
+
 export async function sendBriefEmail(env: EmailEnv, args: SendBriefArgs): Promise<SendResult> {
-  if (!env.SEND_EMAIL) {
-    return { ok: false, reason: "no_send_email_binding" };
+  const status = emailTransportStatus(env);
+  if (!status.ready) {
+    return { ok: false, reason: status.reason };
   }
-  const from = env.EMAIL_FROM ?? "brief@high-signal.app";
+  // emailTransportStatus() guarantees both are set; capture locals so the type
+  // narrows through the async send below (env fields stay `T | undefined`).
+  const binding = env.SEND_EMAIL!;
+  const from = env.EMAIL_FROM!;
   const raw = buildMime({
     from,
     to: args.to,
     subject: args.subject,
     briefDate: args.briefDate,
     region: args.region,
+    unsubscribeUrl: args.unsubscribeUrl,
     html: renderHtml(args),
     text: renderText(args),
   });
   try {
-    await env.SEND_EMAIL.send(new EmailMessage(from, args.to, raw));
+    await binding.send(new EmailMessage(from, args.to, raw));
     return { ok: true };
   } catch (e) {
     return { ok: false, reason: `transport_${String(e).slice(0, 200)}` };
@@ -72,6 +92,7 @@ interface MimeArgs {
   subject: string;
   briefDate: string;
   region: string;
+  unsubscribeUrl?: string;
   html: string;
   text: string;
 }
@@ -89,6 +110,12 @@ function buildMime(m: MimeArgs): string {
     `Message-ID: ${messageId}`,
     `X-High-Signal-Brief-Date: ${m.briefDate}`,
     `X-High-Signal-Region: ${m.region}`,
+    ...(m.unsubscribeUrl
+      ? [
+          `List-Unsubscribe: <${m.unsubscribeUrl}>`,
+          `List-Unsubscribe-Post: List-Unsubscribe=One-Click`,
+        ]
+      : []),
     `MIME-Version: 1.0`,
     `Content-Type: multipart/alternative; boundary="${boundary}"`,
   ];
@@ -177,7 +204,11 @@ function renderHtml(args: SendBriefArgs): string {
       return `<h2 style="font-size:14px;letter-spacing:0.18em;text-transform:uppercase;color:#888;margin-top:24px">${escapeHtml(s.title)}</h2><ul style="padding-left:18px;margin:8px 0">${items}</ul>`;
     })
     .join("");
-  return `<!doctype html><html><body style="font-family:ui-sans-serif,system-ui,-apple-system,sans-serif;background:#0a0a0a;color:#e5e5e5;padding:24px"><div style="max-width:640px;margin:0 auto"><div style="font-size:12px;letter-spacing:0.2em;text-transform:uppercase;color:#888">High Signal</div><div style="font-size:11px;color:#666;margin-top:4px">${escapeHtml(args.briefDate)} · ${escapeHtml(args.region)}</div>${sectionsHtml}<p style="margin-top:32px;font-size:11px;color:#666">Manage delivery: https://high-signal.app/settings/delivery</p></div></body></html>`;
+  const unsub = args.unsubscribeUrl && safeHref(args.unsubscribeUrl);
+  const footer = `Manage delivery: https://high-signal.app/settings/delivery${
+    unsub ? ` · <a href="${escapeHtml(unsub)}" style="color:#666">unsubscribe</a>` : ""
+  }`;
+  return `<!doctype html><html><body style="font-family:ui-sans-serif,system-ui,-apple-system,sans-serif;background:#0a0a0a;color:#e5e5e5;padding:24px"><div style="max-width:640px;margin:0 auto"><div style="font-size:12px;letter-spacing:0.2em;text-transform:uppercase;color:#888">High Signal</div><div style="font-size:11px;color:#666;margin-top:4px">${escapeHtml(args.briefDate)} · ${escapeHtml(args.region)}</div>${sectionsHtml}<p style="margin-top:32px;font-size:11px;color:#666">${footer}</p></div></body></html>`;
 }
 
 function renderText(args: SendBriefArgs): string {
@@ -192,5 +223,6 @@ function renderText(args: SendBriefArgs): string {
       return `${s.title.toUpperCase()}\n${items}`;
     })
     .join("\n\n");
-  return `HIGH SIGNAL\n${args.briefDate} · ${args.region}\n\n${sections}\n\nManage delivery: https://high-signal.app/settings/delivery`;
+  const unsub = args.unsubscribeUrl ? `\nUnsubscribe: ${args.unsubscribeUrl}` : "";
+  return `HIGH SIGNAL\n${args.briefDate} · ${args.region}\n\n${sections}\n\nManage delivery: https://high-signal.app/settings/delivery${unsub}`;
 }

@@ -32,6 +32,7 @@ const TSX_SUITES = [
   ["market-snapshot", "scripts/market-snapshot.test.ts"],
   ["claim-provenance", "scripts/claim-provenance.test.ts"],
   ["brief-delivery", "scripts/brief-delivery.test.ts"],
+  ["evidence-ranking", "scripts/evidence-ranking.test.ts"],
   ["watchlist-impact", "scripts/watchlist-impact.test.ts"],
   ["openlens-visibility", "scripts/openlens-visibility.test.ts"],
   ["intent-opportunities", "scripts/intent-opportunities.test.ts"],

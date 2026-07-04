@@ -2,6 +2,8 @@
 // Pure functions shared between the worker (composer + cron), tests, and
 // the /settings/delivery UI for previewing local-window resolution.
 
+import type { BriefSnapshot } from "./brief";
+
 export type DeliveryChannel = "email" | "rss" | "digest_json";
 export type DeliveryStatus = "queued" | "sent" | "failed" | "skipped";
 export type SkipReason =
@@ -136,4 +138,101 @@ export function isKnownSkipReason(r: string): r is SkipReason {
 export function shouldAutoDisable(recentStatuses: DeliveryStatus[]): boolean {
   const last3 = recentStatuses.slice(-3);
   return last3.length === 3 && last3.every((s) => s === "failed");
+}
+
+// ─── Snapshot → email sections ──────────────────────────────────────────────
+// /brief/daily returns a BriefSnapshot with five typed arrays (stocks / ideas /
+// trends / perception / improvements) — NOT a generic `sections` list. This
+// mapper flattens it into the channel-neutral shape the email renderer eats.
+// Section titles mirror the web surface eyebrows so the email reads as the
+// same product. Empty sections are dropped — an email never renders a bare
+// header. Pure + deterministic so it's unit-testable outside the worker.
+
+export interface EmailSectionItem {
+  text: string;
+  links: string[];
+}
+
+export interface EmailSection {
+  title: string;
+  items: EmailSectionItem[];
+}
+
+const pctOf = (rate: number): string => `${Math.round(rate * 100)}%`;
+
+function citationLinks(urls: Array<{ url: string }> | undefined): string[] {
+  return (urls ?? []).map((c) => c.url).slice(0, 2);
+}
+
+export function briefSnapshotToEmailSections(
+  snapshot: Partial<BriefSnapshot> | null | undefined,
+): EmailSection[] {
+  if (!snapshot) return [];
+  const sections: EmailSection[] = [
+    {
+      title: "01 / stocks watching for a boom",
+      items: (snapshot.stocks ?? []).map((s) => ({
+        text: [
+          `${s.entityName}${s.ticker ? ` (${s.ticker})` : ""} — ${s.headline}`,
+          `${s.direction} · ${s.confidence} confidence`,
+          s.hitRate != null
+            ? `hit-rate ${pctOf(s.hitRate)} (${s.hitRateBand}, n=${s.hitRateSample})`
+            : "no live calls yet",
+        ].join(" · "),
+        links: citationLinks(s.evidenceUrls),
+      })),
+    },
+    {
+      title: "02 / business ideas to build",
+      items: (snapshot.ideas ?? []).map((i) => ({
+        text: `${i.title} — ${i.description}${i.subreddit ? ` (r/${i.subreddit})` : ""}`,
+        links: citationLinks(i.evidenceUrls),
+      })),
+    },
+    {
+      title: "03 / new lifestyle trends",
+      items: (snapshot.trends ?? []).map((t) => ({
+        text: `${t.title} — ${t.description} (r/${t.subreddit})`,
+        links: citationLinks(t.evidenceUrls),
+      })),
+    },
+    {
+      title: "04 / how the market perceives your products",
+      items: (snapshot.perception ?? []).map((p) => ({
+        text: `${p.brandName} — mention rate ${
+          p.mentionRate != null ? pctOf(p.mentionRate) : "n/a"
+        }, positive share ${p.positiveShare != null ? pctOf(p.positiveShare) : "n/a"}`,
+        links: [],
+      })),
+    },
+    {
+      title: "05 / ideas to improve your products",
+      items: (snapshot.improvements ?? []).map((im) => ({
+        text: `[${im.priority}] ${im.brandName} · ${im.area} — ${im.task}`,
+        links: [],
+      })),
+    },
+  ];
+  return sections.filter((s) => s.items.length > 0);
+}
+
+// ─── One-click unsubscribe token ────────────────────────────────────────────
+// HMAC-SHA256(userId) under a server-side secret, truncated to 32 hex chars.
+// Deterministic (no schema change needed) and unforgeable without the secret.
+// The worker embeds `/delivery/unsubscribe?u=<userId>&t=<token>` in every
+// brief email; the route recomputes and compares. Fail-closed: no secret →
+// no link is embedded and the route refuses.
+export async function unsubscribeToken(secret: string, userId: string): Promise<string> {
+  const enc = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    "raw",
+    enc.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const sig = await crypto.subtle.sign("HMAC", key, enc.encode(`unsub:${userId}`));
+  return Array.from(new Uint8Array(sig), (b) => b.toString(16).padStart(2, "0"))
+    .join("")
+    .slice(0, 32);
 }
