@@ -1,6 +1,6 @@
 # high-signal — PROJECT STATUS
 
-Last updated: 2026-07-03
+Last updated: 2026-07-04
 
 ## Why/What
 
@@ -88,6 +88,7 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 
 ## Timeline
 
+- **2026-07-04** — Completed plan 0009 brief email delivery (wired the sweep into the `*/30` `scheduled()` cron, live-brief compose, HMAC one-click unsubscribe, 3-strike auto-disable; fixed 3 typecheck errors that left the feature non-compiling). Added `rankEvidenceUrls` to fix a credibility-critical defect: brief citations were leading with off-entity/low-authority sources (Bajaj article under HCL, crates.io under Alphabet, Manifold markets under Intel). Root cause is upstream in the Python generator — tracked as Planned #14. Test suites 15 → 16.
 - **2026-07-02** — Added `app.onError()` global error handler to API worker (`workers/api/src/index.ts`).
 - **2026-06-09:** Production deploy verified (web + api Workers).
 - **Migrations 0000–0007:** Applied; canonical D1 schema for signals, evidence, entities, markets, etc.
@@ -263,13 +264,14 @@ Python adapters under `python/ingest/src/high_signal_ingest/sources/` — all wi
 
 1. **Remaining source API keys (manual signup needed):** `FRED_API_KEY` (macro rates — highest value, 2 min signup), `ETHERSCAN_API_KEY` (Ethereum gas, 2 min), `COMPANIES_HOUSE_API_KEY` (UK filings, 3 min). All others have keyless alternatives or are niche — see session notes. AgentMail inbox `highsignal-keys@agentmail.to` is set up for registrations.
 2. **Plan 0008 follow-ups:** auto-publish reads claim records; lazy historical backfill; brief provenance affordance.
-3. **Plan 0009 follow-ups:** Email Routing operator setup; hourly delivery cron; bounce/retry UX.
+3. **Plan 0009 follow-ups:** Email Routing operator setup (DKIM/SPF + `EMAIL_FROM`) is the only remaining blocker. Delivery is otherwise complete: the `*/30` cron now runs the sweep in `scheduled()` (fail-closed + idempotent), live-brief compose feeds the email, one-click unsubscribe (HMAC token, RFC 8058 `List-Unsubscribe`) works from any mail client, and 3 consecutive failures auto-disable a channel.
 4. **Plan 0010 follow-ups:** wire `watching` section into brief composer; claim linkage.
 5. **Plan 0011 follow-ups:** topic/prompt copy rename; post-check cited-source refresh hook; report token auth.
 6. Clarify event semantics — `normalized_events` vs current `events` as source observations.
 7. Keep source pipeline small and quality-gated; run `pnpm source:quality` after full ingest.
 8. Promote `/unmapped` candidates into seed CSV; expand curated adapter lists before new firehoses.
 9. Tighten brief quality — evidence links, hit-rate context, cull weak inputs.
+14. **Evidence attribution — upstream root cause (HIGH, credibility-critical).** The live `/brief/daily` (2026-07-04) showed evidence URLs mis-attributed to the wrong entity: HCL `design_win` cited a Bajaj Housing Finance article; Alphabet `capex` cited `crates.io/hashbrown`; Intel `partnership` cited only Manifold prediction markets. This directly undercuts the "cite ≥2 independent sources or it doesn't ship" promise the landing page makes. **Mitigated** at the composer (`rankEvidenceUrls` reorders so the strongest/on-topic citation leads — the 2 a reader clicks first now support the claim). **Not fixed:** the Python generator attaches off-entity evidence to a signal, and (Intel) sets `primaryEntityId` to the wrong entity. Fix in `python/ingest` signal generation: (a) filter/score evidence for topical relevance to the mapped entity before storing; (b) block prediction-market-only evidence at generation (auto-publish already KILLs it downstream, but Intel slipped through as `published`); (c) audit `primaryEntityId` mapping for name-collision false positives (relates to the gazetteer common-word work, Planned #11). Also consider a relevance floor in `auto-publish-rules.ts` so a claim whose top-2 ranked citations are off-entity/market is HELD, not published.
 13. **FINRA short interest (deferred — feasible, fiddly):** free + non-scraping positioning signal (days-to-cover, squeeze risk; maps to tickers). API confirmed accessible at `api.finra.org/data/group/otcMarket/name/consolidatedShortInterest?format=json` (returns real rows at small limits), but the data-platform API caps `limit` low, rate-limits aggressively, and needs offset-pagination + a latest-settlement-period filter to surface notable shorts. Needs a focused pass with proper pagination + backoff; not worth blocking the clean sources. Reopen when wanted.
 10. **Entity-less thematic municipal signals — DONE (2026-06-26).** `run()` no longer discards entity-less events: after the entity loop, `_emit_thematic_drafts` clusters them by theme (`grouping.classify_themes`), and themes in `_THEME_SIGNALS` (currently `data-center-buildout` → `THEME_DATACENTER`/`data_center_buildout`) emit a thematic signal **only when backed by ≥2 distinct sources AND ≥2 distinct URLs** (cite-or-kill). Keyed to a seeded `THEME_DATACENTER` pseudo-entity (type=sector, FK-valid, excluded from the gazetteer so it's never *detected* from text). Uses `generator.thematic_candidate` (a real evidence body, not the auto-killed "fallback" marker), so it can publish on its own merit. Additive — never affects the entity path. Add more themes by extending `_THEME_SIGNALS` + seeding a `THEME_*` row. This also unblocks the Tier-B scrapers (NoVA/fab-town records, also entity-less) whenever they're built.
 11. **Common-word ticker/alias collisions in the entity gazetteer — DONE (2026-06-26).** `entity_gazetteer` auto-added every ticker as a case-insensitive word-match, so common-English-word tickers polluted the map across **all** text sources (`net`→Cloudflare on "net income", `meta`→Meta on "meta-learning", plus `onto`/`form`/`snow`/`arm`). Fixed in `extract/entities.py` with **case-aware matching**: these six match only the uppercase/`$`-prefixed ticker form (the unambiguous company ref), not the lowercase word; each still resolves via its distinctive full name (Cloudflare, Snowflake, FormFactor, Onto Innovation, Arm Holdings, Meta Platforms/Facebook). Bare-alias cases `TOGETHER`/`SANCTUARY` fixed earlier by tightening aliases.
