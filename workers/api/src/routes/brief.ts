@@ -24,6 +24,7 @@ import {
   findSeedProduct,
   isRegion,
   normalizeCommunitySummary,
+  rankEvidenceUrls,
   SEED_PRODUCTS,
   type BriefIdeaItem,
   type BriefImprovementItem,
@@ -379,7 +380,13 @@ async function buildStocks(
       publishedAt: row.publishedAt instanceof Date
         ? row.publishedAt.toISOString()
         : new Date(Number(row.publishedAt)).toISOString(),
-      evidenceUrls: evidenceArr.map((url) => ({ url: String(url) })),
+      // Lead with the most authoritative, on-topic citation: downstream
+      // surfaces (email caps at 2, cards truncate) must not show a weak or
+      // off-entity source first. Reorders only — count is unchanged.
+      evidenceUrls: rankEvidenceUrls(
+        evidenceArr.map((url) => String(url)),
+        { entityName: row.entityName, ticker: row.ticker },
+      ).map((url) => ({ url })),
       hitRate: resolved.hitRate,
       hitRateSample: resolved.sample,
       hitRateBand: resolved.band,

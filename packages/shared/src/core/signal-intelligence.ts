@@ -170,6 +170,103 @@ export function classifySource(url: string): SourceClass {
   return "other";
 }
 
+// ─── Evidence ranking ───────────────────────────────────────────────────────
+// The generator stores a signal's evidence URLs in collection order, which is
+// not quality order: a prediction market, a package-registry page, or an
+// off-topic news article can sit ahead of the authoritative, on-topic source.
+// Downstream surfaces (the brief email caps citations at 2; cards show the
+// first few) then lead with the weakest link. `rankEvidenceUrls` reorders —
+// never drops — so the strongest, most on-topic citation a reader clicks first
+// actually supports the claim. Pure + deterministic; cite-or-kill counts are
+// unaffected because nothing is removed.
+
+// Authority by source class. Prediction markets sit lowest: the product treats
+// them as crowd opinion, not new information (see auto-publish rules). "other"
+// sits mid — it holds both real-but-unlisted outlets (trade press, company
+// sites) and low-value pages, so relevance is what separates them.
+const SOURCE_AUTHORITY: Record<SourceClass, number> = {
+  official: 6,
+  news: 5,
+  developer: 4,
+  regional: 4,
+  review: 3,
+  community: 3,
+  other: 2,
+  market: 1,
+};
+
+// Corporate boilerplate tokens that would over-match unrelated URLs.
+const GENERIC_ENTITY_TOKENS = new Set([
+  "inc",
+  "corp",
+  "corporation",
+  "co",
+  "ltd",
+  "limited",
+  "plc",
+  "llc",
+  "holdings",
+  "group",
+  "company",
+  "technologies",
+  "technology",
+  "the",
+  "pbc",
+  "ag",
+  "sa",
+  "nv",
+  "se",
+  "systems",
+  "international",
+]);
+
+/** Distinctive lowercase tokens for an entity: name words (minus corporate
+ * boilerplate and sub-3-char noise) plus the ticker base (`HCLTECH.NS` →
+ * `hcltech`, `000660.KS` dropped as non-alphabetic). */
+export function entityMatchTokens(target: {
+  entityName?: string | null;
+  ticker?: string | null;
+}): string[] {
+  const tokens = new Set<string>();
+  for (const raw of (target.entityName ?? "").toLowerCase().split(/[^a-z0-9]+/)) {
+    if (raw.length >= 3 && !GENERIC_ENTITY_TOKENS.has(raw)) tokens.add(raw);
+  }
+  const tickerBase = (target.ticker ?? "").toLowerCase().split(".")[0] ?? "";
+  if (/[a-z]{3,}/.test(tickerBase)) tokens.add(tickerBase);
+  return Array.from(tokens);
+}
+
+/** Score one evidence URL for a claim: source authority + topical match to the
+ * entity (host + decoded path). Higher = shown first. */
+export function evidenceScore(
+  url: string,
+  target: { entityName?: string | null; ticker?: string | null },
+  tokens: string[] = entityMatchTokens(target),
+): number {
+  const authority = SOURCE_AUTHORITY[classifySource(url)];
+  let haystack = url.toLowerCase();
+  try {
+    haystack = decodeURIComponent(haystack);
+  } catch {
+    /* keep raw on malformed escapes */
+  }
+  const matches = tokens.reduce((n, t) => (haystack.includes(t) ? n + 1 : n), 0);
+  return authority + matches * 3;
+}
+
+/** Reorder evidence URLs strongest-first (authority + entity relevance). Stable
+ * for ties; nothing is dropped. */
+export function rankEvidenceUrls(
+  urls: string[],
+  target: { entityName?: string | null; ticker?: string | null },
+): string[] {
+  const tokens = entityMatchTokens(target);
+  return urls
+    .map((url, idx) => ({ url, idx, score: evidenceScore(url, target, tokens) }))
+    .sort((a, b) => b.score - a.score || a.idx - b.idx)
+    .map((r) => r.url);
+}
+
 export function classifySignalCategory(signal: Pick<SignalLike, "signalType" | "bodyMd">): SignalContentCategory {
   const text = `${cleanText(signal.signalType)} ${cleanText(signal.bodyMd.slice(0, 1200))}`;
   for (const rule of CATEGORY_RULES) {
