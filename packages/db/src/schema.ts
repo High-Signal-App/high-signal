@@ -279,6 +279,7 @@ export const mentionPrompts = sqliteTable(
     ownerId: text("owner_id").notNull(),
     promptText: text("prompt_text").notNull(),
     category: text("category"),
+    persona: text("persona"),
     createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()
       .$defaultFn(() => new Date()),
@@ -329,13 +330,16 @@ export const mentionResults = sqliteTable(
     promptId: text("prompt_id").notNull(),
     platform: text("platform").notNull(),
     model: text("model").notNull(),
+    persona: text("persona"),
     responseText: text("response_text").notNull(),
     brandMentioned: integer("brand_mentioned", { mode: "boolean" }).notNull().default(false),
+    brandRecommended: integer("brand_recommended", { mode: "boolean" }).notNull().default(false),
     brandSentiment: text("brand_sentiment"),
     brandPosition: integer("brand_position"),
     competitorsMentioned: text("competitors_mentioned", { mode: "json" }).notNull().default("[]"),
     citations: text("citations", { mode: "json" }).notNull().default("[]"),
     brandCited: integer("brand_cited", { mode: "boolean" }).notNull().default(false),
+    judgeReasoning: text("judge_reasoning"),
     latencyMs: integer("latency_ms"),
     createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()
