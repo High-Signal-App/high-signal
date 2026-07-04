@@ -14,8 +14,24 @@ from typing import Iterable, cast
 
 import httpx
 
+from .extract.entities import event_supports_entity
 from .seed import signal_type_ids
 from .types import Confidence, Direction, Event, EvidenceItem, SignalCandidate
+
+
+def _relevant_events(
+    primary_entity_id: str,
+    events: list[Event],
+    spillover_candidates: Iterable[str],
+) -> list[Event]:
+    """Drop events that name only *other* tracked entities in their title+lead —
+    off-entity citations (a Bajaj Housing article under an HCL signal) violate
+    cite-or-kill even when the count is met. Conservative: events that name no
+    tracked entity, or that name the subject/a spillover candidate, are kept."""
+    spill = list(spillover_candidates)
+    return [
+        e for e in events if event_supports_entity(primary_entity_id, e.title, e.content, spill)
+    ]
 
 _PROMPT_TEMPLATE = """You are a signal extractor for the active High Signal collection:
 AI-infra / semiconductor market intelligence.
@@ -389,7 +405,7 @@ def generate(
     events: Iterable[Event],
     spillover_candidates: list[str],
 ) -> SignalCandidate | None:
-    evs = list(events)
+    evs = _relevant_events(primary_entity_id, list(events), spillover_candidates)
     if not evs:
         return None
     blob = "\n\n".join(
@@ -540,7 +556,10 @@ def generate_batch(
     entity_blocks: list[str] = []
     entity_events: dict[str, list[Event]] = {}
     entity_spillovers: dict[str, list[str]] = {}
-    for idx, (entity_id, evs, spillovers) in enumerate(clusters):
+    for idx, (entity_id, raw_evs, spillovers) in enumerate(clusters):
+        evs = _relevant_events(entity_id, list(raw_evs), spillovers)
+        if not evs:
+            continue
         entity_events[entity_id] = evs
         entity_spillovers[entity_id] = spillovers
         blob = "\n".join(
@@ -555,6 +574,8 @@ def generate_batch(
             f"EVENTS ({len(evs)}):\n{blob}"
         )
 
+    if not entity_blocks:
+        return []
     user = "\n\n".join(entity_blocks)
     out, meta = _ai_complete(_batch_prompt(), user)
     request_blob = {"entities": [eid for eid, _, _ in clusters], "user": meta.pop("request_user", "")}

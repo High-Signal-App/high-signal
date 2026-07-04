@@ -575,11 +575,11 @@ def _event_entity(ev: Event) -> str | None:
     # applies exact vendor/product mapping for tracked entities.
     if ev.source == "cisa-kev":
         return None
-    if ev.source.startswith("youtube:"):
-        text = f"{ev.title or ''}\n{(ev.content or '')[:600]}"
-    else:
-        text = f"{ev.title or ''}\n{(ev.content or '')[:4000]}"
-    return primary_entity(text)
+    # Attribute on title (weighted) + a tight lead window only. The full body
+    # drags in "top movers" widgets, related-article rails, and doc footers that
+    # inject unrelated tracked entities (see primary_entity's min-score floor).
+    lead = 600 if ev.source.startswith("youtube:") else 800
+    return primary_entity((ev.content or "")[:lead], title=ev.title)
 
 
 def cluster_and_generate(events: list[Event]) -> list[str]:
