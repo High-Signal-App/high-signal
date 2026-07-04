@@ -80,6 +80,30 @@ check(
   ) === "https://www.cnbc.com/2026/07/03/intel-nvidia-foundry-deal.html",
 );
 
+// A prediction market must never lead, even when its slug names the entity and
+// the competing source does not (markets are crowd opinion, not information).
+check(
+  "Intel: a low-authority community post still beats an Intel-named Manifold market",
+  first(
+    [
+      "https://manifold.markets/x/will-intel-manufacture-nvidia-chips",
+      "https://reddit.com/r/hardware/comments/abc/some-thread",
+    ],
+    { entityName: "Intel Corporation", ticker: "INTC" },
+  ) === "https://reddit.com/r/hardware/comments/abc/some-thread",
+);
+check(
+  "entity-named market scores below any non-market source",
+  evidenceScore("https://manifold.markets/x/will-intel-buy-something", {
+    entityName: "Intel Corporation",
+    ticker: "INTC",
+  }) <
+    evidenceScore("https://example.com/generic-page", {
+      entityName: "Intel Corporation",
+      ticker: "INTC",
+    }),
+);
+
 console.log("\nrankEvidenceUrls — invariants");
 const sample = [
   "https://manifold.markets/x/y",
