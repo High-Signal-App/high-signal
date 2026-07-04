@@ -700,10 +700,52 @@ export const api = {
   mentionReport: (ownerId: string, brandId: string, window = 30) =>
     fetchJson<{
       windowDays: number;
+      report?: {
+        brandName: string;
+        windowDays: number;
+        generatedForRuns: number;
+        score: {
+          score: number;
+          grade: 'A' | 'B' | 'C' | 'D' | 'F';
+          components: {
+            mention: number;
+            recommendation: number;
+            citation: number;
+            consistency: number;
+          };
+          platformsCovered: number;
+          platformsTotal: number;
+        };
+        platforms: string[];
+        perPersona: Array<{
+          persona: string;
+          runs: number;
+          mentionRate: number;
+          recommendationRate: number;
+          citationRate: number;
+        }>;
+        citationGaps: Array<{
+          host: string;
+          ownership: string;
+          citations: number;
+          competitorId?: string;
+        }>;
+        trend: { direction: 'up' | 'down' | 'flat'; deltaMentionRate: number };
+        recommendations: Array<{
+          priority: 'high' | 'medium' | 'low';
+          area: string;
+          title: string;
+          detail: string;
+        }>;
+      };
       summary: {
         runs: number;
         brandMentionRate: number;
+        brandRecommendationRate?: number;
         brandCitationRate: number;
+        visibilityScore?: number;
+        grade?: 'A' | 'B' | 'C' | 'D' | 'F';
+        platforms?: string[];
         trendPoints: number;
       };
       matrix: Array<{

@@ -447,14 +447,19 @@ async function ReportTab({
   } catch {
     return <EmptyState text="no report data" />;
   }
+  const r = report.report;
   return (
     <section className="space-y-8">
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <Tile label="runs" value={String(report.summary.runs)} />
-        <Tile label="mention rate" value={pct(report.summary.brandMentionRate)} />
-        <Tile label="citation rate" value={pct(report.summary.brandCitationRate)} />
-        <Tile label="trend points" value={String(report.summary.trendPoints)} />
-      </div>
+      {r ? (
+        <AiVisibilityReportView report={r} />
+      ) : (
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <Tile label="runs" value={String(report.summary.runs)} />
+          <Tile label="mention rate" value={pct(report.summary.brandMentionRate)} />
+          <Tile label="citation rate" value={pct(report.summary.brandCitationRate)} />
+          <Tile label="trend points" value={String(report.summary.trendPoints)} />
+        </div>
+      )}
 
       <div>
         <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">
@@ -529,6 +534,168 @@ async function ReportTab({
         </ul>
       </div>
     </section>
+  );
+}
+
+type VisibilityReport = NonNullable<Awaited<ReturnType<typeof api.mentionReport>>['report']>;
+
+function AiVisibilityReportView({ report }: { report: VisibilityReport }) {
+  const { score } = report;
+  const trendArrow =
+    report.trend.direction === 'up' ? '↑' : report.trend.direction === 'down' ? '↓' : '→';
+  const trendColor =
+    report.trend.direction === 'up'
+      ? 'text-cyan-400'
+      : report.trend.direction === 'down'
+        ? 'text-zinc-400'
+        : 'text-zinc-500';
+  return (
+    <div className="space-y-8">
+      {/* Score hero */}
+      <div className="flex flex-col gap-6 border border-zinc-800 p-6 sm:flex-row sm:items-center">
+        <div className="flex items-baseline gap-3">
+          <div className="nums text-6xl font-medium tabular-nums text-cyan-400">{score.score}</div>
+          <div className="text-2xl text-zinc-500">/ 100</div>
+          <div className="ml-2 border border-zinc-700 px-2 py-0.5 font-mono text-sm text-zinc-300">
+            {score.grade}
+          </div>
+        </div>
+        <div className="grid flex-1 grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4">
+          <Meter label="mentioned" value={score.components.mention} />
+          <Meter label="recommended" value={score.components.recommendation} />
+          <Meter label="cited" value={score.components.citation} />
+          <Meter label="cross-engine" value={score.components.consistency} />
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 font-mono text-[11px] text-zinc-500">
+        <span>
+          engines:{' '}
+          <span className="text-zinc-300">
+            {score.platformsCovered}/{score.platformsTotal}
+          </span>{' '}
+          cover you
+        </span>
+        <span>{report.platforms.length ? report.platforms.join(' · ') : 'single endpoint'}</span>
+        <span className={trendColor}>
+          {trendArrow} mention {report.trend.deltaMentionRate >= 0 ? '+' : ''}
+          {(report.trend.deltaMentionRate * 100).toFixed(1)} pts
+        </span>
+        <span>{report.generatedForRuns} answers analyzed</span>
+      </div>
+
+      {/* Recommendations */}
+      <div>
+        <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">
+          what to fix
+        </h2>
+        <ul className="mt-3 space-y-2">
+          {report.recommendations.map((rec) => (
+            <li
+              key={`${rec.area}:${rec.title}`}
+              className="flex gap-3 border-l-2 border-zinc-700 pl-3"
+            >
+              <PriorityChip priority={rec.priority} />
+              <div>
+                <div className="text-sm text-zinc-200">{rec.title}</div>
+                <div className="mt-0.5 text-[12px] leading-relaxed text-zinc-500">{rec.detail}</div>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {/* Per-persona */}
+      {report.perPersona.length > 0 && (
+        <div>
+          <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">
+            visibility by persona
+          </h2>
+          <table className="mt-3 w-full font-mono text-[11px]">
+            <thead>
+              <tr className="border-b border-zinc-800 text-left text-zinc-600">
+                <th className="py-1 font-normal">persona</th>
+                <th className="py-1 text-right font-normal">runs</th>
+                <th className="py-1 text-right font-normal">mentioned</th>
+                <th className="py-1 text-right font-normal">recommended</th>
+                <th className="py-1 text-right font-normal">cited</th>
+              </tr>
+            </thead>
+            <tbody>
+              {report.perPersona.map((p) => (
+                <tr key={p.persona} className="border-b border-zinc-900">
+                  <td className="py-1 text-zinc-300">{p.persona}</td>
+                  <td className="nums py-1 text-right text-zinc-500">{p.runs}</td>
+                  <td className="nums py-1 text-right text-zinc-400">{pct(p.mentionRate)}</td>
+                  <td className="nums py-1 text-right text-zinc-400">
+                    {pct(p.recommendationRate)}
+                  </td>
+                  <td className="nums py-1 text-right text-zinc-400">{pct(p.citationRate)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Citation gaps */}
+      {report.citationGaps.length > 0 && (
+        <div>
+          <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">
+            sources AI trusts that aren&apos;t you
+          </h2>
+          <ul className="mt-3 space-y-1 font-mono text-[11px]">
+            {report.citationGaps.slice(0, 12).map((g) => (
+              <li
+                key={g.host}
+                className="flex items-center justify-between border-b border-zinc-900 py-1"
+              >
+                <span className="flex items-center gap-2">
+                  <span className="text-zinc-600">
+                    {g.ownership === 'competitor' ? 'competitor' : 'third-party'}
+                  </span>
+                  <span className="text-zinc-300">{g.host}</span>
+                </span>
+                <span className="nums text-zinc-500">{g.citations} cites</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Meter({ label, value }: { label: string; value: number }) {
+  const clamped = Math.max(0, Math.min(1, value));
+  return (
+    <div>
+      <div className="flex items-baseline justify-between">
+        <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500">
+          {label}
+        </span>
+        <span className="nums text-[11px] text-zinc-300">{pct(value)}</span>
+      </div>
+      <div className="mt-1 h-1 w-full bg-zinc-800">
+        <div className="h-1 bg-cyan-400/70" style={{ width: `${clamped * 100}%` }} />
+      </div>
+    </div>
+  );
+}
+
+function PriorityChip({ priority }: { priority: 'high' | 'medium' | 'low' }) {
+  const cls =
+    priority === 'high'
+      ? 'border-cyan-400/60 text-cyan-400'
+      : priority === 'medium'
+        ? 'border-zinc-600 text-zinc-300'
+        : 'border-zinc-800 text-zinc-500';
+  return (
+    <span
+      className={`mt-0.5 h-fit shrink-0 border px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.12em] ${cls}`}
+    >
+      {priority}
+    </span>
   );
 }
 
