@@ -243,7 +243,13 @@ export function evidenceScore(
   target: { entityName?: string | null; ticker?: string | null },
   tokens: string[] = entityMatchTokens(target),
 ): number {
-  const authority = SOURCE_AUTHORITY[classifySource(url)];
+  const cls = classifySource(url);
+  const authority = SOURCE_AUTHORITY[cls];
+  // Prediction markets are crowd opinion, not new information (same stance as
+  // the auto-publish KILL rule). They must never *lead* over a real source, so
+  // relevance can't lift them: a market URL that name-drops the entity still
+  // ranks below any non-market citation. Among markets, original order holds.
+  if (cls === "market") return authority;
   let haystack = url.toLowerCase();
   try {
     haystack = decodeURIComponent(haystack);
