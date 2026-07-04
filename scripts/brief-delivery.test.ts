@@ -11,6 +11,8 @@ import {
   isKnownSkipReason,
   nextRetryMinutes,
   shouldAutoDisable,
+  briefSnapshotToEmailSections,
+  unsubscribeToken,
 } from "@high-signal/shared";
 
 let failures = 0;
@@ -88,8 +90,69 @@ checkEq("two failures + sent does not disable", shouldAutoDisable(["failed", "se
 checkEq("two failures alone does not disable", shouldAutoDisable(["failed", "failed"]), false);
 checkEq("empty does not disable", shouldAutoDisable([]), false);
 
-if (failures > 0) {
-  console.error(`\n${failures}/${total} failed`);
-  process.exit(1);
+console.log("\nbriefSnapshotToEmailSections");
+checkEq("null snapshot → no sections", briefSnapshotToEmailSections(null).length, 0);
+checkEq("empty snapshot → no sections", briefSnapshotToEmailSections({}).length, 0);
+
+const fullSnapshot = {
+  stocks: [
+    {
+      entityId: "e1",
+      entityName: "Nvidia",
+      ticker: "NVDA",
+      direction: "up" as const,
+      confidence: "high" as const,
+      headline: "H200 supply loosening",
+      signalType: "supply-demand",
+      evidenceUrls: [
+        { url: "https://a.example/1" },
+        { url: "https://b.example/2" },
+        { url: "https://c.example/3" },
+      ] as Array<{ url: string }>,
+      hitRate: 0.667,
+      hitRateSample: 9,
+      hitRateBand: "medium" as const,
+    },
+  ],
+  ideas: [
+    {
+      title: "AI invoice triage",
+      description: "SMBs drowning in AP",
+      evidenceUrls: [{ url: "https://d.example/4" }] as Array<{ url: string }>,
+      subreddit: "smallbusiness",
+    },
+  ],
+  trends: [] as unknown[],
+  perception: [
+    { brandName: "Acme", mentionRate: 0.4, positiveShare: null },
+  ],
+  improvements: [] as unknown[],
+};
+// fixture matches the BriefSnapshot shape; cast through unknown for the test.
+const secs = briefSnapshotToEmailSections(fullSnapshot as unknown as Parameters<typeof briefSnapshotToEmailSections>[0]);
+checkEq("empty trends+improvements dropped → 3 sections", secs.length, 3);
+checkEq("stocks section title", secs[0]?.title, "01 / stocks watching for a boom");
+checkEq("hit-rate rounded to percent", secs[0]?.items[0]?.text.includes("hit-rate 67%"), true);
+checkEq("citation links capped at 2", secs[0]?.items[0]?.links.length, 2);
+checkEq("ideas subreddit rendered", secs[1]?.items[0]?.text.includes("(r/smallbusiness)"), true);
+checkEq("perception null share → n/a", secs[2]?.items[0]?.text.includes("positive share n/a"), true);
+
+async function main() {
+  console.log("\nunsubscribeToken");
+  const tokA = await unsubscribeToken("secret-1", "user-123");
+  const tokA2 = await unsubscribeToken("secret-1", "user-123");
+  const tokB = await unsubscribeToken("secret-2", "user-123");
+  const tokC = await unsubscribeToken("secret-1", "user-999");
+  checkEq("deterministic for same secret+user", tokA, tokA2);
+  checkEq("32 hex chars", /^[0-9a-f]{32}$/.test(tokA), true);
+  checkEq("different secret → different token", tokA === tokB, false);
+  checkEq("different user → different token", tokA === tokC, false);
+
+  if (failures > 0) {
+    console.error(`\n${failures}/${total} failed`);
+    process.exit(1);
+  }
+  console.log(`\nall ${total} ok`);
 }
-console.log(`\nall ${total} ok`);
+
+main();

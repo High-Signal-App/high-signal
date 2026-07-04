@@ -30,6 +30,9 @@ migrations_dir = "../../packages/db/migrations"
 #   2. Verify DKIM/SPF for the sending domain (high-signal.app).
 #   3. Either set `allowed_destination_addresses` below to a fixed list, or
 #      leave it open and rely on Email Routing's per-destination verification.
-#   4. Configure `EMAIL_FROM` in [vars] (defaults to brief@high-signal.app).
+#   4. Configure `EMAIL_FROM` in [vars] — REQUIRED. Delivery fail-closes to a
+#      logged no-op when EMAIL_FROM is unset (no default sender is assumed).
+#   5. Optional: set `API_BASE` (for compose + unsubscribe links) and
+#      `DELIVERY_UNSUBSCRIBE_SECRET` (falls back to ADMIN_TOKEN) as secrets.
 [[send_email]]
 name = "SEND_EMAIL"

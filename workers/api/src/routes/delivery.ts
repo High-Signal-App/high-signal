@@ -2,20 +2,34 @@
 // /delivery/preferences (read/write user prefs)
 // /delivery/test         (one-off test send)
 // /delivery/log          (last 30 days for current user)
-// /delivery/retry/:logId (manual retry)
-// /delivery/internal/run (cron entry — gated by ADMIN_TOKEN)
+// /delivery/unsubscribe  (token-authenticated one-click opt-out)
+// /delivery/internal/run (cron entry — gated by ADMIN_TOKEN; also invoked
+//                         in-process by the worker's scheduled() handler)
+//
+// Fail-closed posture:
+// - Email transport unconfigured (no SEND_EMAIL binding or no EMAIL_FROM) →
+//   the run is a clean no-op with one log line; no delivery_log rows burn.
+// - Delivery tables not yet migrated on this D1 (prod before
+//   0010_brief_delivery.sql is applied) → every route degrades to a graceful
+//   no-op with a clear log line instead of a 500.
+// - No unsubscribe secret → no unsubscribe links are embedded and the
+//   unsubscribe route refuses.
 
 import { Hono } from "hono";
 import { and, desc, eq, gte } from "drizzle-orm";
 import {
+  briefSnapshotToEmailSections,
   isKnownSkipReason,
   isValidWindow,
   nextRetryMinutes,
   resolveOpenWindow,
+  shouldAutoDisable,
+  unsubscribeToken,
+  type BriefSnapshot,
   type DeliveryChannel,
 } from "@high-signal/shared";
 import { db, schema } from "../db";
-import { sendBriefEmail, type EmailEnv } from "../lib/email";
+import { emailTransportStatus, sendBriefEmail } from "../lib/email";
 import { sha16 } from "../lib/ids";
 
 interface SendEmailBinding {
@@ -28,6 +42,8 @@ type Env = {
   SEND_EMAIL?: SendEmailBinding;
   EMAIL_FROM?: string;
   API_BASE?: string;
+  /** HMAC secret for one-click unsubscribe tokens. Falls back to ADMIN_TOKEN. */
+  DELIVERY_UNSUBSCRIBE_SECRET?: string;
 };
 
 export const deliveryRoute = new Hono<{ Bindings: Env }>();
@@ -43,14 +59,36 @@ function emailFromHeaders(c: { req: { header: (k: string) => string | undefined 
   return c.req.header("X-Admin-Email") ?? null;
 }
 
+// D1 throws `D1_ERROR: no such table: delivery_preferences` (message shape
+// varies slightly by driver) when 0010_brief_delivery.sql has not been applied
+// to this database yet. Treat that as "feature not flipped on", not a crash.
+const MIGRATION_HINT =
+  "[delivery] delivery tables missing — apply packages/db/migrations/0010_brief_delivery.sql (pnpm db:migrate:remote); treating as no-op";
+
+function isMissingTableError(e: unknown): boolean {
+  return /no such table/i.test(String(e instanceof Error ? e.message : e));
+}
+
+function unsubSecret(env: Env): string | null {
+  return env.DELIVERY_UNSUBSCRIBE_SECRET ?? env.ADMIN_TOKEN ?? null;
+}
+
 deliveryRoute.get("/preferences", async (c) => {
   const userId = userIdFromHeaders(c);
   if (!userId) return c.json({ error: "unauthorized" }, 401);
-  const rows = await db(c.env.DB)
-    .select()
-    .from(schema.deliveryPreferences)
-    .where(eq(schema.deliveryPreferences.userId, userId));
-  return c.json({ preferences: rows });
+  try {
+    const rows = await db(c.env.DB)
+      .select()
+      .from(schema.deliveryPreferences)
+      .where(eq(schema.deliveryPreferences.userId, userId));
+    return c.json({ preferences: rows });
+  } catch (e) {
+    if (isMissingTableError(e)) {
+      console.warn(MIGRATION_HINT);
+      return c.json({ preferences: [], pendingMigration: true });
+    }
+    throw e;
+  }
 });
 
 deliveryRoute.post("/preferences", async (c) => {
@@ -81,19 +119,27 @@ deliveryRoute.post("/preferences", async (c) => {
     connectedBrandId: body.connectedBrandId ?? null,
     updatedAt: now,
   };
-  await db(c.env.DB)
-    .insert(schema.deliveryPreferences)
-    .values({
-      userId,
-      channel: body.channel,
-      email,
-      rssToken: null,
-      ...baseSet,
-    })
-    .onConflictDoUpdate({
-      target: [schema.deliveryPreferences.userId, schema.deliveryPreferences.channel],
-      set: email ? { ...baseSet, email } : baseSet,
-    });
+  try {
+    await db(c.env.DB)
+      .insert(schema.deliveryPreferences)
+      .values({
+        userId,
+        channel: body.channel,
+        email,
+        rssToken: null,
+        ...baseSet,
+      })
+      .onConflictDoUpdate({
+        target: [schema.deliveryPreferences.userId, schema.deliveryPreferences.channel],
+        set: email ? { ...baseSet, email } : baseSet,
+      });
+  } catch (e) {
+    if (isMissingTableError(e)) {
+      console.warn(MIGRATION_HINT);
+      return c.json({ error: "pending_migration" }, 503);
+    }
+    throw e;
+  }
   return c.json({ ok: true });
 });
 
@@ -101,18 +147,26 @@ deliveryRoute.get("/log", async (c) => {
   const userId = userIdFromHeaders(c);
   if (!userId) return c.json({ error: "unauthorized" }, 401);
   const since = new Date(Date.now() - 30 * 24 * 3600 * 1000);
-  const rows = await db(c.env.DB)
-    .select()
-    .from(schema.deliveryLog)
-    .where(
-      and(
-        eq(schema.deliveryLog.userId, userId),
-        gte(schema.deliveryLog.createdAt, since),
-      ),
-    )
-    .orderBy(desc(schema.deliveryLog.createdAt))
-    .limit(60);
-  return c.json({ log: rows });
+  try {
+    const rows = await db(c.env.DB)
+      .select()
+      .from(schema.deliveryLog)
+      .where(
+        and(
+          eq(schema.deliveryLog.userId, userId),
+          gte(schema.deliveryLog.createdAt, since),
+        ),
+      )
+      .orderBy(desc(schema.deliveryLog.createdAt))
+      .limit(60);
+    return c.json({ log: rows });
+  } catch (e) {
+    if (isMissingTableError(e)) {
+      console.warn(MIGRATION_HINT);
+      return c.json({ log: [], pendingMigration: true });
+    }
+    throw e;
+  }
 });
 
 deliveryRoute.post("/test", async (c) => {
@@ -120,27 +174,87 @@ deliveryRoute.post("/test", async (c) => {
   if (!userId) return c.json({ error: "unauthorized" }, 401);
   const email = emailFromHeaders(c);
   if (!email) return c.json({ error: "missing_email" }, 400);
-  const env: EmailEnv = {
-    SEND_EMAIL: c.env.SEND_EMAIL,
-    EMAIL_FROM: c.env.EMAIL_FROM,
-  };
-  const result = await sendBriefEmail(env, {
+  const transport = emailTransportStatus(c.env);
+  if (!transport.ready) {
+    console.warn(`[delivery] test send refused — email transport unconfigured (${transport.reason})`);
+    return c.json({ ok: false, reason: transport.reason }, 503);
+  }
+  // Prefer the user's saved region so the test matches the real daily send.
+  let region = "global";
+  try {
+    const pref = await db(c.env.DB)
+      .select({ region: schema.deliveryPreferences.region })
+      .from(schema.deliveryPreferences)
+      .where(
+        and(
+          eq(schema.deliveryPreferences.userId, userId),
+          eq(schema.deliveryPreferences.channel, "email"),
+        ),
+      )
+      .limit(1);
+    if (pref[0]?.region) region = pref[0].region;
+  } catch (e) {
+    if (!isMissingTableError(e)) throw e;
+    console.warn(MIGRATION_HINT);
+  }
+  const composed = await composeBriefSnapshot(c.env, region, null);
+  const result = await sendBriefEmail(c.env, {
     to: email,
     subject: `High Signal — test delivery`,
     briefDate: new Date().toISOString().slice(0, 10),
-    region: "global",
-    body: {
+    region,
+    body: composed ?? {
       sections: [
         {
           title: "Test send",
           items: [
-            { text: "This is a one-off test from /settings/delivery.", links: [] },
+            {
+              text: "This is a one-off test from /settings/delivery. (Live brief compose was unavailable — check API_BASE.)",
+              links: [],
+            },
           ],
         },
       ],
     },
+    unsubscribeUrl: await buildUnsubscribeUrl(c.env, userId),
   });
-  return c.json(result);
+  return c.json(result, result.ok ? 200 : 502);
+});
+
+// One-click unsubscribe. Linked from every brief email footer and the
+// List-Unsubscribe header (RFC 8058 POSTs here too). Token-authenticated —
+// no Clerk session required, so it works from any mail client.
+deliveryRoute.on(["GET", "POST"], "/unsubscribe", async (c) => {
+  const secret = unsubSecret(c.env);
+  if (!secret) {
+    console.warn("[delivery] unsubscribe refused — no DELIVERY_UNSUBSCRIBE_SECRET/ADMIN_TOKEN set (fail closed)");
+    return c.text("Unsubscribe is not available right now.", 503);
+  }
+  const userId = c.req.query("u");
+  const token = c.req.query("t");
+  if (!userId || !token) return c.text("Missing token.", 400);
+  const expected = await unsubscribeToken(secret, userId);
+  if (token !== expected) return c.text("Invalid token.", 403);
+  try {
+    await db(c.env.DB)
+      .update(schema.deliveryPreferences)
+      .set({ enabled: false, updatedAt: new Date() })
+      .where(
+        and(
+          eq(schema.deliveryPreferences.userId, userId),
+          eq(schema.deliveryPreferences.channel, "email"),
+        ),
+      );
+  } catch (e) {
+    if (isMissingTableError(e)) {
+      console.warn(MIGRATION_HINT);
+      return c.text("Nothing to unsubscribe.", 200);
+    }
+    throw e;
+  }
+  return c.html(
+    `<!doctype html><html><body style="font-family:ui-sans-serif,system-ui,sans-serif;background:#0a0a0a;color:#e5e5e5;padding:48px;text-align:center"><p>You are unsubscribed from the High Signal daily brief.</p><p style="color:#666;font-size:12px">Re-enable any time at high-signal.app/settings/delivery.</p></body></html>`,
+  );
 });
 
 // Cron / internal. Requires bearer to match ADMIN_TOKEN.
@@ -150,31 +264,63 @@ deliveryRoute.post("/internal/run", async (c) => {
   if (c.req.header("Authorization") !== `Bearer ${token}`) {
     return c.json({ error: "unauthorized" }, 401);
   }
-  const dryRun = c.req.query("dry") === "1";
-  const limit = Math.min(Number(c.req.query("limit") ?? 200), 1000);
+  const summary = await runDeliveryWindow(c.env, {
+    dryRun: c.req.query("dry") === "1",
+    limit: Math.min(Number(c.req.query("limit") ?? 200), 1000),
+  });
+  return c.json(summary);
+});
 
-  const prefs = await db(c.env.DB)
-    .select()
-    .from(schema.deliveryPreferences)
-    .where(
-      and(
-        eq(schema.deliveryPreferences.enabled, true),
-        eq(schema.deliveryPreferences.channel, "email"),
-      ),
-    )
-    .limit(limit);
+// The delivery sweep. Called by /delivery/internal/run and by the worker's
+// scheduled() handler (every 30 min — at least one tick lands inside each
+// user's 1-hour local window). Idempotent: the delivery_log unique index plus
+// the pre-check below prevent double-sends on re-entry.
+export async function runDeliveryWindow(
+  env: Env,
+  opts: { dryRun?: boolean; limit?: number } = {},
+): Promise<Record<string, number | string>> {
+  const dryRun = opts.dryRun ?? false;
+  const limit = opts.limit ?? 200;
+
+  // Fail closed BEFORE touching delivery_log: an unconfigured transport must
+  // not burn per-user retry attempts or spam failure rows.
+  const transport = emailTransportStatus(env);
+  if (!transport.ready && !dryRun) {
+    console.warn(`[delivery] email transport unconfigured (${transport.reason}); skipping run (fail closed)`);
+    return { skipped_run: transport.reason };
+  }
+
+  let prefs;
+  try {
+    prefs = await db(env.DB)
+      .select()
+      .from(schema.deliveryPreferences)
+      .where(
+        and(
+          eq(schema.deliveryPreferences.enabled, true),
+          eq(schema.deliveryPreferences.channel, "email"),
+        ),
+      )
+      .limit(limit);
+  } catch (e) {
+    if (isMissingTableError(e)) {
+      console.warn(MIGRATION_HINT);
+      return { skipped_run: "tables_missing" };
+    }
+    throw e;
+  }
 
   const now = Date.now();
-  const env: EmailEnv = {
-    SEND_EMAIL: c.env.SEND_EMAIL,
-    EMAIL_FROM: c.env.EMAIL_FROM,
-  };
-  const summary: Record<string, number> = {
+  const summary: Record<string, number | string> = {
     candidates: prefs.length,
     sent: 0,
     skipped: 0,
     failed: 0,
     would_send: 0,
+    auto_disabled: 0,
+  };
+  const bump = (k: string) => {
+    summary[k] = (Number(summary[k]) || 0) + 1;
   };
 
   for (const p of prefs) {
@@ -183,18 +329,18 @@ deliveryRoute.post("/internal/run", async (c) => {
       now,
     );
     if (!open) {
-      await recordSkip(c.env.DB, p.userId, p.channel as DeliveryChannel, todayUtc(), "window_not_open");
-      summary["skipped"]!++;
+      await recordSkip(env.DB, p.userId, p.channel as DeliveryChannel, todayUtc(), "window_not_open");
+      bump("skipped");
       continue;
     }
     if (!p.email) {
-      await recordSkip(c.env.DB, p.userId, p.channel as DeliveryChannel, open.briefDate, "email_not_verified");
-      summary["skipped"]!++;
+      await recordSkip(env.DB, p.userId, p.channel as DeliveryChannel, open.briefDate, "email_not_verified");
+      bump("skipped");
       continue;
     }
     // Idempotency: the unique index drops duplicates; we still pre-check so
     // we count "already_sent" as skip rather than a noisy DB constraint error.
-    const existing = await db(c.env.DB)
+    const existing = await db(env.DB)
       .select({
         id: schema.deliveryLog.id,
         status: schema.deliveryLog.status,
@@ -211,7 +357,7 @@ deliveryRoute.post("/internal/run", async (c) => {
       .limit(1);
     const prior = existing[0];
     if (prior && prior.status === "sent") {
-      summary["skipped"]!++;
+      bump("skipped");
       continue;
     }
     // Respect retry backoff. nextRetryMinutes(attempt) === null means we've hit
@@ -219,19 +365,19 @@ deliveryRoute.post("/internal/run", async (c) => {
     // failed; /admin/delivery surfaces it. Without this guard a stuck row gets
     // re-POSTed to the provider on every cron tick.
     if (prior && prior.status === "failed" && nextRetryMinutes(prior.attempt) === null) {
-      summary["skipped"]!++;
+      bump("skipped");
       continue;
     }
 
     if (dryRun) {
-      summary["would_send"] = (summary["would_send"] ?? 0) + 1;
+      bump("would_send");
       continue;
     }
 
-    const briefRes = await composeBriefSnapshot(c.env, p.region, p.connectedBrandId);
+    const briefRes = await composeBriefSnapshot(env, p.region, p.connectedBrandId);
     if (!briefRes) {
-      await recordSkip(c.env.DB, p.userId, p.channel as DeliveryChannel, open.briefDate, "no_brief_today");
-      summary["skipped"]!++;
+      await recordSkip(env.DB, p.userId, p.channel as DeliveryChannel, open.briefDate, "no_brief_today");
+      bump("skipped");
       continue;
     }
 
@@ -241,13 +387,14 @@ deliveryRoute.post("/internal/run", async (c) => {
       briefDate: open.briefDate,
       region: p.region,
       body: briefRes,
+      unsubscribeUrl: await buildUnsubscribeUrl(env, p.userId),
     });
     const newAttempt = prior
       ? prior.status === "failed"
         ? prior.attempt + 1
         : prior.attempt
       : 1;
-    await db(c.env.DB)
+    await db(env.DB)
       .insert(schema.deliveryLog)
       .values({
         id: await sha16(`delivery:${p.userId}:${p.channel}:${open.briefDate}`),
@@ -271,12 +418,60 @@ deliveryRoute.post("/internal/run", async (c) => {
           sentAt: result.ok ? new Date() : null,
         },
       });
-    if (result.ok) summary["sent"]!++;
-    else summary["failed"]!++;
+    if (result.ok) {
+      bump("sent");
+    } else {
+      bump("failed");
+      // Bounce policy: three consecutive failed days auto-disable the channel
+      // so we stop mailing a dead address. Reversible from /settings/delivery.
+      if (await hasThreeConsecutiveFailures(env.DB, p.userId, p.channel)) {
+        await db(env.DB)
+          .update(schema.deliveryPreferences)
+          .set({ enabled: false, updatedAt: new Date() })
+          .where(
+            and(
+              eq(schema.deliveryPreferences.userId, p.userId),
+              eq(schema.deliveryPreferences.channel, p.channel),
+            ),
+          );
+        console.warn(`[delivery] auto-disabled email channel for ${p.userId} after 3 consecutive failures`);
+        bump("auto_disabled");
+      }
+    }
   }
 
-  return c.json(summary);
-});
+  return summary;
+}
+
+async function hasThreeConsecutiveFailures(
+  d1: D1Database,
+  userId: string,
+  channel: string,
+): Promise<boolean> {
+  const recent = await db(d1)
+    .select({ status: schema.deliveryLog.status })
+    .from(schema.deliveryLog)
+    .where(
+      and(
+        eq(schema.deliveryLog.userId, userId),
+        eq(schema.deliveryLog.channel, channel),
+      ),
+    )
+    .orderBy(desc(schema.deliveryLog.briefDate))
+    .limit(3);
+  // Rows come newest-first; shouldAutoDisable expects oldest-first.
+  return shouldAutoDisable(recent.map((r) => r.status as "failed" | "sent" | "skipped" | "queued").reverse());
+}
+
+async function buildUnsubscribeUrl(env: Env, userId: string): Promise<string | undefined> {
+  const secret = unsubSecret(env);
+  // Fail closed: without a secret (or a public base to link back to) we embed
+  // no unsubscribe link rather than a forgeable one. The footer still carries
+  // the /settings/delivery management link.
+  if (!secret || !env.API_BASE) return undefined;
+  const token = await unsubscribeToken(secret, userId);
+  return `${env.API_BASE}/delivery/unsubscribe?u=${encodeURIComponent(userId)}&t=${token}`;
+}
 
 async function recordSkip(
   d1: D1Database,
@@ -336,21 +531,12 @@ async function composeBriefSnapshot(
   try {
     const r = await fetch(url);
     if (!r.ok) return null;
-    const snapshot = (await r.json()) as {
-      sections?: Array<{
-        title: string;
-        items?: Array<{ text?: string; claim?: string; sources?: string[] }>;
-      }>;
-    };
-    return {
-      sections: (snapshot.sections ?? []).map((s) => ({
-        title: s.title,
-        items: (s.items ?? []).map((i) => ({
-          text: i.text ?? i.claim ?? "",
-          links: i.sources ?? [],
-        })),
-      })),
-    };
+    // /brief/daily returns a BriefSnapshot (stocks/ideas/trends/perception/
+    // improvements arrays), not a generic sections list — map it.
+    const snapshot = (await r.json()) as Partial<BriefSnapshot>;
+    const sections = briefSnapshotToEmailSections(snapshot);
+    if (sections.length === 0) return null;
+    return { sections };
   } catch {
     return null;
   }

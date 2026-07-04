@@ -15,7 +15,7 @@ import { unmappedRoute } from "./routes/unmapped";
 import { enrichRoute } from "./routes/enrich";
 import { attentionRoute } from "./routes/attention";
 import { claimsRoute } from "./routes/claims";
-import { deliveryRoute } from "./routes/delivery";
+import { deliveryRoute, runDeliveryWindow } from "./routes/delivery";
 import { watchlistsRoute } from "./routes/watchlists";
 import { dataRoute } from "./routes/data";
 
@@ -26,6 +26,13 @@ type Env = {
   MODAL_TRIGGER_URL?: string;
   MODAL_TRIGGER_TOKEN?: string;
   MODAL_SCORE_URL?: string;
+  // Plan 0009 — brief email delivery. All optional: the delivery sweep
+  // fail-closes to a logged no-op until the operator configures transport
+  // (SEND_EMAIL binding + EMAIL_FROM) and applies migration 0010.
+  SEND_EMAIL?: { send(message: unknown): Promise<void> };
+  EMAIL_FROM?: string;
+  API_BASE?: string;
+  DELIVERY_UNSUBSCRIBE_SECRET?: string;
 };
 
 const app = new Hono<{ Bindings: Env }>();
@@ -73,6 +80,17 @@ export default {
       precomputeBriefSnapshots(env).catch((err) =>
         console.error("[cron] brief precompute failed:", err),
       ),
+    );
+
+    // Plan 0009 — brief email delivery sweep. Runs on every 30-min tick so at
+    // least one tick lands inside each user's 1-hour local send window. Fail
+    // closed and idempotent: a no-op until the operator configures transport
+    // (SEND_EMAIL + EMAIL_FROM) and applies migration 0010, and the
+    // delivery_log unique index prevents double-sends across ticks.
+    ctx.waitUntil(
+      runDeliveryWindow(env, {})
+        .then((summary) => console.log("[cron] delivery:", JSON.stringify(summary)))
+        .catch((err) => console.error("[cron] delivery sweep failed:", err)),
     );
 
     if (!env.MODAL_TRIGGER_TOKEN) {
