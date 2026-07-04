@@ -10,7 +10,12 @@
  * Run: `pnpm evidence-ranking:test`
  */
 
-import { entityMatchTokens, evidenceScore, rankEvidenceUrls } from "@high-signal/shared";
+import {
+  entityMatchTokens,
+  evidenceScore,
+  isPredictionMarketOnly,
+  rankEvidenceUrls,
+} from "@high-signal/shared";
 
 let failures = 0;
 let total = 0;
@@ -123,6 +128,36 @@ check(
 check(
   "malformed URL does not throw",
   typeof evidenceScore("not a url %E0%A4", { entityName: "HCL" }) === "number",
+);
+
+console.log("\nisPredictionMarketOnly — the live Intel market-only signal");
+check(
+  "all-Manifold evidence → market-only (dropped from brief)",
+  isPredictionMarketOnly([
+    "https://manifold.markets/SimoneRomeo/will-intel-manufacture-nvidia-chips",
+    "https://manifold.markets/elf/will-there-be-a-joint-venture-chip",
+  ]) === true,
+);
+check(
+  "one real source among markets → not market-only (kept)",
+  isPredictionMarketOnly([
+    "https://manifold.markets/x/y",
+    "https://www.cnbc.com/2026/07/03/intel-foundry.html",
+  ]) === false,
+);
+check("empty → not market-only", isPredictionMarketOnly([]) === false);
+check(
+  "www + all four platforms recognised",
+  isPredictionMarketOnly([
+    "https://www.manifold.markets/a/b",
+    "https://polymarket.com/event/x",
+    "https://kalshi.com/markets/y",
+    "https://metaculus.com/questions/1",
+  ]) === true,
+);
+check(
+  "finance.yahoo.com is not a prediction market",
+  isPredictionMarketOnly(["https://finance.yahoo.com/quote/INTC"]) === false,
 );
 
 if (failures > 0) {

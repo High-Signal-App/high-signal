@@ -170,6 +170,30 @@ export function classifySource(url: string): SourceClass {
   return "other";
 }
 
+// ─── Prediction-market-only guard ────────────────────────────────────────────
+// A claim evidenced ONLY by prediction markets is crowd opinion, not new
+// information — the auto-publish rubric KILLs it, and the public brief must not
+// surface it either (a market-only signal that slipped past the draft gate, or
+// predates it, should still never appear). Deliberately narrower than
+// classifySource's MARKET_DOMAINS: this is the four prediction-market platforms,
+// not finance.yahoo.com quote pages. Single source of truth for both the
+// auto-publish rule and the brief composer.
+export const PREDICTION_MARKET_DOMAINS = [
+  "manifold.markets",
+  "polymarket.com",
+  "kalshi.com",
+  "metaculus.com",
+];
+
+export function isPredictionMarketOnly(urls: readonly string[]): boolean {
+  const real = urls.filter(Boolean);
+  if (real.length === 0) return false;
+  return real.every((u) => {
+    const domain = sourceDomain(u);
+    return PREDICTION_MARKET_DOMAINS.some((d) => domain === d || domain.endsWith(`.${d}`) || domain.endsWith(d));
+  });
+}
+
 // ─── Evidence ranking ───────────────────────────────────────────────────────
 // The generator stores a signal's evidence URLs in collection order, which is
 // not quality order: a prediction market, a package-registry page, or an
