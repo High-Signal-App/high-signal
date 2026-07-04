@@ -4,6 +4,11 @@
  * importing the script's side-effects (fetch, env reads, process.exit).
  */
 
+import {
+  PREDICTION_MARKET_DOMAINS,
+  isPredictionMarketOnly as isPredictionMarketOnlyUrls,
+} from "@high-signal/shared";
+
 export type Verdict = "publish" | "kill" | "hold";
 
 export interface VerdictResult {
@@ -82,16 +87,10 @@ export function evidenceCoverage(signal: JudgeableSignal): number {
   return referenced / urls.length;
 }
 
-/**
- * Domains whose presence alone — without corroboration from a news, IR, SEC,
- * blog, or regulator source — is crowd opinion, not new information.
- */
-export const PREDICTION_MARKET_DOMAINS = [
-  "manifold.markets",
-  "polymarket.com",
-  "kalshi.com",
-  "metaculus.com",
-];
+// Prediction-market domains + the market-only check are the canonical
+// definition in @high-signal/shared (also used by the brief composer, so a
+// market-only signal that slips past this gate still can't reach the brief).
+export { PREDICTION_MARKET_DOMAINS };
 
 export function urlHost(url: string): string {
   try {
@@ -102,12 +101,7 @@ export function urlHost(url: string): string {
 }
 
 export function isPredictionMarketOnly(signal: JudgeableSignal): boolean {
-  const urls = signal.evidenceUrls ?? [];
-  if (urls.length === 0) return false;
-  return urls.every((u) => {
-    const host = urlHost(u);
-    return PREDICTION_MARKET_DOMAINS.some((domain) => host.endsWith(domain));
-  });
+  return isPredictionMarketOnlyUrls(signal.evidenceUrls ?? []);
 }
 
 /**

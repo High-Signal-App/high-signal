@@ -22,6 +22,7 @@ import {
   fallbackTrends,
   familyForSignalType,
   findSeedProduct,
+  isPredictionMarketOnly,
   isRegion,
   normalizeCommunitySummary,
   rankEvidenceUrls,
@@ -316,7 +317,7 @@ async function buildStocks(
   const sinceMs = Date.now() - RECENT_SIGNAL_WINDOW_DAYS * 24 * 60 * 60 * 1000;
   const sinceDate = new Date(sinceMs);
 
-  const rows = await database
+  const allRows = await database
     .select({
       signalId: schema.signals.id,
       slug: schema.signals.slug,
@@ -345,6 +346,14 @@ async function buildStocks(
     )
     .orderBy(desc(schema.signals.publishedAt))
     .limit(STOCKS_LIMIT * 4); // overfetch so the post-filter can rank by direction
+
+  // Never surface a claim evidenced only by prediction markets — crowd opinion,
+  // not information. Mirrors the auto-publish KILL rule at read time so a
+  // market-only signal that slipped past the draft gate (or predates it) still
+  // can't reach the brief. Overfetch above absorbs the drop.
+  const rows = allRows.filter(
+    (r) => !isPredictionMarketOnly((Array.isArray(r.evidenceList) ? r.evidenceList : []).map(String)),
+  );
 
   // Pull hit-rate stats — both per-type and per-family — so the renderer can
   // fall back gracefully when a fresh signal type has no scored predictions.
