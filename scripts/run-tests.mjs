@@ -33,6 +33,7 @@ const TSX_SUITES = [
   ["claim-provenance", "scripts/claim-provenance.test.ts"],
   ["brief-delivery", "scripts/brief-delivery.test.ts"],
   ["evidence-ranking", "scripts/evidence-ranking.test.ts"],
+  ["ai-visibility", "scripts/ai-visibility.test.ts"],
   ["watchlist-impact", "scripts/watchlist-impact.test.ts"],
   ["openlens-visibility", "scripts/openlens-visibility.test.ts"],
   ["intent-opportunities", "scripts/intent-opportunities.test.ts"],

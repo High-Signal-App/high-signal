@@ -39,6 +39,7 @@ export interface MentionRow {
   citations: string[];
   brandCited?: boolean;
   platform?: string;
+  persona?: string | null;
   createdAt: string;
 }
 
@@ -83,6 +84,137 @@ export function computeShareOfVoice(rows: MentionRow[], windowDays: number): Sha
     competitorShare,
     citationShare,
   };
+}
+
+// ─── AI Visibility Score ────────────────────────────────────────────────────
+// The headline 0-100 number a GEO buyer wants: are we mentioned, recommended,
+// cited, and consistently so across engines? Cross-platform consistency is the
+// fraction of platforms that mention the brand at least once — showing up on 4
+// of 4 engines beats showing up strongly on 1.
+export interface VisibilityScore {
+  score: number;
+  grade: "A" | "B" | "C" | "D" | "F";
+  components: {
+    mention: number;
+    recommendation: number;
+    citation: number;
+    consistency: number;
+  };
+  platformsCovered: number;
+  platformsTotal: number;
+}
+
+export function perPlatformMentionRate(rows: MentionRow[]): Record<string, number> {
+  const byPlatform = new Map<string, { total: number; mentioned: number }>();
+  for (const r of rows) {
+    const p = r.platform ?? "custom";
+    const cur = byPlatform.get(p) ?? { total: 0, mentioned: 0 };
+    cur.total++;
+    if (r.brandMentioned) cur.mentioned++;
+    byPlatform.set(p, cur);
+  }
+  const out: Record<string, number> = {};
+  for (const [p, v] of byPlatform) out[p] = v.total ? v.mentioned / v.total : 0;
+  return out;
+}
+
+export function computeVisibilityScore(sov: ShareOfVoice, rows: MentionRow[]): VisibilityScore {
+  const perPlatform = perPlatformMentionRate(rows);
+  const platforms = Object.keys(perPlatform);
+  const covered = platforms.filter((p) => perPlatform[p]! > 0).length;
+  const consistency = platforms.length ? covered / platforms.length : 0;
+  const components = {
+    mention: sov.brandMentionRate,
+    recommendation: sov.brandRecommendationRate,
+    citation: sov.brandCitationRate,
+    consistency,
+  };
+  // Weighted: presence and endorsement dominate; citation and cross-engine
+  // consistency round it out.
+  const score = Math.round(
+    100 *
+      (components.mention * 0.35 +
+        components.recommendation * 0.3 +
+        components.citation * 0.15 +
+        components.consistency * 0.2),
+  );
+  const grade = score >= 80 ? "A" : score >= 60 ? "B" : score >= 40 ? "C" : score >= 20 ? "D" : "F";
+  return {
+    score,
+    grade,
+    components,
+    platformsCovered: covered,
+    platformsTotal: platforms.length,
+  };
+}
+
+// ─── Per-persona visibility ───────────────────────────────────────────────────
+// Value AI Labs' headline moat: different buyer-committee members get different
+// AI answers. Slice the same runs by persona so a brand sees where it's strong
+// (e.g. "developer") and invisible (e.g. "procurement").
+export interface PersonaVisibility {
+  persona: string;
+  runs: number;
+  mentionRate: number;
+  recommendationRate: number;
+  citationRate: number;
+}
+
+export function computePersonaVisibility(rows: MentionRow[]): PersonaVisibility[] {
+  const byPersona = new Map<string, MentionRow[]>();
+  for (const r of rows) {
+    const key = (r.persona ?? "").trim() || "general";
+    const list = byPersona.get(key) ?? [];
+    list.push(r);
+    byPersona.set(key, list);
+  }
+  const out: PersonaVisibility[] = [];
+  for (const [persona, list] of byPersona) {
+    const total = list.length || 1;
+    out.push({
+      persona,
+      runs: list.length,
+      mentionRate: list.filter((r) => r.brandMentioned).length / total,
+      recommendationRate: list.filter((r) => r.brandRecommended).length / total,
+      citationRate: list.filter((r) => r.brandCited).length / total,
+    });
+  }
+  // Weakest personas first — that's where the work is.
+  return out.sort((a, b) => a.mentionRate - b.mentionRate);
+}
+
+// ─── Citation gaps ────────────────────────────────────────────────────────────
+// The actionable GEO target: sources the AI cites that AREN'T you. Owned
+// citations are wins, not gaps, so they're excluded. Ranked by how often the AI
+// leans on each host — the higher, the more valuable to get represented there.
+export interface CitationGap {
+  host: string;
+  ownership: Ownership;
+  citations: number;
+  competitorId?: string;
+}
+
+export function computeCitationGaps(
+  rows: MentionRow[],
+  brand: BrandIdentity,
+  limit = 15,
+): CitationGap[] {
+  const counts = new Map<string, { count: number; ownership: Ownership; competitorId?: string }>();
+  for (const r of rows) {
+    for (const url of r.citations) {
+      const host = hostOf(url);
+      if (!host) continue;
+      const { ownership, competitorId } = classifyOwnership(url, brand);
+      if (ownership === "owned") continue; // your own citations aren't a gap
+      const cur = counts.get(host) ?? { count: 0, ownership, competitorId };
+      cur.count++;
+      counts.set(host, cur);
+    }
+  }
+  return Array.from(counts.entries())
+    .map(([host, v]) => ({ host, ownership: v.ownership, citations: v.count, competitorId: v.competitorId }))
+    .sort((a, b) => b.citations - a.citations)
+    .slice(0, limit);
 }
 
 // Visibility matrix collapses runs to (prompt, platform) cells.

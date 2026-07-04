@@ -56,6 +56,7 @@ describe("product workflow contracts", () => {
           ownerId: "user_123",
           promptText: "Which AI visibility tools should I compare?",
           category: "competitors",
+          persona: null,
           createdAt: now,
         },
       ],

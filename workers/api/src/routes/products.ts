@@ -15,8 +15,12 @@ import {
   buildMonthlyCompetitorReport,
   buildVisibilityMatrix,
   classifyOwnership,
+  composeVisibilityReport,
+  computeCitationGaps,
+  computePersonaVisibility,
   computeShareOfVoice,
   computeTrends,
+  computeVisibilityScore,
   COMMUNITY_INTENT_SOURCES,
   getSeedMonthlyCompetitorReport,
   hostOf,
@@ -24,6 +28,7 @@ import {
   scoreIntentOpportunity,
   sortAttributes,
   type AttributeRow,
+  type BrandIdentity,
   type IntentOpportunityCandidate,
   type MatrixRow,
   type MentionRow,
@@ -69,7 +74,7 @@ type NewConfigBody = Partial<{
   checkSchedule: "daily" | "weekly" | null;
   badgeEnabled: boolean;
 }>;
-type NewPromptBody = Partial<{ promptText: string; category: string | null }>;
+type NewPromptBody = Partial<{ promptText: string; category: string | null; persona: string | null }>;
 type NewCommunityBody = Partial<{
   subreddit: string;
   prompt: string | null;
@@ -393,6 +398,7 @@ productsRoute.post("/mentions/configs/:id/prompts", async (c) => {
       ownerId,
       promptText,
       category: body.category?.trim() || null,
+      persona: body.persona?.trim() || null,
       createdAt: new Date(),
     })
     .returning();
@@ -1274,13 +1280,27 @@ productsRoute.get("/mentions/:brandId/visibility-matrix", async (c) => {
 function toMentionRows(rows: Array<typeof schema.mentionResults.$inferSelect>): MentionRow[] {
   return rows.map((r) => ({
     brandMentioned: r.brandMentioned,
-    brandRecommended: false,
-    competitorsMentioned: ((r.competitorsMentioned as unknown) as string[]) ?? [],
+    brandRecommended: r.brandRecommended,
+    // Stored as [{name, mentioned, position}] — reduce to the names actually
+    // mentioned so competitor share-of-voice keys on real names, not "[object Object]".
+    competitorsMentioned: competitorNames(r.competitorsMentioned),
     citations: ((r.citations as unknown) as string[]) ?? [],
     brandCited: r.brandCited,
     platform: r.platform,
+    persona: r.persona,
     createdAt: r.createdAt.toISOString(),
   }));
+}
+
+function competitorNames(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter(
+      (c): c is { name: string; mentioned?: boolean } =>
+        Boolean(c) && typeof c === "object" && typeof (c as { name?: unknown }).name === "string",
+    )
+    .filter((c) => c.mentioned !== false)
+    .map((c) => c.name);
 }
 
 productsRoute.get("/mentions/:brandId/share-of-voice", async (c) => {
@@ -1537,7 +1557,8 @@ productsRoute.get("/mentions/:brandId/trends", async (c) => {
 productsRoute.get("/mentions/:brandId/report", async (c) => {
   const ownerId = requireOwner(c);
   const brandId = c.req.param("brandId");
-  if (!(await loadOwnedBrand(c.env.DB, ownerId, brandId))) {
+  const brand = await loadOwnedBrand(c.env.DB, ownerId, brandId);
+  if (!brand) {
     return c.json({ error: "brand_not_found" }, 404);
   }
   const windowDays = clampedLimit(c.req.query("window") ?? "30", 30, 365);
@@ -1545,18 +1566,35 @@ productsRoute.get("/mentions/:brandId/report", async (c) => {
   const mentionRows = toMentionRows(rows);
   const sov = computeShareOfVoice(mentionRows, windowDays);
   const points = computeTrends(mentionRows, windowDays, Date.now());
+  const score = computeVisibilityScore(sov, mentionRows);
+  const perPersona = computePersonaVisibility(mentionRows);
+  const brandIdentity = toBrandIdentity(brand);
+  const citationGaps = computeCitationGaps(mentionRows, brandIdentity);
+  const platforms = Array.from(new Set(mentionRows.map((r) => r.platform ?? "custom")));
 
   const matrixRows: MatrixRow[] = rows.map((r) => ({
     prompt: r.promptId,
     promptKey: r.promptId,
     platform: r.platform,
     brandMentioned: r.brandMentioned,
-    brandRecommended: false,
-    competitorsMentioned: ((r.competitorsMentioned as unknown) as string[]) ?? [],
+    brandRecommended: r.brandRecommended,
+    competitorsMentioned: competitorNames(r.competitorsMentioned),
     citations: ((r.citations as unknown) as string[]) ?? [],
     runAt: r.createdAt.toISOString(),
   }));
   const matrix = buildVisibilityMatrix(matrixRows);
+
+  const report = composeVisibilityReport({
+    brandName: brand.brandName,
+    windowDays,
+    score,
+    shareOfVoice: sov,
+    perPersona,
+    citationGaps,
+    matrix,
+    trend: points,
+    platforms,
+  });
 
   const cited = await db(c.env.DB)
     .select()
@@ -1584,10 +1622,18 @@ productsRoute.get("/mentions/:brandId/report", async (c) => {
 
   return c.json({
     windowDays,
+    // The packaged AI Visibility Report (score, per-model + per-persona
+    // breakdown, share-of-voice, citation gaps, prioritized recommendations).
+    report,
+    // Backward-compatible fields retained for the existing UI tabs.
     summary: {
       runs: sov.runs,
       brandMentionRate: sov.brandMentionRate,
+      brandRecommendationRate: sov.brandRecommendationRate,
       brandCitationRate: sov.brandCitationRate,
+      visibilityScore: score.score,
+      grade: score.grade,
+      platforms,
       trendPoints: points.length,
     },
     matrix,
@@ -1596,6 +1642,22 @@ productsRoute.get("/mentions/:brandId/report", async (c) => {
     intentOpportunities,
   });
 });
+
+// Build a BrandIdentity for ownership/citation-gap classification. Competitor
+// entries are {name, url?}; use the URL host when present so classifyOwnership
+// can tag competitor-owned citations.
+function toBrandIdentity(brand: typeof schema.mentionBrandConfigs.$inferSelect): BrandIdentity {
+  const competitors = Array.isArray(brand.competitors)
+    ? (brand.competitors as Array<{ name?: string; url?: string }>)
+    : [];
+  return {
+    brandUrl: brand.brandUrl,
+    brandAliases: Array.isArray(brand.brandAliases) ? (brand.brandAliases as string[]) : [],
+    competitorUrls: competitors
+      .filter((c): c is { name: string; url: string } => Boolean(c?.url && c?.name))
+      .map((c) => ({ id: c.name, url: c.url })),
+  };
+}
 
 // Agent-eval attribute grid. Reads agent_evidence_scores + open tasks.
 productsRoute.get("/agent-eval/:auditId/attributes", async (c) => {
