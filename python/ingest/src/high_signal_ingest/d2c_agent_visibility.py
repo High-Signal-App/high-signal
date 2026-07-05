@@ -133,10 +133,36 @@ def build_prompt(niche: NicheQuery) -> str:
     )
 
 
-_NUMBERED_RE = re.compile(r"^\d+[\.\)]\s*\*{0,2}([A-Z][\w&\- ]{1,40}?)\*{0,2}\s*[—:\-–]")
-_BOLD_RE = re.compile(r"^\*{2}([A-Z][\w&\- ]{1,40}?)\*{2}\s*[—:\-–]")
-_BULLET_RE = re.compile(r"^[-•]\s*\*{0,2}([A-Z][\w&\- ]{1,40}?)\*{0,2}\s*[—:\-–]")
+_NUMBERED_RE = re.compile(r"^\d+[\.\)]\s*")
+_BULLET_RE = re.compile(r"^[-•]\s*")
+_BOLD_RE = re.compile(r"^\*{2}(.+?)\*{2}")
+_PLAIN_RE = re.compile(r"^([A-Z][\w&'.\- ]{1,40}?)\s*[—:\-–(]")
 _URL_RE = re.compile(r"https?://[^\s)\"'<>\]]+")
+
+_NON_BRAND = (
+    "based on",
+    "here are",
+    "the best",
+    "for indian",
+    "i recommend",
+    "these brands",
+    "note",
+    "source",
+    "disclaimer",
+)
+
+
+def _clean_brand_name(raw: str) -> str | None:
+    """Extract a clean brand name from a raw match."""
+    before_paren = raw.split("(")[0].strip()
+    before_sep = re.split(r"[—:\-–]", before_paren)[0].strip()
+    cleaned = before_sep.strip("\"'* ")
+    if len(cleaned) < 2 or not cleaned[0].isupper():
+        return None
+    lower = cleaned.lower()
+    if any(lower.startswith(p) for p in _NON_BRAND):
+        return None
+    return cleaned
 
 
 def extract_recommended_brands(text: str) -> list[str]:
@@ -146,9 +172,18 @@ def extract_recommended_brands(text: str) -> list[str]:
         t = line.strip()
         if not t:
             continue
-        m = _NUMBERED_RE.match(t) or _BOLD_RE.match(t) or _BULLET_RE.match(t)
+        t = _NUMBERED_RE.sub("", t, count=1)
+        t = _BULLET_RE.sub("", t, count=1)
+        m = _BOLD_RE.match(t)
         if m:
-            name = m.group(1).strip()
+            name = _clean_brand_name(m.group(1))
+            if name and name not in seen:
+                seen.add(name)
+                brands.append(name)
+            continue
+        m = _PLAIN_RE.match(t)
+        if m:
+            name = _clean_brand_name(m.group(1))
             if name and name not in seen:
                 seen.add(name)
                 brands.append(name)
