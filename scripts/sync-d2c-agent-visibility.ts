@@ -106,8 +106,8 @@ function main() {
   console.log(`[d2c:sync-av] wrote ${TMP_SQL} (${sql.length} statements)`);
 
   const proc = spawn(
-    "wrangler",
-    ["d1", "execute", "high-signal-db", flag, `--file=${TMP_SQL}`, "--config=workers/api/wrangler.toml"],
+    "npx",
+    ["wrangler", "d1", "execute", "high-signal-db", flag, `--file=${TMP_SQL}`, "--config=workers/api/wrangler.toml"],
     { stdio: "inherit", cwd: __root },
   );
   proc.on("close", (code) => process.exit(code ?? 0));
