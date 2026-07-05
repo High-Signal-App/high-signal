@@ -1146,25 +1146,49 @@ export function extractRecommendedBrands(responseText: string): string[] {
   for (const line of lines) {
     const trimmed = line.trim();
     if (!trimmed) continue;
-    // Numbered list: "1. BrandName — reason" or "1) BrandName: reason"
-    const numbered = trimmed.match(/^\d+[\.\)]\s*\*{0,2}([A-Z][\w&\- ]{1,40}?)\*{0,2}\s*[—:\-–]/);
-    if (numbered) {
-      brands.add(numbered[1]!.trim());
+    // Strip leading numbering: "1. ", "1) ", "- ", "• "
+    const stripped = trimmed.replace(/^\d+[\.\)]\s*/, "").replace(/^[-•]\s*/, "");
+    // Extract bold text: **BrandName** or **BrandName (description)**
+    // The brand name is the first capitalized phrase before any parenthetical
+    // or separator.
+    const boldMatch = stripped.match(/^\*{2}(.+?)\*{2}/);
+    if (boldMatch) {
+      const name = _extractBrandName(boldMatch[1]!);
+      if (name) brands.add(name);
       continue;
     }
-    // Bold header: "**BrandName**: reason" or "**BrandName** — reason"
-    const bold = trimmed.match(/^\*{2}([A-Z][\w&\- ]{1,40}?)\*{2}\s*[—:\-–]/);
-    if (bold) {
-      brands.add(bold[1]!.trim());
-      continue;
-    }
-    // Bullet with a capitalized lead phrase ending in a dash/colon
-    const bullet = trimmed.match(/^[-•]\s*\*{0,2}([A-Z][\w&\- ]{1,40}?)\*{0,2}\s*[—:\-–]/);
-    if (bullet) {
-      brands.add(bullet[1]!.trim());
+    // Non-bold: "BrandName — reason" or "BrandName: reason"
+    // The brand name is the first capitalized phrase before a separator.
+    const plainMatch = stripped.match(/^([A-Z][\w&'.\- ]{1,40}?)\s*[—:\-–(]/);
+    if (plainMatch) {
+      const name = _extractBrandName(plainMatch[1]!);
+      if (name) brands.add(name);
     }
   }
   return Array.from(brands).slice(0, 8);
+}
+
+/**
+ * Extract a clean brand name from a raw match. Strips parenthetical
+ * descriptions, leading articles, and trailing qualifiers.
+ */
+function _extractBrandName(raw: string): string | null {
+  // Take the part before any opening parenthetical.
+  const beforeParen = raw.split("(")[0]!.trim();
+  // Take the part before any separator (—, –, :, -).
+  const beforeSep = beforeParen.split(/[—:\-–]/)[0]!.trim();
+  // Strip surrounding quotes/asterisks.
+  const cleaned = beforeSep.replace(/^["'*]+|["'*]+$/g, "").trim();
+  // Must start with a capital letter and be 2+ chars.
+  if (cleaned.length < 2 || !/^[A-Z]/.test(cleaned)) return null;
+  // Filter out common non-brand phrases.
+  const lower = cleaned.toLowerCase();
+  const nonBrand = [
+    "based on", "here are", "the best", "for indian", "i recommend",
+    "these brands", "note", "source", "disclaimer",
+  ];
+  if (nonBrand.some((p) => lower.startsWith(p))) return null;
+  return cleaned;
 }
 
 /** Extract URLs from an AI answer (citations). */
