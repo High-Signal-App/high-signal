@@ -37,7 +37,7 @@ USER_AGENT = "linux:high-signal:0.1.0 (by /u/sarthak_research)"
 LOGGER = logging.getLogger(__name__)
 DEFAULT_CONCURRENCY = 4  # Lower for RSS to avoid 429s
 DEFAULT_MIN_SCORE = 10
-RSS_DELAY = 2.0  # seconds between RSS requests per sub
+RSS_DELAY = 6.0  # seconds between RSS requests — Reddit allows ~10/min
 
 # Global semaphore: limits concurrent Reddit requests to 1, so even when
 # 20 niches run via asyncio.gather, Reddit sees at most 1 request at a time.
@@ -181,16 +181,10 @@ async def fetch_subreddit_rss_async(
         LOGGER.debug("reddit rss fetch failed sub=%s error=%s", sub, exc)
         return []
     if r.status_code == 429:
-        # Rate-limited — wait longer and retry once.
-        retry_after = float(r.headers.get("retry-after", "10"))
-        wait = min(max(retry_after, 5), 30)
-        LOGGER.info("reddit rss 429 sub=%s, retrying after %.1fs", sub, wait)
-        await asyncio.sleep(wait)
-        try:
-            r = await client.get(url)
-        except httpx.HTTPError as exc:
-            LOGGER.debug("reddit rss retry failed sub=%s error=%s", sub, exc)
-            return []
+        # Rate-limited — don't retry (retrying just doubles the request load
+        # and makes rate-limiting worse). Skip this sub; we'll get it next run.
+        LOGGER.info("reddit rss 429 sub=%s, skipping", sub)
+        return []
     if r.status_code != 200:
         LOGGER.debug("reddit rss fetch failed sub=%s status=%s", sub, r.status_code)
         return []
