@@ -16,12 +16,12 @@
 import type { D2COpportunityArtifact } from "./d2c-opportunities";
 
 export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
-  "generatedAt": "2026-07-05T23:12:17.105096+00:00",
+  "generatedAt": "2026-07-05T23:28:54.614224+00:00",
   "region": "IN",
   "niches": [
     {
       "nicheSlug": "hair-growth-scalp-support",
-      "demandScore": 0.6000000000000001,
+      "demandScore": 0.5,
       "competitionScore": null,
       "pricingScore": null,
       "adSaturationScore": null,
@@ -43,21 +43,14 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
         },
         {
           "sourceClass": "community",
-          "url": "https://reddit.com/r/tressless/comments/1uo67xb/day_1_postop_dr_ratchathorn_absolute_bangkok_23/",
-          "source": "reddit:tressless",
-          "snippet": "Day 1 post-op, Dr Ratchathorn (Absolute, Bangkok) (23 year old male) honest opinions wanted on corner symmetry + 45 vs 50 FU/cm2 — Day 1 post-op, Dr Ratchathorn (Absolute, Bangkok) (23 year old male)…",
-          "observedAt": "2026-07-05T16:16:04+00:00"
-        },
-        {
-          "sourceClass": "community",
           "url": "https://reddit.com/r/tressless/comments/1unzprh/this_is_what_10_years_progress_looks_like/",
           "source": "reddit:tressless",
           "snippet": "This is what 10 years “progress” looks like. — Topical Minoxidil for 10 years, oral Finasteride 1 year, but moved to 0.5mg Dutasteride 3x a week and 5mg Oral Minoxidil daily 6 months ago. Seems like…",
           "observedAt": "2026-07-05T11:23:12+00:00"
         }
       ],
-      "freshnessDate": "2026-07-05T23:11:23.009002+00:00",
-      "notes": "diversity=0.14; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
+      "freshnessDate": "2026-07-05T23:28:05.128256+00:00",
+      "notes": "diversity=0.14; community=3 search=0 product=0 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "lip-intimate-skincare-sensitive",
@@ -67,8 +60,8 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-05T23:11:29.171907+00:00",
-      "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
+      "freshnessDate": "2026-07-05T23:27:59.346625+00:00",
+      "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "hard-water-hair-care",
@@ -78,8 +71,8 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-05T23:11:16.990351+00:00",
-      "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
+      "freshnessDate": "2026-07-05T23:28:22.532335+00:00",
+      "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "beard-dandruff-beard-scalp",
@@ -89,8 +82,8 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-05T23:11:53.686125+00:00",
-      "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
+      "freshnessDate": "2026-07-05T23:28:28.334469+00:00",
+      "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "post-gym-mens-skin-wipes",
@@ -100,8 +93,8 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-05T23:11:05.056318+00:00",
-      "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
+      "freshnessDate": "2026-07-05T23:27:41.876726+00:00",
+      "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "delivery-rider-phone-accessories",
@@ -111,8 +104,8 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-05T23:11:05.298459+00:00",
-      "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
+      "freshnessDate": "2026-07-05T23:27:52.801260+00:00",
+      "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "heat-resistant-phone-mounts",
@@ -122,8 +115,8 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-05T23:11:05.551506+00:00",
-      "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
+      "freshnessDate": "2026-07-05T23:27:57.161919+00:00",
+      "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "office-chai-healthy-snacks",
@@ -133,8 +126,8 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-05T23:11:05.039303+00:00",
-      "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
+      "freshnessDate": "2026-07-05T23:27:46.242219+00:00",
+      "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "diabetic-friendly-travel-snacks",
@@ -144,8 +137,8 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-05T23:11:05.200314+00:00",
-      "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
+      "freshnessDate": "2026-07-05T23:27:50.612663+00:00",
+      "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "high-protein-regional-snacks",
@@ -155,8 +148,8 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-05T23:12:04.933727+00:00",
-      "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
+      "freshnessDate": "2026-07-05T23:28:39.999196+00:00",
+      "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "affordable-home-gym-under-5000",
@@ -223,8 +216,8 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
           "observedAt": "2026-07-01T21:15:34+00:00"
         }
       ],
-      "freshnessDate": "2026-07-05T23:11:05.448879+00:00",
-      "notes": "diversity=0.14; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
+      "freshnessDate": "2026-07-05T23:27:54.981310+00:00",
+      "notes": "diversity=0.14; community=8 search=0 product=0 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "womens-gym-shorts-fit",
@@ -234,41 +227,149 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-05T23:11:04.964499+00:00",
-      "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
+      "freshnessDate": "2026-07-05T23:27:39.694165+00:00",
+      "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "baby-lotions-transparent-ingredients",
       "demandScore": null,
-      "competitionScore": null,
-      "pricingScore": null,
+      "competitionScore": 0.5,
+      "pricingScore": 0.9,
       "adSaturationScore": null,
       "agentVisibilityScore": null,
-      "evidence": [],
-      "freshnessDate": "2026-07-05T23:12:17.104873+00:00",
-      "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
+      "evidence": [
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B0G1MWWPTF",
+          "source": "amazon:in",
+          "snippet": "Himalaya Gentle Baby Lotion 400ml with Almond oil, Olive oil, Country Mallow | No.1 Doctor-Prescribed Brand |pH 5.5 formulation | Nourishes and moisturizes your baby&#x27;s skin | Safe for Newborns — ₹201 — 4.3 out of 5 — 2,902 ratings",
+          "observedAt": "2026-07-05T23:28:54.611098+00:00"
+        },
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B0FGJXZ4H5",
+          "source": "amazon:in",
+          "snippet": "LuvLap Baby Lotion with Milk Protein - 700ml, Suitable for Baby’s Delicate Skin, 24 Hour Protection for Sensitive Skin, Shea Butter and VIT E, Paraben Free, Sweet Almond Oil, Dermatologically Tested — ₹143 — 4.4 out of 5 — 776 ratings",
+          "observedAt": "2026-07-05T23:28:54.611612+00:00"
+        },
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B0GHXSSGGQ",
+          "source": "amazon:in",
+          "snippet": "Himalaya Gentle Baby Lotion 700ml | with Almond oil, Olive oil, Country Mallow | No.1 Doctor-Prescribed Brand |pH 5.5 formulation | Nourishes and moisturizes your baby&#x27;s skin | Safe for Newborns — ₹327 — 4.3 out of 5 — 2,902 ratings",
+          "observedAt": "2026-07-05T23:28:54.612473+00:00"
+        },
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B074C63SHJ",
+          "source": "amazon:in",
+          "snippet": "Mustela Hydra Bebe Body Lotion 100ml | Baby Cream &amp; Moisturizer for Face &amp; Body | Baby Body Lotion for Newborns 0–5 Years | Organic Skincare | Ideal for Normal Skin — ₹299 — 4.2 out of 5 — 1,226 ratings",
+          "observedAt": "2026-07-05T23:28:54.612988+00:00"
+        },
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B097YVD1SV",
+          "source": "amazon:in",
+          "snippet": "Mamaearth Milky Soft Body Lotion with Oats, Milk &amp; Calendula - 400 ml — ₹273 — 4.3 out of 5 — 4,851 ratings",
+          "observedAt": "2026-07-05T23:28:54.613598+00:00"
+        }
+      ],
+      "freshnessDate": "2026-07-05T23:28:54.613727+00:00",
+      "notes": "diversity=0.14; community=0 search=0 product=5 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "ayurvedic-face-care-proof-first",
       "demandScore": null,
-      "competitionScore": null,
-      "pricingScore": null,
+      "competitionScore": 0.5,
+      "pricingScore": 0.9,
       "adSaturationScore": null,
       "agentVisibilityScore": null,
-      "evidence": [],
-      "freshnessDate": "2026-07-05T23:11:41.090906+00:00",
-      "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
+      "evidence": [
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B00YXTNFJC",
+          "source": "amazon:in",
+          "snippet": "Auravedic Kumkumadi Oil For Face 100 Ml, Kumkumadi Tailam Face Oil For Glowing Skin, Dark Spot Corrector Face Serum — ₹387 — 4.0 out of 5 — 17,349 ratings",
+          "observedAt": "2026-07-05T23:28:02.931801+00:00"
+        },
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B0DWTDDXXP",
+          "source": "amazon:in",
+          "snippet": "Mamash Beetroot &amp; Sandalwood 2-in-1 Face Pack &amp; Scrub | Ready-to-Use De-Tan Clay Mask with Neem, Licorice &amp; Multani Mitti | Brightening &amp; Deep Cleansing Ayurvedic Skincare | 50g — ₹620 — 4.3 out of 5 — 50 ratings",
+          "observedAt": "2026-07-05T23:28:02.932330+00:00"
+        },
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B0FBWSK4HP",
+          "source": "amazon:in",
+          "snippet": "4.2 out of 5 stars — ₹177 — 4.2 out of 5 — 373 ratings",
+          "observedAt": "2026-07-05T23:28:02.935369+00:00"
+        },
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B0FTXL3KH2",
+          "source": "amazon:in",
+          "snippet": "Pure Neem Handmade Soap Organic Herbal Bath Bar for Acne, Skin Care &amp; Glow Natural Neem Extract Body Soap Ayurvedic Soap for Face &amp; Body – 100gm (Pack Of 2) (Pack of 1) — ₹149 — 4.7 out of 5 — 14 ratings",
+          "observedAt": "2026-07-05T23:28:02.937566+00:00"
+        },
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B0GG3C59JP",
+          "source": "amazon:in",
+          "snippet": "Kumkumadi Cream Skin Brightening &amp; Night Repair Cream For Anti-Aging, Pigmentation, Dark Spots, Under eye, Wrinkles, Melasma &amp; Dark Circles For Men &amp; Women | 25gm Paraben Free — ₹269 — 4.1 out of 5 — 96 ratings",
+          "observedAt": "2026-07-05T23:28:02.938009+00:00"
+        }
+      ],
+      "freshnessDate": "2026-07-05T23:28:02.938269+00:00",
+      "notes": "diversity=0.14; community=0 search=0 product=5 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "sustainable-cleaning-laundry-refills",
       "demandScore": null,
-      "competitionScore": null,
-      "pricingScore": null,
+      "competitionScore": 0.5,
+      "pricingScore": 0.9,
       "adSaturationScore": null,
       "agentVisibilityScore": null,
-      "evidence": [],
-      "freshnessDate": "2026-07-05T23:12:10.995487+00:00",
-      "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
+      "evidence": [
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B07FPRB9CR",
+          "source": "amazon:in",
+          "snippet": "Godrej aer Matic Automatic Room Fresheners Refill Pack | Violet Valley Bloom | 2200 Sprays Guaranteed | Lasts up to 60 days (210ml) — ₹214 — 4.2 out of 5 — 21,111 ratings",
+          "observedAt": "2026-07-05T23:28:47.973360+00:00"
+        },
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B0DDQ631H3",
+          "source": "amazon:in",
+          "snippet": "Good knight Flash Liquid Vaporiser – Pack of 6 (45ml each) | 2x Faster Than Before | Mosquito Repellent Refill | India’s Most Powerful Liquid Vaporizer — ₹324 — 4.3 out of 5 — 23,115 ratings",
+          "observedAt": "2026-07-05T23:28:47.974054+00:00"
+        },
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B0982DRKF9",
+          "source": "amazon:in",
+          "snippet": "Odomos Universal Liquid Vaporiser 45ml X Pack Of 6 | Mosquito Repellent Single Refill | 100% Protection| Fits All Machines | Protects Dengue, Malaria &amp; Chikungunya Mosquitoes | — ₹239 — 4.0 out of 5 — 13,498 ratings",
+          "observedAt": "2026-07-05T23:28:47.974575+00:00"
+        },
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B07FPKP85K",
+          "source": "amazon:in",
+          "snippet": "Godrej aer Matic Automatic Room Fresheners Refill Pack | Fresh Lush Green | 2200 Sprays Guaranteed | Lasts up to 60 days (210ml) — ₹220 — 4.2 out of 5 — 8,751 ratings",
+          "observedAt": "2026-07-05T23:28:47.975221+00:00"
+        },
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B07YY9N6TY",
+          "source": "amazon:in",
+          "snippet": "Mortein 45ml x 6 (Buy 4 Get 2 Free) Fits All Machines | SmartPlus Mosquito Repellent Refill | Mosquito Repellent &amp; Killer | 100% Protection from Dengue Mosquitoes, Pack of 6 — ₹234 — 4.0 out of 5 — 39,555 ratings",
+          "observedAt": "2026-07-05T23:28:47.975888+00:00"
+        }
+      ],
+      "freshnessDate": "2026-07-05T23:28:47.976025+00:00",
+      "notes": "diversity=0.14; community=0 search=0 product=5 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "pet-health-supplements",
@@ -286,8 +387,8 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
           "observedAt": "2026-07-05T14:13:37+00:00"
         }
       ],
-      "freshnessDate": "2026-07-05T23:11:05.049412+00:00",
-      "notes": "diversity=0.14; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
+      "freshnessDate": "2026-07-05T23:27:48.428022+00:00",
+      "notes": "diversity=0.14; community=1 search=0 product=0 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "oral-care-sub-niches",
@@ -297,8 +398,8 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-05T23:11:35.085360+00:00",
-      "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
+      "freshnessDate": "2026-07-05T23:28:07.311272+00:00",
+      "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "sleep-stress-support-products",
@@ -323,8 +424,8 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
           "observedAt": "2026-07-05T09:15:34+00:00"
         }
       ],
-      "freshnessDate": "2026-07-05T23:11:05.032504+00:00",
-      "notes": "diversity=0.14; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
+      "freshnessDate": "2026-07-05T23:27:44.060525+00:00",
+      "notes": "diversity=0.14; community=2 search=0 product=0 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "intimate-hygiene",
@@ -334,8 +435,8 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-05T23:11:47.192661+00:00",
-      "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
+      "freshnessDate": "2026-07-05T23:28:09.946805+00:00",
+      "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "condiments-sauces-regional-identity",
@@ -345,8 +446,8 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-05T23:11:58.876617+00:00",
-      "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
+      "freshnessDate": "2026-07-05T23:28:33.859241+00:00",
+      "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     }
   ]
 };
