@@ -42,23 +42,20 @@ async def test_fetch_subreddit_falls_back_to_rss_on_403() -> None:
 
 
 @pytest.mark.asyncio
-async def test_fetch_subreddit_json_uses_lower_score_floor() -> None:
-    payload = {
-        "data": {
-            "children": [
-                {
-                    "data": {
-                        "created_utc": 1_780_204_000,
-                        "permalink": "/r/startups/comments/example/post/",
-                        "title": "AI pricing makes budgets hard",
-                        "selftext": "Teams need predictable usage controls.",
-                        "score": 10,
-                    }
-                }
-            ]
-        }
-    }
-    client = httpx.AsyncClient(transport=httpx.MockTransport(lambda _req: httpx.Response(200, json=payload)))
+async def test_fetch_subreddit_rss_returns_events() -> None:
+    """RSS is the primary path (JSON is 403-blocked). Verify it parses."""
+    rss_xml = (
+        '<?xml version="1.0" encoding="UTF-8"?>'
+        '<feed xmlns="http://www.w3.org/2005/Atom">'
+        "<entry>"
+        "<title>AI pricing makes budgets hard</title>"
+        '<link href="https://www.reddit.com/r/startups/comments/example/post/" />'
+        "<published>2026-06-15T12:00:00+00:00</published>"
+        "<summary>Teams need predictable usage controls.</summary>"
+        "</entry>"
+        "</feed>"
+    )
+    client = httpx.AsyncClient(transport=httpx.MockTransport(lambda _req: httpx.Response(200, text=rss_xml)))
     try:
         events = await reddit.fetch_subreddit_async(
             "startups",

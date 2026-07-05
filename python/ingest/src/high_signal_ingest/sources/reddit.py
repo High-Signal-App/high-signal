@@ -37,7 +37,12 @@ USER_AGENT = "linux:high-signal:0.1.0 (by /u/sarthak_research)"
 LOGGER = logging.getLogger(__name__)
 DEFAULT_CONCURRENCY = 4  # Lower for RSS to avoid 429s
 DEFAULT_MIN_SCORE = 10
-RSS_DELAY = 1.5  # seconds between RSS requests per sub
+RSS_DELAY = 2.0  # seconds between RSS requests per sub
+
+# Global semaphore: limits concurrent Reddit requests to 1, so even when
+# 20 niches run via asyncio.gather, Reddit sees at most 1 request at a time.
+# Without this, 20 concurrent RSS requests → instant 429.
+_RSS_SEMAPHORE = asyncio.Semaphore(1)
 
 # OAuth token cache (process-lifetime). Avoids re-fetching a token per sub.
 _TOKEN_CACHE: dict[str, tuple[str, float]] = {}
@@ -121,9 +126,11 @@ async def fetch_subreddit_async(
 
     # No OAuth token (or OAuth failed) → skip the unauthenticated JSON
     # endpoint entirely (it returns 403 from most IPs) and go straight to
-    # RSS with rate-limiting.
-    await asyncio.sleep(RSS_DELAY)
-    return await fetch_subreddit_rss_async(sub, since, client, limit=limit)
+    # RSS with rate-limiting. The semaphore ensures only 1 Reddit request
+    # is in flight at a time across all concurrent callers.
+    async with _RSS_SEMAPHORE:
+        await asyncio.sleep(RSS_DELAY)
+        return await fetch_subreddit_rss_async(sub, since, client, limit=limit)
 
 
 def _parse_reddit_json(
@@ -174,10 +181,11 @@ async def fetch_subreddit_rss_async(
         LOGGER.debug("reddit rss fetch failed sub=%s error=%s", sub, exc)
         return []
     if r.status_code == 429:
-        # Rate-limited — wait and retry once.
-        retry_after = float(r.headers.get("retry-after", "5"))
-        LOGGER.debug("reddit rss 429 sub=%s, retrying after %.1fs", sub, retry_after)
-        await asyncio.sleep(min(retry_after, 10))
+        # Rate-limited — wait longer and retry once.
+        retry_after = float(r.headers.get("retry-after", "10"))
+        wait = min(max(retry_after, 5), 30)
+        LOGGER.info("reddit rss 429 sub=%s, retrying after %.1fs", sub, wait)
+        await asyncio.sleep(wait)
         try:
             r = await client.get(url)
         except httpx.HTTPError as exc:
