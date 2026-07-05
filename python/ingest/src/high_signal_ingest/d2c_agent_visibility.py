@@ -149,6 +149,20 @@ _NON_BRAND = (
     "note",
     "source",
     "disclaimer",
+    "please note",
+    "honest note",
+    "addressing",
+    "important",
+    "however",
+    "additionally",
+    "ultimately",
+    "overall",
+    "in summary",
+    "to summarize",
+    "it's worth",
+    "its worth",
+    "keep in",
+    "bear in",
 )
 
 

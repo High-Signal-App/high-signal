@@ -599,14 +599,17 @@ export function confidenceForDiversity(sourceClassCount: number): "low" | "mediu
 
 /**
  * Confidence band that accounts for the agent-visibility overlay. If the
- * overlay has run (agentVisibilityGap is non-null), it counts as one
- * independent source class, upgrading `low` → `medium`.
+ * overlay has run (agentVisibilityGap is non-null), it counts as two
+ * independent source classes (agent-visibility + the AI's search/citation
+ * layer), upgrading `low` → `medium` even when community evidence is thin.
  */
 export function confidenceForDiversityWithOverlay(
   sourceClassCount: number,
   agentVisibilityGap: number | null,
 ): "low" | "medium" | "high" {
-  const effective = sourceClassCount + (agentVisibilityGap != null ? 1 : 0);
+  // The AV overlay is a rich signal: it includes the AI's answer, the brands
+  // it recommends, and the URLs it cites. Count it as 2 source classes.
+  const effective = sourceClassCount + (agentVisibilityGap != null ? 2 : 0);
   return confidenceForDiversity(effective);
 }
 
@@ -1186,6 +1189,10 @@ function _extractBrandName(raw: string): string | null {
   const nonBrand = [
     "based on", "here are", "the best", "for indian", "i recommend",
     "these brands", "note", "source", "disclaimer",
+    "please note", "honest note", "addressing", "important",
+    "however", "additionally", "ultimately", "overall",
+    "in summary", "to summarize", "it's worth", "its worth",
+    "keep in", "bear in",
   ];
   if (nonBrand.some((p) => lower.startsWith(p))) return null;
   return cleaned;
