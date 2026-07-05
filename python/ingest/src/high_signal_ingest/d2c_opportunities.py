@@ -46,7 +46,7 @@ import httpx
 from .sources.reddit import fetch_subreddit_async
 
 LOGGER = logging.getLogger(__name__)
-USER_AGENT = "high-signal/0.1 d2c-opportunities"
+USER_AGENT = "linux:high-signal:0.1.0 (by /u/sarthak_research)"
 HN_SEARCH_URL = "https://hn.algolia.com/api/v1/search_by_date"
 PRODUCTHUNT_RSS_URL = "https://www.producthunt.com/feed"
 

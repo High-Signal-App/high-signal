@@ -27,10 +27,12 @@ import {
   buildSnapshotRecord,
   D2C_NICHE_SEEDS,
   loadLatestD2CArtifact,
+  loadLatestAgentVisibilityArtifact,
 } from "@high-signal/shared";
 
 const __root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const ARTIFACT_DIR = resolve(__root, "data/d2c-opportunities");
+const AV_ARTIFACT_DIR = resolve(__root, "data/d2c-agent-visibility");
 const TMP_DIR = resolve(__root, ".tmp");
 const TMP_SQL = resolve(TMP_DIR, "d2c-opportunities-sync.sql");
 const flag = process.argv.includes("--remote") ? "--remote" : "--local";
@@ -63,6 +65,21 @@ async function main() {
     console.log("[d2c:sync] no artifact found; nothing to sync");
     process.exit(0);
   }
+  // Load the agent-visibility overlay (if it exists) so the snapshot's
+  // agentVisibilityScore reflects the real AI gap, not a neutral default.
+  const avArtifact = await loadLatestAgentVisibilityArtifact(AV_ARTIFACT_DIR, fsImpl);
+  const avBySlug = new Map<string, number>();
+  if (avArtifact) {
+    for (const entry of avArtifact.entries) {
+      const existing = avBySlug.get(entry.nicheSlug);
+      if (existing == null || entry.gapScore > existing) {
+        avBySlug.set(entry.nicheSlug, entry.gapScore);
+      }
+    }
+    console.log(`[d2c:sync] agent-visibility overlay loaded; ${avArtifact.entries.length} entries`);
+  } else {
+    console.log("[d2c:sync] no agent-visibility overlay; using seed defaults");
+  }
   const snapshotDate = artifact.generatedAt.slice(0, 10);
   const snapshotMs = isoDateToEpochMs(artifact.generatedAt);
   console.log(`[d2c:sync] artifact ${snapshotDate}; ${artifact.niches.length} niches`);
@@ -83,7 +100,8 @@ async function main() {
   for (const seed of D2C_NICHE_SEEDS) {
     const id = nicheId(seed.slug);
     const evidence = artifact.niches.find((n) => n.nicheSlug === seed.slug) ?? null;
-    const record = buildSnapshotRecord(seed, evidence, snapshotDate);
+    const avGap = avBySlug.get(seed.slug) ?? null;
+    const record = buildSnapshotRecord(seed, evidence, snapshotDate, avGap);
     const snapId = snapshotId(id, snapshotDate);
     const evidenceJson = JSON.stringify(evidence?.evidence ?? []);
     sql.push(

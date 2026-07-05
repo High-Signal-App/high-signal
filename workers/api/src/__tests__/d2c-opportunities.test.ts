@@ -522,9 +522,10 @@ describe("india d2c opportunity pipeline (plan 0013)", () => {
         ],
         freshnessDate: "2026-07-05T00:00:00.000Z",
       }, "2026-07-08");
-      // 3 source classes → 0.43 diversity; demand 0.8, competition 0.7 → test
+      // 3 source classes + agent-visibility overlay (non-null) = 4 → high
+      // demand 0.8, competition 0.7 → test
       expect(rec.verdict).toBe("test");
-      expect(rec.confidence).toBe("medium");
+      expect(rec.confidence).toBe("high");
       expect(rec.freshnessDate).toBe("2026-07-05T00:00:00.000Z");
     });
   });

@@ -245,7 +245,10 @@ d2cRoute.get("/opportunities", async (c) => {
       // Seed-only fallback: synthesize a snapshot for today so the renderer
       // has something to show. Marked as "new" with no delta.
       const today = new Date().toISOString().slice(0, 10);
-      const synthetic = buildSnapshotRecord(seed, null, today);
+      const avGapSeed = agentVis.length > 0
+        ? Math.max(...agentVis.map((a) => a.gapScore ?? 0))
+        : null;
+      const synthetic = buildSnapshotRecord(seed, null, today, avGapSeed);
       return {
         slug: seed.slug,
         name: meta?.name ?? seed.name,
@@ -255,7 +258,7 @@ d2cRoute.get("/opportunities", async (c) => {
         latest: synthetic,
         delta: computeD2CDelta(synthetic, null),
         aging: "insufficient-history",
-        brief: composeD2COpportunityBrief(seed, null),
+        brief: composeD2COpportunityBrief(seed, null, avGapSeed),
         agentVisibility: agentVis,
       };
     }
@@ -278,7 +281,7 @@ d2cRoute.get("/opportunities", async (c) => {
       agentVisibilityScore: avGap,
       evidence: [],
       freshnessDate: latest.freshnessDate,
-    });
+    }, avGap);
     return {
       slug: seed.slug,
       name: meta?.name ?? seed.name,

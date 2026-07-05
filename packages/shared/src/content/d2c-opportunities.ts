@@ -563,8 +563,12 @@ export function scoreD2CNiche(inputs: D2CScoreInputs): D2CScoreResult {
 /**
  * Verdict mapping (PRD). `enter` is reserved and never emitted in Slice 1/2.
  *
- * - `test`: demand ≥ 0.5 AND competition gap ≥ 0.4 AND a first SKU exists.
- * - `watch`: demand ≥ 0.3 but missing corroboration (source diversity < 2).
+ * - `test`: demand ≥ 0.5 AND competition gap ≥ 0.4 AND a first SKU exists
+ *   AND (source diversity ≥ 0.34 OR agent-visibility gap ≥ 0.5).
+ *   The agent-visibility overlay counts as independent corroboration —
+ *   a high gap means AI assistants can't name incumbents, which is a
+ *   strong wedge signal on its own.
+ * - `watch`: demand ≥ 0.3 but missing corroboration.
  * - `avoid`: demand < 0.3 OR competition gap < 0.2.
  * - otherwise `watch`.
  */
@@ -572,18 +576,38 @@ export function verdictForScore(inputs: D2CScoreInputs, hasFirstSku: boolean): O
   const demand = clamp01(inputs.demand);
   const competition = clamp01(inputs.competition);
   const diversity = clamp01(inputs.sourceDiversity);
+  const agentGap = normalizeOptional(inputs.agentVisibility);
   if (demand < 0.3 || competition < 0.2) return "avoid";
-  if (demand >= 0.5 && competition >= 0.4 && hasFirstSku && diversity >= 0.34) {
+  const hasCorroboration = diversity >= 0.34 || agentGap >= 0.5;
+  if (demand >= 0.5 && competition >= 0.4 && hasFirstSku && hasCorroboration) {
     return "test";
   }
   return "watch";
 }
 
-/** Confidence band — `low` until ≥ 2 source classes, then `medium`. `high` reserved for Slice 3. */
+/**
+ * Confidence band. The agent-visibility overlay counts as one source class
+ * — if it has run (gap score is non-null), it's an independent corroboration
+ * signal that upgrades confidence from `low` to `medium` even when community
+ * evidence is thin.
+ */
 export function confidenceForDiversity(sourceClassCount: number): "low" | "medium" | "high" {
   if (sourceClassCount >= 4) return "high";
   if (sourceClassCount >= 2) return "medium";
   return "low";
+}
+
+/**
+ * Confidence band that accounts for the agent-visibility overlay. If the
+ * overlay has run (agentVisibilityGap is non-null), it counts as one
+ * independent source class, upgrading `low` → `medium`.
+ */
+export function confidenceForDiversityWithOverlay(
+  sourceClassCount: number,
+  agentVisibilityGap: number | null,
+): "low" | "medium" | "high" {
+  const effective = sourceClassCount + (agentVisibilityGap != null ? 1 : 0);
+  return confidenceForDiversity(effective);
 }
 
 // ---------------------------------------------------------------------------
@@ -693,19 +717,21 @@ function evidenceUrlsFromNiche(evidence: D2CEvidenceItem[]): { url: string; sour
 export function composeD2COpportunityBrief(
   seed: D2CNicheSeed,
   evidence?: D2CNicheEvidence | null,
+  agentVisibilityGap?: number | null,
 ): OpportunityBriefPayload {
   const evList = evidence?.evidence ?? [];
   const diversity = sourceDiversityFraction(evList);
+  const avGap = agentVisibilityGap ?? evidence?.agentVisibilityScore ?? seed.defaultScores.agentVisibility;
   const inputs: D2CScoreInputs = {
     demand: evidence?.demandScore ?? seed.defaultScores.demand,
     sourceDiversity: diversity,
     competition: evidence?.competitionScore ?? seed.defaultScores.competition,
     pricing: evidence?.pricingScore ?? seed.defaultScores.pricing,
     adSaturation: evidence?.adSaturationScore ?? seed.defaultScores.adSaturation,
-    agentVisibility: evidence?.agentVisibilityScore ?? seed.defaultScores.agentVisibility,
+    agentVisibility: avGap,
   };
   const verdict = verdictForScore(inputs, Boolean(seed.firstSku));
-  const confidence = confidenceForDiversity(distinctSourceClasses(evList));
+  const confidence = confidenceForDiversityWithOverlay(distinctSourceClasses(evList), avGap);
   const score = scoreD2CNiche(inputs).score;
   const marketTimingReasons = [
     evidence
@@ -725,8 +751,8 @@ export function composeD2COpportunityBrief(
       : "Pricing gap not yet measured; test willingness to pay with a landing page.",
   ];
   const agentVisibilityNotes = [
-    evidence?.agentVisibilityScore != null
-      ? `Agent visibility gap: ${(evidence.agentVisibilityScore * 100).toFixed(0)}/100.`
+    avGap != null
+      ? `Agent visibility gap: ${(avGap * 100).toFixed(0)}/100 — ${avGap >= 0.5 ? "AI assistants can't name incumbents; wide-open for brand-building." : avGap >= 0.2 ? "AI assistants name a few brands but the field is not locked." : "AI assistants recommend established incumbents; differentiation needed."}`
       : "Run an agent-answer snapshot for this category (Slice 4) to see whether recommendations are generic or incumbent-led.",
   ];
   const risks = seed.risks.slice();
@@ -843,6 +869,37 @@ export async function loadLatestD2CArtifact(
   try {
     const raw = await fsImpl.readFile(`${dir}/${dated[0]}`);
     return JSON.parse(raw) as D2COpportunityArtifact;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Load the latest agent-visibility overlay artifact from a directory of
+ * dated JSON files (`data/d2c-agent-visibility/<YYYY-MM-DD>.json`).
+ * Returns `null` if the directory doesn't exist or no dated file is found.
+ */
+export async function loadLatestAgentVisibilityArtifact(
+  dir: string,
+  fsImpl: {
+    readdir: (path: string) => Promise<string[]>;
+    readFile: (path: string) => Promise<string>;
+  },
+): Promise<D2CAgentVisibilityArtifact | null> {
+  let names: string[];
+  try {
+    names = await fsImpl.readdir(dir);
+  } catch {
+    return null;
+  }
+  const dated = names
+    .filter((n) => /^\d{4}-\d{2}-\d{2}\.json$/.test(n))
+    .sort()
+    .reverse();
+  if (dated.length === 0) return null;
+  try {
+    const raw = await fsImpl.readFile(`${dir}/${dated[0]}`);
+    return JSON.parse(raw) as D2CAgentVisibilityArtifact;
   } catch {
     return null;
   }
@@ -976,20 +1033,25 @@ export function buildSnapshotRecord(
   seed: D2CNicheSeed,
   evidence: D2CNicheEvidence | null,
   snapshotDate: string,
+  agentVisibilityGap?: number | null,
 ): D2CNicheSnapshotRecord {
   const evList = evidence?.evidence ?? [];
   const diversity = sourceDiversityFraction(evList);
+  // The agent-visibility overlay runs separately from the weekly collector.
+  // If the caller passes a gap score (from the overlay), use it instead of
+  // the evidence's agentVisibilityScore (which is usually null on first run).
+  const avGap = agentVisibilityGap ?? evidence?.agentVisibilityScore ?? seed.defaultScores.agentVisibility;
   const inputs: D2CScoreInputs = {
     demand: evidence?.demandScore ?? seed.defaultScores.demand,
     sourceDiversity: diversity,
     competition: evidence?.competitionScore ?? seed.defaultScores.competition,
     pricing: evidence?.pricingScore ?? seed.defaultScores.pricing,
     adSaturation: evidence?.adSaturationScore ?? seed.defaultScores.adSaturation,
-    agentVisibility: evidence?.agentVisibilityScore ?? seed.defaultScores.agentVisibility,
+    agentVisibility: avGap,
   };
   const score = scoreD2CNiche(inputs).score;
   const verdict = verdictForScore(inputs, Boolean(seed.firstSku));
-  const confidence = confidenceForDiversity(distinctSourceClasses(evList));
+  const confidence = confidenceForDiversityWithOverlay(distinctSourceClasses(evList), avGap);
   return {
     nicheSlug: seed.slug,
     snapshotDate,
@@ -998,7 +1060,7 @@ export function buildSnapshotRecord(
     competitionScore: evidence?.competitionScore ?? seed.defaultScores.competition,
     pricingScore: evidence?.pricingScore ?? seed.defaultScores.pricing,
     adSaturationScore: evidence?.adSaturationScore ?? seed.defaultScores.adSaturation,
-    agentVisibilityScore: evidence?.agentVisibilityScore ?? seed.defaultScores.agentVisibility,
+    agentVisibilityScore: avGap,
     sourceDiversity: diversity,
     verdict,
     confidence,

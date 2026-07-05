@@ -57,6 +57,8 @@ jobs:
           AI_API_KEY: ${{ secrets.AI_API_KEY }}
           AI_MODEL: ${{ secrets.AI_MODEL || 'deepseek-v4-flash' }}
           AI_PROJECT_ID: high-signal
+          REDDIT_CLIENT_ID: ${{ secrets.REDDIT_CLIENT_ID }}
+          REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}
         run: |
           uv run python -m high_signal_ingest.d2c_opportunities \
             --days "${{ inputs.days || '7' }}" \
