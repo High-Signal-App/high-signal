@@ -15,4 +15,229 @@
 
 import type { D2COpportunityArtifact } from "./d2c-opportunities";
 
-export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = null;
+export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
+  "generatedAt": "2026-07-05T19:53:46.558745+00:00",
+  "region": "IN",
+  "niches": [
+    {
+      "nicheSlug": "hair-growth-scalp-support",
+      "demandScore": null,
+      "competitionScore": null,
+      "pricingScore": null,
+      "adSaturationScore": null,
+      "agentVisibilityScore": null,
+      "evidence": [],
+      "freshnessDate": "2026-07-05T19:53:29.700663+00:00",
+      "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
+    },
+    {
+      "nicheSlug": "lip-intimate-skincare-sensitive",
+      "demandScore": null,
+      "competitionScore": null,
+      "pricingScore": null,
+      "adSaturationScore": null,
+      "agentVisibilityScore": null,
+      "evidence": [],
+      "freshnessDate": "2026-07-05T19:53:29.746215+00:00",
+      "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
+    },
+    {
+      "nicheSlug": "hard-water-hair-care",
+      "demandScore": null,
+      "competitionScore": null,
+      "pricingScore": null,
+      "adSaturationScore": null,
+      "agentVisibilityScore": null,
+      "evidence": [],
+      "freshnessDate": "2026-07-05T19:53:29.950393+00:00",
+      "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
+    },
+    {
+      "nicheSlug": "beard-dandruff-beard-scalp",
+      "demandScore": null,
+      "competitionScore": null,
+      "pricingScore": null,
+      "adSaturationScore": null,
+      "agentVisibilityScore": null,
+      "evidence": [],
+      "freshnessDate": "2026-07-05T19:53:29.689781+00:00",
+      "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
+    },
+    {
+      "nicheSlug": "post-gym-mens-skin-wipes",
+      "demandScore": null,
+      "competitionScore": null,
+      "pricingScore": null,
+      "adSaturationScore": null,
+      "agentVisibilityScore": null,
+      "evidence": [],
+      "freshnessDate": "2026-07-05T19:53:29.694185+00:00",
+      "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
+    },
+    {
+      "nicheSlug": "delivery-rider-phone-accessories",
+      "demandScore": null,
+      "competitionScore": null,
+      "pricingScore": null,
+      "adSaturationScore": null,
+      "agentVisibilityScore": null,
+      "evidence": [],
+      "freshnessDate": "2026-07-05T19:53:29.729524+00:00",
+      "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
+    },
+    {
+      "nicheSlug": "heat-resistant-phone-mounts",
+      "demandScore": null,
+      "competitionScore": null,
+      "pricingScore": null,
+      "adSaturationScore": null,
+      "agentVisibilityScore": null,
+      "evidence": [],
+      "freshnessDate": "2026-07-05T19:53:46.558502+00:00",
+      "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
+    },
+    {
+      "nicheSlug": "office-chai-healthy-snacks",
+      "demandScore": null,
+      "competitionScore": null,
+      "pricingScore": null,
+      "adSaturationScore": null,
+      "agentVisibilityScore": null,
+      "evidence": [],
+      "freshnessDate": "2026-07-05T19:53:29.688477+00:00",
+      "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
+    },
+    {
+      "nicheSlug": "diabetic-friendly-travel-snacks",
+      "demandScore": null,
+      "competitionScore": null,
+      "pricingScore": null,
+      "adSaturationScore": null,
+      "agentVisibilityScore": null,
+      "evidence": [],
+      "freshnessDate": "2026-07-05T19:53:29.744878+00:00",
+      "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
+    },
+    {
+      "nicheSlug": "high-protein-regional-snacks",
+      "demandScore": null,
+      "competitionScore": null,
+      "pricingScore": null,
+      "adSaturationScore": null,
+      "agentVisibilityScore": null,
+      "evidence": [],
+      "freshnessDate": "2026-07-05T19:53:29.747795+00:00",
+      "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
+    },
+    {
+      "nicheSlug": "affordable-home-gym-under-5000",
+      "demandScore": null,
+      "competitionScore": null,
+      "pricingScore": null,
+      "adSaturationScore": null,
+      "agentVisibilityScore": null,
+      "evidence": [],
+      "freshnessDate": "2026-07-05T19:53:29.698413+00:00",
+      "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
+    },
+    {
+      "nicheSlug": "womens-gym-shorts-fit",
+      "demandScore": null,
+      "competitionScore": null,
+      "pricingScore": null,
+      "adSaturationScore": null,
+      "agentVisibilityScore": null,
+      "evidence": [],
+      "freshnessDate": "2026-07-05T19:53:29.772433+00:00",
+      "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
+    },
+    {
+      "nicheSlug": "baby-lotions-transparent-ingredients",
+      "demandScore": null,
+      "competitionScore": null,
+      "pricingScore": null,
+      "adSaturationScore": null,
+      "agentVisibilityScore": null,
+      "evidence": [],
+      "freshnessDate": "2026-07-05T19:53:29.780305+00:00",
+      "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
+    },
+    {
+      "nicheSlug": "ayurvedic-face-care-proof-first",
+      "demandScore": null,
+      "competitionScore": null,
+      "pricingScore": null,
+      "adSaturationScore": null,
+      "agentVisibilityScore": null,
+      "evidence": [],
+      "freshnessDate": "2026-07-05T19:53:29.710516+00:00",
+      "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
+    },
+    {
+      "nicheSlug": "sustainable-cleaning-laundry-refills",
+      "demandScore": null,
+      "competitionScore": null,
+      "pricingScore": null,
+      "adSaturationScore": null,
+      "agentVisibilityScore": null,
+      "evidence": [],
+      "freshnessDate": "2026-07-05T19:53:29.775692+00:00",
+      "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
+    },
+    {
+      "nicheSlug": "pet-health-supplements",
+      "demandScore": null,
+      "competitionScore": null,
+      "pricingScore": null,
+      "adSaturationScore": null,
+      "agentVisibilityScore": null,
+      "evidence": [],
+      "freshnessDate": "2026-07-05T19:53:29.741899+00:00",
+      "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
+    },
+    {
+      "nicheSlug": "oral-care-sub-niches",
+      "demandScore": null,
+      "competitionScore": null,
+      "pricingScore": null,
+      "adSaturationScore": null,
+      "agentVisibilityScore": null,
+      "evidence": [],
+      "freshnessDate": "2026-07-05T19:53:29.798311+00:00",
+      "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
+    },
+    {
+      "nicheSlug": "sleep-stress-support-products",
+      "demandScore": null,
+      "competitionScore": null,
+      "pricingScore": null,
+      "adSaturationScore": null,
+      "agentVisibilityScore": null,
+      "evidence": [],
+      "freshnessDate": "2026-07-05T19:53:29.788262+00:00",
+      "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
+    },
+    {
+      "nicheSlug": "intimate-hygiene",
+      "demandScore": null,
+      "competitionScore": null,
+      "pricingScore": null,
+      "adSaturationScore": null,
+      "agentVisibilityScore": null,
+      "evidence": [],
+      "freshnessDate": "2026-07-05T19:53:29.740741+00:00",
+      "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
+    },
+    {
+      "nicheSlug": "condiments-sauces-regional-identity",
+      "demandScore": null,
+      "competitionScore": null,
+      "pricingScore": null,
+      "adSaturationScore": null,
+      "agentVisibilityScore": null,
+      "evidence": [],
+      "freshnessDate": "2026-07-05T19:53:29.739244+00:00",
+      "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
+    }
+  ]
+};
