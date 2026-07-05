@@ -106,6 +106,56 @@ async def test_collect_reddit_filters_by_keywords_and_dedupes(tmp_path: Path) ->
     assert all("reddit" in (e.source or "") for e in out)
 
 
+def test_parse_amazon_search_extracts_products() -> None:
+    """Amazon.in search HTML parser extracts ASINs, titles, prices, ratings."""
+    html = """
+    <div data-asin="B0FAKE0001">
+      <h2><span>Minimalist Hair Growth Serum with Redensyl 3%</span></h2>
+      <span class="a-price-whole">599</span>
+      <span class="a-icon-alt">4.2 out of 5</span>
+      <span>1,234 ratings</span>
+    </div>
+    <div data-asin="B0FAKE0002">
+      <h2><span>Pilgrim Hair Growth Serum for Scalp</span></h2>
+      <span class="a-price-whole">749</span>
+      <span class="a-icon-alt">3.8 out of 5</span>
+      <span>890 ratings</span>
+    </div>
+    <div data-asin="">
+      <h2><span>Empty ASIN should be skipped</span></h2>
+    </div>
+    """
+    products = d2c._parse_amazon_search(html, "hair growth serum")
+    assert len(products) == 2
+    assert all(p.sourceClass == "product" for p in products)
+    assert all(p.source == "amazon:in" for p in products)
+    assert "amazon.in/dp/B0FAKE0001" in products[0].url
+    assert "Minimalist" in products[0].snippet
+    assert "599" in products[0].snippet
+    assert "4.2 out of 5" in products[0].snippet
+
+
+def test_competition_score_from_product_count() -> None:
+    """Fewer products → higher competition gap (more opportunity)."""
+    single = [d2c.EvidenceItem("product", "url", "amazon:in", "t", "2026-01-01T00:00:00Z")]
+    many = [d2c.EvidenceItem("product", "url", "amazon:in", f"t{i}", "2026-01-01T00:00:00Z") for i in range(7)]
+    assert d2c._competition_score(single) == 0.8
+    assert d2c._competition_score(many) == 0.2
+    assert d2c._competition_score([]) is None
+
+
+def test_pricing_score_from_snippet_prices() -> None:
+    """Median price maps to affordability bands."""
+    cheap = [d2c.EvidenceItem("product", "u", "amazon:in", "Title — ₹199 — 4.0 out of 5", "2026-01-01T00:00:00Z")]
+    mid = [d2c.EvidenceItem("product", "u", "amazon:in", "Title — ₹599 — 4.0 out of 5", "2026-01-01T00:00:00Z")]
+    pricey = [d2c.EvidenceItem("product", "u", "amazon:in", "Title — ₹2999 — 4.0 out of 5", "2026-01-01T00:00:00Z")]
+    no_price = [d2c.EvidenceItem("product", "u", "amazon:in", "Title only", "2026-01-01T00:00:00Z")]
+    assert d2c._pricing_score(cheap) == 0.9
+    assert d2c._pricing_score(mid) == 0.6
+    assert d2c._pricing_score(pricey) == 0.2
+    assert d2c._pricing_score(no_price) is None
+
+
 @pytest.mark.asyncio
 async def test_run_writes_dated_artifact(tmp_path: Path) -> None:
     out_dir = tmp_path / "d2c"
@@ -116,6 +166,14 @@ async def test_run_writes_dated_artifact(tmp_path: Path) -> None:
         ),
         patch(
             "high_signal_ingest.d2c_opportunities.collect_producthunt",
+            new=AsyncMock(return_value=[]),
+        ),
+        patch(
+            "high_signal_ingest.d2c_opportunities.collect_amazon",
+            new=AsyncMock(return_value=[]),
+        ),
+        patch(
+            "high_signal_ingest.d2c_opportunities.collect_ad_library",
             new=AsyncMock(return_value=[]),
         ),
     ):
@@ -129,7 +187,7 @@ async def test_run_writes_dated_artifact(tmp_path: Path) -> None:
         assert niche["nicheSlug"]
         assert niche["freshnessDate"]
         assert isinstance(niche["evidence"], list)
-        # Fragile sources degrade to null with a freshness date.
+        # With all collectors mocked to return [], scores degrade to null.
         assert niche["competitionScore"] is None
         assert niche["pricingScore"] is None
         assert niche["adSaturationScore"] is None
@@ -159,6 +217,14 @@ async def test_run_does_not_request_impuls8(tmp_path: Path) -> None:
         ),
         patch(
             "high_signal_ingest.d2c_opportunities.collect_hackernews",
+            new=AsyncMock(return_value=[]),
+        ),
+        patch(
+            "high_signal_ingest.d2c_opportunities.collect_amazon",
+            new=AsyncMock(return_value=[]),
+        ),
+        patch(
+            "high_signal_ingest.d2c_opportunities.collect_ad_library",
             new=AsyncMock(return_value=[]),
         ),
     ):

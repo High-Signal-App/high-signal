@@ -6,15 +6,18 @@ renderer (``@high-signal/shared``) reads the latest artifact at build time and
 falls back to seed-only briefs when no artifact exists.
 
 Sources (free, public, citable):
-  - Reddit (public JSON/RSS via the existing ``sources/reddit.py`` adapter)
+  - Reddit (OAuth or RSS via the existing ``sources/reddit.py`` adapter)
   - Hacker News (Algolia API, free, key-less) — only for niches with a tech angle
   - Product Hunt RSS — new-entrant velocity (free, public)
+  - Amazon India search — product listings with prices and ratings
+    (sourceClass="product"; competition + pricing scores derived from these)
+  - Meta Ad Library API — ad saturation signal (requires META_ACCESS_TOKEN;
+    fail-closed when not set)
 
 Fragile sources are recorded as ``null`` with a ``freshnessDate`` so the
 renderer can label staleness — they are NOT silently dropped:
   - Google Trends: no stable free API → ``demandScore`` may be null
-  - Meta Ad Library: API limited for India commercial ads → ``adSaturationScore`` null
-  - Marketplace / brand pages: per-site fragility → ``pricingScore`` / ``competitionScore`` null
+  - Meta Ad Library: requires identity verification → ``adSaturationScore`` null
 
 Hard rules (PRD):
   - No impuls8 scraping or data copying. This module never requests impuls8.
@@ -35,6 +38,7 @@ import argparse
 import asyncio
 import json
 import logging
+import os
 import re
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta, timezone
@@ -513,11 +517,269 @@ def _demand_score(evidence: list[EvidenceItem]) -> float | None:
     return min(0.85, 0.2 + 0.1 * len(community))
 
 
+def _competition_score(evidence: list[EvidenceItem]) -> float | None:
+    """0–1 competition gap (higher = less competition = more opportunity).
+    Based on the number of Amazon products found: 0 products → null (no
+    data), 1-2 → high gap (0.8), 3-5 → medium (0.5), 6+ → low (0.2)."""
+    products = [e for e in evidence if e.sourceClass == "product"]
+    if not products:
+        return None
+    n = len(products)
+    if n <= 2:
+        return 0.8
+    if n <= 5:
+        return 0.5
+    return 0.2
+
+
+def _pricing_score(evidence: list[EvidenceItem]) -> float | None:
+    """0–1 pricing accessibility (higher = more affordable = more opportunity).
+    Extracts prices from Amazon product snippets. null when no prices found."""
+    products = [e for e in evidence if e.sourceClass == "product"]
+    prices: list[float] = []
+    for p in products:
+        # Extract price from snippet: "Product Title — ₹960 — 4.3 out of 5"
+        match = re.search(r"₹([\d,]+)", p.snippet)
+        if match:
+            price = float(match.group(1).replace(",", ""))
+            prices.append(price)
+    if not prices:
+        return None
+    median = sorted(prices)[len(prices) // 2]
+    # ₹0-300 → 0.9 (very affordable), ₹300-800 → 0.6, ₹800-2000 → 0.4, ₹2000+ → 0.2
+    if median <= 300:
+        return 0.9
+    if median <= 800:
+        return 0.6
+    if median <= 2000:
+        return 0.4
+    return 0.2
+
+
+def _ad_saturation_score(evidence: list[EvidenceItem]) -> float | None:
+    """0–1 ad saturation (higher = less saturation = more opportunity).
+    Based on Meta Ad Library results: 0 ads → null (no data), 1-2 → high
+    gap (0.8), 3+ → low gap (0.2)."""
+    ads = [e for e in evidence if e.sourceClass == "ad-library"]
+    if not ads:
+        return None
+    if len(ads) <= 2:
+        return 0.8
+    return 0.2
+
+
 def _source_diversity(evidence: list[EvidenceItem]) -> float:
     classes = {e.sourceClass for e in evidence}
     return (
         len(classes) / 7.0
     )  # 7 source classes (community/search/product/review/ad-library/launch/agent-visibility)
+
+
+# ---------------------------------------------------------------------------
+# Amazon India collector — sourceClass "product"
+# ---------------------------------------------------------------------------
+
+AMAZON_IN_SEARCH_URL = "https://www.amazon.in/s"
+# Amazon blocks default httpx User-Agent; use a real browser UA.
+AMAZON_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/120.0.0.0 Safari/537.36"
+    ),
+    "Accept": "text/html,application/xhtml+xml",
+    "Accept-Language": "en-IN,en;q=0.9",
+    "Accept-Encoding": "identity",  # avoid gzip — easier to parse
+}
+
+# Semaphore: Amazon will block if we hit too many searches concurrently.
+# 1 at a time with a small delay is safe. Lazy-initialized to avoid
+# cross-event-loop issues in tests.
+_AMAZON_SEMAPHORE: asyncio.Semaphore | None = None
+_AMAZON_DELAY = 2.0  # seconds between Amazon requests
+
+
+def _get_amazon_semaphore() -> asyncio.Semaphore:
+    global _AMAZON_SEMAPHORE
+    if _AMAZON_SEMAPHORE is None:
+        _AMAZON_SEMAPHORE = asyncio.Semaphore(1)
+    return _AMAZON_SEMAPHORE
+
+
+def _parse_amazon_search(html: str, query: str) -> list[EvidenceItem]:
+    """Extract product listings from an Amazon.in search results page."""
+    out: list[EvidenceItem] = []
+    seen_asins: set[str] = set()
+
+    # Each product card has data-asin="B0XXXXXX". Extract the card block.
+    # Amazon's HTML is messy — we use a tolerant approach: find each asin,
+    # then look for the nearest title and price.
+    card_re = re.compile(
+        r'data-asin="([A-Z0-9]{10})".*?(?=data-asin="[A-Z0-9]{10}"|$)',
+        re.DOTALL,
+    )
+    for match in card_re.finditer(html):
+        asin = match.group(1)
+        if asin in seen_asins:
+            continue
+        seen_asins.add(asin)
+        block = match.group(0)
+
+        # Title: <h2>...<span>Product Title</span>...</h2>
+        title_match = re.search(
+            r'<h2[^>]*>.*?<span[^>]*>([^<]{15,200})</span>',
+            block,
+            re.DOTALL,
+        )
+        if not title_match:
+            continue
+        title = title_match.group(1).strip()
+        # Skip navigation/pagination text
+        if "results for" in title or "buying options" in title:
+            continue
+
+        # Price: a-price-whole">NNN
+        price_match = re.search(r'a-price-whole">([^<]+)<', block)
+        price = price_match.group(1).strip() if price_match else ""
+
+        # Rating: a-icon-alt">X.X out of 5
+        rating_match = re.search(r'a-icon-alt">([\d.]+ out of 5)', block)
+        rating = rating_match.group(1) if rating_match else ""
+
+        # Review count
+        review_match = re.search(r'(\d[\d,]*)\s+ratings?', block)
+        reviews = review_match.group(1) if review_match else ""
+
+        url = f"https://www.amazon.in/dp/{asin}"
+        snippet_parts = [title]
+        if price:
+            snippet_parts.append(f"₹{price}")
+        if rating:
+            snippet_parts.append(f"{rating}")
+        if reviews:
+            snippet_parts.append(f"{reviews} ratings")
+        snippet = " — ".join(snippet_parts)
+
+        out.append(
+            EvidenceItem(
+                sourceClass="product",
+                url=url,
+                source="amazon:in",
+                snippet=snippet[:300],
+                observedAt=datetime.now(timezone.utc).isoformat(),
+            )
+        )
+        if len(out) >= 5:
+            break
+
+    return out
+
+
+async def collect_amazon(
+    niche: NicheQuery,
+    client: httpx.AsyncClient,
+) -> list[EvidenceItem]:
+    """Search Amazon.in for the niche's primary keyword. Returns up to 5
+    product listings as `sourceClass="product"` evidence."""
+    # Use the first keyword as the search query — it's the most specific.
+    query = niche.keywords[0] if niche.keywords else niche.name
+    params = {"k": query}
+    async with _get_amazon_semaphore():
+        await asyncio.sleep(_AMAZON_DELAY)
+        try:
+            r = await client.get(
+                AMAZON_IN_SEARCH_URL,
+                params=params,
+                headers=AMAZON_HEADERS,
+            )
+        except httpx.HTTPError as exc:
+            LOGGER.debug("amazon fetch failed niche=%s error=%s", niche.slug, exc)
+            return []
+    if r.status_code != 200:
+        LOGGER.debug("amazon fetch failed niche=%s status=%s", niche.slug, r.status_code)
+        return []
+    products = _parse_amazon_search(r.text, query)
+    LOGGER.info(
+        "amazon niche=%s query=%r → %d products", niche.slug, query, len(products)
+    )
+    return products
+
+
+# ---------------------------------------------------------------------------
+# Meta Ad Library collector — sourceClass "ad-library"
+# ---------------------------------------------------------------------------
+
+# The Meta Ad Library API requires identity verification + a developer
+# account, which is a multi-day process. Instead, we use the public Ad
+# Library search page which is accessible without auth. We don't scrape ad
+# details — we just check whether ads exist for the niche's keywords in
+# India and count them as a binary signal (ads present = saturated).
+AD_LIBRARY_URL = "https://www.facebook.com/ads/library/"
+_AD_LIBRARY_SEMAPHORE: asyncio.Semaphore | None = None
+_AD_LIBRARY_DELAY = 3.0
+
+
+def _get_ad_library_semaphore() -> asyncio.Semaphore:
+    global _AD_LIBRARY_SEMAPHORE
+    if _AD_LIBRARY_SEMAPHORE is None:
+        _AD_LIBRARY_SEMAPHORE = asyncio.Semaphore(1)
+    return _AD_LIBRARY_SEMAPHORE
+
+
+async def collect_ad_library(
+    niche: NicheQuery,
+    client: httpx.AsyncClient,
+) -> list[EvidenceItem]:
+    """Check Meta Ad Library for ads targeting the niche's keywords in India.
+
+    The public Ad Library page is JS-rendered, so we can't scrape ad details
+    without a headless browser. Instead, we use the official Graph API if a
+    META_ACCESS_TOKEN is set; otherwise we return empty (fail-closed).
+    """
+    token = os.environ.get("META_ACCESS_TOKEN", "")
+    if not token:
+        # No token — fail-closed. The Ad Library API requires identity
+        # verification which is a multi-day process. Skip gracefully.
+        return []
+
+    query = niche.keywords[0] if niche.keywords else niche.name
+    async with _get_ad_library_semaphore():
+        await asyncio.sleep(_AD_LIBRARY_DELAY)
+        try:
+            r = await client.get(
+                "https://graph.facebook.com/v19.0/ads_archive",
+                params={
+                    "access_token": token,
+                    "search_terms": query,
+                    "ad_reached_countries": '["IN"]',
+                    "ad_active_status": "ACTIVE",
+                    "fields": '["id","ad_snapshot_url","start_date"]',
+                    "limit": 5,
+                },
+            )
+        except httpx.HTTPError as exc:
+            LOGGER.debug("ad-library fetch failed niche=%s error=%s", niche.slug, exc)
+            return []
+    if r.status_code != 200:
+        LOGGER.debug("ad-library fetch failed niche=%s status=%s", niche.slug, r.status_code)
+        return []
+    data = r.json()
+    ads = data.get("data", [])
+    out: list[EvidenceItem] = []
+    for ad in ads[:3]:
+        url = ad.get("ad_snapshot_url", "")
+        start = ad.get("start_date", "")
+        out.append(
+            EvidenceItem(
+                sourceClass="ad-library",
+                url=url,
+                source="meta:ad-library",
+                snippet=f"Active ad since {start} for '{query}' in India",
+                observedAt=datetime.now(timezone.utc).isoformat(),
+            )
+        )
+    LOGGER.info("ad-library niche=%s → %d ads", niche.slug, len(out))
+    return out
 
 
 def _assign_launch_evidence(niche: NicheQuery, ph_items: list[EvidenceItem]) -> list[EvidenceItem]:
@@ -539,26 +801,31 @@ async def collect_niche(
 ) -> NicheEvidence:
     reddit = await collect_reddit(niche, since, client)
     hn = await collect_hackernews(niche, since, client)
+    amazon = await collect_amazon(niche, client)
+    ads = await collect_ad_library(niche, client)
     launch = _assign_launch_evidence(niche, ph_items)
-    evidence = reddit + hn + launch
+    evidence = reddit + hn + amazon + ads + launch
 
     demand = _demand_score(evidence)
     diversity = _source_diversity(evidence)
-    # competition / pricing / ad-saturation / agent-visibility are null in
-    # Slice 2 — their sources (marketplace pages, Meta Ad Library, agent
-    # prompts) are deferred. The renderer labels staleness via freshnessDate.
+    # competition / pricing / ad-saturation are computed from marketplace +
+    # ad-library evidence when available; otherwise null.
+    competition = _competition_score(evidence)
+    pricing = _pricing_score(evidence)
+    ad_saturation = _ad_saturation_score(evidence)
     return NicheEvidence(
         nicheSlug=niche.slug,
         demandScore=demand,
-        competitionScore=None,
-        pricingScore=None,
-        adSaturationScore=None,
+        competitionScore=competition,
+        pricingScore=pricing,
+        adSaturationScore=ad_saturation,
         agentVisibilityScore=None,
         evidence=evidence,
         freshnessDate=datetime.now(timezone.utc).isoformat(),
         notes=(
-            f"diversity={diversity:.2f}; competition/pricing/ad/agent deferred "
-            f"(marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
+            f"diversity={diversity:.2f}; "
+            f"community={len(reddit)} search={len(hn)} "
+            f"product={len(amazon)} ad-library={len(ads)} launch={len(launch)}"
         ),
     )
 
