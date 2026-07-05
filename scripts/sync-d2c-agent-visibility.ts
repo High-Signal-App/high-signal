@@ -92,7 +92,7 @@ function main() {
     if (!nid) continue; // unknown niche slug — skip
     const id = entryId(nid, entry.platform, runMs);
     sql.push(
-      `INSERT INTO d2c_agent_visibility ` +
+      `INSERT OR REPLACE INTO d2c_agent_visibility ` +
         `(id, niche_id, platform, model, prompt_text, response_text, recommended_brands, cited_urls, brand_mentioned, gap_score, run_date, created_at) ` +
         `VALUES (${esc(id)}, ${esc(nid)}, ${esc(entry.platform)}, ${esc(entry.model)}, ` +
         `${esc(entry.promptText)}, ${esc(entry.responseText)}, ` +

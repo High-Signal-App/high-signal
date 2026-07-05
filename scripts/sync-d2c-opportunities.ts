@@ -105,7 +105,7 @@ async function main() {
     const snapId = snapshotId(id, snapshotDate);
     const evidenceJson = JSON.stringify(evidence?.evidence ?? []);
     sql.push(
-      `INSERT INTO d2c_niche_snapshots ` +
+      `INSERT OR REPLACE INTO d2c_niche_snapshots ` +
         `(id, niche_id, snapshot_date, opportunity_score, demand_score, competition_score, pricing_score, ad_saturation_score, agent_visibility_score, source_diversity, verdict, confidence, evidence_json, freshness_date, notes, created_at) ` +
         `VALUES (${esc(snapId)}, ${esc(id)}, ${snapshotMs}, ${record.opportunityScore}, ` +
         `${record.demandScore == null ? "NULL" : record.demandScore}, ` +
@@ -114,13 +114,7 @@ async function main() {
         `${record.adSaturationScore == null ? "NULL" : record.adSaturationScore}, ` +
         `${record.agentVisibilityScore == null ? "NULL" : record.agentVisibilityScore}, ` +
         `${record.sourceDiversity}, ${esc(record.verdict)}, ${esc(record.confidence)}, ` +
-        `${esc(evidenceJson)}, ${esc(record.freshnessDate)}, ${esc(evidence?.notes ?? null)}, ${snapshotMs}) ` +
-        `ON CONFLICT(niche_id, snapshot_date) DO UPDATE SET ` +
-        `opportunity_score=excluded.opportunity_score, demand_score=excluded.demand_score, ` +
-        `competition_score=excluded.competition_score, pricing_score=excluded.pricing_score, ` +
-        `ad_saturation_score=excluded.ad_saturation_score, agent_visibility_score=excluded.agent_visibility_score, ` +
-        `source_diversity=excluded.source_diversity, verdict=excluded.verdict, confidence=excluded.confidence, ` +
-        `evidence_json=excluded.evidence_json, freshness_date=excluded.freshness_date, notes=excluded.notes;`,
+        `${esc(evidenceJson)}, ${esc(record.freshnessDate)}, ${esc(evidence?.notes ?? null)}, ${snapshotMs});`,
     );
   }
 
