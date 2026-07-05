@@ -16,7 +16,9 @@
 import { Hono } from "hono";
 import { and, desc, eq, inArray, gte, sql } from "drizzle-orm";
 import {
+  BUNDLED_D2C_ARTIFACT,
   countriesForRegion,
+  d2cBriefItems,
   fallbackIdeas,
   fallbackStocks,
   fallbackTrends,
@@ -34,6 +36,7 @@ import {
   type BriefStockItem,
   type BriefTrendItem,
   type HitRateBand,
+  type OpportunityBriefPayload,
   type Region,
   type SeedProduct,
   type SignalFamily,
@@ -454,6 +457,11 @@ async function buildIdeas(
   region: Region,
   countries: string[],
 ): Promise<BriefIdeaItem[]> {
+  // India D2C Opportunity Pipeline (plan 0013). Prepend up to 3 briefs for
+  // south-asia and 1 rotating brief for global, ahead of community digests.
+  // Real D1 community ideas still fill the remaining slots up to IDEAS_LIMIT.
+  const d2cItems = d2cBriefItemsForRegion(region);
+
   const sinceMs = Date.now() - COMMUNITY_DIGEST_LOOKBACK_DAYS * 24 * 60 * 60 * 1000;
   // Source A: community digests' key_action items across public digests.
   const digestRows = await database
@@ -478,7 +486,7 @@ async function buildIdeas(
     .orderBy(desc(schema.communityDigestSnapshots.snapshotDate))
     .limit(60);
 
-  const ideas: BriefIdeaItem[] = [];
+  const ideas: BriefIdeaItem[] = [...d2cItems];
   for (const digest of digestRows) {
     const summary = normalizeCommunitySummary(digest.summary);
     const action = summary?.keyAction;
@@ -493,6 +501,13 @@ async function buildIdeas(
         ? digest.snapshotDate
         : new Date(digest.snapshotDate as unknown as string)).toISOString(),
       evidenceUrls: action.link ? [{ url: action.link }] : [],
+      opportunity: communityActionToOpportunity({
+        title: action.title,
+        description: action.desc || digest.summaryText.slice(0, 240),
+        region,
+        subreddit: digest.subreddit,
+        evidenceCount: action.link ? 1 : 0,
+      }),
     });
     if (ideas.length >= IDEAS_LIMIT) break;
   }
@@ -502,6 +517,81 @@ async function buildIdeas(
   void countries;
 
   return ideas;
+}
+
+/**
+ * India D2C Opportunity Briefs for section 02. Up to 3 for south-asia, 1
+ * rotating for global, none for other regions. Uses the build-time bundled
+ * artifact when present, otherwise seed-only briefs.
+ */
+export function d2cBriefItemsForRegion(region: Region): BriefIdeaItem[] {
+  if (region !== "south-asia" && region !== "global") return [];
+  const limit = region === "south-asia" ? 3 : 1;
+  // Rotate one niche per day so the global brief shows variety across the
+  // 20-niche pool without flooding section 02 with India-only items.
+  const rotateFor = Math.floor(Date.now() / (24 * 60 * 60 * 1000));
+  return d2cBriefItems(region, limit, BUNDLED_D2C_ARTIFACT, rotateFor);
+}
+
+function communityActionToOpportunity(input: {
+  title: string;
+  description: string;
+  region: Region;
+  subreddit: string;
+  evidenceCount: number;
+}): OpportunityBriefPayload {
+  const hasEvidence = input.evidenceCount > 0;
+  return {
+    verdict: hasEvidence ? "test" : "watch",
+    confidence: "low",
+    targetUser: inferDigestTargetUser(`${input.title} ${input.description}`),
+    problem: input.description || input.title,
+    marketTimingReasons: [
+      `r/${input.subreddit} surfaced this as a current key action in the community digest.`,
+      input.region === "global"
+        ? "Treat the first validation pass as ICP-specific before assuming broad demand."
+        : `The brief is scoped to ${input.region}, so interviews should start with that region's buyers.`,
+    ],
+    evidenceMix: [
+      {
+        kind: "demand",
+        label: "community demand",
+        summary: hasEvidence
+          ? "The digest included a cited source thread for the demand signal."
+          : "The digest surfaced demand, but no source link was attached.",
+        strength: "low",
+        sourceCount: input.evidenceCount,
+      },
+    ],
+    competitorNotes: [
+      "Competitor density is not extracted from this digest yet; validate substitutes manually.",
+    ],
+    pricingNotes: [
+      "Price sensitivity is unknown; test willingness to pay before treating this as an entry call.",
+    ],
+    agentVisibilityNotes: [
+      "Run an agent-answer snapshot for this category to see whether recommendations are generic, incumbent-led, or empty.",
+    ],
+    risks: [
+      "Community demand can overstate urgency; confirm repeated pain outside the source thread.",
+    ],
+    nextValidationStep:
+      "Turn the complaint into one landing page promise and interview 10 users from the source community.",
+    priorHitRate: null,
+  };
+}
+
+function inferDigestTargetUser(text: string): string {
+  const normalized = text.toLowerCase();
+  if (normalized.includes("founder")) return "founders evaluating a new category";
+  if (normalized.includes("dev") || normalized.includes("code") || normalized.includes("engineer")) {
+    return "technical operators with repeated workflow friction";
+  }
+  if (normalized.includes("smb") || normalized.includes("business")) {
+    return "SMB operators trying to remove manual work";
+  }
+  if (normalized.includes("invest")) return "retail investors comparing fragmented options";
+  return "users actively describing an unmet job";
 }
 
 async function buildTrends(

@@ -1,0 +1,123 @@
+name: cron-d2c-opportunities
+
+# Weekly India D2C opportunity pipeline (plan 0013, Slices 2-4).
+# Mondays 07:00 UTC — collect community evidence, run the agent-visibility
+# overlay, sync both into D1, and commit the bundled artifact so the
+# renderer picks up cited evidence on the next deploy.
+#
+# Operator prerequisites:
+#   - migration 0016 applied to high-signal-db (d2c_niches, d2c_niche_snapshots,
+#     d2c_agent_visibility)
+#   - AI_API_KEY secret set (for the agent-visibility overlay; falls back to
+#     gap=1 "wide-open" entries when absent)
+#   - ADMIN_TOKEN + API_BASE secrets (already used by cron-ingest)
+#
+# A push to main triggers deploy-web.yml automatically, so the bundled
+# artifact is live within minutes of this workflow completing.
+
+on:
+  schedule:
+    - cron: "0 7 * * 1"  # Mondays 07:00 UTC
+  workflow_dispatch:
+    inputs:
+      days:
+        description: "lookback days for the collector"
+        required: false
+        default: "7"
+      limit:
+        description: "max niches to collect (smoke test)"
+        required: false
+        default: "20"
+
+permissions:
+  contents: write
+
+jobs:
+  d2c:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # ── Python: collect community evidence + agent-visibility overlay ───
+      - uses: astral-sh/setup-uv@v8.1.0
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+      - name: uv sync
+        working-directory: python/ingest
+        run: uv sync
+
+      - name: collect weekly evidence
+        working-directory: python/ingest
+        env:
+          AI_BASE_URL: ${{ secrets.AI_BASE_URL || 'https://api.deepseek.com' }}
+          AI_API_KEY: ${{ secrets.AI_API_KEY }}
+          AI_MODEL: ${{ secrets.AI_MODEL || 'deepseek-v4-flash' }}
+          AI_PROJECT_ID: high-signal
+        run: |
+          uv run python -m high_signal_ingest.d2c_opportunities \
+            --days "${{ inputs.days || '7' }}" \
+            --limit "${{ inputs.limit || '20' }}"
+
+      - name: run agent-visibility overlay
+        working-directory: python/ingest
+        env:
+          AI_BASE_URL: ${{ secrets.AI_BASE_URL || 'https://api.deepseek.com' }}
+          AI_API_KEY: ${{ secrets.AI_API_KEY }}
+          AI_MODEL: ${{ secrets.AI_MODEL || 'deepseek-v4-flash' }}
+          AI_PROJECT_ID: high-signal
+        run: |
+          uv run python -m high_signal_ingest.d2c_agent_visibility \
+            --limit "${{ inputs.limit || '20' }}"
+
+      # ── Node: bundle artifact + sync to D1 ──────────────────────────────
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+      - uses: pnpm/action-setup@v6
+      - name: pnpm install
+        run: pnpm install --frozen-lockfile
+
+      - name: bundle artifact into shared package
+        run: pnpm d2c:bundle
+
+      - name: sync snapshots to D1 (remote)
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: pnpm d2c:sync:remote
+
+      - name: sync agent-visibility to D1 (remote)
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: pnpm d2c:sync-av:remote
+
+      # ── Commit the bundled artifact so deploy-web picks it up ───────────
+      - name: commit refreshed artifact
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add packages/shared/src/content/d2c-opportunities-artifact.ts
+          if git diff --staged --quiet; then
+            echo "no changes to commit"
+          else
+            git commit -m "chore(d2c): refresh weekly opportunity artifact"
+            git pull --rebase --autostash origin "$(git rev-parse --abbrev-ref HEAD)"
+            git push --no-verify
+          fi
+
+      # ── Always upload the JSON artifacts for debugging ──────────────────
+      - name: upload d2c artifacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: d2c-opportunities
+          path: |
+            data/d2c-opportunities/
+            data/d2c-agent-visibility/
+          if-no-files-found: warn
+          retention-days: 28

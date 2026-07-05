@@ -68,7 +68,7 @@ async function getBinding(): Promise<{ fetch: typeof fetch } | null> {
   return null;
 }
 
-async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
+export async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
   const binding = await getBinding();
   let r: Response;
   if (binding) {

@@ -47,3 +47,8 @@ apps/web/.cf-pages-bundle/
 
 # Generated, regenerable data samples (one query away from source — not a store)
 data-directory/
+
+# India D2C opportunity collector artifacts (regenerable by `pnpm d2c:collect`;
+# the bundled TS module in packages/shared is the tracked artifact)
+data/d2c-opportunities/
+data/d2c-agent-visibility/

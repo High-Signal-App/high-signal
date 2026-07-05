@@ -20,6 +20,38 @@ export interface BriefCitation {
   source?: string | null;
 }
 
+export type OpportunityVerdict = "enter" | "test" | "watch" | "avoid";
+
+export interface OpportunityEvidenceMixItem {
+  kind: "demand" | "competition" | "pricing" | "agent-visibility" | "momentum";
+  label: string;
+  summary: string;
+  strength: "low" | "medium" | "high";
+  sourceCount: number;
+}
+
+export interface OpportunityHitRateContext {
+  label: string;
+  hitRate: number | null;
+  sample: number;
+  band: HitRateBand;
+}
+
+export interface OpportunityBriefPayload {
+  verdict: OpportunityVerdict;
+  confidence: "low" | "medium" | "high";
+  targetUser: string;
+  problem: string;
+  marketTimingReasons: string[];
+  evidenceMix: OpportunityEvidenceMixItem[];
+  competitorNotes: string[];
+  pricingNotes: string[];
+  agentVisibilityNotes: string[];
+  risks: string[];
+  nextValidationStep: string;
+  priorHitRate: OpportunityHitRateContext | null;
+}
+
 /**
  * How the inline hit-rate column on a stock card should render.
  *
@@ -69,6 +101,8 @@ export interface BriefIdeaItem {
   subreddit: string | null;
   /** ISO date when this opportunity/digest was generated. */
   surfacedAt: string;
+  /** Optional decision-grade payload. Missing on legacy cached snapshots. */
+  opportunity?: OpportunityBriefPayload;
 }
 
 export interface BriefTrendItem {

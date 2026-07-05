@@ -1060,3 +1060,93 @@ export const signalHitRateCache = sqliteTable(
   },
   (t) => [primaryKey({ columns: [t.signalType, t.family] })],
 );
+
+// ─── India D2C Opportunity Pipeline (migration 0016) ──────────────────────
+// Plan 0013, Slice 3 — persistence + history. The 20 curated niches live in
+// `d2c_niches` (slug-keyed, stable); weekly snapshots live in
+// `d2c_niche_snapshots` (one row per niche per snapshot_date, append-only).
+// Verdict changes and score deltas are read by joining consecutive snapshots.
+
+export const d2cNiches = sqliteTable(
+  "d2c_niches",
+  {
+    id: text("id").primaryKey(),
+    slug: text("slug").notNull(),
+    name: text("name").notNull(),
+    category: text("category").notNull(),
+    region: text("region").notNull().default("south-asia"),
+    status: text("status").notNull().default("active"),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    updatedAt: integer("updated_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [
+    uniqueIndex("d2c_niches_slug_idx").on(t.slug),
+    index("d2c_niches_category_idx").on(t.category),
+  ],
+);
+
+export const d2cNicheSnapshots = sqliteTable(
+  "d2c_niche_snapshots",
+  {
+    id: text("id").primaryKey(),
+    nicheId: text("niche_id")
+      .notNull()
+      .references(() => d2cNiches.id),
+    snapshotDate: integer("snapshot_date", { mode: "timestamp" }).notNull(),
+    opportunityScore: integer("opportunity_score").notNull(),
+    demandScore: real("demand_score"),
+    competitionScore: real("competition_score"),
+    pricingScore: real("pricing_score"),
+    adSaturationScore: real("ad_saturation_score"),
+    agentVisibilityScore: real("agent_visibility_score"),
+    sourceDiversity: real("source_diversity").notNull(),
+    verdict: text("verdict", { enum: ["enter", "test", "watch", "avoid"] }).notNull(),
+    confidence: text("confidence", { enum: ["low", "medium", "high"] }).notNull(),
+    evidenceJson: text("evidence_json", { mode: "json" }).notNull(),
+    freshnessDate: text("freshness_date").notNull(),
+    notes: text("notes"),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [
+    uniqueIndex("d2c_niche_snapshots_niche_date_idx").on(t.nicheId, t.snapshotDate),
+    index("d2c_niche_snapshots_date_idx").on(t.snapshotDate),
+    index("d2c_niche_snapshots_verdict_idx").on(t.verdict),
+  ],
+);
+
+// Slice 4 — agent-visibility overlay: which brands AI assistants recommend
+// and cite for each niche's category prompt. One row per (niche, platform,
+// run_date). The "agent answer gap" in each Opportunity Brief is derived
+// from the most recent run per niche.
+export const d2cAgentVisibility = sqliteTable(
+  "d2c_agent_visibility",
+  {
+    id: text("id").primaryKey(),
+    nicheId: text("niche_id")
+      .notNull()
+      .references(() => d2cNiches.id),
+    platform: text("platform").notNull(),
+    model: text("model").notNull(),
+    promptText: text("prompt_text").notNull(),
+    responseText: text("response_text").notNull(),
+    recommendedBrands: text("recommended_brands", { mode: "json" }).notNull().default("[]"),
+    citedUrls: text("cited_urls", { mode: "json" }).notNull().default("[]"),
+    brandMentioned: integer("brand_mentioned", { mode: "boolean" }).notNull().default(false),
+    gapScore: real("gap_score"),
+    runDate: integer("run_date", { mode: "timestamp" }).notNull(),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [
+    index("d2c_agent_visibility_niche_idx").on(t.nicheId),
+    index("d2c_agent_visibility_run_idx").on(t.runDate),
+    index("d2c_agent_visibility_platform_idx").on(t.platform),
+  ],
+);

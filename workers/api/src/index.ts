@@ -18,6 +18,7 @@ import { claimsRoute } from "./routes/claims";
 import { deliveryRoute, runDeliveryWindow } from "./routes/delivery";
 import { watchlistsRoute } from "./routes/watchlists";
 import { dataRoute } from "./routes/data";
+import { d2cRoute } from "./routes/d2c";
 
 type Env = {
   DB: D1Database;
@@ -59,6 +60,7 @@ app.route("/claims", claimsRoute);
 app.route("/delivery", deliveryRoute);
 app.route("/watchlists", watchlistsRoute);
 app.route("/data", dataRoute);
+app.route("/d2c", d2cRoute);
 
 app.onError((err, c) => {
   console.error(`[error] ${c.req.method} ${c.req.path}:`, err.message, err.stack);

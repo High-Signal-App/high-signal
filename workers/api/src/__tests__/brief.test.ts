@@ -266,7 +266,37 @@ describe("brief seed-content fallback (public sections)", () => {
       expect(["south-asia", "global"]).toContain(idea.region);
       expect(idea.title.length).toBeGreaterThan(0);
       expect(idea.evidenceUrls.length).toBeGreaterThan(0);
+      expect(idea.opportunity).toBeDefined();
+      expect(["enter", "test", "watch", "avoid"]).toContain(idea.opportunity?.verdict);
+      expect(["low", "medium", "high"]).toContain(idea.opportunity?.confidence);
+      expect(idea.opportunity?.targetUser.length).toBeGreaterThan(0);
+      expect(idea.opportunity?.problem.length).toBeGreaterThan(0);
+      expect(idea.opportunity?.marketTimingReasons.length).toBeGreaterThan(0);
+      expect(idea.opportunity?.evidenceMix.length).toBeGreaterThan(0);
+      expect(idea.opportunity?.risks.length).toBeGreaterThan(0);
+      expect(idea.opportunity?.nextValidationStep.length).toBeGreaterThan(0);
     }
+  });
+
+  it("fallbackIdeas carries decision-grade opportunity payloads", () => {
+    const [idea] = fallbackIdeas("global", 1);
+    expect(idea?.opportunity).toMatchObject({
+      verdict: expect.any(String),
+      confidence: expect.any(String),
+      targetUser: expect.any(String),
+      problem: expect.any(String),
+      nextValidationStep: expect.any(String),
+    });
+    expect(idea?.opportunity?.evidenceMix[0]).toMatchObject({
+      kind: "demand",
+      label: expect.any(String),
+      summary: expect.any(String),
+      strength: expect.any(String),
+      sourceCount: expect.any(Number),
+    });
+    expect(idea?.opportunity?.competitorNotes.length).toBeGreaterThan(0);
+    expect(idea?.opportunity?.pricingNotes.length).toBeGreaterThan(0);
+    expect(idea?.opportunity?.agentVisibilityNotes.length).toBeGreaterThan(0);
   });
 
   it("fallbackTrends has surfacedAt in the recent past", () => {

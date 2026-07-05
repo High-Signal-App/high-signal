@@ -70,6 +70,13 @@ function formatPct(value: number | null) {
   return `${(value * 100).toFixed(0)}%`;
 }
 
+function verdictTone(verdict: NonNullable<BriefIdeaItem['opportunity']>['verdict']) {
+  if (verdict === 'enter') return 'text-emerald-300';
+  if (verdict === 'test') return 'text-[var(--color-accent)]';
+  if (verdict === 'watch') return 'text-amber-300';
+  return 'text-rose-300';
+}
+
 function StockItem({ item }: { item: BriefStockItem }) {
   const bandCopy =
     item.hitRateBand === 'direct'
@@ -144,16 +151,86 @@ function StockItem({ item }: { item: BriefStockItem }) {
 }
 
 function IdeaItem({ item }: { item: BriefIdeaItem }) {
+  const opportunity = item.opportunity;
   return (
     <article className="border-b border-[var(--color-line)] py-5 transition-colors last:border-b-0 hover:bg-white/[0.025] sm:px-3">
-      <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
-        {item.source} {item.subreddit ? `/ r/${item.subreddit}` : ''} ·{' '}
-        {item.surfacedAt.slice(0, 10)}
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px]">
+        <div>
+          <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
+            {item.source} {item.subreddit ? `/ r/${item.subreddit}` : ''} ·{' '}
+            {item.surfacedAt.slice(0, 10)}
+          </div>
+          <h3 className="mt-2 max-w-3xl text-xl font-medium leading-7 tracking-tight">
+            {item.title}
+          </h3>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--color-muted)]">
+            {item.description}
+          </p>
+        </div>
+        {opportunity ? (
+          <div className="rounded-md border border-[var(--color-line)] bg-black/20 p-3 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
+            <div>verdict</div>
+            <div className={`mt-2 text-xl font-medium ${verdictTone(opportunity.verdict)}`}>
+              {opportunity.verdict}
+            </div>
+            <div className="mt-1">{opportunity.confidence} confidence</div>
+            {opportunity.priorHitRate ? (
+              <div className="mt-3 border-t border-[var(--color-line)] pt-3">
+                {opportunity.priorHitRate.hitRate == null
+                  ? 'no prior hit-rate'
+                  : `${(opportunity.priorHitRate.hitRate * 100).toFixed(0)}% prior hit-rate`}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
       </div>
-      <h3 className="mt-2 max-w-3xl text-xl font-medium leading-7 tracking-tight">{item.title}</h3>
-      <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--color-muted)]">
-        {item.description}
-      </p>
+      {opportunity ? (
+        <div className="mt-5 grid gap-5 border-t border-[var(--color-line)] pt-5 md:grid-cols-2">
+          <div>
+            <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-accent)]">
+              target + problem
+            </div>
+            <p className="mt-2 text-sm leading-6 text-[var(--color-muted)]">
+              <span className="text-[var(--color-fg)]">{opportunity.targetUser}</span> —{' '}
+              {opportunity.problem}
+            </p>
+          </div>
+          <div>
+            <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-accent)]">
+              next validation
+            </div>
+            <p className="mt-2 text-sm leading-6 text-[var(--color-muted)]">
+              {opportunity.nextValidationStep}
+            </p>
+          </div>
+          <div>
+            <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-accent)]">
+              evidence mix
+            </div>
+            <ul className="mt-2 space-y-2 text-sm leading-6 text-[var(--color-muted)]">
+              {opportunity.evidenceMix.slice(0, 3).map((evidence) => (
+                <li key={`${evidence.kind}-${evidence.label}`}>
+                  <span className="text-[var(--color-fg)]">{evidence.label}</span> ·{' '}
+                  {evidence.strength} · {evidence.sourceCount} sources
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-accent)]">
+              why now + risk
+            </div>
+            <p className="mt-2 text-sm leading-6 text-[var(--color-muted)]">
+              {opportunity.marketTimingReasons[0]}
+            </p>
+            {opportunity.risks[0] ? (
+              <p className="mt-2 text-sm leading-6 text-[var(--color-muted)]">
+                <span className="text-[var(--color-fg)]">Risk:</span> {opportunity.risks[0]}
+              </p>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
       {item.evidenceUrls.length ? (
         <ul className="mt-2 flex flex-wrap gap-4 font-mono text-[10px]">
           {item.evidenceUrls.slice(0, 3).map((cite) => (

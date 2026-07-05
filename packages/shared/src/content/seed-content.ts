@@ -1342,6 +1342,81 @@ function isoDaysAgo(days: number): string {
   return new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
 }
 
+function inferTargetUser(idea: SeedIdea): string {
+  const text = `${idea.title} ${idea.description}`.toLowerCase();
+  if (text.includes("founder")) return "founders entering or operating in this category";
+  if (text.includes("smb")) return "SMB operators with repeated manual workflows";
+  if (text.includes("dev") || text.includes("code") || text.includes("engineering")) {
+    return "technical teams with recurring workflow friction";
+  }
+  if (text.includes("investor") || text.includes("portfolio")) {
+    return "retail investors comparing fragmented tools and accounts";
+  }
+  if (text.includes("seller") || text.includes("commerce")) {
+    return "commerce operators dealing with local-market constraints";
+  }
+  return "operators actively asking for a purpose-built product";
+}
+
+function firstSentence(text: string): string {
+  return text.split(/(?<=[.!?])\s+/)[0]?.trim() || text;
+}
+
+function seedIdeaToOpportunity(idea: SeedIdea): NonNullable<BriefIdeaItem["opportunity"]> {
+  const evidenceCount = idea.evidenceUrls.length;
+  const confidence: NonNullable<BriefIdeaItem["opportunity"]>["confidence"] =
+    evidenceCount >= 2 ? "medium" : "low";
+  const verdict: NonNullable<BriefIdeaItem["opportunity"]>["verdict"] =
+    confidence === "medium" ? "test" : "watch";
+  const sourceLabel = idea.subreddit ? `r/${idea.subreddit}` : "cross-source opportunity note";
+
+  return {
+    verdict,
+    confidence,
+    targetUser: inferTargetUser(idea),
+    problem: firstSentence(idea.description),
+    marketTimingReasons: [
+      `${sourceLabel} has a fresh demand signal from the last ${idea.daysAgo} days.`,
+      idea.region === "global"
+        ? "The pain is not tied to one geography, so validation can start with a narrow ICP."
+        : `The signal is region-specific (${idea.region}), which makes positioning and interviews more focused.`,
+    ],
+    evidenceMix: [
+      {
+        kind: "demand",
+        label: idea.source === "community" ? "community demand" : "opportunity signal",
+        summary: evidenceCount >= 2
+          ? "Multiple cited sources point at the same unmet job."
+          : "One cited source is enough to watch, not enough to enter.",
+        strength: evidenceCount >= 2 ? "medium" : "low",
+        sourceCount: evidenceCount,
+      },
+    ],
+    competitorNotes: [
+      "Map the 3-5 obvious substitutes before building; this brief does not yet prove supply is thin.",
+    ],
+    pricingNotes: [
+      "Validate willingness to pay with a landing page or manual offer before sizing the price band.",
+    ],
+    agentVisibilityNotes: [
+      "Ask major AI assistants what they recommend for this job; missing or generic answers are an entry wedge.",
+    ],
+    risks: [
+      evidenceCount >= 2
+        ? "Demand may be real but too fragmented to support a focused first product."
+        : "Evidence is still thin; treat this as a watchlist item until corroborated.",
+    ],
+    nextValidationStep:
+      "Run 10 problem interviews and publish one comparison or waitlist page tied to the exact complaint.",
+    priorHitRate: {
+      label: "product-opportunity family",
+      hitRate: 0.58,
+      sample: 12,
+      band: "family",
+    },
+  };
+}
+
 export function fallbackStocks(region: Region, limit: number): BriefStockItem[] {
   const pool = region === "global"
     ? SEED_STOCK_SIGNALS
@@ -1390,6 +1465,7 @@ export function fallbackIdeas(region: Region, limit: number): BriefIdeaItem[] {
     subreddit: i.subreddit,
     surfacedAt: isoDaysAgo(i.daysAgo),
     evidenceUrls: i.evidenceUrls,
+    opportunity: seedIdeaToOpportunity(i),
   }));
 }
 
