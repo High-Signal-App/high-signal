@@ -16,7 +16,7 @@
 import type { D2COpportunityArtifact } from "./d2c-opportunities";
 
 export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
-  "generatedAt": "2026-07-05T22:21:22.218498+00:00",
+  "generatedAt": "2026-07-05T22:32:37.944525+00:00",
   "region": "IN",
   "niches": [
     {
@@ -27,7 +27,7 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-05T22:17:29.729952+00:00",
+      "freshnessDate": "2026-07-05T22:30:41.611007+00:00",
       "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
     },
     {
@@ -38,7 +38,7 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-05T22:17:41.818549+00:00",
+      "freshnessDate": "2026-07-05T22:30:47.668980+00:00",
       "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
     },
     {
@@ -49,7 +49,7 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-05T22:17:54.162456+00:00",
+      "freshnessDate": "2026-07-05T22:30:54.060229+00:00",
       "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
     },
     {
@@ -60,7 +60,7 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-05T22:18:06.801475+00:00",
+      "freshnessDate": "2026-07-05T22:30:59.790909+00:00",
       "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
     },
     {
@@ -71,7 +71,7 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-05T22:18:18.891211+00:00",
+      "freshnessDate": "2026-07-05T22:31:06.645425+00:00",
       "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
     },
     {
@@ -82,7 +82,7 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-05T22:18:30.987341+00:00",
+      "freshnessDate": "2026-07-05T22:31:12.683149+00:00",
       "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
     },
     {
@@ -93,7 +93,7 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-05T22:18:43.330655+00:00",
+      "freshnessDate": "2026-07-05T22:31:19.080812+00:00",
       "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
     },
     {
@@ -104,7 +104,7 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-05T22:18:55.172796+00:00",
+      "freshnessDate": "2026-07-05T22:31:24.768070+00:00",
       "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
     },
     {
@@ -115,7 +115,7 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-05T22:19:07.836534+00:00",
+      "freshnessDate": "2026-07-05T22:31:30.802609+00:00",
       "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
     },
     {
@@ -126,7 +126,7 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-05T22:19:19.926759+00:00",
+      "freshnessDate": "2026-07-05T22:31:36.835690+00:00",
       "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
     },
     {
@@ -137,7 +137,7 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-05T22:19:32.018183+00:00",
+      "freshnessDate": "2026-07-05T22:31:42.896288+00:00",
       "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
     },
     {
@@ -148,7 +148,7 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-05T22:19:44.109189+00:00",
+      "freshnessDate": "2026-07-05T22:31:48.952683+00:00",
       "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
     },
     {
@@ -159,7 +159,7 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-05T22:19:56.198984+00:00",
+      "freshnessDate": "2026-07-05T22:31:55.027963+00:00",
       "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
     },
     {
@@ -170,7 +170,7 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-05T22:20:08.926024+00:00",
+      "freshnessDate": "2026-07-05T22:32:01.753147+00:00",
       "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
     },
     {
@@ -181,7 +181,7 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-05T22:20:21.014528+00:00",
+      "freshnessDate": "2026-07-05T22:32:07.784099+00:00",
       "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
     },
     {
@@ -192,7 +192,7 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-05T22:20:33.108997+00:00",
+      "freshnessDate": "2026-07-05T22:32:13.813577+00:00",
       "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
     },
     {
@@ -203,7 +203,7 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-05T22:20:45.201221+00:00",
+      "freshnessDate": "2026-07-05T22:32:19.850824+00:00",
       "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
     },
     {
@@ -214,7 +214,7 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-05T22:20:57.293773+00:00",
+      "freshnessDate": "2026-07-05T22:32:25.880938+00:00",
       "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
     },
     {
@@ -225,7 +225,7 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-05T22:21:10.117444+00:00",
+      "freshnessDate": "2026-07-05T22:32:31.911952+00:00",
       "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
     },
     {
@@ -236,7 +236,7 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-05T22:21:22.218252+00:00",
+      "freshnessDate": "2026-07-05T22:32:37.944176+00:00",
       "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
     }
   ]
