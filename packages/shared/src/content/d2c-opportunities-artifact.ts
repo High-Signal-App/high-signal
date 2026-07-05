@@ -16,19 +16,48 @@
 import type { D2COpportunityArtifact } from "./d2c-opportunities";
 
 export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
-  "generatedAt": "2026-07-05T22:32:37.944525+00:00",
+  "generatedAt": "2026-07-05T23:12:17.105096+00:00",
   "region": "IN",
   "niches": [
     {
       "nicheSlug": "hair-growth-scalp-support",
-      "demandScore": null,
+      "demandScore": 0.6000000000000001,
       "competitionScore": null,
       "pricingScore": null,
       "adSaturationScore": null,
       "agentVisibilityScore": null,
-      "evidence": [],
-      "freshnessDate": "2026-07-05T22:30:41.611007+00:00",
-      "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
+      "evidence": [
+        {
+          "sourceClass": "community",
+          "url": "https://reddit.com/r/tressless/comments/1uoevg4/4_months_progress_is_this_pretty_good_growth/",
+          "source": "reddit:tressless",
+          "snippet": "4 months progress, is this pretty good growth? — Is this pretty good progress for 4 months? On oral fin and minoxidil spray. I was doing the dermatology Rolla once a week for the first 2 months but s…",
+          "observedAt": "2026-07-05T22:03:10+00:00"
+        },
+        {
+          "sourceClass": "community",
+          "url": "https://reddit.com/r/tressless/comments/1uo9fll/oral_minoxidil_brand_in_europe/",
+          "source": "reddit:tressless",
+          "snippet": "Oral Minoxidil brand in Europe — Hello guys! I was recently prescribed oral minoxidil by my doctor, the problem even with a prescription you can’t get it from the local pharmacies, and you will have…",
+          "observedAt": "2026-07-05T18:22:40+00:00"
+        },
+        {
+          "sourceClass": "community",
+          "url": "https://reddit.com/r/tressless/comments/1uo67xb/day_1_postop_dr_ratchathorn_absolute_bangkok_23/",
+          "source": "reddit:tressless",
+          "snippet": "Day 1 post-op, Dr Ratchathorn (Absolute, Bangkok) (23 year old male) honest opinions wanted on corner symmetry + 45 vs 50 FU/cm2 — Day 1 post-op, Dr Ratchathorn (Absolute, Bangkok) (23 year old male)…",
+          "observedAt": "2026-07-05T16:16:04+00:00"
+        },
+        {
+          "sourceClass": "community",
+          "url": "https://reddit.com/r/tressless/comments/1unzprh/this_is_what_10_years_progress_looks_like/",
+          "source": "reddit:tressless",
+          "snippet": "This is what 10 years “progress” looks like. — Topical Minoxidil for 10 years, oral Finasteride 1 year, but moved to 0.5mg Dutasteride 3x a week and 5mg Oral Minoxidil daily 6 months ago. Seems like…",
+          "observedAt": "2026-07-05T11:23:12+00:00"
+        }
+      ],
+      "freshnessDate": "2026-07-05T23:11:23.009002+00:00",
+      "notes": "diversity=0.14; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
     },
     {
       "nicheSlug": "lip-intimate-skincare-sensitive",
@@ -38,7 +67,7 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-05T22:30:47.668980+00:00",
+      "freshnessDate": "2026-07-05T23:11:29.171907+00:00",
       "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
     },
     {
@@ -49,7 +78,7 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-05T22:30:54.060229+00:00",
+      "freshnessDate": "2026-07-05T23:11:16.990351+00:00",
       "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
     },
     {
@@ -60,7 +89,7 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-05T22:30:59.790909+00:00",
+      "freshnessDate": "2026-07-05T23:11:53.686125+00:00",
       "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
     },
     {
@@ -71,7 +100,7 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-05T22:31:06.645425+00:00",
+      "freshnessDate": "2026-07-05T23:11:05.056318+00:00",
       "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
     },
     {
@@ -82,7 +111,7 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-05T22:31:12.683149+00:00",
+      "freshnessDate": "2026-07-05T23:11:05.298459+00:00",
       "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
     },
     {
@@ -93,7 +122,7 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-05T22:31:19.080812+00:00",
+      "freshnessDate": "2026-07-05T23:11:05.551506+00:00",
       "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
     },
     {
@@ -104,7 +133,7 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-05T22:31:24.768070+00:00",
+      "freshnessDate": "2026-07-05T23:11:05.039303+00:00",
       "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
     },
     {
@@ -115,7 +144,7 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-05T22:31:30.802609+00:00",
+      "freshnessDate": "2026-07-05T23:11:05.200314+00:00",
       "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
     },
     {
@@ -126,19 +155,76 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-05T22:31:36.835690+00:00",
+      "freshnessDate": "2026-07-05T23:12:04.933727+00:00",
       "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
     },
     {
       "nicheSlug": "affordable-home-gym-under-5000",
-      "demandScore": null,
+      "demandScore": 0.85,
       "competitionScore": null,
       "pricingScore": null,
       "adSaturationScore": null,
       "agentVisibilityScore": null,
-      "evidence": [],
-      "freshnessDate": "2026-07-05T22:31:42.896288+00:00",
-      "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
+      "evidence": [
+        {
+          "sourceClass": "community",
+          "url": "https://reddit.com/r/indianfitness/comments/1unf7jj/decathlon_resistant_bands/",
+          "source": "reddit:IndianFitness",
+          "snippet": "Decathlon resistant bands — I m planning to get decathlon resistance band trio (15kg, 25kg, 35kg) to do home workout. I m a beginner female who can do shoulder press with 7 kg. Since i m not a budget…",
+          "observedAt": "2026-07-04T17:42:49+00:00"
+        },
+        {
+          "sourceClass": "community",
+          "url": "https://reddit.com/r/homegym/comments/1uns69h/new_home_gym/",
+          "source": "reddit:homegym",
+          "snippet": "New home gym — Turning my home office into a home office + gym . Running total so far Treadmill : $400 Weight bench : $100 Adjustable dumbbells: $300 Horse stall mats &amp; gorilla tape for flooring…",
+          "observedAt": "2026-07-05T03:58:54+00:00"
+        },
+        {
+          "sourceClass": "community",
+          "url": "https://reddit.com/r/homegym/comments/1umft5l/finally_finished_my_home_gym/",
+          "source": "reddit:homegym",
+          "snippet": "Finally finished my home gym — Hey everyone, after a year and a half of constant tweaking, upgrading, and changing out equipment, I think our setup is officially complete! Here is how the space is sp…",
+          "observedAt": "2026-07-03T14:21:48+00:00"
+        },
+        {
+          "sourceClass": "community",
+          "url": "https://reddit.com/r/homegym/comments/1um2pbr/if_you_moved_what_gear_would_you_sell_and_what/",
+          "source": "reddit:homegym",
+          "snippet": "If you moved, what gear would you sell, and what would be non-negotiable to bring? — What is up everyone... Welcome to the Targeted Talk... where we take a topic pertinent to the home gym owner and d…",
+          "observedAt": "2026-07-03T03:06:43+00:00"
+        },
+        {
+          "sourceClass": "community",
+          "url": "https://reddit.com/r/homegym/comments/1uloxie/my_home_gym_progress/",
+          "source": "reddit:homegym",
+          "snippet": "My home gym progress",
+          "observedAt": "2026-07-02T17:36:30+00:00"
+        },
+        {
+          "sourceClass": "community",
+          "url": "https://reddit.com/r/homegym/comments/1ul5ydf/my_first_home_gym_helped_simple_but_transformative/",
+          "source": "reddit:homegym",
+          "snippet": "My first home gym helped. Simple but transformative! — I'm a 38 year old husband and father of three daughters with a full time job. I've always tried to stay active. I played pickup basketball twice…",
+          "observedAt": "2026-07-02T02:44:57+00:00"
+        },
+        {
+          "sourceClass": "community",
+          "url": "https://reddit.com/r/homegym/comments/1ul1do6/our_humble_home_gym/",
+          "source": "reddit:homegym",
+          "snippet": "Our humble home gym.",
+          "observedAt": "2026-07-01T23:17:47+00:00"
+        },
+        {
+          "sourceClass": "community",
+          "url": "https://reddit.com/r/homegym/comments/1ukyc56/from_officegame_room_to_home_gym/",
+          "source": "reddit:homegym",
+          "snippet": "From office/game room to home gym — Paint ✅ Horse stall mats ✅ Rep nighthawk bench &amp; Rep weight rack ✅ 2 - 4x6 mirrors being delivered next week Major fitness F22 pro delivered ready to be assemb…",
+          "observedAt": "2026-07-01T21:15:34+00:00"
+        }
+      ],
+      "freshnessDate": "2026-07-05T23:11:05.448879+00:00",
+      "notes": "diversity=0.14; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
     },
     {
       "nicheSlug": "womens-gym-shorts-fit",
@@ -148,7 +234,7 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-05T22:31:48.952683+00:00",
+      "freshnessDate": "2026-07-05T23:11:04.964499+00:00",
       "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
     },
     {
@@ -159,7 +245,7 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-05T22:31:55.027963+00:00",
+      "freshnessDate": "2026-07-05T23:12:17.104873+00:00",
       "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
     },
     {
@@ -170,7 +256,7 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-05T22:32:01.753147+00:00",
+      "freshnessDate": "2026-07-05T23:11:41.090906+00:00",
       "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
     },
     {
@@ -181,19 +267,27 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-05T22:32:07.784099+00:00",
+      "freshnessDate": "2026-07-05T23:12:10.995487+00:00",
       "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
     },
     {
       "nicheSlug": "pet-health-supplements",
-      "demandScore": null,
+      "demandScore": 0.30000000000000004,
       "competitionScore": null,
       "pricingScore": null,
       "adSaturationScore": null,
       "agentVisibilityScore": null,
-      "evidence": [],
-      "freshnessDate": "2026-07-05T22:32:13.813577+00:00",
-      "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
+      "evidence": [
+        {
+          "sourceClass": "community",
+          "url": "https://reddit.com/r/Pets/comments/1uo38v5/called_animal_control_on_someones_pet_dogs_did_i/",
+          "source": "reddit:pets",
+          "snippet": "Called animal control on someone's pet dogs, did i do the right thing? — I take care of a fair amount of stray cats in my yard. Earlier today 3 dogs, one big, one medium, ans one small were in our ba…",
+          "observedAt": "2026-07-05T14:13:37+00:00"
+        }
+      ],
+      "freshnessDate": "2026-07-05T23:11:05.049412+00:00",
+      "notes": "diversity=0.14; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
     },
     {
       "nicheSlug": "oral-care-sub-niches",
@@ -203,19 +297,34 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-05T22:32:19.850824+00:00",
+      "freshnessDate": "2026-07-05T23:11:35.085360+00:00",
       "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
     },
     {
       "nicheSlug": "sleep-stress-support-products",
-      "demandScore": null,
+      "demandScore": 0.4,
       "competitionScore": null,
       "pricingScore": null,
       "adSaturationScore": null,
       "agentVisibilityScore": null,
-      "evidence": [],
-      "freshnessDate": "2026-07-05T22:32:25.880938+00:00",
-      "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
+      "evidence": [
+        {
+          "sourceClass": "community",
+          "url": "https://reddit.com/r/sleep/comments/1uo9g7c/fixing_my_wakeup_time_did_more_for_my_sleep_than/",
+          "source": "reddit:sleep",
+          "snippet": "Fixing my wake-up time did more for my sleep than fixing my bedtime ever did — For years I focused entirely on going to bed earlier, and it never really worked. I'd lie there awake, frustrated, watch…",
+          "observedAt": "2026-07-05T18:23:18+00:00"
+        },
+        {
+          "sourceClass": "community",
+          "url": "https://reddit.com/r/sleep/comments/1unxl0n/cant_fall_asleep_when_i_have_a_shift_in_the/",
+          "source": "reddit:sleep",
+          "snippet": "Cant fall asleep when i have a shift in the morning — Ive never posted before but i am incredibly desperate right now. I (20m) have never really struggled with sleep before up until around 3-4 months…",
+          "observedAt": "2026-07-05T09:15:34+00:00"
+        }
+      ],
+      "freshnessDate": "2026-07-05T23:11:05.032504+00:00",
+      "notes": "diversity=0.14; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
     },
     {
       "nicheSlug": "intimate-hygiene",
@@ -225,7 +334,7 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-05T22:32:31.911952+00:00",
+      "freshnessDate": "2026-07-05T23:11:47.192661+00:00",
       "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
     },
     {
@@ -236,7 +345,7 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-05T22:32:37.944176+00:00",
+      "freshnessDate": "2026-07-05T23:11:58.876617+00:00",
       "notes": "diversity=0.00; competition/pricing/ad/agent deferred (marketplace + Meta Ad Library + agent prompts are Slice 3/4)"
     }
   ]
