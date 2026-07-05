@@ -60,7 +60,8 @@ jobs:
         run: |
           uv run python -m high_signal_ingest.d2c_opportunities \
             --days "${{ inputs.days || '7' }}" \
-            --limit "${{ inputs.limit || '20' }}"
+            --limit "${{ inputs.limit || '20' }}" \
+            --out ../data/d2c-opportunities
 
       - name: run agent-visibility overlay
         working-directory: python/ingest
@@ -71,7 +72,8 @@ jobs:
           AI_PROJECT_ID: high-signal
         run: |
           uv run python -m high_signal_ingest.d2c_agent_visibility \
-            --limit "${{ inputs.limit || '20' }}"
+            --limit "${{ inputs.limit || '20' }}" \
+            --out ../data/d2c-agent-visibility
 
       # ── Node: bundle artifact + sync to D1 ──────────────────────────────
       - uses: actions/setup-node@v6
