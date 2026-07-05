@@ -596,7 +596,8 @@ AMAZON_HEADERS = {
 # 1 at a time with a small delay is safe. Lazy-initialized to avoid
 # cross-event-loop issues in tests.
 _AMAZON_SEMAPHORE: asyncio.Semaphore | None = None
-_AMAZON_DELAY = 2.0  # seconds between Amazon requests
+_AMAZON_DELAY = 5.0  # seconds between Amazon requests (avoid 503)
+_AMAZON_RETRIES = 2  # retry on 503 with exponential backoff
 
 
 def _get_amazon_semaphore() -> asyncio.Semaphore:
@@ -686,18 +687,29 @@ async def collect_amazon(
     params = {"k": query}
     async with _get_amazon_semaphore():
         await asyncio.sleep(_AMAZON_DELAY)
-        try:
-            r = await client.get(
-                AMAZON_IN_SEARCH_URL,
-                params=params,
-                headers=AMAZON_HEADERS,
-            )
-        except httpx.HTTPError as exc:
-            LOGGER.debug("amazon fetch failed niche=%s error=%s", niche.slug, exc)
+        for attempt in range(_AMAZON_RETRIES + 1):
+            try:
+                r = await client.get(
+                    AMAZON_IN_SEARCH_URL,
+                    params=params,
+                    headers=AMAZON_HEADERS,
+                )
+            except httpx.HTTPError as exc:
+                LOGGER.debug("amazon fetch failed niche=%s error=%s", niche.slug, exc)
+                return []
+            if r.status_code == 200:
+                break
+            if r.status_code == 503 and attempt < _AMAZON_RETRIES:
+                # 503 = rate-limited/captcha. Wait and retry.
+                wait = 10.0 * (attempt + 1)
+                LOGGER.info(
+                    "amazon 503 niche=%s, retrying in %.0fs (attempt %d/%d)",
+                    niche.slug, wait, attempt + 1, _AMAZON_RETRIES,
+                )
+                await asyncio.sleep(wait)
+                continue
+            LOGGER.debug("amazon fetch failed niche=%s status=%s", niche.slug, r.status_code)
             return []
-    if r.status_code != 200:
-        LOGGER.debug("amazon fetch failed niche=%s status=%s", niche.slug, r.status_code)
-        return []
     products = _parse_amazon_search(r.text, query)
     LOGGER.info(
         "amazon niche=%s query=%r → %d products", niche.slug, query, len(products)
