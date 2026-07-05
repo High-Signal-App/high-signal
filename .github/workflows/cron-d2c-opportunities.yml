@@ -76,6 +76,15 @@ jobs:
             --out ../data/d2c-agent-visibility
 
       # ── Node: bundle artifact + sync to D1 ──────────────────────────────
+      - name: verify artifacts exist
+        run: |
+          echo "=== d2c-opportunities ==="
+          ls -la data/d2c-opportunities/ 2>&1 || echo "DIR MISSING"
+          echo "=== d2c-agent-visibility ==="
+          ls -la data/d2c-agent-visibility/ 2>&1 || echo "DIR MISSING"
+          echo "=== repo root ==="
+          pwd
+
       - uses: actions/setup-node@v6
         with:
           node-version: "22"
