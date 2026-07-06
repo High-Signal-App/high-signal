@@ -32,6 +32,7 @@ import {
   type D2CAgentVisibilityEntry,
   type D2CNicheDelta,
   type D2CNicheSnapshotRecord,
+  type D2CEvidenceItem,
 } from "@high-signal/shared";
 import { db, schema } from "../db";
 import { FREE_AI_DEFAULT_ENDPOINT, fetchChatCompletion } from "../lib/ai-client";
@@ -88,7 +89,7 @@ function rowToRecord(
   row: typeof schema.d2cNicheSnapshots.$inferSelect & {
     nicheSlug?: string | null;
   },
-): D2CNicheSnapshotRecord {
+): D2CNicheSnapshotRecord & { evidenceJson?: string | null } {
   return {
     nicheSlug: row.nicheSlug ?? "",
     snapshotDate: row.snapshotDate instanceof Date
@@ -104,6 +105,7 @@ function rowToRecord(
     verdict: row.verdict,
     confidence: row.confidence,
     freshnessDate: row.freshnessDate,
+    evidenceJson: row.evidenceJson,
   };
 }
 
@@ -272,6 +274,21 @@ d2cRoute.get("/opportunities", async (c) => {
     const avGap = agentVis.length > 0
       ? Math.max(...agentVis.map((a) => a.gapScore ?? 0))
       : latest.agentVisibilityScore;
+    // Parse the evidence_json from D1 so the brief's confidence reflects
+    // the full evidence picture (community + product + AV-derived).
+    // D1's driver may return JSON columns as already-parsed objects.
+    let parsedEvidence: D2CEvidenceItem[] = [];
+    const rawEv = (latest as D2CNicheSnapshotRecord & { evidenceJson?: unknown }).evidenceJson;
+    if (Array.isArray(rawEv)) {
+      parsedEvidence = rawEv as D2CEvidenceItem[];
+    } else if (typeof rawEv === "string" && rawEv.length > 0) {
+      try {
+        const parsed = JSON.parse(rawEv);
+        parsedEvidence = Array.isArray(parsed) ? parsed : [];
+      } catch {
+        parsedEvidence = [];
+      }
+    }
     const brief = composeD2COpportunityBrief(seed, {
       nicheSlug: seed.slug,
       demandScore: latest.demandScore,
@@ -279,7 +296,7 @@ d2cRoute.get("/opportunities", async (c) => {
       pricingScore: latest.pricingScore,
       adSaturationScore: latest.adSaturationScore,
       agentVisibilityScore: avGap,
-      evidence: [],
+      evidence: parsedEvidence,
       freshnessDate: latest.freshnessDate,
     }, avGap);
     return {
