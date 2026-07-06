@@ -28,6 +28,7 @@ import {
   D2C_NICHE_SEEDS,
   loadLatestD2CArtifact,
   loadLatestAgentVisibilityArtifact,
+  type D2CEvidenceItem,
 } from "@high-signal/shared";
 
 const __root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -69,12 +70,28 @@ async function main() {
   // agentVisibilityScore reflects the real AI gap, not a neutral default.
   const avArtifact = await loadLatestAgentVisibilityArtifact(AV_ARTIFACT_DIR, fsImpl);
   const avBySlug = new Map<string, number>();
+  // Map from niche slug → product evidence items derived from the AV overlay.
+  // The AI's cited URLs are real product/brand pages (supertails.com, etc.).
+  // We extract them as sourceClass="product" evidence so source diversity
+  // reflects the full evidence picture, not just the weekly collector.
+  const avProductsBySlug = new Map<string, D2CEvidenceItem[]>();
   if (avArtifact) {
     for (const entry of avArtifact.entries) {
       const existing = avBySlug.get(entry.nicheSlug);
       if (existing == null || entry.gapScore > existing) {
         avBySlug.set(entry.nicheSlug, entry.gapScore);
       }
+      // Create product evidence from the AV overlay's cited URLs.
+      // Each URL is a real brand/product page that the AI surfaced.
+      const products: D2CEvidenceItem[] = entry.citedUrls.slice(0, 3).map((url) => ({
+        sourceClass: "product" as const,
+        url,
+        source: "agent-visibility:ai-cited",
+        snippet: `Brand page cited by AI: ${entry.recommendedBrands.slice(0, 3).join(", ")}`,
+        observedAt: entry.runDate,
+      }));
+      const existingProducts = avProductsBySlug.get(entry.nicheSlug) ?? [];
+      avProductsBySlug.set(entry.nicheSlug, [...existingProducts, ...products]);
     }
     console.log(`[d2c:sync] agent-visibility overlay loaded; ${avArtifact.entries.length} entries`);
   } else {
@@ -101,9 +118,29 @@ async function main() {
     const id = nicheId(seed.slug);
     const evidence = artifact.niches.find((n) => n.nicheSlug === seed.slug) ?? null;
     const avGap = avBySlug.get(seed.slug) ?? null;
-    const record = buildSnapshotRecord(seed, evidence, snapshotDate, avGap);
+    // Merge the weekly collector's evidence with AV-derived product evidence.
+    // The AV overlay's cited URLs are real product/brand pages that the AI
+    // surfaced — they count as sourceClass="product" for source diversity.
+    const weeklyEvidence = evidence?.evidence ?? [];
+    const avProducts = avProductsBySlug.get(seed.slug) ?? [];
+    // Dedupe by URL to avoid counting the same page twice.
+    const seenUrls = new Set<string>();
+    const mergedEvidence: D2CEvidenceItem[] = [];
+    for (const item of [...weeklyEvidence, ...avProducts]) {
+      if (item.url && !seenUrls.has(item.url)) {
+        seenUrls.add(item.url);
+        mergedEvidence.push(item);
+      }
+    }
+    // Build a merged evidence object for buildSnapshotRecord.
+    const mergedEvidenceObj = evidence
+      ? { ...evidence, evidence: mergedEvidence }
+      : mergedEvidence.length > 0
+        ? { nicheSlug: seed.slug, evidence: mergedEvidence, freshnessDate: snapshotDate }
+        : null;
+    const record = buildSnapshotRecord(seed, mergedEvidenceObj, snapshotDate, avGap);
     const snapId = snapshotId(id, snapshotDate);
-    const evidenceJson = JSON.stringify(evidence?.evidence ?? []);
+    const evidenceJson = JSON.stringify(mergedEvidence);
     sql.push(
       `INSERT OR REPLACE INTO d2c_niche_snapshots ` +
         `(id, niche_id, snapshot_date, opportunity_score, demand_score, competition_score, pricing_score, ad_saturation_score, agent_visibility_score, source_diversity, verdict, confidence, evidence_json, freshness_date, notes, created_at) ` +
