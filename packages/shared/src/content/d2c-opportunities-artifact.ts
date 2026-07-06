@@ -16,7 +16,7 @@
 import type { D2COpportunityArtifact } from "./d2c-opportunities";
 
 export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
-  "generatedAt": "2026-07-06T00:09:32.650871+00:00",
+  "generatedAt": "2026-07-06T00:29:58.728800+00:00",
   "region": "IN",
   "niches": [
     {
@@ -43,13 +43,13 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
         },
         {
           "sourceClass": "community",
-          "url": "https://reddit.com/r/tressless/comments/1unzprh/this_is_what_10_years_progress_looks_like/",
+          "url": "https://reddit.com/r/tressless/comments/1uo67xb/day_1_postop_dr_ratchathorn_absolute_bangkok_23/",
           "source": "reddit:tressless",
-          "snippet": "This is what 10 years “progress” looks like. — Topical Minoxidil for 10 years, oral Finasteride 1 year, but moved to 0.5mg Dutasteride 3x a week and 5mg Oral Minoxidil daily 6 months ago. Seems like…",
-          "observedAt": "2026-07-05T11:23:12+00:00"
+          "snippet": "Day 1 post-op, Dr Ratchathorn (Absolute, Bangkok) (23 year old male) honest opinions wanted on corner symmetry + 45 vs 50 FU/cm2 — Day 1 post-op, Dr Ratchathorn (Absolute, Bangkok) (23 year old male)…",
+          "observedAt": "2026-07-05T16:16:04+00:00"
         }
       ],
-      "freshnessDate": "2026-07-06T00:06:18.455451+00:00",
+      "freshnessDate": "2026-07-06T00:25:13.729533+00:00",
       "notes": "diversity=0.14; community=3 search=0 product=0 ad-library=0 launch=0"
     },
     {
@@ -60,7 +60,7 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-06T00:06:53.886867+00:00",
+      "freshnessDate": "2026-07-06T00:24:38.117545+00:00",
       "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
@@ -71,7 +71,7 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-06T00:05:47.947066+00:00",
+      "freshnessDate": "2026-07-06T00:24:02.498105+00:00",
       "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
@@ -82,7 +82,7 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-06T00:07:29.422481+00:00",
+      "freshnessDate": "2026-07-06T00:27:36.215106+00:00",
       "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
@@ -93,7 +93,7 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-06T00:03:09.830170+00:00",
+      "freshnessDate": "2026-07-06T00:22:00.453941+00:00",
       "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
@@ -104,55 +104,19 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-06T00:04:56.209096+00:00",
+      "freshnessDate": "2026-07-06T00:22:10.576158+00:00",
       "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "heat-resistant-phone-mounts",
       "demandScore": null,
-      "competitionScore": 0.5,
-      "pricingScore": 0.9,
+      "competitionScore": null,
+      "pricingScore": null,
       "adSaturationScore": null,
       "agentVisibilityScore": null,
-      "evidence": [
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0D4DND58Y",
-          "source": "amazon:in",
-          "snippet": "Like Star 360° Degree Mobile Phone Holder with Universal 1/4 Screw Adjustable Clamp Mobile Tripod Mount Adapter Compatible with Smartphones &amp; TripodsnSelfie Stick (Black) — ₹159 — 4.3 out of 5 — 874 ratings",
-          "observedAt": "2026-07-06T00:05:12.526648+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0CMJ4Y5GK",
-          "source": "amazon:in",
-          "snippet": "Sounce Mobile Phone Chest Strap Mount GoPro Chest Harness Holder for VLOG/POV Compatible with All Cell Phones and GoPro Hero 9, 8, 7, 6, 5,OSMO Action, AKASO and Other Action Camera — ₹279 — 3.7 out of 5 — 2,760 ratings",
-          "observedAt": "2026-07-06T00:05:12.527335+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0F48M8DP3",
-          "source": "amazon:in",
-          "snippet": "4.0 out of 5 stars — ₹295 — 4.0 out of 5 — 345 ratings",
-          "observedAt": "2026-07-06T00:05:12.527840+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0H65FXD9Z",
-          "source": "amazon:in",
-          "snippet": "4.4 out of 5 stars — ₹284 — 4.4 out of 5 — 5,384 ratings",
-          "observedAt": "2026-07-06T00:05:12.530156+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B08W1KX225",
-          "source": "amazon:in",
-          "snippet": "TECHONTO® 360° Degree Cell Phone Holder with Adjustable Clamp Phone Tripod Mount Adapter Compatible with Smartphones &amp; All Types of Tripods – Black — ₹169 — 4.2 out of 5 — 7,742 ratings",
-          "observedAt": "2026-07-06T00:05:12.530834+00:00"
-        }
-      ],
-      "freshnessDate": "2026-07-06T00:05:12.531042+00:00",
-      "notes": "diversity=0.14; community=0 search=0 product=5 ad-library=0 launch=0"
+      "evidence": [],
+      "freshnessDate": "2026-07-06T00:23:26.861885+00:00",
+      "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "office-chai-healthy-snacks",
@@ -162,7 +126,7 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-06T00:01:23.516851+00:00",
+      "freshnessDate": "2026-07-06T00:21:24.836697+00:00",
       "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
@@ -173,7 +137,7 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-06T00:02:34.432160+00:00",
+      "freshnessDate": "2026-07-06T00:22:05.531583+00:00",
       "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
@@ -184,7 +148,7 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-06T00:08:40.384161+00:00",
+      "freshnessDate": "2026-07-06T00:28:47.484227+00:00",
       "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
@@ -252,7 +216,7 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
           "observedAt": "2026-07-01T21:15:34+00:00"
         }
       ],
-      "freshnessDate": "2026-07-06T00:04:20.727281+00:00",
+      "freshnessDate": "2026-07-06T00:22:51.294127+00:00",
       "notes": "diversity=0.14; community=8 search=0 product=0 ad-library=0 launch=0"
     },
     {
@@ -263,55 +227,19 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-06T00:00:48.036221+00:00",
+      "freshnessDate": "2026-07-06T00:20:49.228321+00:00",
       "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "baby-lotions-transparent-ingredients",
       "demandScore": null,
-      "competitionScore": 0.5,
-      "pricingScore": 0.9,
+      "competitionScore": null,
+      "pricingScore": null,
       "adSaturationScore": null,
       "agentVisibilityScore": null,
-      "evidence": [
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0G1MWWPTF",
-          "source": "amazon:in",
-          "snippet": "Himalaya Gentle Baby Lotion 400ml with Almond oil, Olive oil, Country Mallow | No.1 Doctor-Prescribed Brand |pH 5.5 formulation | Nourishes and moisturizes your baby&#x27;s skin | Safe for Newborns — ₹201 — 4.3 out of 5 — 2,902 ratings",
-          "observedAt": "2026-07-06T00:09:32.646928+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0FGJXZ4H5",
-          "source": "amazon:in",
-          "snippet": "LuvLap Baby Lotion with Milk Protein - 700ml, Suitable for Baby’s Delicate Skin, 24 Hour Protection for Sensitive Skin, Shea Butter and VIT E, Paraben Free, Sweet Almond Oil, Dermatologically Tested — ₹143 — 4.4 out of 5 — 776 ratings",
-          "observedAt": "2026-07-06T00:09:32.647490+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0GHXSSGGQ",
-          "source": "amazon:in",
-          "snippet": "Himalaya Gentle Baby Lotion 700ml | with Almond oil, Olive oil, Country Mallow | No.1 Doctor-Prescribed Brand |pH 5.5 formulation | Nourishes and moisturizes your baby&#x27;s skin | Safe for Newborns — ₹327 — 4.3 out of 5 — 2,902 ratings",
-          "observedAt": "2026-07-06T00:09:32.649411+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B07JQYKB61",
-          "source": "amazon:in",
-          "snippet": "Baby Dove Rich Moisture Nourishing Baby Lotion 400 ml, With Moisturising Cream, Gentle Care for Baby&#x27;s Soft Skin — ₹204 — 4.4 out of 5 — 6,713 ratings",
-          "observedAt": "2026-07-06T00:09:32.649827+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0CV5Y8ZWR",
-          "source": "amazon:in",
-          "snippet": "4.3 out of 5 stars — ₹299 — 4.3 out of 5 — 2,902 ratings",
-          "observedAt": "2026-07-06T00:09:32.650378+00:00"
-        }
-      ],
-      "freshnessDate": "2026-07-06T00:09:32.650501+00:00",
-      "notes": "diversity=0.14; community=0 search=0 product=5 ad-library=0 launch=0"
+      "evidence": [],
+      "freshnessDate": "2026-07-06T00:29:58.728566+00:00",
+      "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "ayurvedic-face-care-proof-first",
@@ -321,7 +249,7 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-06T00:06:08.374199+00:00",
+      "freshnessDate": "2026-07-06T00:25:49.356125+00:00",
       "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
@@ -332,7 +260,7 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-06T00:09:15.808267+00:00",
+      "freshnessDate": "2026-07-06T00:29:23.087342+00:00",
       "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
@@ -351,7 +279,7 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
           "observedAt": "2026-07-05T14:13:37+00:00"
         }
       ],
-      "freshnessDate": "2026-07-06T00:01:58.936419+00:00",
+      "freshnessDate": "2026-07-06T00:22:15.628249+00:00",
       "notes": "diversity=0.14; community=1 search=0 product=0 ad-library=0 launch=0"
     },
     {
@@ -362,7 +290,7 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-06T00:06:03.327473+00:00",
+      "freshnessDate": "2026-07-06T00:27:00.593287+00:00",
       "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
@@ -388,7 +316,7 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
           "observedAt": "2026-07-05T09:15:34+00:00"
         }
       ],
-      "freshnessDate": "2026-07-06T00:03:45.296424+00:00",
+      "freshnessDate": "2026-07-06T00:20:13.627161+00:00",
       "notes": "diversity=0.14; community=2 search=0 product=0 ad-library=0 launch=0"
     },
     {
@@ -399,7 +327,7 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-06T00:06:13.415634+00:00",
+      "freshnessDate": "2026-07-06T00:26:24.973760+00:00",
       "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
@@ -410,7 +338,7 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-06T00:08:04.920732+00:00",
+      "freshnessDate": "2026-07-06T00:28:11.857951+00:00",
       "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     }
   ]
