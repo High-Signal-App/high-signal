@@ -89,7 +89,7 @@ function rowToRecord(
   row: typeof schema.d2cNicheSnapshots.$inferSelect & {
     nicheSlug?: string | null;
   },
-): D2CNicheSnapshotRecord & { evidenceJson?: string | null } {
+): D2CNicheSnapshotRecord & { evidenceJson?: unknown } {
   return {
     nicheSlug: row.nicheSlug ?? "",
     snapshotDate: row.snapshotDate instanceof Date
