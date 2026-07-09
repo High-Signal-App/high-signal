@@ -60,8 +60,6 @@ function main() {
     0
   );
   const sql: string[] = [
-    'PRAGMA foreign_keys=OFF;',
-    'BEGIN TRANSACTION;',
     'DELETE FROM company_universe_competitors;',
     'DELETE FROM company_universe_companies;',
     'DELETE FROM company_universe_runs;',
@@ -84,8 +82,6 @@ function main() {
       );
     }
   }
-
-  sql.push('COMMIT;', 'PRAGMA foreign_keys=ON;');
 
   mkdirSync(TMP_DIR, { recursive: true });
   writeFileSync(TMP_SQL, `${sql.join('\n')}\n`);
