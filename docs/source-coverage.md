@@ -40,7 +40,7 @@ Generate daily draft signals from:
 - `reddit` — public community weak signals.
 - `github` — releases and repo activity for AI infrastructure projects.
 - `github-archive` — bounded public hourly GitHub Archive reader over already tracked repos.
-- `youtube` — transcripts from selected technical / market channels.
+- `youtube` — selected-channel transcripts plus optional YouTube Data API discovery/view-count ranking for brand-awareness probes; third-party transcript access remains best-effort.
 - `bluesky` — optional-auth AT Protocol search lane; weak-signal social context only.
 - `hkex` — HK-listed AI and semiconductor announcements.
 - `markets` — prediction-market quotes; these are resources for context and scoring, not primary signal cards.
@@ -72,7 +72,7 @@ lens.
 
 - **Primary evidence** — official filings, IR pages, government catalogs, patents, vendor advisories, GitHub releases, and other sources that can anchor a claim.
 - **Corroboration** — trusted news, GDELT, Techmeme-style meta-curation, and independent reporting that confirms a primary event is broader than one page.
-- **Weak-signal candidates** — Reddit, HN, YouTube transcripts, Substack, prediction markets, and community chatter. These can start review items but should not auto-publish alone.
+- **Weak-signal candidates** — Reddit, HN, YouTube discovery/transcripts, Substack, prediction markets, and community chatter. These can start review items but should not auto-publish alone.
 - **Enrichment** — Wikidata, GLEIF, Wikipedia pageviews, equities snapshots, and other sources that improve mapping, context, or ranking but are rarely a signal by themselves.
 - **Lens-specific intelligence** — Wayback/CDX, competitor page diffs, AI answer checks, review sites, and similar product/competitor sources belong to Mention or Agent Eval until their outcome metric is defined.
 

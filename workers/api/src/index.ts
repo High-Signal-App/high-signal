@@ -19,6 +19,7 @@ import { deliveryRoute, runDeliveryWindow } from "./routes/delivery";
 import { watchlistsRoute } from "./routes/watchlists";
 import { dataRoute } from "./routes/data";
 import { d2cRoute } from "./routes/d2c";
+import { companyUniverseRoute } from "./routes/company-universe";
 
 type Env = {
   DB: D1Database;
@@ -61,6 +62,7 @@ app.route("/delivery", deliveryRoute);
 app.route("/watchlists", watchlistsRoute);
 app.route("/data", dataRoute);
 app.route("/d2c", d2cRoute);
+app.route("/company-universe", companyUniverseRoute);
 
 app.onError((err, c) => {
   console.error(`[error] ${c.req.method} ${c.req.path}:`, err.message, err.stack);

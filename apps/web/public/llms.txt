@@ -10,6 +10,7 @@ Free product. Lab data and ingest pipelines feed a composed brief at `/` and `/b
 - [Brief (alias)](https://highsignal.app/brief): Same brief composer
 - [Track record](https://highsignal.app/track-record): Public hit-rate ledger on signal types
 - [Methodology](https://highsignal.app/methodology): How signals are sourced, scored, and backtested
+- [Case studies](https://highsignal.app/case-studies): Product-intelligence examples from available sources
 - [About](https://highsignal.app/about): Product scope and data sources
 - [Privacy](https://highsignal.app/privacy): Privacy policy
 - [Terms](https://highsignal.app/terms): Terms of use

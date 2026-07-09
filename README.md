@@ -107,7 +107,7 @@ Legend used in the notes:
 ### Discourse
 - [x] **Hacker News** — `python/ingest/lab/ingest.py` (Firebase API + outbound-link extraction)
 - [x] **Reddit** *(13 subs — hardware/semi-heavy + startup/dev/operator)* — `python/ingest/sources/reddit.py`
-- [x] **YouTube transcripts** *(15 hardware/macro/founder/operator channels)* — `python/ingest/sources/youtube.py`
+- [x] **YouTube discovery + transcripts** *(15 hardware/macro/founder/operator channels; optional `YOUTUBE_API_KEY` enables official YouTube Data API discovery/view-count ranking for brand-awareness probes; transcript access remains best-effort and separate from official API coverage)* — `python/ingest/sources/youtube.py`, `scripts/youtube-brand-awareness-probe.py`
 - [x] **Bluesky AT Protocol** *(optional-auth search lane for real founder/researcher presence; full Relay firehose can replace it later if volume justifies it)* — `python/ingest/sources/bluesky.py`
 - [x] **Lobste.rs** *(small technical RSS weak-signal source; curated alternative to broad social firehose)* — `python/ingest/sources/lobsters.py`
 - [x] **Substack RSS pool** *(curated first batch — Pragmatic Engineer, Lenny's, Latent Space, Import AI; expand toward ~200 tech/startup writers)* — `python/ingest/sources/substack.py`

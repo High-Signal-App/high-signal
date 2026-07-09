@@ -1061,6 +1061,70 @@ export const signalHitRateCache = sqliteTable(
   (t) => [primaryKey({ columns: [t.signalType, t.family] })],
 );
 
+// ─── Company universe (migration 0017) ───────────────────────────────────
+// Generated High Signal company repertoire plus deterministic competitor map.
+// `company_universe_runs` records each generated run; the current product/API
+// reads the latest run through the company and competitor tables.
+
+export const companyUniverseRuns = sqliteTable("company_universe_runs", {
+  id: text("id").primaryKey(),
+  generatedAt: text("generated_at").notNull(),
+  sourceInputsJson: text("source_inputs_json").notNull(),
+  companyCount: integer("company_count").notNull().default(0),
+  competitorCount: integer("competitor_count").notNull().default(0),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+});
+
+export const companyUniverseCompanies = sqliteTable(
+  "company_universe_companies",
+  {
+    slug: text("slug").primaryKey(),
+    name: text("name").notNull(),
+    description: text("description").notNull().default(""),
+    category: text("category").notNull().default("Other"),
+    investorsJson: text("investors_json").notNull().default("[]"),
+    sourceEvidenceJson: text("source_evidence_json").notNull().default("[]"),
+    generatedAt: text("generated_at").notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+    status: text("status", {
+      enum: ["generated", "pending_enrichment", "enriched", "failed"],
+    })
+      .notNull()
+      .default("generated"),
+    domain: text("domain"),
+    requestedBy: text("requested_by"),
+    requestedAt: integer("requested_at", { mode: "timestamp" }),
+    lastEnrichedAt: integer("last_enriched_at", { mode: "timestamp" }),
+  },
+  (t) => [
+    index("company_universe_companies_name_idx").on(t.name),
+    index("company_universe_companies_category_idx").on(t.category),
+    index("company_universe_companies_generated_idx").on(t.generatedAt),
+    index("company_universe_companies_domain_idx").on(t.domain),
+    index("company_universe_companies_status_idx").on(t.status),
+  ],
+);
+
+export const companyUniverseCompetitors = sqliteTable(
+  "company_universe_competitors",
+  {
+    companySlug: text("company_slug")
+      .notNull()
+      .references(() => companyUniverseCompanies.slug, { onDelete: "cascade" }),
+    competitorSlug: text("competitor_slug")
+      .notNull()
+      .references(() => companyUniverseCompanies.slug, { onDelete: "cascade" }),
+    score: integer("score").notNull(),
+    reason: text("reason").notNull(),
+    generatedAt: text("generated_at").notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.companySlug, t.competitorSlug] }),
+    index("company_universe_competitors_company_idx").on(t.companySlug, t.score),
+    index("company_universe_competitors_competitor_idx").on(t.competitorSlug),
+  ],
+);
+
 // ─── India D2C Opportunity Pipeline (migration 0016) ──────────────────────
 // Plan 0013, Slice 3 — persistence + history. The 20 curated niches live in
 // `d2c_niches` (slug-keyed, stable); weekly snapshots live in

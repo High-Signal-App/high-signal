@@ -19,7 +19,7 @@ Persisted in **Cloudflare D1** (events/signals/evidence) + git-versioned `signal
 
 ## Sources
 
-**54 sources.** Access: `keyless` = no auth; `free-key` = free registration (skipped without the env var, ingest stays green); `optional-key` = works degraded/empty without it. ⚖️ = counts toward the cite-or-kill official-source bar. **Temporal:** `recent` = only latest events matter; `historical` = full archive has value; `series` = time-series where both recent prints and historical trends matter.
+**55 sources.** Access: `keyless` = no auth; `free-key` = free registration (skipped without the env var, ingest stays green); `optional-key` = works degraded/empty without it. ⚖️ = counts toward the cite-or-kill official-source bar. **Temporal:** `recent` = only latest events matter; `historical` = full archive has value; `series` = time-series where both recent prints and historical trends matter.
 
 | Source | Provider | Domain | Access | ⚖️ | History | Role | Temporal | Extracted fields kept |
 |---|---|---|---|:--:|--:|---|---|---|
@@ -76,7 +76,8 @@ Persisted in **Cloudflare D1** (events/signals/evidence) + git-versioned `signal
 | `stackexchange` | Stack Overflow | technology | keyless |  | 30d | thematic | historical | question, tags, score |
 | `substack` | Substack RSS | technology | keyless |  | 7d | thematic | recent | post title, summary |
 | `techmeme` | Techmeme | technology | keyless |  | 3d | thematic | recent | headline |
-| `youtube` | YouTube transcripts | technology | optional-key:YOUTUBE_API_KEY |  | 7d | thematic | recent | video title, transcript snippet |
+| `vc-portfolios` | VC/fund portfolio directories | startups | keyless |  | 30d | thematic | historical | company name, description, fund/source evidence, inferred competitors |
+| `youtube` | YouTube discovery + transcripts | technology | optional-key:YOUTUBE_API_KEY |  | 7d | thematic | recent | video title, view count, channel, transcript snippet when available |
 
 **Role key:** *entity* = maps to a tracked company · *thematic* = topic/keyword (entity-less) · *corroboration* = official 2nd-source, mostly entity-less · *numeric* = time-series values.
 

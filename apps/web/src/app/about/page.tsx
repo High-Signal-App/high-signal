@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import type { Route } from 'next';
 
 export const metadata: Metadata = {
   title: 'About — High Signal',
@@ -68,6 +69,16 @@ export default function AboutPage() {
             <Link className="text-[var(--color-accent)] hover:underline" href="/signals/random">
               /signals/random
             </Link>
+          </li>
+          <li>
+            Case studies:{' '}
+            <Link
+              className="text-[var(--color-accent)] hover:underline"
+              href={'/case-studies' as Route}
+            >
+              /case-studies
+            </Link>{' '}
+            — source-constrained product intelligence examples.
           </li>
         </ul>
       </section>

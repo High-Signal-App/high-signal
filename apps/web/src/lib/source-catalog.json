@@ -584,16 +584,27 @@
       "temporal": "recent"
     },
     {
+      "id": "vc-portfolios",
+      "provider": "VC/fund portfolio directories",
+      "domains": "startups",
+      "access": "keyless",
+      "official": false,
+      "windowDays": 30,
+      "role": "thematic",
+      "keeps": "company name, description, fund/source evidence, inferred competitors",
+      "temporal": "historical"
+    },
+    {
       "id": "youtube",
-      "provider": "YouTube transcripts",
+      "provider": "YouTube discovery + transcripts",
       "domains": "technology",
       "access": "optional-key:YOUTUBE_API_KEY",
       "official": false,
       "windowDays": 7,
       "role": "thematic",
-      "keeps": "video title, transcript snippet",
+      "keeps": "video title, view count, channel, transcript snippet when available",
       "temporal": "recent"
     }
   ],
-  "count": 54
+  "count": 55
 }

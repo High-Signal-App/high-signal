@@ -53,7 +53,7 @@ High Signal High Signal is one product : a synthesized Daily Brief assembled fro
 - `apps/web/src/app/ideas/page.tsx`
 - `apps/web/src/app/lab/page.tsx`
 - `apps/web/src/app/layout.tsx`
-- `apps/web/src/app/llms.txt/route.ts`
+- `apps/web/public/llms.txt`
 - `apps/web/src/app/markets.json/route.ts`
 - `apps/web/src/app/markets/page.tsx`
 - `apps/web/src/app/mentions/page.tsx`

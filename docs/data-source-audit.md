@@ -40,7 +40,7 @@ daily-brief insights. Pipeline jobs are only the mechanism that runs them.
 | Package registries | Wired | npm/PyPI releases and advisories for curated packages | Developer ecosystem drift, supply-chain risk, adoption/release cadence signals. |
 | Hugging Face | Wired | Public model/dataset activity | Model-distribution drift, AI ecosystem adoption, emerging tooling/model trends. |
 | Semantic Scholar | Wired bridge | Recent research-paper search | Research corroboration and early technical trend signal. Should eventually be fed by `researchPapers`. |
-| YouTube transcripts | Wired | Technical/market channel RSS plus transcripts | Expert commentary and narrative context. Weak alone; useful for corroboration or hypothesis formation. |
+| YouTube discovery + transcripts | Wired | Technical/market channel RSS plus transcripts; optional API-key search/view-count ranking for brand-awareness probes | Expert commentary, brand-awareness/perception, and narrative context. Weak alone; useful for corroboration or hypothesis formation. Official API does not provide arbitrary third-party transcripts. |
 | Podcasts | Wired, optional-key | Podcast Index episode metadata | Long-form commentary discovery. Transcript/summarization is downstream, not daily source truth yet. |
 | GDELT | Wired | Broad news search/replay API | Historical backfill and broad corroboration; noisy if used too broadly. |
 | Techmeme | Wired | Tech news meta-curation RSS | Detects when a weak/primary event crosses into broader tech attention. |
@@ -176,7 +176,7 @@ These are reachable from `python/ingest/src/high_signal_ingest/pipeline.py`.
 | `packages` | Wired | Developer ecosystem / supply-chain | npm/PyPI releases and OSV-style advisory events for curated packages | Raw payload hooks added; strong when tied to tracked packages |
 | `huggingface` | Wired | AI ecosystem activity | Public Hub model and dataset activity | Useful for model-distribution drift and adoption candidates |
 | `semantic-scholar` | Wired | Research weak signal / corroboration | Curated research-paper search via Semantic Scholar | Should eventually be fed by `researchPapers` as a producer |
-| `youtube` | Wired | Weak signal / expert commentary | Channel RSS plus transcripts from selected technical/market channels | Transcript availability varies; should not publish alone |
+| `youtube` | Wired | Weak signal / expert commentary / brand-awareness discovery | Channel RSS plus transcripts from selected technical/market channels; optional YouTube Data API discovery/view-count ranking | Transcript availability varies; official API does not provide arbitrary third-party transcripts; should not publish alone |
 | `podcast-index` | Wired, optional-key | Long-form commentary metadata | Podcast episode metadata; transcription is downstream | Requires Podcast Index key/secret; raw payload hooks added |
 | `reddit` | Wired | Community weak signal | AI-infra and semiconductor subreddits in ingest pipeline | Separate from personal registry Reddit set |
 | `lobsters` | Wired | Developer weak signal | Public Lobsters RSS | Small technical discussion source |

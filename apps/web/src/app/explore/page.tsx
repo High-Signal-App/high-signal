@@ -140,6 +140,12 @@ const GROUPS: Group[] = [
         label: 'Teardowns',
         note: 'Product teardowns and approved task outcomes.',
       },
+      {
+        href: '/case-studies',
+        label: 'Case studies',
+        note: 'Data-to-insight examples for different products.',
+        flag: 'new',
+      },
       { href: '/featured', label: 'Featured', note: 'Featured selections from the editorial.' },
     ],
   },

@@ -123,6 +123,7 @@ Source = Literal[
     "stackexchange",
     "eia",
     "producthunt",
+    "vc-portfolios",
     "coingecko",
     "google-trends",
     "appstore",
@@ -378,6 +379,8 @@ def _fetch_tasks(source: Source, days: int) -> list[tuple[str, str, Callable[[],
         add("eia", "https://api.eia.gov", lambda: eia.fetch_all(days=max(days, 120)))
     if source in {"producthunt", "all"}:
         add("producthunt", "https://www.producthunt.com", lambda: producthunt.fetch_all(days=max(days, 7)))
+    if source in {"vc-portfolios", "all"}:
+        add("vc-portfolios", "https://www.vcbacked.co", lambda: [])
     if source in {"coingecko", "all"}:
         add("coingecko", "https://api.coingecko.com", lambda: coingecko.fetch_all(days=days))
     if source in {"google-trends", "all"}:
@@ -819,6 +822,7 @@ def main() -> None:
             "stackexchange",
             "eia",
             "producthunt",
+            "vc-portfolios",
             "coingecko",
             "google-trends",
             "appstore",
