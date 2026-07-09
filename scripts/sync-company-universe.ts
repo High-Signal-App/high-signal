@@ -54,6 +54,7 @@ function main() {
   if (Number.isNaN(generatedMs)) {
     throw new Error(`invalid generatedAt in ${ARTIFACT_PATH}: ${artifact.generatedAt}`);
   }
+  const generatedUnix = Math.floor(generatedMs / 1000);
 
   const competitorCount = artifact.companies.reduce(
     (sum, company) => sum + company.competitors.length,
@@ -63,14 +64,14 @@ function main() {
     'DELETE FROM company_universe_competitors;',
     'DELETE FROM company_universe_companies;',
     'DELETE FROM company_universe_runs;',
-    `INSERT INTO company_universe_runs (id, generated_at, source_inputs_json, company_count, competitor_count, created_at) VALUES (${esc(runId(artifact.generatedAt))}, ${esc(artifact.generatedAt)}, ${esc(JSON.stringify(artifact.sourceInputs))}, ${artifact.companies.length}, ${competitorCount}, ${generatedMs});`,
+    `INSERT INTO company_universe_runs (id, generated_at, source_inputs_json, company_count, competitor_count, created_at) VALUES (${esc(runId(artifact.generatedAt))}, ${esc(artifact.generatedAt)}, ${esc(JSON.stringify(artifact.sourceInputs))}, ${artifact.companies.length}, ${competitorCount}, ${generatedUnix});`,
   ];
 
   for (const company of artifact.companies) {
     sql.push(
       `INSERT INTO company_universe_companies (slug, name, description, category, investors_json, source_evidence_json, generated_at, updated_at, status) VALUES (` +
         `${esc(company.slug)}, ${esc(company.name)}, ${esc(company.description)}, ${esc(company.category)}, ` +
-        `${esc(JSON.stringify(company.investors))}, ${esc(JSON.stringify(company.sourceEvidence))}, ${esc(artifact.generatedAt)}, ${generatedMs}, 'generated');`
+        `${esc(JSON.stringify(company.investors))}, ${esc(JSON.stringify(company.sourceEvidence))}, ${esc(artifact.generatedAt)}, ${generatedUnix}, 'generated');`
     );
   }
 
