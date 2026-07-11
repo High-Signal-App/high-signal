@@ -1,9 +1,16 @@
 import type { Metadata, Route } from 'next';
+import { unstable_cache } from 'next/cache';
 import Link from 'next/link';
 import { api, type DataSourceLive } from '@/lib/api';
 import catalog from '@/lib/source-catalog.json';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 86400;
+
+const DATA_CACHE_SECONDS = 86400;
+
+const readDataSources = unstable_cache(() => api.dataSources(), ['data-sources'], {
+  revalidate: DATA_CACHE_SECONDS,
+});
 
 export const metadata: Metadata = {
   title: 'Data — every source High Signal ingests',
@@ -71,7 +78,7 @@ export default async function DataPage() {
   let available = false;
   let liveTotal = 0;
   try {
-    const res = await api.dataSources();
+    const res = await readDataSources();
     available = res.available;
     liveTotal = res.total;
     live = Object.fromEntries(res.sources.map((s) => [s.id, s]));

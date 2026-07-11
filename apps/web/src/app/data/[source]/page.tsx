@@ -1,11 +1,24 @@
 import type { Metadata, Route } from 'next';
+import { unstable_cache } from 'next/cache';
 import Link from 'next/link';
 import { api, type DataSourceEventsResponse } from '@/lib/api';
 import catalog from '@/lib/source-catalog.json';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 86400;
 
 const PAGE = 50;
+const DATA_CACHE_SECONDS = 86400;
+
+const readDataSourceEvents = unstable_cache(
+  (source: string, limit: number, offset: number, date: string | null) =>
+    api.dataSourceEvents(source, {
+      limit,
+      offset,
+      date: date ?? undefined,
+    }),
+  ['data-source-events'],
+  { revalidate: DATA_CACHE_SECONDS }
+);
 
 interface CatalogEntry {
   id: string;
@@ -21,6 +34,10 @@ interface CatalogEntry {
 
 function entryFor(source: string): CatalogEntry | undefined {
   return (catalog.sources as CatalogEntry[]).find((s) => s.id === source);
+}
+
+export function generateStaticParams() {
+  return (catalog.sources as CatalogEntry[]).map((source) => ({ source: source.id }));
 }
 
 export async function generateMetadata({
@@ -84,11 +101,7 @@ export default async function DataSourcePage({
 
   let data: DataSourceEventsResponse | null = null;
   try {
-    data = await api.dataSourceEvents(source, {
-      limit: PAGE,
-      offset: page * PAGE,
-      date: selectedDate,
-    });
+    data = await readDataSourceEvents(source, PAGE, page * PAGE, selectedDate ?? null);
   } catch {
     /* worker/D1 unreachable */
   }
