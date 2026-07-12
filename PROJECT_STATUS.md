@@ -270,6 +270,16 @@ Python adapters under `python/ingest/src/high_signal_ingest/sources/` — all wi
 
 ### Planned
 
+0. **Cloudflare CPU abuse incident mitigated (2026-07-12):** Workers analytics
+   attributed more than 90% of billing-period CPU to `high-signal-web` and
+   `high-signal-api`. A live trace identified a single unverified hosting-ASN
+   scanner issuing random page/date combinations over plain HTTP at roughly
+   166k requests/day since July 3. The web Worker now rejects the evidenced
+   source before OpenNext and redirects all other HTTP requests to HTTPS before
+   application execution. Keep the exact-IP guard until traffic remains normal
+   for a full billing cycle; prefer a Cloudflare WAF rule when zone-level rules
+   permission is available.
+
 1. **Remaining source API keys (manual signup needed):** `FRED_API_KEY` (macro rates — highest value, 2 min signup), `ETHERSCAN_API_KEY` (Ethereum gas, 2 min), `COMPANIES_HOUSE_API_KEY` (UK filings, 3 min). All others have keyless alternatives or are niche — see session notes. AgentMail inbox `highsignal-keys@agentmail.to` is set up for registrations.
 2. **Plan 0008 follow-ups:** auto-publish reads claim records; lazy historical backfill; brief provenance affordance.
 3. **Plan 0009 follow-ups:** Email Routing operator setup (DKIM/SPF + `EMAIL_FROM`) is the only remaining blocker. Delivery is otherwise complete: the `*/30` cron now runs the sweep in `scheduled()` (fail-closed + idempotent), live-brief compose feeds the email, one-click unsubscribe (HMAC token, RFC 8058 `List-Unsubscribe`) works from any mail client, and 3 consecutive failures auto-disable a channel.

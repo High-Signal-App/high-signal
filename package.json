@@ -52,6 +52,7 @@
     "claim-provenance:test": "tsx scripts/claim-provenance.test.ts",
     "evidence-ranking:test": "tsx scripts/evidence-ranking.test.ts",
     "ai-visibility:test": "tsx scripts/ai-visibility.test.ts",
+    "abuse-guard:test": "node scripts/abuse-guard.test.mjs",
     "brief-delivery:test": "tsx scripts/brief-delivery.test.ts",
     "watchlist-impact:test": "tsx scripts/watchlist-impact.test.ts",
     "openlens-visibility:test": "tsx scripts/openlens-visibility.test.ts",

@@ -1,6 +1,7 @@
 // worker.mjs — wraps OpenNext; anon GET / serves the Astro landing from ASSETS.
 
 import openNext from './.open-next/worker.js';
+import { guardPublicRequest } from './abuse-guard.mjs';
 import { withTiming } from './timing.mjs';
 
 export {
@@ -28,6 +29,9 @@ function hasAuthCookie(request) {
 
 const worker = {
   fetch: withTiming(async function fetch(request, env, ctx) {
+    const guarded = guardPublicRequest(request);
+    if (guarded) return guarded;
+
     if (request.method !== 'GET') {
       return openNext.fetch(request, env, ctx);
     }
