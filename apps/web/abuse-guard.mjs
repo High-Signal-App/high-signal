@@ -3,7 +3,7 @@ const BLOCKED_CLIENT_IPS = new Set([
   '93.123.109.102',
 ]);
 
-const AI_CRAWLER_BLOCKED_PREFIXES = ['/data/', '/daily'];
+const AI_CRAWLER_BLOCKED_PREFIXES = ['/data/', '/daily', '/signals/today'];
 
 function isVerifiedAiCrawler(request) {
   return request.cf?.verifiedBotCategory === 'AI Crawler';

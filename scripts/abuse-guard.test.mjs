@@ -35,6 +35,14 @@ Object.defineProperty(verifiedCrawlerContent, 'cf', {
 });
 assert.equal(guardPublicRequest(verifiedCrawlerContent), null);
 
+const verifiedCrawlerAggregate = new Request(
+  'https://highsignal.app/signals/today?date=2026-07-01'
+);
+Object.defineProperty(verifiedCrawlerAggregate, 'cf', {
+  value: { verifiedBotCategory: 'AI Crawler' },
+});
+assert.equal(guardPublicRequest(verifiedCrawlerAggregate)?.status, 404);
+
 const normal = new Request('https://highsignal.app/brief');
 assert.equal(guardPublicRequest(normal), null);
 
