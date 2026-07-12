@@ -69,4 +69,4 @@
 - [x] 10.3 Python tests: `test_d2c_agent_visibility.py` (prompt, extraction, gap score, no-impuls8).
 - [x] 10.4 Full verification: `pnpm typecheck`, `pnpm test`, `pnpm lint`, `uv run pytest`, `uv run ruff`.
 
-- [ ] 10.5 Archive the OpenSpec change (after user review).
+- [x] 10.5 Archive the OpenSpec change (after user review).

@@ -1,4 +1,4 @@
-## MODIFIED Requirements
+## ADDED Requirements
 
 ### Requirement: India D2C niches produce cited Opportunity Briefs
 The system SHALL produce an Opportunity Brief for each of 20 curated India D2C niches, reusing the existing `OpportunityBriefPayload` contract, with verdict, confidence, target user, problem, evidence mix, competitor/pricing/agent-visibility notes, risks, and next validation step.
