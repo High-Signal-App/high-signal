@@ -20,7 +20,20 @@ const verifiedCrawler = new Request('https://highsignal.app/data/github-archive?
     'user-agent': 'GPTBot/1.4',
   },
 });
-assert.equal(guardPublicRequest(verifiedCrawler), null);
+Object.defineProperty(verifiedCrawler, 'cf', {
+  value: { verifiedBotCategory: 'AI Crawler' },
+});
+const crawlerDataResponse = guardPublicRequest(verifiedCrawler);
+assert.equal(crawlerDataResponse?.status, 404);
+assert.equal(crawlerDataResponse?.headers.get('x-robots-tag'), 'noindex, nofollow');
+
+const verifiedCrawlerContent = new Request('https://highsignal.app/brief', {
+  headers: { 'user-agent': 'GPTBot/1.4' },
+});
+Object.defineProperty(verifiedCrawlerContent, 'cf', {
+  value: { verifiedBotCategory: 'AI Crawler' },
+});
+assert.equal(guardPublicRequest(verifiedCrawlerContent), null);
 
 const normal = new Request('https://highsignal.app/brief');
 assert.equal(guardPublicRequest(normal), null);

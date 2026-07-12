@@ -276,9 +276,12 @@ Python adapters under `python/ingest/src/high_signal_ingest/sources/` — all wi
    scanner issuing random page/date combinations over plain HTTP at roughly
    166k requests/day since July 3. The web Worker now rejects the evidenced
    source before OpenNext and redirects all other HTTP requests to HTTPS before
-   application execution. Keep the exact-IP guard until traffic remains normal
-   for a full billing cycle; prefer a Cloudflare WAF rule when zone-level rules
-   permission is available.
+   application execution. A second live trace showed verified GPTBot walking
+   unbounded historical `/data/*` and `/daily*` combinations; verified AI
+   crawlers now retain reader-facing content but receive a cheap 404 on those
+   query-heavy history surfaces, which are also excluded in `robots.txt`. Keep
+   the exact-IP guard until traffic remains normal for a full billing cycle;
+   prefer a Cloudflare WAF rule when zone-level rules permission is available.
 
 1. **Remaining source API keys (manual signup needed):** `FRED_API_KEY` (macro rates — highest value, 2 min signup), `ETHERSCAN_API_KEY` (Ethereum gas, 2 min), `COMPANIES_HOUSE_API_KEY` (UK filings, 3 min). All others have keyless alternatives or are niche — see session notes. AgentMail inbox `highsignal-keys@agentmail.to` is set up for registrations.
 2. **Plan 0008 follow-ups:** auto-publish reads claim records; lazy historical backfill; brief provenance affordance.
