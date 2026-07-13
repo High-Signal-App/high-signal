@@ -7,6 +7,7 @@
  */
 
 import type { Region } from "../primitives/region";
+import type { BriefClaimProvenance } from "./claim-provenance";
 
 export type BriefSectionKey =
   | "stocks"
@@ -89,6 +90,49 @@ export interface BriefStockItem {
   hitRate: number | null;
   hitRateSample: number;
   hitRateBand: HitRateBand;
+  /** Optional on legacy/precomputed snapshots while claim coverage backfills. */
+  provenance?: BriefClaimProvenance;
+}
+
+export interface BriefWatchingItem {
+  signalId: string;
+  signalSlug: string;
+  signalType: string;
+  headline: string;
+  watchedEntityId: string;
+  watchedEntityName: string;
+  subjectEntityId: string;
+  subjectEntityName: string;
+  deltaKind: "direct" | "second_order";
+  observed: boolean;
+  confidence: "low" | "medium" | "high";
+  publishedAt: string;
+  why: string;
+  relationshipPath: Array<{
+    fromEntityId: string;
+    toEntityId: string;
+    type: string;
+  }>;
+  provenance: BriefClaimProvenance;
+}
+
+export interface BriefWatchingSection {
+  items: BriefWatchingItem[];
+}
+
+export function evidenceBackedWatchItems<T extends { signalId: string }>(
+  items: T[],
+  provenanceBySignal: Map<string, BriefClaimProvenance>,
+  limit = 5,
+): Array<{ item: T; provenance: BriefClaimProvenance }> {
+  const out: Array<{ item: T; provenance: BriefClaimProvenance }> = [];
+  for (const item of items) {
+    const provenance = provenanceBySignal.get(item.signalId);
+    if (!provenance) continue;
+    out.push({ item, provenance });
+    if (out.length >= limit) break;
+  }
+  return out;
 }
 
 export interface BriefIdeaItem {
@@ -139,6 +183,8 @@ export interface BriefSnapshot {
   stocks: BriefStockItem[];
   ideas: BriefIdeaItem[];
   trends: BriefTrendItem[];
+  /** Owner-scoped and omitted by older cached snapshots. */
+  watching?: BriefWatchingSection;
   perception: BriefPerceptionItem[];
   improvements: BriefImprovementItem[];
 }

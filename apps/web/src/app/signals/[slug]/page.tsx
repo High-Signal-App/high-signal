@@ -284,7 +284,7 @@ export default async function SignalDetail({ params }: { params: Promise<{ slug:
       ) : null}
 
       {bodyMarkdown ? (
-        <section className="mt-12 border-t border-zinc-800 pt-6">
+        <section id="provenance" className="mt-12 scroll-mt-24 border-t border-zinc-800 pt-6">
           <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">
             signal brief
           </h2>

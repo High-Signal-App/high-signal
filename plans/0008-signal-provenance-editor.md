@@ -1,8 +1,8 @@
 # Plan 0008 - Signal Provenance Editor And Claim Ledger
 
-Status: accepted / scaffolded
+Status: implemented
 Created: 2026-06-12
-Last updated: 2026-06-13
+Last updated: 2026-07-13
 Depends on: `plans/0004-platform-consolidation.md`, `plans/0006-agent-evaluation-attention-layer.md`, `plans/0007-highsignal-lab-substrate.md`
 
 ## Implementation state
@@ -15,14 +15,12 @@ This PRD is complete as a product spec and accepted into active scope. The v1 sc
 - Admin write routes: `POST /admin/claims`, `POST /admin/claims/:id/evidence`, `DELETE /admin/claims/:id/evidence/:linkId`, `POST /admin/claims/:id/status`, `POST /admin/claims/:id/corrections`.
 - Inline `/review` provenance editor with role-tagged evidence and correction/status actions.
 - Public signal-detail provenance section on `/signals/[slug]`.
+- Auto-publish reads structured claim evidence when available and reports the explicit legacy-signal fallback while historical coverage backfills.
+- Opening provenance in `/review` lazily creates one deterministic historical claim with role-tagged evidence through an authenticated idempotent route.
+- Stock items in `/brief` expose an optional compact "why this is here" claim/evidence disclosure.
 - Unit coverage in `scripts/claim-provenance.test.ts`.
 
-Remaining implementation work is intentionally tracked as follow-up, not as PRD uncertainty:
-
-- Apply migration `0009_claim_provenance.sql` to local and remote D1.
-- Refactor `scripts/auto-publish-drafts.ts` to read `claim_records` / `claim_evidence_links` instead of free-form signal frontmatter evidence arrays.
-- Add lazy backfill from existing signal evidence when `/review` first opens a historical signal with no claims.
-- Add the lightweight `/brief` "why this is here" affordance after structured claim coverage is high enough.
+Migration `0009_claim_provenance.sql` was applied to remote D1 on 2026-06-28. No migration or deploy was run as part of the 2026-07-13 local-code completion.
 
 ## Thesis
 

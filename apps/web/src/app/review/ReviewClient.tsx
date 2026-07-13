@@ -264,8 +264,22 @@ function ProvenancePanel({ slug, onErr }: { slug: string; onErr: (e: string | nu
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const r = await fetch(`${API_BASE}/claims/by-signal/${slug}`);
-      const j = (await r.json()) as { claims: ClaimWithEvidence[] };
+      let r = await fetch(`${API_BASE}/claims/by-signal/${slug}`);
+      let j = (await r.json()) as { claims: ClaimWithEvidence[] };
+      if (j.claims.length === 0) {
+        const backfill = await fetch('/api/admin/claims/backfill', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ signalSlug: slug }),
+        });
+        if (!backfill.ok) {
+          onErr(await formatResponseError('/api/admin/claims/backfill', backfill));
+          return;
+        }
+        r = await fetch(`${API_BASE}/claims/by-signal/${slug}`);
+        j = (await r.json()) as { claims: ClaimWithEvidence[] };
+      }
       setClaims(j.claims);
     } catch (e) {
       onErr(String(e));
@@ -303,16 +317,7 @@ function ProvenancePanel({ slug, onErr }: { slug: string; onErr: (e: string | nu
     return r;
   }
 
-  async function formatErr(url: string, r: Response): Promise<string> {
-    try {
-      const payload = (await r.clone().json()) as { error?: string; reason?: string };
-      const parts = [payload.error, payload.reason].filter(Boolean).join(' — ');
-      if (parts) return `${url} ${r.status}: ${parts}`;
-    } catch {
-      // body wasn't JSON; fall through to bare status
-    }
-    return `${url} ${r.status}`;
-  }
+  const formatErr = formatResponseError;
 
   async function createClaim() {
     if (!newAssertion.trim()) return;
@@ -425,6 +430,17 @@ function ProvenancePanel({ slug, onErr }: { slug: string; onErr: (e: string | nu
       )}
     </details>
   );
+}
+
+async function formatResponseError(url: string, r: Response): Promise<string> {
+  try {
+    const payload = (await r.clone().json()) as { error?: string; reason?: string };
+    const parts = [payload.error, payload.reason].filter(Boolean).join(' — ');
+    if (parts) return `${url} ${r.status}: ${parts}`;
+  } catch {
+    // body wasn't JSON; fall through to bare status
+  }
+  return `${url} ${r.status}`;
 }
 
 function ClaimEditor({

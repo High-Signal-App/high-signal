@@ -7,6 +7,7 @@
 import { Hono } from "hono";
 import { eq } from "drizzle-orm";
 import {
+  buildHistoricalClaimBackfill,
   canTransition,
   judgePublishability,
   rollupEvidence,
@@ -694,6 +695,99 @@ adminRoute.post("/claims", async (c) => {
   }
 
   return c.json({ id });
+});
+
+// Lazy historical import. This is deliberately an authenticated write rather
+// than a side effect on GET /claims/by-signal/:slug. Repeated opens are safe:
+// an existing signal claim wins, while deterministic IDs make concurrent
+// retries converge on the same rows.
+adminRoute.post("/claims/backfill", async (c) => {
+  const body = (await c.req.json()) as { signalSlug?: string };
+  const signalSlug = body.signalSlug?.trim();
+  if (!signalSlug) return c.json({ error: "missing_signal_slug" }, 400);
+
+  const [signal] = await db(c.env.DB)
+    .select()
+    .from(schema.signals)
+    .where(eq(schema.signals.slug, signalSlug))
+    .limit(1);
+  if (!signal) return c.json({ error: "signal_not_found" }, 404);
+
+  const [existing] = await db(c.env.DB)
+    .select({ id: schema.claimRecords.id })
+    .from(schema.claimRecords)
+    .where(eq(schema.claimRecords.signalId, signal.id))
+    .limit(1);
+  if (existing) return c.json({ id: existing.id, backfilled: false });
+
+  const derived = buildHistoricalClaimBackfill({
+    bodyMd: signal.bodyMd,
+    fallbackAssertion: signal.slug.replaceAll("-", " "),
+    evidenceUrls: Array.isArray(signal.evidenceUrls)
+      ? signal.evidenceUrls.map(String)
+      : [],
+  });
+  const now = new Date();
+  const actor = actorFromHeaders(c);
+  const claimId = await sha16(`claim:backfill:${signal.id}`);
+  const isPublished = signal.reviewStatus === "published";
+
+  await db(c.env.DB)
+    .insert(schema.claimRecords)
+    .values({
+      id: claimId,
+      signalId: signal.id,
+      surface: "signal",
+      assertion: derived.assertion,
+      confidenceBand: signal.confidence,
+      reviewStatus: isPublished ? "published" : "draft",
+      publishReason: isPublished ? "historical_signal_backfill" : null,
+      version: 1,
+      createdAt: now,
+      publishedAt: isPublished ? signal.publishedAt : null,
+    })
+    .onConflictDoNothing({ target: schema.claimRecords.id });
+
+  await db(c.env.DB)
+    .insert(schema.claimTimelineEvents)
+    .values({
+      id: await sha16(`tl:${claimId}:backfill`),
+      claimId,
+      kind: "created",
+      payload: { source: "historical_signal_backfill", signalSlug },
+      actor,
+      createdAt: now,
+    })
+    .onConflictDoNothing({ target: schema.claimTimelineEvents.id });
+
+  for (const link of derived.evidence) {
+    const linkId = await sha16(`link:${claimId}:${link.url}`);
+    await db(c.env.DB)
+      .insert(schema.claimEvidenceLinks)
+      .values({
+        id: linkId,
+        claimId,
+        evidenceUrl: link.url,
+        role: link.role,
+        weight: 1,
+        addedAt: now,
+        addedBy: actor,
+      })
+      .onConflictDoNothing({ target: schema.claimEvidenceLinks.id });
+    await db(c.env.DB)
+      .insert(schema.claimTimelineEvents)
+      .values({
+        id: await sha16(`tl:${claimId}:backfill:${linkId}`),
+        claimId,
+        kind: "evidence_added",
+        payload: { linkId, url: link.url, role: link.role, source: "historical_signal_backfill" },
+        actor,
+        createdAt: now,
+      })
+      .onConflictDoNothing({ target: schema.claimTimelineEvents.id });
+  }
+
+  return c.json({ id: claimId, backfilled: true, evidenceCount: derived.evidence.length });
 });
 
 adminRoute.post("/claims/:id/evidence", async (c) => {

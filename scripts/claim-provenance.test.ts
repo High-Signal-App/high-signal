@@ -10,9 +10,11 @@
  */
 
 import {
+  buildHistoricalClaimBackfill,
   canTransition,
   judgePublishability,
   rollupEvidence,
+  selectBriefClaimProvenance,
   type ClaimEvidenceLink,
   type ClaimEvidenceRole,
 } from "@high-signal/shared";
@@ -45,6 +47,19 @@ function checkEq<T>(label: string, actual: T, expected: T) {
 }
 
 console.log("rollupEvidence");
+
+console.log("historical backfill derivation");
+{
+  const backfill = buildHistoricalClaimBackfill({
+    bodyMd: "# NVIDIA capacity expands\n\nMore context.",
+    fallbackAssertion: "fallback",
+    evidenceUrls: ["https://a.example/x", "https://a.example/x", "https://b.example/y"],
+  });
+  checkEq("headline becomes assertion", backfill.assertion, "NVIDIA capacity expands");
+  checkEq("backfill deduplicates urls", backfill.evidence.length, 2);
+  checkEq("first evidence is primary", backfill.evidence[0]?.role, "primary");
+  checkEq("later evidence corroborates", backfill.evidence[1]?.role, "corroboration");
+}
 {
   const r = rollupEvidence([link("primary"), link("primary"), link("corroboration"), link("context")]);
   checkEq("total counts", r.total, 4);
@@ -54,6 +69,35 @@ console.log("rollupEvidence");
   checkEq("contradiction counts when none", r.contradiction, 0);
   checkEq("distinct urls", r.distinctUrls, 4);
   checkEq("distinct hosts", r.hosts.length, 1); // all example.com
+}
+
+console.log("\nselectBriefClaimProvenance");
+{
+  const now = new Date().toISOString();
+  const claim = {
+    id: "c-summary",
+    signalId: "signal-1",
+    briefItemId: null,
+    agentEvalResponseId: null,
+    surface: "signal" as const,
+    assertion: "Structured claim",
+    confidenceBand: "high" as const,
+    reviewStatus: "published" as const,
+    publishReason: "two sources",
+    parentClaimId: null,
+    version: 2,
+    createdAt: now,
+    publishedAt: now,
+    correctedAt: null,
+    evidence: [
+      link("primary", "https://a.example/x"),
+      link("corroboration", "https://b.example/y"),
+    ],
+  };
+  const summary = selectBriefClaimProvenance([claim]);
+  checkEq("summary selects evidence-backed claim", summary?.claimId, "c-summary");
+  checkEq("summary reports evidence count", summary?.evidenceCount, 2);
+  checkEq("empty claim list has no summary", selectBriefClaimProvenance([]), null);
 }
 
 {

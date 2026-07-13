@@ -88,6 +88,7 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 
 ## Timeline
 
+- **2026-07-13** — Completed the remaining local-code follow-ups for plans 0008 and 0010. Auto-publish now prefers structured claim links with an explicit legacy fallback; `/review` lazily and idempotently backfills historical claims; stock items expose compact “why this is here” provenance; and signed-in briefs compose up to five suppression-aware direct/one-hop watch impacts, omitting any item without evidence-backed claim linkage. No migration, production config, or deploy was run.
 - **2026-07-13** — Added the versioned public `GET /learning/daily` feed for the Fleet unified-learning pipeline. It reuses the canonical Daily Brief composer in-process, emits only compact stock/idea/trend learning items with citations, and deliberately excludes owner-specific perception and improvement sections. Focused API typecheck and full worker test suite pass.
 - **2026-07-05** — Added **India D2C Opportunity Pipeline** (plan 0013, Slices 1 + 2). 20 hand-curated India D2C niches → deterministic 0–100 opportunity score → `test / watch / avoid` verdict → `OpportunityBriefPayload` rendered in `/opportunities` (new "India D2C Opportunity Briefs" section) and Daily Brief section 02 (3 briefs for `south-asia`, 1 rotating for `global`). Reuses the existing Opportunity Brief contract — no new component, no D1 migration (JSON artifacts first per the PRD). New `packages/shared/src/content/d2c-opportunities.ts` (seed + `scoreD2CNiche` + `verdictForScore` + `composeD2COpportunityBrief` + `d2cBriefItems`); weekly Python collector `python/ingest/.../d2c_opportunities.py` pulls Reddit/HN/Product-Hunt samples for the 20 niches and writes cited JSON artifacts under `data/d2c-opportunities/`; `scripts/d2c-opportunities-bundle.ts` bundles the latest artifact into the shared package so the worker renders cited evidence without a runtime fs read. Fragile sources (Google Trends, Meta Ad Library, marketplace pages) degrade to `null` with a `freshnessDate`. No impuls8 data read or redistributed; no paid source dependency. Tests: `d2c-opportunities` (TS, 32) + `test_d2c_opportunities.py` (10). Run: `pnpm d2c:collect` then `pnpm d2c:bundle`. Slices 3 (scoring history + D1 persistence) and 4 (agent-visibility overlay) deferred.
 - **2026-07-13** — Completed plan 0011's remaining local-code follow-ups: `/mentions` now uses topic/prompt product language, completed mention checks rebuild cited-source evidence independently from intent-opportunity refresh, and visibility reports support owner access or a deterministic brand-scoped HMAC share token. Token creation is owner-gated and token reads fail closed without the existing server signing secret. Migration `0012_cited_url_index.sql` remains an operator apply step; no migration, secret, config, or production change was performed.
@@ -102,7 +103,7 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 - **Migrations 0000–0007:** Applied; canonical D1 schema for signals, evidence, entities, markets, etc.
 - **Migrations 0008–0013:** Applied to remote D1 (2026-06-28). 0008 was manually applied earlier (column + index existed); marked as applied and 0009–0013 applied via `wrangler d1 migrations apply --remote`.
 - **Plan 0007:** Lab substrate — partial (local docker Postgres, HN ingest, scorer, FastAPI feed); parked as product infrastructure.
-- **Plans 0008–0011:** Claim provenance, brief delivery, watchlists, OpenLens visibility — code wired; plan 0011 local-code follow-ups complete, with migration/operator steps still pending.
+- **Plans 0008–0011:** Claim provenance, brief delivery, watchlists, and OpenLens visibility are wired. Plans 0008, 0010, and 0011 local-code follow-ups are complete; remaining external/operator work is tracked separately.
 - **2026-06-30:** Added and scaffolded plan 0012 after reviewing Octolens, Peekaboo, and Subreddit Signals. Decision: beat them by combining AI visibility, citation/source gaps, community buyer intent, proof tasks, and Daily Brief/report outputs instead of copying separate social-listening, GEO, or Reddit-lead dashboards.
 - **2026-07-02:** Revamped `/` and `/brief` first viewport around the product loop: market change, buyer intent, AI visibility, and proof gaps. The UI now uses a sharper Aceternity-inspired dark grid treatment while keeping the app surface evidence-first and dense.
 - **2026-07-03:** Collapsed the active product shell around data, signals, history, and evals. `/` now renders the signals feed, with Global / US / China / India scopes, default company/idea focus lists, and a fixed sidebar. `/data` is a compact clickable source directory: only sources with stored events open, and they open the latest available source-day view. Signal detail pages link cited evidence back to source-day data when the evidence source maps to the catalog.
@@ -158,7 +159,7 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 - Worker: `GET /track-record`, `/cohorts`, `/series`, `/workbench`, `/labels`.
 - Label backtest replayed weekly by `cron-backtest.yml`.
 
-### Plan 0008 — Signal provenance editor (scaffolded)
+### Plan 0008 — Signal provenance editor
 
 - Migration `0009_claim_provenance.sql` — **Applied to remote D1** (2026-06-28).
 - Tables (local schema): `claim_records`, `claim_evidence_links`, `claim_timeline_events`.
@@ -166,7 +167,8 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 - Read routes: `GET /claims/:id`, `GET /claims/by-signal/:slug`.
 - Admin write routes: POST/DELETE claim evidence, status, corrections.
 - Web: inline provenance editor on `/review`; public provenance section on `/signals/[slug]`.
-- Tests: `scripts/claim-provenance.test.ts` (29 unit tests).
+- Auto-publish consumes structured evidence when claims exist; `/review` lazily backfills historical signals through an authenticated idempotent route; stock brief cards expose compact provenance.
+- Tests: `scripts/claim-provenance.test.ts` (36 unit tests) plus structured auto-publish coverage.
 
 ### Plan 0009 — Brief distribution (scaffolded)
 
@@ -178,7 +180,7 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 - Web: `/settings/delivery`, `/admin/delivery`; admin summary `GET /admin/delivery/summary`.
 - Tests: `scripts/brief-delivery.test.ts` (24 unit tests).
 
-### Plan 0010 — Entity watchlists & impact chains (scaffolded)
+### Plan 0010 — Entity watchlists & impact chains
 
 - Migration `0011_watchlists.sql` — **Applied to remote D1** (2026-06-28).
 - Tables: `watchlists`, `watchlist_entities`, `watchlist_suppressions`, `watchlist_delta_log`.
@@ -186,7 +188,8 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 - Next.js proxy: `/api/watchlists/[...path]`.
 - Web: `/watchlist/entities`, `/watchlist` hub; "Watch" on `/entities/[id]`.
 - Shared impact composer: `packages/shared/src/watchlist-impact.ts`.
-- Tests: `scripts/watchlist-impact.test.ts` (20 unit tests).
+- Signed-in `/brief/daily?owner=...` responses include a fault-isolated `watching` block; every surfaced item is linked to an evidence-backed claim and renders relationship/provenance context in `/brief`.
+- Tests: `scripts/watchlist-impact.test.ts` (22 unit tests).
 
 ### Plan 0011 — OpenLens visibility (scaffolded)
 
@@ -287,9 +290,7 @@ Python adapters under `python/ingest/src/high_signal_ingest/sources/` — all wi
    prefer a Cloudflare WAF rule when zone-level rules permission is available.
 
 1. **Remaining source API keys (manual signup needed):** `FRED_API_KEY` (macro rates — highest value, 2 min signup), `ETHERSCAN_API_KEY` (Ethereum gas, 2 min), `COMPANIES_HOUSE_API_KEY` (UK filings, 3 min). All others have keyless alternatives or are niche — see session notes. AgentMail inbox `highsignal-keys@agentmail.to` is set up for registrations.
-2. **Plan 0008 follow-ups:** auto-publish reads claim records; lazy historical backfill; brief provenance affordance.
 3. **Plan 0009 follow-ups:** Email Routing operator setup (DKIM/SPF + `EMAIL_FROM`) is the only remaining blocker. Delivery is otherwise complete: the `*/30` cron now runs the sweep in `scheduled()` (fail-closed + idempotent), live-brief compose feeds the email, one-click unsubscribe (HMAC token, RFC 8058 `List-Unsubscribe`) works from any mail client, and 3 consecutive failures auto-disable a channel.
-4. **Plan 0010 follow-ups:** wire `watching` section into brief composer; claim linkage.
 6. Clarify event semantics — `normalized_events` vs current `events` as source observations.
 7. Keep source pipeline small and quality-gated; run `pnpm source:quality` after full ingest.
 8. Promote `/unmapped` candidates into seed CSV; expand curated adapter lists before new firehoses.
@@ -322,7 +323,6 @@ Python adapters under `python/ingest/src/high_signal_ingest/sources/` — all wi
 ### Blocked
 
 - Brief delivery requires `EMAIL_FROM`, `API_BASE`, Email Routing, destination verification before cron sends real mail.
-- Brief `watching` section not wired despite watchlist scaffold (migration 0011 now applied — table exists).
 - USPTO PatentsView in ODP transition may return no events.
 - Worker `scheduled` handler no-ops unless `MODAL_TRIGGER_URL` set; daily ingest/scoring primary path is GitHub Actions.
 - `send_email` binding declared in `workers/api/wrangler.toml`; operator checklist in file comments.

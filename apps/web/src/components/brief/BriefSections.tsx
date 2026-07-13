@@ -7,6 +7,8 @@ import type {
   BriefSnapshot,
   BriefStockItem,
   BriefTrendItem,
+  BriefWatchingItem,
+  BriefClaimProvenance,
 } from '@high-signal/shared';
 
 interface SectionShellProps {
@@ -126,6 +128,9 @@ function StockItem({ item }: { item: BriefStockItem }) {
             ))}
           </ul>
         ) : null}
+        {item.provenance ? (
+          <ProvenanceDisclosure provenance={item.provenance} signalSlug={item.signalSlug} />
+        ) : null}
       </div>
       <div className="rounded-md border border-[var(--color-line)] bg-black/20 p-3 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
         <div>{bandCopy}</div>
@@ -146,6 +151,79 @@ function StockItem({ item }: { item: BriefStockItem }) {
           full ledger →
         </Link>
       </div>
+    </article>
+  );
+}
+
+function ProvenanceDisclosure({
+  provenance,
+  signalSlug,
+  why,
+}: {
+  provenance: BriefClaimProvenance;
+  signalSlug: string;
+  why?: string;
+}) {
+  return (
+    <details className="mt-3 border-l border-[var(--color-line)] pl-3 font-mono text-[10px] text-[var(--color-muted)]">
+      <summary className="cursor-pointer uppercase tracking-[0.18em] hover:text-[var(--color-accent)]">
+        why this is here
+      </summary>
+      <div className="mt-2 space-y-2 leading-5">
+        {why ? <p>{why}</p> : null}
+        <p className="text-[var(--color-fg)]">{provenance.assertion}</p>
+        <p>
+          claim v{provenance.version} · {provenance.primaryCount} primary ·{' '}
+          {provenance.corroborationCount} corroboration · {provenance.evidenceCount} sources
+        </p>
+        <div className="flex flex-wrap gap-x-3 gap-y-1">
+          <Link
+            href={`/signals/${encodeURIComponent(signalSlug)}#provenance` as Route}
+            className="hover:text-[var(--color-accent)]"
+          >
+            claim {provenance.claimId.slice(0, 8)} →
+          </Link>
+          {provenance.evidenceUrls.slice(0, 3).map((url, index) => (
+            <a
+              key={url}
+              href={url}
+              target="_blank"
+              rel="noreferrer"
+              className="hover:text-[var(--color-accent)]"
+            >
+              source {index + 1}
+            </a>
+          ))}
+        </div>
+      </div>
+    </details>
+  );
+}
+
+function WatchingItem({ item }: { item: BriefWatchingItem }) {
+  return (
+    <article
+      className={`border-b border-[var(--color-line)] py-5 last:border-b-0 sm:px-3 ${
+        item.observed ? '' : 'opacity-75'
+      }`}
+    >
+      <div className="flex flex-wrap items-baseline gap-2 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
+        <span className="text-[var(--color-fg)]">{item.subjectEntityName}</span>
+        <span>· {item.deltaKind.replace('_', ' ')}</span>
+        <span>· {item.observed ? 'observed' : 'inferred'}</span>
+        <span>· {item.confidence} confidence</span>
+      </div>
+      <Link
+        href={`/signals/${encodeURIComponent(item.signalSlug)}` as Route}
+        className="mt-2 block text-xl font-medium leading-7 tracking-tight hover:text-[var(--color-accent)]"
+      >
+        {item.headline}
+      </Link>
+      <ProvenanceDisclosure
+        provenance={item.provenance}
+        signalSlug={item.signalSlug}
+        why={item.why.replace(item.watchedEntityId, item.watchedEntityName)}
+      />
     </article>
   );
 }
@@ -411,6 +489,28 @@ export function BriefSections({ brief }: { brief: BriefSnapshot }) {
           ))}
         </div>
       </SectionShell>
+
+      {(brief.watching?.items.length ?? 0) > 0 ? (
+        <SectionShell
+          eyebrow="watching / your entities"
+          title="What moved around names you follow"
+          description="Direct and one-hop impacts from your default watchlist. Every item is attached to structured claim evidence."
+          action={
+            <Link
+              href={'/watchlist/entities' as Route}
+              className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)] hover:text-[var(--color-accent)]"
+            >
+              manage watchlist →
+            </Link>
+          }
+        >
+          <div className="border-t border-[var(--color-line)]">
+            {brief.watching?.items.map((item) => (
+              <WatchingItem key={`${item.signalId}-${item.watchedEntityId}`} item={item} />
+            ))}
+          </div>
+        </SectionShell>
+      ) : null}
 
       <SectionShell
         eyebrow="04 / how the market perceives your products"

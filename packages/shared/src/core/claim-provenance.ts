@@ -70,6 +70,79 @@ export interface ClaimDetail extends ClaimWithEvidence {
   timeline: ClaimTimelineEvent[];
 }
 
+export interface HistoricalClaimBackfill {
+  assertion: string;
+  evidence: Array<{
+    url: string;
+    role: "primary" | "corroboration";
+  }>;
+}
+
+/**
+ * Build the deterministic payload used when an operator opens provenance for
+ * a historical signal. Persistence and idempotency stay in the admin route;
+ * keeping the derivation pure makes the import policy easy to verify.
+ */
+export function buildHistoricalClaimBackfill(input: {
+  bodyMd: string;
+  fallbackAssertion: string;
+  evidenceUrls: string[];
+}): HistoricalClaimBackfill {
+  const firstLine = input.bodyMd
+    .split("\n")
+    .map((line) => line.trim())
+    .find(Boolean);
+  const assertion = (firstLine?.replace(/^#+\s*/, "").trim() || input.fallbackAssertion).slice(
+    0,
+    500,
+  );
+  const urls = Array.from(
+    new Set(input.evidenceUrls.map((url) => url.trim()).filter(Boolean)),
+  );
+  return {
+    assertion,
+    evidence: urls.map((url, index) => ({
+      url,
+      role: index === 0 ? "primary" : "corroboration",
+    })),
+  };
+}
+
+export interface BriefClaimProvenance {
+  claimId: string;
+  assertion: string;
+  version: number;
+  evidenceCount: number;
+  primaryCount: number;
+  corroborationCount: number;
+  contradictionCount: number;
+  evidenceUrls: string[];
+}
+
+/** Pick the newest evidence-backed claim from an already newest-first list. */
+export function selectBriefClaimProvenance(
+  claims: ClaimWithEvidence[],
+): BriefClaimProvenance | null {
+  for (const claim of claims) {
+    const evidenceUrls = Array.from(
+      new Set(claim.evidence.map((link) => link.evidenceUrl).filter(Boolean)),
+    );
+    if (evidenceUrls.length === 0) continue;
+    const rollup = rollupEvidence(claim.evidence);
+    return {
+      claimId: claim.id,
+      assertion: claim.assertion,
+      version: claim.version,
+      evidenceCount: evidenceUrls.length,
+      primaryCount: rollup.primary,
+      corroborationCount: rollup.corroboration,
+      contradictionCount: rollup.contradiction,
+      evidenceUrls,
+    };
+  }
+  return null;
+}
+
 // ─── Rollup helpers ────────────────────────────────────────────────────────
 // Every helper is pure and operates on already-fetched evidence-link rows so
 // the worker, the auto-publish judge, and React server components can share

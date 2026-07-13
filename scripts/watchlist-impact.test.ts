@@ -7,6 +7,7 @@
 
 import {
   composeImpactChain,
+  evidenceBackedWatchItems,
   isSuppressed,
   type ComposeArgs,
   type RelationshipEdge,
@@ -38,6 +39,31 @@ function edge(from: string, to: string, type: RelationshipEdge["type"] = "suppli
 }
 
 console.log("composeImpactChain — direct items");
+
+console.log("evidenceBackedWatchItems — claim gate");
+{
+  const provenance = new Map([
+    [
+      "s1",
+      {
+        claimId: "claim-1",
+        assertion: "Structured claim",
+        version: 1,
+        evidenceCount: 2,
+        primaryCount: 1,
+        corroborationCount: 1,
+        contradictionCount: 0,
+        evidenceUrls: ["https://a.example/x", "https://b.example/y"],
+      },
+    ],
+  ]);
+  const out = evidenceBackedWatchItems(
+    [{ signalId: "missing" }, { signalId: "s1" }],
+    provenance,
+  );
+  checkEq("omits watch item without claim evidence", out.length, 1);
+  checkEq("keeps claim-backed watch item", out[0]?.item.signalId, "s1");
+}
 {
   const args: ComposeArgs = {
     watchedEntityIds: ["NVDA"],

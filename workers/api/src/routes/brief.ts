@@ -17,8 +17,10 @@ import { Hono } from "hono";
 import { and, desc, eq, inArray, gte, sql } from "drizzle-orm";
 import {
   BUNDLED_D2C_ARTIFACT,
+  composeImpactChain,
   countriesForRegion,
   d2cBriefItems,
+  evidenceBackedWatchItems,
   fallbackIdeas,
   fallbackStocks,
   fallbackTrends,
@@ -28,6 +30,7 @@ import {
   isRegion,
   normalizeCommunitySummary,
   rankEvidenceUrls,
+  selectBriefClaimProvenance,
   SEED_PRODUCTS,
   type BriefIdeaItem,
   type BriefImprovementItem,
@@ -35,6 +38,10 @@ import {
   type BriefSnapshot,
   type BriefStockItem,
   type BriefTrendItem,
+  type BriefWatchingItem,
+  type ClaimEvidenceLink,
+  type ClaimWithEvidence,
+  type ComposeArgs,
   type HitRateBand,
   type OpportunityBriefPayload,
   type Region,
@@ -204,13 +211,15 @@ briefRoute.get("/daily", async (c) => {
 
   let perception: BriefPerceptionItem[] = [];
   let improvements: BriefImprovementItem[] = [];
+  let watching: BriefWatchingItem[] = [];
   let hasBrand = false;
 
   // Priority 1: a real signed-in owner with their own brand data in D1.
   if (ownerId) {
-    [perception, improvements] = await Promise.all([
+    [perception, improvements, watching] = await Promise.all([
       safe(() => buildPerception(database, ownerId), "perception"),
       safe(() => buildImprovements(database, ownerId), "improvements"),
+      safe(() => buildWatching(database, ownerId), "watching"),
     ]);
     hasBrand = perception.length > 0 || improvements.length > 0;
   }
@@ -249,6 +258,7 @@ briefRoute.get("/daily", async (c) => {
     stocks,
     ideas,
     trends,
+    watching: { items: watching },
     perception,
     improvements,
   };
@@ -358,6 +368,11 @@ async function buildStocks(
     (r) => !isPredictionMarketOnly((Array.isArray(r.evidenceList) ? r.evidenceList : []).map(String)),
   );
 
+  const provenanceBySignal = await loadBriefProvenanceBySignalId(
+    database,
+    rows.map((row) => row.signalId),
+  );
+
   // Pull hit-rate stats — both per-type and per-family — so the renderer can
   // fall back gracefully when a fresh signal type has no scored predictions.
   const signalTypes = Array.from(new Set(rows.map((r) => r.signalType)));
@@ -377,6 +392,7 @@ async function buildStocks(
     const headline = headlineFromBody(row.bodyMd, row.entityName);
     const evidenceArr = Array.isArray(row.evidenceList) ? row.evidenceList : [];
     const resolved = resolveHitRate(row.signalType, hitRateBySignalType, hitRateByFamily);
+    const provenance = provenanceBySignal.get(row.signalId);
     return {
       entityId: row.entityId,
       entityName: row.entityName,
@@ -402,7 +418,205 @@ async function buildStocks(
       hitRate: resolved.hitRate,
       hitRateSample: resolved.sample,
       hitRateBand: resolved.band,
+      ...(provenance ? { provenance } : {}),
     };
+  });
+}
+
+async function loadBriefProvenanceBySignalId(
+  database: ReturnType<typeof db>,
+  signalIds: string[],
+): Promise<Map<string, NonNullable<BriefStockItem["provenance"]>>> {
+  const uniqueIds = Array.from(new Set(signalIds));
+  if (uniqueIds.length === 0) return new Map();
+  const claimRows = await database
+    .select()
+    .from(schema.claimRecords)
+    .where(
+      and(
+        inArray(schema.claimRecords.signalId, uniqueIds),
+        eq(schema.claimRecords.surface, "signal"),
+      ),
+    )
+    .orderBy(desc(schema.claimRecords.createdAt));
+  if (claimRows.length === 0) return new Map();
+  const claimIds = claimRows.map((claim) => claim.id);
+  const linkRows = await database
+    .select()
+    .from(schema.claimEvidenceLinks)
+    .where(inArray(schema.claimEvidenceLinks.claimId, claimIds));
+  const linksByClaim = new Map<string, ClaimEvidenceLink[]>();
+  for (const link of linkRows) {
+    const links = linksByClaim.get(link.claimId) ?? [];
+    links.push({
+      id: link.id,
+      claimId: link.claimId,
+      evidenceUrl: link.evidenceUrl,
+      sourceDocumentId: link.sourceDocumentId ?? null,
+      role: link.role,
+      weight: link.weight,
+      notes: link.notes ?? null,
+      addedAt: link.addedAt.toISOString(),
+      addedBy: link.addedBy ?? null,
+    });
+    linksByClaim.set(link.claimId, links);
+  }
+  const claimsBySignal = new Map<string, ClaimWithEvidence[]>();
+  for (const claim of claimRows) {
+    if (!claim.signalId) continue;
+    const claims = claimsBySignal.get(claim.signalId) ?? [];
+    claims.push({
+      id: claim.id,
+      signalId: claim.signalId,
+      briefItemId: claim.briefItemId ?? null,
+      agentEvalResponseId: claim.agentEvalResponseId ?? null,
+      surface: claim.surface,
+      assertion: claim.assertion,
+      confidenceBand: claim.confidenceBand,
+      reviewStatus: claim.reviewStatus,
+      publishReason: claim.publishReason ?? null,
+      parentClaimId: claim.parentClaimId ?? null,
+      version: claim.version,
+      createdAt: claim.createdAt.toISOString(),
+      publishedAt: claim.publishedAt?.toISOString() ?? null,
+      correctedAt: claim.correctedAt?.toISOString() ?? null,
+      evidence: linksByClaim.get(claim.id) ?? [],
+    });
+    claimsBySignal.set(claim.signalId, claims);
+  }
+  const out = new Map<string, NonNullable<BriefStockItem["provenance"]>>();
+  for (const [signalId, claims] of claimsBySignal) {
+    const provenance = selectBriefClaimProvenance(claims);
+    if (provenance) out.set(signalId, provenance);
+  }
+  return out;
+}
+
+async function buildWatching(
+  database: ReturnType<typeof db>,
+  ownerId: string,
+): Promise<BriefWatchingItem[]> {
+  const [watchlist] = await database
+    .select({ id: schema.watchlists.id })
+    .from(schema.watchlists)
+    .where(
+      and(
+        eq(schema.watchlists.userId, ownerId),
+        eq(schema.watchlists.name, "default"),
+      ),
+    )
+    .limit(1);
+  if (!watchlist) return [];
+
+  const watchedRows = await database
+    .select()
+    .from(schema.watchlistEntities)
+    .where(eq(schema.watchlistEntities.watchlistId, watchlist.id));
+  if (watchedRows.length === 0) return [];
+  const watchedIds = watchedRows.map((row) => row.entityId);
+  const since = new Date(Date.now() - 31 * 24 * 60 * 60 * 1000);
+  const directRows = await database
+    .select()
+    .from(schema.signals)
+    .where(
+      and(
+        eq(schema.signals.reviewStatus, "published"),
+        inArray(schema.signals.primaryEntityId, watchedIds),
+        gte(schema.signals.publishedAt, since),
+      ),
+    )
+    .orderBy(desc(schema.signals.publishedAt))
+    .limit(100);
+  const edges = await database
+    .select()
+    .from(schema.relationships)
+    .where(inArray(schema.relationships.fromEntityId, watchedIds));
+  const secondaryIds = Array.from(new Set(edges.map((edge) => edge.toEntityId)));
+  const secondaryRows = secondaryIds.length
+    ? await database
+        .select()
+        .from(schema.signals)
+        .where(
+          and(
+            eq(schema.signals.reviewStatus, "published"),
+            inArray(schema.signals.primaryEntityId, secondaryIds),
+            gte(schema.signals.publishedAt, since),
+          ),
+        )
+        .orderBy(desc(schema.signals.publishedAt))
+        .limit(150)
+    : [];
+  const suppressions = await database
+    .select()
+    .from(schema.watchlistSuppressions)
+    .where(eq(schema.watchlistSuppressions.watchlistId, watchlist.id));
+
+  const horizonDays = new Map(
+    watchedRows.map((row) => [
+      row.entityId,
+      row.horizon === "day" ? 1 : row.horizon === "month" ? 31 : 7,
+    ]),
+  );
+  const withinHorizon = (publishedAt: Date, watchedId: string) =>
+    Date.now() - publishedAt.getTime() <=
+    (horizonDays.get(watchedId) ?? 7) * 24 * 60 * 60 * 1000;
+  const direct = directRows.filter((row) => withinHorizon(row.publishedAt, row.primaryEntityId));
+  const edgeBySubject = new Map(edges.map((edge) => [edge.toEntityId, edge]));
+  const secondOrder = secondaryRows.filter((row) => {
+    const edge = edgeBySubject.get(row.primaryEntityId);
+    return edge ? withinHorizon(row.publishedAt, edge.fromEntityId) : false;
+  });
+  const toSignal = (row: typeof schema.signals.$inferSelect) => ({
+    id: row.id,
+    slug: row.slug,
+    signalType: row.signalType,
+    primaryEntityId: row.primaryEntityId,
+    confidence: row.confidence,
+    publishedAt: row.publishedAt.toISOString(),
+  });
+  const composeArgs: ComposeArgs = {
+    watchedEntityIds: watchedIds,
+    directSignals: direct.map(toSignal),
+    edges: edges.map((edge) => ({
+      fromEntityId: edge.fromEntityId,
+      toEntityId: edge.toEntityId,
+      type: edge.type,
+      weight: edge.weight ?? 1,
+      verified: Boolean(edge.verified),
+    })),
+    secondOrderSignals: secondOrder.map(toSignal),
+    suppressions: suppressions.map((rule) => ({ kind: rule.kind, value: rule.value })),
+    alreadySurfacedSignalIds: new Set(),
+    nowMs: Date.now(),
+  };
+  const composed = composeImpactChain(composeArgs).slice(0, 20);
+  const provenanceBySignal = await loadBriefProvenanceBySignalId(
+    database,
+    composed.map((item) => item.signalId),
+  );
+  const eligible = evidenceBackedWatchItems(composed, provenanceBySignal, 5);
+  if (eligible.length === 0) return [];
+
+  const entityIds = Array.from(
+    new Set(eligible.flatMap(({ item }) => [item.watchedEntityId, item.subjectEntityId])),
+  );
+  const entityRows = await database
+    .select({ id: schema.entities.id, name: schema.entities.name })
+    .from(schema.entities)
+    .where(inArray(schema.entities.id, entityIds));
+  const entityNames = new Map(entityRows.map((entity) => [entity.id, entity.name]));
+  const signalById = new Map([...direct, ...secondOrder].map((signal) => [signal.id, signal]));
+
+  return eligible.flatMap(({ item, provenance }) => {
+    const signal = signalById.get(item.signalId);
+    if (!signal) return [];
+    return [{
+      ...item,
+      headline: headlineFromBody(signal.bodyMd, entityNames.get(item.subjectEntityId) ?? item.subjectEntityId),
+      watchedEntityName: entityNames.get(item.watchedEntityId) ?? item.watchedEntityId,
+      subjectEntityName: entityNames.get(item.subjectEntityId) ?? item.subjectEntityId,
+      provenance,
+    }];
   });
 }
 
