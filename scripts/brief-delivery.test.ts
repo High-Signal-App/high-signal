@@ -213,7 +213,11 @@ const compact = briefSnapshotToCompactDigest(
   fullSnapshot as unknown as Parameters<typeof briefSnapshotToCompactDigest>[0],
 );
 checkEq("compact schema is versioned", compact.schema, "high-signal.compact-digest.v1");
-checkEq("compact sections preserve order", compact.sections.map((s) => s.id).join(","), "stocks,ideas,perception");
+checkEq(
+  "compact sections preserve order",
+  compact.sections.map((s) => s.id).join(","),
+  "stocks,ideas,perception,improvements",
+);
 checkEq("compact evidence links preserved", compact.sections[0]?.items[0]?.evidenceUrls.length, 2);
 checkEq("compact payload has no delivery identity", JSON.stringify(compact).includes("userId"), false);
 
