@@ -1,5 +1,24 @@
 ## ADDED Requirements
 
+### Requirement: Automatic retry eligibility is durable
+The system SHALL persist the next eligible automatic retry time on each failed delivery row, SHALL refuse automatic retries before that time, and SHALL stop scheduling after the configured maximum attempt count.
+
+#### Scenario: First failure schedules the documented delay
+- **WHEN** an automatic or manual email attempt fails at attempt one
+- **THEN** the system SHALL persist a next automatic attempt time 15 minutes after that failure
+
+#### Scenario: Cron encounters an early retry
+- **WHEN** cron reads a failed row whose persisted next attempt time is later than the current time
+- **THEN** cron SHALL skip the provider call without incrementing the attempt or mutating the row
+
+#### Scenario: Cron encounters an eligible retry
+- **WHEN** cron reads a failed row below the attempt cap whose next attempt time is absent for a legacy row or is at or before the current time
+- **THEN** cron SHALL attempt delivery and persist the next schedule or terminal result
+
+#### Scenario: Terminal failure is not scheduled
+- **WHEN** four total delivery attempts (the initial attempt plus the 15-minute, 1-hour, and 4-hour retries) have failed
+- **THEN** the system SHALL keep the row failed with no next automatic attempt time and SHALL not call the provider again automatically
+
 ### Requirement: Failed delivery can be retried by its owner
 The system SHALL let a signed-in user manually retry a failed email delivery row that belongs to that user, SHALL increment the row's attempt count, and SHALL update the same row with the resulting sent or failed status.
 

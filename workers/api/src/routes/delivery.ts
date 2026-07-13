@@ -22,9 +22,10 @@ import {
   briefSnapshotToEmailSections,
   canRetryDelivery,
   createRssToken,
+  isAutomaticRetryEligible,
   isKnownSkipReason,
   isValidWindow,
-  nextRetryMinutes,
+  nextRetryAtMs,
   resolveOpenWindow,
   shouldAutoDisable,
   unsubscribeToken,
@@ -335,7 +336,7 @@ deliveryRoute.post("/retry/:logId", async (c) => {
 
     const claimed = await db(c.env.DB)
       .update(schema.deliveryLog)
-      .set({ status: "queued", reason: null })
+      .set({ status: "queued", reason: null, nextAttemptAt: null })
       .where(
         and(
           eq(schema.deliveryLog.id, row.id),
@@ -372,6 +373,7 @@ deliveryRoute.post("/retry/:logId", async (c) => {
         reason: result.ok ? null : result.reason ?? "send_failed",
         providerMessageId: result.providerMessageId ?? null,
         attempt,
+        nextAttemptAt: result.ok ? null : retryDate(attempt, Date.now()),
         sentAt: result.ok ? new Date() : null,
       })
       .where(
@@ -523,6 +525,7 @@ export async function runDeliveryWindow(
         id: schema.deliveryLog.id,
         status: schema.deliveryLog.status,
         attempt: schema.deliveryLog.attempt,
+        nextAttemptAt: schema.deliveryLog.nextAttemptAt,
       })
       .from(schema.deliveryLog)
       .where(
@@ -538,11 +541,18 @@ export async function runDeliveryWindow(
       bump("skipped");
       continue;
     }
-    // Respect retry backoff. nextRetryMinutes(attempt) === null means we've hit
-    // the cap (default 3 attempts) and should stop retrying. The row stays at
-    // failed; /admin/delivery surfaces it. Without this guard a stuck row gets
-    // re-POSTed to the provider on every cron tick.
-    if (prior && prior.status === "failed" && nextRetryMinutes(prior.attempt) === null) {
+    // Respect the persisted 15m / 1h / 4h retry schedule. A null schedule on
+    // legacy rows remains immediately eligible below the cap; attempt 4 is
+    // terminal. Without this guard a stuck row is retried every cron tick.
+    if (
+      prior &&
+      prior.status === "failed" &&
+      !isAutomaticRetryEligible(
+        prior.attempt,
+        prior.nextAttemptAt?.getTime() ?? null,
+        now,
+      )
+    ) {
       bump("skipped");
       continue;
     }
@@ -572,6 +582,8 @@ export async function runDeliveryWindow(
         ? prior.attempt + 1
         : prior.attempt
       : 1;
+    const attemptedAtMs = Date.now();
+    const nextAttemptAt = result.ok ? null : retryDate(newAttempt, attemptedAtMs);
     await db(env.DB)
       .insert(schema.deliveryLog)
       .values({
@@ -583,6 +595,7 @@ export async function runDeliveryWindow(
         reason: result.ok ? null : result.reason ?? "send_failed",
         providerMessageId: result.providerMessageId ?? null,
         attempt: newAttempt,
+        nextAttemptAt,
         sentAt: result.ok ? new Date() : null,
         createdAt: new Date(),
       })
@@ -593,6 +606,7 @@ export async function runDeliveryWindow(
           reason: result.ok ? null : result.reason ?? "send_failed",
           providerMessageId: result.providerMessageId ?? null,
           attempt: newAttempt,
+          nextAttemptAt,
           sentAt: result.ok ? new Date() : null,
         },
       });
@@ -687,6 +701,11 @@ async function recordSkip(
 
 function todayUtc(): string {
   return new Date().toISOString().slice(0, 10);
+}
+
+function retryDate(attempt: number, failedAtMs: number): Date | null {
+  const retryAtMs = nextRetryAtMs(attempt, failedAtMs);
+  return retryAtMs == null ? null : new Date(retryAtMs);
 }
 
 async function composeBriefSnapshot(

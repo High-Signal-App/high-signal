@@ -9,7 +9,9 @@ import {
   isValidWindow,
   resolveOpenWindow,
   isKnownSkipReason,
+  isAutomaticRetryEligible,
   nextRetryMinutes,
+  nextRetryAtMs,
   shouldAutoDisable,
   briefSnapshotToEmailSections,
   briefSnapshotToCompactDigest,
@@ -84,8 +86,28 @@ checkEq("free-form rejected", isKnownSkipReason("oops"), false);
 console.log("\nnextRetryMinutes backoff");
 checkEq("attempt 1 → 15", nextRetryMinutes(1), 15);
 checkEq("attempt 2 → 60", nextRetryMinutes(2), 60);
-checkEq("attempt 3 → null (terminal)", nextRetryMinutes(3), null);
+checkEq("attempt 3 → 240", nextRetryMinutes(3), 240);
+checkEq("attempt 4 → null (terminal)", nextRetryMinutes(4), null);
 checkEq("attempt 0 → 240 fallback", nextRetryMinutes(0), 240);
+
+console.log("\ndurable automatic retry schedule");
+const failedAt = Date.UTC(2026, 6, 13, 10, 0, 0);
+checkEq("attempt 1 schedules +15m", nextRetryAtMs(1, failedAt), failedAt + 15 * 60_000);
+checkEq("attempt 2 schedules +60m", nextRetryAtMs(2, failedAt), failedAt + 60 * 60_000);
+checkEq("attempt 3 schedules +240m", nextRetryAtMs(3, failedAt), failedAt + 240 * 60_000);
+checkEq("attempt 4 is terminal", nextRetryAtMs(4, failedAt), null);
+checkEq(
+  "future timestamp is not eligible",
+  isAutomaticRetryEligible(1, failedAt + 15 * 60_000, failedAt + 14 * 60_000),
+  false,
+);
+checkEq(
+  "timestamp is eligible at boundary",
+  isAutomaticRetryEligible(1, failedAt + 15 * 60_000, failedAt + 15 * 60_000),
+  true,
+);
+checkEq("legacy null schedule is eligible below cap", isAutomaticRetryEligible(2, null, failedAt), true);
+checkEq("terminal attempt is never eligible", isAutomaticRetryEligible(4, null, failedAt), false);
 
 console.log("\nshouldAutoDisable");
 checkEq("three failures disables", shouldAutoDisable(["failed", "failed", "failed"]), true);

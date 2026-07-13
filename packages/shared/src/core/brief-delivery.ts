@@ -36,6 +36,7 @@ export interface DeliveryLogEntry {
   reason: SkipReason | string | null;
   providerMessageId: string | null;
   attempt: number;
+  nextAttemptAt: string | null;
   sentAt: string | null;
   createdAt: string;
 }
@@ -126,11 +127,33 @@ function partsInTimezone(d: Date, tz: string): TzParts | null {
 
 // Retry backoff classifier. Maps an attempt number → minutes to wait before
 // the next retry. After `maxAttempts` we mark the row as terminal failed.
-export function nextRetryMinutes(attempt: number, maxAttempts = 3): number | null {
+export function nextRetryMinutes(attempt: number, maxAttempts = 4): number | null {
   if (attempt >= maxAttempts) return null;
   if (attempt === 1) return 15;
   if (attempt === 2) return 60;
   return 240; // 4h
+}
+
+/** Persistable eligibility timestamp for the next automatic attempt. */
+export function nextRetryAtMs(
+  attempt: number,
+  failedAtMs: number,
+  maxAttempts = 4,
+): number | null {
+  const delayMinutes = nextRetryMinutes(attempt, maxAttempts);
+  return delayMinutes == null ? null : failedAtMs + delayMinutes * 60_000;
+}
+
+/** Legacy rows created before next_attempt_at are immediately eligible below
+ * the cap; new rows must reach their persisted eligibility timestamp. */
+export function isAutomaticRetryEligible(
+  attempt: number,
+  nextAttemptAtMs: number | null,
+  nowMs: number,
+  maxAttempts = 4,
+): boolean {
+  if (nextRetryMinutes(attempt, maxAttempts) == null) return false;
+  return nextAttemptAtMs == null || nowMs >= nextAttemptAtMs;
 }
 
 // Skip-reason taxonomy guard. The cron must always supply an explicit reason

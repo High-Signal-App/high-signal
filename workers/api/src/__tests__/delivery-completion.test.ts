@@ -6,6 +6,7 @@ import {
   type BriefSnapshot,
 } from "@high-signal/shared";
 import { renderPrivateAtom, renderPrivateRss } from "../routes/digest";
+import { runDeliveryWindow } from "../routes/delivery";
 import app from "../index";
 
 const fetcher = app as unknown as {
@@ -117,6 +118,7 @@ describe("brief delivery completion contracts", () => {
                 null,
                 3,
                 null,
+                null,
                 1_752_384_000,
               ]];
             }
@@ -172,7 +174,7 @@ describe("brief delivery completion contracts", () => {
         bind: vi.fn().mockReturnThis(),
         raw: vi.fn(async () =>
           sql.includes('from "delivery_log"')
-            ? [["log-1", "user-1", "email", "2026-07-13", "failed", "transport_500", null, 3, null, 1_752_384_000]]
+            ? [["log-1", "user-1", "email", "2026-07-13", "failed", "transport_500", null, 3, null, null, 1_752_384_000]]
             : [["user-1", "email", 1, "reader@example.com", "global", "UTC", "07:00", null, null, 1_752_384_000]]
         ),
         run: vi.fn(async () => ({ success: true, meta: { changes: 0 } })),
@@ -195,6 +197,51 @@ describe("brief delivery completion contracts", () => {
     expect(response.status).toBe(409);
     expect(await response.json()).toMatchObject({ error: "retry_already_claimed" });
     expect(send).not.toHaveBeenCalled();
+  });
+
+  it("cron does not call the provider before persisted retry eligibility", async () => {
+    const now = new Date();
+    const windowStart = `${String(now.getUTCHours()).padStart(2, "0")}:${String(
+      now.getUTCMinutes(),
+    ).padStart(2, "0")}`;
+    const nextAttemptSeconds = Math.floor((Date.now() + 60 * 60_000) / 1_000);
+    const database = {
+      prepare: vi.fn((sql: string) => ({
+        bind: vi.fn().mockReturnThis(),
+        raw: vi.fn(async () => {
+          if (sql.includes('from "delivery_preferences"')) {
+            return [[
+              "user-1",
+              "email",
+              1,
+              "reader@example.com",
+              "global",
+              "UTC",
+              windowStart,
+              null,
+              null,
+              Math.floor(Date.now() / 1_000),
+            ]];
+          }
+          if (sql.includes('from "delivery_log"')) {
+            return [["log-1", "failed", 1, nextAttemptSeconds]];
+          }
+          return [];
+        }),
+      })),
+    };
+    const send = vi.fn(async () => undefined);
+    globalThis.fetch = vi.fn(async () => Response.json(snapshot));
+
+    const summary = await runDeliveryWindow({
+      DB: database as unknown as D1Database,
+      API_BASE: "https://api.test",
+      EMAIL_FROM: "brief@highsignal.app",
+      SEND_EMAIL: { send },
+    });
+    expect(summary["skipped"]).toBe(1);
+    expect(send).not.toHaveBeenCalled();
+    expect(globalThis.fetch).not.toHaveBeenCalled();
   });
 
   it("only treats failed email rows as manually retryable", () => {
