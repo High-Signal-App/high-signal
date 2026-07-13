@@ -199,17 +199,31 @@ export function briefSnapshotToEmailSections(
     {
       title: "04 / how the market perceives your products",
       items: (snapshot.perception ?? []).map((p) => ({
-        text: `${p.brandName} — mention rate ${
-          p.mentionRate != null ? pctOf(p.mentionRate) : "n/a"
-        }, positive share ${p.positiveShare != null ? pctOf(p.positiveShare) : "n/a"}`,
-        links: [],
+        text: [
+          `${p.brandName} — mention rate ${
+            p.mentionRate != null ? pctOf(p.mentionRate) : "n/a"
+          }, positive share ${p.positiveShare != null ? pctOf(p.positiveShare) : "n/a"}`,
+          p.topIntent
+            ? `${p.topIntent.intentStage} intent on ${p.topIntent.platform} (${p.topIntent.score}/100) · ${p.topIntent.actionType.replaceAll("_", " ")} · ${p.topIntent.sourceTitle}`
+            : null,
+        ]
+          .filter(Boolean)
+          .join(" · "),
+        links: p.topIntent ? [p.topIntent.sourceUrl] : [],
       })),
     },
     {
       title: "05 / ideas to improve your products",
       items: (snapshot.improvements ?? []).map((im) => ({
-        text: `[${im.priority}] ${im.brandName} · ${im.area} — ${im.task}`,
-        links: [],
+        text: [
+          `[${im.priority}] ${im.brandName} · ${im.area} — ${im.task}`,
+          im.intent
+            ? `${im.intent.intentStage} intent · ${im.intent.actionType.replaceAll("_", " ")} · ${im.intent.score}/100`
+            : null,
+        ]
+          .filter(Boolean)
+          .join(" · "),
+        links: im.sourceUrl ? [im.sourceUrl] : [],
       })),
     },
   ];

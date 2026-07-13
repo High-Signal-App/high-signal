@@ -124,18 +124,47 @@ const fullSnapshot = {
   ],
   trends: [] as unknown[],
   perception: [
-    { brandName: "Acme", mentionRate: 0.4, positiveShare: null },
+    {
+      brandName: "Acme",
+      mentionRate: 0.4,
+      positiveShare: null,
+      topIntent: {
+        intentStage: "comparison",
+        platform: "reddit",
+        score: 88,
+        actionType: "write_comparison",
+        sourceTitle: "Acme versus Rival",
+        sourceUrl: "https://reddit.com/r/tools/comments/intent-1",
+      },
+    },
   ],
-  improvements: [] as unknown[],
+  improvements: [
+    {
+      brandName: "Acme",
+      area: "comparisons",
+      task: "Publish a sourced comparison",
+      priority: "high",
+      sourceUrl: "https://reddit.com/r/tools/comments/intent-1",
+      intent: {
+        intentStage: "comparison",
+        actionType: "write_comparison",
+        score: 88,
+      },
+    },
+  ],
 };
 // fixture matches the BriefSnapshot shape; cast through unknown for the test.
 const secs = briefSnapshotToEmailSections(fullSnapshot as unknown as Parameters<typeof briefSnapshotToEmailSections>[0]);
-checkEq("empty trends+improvements dropped → 3 sections", secs.length, 3);
+checkEq("empty trends dropped → 4 sections", secs.length, 4);
 checkEq("stocks section title", secs[0]?.title, "01 / stocks watching for a boom");
 checkEq("hit-rate rounded to percent", secs[0]?.items[0]?.text.includes("hit-rate 67%"), true);
 checkEq("citation links capped at 2", secs[0]?.items[0]?.links.length, 2);
 checkEq("ideas subreddit rendered", secs[1]?.items[0]?.text.includes("(r/smallbusiness)"), true);
 checkEq("perception null share → n/a", secs[2]?.items[0]?.text.includes("positive share n/a"), true);
+checkEq("perception includes intent context", secs[2]?.items[0]?.text.includes("comparison intent on reddit (88/100)"), true);
+checkEq("perception carries intent source", secs[2]?.items[0]?.links[0], "https://reddit.com/r/tools/comments/intent-1");
+checkEq("improvement includes intent action", secs[3]?.items[0]?.text.includes("write comparison"), true);
+checkEq("improvement carries source", secs[3]?.items[0]?.links[0], "https://reddit.com/r/tools/comments/intent-1");
 
 async function main() {
   console.log("\nunsubscribeToken");

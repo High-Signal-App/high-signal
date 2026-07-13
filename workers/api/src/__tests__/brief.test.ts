@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   countriesForRegion,
   DEMO_REGIONS,
@@ -16,6 +16,7 @@ import {
   SEED_STOCK_SIGNALS,
   SEED_TRENDS,
   type Region,
+  type BriefIntentItem,
   type SignalFamily,
 } from "@high-signal/shared";
 import {
@@ -26,10 +27,33 @@ import {
   pickSpotlight,
   rankStocks,
   renderFromSeed,
+  mergeIntentIntoImprovements,
+  mergeIntentIntoPerception,
   resolveHitRate,
+  safe,
   seedToBrief,
   type BucketCounts,
 } from "../routes/brief";
+
+const intentFixture = (
+  overrides: Partial<BriefIntentItem> = {},
+): BriefIntentItem => ({
+  id: "intent-1",
+  brandId: "brand-1",
+  brandName: "Acme",
+  source: "reddit",
+  sourceUrl: "https://reddit.com/r/tools/comments/intent-1",
+  sourceTitle: "Acme or Rival for a production workflow?",
+  sourceExcerpt: "We need proof that Acme works at production scale.",
+  platform: "reddit",
+  intentStage: "comparison",
+  actionType: "write_comparison",
+  score: 82,
+  competitors: ["Rival"],
+  evidenceTaskId: null,
+  foundAt: "2026-07-12T10:00:00.000Z",
+  ...overrides,
+});
 
 describe("region rollups", () => {
   it("REGIONS includes global and never overlaps countries between regions", () => {
@@ -221,6 +245,93 @@ describe("brief seed fallback", () => {
     // reach this code path) returns null. The whole code path is type-safe
     // so we cast to test the defensive branch only.
     expect(pickSpotlight("global", 0)).not.toBeNull();
+  });
+});
+
+describe("intent-aware personal brief sections", () => {
+  it("attaches the highest-scoring finding to existing perception metrics", () => {
+    const perception = [{
+      brandName: "Acme",
+      mentionRate: 0.4,
+      positiveShare: 0.5,
+      competitorPresence: 0.2,
+      latestCheckAt: "2026-07-12T09:00:00.000Z",
+      configId: "brand-1",
+    }];
+    const result = mergeIntentIntoPerception(perception, [
+      intentFixture({ id: "low", score: 45 }),
+      intentFixture({ id: "high", score: 91, sourceUrl: "https://example.com/high" }),
+    ]);
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({ mentionRate: 0.4, topIntent: { id: "high", score: 91 } });
+  });
+
+  it("keeps an intent-only brand visible with unavailable metrics", () => {
+    const [result] = mergeIntentIntoPerception([], [intentFixture()]);
+    expect(result).toMatchObject({
+      brandName: "Acme",
+      configId: "brand-1",
+      mentionRate: null,
+      positiveShare: null,
+      competitorPresence: null,
+      topIntent: { sourceUrl: "https://reddit.com/r/tools/comments/intent-1" },
+    });
+  });
+
+  it("deduplicates an evidence task by source URL and attaches its intent context", () => {
+    const sourceUrl = "https://reddit.com/r/tools/comments/intent-1";
+    const result = mergeIntentIntoImprovements([
+      {
+        brandName: "Acme",
+        area: "comparisons",
+        task: "Publish a comparison page",
+        priority: "high",
+        auditId: "audit-1",
+        surfacedAt: "2026-07-12T09:00:00.000Z",
+        sourceUrl,
+      },
+    ], [intentFixture({ sourceUrl })]);
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({ auditId: "audit-1", sourceUrl, intent: { id: "intent-1" } });
+  });
+
+  it("turns an unlinked actionable finding into a source-backed improvement", () => {
+    const [result] = mergeIntentIntoImprovements([], [
+      intentFixture({ actionType: "reply", intentStage: "purchase", score: 78 }),
+    ]);
+    expect(result).toMatchObject({
+      brandName: "Acme",
+      area: "buyer response",
+      priority: "high",
+      auditId: null,
+      sourceUrl: "https://reddit.com/r/tools/comments/intent-1",
+      intent: { intentStage: "purchase", actionType: "reply" },
+    });
+  });
+
+  it("does not turn a watch-only finding into a section 5 action", () => {
+    expect(mergeIntentIntoImprovements([], [
+      intentFixture({ actionType: "watch", intentStage: "awareness" }),
+    ])).toEqual([]);
+  });
+
+  it("keeps existing output when the independent intent builder fails", async () => {
+    const warning = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const intents = await safe<BriefIntentItem>(async () => {
+      throw new Error("no such table: intent_opportunities");
+    }, "intent");
+    const existing = [{
+      brandName: "Acme",
+      mentionRate: 0.4,
+      positiveShare: null,
+      competitorPresence: null,
+      latestCheckAt: null,
+      configId: "brand-1",
+    }];
+    expect(intents).toEqual([]);
+    expect(mergeIntentIntoPerception(existing, intents)).toEqual(existing);
+    expect(warning).toHaveBeenCalledOnce();
+    warning.mockRestore();
   });
 });
 

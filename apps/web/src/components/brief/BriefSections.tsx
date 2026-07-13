@@ -2,6 +2,7 @@ import Link from 'next/link';
 import type { Route } from 'next';
 import type {
   BriefImprovementItem,
+  BriefIntentItem,
   BriefIdeaItem,
   BriefPerceptionItem,
   BriefSnapshot,
@@ -70,6 +71,35 @@ function directionTone(direction: 'up' | 'down' | 'neutral') {
 function formatPct(value: number | null) {
   if (value == null) return '—';
   return `${(value * 100).toFixed(0)}%`;
+}
+
+function IntentFinding({ intent }: { intent: BriefIntentItem }) {
+  return (
+    <div className="border-l-2 border-[var(--color-accent)] pl-3">
+      <div className="flex flex-wrap gap-x-3 gap-y-1 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
+        <span className="text-[var(--color-accent)]">{intent.intentStage} intent</span>
+        <span>{intent.platform}</span>
+        <span>{intent.score}/100</span>
+        <span>{intent.actionType.replaceAll('_', ' ')}</span>
+      </div>
+      <a
+        href={intent.sourceUrl}
+        target="_blank"
+        rel="noreferrer"
+        className="mt-2 block text-sm font-medium leading-6 text-[var(--color-fg)] hover:text-[var(--color-accent)]"
+      >
+        {intent.sourceTitle} ↗
+      </a>
+      <p className="mt-1 line-clamp-2 text-xs leading-5 text-[var(--color-muted)]">
+        {intent.sourceExcerpt}
+      </p>
+      {intent.competitors.length ? (
+        <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
+          competitors: {intent.competitors.join(', ')}
+        </p>
+      ) : null}
+    </div>
+  );
 }
 
 function verdictTone(verdict: NonNullable<BriefIdeaItem['opportunity']>['verdict']) {
@@ -361,7 +391,7 @@ function PerceptionItem({ item }: { item: BriefPerceptionItem }) {
           {item.latestCheckAt?.slice(0, 16).replace('T', ' ') ?? 'no check yet'}
         </div>
         <Link
-          href={`/mentions?config=${encodeURIComponent(item.configId)}` as Route}
+          href={`/mentions/${encodeURIComponent(item.configId)}?tab=intent` as Route}
           className="mt-2 block text-xl font-medium tracking-tight hover:text-[var(--color-accent)]"
         >
           {item.brandName}
@@ -385,6 +415,11 @@ function PerceptionItem({ item }: { item: BriefPerceptionItem }) {
           {formatPct(item.competitorPresence)}
         </div>
       </div>
+      {item.topIntent ? (
+        <div className="md:col-span-4">
+          <IntentFinding intent={item.topIntent} />
+        </div>
+      ) : null}
     </article>
   );
 }
@@ -409,12 +444,32 @@ function ImprovementItem({ item }: { item: BriefImprovementItem }) {
       <div>
         <div className="text-sm text-[var(--color-muted)]">{item.brandName}</div>
         <h3 className="mt-1 text-base leading-6 text-[var(--color-fg)]">{item.task}</h3>
-        <Link
-          href={`/agent-eval?audit=${encodeURIComponent(item.auditId)}` as Route}
-          className="mt-2 inline-block font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)] hover:text-[var(--color-accent)]"
-        >
-          open audit →
-        </Link>
+        {item.intent ? (
+          <div className="mt-3">
+            <IntentFinding intent={item.intent} />
+            <Link
+              href={`/mentions/${encodeURIComponent(item.intent.brandId)}?tab=intent` as Route}
+              className="mt-3 inline-block font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)] hover:text-[var(--color-accent)]"
+            >
+              review in intent inbox →
+            </Link>
+            {item.auditId ? (
+              <Link
+                href={`/agent-eval?audit=${encodeURIComponent(item.auditId)}` as Route}
+                className="ml-4 mt-3 inline-block font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)] hover:text-[var(--color-accent)]"
+              >
+                open linked audit →
+              </Link>
+            ) : null}
+          </div>
+        ) : item.auditId ? (
+          <Link
+            href={`/agent-eval?audit=${encodeURIComponent(item.auditId)}` as Route}
+            className="mt-2 inline-block font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)] hover:text-[var(--color-accent)]"
+          >
+            open audit →
+          </Link>
+        ) : null}
       </div>
     </article>
   );

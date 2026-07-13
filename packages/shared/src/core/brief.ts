@@ -158,6 +158,38 @@ export interface BriefTrendItem {
   surfacedAt: string;
 }
 
+/** Source-backed buyer/community intent attached to owner-scoped brief items. */
+export interface BriefIntentItem {
+  id: string;
+  brandId: string;
+  brandName: string;
+  source: string;
+  sourceUrl: string;
+  sourceTitle: string;
+  sourceExcerpt: string;
+  platform: string;
+  intentStage:
+    | "awareness"
+    | "pain"
+    | "comparison"
+    | "purchase"
+    | "proof"
+    | "integration"
+    | "content";
+  actionType:
+    | "watch"
+    | "reply"
+    | "create_proof"
+    | "improve_docs"
+    | "add_integration"
+    | "write_comparison"
+    | "content_opportunity";
+  score: number;
+  competitors: string[];
+  evidenceTaskId: string | null;
+  foundAt: string;
+}
+
 export interface BriefPerceptionItem {
   brandName: string;
   mentionRate: number | null;
@@ -165,6 +197,8 @@ export interface BriefPerceptionItem {
   competitorPresence: number | null;
   latestCheckAt: string | null;
   configId: string;
+  /** Highest-scoring open buyer/community finding for this brand. */
+  topIntent?: BriefIntentItem;
 }
 
 export interface BriefImprovementItem {
@@ -172,8 +206,13 @@ export interface BriefImprovementItem {
   area: string;
   task: string;
   priority: "high" | "medium" | "low";
-  auditId: string;
+  /** Null for an action derived directly from intent rather than an audit. */
+  auditId: string | null;
   surfacedAt: string;
+  /** Original evidence URL when the task was created from a source finding. */
+  sourceUrl?: string | null;
+  /** Present when this action was exposed by a buyer/community finding. */
+  intent?: BriefIntentItem;
 }
 
 export interface BriefSnapshot {

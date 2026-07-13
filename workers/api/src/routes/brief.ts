@@ -34,6 +34,7 @@ import {
   SEED_PRODUCTS,
   type BriefIdeaItem,
   type BriefImprovementItem,
+  type BriefIntentItem,
   type BriefPerceptionItem,
   type BriefSnapshot,
   type BriefStockItem,
@@ -212,15 +213,22 @@ briefRoute.get("/daily", async (c) => {
   let perception: BriefPerceptionItem[] = [];
   let improvements: BriefImprovementItem[] = [];
   let watching: BriefWatchingItem[] = [];
+  let intentItems: BriefIntentItem[] = [];
   let hasBrand = false;
 
   // Priority 1: a real signed-in owner with their own brand data in D1.
   if (ownerId) {
-    [perception, improvements, watching] = await Promise.all([
+    [perception, improvements, watching, intentItems] = await Promise.all([
       safe(() => buildPerception(database, ownerId), "perception"),
       safe(() => buildImprovements(database, ownerId), "improvements"),
       safe(() => buildWatching(database, ownerId), "watching"),
+      // Migration 0014 is additive and may lag the application deploy. Keep
+      // this query independent so a missing intent table cannot erase valid
+      // mention, Agent Eval, or watchlist output.
+      safe(() => buildIntentBriefItems(database, ownerId), "intent"),
     ]);
+    perception = mergeIntentIntoPerception(perception, intentItems);
+    improvements = mergeIntentIntoImprovements(improvements, intentItems);
     hasBrand = perception.length > 0 || improvements.length > 0;
   }
 
@@ -288,13 +296,119 @@ export function pickSpotlight(region: Region, nowMs: number = Date.now()): SeedP
  * outage, schema drift) — the brief route falls back to seed content when a
  * builder returns an empty array.
  */
-async function safe<T>(builder: () => Promise<T[]>, section: string): Promise<T[]> {
+export async function safe<T>(builder: () => Promise<T[]>, section: string): Promise<T[]> {
   try {
     return await builder();
   } catch (error) {
     console.warn(`[brief] ${section} builder failed; falling back to seed`, error);
     return [];
   }
+}
+
+/**
+ * Add the highest-scoring open intent finding to each connected brand's
+ * perception row. Intent-only brands remain visible with unavailable metrics.
+ */
+export function mergeIntentIntoPerception(
+  perception: BriefPerceptionItem[],
+  intents: BriefIntentItem[],
+): BriefPerceptionItem[] {
+  if (intents.length === 0) return perception;
+  const topByBrand = new Map<string, BriefIntentItem>();
+  for (const intent of intents) {
+    const current = topByBrand.get(intent.brandId);
+    if (!current || intent.score > current.score) topByBrand.set(intent.brandId, intent);
+  }
+
+  const existingBrands = new Set(perception.map((item) => item.configId));
+  const enriched = perception.map((item) => ({
+    ...item,
+    ...(topByBrand.has(item.configId) ? { topIntent: topByBrand.get(item.configId) } : {}),
+  }));
+  for (const [brandId, intent] of topByBrand) {
+    if (existingBrands.has(brandId)) continue;
+    enriched.push({
+      brandName: intent.brandName,
+      mentionRate: null,
+      positiveShare: null,
+      competitorPresence: null,
+      latestCheckAt: null,
+      configId: brandId,
+      topIntent: intent,
+    });
+  }
+  return enriched;
+}
+
+const intentPriority = (score: number): "high" | "medium" | "low" =>
+  score >= 75 ? "high" : score >= 50 ? "medium" : "low";
+
+const intentActionCopy = (intent: BriefIntentItem): { area: string; task: string } | null => {
+  const title = intent.sourceTitle.length > 100
+    ? `${intent.sourceTitle.slice(0, 99).trim()}...`
+    : intent.sourceTitle;
+  switch (intent.actionType) {
+    case "reply":
+      return { area: "buyer response", task: `Review and reply to buyer intent: ${title}` };
+    case "create_proof":
+      return { area: "proof", task: `Add proof for buyer question: ${title}` };
+    case "improve_docs":
+      return { area: "docs", task: `Clarify the docs or support gap behind: ${title}` };
+    case "add_integration":
+      return { area: "integrations", task: `Validate and document integration demand: ${title}` };
+    case "write_comparison":
+      return { area: "comparisons", task: `Publish a sourced comparison response for: ${title}` };
+    case "content_opportunity":
+      return { area: "positioning", task: `Create a sourced answer for: ${title}` };
+    case "watch":
+      return null;
+  }
+};
+
+/**
+ * Attach intent evidence to matching Agent Eval tasks, then synthesize actions
+ * only for findings that are not already represented by the same source URL.
+ */
+export function mergeIntentIntoImprovements(
+  improvements: BriefImprovementItem[],
+  intents: BriefIntentItem[],
+): BriefImprovementItem[] {
+  if (intents.length === 0) return improvements;
+  const bySource = new Map<string, number>();
+  const merged = improvements.map((item, index) => {
+    if (item.sourceUrl) bySource.set(item.sourceUrl, index);
+    return { ...item };
+  });
+
+  for (const intent of intents) {
+    const existingIndex = bySource.get(intent.sourceUrl);
+    if (existingIndex !== undefined) {
+      merged[existingIndex] = { ...merged[existingIndex], intent };
+      continue;
+    }
+    const action = intentActionCopy(intent);
+    if (!action) continue;
+    bySource.set(intent.sourceUrl, merged.length);
+    merged.push({
+      brandName: intent.brandName,
+      area: action.area,
+      task: action.task,
+      priority: intentPriority(intent.score),
+      auditId: null,
+      surfacedAt: intent.foundAt,
+      sourceUrl: intent.sourceUrl,
+      intent,
+    });
+  }
+
+  const priorityWeight = { high: 0, medium: 1, low: 2 } as const;
+  return merged
+    .sort((a, b) => {
+      const priority = priorityWeight[a.priority] - priorityWeight[b.priority];
+      if (priority !== 0) return priority;
+      return (b.intent?.score ?? -1) - (a.intent?.score ?? -1);
+    })
+    .slice(0, 8);
 }
 
 export function seedToBrief(product: SeedProduct, nowIso: string = new Date().toISOString()): {
@@ -860,6 +974,61 @@ async function buildTrends(
   return trends;
 }
 
+async function buildIntentBriefItems(
+  database: ReturnType<typeof db>,
+  ownerId: string,
+): Promise<BriefIntentItem[]> {
+  const rows = await database
+    .select({
+      id: schema.intentOpportunities.id,
+      brandId: schema.intentOpportunities.brandId,
+      brandName: schema.mentionBrandConfigs.brandName,
+      source: schema.intentOpportunities.source,
+      sourceUrl: schema.intentOpportunities.sourceUrl,
+      sourceTitle: schema.intentOpportunities.sourceTitle,
+      sourceExcerpt: schema.intentOpportunities.sourceExcerpt,
+      platform: schema.intentOpportunities.platform,
+      intentStage: schema.intentOpportunities.intentStage,
+      actionType: schema.intentOpportunities.actionType,
+      score: schema.intentOpportunities.score,
+      competitors: schema.intentOpportunities.competitors,
+      evidenceTaskId: schema.intentOpportunities.evidenceTaskId,
+      foundAt: schema.intentOpportunities.foundAt,
+    })
+    .from(schema.intentOpportunities)
+    .innerJoin(
+      schema.mentionBrandConfigs,
+      eq(schema.mentionBrandConfigs.id, schema.intentOpportunities.brandId),
+    )
+    .where(
+      and(
+        eq(schema.intentOpportunities.ownerId, ownerId),
+        eq(schema.mentionBrandConfigs.ownerId, ownerId),
+        eq(schema.intentOpportunities.status, "open"),
+      ),
+    )
+    .orderBy(desc(schema.intentOpportunities.score), desc(schema.intentOpportunities.updatedAt));
+
+  return rows.map((row) => ({
+    id: row.id,
+    brandId: row.brandId,
+    brandName: row.brandName,
+    source: row.source,
+    sourceUrl: row.sourceUrl,
+    sourceTitle: row.sourceTitle,
+    sourceExcerpt: row.sourceExcerpt,
+    platform: row.platform,
+    intentStage: row.intentStage,
+    actionType: row.actionType,
+    score: row.score,
+    competitors: Array.isArray(row.competitors)
+      ? row.competitors.filter((value): value is string => typeof value === "string")
+      : [],
+    evidenceTaskId: row.evidenceTaskId,
+    foundAt: row.foundAt.toISOString(),
+  }));
+}
+
 async function buildPerception(
   database: ReturnType<typeof db>,
   ownerId: string,
@@ -946,6 +1115,7 @@ async function buildImprovements(
         priority: task.priority as "high" | "medium" | "low",
         auditId: audit.id,
         surfacedAt: audit.createdAt.toISOString(),
+        sourceUrl: task.sourceUrl,
       });
       if (out.length >= 6) return out;
     }
