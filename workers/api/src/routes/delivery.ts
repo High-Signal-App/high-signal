@@ -18,18 +18,22 @@
 import { Hono } from "hono";
 import { and, desc, eq, gte } from "drizzle-orm";
 import {
+  briefSnapshotToCompactDigest,
   briefSnapshotToEmailSections,
+  canRetryDelivery,
+  createRssToken,
+  isAutomaticRetryEligible,
   isKnownSkipReason,
   isValidWindow,
-  nextRetryMinutes,
+  nextRetryAtMs,
   resolveOpenWindow,
   shouldAutoDisable,
   unsubscribeToken,
-  type BriefSnapshot,
   type DeliveryChannel,
 } from "@high-signal/shared";
 import { db, schema } from "../db";
 import { emailTransportStatus, sendBriefEmail } from "../lib/email";
+import { fetchBriefSnapshot } from "../lib/brief-snapshot";
 import { sha16 } from "../lib/ids";
 
 interface SendEmailBinding {
@@ -102,7 +106,9 @@ deliveryRoute.post("/preferences", async (c) => {
     localWindowStart?: string;
     connectedBrandId?: string | null;
   };
-  if (!body.channel) return c.json({ error: "missing_channel" }, 400);
+  if (!(["email", "rss", "digest_json"] as string[]).includes(body.channel)) {
+    return c.json({ error: "bad_channel" }, 400);
+  }
   if (body.localWindowStart && !isValidWindow(body.localWindowStart)) {
     return c.json({ error: "bad_window" }, 400);
   }
@@ -119,19 +125,37 @@ deliveryRoute.post("/preferences", async (c) => {
     connectedBrandId: body.connectedBrandId ?? null,
     updatedAt: now,
   };
+  let rssToken: string | null = null;
   try {
+    if (body.channel === "rss") {
+      const existing = await db(c.env.DB)
+        .select({ rssToken: schema.deliveryPreferences.rssToken })
+        .from(schema.deliveryPreferences)
+        .where(
+          and(
+            eq(schema.deliveryPreferences.userId, userId),
+            eq(schema.deliveryPreferences.channel, "rss"),
+          ),
+        )
+        .limit(1);
+      rssToken = existing[0]?.rssToken ?? createRssToken();
+    }
     await db(c.env.DB)
       .insert(schema.deliveryPreferences)
       .values({
         userId,
         channel: body.channel,
         email,
-        rssToken: null,
+        rssToken,
         ...baseSet,
       })
       .onConflictDoUpdate({
         target: [schema.deliveryPreferences.userId, schema.deliveryPreferences.channel],
-        set: email ? { ...baseSet, email } : baseSet,
+        set: {
+          ...baseSet,
+          ...(email ? { email } : {}),
+          ...(body.channel === "rss" ? { rssToken } : {}),
+        },
       });
   } catch (e) {
     if (isMissingTableError(e)) {
@@ -140,7 +164,7 @@ deliveryRoute.post("/preferences", async (c) => {
     }
     throw e;
   }
-  return c.json({ ok: true });
+  return c.json({ ok: true, ...(rssToken ? { rssToken } : {}) });
 });
 
 deliveryRoute.get("/log", async (c) => {
@@ -197,7 +221,7 @@ deliveryRoute.post("/test", async (c) => {
     if (!isMissingTableError(e)) throw e;
     console.warn(MIGRATION_HINT);
   }
-  const composed = await composeBriefSnapshot(c.env, region, null);
+  const composed = await composeBriefSnapshot(c.env, region, null, userId);
   const result = await sendBriefEmail(c.env, {
     to: email,
     subject: `High Signal — test delivery`,
@@ -219,6 +243,162 @@ deliveryRoute.post("/test", async (c) => {
     unsubscribeUrl: await buildUnsubscribeUrl(c.env, userId),
   });
   return c.json(result, result.ok ? 200 : 502);
+});
+
+// Signed-in compact representation for future delivery transports. Reading
+// this representation is not a send attempt and never touches delivery_log.
+deliveryRoute.get("/digest", async (c) => {
+  const userId = userIdFromHeaders(c);
+  if (!userId) return c.json({ error: "unauthorized" }, 401);
+  try {
+    const preferences = await db(c.env.DB)
+      .select()
+      .from(schema.deliveryPreferences)
+      .where(eq(schema.deliveryPreferences.userId, userId));
+    const preference =
+      preferences.find((item) => item.channel === "digest_json") ??
+      preferences.find((item) => item.channel === "email") ??
+      preferences.find((item) => item.channel === "rss");
+    if (!preference) return c.json({ error: "preference_missing" }, 404);
+    const snapshot = await fetchBriefSnapshot(
+      c.env,
+      preference.region,
+      preference.connectedBrandId,
+      userId,
+    );
+    if (!snapshot) return c.json({ error: "brief_unavailable" }, 503);
+    c.header("Cache-Control", "private, no-store");
+    return c.json(briefSnapshotToCompactDigest(snapshot));
+  } catch (e) {
+    if (isMissingTableError(e)) {
+      console.warn(MIGRATION_HINT);
+      return c.json({ error: "pending_migration" }, 503);
+    }
+    throw e;
+  }
+});
+
+// Manual recovery for a failed row. Eligibility and ownership are checked
+// before a conditional failed→queued claim, so concurrent clicks cannot both
+// reach the provider. Unlike unattended cron retries, an explicit retry may
+// exceed the automatic three-attempt cap.
+deliveryRoute.post("/retry/:logId", async (c) => {
+  const userId = userIdFromHeaders(c);
+  if (!userId) return c.json({ error: "unauthorized" }, 401);
+  const transport = emailTransportStatus(c.env);
+  if (!transport.ready) return c.json({ error: transport.reason }, 503);
+
+  try {
+    const rows = await db(c.env.DB)
+      .select()
+      .from(schema.deliveryLog)
+      .where(
+        and(
+          eq(schema.deliveryLog.id, c.req.param("logId")),
+          eq(schema.deliveryLog.userId, userId),
+        ),
+      )
+      .limit(1);
+    const row = rows[0];
+    if (!row) return c.json({ error: "delivery_not_found" }, 404);
+    if (!canRetryDelivery({
+      channel: row.channel as DeliveryChannel,
+      status: row.status,
+      attempt: row.attempt,
+    })) {
+      return c.json({ error: "delivery_not_retryable" }, 409);
+    }
+
+    const preferences = await db(c.env.DB)
+      .select()
+      .from(schema.deliveryPreferences)
+      .where(
+        and(
+          eq(schema.deliveryPreferences.userId, userId),
+          eq(schema.deliveryPreferences.channel, "email"),
+        ),
+      )
+      .limit(1);
+    const preference = preferences[0];
+    if (!preference) return c.json({ error: "preference_missing" }, 409);
+    if (!preference.enabled) return c.json({ error: "preference_disabled" }, 409);
+    if (!preference.email) return c.json({ error: "email_not_verified" }, 409);
+
+    const snapshot = await fetchBriefSnapshot(
+      c.env,
+      preference.region,
+      preference.connectedBrandId,
+      userId,
+    );
+    if (!snapshot) return c.json({ error: "brief_unavailable" }, 503);
+    const sections = briefSnapshotToEmailSections(snapshot);
+    if (sections.length === 0) return c.json({ error: "no_brief_today" }, 409);
+
+    const claimed = await db(c.env.DB)
+      .update(schema.deliveryLog)
+      .set({ status: "queued", reason: null, nextAttemptAt: null })
+      .where(
+        and(
+          eq(schema.deliveryLog.id, row.id),
+          eq(schema.deliveryLog.userId, userId),
+          eq(schema.deliveryLog.status, "failed"),
+        ),
+      )
+      .run();
+    if ((claimed.meta.changes ?? 0) !== 1) {
+      return c.json({ error: "retry_already_claimed" }, 409);
+    }
+
+    const attempt = row.attempt + 1;
+    let result: Awaited<ReturnType<typeof sendBriefEmail>>;
+    try {
+      result = await sendBriefEmail(c.env, {
+        to: preference.email,
+        subject: `High Signal — ${row.briefDate} (${preference.region})`,
+        briefDate: row.briefDate,
+        region: preference.region,
+        body: { sections },
+        unsubscribeUrl: await buildUnsubscribeUrl(c.env, userId),
+      });
+    } catch (error) {
+      result = {
+        ok: false,
+        reason: error instanceof Error ? error.message : "send_failed",
+      };
+    }
+    await db(c.env.DB)
+      .update(schema.deliveryLog)
+      .set({
+        status: result.ok ? "sent" : "failed",
+        reason: result.ok ? null : result.reason ?? "send_failed",
+        providerMessageId: result.providerMessageId ?? null,
+        attempt,
+        nextAttemptAt: result.ok ? null : retryDate(attempt, Date.now()),
+        sentAt: result.ok ? new Date() : null,
+      })
+      .where(
+        and(
+          eq(schema.deliveryLog.id, row.id),
+          eq(schema.deliveryLog.userId, userId),
+        ),
+      );
+    console.log(`[delivery] manual retry ${result.ok ? "sent" : "failed"}; attempt=${attempt}`);
+    return c.json(
+      {
+        ok: result.ok,
+        status: result.ok ? "sent" : "failed",
+        attempt,
+        ...(result.ok ? {} : { reason: result.reason ?? "send_failed" }),
+      },
+      result.ok ? 200 : 502,
+    );
+  } catch (e) {
+    if (isMissingTableError(e)) {
+      console.warn(MIGRATION_HINT);
+      return c.json({ error: "pending_migration" }, 503);
+    }
+    throw e;
+  }
 });
 
 // One-click unsubscribe. Linked from every brief email footer and the
@@ -345,6 +525,7 @@ export async function runDeliveryWindow(
         id: schema.deliveryLog.id,
         status: schema.deliveryLog.status,
         attempt: schema.deliveryLog.attempt,
+        nextAttemptAt: schema.deliveryLog.nextAttemptAt,
       })
       .from(schema.deliveryLog)
       .where(
@@ -360,11 +541,18 @@ export async function runDeliveryWindow(
       bump("skipped");
       continue;
     }
-    // Respect retry backoff. nextRetryMinutes(attempt) === null means we've hit
-    // the cap (default 3 attempts) and should stop retrying. The row stays at
-    // failed; /admin/delivery surfaces it. Without this guard a stuck row gets
-    // re-POSTed to the provider on every cron tick.
-    if (prior && prior.status === "failed" && nextRetryMinutes(prior.attempt) === null) {
+    // Respect the persisted 15m / 1h / 4h retry schedule. A null schedule on
+    // legacy rows remains immediately eligible below the cap; attempt 4 is
+    // terminal. Without this guard a stuck row is retried every cron tick.
+    if (
+      prior &&
+      prior.status === "failed" &&
+      !isAutomaticRetryEligible(
+        prior.attempt,
+        prior.nextAttemptAt?.getTime() ?? null,
+        now,
+      )
+    ) {
       bump("skipped");
       continue;
     }
@@ -374,7 +562,7 @@ export async function runDeliveryWindow(
       continue;
     }
 
-    const briefRes = await composeBriefSnapshot(env, p.region, p.connectedBrandId);
+    const briefRes = await composeBriefSnapshot(env, p.region, p.connectedBrandId, p.userId);
     if (!briefRes) {
       await recordSkip(env.DB, p.userId, p.channel as DeliveryChannel, open.briefDate, "no_brief_today");
       bump("skipped");
@@ -394,6 +582,8 @@ export async function runDeliveryWindow(
         ? prior.attempt + 1
         : prior.attempt
       : 1;
+    const attemptedAtMs = Date.now();
+    const nextAttemptAt = result.ok ? null : retryDate(newAttempt, attemptedAtMs);
     await db(env.DB)
       .insert(schema.deliveryLog)
       .values({
@@ -405,6 +595,7 @@ export async function runDeliveryWindow(
         reason: result.ok ? null : result.reason ?? "send_failed",
         providerMessageId: result.providerMessageId ?? null,
         attempt: newAttempt,
+        nextAttemptAt,
         sentAt: result.ok ? new Date() : null,
         createdAt: new Date(),
       })
@@ -415,6 +606,7 @@ export async function runDeliveryWindow(
           reason: result.ok ? null : result.reason ?? "send_failed",
           providerMessageId: result.providerMessageId ?? null,
           attempt: newAttempt,
+          nextAttemptAt,
           sentAt: result.ok ? new Date() : null,
         },
       });
@@ -511,10 +703,16 @@ function todayUtc(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+function retryDate(attempt: number, failedAtMs: number): Date | null {
+  const retryAtMs = nextRetryAtMs(attempt, failedAtMs);
+  return retryAtMs == null ? null : new Date(retryAtMs);
+}
+
 async function composeBriefSnapshot(
   env: Env,
   region: string,
   connectedBrandId: string | null,
+  ownerId?: string,
 ): Promise<{
   sections: Array<{ title: string; items: Array<{ text: string; links: string[] }> }>;
 } | null> {
@@ -525,19 +723,9 @@ async function composeBriefSnapshot(
     console.error("[delivery] composeBriefSnapshot called without API_BASE; cron will skip every user");
     return null;
   }
-  const url = `${env.API_BASE}/brief/daily?region=${encodeURIComponent(region)}${
-    connectedBrandId ? `&product=${encodeURIComponent(connectedBrandId)}` : ""
-  }`;
-  try {
-    const r = await fetch(url);
-    if (!r.ok) return null;
-    // /brief/daily returns a BriefSnapshot (stocks/ideas/trends/perception/
-    // improvements arrays), not a generic sections list — map it.
-    const snapshot = (await r.json()) as Partial<BriefSnapshot>;
-    const sections = briefSnapshotToEmailSections(snapshot);
-    if (sections.length === 0) return null;
-    return { sections };
-  } catch {
-    return null;
-  }
+  const snapshot = await fetchBriefSnapshot(env, region, connectedBrandId, ownerId);
+  if (!snapshot) return null;
+  const sections = briefSnapshotToEmailSections(snapshot);
+  if (sections.length === 0) return null;
+  return { sections };
 }

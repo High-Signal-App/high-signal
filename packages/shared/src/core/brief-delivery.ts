@@ -36,8 +36,23 @@ export interface DeliveryLogEntry {
   reason: SkipReason | string | null;
   providerMessageId: string | null;
   attempt: number;
+  nextAttemptAt: string | null;
   sentAt: string | null;
   createdAt: string;
+}
+
+/** Manual retries are an explicit email recovery path, never a way to replay
+ * sent/skipped rows or future channel transports. */
+export function canRetryDelivery(
+  row: Pick<DeliveryLogEntry, "channel" | "status" | "attempt">,
+): boolean {
+  return row.channel === "email" && row.status === "failed" && row.attempt >= 1;
+}
+
+/** 256-bit bearer credential for a private RSS/Atom preference. */
+export function createRssToken(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(32));
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
 // Time-window resolution. Workers can't trust Date.now() in some contexts
@@ -112,11 +127,33 @@ function partsInTimezone(d: Date, tz: string): TzParts | null {
 
 // Retry backoff classifier. Maps an attempt number → minutes to wait before
 // the next retry. After `maxAttempts` we mark the row as terminal failed.
-export function nextRetryMinutes(attempt: number, maxAttempts = 3): number | null {
+export function nextRetryMinutes(attempt: number, maxAttempts = 4): number | null {
   if (attempt >= maxAttempts) return null;
   if (attempt === 1) return 15;
   if (attempt === 2) return 60;
   return 240; // 4h
+}
+
+/** Persistable eligibility timestamp for the next automatic attempt. */
+export function nextRetryAtMs(
+  attempt: number,
+  failedAtMs: number,
+  maxAttempts = 4,
+): number | null {
+  const delayMinutes = nextRetryMinutes(attempt, maxAttempts);
+  return delayMinutes == null ? null : failedAtMs + delayMinutes * 60_000;
+}
+
+/** Legacy rows created before next_attempt_at are immediately eligible below
+ * the cap; new rows must reach their persisted eligibility timestamp. */
+export function isAutomaticRetryEligible(
+  attempt: number,
+  nextAttemptAtMs: number | null,
+  nowMs: number,
+  maxAttempts = 4,
+): boolean {
+  if (nextRetryMinutes(attempt, maxAttempts) == null) return false;
+  return nextAttemptAtMs == null || nowMs >= nextAttemptAtMs;
 }
 
 // Skip-reason taxonomy guard. The cron must always supply an explicit reason
@@ -156,6 +193,24 @@ export interface EmailSectionItem {
 export interface EmailSection {
   title: string;
   items: EmailSectionItem[];
+}
+
+export interface CompactDigestItem {
+  text: string;
+  evidenceUrls: string[];
+}
+
+export interface CompactDigestSection {
+  id: "stocks" | "ideas" | "trends" | "perception" | "improvements";
+  title: string;
+  items: CompactDigestItem[];
+}
+
+export interface CompactBriefDigest {
+  schema: "high-signal.compact-digest.v1";
+  generatedAt: string;
+  region: string;
+  sections: CompactDigestSection[];
 }
 
 const pctOf = (rate: number): string => `${Math.round(rate * 100)}%`;
@@ -199,21 +254,70 @@ export function briefSnapshotToEmailSections(
     {
       title: "04 / how the market perceives your products",
       items: (snapshot.perception ?? []).map((p) => ({
-        text: `${p.brandName} — mention rate ${
-          p.mentionRate != null ? pctOf(p.mentionRate) : "n/a"
-        }, positive share ${p.positiveShare != null ? pctOf(p.positiveShare) : "n/a"}`,
-        links: [],
+        text: [
+          `${p.brandName} — mention rate ${
+            p.mentionRate != null ? pctOf(p.mentionRate) : "n/a"
+          }, positive share ${p.positiveShare != null ? pctOf(p.positiveShare) : "n/a"}`,
+          p.topIntent
+            ? `${p.topIntent.intentStage} intent on ${p.topIntent.platform} (${p.topIntent.score}/100) · ${p.topIntent.actionType.replaceAll("_", " ")} · ${p.topIntent.sourceTitle}`
+            : null,
+        ]
+          .filter(Boolean)
+          .join(" · "),
+        links: p.topIntent ? [p.topIntent.sourceUrl] : [],
       })),
     },
     {
       title: "05 / ideas to improve your products",
       items: (snapshot.improvements ?? []).map((im) => ({
-        text: `[${im.priority}] ${im.brandName} · ${im.area} — ${im.task}`,
-        links: [],
+        text: [
+          `[${im.priority}] ${im.brandName} · ${im.area} — ${im.task}`,
+          im.intent
+            ? `${im.intent.intentStage} intent · ${im.intent.actionType.replaceAll("_", " ")} · ${im.intent.score}/100`
+            : null,
+        ]
+          .filter(Boolean)
+          .join(" · "),
+        links: im.sourceUrl ? [im.sourceUrl] : [],
       })),
     },
   ];
   return sections.filter((s) => s.items.length > 0);
+}
+
+const COMPACT_SECTION_IDS: CompactDigestSection["id"][] = [
+  "stocks",
+  "ideas",
+  "trends",
+  "perception",
+  "improvements",
+];
+
+/** Channel-neutral, versioned daily-brief payload for private feeds and future
+ * transports. It deliberately carries no delivery ids, email address, or user
+ * id; the bearer/session boundary stays outside the content contract. */
+export function briefSnapshotToCompactDigest(
+  snapshot: Partial<BriefSnapshot>,
+): CompactBriefDigest {
+  const sections = briefSnapshotToEmailSections(snapshot).map((section) => {
+    const ordinal = Number(section.title.slice(0, 2));
+    const id = COMPACT_SECTION_IDS[ordinal - 1];
+    if (!id) throw new Error(`unknown_brief_section:${section.title}`);
+    return {
+      id,
+      title: section.title,
+      items: section.items.map((item) => ({
+        text: item.text,
+        evidenceUrls: item.links,
+      })),
+    };
+  });
+  return {
+    schema: "high-signal.compact-digest.v1",
+    generatedAt: snapshot.generatedAt ?? "",
+    region: snapshot.region ?? "global",
+    sections,
+  };
 }
 
 // ─── One-click unsubscribe token ────────────────────────────────────────────

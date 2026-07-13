@@ -1,14 +1,14 @@
 # Plan 0012 - AI Visibility and Reddit Intent Response
 
-Status: accepted / scaffolded
+Status: accepted / local acceptance complete; remote migration pending
 Created: 2026-06-30
-Last updated: 2026-06-30
+Last updated: 2026-07-13
 Reference: https://octolens.com/, https://www.aipeekaboo.com/, https://www.subredditsignals.com/
 Depends on: `plans/0011-openlens-visibility-steal-list.md`, `plans/0006-agent-evaluation-attention-layer.md`
 
 ## Implementation state
 
-The first slice is scaffolded:
+The accepted slice is locally complete:
 
 - D1 migration `packages/db/migrations/0014_intent_opportunities.sql`.
 - Drizzle schema `intentOpportunities` in `packages/db/src/schema.ts`.
@@ -23,10 +23,20 @@ The first slice is scaffolded:
 - Optional reply drafts use the existing OpenAI-compatible High Signal AI config. Without a key, the route returns `ai_not_configured` and leaves the inbox item unchanged.
 - `/mentions/[brandId]` has an `intent` tab with refresh, draft, done, and dismiss actions.
 - `/products/mentions/:brandId/report` and the web report tab now include top open intent opportunities.
+- The owner-scoped Daily Brief independently loads open intent opportunities,
+  attaches the highest-scoring finding to section 4, and turns actionable
+  findings into source-linked section 5 work. Evidence tasks are deduplicated
+  by source URL, and a missing migration/table cannot erase existing brief data.
+- Web and delivery renderers retain buyer stage, platform, score, action, and
+  original source evidence.
+- Migration 0014 was applied to a fresh isolated local D1 on 2026-07-13. SQLite
+  metadata verified the table plus all three expected indexes.
 
-Remaining work:
+Remaining production-only work:
 
-- Apply migration `0014_intent_opportunities.sql` to local and remote D1.
+- Apply migration `0014_intent_opportunities.sql` to remote D1 through the
+  operator-approved migration workflow. No remote command, deploy, secret, or
+  production configuration change was performed during local acceptance.
 
 ## Why now
 
@@ -216,9 +226,9 @@ High Signal beats these competitors when:
 
 ## Acceptance criteria
 
-- A connected brand has a persisted intent inbox with scored items from at least Reddit plus one non-Reddit community/dev source.
-- Each item has buyer stage, action type, score, source URL, and competitor/proof-gap context when detected.
-- The Mentions detail page shows intent opportunities without turning `/communities` back into a standalone product.
-- Reply drafts are optional, operator-reviewed, and absent when no AI key is configured.
-- Weekly/report output combines AI visibility, cited-source gaps, and buyer-intent opportunities.
-- The plan feeds Daily Brief sections 4 and 5.
+- [x] A connected brand has a persisted intent inbox with scored items from at least Reddit plus one non-Reddit community/dev source.
+- [x] Each item has buyer stage, action type, score, source URL, and competitor/proof-gap context when detected.
+- [x] The Mentions detail page shows intent opportunities without turning `/communities` back into a standalone product.
+- [x] Reply drafts are optional, operator-reviewed, and absent when no AI key is configured.
+- [x] Weekly/report output combines AI visibility, cited-source gaps, and buyer-intent opportunities.
+- [x] The plan feeds Daily Brief sections 4 and 5.

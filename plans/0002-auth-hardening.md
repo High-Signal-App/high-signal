@@ -1,6 +1,6 @@
 # Plan 0002 — Auth hardening
 
-Status: active (Path A live; Path B deferred)
+Status: shipped (Path A live); Path B deferred
 Created: 2026-04-25
 Builds on: `0001-research-artifact-first.md`
 

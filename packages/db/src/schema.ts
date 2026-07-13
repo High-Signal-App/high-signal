@@ -851,6 +851,7 @@ export const deliveryLog = sqliteTable(
     reason: text("reason"),
     providerMessageId: text("provider_message_id"),
     attempt: integer("attempt").notNull().default(1),
+    nextAttemptAt: integer("next_attempt_at", { mode: "timestamp" }),
     sentAt: integer("sent_at", { mode: "timestamp" }),
     createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()
@@ -859,6 +860,7 @@ export const deliveryLog = sqliteTable(
   (t) => [
     uniqueIndex("delivery_log_user_day_chan_idx").on(t.userId, t.channel, t.briefDate),
     index("delivery_log_status_idx").on(t.status, t.createdAt),
+    index("delivery_log_retry_schedule_idx").on(t.status, t.nextAttemptAt),
   ],
 );
 

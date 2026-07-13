@@ -1,8 +1,8 @@
 # Plan 0010 - Entity Watchlists And Impact Chains
 
-Status: accepted / scaffolded
+Status: implemented
 Created: 2026-06-12
-Last updated: 2026-06-13
+Last updated: 2026-07-13
 Depends on: `plans/0001-research-artifact-first.md`, `plans/0007-highsignal-lab-substrate.md`
 
 ## Implementation state
@@ -15,14 +15,11 @@ This PRD is complete as a product spec and accepted into active scope. The v1 sc
 - Entity-page watch action on `/entities/[id]`.
 - Watchlist management surface at `/watchlist/entities`.
 - Shared impact composer in `packages/shared/src/watchlist-impact.ts` with suppression, observed/inferred labels, and priority math.
+- Owner-scoped Daily Brief `watching` composition with direct and one-hop items, horizon/suppression filtering, confidence context, and fault isolation.
+- Claim/evidence linkage for every surfaced watch item plus a compact relationship/provenance disclosure in `/brief`.
 - Unit coverage in `scripts/watchlist-impact.test.ts`.
 
-Remaining implementation work is intentionally tracked as follow-up, not as PRD uncertainty:
-
-- Apply migration `0011_watchlists.sql` to local and remote D1.
-- Wire a `watching` block into `workers/api/src/routes/brief.ts` so `/brief/daily?owner=...` includes watched-entity impact items.
-- Link watch items to structured `claim_records` once plan 0008 backfill/coverage is available.
-- Decide whether `/watchlist` stays a lens hub and `/watchlist/entities` stays the concrete entity-watchlist route.
+Migration `0011_watchlists.sql` was applied to remote D1 on 2026-06-28. The existing route split is retained: `/watchlist` remains the lens hub and `/watchlist/entities` remains the concrete management surface. No migration or deploy was run as part of the 2026-07-13 local-code completion.
 
 ## Thesis
 

@@ -34,7 +34,12 @@
  * install." This is that path.
  */
 
-import { deterministicVerdict, type VerdictResult } from "./auto-publish-rules";
+import {
+  applyStructuredClaimEvidence,
+  deterministicVerdict,
+  type VerdictResult,
+} from "./auto-publish-rules";
+import type { ClaimWithEvidence } from "@high-signal/shared";
 
 interface SignalRow {
   id: string;
@@ -86,6 +91,22 @@ async function fetchSignalsByStatus(status: "draft" | "published"): Promise<Sign
   }
   const data = (await r.json()) as { signals: SignalRow[] };
   return data.signals;
+}
+
+async function fetchClaimsBySignal(slug: string): Promise<ClaimWithEvidence[]> {
+  const url = `${API_BASE}/claims/by-signal/${encodeURIComponent(slug)}`;
+  try {
+    const response = await fetch(url, { cache: "no-store" } as RequestInit);
+    if (!response.ok) {
+      console.warn(`[auto-publish] claim lookup ${response.status} for ${slug}; using legacy evidence`);
+      return [];
+    }
+    const payload = (await response.json()) as { claims?: ClaimWithEvidence[] };
+    return payload.claims ?? [];
+  } catch (error) {
+    console.warn(`[auto-publish] claim lookup failed for ${slug}; using legacy evidence`, error);
+    return [];
+  }
 }
 
 async function patchReviewStatus(
@@ -224,14 +245,17 @@ async function main(): Promise<void> {
 
   for (const signal of toJudge) {
     let verdict: VerdictResult;
+    const claims = await fetchClaimsBySignal(signal.slug);
+    const judgeable = applyStructuredClaimEvidence(signal, claims);
     try {
-      verdict = await judge(signal);
+      verdict = await judge(judgeable);
     } catch (error) {
       console.error(`[auto-publish] judge error for ${signal.slug}:`, error);
       errors++;
       continue;
     }
     const tag = verdict.source === "ai" ? "AI " : "rul";
+    const provenanceTag = judgeable.provenanceSource === "structured_claims" ? "claims" : "legacy";
     const wasPublished = isPublished.has(signal.slug);
     if (verdict.verdict === "publish") {
       // Skip the PATCH if already published — no-op.
@@ -241,15 +265,15 @@ async function main(): Promise<void> {
       }
       const ok = await patchReviewStatus(signal.slug, "published");
       if (ok) publishedCount++; else errors++;
-      console.log(`  [${tag}]  PUBLISH  ${signal.slug}  — ${verdict.reason}`);
+      console.log(`  [${tag}/${provenanceTag}]  PUBLISH  ${signal.slug}  — ${verdict.reason}`);
     } else if (verdict.verdict === "kill") {
       const ok = await patchReviewStatus(signal.slug, "killed");
       if (ok) killed++; else errors++;
       const label = wasPublished ? "UNPUB" : "KILL";
-      console.log(`  [${tag}]    ${label}  ${signal.slug}  — ${verdict.reason}`);
+      console.log(`  [${tag}/${provenanceTag}]    ${label}  ${signal.slug}  — ${verdict.reason}`);
     } else {
       held++;
-      console.log(`  [${tag}]    HOLD   ${signal.slug}  — ${verdict.reason}`);
+      console.log(`  [${tag}/${provenanceTag}]    HOLD   ${signal.slug}  — ${verdict.reason}`);
     }
     if (AI_API_KEY) {
       await new Promise((r) => setTimeout(r, RATE_LIMIT_MS));

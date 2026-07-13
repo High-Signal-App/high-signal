@@ -1,8 +1,8 @@
 # Plan 0011 - OpenLens Visibility Steal List
 
-Status: accepted / scaffolded
+Status: implemented; operator verification tracked in `PROJECT_STATUS.md`
 Created: 2026-06-12
-Last updated: 2026-06-13
+Last updated: 2026-07-13
 Reference: https://openlens.com/
 Depends on: `plans/0006-agent-evaluation-attention-layer.md`, `plans/0008-signal-provenance-editor.md`
 
@@ -18,12 +18,15 @@ This PRD is complete as a product spec and accepted into active scope. The v1 sc
 - Agent Eval attribute grid at `/agent-eval/[auditId]/attributes`.
 - Unit coverage in `scripts/openlens-visibility.test.ts`.
 
-Remaining implementation work is intentionally tracked as follow-up, not as PRD uncertainty:
+The remaining local-code follow-ups were completed on 2026-07-13:
+
+- The existing `/mentions` configuration surface now presents category as **Topic** and check progress as prompts.
+- Every finished mention check now refreshes cited sources and intent opportunities independently; the manual cited-source endpoint uses the same rebuild helper.
+- `POST /products/mentions/:brandId/report/share-token` issues a deterministic brand-scoped HMAC token after ownership verification. `GET /products/mentions/:brandId/report` accepts either normal owner access or that token and fails closed when the server signing secret is unavailable.
+
+Remaining operator work is intentionally separate from this PRD's local implementation:
 
 - Apply migration `0012_cited_url_index.sql` to local and remote D1.
-- Rename remaining Mentions product copy from keyword/query to topic/prompt on the existing `/mentions` configuration surface.
-- Trigger `POST /products/mentions/:brandId/cited-sources/refresh` after each mention check so the cited-source index stays current.
-- Add shareable token enforcement before treating `/products/mentions/:brandId/report` as a public unauthenticated report URL.
 
 ## Thesis
 

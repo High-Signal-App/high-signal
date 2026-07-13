@@ -20,6 +20,7 @@ import { watchlistsRoute } from "./routes/watchlists";
 import { dataRoute } from "./routes/data";
 import { d2cRoute } from "./routes/d2c";
 import { companyUniverseRoute } from "./routes/company-universe";
+import { learningRoute } from "./routes/learning";
 
 type Env = {
   DB: D1Database;
@@ -63,6 +64,7 @@ app.route("/watchlists", watchlistsRoute);
 app.route("/data", dataRoute);
 app.route("/d2c", d2cRoute);
 app.route("/company-universe", companyUniverseRoute);
+app.route("/learning", learningRoute);
 
 app.onError((err, c) => {
   console.error(`[error] ${c.req.method} ${c.req.path}:`, err.message, err.stack);

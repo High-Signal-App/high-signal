@@ -1,6 +1,6 @@
 # Plan 0007 — HighSignal Lab: Local Intelligence Substrate
 
-Status: active
+Status: partial and parked; retained as product infrastructure
 Created: 2026-05-22
 Relates to: underpins `plans/0004-platform-consolidation.md`, `plans/0006-agent-evaluation-attention-layer.md`, and `plans/0001-research-artifact-first.md` — it provides the shared ingestion + index layer those sub-products draw candidates from. It does not supersede them.
 

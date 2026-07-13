@@ -7,6 +7,7 @@
 import {
   PREDICTION_MARKET_DOMAINS,
   isPredictionMarketOnly as isPredictionMarketOnlyUrls,
+  type ClaimWithEvidence,
 } from "@high-signal/shared";
 
 export type Verdict = "publish" | "kill" | "hold";
@@ -29,6 +30,40 @@ export interface JudgeableSignal {
    * sometimes attaches adjacent news by proximity rather than relevance).
    */
   bodyMd?: string;
+}
+
+export type ProvenanceSource = "structured_claims" | "legacy_signal";
+
+/**
+ * Replace legacy signal evidence metadata with the canonical claim links when
+ * claim coverage exists. The legacy payload remains intact only during the
+ * lazy-backfill rollout for signals that do not have a claim yet.
+ */
+export function applyStructuredClaimEvidence<T extends JudgeableSignal>(
+  signal: T,
+  claims: ClaimWithEvidence[],
+): T & { provenanceSource: ProvenanceSource } {
+  if (claims.length === 0) {
+    return { ...signal, provenanceSource: "legacy_signal" };
+  }
+  const links = claims.flatMap((claim) => claim.evidence);
+  const evidenceUrls = Array.from(
+    new Set(links.map((link) => link.evidenceUrl).filter(Boolean)),
+  );
+  const hosts = new Set(evidenceUrls.map(urlHost).filter(Boolean));
+  const marketOnly = isPredictionMarketOnlyUrls(evidenceUrls);
+  const contradiction = links.some((link) => link.role === "contradiction");
+  return {
+    ...signal,
+    evidenceUrls,
+    independentSourceCount: hosts.size,
+    sourceClasses: marketOnly ? ["market"] : [],
+    publishable: contradiction ? false : signal.publishable,
+    qualityReasons: contradiction
+      ? [...(signal.qualityReasons ?? []), "structured_contradiction"]
+      : signal.qualityReasons,
+    provenanceSource: "structured_claims",
+  };
 }
 
 /**
@@ -117,6 +152,14 @@ export function deterministicVerdict(signal: JudgeableSignal): VerdictResult {
     return {
       verdict: "kill",
       reason: `only ${evidence} evidence url(s) — fails cite-or-kill`,
+      source: "rule",
+    };
+  }
+
+  if (reasons.includes("structured_contradiction")) {
+    return {
+      verdict: "kill",
+      reason: "structured claim contains unresolved contradictory evidence",
       source: "rule",
     };
   }

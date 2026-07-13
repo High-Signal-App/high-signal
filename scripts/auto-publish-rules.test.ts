@@ -9,12 +9,14 @@
  */
 
 import {
+  applyStructuredClaimEvidence,
   deterministicVerdict,
   evidenceCoverage,
   isPredictionMarketOnly,
   type JudgeableSignal,
   type Verdict,
 } from "./auto-publish-rules";
+import type { ClaimWithEvidence } from "@high-signal/shared";
 
 let failures = 0;
 let total = 0;
@@ -47,6 +49,70 @@ function checkBool(label: string, actual: boolean, expected: boolean) {
     failures++;
     console.error(`  ✗ ${label}: expected ${expected}, got ${actual}`);
   }
+}
+
+function claimWithEvidence(
+  urls: string[],
+  role: "primary" | "corroboration" | "contradiction" = "primary",
+): ClaimWithEvidence {
+  return {
+    id: "claim-1",
+    signalId: "signal-1",
+    briefItemId: null,
+    agentEvalResponseId: null,
+    surface: "signal",
+    assertion: "A structured assertion",
+    confidenceBand: "high",
+    reviewStatus: "draft",
+    publishReason: null,
+    parentClaimId: null,
+    version: 1,
+    createdAt: new Date().toISOString(),
+    publishedAt: null,
+    correctedAt: null,
+    evidence: urls.map((url, index) => ({
+      id: `link-${index}`,
+      claimId: "claim-1",
+      evidenceUrl: url,
+      sourceDocumentId: null,
+      role,
+      weight: 1,
+      notes: null,
+      addedAt: new Date().toISOString(),
+      addedBy: null,
+    })),
+  };
+}
+
+console.log("structured claim evidence enrichment");
+{
+  const enriched = applyStructuredClaimEvidence(
+    {
+      evidenceUrls: ["https://legacy.example/only"],
+      publishable: true,
+      independentSourceCount: 1,
+      sourceClasses: ["market"],
+    },
+    [claimWithEvidence(["https://reuters.com/a", "https://example.org/b"])],
+  );
+  checkBool("structured claims replace legacy urls", enriched.evidenceUrls.length === 2, true);
+  checkBool("structured hosts replace legacy count", enriched.independentSourceCount === 2, true);
+  checkBool("structured source is reported", enriched.provenanceSource === "structured_claims", true);
+}
+{
+  const legacy = applyStructuredClaimEvidence(
+    { evidenceUrls: ["https://legacy.example/only"] },
+    [],
+  );
+  checkBool("no claims keeps legacy evidence", legacy.evidenceUrls.length === 1, true);
+  checkBool("legacy source is reported", legacy.provenanceSource === "legacy_signal", true);
+}
+{
+  const contradicted = applyStructuredClaimEvidence(
+    { evidenceUrls: [], publishable: true },
+    [claimWithEvidence(["https://a.example/x", "https://b.example/y"], "contradiction")],
+  );
+  check("structured contradiction kills", contradicted, "kill", "contradictory");
 }
 
 console.log("auto-publish rubric — cite-or-kill floor");

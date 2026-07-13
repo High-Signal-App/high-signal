@@ -273,7 +273,7 @@ export default async function MentionsPage({
                 defaultValue="best tools for AI signal tracking"
                 multiline
               />
-              <Field label="Category" name="category" defaultValue="discovery" />
+              <Field label="Topic" name="category" defaultValue="discovery" />
               <CommandButton>add prompt</CommandButton>
             </form>
             <div className="mt-6 border-t border-[var(--color-line)] pt-5">
@@ -310,7 +310,7 @@ export default async function MentionsPage({
                         {check.createdAt.slice(0, 16).replace('T', ' ')} / {check.status}
                       </div>
                       <p className="mt-2 leading-6 text-[var(--color-fg)]">
-                        {check.summary ?? `${check.completedQueries}/${check.totalQueries} queries`}
+                        {check.summary ?? `${check.completedQueries}/${check.totalQueries} prompts`}
                       </p>
                     </div>
                     <div
@@ -370,7 +370,7 @@ export default async function MentionsPage({
           kicker: `${check.createdAt.slice(0, 16).replace('T', ' ')} / ${check.status}`,
           title:
             check.summary ??
-            `${check.completedQueries}/${check.totalQueries} queries · ${
+            `${check.completedQueries}/${check.totalQueries} prompts · ${
               check.brandMentionRate != null ? `${Math.round(check.brandMentionRate * 100)}%` : '—'
             }`,
           body: null,

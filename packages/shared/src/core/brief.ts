@@ -7,6 +7,7 @@
  */
 
 import type { Region } from "../primitives/region";
+import type { BriefClaimProvenance } from "./claim-provenance";
 
 export type BriefSectionKey =
   | "stocks"
@@ -89,6 +90,49 @@ export interface BriefStockItem {
   hitRate: number | null;
   hitRateSample: number;
   hitRateBand: HitRateBand;
+  /** Optional on legacy/precomputed snapshots while claim coverage backfills. */
+  provenance?: BriefClaimProvenance;
+}
+
+export interface BriefWatchingItem {
+  signalId: string;
+  signalSlug: string;
+  signalType: string;
+  headline: string;
+  watchedEntityId: string;
+  watchedEntityName: string;
+  subjectEntityId: string;
+  subjectEntityName: string;
+  deltaKind: "direct" | "second_order";
+  observed: boolean;
+  confidence: "low" | "medium" | "high";
+  publishedAt: string;
+  why: string;
+  relationshipPath: Array<{
+    fromEntityId: string;
+    toEntityId: string;
+    type: string;
+  }>;
+  provenance: BriefClaimProvenance;
+}
+
+export interface BriefWatchingSection {
+  items: BriefWatchingItem[];
+}
+
+export function evidenceBackedWatchItems<T extends { signalId: string }>(
+  items: T[],
+  provenanceBySignal: Map<string, BriefClaimProvenance>,
+  limit = 5,
+): Array<{ item: T; provenance: BriefClaimProvenance }> {
+  const out: Array<{ item: T; provenance: BriefClaimProvenance }> = [];
+  for (const item of items) {
+    const provenance = provenanceBySignal.get(item.signalId);
+    if (!provenance) continue;
+    out.push({ item, provenance });
+    if (out.length >= limit) break;
+  }
+  return out;
 }
 
 export interface BriefIdeaItem {
@@ -114,6 +158,38 @@ export interface BriefTrendItem {
   surfacedAt: string;
 }
 
+/** Source-backed buyer/community intent attached to owner-scoped brief items. */
+export interface BriefIntentItem {
+  id: string;
+  brandId: string;
+  brandName: string;
+  source: string;
+  sourceUrl: string;
+  sourceTitle: string;
+  sourceExcerpt: string;
+  platform: string;
+  intentStage:
+    | "awareness"
+    | "pain"
+    | "comparison"
+    | "purchase"
+    | "proof"
+    | "integration"
+    | "content";
+  actionType:
+    | "watch"
+    | "reply"
+    | "create_proof"
+    | "improve_docs"
+    | "add_integration"
+    | "write_comparison"
+    | "content_opportunity";
+  score: number;
+  competitors: string[];
+  evidenceTaskId: string | null;
+  foundAt: string;
+}
+
 export interface BriefPerceptionItem {
   brandName: string;
   mentionRate: number | null;
@@ -121,6 +197,8 @@ export interface BriefPerceptionItem {
   competitorPresence: number | null;
   latestCheckAt: string | null;
   configId: string;
+  /** Highest-scoring open buyer/community finding for this brand. */
+  topIntent?: BriefIntentItem;
 }
 
 export interface BriefImprovementItem {
@@ -128,8 +206,13 @@ export interface BriefImprovementItem {
   area: string;
   task: string;
   priority: "high" | "medium" | "low";
-  auditId: string;
+  /** Null for an action derived directly from intent rather than an audit. */
+  auditId: string | null;
   surfacedAt: string;
+  /** Original evidence URL when the task was created from a source finding. */
+  sourceUrl?: string | null;
+  /** Present when this action was exposed by a buyer/community finding. */
+  intent?: BriefIntentItem;
 }
 
 export interface BriefSnapshot {
@@ -139,6 +222,8 @@ export interface BriefSnapshot {
   stocks: BriefStockItem[];
   ideas: BriefIdeaItem[];
   trends: BriefTrendItem[];
+  /** Owner-scoped and omitted by older cached snapshots. */
+  watching?: BriefWatchingSection;
   perception: BriefPerceptionItem[];
   improvements: BriefImprovementItem[];
 }
