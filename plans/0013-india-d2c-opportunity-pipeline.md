@@ -1,8 +1,8 @@
 # Plan 0013 - India D2C Opportunity Pipeline
 
-Status: proposed / ready for delegated implementation planning
+Status: implemented (slices 1–4); operational follow-ons tracked in `PROJECT_STATUS.md`
 Created: 2026-07-05
-Last updated: 2026-07-05
+Last updated: 2026-07-13
 Reference: impuls8 workflow review, High Signal Opportunity Briefs
 Depends on: Daily Brief section 02, `openspec/specs/opportunity-briefs/spec.md`, `plans/0012-ai-visibility-and-reddit-intent-response.md`
 

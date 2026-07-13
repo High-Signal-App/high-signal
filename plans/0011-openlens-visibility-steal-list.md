@@ -1,6 +1,6 @@
 # Plan 0011 - OpenLens Visibility Steal List
 
-Status: implemented / migration apply pending
+Status: implemented; operator verification tracked in `PROJECT_STATUS.md`
 Created: 2026-06-12
 Last updated: 2026-07-13
 Reference: https://openlens.com/
