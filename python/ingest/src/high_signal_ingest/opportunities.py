@@ -133,7 +133,7 @@ def _complete_text(system: str, user: str) -> str | None:
     Returns ``None`` when no key is configured or the call fails — callers
     degrade gracefully (no reply draft rather than a crash).
     """
-    base = os.environ.get("AI_BASE_URL", "https://free-ai-gateway.sarthakagrawal927.workers.dev/v1")
+    base = os.environ.get("AI_BASE_URL", "https://ai-gateway.sassmaker.com/v1")
     key = os.environ.get("AI_API_KEY") or os.environ.get("HF_TOKEN")
     if not base or not key:
         return None

@@ -40,7 +40,7 @@ LOGGER = logging.getLogger("d2c_agent_visibility")
 # AI gateway (same pattern as opportunities._complete_text)
 # ---------------------------------------------------------------------------
 
-_DEFAULT_BASE = "https://free-ai-gateway.sarthakagrawal927.workers.dev/v1"
+_DEFAULT_BASE = "https://ai-gateway.sassmaker.com/v1"
 
 
 def _complete(system: str, user: str, client: httpx.AsyncClient | None = None) -> str | None:

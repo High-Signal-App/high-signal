@@ -77,7 +77,7 @@ export const PLATFORM_REGISTRY: PlatformSpec[] = [
 ];
 
 const FREE_AI_DEFAULT_ENDPOINT =
-  "https://free-ai-gateway.sarthakagrawal927.workers.dev/v1/chat/completions";
+  "https://ai-gateway.sassmaker.com/v1/chat/completions";
 
 /**
  * The platforms a check should fan out across, given the environment and an

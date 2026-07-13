@@ -344,7 +344,7 @@ def _ai_complete(prompt: str, content: str) -> tuple[dict | None, dict]:
     # Default to user's free-ai-gateway (OpenAI-compatible router across CF
     # Workers AI / HF Router / Groq / etc., open-auth, project-scoped quotas).
     base = os.environ.get(
-        "AI_BASE_URL", "https://free-ai-gateway.sarthakagrawal927.workers.dev/v1"
+        "AI_BASE_URL", "https://ai-gateway.sassmaker.com/v1"
     )
     key = os.environ.get("AI_API_KEY") or os.environ.get("HF_TOKEN")
     model = os.environ.get("AI_MODEL", "auto")

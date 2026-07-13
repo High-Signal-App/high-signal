@@ -28,7 +28,7 @@ const PROJECT_ID = 'high-signal';
 
 /** The Fleet AI chokepoint — used when no endpoint is explicitly configured. */
 export const FREE_AI_DEFAULT_ENDPOINT =
-  'https://free-ai-gateway.sarthakagrawal927.workers.dev/v1/chat/completions';
+  'https://ai-gateway.sassmaker.com/v1/chat/completions';
 
 function buildChatUrl(endpointUrl: string): string {
   const base = endpointUrl.trim().replace(/\/+$/, '');
