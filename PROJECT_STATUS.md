@@ -89,6 +89,7 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 ## Timeline
 
 - **2026-07-13** — Completed plan 0012's remaining local acceptance: open buyer/community intent now enriches Daily Brief section 4 with each brand's strongest source-linked finding and section 5 with deduplicated, reviewable actions. Intent loading fails independently while remote migration 0014 remains pending. Web and delivery output retain stage, platform, score, action, and source. Migration 0014 was verified only against a fresh isolated local D1 (table + three indexes); no remote migration, deploy, secret, or production config was touched.
+- **2026-07-13** — Closed plan 0009's remaining local acceptance gaps. Failed email rows are now owner-scoped and manually retryable from `/settings/delivery` through a conditional failed→queued claim; RSS preferences issue stable opaque tokens for private daily-brief RSS/Atom feeds; and signed-in users can read the versioned compact daily-brief JSON contract. Existing public weekly feeds remain unchanged without a token. No migration, provider/DNS setup, secret, production config, mail send, or deploy was performed.
 - **2026-07-13** — Completed the remaining local-code follow-ups for plans 0008 and 0010. Auto-publish now prefers structured claim links with an explicit legacy fallback; `/review` lazily and idempotently backfills historical claims; stock items expose compact “why this is here” provenance; and signed-in briefs compose up to five suppression-aware direct/one-hop watch impacts, omitting any item without evidence-backed claim linkage. No migration, production config, or deploy was run.
 - **2026-07-13** — Added the versioned public `GET /learning/daily` feed for the Fleet unified-learning pipeline. It reuses the canonical Daily Brief composer in-process, emits only compact stock/idea/trend learning items with citations, and deliberately excludes owner-specific perception and improvement sections. Focused API typecheck and full worker test suite pass.
 - **2026-07-05** — Added **India D2C Opportunity Pipeline** (plan 0013, Slices 1 + 2). 20 hand-curated India D2C niches → deterministic 0–100 opportunity score → `test / watch / avoid` verdict → `OpportunityBriefPayload` rendered in `/opportunities` (new "India D2C Opportunity Briefs" section) and Daily Brief section 02 (3 briefs for `south-asia`, 1 rotating for `global`). Reuses the existing Opportunity Brief contract — no new component, no D1 migration (JSON artifacts first per the PRD). New `packages/shared/src/content/d2c-opportunities.ts` (seed + `scoreD2CNiche` + `verdictForScore` + `composeD2COpportunityBrief` + `d2cBriefItems`); weekly Python collector `python/ingest/.../d2c_opportunities.py` pulls Reddit/HN/Product-Hunt samples for the 20 niches and writes cited JSON artifacts under `data/d2c-opportunities/`; `scripts/d2c-opportunities-bundle.ts` bundles the latest artifact into the shared package so the worker renders cited evidence without a runtime fs read. Fragile sources (Google Trends, Meta Ad Library, marketplace pages) degrade to `null` with a `freshnessDate`. No impuls8 data read or redistributed; no paid source dependency. Tests: `d2c-opportunities` (TS, 32) + `test_d2c_opportunities.py` (10). Run: `pnpm d2c:collect` then `pnpm d2c:bundle`. Slices 3 (scoring history + D1 persistence) and 4 (agent-visibility overlay) deferred.
@@ -171,15 +172,16 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 - Auto-publish consumes structured evidence when claims exist; `/review` lazily backfills historical signals through an authenticated idempotent route; stock brief cards expose compact provenance.
 - Tests: `scripts/claim-provenance.test.ts` (36 unit tests) plus structured auto-publish coverage.
 
-### Plan 0009 — Brief distribution (scaffolded)
+### Plan 0009 — Brief distribution (local product behavior complete)
 
 - Migration `0010_brief_delivery.sql` — **Applied to remote D1** (2026-06-28).
 - Tables: `delivery_preferences`, `delivery_log`, `delivery_snapshots`.
-- Worker `/delivery/*`: preferences, log, test, cron `POST /delivery/internal/run`.
+- Worker `/delivery/*`: preferences, log, test, owner-scoped manual retry, compact JSON, cron `POST /delivery/internal/run`.
 - Email: Cloudflare `send_email` binding; MIME in `workers/api/src/lib/email.ts`.
 - Next.js proxy: `/api/delivery/[...path]`.
-- Web: `/settings/delivery`, `/admin/delivery`; admin summary `GET /admin/delivery/summary`.
-- Tests: `scripts/brief-delivery.test.ts` (24 unit tests).
+- Private feeds: stable opaque per-user RSS token; token-authenticated daily-brief RSS/Atom while no-token requests retain the public weekly digest.
+- Web: `/settings/delivery` with failed-row retry and private-feed controls, `/admin/delivery`; admin summary `GET /admin/delivery/summary`.
+- Tests: `scripts/brief-delivery.test.ts` (45 assertions) plus worker delivery-completion contract/auth/feed coverage.
 
 ### Plan 0010 — Entity watchlists & impact chains
 
@@ -293,7 +295,7 @@ Python adapters under `python/ingest/src/high_signal_ingest/sources/` — all wi
    prefer a Cloudflare WAF rule when zone-level rules permission is available.
 
 1. **Remaining source API keys (manual signup needed):** `FRED_API_KEY` (macro rates — highest value, 2 min signup), `ETHERSCAN_API_KEY` (Ethereum gas, 2 min), `COMPANIES_HOUSE_API_KEY` (UK filings, 3 min). All others have keyless alternatives or are niche — see session notes. AgentMail inbox `highsignal-keys@agentmail.to` is set up for registrations.
-3. **Plan 0009 follow-ups:** Email Routing operator setup (DKIM/SPF + `EMAIL_FROM`) is the only remaining blocker. Delivery is otherwise complete: the `*/30` cron now runs the sweep in `scheduled()` (fail-closed + idempotent), live-brief compose feeds the email, one-click unsubscribe (HMAC token, RFC 8058 `List-Unsubscribe`) works from any mail client, and 3 consecutive failures auto-disable a channel.
+3. **Plan 0009 operator follow-up only:** Email Routing setup (DKIM/SPF + `EMAIL_FROM`) remains the sole external blocker. Checked-in behavior is complete: the `*/30` cron is fail-closed and idempotent, live-brief compose feeds email/private RSS/private Atom/compact JSON, failed rows are retryable from the owner UI, one-click unsubscribe (HMAC token, RFC 8058 `List-Unsubscribe`) works from any mail client, and 3 consecutive failures auto-disable a channel.
 6. Clarify event semantics — `normalized_events` vs current `events` as source observations.
 7. Keep source pipeline small and quality-gated; run `pnpm source:quality` after full ingest.
 8. Promote `/unmapped` candidates into seed CSV; expand curated adapter lists before new firehoses.

@@ -68,14 +68,16 @@ async function getBinding(): Promise<{ fetch: typeof fetch } | null> {
   return null;
 }
 
-export async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
+export async function fetchApiResponse(path: string, init?: RequestInit): Promise<Response> {
   const binding = await getBinding();
-  let r: Response;
   if (binding) {
-    r = await binding.fetch(`https://api${path}`, init);
-  } else {
-    r = await fetch(`${API_BASE}${path}`, { ...init, cache: 'no-store' });
+    return binding.fetch(`https://api${path}`, init);
   }
+  return fetch(`${API_BASE}${path}`, { ...init, cache: 'no-store' });
+}
+
+export async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
+  const r = await fetchApiResponse(path, init);
   if (!r.ok) throw new Error(`api ${path} ${r.status}`);
   return r.json() as Promise<T>;
 }

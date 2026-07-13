@@ -40,6 +40,20 @@ export interface DeliveryLogEntry {
   createdAt: string;
 }
 
+/** Manual retries are an explicit email recovery path, never a way to replay
+ * sent/skipped rows or future channel transports. */
+export function canRetryDelivery(
+  row: Pick<DeliveryLogEntry, "channel" | "status" | "attempt">,
+): boolean {
+  return row.channel === "email" && row.status === "failed" && row.attempt >= 1;
+}
+
+/** 256-bit bearer credential for a private RSS/Atom preference. */
+export function createRssToken(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(32));
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
 // Time-window resolution. Workers can't trust Date.now() in some contexts
 // (workflows resume cache); these helpers accept an explicit `now` so tests
 // and reruns are deterministic.
@@ -158,6 +172,24 @@ export interface EmailSection {
   items: EmailSectionItem[];
 }
 
+export interface CompactDigestItem {
+  text: string;
+  evidenceUrls: string[];
+}
+
+export interface CompactDigestSection {
+  id: "stocks" | "ideas" | "trends" | "perception" | "improvements";
+  title: string;
+  items: CompactDigestItem[];
+}
+
+export interface CompactBriefDigest {
+  schema: "high-signal.compact-digest.v1";
+  generatedAt: string;
+  region: string;
+  sections: CompactDigestSection[];
+}
+
 const pctOf = (rate: number): string => `${Math.round(rate * 100)}%`;
 
 function citationLinks(urls: Array<{ url: string }> | undefined): string[] {
@@ -228,6 +260,41 @@ export function briefSnapshotToEmailSections(
     },
   ];
   return sections.filter((s) => s.items.length > 0);
+}
+
+const COMPACT_SECTION_IDS: CompactDigestSection["id"][] = [
+  "stocks",
+  "ideas",
+  "trends",
+  "perception",
+  "improvements",
+];
+
+/** Channel-neutral, versioned daily-brief payload for private feeds and future
+ * transports. It deliberately carries no delivery ids, email address, or user
+ * id; the bearer/session boundary stays outside the content contract. */
+export function briefSnapshotToCompactDigest(
+  snapshot: Partial<BriefSnapshot>,
+): CompactBriefDigest {
+  const sections = briefSnapshotToEmailSections(snapshot).map((section) => {
+    const ordinal = Number(section.title.slice(0, 2));
+    const id = COMPACT_SECTION_IDS[ordinal - 1];
+    if (!id) throw new Error(`unknown_brief_section:${section.title}`);
+    return {
+      id,
+      title: section.title,
+      items: section.items.map((item) => ({
+        text: item.text,
+        evidenceUrls: item.links,
+      })),
+    };
+  });
+  return {
+    schema: "high-signal.compact-digest.v1",
+    generatedAt: snapshot.generatedAt ?? "",
+    region: snapshot.region ?? "global",
+    sections,
+  };
 }
 
 // ─── One-click unsubscribe token ────────────────────────────────────────────

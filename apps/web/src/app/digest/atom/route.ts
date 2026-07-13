@@ -1,6 +1,6 @@
 import { headers } from 'next/headers';
 
-import { api } from '@/lib/api';
+import { api, fetchApiResponse } from '@/lib/api';
 import { signalExcerpt, signalHeadline } from '@/lib/rss';
 import { isBackfillSignal } from '@/lib/signal-format';
 
@@ -16,7 +16,18 @@ function escapeXml(s: string): string {
 }
 
 /** Atom 1.0 feed for the weekly digest — mirrors /digest/rss. */
-export async function GET() {
+export async function GET(request: Request) {
+  const token = new URL(request.url).searchParams.get('token');
+  if (token) {
+    const response = await fetchApiResponse(`/digest/atom?token=${encodeURIComponent(token)}`);
+    return new Response(response.body, {
+      status: response.status,
+      headers: {
+        'Content-Type': response.headers.get('content-type') ?? 'text/plain; charset=utf-8',
+        'Cache-Control': 'private, no-store',
+      },
+    });
+  }
   const h = await headers();
   const proto = h.get('x-forwarded-proto') ?? 'https';
   const host = h.get('x-forwarded-host') ?? h.get('host') ?? 'localhost';

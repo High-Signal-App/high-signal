@@ -12,6 +12,9 @@ import {
   nextRetryMinutes,
   shouldAutoDisable,
   briefSnapshotToEmailSections,
+  briefSnapshotToCompactDigest,
+  canRetryDelivery,
+  createRssToken,
   unsubscribeToken,
 } from "@high-signal/shared";
 
@@ -90,6 +93,23 @@ checkEq("two failures + sent does not disable", shouldAutoDisable(["failed", "se
 checkEq("two failures alone does not disable", shouldAutoDisable(["failed", "failed"]), false);
 checkEq("empty does not disable", shouldAutoDisable([]), false);
 
+console.log("\ncanRetryDelivery");
+checkEq(
+  "failed email can retry",
+  canRetryDelivery({ channel: "email", status: "failed", attempt: 3 }),
+  true,
+);
+checkEq(
+  "sent email cannot retry",
+  canRetryDelivery({ channel: "email", status: "sent", attempt: 1 }),
+  false,
+);
+checkEq(
+  "failed RSS cannot retry through email route",
+  canRetryDelivery({ channel: "rss", status: "failed", attempt: 1 }),
+  false,
+);
+
 console.log("\nbriefSnapshotToEmailSections");
 checkEq("null snapshot → no sections", briefSnapshotToEmailSections(null).length, 0);
 checkEq("empty snapshot → no sections", briefSnapshotToEmailSections({}).length, 0);
@@ -166,7 +186,22 @@ checkEq("perception carries intent source", secs[2]?.items[0]?.links[0], "https:
 checkEq("improvement includes intent action", secs[3]?.items[0]?.text.includes("write comparison"), true);
 checkEq("improvement carries source", secs[3]?.items[0]?.links[0], "https://reddit.com/r/tools/comments/intent-1");
 
+console.log("\nbriefSnapshotToCompactDigest");
+const compact = briefSnapshotToCompactDigest(
+  fullSnapshot as unknown as Parameters<typeof briefSnapshotToCompactDigest>[0],
+);
+checkEq("compact schema is versioned", compact.schema, "high-signal.compact-digest.v1");
+checkEq("compact sections preserve order", compact.sections.map((s) => s.id).join(","), "stocks,ideas,perception");
+checkEq("compact evidence links preserved", compact.sections[0]?.items[0]?.evidenceUrls.length, 2);
+checkEq("compact payload has no delivery identity", JSON.stringify(compact).includes("userId"), false);
+
 async function main() {
+  console.log("\ncreateRssToken");
+  const rssA = createRssToken();
+  const rssB = createRssToken();
+  checkEq("RSS token is 256-bit hex", /^[0-9a-f]{64}$/.test(rssA), true);
+  checkEq("RSS tokens are opaque and unique", rssA === rssB, false);
+
   console.log("\nunsubscribeToken");
   const tokA = await unsubscribeToken("secret-1", "user-123");
   const tokA2 = await unsubscribeToken("secret-1", "user-123");
