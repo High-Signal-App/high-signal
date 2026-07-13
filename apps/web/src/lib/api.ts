@@ -777,6 +777,11 @@ export const api = {
     }>(
       `/products/mentions/${encodeURIComponent(brandId)}/report?window=${window}&owner=${encodeURIComponent(ownerId)}`
     ),
+  createMentionReportShareToken: (ownerId: string, brandId: string) =>
+    fetchJson<{ token: string }>(
+      `/products/mentions/${encodeURIComponent(brandId)}/report/share-token?owner=${encodeURIComponent(ownerId)}`,
+      { method: 'POST' }
+    ),
   agentEvalAttributes: (ownerId: string, auditId: string) =>
     fetchJson<{
       attributes: Array<{

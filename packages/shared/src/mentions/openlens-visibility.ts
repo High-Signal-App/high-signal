@@ -339,3 +339,35 @@ export function sortAttributes(rows: AttributeRow[]): AttributeRow[] {
   };
   return [...rows].sort((a, b) => idx(a.area) - idx(b.area));
 }
+
+// Deterministic, brand-scoped report sharing without a persistence migration.
+// The worker signs with a server-only secret and accepts the result only for
+// the same brand id. Missing secrets are handled by the route and fail closed.
+export async function visibilityReportToken(secret: string, brandId: string): Promise<string> {
+  const enc = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    "raw",
+    enc.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const signature = await crypto.subtle.sign("HMAC", key, enc.encode(`report:${brandId}`));
+  return Array.from(new Uint8Array(signature), (byte) => byte.toString(16).padStart(2, "0"))
+    .join("")
+    .slice(0, 32);
+}
+
+export async function verifyVisibilityReportToken(
+  secret: string,
+  brandId: string,
+  candidate: string,
+): Promise<boolean> {
+  const expected = await visibilityReportToken(secret, brandId);
+  if (candidate.length !== expected.length) return false;
+  let mismatch = 0;
+  for (let i = 0; i < expected.length; i++) {
+    mismatch |= expected.charCodeAt(i) ^ candidate.charCodeAt(i);
+  }
+  return mismatch === 0;
+}

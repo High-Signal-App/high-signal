@@ -15,6 +15,11 @@ import {
   type MentionRow,
   type MatrixRow,
 } from "@high-signal/shared";
+import { readFileSync } from "node:fs";
+import {
+  verifyVisibilityReportToken,
+  visibilityReportToken,
+} from "../packages/shared/src/mentions/openlens-visibility";
 
 let failures = 0;
 let total = 0;
@@ -171,8 +176,58 @@ console.log("\nsortAttributes — canonical area order");
   checkEq("unknown_area last", sorted[2]!.area, "unknown_area");
 }
 
-if (failures > 0) {
-  console.error(`\n${failures}/${total} failed`);
-  process.exit(1);
+async function finish() {
+  console.log("\nvisibilityReportToken — deterministic brand scoping");
+  const token = await visibilityReportToken("server-secret", "brand-a");
+  checkEq("token is stable", token, await visibilityReportToken("server-secret", "brand-a"));
+  checkEq("token is 32 hex characters", /^[a-f0-9]{32}$/.test(token), true);
+  checkEq(
+    "valid token verifies",
+    await verifyVisibilityReportToken("server-secret", "brand-a", token),
+    true,
+  );
+  checkEq(
+    "token cannot cross brands",
+    await verifyVisibilityReportToken("server-secret", "brand-b", token),
+    false,
+  );
+  checkEq(
+    "token cannot cross secrets",
+    await verifyVisibilityReportToken("different-secret", "brand-a", token),
+    false,
+  );
+
+  console.log("\nOpenLens follow-up wiring");
+  const mentionsPage = readFileSync(
+    new URL("../apps/web/src/app/mentions/page.tsx", import.meta.url),
+    "utf8",
+  );
+  const productsRoute = readFileSync(
+    new URL("../workers/api/src/routes/products.ts", import.meta.url),
+    "utf8",
+  );
+  checkEq("configuration copy labels category as Topic", mentionsPage.includes('label="Topic"'), true);
+  checkEq("check progress uses prompts", mentionsPage.includes("totalQueries} prompts"), true);
+  checkEq("post-check refreshes are independent", productsRoute.includes("Promise.allSettled(["), true);
+  checkEq(
+    "manual and automatic paths share cited-source helper",
+    productsRoute.match(/refreshCitedSourcesForBrand\(/g)?.length,
+    3,
+  );
+  checkEq(
+    "report token route is owner-gated",
+    productsRoute.includes('post("/mentions/:brandId/report/share-token"'),
+    true,
+  );
+
+  if (failures > 0) {
+    console.error(`\n${failures}/${total} failed`);
+    process.exit(1);
+  }
+  console.log(`\nall ${total} ok`);
 }
-console.log(`\nall ${total} ok`);
+
+finish().catch((error) => {
+  console.error(error);
+  process.exit(1);
+});

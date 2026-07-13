@@ -27,6 +27,8 @@ import {
   normalizeCommunitySummary,
   scoreIntentOpportunity,
   sortAttributes,
+  verifyVisibilityReportToken,
+  visibilityReportToken,
   type AttributeRow,
   type BrandIdentity,
   type IntentOpportunityCandidate,
@@ -58,6 +60,7 @@ import type {
 
 type Env = {
   DB: D1Database;
+  ADMIN_TOKEN?: string;
   HIGH_SIGNAL_AI_ENDPOINT_URL?: string;
   HIGH_SIGNAL_AI_API_KEY?: string;
   HIGH_SIGNAL_AI_MODEL?: string;
@@ -471,8 +474,22 @@ productsRoute.post("/mentions/configs/:id/checks", async (c) => {
       prompts,
       checkId: row.id,
     })
-      .then(() => refreshIntentOpportunitiesForBrand(database, ownerId, config, { windowDays: 14, limit: 50 }))
-      .catch((error) => console.error("High Signal mention check / intent refresh failed:", error)),
+      .then(async () => {
+        const refreshes = await Promise.allSettled([
+          refreshCitedSourcesForBrand(c.env.DB, config, 30),
+          refreshIntentOpportunitiesForBrand(database, ownerId, config, {
+            windowDays: 14,
+            limit: 50,
+          }),
+        ]);
+        const labels = ["cited-source", "intent-opportunity"];
+        refreshes.forEach((result, index) => {
+          if (result.status === "rejected") {
+            console.error(`High Signal mention check / ${labels[index]} refresh failed:`, result.reason);
+          }
+        });
+      })
+      .catch((error) => console.error("High Signal mention check failed:", error)),
   );
 
   return c.json({ check: toMentionCheck(row) }, 201);
@@ -1343,7 +1360,16 @@ productsRoute.post("/mentions/:brandId/cited-sources/refresh", async (c) => {
   if (!brand) return c.json({ error: "brand_not_found" }, 404);
 
   const windowDays = clampedLimit(c.req.query("window") ?? "30", 30, 365);
-  const rows = await loadMentionRowsForBrand(c.env.DB, brandId, windowDays);
+  return c.json(await refreshCitedSourcesForBrand(c.env.DB, brand, windowDays));
+});
+
+async function refreshCitedSourcesForBrand(
+  d1: D1Database,
+  brand: typeof schema.mentionBrandConfigs.$inferSelect,
+  windowDays: number,
+) {
+  const brandId = brand.id;
+  const rows = await loadMentionRowsForBrand(d1, brandId, windowDays);
   const competitors = ((brand.competitors as unknown) as Array<{ id?: string; name?: string; url?: string }>) ?? [];
   const competitorUrls = competitors
     .filter((c) => c.url)
@@ -1394,7 +1420,7 @@ productsRoute.post("/mentions/:brandId/cited-sources/refresh", async (c) => {
   let upserts = 0;
   for (const entry of agg.values()) {
     const id = await sha16(`cited:${brandId}:${entry.url}`);
-    await db(c.env.DB)
+    await db(d1)
       .insert(schema.citedUrlIndex)
       .values({
         id,
@@ -1422,8 +1448,8 @@ productsRoute.post("/mentions/:brandId/cited-sources/refresh", async (c) => {
     upserts++;
   }
 
-  return c.json({ upserts, windowDays });
-});
+  return { upserts, windowDays };
+}
 
 productsRoute.get("/mentions/:brandId/intent-opportunities", async (c) => {
   const ownerId = requireOwner(c);
@@ -1554,12 +1580,33 @@ productsRoute.get("/mentions/:brandId/trends", async (c) => {
   return c.json({ points: computeTrends(toMentionRows(rows), windowDays, Date.now()) });
 });
 
+productsRoute.post("/mentions/:brandId/report/share-token", async (c) => {
+  const ownerId = requireOwner(c);
+  if (!ownerId) return c.json({ error: "missing_owner" }, 401);
+  const brandId = c.req.param("brandId");
+  const brand = await loadOwnedBrand(c.env.DB, ownerId, brandId);
+  if (!brand) return c.json({ error: "brand_not_found" }, 404);
+  if (!c.env.ADMIN_TOKEN) return c.json({ error: "report_sharing_unavailable" }, 503);
+  return c.json({ token: await visibilityReportToken(c.env.ADMIN_TOKEN, brandId) });
+});
+
 productsRoute.get("/mentions/:brandId/report", async (c) => {
   const ownerId = requireOwner(c);
   const brandId = c.req.param("brandId");
-  const brand = await loadOwnedBrand(c.env.DB, ownerId, brandId);
-  if (!brand) {
-    return c.json({ error: "brand_not_found" }, 404);
+  let brand: typeof schema.mentionBrandConfigs.$inferSelect | null = null;
+
+  if (ownerId) {
+    brand = await loadOwnedBrand(c.env.DB, ownerId, brandId);
+    if (!brand) return c.json({ error: "brand_not_found" }, 404);
+  } else {
+    const secret = c.env.ADMIN_TOKEN;
+    if (!secret) return c.json({ error: "report_sharing_unavailable" }, 503);
+    const token = c.req.query("token")?.trim();
+    if (!token || !(await verifyVisibilityReportToken(secret, brandId, token))) {
+      return c.json({ error: "unauthorized" }, 401);
+    }
+    brand = await getConfig(c.env.DB, brandId);
+    if (!brand) return c.json({ error: "brand_not_found" }, 404);
   }
   const windowDays = clampedLimit(c.req.query("window") ?? "30", 30, 365);
   const rows = await loadMentionRowsForBrand(c.env.DB, brandId, windowDays);
@@ -1610,7 +1657,7 @@ productsRoute.get("/mentions/:brandId/report", async (c) => {
       .where(
         and(
           eq(schema.intentOpportunities.brandId, brandId),
-          eq(schema.intentOpportunities.ownerId, ownerId),
+          eq(schema.intentOpportunities.ownerId, brand.ownerId),
           eq(schema.intentOpportunities.status, "open"),
         ),
       )
