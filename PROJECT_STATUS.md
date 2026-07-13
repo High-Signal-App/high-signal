@@ -172,7 +172,7 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 - Auto-publish consumes structured evidence when claims exist; `/review` lazily backfills historical signals through an authenticated idempotent route; stock brief cards expose compact provenance.
 - Tests: `scripts/claim-provenance.test.ts` (36 unit tests) plus structured auto-publish coverage.
 
-### Plan 0009 — Brief distribution (local product behavior complete)
+### Plan 0009 — Brief distribution (local surfaces complete; gates below)
 
 - Migration `0010_brief_delivery.sql` — **Applied to remote D1** (2026-06-28).
 - Tables: `delivery_preferences`, `delivery_log`, `delivery_snapshots`.
@@ -295,7 +295,7 @@ Python adapters under `python/ingest/src/high_signal_ingest/sources/` — all wi
    prefer a Cloudflare WAF rule when zone-level rules permission is available.
 
 1. **Remaining source API keys (manual signup needed):** `FRED_API_KEY` (macro rates — highest value, 2 min signup), `ETHERSCAN_API_KEY` (Ethereum gas, 2 min), `COMPANIES_HOUSE_API_KEY` (UK filings, 3 min). All others have keyless alternatives or are niche — see session notes. AgentMail inbox `highsignal-keys@agentmail.to` is set up for registrations.
-3. **Plan 0009 operator follow-up only:** Email Routing setup (DKIM/SPF + `EMAIL_FROM`) remains the sole external blocker. Checked-in behavior is complete: the `*/30` cron is fail-closed and idempotent, live-brief compose feeds email/private RSS/private Atom/compact JSON, failed rows are retryable from the owner UI, one-click unsubscribe (HMAC token, RFC 8058 `List-Unsubscribe`) works from any mail client, and 3 consecutive failures auto-disable a channel.
+3. **Plan 0009 follow-ups:** Email Routing setup (DKIM/SPF + `EMAIL_FROM`) remains the external delivery blocker. Checked-in surfaces are otherwise complete: the `*/30` cron is fail-closed and idempotent, live-brief compose feeds email/private RSS/private Atom/compact JSON, failed rows are retryable from the owner UI, one-click unsubscribe (HMAC token, RFC 8058 `List-Unsubscribe`) works from any mail client, and 3 consecutive failed rows auto-disable a channel. One schema-limited policy gap remains: automatic attempts are capped at three, but exact elapsed 15m/1h/4h backoff is not durably enforced because `delivery_log` has no last-attempt timestamp; adding one requires a separately authorized migration.
 6. Clarify event semantics — `normalized_events` vs current `events` as source observations.
 7. Keep source pipeline small and quality-gated; run `pnpm source:quality` after full ingest.
 8. Promote `/unmapped` candidates into seed CSV; expand curated adapter lists before new firehoses.
