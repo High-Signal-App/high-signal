@@ -1,10 +1,121 @@
 import { Hono } from 'hono';
-import { desc, eq, like, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, like, or, sql, type SQL, type SQLWrapper } from 'drizzle-orm';
 import { db, schema } from '../db';
 
 type Env = { DB: D1Database };
 
 export const companyUniverseRoute = new Hono<{ Bindings: Env }>();
+
+const COMPANY_SEARCH_STOP_WORDS = new Set([
+  'a',
+  'an',
+  'and',
+  'are',
+  'companies',
+  'company',
+  'do',
+  'does',
+  'doing',
+  'for',
+  'in',
+  'is',
+  'of',
+  'startup',
+  'startups',
+  'that',
+  'the',
+  'this',
+  'to',
+  'what',
+  'which',
+  'who',
+  'with',
+]);
+
+export function normalizeCompanySearch(value: string): string {
+  return value
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+export function companySearchTokens(value: string): string[] {
+  const rawTokens = normalizeCompanySearch(value).match(/[a-z0-9]{2,}/g) ?? [];
+  const meaningful = rawTokens.filter((token) => !COMPANY_SEARCH_STOP_WORDS.has(token));
+  return [...new Set(meaningful.length ? meaningful : rawTokens)];
+}
+
+function searchVariants(token: string): string[] {
+  if (token === 'yc') return ['yc', 'y combinator'];
+  if (token === 'a16z') return ['a16z', 'andreessen horowitz'];
+  return [token];
+}
+
+function positiveInteger(value: string | undefined, fallback: number): number {
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function contains(column: SQLWrapper, value: string): SQL {
+  return sql`lower(${column}) like ${`%${value}%`}`;
+}
+
+function startsWith(column: SQLWrapper, value: string): SQL {
+  return sql`lower(${column}) like ${`${value}%`}`;
+}
+
+function tokenCondition(token: string): SQL {
+  const fields = [
+    schema.companyUniverseCompanies.name,
+    schema.companyUniverseCompanies.description,
+    schema.companyUniverseCompanies.category,
+    schema.companyUniverseCompanies.investorsJson,
+    schema.companyUniverseCompanies.sourceEvidenceJson,
+  ];
+  const conditions = searchVariants(token).flatMap((variant) =>
+    fields.map((field) => contains(field, variant))
+  );
+  return or(...conditions) ?? sql`0`;
+}
+
+function matchScore(query: string, tokens: string[]): SQL<number> {
+  const name = schema.companyUniverseCompanies.name;
+  const description = schema.companyUniverseCompanies.description;
+  const category = schema.companyUniverseCompanies.category;
+  const investors = schema.companyUniverseCompanies.investorsJson;
+  const evidence = schema.companyUniverseCompanies.sourceEvidenceJson;
+  const parts: SQL[] = [
+    sql`case
+      when lower(${name}) = ${query} then 10000
+      when ${startsWith(name, query)} then 5000
+      when ${contains(name, query)} then 2500
+      else 0 end`,
+    sql`case when ${contains(description, query)} then 700 else 0 end`,
+    sql`case
+      when lower(${category}) = ${query} then 650
+      when ${contains(category, query)} then 300
+      else 0 end`,
+    sql`case when ${contains(investors, query)} then 250 else 0 end`,
+    sql`case when ${contains(evidence, query)} then 150 else 0 end`,
+  ];
+
+  for (const token of tokens) {
+    const variants = searchVariants(token);
+    const tokenIn = (column: SQLWrapper) =>
+      or(...variants.map((variant) => contains(column, variant))) ?? sql`0`;
+    parts.push(
+      sql`case when ${tokenIn(name)} then 400 else 0 end`,
+      sql`case when ${tokenIn(description)} then 80 else 0 end`,
+      sql`case when ${tokenIn(category)} then 60 else 0 end`,
+      sql`case when ${tokenIn(investors)} then 50 else 0 end`,
+      sql`case when ${tokenIn(evidence)} then 30 else 0 end`
+    );
+  }
+
+  return sql<number>`${sql.join(parts, sql` + `)}`;
+}
 
 function parseJson<T>(value: string | null | undefined, fallback: T): T {
   if (!value) return fallback;
@@ -149,6 +260,51 @@ async function getCompetitors(database: ReturnType<typeof db>, slug: string) {
   }));
 }
 
+async function getCompetitorsByCompany(
+  database: ReturnType<typeof db>,
+  companySlugs: string[],
+  limit = 3
+) {
+  const competitorsByCompany = new Map<string, Awaited<ReturnType<typeof getCompetitors>>>();
+  if (!companySlugs.length) return competitorsByCompany;
+
+  const rows = await database
+    .select({
+      companySlug: schema.companyUniverseCompetitors.companySlug,
+      slug: schema.companyUniverseCompanies.slug,
+      name: schema.companyUniverseCompanies.name,
+      description: schema.companyUniverseCompanies.description,
+      category: schema.companyUniverseCompanies.category,
+      score: schema.companyUniverseCompetitors.score,
+      reason: schema.companyUniverseCompetitors.reason,
+    })
+    .from(schema.companyUniverseCompetitors)
+    .innerJoin(
+      schema.companyUniverseCompanies,
+      eq(schema.companyUniverseCompetitors.competitorSlug, schema.companyUniverseCompanies.slug)
+    )
+    .where(inArray(schema.companyUniverseCompetitors.companySlug, companySlugs))
+    .orderBy(
+      asc(schema.companyUniverseCompetitors.companySlug),
+      desc(schema.companyUniverseCompetitors.score)
+    );
+
+  for (const row of rows) {
+    const peers = competitorsByCompany.get(row.companySlug) ?? [];
+    if (peers.length >= limit) continue;
+    peers.push({
+      slug: row.slug,
+      name: row.name,
+      description: row.description,
+      category: row.category,
+      score: row.score,
+      reason: row.reason,
+    });
+    competitorsByCompany.set(row.companySlug, peers);
+  }
+  return competitorsByCompany;
+}
+
 async function findExistingCompany(
   database: ReturnType<typeof db>,
   input: { slug: string; name: string; domain: string | null }
@@ -250,9 +406,85 @@ async function mapFirstPassCompetitors(
 
 companyUniverseRoute.get('/', async (c) => {
   const database = db(c.env.DB);
-  const limit = Math.min(Math.max(Number(c.req.query('limit') ?? 50), 1), 100);
-  const offset = Math.max(Number(c.req.query('offset') ?? 0), 0);
+  const limit = Math.min(positiveInteger(c.req.query('limit'), 50), 100);
+  const rawOffset = Number(c.req.query('offset') ?? 0);
+  const offset = Number.isSafeInteger(rawOffset) && rawOffset >= 0 ? rawOffset : 0;
   const q = c.req.query('q')?.trim();
+  const ranked = c.req.query('ranked') === 'true';
+
+  if (ranked && q) {
+    const query = normalizeCompanySearch(q);
+    const tokens = companySearchTokens(q);
+    const pageSize = Math.min(limit, 20);
+    if (!query || !tokens.length) {
+      return c.json({
+        generatedAt: null,
+        companyCount: 0,
+        limit: pageSize,
+        offset: 0,
+        hasMore: false,
+        page: 1,
+        totalPages: 0,
+        companies: [],
+      });
+    }
+
+    const where = and(...tokens.map((token) => tokenCondition(token)));
+    const score = matchScore(query, tokens);
+    const [run] = await database
+      .select()
+      .from(schema.companyUniverseRuns)
+      .orderBy(desc(schema.companyUniverseRuns.createdAt))
+      .limit(1);
+    const [countRow] = await database
+      .select({ n: sql<number>`count(*)` })
+      .from(schema.companyUniverseCompanies)
+      .where(where);
+    const companyCount = Number(countRow?.n ?? 0);
+    const totalPages = Math.ceil(companyCount / pageSize);
+    const requestedPage = positiveInteger(c.req.query('page'), 1);
+    const page = totalPages > 0 ? Math.min(requestedPage, totalPages) : 1;
+    const rankedOffset = (page - 1) * pageSize;
+    const rows = await database
+      .select({
+        slug: schema.companyUniverseCompanies.slug,
+        name: schema.companyUniverseCompanies.name,
+        description: schema.companyUniverseCompanies.description,
+        category: schema.companyUniverseCompanies.category,
+        investorsJson: schema.companyUniverseCompanies.investorsJson,
+        matchScore: score,
+      })
+      .from(schema.companyUniverseCompanies)
+      .where(where)
+      .orderBy(desc(score), asc(schema.companyUniverseCompanies.name))
+      .limit(pageSize)
+      .offset(rankedOffset);
+    const competitorsByCompany = await getCompetitorsByCompany(
+      database,
+      rows.map((row) => row.slug)
+    );
+
+    return c.json({
+      generatedAt: run?.generatedAt ?? null,
+      universeCount: Number(run?.companyCount ?? companyCount),
+      companyCount,
+      limit: pageSize,
+      offset: rankedOffset,
+      hasMore: page < totalPages,
+      page,
+      totalPages,
+      companies: rows.map((row) => ({
+        slug: row.slug,
+        name: row.name,
+        description: row.description,
+        category: row.category,
+        investors: parseJson<string[]>(row.investorsJson, []),
+        sourceEvidence: [],
+        competitors: competitorsByCompany.get(row.slug) ?? [],
+        matchScore: Number(row.matchScore),
+      })),
+    });
+  }
 
   const where = q
     ? or(
@@ -285,6 +517,7 @@ companyUniverseRoute.get('/', async (c) => {
 
   return c.json({
     generatedAt: run?.generatedAt ?? null,
+    universeCount: Number(run?.companyCount ?? countRow?.n ?? 0),
     companyCount: Number(countRow?.n ?? 0),
     limit,
     offset,

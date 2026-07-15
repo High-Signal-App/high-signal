@@ -1,10 +1,10 @@
 import type { Metadata } from 'next';
 import { BackLink, HeroHeader, PageShell, Panel } from '@/components/system/HighSignalUI';
+import { fetchJson } from '@/lib/api';
 import { CompanySearchForm } from '../CompanySearchForm';
-import { CompanyUniverseList } from '../CompanyUniverseList';
-import { searchCompanyUniverse } from '../company-search';
+import { CompanyUniverseTable } from '../CompanyUniverseTable';
 import { parseCompanySearchPage } from '../company-search-url';
-import { CASE_STUDIES, COMPANY_UNIVERSE, COMPANY_UNIVERSE_LAST_UPDATED } from '../data';
+import type { UniverseCompany } from '../data';
 import { CompanySearchPagination } from './CompanySearchPagination';
 
 interface SearchPageProps {
@@ -17,15 +17,59 @@ export const metadata: Metadata = {
   robots: { index: false, follow: true },
 };
 
+interface CompanySearchResponse {
+  generatedAt: string | null;
+  universeCount?: number;
+  companyCount: number;
+  limit: number;
+  page?: number;
+  totalPages?: number;
+  companies: UniverseCompany[];
+}
+
+async function loadCompanySearch(
+  query: string,
+  requestedPage: number
+): Promise<CompanySearchResponse> {
+  const apiParams = new URLSearchParams({ limit: query ? '20' : '1' });
+  if (query) {
+    apiParams.set('q', query);
+    apiParams.set('page', String(requestedPage));
+    apiParams.set('ranked', 'true');
+  }
+
+  try {
+    return await fetchJson<CompanySearchResponse>(`/company-universe?${apiParams}`);
+  } catch {
+    const [{ searchCompanyUniverse }, universe] = await Promise.all([
+      import('../company-search'),
+      import('../data'),
+    ]);
+    const fallback = searchCompanyUniverse(universe.CASE_STUDIES, query, {
+      page: requestedPage,
+    });
+    return {
+      generatedAt: universe.COMPANY_UNIVERSE_LAST_UPDATED,
+      universeCount: universe.COMPANY_UNIVERSE.companyCount,
+      companyCount: fallback.total,
+      limit: fallback.pageSize,
+      page: fallback.page,
+      totalPages: fallback.totalPages,
+      companies: fallback.companies,
+    };
+  }
+}
+
 export default async function CompanySearchPage({ searchParams }: SearchPageProps) {
   const params = await searchParams;
   const rawQuery = params.q;
   const query = (Array.isArray(rawQuery) ? rawQuery[0] : rawQuery)?.trim() ?? '';
-  const results = searchCompanyUniverse(CASE_STUDIES, query, {
-    page: parseCompanySearchPage(params.page),
-  });
-  const updatedAt = COMPANY_UNIVERSE_LAST_UPDATED.slice(0, 19).replace('T', ' ');
-  const firstResult = (results.page - 1) * results.pageSize + 1;
+  const requestedPage = parseCompanySearchPage(params.page);
+  const results = await loadCompanySearch(query, requestedPage);
+  const page = results.page ?? 1;
+  const totalPages = results.totalPages ?? 0;
+  const updatedAt = results.generatedAt?.slice(0, 19).replace('T', ' ') ?? 'unavailable';
+  const firstResult = (page - 1) * results.limit + 1;
   const lastResult = firstResult + results.companies.length - 1;
 
   return (
@@ -36,9 +80,9 @@ export default async function CompanySearchPage({ searchParams }: SearchPageProp
       </HeroHeader>
 
       <CompanySearchForm
-        companyCount={COMPANY_UNIVERSE.companyCount}
+        companyCount={results.universeCount ?? results.companyCount}
         defaultQuery={query}
-        lastUpdatedAt={COMPANY_UNIVERSE_LAST_UPDATED}
+        lastUpdatedAt={results.generatedAt ?? 'unavailable'}
       />
 
       <Panel eyebrow="snapshot freshness" title={`Last updated ${updatedAt} UTC`}>
@@ -52,17 +96,14 @@ export default async function CompanySearchPage({ searchParams }: SearchPageProp
       {query ? (
         results.companies.length > 0 ? (
           <>
-            <CompanyUniverseList
-              companies={results.companies}
-              page={results.page}
-              paginated={false}
-              summary={`${results.total.toLocaleString()} ranked matches for “${query}” · showing ${firstResult.toLocaleString()}-${lastResult.toLocaleString()} based on match`}
-            />
-            <CompanySearchPagination
-              page={results.page}
-              query={query}
-              totalPages={results.totalPages}
-            />
+            <section className="mt-8">
+              <div className="mb-3 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500">
+                {results.companyCount.toLocaleString()} ranked matches for “{query}” · showing{' '}
+                {firstResult.toLocaleString()}-{lastResult.toLocaleString()} based on match
+              </div>
+              <CompanyUniverseTable companies={results.companies} />
+            </section>
+            <CompanySearchPagination page={page} query={query} totalPages={totalPages} />
           </>
         ) : (
           <Panel eyebrow="0 matches" title={`No companies matched “${query}”`}>
