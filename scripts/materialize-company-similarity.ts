@@ -8,6 +8,7 @@ import {
   MATERIALIZED_SIMILARITY_VERSION,
   buildReciprocalSimilarityGraph,
 } from '../apps/web/src/app/case-studies/company-search';
+import { writeWebCompanyUniverseArtifact } from './company-universe-web-artifact';
 
 const ROOT = resolve(__dirname, '..');
 const ARTIFACT_PATH = resolve(ROOT, 'apps/web/src/data/company-universe.json');
@@ -48,6 +49,7 @@ async function main() {
 
   await writeFile(TEMP_PATH, `${JSON.stringify(artifact, null, 2)}\n`);
   await rename(TEMP_PATH, ARTIFACT_PATH);
+  const webArtifactBytes = await writeWebCompanyUniverseArtifact(artifact);
   console.log(
     JSON.stringify(
       {
@@ -58,6 +60,7 @@ async function main() {
         reciprocalEdges: graph.undirectedEdgeCount,
         companiesWithPeers: graph.companiesWithPeers,
         maxDegree: graph.maxDegree,
+        webArtifactBytes,
       },
       null,
       2

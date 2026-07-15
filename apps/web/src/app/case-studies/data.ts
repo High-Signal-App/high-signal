@@ -1,4 +1,4 @@
-import artifact from '@/data/company-universe.json';
+import artifact from '@/data/company-universe-web.json';
 
 export interface SourceEvidence {
   source: string;
@@ -16,7 +16,7 @@ export interface SourceEvidence {
 
 export interface CompetitorEdge {
   slug: string;
-  name: string;
+  name?: string;
   score: number;
   reason: string;
 }
@@ -34,6 +34,8 @@ export interface UniverseCompany {
   category: string;
   investors: string[];
   sourceEvidence: SourceEvidence[];
+  sourceEvidenceCount?: number;
+  searchMetadata?: string[];
   competitors: CompetitorEdge[];
   entities?: CompanyEntity[];
   similarityVersion?: number;

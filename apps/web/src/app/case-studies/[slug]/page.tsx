@@ -32,10 +32,6 @@ interface LiveCompanyResponse {
   competitors: LiveCompany['competitors'];
 }
 
-export function generateStaticParams() {
-  return CASE_STUDIES.map((study) => ({ slug: study.slug }));
-}
-
 async function getLiveCompany(slug: string): Promise<LiveCompany | null> {
   try {
     const payload = await fetchJson<LiveCompanyResponse>(
@@ -66,12 +62,17 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function CaseStudyDetailPage({ params }: PageProps) {
   const { slug } = await params;
   const staticStudy = getCaseStudy(slug);
-  const study: LiveCompany | null = staticStudy ? { ...staticStudy } : await getLiveCompany(slug);
+  const liveStudy = await getLiveCompany(slug);
+  const study: LiveCompany | null = liveStudy
+    ? { ...staticStudy, ...liveStudy }
+    : staticStudy
+      ? { ...staticStudy }
+      : null;
   if (!study) {
     notFound();
   }
   const lastUpdated = study.updatedAt ?? COMPANY_UNIVERSE_LAST_UPDATED;
-  const sourceMode = staticStudy ? 'artifact' : 'D1 lookup';
+  const sourceMode = liveStudy ? 'D1 lookup' : 'artifact cache';
   const status = study.status ?? 'generated';
   const artifactCluster = getSimilarCompanyCluster(CASE_STUDIES, study);
   const similarityCluster = artifactCluster.length
@@ -79,7 +80,7 @@ export default async function CaseStudyDetailPage({ params }: PageProps) {
     : study.competitors.map((edge) => ({
         company: getCaseStudy(edge.slug) ?? {
           slug: edge.slug,
-          name: edge.name,
+          name: edge.name ?? edge.slug,
           description: '',
           category: study.category,
           investors: [],
@@ -101,7 +102,7 @@ export default async function CaseStudyDetailPage({ params }: PageProps) {
         items={[
           {
             label: 'sources',
-            value: String(study.sourceEvidence.length),
+            value: String(study.sourceEvidenceCount ?? study.sourceEvidence.length),
             sub: 'Evidence entries preserved.',
           },
           {
@@ -130,6 +131,12 @@ export default async function CaseStudyDetailPage({ params }: PageProps) {
       <section className="mt-12 grid gap-5 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
         <Panel eyebrow="source evidence" title="Why this company exists here">
           <div className="mt-5 space-y-4">
+            {study.sourceEvidence.length === 0 && (
+              <p className="text-sm leading-6 text-[var(--color-muted)]">
+                Source details are temporarily unavailable; the generated evidence count is
+                preserved in the artifact cache.
+              </p>
+            )}
             {study.sourceEvidence.map((item) => (
               <div
                 key={`${item.source}-${item.position}-${item.title}`}

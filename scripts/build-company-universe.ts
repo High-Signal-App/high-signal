@@ -18,6 +18,7 @@ import {
   parseYcHits,
   validateCoverage,
 } from './company-universe.lib';
+import { writeWebCompanyUniverseArtifact } from './company-universe-web-artifact';
 
 const ROOT = resolve(__dirname, '..');
 const OUT_PATH = resolve(ROOT, 'apps/web/src/data/company-universe.json');
@@ -235,6 +236,7 @@ async function main() {
 
   await mkdir(dirname(OUT_PATH), { recursive: true });
   await writeFile(OUT_PATH, `${JSON.stringify(artifact, null, 2)}\n`);
+  const webArtifactBytes = await writeWebCompanyUniverseArtifact(artifact);
   const outputStat = await stat(OUT_PATH);
   console.log(
     JSON.stringify(
@@ -246,6 +248,7 @@ async function main() {
         crossAffiliated: companies.filter((company) => company.investors.length > 1).length,
         withCompetitors: companies.filter((company) => company.competitors.length > 0).length,
         artifactBytes: outputStat.size,
+        webArtifactBytes,
       },
       null,
       2

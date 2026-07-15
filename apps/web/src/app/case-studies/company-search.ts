@@ -285,8 +285,16 @@ function scoreCompany(company: UniverseCompany, query: string, tokens: string[])
     company.investors.flatMap((investor) => [investor, affiliationAlias(investor)]).join(' ')
   );
   const evidence = normalize(
-    company.sourceEvidence
-      .flatMap((item) => [item.cohort, item.program, item.location, item.website, item.status])
+    [
+      ...(company.searchMetadata ?? []),
+      ...company.sourceEvidence.flatMap((item) => [
+        item.cohort,
+        item.program,
+        item.location,
+        item.website,
+        item.status,
+      ]),
+    ]
       .filter(Boolean)
       .join(' ')
   );
@@ -413,7 +421,10 @@ export function buildReciprocalSimilarityGraph(
   for (const edge of globallyRanked) selectEdge(edge);
 
   for (const peers of edgesBySlug.values()) {
-    peers.sort((left, right) => right.score - left.score || left.name.localeCompare(right.name));
+    peers.sort(
+      (left, right) =>
+        right.score - left.score || (left.name ?? left.slug).localeCompare(right.name ?? right.slug)
+    );
   }
   const degreeValues = [...degrees.values()];
   return {
