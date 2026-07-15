@@ -1,8 +1,6 @@
 import type { Route } from 'next';
 import Link from 'next/link';
-import { getSimilarCompanyCluster } from './company-search';
 import {
-  CASE_STUDIES,
   CASE_STUDIES_PAGE_SIZE,
   CASE_STUDIES_TOTAL_PAGES,
   caseStudiesPageHref,
@@ -63,8 +61,9 @@ export function CompanyUniverseList({
                 <div className="text-zinc-400">{item.category}</div>
                 <div className="text-zinc-500">{item.investors.join(', ')}</div>
                 <div className="text-zinc-400">
-                  {getSimilarCompanyCluster(CASE_STUDIES, item, 3)
-                    .map(({ company }) => company.name)
+                  {item.competitors
+                    .slice(0, 3)
+                    .map(({ name }) => name)
                     .join(', ')}
                 </div>
               </Link>
