@@ -59,7 +59,7 @@ CATALOG: list[CatalogEntry] = [
     CatalogEntry("hackernews", "HN (Algolia)", "technology", "keyless", False, 7, "thematic", "title, points, comments, link", "recent"),
     CatalogEntry("stackexchange", "Stack Overflow", "technology", "keyless", False, 30, "thematic", "question, tags, score", "historical"),
     CatalogEntry("producthunt", "Product Hunt (RSS)", "startups", "keyless", False, 7, "thematic", "product name, tagline, link", "recent"),
-    CatalogEntry("vc-portfolios", "VC/fund portfolio directories", "startups", "keyless", False, 30, "thematic", "company name, description, fund/source evidence, inferred competitors", "historical"),
+    CatalogEntry("vc-portfolios", "YC, Antler, a16z, and Techstars official directories", "startups", "keyless", True, 30, "thematic", "company name, description, cohort/program, first-party evidence, inferred competitors", "historical"),
     CatalogEntry("google-trends", "Google Trends (RSS)", "startups", "keyless", False, 2, "thematic", "trending search term, approx traffic", "recent"),
     CatalogEntry("appstore", "Apple App Store charts", "startups", "keyless", False, 1, "thematic", "app name, developer, chart rank", "recent"),
     CatalogEntry("appstore-reviews", "App Store reviews (iTunes RSS)", "startups", "keyless", False, 14, "thematic", "review rating, title, text", "recent"),

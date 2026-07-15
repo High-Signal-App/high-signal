@@ -76,7 +76,7 @@ Persisted in **Cloudflare D1** (events/signals/evidence) + git-versioned `signal
 | `stackexchange` | Stack Overflow | technology | keyless |  | 30d | thematic | historical | question, tags, score |
 | `substack` | Substack RSS | technology | keyless |  | 7d | thematic | recent | post title, summary |
 | `techmeme` | Techmeme | technology | keyless |  | 3d | thematic | recent | headline |
-| `vc-portfolios` | VC/fund portfolio directories | startups | keyless |  | 30d | thematic | historical | company name, description, fund/source evidence, inferred competitors |
+| `vc-portfolios` | YC, Antler, a16z, and Techstars official directories | startups | keyless | yes | 30d | thematic | historical | company name, description, cohort/program, first-party evidence, inferred competitors |
 | `youtube` | YouTube discovery + transcripts | technology | optional-key:YOUTUBE_API_KEY |  | 7d | thematic | recent | video title, view count, channel, transcript snippet when available |
 
 **Role key:** *entity* = maps to a tracked company · *thematic* = topic/keyword (entity-less) · *corroboration* = official 2nd-source, mostly entity-less · *numeric* = time-series values.
@@ -84,4 +84,3 @@ Persisted in **Cloudflare D1** (events/signals/evidence) + git-versioned `signal
 **Temporal key:** *recent* = only the latest events matter — stale after days · *historical* = full history has value — patents, filings, court cases · *series* = time-series — both recent prints and historical trends matter.
 
 View the actual available data per source with the **data directory**: `uv run python -m high_signal_ingest.data_directory` → writes `data-directory/INDEX.md` + one JSON file of recent samples per source.
-

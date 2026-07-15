@@ -1,0 +1,15 @@
+{
+  "hits": [
+    {
+      "id": 1,
+      "name": "Acme AI",
+      "slug": "acme-ai",
+      "one_liner": "AI workflow automation for finance teams.",
+      "long_description": "Acme AI records finance workflows, turns them into searchable operating memory, and helps accounting teams automate repetitive close processes.",
+      "batch": "Winter 2026",
+      "status": "Active",
+      "website": "https://acme.example",
+      "all_locations": "Bengaluru, India"
+    }
+  ]
+}

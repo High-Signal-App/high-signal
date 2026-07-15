@@ -7,6 +7,7 @@ import {
   CASE_STUDIES,
   CASE_STUDIES_TOTAL_PAGES,
   COMPANY_UNIVERSE,
+  COMPANY_UNIVERSE_LAST_UPDATED,
   FLOW,
   getCaseStudiesPage,
 } from '../../data';
@@ -62,8 +63,8 @@ export default async function PaginatedCaseStudiesPage({ params }: PageProps) {
           },
           {
             label: 'last updated',
-            value: COMPANY_UNIVERSE.generatedAt.slice(0, 10),
-            sub: `${COMPANY_UNIVERSE.generatedAt.slice(11, 16)} UTC`,
+            value: COMPANY_UNIVERSE_LAST_UPDATED.slice(0, 10),
+            sub: `${COMPANY_UNIVERSE_LAST_UPDATED.slice(11, 16)} UTC`,
           },
         ]}
       />

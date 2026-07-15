@@ -1,6 +1,8 @@
 import type { Route } from 'next';
 import Link from 'next/link';
+import { getSimilarCompanyCluster } from './company-search';
 import {
+  CASE_STUDIES,
   CASE_STUDIES_PAGE_SIZE,
   CASE_STUDIES_TOTAL_PAGES,
   caseStudiesPageHref,
@@ -10,9 +12,16 @@ import {
 interface CompanyUniverseListProps {
   companies: UniverseCompany[];
   page: number;
+  paginated?: boolean;
+  summary?: string;
 }
 
-export function CompanyUniverseList({ companies, page }: CompanyUniverseListProps) {
+export function CompanyUniverseList({
+  companies,
+  page,
+  paginated = true,
+  summary,
+}: CompanyUniverseListProps) {
   const start = (page - 1) * CASE_STUDIES_PAGE_SIZE + 1;
   const end = start + companies.length - 1;
 
@@ -20,10 +29,14 @@ export function CompanyUniverseList({ companies, page }: CompanyUniverseListProp
     <section className="mt-8">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500">
-          showing {start.toLocaleString()}-{end.toLocaleString()} · page {page} of{' '}
-          {CASE_STUDIES_TOTAL_PAGES}
+          {summary ?? (
+            <>
+              showing {start.toLocaleString()}-{end.toLocaleString()} · page {page} of{' '}
+              {CASE_STUDIES_TOTAL_PAGES}
+            </>
+          )}
         </div>
-        <Pagination page={page} />
+        {paginated && <Pagination page={page} />}
       </div>
 
       <div className="overflow-x-auto border border-[var(--color-line)]">
@@ -32,7 +45,7 @@ export function CompanyUniverseList({ companies, page }: CompanyUniverseListProp
             <div>company</div>
             <div>category</div>
             <div>source</div>
-            <div>competitors</div>
+            <div>similar companies</div>
           </div>
           <div className="divide-y divide-[var(--color-line)]">
             {companies.map((item) => (
@@ -50,9 +63,8 @@ export function CompanyUniverseList({ companies, page }: CompanyUniverseListProp
                 <div className="text-zinc-400">{item.category}</div>
                 <div className="text-zinc-500">{item.investors.join(', ')}</div>
                 <div className="text-zinc-400">
-                  {item.competitors
-                    .slice(0, 3)
-                    .map((competitor) => competitor.name)
+                  {getSimilarCompanyCluster(CASE_STUDIES, item, 3)
+                    .map(({ company }) => company.name)
                     .join(', ')}
                 </div>
               </Link>
@@ -61,9 +73,11 @@ export function CompanyUniverseList({ companies, page }: CompanyUniverseListProp
         </div>
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-        <Pagination page={page} />
-      </div>
+      {paginated && (
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+          <Pagination page={page} />
+        </div>
+      )}
     </section>
   );
 }

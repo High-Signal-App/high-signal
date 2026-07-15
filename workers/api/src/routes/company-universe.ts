@@ -258,7 +258,9 @@ companyUniverseRoute.get('/', async (c) => {
     ? or(
         like(schema.companyUniverseCompanies.name, `%${q}%`),
         like(schema.companyUniverseCompanies.description, `%${q}%`),
-        like(schema.companyUniverseCompanies.category, `%${q}%`)
+        like(schema.companyUniverseCompanies.category, `%${q}%`),
+        like(schema.companyUniverseCompanies.investorsJson, `%${q}%`),
+        like(schema.companyUniverseCompanies.sourceEvidenceJson, `%${q}%`)
       )
     : undefined;
 

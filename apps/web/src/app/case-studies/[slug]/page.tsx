@@ -4,7 +4,14 @@ import { notFound } from 'next/navigation';
 import { BackLink, HeroHeader, PageShell, Panel, StatGrid } from '@/components/system/HighSignalUI';
 import { fetchJson } from '@/lib/api';
 import { SITE_URL } from '@/lib/site';
-import { CASE_STUDIES, COMPANY_UNIVERSE, type UniverseCompany, getCaseStudy } from '../data';
+import { getSimilarCompanyCluster } from '../company-search';
+import {
+  CASE_STUDIES,
+  COMPANY_UNIVERSE,
+  COMPANY_UNIVERSE_LAST_UPDATED,
+  type UniverseCompany,
+  getCaseStudy,
+} from '../data';
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -63,9 +70,25 @@ export default async function CaseStudyDetailPage({ params }: PageProps) {
   if (!study) {
     notFound();
   }
-  const lastUpdated = study.updatedAt ?? COMPANY_UNIVERSE.generatedAt;
+  const lastUpdated = study.updatedAt ?? COMPANY_UNIVERSE_LAST_UPDATED;
   const sourceMode = staticStudy ? 'artifact' : 'D1 lookup';
   const status = study.status ?? 'generated';
+  const artifactCluster = getSimilarCompanyCluster(CASE_STUDIES, study);
+  const similarityCluster = artifactCluster.length
+    ? artifactCluster
+    : study.competitors.map((edge) => ({
+        company: getCaseStudy(edge.slug) ?? {
+          slug: edge.slug,
+          name: edge.name,
+          description: '',
+          category: study.category,
+          investors: [],
+          sourceEvidence: [],
+          competitors: [],
+        },
+        score: edge.score,
+        reason: edge.reason,
+      }));
 
   return (
     <PageShell max="max-w-5xl">
@@ -82,7 +105,7 @@ export default async function CaseStudyDetailPage({ params }: PageProps) {
             sub: 'Evidence entries preserved.',
           },
           {
-            label: 'investors',
+            label: 'affiliations',
             value: String(study.investors.length),
             sub: study.investors.join(', '),
           },
@@ -139,16 +162,34 @@ export default async function CaseStudyDetailPage({ params }: PageProps) {
             <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">
               {study.name} is classified as{' '}
               <strong className="text-zinc-200">{study.category}</strong> from source descriptions
-              and fund-directory context. Competitors below are generated from same-category
-              overlap, shared investor/source evidence, and description keyword overlap. For
-              lookup-created rows, the profile starts as pending enrichment until deeper source
-              collection runs.
+              and fund-directory context. Similar companies below are ranked from offline product
+              facets and meaningful description overlap; category and source affiliation can only
+              strengthen an existing product match. For lookup-created rows, the profile starts as
+              pending enrichment until deeper source collection runs.
             </p>
           </Panel>
 
-          <Panel eyebrow="mapping method" title="Competitor graph">
+          {study.entities && study.entities.length > 0 && (
+            <Panel eyebrow="offline extraction" title="Product facets">
+              <div className="mt-4 flex flex-wrap gap-2">
+                {study.entities.map((entity) => (
+                  <span
+                    key={`${entity.label}-${entity.text}`}
+                    title={`${entity.label} · ${Math.round(entity.score * 100)}% model score`}
+                    className="border border-[var(--color-line)] px-2 py-1 font-mono text-[10px] uppercase tracking-[0.1em] text-zinc-400"
+                  >
+                    {entity.text}
+                  </span>
+                ))}
+              </div>
+            </Panel>
+          )}
+
+          <Panel eyebrow="mapping method" title="Similarity graph">
             <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">
-              {COMPANY_UNIVERSE.competitorMapping.method}. Minimum score:{' '}
+              Local clusters rerank extracted product concepts and description terms. The generated
+              graph remains the fallback for sparse descriptions:{' '}
+              {COMPANY_UNIVERSE.competitorMapping.method}. Minimum fallback score:{' '}
               {COMPANY_UNIVERSE.competitorMapping.minimumScore}; max competitors:{' '}
               {COMPANY_UNIVERSE.competitorMapping.maxCompetitorsPerCompany}.
             </p>
@@ -156,26 +197,42 @@ export default async function CaseStudyDetailPage({ params }: PageProps) {
         </div>
       </section>
 
-      <section className="mt-8">
-        <h2 className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
-          competitors
-        </h2>
+      <section className="mt-8" aria-labelledby="similar-company-cluster">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
+              discovery cluster
+            </div>
+            <h2 id="similar-company-cluster" className="mt-2 text-xl font-medium text-zinc-100">
+              Companies similar to {study.name}
+            </h2>
+          </div>
+          <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500">
+            {study.category} · {similarityCluster.length} peers
+          </span>
+        </div>
+        <p className="mt-3 max-w-3xl text-sm leading-6 text-[var(--color-muted)]">
+          A deterministic local cluster built from offline product facets and meaningful description
+          terms. Category and selected-institution affiliation provide bounded tie-breaks. Open any
+          peer to continue exploring its cluster.
+        </p>
         <div className="mt-4 grid gap-3 md:grid-cols-2">
-          {study.competitors.map((competitor) => (
+          {similarityCluster.map(({ company, score, reason }) => (
             <Link
-              key={competitor.slug}
-              href={`/case-studies/${competitor.slug}` as Route}
+              key={company.slug}
+              href={`/case-studies/${company.slug}` as Route}
               className="border border-[var(--color-line)] p-4 transition hover:border-zinc-600"
             >
               <div className="flex items-center justify-between gap-4">
-                <h3 className="text-base font-medium text-zinc-100">{competitor.name}</h3>
+                <h3 className="text-base font-medium text-zinc-100">{company.name}</h3>
                 <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500">
-                  {competitor.score}
+                  match {score}
                 </span>
               </div>
-              <p className="mt-2 text-xs leading-5 text-[var(--color-muted)]">
-                {competitor.reason}
+              <p className="mt-2 text-sm leading-6 text-zinc-400">
+                {company.description || `${company.category} company.`}
               </p>
+              <p className="mt-2 text-xs leading-5 text-[var(--color-muted)]">{reason}</p>
             </Link>
           ))}
         </div>

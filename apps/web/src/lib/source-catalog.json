@@ -585,13 +585,13 @@
     },
     {
       "id": "vc-portfolios",
-      "provider": "VC/fund portfolio directories",
+      "provider": "YC, Antler, a16z, and Techstars official directories",
       "domains": "startups",
       "access": "keyless",
-      "official": false,
+      "official": true,
       "windowDays": 30,
       "role": "thematic",
-      "keeps": "company name, description, fund/source evidence, inferred competitors",
+      "keeps": "company name, description, cohort/program, first-party evidence, inferred competitors",
       "temporal": "historical"
     },
     {

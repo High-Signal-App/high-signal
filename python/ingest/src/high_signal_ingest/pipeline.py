@@ -380,7 +380,7 @@ def _fetch_tasks(source: Source, days: int) -> list[tuple[str, str, Callable[[],
     if source in {"producthunt", "all"}:
         add("producthunt", "https://www.producthunt.com", lambda: producthunt.fetch_all(days=max(days, 7)))
     if source in {"vc-portfolios", "all"}:
-        add("vc-portfolios", "https://www.vcbacked.co", lambda: [])
+        add("vc-portfolios", "https://www.ycombinator.com/companies", lambda: [])
     if source in {"coingecko", "all"}:
         add("coingecko", "https://api.coingecko.com", lambda: coingecko.fetch_all(days=days))
     if source in {"google-trends", "all"}:

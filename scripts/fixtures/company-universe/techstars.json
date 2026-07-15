@@ -1,0 +1,17 @@
+{
+  "hits": [
+    {
+      "document": {
+        "company_id": "ts-1",
+        "company_name": "Acme AI",
+        "brief_description": "AI workflow automation for finance teams.",
+        "website": "acme.example",
+        "program_names": ["Techstars Bangalore"],
+        "first_session_year": 2026,
+        "city": "Bengaluru",
+        "country": "India",
+        "is_accelerator_company": true
+      }
+    }
+  ]
+}

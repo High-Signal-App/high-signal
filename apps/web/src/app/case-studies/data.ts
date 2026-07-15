@@ -7,6 +7,11 @@ export interface SourceEvidence {
   position: number;
   title: string;
   description: string;
+  cohort?: string;
+  program?: string;
+  location?: string;
+  website?: string;
+  status?: string;
 }
 
 export interface CompetitorEdge {
@@ -14,6 +19,12 @@ export interface CompetitorEdge {
   name: string;
   score: number;
   reason: string;
+}
+
+export interface CompanyEntity {
+  text: string;
+  label: string;
+  score: number;
 }
 
 export interface UniverseCompany {
@@ -24,25 +35,58 @@ export interface UniverseCompany {
   investors: string[];
   sourceEvidence: SourceEvidence[];
   competitors: CompetitorEdge[];
+  entities?: CompanyEntity[];
+  similarityVersion?: number;
 }
 
 export interface CompanyUniverseArtifact {
   generatedAt: string;
   generatedBy: string;
   strictHighSignalOnly: boolean;
-  targetCount: number;
   companyCount: number;
   sourceInputs: Array<{ id: string; label: string; url: string }>;
+  sourceStats: Array<{
+    id: string;
+    label: string;
+    fetchedCount: number;
+    uniqueCompanyCount: number;
+    providerReportedCount: number | null;
+    reconciled: boolean | null;
+  }>;
   competitorMapping: {
     method: string;
     minimumScore: number;
     maxCompetitorsPerCompany: number;
+  };
+  entityExtraction?: {
+    generatedAt: string;
+    model: string;
+    labels: string[];
+    threshold: number;
+    processedCompanyCount: number;
+    enrichedCompanyCount: number;
+    entityCount: number;
+    complete: boolean;
+  };
+  similarityMapping?: {
+    generatedAt: string;
+    algorithm: string;
+    version: number;
+    candidateLimit: number;
+    maxPeersPerCompany: number;
+    undirectedEdgeCount: number;
+    companiesWithPeers: number;
+    complete: boolean;
   };
   companies: UniverseCompany[];
 }
 
 export const COMPANY_UNIVERSE = artifact as CompanyUniverseArtifact;
 export const CASE_STUDIES = COMPANY_UNIVERSE.companies;
+export const COMPANY_UNIVERSE_LAST_UPDATED =
+  COMPANY_UNIVERSE.similarityMapping?.generatedAt ??
+  COMPANY_UNIVERSE.entityExtraction?.generatedAt ??
+  COMPANY_UNIVERSE.generatedAt;
 export const CASE_STUDIES_PAGE_SIZE = 50;
 export const CASE_STUDIES_TOTAL_PAGES = Math.ceil(CASE_STUDIES.length / CASE_STUDIES_PAGE_SIZE);
 
@@ -50,7 +94,7 @@ export const FLOW = [
   {
     label: 'ingest',
     value: `${COMPANY_UNIVERSE.companyCount.toLocaleString()} companies`,
-    sub: 'Generated from High Signal fund-directory source inputs.',
+    sub: 'Generated from four first-party startup directories.',
   },
   {
     label: 'normalize',
@@ -60,7 +104,7 @@ export const FLOW = [
   {
     label: 'map',
     value: 'competitors',
-    sub: 'Same category, shared investor/source, and description overlap.',
+    sub: 'Same category, shared affiliation/cohort, and description overlap.',
   },
   {
     label: 'render',
