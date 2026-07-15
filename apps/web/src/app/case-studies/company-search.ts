@@ -241,6 +241,7 @@ interface CompanySearchDocument {
 }
 
 const SIMILARITY_CACHE = new WeakMap<UniverseCompany[], SimilarityLookup>();
+const COMPANY_BY_SLUG_CACHE = new WeakMap<UniverseCompany[], Map<string, UniverseCompany>>();
 const COMPANY_SEARCH_CACHE = new WeakMap<UniverseCompany[], CompanySearchDocument[]>();
 export const MATERIALIZED_SIMILARITY_VERSION = 1;
 export const COMPANY_SEARCH_PAGE_SIZE = 20;
@@ -397,20 +398,29 @@ export function getSimilarCompanyCluster(
   anchor: UniverseCompany,
   limit = 6
 ): SimilarCompany[] {
+  if (anchor.similarityVersion === MATERIALIZED_SIMILARITY_VERSION) {
+    return resolveExistingEdges(anchor, getCompanyBySlug(companies)).slice(0, Math.max(1, limit));
+  }
+
   let lookup = SIMILARITY_CACHE.get(companies);
   if (!lookup) {
     lookup = buildSimilarityLookup(companies);
     SIMILARITY_CACHE.set(companies, lookup);
   }
 
-  if (anchor.similarityVersion === MATERIALIZED_SIMILARITY_VERSION) {
-    return resolveExistingEdges(anchor, lookup.bySlug).slice(0, Math.max(1, limit));
-  }
-
   const lexicalCluster = rankSimilarityCandidates(anchor, lookup);
   if (lexicalCluster.length) return lexicalCluster.slice(0, Math.max(1, limit));
 
   return resolveExistingEdges(anchor, lookup.bySlug).slice(0, Math.max(1, limit));
+}
+
+function getCompanyBySlug(companies: UniverseCompany[]): Map<string, UniverseCompany> {
+  const cached = COMPANY_BY_SLUG_CACHE.get(companies);
+  if (cached) return cached;
+
+  const bySlug = new Map(companies.map((company) => [company.slug, company]));
+  COMPANY_BY_SLUG_CACHE.set(companies, bySlug);
+  return bySlug;
 }
 
 export function buildReciprocalSimilarityGraph(
