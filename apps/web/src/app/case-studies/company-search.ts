@@ -228,12 +228,34 @@ interface SimilarityLookup {
   inverted: Map<string, Set<string>>;
 }
 
+interface CompanySearchDocument {
+  company: UniverseCompany;
+  name: string;
+  description: string;
+  category: string;
+  affiliations: string;
+  evidence: string;
+  entities: string;
+  searchable: string;
+  nameWords: Set<string>;
+}
+
 const SIMILARITY_CACHE = new WeakMap<UniverseCompany[], SimilarityLookup>();
+const COMPANY_SEARCH_CACHE = new WeakMap<UniverseCompany[], CompanySearchDocument[]>();
 export const MATERIALIZED_SIMILARITY_VERSION = 1;
+export const COMPANY_SEARCH_PAGE_SIZE = 20;
+
+export interface CompanySearchOptions {
+  page?: number;
+  pageSize?: number;
+}
 
 export interface CompanySearchResult {
   companies: UniverseCompany[];
   total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
 }
 
 export interface SimilarCompany {
@@ -253,31 +275,77 @@ export interface ReciprocalSimilarityGraph {
 export function searchCompanyUniverse(
   companies: UniverseCompany[],
   input: string,
-  limit = 50
+  options: CompanySearchOptions = {}
 ): CompanySearchResult {
+  const pageSize = positiveInteger(options.pageSize, COMPANY_SEARCH_PAGE_SIZE);
   const query = normalize(input);
-  if (!query) return { companies: [], total: 0 };
+  if (!query) return emptyCompanySearchResult(pageSize);
 
   const rawTokens = tokenize(query);
   const meaningfulTokens = rawTokens.filter((token) => !SEARCH_STOP_WORDS.has(token));
   const tokens = [...new Set(meaningfulTokens.length ? meaningfulTokens : rawTokens)];
-  if (!tokens.length) return { companies: [], total: 0 };
+  if (!tokens.length) return emptyCompanySearchResult(pageSize);
 
-  const ranked = companies
-    .map((company) => ({ company, score: scoreCompany(company, query, tokens) }))
+  const ranked = getCompanySearchDocuments(companies)
+    .map((document) => ({ document, score: scoreCompany(document, query, tokens) }))
     .filter((result) => result.score > 0)
     .sort(
       (left, right) =>
-        right.score - left.score || left.company.name.localeCompare(right.company.name)
+        right.score - left.score ||
+        left.document.company.name.localeCompare(right.document.company.name)
     );
+  const totalPages = Math.ceil(ranked.length / pageSize);
+  const requestedPage = positiveInteger(options.page, 1);
+  const page = totalPages > 0 ? Math.min(requestedPage, totalPages) : 1;
+  const offset = (page - 1) * pageSize;
 
   return {
-    companies: ranked.slice(0, Math.max(1, limit)).map((result) => result.company),
+    companies: ranked.slice(offset, offset + pageSize).map((result) => result.document.company),
     total: ranked.length,
+    page,
+    pageSize,
+    totalPages,
   };
 }
 
-function scoreCompany(company: UniverseCompany, query: string, tokens: string[]): number {
+function scoreCompany(document: CompanySearchDocument, query: string, tokens: string[]): number {
+  const { name, description, category, affiliations, evidence, entities, searchable, nameWords } =
+    document;
+  if (!tokens.every((token) => searchable.includes(token))) return 0;
+
+  let score = 1;
+  if (name === query) score += 10_000;
+  else if (name.startsWith(query)) score += 5_000;
+  else if (name.includes(query)) score += 2_500;
+
+  if (description.includes(query)) score += 700;
+  if (category === query) score += 650;
+  else if (category.includes(query)) score += 300;
+  if (affiliations.includes(query)) score += 250;
+  if (evidence.includes(query)) score += 150;
+
+  for (const token of tokens) {
+    if (nameWords.has(token)) score += 400;
+    else if (name.includes(token)) score += 180;
+    if (description.includes(token)) score += 80;
+    if (category.includes(token)) score += 60;
+    if (affiliations.includes(token)) score += 50;
+    if (evidence.includes(token)) score += 30;
+    if (entities.includes(token)) score += 70;
+  }
+  return score;
+}
+
+function getCompanySearchDocuments(companies: UniverseCompany[]): CompanySearchDocument[] {
+  const cached = COMPANY_SEARCH_CACHE.get(companies);
+  if (cached) return cached;
+
+  const documents = companies.map((company) => buildCompanySearchDocument(company));
+  COMPANY_SEARCH_CACHE.set(companies, documents);
+  return documents;
+}
+
+function buildCompanySearchDocument(company: UniverseCompany): CompanySearchDocument {
   const name = normalize(company.name);
   const description = normalize(company.description);
   const category = normalize(company.category);
@@ -302,30 +370,26 @@ function scoreCompany(company: UniverseCompany, query: string, tokens: string[])
     company.entities?.flatMap((entity) => [entity.text, entity.label]).join(' ') ?? ''
   );
   const searchable = `${name} ${description} ${category} ${affiliations} ${evidence} ${entities}`;
-  if (!tokens.every((token) => searchable.includes(token))) return 0;
+  return {
+    company,
+    name,
+    description,
+    category,
+    affiliations,
+    evidence,
+    entities,
+    searchable,
+    nameWords: new Set(tokenize(name)),
+  };
+}
 
-  let score = 1;
-  if (name === query) score += 10_000;
-  else if (name.startsWith(query)) score += 5_000;
-  else if (name.includes(query)) score += 2_500;
+function positiveInteger(value: number | undefined, fallback: number): number {
+  if (value === undefined || !Number.isSafeInteger(value) || value <= 0) return fallback;
+  return value;
+}
 
-  if (description.includes(query)) score += 700;
-  if (category === query) score += 650;
-  else if (category.includes(query)) score += 300;
-  if (affiliations.includes(query)) score += 250;
-  if (evidence.includes(query)) score += 150;
-
-  const nameWords = new Set(tokenize(name));
-  for (const token of tokens) {
-    if (nameWords.has(token)) score += 400;
-    else if (name.includes(token)) score += 180;
-    if (description.includes(token)) score += 80;
-    if (category.includes(token)) score += 60;
-    if (affiliations.includes(token)) score += 50;
-    if (evidence.includes(token)) score += 30;
-    if (entities.includes(token)) score += 70;
-  }
-  return score;
+function emptyCompanySearchResult(pageSize: number): CompanySearchResult {
+  return { companies: [], total: 0, page: 1, pageSize, totalPages: 0 };
 }
 
 export function getSimilarCompanyCluster(

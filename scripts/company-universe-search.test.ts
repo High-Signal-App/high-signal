@@ -3,9 +3,14 @@ import type { UniverseCompany } from '../apps/web/src/app/case-studies/data';
 import artifact from '../apps/web/src/data/company-universe.json';
 import {
   buildReciprocalSimilarityGraph,
+  COMPANY_SEARCH_PAGE_SIZE,
   getSimilarCompanyCluster,
   searchCompanyUniverse,
 } from '../apps/web/src/app/case-studies/company-search';
+import {
+  companySearchHref,
+  parseCompanySearchPage,
+} from '../apps/web/src/app/case-studies/company-search-url';
 
 function company(overrides: Partial<UniverseCompany> & Pick<UniverseCompany, 'name' | 'slug'>) {
   return {
@@ -96,11 +101,50 @@ const a16zCompanies = [
 ];
 assert.equal(searchCompanyUniverse(a16zCompanies, 'a16z').total, 1);
 
-const capped = searchCompanyUniverse(companies, 'health', 1);
+const capped = searchCompanyUniverse(companies, 'health', { pageSize: 1 });
 assert.equal(capped.total, 2);
 assert.equal(capped.companies.length, 1);
 
 assert.deepEqual(searchCompanyUniverse(companies, '').companies, []);
+
+const paginatedCompanies = Array.from({ length: 45 }, (_, index) =>
+  company({
+    slug: `ranked-finance-${index.toString().padStart(2, '0')}`,
+    name: index === 44 ? 'Finance' : `Ranked Finance ${index.toString().padStart(2, '0')}`,
+    description: 'Finance workflow software.',
+    category: 'Fintech',
+  })
+);
+const rankedPageOne = searchCompanyUniverse(paginatedCompanies, 'finance');
+const rankedPageTwo = searchCompanyUniverse(paginatedCompanies, 'finance', { page: 2 });
+const rankedPageThree = searchCompanyUniverse(paginatedCompanies, 'finance', { page: 3 });
+const completeRanking = searchCompanyUniverse(paginatedCompanies, 'finance', { pageSize: 45 });
+assert.equal(rankedPageOne.pageSize, COMPANY_SEARCH_PAGE_SIZE);
+assert.equal(rankedPageOne.companies.length, 20);
+assert.equal(rankedPageTwo.companies.length, 20);
+assert.equal(rankedPageThree.companies.length, 5);
+assert.equal(rankedPageOne.totalPages, 3);
+assert.equal(rankedPageOne.companies[0]?.slug, 'ranked-finance-44');
+assert.equal(
+  new Set([...rankedPageOne.companies, ...rankedPageTwo.companies, ...rankedPageThree.companies])
+    .size,
+  45
+);
+assert.deepEqual(
+  [...rankedPageOne.companies, ...rankedPageTwo.companies, ...rankedPageThree.companies].map(
+    ({ slug }) => slug
+  ),
+  completeRanking.companies.map(({ slug }) => slug)
+);
+assert.equal(searchCompanyUniverse(paginatedCompanies, 'finance', { page: -2 }).page, 1);
+assert.equal(searchCompanyUniverse(paginatedCompanies, 'finance', { page: 99 }).page, 3);
+assert.equal(
+  companySearchHref('AI workflow finance', 2),
+  '/case-studies/search?q=AI+workflow+finance&page=2'
+);
+assert.equal(parseCompanySearchPage('2'), 2);
+assert.equal(parseCompanySearchPage('-1'), 1);
+assert.equal(parseCompanySearchPage('2.5'), 1);
 
 const genericCrossCategoryCluster = getSimilarCompanyCluster(
   [

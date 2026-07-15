@@ -1,4 +1,11 @@
-import { Search } from 'lucide-react';
+'use client';
+
+import type { Route } from 'next';
+import { useRouter } from 'next/navigation';
+import { LoaderCircle, Search } from 'lucide-react';
+import type { FormEvent } from 'react';
+import { useTransition } from 'react';
+import { companySearchHref } from './company-search-url';
 
 interface CompanySearchFormProps {
   companyCount: number;
@@ -12,10 +19,24 @@ export function CompanySearchForm({
   lastUpdatedAt,
 }: CompanySearchFormProps) {
   const updatedAt = lastUpdatedAt.slice(0, 19).replace('T', ' ');
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+
+  function submitSearch(event: FormEvent<HTMLFormElement>) {
+    if (!event.currentTarget.reportValidity()) return;
+    event.preventDefault();
+    const query = String(new FormData(event.currentTarget).get('q') ?? '');
+    startTransition(() => router.push(companySearchHref(query) as Route));
+  }
 
   return (
     <section className="mt-8 border border-[var(--color-line)] p-4" aria-label="Search companies">
-      <form action="/case-studies/search" method="get">
+      <form
+        action="/case-studies/search"
+        method="get"
+        onSubmit={submitSearch}
+        aria-busy={isPending}
+      >
         <label htmlFor="company-universe-query" className="block">
           <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500">
             search {companyCount.toLocaleString()} companies
@@ -33,13 +54,21 @@ export function CompanySearchForm({
             />
             <button
               type="submit"
-              className="inline-flex h-11 items-center justify-center gap-2 border border-[var(--color-accent)] px-5 font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-accent)] transition hover:bg-[var(--color-accent)] hover:text-black"
+              disabled={isPending}
+              className="inline-flex h-11 items-center justify-center gap-2 border border-[var(--color-accent)] px-5 font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-accent)] transition hover:bg-[var(--color-accent)] hover:text-black disabled:cursor-wait disabled:bg-[var(--color-accent)] disabled:text-black"
             >
-              <Search className="size-3.5" aria-hidden="true" />
-              search
+              {isPending ? (
+                <LoaderCircle className="size-3.5 animate-spin" aria-hidden="true" />
+              ) : (
+                <Search className="size-3.5" aria-hidden="true" />
+              )}
+              {isPending ? 'searching' : 'search'}
             </button>
           </div>
         </label>
+        <span className="sr-only" role="status" aria-live="polite">
+          {isPending ? 'Searching companies' : ''}
+        </span>
       </form>
       <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-600">
         manually refreshed snapshot · last updated {updatedAt} UTC
