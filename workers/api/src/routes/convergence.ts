@@ -39,7 +39,7 @@ for (const e of seedEntities as Array<{ id: string; wiki_url: string | null }>) 
 
 const ATTENTION_USER_AGENT =
   "high-signal-convergence/0.1 " +
-  "(+https://github.com/sarthak-fleet/high-signal; " +
+  "(+https://github.com/High-Signal-App/high-signal; " +
   "contact: sarthak@vaultwealth.com)";
 
 async function fetchAttention(article: string, days = 30): Promise<AttentionResult | null> {

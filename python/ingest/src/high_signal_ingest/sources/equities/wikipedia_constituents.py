@@ -42,7 +42,7 @@ LOGGER = logging.getLogger(__name__)
 #   uv run python -m high_signal_ingest.refresh_equities_universe
 USER_AGENT = (
     "high-signal-equities/0.1 "
-    "(+https://github.com/sarthak-fleet/high-signal; "
+    "(+https://github.com/High-Signal-App/high-signal; "
     "contact: sarthak@vaultwealth.com) "
     "wikipedia-constituents"
 )

@@ -177,7 +177,7 @@ function LabPreview() {
           ranking into cited signals in the public brief. See{' '}
           <a
             className="text-[var(--color-accent)] hover:underline"
-            href="https://github.com/sarthak-fleet/high-signal/tree/main/python/lab"
+            href="https://github.com/High-Signal-App/high-signal/tree/main/python/lab"
             rel="noreferrer"
             target="_blank"
           >

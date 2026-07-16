@@ -26,7 +26,7 @@ export function buildOrganizationJsonLd(): JsonLdBlock[] {
       url: SITE_URL,
       description: SITE_DESCRIPTION,
       logo: `${SITE_URL}/icon.svg`,
-      sameAs: ['https://github.com/sarthak-fleet/high-signal'],
+      sameAs: ['https://github.com/High-Signal-App/high-signal'],
     },
     {
       '@context': 'https://schema.org',

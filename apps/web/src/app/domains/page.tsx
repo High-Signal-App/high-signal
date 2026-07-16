@@ -7,7 +7,7 @@ export const metadata = {
 };
 
 const RAW_DATA_URL =
-  'https://raw.githubusercontent.com/sarthak-fleet/drank/main/data/global-dr.json';
+  'https://raw.githubusercontent.com/High-Signal-App/drank/main/data/global-dr.json';
 const DRANK_APP_URL = 'https://drank-sand.vercel.app';
 
 interface DrankData {

@@ -29,5 +29,5 @@ Free product. Lab data and ingest pipelines feed a composed brief at `/` and `/b
 
 ## Optional
 
-- [GitHub](https://github.com/sarthak-fleet/high-signal): Source
+- [GitHub](https://github.com/High-Signal-App/high-signal): Source
 - [Foundry](https://sassmaker.com): Fleet context

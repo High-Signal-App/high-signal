@@ -19,7 +19,7 @@ type Env = Record<string, never>;
 
 const USER_AGENT =
   "high-signal-attention/0.1 " +
-  "(+https://github.com/sarthak-fleet/high-signal; " +
+  "(+https://github.com/High-Signal-App/high-signal; " +
   "contact: sarthak@vaultwealth.com)";
 
 const PAGEVIEWS_BASE =

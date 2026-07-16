@@ -12,7 +12,7 @@ Rules followed:
 
 ### high-signal
 
-Remote: `https://github.com/sarthak-fleet/high-signal.git`
+Remote: `https://github.com/High-Signal-App/high-signal.git`
 
 Branch: `main`
 
@@ -26,7 +26,7 @@ Notes:
 
 ### CodeVetter
 
-Remote: `https://github.com/sarthak-fleet/CodeVetter.git`
+Remote: `https://github.com/Codevetter/codevetter.git`
 
 Branch: `backup/laptop-service-20260531`
 
@@ -34,7 +34,7 @@ Pushed commit:
 - `7cf7c74 wip: backup desktop unpack changes`
 
 PR URL:
-- `https://github.com/sarthak-fleet/CodeVetter/pull/new/backup/laptop-service-20260531`
+- `https://github.com/Codevetter/codevetter/pull/new/backup/laptop-service-20260531`
 
 Backed up files:
 - `apps/desktop/src-tauri/src/commands/unpack.rs`
@@ -61,7 +61,7 @@ Notes:
 
 ### saas-maker
 
-Remote: `https://github.com/sarthak-fleet/saas-maker.git`
+Remote: `https://github.com/sass-maker/saas-maker.git`
 
 Branch: `backup/laptop-service-20260531`
 
@@ -69,7 +69,7 @@ Pushed commit:
 - `a029129 wip: backup fleet secret audit work`
 
 PR URL:
-- `https://github.com/sarthak-fleet/saas-maker/pull/new/backup/laptop-service-20260531`
+- `https://github.com/sass-maker/saas-maker/pull/new/backup/laptop-service-20260531`
 
 Backed up files:
 - `AGENTS.md`
