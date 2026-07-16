@@ -1,6 +1,6 @@
 # high-signal — PROJECT STATUS
 
-Last updated: 2026-07-15
+Last updated: 2026-07-16
 
 ## Why/What
 
@@ -87,6 +87,7 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 
 ## Timeline
 
+- **2026-07-16** — Drafted OpenSpec change `add-public-ai-evidence-report`: a free, bounded, immutable, source-linked AI Evidence Report that reuses company lookup and Mentions evidence, launches through reviewed fleet dogfood, and routes into existing brand monitoring. Billing, paid tiers, unbounded anonymous provider work, implementation, migration, and deployment remain out of scope for the draft.
 - **2026-07-13** — Applied and verified remote D1 migrations `0014_intent_opportunities.sql` and `0019_delivery_retry_schedule.sql`. The migration ledger reports no pending migrations; the intent table and three indexes, retry-schedule index, and `delivery_log.next_attempt_at` column are present. No Worker deploy, provider/DNS setup, secret, production config, or mail send was performed.
 - **2026-07-13** — Completed plan 0012's remaining local acceptance: open buyer/community intent now enriches Daily Brief section 4 with each brand's strongest source-linked finding and section 5 with deduplicated, reviewable actions. Intent loading fails independently. Web and delivery output retain stage, platform, score, action, and source. Migration 0014 was verified locally and is now applied to remote D1.
 - **2026-07-13** — Closed plan 0009's remaining local acceptance gaps. Failed email rows are now owner-scoped and manually retryable from `/settings/delivery` through a conditional failed→queued claim; RSS preferences issue stable opaque tokens for private daily-brief RSS/Atom feeds; signed-in users can read the versioned compact daily-brief JSON contract; and automatic failures persist exact retry eligibility at 15 minutes, 1 hour, and 4 hours before the fourth total attempt becomes terminal. Existing public weekly feeds remain unchanged without a token. Additive migration `0019_delivery_retry_schedule.sql` is applied to remote D1; the Worker change has not been deployed.
@@ -298,6 +299,7 @@ Python adapters under `python/ingest/src/high_signal_ingest/sources/` — all wi
    prefer a Cloudflare WAF rule when zone-level rules permission is available.
 
 1. **Remaining source API keys (manual signup needed):** `FRED_API_KEY` (macro rates — highest value, 2 min signup), `ETHERSCAN_API_KEY` (Ethereum gas, 2 min), `COMPANIES_HOUSE_API_KEY` (UK filings, 3 min). All others have keyless alternatives or are niche — see session notes. AgentMail inbox `highsignal-keys@agentmail.to` is set up for registrations.
+2. **Public AI Evidence Report (OpenSpec drafted):** implement `openspec/changes/add-public-ai-evidence-report` as a free proof artifact only after review. Reuse existing company identity, Mentions, citations, and evidence tasks; admit anonymous work through cache and budget controls; require reviewed fleet reports before broad promotion. No billing or new provider surface.
 3. **Plan 0009 follow-up:** Complete Email Routing setup (DKIM/SPF + `EMAIL_FROM`) before cron sends real mail. Remote migration 0019 is applied. Checked-in surfaces are otherwise complete: the `*/30` cron is fail-closed and idempotent, automatic failures persist and enforce their next eligible attempt, live-brief compose feeds email/private RSS/private Atom/compact JSON, failed rows are retryable from the owner UI, one-click unsubscribe (HMAC token, RFC 8058 `List-Unsubscribe`) works from any mail client, and 3 consecutive failed rows auto-disable a channel.
 6. Clarify event semantics — `normalized_events` vs current `events` as source observations.
 7. Keep source pipeline small and quality-gated; run `pnpm source:quality` after full ingest.
