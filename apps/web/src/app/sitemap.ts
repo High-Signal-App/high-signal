@@ -1,5 +1,10 @@
 import type { MetadataRoute } from 'next';
 
+import {
+  CASE_STUDIES,
+  CASE_STUDIES_TOTAL_PAGES,
+  COMPANY_UNIVERSE_LAST_UPDATED,
+} from '@/app/case-studies/data';
 import { api } from '@/lib/api';
 import { isBackfillSignal } from '@/lib/signal-format';
 import { SITE_URL } from '@/lib/site';
@@ -54,7 +59,71 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'monthly',
       priority: 0.7,
     },
+    {
+      url: `${SITE_URL}/agent-eval/sample`,
+      lastModified: now,
+      changeFrequency: 'monthly',
+      priority: 0.65,
+    },
+    // Marketing / value-add surfaces
+    {
+      url: `${SITE_URL}/case-studies`,
+      lastModified: now,
+      changeFrequency: 'weekly',
+      priority: 0.85,
+    },
+    {
+      url: `${SITE_URL}/case-studies/search`,
+      lastModified: now,
+      changeFrequency: 'weekly',
+      priority: 0.7,
+    },
+    {
+      url: `${SITE_URL}/teardowns`,
+      lastModified: now,
+      changeFrequency: 'weekly',
+      priority: 0.8,
+    },
+    {
+      url: `${SITE_URL}/domains`,
+      lastModified: now,
+      changeFrequency: 'weekly',
+      priority: 0.75,
+    },
+    {
+      url: `${SITE_URL}/explore`,
+      lastModified: now,
+      changeFrequency: 'daily',
+      priority: 0.75,
+    },
+    {
+      url: `${SITE_URL}/convergence`,
+      lastModified: now,
+      changeFrequency: 'weekly',
+      priority: 0.7,
+    },
+    {
+      url: `${SITE_URL}/markets/history`,
+      lastModified: now,
+      changeFrequency: 'daily',
+      priority: 0.65,
+    },
+    {
+      url: `${SITE_URL}/featured`,
+      lastModified: now,
+      changeFrequency: 'weekly',
+      priority: 0.7,
+    },
+    {
+      url: `${SITE_URL}/api-docs`,
+      lastModified: now,
+      changeFrequency: 'monthly',
+      priority: 0.65,
+    },
     { url: `${SITE_URL}/about`, lastModified: now, changeFrequency: 'monthly', priority: 0.5 },
+    { url: `${SITE_URL}/llms.txt`, lastModified: now, changeFrequency: 'weekly', priority: 0.45 },
+    { url: `${SITE_URL}/index.md`, lastModified: now, changeFrequency: 'weekly', priority: 0.45 },
+    { url: `${SITE_URL}/api/ai`, lastModified: now, changeFrequency: 'weekly', priority: 0.4 },
     { url: `${SITE_URL}/privacy`, lastModified: now, changeFrequency: 'yearly', priority: 0.3 },
     { url: `${SITE_URL}/terms`, lastModified: now, changeFrequency: 'yearly', priority: 0.3 },
     { url: `${SITE_URL}/digest/rss`, lastModified: now, changeFrequency: 'weekly', priority: 0.4 },
@@ -138,11 +207,32 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   }));
 
+  // Case-study / company universe pages — high-volume marketing surface.
+  const caseStudyUpdated = COMPANY_UNIVERSE_LAST_UPDATED
+    ? new Date(COMPANY_UNIVERSE_LAST_UPDATED)
+    : now;
+  const caseStudyEntries: MetadataRoute.Sitemap = CASE_STUDIES.map((c) => ({
+    url: `${SITE_URL}/case-studies/${c.slug}`,
+    lastModified: caseStudyUpdated,
+    changeFrequency: 'weekly' as const,
+    priority: 0.65,
+  }));
+  const caseStudyPageEntries: MetadataRoute.Sitemap = Array.from(
+    { length: CASE_STUDIES_TOTAL_PAGES },
+    (_, i) => ({
+      url: `${SITE_URL}/case-studies/page/${i + 1}`,
+      lastModified: caseStudyUpdated,
+      changeFrequency: 'weekly' as const,
+      priority: i === 0 ? 0.7 : 0.5,
+    })
+  );
   return [
     ...staticRoutes,
     ...signalEntries,
     ...entityEntries,
     ...entityMonthEntries,
     ...signalTypeEntries,
+    ...caseStudyPageEntries,
+    ...caseStudyEntries,
   ];
 }
