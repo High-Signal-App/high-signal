@@ -165,7 +165,7 @@ export default async function OpportunitiesPage() {
   const d2cArtifact = BUNDLED_D2C_ARTIFACT;
   const d2cRows = D2C_NICHE_SEEDS.map((seed) => {
     const apiEntry = d2cApi?.niches.find((n) => n.slug === seed.slug) ?? null;
-    if (apiEntry && apiEntry.brief) {
+    if (apiEntry?.brief) {
       return {
         seed,
         evidence: d2cArtifact?.niches.find((n) => n.nicheSlug === seed.slug) ?? null,
@@ -355,7 +355,7 @@ export default async function OpportunitiesPage() {
                     { label: 'first sku', value: seed.firstSku.split(' ').slice(0, 2).join(' ') },
                   ]}
                 />
-                {delta && delta.verdictChanged && delta.previousVerdict && (
+                {delta?.verdictChanged && delta.previousVerdict && (
                   <div className="mt-3 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
                     verdict shifted:{' '}
                     <span className={verdictTone(delta.previousVerdict)}>

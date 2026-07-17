@@ -7,7 +7,14 @@ import { VitalsReporter } from '@/components/VitalsReporter';
 import { AuthNav } from '@/components/auth/AuthNav';
 import { PrimaryNav } from '@/components/system/PrimaryNav';
 import { SiteFooter } from '@/components/system/SiteFooter';
-import { clampDescription, SITE_DESCRIPTION, SITE_NAME, SITE_TAGLINE, SITE_TWITTER, SITE_URL } from '@/lib/site';
+import {
+  clampDescription,
+  SITE_DESCRIPTION,
+  SITE_NAME,
+  SITE_TAGLINE,
+  SITE_TWITTER,
+  SITE_URL,
+} from '@/lib/site';
 
 export const metadata: Metadata = {
   icons: {
@@ -90,7 +97,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const clerkConfigured = Boolean(
-    process.env['NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY'] && process.env['CLERK_SECRET_KEY']
+    process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY && process.env.CLERK_SECRET_KEY
   );
   const app = (
     <AnalyticsProvider>

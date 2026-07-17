@@ -555,6 +555,19 @@ export default async function SignalsPage({ searchParams }: { searchParams: Prom
     <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:py-8">
       <FaqJsonLd items={LANDING_FAQ} />
       <SoftwareApplicationJsonLd />
+      <section className="mb-8 max-w-3xl" aria-labelledby="homepage-intro">
+        <h2
+          id="homepage-intro"
+          className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--color-accent)]"
+        >
+          evidence-first daily intelligence
+        </h2>
+        <p className="mt-3 text-sm leading-6 text-zinc-400">
+          High Signal turns noisy public sources into a daily brief on technology, startups, and
+          finance. Each published claim carries two independent citations and a confidence band, so
+          the public hit-rate ledger can be checked over time.
+        </p>
+      </section>
       <div className="grid gap-8 lg:grid-cols-[248px_minmax(0,1fr)]">
         <SignalsSidebar
           configs={configs}

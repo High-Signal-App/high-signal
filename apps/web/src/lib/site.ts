@@ -55,7 +55,10 @@ export function clampDescription(desc: string, fallback: string = SITE_DESCRIPTI
   let d = (desc ?? '').trim();
   if (d.length === 0) return fallback;
   if (d.length > 160) {
-    d = d.slice(0, 157).replace(/\s+\S*$/, '').trim();
+    d = d
+      .slice(0, 157)
+      .replace(/\s+\S*$/, '')
+      .trim();
     if (d.length > 0) d += '…';
     return d;
   }
@@ -65,7 +68,10 @@ export function clampDescription(desc: string, fallback: string = SITE_DESCRIPTI
     if (d.length > 0 && f.length > 0) {
       const combined = `${d}. ${f}`;
       if (combined.length <= 160) return combined;
-      return combined.slice(0, 157).replace(/\s+\S*$/, '').trim() + '…';
+      return `${combined
+        .slice(0, 157)
+        .replace(/\s+\S*$/, '')
+        .trim()}…`;
     }
     return f || d;
   }

@@ -114,5 +114,5 @@ export function signalExcerpt(bodyMd: string | undefined, maxChars = 800): strin
     .join(' ');
   if (rest.length === 0) return '';
   if (rest.length <= maxChars) return rest;
-  return rest.slice(0, maxChars).replace(/\s+\S*$/, '') + '…';
+  return `${rest.slice(0, maxChars).replace(/\s+\S*$/, '')}…`;
 }

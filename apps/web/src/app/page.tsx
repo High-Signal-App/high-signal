@@ -282,9 +282,9 @@ export default async function HomePage() {
         </div>
         <p className="mt-3 max-w-3xl text-sm leading-6 text-zinc-400">
           The public hit-rate ledger is the competitive moat. Every published market signal is
-          scored against subsequent moves — hit, miss, or push. Hit-rate excludes pushes.
-          Read Live first (forward predictions made before the scoring window closed); use Backfill
-          only to calibrate the scoring system. The dataset is downloadable as JSON and CSV at{' '}
+          scored against subsequent moves — hit, miss, or push. Hit-rate excludes pushes. Read Live
+          first (forward predictions made before the scoring window closed); use Backfill only to
+          calibrate the scoring system. The dataset is downloadable as JSON and CSV at{' '}
           <Link href="/data" className="text-[var(--color-accent)] hover:underline">
             /data
           </Link>
@@ -297,7 +297,9 @@ export default async function HomePage() {
             </div>
             <div className="nums mt-3 flex items-baseline gap-4">
               <div>
-                <div className="text-3xl font-medium text-zinc-100">{formatHitRate(liveHitRate)}</div>
+                <div className="text-3xl font-medium text-zinc-100">
+                  {formatHitRate(liveHitRate)}
+                </div>
                 <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
                   hit-rate
                 </div>
@@ -419,8 +421,8 @@ export default async function HomePage() {
           </p>
         ) : null}
         <p className="mt-4 font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-600">
-          {totalScored} total scored predictions across live + backfill · dataset updated daily
-          at 22:30 UTC
+          {totalScored} total scored predictions across live + backfill · dataset updated daily at
+          22:30 UTC
         </p>
       </section>
 
@@ -465,9 +467,7 @@ export default async function HomePage() {
               core principle
             </div>
             <div className="mt-2 text-sm font-medium text-zinc-100">cite or kill</div>
-            <div className="mt-1 font-mono text-[10px] text-zinc-600">
-              ≥ 2 independent sources
-            </div>
+            <div className="mt-1 font-mono text-[10px] text-zinc-600">≥ 2 independent sources</div>
           </div>
           <div className="bg-zinc-950/50 p-4">
             <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
@@ -519,9 +519,7 @@ export default async function HomePage() {
 
       {/* Footer links */}
       <footer className="mt-16 border-t border-zinc-800 pt-8">
-        <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-600">
-          explore
-        </h2>
+        <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-600">explore</h2>
         <ul className="mt-4 flex flex-wrap gap-x-6 gap-y-2 font-mono text-[11px] text-zinc-500">
           <li>
             <Link href="/brief" className="hover:text-[var(--color-accent)]">

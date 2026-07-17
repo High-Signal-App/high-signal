@@ -157,7 +157,10 @@ export default async function DataPage() {
       </header>
 
       {/* Hit-rate ledger — the citable dataset */}
-      <section className="mb-12 border border-zinc-800 bg-zinc-950/40 p-5" aria-labelledby="hitrate-dataset-heading">
+      <section
+        className="mb-12 border border-zinc-800 bg-zinc-950/40 p-5"
+        aria-labelledby="hitrate-dataset-heading"
+      >
         <div className="flex flex-wrap items-baseline justify-between gap-3 border-b border-zinc-800 pb-3">
           <div>
             <h2
@@ -194,7 +197,9 @@ export default async function DataPage() {
             <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
               signal types (live)
             </div>
-            <div className="nums mt-2 text-2xl font-medium text-zinc-100">{cohorts.live.length}</div>
+            <div className="nums mt-2 text-2xl font-medium text-zinc-100">
+              {cohorts.live.length}
+            </div>
             <div className="mt-1 font-mono text-[10px] text-zinc-600">distinct types scored</div>
           </div>
         </div>

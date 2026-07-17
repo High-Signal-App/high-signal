@@ -61,8 +61,8 @@ export function SpilloverGraph({
     const slice = (2 * Math.PI) / presentTypes.length;
     presentTypes.forEach((type, ti) => {
       const list = groups
-        .get(type)!
-        .slice()
+        .get(type)
+        ?.slice()
         .sort((a, b) => b.weight - a.weight);
       const start = ti * slice;
       const end = start + slice;
@@ -105,7 +105,7 @@ export function SpilloverGraph({
         {/* edges */}
         {arcs.map(({ node, x, y }) => (
           <line
-            key={node.id + ':' + node.type}
+            key={`${node.id}:${node.type}`}
             x1={CENTER}
             y1={CENTER}
             x2={x}
@@ -125,7 +125,7 @@ export function SpilloverGraph({
           const ly = y + sinA * labelOffset;
           const anchor = cosA > 0.3 ? 'start' : cosA < -0.3 ? 'end' : 'middle';
           return (
-            <g key={node.id + ':' + node.type + ':node'}>
+            <g key={`${node.id}:${node.type}:node`}>
               <circle
                 cx={x}
                 cy={y}

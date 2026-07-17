@@ -86,15 +86,15 @@ export default async function EquitiesPage({
   searchParams?: Promise<SearchParams>;
 }) {
   const params = (await searchParams) ?? {};
-  const sortKey = parseSort(params['sort']);
-  const sortDir = parseDir(params['dir']);
+  const sortKey = parseSort(params.sort);
+  const sortDir = parseDir(params.dir);
   const bundle = loadEquitiesBundle();
 
   const filtered = filterRows(bundle.rows, {
-    country: params['country'] || null,
-    sector: params['sector'] || null,
-    assetClass: params['assetClass'] || null,
-    search: params['q'] || null,
+    country: params.country || null,
+    sector: params.sector || null,
+    assetClass: params.assetClass || null,
+    search: params.q || null,
   });
   const rows = sortRows(filtered, sortKey, sortDir);
 
@@ -103,15 +103,15 @@ export default async function EquitiesPage({
   const assetClasses = uniqueValues(bundle.rows, 'asset_class');
 
   const preserve = {
-    country: params['country'],
-    sector: params['sector'],
-    assetClass: params['assetClass'],
-    q: params['q'],
+    country: params.country,
+    sector: params.sector,
+    assetClass: params.assetClass,
+    q: params.q,
   } as Record<string, string | undefined>;
 
   const generatedDisplay =
     bundle.generatedAt && bundle.generatedAt !== '1970-01-01T00:00:00.000Z'
-      ? bundle.generatedAt.slice(0, 16).replace('T', ' ') + ' UTC'
+      ? `${bundle.generatedAt.slice(0, 16).replace('T', ' ')} UTC`
       : 'no snapshot yet';
 
   return (
@@ -144,17 +144,12 @@ export default async function EquitiesPage({
 
       <Panel eyebrow="filter" title="Filter">
         <form method="get" action="/equities" className="flex flex-wrap gap-3 text-sm">
-          <FilterSelect
-            name="country"
-            label="Country"
-            value={params['country']}
-            options={countries}
-          />
-          <FilterSelect name="sector" label="Sector" value={params['sector']} options={sectors} />
+          <FilterSelect name="country" label="Country" value={params.country} options={countries} />
+          <FilterSelect name="sector" label="Sector" value={params.sector} options={sectors} />
           <FilterSelect
             name="assetClass"
             label="Asset class"
-            value={params['assetClass']}
+            value={params.assetClass}
             options={assetClasses}
           />
           <label className="flex flex-col gap-1">
@@ -162,14 +157,14 @@ export default async function EquitiesPage({
             <input
               type="text"
               name="q"
-              defaultValue={params['q'] ?? ''}
+              defaultValue={params.q ?? ''}
               placeholder="ticker or name"
               className="rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-zinc-100"
             />
           </label>
           {/* preserve current sort across filter submits */}
-          {params['sort'] ? <input type="hidden" name="sort" value={params['sort']} /> : null}
-          {params['dir'] ? <input type="hidden" name="dir" value={params['dir']} /> : null}
+          {params.sort ? <input type="hidden" name="sort" value={params.sort} /> : null}
+          {params.dir ? <input type="hidden" name="dir" value={params.dir} /> : null}
           <button
             type="submit"
             className="self-end rounded border border-zinc-700 px-3 py-1 text-zinc-200 hover:border-zinc-500"
@@ -360,9 +355,7 @@ export default async function EquitiesPage({
 }
 
 function filterActive(preserve: Record<string, string | undefined>): boolean {
-  return Boolean(
-    preserve['country'] || preserve['sector'] || preserve['assetClass'] || preserve['q']
-  );
+  return Boolean(preserve.country || preserve.sector || preserve.assetClass || preserve.q);
 }
 
 function FilterSelect({

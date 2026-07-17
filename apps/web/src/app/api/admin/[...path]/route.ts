@@ -26,8 +26,8 @@ async function handle(req: Request, ctx: { params: Promise<{ path: string[] }> }
       getCloudflareContext?: (...args: unknown[]) => { env?: Record<string, unknown> };
     }
   ).getCloudflareContext?.();
-  const api = cfctx?.env?.['API'] as { fetch?: typeof fetch } | undefined;
-  const token = (cfctx?.env?.['ADMIN_TOKEN'] as string | undefined) ?? '';
+  const api = cfctx?.env?.API as { fetch?: typeof fetch } | undefined;
+  const token = (cfctx?.env?.ADMIN_TOKEN as string | undefined) ?? '';
 
   if (!api?.fetch || !token) {
     return Response.json({ error: 'proxy_misconfigured' }, { status: 500 });

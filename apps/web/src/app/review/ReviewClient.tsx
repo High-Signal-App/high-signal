@@ -7,7 +7,7 @@ import { ConfidenceBadge } from '@/components/atoms/ConfidenceBadge';
 import { MarkdownView } from '@/components/system/MarkdownView';
 
 const API_BASE =
-  process.env['NEXT_PUBLIC_API_BASE'] ?? 'https://high-signal-api.sarthakagrawal927.workers.dev';
+  process.env.NEXT_PUBLIC_API_BASE ?? 'https://high-signal-api.sarthakagrawal927.workers.dev';
 
 type Status = 'draft' | 'published' | 'corrected';
 

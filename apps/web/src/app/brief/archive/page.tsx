@@ -22,7 +22,7 @@ interface ArchiveEntry {
 
 function formatDate(iso: string) {
   try {
-    return new Date(iso + 'T00:00:00Z').toLocaleDateString('en-US', {
+    return new Date(`${iso}T00:00:00Z`).toLocaleDateString('en-US', {
       weekday: 'short',
       year: 'numeric',
       month: 'short',
@@ -78,8 +78,8 @@ export default async function BriefArchivePage() {
             no archived briefs yet
           </p>
           <p className="mt-3 text-sm text-zinc-500">
-            Brief snapshots are stored daily by the precompute cron. The archive
-            will populate as the cron runs. Today’s brief is always available at{' '}
+            Brief snapshots are stored daily by the precompute cron. The archive will populate as
+            the cron runs. Today’s brief is always available at{' '}
             <Link href="/brief" className="text-[var(--color-accent)] hover:underline">
               /brief
             </Link>
@@ -117,9 +117,9 @@ export default async function BriefArchivePage() {
 
       <footer className="mt-12 border-t border-zinc-800 pt-4 font-mono text-[11px] text-zinc-600">
         <p>
-          Briefs are permanent. The{' '}
-          <code className="text-zinc-400">daily_brief_snapshots</code> table is append-only by date
-          + region; the cron upserts the same day’s snapshot but never deletes prior dates.
+          Briefs are permanent. The <code className="text-zinc-400">daily_brief_snapshots</code>{' '}
+          table is append-only by date + region; the cron upserts the same day’s snapshot but never
+          deletes prior dates.
         </p>
       </footer>
     </PageShell>

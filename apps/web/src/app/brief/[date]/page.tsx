@@ -17,9 +17,7 @@ interface BriefDatePageProps {
   searchParams?: Promise<{ region?: string }>;
 }
 
-export async function generateMetadata({
-  params,
-}: BriefDatePageProps): Promise<Metadata> {
+export async function generateMetadata({ params }: BriefDatePageProps): Promise<Metadata> {
   const { date } = await params;
   if (!DATE_REGEX.test(date)) return { title: 'Brief not found' };
   return {
@@ -29,7 +27,7 @@ export async function generateMetadata({
   };
 }
 
-const EMPTY_BRIEF: BriefSnapshot = {
+const _EMPTY_BRIEF: BriefSnapshot = {
   generatedAt: new Date().toISOString(),
   region: 'global',
   hasBrand: false,
@@ -40,10 +38,7 @@ const EMPTY_BRIEF: BriefSnapshot = {
   improvements: [],
 };
 
-export default async function BriefDatePage({
-  params,
-  searchParams,
-}: BriefDatePageProps) {
+export default async function BriefDatePage({ params, searchParams }: BriefDatePageProps) {
   const { date } = await params;
   if (!DATE_REGEX.test(date)) notFound();
 
@@ -58,7 +53,8 @@ export default async function BriefDatePage({
     /* 404 or offline — render the "no brief" state */
   }
 
-  const hasBrief = brief !== null && brief.stocks.length + brief.ideas.length + brief.trends.length > 0;
+  const hasBrief =
+    brief !== null && brief.stocks.length + brief.ideas.length + brief.trends.length > 0;
 
   return (
     <PageShell>
@@ -83,9 +79,9 @@ export default async function BriefDatePage({
           </Link>
         </div>
         <p className="mt-2 text-xs text-[var(--color-muted)]">
-          This is the brief as it was composed on {date}. Briefs are permanent —
-          the snapshot is the record, not a live rebuild. Region filter applies
-          if a precomputed snapshot exists for that region on this date.
+          This is the brief as it was composed on {date}. Briefs are permanent — the snapshot is the
+          record, not a live rebuild. Region filter applies if a precomputed snapshot exists for
+          that region on this date.
         </p>
       </section>
 
@@ -98,9 +94,9 @@ export default async function BriefDatePage({
             {region !== 'global' ? ` in ${region}` : ''}
           </p>
           <p className="mt-3 text-sm text-zinc-500">
-            Brief snapshots are stored daily by the precompute cron. This date
-            may predate the archive system, or no snapshot was computed for this
-            region. Try the global region or browse{' '}
+            Brief snapshots are stored daily by the precompute cron. This date may predate the
+            archive system, or no snapshot was computed for this region. Try the global region or
+            browse{' '}
             <Link href="/brief/archive" className="text-[var(--color-accent)] hover:underline">
               all available dates
             </Link>

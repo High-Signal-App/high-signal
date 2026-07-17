@@ -236,7 +236,7 @@ export default async function CommunitiesPage({
                           {keyTrend.desc}
                         </p>
                         <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
-                          snapshot {digest!.snapshotDate.slice(0, 10)} / {digest!.sourceCount}{' '}
+                          snapshot {digest?.snapshotDate.slice(0, 10)} / {digest?.sourceCount}{' '}
                           sources
                         </p>
                       </>
