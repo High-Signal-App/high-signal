@@ -1,0 +1,47 @@
+# High Signal — full agent brief
+
+Daily synthesized brief on technology, startups, and finance — five sections with inline hit-rates, no signup required.
+
+## Index
+
+# High Signal
+
+Daily synthesized intelligence brief on technology, startups, and finance.
+
+## What it is
+
+- Five-section composed brief at `/` and `/brief`
+- Inline hit-rates on market calls
+- Public track record and methodology pages
+- Free, no signup for the brief
+
+## Who it's for
+
+Operators and investors who want a high-signal daily read instead of raw feed noise.
+
+## Agent entrypoints
+
+- https://highsignal.app/llms.txt
+- https://highsignal.app/api/ai
+- https://highsignal.app/index.md
+- RSS: https://highsignal.app/signals/rss
+
+## Product links
+
+- Daily brief: https://highsignal.app/ — Primary composed brief
+- Track record: https://highsignal.app/track-record — Public hit-rate ledger
+- Markets: https://highsignal.app/markets — Market signals
+
+## Machine surfaces
+
+- https://highsignal.app/llms.txt
+- https://highsignal.app/llms-full.txt
+- https://highsignal.app/api/ai
+- https://highsignal.app/index.md
+- https://highsignal.app/sitemap.xml
+- https://highsignal.app/robots.txt
+
+## Contact / fleet
+
+- Fleet: https://sassmaker.com
+- Agent email for directory verification: sarthakagrawal@agentmail.to

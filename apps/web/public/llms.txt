@@ -14,20 +14,6 @@
 - [Homepage markdown](https://highsignal.app/index.md): Product brief without JS
 - [This index](https://highsignal.app/llms.txt)
 
-
-## Lenses & value-add pages
-
-- [Case studies](https://highsignal.app/case-studies): Company universe (~13k)
-- [Teardowns](https://highsignal.app/teardowns)
-- [Agent eval](https://highsignal.app/agent-eval) + [SEO audit](https://highsignal.app/agent-eval/seo)
-- [Methodology](https://highsignal.app/methodology)
-- [Track record](https://highsignal.app/track-record)
-- [Domains](https://highsignal.app/domains)
-- [Explore](https://highsignal.app/explore)
-- [Convergence](https://highsignal.app/convergence)
-- [Lab](https://highsignal.app/lab)
-- [API docs](https://highsignal.app/api-docs)
-
 ## Optional
 
 - [Foundry](https://sassmaker.com): Parent fleet showcase

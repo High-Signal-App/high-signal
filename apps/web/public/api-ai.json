@@ -3,8 +3,9 @@
   "version": "1",
   "url": "https://highsignal.app",
   "llms": "https://highsignal.app/llms.txt",
-  "llmsFull": null,
+  "llmsFull": "https://highsignal.app/llms-full.txt",
   "sitemap": "https://highsignal.app/sitemap.xml",
+  "robots": "https://highsignal.app/robots.txt",
   "markdown": {
     "suffix": ".md",
     "negotiation": true
