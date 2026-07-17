@@ -64,6 +64,7 @@ export function SpilloverGraph({
         .get(type)
         ?.slice()
         .sort((a, b) => b.weight - a.weight);
+      if (!list) return;
       const start = ti * slice;
       const end = start + slice;
       list.forEach((node, ni) => {

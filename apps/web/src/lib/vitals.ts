@@ -20,7 +20,7 @@ function sendToAnalytics(metric: VitalMetric) {
     });
   } else {
     const body = JSON.stringify({
-      project: process.env.NEXT_PUBLIC_PROJECT_SLUG ?? 'high-signal',
+      project: process.env['NEXT_PUBLIC_PROJECT_SLUG'] ?? 'high-signal',
       ...metric,
     });
     navigator.sendBeacon('https://vitals.fleet.workers.dev/collect', body);

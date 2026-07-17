@@ -355,7 +355,9 @@ export default async function EquitiesPage({
 }
 
 function filterActive(preserve: Record<string, string | undefined>): boolean {
-  return Boolean(preserve.country || preserve.sector || preserve.assetClass || preserve.q);
+  return Boolean(
+    preserve['country'] || preserve['sector'] || preserve['assetClass'] || preserve['q']
+  );
 }
 
 function FilterSelect({

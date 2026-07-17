@@ -27,17 +27,6 @@ export async function generateMetadata({ params }: BriefDatePageProps): Promise<
   };
 }
 
-const _EMPTY_BRIEF: BriefSnapshot = {
-  generatedAt: new Date().toISOString(),
-  region: 'global',
-  hasBrand: false,
-  stocks: [],
-  ideas: [],
-  trends: [],
-  perception: [],
-  improvements: [],
-};
-
 export default async function BriefDatePage({ params, searchParams }: BriefDatePageProps) {
   const { date } = await params;
   if (!DATE_REGEX.test(date)) notFound();

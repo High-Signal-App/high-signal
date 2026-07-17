@@ -44,7 +44,7 @@ export type {
 } from '@high-signal/shared';
 
 const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE ?? 'https://high-signal-api.sarthakagrawal927.workers.dev';
+  process.env['NEXT_PUBLIC_API_BASE'] ?? 'https://high-signal-api.sarthakagrawal927.workers.dev';
 
 // Service binding when running inside the high-signal-web Worker (avoids CF
 // "fetch loop" guard that blocks workers.dev → workers.dev fetches in the same
@@ -58,7 +58,7 @@ async function getBinding(): Promise<{ fetch: typeof fetch } | null> {
         getCloudflareContext?: (...args: unknown[]) => { env?: Record<string, unknown> };
       }
     ).getCloudflareContext?.();
-    const api = ctx?.env?.API;
+    const api = ctx?.env?.['API'];
     if (api && typeof (api as { fetch?: unknown }).fetch === 'function') {
       return api as { fetch: typeof fetch };
     }
@@ -871,7 +871,7 @@ export const api = {
   labFeed: async (
     params: { query?: string; source?: string; limit?: number; byCluster?: boolean } = {}
   ) => {
-    const base = process.env.LAB_API_URL ?? process.env.NEXT_PUBLIC_LAB_API_URL;
+    const base = process.env['LAB_API_URL'] ?? process.env['NEXT_PUBLIC_LAB_API_URL'];
     if (!base) throw new Error('lab_not_configured');
     const search = new URLSearchParams();
     if (params.query) search.set('q', params.query);

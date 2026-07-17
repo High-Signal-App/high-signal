@@ -18,8 +18,8 @@ async function handle(req: Request, ctx: { params: Promise<{ path: string[] }> }
   if (!userId) return Response.json({ error: 'unauthorized' }, { status: 401 });
 
   const clerk = createClerkClient({
-    publishableKey: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
-    secretKey: process.env.CLERK_SECRET_KEY,
+    publishableKey: process.env['NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY'],
+    secretKey: process.env['CLERK_SECRET_KEY'],
   });
   const user = await clerk.users.getUser(userId);
   const email = user?.primaryEmailAddress?.emailAddress ?? '';
@@ -34,7 +34,7 @@ async function handle(req: Request, ctx: { params: Promise<{ path: string[] }> }
       getCloudflareContext?: (...args: unknown[]) => { env?: Record<string, unknown> };
     }
   ).getCloudflareContext?.();
-  const api = cfctx?.env?.API as { fetch?: typeof fetch } | undefined;
+  const api = cfctx?.env?.['API'] as { fetch?: typeof fetch } | undefined;
   if (!api?.fetch) return Response.json({ error: 'proxy_misconfigured' }, { status: 500 });
 
   const headers = new Headers();
