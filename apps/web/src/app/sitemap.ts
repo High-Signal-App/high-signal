@@ -75,11 +75,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   let allSignals: Awaited<ReturnType<typeof api.signals>>['signals'] = [];
   try {
-    const data = await api.signals({ limit: 1000 });
+    // Pull a large public signal window so the sitemap stays thick for crawlers.
+    const data = await api.signals({ limit: 5000 });
     allSignals = data.signals;
     signalEntries = allSignals
       .filter((signal) => !isBackfillSignal(signal))
-      .slice(0, 1000)
+      .slice(0, 5000)
       .map((s) => ({
         url: `${SITE_URL}/signals/${s.slug}`,
         lastModified: new Date(s.publishedAt),
@@ -92,7 +93,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   try {
     const { entities } = await api.entities();
-    entityEntries = entities.slice(0, 500).map((e) => ({
+    entityEntries = entities.slice(0, 5000).map((e) => ({
       url: `${SITE_URL}/entities/${e.id}`,
       lastModified: now,
       changeFrequency: 'weekly' as const,
@@ -115,7 +116,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     if (!prev || d > prev) entityMonths.set(key, d);
   }
   entityMonthEntries = Array.from(entityMonths.entries())
-    .slice(0, 5000)
+    .slice(0, 20_000)
     .map(([key, lastSeen]) => {
       const [id, period] = key.split('|');
       return {
