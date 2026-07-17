@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://highsignal.app/sitemap.xml
+# Agent indexing
+Allow: /llms.txt
+Allow: /index.md
+Allow: /api/ai

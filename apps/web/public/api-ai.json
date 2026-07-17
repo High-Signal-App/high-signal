@@ -1,0 +1,46 @@
+{
+  "name": "High Signal",
+  "version": "1",
+  "url": "https://highsignal.app",
+  "llms": "https://highsignal.app/llms.txt",
+  "llmsFull": null,
+  "sitemap": "https://highsignal.app/sitemap.xml",
+  "markdown": {
+    "suffix": ".md",
+    "negotiation": true
+  },
+  "surfaces": [
+    {
+      "id": "home",
+      "url": "https://highsignal.app/",
+      "md": "https://highsignal.app/index.md",
+      "kind": "static",
+      "description": "Product home"
+    },
+    {
+      "id": "daily-brief",
+      "url": "https://highsignal.app/",
+      "md": null,
+      "kind": "static",
+      "description": "Primary composed brief"
+    },
+    {
+      "id": "track-record",
+      "url": "https://highsignal.app/track-record",
+      "md": null,
+      "kind": "static",
+      "description": "Public hit-rate ledger"
+    },
+    {
+      "id": "markets",
+      "url": "https://highsignal.app/markets",
+      "md": null,
+      "kind": "static",
+      "description": "Market signals"
+    }
+  ],
+  "auth": {
+    "public": true,
+    "notes": "Auth-walled app routes are not agent-indexed unless listed here."
+  }
+}

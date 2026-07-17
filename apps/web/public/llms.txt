@@ -1,33 +1,19 @@
 # High Signal
 
-> Daily synthesized brief on technology, startups, and finance. Five sections with inline hit-rates on market calls, regional filter, no signup required.
-
-Free product. Lab data and ingest pipelines feed a composed brief at `/` and `/brief`. Public track record at `/track-record`.
+> Daily synthesized brief on technology, startups, and finance — five sections with inline hit-rates, no signup required.
 
 ## Product
 
-- [Daily brief](https://highsignal.app/): Primary surface — five-section composed brief
-- [Brief (alias)](https://highsignal.app/brief): Same brief composer
-- [Track record](https://highsignal.app/track-record): Public hit-rate ledger on signal types
-- [Methodology](https://highsignal.app/methodology): How signals are sourced, scored, and backtested
-- [Case studies](https://highsignal.app/case-studies): Product-intelligence examples from available sources
-- [About](https://highsignal.app/about): Product scope and data sources
-- [Privacy](https://highsignal.app/privacy): Privacy policy
-- [Terms](https://highsignal.app/terms): Terms of use
+- [Daily brief](https://highsignal.app/): Primary composed brief
+- [Track record](https://highsignal.app/track-record): Public hit-rate ledger
+- [Markets](https://highsignal.app/markets): Market signals
 
-## Lenses (deep views)
+## Machine surfaces
 
-- [Markets](https://highsignal.app/markets): Market signals and spillover graph
-- [Communities](https://highsignal.app/communities): Reddit/community digest
-- [Signals today](https://highsignal.app/signals/today): Published signal cards
-- [Opportunities](https://highsignal.app/opportunities): Product opportunity surfacing
-
-## Feeds
-
-- [Signals RSS](https://highsignal.app/signals/rss): Published signals feed
-- [Digest RSS](https://highsignal.app/digest/rss): Weekly digest feed
+- [Agent catalog](https://highsignal.app/api/ai): JSON inventory of public surfaces
+- [Homepage markdown](https://highsignal.app/index.md): Product brief without JS
+- [This index](https://highsignal.app/llms.txt)
 
 ## Optional
 
-- [GitHub](https://github.com/High-Signal-App/high-signal): Source
-- [Foundry](https://sassmaker.com): Fleet context
+- [Foundry](https://sassmaker.com): Parent fleet showcase

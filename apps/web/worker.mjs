@@ -3,6 +3,8 @@
 import openNext from './.open-next/worker.js';
 import { guardPublicRequest } from './abuse-guard.mjs';
 import { withTiming } from './timing.mjs';
+import { handleAgentEdge } from './agent-edge.mjs';
+
 
 export {
   DOQueueHandler,
@@ -29,6 +31,12 @@ function hasAuthCookie(request) {
 
 const worker = {
   fetch: withTiming(async function fetch(request, env, ctx) {
+
+    // Agent / LLM indexing surfaces (fleet GEO standard)
+    {
+      const agent = handleAgentEdge(request);
+      if (agent) return agent;
+    }
     const guarded = guardPublicRequest(request);
     if (guarded) return guarded;
 
