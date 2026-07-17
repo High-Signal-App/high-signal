@@ -11,8 +11,51 @@ export {
   BucketCachePurge,
 } from './.open-next/worker.js';
 
-const CACHE_PATH = '/';
 const CACHE_CONTROL = 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800';
+// Marketing hubs + lenses (anon). Dynamic case-study slugs rely on Next
+// s-maxage; edge-cache the high-traffic entry pages here.
+const CACHEABLE_EXACT = new Set([
+  '/',
+  '/brief',
+  '/track-record',
+  '/methodology',
+  '/about',
+  '/case-studies',
+  '/case-studies/search',
+  '/teardowns',
+  '/agent-eval',
+  '/agent-eval/seo',
+  '/agent-eval/sample',
+  '/domains',
+  '/explore',
+  '/convergence',
+  '/lab',
+  '/api-docs',
+  '/signals',
+  '/signals/today',
+  '/signals/types',
+  '/digest',
+  '/markets',
+  '/markets/history',
+  '/communities',
+  '/mentions',
+  '/entities',
+  '/sectors',
+  '/opportunities',
+  '/ideas',
+  '/featured',
+  '/privacy',
+  '/terms',
+]);
+const CACHEABLE_PREFIXES = ['/case-studies/page', '/signals/types'];
+function isCacheableDocumentPath(pathname) {
+  if (!pathname) return false;
+  if (CACHEABLE_EXACT.has(pathname)) return true;
+  for (const prefix of CACHEABLE_PREFIXES) {
+    if (pathname === prefix || pathname.startsWith(`${prefix}/`)) return true;
+  }
+  return false;
+}
 
 const AUTH_COOKIE_FRAGMENTS = [
   '__session',
@@ -42,14 +85,15 @@ const worker = {
       return openNext.fetch(request, env, ctx);
     }
     const url = new URL(request.url);
-    if (url.pathname !== CACHE_PATH) {
+    if (!isCacheableDocumentPath(url.pathname)) {
       return openNext.fetch(request, env, ctx);
     }
     if (hasAuthCookie(request)) {
       return openNext.fetch(request, env, ctx);
     }
 
-    if (env.ASSETS) {
+    // Only Astro overlay at `/` is static; marketing pages use edge HTML cache.
+    if (env.ASSETS && url.pathname === '/') {
       const assetResp = await env.ASSETS.fetch(request);
       if (assetResp.status === 304) {
         const headers = new Headers(assetResp.headers);
