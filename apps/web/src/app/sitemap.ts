@@ -16,8 +16,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Static routes ordered roughly by importance. The brief (`/`) is the
   // product, hourly because it recomposes; the lenses change less often.
   const staticRoutes: MetadataRoute.Sitemap = [
-    { url: SITE_URL, lastModified: now, changeFrequency: 'hourly', priority: 1.0 },
+    { url: `${SITE_URL}/`, lastModified: now, changeFrequency: 'hourly', priority: 1.0 },
     { url: `${SITE_URL}/brief`, lastModified: now, changeFrequency: 'hourly', priority: 0.95 },
+    {
+      url: `${SITE_URL}/brief/archive`,
+      lastModified: now,
+      changeFrequency: 'daily',
+      priority: 0.85,
+    },
     { url: `${SITE_URL}/track-record`, lastModified: now, changeFrequency: 'daily', priority: 0.9 },
     { url: `${SITE_URL}/signals`, lastModified: now, changeFrequency: 'hourly', priority: 0.9 },
     {
@@ -45,6 +51,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       url: `${SITE_URL}/methodology`,
       lastModified: now,
       changeFrequency: 'monthly',
+      priority: 0.85,
+    },
+    {
+      url: `${SITE_URL}/data`,
+      lastModified: now,
+      changeFrequency: 'daily',
       priority: 0.85,
     },
     {
@@ -141,6 +153,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let entityEntries: MetadataRoute.Sitemap = [];
   let entityMonthEntries: MetadataRoute.Sitemap = [];
   let signalTypeEntries: MetadataRoute.Sitemap = [];
+  let briefArchiveEntries: MetadataRoute.Sitemap = [];
 
   let allSignals: Awaited<ReturnType<typeof api.signals>>['signals'] = [];
   try {
@@ -156,6 +169,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         changeFrequency: 'monthly' as const,
         priority: 0.7,
       }));
+  } catch {
+    /* API offline */
+  }
+
+  // Brief archive — permanent /brief/<date> URLs from precomputed snapshots.
+  try {
+    const { dates } = await api.briefDates();
+    briefArchiveEntries = dates.map((d) => ({
+      url: `${SITE_URL}/brief/${d.date}`,
+      lastModified: new Date(d.computedAt),
+      changeFrequency: 'monthly' as const,
+      priority: 0.8,
+    }));
   } catch {
     /* API offline */
   }
@@ -228,6 +254,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   );
   return [
     ...staticRoutes,
+    ...briefArchiveEntries,
     ...signalEntries,
     ...entityEntries,
     ...entityMonthEntries,

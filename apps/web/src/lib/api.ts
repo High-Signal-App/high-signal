@@ -853,14 +853,19 @@ export const api = {
         body: '{}',
       }
     ),
-  brief: (params: { region?: Region; ownerId?: string; productId?: string } = {}) => {
+  brief: (params: { region?: Region; ownerId?: string; productId?: string; date?: string } = {}) => {
     const search = new URLSearchParams();
     if (params.region) search.set('region', params.region);
     if (params.ownerId) search.set('owner', params.ownerId);
     if (params.productId) search.set('product', params.productId);
+    if (params.date) search.set('date', params.date);
     const suffix = search.toString();
     return fetchJson<BriefSnapshot>(`/brief/daily${suffix ? `?${suffix}` : ''}`);
   },
+  briefDates: () =>
+    fetchJson<{
+      dates: Array<{ date: string; regionCount: number; computedAt: string }>;
+    }>('/brief/dates'),
   labFeed: async (
     params: { query?: string; source?: string; limit?: number; byCluster?: boolean } = {}
   ) => {

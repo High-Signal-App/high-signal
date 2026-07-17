@@ -170,15 +170,25 @@ briefRoute.get("/daily", async (c) => {
   const region: Region = isRegion(rawRegion) ? rawRegion : "global";
   const ownerId = c.req.query("owner")?.trim() ?? "";
   const productId = c.req.query("product")?.trim() ?? "";
+  // Optional date param for the permanent archive (/brief/<date>). When
+  // supplied, the route serves the precomputed snapshot for that day
+  // instead of today's. Format: YYYY-MM-DD. Invalid dates fall through
+  // to the live path so the URL never 500s.
+  const dateParam = c.req.query("date")?.trim() ?? "";
+  const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+  const archiveDate = dateRegex.test(dateParam) ? dateParam : null;
 
   const database = db(c.env.DB);
 
   // Fast path: try precomputed snapshot for public sections (no owner).
   // Personal sections (perception/improvements) always need live queries
   // since they depend on the specific owner.
+  // Archive mode: only serve precomputed snapshots (no live rebuild of
+  // historical data — the snapshot IS the permanent record).
   if (!ownerId) {
     const today = new Date().toISOString().slice(0, 10);
-    const snapshot = await tryGetPrecomputedSnapshot(database, today, region);
+    const lookupDate = archiveDate ?? today;
+    const snapshot = await tryGetPrecomputedSnapshot(database, lookupDate, region);
     if (snapshot) {
       // If a product query param is supplied, overlay the seed product's
       // personal sections on top of the precomputed public sections.
@@ -191,6 +201,11 @@ briefRoute.get("/daily", async (c) => {
         }
       }
       return c.json(snapshot);
+    }
+    // Archive mode with no snapshot: return 404 so the web route can
+    // render a "no brief for this date" page instead of rebuilding live.
+    if (archiveDate) {
+      return c.json({ error: "no_brief_for_date", date: archiveDate, region }, 404);
     }
   }
 
@@ -1230,3 +1245,36 @@ export async function precomputeBriefSnapshots(
     }
   }
 }
+
+/**
+ * GET /brief/dates — list all dates that have at least one precomputed
+ * brief snapshot. Used by the archive index page to render the list of
+ * permanent /brief/<date> URLs. Returns dates descending (newest first)
+ * with the count of regions available per date.
+ */
+briefRoute.get("/dates", async (c) => {
+  const database = db(c.env.DB);
+  try {
+    const rows = await database
+      .select({
+        date: schema.dailyBriefSnapshots.date,
+        regionCount: sql<number>`count(${schema.dailyBriefSnapshots.region})`,
+        computedAt: sql<string>`max(${schema.dailyBriefSnapshots.computedAt})`,
+      })
+      .from(schema.dailyBriefSnapshots)
+      .groupBy(schema.dailyBriefSnapshots.date)
+      .orderBy(desc(schema.dailyBriefSnapshots.date))
+      .limit(500);
+
+    return c.json({
+      dates: rows.map((r) => ({
+        date: r.date,
+        regionCount: r.regionCount,
+        computedAt: r.computedAt,
+      })),
+    });
+  } catch {
+    // Table might not exist yet (pre-migration) — return empty list.
+    return c.json({ dates: [] });
+  }
+});
