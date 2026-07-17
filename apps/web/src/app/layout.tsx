@@ -10,6 +10,15 @@ import { SiteFooter } from '@/components/system/SiteFooter';
 import { SITE_DESCRIPTION, SITE_NAME, SITE_TAGLINE, SITE_TWITTER, SITE_URL } from '@/lib/site';
 
 export const metadata: Metadata = {
+  icons: {
+    icon: [
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+      { url: '/icon.svg', type: 'image/svg+xml' },
+      { url: '/favicon.ico', sizes: 'any' },
+    ],
+    apple: '/apple-touch-icon.png',
+  },
+
   metadataBase: new URL(SITE_URL),
   title: {
     default: `${SITE_NAME} — ${SITE_TAGLINE}`,
