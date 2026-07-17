@@ -26,7 +26,7 @@ import {
 } from '@high-signal/shared';
 
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'Product Opportunities — High Signal' };
+export const metadata = { title: 'Product Opportunities' };
 
 const fallbackFlows: IdeaFlowEvidence[] = [
   {

@@ -18,7 +18,7 @@ import {
 } from '@high-signal/shared';
 
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'Idea Intelligence — High Signal' };
+export const metadata = { title: 'Idea Intelligence' };
 
 const DEFAULT_IDEA =
   'A source-linked product intelligence tool that tells founders which product ideas are getting pulled by market, community, and AI visibility signals.';

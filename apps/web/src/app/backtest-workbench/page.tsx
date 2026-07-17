@@ -9,7 +9,7 @@ import { api, type BacktestWorkbench, type BacktestWorkbenchBucket } from '@/lib
 import { requireSignedIn } from '@/lib/require-auth';
 
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'Backtest Workbench — High Signal' };
+export const metadata = { title: 'Backtest Workbench' };
 
 const emptyWorkbench: BacktestWorkbench = {
   cohort: 'live',

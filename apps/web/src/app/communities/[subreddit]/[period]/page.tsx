@@ -21,7 +21,7 @@ export async function generateMetadata({
   params: Promise<{ subreddit: string; period: string }>;
 }) {
   const { subreddit, period } = await params;
-  return { title: `r/${subreddit} ${period} archive — High Signal` };
+  return { title: `r/${subreddit} ${period} archive` };
 }
 
 export default async function CommunityArchivePage({

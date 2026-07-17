@@ -13,7 +13,10 @@ import { getRequestAuth } from '@/lib/require-auth';
 import { FaqJsonLd, SoftwareApplicationJsonLd } from '@/components/seo/structured-data';
 
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'Signals — High Signal' };
+export const metadata = {
+  title: 'Signals',
+  alternates: { canonical: '/signals' },
+};
 
 interface SP {
   type?: string;

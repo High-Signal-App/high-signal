@@ -23,7 +23,7 @@ import type { Route } from 'next';
 import { redirect } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'Agent Evaluation — High Signal' };
+export const metadata = { title: 'Agent Evaluation' };
 
 const DEFAULT_EVIDENCE = `High Signal extracts actionable signals from noisy public and semi-public information streams.
 It serves operators and builders who need evidence-backed product, community, mention, and market intelligence.

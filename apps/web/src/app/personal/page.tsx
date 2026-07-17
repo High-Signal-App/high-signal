@@ -55,7 +55,7 @@ import {
 } from '@high-signal/shared';
 
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'Personal Command Brief — High Signal' };
+export const metadata = { title: 'Personal Command Brief' };
 const DATA_ROOT = resolve(process.cwd(), '../../data');
 
 type ProductFlowRefreshRecord = {

@@ -1,5 +1,8 @@
 # High Signal
 
+**Product:** [highsignal.app](https://highsignal.app)
+
+
 > Current scope and day-to-day status live in [`PROJECT_STATUS.md`](./PROJECT_STATUS.md) (authoritative). This README is setup, architecture, and pipeline reference.
 
 High Signal is **one product**: a synthesized **Daily Brief** assembled from many noisy public sources. It covers three knowledge domains — **technology, startups, finance** — globally by default and filtered to any region a user picks.

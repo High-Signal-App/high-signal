@@ -15,7 +15,7 @@ import {
 export const dynamic = 'force-static';
 
 export const metadata: Metadata = {
-  title: 'Company universe — High Signal',
+  title: 'Company universe',
   description:
     'Generated High Signal company universe with source-backed companies and competitor mappings.',
   alternates: { canonical: `${SITE_URL}/case-studies` },

@@ -16,7 +16,7 @@ import {
 } from '@high-signal/shared';
 
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'Manual Teardowns — High Signal' };
+export const metadata = { title: 'Manual Teardowns' };
 
 const DATA_ROOT = resolve(process.cwd(), '../../data');
 

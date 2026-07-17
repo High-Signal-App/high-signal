@@ -10,7 +10,7 @@ import { requireSignedIn } from '@/lib/require-auth';
 import type { Route } from 'next';
 
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'Lab candidates — High Signal' };
+export const metadata = { title: 'Lab candidates' };
 
 export default async function LabCandidatesPage({
   searchParams,

@@ -1,7 +1,7 @@
 import { api } from '@/lib/api';
 
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'Cross-Source Convergence — High Signal' };
+export const metadata = { title: 'Cross-Source Convergence' };
 
 interface Props {
   searchParams: Promise<{ hours?: string; min_sources?: string }>;

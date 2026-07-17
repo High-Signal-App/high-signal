@@ -19,7 +19,7 @@ import type { PersonalProductProfile, SignalContentCategory } from '@high-signal
 
 export const dynamic = 'force-dynamic';
 export const metadata = {
-  title: 'Daily History - High Signal',
+  title: 'Daily History',
   description: 'A dated archive of High Signal daily source reads, requirements, and task exports.',
 };
 

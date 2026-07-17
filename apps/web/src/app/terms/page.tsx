@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 export const metadata: Metadata = {
-  title: 'Terms — High Signal',
+  title: 'Terms',
   description: 'Signals are research, not financial advice. Use as-is.',
 };
 

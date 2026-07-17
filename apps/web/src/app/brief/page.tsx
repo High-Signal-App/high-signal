@@ -6,7 +6,7 @@ import { getRequestAuth } from '@/lib/require-auth';
 import { findSeedProduct, isRegion, type Region } from '@high-signal/shared';
 
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'Daily Brief — High Signal' };
+export const metadata = { title: 'Daily Brief' };
 
 const EMPTY_BRIEF: BriefSnapshot = {
   generatedAt: new Date().toISOString(),

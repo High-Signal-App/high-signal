@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 export const metadata: Metadata = {
-  title: 'API & feeds — High Signal',
+  title: 'API & feeds',
   description:
     'Public endpoints — RSS feeds, signal redirects, sitemap. Build dashboards on top, subscribe via your reader.',
 };

@@ -15,7 +15,7 @@ import { getRequestAuth, requireSignedIn } from '@/lib/require-auth';
 import { revalidatePath } from 'next/cache';
 
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'Community Intelligence — High Signal' };
+export const metadata = { title: 'Community Intelligence' };
 
 async function trackSubreddit(formData: FormData) {
   'use server';

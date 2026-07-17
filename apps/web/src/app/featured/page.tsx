@@ -11,7 +11,7 @@ import { isBackfillSignal, signalHeadline, signalSummary } from '@/lib/signal-fo
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'Featured signal — High Signal',
+  title: 'Featured signal',
   description: 'One high-confidence signal surfaced fresh on every load.',
 };
 

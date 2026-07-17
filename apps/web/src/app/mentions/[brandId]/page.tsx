@@ -5,7 +5,7 @@ import { requireSignedIn } from '@/lib/require-auth';
 import { revalidatePath } from 'next/cache';
 
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'Brand visibility — High Signal' };
+export const metadata = { title: 'Brand visibility' };
 
 type Tab = 'visibility' | 'intent' | 'sources' | 'trends' | 'report';
 

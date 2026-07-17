@@ -1,7 +1,7 @@
 import { BackLink, HeroHeader, PageShell } from '@/components/system/HighSignalUI';
 
 export const metadata = {
-  title: 'Domains — Web Authority Signals | High Signal',
+  title: 'Domains — Web Authority Signals',
   description:
     'Leaderboard of high-signal websites by Ahrefs Domain Rating (DR). Companion lens powered by the drank app.',
 };

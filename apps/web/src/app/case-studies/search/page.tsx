@@ -12,7 +12,7 @@ interface SearchPageProps {
 }
 
 export const metadata: Metadata = {
-  title: 'Search companies — High Signal',
+  title: 'Search companies',
   description: 'Search what companies backed by YC, Antler, a16z, and Techstars are building.',
   robots: { index: false, follow: true },
 };

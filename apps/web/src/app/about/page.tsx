@@ -3,7 +3,7 @@ import Link from 'next/link';
 import type { Route } from 'next';
 
 export const metadata: Metadata = {
-  title: 'About — High Signal',
+  title: 'About',
   description:
     'High Signal extracts actionable signals from public information streams. Evidence-first, hit-rate-tracked, no retroactive edits.',
 };

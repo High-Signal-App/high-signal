@@ -21,7 +21,7 @@ import type { PersonalProductProfile, SignalContentCategory } from '@high-signal
 
 export const dynamic = 'force-dynamic';
 export const metadata = {
-  title: 'Daily Tasks - High Signal',
+  title: 'Daily Tasks',
   description: 'Actionable build/change tasks generated from High Signal daily requirement reads.',
 };
 

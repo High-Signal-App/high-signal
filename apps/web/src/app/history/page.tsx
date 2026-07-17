@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'History — High Signal',
+  title: 'History',
   description: 'Historical signal performance and daily snapshots are being worked on.',
 };
 

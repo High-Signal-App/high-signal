@@ -2,7 +2,7 @@ import { BackLink, MetricGrid, PageShell, SectionHeader } from '@/components/sys
 import { buildMarketWatchSnapshot, formatMarketPct, marketDirectionTone } from '@/lib/market-watch';
 
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'Market History - High Signal' };
+export const metadata = { title: 'Market History' };
 
 function formatTimestamp(value: string) {
   return value.slice(0, 16).replace('T', ' ');

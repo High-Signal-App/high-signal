@@ -15,7 +15,7 @@ import {
 } from '@/lib/market-watch';
 
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'Market Intelligence - High Signal' };
+export const metadata = { title: 'Market Intelligence' };
 
 function formatNumber(value: number) {
   return new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(value);

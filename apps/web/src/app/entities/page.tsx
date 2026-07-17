@@ -1,7 +1,7 @@
 import { api, type EntityRow } from '@/lib/api';
 
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'Entities — High Signal' };
+export const metadata = { title: 'Entities' };
 
 // Public: the entity corpus is part of the signal context that consumers
 // of /signals need to navigate the spillover graph.

@@ -18,7 +18,7 @@ import {
 } from '@/lib/equities';
 
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'Equities Snapshot — High Signal' };
+export const metadata = { title: 'Equities Snapshot' };
 
 const SORT_KEYS = new Set<SortKey>([
   'ticker',

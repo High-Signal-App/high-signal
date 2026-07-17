@@ -31,8 +31,9 @@ export const metadata: Metadata = {
     'market intelligence',
     'agent evaluation',
   ],
+  // Do NOT set a site-wide canonical here — Next inherits it onto every
+  // page and de-indexes the corpus. Homepage / deep pages set self-canonicals.
   alternates: {
-    canonical: SITE_URL,
     types: {
       'application/rss+xml': [
         { url: `${SITE_URL}/signals/rss`, title: 'High Signal — published signals' },

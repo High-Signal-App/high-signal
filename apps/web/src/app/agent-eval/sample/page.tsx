@@ -17,7 +17,7 @@ import {
 } from '@high-signal/shared';
 
 export const metadata = {
-  title: 'Sample AI visibility audit — High Signal',
+  title: 'Sample AI visibility audit',
   description:
     'Walk-through of a finished AI visibility audit: how a brand shows up in ChatGPT, Claude, Gemini, and Perplexity vs its competitors, and the recommendation gaps to close.',
 };

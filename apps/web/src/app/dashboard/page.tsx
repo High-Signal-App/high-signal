@@ -11,7 +11,7 @@ import { getRequestAuth } from '@/lib/require-auth';
 import type { MentionBrandConfig, TrackedCommunity } from '@high-signal/shared';
 
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'Dashboard — High Signal' };
+export const metadata = { title: 'Dashboard' };
 
 const brandConfig: MentionBrandConfig = {
   id: 'brand_high_signal',

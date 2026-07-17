@@ -1,7 +1,7 @@
 import { api } from '@/lib/api';
 
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'Sectors — High Signal' };
+export const metadata = { title: 'Sectors' };
 
 interface Props {
   searchParams: Promise<{ days?: string }>;

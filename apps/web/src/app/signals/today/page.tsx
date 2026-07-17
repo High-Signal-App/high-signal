@@ -29,7 +29,7 @@ import type { PersonalProductProfile } from '@high-signal/shared';
 
 export const dynamic = 'force-dynamic';
 export const metadata = {
-  title: 'Today — High Signal',
+  title: 'Today',
   description:
     'Signals published in the last 24 hours, sorted by confidence. The morning-coffee surface for analysts who only have time for the freshest reads.',
 };

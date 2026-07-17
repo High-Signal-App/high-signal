@@ -15,7 +15,7 @@ import { requireSignedIn } from '@/lib/require-auth';
 import { revalidatePath } from 'next/cache';
 
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'Mention Intelligence — High Signal' };
+export const metadata = { title: 'Mention Intelligence' };
 
 const PLATFORM_OPTIONS: AIPlatform[] = ['openai', 'anthropic', 'google', 'perplexity', 'custom'];
 

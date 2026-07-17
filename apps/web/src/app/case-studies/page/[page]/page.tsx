@@ -31,7 +31,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 
   return {
-    title: `Company universe, page ${page} — High Signal`,
+    title: `Company universe, page ${page}`,
     description: `Page ${page} of the generated High Signal company universe with source-backed companies and competitor mappings.`,
     alternates: { canonical: `${SITE_URL}/case-studies/page/${page}` },
   };

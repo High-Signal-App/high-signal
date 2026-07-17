@@ -2,7 +2,7 @@ import { api } from '@/lib/api';
 import { PromoteButton } from '@/components/unmapped/PromoteButton';
 
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'Gazetteer Candidates — High Signal' };
+export const metadata = { title: 'Gazetteer Candidates' };
 
 interface Props {
   searchParams: Promise<{ hours?: string; top?: string }>;

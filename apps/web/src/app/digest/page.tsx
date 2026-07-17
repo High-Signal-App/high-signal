@@ -3,7 +3,7 @@ import { isBackfillSignal } from '@/lib/signal-format';
 import { SignalCard } from '@/components/molecules/SignalCard';
 
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'Weekly digest — High Signal' };
+export const metadata = { title: 'Weekly digest' };
 
 // Public per agents.md: weekly digest is a public output channel.
 export default async function DigestPage() {

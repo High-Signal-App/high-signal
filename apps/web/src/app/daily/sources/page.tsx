@@ -8,7 +8,7 @@ import {
 
 export const dynamic = 'force-dynamic';
 export const metadata = {
-  title: 'Source Audit - High Signal',
+  title: 'Source Audit',
   description:
     'Daily source coverage, rejection reasons, and quality-gate status for High Signal reads.',
 };

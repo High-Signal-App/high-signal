@@ -8,7 +8,7 @@ import {
 import { api } from '@/lib/api';
 
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'Lab Substrate — High Signal' };
+export const metadata = { title: 'Lab Substrate' };
 
 export default async function LabPage({
   searchParams,

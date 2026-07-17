@@ -48,7 +48,7 @@ export async function generateMetadata({
   const { source } = await params;
   const e = entryFor(source);
   return {
-    title: `${source} — data | High Signal`,
+    title: `${source} — data`,
     description: e
       ? `Ingested events from ${e.provider} (${source}).`
       : `Ingested events from ${source}.`,
