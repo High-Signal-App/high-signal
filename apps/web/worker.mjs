@@ -5,7 +5,6 @@ import { guardPublicRequest } from './abuse-guard.mjs';
 import { withTiming } from './timing.mjs';
 import { handleAgentEdge } from './agent-edge.mjs';
 
-
 export {
   DOQueueHandler,
   DOShardedTagCache,
@@ -31,7 +30,6 @@ function hasAuthCookie(request) {
 
 const worker = {
   fetch: withTiming(async function fetch(request, env, ctx) {
-
     // Agent / LLM indexing surfaces (fleet GEO standard)
     {
       const agent = handleAgentEdge(request);
