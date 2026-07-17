@@ -7,7 +7,7 @@ import { VitalsReporter } from '@/components/VitalsReporter';
 import { AuthNav } from '@/components/auth/AuthNav';
 import { PrimaryNav } from '@/components/system/PrimaryNav';
 import { SiteFooter } from '@/components/system/SiteFooter';
-import { SITE_DESCRIPTION, SITE_NAME, SITE_TAGLINE, SITE_TWITTER, SITE_URL } from '@/lib/site';
+import { clampDescription, SITE_DESCRIPTION, SITE_NAME, SITE_TAGLINE, SITE_TWITTER, SITE_URL } from '@/lib/site';
 
 export const metadata: Metadata = {
   icons: {
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
     default: `${SITE_NAME} — ${SITE_TAGLINE}`,
     template: `%s — ${SITE_NAME}`,
   },
-  description: SITE_DESCRIPTION,
+  description: clampDescription(SITE_DESCRIPTION),
   applicationName: SITE_NAME,
   authors: [{ name: SITE_NAME, url: SITE_URL }],
   keywords: [
@@ -58,7 +58,7 @@ export const metadata: Metadata = {
     url: SITE_URL,
     siteName: SITE_NAME,
     title: `${SITE_NAME} — ${SITE_TAGLINE}`,
-    description: SITE_DESCRIPTION,
+    description: clampDescription(SITE_DESCRIPTION),
     locale: 'en_US',
     images: [
       {
@@ -72,7 +72,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: `${SITE_NAME} — ${SITE_TAGLINE}`,
-    description: SITE_DESCRIPTION,
+    description: clampDescription(SITE_DESCRIPTION),
     creator: SITE_TWITTER,
     images: ['/opengraph-image'],
   },
