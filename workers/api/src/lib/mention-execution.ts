@@ -1,6 +1,7 @@
 import { fetchChatCompletion, FREE_AI_DEFAULT_ENDPOINT } from "./ai-client";
 import { eq } from "drizzle-orm";
 import type { AIConfig } from "./ai-client";
+import { fetchWithRetry, mapWithConcurrency, classifyStatus } from "./resilience";
 import type { DB } from "../db";
 import { schema } from "../db";
 import {
@@ -12,6 +13,15 @@ import {
 } from "@high-signal/shared";
 
 type Sentiment = "positive" | "neutral" | "negative";
+
+// Bounded concurrency for the prompts × platforms fan-out. Without this, a
+// config with many prompts and 4 platforms fires all calls at once. 4 keeps
+// us well under the gateway's per-project quota.
+const MENTION_FANOUT_CONCURRENCY = 4;
+// Per-call timeout + bounded retry for each provider probe. Reuses the
+// full-jitter discipline from resilience.ts.
+const MENTION_QUERY_TIMEOUT_MS = 30_000;
+const MENTION_QUERY_ATTEMPTS = 2;
 
 // Per-provider keys unlock multi-model fan-out; the HIGH_SIGNAL_AI_* /
 // OPENAI_API_KEY pair is the single-endpoint fallback + the LLM judge.
@@ -78,70 +88,87 @@ export async function runMentionCheck(input: {
   let mentionCount = 0;
 
   try {
+    // Flatten prompts × platforms into a single work list and run with a
+    // bounded concurrency cap so a large prompt/platform matrix cannot
+    // amplify into unbounded simultaneous provider calls. Each result is
+    // persisted to D1 (mentionResults) and the check's progress is updated
+    // per-query — the same side-effects as the prior nested loop, just
+    // concurrency-bounded.
+    const work: Array<{ prompt: PromptRow; platform: ResolvedPlatform }> = [];
     for (const prompt of input.prompts) {
       for (const platform of platforms) {
-        try {
-          const response = await queryEndpoint(platform, prompt.promptText);
-          const analysis = await analyzeResponse({
-            judgeConfig,
-            text: response.responseText,
-            brandName: input.config.brandName,
-            brandAliases,
-            brandUrl: input.config.brandUrl,
-            competitors,
-          });
-          if (analysis.brandMentioned) mentionCount++;
-          await input.database.insert(schema.mentionResults).values({
-            id: crypto.randomUUID(),
-            checkId: input.checkId,
-            configId: input.config.id,
-            ownerId: input.config.ownerId,
-            promptId: prompt.id,
-            platform: platform.platform,
-            model: response.model,
-            persona: prompt.persona ?? null,
-            responseText: response.responseText,
-            brandMentioned: analysis.brandMentioned,
-            brandRecommended: analysis.brandRecommended,
-            brandSentiment: analysis.brandSentiment,
-            brandPosition: analysis.brandPosition,
-            competitorsMentioned: analysis.competitorsMentioned,
-            citations: analysis.citations,
-            brandCited: analysis.brandCited,
-            judgeReasoning: analysis.reasoning || null,
-            latencyMs: response.latencyMs,
-            createdAt: new Date(),
-          });
-        } catch (error) {
-          await input.database.insert(schema.mentionResults).values({
-            id: crypto.randomUUID(),
-            checkId: input.checkId,
-            configId: input.config.id,
-            ownerId: input.config.ownerId,
-            promptId: prompt.id,
-            platform: platform.platform,
-            model: platform.model,
-            persona: prompt.persona ?? null,
-            responseText: `Error: ${(error as Error).message}`,
-            brandMentioned: false,
-            brandRecommended: false,
-            brandSentiment: null,
-            brandPosition: null,
-            competitorsMentioned: [],
-            citations: [],
-            brandCited: false,
-            judgeReasoning: null,
-            latencyMs: null,
-            createdAt: new Date(),
-          });
-        }
-
-        completedQueries++;
-        await input.database
-          .update(schema.mentionChecks)
-          .set({ completedQueries })
-          .where(eq(schema.mentionChecks.id, input.checkId));
+        work.push({ prompt, platform });
       }
+    }
+    const results = await mapWithConcurrency(work, MENTION_FANOUT_CONCURRENCY, async (item) => {
+      const response = await queryEndpoint(item.platform, item.prompt.promptText);
+      const analysis = await analyzeResponse({
+        judgeConfig,
+        text: response.responseText,
+        brandName: input.config.brandName,
+        brandAliases,
+        brandUrl: input.config.brandUrl,
+        competitors,
+      });
+      return { response, analysis, prompt: item.prompt, platform: item.platform };
+    });
+
+    for (let i = 0; i < results.length; i++) {
+      const result = results[i]!;
+      if (result.ok) {
+        const { response, analysis, prompt, platform } = result.value;
+        if (analysis.brandMentioned) mentionCount++;
+        await input.database.insert(schema.mentionResults).values({
+          id: crypto.randomUUID(),
+          checkId: input.checkId,
+          configId: input.config.id,
+          ownerId: input.config.ownerId,
+          promptId: prompt.id,
+          platform: platform.platform,
+          model: response.model,
+          persona: prompt.persona ?? null,
+          responseText: response.responseText,
+          brandMentioned: analysis.brandMentioned,
+          brandRecommended: analysis.brandRecommended,
+          brandSentiment: analysis.brandSentiment,
+          brandPosition: analysis.brandPosition,
+          competitorsMentioned: analysis.competitorsMentioned,
+          citations: analysis.citations,
+          brandCited: analysis.brandCited,
+          judgeReasoning: analysis.reasoning || null,
+          latencyMs: response.latencyMs,
+          createdAt: new Date(),
+        });
+      } else {
+        const item = work[i]!;
+        await input.database.insert(schema.mentionResults).values({
+          id: crypto.randomUUID(),
+          checkId: input.checkId,
+          configId: input.config.id,
+          ownerId: input.config.ownerId,
+          promptId: item.prompt.id,
+          platform: item.platform.platform,
+          model: item.platform.model,
+          persona: item.prompt.persona ?? null,
+          responseText: `Error: ${(result.error as Error).message}`,
+          brandMentioned: false,
+          brandRecommended: false,
+          brandSentiment: null,
+          brandPosition: null,
+          competitorsMentioned: [],
+          citations: [],
+          brandCited: false,
+          judgeReasoning: null,
+          latencyMs: null,
+          createdAt: new Date(),
+        });
+      }
+
+      completedQueries++;
+      await input.database
+        .update(schema.mentionChecks)
+        .set({ completedQueries })
+        .where(eq(schema.mentionChecks.id, input.checkId));
     }
 
     const denom = Math.max(totalQueries, 1);
@@ -268,16 +295,22 @@ async function queryEndpoint(platform: ResolvedPlatform, prompt: string) {
     apiKey: platform.apiKey,
     model: platform.model,
   };
-  const response = await fetchChatCompletion({
-    config,
-    messages: [{ role: "user", content: prompt }],
-    maxTokens: 1024,
-    stream: false,
-  });
+  const response = await fetchWithRetry(
+    (signal) =>
+      fetchChatCompletion({
+        config,
+        messages: [{ role: "user", content: prompt }],
+        maxTokens: 1024,
+        stream: false,
+        headers: signal ? { "X-Request-Abort": signal.aborted ? "1" : "0" } : {},
+      }),
+    { attempts: MENTION_QUERY_ATTEMPTS, timeoutMs: MENTION_QUERY_TIMEOUT_MS },
+  );
   const latencyMs = Date.now() - startedAt;
   if (!response.ok) {
+    const cls = classifyStatus(response.status);
     const text = await response.text();
-    throw new Error(`${platform.platform} endpoint error (${response.status}): ${text.slice(0, 200)}`);
+    throw new Error(`${platform.platform} endpoint error (${response.status}/${cls}): ${text.slice(0, 200)}`);
   }
   const json = (await response.json()) as {
     choices?: Array<{ message?: { content?: string } }>;
