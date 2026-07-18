@@ -44,7 +44,7 @@ Last updated: 2026-07-15
 | --- | --- | --- |
 | Web | Next.js 16, Tailwind v4, Clerk, OpenNext | Cloudflare Worker `high-signal-web` |
 | API | Hono, D1 binding | Cloudflare Worker `high-signal-api` |
-| DB | Drizzle + D1 (`packages/db`, migrations 0000–0012) | `high-signal-db` |
+| DB | Drizzle + D1 (`packages/db`, migrations 0000–0019) | `high-signal-db` |
 | Shared | `@high-signal/shared` types, scorers, composers | — |
 | Ingest | Python `uv`, edgartools, yfinance, GLiNER, etc. | GitHub Actions cron + optional Modal |
 | Lab (parked) | Postgres/pgvector, FastAPI (`python/lab`) | Local docker-compose only |
@@ -53,7 +53,6 @@ Last updated: 2026-07-15
 ```
 apps/web          Next.js 16 — brief, lenses, review, settings, legal
 workers/api       Hono + D1 — public JSON API, admin ingest hooks, cron delivery
-workers/annotation  Python annotation worker (separate deploy)
 packages/db       Drizzle schema + SQL migrations
 packages/shared   Agent-eval scorer, claim provenance, watchlist impact, OpenLens helpers
 python/ingest     Daily source adapters → events/entities → signal candidates
@@ -84,7 +83,7 @@ cd python/ingest && uv sync && uv run python -m high_signal_ingest.pipeline --so
 wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangler.toml
 ```
 
-**Deploy workflows:** `.github/workflows/deploy-web.yml`, `deploy-api.yml`, `deploy-annotation.yml`.
+**Deploy workflows:** `.github/workflows/deploy-web.yml`, `deploy-api.yml`. (The former standalone annotation worker was decommissioned; annotation runs in-process via `annotateLightweightNlp`.)
 
 ## Timeline
 

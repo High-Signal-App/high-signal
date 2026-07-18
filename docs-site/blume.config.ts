@@ -16,6 +16,11 @@
 // remains the CI-enforced validator.
 import { defineConfig } from 'blume';
 
+// Internal-only pages (prds/, openspec/) are published when DOCS_PUBLIC_INTERNAL
+// is unset or truthy; set DOCS_PUBLIC_INTERNAL=false to exclude them from a
+// public build. Archive snapshots are always excluded from navigation/search.
+const publicInternal = process.env.DOCS_PUBLIC_INTERNAL !== 'false';
+
 export default defineConfig({
   title: 'High Signal',
   description:
@@ -23,9 +28,12 @@ export default defineConfig({
 
   content: {
     // The knowledge base lives in docs/. Blume scans this folder for .md/.mdx.
-    root: 'docs',
-    // Exclude the one-time archive snapshots from navigation/search.
-    exclude: ['**/archive/**', '**/_*'],
+    root: '../docs',
+    // Archive snapshots are always excluded; internal-only trees (prds/,
+    // openspec/) are excluded when DOCS_PUBLIC_INTERNAL=false.
+    exclude: publicInternal
+      ? ['archive/**']
+      : ['archive/**', 'prds/**', 'openspec/**'],
   },
 
   // Dark, monochrome, single-accent — matches the product's locked UI direction
@@ -60,8 +68,7 @@ export default defineConfig({
 
   deployment: {
     output: 'static',
-    // Set when a docs domain is chosen. Blume auto-detects on Vercel/Netlify/
-    // Cloudflare Pages; set explicitly for GitHub Pages / S3 / custom CDN.
-    // site: "https://docs.highsignal.app",
+    base: '/docs',
+    site: 'https://highsignal.app',
   },
 });

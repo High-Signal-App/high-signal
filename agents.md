@@ -36,7 +36,7 @@ prior "umbrella + 5 sub-products" framing in `plans/0004-platform-consolidation.
 - **API**: Hono on Cloudflare Workers — `workers/api`
 - **DB**: Cloudflare D1 + Drizzle — schema in `packages/db`
 - **Lab substrate**: local-first Postgres (FTS + `pgvector`) — `python/lab` (plan `0007`, parked)
-- **Python ingestion + scoring**: edgartools, Trafilatura, GLiNER, GLiREL, NetworkX, FinBERT — `python/ingest`. Daily crons on GitHub Actions; Modal kept for ad-hoc backfills only.
+- **Python ingestion + scoring**: edgartools, Trafilatura, GLiNER, NetworkX — `python/ingest`. Relation extraction (GLiREL) is a deferred stub returning `[]` (not a declared dep); FinBERT sentiment is code-present but its `transformers` dep is undeclared and falls back to rules. Daily crons on GitHub Actions; Modal kept for ad-hoc backfills only.
 - **Signal store**: git-versioned markdown under `signals/YYYY-MM-DD/<slug>.md` — append-only, never rewritten.
 - **Auth**: Clerk (Google + email). Server gates: `requireSignedIn()` / `requireAdmin()` (`ADMIN_ALLOWED_EMAILS`). CF Access was abandoned — do not reintroduce without a migration plan.
 - **Testing**: Vitest (TS), pytest (Python), Playwright (e2e).
@@ -60,7 +60,7 @@ pnpm signals:auto-publish:remote          # two-tier judge (rules + AI on HOLD)
 pnpm personal:brief                       # operator personal command brief
 pnpm ingest:local                         # python pipeline --source all --days 1
 pnpm source:diagnose                      # read-only source health (never prints secrets)
-pnpm docs:check                           # broken-link + frontmatter validation on docs/
+pnpm docs:check                           # internal-link check + empty-dir sanity on docs/ (no frontmatter validation)
 pnpm docs:blume:dev                       # local Blume dev server (presentation only)
 ```
 
@@ -93,7 +93,7 @@ Data service boundary: [`docs/architecture/data-service-boundary.md`](docs/archi
 ## Critical constraints (do not violate)
 
 - **No second stock-price ingress.** All public equity/ETF/index/crypto EOD prices enter through the single yfinance snapshot path (`python/ingest/.../equities_daily.py` → `data/equities-snapshot.jsonl`). Consume the artifact or D1 `closes` / `ticker_snapshot` — never add a parallel fetcher.
-- **Prediction markets are not equity prices.** `market_quotes` = Polymarket/Manifold/Kalshi/Metaculus probabilities. Never use that table as equity-price evidence. Auto-publish KILLs prediction-market-only signals.
+- **Prediction markets are not equity prices.** `market_quotes` = Polymarket/Manifold/Kalshi probabilities (schema enum; `cron-markets.yml` runs `--source markets`). Metaculus is a separate forecast/events source, not a `market_quotes` row. Never use that table as equity-price evidence. Auto-publish KILLs prediction-market-only signals.
 - **Signals are append-only.** Never edit a published signal markdown; supersede with a new file citing the prior.
 - **No secrets in the repo.** No `.env`, keys, or production configs in commits. Cron secrets live in GitHub Actions secrets / Infisical.
 - **Do not reintroduce Cloudflare Access** for auth without a migration plan (Clerk is the auth layer).

@@ -6,9 +6,9 @@ description: The authoritative locked product-direction snapshot for High Signal
 # Product Direction — Locked (2026-05-25)
 
 This is the **authoritative product-direction snapshot**, referenced from
-[`../../agents.md`](../../agents.md) and [`../../SPEC.md`](../../SPEC.md). It
+[`agents.md`](https://github.com/High-Signal-App/high-signal/blob/main/agents.md) and [`SPEC.md`](https://github.com/High-Signal-App/high-signal/blob/main/SPEC.md). It
 supersedes the earlier "umbrella + 5 sub-products" framing in
-[`../../plans/0004-platform-consolidation.md`](../../plans/0004-platform-consolidation.md).
+[`plans/0004-platform-consolidation.md`](https://github.com/High-Signal-App/high-signal/blob/main/plans/0004-platform-consolidation.md).
 The scope reset on 2026-06-03 ([`scope-reset.md`](scope-reset.md)) confirmed
 which of these are active vs parked.
 
@@ -86,7 +86,7 @@ source catalog is regenerated from code at
 ## Considered and deferred
 
 - **Multi-collection engine for EverythingRated** (2026-04-26) — design archived
-  at [`../../plans/0003-multi-collection-for-everythingrated.md`](../../plans/0003-multi-collection-for-everythingrated.md).
+  at [`plans/0003-multi-collection-for-everythingrated.md`](https://github.com/High-Signal-App/high-signal/blob/main/plans/0003-multi-collection-for-everythingrated.md).
   Not shipped; reopening trigger is in that file.
 - **Per-platform fan-out for Mentions/Agent-Eval** (Claude / ChatGPT / Perplexity
   / Gemini as distinct provider creds). Today both use one OpenAI-compatible

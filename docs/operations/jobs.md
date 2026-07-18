@@ -28,7 +28,7 @@ The daily cycle is sequenced so each stage consumes the previous stage's output:
 
 | Cadence | Workflow | Intent |
 | --- | --- | --- |
-| Every 4h | `cron-markets.yml` | Prediction-market resource polling (Polymarket / Manifold / Kalshi / Metaculus). Probabilities only — never equity prices. |
+| Every 4h | `cron-markets.yml` | Prediction-market polling (`--source markets`: Polymarket / Manifold / Kalshi → `market_quotes`). Probabilities only — never equity prices. Metaculus is a separate forecast source (`--source metaculus`) run by the daily `--source all` ingest, not this workflow. |
 
 ## Weekly
 
@@ -45,7 +45,11 @@ The daily cycle is sequenced so each stage consumes the previous stage's output:
 | `backfill-sources.yml` | Wide-window backfill to populate D1 events for sources the daily `--days 1` cron leaves empty. Intentionally free (no AI key set → free-ai gateway / deterministic drafts). |
 | `deploy-web.yml` | Deploy `high-signal-web` Worker (also auto-triggers on push to main). |
 | `deploy-api.yml` | Deploy `high-signal-api` Worker. |
-| `deploy-annotation.yml` | Deploy the separate Python annotation worker. |
+
+There are only two deploy workflows (`deploy-web.yml`, `deploy-api.yml`). The
+former standalone annotation worker was decommissioned — annotation now runs
+in-process via `annotateLightweightNlp` (see `packages/shared/src/nlp/`), so
+there is no `workers/annotation` and no `deploy-annotation.yml`.
 
 ## Operator prerequisites
 
@@ -66,5 +70,7 @@ Source-specific keys are listed in
 Modal was the original scheduler (2026-04-25) and was migrated to GitHub Actions
 within one day (ADR-006 in [`../architecture/decisions.md`](../architecture/decisions.md)).
 GitHub Actions is free for this workload, already in the repo, and the daily
-ingest is CPU-bound (GLiNER, FinBERT). `python/ingest/modal_app.py` is kept only
+ingest is CPU-bound (GLiNER entity extraction; optional FinBERT sentiment via an
+undeclared `transformers` extra that falls back to rules when absent).
+`python/ingest/modal_app.py` is kept only
 for ad-hoc long backfills via `modal run`.
