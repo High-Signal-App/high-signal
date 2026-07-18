@@ -7,7 +7,7 @@
     "dev": "next dev --turbopack",
     "build": "next build --webpack",
     "build:landing": "pnpm -C landing-astro build",
-    "cf:build": "pnpm build:landing && opennextjs-cloudflare build && node scripts/run-overlay-astro-landing.mjs",
+    "cf:build": "pnpm build:landing && opennextjs-cloudflare build && node scripts/run-overlay-astro-landing.mjs && node scripts/overlay-docs.mjs",
     "deploy": "pnpm cf:build && opennextjs-cloudflare deploy",
     "start": "next start",
     "storybook": "storybook dev -p 6006",

@@ -6,7 +6,7 @@ compatibility_flags = ["nodejs_compat"]
 workers_dev = true
 preview_urls = false
 # Serve overlaid Astro index.html for GET / without invoking the Worker.
-assets = { directory = ".open-next/assets", binding = "ASSETS", run_worker_first = [ "/*", "!/" ] }
+assets = { directory = ".open-next/assets", binding = "ASSETS", run_worker_first = [ "/*", "!/", "!/docs", "!/docs/*" ] }
 
 # Custom domains — created/reconciled on deploy (idempotent if already added via dashboard).
 # www is redirected to the apex by next.config.ts redirects().

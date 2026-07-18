@@ -14,6 +14,10 @@ from __future__ import annotations
 
 import logging
 import math
+import os
+import random
+import signal
+import time
 from typing import Iterable, Optional
 
 import pandas as pd
@@ -23,6 +27,26 @@ from .snapshot import Close
 
 
 LOGGER = logging.getLogger(__name__)
+
+
+# Bounded retry for the batch downloader. Reuses the full-jitter discipline
+# from pipeline._with_backoff so a transient Yahoo 429/5xx does not abort the
+# whole universe-wide snapshot. Env-overridable for ops tuning.
+_YF_BATCH_RETRIES = int(os.environ.get("YF_BATCH_RETRIES", "2"))
+_YF_BATCH_BACKOFF_BASE = float(os.environ.get("YF_BATCH_BACKOFF_BASE", "1.0"))
+_YF_BATCH_BACKOFF_CAP = float(os.environ.get("YF_BATCH_BACKOFF_CAP", "8.0"))
+# Per-batch wall-clock timeout (seconds). yf.download has no native timeout, so
+# we enforce one via SIGALRM on the main thread (the download runs synchronously
+# here). Set to 0 to disable the alarm (tests / non-POSIX).
+_YF_BATCH_TIMEOUT = float(os.environ.get("YF_BATCH_TIMEOUT", "90"))
+
+
+class _YfBatchTimeout(Exception):
+    """Raised when a yf.download batch exceeds the wall-clock timeout."""
+
+
+def _alarm_handler(signum: int, frame: object) -> None:  # noqa: ARG001
+    raise _YfBatchTimeout("yf.download exceeded per-batch timeout")
 
 
 # Map our canonical exchange suffixes → yfinance's Yahoo-style suffixes.
@@ -151,6 +175,62 @@ def fetch_closes(
         return []
 
 
+def _download_batch(
+    yf_symbols: list[str],
+    period: str,
+) -> Optional[pd.DataFrame]:
+    """Run one ``yf.download`` batch with a per-batch timeout and bounded retry.
+
+    Timeout is enforced via SIGALRM (POSIX only; on non-POSIX or when
+    ``_YF_BATCH_TIMEOUT <= 0`` the alarm is skipped and the call is unbounded —
+    the same as the prior behavior). Retry uses full-jitter backoff identical
+    to ``pipeline._with_backoff`` so a single flaky Yahoo response does not
+    abort the universe-wide snapshot. Returns ``None`` if every attempt fails.
+    """
+    def _one_attempt() -> Optional[pd.DataFrame]:
+        use_alarm = _YF_BATCH_TIMEOUT > 0 and hasattr(signal, "SIGALRM")
+        if use_alarm:
+            old = signal.signal(signal.SIGALRM, _alarm_handler)
+            signal.setitimer(signal.ITIMER_REAL, _YF_BATCH_TIMEOUT)
+        try:
+            return yf.download(
+                yf_symbols,
+                period=period,
+                group_by="ticker",
+                auto_adjust=True,
+                progress=False,
+                threads=True,
+            )
+        finally:
+            if use_alarm:
+                signal.setitimer(signal.ITIMER_REAL, 0)
+                signal.signal(signal.SIGALRM, old)
+
+    attempt = 0
+    while True:
+        try:
+            return _one_attempt()
+        except Exception as exc:  # noqa: BLE001 — yfinance raises many types
+            attempt += 1
+            if attempt >= _YF_BATCH_RETRIES:
+                LOGGER.warning(
+                    "yf.download batch (%d symbols) failed after %d attempts: %s",
+                    len(yf_symbols),
+                    attempt,
+                    exc,
+                )
+                return None
+            sleep_for = min(_YF_BATCH_BACKOFF_CAP, _YF_BATCH_BACKOFF_BASE * (2 ** (attempt - 1)))
+            sleep_for = random.uniform(0, sleep_for)  # full jitter
+            LOGGER.info(
+                "yf.download batch attempt %d failed (%s); retrying in %.2fs",
+                attempt,
+                exc,
+                sleep_for,
+            )
+            time.sleep(sleep_for)
+
+
 def fetch_many(
     tickers: Iterable[str],
     period: str = "6y",
@@ -161,6 +241,11 @@ def fetch_many(
     yfinance's batch downloader is ~10× faster than per-ticker for large
     universes because Yahoo serves multiple tickers in a single request.
     Returns a dict keyed by our canonical tickers (not the yfinance form).
+
+    Each batch is bounded by a wall-clock timeout (``YF_BATCH_TIMEOUT``) and
+    retried with full-jitter backoff (``YF_BATCH_RETRIES``) so a transient
+    Yahoo 429/5xx or a hung batch cannot stall the daily snapshot or amplify
+    into an infinite retry loop. ``batch_size`` stays at 50.
     """
     canonical = list(tickers)
     if not canonical:
@@ -175,18 +260,7 @@ def fetch_many(
         yf_symbols = list(yf_to_canonical.keys())
         if not yf_symbols:
             continue
-        try:
-            df = yf.download(
-                yf_symbols,
-                period=period,
-                group_by="ticker",
-                auto_adjust=True,
-                progress=False,
-                threads=True,
-            )
-        except Exception as exc:  # noqa: BLE001
-            LOGGER.warning("yf.download batch error (%d tickers): %s", len(yf_symbols), exc)
-            continue
+        df = _download_batch(yf_symbols, period)
         if df is None or df.empty:
             continue
 

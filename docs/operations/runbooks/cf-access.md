@@ -1,5 +1,10 @@
 # Cloudflare Access setup — `/review` + `/api/admin/*`
 
+> **SUPERSEDED (2026-05-01).** Cloudflare Access was abandoned in favor of Clerk
+> (ADR-007 in [`../../architecture/decisions.md`](../../architecture/decisions.md)).
+> Do not reintroduce CF Access without a migration plan. This page is kept for
+> history only — it is **not** the active auth path.
+
 One-time, ~5 min, manual via CF dashboard.
 
 ## 1. Create the Application

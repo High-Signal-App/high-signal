@@ -2,7 +2,7 @@
 
 Concrete, evidence-backed lessons from building High Signal. Each entry cites
 its source (plan, commit, code comment, doc). For decision rationale, see
-`docs/decisions.md`. For phase retrospectives, see `docs/retros/`.
+`docs/architecture/decisions.md`. For phase retrospectives, see `docs/knowledge/retros/`.
 
 ---
 
@@ -62,7 +62,7 @@ enforce it.
 
 ### Source quality shows up as empty events, not errors
 
-`docs/source-coverage.md` and the `pnpm source:quality` script exist because
+`docs/operations/source-coverage.md` and the `pnpm source:quality` script exist because
 misconfigured or low-yield sources return zero events silently. A missing
 credential (e.g., `GUARDIAN_API_KEY` absent) makes the adapter skip cleanly —
 indistinguishable from "no news today." The lesson: always separate missing
@@ -93,7 +93,7 @@ scraper is fragile to GitHub's DOM changes. This was accepted deliberately
 
 ### Equities need exactly one price ingress — multiple fetchers create races
 
-`docs/data-service-boundary.md` and `README.md` equities section: "Do NOT add
+`docs/architecture/data-service-boundary.md` and `README.md` equities section: "Do NOT add
 direct quote fetchers in web scripts, personal workflows, signal scoring, or
 source adapters; consume this artifact or the D1 closes / ticker_snapshot
 tables." This rule was added after derived JSON artifacts and the pipeline

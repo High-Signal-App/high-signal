@@ -1,7 +1,7 @@
 # Data-source catalog
 
 > Generated from `python/ingest/src/high_signal_ingest/source_catalog.py`.
-> Regenerate: `uv run python -m high_signal_ingest.source_catalog > ../../docs/source-catalog.md`
+> Regenerate: `uv run python -m high_signal_ingest.source_catalog > ../../docs/operations/source-catalog.md`
 
 ## Storage model
 

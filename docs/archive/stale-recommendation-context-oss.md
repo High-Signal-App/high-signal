@@ -1,0 +1,105 @@
+# OSS Already In Use (archived)
+
+> Archived from `docs/product/recommendation-context.md` (2026-07-18) to keep that
+> page under the 150–300 line target. This is a generated dependency/script
+> inventory; `package.json` and the `pyproject.toml` files are authoritative.
+
+Direct dependencies:
+- `@clerk/nextjs`
+- `@high-signal/db`
+- `@high-signal/shared`
+- `@saas-maker/feedback`
+- `clsx`
+- `drizzle-orm`
+- `geist`
+- `hono`
+- `jose`
+- `lucide-react`
+- `next`
+- `posthog-js`
+- `react`
+- `react-dom`
+- `tailwind-merge`
+
+Development dependencies:
+- `@cloudflare/workers-types`
+- `@opennextjs/cloudflare`
+- `@playwright/test`
+- `@storybook/addon-docs`
+- `@storybook/nextjs`
+- `@tailwindcss/postcss`
+- `@tailwindcss/typography`
+- `@types/node`
+- `@types/react`
+- `@types/react-dom`
+- `drizzle-kit`
+- `husky`
+- `next`
+- `postcss`
+- `storybook`
+- `tailwindcss`
+- `tsx`
+- `typescript`
+- `vitest`
+- `wrangler`
+
+Package scripts:
+- `annotation:test`
+- `build`
+- `build-storybook`
+- `cf:build`
+- `competitor-perception:prototype`
+- `competitor-perception:test`
+- `daily-automation:test`
+- `daily-range:test`
+- `daily-source-audit:test`
+- `daily:seed-history`
+- `daily:snapshot`
+- `db:migrate:local`
+- `db:migrate:remote`
+- `db:seed:local`
+- `db:seed:remote`
+- `deploy`
+- `dev`
+- `dev:api`
+- `dev:web`
+- `equities:snapshot`
+- `generate`
+- `ingest:local`
+- `ingest:preflight`
+- `lint`
+- `market-snapshot:test`
+- `market:snapshot`
+- `migrate:local`
+- `migrate:remote`
+- `personal:brief`
+- `prepare`
+- `price:snapshot`
+- `product-flow:seed:local`
+- `product-flow:seed:remote`
+- `requirements:test`
+- `seo:test`
+- `signals:auto-publish:dry`
+- `signals:auto-publish:local`
+- `signals:auto-publish:reapply`
+- `signals:auto-publish:remote`
+- `signals:auto-publish:test`
+- `signals:publish-drafts:local`
+- `signals:publish-drafts:remote`
+- `signals:sync:local`
+- `signals:sync:remote`
+- `signals:test`
+- `source-registry:test`
+- `source:quality`
+- `start`
+- `storybook`
+- `sync:month:local`
+- `sync:month:remote`
+- `task-teardowns:test`
+- `test`
+- `test:e2e`
+- `test:e2e:ui`
+- `test:watch`
+- `tickers:bundle`
+- `typecheck`
+

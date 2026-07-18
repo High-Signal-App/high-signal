@@ -8,7 +8,9 @@ from __future__ import annotations
 
 import json
 import os
+import random
 import re
+import time
 from datetime import datetime, timezone
 from typing import Iterable, cast
 
@@ -333,14 +335,38 @@ def thematic_candidate(
     )
 
 
+def _classify_http(status: int) -> str:
+    """Classify an HTTP status into a terminal vs retryable bucket."""
+    if status == 429:
+        return "rate_limited"
+    if 500 <= status < 600:
+        return "server_error"
+    if 400 <= status < 500:
+        return "client_error"
+    return "ok"
+
+
+def _is_retryable(cls: str) -> bool:
+    return cls in ("rate_limited", "server_error")
+
+
+# Bounded retry for the signal-generation LLM call. Reuses the full-jitter
+# discipline from pipeline._with_backoff. Env-overridable for ops tuning.
+_AI_RETRIES = int(os.environ.get("AI_RETRIES", "2"))
+_AI_BACKOFF_BASE = float(os.environ.get("AI_BACKOFF_BASE", "1.0"))
+_AI_BACKOFF_CAP = float(os.environ.get("AI_BACKOFF_CAP", "8.0"))
+_AI_TIMEOUT = float(os.environ.get("AI_TIMEOUT", "60.0"))
+
+
 def _ai_complete(prompt: str, content: str) -> tuple[dict | None, dict]:
     """Call OpenAI-compatible endpoint. Returns (parsed_json, audit_meta).
 
     `audit_meta` is always populated (model + reason + latency + raw response
-    if any) so callers can persist a llm_run row even on failure.
+    if any) so callers can persist a llm_run row even on failure. Retries
+    429/5xx with full-jitter backoff (bounded by ``_AI_RETRIES``); 4xx
+    (non-429) and parse errors are terminal. ``attempts`` and
+    ``failure_class`` are recorded for telemetry.
     """
-    import time
-
     # Default to user's free-ai-gateway (OpenAI-compatible router across CF
     # Workers AI / HF Router / Groq / etc., open-auth, project-scoped quotas).
     base = os.environ.get(
@@ -358,6 +384,8 @@ def _ai_complete(prompt: str, content: str) -> tuple[dict | None, dict]:
         "tokens_in": None,
         "tokens_out": None,
         "request_user": content[:8000],
+        "attempts": 0,
+        "failure_class": None,
     }
     if not base:
         meta["reason"] = "no_base_url"
@@ -366,38 +394,57 @@ def _ai_complete(prompt: str, content: str) -> tuple[dict | None, dict]:
         meta["reason"] = "no_api_key"
         return None, meta
     started = time.monotonic()
-    try:
-        r = httpx.post(
-            f"{base.rstrip('/')}/chat/completions",
-            headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
-            json={
-                "model": model,
-                "project_id": project_id,
-                "messages": [
-                    {"role": "system", "content": prompt},
-                    {"role": "user", "content": content},
-                ],
-                "temperature": 0.1,
-                "response_format": {"type": "json_object"},
-            },
-            timeout=60.0,
-        )
-        meta["latency_ms"] = int((time.monotonic() - started) * 1000)
-        if r.status_code != 200:
-            meta["reason"] = f"http_{r.status_code}"
-            meta["raw_response"] = r.text[:2000]
+    attempt = 0
+    while True:
+        attempt += 1
+        meta["attempts"] = attempt
+        try:
+            r = httpx.post(
+                f"{base.rstrip('/')}/chat/completions",
+                headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+                json={
+                    "model": model,
+                    "project_id": project_id,
+                    "messages": [
+                        {"role": "system", "content": prompt},
+                        {"role": "user", "content": content},
+                    ],
+                    "temperature": 0.1,
+                    "response_format": {"type": "json_object"},
+                },
+                timeout=_AI_TIMEOUT,
+            )
+            meta["latency_ms"] = int((time.monotonic() - started) * 1000)
+            if r.status_code != 200:
+                cls = _classify_http(r.status_code)
+                meta["failure_class"] = cls
+                meta["reason"] = f"http_{r.status_code}"
+                meta["raw_response"] = r.text[:2000]
+                if _is_retryable(cls) and attempt < _AI_RETRIES:
+                    sleep_for = min(_AI_BACKOFF_CAP, _AI_BACKOFF_BASE * (2 ** (attempt - 1)))
+                    sleep_for = random.uniform(0, sleep_for)  # full jitter
+                    time.sleep(sleep_for)
+                    continue
+                return None, meta
+            body = r.json()
+            meta["raw_response"] = body
+            meta["failure_class"] = None  # success clears any prior retryable class
+            usage = body.get("usage") or {}
+            meta["tokens_in"] = usage.get("prompt_tokens")
+            meta["tokens_out"] = usage.get("completion_tokens")
+            msg = body["choices"][0]["message"]["content"]
+            return json.loads(msg), meta
+        except Exception as exc:
+            meta["latency_ms"] = int((time.monotonic() - started) * 1000)
+            meta["failure_class"] = "exception"
+            meta["reason"] = f"exception:{exc}"[:200]
+            # Network/timeout blips are retryable; JSON parse errors are terminal.
+            if attempt < _AI_RETRIES and isinstance(exc, (httpx.TimeoutException, httpx.NetworkError)):
+                sleep_for = min(_AI_BACKOFF_CAP, _AI_BACKOFF_BASE * (2 ** (attempt - 1)))
+                sleep_for = random.uniform(0, sleep_for)
+                time.sleep(sleep_for)
+                continue
             return None, meta
-        body = r.json()
-        meta["raw_response"] = body
-        usage = body.get("usage") or {}
-        meta["tokens_in"] = usage.get("prompt_tokens")
-        meta["tokens_out"] = usage.get("completion_tokens")
-        msg = body["choices"][0]["message"]["content"]
-        return json.loads(msg), meta
-    except Exception as exc:
-        meta["latency_ms"] = int((time.monotonic() - started) * 1000)
-        meta["reason"] = f"exception:{exc}"[:200]
-        return None, meta
 
 
 def generate(
@@ -418,7 +465,12 @@ def generate(
         f"EVENTS:\n{blob}"
     )
     out, meta = _ai_complete(_prompt(), user)
-    request_blob = {"primary": primary_entity_id, "user": meta.pop("request_user", "")}
+    request_blob = {
+        "primary": primary_entity_id,
+        "user": meta.pop("request_user", ""),
+        "attempts": meta.get("attempts"),
+        "failure_class": meta.get("failure_class"),
+    }
 
     def _record(accepted: bool, slug: str | None, reason: str | None) -> None:
         from . import audit
@@ -578,7 +630,12 @@ def generate_batch(
         return []
     user = "\n\n".join(entity_blocks)
     out, meta = _ai_complete(_batch_prompt(), user)
-    request_blob = {"entities": [eid for eid, _, _ in clusters], "user": meta.pop("request_user", "")}
+    request_blob = {
+        "entities": [eid for eid, _, _ in clusters],
+        "user": meta.pop("request_user", ""),
+        "attempts": meta.get("attempts"),
+        "failure_class": meta.get("failure_class"),
+    }
 
     def _record(accepted: bool, slug: str | None, reason: str | None) -> None:
         from . import audit

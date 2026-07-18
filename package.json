@@ -84,6 +84,12 @@
     "format": "biome format --write .",
     "format:check": "biome format .",
     "check": "biome check .",
+    "docs:check": "node scripts/docs-check.mjs",
+    "docs:blume:dev": "cd docs-site && npx blume dev",
+    "docs:blume:build": "cd docs-site && npx blume build",
+    "docs:blume:preview": "cd docs-site && npx blume preview",
+    "docs:blume:check": "cd docs-site && npx blume check",
+    "docs:blume:validate": "cd docs-site && npx blume validate",
     "prepare": "husky"
   },
   "pnpm": {

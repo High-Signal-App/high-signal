@@ -13,11 +13,15 @@ of which domain owns which files, so the merge stays legible.
 |------|------|--------|
 | Web app (Next.js) | `apps/web` | `deploy-web.yml` → CF Workers (OpenNext) |
 | API (Hono) | `workers/api` | `deploy-api.yml` → CF Workers |
-| Annotation service (Python) | `workers/annotation` | `deploy-annotation.yml` |
 | Lab substrate (Python, local-first) | `python/lab` | local / ad-hoc |
 | Ingestion + scoring (Python) | `python/ingest` | GitHub Actions crons |
 
 Shared libraries (not deployed on their own): `packages/shared`, `packages/db`.
+
+`workers/` contains only `api` — there are exactly two deploy workflows
+(`deploy-web.yml`, `deploy-api.yml`). The former standalone annotation worker
+was decommissioned; annotation now runs in-process via `annotateLightweightNlp`
+(`packages/shared/src/nlp/annotation-client.ts`).
 
 ## Domains in `packages/shared/src`
 
@@ -44,12 +48,16 @@ domain-agnostic). Layering is acyclic: `primitives` ← `core` ←
 - **Worker routes** (`workers/api/src/routes`): `brief`, `signals`, `entities`,
   `track-record`, `sectors`, `markets`, `communities`, `convergence`,
   `watchlists`, `claims`, `enrich`, `attention`, `delivery`, `digest`, `admin`,
-  `unmapped`, and `products` (bundles `mentions`, `agent-eval`, `communities`,
-  `dashboard`, `badge` surfaces).
+  `unmapped`, `company-universe`, `d2c`, `learning`, `data`, and `products`
+  (bundles `mentions`, `agent-eval`, `communities`, `dashboard`, `badge`
+  surfaces).
 - **Web routes** (`apps/web/src/app`): one route group per lens under the app
-  shell; brief is the homepage. See `PrimaryNav` for the user-facing grouping
-  (brief / track-record, then `lenses:` markets / communities / mentions /
-  agent-eval / lab).
+  shell; signals is the homepage (`/`). `PrimaryNav`
+  (`apps/web/src/components/system/PrimaryNav.tsx`) exposes primary items
+  `data` / `signals` / `history` / `evals`, plus secondary items `explore` /
+  `settings`. Each item matches a family of routes (e.g. `data` covers
+  entities / convergence / markets / equities / communities / unmapped;
+  `evals` covers agent-eval / mentions / domains).
 
 ## The `personal` subsystem (operator-private tool)
 
@@ -72,4 +80,4 @@ nothing in the public product depends back on it except the `/personal` route.
 - High-level status ledger: `PROJECT_STATUS.md`
 - Consolidation history: `plans/0004-platform-consolidation.md`,
   `plans/0005-legacy-extraction-ledger.md`
-- Latest cleanup pass: `docs/retros/2026-06-19-codebase-cleanup.md`
+- Latest cleanup pass: `docs/knowledge/retros/2026-06-19-codebase-cleanup.md`

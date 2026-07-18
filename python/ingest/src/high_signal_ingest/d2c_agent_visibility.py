@@ -23,6 +23,7 @@ import asyncio
 import json
 import logging
 import os
+import random
 import re
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
@@ -41,6 +42,31 @@ LOGGER = logging.getLogger("d2c_agent_visibility")
 # ---------------------------------------------------------------------------
 
 _DEFAULT_BASE = "https://ai-gateway.sassmaker.com/v1"
+
+# Bounded concurrency cap for the 20-niche fan-out. Without this, asyncio.gather
+# fires all 20 requests at once against the same gateway. 4 keeps us well under
+# the gateway's per-project quota while still finishing a full run in ~5 calls.
+_AV_CONCURRENCY = int(os.environ.get("D2C_AV_CONCURRENCY", "4"))
+# Bounded retry for transient gateway failures (429/5xx/timeout). Reuses the
+# full-jitter discipline from pipeline._with_backoff.
+_AV_RETRIES = int(os.environ.get("D2C_AV_RETRIES", "2"))
+_AV_BACKOFF_BASE = float(os.environ.get("D2C_AV_BACKOFF_BASE", "1.0"))
+_AV_BACKOFF_CAP = float(os.environ.get("D2C_AV_BACKOFF_CAP", "8.0"))
+_AV_TIMEOUT = float(os.environ.get("D2C_AV_TIMEOUT", "45.0"))
+
+
+def _classify_status(status: int) -> str:
+    if status == 429:
+        return "rate_limited"
+    if 500 <= status < 600:
+        return "server_error"
+    if 400 <= status < 500:
+        return "client_error"
+    return "ok"
+
+
+def _is_retryable(cls: str) -> bool:
+    return cls in ("rate_limited", "server_error")
 
 
 def _complete(system: str, user: str, client: httpx.AsyncClient | None = None) -> str | None:
@@ -65,7 +91,7 @@ def _complete(system: str, user: str, client: httpx.AsyncClient | None = None) -
                 ],
                 "temperature": 0.3,
             },
-            timeout=45.0,
+            timeout=_AV_TIMEOUT,
         )
         r.raise_for_status()
         choice = r.json().get("choices", [{}])[0]
@@ -78,39 +104,61 @@ def _complete(system: str, user: str, client: httpx.AsyncClient | None = None) -
 async def _complete_async(
     system: str, user: str, client: httpx.AsyncClient | None = None
 ) -> str | None:
-    """Async completion via a shared httpx client (one connection pool per run)."""
+    """Async completion via a shared httpx client (one connection pool per run).
+
+    Retries 429/5xx/timeout with full-jitter backoff (bounded by
+    ``_AV_RETRIES``); 4xx (non-429) and parse errors are terminal.
+    """
     base = os.environ.get("AI_BASE_URL", _DEFAULT_BASE)
     key = os.environ.get("AI_API_KEY") or os.environ.get("HF_TOKEN")
     if not base or not key:
         return None
+    c = client or httpx.AsyncClient(timeout=_AV_TIMEOUT)
     try:
-        c = client or httpx.AsyncClient(timeout=45.0)
-        try:
-            r = await c.post(
-                f"{base.rstrip('/')}/chat/completions",
-                headers={
-                    "Authorization": f"Bearer {key}",
-                    "Content-Type": "application/json",
-                },
-                json={
-                    "model": os.environ.get("AI_MODEL", "auto"),
-                    "project_id": os.environ.get("AI_PROJECT_ID", "high-signal"),
-                    "messages": [
-                        {"role": "system", "content": system},
-                        {"role": "user", "content": user},
-                    ],
-                    "temperature": 0.3,
-                },
-            )
-            r.raise_for_status()
-            choice = r.json().get("choices", [{}])[0]
-            text = (choice.get("message") or {}).get("content")
-            return text.strip() if isinstance(text, str) and text.strip() else None
-        finally:
-            if client is None:
-                await c.aclose()
-    except (httpx.HTTPError, ValueError, KeyError, IndexError):
-        return None
+        attempt = 0
+        while True:
+            attempt += 1
+            try:
+                r = await c.post(
+                    f"{base.rstrip('/')}/chat/completions",
+                    headers={
+                        "Authorization": f"Bearer {key}",
+                        "Content-Type": "application/json",
+                    },
+                    json={
+                        "model": os.environ.get("AI_MODEL", "auto"),
+                        "project_id": os.environ.get("AI_PROJECT_ID", "high-signal"),
+                        "messages": [
+                            {"role": "system", "content": system},
+                            {"role": "user", "content": user},
+                        ],
+                        "temperature": 0.3,
+                    },
+                )
+                if r.status_code != 200:
+                    cls = _classify_status(r.status_code)
+                    if _is_retryable(cls) and attempt < _AV_RETRIES:
+                        sleep_for = min(_AV_BACKOFF_CAP, _AV_BACKOFF_BASE * (2 ** (attempt - 1)))
+                        sleep_for = random.uniform(0, sleep_for)  # full jitter
+                        await asyncio.sleep(sleep_for)
+                        continue
+                    return None
+                choice = r.json().get("choices", [{}])[0]
+                text = (choice.get("message") or {}).get("content")
+                return text.strip() if isinstance(text, str) and text.strip() else None
+            except (httpx.TimeoutException, httpx.NetworkError) as exc:
+                if attempt < _AV_RETRIES:
+                    sleep_for = min(_AV_BACKOFF_CAP, _AV_BACKOFF_BASE * (2 ** (attempt - 1)))
+                    sleep_for = random.uniform(0, sleep_for)
+                    await asyncio.sleep(sleep_for)
+                    continue
+                LOGGER.warning("d2c agent-visibility async call failed: %s", exc)
+                return None
+            except (ValueError, KeyError, IndexError):
+                return None
+    finally:
+        if client is None:
+            await c.aclose()
 
 
 # ---------------------------------------------------------------------------
@@ -297,8 +345,17 @@ async def run_niche(niche: NicheQuery, client: httpx.AsyncClient | None = None) 
 
 async def run(limit: int = 20, out_dir: Path = Path("data/d2c-agent-visibility")) -> Path:
     niches = NICHES[:limit]
-    async with httpx.AsyncClient(timeout=45.0) as client:
-        entries = await asyncio.gather(*(run_niche(n, client) for n in niches))
+    # Bounded fan-out: a Semaphore caps concurrent gateway calls so the 20
+    # niches cannot amplify into 20 simultaneous requests (gateway quota /
+    # subrequest budget). Replaces the prior unbounded asyncio.gather.
+    sem = asyncio.Semaphore(_AV_CONCURRENCY)
+
+    async def _bounded(niche: NicheQuery, client: httpx.AsyncClient) -> VisibilityEntry:
+        async with sem:
+            return await run_niche(niche, client)
+
+    async with httpx.AsyncClient(timeout=_AV_TIMEOUT) as client:
+        entries = await asyncio.gather(*(_bounded(n, client) for n in niches))
     artifact = VisibilityArtifact(
         generatedAt=datetime.now(timezone.utc).isoformat(),
         region="IN",

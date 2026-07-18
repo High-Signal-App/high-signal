@@ -44,7 +44,7 @@ Last updated: 2026-07-15
 | --- | --- | --- |
 | Web | Next.js 16, Tailwind v4, Clerk, OpenNext | Cloudflare Worker `high-signal-web` |
 | API | Hono, D1 binding | Cloudflare Worker `high-signal-api` |
-| DB | Drizzle + D1 (`packages/db`, migrations 0000–0012) | `high-signal-db` |
+| DB | Drizzle + D1 (`packages/db`, migrations 0000–0019) | `high-signal-db` |
 | Shared | `@high-signal/shared` types, scorers, composers | — |
 | Ingest | Python `uv`, edgartools, yfinance, GLiNER, etc. | GitHub Actions cron + optional Modal |
 | Lab (parked) | Postgres/pgvector, FastAPI (`python/lab`) | Local docker-compose only |
@@ -53,7 +53,6 @@ Last updated: 2026-07-15
 ```
 apps/web          Next.js 16 — brief, lenses, review, settings, legal
 workers/api       Hono + D1 — public JSON API, admin ingest hooks, cron delivery
-workers/annotation  Python annotation worker (separate deploy)
 packages/db       Drizzle schema + SQL migrations
 packages/shared   Agent-eval scorer, claim provenance, watchlist impact, OpenLens helpers
 python/ingest     Daily source adapters → events/entities → signal candidates
@@ -84,7 +83,7 @@ cd python/ingest && uv sync && uv run python -m high_signal_ingest.pipeline --so
 wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangler.toml
 ```
 
-**Deploy workflows:** `.github/workflows/deploy-web.yml`, `deploy-api.yml`, `deploy-annotation.yml`.
+**Deploy workflows:** `.github/workflows/deploy-web.yml`, `deploy-api.yml`. (The former standalone annotation worker was decommissioned; annotation runs in-process via `annotateLightweightNlp`.)
 
 ## Timeline
 
@@ -251,11 +250,11 @@ Python adapters under `python/ingest/src/high_signal_ingest/sources/` — all wi
 - **Security:** NVD CVE, CISA KEV.
 - **Temporal relevance classification (2026-06-28):** Each source tagged `recent` (29 sources — news, social, RSS, stale after days), `historical` (14 — patents, filings, court cases, full archive has value), or `series` (9 — macro, rates, benchmarks, on-chain, both recent prints and historical trends matter). Surfaced in the data directory UI with icons (● ▤ ∿) and contextual notes on source detail pages.
 
-**Operator tooling:** `pnpm source:diagnose`, `pnpm source:quality -- --json`, `docs/ingest-runbook.md`, `docs/source-coverage.md`. Source document dedupe by `document_key` (migration `0008_source_document_keys.sql` — **applied to remote D1** 2026-06-28: column + unique index + backfill). `/admin/events` preserves rich payloads with error logging.
+**Operator tooling:** `pnpm source:diagnose`, `pnpm source:quality -- --json`, `docs/operations/runbooks/ingest.md`, `docs/operations/source-coverage.md`. Source document dedupe by `document_key` (migration `0008_source_document_keys.sql` — **applied to remote D1** 2026-06-28: column + unique index + backfill). `/admin/events` preserves rich payloads with error logging.
 
 **Data catalog, directory & grouping (2026-06-26 — "get all data and group them, no RAG"):**
 - **Storage model** — *extract info and keep the link*: events persist `source_url` + a short extracted `title`/`content` summary (cap 20 KB, usually <2 KB) + dedup hash; raw HTML/PDF/JSON that's one query away is **not** stored. Footprint ≈ KB/day of new signals, low-MB total in D1.
-- **`docs/source-catalog.md`** — the data-source table (provider, access/auth, history depth, official-class, role, temporal relevance, extracted fields). Single source of truth `source_catalog.py` (CATALOG), regenerated via `python -m high_signal_ingest.source_catalog`; a test asserts it matches the pipeline `Source` list (no drift). 52 sources.
+- **`docs/operations/source-catalog.md`** — the data-source table (provider, access/auth, history depth, official-class, role, temporal relevance, extracted fields). Single source of truth `source_catalog.py` (CATALOG), regenerated via `python -m high_signal_ingest.source_catalog`; a test asserts it matches the pipeline `Source` list (no drift). 52 sources.
 - **`data_directory.py`** — `python -m high_signal_ingest.data_directory` runs the parallel `fetch('all')`, buckets by source, and writes `data-directory/` (git-ignored, regenerable): `INDEX.md` + one JSON of recent samples per source. Verified live: **180,537 events across 43 source families** in D1 (2026-06-28).
 - **`grouping.py`** — deterministic, no-vector grouping of *all* events (incl. entity-less, which the generator drops) by entity + theme (keyword buckets) + source family + day, with a **convergence view** ranking groups by distinct-source corroboration (the cite-or-kill precursor).
 - **`dedupe.py`** — deterministic cross-source de-duplication (no embeddings): union-find over **shared canonical URL** (scheme/www/query/fragment stripped; HN's embedded article link extracted) + **title token-Jaccard** (≥0.6, guarded by same-day or shared entity). Collapses the same story from HN/Reddit/Techmeme/news into one, **keeping the distinct-source count as corroboration** (dedup ≠ discard the signal). Wired into `opportunities.py` (no duplicate opportunities) and `data_directory.py` (INDEX reports raw→unique + corroborated count).

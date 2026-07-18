@@ -2,7 +2,7 @@
 
 Every ingestion source is described once here — provider, access/auth, the
 fetch window (how much history we pull), what we keep, and its mapping role.
-Both the human-readable catalog (`docs/source-catalog.md`, regenerated via
+Both the human-readable catalog (`docs/operations/source-catalog.md`, regenerated via
 ``to_markdown``) and the data-directory generator (`data_directory.py`) read
 from this list, so they never drift from the pipeline.
 
@@ -134,12 +134,12 @@ _TEMPORAL_NOTE = {
 
 
 def to_markdown() -> str:
-    """Render the full catalog as the `docs/source-catalog.md` table."""
+    """Render the full catalog as the `docs/operations/source-catalog.md` table."""
     lines = [
         "# Data-source catalog",
         "",
         "> Generated from `python/ingest/src/high_signal_ingest/source_catalog.py`.",
-        "> Regenerate: `uv run python -m high_signal_ingest.source_catalog > ../../docs/source-catalog.md`",
+        "> Regenerate: `uv run python -m high_signal_ingest.source_catalog > ../../docs/operations/source-catalog.md`",
         "",
         "## Storage model",
         "",

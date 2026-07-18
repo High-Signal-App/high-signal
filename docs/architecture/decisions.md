@@ -2,8 +2,8 @@
 
 This file is the canonical ADR log for High Signal. Each entry covers a real
 decision visible in code, plans, or git history. Unknown rationale is flagged
-`TBD: capture rationale`. See `docs/lessons.md` for operational findings and
-`docs/retros/` for phase retrospectives.
+`TBD: capture rationale`. See `docs/knowledge/learnings/lessons.md` for operational findings and
+`docs/knowledge/retros/` for phase retrospectives.
 
 ---
 
@@ -318,7 +318,7 @@ the product's headline.
 
 **Rationale.** Commit message 2026-05-25: "Reframe High Signal around the Daily
 Brief." agents.md locked decision (2026-05-25): "Core product: one Daily Brief
-per user per day." The scope reset doc (docs/scope-reset-2026-06-03.md) confirmed
+per user per day." The scope reset doc (docs/product/scope-reset.md) confirmed
 this by parking Lab, standalone equities, and standalone communities.
 
 **Alternatives rejected.** Staying with sub-products: confusing navigation, no

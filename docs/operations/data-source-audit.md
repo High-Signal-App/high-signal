@@ -12,7 +12,7 @@ This audit separates four states that were previously easy to mix together:
 
 High Signal should stay the insight product. Source-specific fetching, replay,
 dedupe, and rich raw payload storage should move toward the data substrate
-boundary in `docs/data-service-boundary.md`.
+boundary in `docs/architecture/data-service-boundary.md`.
 
 ## Source-Centric View
 
@@ -200,7 +200,7 @@ These are reachable from `python/ingest/src/high_signal_ingest/pipeline.py`.
 definitions. These are planned/seeded market-intelligence sources; not every
 entry is a separately proven live source.
 
-Complete row-level inventory: `docs/data-source-inventory.csv`.
+Complete row-level inventory: `docs/operations/data-source-inventory.csv`.
 
 Important distinction:
 
@@ -220,23 +220,10 @@ Current inventory status:
 | Planned | 9 | X/Twitter handles are listed but not integrated |
 | Deferred | 7 | Tier-3 news/blog RSS rows not fetched by the default daily tier filter |
 
-| Seed type | Count | Planned use |
-| --- | ---: | --- |
-| Blog | 26 | Expert commentary, technical narratives, AI infra deep dives |
-| News outlet | 24 | Independent corroboration and broader market context |
-| IR page | 43 | Official company primary evidence |
-| Government | 7 | Policy, export controls, grants, infrastructure constraints |
-| Industry association | 8 | Standards, ecosystem coordination, hardware/interconnect shifts |
-| GitHub | 8 | Tracked AI infra and developer ecosystem repo activity |
-| Reddit | 8 | AI infra community weak signals |
-| X handle | 9 | Planned social weak signals; not a preferred first-class source until value is proven |
-| YouTube | 4 | Transcripts from technical/market channels |
-| Podcast | 5 | Long-form expert commentary; metadata first, transcript later |
-| Conference | 11 | Launch/event calendars and disclosure points |
-| Jobs | 6 | Hiring and product-focus indicators |
-| Forum | 3 | Technical community weak signals |
-| Mailing list | 5 | Curated AI/startup narrative RSS |
-| SEC filing | 1 | EDGAR primary evidence |
+Seed-type breakdown (blog 26, news 24, IR page 43, government 7, industry
+association 8, GitHub 8, Reddit 8, X handle 9, YouTube 4, podcast 5, conference
+11, jobs 6, forum 3, mailing list 5, SEC filing 1) is captured row-by-row in
+`docs/operations/data-source-inventory.csv`.
 
 This file is useful as the curated universe, but live status should be judged by
 ingest audit rows, source-health rows, and accepted signal contribution.
@@ -267,35 +254,11 @@ ingest audit rows, source-health rows, and accepted signal contribution.
 
 ## Borrowed Patterns From `last30days`
 
-The `mvanhorn/last30days-skill` repo is useful as a research workflow, not as a
-High Signal dependency. We should steal the operating patterns that improve
-signal quality while keeping High Signal's source-of-truth model intact.
-
-Adopted:
-
-- **Availability before yield**: first diagnose whether credentials/tools are
-  present, then run source-yield audits. Use `pnpm source:diagnose` before
-  `pnpm source:quality` when a source looks empty.
-- **Recent-window first**: optimize for the last 28-30 days before building
-  bigger archives. Historical backfills should prove they improve hit-rate or
-  replay value.
-- **People-weighted attention, not SEO**: Reddit, HN, GitHub issues, YouTube,
-  and prediction markets are useful because they carry engagement, comments,
-  issue velocity, or money-at-risk. Preserve those measures as context when
-  adapters expose them.
-- **Raw evidence trail first**: keep raw source documents and raw/source URLs
-  durable enough for replay. Generated briefs and JSON bundles are derived
-  artifacts, not canonical source truth.
-- **Cross-source clustering**: merge repeated stories across source families
-  before synthesis so one story does not appear as many independent insights.
-
-Rejected for High Signal core:
-
-- Do not import `/last30days` as a production dependency.
-- Do not add broad social firehoses just because the skill supports them.
-- Do not store its local markdown/SQLite outputs as High Signal source truth.
-- Do not let social/community engagement publish alone; it remains weak signal
-  unless corroborated by independent evidence or hit-rate history.
+Research-workflow patterns borrowed from `mvanhorn/last30days-skill` (availability
+before yield, recent-window first, people-weighted attention, raw-evidence trail,
+cross-source clustering) are archived at
+[`docs/archive/stale-data-source-audit-borrowed-patterns.md`](https://github.com/High-Signal-App/high-signal/blob/main/docs/archive/stale-data-source-audit-borrowed-patterns.md).
+It is a research reference, not a High Signal dependency.
 
 ## Readiness Calls
 

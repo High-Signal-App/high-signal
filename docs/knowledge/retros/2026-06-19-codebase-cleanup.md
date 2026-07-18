@@ -17,7 +17,7 @@ Inline core types moved to `primitives/types.ts`. `git mv` used throughout to
 preserve history. `pnpm typecheck` green on all 4 TS workspaces; shared/worker
 vitest + claim-provenance/brief-delivery/watchlist-impact/openlens/seo suites
 pass. The `personal` operator-tool subsystem is now a single shared domain;
-its full cross-repo boundary is documented in `docs/codebase-structure.md`
+its full cross-repo boundary is documented in `docs/architecture/codebase-structure.md`
 (the new canonical module/ownership map). No deployable topology change.
 
 ## What changed
@@ -40,8 +40,10 @@ its full cross-repo boundary is documented in `docs/codebase-structure.md`
 ## Decisions
 
 - **No new subapps / package extraction.** The monorepo is already cleanly factored: one Next.js
-  app (`apps/web`), one Hono worker (`workers/api`), a Python annotation service
-  (`workers/annotation`), and `packages/{shared,db}` for cross-cutting code. The 82 web routes are
+  app (`apps/web`), one Hono worker (`workers/api`), and `packages/{shared,db}` for cross-cutting
+  code. (At the time of this pass there was also a standalone Python annotation worker under
+  `workers/annotation`; it was later decommissioned — annotation now runs in-process via
+  `annotateLightweightNlp`.) The 82 web routes are
   cohesive around one product (the Daily Brief + lenses). Splitting public vs. authenticated app
   would add deploy surface with no real benefit — auth is already enforced per-route via Clerk.
   Cross-cutting logic belongs in `packages/shared`, which this pass reinforced.

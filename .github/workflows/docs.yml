@@ -1,0 +1,44 @@
+name: Docs
+
+# Validates the committed Markdown knowledge base: broken internal links and
+# empty docs directories. The checker is a dependency-free Node script
+# (scripts/docs-check.mjs) so this job needs no install step beyond checkout.
+#
+# Blume (blume.config.ts) is the optional presentation layer; it is NOT required
+# for the repo to function and is not installed in CI. To preview docs locally
+# run `pnpm add -D blume && pnpm docs:blume:dev`.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/**"
+      - "agents.md"
+      - "STATUS.md"
+      - "PROJECT_STATUS.md"
+      - "README.md"
+      - "SPEC.md"
+      - "scripts/docs-check.mjs"
+      - ".github/workflows/docs.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "docs/**"
+      - "agents.md"
+      - "STATUS.md"
+      - "PROJECT_STATUS.md"
+      - "README.md"
+      - "SPEC.md"
+      - "scripts/docs-check.mjs"
+      - ".github/workflows/docs.yml"
+
+jobs:
+  docs-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+      - name: Broken-link + empty-dir check
+        run: node scripts/docs-check.mjs

@@ -418,5 +418,5 @@ These fill the largest gap in the current stack: **zero India-specific official 
 7. **Ship AI benchmarks** (`artificial-analysis`, `openrouter-data`, `lmsys`).
 8. **Bulk-add US + India RSS feeds** to the news bundle.
 9. **Ship tech/dev sources** (`papers-with-code`, `libraries.io`, language package registries, `gitlab`, `docker-hub`).
-10. **Update `source_catalog.py`** as each source ships; regenerate `docs/source-catalog.md`.
+10. **Update `source_catalog.py`** as each source ships; regenerate `docs/operations/source-catalog.md`.
 11. **Re-attempt FINRA short interest** (PROJECT_STATUS.md #13).

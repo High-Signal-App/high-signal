@@ -87,111 +87,14 @@ High Signal High Signal is one product : a synthesized Daily Brief assembled fro
 - `packages/db/drizzle.config.ts`
 - `python/ingest/pyproject.toml`
 - `python/lab/pyproject.toml`
-- `workers/annotation/pyproject.toml`
-- `workers/annotation/wrangler.toml`
 - `workers/api/vitest.config.ts`
 - `workers/api/wrangler.toml`
 
 ## OSS Already In Use
 
-Direct dependencies:
-- `@clerk/nextjs`
-- `@high-signal/db`
-- `@high-signal/shared`
-- `@saas-maker/feedback`
-- `clsx`
-- `drizzle-orm`
-- `geist`
-- `hono`
-- `jose`
-- `lucide-react`
-- `next`
-- `posthog-js`
-- `react`
-- `react-dom`
-- `tailwind-merge`
-
-Development dependencies:
-- `@cloudflare/workers-types`
-- `@opennextjs/cloudflare`
-- `@playwright/test`
-- `@storybook/addon-docs`
-- `@storybook/nextjs`
-- `@tailwindcss/postcss`
-- `@tailwindcss/typography`
-- `@types/node`
-- `@types/react`
-- `@types/react-dom`
-- `drizzle-kit`
-- `husky`
-- `next`
-- `postcss`
-- `storybook`
-- `tailwindcss`
-- `tsx`
-- `typescript`
-- `vitest`
-- `wrangler`
-
-Package scripts:
-- `annotation:test`
-- `build`
-- `build-storybook`
-- `cf:build`
-- `competitor-perception:prototype`
-- `competitor-perception:test`
-- `daily-automation:test`
-- `daily-range:test`
-- `daily-source-audit:test`
-- `daily:seed-history`
-- `daily:snapshot`
-- `db:migrate:local`
-- `db:migrate:remote`
-- `db:seed:local`
-- `db:seed:remote`
-- `deploy`
-- `dev`
-- `dev:api`
-- `dev:web`
-- `equities:snapshot`
-- `generate`
-- `ingest:local`
-- `ingest:preflight`
-- `lint`
-- `market-snapshot:test`
-- `market:snapshot`
-- `migrate:local`
-- `migrate:remote`
-- `personal:brief`
-- `prepare`
-- `price:snapshot`
-- `product-flow:seed:local`
-- `product-flow:seed:remote`
-- `requirements:test`
-- `seo:test`
-- `signals:auto-publish:dry`
-- `signals:auto-publish:local`
-- `signals:auto-publish:reapply`
-- `signals:auto-publish:remote`
-- `signals:auto-publish:test`
-- `signals:publish-drafts:local`
-- `signals:publish-drafts:remote`
-- `signals:sync:local`
-- `signals:sync:remote`
-- `signals:test`
-- `source-registry:test`
-- `source:quality`
-- `start`
-- `storybook`
-- `sync:month:local`
-- `sync:month:remote`
-- `task-teardowns:test`
-- `test`
-- `test:e2e`
-- `test:e2e:ui`
-- `test:watch`
-- `tickers:bundle`
-- `typecheck`
+Generated dependency/dev-dependency/script inventory archived at
+[`docs/archive/stale-recommendation-context-oss.md`](https://github.com/High-Signal-App/high-signal/blob/main/docs/archive/stale-recommendation-context-oss.md).
+`package.json` and the `pyproject.toml` files are authoritative for current deps.
 
 ## Testing and Quality Signals
 
@@ -264,17 +167,17 @@ Primary docs and handoff files:
 - `SPEC.md`
 - `agents.md`
 - `docs/README.md`
-- `docs/cf-access-setup.md`
-- `docs/clerk-production-setup.md`
-- `docs/data-service-boundary.md`
-- `docs/data-source-audit.md`
-- `docs/feature-audit.md`
-- `docs/high-signal-handoff.md`
-- `docs/ingest-runbook.md`
+- `docs/operations/runbooks/cf-access.md`
+- `docs/operations/runbooks/clerk-production.md`
+- `docs/architecture/data-service-boundary.md`
+- `docs/operations/data-source-audit.md`
+- `docs/product/feature-audit.md`
+- `docs/product/handoff.md`
+- `docs/operations/runbooks/ingest.md`
 - `docs/laptop-service-fleet-backup-2026-05-31.md`
-- `docs/scope-reset-2026-06-03.md`
-- `docs/seeding.md`
-- `docs/source-coverage.md`
+- `docs/product/scope-reset.md`
+- `docs/development/seeding.md`
+- `docs/operations/source-coverage.md`
 
 Package manifests:
 - `apps/web/package.json`

@@ -52,3 +52,15 @@ data-directory/
 # the bundled TS module in packages/shared is the tracked artifact)
 data/d2c-opportunities/
 data/d2c-agent-visibility/
+
+# Blume docs site (presentation layer only — markdown in docs/ is the source of truth).
+# `blume build` outputs into dist/ (already ignored above); .blume/ is its cache.
+.blume/
+.blume-cache/
+.astro/
+
+# Local agent session logs/state (not product code, not skill definitions).
+# `*.log` above already covers loose log files; agent runtime session caches:
+.devin/
+agents.log
+

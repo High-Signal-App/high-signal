@@ -24,7 +24,7 @@ Why it matters: the spillover graph needs supply/customer/peer edges; GLiREL is
 the planned path for automated edge discovery.
 Paper: https://arxiv.org/abs/2501.03787
 Where: `python/ingest/src/high_signal_ingest/extract/relations.py` (stubbed — returns
-`[]` until validation infra is ready; see ADR-004 in `docs/decisions.md`)
+`[]` until validation infra is ready; see ADR-004 in `docs/architecture/decisions.md`)
 
 **FinBERT — Financial Sentiment Analysis**
 BERT fine-tuned on financial corpora (analyst reports, earnings calls, financial
@@ -75,7 +75,7 @@ High-performance vectorized backtesting using NumPy/pandas; handles portfolio
 simulation, signal testing, and performance analytics.
 Why it matters: planned for production backtest of signal hit-rates; currently
 not used (hand-rolled forward-return math is sufficient for v0 — see
-`docs/lessons.md`).
+`docs/knowledge/learnings/lessons.md`).
 Docs: https://vectorbt.dev
 Where: planned for `python/ingest/src/high_signal_ingest/score/backtest.py`
 (not yet wired)
