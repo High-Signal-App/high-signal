@@ -12,7 +12,7 @@ This audit separates four states that were previously easy to mix together:
 
 High Signal should stay the insight product. Source-specific fetching, replay,
 dedupe, and rich raw payload storage should move toward the data substrate
-boundary in `docs/data-service-boundary.md`.
+boundary in `docs/architecture/data-service-boundary.md`.
 
 ## Source-Centric View
 
@@ -200,7 +200,7 @@ These are reachable from `python/ingest/src/high_signal_ingest/pipeline.py`.
 definitions. These are planned/seeded market-intelligence sources; not every
 entry is a separately proven live source.
 
-Complete row-level inventory: `docs/data-source-inventory.csv`.
+Complete row-level inventory: `docs/operations/data-source-inventory.csv`.
 
 Important distinction:
 

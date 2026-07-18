@@ -4,7 +4,7 @@ Research brief updated: 2026-05-25
 
 **Current product direction (canonical, supersedes earlier framing):** High Signal is **one** product — a Daily Brief synthesized from many noisy sources, covering three domains (technology, startups, finance). The brief has five sections (three public, two brand-aware sections that require a connected brand). Region is a free filter. The earlier "umbrella + 5 sub-products" framing in `plans/0004-platform-consolidation.md` is superseded.
 
-**Scope reset, 2026-06-03:** keep Daily Brief, Signals, Evidence, Track Record, a small source pipeline, Mentions, Agent Eval, and a narrow Markets lens active. Park Lab, personal/operator cockpit, standalone equities UI, standalone communities product, and broad source expansion. Parked means kept in code, not deleted, but not expanded or presented as a primary product path. See `docs/scope-reset-2026-06-03.md`.
+**Scope reset, 2026-06-03:** keep Daily Brief, Signals, Evidence, Track Record, a small source pipeline, Mentions, Agent Eval, and a narrow Markets lens active. Park Lab, personal/operator cockpit, standalone equities UI, standalone communities product, and broad source expansion. Parked means kept in code, not deleted, but not expanded or presented as a primary product path. See `docs/product/scope-reset.md`.
 
 See `agents.md` "Locked decisions" for the authoritative product-direction snapshot. The thesis below is unchanged.
 

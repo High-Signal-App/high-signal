@@ -10,7 +10,7 @@ buckets events by source, and writes a browsable directory:
 The per-source JSON files ARE the different sources of data. Output is
 regenerable and git-ignored — these are samples one query away from the source,
 not a store (consistent with the keep-the-link storage model). Durable metadata
-lives in `source_catalog.py` / `docs/source-catalog.md`.
+lives in `source_catalog.py` / `docs/operations/source-catalog.md`.
 
 Run: ``uv run python -m high_signal_ingest.data_directory [--days 7] [--limit 40]``
 """
@@ -109,7 +109,7 @@ def _write_index(out_dir: Path, counts: dict[str, int], days: int, dedupe_stats:
         "",
         "Empty sources are usually key-gated (`free-key`/`optional-key`) or simply had "
         "nothing new in the window — see Access. Storage model + full metadata: "
-        "[`docs/source-catalog.md`](../docs/source-catalog.md).",
+        "[`docs/operations/source-catalog.md`](../docs/operations/source-catalog.md).",
         "",
         "| Source | Available now | History | Access | Role | Data |",
         "|---|--:|--:|---|---|---|",

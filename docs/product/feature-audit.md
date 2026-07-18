@@ -2,9 +2,9 @@
 
 Date: 2026-06-02
 
-Scope: this audit covers the `high-signal` repository only. It intentionally does not audit the future Knowledgebase service, the external `researchPapers` repository, or a separate GitHub-repository product. Source inventory details live in `docs/data-source-audit.md` and `docs/data-source-inventory.csv`; this document audits application features and data ownership.
+Scope: this audit covers the `high-signal` repository only. It intentionally does not audit the future Knowledgebase service, the external `researchPapers` repository, or a separate GitHub-repository product. Source inventory details live in `docs/operations/data-source-audit.md` and `docs/operations/data-source-inventory.csv`; this document audits application features and data ownership.
 
-Scope reset update, 2026-06-03: active product scope is Daily Brief, Signals, Evidence, Track Record, a small source pipeline, Mentions, Agent Eval, and a narrow Markets lens. Parked areas are Lab, personal/operator cockpit, standalone equities UI, standalone communities product, and broad source expansion. See `docs/scope-reset-2026-06-03.md`.
+Scope reset update, 2026-06-03: active product scope is Daily Brief, Signals, Evidence, Track Record, a small source pipeline, Mentions, Agent Eval, and a narrow Markets lens. Parked areas are Lab, personal/operator cockpit, standalone equities UI, standalone communities product, and broad source expansion. See `docs/product/scope-reset.md`.
 
 ## Executive summary
 

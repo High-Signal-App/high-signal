@@ -276,7 +276,7 @@ export LAB_API_URL=http://localhost:8765 && pnpm dev
 
 ## Quick links
 - Spec: `SPEC.md`
-- Commercial handoff: `docs/high-signal-handoff.md`
+- Commercial handoff: `docs/product/handoff.md`
 - Consolidation plan: `plans/0004-platform-consolidation.md`
 - Plan: `plans/0001-research-artifact-first.md`
 - Agent Evaluation plan: `plans/0006-agent-evaluation-attention-layer.md`
@@ -288,10 +288,10 @@ export LAB_API_URL=http://localhost:8765 && pnpm dev
 - Stack + conventions: `agents.md`
 - Seed corpus: `python/ingest/src/high_signal_ingest/seed/`
 - Example signal: `signals/2026-04-25/example-nvda-h100-lead-time.md`
-- Ingest runbook: `docs/ingest-runbook.md`
-- Source coverage / launch scope: `docs/source-coverage.md`
-- Data ownership boundary: `docs/data-service-boundary.md`
-- Seeding guide: `docs/seeding.md`
+- Ingest runbook: `docs/operations/runbooks/ingest.md`
+- Source coverage / launch scope: `docs/operations/source-coverage.md`
+- Data ownership boundary: `docs/architecture/data-service-boundary.md`
+- Seeding guide: `docs/development/seeding.md`
 
 ## Deploy
 - Web → Cloudflare Workers via OpenNext (`.github/workflows/deploy-web.yml`)

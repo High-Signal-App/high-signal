@@ -264,17 +264,17 @@ Primary docs and handoff files:
 - `SPEC.md`
 - `agents.md`
 - `docs/README.md`
-- `docs/cf-access-setup.md`
-- `docs/clerk-production-setup.md`
-- `docs/data-service-boundary.md`
-- `docs/data-source-audit.md`
-- `docs/feature-audit.md`
-- `docs/high-signal-handoff.md`
-- `docs/ingest-runbook.md`
+- `docs/operations/runbooks/cf-access.md`
+- `docs/operations/runbooks/clerk-production.md`
+- `docs/architecture/data-service-boundary.md`
+- `docs/operations/data-source-audit.md`
+- `docs/product/feature-audit.md`
+- `docs/product/handoff.md`
+- `docs/operations/runbooks/ingest.md`
 - `docs/laptop-service-fleet-backup-2026-05-31.md`
-- `docs/scope-reset-2026-06-03.md`
-- `docs/seeding.md`
-- `docs/source-coverage.md`
+- `docs/product/scope-reset.md`
+- `docs/development/seeding.md`
+- `docs/operations/source-coverage.md`
 
 Package manifests:
 - `apps/web/package.json`

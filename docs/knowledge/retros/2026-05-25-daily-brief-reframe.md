@@ -3,7 +3,7 @@
 Date: 2026-05-25 (reframe shipped) / confirmed 2026-06-03 (scope reset)
 Retro written: 2026-06-13
 Prior frame: plan 0004 (five sub-products under an umbrella)
-Confirmed by: `docs/scope-reset-2026-06-03.md`
+Confirmed by: `docs/product/scope-reset.md`
 
 ---
 
@@ -20,7 +20,7 @@ sub-products became "lenses" — intelligence helpers that feed the brief. Commi
 agents.md locked decisions (2026-05-25): "The five sub-products were demoted to
 lenses that feed the brief."
 
-A second confirming step came 2026-06-03: `docs/scope-reset-2026-06-03.md` explicitly
+A second confirming step came 2026-06-03: `docs/product/scope-reset.md` explicitly
 parked Lab, standalone equities, and standalone communities, and set boundary rules
 (e.g., "Mentions and agent eval are active only because they produce brief sections
 4 and 5").

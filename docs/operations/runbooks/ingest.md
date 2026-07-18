@@ -18,7 +18,7 @@ and *what blew up?*.
 
 ## Generation scope
 
-Launch policy lives in `docs/source-coverage.md`.
+Launch policy lives in `docs/operations/source-coverage.md`.
 
 Current production cadence:
 

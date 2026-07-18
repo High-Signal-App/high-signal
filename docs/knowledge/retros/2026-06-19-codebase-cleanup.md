@@ -17,7 +17,7 @@ Inline core types moved to `primitives/types.ts`. `git mv` used throughout to
 preserve history. `pnpm typecheck` green on all 4 TS workspaces; shared/worker
 vitest + claim-provenance/brief-delivery/watchlist-impact/openlens/seo suites
 pass. The `personal` operator-tool subsystem is now a single shared domain;
-its full cross-repo boundary is documented in `docs/codebase-structure.md`
+its full cross-repo boundary is documented in `docs/architecture/codebase-structure.md`
 (the new canonical module/ownership map). No deployable topology change.
 
 ## What changed

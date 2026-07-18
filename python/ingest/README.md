@@ -122,11 +122,11 @@ Every run pushes to the API:
   replayable.
 - `/admin/llm-runs` — token + status for each generator call.
 
-Inspection queries are in `../../docs/ingest-runbook.md`.
+Inspection queries are in `../../docs/operations/runbooks/ingest.md`.
 
 ## Launch scope
 
-Source and confidence policy is documented in `../../docs/source-coverage.md`.
+Source and confidence policy is documented in `../../docs/operations/source-coverage.md`.
 For launch, Market Intelligence is the primary signal product:
 
 - Daily `all` runs should generate published signals from news, EDGAR, IR, Reddit, GitHub, gov, YouTube, GDELT, HKEX, and market resources.

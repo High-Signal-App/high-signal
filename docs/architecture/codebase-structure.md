@@ -72,4 +72,4 @@ nothing in the public product depends back on it except the `/personal` route.
 - High-level status ledger: `PROJECT_STATUS.md`
 - Consolidation history: `plans/0004-platform-consolidation.md`,
   `plans/0005-legacy-extraction-ledger.md`
-- Latest cleanup pass: `docs/retros/2026-06-19-codebase-cleanup.md`
+- Latest cleanup pass: `docs/knowledge/retros/2026-06-19-codebase-cleanup.md`
