@@ -39,12 +39,6 @@ import {
   deterministicVerdict,
   type VerdictResult,
 } from "./auto-publish-rules";
-import {
-  classifyStatus,
-  fetchWithRetry,
-  isRetryable,
-  type FailureClass,
-} from "../workers/api/src/lib/resilience";
 import type { ClaimWithEvidence } from "@high-signal/shared";
 
 interface SignalRow {
@@ -88,10 +82,6 @@ const AI_MODEL = process.env["AI_MODEL"] ?? "deepseek-chat";
 
 const MAX_BODY_CHARS = 2400;
 const RATE_LIMIT_MS = 250; // gentle pacing between AI calls
-// Bounded retry for the AI judge call. Reuses the full-jitter discipline from
-// workers/api/src/lib/resilience.ts. 2 attempts = one retry on 429/5xx/timeout.
-const AI_JUDGE_TIMEOUT_MS = 30_000;
-const AI_JUDGE_ATTEMPTS = 2;
 
 async function fetchSignalsByStatus(status: "draft" | "published"): Promise<SignalRow[]> {
   const url = `${API_BASE}/signals?status=${status}&limit=500`;
@@ -184,42 +174,27 @@ async function aiVerdict(signal: SignalRow): Promise<VerdictResult | null> {
     qualityScore: signal.qualityScore ?? null,
     body: signal.bodyMd.slice(0, MAX_BODY_CHARS),
   };
-  let failureClass: FailureClass | null = null;
   try {
-    const response = await fetchWithRetry(
-      (signal) =>
-        fetch(`${AI_BASE_URL.replace(/\/$/, "")}/chat/completions`, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${AI_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: AI_MODEL,
-            temperature: 0.1,
-            max_tokens: 200,
-            stream: false,
-            response_format: { type: "json_object" },
-            messages: [
-              { role: "system", content: JUDGE_SYSTEM },
-              { role: "user", content: JSON.stringify(payload) },
-            ],
-          }),
-          signal,
-        }),
-      {
-        attempts: AI_JUDGE_ATTEMPTS,
-        timeoutMs: AI_JUDGE_TIMEOUT_MS,
-        onResult: (info) => {
-          failureClass = info.class;
-        },
+    const response = await fetch(`${AI_BASE_URL.replace(/\/$/, "")}/chat/completions`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${AI_API_KEY}`,
+        "Content-Type": "application/json",
       },
-    );
+      body: JSON.stringify({
+        model: AI_MODEL,
+        temperature: 0.1,
+        max_tokens: 200,
+        stream: false,
+        response_format: { type: "json_object" },
+        messages: [
+          { role: "system", content: JUDGE_SYSTEM },
+          { role: "user", content: JSON.stringify(payload) },
+        ],
+      }),
+    });
     if (!response.ok) {
-      const cls = classifyStatus(response.status);
-      console.warn(
-        `[auto-publish] AI ${response.status} (${cls}) on ${signal.slug}: ${(await response.text()).slice(0, 160)}`,
-      );
+      console.warn(`[auto-publish] AI ${response.status}: ${(await response.text()).slice(0, 160)}`);
       return null;
     }
     const data = (await response.json()) as {
@@ -234,7 +209,7 @@ async function aiVerdict(signal: SignalRow): Promise<VerdictResult | null> {
     }
     return null;
   } catch (error) {
-    console.warn(`[auto-publish] AI exception on ${signal.slug} (${failureClass ?? "network"}):`, error);
+    console.warn(`[auto-publish] AI exception on ${signal.slug}:`, error);
     return null;
   }
 }
