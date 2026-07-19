@@ -1,0 +1,461 @@
+{
+  "project": "high-signal",
+  "date": "2026-07-19",
+  "generatedAt": "2026-07-19T16:09:49.163Z",
+  "inventoryVersion": 1,
+  "results": {
+    "jobs": [
+      {
+        "id": "cron-ingest",
+        "kind": "ingestion",
+        "trigger": {
+          "type": "schedule",
+          "cron": "0 6 * * *",
+          "tz": "UTC"
+        },
+        "bounds": {
+          "timeoutMinutes": 45,
+          "concurrency": 1,
+          "retryMax": 0
+        },
+        "freshness": {
+          "windowHours": 30,
+          "evidenceSource": "ingest_runs.started_at",
+          "status": "blocked",
+          "observedAtMs": null
+        },
+        "findings": [],
+        "acceptedExceptions": []
+      },
+      {
+        "id": "cron-publish",
+        "kind": "publish",
+        "trigger": {
+          "type": "schedule",
+          "cron": "0 7 * * *",
+          "tz": "UTC"
+        },
+        "bounds": {
+          "timeoutMinutes": 15,
+          "concurrency": 1,
+          "retryMax": 0
+        },
+        "freshness": {
+          "windowHours": 26,
+          "evidenceSource": "signals.published_at max per day",
+          "status": "blocked",
+          "observedAtMs": null
+        },
+        "findings": [],
+        "acceptedExceptions": [
+          "HOLD biases to KILL without AI judge — by design (ADR-008)"
+        ]
+      },
+      {
+        "id": "personal-brief",
+        "kind": "operator-brief",
+        "trigger": {
+          "type": "schedule",
+          "cron": "30 7 * * *",
+          "tz": "UTC"
+        },
+        "bounds": {
+          "timeoutMinutes": 30,
+          "concurrency": 1,
+          "retryMax": 0
+        },
+        "freshness": {
+          "windowHours": 36,
+          "evidenceSource": "daily-source-refreshes.json latestAcceptedAt",
+          "status": "pass",
+          "observedAtMs": 1784417860376.6353
+        },
+        "findings": [],
+        "acceptedExceptions": []
+      },
+      {
+        "id": "cron-backtest",
+        "kind": "backtest",
+        "trigger": {
+          "type": "schedule",
+          "cron": "0 9 * * *",
+          "tz": "UTC"
+        },
+        "bounds": {
+          "timeoutMinutes": 30,
+          "concurrency": 1,
+          "retryMax": 0
+        },
+        "freshness": {
+          "windowHours": 30,
+          "evidenceSource": "git log -1 workers/api/src/lib/label-backtest.json",
+          "status": "pass",
+          "observedAtMs": 1784417860453.5532
+        },
+        "findings": [],
+        "acceptedExceptions": [
+          "Requires CLOUDFLARE_API_TOKEN — fails loudly at wrangler step if missing"
+        ]
+      },
+      {
+        "id": "cron-equities",
+        "kind": "ingestion",
+        "trigger": {
+          "type": "schedule",
+          "cron": "30 21 * * 1-5",
+          "tz": "UTC"
+        },
+        "bounds": {
+          "timeoutMinutes": 45,
+          "concurrency": 1,
+          "retryMax": 0
+        },
+        "freshness": {
+          "windowHours": 30,
+          "evidenceSource": "data/equities-snapshot.jsonl mtime; closes max(trade_date)",
+          "status": "blocked",
+          "observedAtMs": null
+        },
+        "findings": [],
+        "acceptedExceptions": [
+          "Skips Sat/Sun (cron 1-5) — no US market close"
+        ]
+      },
+      {
+        "id": "cron-markets",
+        "kind": "ingestion",
+        "trigger": {
+          "type": "schedule",
+          "cron": "0 */4 * * *",
+          "tz": "UTC"
+        },
+        "bounds": {
+          "timeoutMinutes": 20,
+          "concurrency": 1,
+          "retryMax": 0
+        },
+        "freshness": {
+          "windowHours": 5,
+          "evidenceSource": "market_quotes.fetched_at max",
+          "status": "blocked",
+          "observedAtMs": null
+        },
+        "findings": [],
+        "acceptedExceptions": [
+          "Prediction-market probabilities only — never equity prices (AGENTS.md)"
+        ]
+      },
+      {
+        "id": "cron-score",
+        "kind": "scoring",
+        "trigger": {
+          "type": "schedule",
+          "cron": "30 22 * * *",
+          "tz": "UTC"
+        },
+        "bounds": {
+          "timeoutMinutes": 30,
+          "concurrency": 1,
+          "retryMax": 0
+        },
+        "freshness": {
+          "windowHours": 30,
+          "evidenceSource": "score_runs.run_at max",
+          "status": "blocked",
+          "observedAtMs": null
+        },
+        "findings": [],
+        "acceptedExceptions": [
+          "Only scores signals whose predicted_window_days has elapsed"
+        ]
+      },
+      {
+        "id": "cron-d2c-opportunities",
+        "kind": "ingestion",
+        "trigger": {
+          "type": "schedule",
+          "cron": "0 7 * * 1",
+          "tz": "UTC"
+        },
+        "bounds": {
+          "timeoutMinutes": 30,
+          "concurrency": 1,
+          "retryMax": 0
+        },
+        "freshness": {
+          "windowHours": 168,
+          "evidenceSource": "d2c_niche_snapshots.snapshot_date max",
+          "status": "blocked",
+          "observedAtMs": null
+        },
+        "findings": [],
+        "acceptedExceptions": [
+          "Weekly cadence — freshness window 7 days",
+          "AI overlay falls back to gap=1 'wide-open' entries when AI_API_KEY absent"
+        ]
+      },
+      {
+        "id": "weekly-quality",
+        "kind": "quality-gate",
+        "trigger": {
+          "type": "schedule",
+          "cron": "0 9 * * 1",
+          "tz": "UTC"
+        },
+        "bounds": {
+          "timeoutMinutes": 60,
+          "concurrency": 1,
+          "retryMax": 0
+        },
+        "freshness": {
+          "windowHours": 192,
+          "evidenceSource": "github-actions weekly.yml last run",
+          "status": "blocked",
+          "observedAtMs": null
+        },
+        "findings": [],
+        "acceptedExceptions": []
+      },
+      {
+        "id": "worker-cron-brief-precompute",
+        "kind": "precompute",
+        "trigger": {
+          "type": "worker-cron",
+          "cron": "*/30 * * * *",
+          "tz": "UTC"
+        },
+        "bounds": {
+          "timeoutMinutes": 0,
+          "concurrency": 1,
+          "retryMax": 0,
+          "cpuMsLimit": 30000
+        },
+        "freshness": {
+          "windowHours": 1,
+          "evidenceSource": "daily_brief_snapshots.updated_at",
+          "status": "blocked",
+          "observedAtMs": null
+        },
+        "findings": [],
+        "acceptedExceptions": [
+          "Delivery sweep fail-closes to no-op until EMAIL_FROM + SEND_EMAIL configured (plan 0009)"
+        ]
+      },
+      {
+        "id": "deploy-web",
+        "kind": "deploy",
+        "trigger": {
+          "type": "push",
+          "branches": [
+            "main"
+          ],
+          "paths": [
+            "apps/web/**",
+            "data/equities-snapshot.jsonl",
+            "apps/web/src/data/**"
+          ]
+        },
+        "bounds": {
+          "timeoutMinutes": 30,
+          "concurrency": 1,
+          "retryMax": 0
+        },
+        "freshness": {
+          "windowHours": 720,
+          "evidenceSource": "git commit sha on main; cloudflare dashboard",
+          "status": "blocked",
+          "observedAtMs": null
+        },
+        "findings": [],
+        "acceptedExceptions": [
+          "Production deploy is manual via workflow_dispatch or auto-on-push; never auto-triggered by Foundry"
+        ]
+      },
+      {
+        "id": "deploy-api",
+        "kind": "deploy",
+        "trigger": {
+          "type": "push",
+          "branches": [
+            "main"
+          ],
+          "paths": [
+            "workers/api/**"
+          ]
+        },
+        "bounds": {
+          "timeoutMinutes": 20,
+          "concurrency": 1,
+          "retryMax": 0
+        },
+        "freshness": {
+          "windowHours": 720,
+          "evidenceSource": "git commit sha on main; /health",
+          "status": "blocked",
+          "observedAtMs": null
+        },
+        "findings": [],
+        "acceptedExceptions": [
+          "Production deploy is manual via workflow_dispatch or auto-on-push; never auto-triggered by Foundry"
+        ]
+      },
+      {
+        "id": "ci",
+        "kind": "quality-gate",
+        "trigger": {
+          "type": "push",
+          "branches": [
+            "main"
+          ],
+          "paths": [
+            "**"
+          ],
+          "alsoOn": "pull_request"
+        },
+        "bounds": {
+          "timeoutMinutes": 30,
+          "concurrency": 1,
+          "retryMax": 0
+        },
+        "freshness": {
+          "windowHours": 0,
+          "evidenceSource": "n/a (event-driven, not scheduled)",
+          "status": "not-applicable",
+          "observedAtMs": null
+        },
+        "findings": [],
+        "acceptedExceptions": [
+          "Event-driven (push/PR) — no freshness contract"
+        ]
+      },
+      {
+        "id": "docs-check",
+        "kind": "quality-gate",
+        "trigger": {
+          "type": "push",
+          "branches": [
+            "main"
+          ],
+          "paths": [
+            "docs/**",
+            "agents.md",
+            "STATUS.md",
+            "PROJECT_STATUS.md",
+            "README.md",
+            "SPEC.md",
+            "scripts/docs-check.mjs",
+            ".github/workflows/docs.yml"
+          ],
+          "alsoOn": "pull_request"
+        },
+        "bounds": {
+          "timeoutMinutes": 10,
+          "concurrency": 1,
+          "retryMax": 0
+        },
+        "freshness": {
+          "windowHours": 0,
+          "evidenceSource": "n/a (event-driven, not scheduled)",
+          "status": "not-applicable",
+          "observedAtMs": null
+        },
+        "findings": [],
+        "acceptedExceptions": [
+          "Event-driven (push/PR) — no freshness contract",
+          "Blume (presentation layer) is NOT installed in CI — docs:blume:dev is local-only"
+        ]
+      },
+      {
+        "id": "backfill",
+        "kind": "backfill",
+        "trigger": {
+          "type": "workflow_dispatch"
+        },
+        "bounds": {
+          "timeoutMinutes": 350,
+          "concurrency": 1,
+          "retryMax": 0
+        },
+        "freshness": {
+          "windowHours": 0,
+          "evidenceSource": "n/a (on-demand)",
+          "status": "not-applicable",
+          "observedAtMs": null
+        },
+        "findings": [],
+        "acceptedExceptions": [
+          "On-demand only — no freshness contract"
+        ]
+      },
+      {
+        "id": "backfill-sources",
+        "kind": "backfill",
+        "trigger": {
+          "type": "workflow_dispatch"
+        },
+        "bounds": {
+          "timeoutMinutes": 45,
+          "concurrency": 1,
+          "retryMax": 0
+        },
+        "freshness": {
+          "windowHours": 0,
+          "evidenceSource": "n/a (on-demand)",
+          "status": "not-applicable",
+          "observedAtMs": null
+        },
+        "findings": [],
+        "acceptedExceptions": [
+          "On-demand only — no freshness contract",
+          "Intentionally free: no AI_API_KEY set → free-ai gateway / deterministic drafts"
+        ]
+      }
+    ],
+    "surfaces": [
+      {
+        "id": "web",
+        "kind": "public-surface",
+        "findings": [],
+        "acceptedExceptions": [
+          "No billing conversion target — free product (PROJECT_STATUS.md)",
+          "Clerk production cutover still pending (STATUS.md blockers)"
+        ]
+      },
+      {
+        "id": "api",
+        "kind": "api-worker",
+        "findings": [],
+        "acceptedExceptions": [
+          "Per-route latency histogram not exported — cloudflare observability + /admin/audit/summary are the bounded substitute",
+          "Aggregate $ cost view not built — provider rate limits and spend policy unchanged (proposal non-goal)"
+        ]
+      }
+    ],
+    "unregisteredWorkflows": [],
+    "durabilityOnlyTables": [
+      "enrich",
+      "cluster",
+      "signal_slug",
+      "model",
+      "prompt_version",
+      "latency_ms",
+      "accepted",
+      "reason",
+      "request_json",
+      "response_json",
+      "workflow_dispatch",
+      "raw_hash"
+    ]
+  },
+  "summary": {
+    "counts": {
+      "pass": 2,
+      "fail": 0,
+      "stale": 0,
+      "blocked": 10,
+      "accepted-exception": 0,
+      "not-applicable": 4
+    },
+    "blocking": 0
+  }
+}

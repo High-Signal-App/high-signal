@@ -1,6 +1,6 @@
 # high-signal — PROJECT STATUS
 
-Last updated: 2026-07-16
+Last updated: 2026-07-19
 
 ## Why/What
 
@@ -280,6 +280,16 @@ Python adapters under `python/ingest/src/high_signal_ingest/sources/` — all wi
 - GitHub Actions: `ci.yml`, `cron-ingest.yml`, `cron-score.yml`, `cron-markets.yml`, `cron-equities.yml`, `cron-backtest.yml`, `cron-publish.yml`, `personal-brief.yml`, `weekly.yml`, `backfill.yml`.
 - Personal command brief scripts → SaaS Maker task sync (`pnpm personal:brief sync-tasks --apply`).
 - Annotation worker deploy + contract tests (`pnpm annotation:test`).
+- **Automation readiness (2026-07-19):** machine-readable job inventory
+  (`docs/operations/jobs.json`), data durability registry
+  (`docs/operations/data-durability.md`), Foundry safe-actions registry
+  (`scripts/foundry-safe-actions.json`), coverage audit
+  (`pnpm automation-coverage` → `reports/automation-coverage/<date>.{json,md}`),
+  sanitized Foundry evidence snapshot (`pnpm foundry-evidence` →
+  `reports/foundry-evidence/<date>.json`), and idempotency-guard tests
+  (`pnpm idempotency-guards:test`). No data migration, rate-limit change,
+  credential change, or production deploy. Closes the `automate-high-signal`
+  OpenSpec change.
 
 ## Todo / Planned / Deferred / Blocked
 

@@ -1,0 +1,151 @@
+{
+  "project": "high-signal",
+  "date": "2026-07-19",
+  "generatedAt": "2026-07-19T16:09:49.251Z",
+  "inventoryVersion": 1,
+  "productFunnel": {
+    "status": "fresh",
+    "latestAcceptedDate": "2026-07-18",
+    "latestAcceptedAt": "2026-07-18T09:08:52.789Z",
+    "freshnessHours": 31,
+    "observedSnapshots": 4512,
+    "acceptedSnapshots": 4512,
+    "rejectedSnapshots": 0,
+    "acquisitionSignal": "daily-source-refreshes.json acceptedSnapshots (operator-facing)",
+    "ctaSignal": "n/a — free product, no billing conversion (accepted exception)",
+    "activationSignal": "Clerk sign-in events on /auth (Clerk dashboard — not queried here)",
+    "returnSignal": "daily_brief_snapshots daily refresh (queried below if API reachable)"
+  },
+  "api": {
+    "status": "blocked",
+    "reason": "API_BASE or ADMIN_TOKEN not set — cannot query live API",
+    "healthProbe": null,
+    "auditSummary": null
+  },
+  "costProvider": {
+    "status": "blocked",
+    "reason": "no llm_runs aggregate available (API unreachable or no runs in window)",
+    "models": []
+  },
+  "dataDurability": {
+    "status": "pass",
+    "docPresent": true,
+    "tablesListed": 23,
+    "nonReconstructableEntries": 4,
+    "note": "Operator must back up D1 before destructive actions on non-reconstructable tables (delivery_*, watchlists_*)."
+  },
+  "jobFreshness": [
+    {
+      "id": "cron-ingest",
+      "status": "blocked",
+      "windowHours": 30,
+      "reason": "lifecycle table ingest_runs requires D1 query (API_BASE/ADMIN_TOKEN not used for per-job freshness in this snapshot)"
+    },
+    {
+      "id": "cron-publish",
+      "status": "blocked",
+      "windowHours": 26,
+      "reason": "lifecycle table signals (review_status, published_at) requires D1 query (API_BASE/ADMIN_TOKEN not used for per-job freshness in this snapshot)"
+    },
+    {
+      "id": "personal-brief",
+      "status": "pass",
+      "windowHours": 36,
+      "ageHours": 16.5,
+      "observedAtMs": 1784417860376.6353
+    },
+    {
+      "id": "cron-backtest",
+      "status": "pass",
+      "windowHours": 30,
+      "ageHours": 16.5,
+      "observedAtMs": 1784417860453.5532
+    },
+    {
+      "id": "cron-equities",
+      "status": "blocked",
+      "windowHours": 30,
+      "reason": "no local lifecycle artifact"
+    },
+    {
+      "id": "cron-markets",
+      "status": "blocked",
+      "windowHours": 5,
+      "reason": "lifecycle table market_quotes requires D1 query (API_BASE/ADMIN_TOKEN not used for per-job freshness in this snapshot)"
+    },
+    {
+      "id": "cron-score",
+      "status": "blocked",
+      "windowHours": 30,
+      "reason": "lifecycle table score_runs requires D1 query (API_BASE/ADMIN_TOKEN not used for per-job freshness in this snapshot)"
+    },
+    {
+      "id": "cron-d2c-opportunities",
+      "status": "blocked",
+      "windowHours": 168,
+      "reason": "lifecycle table d2c_niche_snapshots, d2c_agent_visibility requires D1 query (API_BASE/ADMIN_TOKEN not used for per-job freshness in this snapshot)"
+    },
+    {
+      "id": "weekly-quality",
+      "status": "blocked",
+      "windowHours": 192,
+      "reason": "no local lifecycle artifact"
+    },
+    {
+      "id": "worker-cron-brief-precompute",
+      "status": "blocked",
+      "windowHours": 1,
+      "reason": "lifecycle table daily_brief_snapshots, delivery_log requires D1 query (API_BASE/ADMIN_TOKEN not used for per-job freshness in this snapshot)"
+    },
+    {
+      "id": "deploy-web",
+      "status": "blocked",
+      "windowHours": 720,
+      "reason": "no local lifecycle artifact"
+    },
+    {
+      "id": "deploy-api",
+      "status": "blocked",
+      "windowHours": 720,
+      "reason": "no local lifecycle artifact"
+    },
+    {
+      "id": "ci",
+      "status": "not-applicable",
+      "windowHours": 0
+    },
+    {
+      "id": "docs-check",
+      "status": "not-applicable",
+      "windowHours": 0
+    },
+    {
+      "id": "backfill",
+      "status": "not-applicable",
+      "windowHours": 0
+    },
+    {
+      "id": "backfill-sources",
+      "status": "not-applicable",
+      "windowHours": 0
+    }
+  ],
+  "deployment": {
+    "web": {
+      "sha": "[redacted]",
+      "committedAt": "2026-07-19T04:46:01+05:30"
+    },
+    "api": {
+      "sha": "[redacted]",
+      "committedAt": "2026-07-19T04:46:01+05:30"
+    },
+    "note": "Git commit sha on main is the deployment revision evidence. Cloudflare worker revision id is the live probe (not queried here)."
+  },
+  "actionPolicy": {
+    "safeActionsCount": 7,
+    "forbiddenActionsCount": 10,
+    "executeSafeCount": 4,
+    "observeCount": 3,
+    "policy": "Foundry MAY run registry-approved idempotent retries and prepare tasks/PRs. Foundry MUST NOT change editorial claims, ranking, sources, rate limits, data schemas, or production deployment without explicit human approval."
+  }
+}

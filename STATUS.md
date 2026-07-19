@@ -3,7 +3,7 @@
 > Short view of the current objective, active work, blockers, and next steps.
 > The detailed, dated ledger is [`PROJECT_STATUS.md`](PROJECT_STATUS.md)
 > (authoritative for "what shipped and when"). Update both together when active
-> scope changes. Last updated: 2026-07-18.
+> scope changes. Last updated: 2026-07-19.
 
 ## Current objective
 

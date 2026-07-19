@@ -41,11 +41,21 @@ const TSX_SUITES = [
 
 const tsxBin = resolve(ROOT, "node_modules/.bin/tsx");
 
+// Plain-node test suites (no tsx cold-start cost). These run alongside the
+// tsx suites; the runner spawns them concurrently just like the others.
+const NODE_SUITES = [
+  ["automation-coverage", "scripts/automation-coverage.test.mjs"],
+  ["foundry-evidence", "scripts/foundry-evidence.test.mjs"],
+  ["foundry-safe-actions", "scripts/foundry-safe-actions.test.mjs"],
+  ["idempotency-guards", "scripts/idempotency-guards.test.mjs"],
+];
+
 const jobs = [
   // Workspace package tests (equivalent to the old `pnpm -r test`; only
   // workers/api defines a `test` script today — a Vitest run).
   { name: "workers/api (vitest)", cmd: "pnpm", args: ["-r", "test"] },
   ...TSX_SUITES.map(([name, file]) => ({ name, cmd: tsxBin, args: [file] })),
+  ...NODE_SUITES.map(([name, file]) => ({ name, cmd: "node", args: [file] })),
 ];
 
 const concurrency = Math.max(1, Math.min(jobs.length, availableParallelism()));
