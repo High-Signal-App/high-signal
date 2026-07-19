@@ -10,6 +10,11 @@ description: Reference for the GitHub Actions cron jobs and deploy workflows tha
 > dependencies* so the daily pipeline is legible without re-deriving it from
 > YAML. If anything here disagrees with the workflow files, the workflow files
 > win — fix this page.
+>
+> **Machine-readable inventory:** [`jobs.json`](jobs.json) is the
+> automation-readiness registry consumed by `scripts/automation-coverage.mjs`
+> and `scripts/foundry-evidence.mjs`. Every recurring path MUST appear there.
+> Data durability and provenance live in [`data-durability.md`](data-durability.md).
 
 ## Daily pipeline order (UTC)
 

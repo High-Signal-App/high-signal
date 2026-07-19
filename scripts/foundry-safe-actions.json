@@ -1,0 +1,153 @@
+{
+  "$schema": "https://high-signal.app/operations/foundry-safe-actions.json",
+  "version": 1,
+  "project": "high-signal",
+  "policy": {
+    "description": "Foundry MAY run registry-approved idempotent retries and prepare tasks/PRs. Foundry MUST NOT change editorial claims, ranking, sources, rate limits, data schemas, or production deployment without explicit human approval.",
+    "actionLevels": ["observe", "propose", "execute-safe", "approve-required"],
+    "executeSafeRequiresRegistryEntry": true,
+    "everyActionEmitsReceipt": true,
+    "failedVerificationStaysUnresolved": true
+  },
+  "safeActions": [
+    {
+      "id": "refresh-daily-source-snapshot",
+      "actionLevel": "execute-safe",
+      "command": "pnpm daily:snapshot",
+      "workingDirectory": ".",
+      "idempotency": "content-hash skip cache; append-only product-flow-refresh.jsonl",
+      "verification": "git diff --stat apps/web/src/data/daily-source-refreshes.json shows expected date; pnpm daily-automation:test passes",
+      "sideEffects": "writes apps/web/src/data/daily-source-refreshes.json (committed by operator or personal-brief cron)",
+      "maxRetries": 2,
+      "requiresApproval": false
+    },
+    {
+      "id": "refresh-market-snapshot",
+      "actionLevel": "execute-safe",
+      "command": "pnpm market:snapshot",
+      "workingDirectory": ".",
+      "idempotency": "market_quotes hour-bucket id dedupes; artifact overwrite",
+      "verification": "git diff --stat apps/web/src/data/market-refreshes.json; pnpm market-snapshot:test passes",
+      "sideEffects": "writes apps/web/src/data/market-refreshes.json",
+      "maxRetries": 2,
+      "requiresApproval": false
+    },
+    {
+      "id": "sync-signals-force",
+      "actionLevel": "execute-safe",
+      "command": "pnpm signals:sync:remote --force",
+      "workingDirectory": ".",
+      "idempotency": "INSERT OR REPLACE on signals table; signals/*.md is canonical",
+      "verification": "wrangler d1 execute --remote --command 'SELECT count(*) FROM signals WHERE review_status=\\'published\\'' matches signals/*.md count",
+      "sideEffects": "writes D1 signals table (no markdown mutation)",
+      "maxRetries": 2,
+      "requiresApproval": false
+    },
+    {
+      "id": "rebuild-label-backtest",
+      "actionLevel": "execute-safe",
+      "command": "python scripts/backtest-convergence-labels.py",
+      "workingDirectory": ".",
+      "idempotency": "deterministic replay over events+signals; overwrites label-backtest.json",
+      "verification": "git diff workers/api/src/lib/label-backtest.json is non-empty and matches expected label set",
+      "sideEffects": "writes workers/api/src/lib/label-backtest.json (commit triggers deploy-api)",
+      "maxRetries": 2,
+      "requiresApproval": false
+    },
+    {
+      "id": "source-diagnose",
+      "actionLevel": "observe",
+      "command": "pnpm source:diagnose",
+      "workingDirectory": ".",
+      "idempotency": "read-only",
+      "verification": "exit 0",
+      "sideEffects": "none (read-only; never prints secrets)",
+      "maxRetries": 1,
+      "requiresApproval": false
+    },
+    {
+      "id": "automation-coverage-audit",
+      "actionLevel": "observe",
+      "command": "node scripts/automation-coverage.mjs",
+      "workingDirectory": ".",
+      "idempotency": "read-only; writes reports/automation-coverage/<date>.json + .md",
+      "verification": "exit 0 and report has no blocking gaps (or names accepted exceptions)",
+      "sideEffects": "writes reports/automation-coverage/<date>.{json,md}",
+      "maxRetries": 1,
+      "requiresApproval": false
+    },
+    {
+      "id": "foundry-evidence-snapshot",
+      "actionLevel": "observe",
+      "command": "node scripts/foundry-evidence.mjs",
+      "workingDirectory": ".",
+      "idempotency": "read-only; writes reports/foundry-evidence/<date>.json",
+      "verification": "exit 0; snapshot passes sanitization test (no secrets, no content bodies)",
+      "sideEffects": "writes reports/foundry-evidence/<date>.json (sanitized)",
+      "maxRetries": 1,
+      "requiresApproval": false
+    }
+  ],
+  "forbiddenActions": [
+    {
+      "id": "editorial-claim-change",
+      "description": "Edit a published signal's claims, entities, direction, or confidence",
+      "reason": "Signals are append-only (ADR-002). Supersede with a new file citing the prior.",
+      "correctProcess": "Author a new signals/YYYY-MM-DD/<slug>.md citing the prior slug; sync via pnpm signals:sync:remote"
+    },
+    {
+      "id": "ranking-change",
+      "description": "Modify the auto-publish rubric weights, hit-rate ledger, or convergence label definitions without a human-approved PR",
+      "reason": "Ranking changes affect public hit-rate ledger and editorial positioning.",
+      "correctProcess": "Open a PR with the rule change + unit test update; human review and merge"
+    },
+    {
+      "id": "add-source",
+      "description": "Register a new ingest source adapter or change source coverage scope",
+      "reason": "Source scope is a product-direction decision (docs/product/direction.md).",
+      "correctProcess": "Open a PR updating source-catalog.md + source-coverage.md; human review"
+    },
+    {
+      "id": "rate-limit-change",
+      "description": "Tighten or loosen provider rate limits, concurrency caps, or retry budgets",
+      "reason": "Rate-limit changes can starve or flood providers; proposal explicitly forbids.",
+      "correctProcess": "Open a PR with the limit change + rationale; human review"
+    },
+    {
+      "id": "schema-migration",
+      "description": "Apply a D1 migration to production (db:migrate:remote) or add a new migration file as part of an automation change",
+      "reason": "Schema migrations are production mutations; proposal explicitly forbids.",
+      "correctProcess": "Separate PR with migration + meta update; operator applies remotely after review"
+    },
+    {
+      "id": "production-deploy",
+      "description": "Trigger deploy-web.yml or deploy-api.yml via workflow_dispatch from an automation context",
+      "reason": "Production deploys are human-approved; auto-on-push is the only non-human trigger.",
+      "correctProcess": "Operator triggers deploy manually, or pushes to main after CI passes"
+    },
+    {
+      "id": "credential-change",
+      "description": "Rotate, add, or remove GitHub Actions secrets, Cloudflare API tokens, or provider API keys",
+      "reason": "Credential changes are operator-only; AGENTS.md hard rule.",
+      "correctProcess": "Operator updates secrets in GitHub/Cloudflare dashboards"
+    },
+    {
+      "id": "dns-change",
+      "description": "Modify DNS records, custom domains, or Cloudflare zone config",
+      "reason": "DNS changes can break the public surface; operator-only.",
+      "correctProcess": "Operator updates Cloudflare dashboard"
+    },
+    {
+      "id": "data-mutation",
+      "description": "DELETE, UPDATE, or bulk-INSERT into D1 tables outside the registry-approved safe actions",
+      "reason": "Foundry must not mutate production data without approval.",
+      "correctProcess": "Open a PR proposing the mutation with rollback plan; operator review"
+    },
+    {
+      "id": "public-claim",
+      "description": "Publish a new public claim, marketing asset, or changelog entry without human review",
+      "reason": "Public claims are human-approved; AGENTS.md hard rule.",
+      "correctProcess": "Open a PR with the claim; human review and merge"
+    }
+  ]
+}
