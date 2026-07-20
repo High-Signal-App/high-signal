@@ -1,13 +1,13 @@
 {
   "project": "high-signal",
-  "date": "2026-07-19",
-  "generatedAt": "2026-07-19T17:07:31.662Z",
+  "date": "2026-07-20",
+  "generatedAt": "2026-07-20T06:26:05.189Z",
   "inventoryVersion": 1,
   "productFunnel": {
     "status": "fresh",
     "latestAcceptedDate": "2026-07-19",
     "latestAcceptedAt": "2026-07-19T09:27:44.305Z",
-    "freshnessHours": 7.7,
+    "freshnessHours": 21,
     "observedSnapshots": 4581,
     "acceptedSnapshots": 4581,
     "rejectedSnapshots": 0,
@@ -51,14 +51,14 @@
       "id": "personal-brief",
       "status": "pass",
       "windowHours": 36,
-      "ageHours": 0.7,
+      "ageHours": 14,
       "observedAtMs": 1784478267047.9915
     },
     {
       "id": "cron-backtest",
       "status": "pass",
       "windowHours": 30,
-      "ageHours": 0.7,
+      "ageHours": 14,
       "observedAtMs": 1784478267085.492
     },
     {
@@ -133,7 +133,7 @@
   "deployment": {
     "web": {
       "sha": "[redacted]",
-      "committedAt": "2026-07-19T09:27:48Z"
+      "committedAt": "2026-07-20T10:41:13+05:30"
     },
     "api": {
       "sha": "[redacted]",
