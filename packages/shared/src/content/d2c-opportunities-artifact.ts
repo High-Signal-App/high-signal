@@ -16,12 +16,12 @@
 import type { D2COpportunityArtifact } from "./d2c-opportunities";
 
 export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
-  "generatedAt": "2026-07-13T10:23:12.215172+00:00",
+  "generatedAt": "2026-07-20T10:01:35.880444+00:00",
   "region": "IN",
   "niches": [
     {
       "nicheSlug": "hair-growth-scalp-support",
-      "demandScore": 0.85,
+      "demandScore": 0.30000000000000004,
       "competitionScore": null,
       "pricingScore": null,
       "adSaturationScore": null,
@@ -29,56 +29,14 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "evidence": [
         {
           "sourceClass": "community",
-          "url": "https://reddit.com/r/tressless/comments/1uv3g1x/is_there_anything_left_for_me/",
+          "url": "https://reddit.com/r/tressless/comments/1v0lr16/4_months_on_duttopical_min_barely_any_progress/",
           "source": "reddit:tressless",
-          "snippet": "Is there anything left for me? — Losing massive amount of hair despite being on 2.g minoxidil tablets twice a day. Dutasteride 0.g everyday. Also got hai transplant but still losing both native and t…",
-          "observedAt": "2026-07-13T06:22:33+00:00"
-        },
-        {
-          "sourceClass": "community",
-          "url": "https://reddit.com/r/tressless/comments/1uuz29q/45_months_on_finasteride_and_minoxidil/",
-          "source": "reddit:tressless",
-          "snippet": "4.5 Months on Finasteride And Minoxidil — It’s my first time ever after almost 4.5 years of being bald letting my hair grow longer. I’m insanely happy with the results but my hairline is still a Norw…",
-          "observedAt": "2026-07-13T02:36:05+00:00"
-        },
-        {
-          "sourceClass": "community",
-          "url": "https://reddit.com/r/tressless/comments/1uuxgz6/abril_até_agora_em_uso_de_medicação_via_oral/",
-          "source": "reddit:tressless",
-          "snippet": "Abril até agora, em uso de medicação via oral + transplante agendado — Transplante capilar agendado para agosto/27 Em uso de minoxidil 2.5mg + dutasterida 0.5mg Podemos dizer que há uma melhora bacan…",
-          "observedAt": "2026-07-13T01:20:13+00:00"
-        },
-        {
-          "sourceClass": "community",
-          "url": "https://reddit.com/r/tressless/comments/1uuwnko/wasted_a_whole_year_on_an_expensive_natural/",
-          "source": "reddit:tressless",
-          "snippet": "Wasted a whole year on an expensive \"natural treatment\" just to realize I am a hyper responder. — This is more of a vent than anything but was wondering if any of you did the same thing and laugh abo…",
-          "observedAt": "2026-07-13T00:42:27+00:00"
-        },
-        {
-          "sourceClass": "community",
-          "url": "https://reddit.com/r/tressless/comments/1uuvmyx/finally_some_progress_after_2_years_of_fighting/",
-          "source": "reddit:tressless",
-          "snippet": "Finally some progress after 2 years of fighting my aggressive hairloss — Edit: pictures: https://imgur.com/a/iPpDEjy In early 2023, my brother first noticed that he could see my scalp and my hair was…",
-          "observedAt": "2026-07-12T23:57:32+00:00"
-        },
-        {
-          "sourceClass": "community",
-          "url": "https://reddit.com/r/tressless/comments/1uusx9f/breezula_is_the_final_brick_in_the_wall/",
-          "source": "reddit:tressless",
-          "snippet": "Breezula is the final brick in the wall — For many years, us baldingers have been lacking a topical anti-androgen solution. We have system AR inhibitors in Finasteride and Dutasteride. We have growth…",
-          "observedAt": "2026-07-12T22:01:54+00:00"
-        },
-        {
-          "sourceClass": "community",
-          "url": "https://reddit.com/r/tressless/comments/1uus8l3/6_months_with_fin_1mg_and_min_foam/",
-          "source": "reddit:tressless",
-          "snippet": "6 months with fin 1mg and min foam — &amp;#x200B; Decided to start with minoxidilfoam and oral 1mg fin after reviewing this subreddit around end of dec 2025 and been more than 6 months now. I'm very…",
-          "observedAt": "2026-07-12T21:34:01+00:00"
+          "snippet": "4 Months on Dut+Topical Min barely any progress. — As the subject says, I’ve been on dutasteride every other day (EOD) and topical minoxidil for about 4 months. I haven’t seen any major changes yet.…",
+          "observedAt": "2026-07-19T09:12:55+00:00"
         }
       ],
-      "freshnessDate": "2026-07-13T10:21:34.490203+00:00",
-      "notes": "diversity=0.14; community=7 search=0 product=0 ad-library=0 launch=0"
+      "freshnessDate": "2026-07-20T09:58:08.591488+00:00",
+      "notes": "diversity=0.14; community=1 search=0 product=0 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "lip-intimate-skincare-sensitive",
@@ -88,7 +46,7 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-13T10:21:29.443747+00:00",
+      "freshnessDate": "2026-07-20T10:00:35.759879+00:00",
       "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
@@ -99,19 +57,55 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-13T10:21:39.548555+00:00",
+      "freshnessDate": "2026-07-20T09:57:58.506854+00:00",
       "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "beard-dandruff-beard-scalp",
       "demandScore": null,
-      "competitionScore": null,
-      "pricingScore": null,
+      "competitionScore": 0.5,
+      "pricingScore": 0.9,
       "adSaturationScore": null,
       "agentVisibilityScore": null,
-      "evidence": [],
-      "freshnessDate": "2026-07-13T10:21:59.722352+00:00",
-      "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
+      "evidence": [
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B075VPTZGC",
+          "source": "amazon:in",
+          "snippet": "Beardo Godfather Beard Wash for men, 100ml | Aromatic, Woody Scent | Purifying &amp; Hydrating Beard and Skin Cleaner with Avocado Oil, Argan Oil | Beard Shampoo for Clean &amp; Healthy Beard — ₹233 — 4.2 out of 5 — 2,387 ratings",
+          "observedAt": "2026-07-20T10:01:28.375716+00:00"
+        },
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B08W8G1J4R",
+          "source": "amazon:in",
+          "snippet": "Man Matters 1% Salicylic Acid Oil Control Face &amp; Beard Wash For Men| Fights Acne, &amp; Beard Dandruff| 1% Glycolic Acid | Reduces Excess Oil and Exfoliates Skin Gently | 120 ml — ₹229 — 3.8 out of 5 — 873 ratings",
+          "observedAt": "2026-07-20T10:01:28.376403+00:00"
+        },
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B09QWTJR3K",
+          "source": "amazon:in",
+          "snippet": "Beardo Dandruff Control Sulphate Free Shampoo for men 200 ml | Anti Dandruff | Sulphate and Paraben Free | Climbazole, Menthol &amp; Biotin for Dandruff Control &amp; Itchy Scalp — ₹276 — 3.9 out of 5 — 859 ratings",
+          "observedAt": "2026-07-20T10:01:28.376943+00:00"
+        },
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B0GYTVKWWN",
+          "source": "amazon:in",
+          "snippet": "Coco Crush Cold Pressed Coconut Oil for Men | Anti Hairfall Nariyal Tel | Hair Growth &amp; Strong Roots | Lauric Acid Rich | Dandruff Control | Beard &amp; Skin Care | 100ml — ₹182",
+          "observedAt": "2026-07-20T10:01:28.382518+00:00"
+        },
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B07MW961QN",
+          "source": "amazon:in",
+          "snippet": "Dapr. Beard Butter (100 grams) |Hydrating and Nourishing with Shea Butter, Bourbon Oil, Orange Bitters &amp; Hemp Seed oil for Softer &amp; Smoother Beard| — ₹649 — 4.2 out of 5 — 1,372 ratings",
+          "observedAt": "2026-07-20T10:01:28.383051+00:00"
+        }
+      ],
+      "freshnessDate": "2026-07-20T10:01:28.383290+00:00",
+      "notes": "diversity=0.14; community=0 search=0 product=5 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "post-gym-mens-skin-wipes",
@@ -121,7 +115,7 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-13T10:21:09.205036+00:00",
+      "freshnessDate": "2026-07-20T09:53:13.915522+00:00",
       "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
@@ -132,7 +126,7 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-13T10:21:14.246739+00:00",
+      "freshnessDate": "2026-07-20T09:55:36.216147+00:00",
       "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
@@ -145,14 +139,14 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "evidence": [
         {
           "sourceClass": "community",
-          "url": "https://reddit.com/r/motorcycles/comments/1uuzhj6/a_500_mile_review_of_the_ibex_450_from_an/",
-          "source": "reddit:motorcycles",
-          "snippet": "A 500 mile review of the Ibex 450, from an experienced rider — I've been riding for over 20 years, everything from sport bikes to nakeds to dual sports and enduro bikes. Wanted something a little clo…",
-          "observedAt": "2026-07-13T02:56:37+00:00"
+          "url": "https://news.ycombinator.com/item?id=48958273",
+          "source": "hackernews",
+          "snippet": "LG ThinQ Terms of Use",
+          "observedAt": "2026-07-18T14:04:55+00:00"
         }
       ],
-      "freshnessDate": "2026-07-13T10:21:24.325991+00:00",
-      "notes": "diversity=0.14; community=1 search=0 product=0 ad-library=0 launch=0"
+      "freshnessDate": "2026-07-20T09:56:11.804713+00:00",
+      "notes": "diversity=0.14; community=0 search=1 product=0 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "office-chai-healthy-snacks",
@@ -162,7 +156,7 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-13T10:19:54.962871+00:00",
+      "freshnessDate": "2026-07-20T09:54:24.943234+00:00",
       "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
@@ -173,138 +167,132 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-13T10:20:30.378904+00:00",
+      "freshnessDate": "2026-07-20T09:55:00.570029+00:00",
       "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "high-protein-regional-snacks",
       "demandScore": null,
-      "competitionScore": 0.5,
-      "pricingScore": 0.9,
-      "adSaturationScore": null,
-      "agentVisibilityScore": null,
-      "evidence": [
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0G59MC2XP",
-          "source": "amazon:in",
-          "snippet": "Urban Platter Roasted Salted Edamame, 150g (46% Protein, 14% Fiber, Lightly Salted Young Green Soybeans, Highest Plant Protein Supersnack) — ₹195 — 4.3 out of 5 — 386 ratings",
-          "observedAt": "2026-07-13T10:22:56.928888+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0FZHCJ8MT",
-          "source": "amazon:in",
-          "snippet": "Eat Anytime - Multigrain Protein Chips, Peri Peri | 40 g protein per pack | Baked, Not Fried | No Palm Oil | High Protein, Low Calories (under 160) | 150 g — ₹185 — 4.2 out of 5 — 43 ratings",
-          "observedAt": "2026-07-13T10:22:56.929432+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0CWH6TCDJ",
-          "source": "amazon:in",
-          "snippet": "PINTOLA 26g High Protein Oats 400g, Dark Chocolate, No Refined Sugar, with Almonds, Raisins, Pumpkin &amp; Chia Seeds, 9.6g Fibre, Rolled Oats for Weight Loss, Breakfast Cereals | Gluten Free — ₹275 — 4.4 out of 5 — 6,255 ratings",
-          "observedAt": "2026-07-13T10:22:56.930068+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0FQ2RRXMR",
-          "source": "amazon:in",
-          "snippet": "WellNuts &amp; Co. Pan-Roasted Protein Salad Mix (450g) | Non-Fried Healthy Snack | High Protein &amp; Fiber Rich Diet Mix | Zero Cholesterol &amp; Vegan — ₹380 — 4.3 out of 5 — 38 ratings",
-          "observedAt": "2026-07-13T10:22:56.934372+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0FTT4ZFJS",
-          "source": "amazon:in",
-          "snippet": "Superyou Assorted Protein Wafer Mini Bars (Pack Of 10)| 5g Protein | Made with Atta &amp; Jowar | No Added Sugar | Yeast Fermented | Energy Bars | 100% Vegetarian |No Palm Oil | 200g — ₹269 — 4.2 out of 5 — 125 ratings",
-          "observedAt": "2026-07-13T10:22:56.934967+00:00"
-        }
-      ],
-      "freshnessDate": "2026-07-13T10:22:56.935194+00:00",
-      "notes": "diversity=0.14; community=0 search=0 product=5 ad-library=0 launch=0"
-    },
-    {
-      "nicheSlug": "affordable-home-gym-under-5000",
-      "demandScore": 0.85,
-      "competitionScore": null,
-      "pricingScore": null,
-      "adSaturationScore": null,
-      "agentVisibilityScore": null,
-      "evidence": [
-        {
-          "sourceClass": "community",
-          "url": "https://reddit.com/r/homegym/comments/1uuxli6/post_2020_home_gym/",
-          "source": "reddit:homegym",
-          "snippet": "Post 2020 home gym — Home gym I’ve been able to build with the space at my new home. Needing about 4 more mats to even out the flooring.",
-          "observedAt": "2026-07-13T01:26:00+00:00"
-        },
-        {
-          "sourceClass": "community",
-          "url": "https://reddit.com/r/homegym/comments/1uuvshb/first_home_gym/",
-          "source": "reddit:homegym",
-          "snippet": "First Home Gym — Super crowded and not very nice looking on the TV Room but esthetics and space aside, hyped. Road to fitness 2.0 It's a Marcy SM-4033.",
-          "observedAt": "2026-07-13T00:03:30+00:00"
-        },
-        {
-          "sourceClass": "community",
-          "url": "https://reddit.com/r/homegym/comments/1uui5tg/home_gym_the_before/",
-          "source": "reddit:homegym",
-          "snippet": "Home gym: the before — We will be expanding and entirely renovating our home gym. It’s a total mess right now because we still use it and haven’t really optimized the space since we knew we planned t…",
-          "observedAt": "2026-07-12T15:14:15+00:00"
-        },
-        {
-          "sourceClass": "community",
-          "url": "https://reddit.com/r/homegym/comments/1utl73j/pacific_fitness_zuma/",
-          "source": "reddit:homegym",
-          "snippet": "Pacific Fitness Zuma — This is the Pacific Fitness Zuma. It has a series of single pulleys that allow me to do lat pull downs, rows, chest flys, chest press, rear delt flys, curls, tricep extensions,…",
-          "observedAt": "2026-07-11T14:12:13+00:00"
-        },
-        {
-          "sourceClass": "community",
-          "url": "https://reddit.com/r/homegym/comments/1us6nrw/it_aint_much_but_its_all_i_need/",
-          "source": "reddit:homegym",
-          "snippet": "It ain’t much but it’s all I need — Recently bought a house with a two car garage, and have been so excited to get a little home gym set-up. Still a few more things to add, but really happy with how…",
-          "observedAt": "2026-07-09T23:24:44+00:00"
-        },
-        {
-          "sourceClass": "community",
-          "url": "https://reddit.com/r/homegym/comments/1us075u/my_humble_home_gym/",
-          "source": "reddit:homegym",
-          "snippet": "My humble home gym — Making the most of the very small garage in a rental house! I mainly train calisthenics but would like to get a power rack setup I can replace the pull up bar with. It’s been so…",
-          "observedAt": "2026-07-09T19:20:41+00:00"
-        },
-        {
-          "sourceClass": "community",
-          "url": "https://reddit.com/r/homegym/comments/1urxfpb/home_gym_renovation_no_longer_a_garage/",
-          "source": "reddit:homegym",
-          "snippet": "Home gym renovation. No longer a garage.",
-          "observedAt": "2026-07-09T17:44:38+00:00"
-        }
-      ],
-      "freshnessDate": "2026-07-13T10:21:19.286611+00:00",
-      "notes": "diversity=0.14; community=7 search=0 product=0 ad-library=0 launch=0"
-    },
-    {
-      "nicheSlug": "womens-gym-shorts-fit",
-      "demandScore": null,
       "competitionScore": null,
       "pricingScore": null,
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-13T10:18:44.053732+00:00",
+      "freshnessDate": "2026-07-20T10:00:00.287668+00:00",
       "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
+    },
+    {
+      "nicheSlug": "affordable-home-gym-under-5000",
+      "demandScore": 0.7,
+      "competitionScore": null,
+      "pricingScore": null,
+      "adSaturationScore": null,
+      "agentVisibilityScore": null,
+      "evidence": [
+        {
+          "sourceClass": "community",
+          "url": "https://reddit.com/r/homegym/comments/1v0abdq/finally_completed_my_basement_gym_office_man_cave/",
+          "source": "reddit:homegym",
+          "snippet": "Finally completed my basement gym / office / man cave — After going through multiple layouts and equimpent, I think I've finally gotten my optimal home gym set up done 😆 My basement is officially a p…",
+          "observedAt": "2026-07-18T23:12:54+00:00"
+        },
+        {
+          "sourceClass": "community",
+          "url": "https://reddit.com/r/homegym/comments/1uzkvr1/3rd_car_garage_home_gym/",
+          "source": "reddit:homegym",
+          "snippet": "3rd car garage &gt; home gym 🥲 — Went with Rep summit-all-in-one ares 2.0 and all rep accessories 🥲 truly a dream come true. Just need mirrors and a treadmill",
+          "observedAt": "2026-07-18T03:34:26+00:00"
+        },
+        {
+          "sourceClass": "community",
+          "url": "https://reddit.com/r/homegym/comments/1uzgs0j/first_ever_home_gym_nothing_fancy_but_i_love_it/",
+          "source": "reddit:homegym",
+          "snippet": "First ever home Gym. Nothing fancy but I love it. Love the pink too! — Hopefully Southern California sunshine does not wreck this thing lol Bought everything used piece by piece on Facebook marketpla…",
+          "observedAt": "2026-07-18T00:17:23+00:00"
+        },
+        {
+          "sourceClass": "community",
+          "url": "https://reddit.com/r/homegym/comments/1uz6we5/collars_do_you_need_them_what_are_the_best/",
+          "source": "reddit:homegym",
+          "snippet": "Collars - Do you need them? What are the best? — What is up everyone... Welcome to the Targeted Talk... where we take a topic pertinent to the home gym owner and do what we do best... spend way too m…",
+          "observedAt": "2026-07-17T17:50:27+00:00"
+        },
+        {
+          "sourceClass": "community",
+          "url": "https://reddit.com/r/homegym/comments/1uypwly/my_home_gym/",
+          "source": "reddit:homegym",
+          "snippet": "My home gym — waking up whenever, walking 10 seconds across the backyard to my desk, wearing whatever I feel like, and blasting my own playlist all day",
+          "observedAt": "2026-07-17T04:51:47+00:00"
+        }
+      ],
+      "freshnessDate": "2026-07-20T09:57:23.042431+00:00",
+      "notes": "diversity=0.14; community=5 search=0 product=0 ad-library=0 launch=0"
+    },
+    {
+      "nicheSlug": "womens-gym-shorts-fit",
+      "demandScore": 0.30000000000000004,
+      "competitionScore": null,
+      "pricingScore": null,
+      "adSaturationScore": null,
+      "agentVisibilityScore": null,
+      "evidence": [
+        {
+          "sourceClass": "community",
+          "url": "https://reddit.com/r/xxfitness/comments/1v06lon/title_female_judoka_with_muscular_thighs_looking/",
+          "source": "reddit:xxfitness",
+          "snippet": "Title: Female judoka with muscular thighs, looking for advice on reducing chafing — Hi everyone, I’ve been practicing judo for around 11 years and I train about 5 times a week. Because of judo, my th…",
+          "observedAt": "2026-07-18T20:33:28+00:00"
+        }
+      ],
+      "freshnessDate": "2026-07-20T09:53:49.504018+00:00",
+      "notes": "diversity=0.14; community=1 search=0 product=0 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "baby-lotions-transparent-ingredients",
       "demandScore": null,
-      "competitionScore": null,
-      "pricingScore": null,
+      "competitionScore": 0.5,
+      "pricingScore": 0.6,
       "adSaturationScore": null,
       "agentVisibilityScore": null,
-      "evidence": [],
-      "freshnessDate": "2026-07-13T10:23:12.214796+00:00",
-      "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
+      "evidence": [
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B0FGJXZ4H5",
+          "source": "amazon:in",
+          "snippet": "LuvLap Baby Lotion with Milk Protein - 700ml, Suitable for Baby’s Delicate Skin, 24 Hour Protection for Sensitive Skin, Shea Butter and VIT E, Paraben Free, Sweet Almond Oil, Dermatologically Tested — ₹143 — 4.3 out of 5 — 829 ratings",
+          "observedAt": "2026-07-20T10:01:35.874207+00:00"
+        },
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B0G1MWWPTF",
+          "source": "amazon:in",
+          "snippet": "Himalaya Gentle Baby Lotion 400ml with Almond oil, Olive oil, Country Mallow | No.1 Doctor-Prescribed Brand |pH 5.5 formulation | Nourishes and moisturizes your baby&#x27;s skin | Safe for Newborns — ₹322 — 4.3 out of 5 — 3,035 ratings",
+          "observedAt": "2026-07-20T10:01:35.874830+00:00"
+        },
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B0GHXSSGGQ",
+          "source": "amazon:in",
+          "snippet": "Himalaya Gentle Baby Lotion 700ml | with Almond oil, Olive oil, Country Mallow | No.1 Doctor-Prescribed Brand |pH 5.5 formulation | Nourishes and moisturizes your baby&#x27;s skin | Safe for Newborns — ₹449 — 4.3 out of 5 — 3,035 ratings",
+          "observedAt": "2026-07-20T10:01:35.875330+00:00"
+        },
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B07JQYKB61",
+          "source": "amazon:in",
+          "snippet": "Baby Dove Rich Moisture Nourishing Baby Lotion 400 ml, With Moisturising Cream, Gentle Care for Baby&#x27;s Soft Skin — ₹202 — 4.4 out of 5 — 6,737 ratings",
+          "observedAt": "2026-07-20T10:01:35.879375+00:00"
+        },
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B07TWXLK1P",
+          "source": "amazon:in",
+          "snippet": "Cetaphil Baby Daily Lotion, Suitable for baby’s delicate skin, Shea Butter and Vit E, Dermatologist Tested and Pediatrician Recommended, 400 ml — ₹823 — 4.5 out of 5 — 17,586 ratings",
+          "observedAt": "2026-07-20T10:01:35.879932+00:00"
+        }
+      ],
+      "freshnessDate": "2026-07-20T10:01:35.880073+00:00",
+      "notes": "diversity=0.14; community=0 search=0 product=5 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "ayurvedic-face-care-proof-first",
@@ -314,7 +302,7 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-13T10:21:54.685853+00:00",
+      "freshnessDate": "2026-07-20T09:58:49.224499+00:00",
       "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
@@ -325,33 +313,11 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-13T10:22:40.281884+00:00",
+      "freshnessDate": "2026-07-20T10:01:11.375249+00:00",
       "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "pet-health-supplements",
-      "demandScore": null,
-      "competitionScore": null,
-      "pricingScore": null,
-      "adSaturationScore": null,
-      "agentVisibilityScore": null,
-      "evidence": [],
-      "freshnessDate": "2026-07-13T10:19:19.470130+00:00",
-      "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
-    },
-    {
-      "nicheSlug": "oral-care-sub-niches",
-      "demandScore": null,
-      "competitionScore": null,
-      "pricingScore": null,
-      "adSaturationScore": null,
-      "agentVisibilityScore": null,
-      "evidence": [],
-      "freshnessDate": "2026-07-13T10:21:49.640904+00:00",
-      "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
-    },
-    {
-      "nicheSlug": "sleep-stress-support-products",
       "demandScore": 0.30000000000000004,
       "competitionScore": null,
       "pricingScore": null,
@@ -360,14 +326,73 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "evidence": [
         {
           "sourceClass": "community",
-          "url": "https://reddit.com/r/sleep/comments/1uv42us/anyone_else_suddenly_get_stuck_in_this_cycle/",
-          "source": "reddit:sleep",
-          "snippet": "Anyone else suddenly get stuck in this cycle? Daytime sleepiness → can’t sleep at night — My sleep used to be completely normal, but recently this started happening out of nowhere. Yesterday, I was s…",
-          "observedAt": "2026-07-13T06:58:34+00:00"
+          "url": "https://reddit.com/r/dogs/comments/1v0xin5/should_i_foster_fail_again/",
+          "source": "reddit:dogs",
+          "snippet": "Should I foster fail AGAIN — I have 2 elderly small dogs and I regularly foster other dogs and cats for a local rescue. My current foster is a tiny, blind Shih Tzu. She’s the sweetest little thing an…",
+          "observedAt": "2026-07-19T18:04:47+00:00"
         }
       ],
-      "freshnessDate": "2026-07-13T10:18:08.612541+00:00",
+      "freshnessDate": "2026-07-20T09:56:47.456705+00:00",
       "notes": "diversity=0.14; community=1 search=0 product=0 ad-library=0 launch=0"
+    },
+    {
+      "nicheSlug": "oral-care-sub-niches",
+      "demandScore": 0.30000000000000004,
+      "competitionScore": null,
+      "pricingScore": null,
+      "adSaturationScore": null,
+      "agentVisibilityScore": null,
+      "evidence": [
+        {
+          "sourceClass": "community",
+          "url": "https://reddit.com/r/Dentistry/comments/1v03gwx/any_dentists_here_stressed_out_by_clinical/",
+          "source": "reddit:Dentistry",
+          "snippet": "Any dentists here stressed out by clinical complications? — I don't know if it's just me, but I sometimes feel stressed out by complicated cases and certain recalls where the restorations look off. I…",
+          "observedAt": "2026-07-18T18:29:07+00:00"
+        }
+      ],
+      "freshnessDate": "2026-07-20T09:58:03.547271+00:00",
+      "notes": "diversity=0.14; community=1 search=0 product=0 ad-library=0 launch=0"
+    },
+    {
+      "nicheSlug": "sleep-stress-support-products",
+      "demandScore": 0.6000000000000001,
+      "competitionScore": null,
+      "pricingScore": null,
+      "adSaturationScore": null,
+      "agentVisibilityScore": null,
+      "evidence": [
+        {
+          "sourceClass": "community",
+          "url": "https://reddit.com/r/sleep/comments/1v1bswd/overthinking_is_completely_ruining_my_sleep/",
+          "source": "reddit:sleep",
+          "snippet": "Overthinking is completely ruining my sleep quality. Need advice — Basically the title. I’ve always had a hard time falling asleep but lately it’s getting out of hand. My body feels ready to pass out…",
+          "observedAt": "2026-07-20T04:53:08+00:00"
+        },
+        {
+          "sourceClass": "community",
+          "url": "https://reddit.com/r/sleep/comments/1v1bnf9/can_anyone_else_wake_up_whenever_they_tell/",
+          "source": "reddit:sleep",
+          "snippet": "Can anyone else wake up whenever they tell themselves to? — I have tested this a couple of times and it worked somehow. So basically how it worked was that I wanted to test If i can say to myself whe…",
+          "observedAt": "2026-07-20T04:44:50+00:00"
+        },
+        {
+          "sourceClass": "community",
+          "url": "https://reddit.com/r/sleep/comments/1v172uq/waking_up_every_23_hours_and_pretty_scared/",
+          "source": "reddit:sleep",
+          "snippet": "Waking up every 2-3 hours and pretty scared — For years now, more than a decade now, I’ve never gotten 8 hours of uninterrupted sleep. I always wake up every 2-3 hours I’ll go to bed at 12 am, wake u…",
+          "observedAt": "2026-07-20T00:55:01+00:00"
+        },
+        {
+          "sourceClass": "community",
+          "url": "https://reddit.com/r/sleep/comments/1v13krw/if_you_had_to_fall_asleep_to_only_one_sound_for/",
+          "source": "reddit:sleep",
+          "snippet": "If you had to fall asleep to only ONE sound for the rest of your life, what would you choose? — If you could only choose one sound to fall asleep to for the rest of your life, what would it be? Rain?…",
+          "observedAt": "2026-07-19T22:24:00+00:00"
+        }
+      ],
+      "freshnessDate": "2026-07-20T09:52:38.322134+00:00",
+      "notes": "diversity=0.14; community=4 search=0 product=0 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "intimate-hygiene",
@@ -377,7 +402,7 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-13T10:21:44.592281+00:00",
+      "freshnessDate": "2026-07-20T09:58:13.640143+00:00",
       "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
@@ -388,7 +413,7 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-13T10:22:04.776142+00:00",
+      "freshnessDate": "2026-07-20T09:59:24.687039+00:00",
       "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     }
   ]
