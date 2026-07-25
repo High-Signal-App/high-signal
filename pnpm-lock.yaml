@@ -148,6 +148,10 @@ importers:
         version: 4.85.0(@cloudflare/workers-types@4.20260425.1)
 
   packages/shared:
+    dependencies:
+      '@saas-maker/ai-visibility':
+        specifier: file:../../vendor/saas-maker-ai-visibility-0.1.0.tgz
+        version: file:vendor/saas-maker-ai-visibility-0.1.0.tgz
     devDependencies:
       typescript:
         specifier: 6.0.3
@@ -2719,6 +2723,11 @@ packages:
     resolution: {integrity: sha512-BfzEnDJOt9T8M989/lA37EcJgat01wLRnoi5dQf3QzOH7jzpqTAzdDbVfRljVr5r+jzKqpbHeyOfAaXxAd0PAA==}
     cpu: [x64]
     os: [win32]
+
+  '@saas-maker/ai-visibility@file:vendor/saas-maker-ai-visibility-0.1.0.tgz':
+    resolution: {integrity: sha512-Thd0Wvfj/L2lvVJwDy7mcuGHx32pzi5NLtlfGcJZThl+qA/LnMHa7EWxnmpzb2MMd2MAfjr6wSSrD7K9z9tvqA==, tarball: file:vendor/saas-maker-ai-visibility-0.1.0.tgz}
+    version: 0.1.0
+    engines: {node: '>=22'}
 
   '@saas-maker/feedback@0.2.1':
     resolution: {integrity: sha512-ajtrH7t/hhzxrNzX2BU0i5nfGpXNu7w4EQCFBajsuFn255O29trRCu3VNL1NoQhWwypjEEdeaK4DqoEY4zd7rw==}
@@ -9705,6 +9714,8 @@ snapshots:
 
   '@rollup/rollup-win32-x64-msvc@4.62.2':
     optional: true
+
+  '@saas-maker/ai-visibility@file:vendor/saas-maker-ai-visibility-0.1.0.tgz': {}
 
   '@saas-maker/feedback@0.2.1(react-dom@19.2.5(react@19.2.5))(react@19.2.5)':
     dependencies:
