@@ -3,7 +3,7 @@
 > Short view of the current objective, active work, blockers, and next steps.
 > The detailed, dated ledger is [`PROJECT_STATUS.md`](PROJECT_STATUS.md)
 > (authoritative for "what shipped and when"). Update both together when active
-> scope changes. Last updated: 2026-07-19.
+> scope changes. Last updated: 2026-07-25.
 
 ## Current objective
 
@@ -11,7 +11,9 @@ Ship and harden **one product**: the synthesized **Daily Brief** across
 technology / startups / finance, global by default with a free region filter,
 five sections (three public, two brand-connected). Free; no billing. The moat
 is the public hit-rate ledger + cite-or-kill evidence. Auto-publish runs daily
-with no human gate.
+with no human gate. High Signal owns its Git + D1 evidence/search layer;
+Knowledgebase is not a planned dependency unless a future concrete use case
+cannot be served by those stores.
 
 ## Active work (snapshot)
 
@@ -62,4 +64,7 @@ with no human gate.
    `COMPANIES_HOUSE_API_KEY` (highest-value manual signups — see `PROJECT_STATUS.md`).
 4. Keep the Cloudflare CPU abuse guard under observation; convert to a WAF rule
    when zone rules permission is available.
-5. Run `pnpm docs:check` and keep this knowledge base current when scope shifts.
+5. Close the daily-quality leaks observed on 2026-07-25: reject future-dated
+   signal timestamps and enforce the prediction-market-only kill rule on every
+   publishing path, not only the daily draft judge.
+6. Run `pnpm docs:check` and keep this knowledge base current when scope shifts.

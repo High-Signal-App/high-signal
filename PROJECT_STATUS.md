@@ -8,7 +8,7 @@ Last updated: 2026-07-25
 
 **In scope:** Daily Brief (`/` `/brief`), Signals feed, Evidence, Track Record, source ingest pipeline, Markets lens, Communities input, Mentions, Agent Eval, Domains (drank companion), Convergence, Unmapped gazetteer, Equities snapshot, operator review/admin, plans 0008–0012 scaffolds.
 
-**Out / parked:** Lab as product infrastructure, personal/operator cockpit as headline product, standalone equities terminal, standalone communities product, broad source expansion without quality gates, paid tiers, per-platform Mentions fan-out, knowledgebase service dependency.
+**Out / parked:** Lab as product infrastructure, personal/operator cockpit as headline product, standalone equities terminal, standalone communities product, broad source expansion without quality gates, paid tiers, per-platform Mentions fan-out, Knowledgebase integration/dependency. High Signal's current evidence is already queryable through its Git signal store and D1 APIs; revisit only for a concrete retrieval use case those stores cannot serve.
 
 ## Dependencies
 
@@ -90,6 +90,16 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 
 ## Timeline
 
+- **2026-07-25** — Cancelled the deferred Knowledgebase integration plan. High
+  Signal does not currently need private-corpus search: its public evidence,
+  signals, and Daily Brief already use the product-owned Git + D1 path.
+  Read-only production verification found successful ingest and publish
+  workflows on each of the last 12 days, 25–33 publishable signals per day over
+  the latest eight-day window, and a populated five-section Daily Brief. The
+  same audit found one future-dated row and prediction-market-only rows entering
+  through publishing paths outside the daily draft judge; that bounded quality
+  follow-up is tracked in `STATUS.md`. No deploy, migration, or production
+  change was made.
 - **2026-07-25** — Replaced High Signal's duplicated AI-visibility analysis,
   judge, aggregation, and reporting internals with the framework-independent
   Fleet package. Product-owned D1, auth, providers, schedules, APIs, Daily
