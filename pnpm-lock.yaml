@@ -2725,7 +2725,7 @@ packages:
     os: [win32]
 
   '@saas-maker/ai-visibility@file:vendor/saas-maker-ai-visibility-0.1.0.tgz':
-    resolution: {integrity: sha512-Thd0Wvfj/L2lvVJwDy7mcuGHx32pzi5NLtlfGcJZThl+qA/LnMHa7EWxnmpzb2MMd2MAfjr6wSSrD7K9z9tvqA==, tarball: file:vendor/saas-maker-ai-visibility-0.1.0.tgz}
+    resolution: {integrity: sha512-c3EXwIhiRt21ZzX8grBm9HWT/sZ+7idsSfV3KmjZ+8RC7OxFD4CF8HYOV2p0wImroyQiKA9U6Mi0H13vmo2bng==, tarball: file:vendor/saas-maker-ai-visibility-0.1.0.tgz}
     version: 0.1.0
     engines: {node: '>=22'}
 
