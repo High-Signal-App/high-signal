@@ -22,6 +22,7 @@ export interface ChatCompletionOptions {
   maxTokens?: number;
   stream?: boolean;
   headers?: Record<string, string>;
+  signal?: AbortSignal;
 }
 
 const PROJECT_ID = 'high-signal';
@@ -42,7 +43,15 @@ function buildChatUrl(endpointUrl: string): string {
  * Response so callers handle streaming or JSON parsing as needed.
  */
 export async function fetchChatCompletion(options: ChatCompletionOptions): Promise<Response> {
-  const { config, messages, systemPrompt, maxTokens = 4096, stream = true, headers: extraHeaders = {} } = options;
+  const {
+    config,
+    messages,
+    systemPrompt,
+    maxTokens = 4096,
+    stream = true,
+    headers: extraHeaders = {},
+    signal,
+  } = options;
   const url = buildChatUrl(config.endpointUrl);
   const allMessages: ChatMessage[] = [];
   if (systemPrompt) allMessages.push({ role: 'system', content: systemPrompt });
@@ -61,5 +70,6 @@ export async function fetchChatCompletion(options: ChatCompletionOptions): Promi
       max_tokens: maxTokens,
       stream,
     }),
+    signal,
   });
 }
