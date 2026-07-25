@@ -30,7 +30,7 @@ jobs:
       - uses: astral-sh/setup-uv@v8.1.0
       - uses: actions/setup-python@v6
         with: { python-version: "3.11" }
-      - run: uv sync --dev --locked
+      - run: uv sync --dev
       - run: uv run ruff check --select E4,E7,E9,F src
       - run: uv run python -m high_signal_ingest.preflight
       - run: uv run pytest -q
