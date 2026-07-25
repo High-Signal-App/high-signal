@@ -1,6 +1,10 @@
 import { BackLink, HeroHeader, PageShell } from '@/components/system/HighSignalUI';
 
+import { SITE_URL } from '@/lib/site';
 export const metadata = {
+  // Self-canonical: the root layout deliberately sets none (a site-wide
+  // canonical de-indexes the corpus), so a route without this ships none.
+  alternates: { canonical: `${SITE_URL}/domains` },
   title: 'Domains — Web Authority Signals',
   description:
     'Leaderboard of high-signal websites by Ahrefs Domain Rating (DR). Companion lens powered by the drank app.',

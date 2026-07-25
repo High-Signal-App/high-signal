@@ -8,6 +8,7 @@ import { ConfidenceBadge } from '@/components/atoms/ConfidenceBadge';
 import { MarkdownView } from '@/components/system/MarkdownView';
 import { SignalArticleJsonLd } from '@/components/seo/structured-data';
 import catalog from '@/lib/source-catalog.json';
+import { SITE_URL } from '@/lib/site';
 
 export const dynamic = 'force-dynamic';
 
@@ -85,10 +86,15 @@ export async function generateMetadata({
     return {
       title: headline,
       description,
+      // Self-canonical: the root layout deliberately sets none (a site-wide
+      // canonical de-indexes the corpus), so a route without this ships no
+      // canonical at all. This is the highest-volume route in the sitemap.
+      alternates: { canonical: `${SITE_URL}/signals/${slug}` },
       openGraph: {
         title: headline,
         description,
         type: 'article',
+        url: `${SITE_URL}/signals/${slug}`,
         images: [{ url: ogImage, width: 1200, height: 630, alt: headline }],
       },
       twitter: {
@@ -99,7 +105,7 @@ export async function generateMetadata({
       },
     };
   } catch {
-    return { title: 'Signal' };
+    return { title: 'Signal', alternates: { canonical: `${SITE_URL}/signals/${slug}` } };
   }
 }
 

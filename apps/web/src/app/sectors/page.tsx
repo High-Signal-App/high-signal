@@ -1,7 +1,13 @@
 import { api } from '@/lib/api';
 
+import { SITE_URL } from '@/lib/site';
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'Sectors' };
+export const metadata = {
+  // Self-canonical: the root layout deliberately sets none (a site-wide
+  // canonical de-indexes the corpus), so a route without this ships none.
+  alternates: { canonical: `${SITE_URL}/sectors` },
+  title: 'Sectors',
+};
 
 interface Props {
   searchParams: Promise<{ days?: string }>;

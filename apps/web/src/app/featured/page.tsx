@@ -8,9 +8,13 @@ import { MarkdownView } from '@/components/system/MarkdownView';
 import { api } from '@/lib/api';
 import { isBackfillSignal, signalHeadline, signalSummary } from '@/lib/signal-format';
 
+import { SITE_URL } from '@/lib/site';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
+  // Self-canonical: the root layout deliberately sets none (a site-wide
+  // canonical de-indexes the corpus), so a route without this ships none.
+  alternates: { canonical: `${SITE_URL}/featured` },
   title: 'Featured signal',
   description: 'One high-confidence signal surfaced fresh on every load.',
 };

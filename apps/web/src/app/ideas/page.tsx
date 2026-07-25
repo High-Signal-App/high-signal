@@ -17,8 +17,14 @@ import {
   type IdeaFlowEvidence,
 } from '@high-signal/shared';
 
+import { SITE_URL } from '@/lib/site';
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'Idea Intelligence' };
+export const metadata = {
+  // Self-canonical: the root layout deliberately sets none (a site-wide
+  // canonical de-indexes the corpus), so a route without this ships none.
+  alternates: { canonical: `${SITE_URL}/ideas` },
+  title: 'Idea Intelligence',
+};
 
 const DEFAULT_IDEA =
   'A source-linked product intelligence tool that tells founders which product ideas are getting pulled by market, community, and AI visibility signals.';

@@ -2,8 +2,12 @@ import { requireAdmin } from '@/lib/clerk-admin';
 import { api, type TrackBucket } from '@/lib/api';
 import { TrackRecordDatasetJsonLd } from '@/components/seo/structured-data';
 
+import { SITE_URL } from '@/lib/site';
 export const dynamic = 'force-dynamic';
 export const metadata = {
+  // Self-canonical: the root layout deliberately sets none (a site-wide
+  // canonical de-indexes the corpus), so a route without this ships none.
+  alternates: { canonical: `${SITE_URL}/track-record` },
   title: 'Public hit-rate ledger',
   description:
     'Every published High Signal market call scored against subsequent market moves. Live forward predictions and historical-replay calibrations, broken down by signal type. The moat is the number being public.',

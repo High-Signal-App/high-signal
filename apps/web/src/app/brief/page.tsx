@@ -5,8 +5,14 @@ import { api, type BriefSnapshot } from '@/lib/api';
 import { getRequestAuth } from '@/lib/require-auth';
 import { findSeedProduct, isRegion, type Region } from '@high-signal/shared';
 
+import { SITE_URL } from '@/lib/site';
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'Daily Brief' };
+export const metadata = {
+  // Self-canonical: the root layout deliberately sets none (a site-wide
+  // canonical de-indexes the corpus), so a route without this ships none.
+  alternates: { canonical: `${SITE_URL}/brief` },
+  title: 'Daily Brief',
+};
 
 const EMPTY_BRIEF: BriefSnapshot = {
   generatedAt: new Date().toISOString(),

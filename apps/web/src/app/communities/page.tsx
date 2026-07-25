@@ -14,8 +14,14 @@ import { redditSourceLink } from '@high-signal/shared';
 import { getRequestAuth, requireSignedIn } from '@/lib/require-auth';
 import { revalidatePath } from 'next/cache';
 
+import { SITE_URL } from '@/lib/site';
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'Community Intelligence' };
+export const metadata = {
+  // Self-canonical: the root layout deliberately sets none (a site-wide
+  // canonical de-indexes the corpus), so a route without this ships none.
+  alternates: { canonical: `${SITE_URL}/communities` },
+  title: 'Community Intelligence',
+};
 
 async function trackSubreddit(formData: FormData) {
   'use server';

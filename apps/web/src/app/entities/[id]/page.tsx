@@ -1,10 +1,35 @@
+import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { api } from '@/lib/api';
 import { SignalCard } from '@/components/molecules/SignalCard';
 import { SpilloverGraph } from '@/components/organisms/SpilloverGraph';
+import { SITE_URL } from '@/lib/site';
 import WatchButton from './WatchButton';
 
 export const dynamic = 'force-dynamic';
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  // Without this the 337 sitemapped entity pages ship the site-default title
+  // and no canonical at all — the /entities/[id]/[period] child already
+  // self-canonicalises, this parent was missed.
+  const base: Metadata = { alternates: { canonical: `${SITE_URL}/entities/${id}` } };
+  try {
+    const { entity } = await api.entity(id);
+    const label = entity.ticker ? `${entity.name} (${entity.ticker})` : entity.name;
+    return {
+      ...base,
+      title: `${label} — signals`,
+      description: `Every published High Signal call tied to ${label}, with citations, directional confidence, and the spillover map of related entities.`,
+    };
+  } catch {
+    return { ...base, title: `${id} — signals` };
+  }
+}
 
 // Public: individual entity pages list the public signals tied to that entity.
 export default async function EntityPage({ params }: { params: Promise<{ id: string }> }) {

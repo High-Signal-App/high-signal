@@ -25,8 +25,14 @@ import {
   type OpportunityBriefPayload,
 } from '@high-signal/shared';
 
+import { SITE_URL } from '@/lib/site';
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'Product Opportunities' };
+export const metadata = {
+  // Self-canonical: the root layout deliberately sets none (a site-wide
+  // canonical de-indexes the corpus), so a route without this ships none.
+  alternates: { canonical: `${SITE_URL}/opportunities` },
+  title: 'Product Opportunities',
+};
 
 const fallbackFlows: IdeaFlowEvidence[] = [
   {

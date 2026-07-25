@@ -2,8 +2,14 @@ import { api, type SignalRow } from '@/lib/api';
 import { isBackfillSignal } from '@/lib/signal-format';
 import { SignalCard } from '@/components/molecules/SignalCard';
 
+import { SITE_URL } from '@/lib/site';
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'Weekly digest' };
+export const metadata = {
+  // Self-canonical: the root layout deliberately sets none (a site-wide
+  // canonical de-indexes the corpus), so a route without this ships none.
+  alternates: { canonical: `${SITE_URL}/digest` },
+  title: 'Weekly digest',
+};
 
 // Public per agents.md: weekly digest is a public output channel.
 export default async function DigestPage() {

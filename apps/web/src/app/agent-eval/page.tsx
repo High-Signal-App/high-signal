@@ -22,8 +22,14 @@ import {
 import type { Route } from 'next';
 import { redirect } from 'next/navigation';
 
+import { SITE_URL } from '@/lib/site';
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'Agent Evaluation' };
+export const metadata = {
+  // Self-canonical: the root layout deliberately sets none (a site-wide
+  // canonical de-indexes the corpus), so a route without this ships none.
+  alternates: { canonical: `${SITE_URL}/agent-eval` },
+  title: 'Agent Evaluation',
+};
 
 const DEFAULT_EVIDENCE = `High Signal extracts actionable signals from noisy public and semi-public information streams.
 It serves operators and builders who need evidence-backed product, community, mention, and market intelligence.

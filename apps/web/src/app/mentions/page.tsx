@@ -14,8 +14,14 @@ import { analyzeMentionVisibility, type AIPlatform } from '@high-signal/shared';
 import { requireSignedIn } from '@/lib/require-auth';
 import { revalidatePath } from 'next/cache';
 
+import { SITE_URL } from '@/lib/site';
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'Mention Intelligence' };
+export const metadata = {
+  // Self-canonical: the root layout deliberately sets none (a site-wide
+  // canonical de-indexes the corpus), so a route without this ships none.
+  alternates: { canonical: `${SITE_URL}/mentions` },
+  title: 'Mention Intelligence',
+};
 
 const PLATFORM_OPTIONS: AIPlatform[] = ['openai', 'anthropic', 'google', 'perplexity', 'custom'];
 

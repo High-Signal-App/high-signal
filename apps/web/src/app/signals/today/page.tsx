@@ -26,12 +26,17 @@ import {
 } from '@/lib/daily-intelligence';
 import productGraph from '../../../../../../data/personal-product-graph.json';
 import type { PersonalProductProfile } from '@high-signal/shared';
+import { SITE_URL } from '@/lib/site';
 
 export const dynamic = 'force-dynamic';
 export const metadata = {
   title: 'Today',
   description:
     'Signals published in the last 24 hours, sorted by confidence. The morning-coffee surface for analysts who only have time for the freshest reads.',
+  // Self-canonical: the root layout deliberately sets none (a site-wide
+  // canonical de-indexes the corpus), so a route without this ships no
+  // canonical at all.
+  alternates: { canonical: `${SITE_URL}/signals/today` },
 };
 
 const CONFIDENCE_RANK: Record<string, number> = { high: 0, medium: 1, low: 2 };

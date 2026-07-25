@@ -2,7 +2,11 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import type { Route } from 'next';
 
+import { SITE_URL } from '@/lib/site';
 export const metadata: Metadata = {
+  // Self-canonical: the root layout deliberately sets none (a site-wide
+  // canonical de-indexes the corpus), so a route without this ships none.
+  alternates: { canonical: `${SITE_URL}/explore` },
   title: 'Explore — every surface in High Signal',
   description:
     'Sitemap of every reachable page in High Signal — the daily brief, lenses (markets, mentions, agent eval, domains, communities, lab), settings, operator surfaces, and supporting docs.',
