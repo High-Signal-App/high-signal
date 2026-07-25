@@ -1,7 +1,13 @@
 import { api, type EntityRow } from '@/lib/api';
+import { SITE_URL } from '@/lib/site';
 
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'Entities' };
+export const metadata = {
+  title: 'Entities',
+  // Self-canonical: the root layout deliberately sets none (a site-wide
+  // canonical de-indexes the corpus), so a route without this ships none.
+  alternates: { canonical: `${SITE_URL}/entities` },
+};
 
 // Public: the entity corpus is part of the signal context that consumers
 // of /signals need to navigate the spillover graph.

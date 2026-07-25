@@ -84,12 +84,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'weekly',
       priority: 0.85,
     },
-    {
-      url: `${SITE_URL}/case-studies/search`,
-      lastModified: now,
-      changeFrequency: 'weekly',
-      priority: 0.7,
-    },
+    // /case-studies/search is intentionally omitted: it declares
+    // `robots: { index: false }`, so advertising it here makes the sitemap
+    // contradict the page and wastes crawl budget on a parameterised search UI.
     {
       url: `${SITE_URL}/teardowns`,
       lastModified: now,
