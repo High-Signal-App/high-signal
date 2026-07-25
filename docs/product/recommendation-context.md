@@ -1,10 +1,17 @@
 # Project Recommendation Context
 
-Generated: 2026-06-06T21:14:19.566Z (tooling note refreshed 2026-06-20)
+Generated: 2026-06-06T21:14:19.566Z (boundary guidance refreshed 2026-07-25)
 
 This file is a CodeVetter Repo Unpacked-inspired audit written for Starboard recommendations. It is intentionally local, evidence-oriented, and safe to commit: it records product context, feature areas, stack inventory, and recommendation guidance without secrets or environment values.
 
 **2026-06-20:** Removed `@saas-maker/eslint-config`, `@saas-maker/prettier-config`, `@saas-maker/tsconfig`, `@saas-maker/ops`, `@saas-maker/ai`, and `@saas-maker/analytics-sdk`. Local eslint/tsconfig + `workers/api/src/lib/ai-client.ts`; root lint via Biome.
+
+**2026-07-25:** High Signal now consumes the reviewed packed
+`@saas-maker/ai-visibility` engine. High Signal remains authoritative for
+connected brands, D1 data, provider configuration, auth, schedules, Daily
+Brief, Mentions routes, reports, and customer UI. Foundry may consume only
+normalized visibility evidence and recommendations; do not propose another
+mention engine, customer-data store, or approval queue.
 
 ## Project Identity
 
@@ -156,6 +163,9 @@ Good matches:
 
 Avoid recommending:
 - Do not recommend packages already listed under direct or development dependencies unless the task is migration research.
+- Do not recommend another AI-visibility engine, provider scheduler, or
+  cross-product control plane; extend the shared package contract or the
+  product-owned adapter instead.
 - Do not recommend broad framework replacements unless the project context explicitly calls for a rewrite.
 - Downrank curated lists, archived repos, stale demos, and generic UI kits that do not map to the feature catalog.
 
