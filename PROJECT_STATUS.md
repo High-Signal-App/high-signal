@@ -1,6 +1,6 @@
 # high-signal — PROJECT STATUS
 
-Last updated: 2026-07-19
+Last updated: 2026-07-25
 
 ## Why/What
 
@@ -28,6 +28,9 @@ Last updated: 2026-07-19
 
 - **drank:** Web authority companion — `/domains` lens; data via public GitHub JSON + `pnpm drank:sync`.
 - **starboard / researchPapers:** Cross-repo ingest adapters referenced from README pipeline list.
+- **Fleet AI visibility package:** High Signal consumes the reviewed
+  `@saas-maker/ai-visibility` packed artifact while retaining ownership of its
+  providers, D1 data, auth, schedules, routes, Daily Brief, reports, and UI.
 - **SaaS Maker:** Personal command brief scripts sync tasks via `pnpm personal:brief sync-tasks --apply`.
 
 - Next.js web app and Cloudflare Worker API monorepo are in place.
@@ -87,6 +90,12 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 
 ## Timeline
 
+- **2026-07-25** — Replaced High Signal's duplicated AI-visibility analysis,
+  judge, aggregation, and reporting internals with the framework-independent
+  Fleet package. Product-owned D1, auth, providers, schedules, APIs, Daily
+  Brief, reports, and customer UI remain in High Signal. Adapter/Mention parity,
+  TypeScript, docs, web build, and CI passed; no deploy, migration, credential,
+  or production-config change was made.
 - **2026-07-25** — Cancelled the unimplemented public AI Evidence Report
   proposal. High Signal remains focused on its existing private monitoring,
   Mentions, briefs, and evidence surfaces rather than adding a public report
