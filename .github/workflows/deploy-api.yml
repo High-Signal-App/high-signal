@@ -18,5 +18,6 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: workers/api
+          command: deploy --tag ${{ github.sha }}
       - name: Smoke production API
         run: curl --fail --silent --show-error --location --max-time 30 https://high-signal-api.sarthakagrawal927.workers.dev/health >/dev/null

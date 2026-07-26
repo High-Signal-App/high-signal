@@ -25,8 +25,8 @@ The daily cycle is sequenced so each stage consumes the previous stage's output:
 | 06:00 | `cron-ingest.yml` | Daily `--source all --days 1` ingest run → events → draft signals into `signals/YYYY-MM-DD/`. |
 | 07:00 | `cron-publish.yml` | Two-tier auto-publish judge (deterministic rules → AI on HOLD). Clears the draft queue without a human gate. 1h after ingest, 30min before personal-brief. |
 | 07:30 | `personal-brief.yml` | Operator personal command brief refresh + SaaS Maker task sync. Runs after ingest so it sees the day's signals. |
-| 09:00 | `cron-backtest.yml` | Replay convergence labels → next-24h hit-rates → `workers/api/src/lib/label-backtest.json`. Well clear of `cron-equities` (21:30 UTC). Committing that file redeploys the API Worker. |
-| 21:30 (Mon–Fri) | `cron-equities.yml` | The **only** scheduled public stock-price ingress. yfinance EOD after US close → `data/equities-snapshot.jsonl` + derived bundles. A push to main auto-triggers `deploy-web.yml`. |
+| 09:00 | `cron-backtest.yml` | Replay convergence labels → next-24h hit-rates → `workers/api/src/lib/label-backtest.json`. Well clear of `cron-equities` (21:30 UTC). The commit ships with the next manual API deploy. |
+| 21:30 (Mon–Fri) | `cron-equities.yml` | The **only** scheduled public stock-price ingress. yfinance EOD after US close → `data/equities-snapshot.jsonl` + derived bundles. The commit ships with the next manual web deploy. |
 | 22:30 | `cron-score.yml` | Daily scoring for matured signal windows (after US market close). |
 
 ## High-frequency
@@ -48,7 +48,7 @@ The daily cycle is sequenced so each stage consumes the previous stage's output:
 | --- | --- |
 | `backfill.yml` | Historical replay for track-record scoring (e.g. `gdelt,edgar` over a date range). |
 | `backfill-sources.yml` | Wide-window backfill to populate D1 events for sources the daily `--days 1` cron leaves empty. Intentionally free (no AI key set → free-ai gateway / deterministic drafts). |
-| `deploy-web.yml` | Deploy `high-signal-web` Worker (also auto-triggers on push to main). |
+| `deploy-web.yml` | Manually deploy `high-signal-web` with the dispatched Git SHA attached to the Worker version. |
 | `deploy-api.yml` | Deploy `high-signal-api` Worker. |
 
 There are only two deploy workflows (`deploy-web.yml`, `deploy-api.yml`). The

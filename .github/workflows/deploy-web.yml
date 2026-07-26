@@ -4,7 +4,6 @@ on:
   workflow_dispatch:
 jobs:
   deploy-production:
-    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -18,7 +17,7 @@ jobs:
         working-directory: apps/web
         env:
           SKIP_NEXT_APP_BUILD: "false"
-      - run: pnpm exec opennextjs-cloudflare deploy
+      - run: pnpm exec opennextjs-cloudflare deploy --tag "$GITHUB_SHA"
         working-directory: apps/web
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
