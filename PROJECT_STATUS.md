@@ -15,7 +15,7 @@ Last updated: 2026-07-25
 ### External
 
 - **Auth:** Clerk (app shell, admin proxy). Worker admin routes use `ADMIN_TOKEN` bearer.
-- **Deploy:** Cloudflare Workers — `high-signal-web`, `high-signal-api`, D1 `high-signal-db`; annotation worker separate deploy.
+- **Deploy:** Cloudflare Workers — `high-signal-web`, `high-signal-api`, D1 `high-signal-db`; annotation runs in-process.
 - **Email:** Cloudflare `send_email` binding (`SEND_EMAIL`) for brief delivery (plan 0009).
 - **AI:** OpenAI-compatible endpoint via `AI_BASE_URL`, `AI_API_KEY`, `AI_MODEL`, `HIGH_SIGNAL_AI_API_KEY`.
 - **Ingest sources:** SEC EDGAR, HKEX, yfinance, Polymarket/Manifold/Kalshi/Metaculus, GDELT, RSS, Guardian, FRED, Semantic Scholar, Bluesky, Podcast Index, NVD, CISA KEV, the official YC/Antler/a16z/Techstars directories, and 50+ other adapters (see ingest pipeline). 55 catalog sources, 43 with live data in D1 (180K+ events).
@@ -301,7 +301,7 @@ Python adapters under `python/ingest/src/high_signal_ingest/sources/` — all wi
 - Admin worker routes: sync, scores, events, quotes, ingest-runs, llm-runs, audit summary, pending-scores, backfill-entities.
 - GitHub Actions: `ci.yml`, `cron-ingest.yml`, `cron-score.yml`, `cron-markets.yml`, `cron-equities.yml`, `cron-backtest.yml`, `cron-publish.yml`, `personal-brief.yml`, `weekly.yml`, `backfill.yml`.
 - Personal command brief scripts → SaaS Maker task sync (`pnpm personal:brief sync-tasks --apply`).
-- Annotation worker deploy + contract tests (`pnpm annotation:test`).
+- In-process lightweight annotation with contract tests (`pnpm annotation:test`).
 - **Automation readiness (2026-07-19):** machine-readable job inventory
   (`docs/operations/jobs.json`), data durability registry
   (`docs/operations/data-durability.md`), Foundry safe-actions registry
