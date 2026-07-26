@@ -4,9 +4,8 @@ name: cron-backtest
 # rendered on /convergence tooltips and /track-record/labels. The
 # script replays historical convergence labels against the events +
 # signals tables, computes the next-24h hit-rate per label, and writes
-# the result to workers/api/src/lib/label-backtest.json. Committing
-# that file matches the workers/api/** path filter on deploy-api.yml,
-# which redeploys the Worker so the new numbers go live automatically.
+# the result to workers/api/src/lib/label-backtest.json. The commit is
+# included the next time deploy-api.yml is manually dispatched.
 #
 # Requires the CLOUDFLARE_API_TOKEN secret — the backtest queries D1 remote
 # via wrangler. If the token is missing or expired the script will

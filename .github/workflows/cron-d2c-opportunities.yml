@@ -12,8 +12,8 @@ name: cron-d2c-opportunities
 #     gap=1 "wide-open" entries when absent)
 #   - ADMIN_TOKEN + API_BASE secrets (already used by cron-ingest)
 #
-# A push to main triggers deploy-web.yml automatically, so the bundled
-# artifact is live within minutes of this workflow completing.
+# This workflow commits the bundled artifact to main but does not deploy it.
+# Dispatch deploy-web.yml when the accumulated web changes are ready to ship.
 
 on:
   schedule:
@@ -100,7 +100,7 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: pnpm d2c:sync-av:remote
 
-      # ── Commit the bundled artifact so deploy-web picks it up ───────────
+      # ── Commit the bundled artifact for the next manual web deploy ──────
       - name: commit refreshed artifact
         run: |
           git config user.name  "github-actions[bot]"

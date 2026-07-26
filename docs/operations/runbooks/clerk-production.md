@@ -24,7 +24,7 @@ ideal for a real public domain.
 - Replace `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` in `apps/web/wrangler.toml` with `pk_live_…`.
 - Set the secret on the production Worker:
   `cd apps/web && pnpm wrangler secret put CLERK_SECRET_KEY`  (paste `sk_live_…`)
-- Redeploy (push to `main`).
+- Manually dispatch `deploy-web.yml` for the intended `main` revision.
 
 ## Already done (related)
 

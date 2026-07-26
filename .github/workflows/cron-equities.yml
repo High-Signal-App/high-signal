@@ -3,7 +3,7 @@ name: cron-equities
 # Daily after US close: this is the only scheduled public stock-price ingress.
 # Pull universe + closes via yfinance, compute the Tier 1 snapshot, regenerate
 # derived bundles, and commit the artifacts.
-# A push to main triggers deploy-web.yml automatically.
+# Dispatch deploy-web.yml when the accumulated web changes are ready to ship.
 
 on:
   schedule:
@@ -58,7 +58,7 @@ jobs:
       - name: bundle known-tickers.json for Worker
         run: pnpm tickers:bundle
 
-      # ── Commit + push so deploy-web picks it up ─────────────────────────
+      # ── Commit + push for the next manual web deploy ────────────────────
       - name: commit refreshed artifacts
         run: |
           git config user.name  "github-actions[bot]"
