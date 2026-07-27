@@ -3,9 +3,7 @@ import type { Route } from 'next';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 
-// biome-ignore lint/complexity/useLiteralKeys: TS noPropertyAccessFromIndexSignature requires bracket access here.
 const publishableKey = process.env['NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY'];
-// biome-ignore lint/complexity/useLiteralKeys: TS noPropertyAccessFromIndexSignature requires bracket access here.
 const secretKey = process.env['CLERK_SECRET_KEY'];
 
 function requestFromHeaders(headerList: Headers) {

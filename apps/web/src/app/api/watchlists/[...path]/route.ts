@@ -35,9 +35,8 @@ async function handle(req: Request, ctx: { params: Promise<{ path: string[] }> }
   if (!api?.fetch) return Response.json({ error: 'proxy_misconfigured' }, { status: 500 });
 
   const headers = new Headers();
-  if (req.headers.get('content-type')) {
-    headers.set('Content-Type', req.headers.get('content-type')!);
-  }
+  const contentType = req.headers.get('content-type');
+  if (contentType) headers.set('Content-Type', contentType);
   headers.set('X-Clerk-User-Id', userId);
   if (email) headers.set('X-Admin-Email', email);
 

@@ -1,96 +1,88 @@
-import { describe, expect, it, vi } from "vitest";
-import app from "../index";
-import {
-  buildPatterns,
-  matchEntity,
-  termsFor,
-  type GazetteerEntity,
-} from "../lib/gazetteer";
+import { describe, expect, it, vi } from 'vitest';
+import app from '../index';
+import { buildPatterns, matchEntity, termsFor, type GazetteerEntity } from '../lib/gazetteer';
 
 const fetcher = app as unknown as {
   fetch(req: Request, env?: Record<string, unknown>): Promise<Response>;
 };
 
-
 // ─── pure helpers ─────────────────────────────────────────────────────────
 
-describe("termsFor", () => {
-  it("collects name + ticker + aliases, lowercased + min-length", () => {
+describe('termsFor', () => {
+  it('collects name + ticker + aliases, lowercased + min-length', () => {
     const t = termsFor({
-      id: "NVDA",
-      name: "NVIDIA Corporation",
-      ticker: "NVDA",
-      metadata: JSON.stringify({ aliases: ["Nvidia", "Nvidia Corp", "AI"] }),
+      id: 'NVDA',
+      name: 'NVIDIA Corporation',
+      ticker: 'NVDA',
+      metadata: JSON.stringify({ aliases: ['Nvidia', 'Nvidia Corp', 'AI'] }),
     });
-    expect(t).toContain("nvidia corporation");
-    expect(t).toContain("nvda");
-    expect(t).toContain("nvidia");
-    expect(t).toContain("nvidia corp");
-    expect(t).not.toContain("ai"); // 2 chars — filtered
+    expect(t).toContain('nvidia corporation');
+    expect(t).toContain('nvda');
+    expect(t).toContain('nvidia');
+    expect(t).toContain('nvidia corp');
+    expect(t).not.toContain('ai'); // 2 chars — filtered
   });
 
-  it("survives malformed metadata", () => {
+  it('survives malformed metadata', () => {
     const t = termsFor({
-      id: "X",
-      name: "X Corp",
-      ticker: "X",
-      metadata: "not json",
+      id: 'X',
+      name: 'X Corp',
+      ticker: 'X',
+      metadata: 'not json',
     });
-    expect(t).toContain("x corp");
-    expect(t).not.toContain("x"); // 1 char — filtered
+    expect(t).toContain('x corp');
+    expect(t).not.toContain('x'); // 1 char — filtered
   });
 
-  it("handles null name/ticker/metadata", () => {
-    expect(termsFor({ id: "X", name: null, ticker: null, metadata: null })).toEqual([]);
+  it('handles null name/ticker/metadata', () => {
+    expect(termsFor({ id: 'X', name: null, ticker: null, metadata: null })).toEqual([]);
   });
 });
 
-
-describe("matchEntity", () => {
+describe('matchEntity', () => {
   const entities: GazetteerEntity[] = [
-    { id: "ASML", name: "ASML Holding", ticker: "ASML", metadata: null },
-    { id: "NVDA", name: "NVIDIA Corporation", ticker: "NVDA", metadata: null },
-    { id: "AMD", name: "Advanced Micro Devices", ticker: "AMD", metadata: null },
+    { id: 'ASML', name: 'ASML Holding', ticker: 'ASML', metadata: null },
+    { id: 'NVDA', name: 'NVIDIA Corporation', ticker: 'NVDA', metadata: null },
+    { id: 'AMD', name: 'Advanced Micro Devices', ticker: 'AMD', metadata: null },
   ];
   const patterns = buildPatterns(entities);
 
-  it("matches $-prefixed ticker (the original bug)", () => {
-    expect(matchEntity("Will $ASML reach $1700?", patterns)).toBe("ASML");
+  it('matches $-prefixed ticker (the original bug)', () => {
+    expect(matchEntity('Will $ASML reach $1700?', patterns)).toBe('ASML');
   });
 
-  it("matches bare ticker with trailing punctuation", () => {
-    expect(matchEntity("NVDA, posting record numbers.", patterns)).toBe("NVDA");
-    expect(matchEntity("AMD: guidance raised.", patterns)).toBe("AMD");
+  it('matches bare ticker with trailing punctuation', () => {
+    expect(matchEntity('NVDA, posting record numbers.', patterns)).toBe('NVDA');
+    expect(matchEntity('AMD: guidance raised.', patterns)).toBe('AMD');
   });
 
-  it("does not match substrings inside other words", () => {
-    expect(matchEntity("Some NVDAX or MASML word", patterns)).toBeNull();
+  it('does not match substrings inside other words', () => {
+    expect(matchEntity('Some NVDAX or MASML word', patterns)).toBeNull();
   });
 
-  it("matches full company name in prose", () => {
-    expect(matchEntity("NVIDIA Corporation announces today...", patterns)).toBe("NVDA");
+  it('matches full company name in prose', () => {
+    expect(matchEntity('NVIDIA Corporation announces today...', patterns)).toBe('NVDA');
   });
 
-  it("returns alphabetically-first when multiple match", () => {
+  it('returns alphabetically-first when multiple match', () => {
     // ASML, AMD, NVDA all present — alphabetical first = AMD
-    expect(matchEntity("$AMD vs $NVDA vs $ASML race", patterns)).toBe("AMD");
+    expect(matchEntity('$AMD vs $NVDA vs $ASML race', patterns)).toBe('AMD');
   });
 
-  it("returns null on empty text", () => {
-    expect(matchEntity("", patterns)).toBeNull();
+  it('returns null on empty text', () => {
+    expect(matchEntity('', patterns)).toBeNull();
   });
 
-  it("handles terms that start with non-word chars (^GSPC)", () => {
+  it('handles terms that start with non-word chars (^GSPC)', () => {
     const idxEntities: GazetteerEntity[] = [
-      { id: "SPX", name: "S&P 500", ticker: "^GSPC", metadata: null },
+      { id: 'SPX', name: 'S&P 500', ticker: '^GSPC', metadata: null },
     ];
     const idxPatterns = buildPatterns(idxEntities);
-    expect(matchEntity("^GSPC closes at all-time high", idxPatterns)).toBe("SPX");
+    expect(matchEntity('^GSPC closes at all-time high', idxPatterns)).toBe('SPX');
     // S&P 500 contains "&" — make sure escapeRegex handles it
-    expect(matchEntity("S&P 500 rallies", idxPatterns)).toBe("SPX");
+    expect(matchEntity('S&P 500 rallies', idxPatterns)).toBe('SPX');
   });
 });
-
 
 // ─── /admin/backfill-entities ─────────────────────────────────────────────
 
@@ -98,9 +90,9 @@ function mockDb(opts: { entities?: unknown[]; events?: unknown[] }) {
   const batched: unknown[] = [];
   const db = {
     prepare: vi.fn((sql: string) => {
-      const isSelectEntities = sql.includes("FROM entities");
-      const isSelectEvents = sql.includes("FROM events");
-      const isUpdate = sql.startsWith("UPDATE events");
+      const isSelectEntities = sql.includes('FROM entities');
+      const isSelectEvents = sql.includes('FROM events');
+      const isUpdate = sql.startsWith('UPDATE events');
       const bindArgs: unknown[] = [];
       const stmt: {
         bind: (...args: unknown[]) => typeof stmt;
@@ -117,9 +109,9 @@ function mockDb(opts: { entities?: unknown[]; events?: unknown[] }) {
         },
         all: async () => ({
           results: isSelectEntities
-            ? opts.entities ?? []
+            ? (opts.entities ?? [])
             : isSelectEvents
-              ? opts.events ?? []
+              ? (opts.events ?? [])
               : [],
         }),
         run: async () => ({ success: true }),
@@ -136,47 +128,47 @@ function mockDb(opts: { entities?: unknown[]; events?: unknown[] }) {
   return db;
 }
 
-function envWithDb(db: ReturnType<typeof mockDb>, adminToken = "secret") {
+function envWithDb(db: ReturnType<typeof mockDb>, adminToken = 'secret') {
   return {
     DB: db as unknown as D1Database,
-    ENVIRONMENT: "test",
+    ENVIRONMENT: 'test',
     ADMIN_TOKEN: adminToken,
   };
 }
 
-describe("POST /admin/backfill-entities", () => {
-  it("requires admin bearer token (401 without)", async () => {
+describe('POST /admin/backfill-entities', () => {
+  it('requires admin bearer token (401 without)', async () => {
     const db = mockDb({});
     const res = await fetcher.fetch(
-      new Request("http://t/admin/backfill-entities", { method: "POST" }),
-      envWithDb(db),
+      new Request('http://t/admin/backfill-entities', { method: 'POST' }),
+      envWithDb(db)
     );
     expect(res.status).toBe(401);
   });
 
-  it("503 when ADMIN_TOKEN env var is unset", async () => {
+  it('503 when ADMIN_TOKEN env var is unset', async () => {
     const db = mockDb({});
     const res = await fetcher.fetch(
-      new Request("http://t/admin/backfill-entities", { method: "POST" }),
-      envWithDb(db, ""),
+      new Request('http://t/admin/backfill-entities', { method: 'POST' }),
+      envWithDb(db, '')
     );
     expect(res.status).toBe(503);
   });
 
-  it("dry_run=1 matches without writing", async () => {
+  it('dry_run=1 matches without writing', async () => {
     const db = mockDb({
-      entities: [{ id: "ASML", name: "ASML Holding", ticker: "ASML", metadata: null }],
+      entities: [{ id: 'ASML', name: 'ASML Holding', ticker: 'ASML', metadata: null }],
       events: [
-        { id: "e1", title: "Will $ASML reach $1700?", content: null },
-        { id: "e2", title: "random other text", content: null },
+        { id: 'e1', title: 'Will $ASML reach $1700?', content: null },
+        { id: 'e2', title: 'random other text', content: null },
       ],
     });
     const res = await fetcher.fetch(
-      new Request("http://t/admin/backfill-entities?dry_run=1", {
-        method: "POST",
-        headers: { Authorization: "Bearer secret" },
+      new Request('http://t/admin/backfill-entities?dry_run=1', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer secret' },
       }),
-      envWithDb(db),
+      envWithDb(db)
     );
     expect(res.status).toBe(200);
     const body = (await res.json()) as {
@@ -191,20 +183,20 @@ describe("POST /admin/backfill-entities", () => {
     expect(db.batch).not.toHaveBeenCalled();
   });
 
-  it("writes updates when dry_run is off", async () => {
+  it('writes updates when dry_run is off', async () => {
     const db = mockDb({
-      entities: [{ id: "NVDA", name: "NVIDIA", ticker: "NVDA", metadata: null }],
+      entities: [{ id: 'NVDA', name: 'NVIDIA', ticker: 'NVDA', metadata: null }],
       events: [
-        { id: "e1", title: "$NVDA crushed Q3", content: null },
-        { id: "e2", title: "$NVDA Q4 guidance", content: null },
+        { id: 'e1', title: '$NVDA crushed Q3', content: null },
+        { id: 'e2', title: '$NVDA Q4 guidance', content: null },
       ],
     });
     const res = await fetcher.fetch(
-      new Request("http://t/admin/backfill-entities", {
-        method: "POST",
-        headers: { Authorization: "Bearer secret" },
+      new Request('http://t/admin/backfill-entities', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer secret' },
       }),
-      envWithDb(db),
+      envWithDb(db)
     );
     const body = (await res.json()) as { matched: number; dryRun: boolean };
     expect(body.matched).toBe(2);

@@ -6,12 +6,12 @@
 // and trims Tier 2/3 columns that are entirely null in the input (Phase 1 only
 // populates Tier 1 — keeping the JSON small is worth the trim).
 
-import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
+import { mkdir, readFile, stat, writeFile } from 'node:fs/promises';
+import { dirname, resolve } from 'node:path';
 
-const ROOT = resolve(__dirname, "..");
-const SOURCE_PATH = resolve(ROOT, "data/equities-snapshot.jsonl");
-const OUT_PATH = resolve(ROOT, "apps/web/src/data/equities-snapshot.json");
+const ROOT = resolve(__dirname, '..');
+const SOURCE_PATH = resolve(ROOT, 'data/equities-snapshot.jsonl');
+const OUT_PATH = resolve(ROOT, 'apps/web/src/data/equities-snapshot.json');
 
 interface EquityRow {
   ticker: string;
@@ -58,7 +58,7 @@ interface EquityRow {
 
 function parseJsonl(raw: string): EquityRow[] {
   return raw
-    .split("\n")
+    .split('\n')
     .map((line) => line.trim())
     .filter(Boolean)
     .map((line) => {
@@ -72,10 +72,10 @@ function parseJsonl(raw: string): EquityRow[] {
 }
 
 async function main() {
-  let raw = "";
+  let raw = '';
   try {
-    raw = await readFile(SOURCE_PATH, "utf8");
-  } catch (error) {
+    raw = await readFile(SOURCE_PATH, 'utf8');
+  } catch {
     console.log(`- no source JSONL at ${SOURCE_PATH}; writing empty bundle`);
   }
 
@@ -83,7 +83,7 @@ async function main() {
   const withData = allRows.filter((row) => row.last_close != null);
 
   const payload = {
-    source: "equities-daily",
+    source: 'equities-daily',
     generatedAt: new Date().toISOString(),
     universeSize: allRows.length,
     rowsWithData: withData.length,
@@ -99,7 +99,7 @@ async function main() {
       universe: allRows.length,
       withData: withData.length,
       bytes: size,
-    }),
+    })
   );
 }
 

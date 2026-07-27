@@ -10,7 +10,7 @@
 // the single HIGH_SIGNAL_AI_* / OPENAI_API_KEY endpoint as platform "custom",
 // preserving the prior single-model behaviour (no regression on a bare deploy).
 
-export type AiPlatform = "chatgpt" | "gemini" | "perplexity" | "claude" | "custom";
+export type AiPlatform = 'chatgpt' | 'gemini' | 'perplexity' | 'claude' | 'custom';
 
 export interface PlatformEnv {
   // Per-provider keys (each unlocks that platform column).
@@ -35,7 +35,7 @@ export interface ResolvedPlatform {
 }
 
 interface PlatformSpec {
-  platform: Exclude<AiPlatform, "custom">;
+  platform: Exclude<AiPlatform, 'custom'>;
   envKey: keyof PlatformEnv;
   endpointUrl: string;
   model: string;
@@ -47,37 +47,36 @@ interface PlatformSpec {
 // defaults here so a single key is enough to light up a platform.
 export const PLATFORM_REGISTRY: PlatformSpec[] = [
   {
-    platform: "chatgpt",
-    envKey: "OPENAI_API_KEY",
-    endpointUrl: "https://api.openai.com/v1/chat/completions",
-    model: "gpt-4o-mini",
+    platform: 'chatgpt',
+    envKey: 'OPENAI_API_KEY',
+    endpointUrl: 'https://api.openai.com/v1/chat/completions',
+    model: 'gpt-4o-mini',
     grounded: false,
   },
   {
-    platform: "perplexity",
-    envKey: "PERPLEXITY_API_KEY",
-    endpointUrl: "https://api.perplexity.ai/chat/completions",
-    model: "sonar",
+    platform: 'perplexity',
+    envKey: 'PERPLEXITY_API_KEY',
+    endpointUrl: 'https://api.perplexity.ai/chat/completions',
+    model: 'sonar',
     grounded: true, // Perplexity answers cite live web sources.
   },
   {
-    platform: "gemini",
-    envKey: "GEMINI_API_KEY",
-    endpointUrl: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
-    model: "gemini-2.0-flash",
+    platform: 'gemini',
+    envKey: 'GEMINI_API_KEY',
+    endpointUrl: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
+    model: 'gemini-2.0-flash',
     grounded: false,
   },
   {
-    platform: "claude",
-    envKey: "ANTHROPIC_API_KEY",
-    endpointUrl: "https://api.anthropic.com/v1/chat/completions",
-    model: "claude-3-5-haiku-latest",
+    platform: 'claude',
+    envKey: 'ANTHROPIC_API_KEY',
+    endpointUrl: 'https://api.anthropic.com/v1/chat/completions',
+    model: 'claude-3-5-haiku-latest',
     grounded: false,
   },
 ];
 
-const FREE_AI_DEFAULT_ENDPOINT =
-  "https://ai-gateway.sassmaker.com/v1/chat/completions";
+const FREE_AI_DEFAULT_ENDPOINT = 'https://ai-gateway.sassmaker.com/v1/chat/completions';
 
 /**
  * The platforms a check should fan out across, given the environment and an
@@ -87,7 +86,7 @@ const FREE_AI_DEFAULT_ENDPOINT =
  */
 export function resolvePlatforms(
   env: PlatformEnv,
-  brandOverride?: { aiEndpointUrl?: string | null; aiModel?: string | null },
+  brandOverride?: { aiEndpointUrl?: string | null; aiModel?: string | null }
 ): ResolvedPlatform[] {
   const resolved: ResolvedPlatform[] = [];
   for (const spec of PLATFORM_REGISTRY) {
@@ -108,10 +107,10 @@ export function resolvePlatforms(
   const brandEndpoint = brandOverride?.aiEndpointUrl?.trim();
   if (brandEndpoint && customKey) {
     resolved.push({
-      platform: "custom",
+      platform: 'custom',
       endpointUrl: brandEndpoint,
       apiKey: customKey,
-      model: brandOverride?.aiModel?.trim() || env.HIGH_SIGNAL_AI_MODEL || "auto",
+      model: brandOverride?.aiModel?.trim() || env.HIGH_SIGNAL_AI_MODEL || 'auto',
       grounded: false,
     });
   }
@@ -120,10 +119,10 @@ export function resolvePlatforms(
   // bare deploy still runs exactly as before.
   if (resolved.length === 0 && customKey) {
     resolved.push({
-      platform: "custom",
+      platform: 'custom',
       endpointUrl: env.HIGH_SIGNAL_AI_ENDPOINT_URL || FREE_AI_DEFAULT_ENDPOINT,
       apiKey: customKey,
-      model: env.HIGH_SIGNAL_AI_MODEL || "auto",
+      model: env.HIGH_SIGNAL_AI_MODEL || 'auto',
       grounded: false,
     });
   }

@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.5.0/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.5.5/schema.json",
   "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
   "files": {
     "ignoreUnknown": true,
@@ -17,9 +17,11 @@
       "!**/pnpm-lock.yaml",
       "!**/tsconfig.tsbuildinfo",
       "!**/.storybook",
-      "!signals/**",
-      "!python/**",
-      "!packages/db/migrations/**",
+      "!design.html",
+      "!scripts/fixtures",
+      "!signals",
+      "!python",
+      "!packages/db/migrations",
       "!**/*.css",
       "!**/*.svg"
     ]
@@ -43,7 +45,7 @@
     "enabled": true,
     "rules": {
       "complexity": { "useLiteralKeys": "off" },
-      "recommended": true,
+      "preset": "recommended",
       "a11y": { "useButtonType": "error" },
       "correctness": { "useExhaustiveDependencies": "error" },
       "suspicious": { "noArrayIndexKey": "error" }

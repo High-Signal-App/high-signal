@@ -17,7 +17,7 @@
 //   - Only aggregate counts, model names, latency, token counts, and status
 //     strings are recorded.
 
-import { readFile, readdir, mkdir, writeFile, access, stat } from 'node:fs/promises';
+import { readFile, mkdir, writeFile, access, stat } from 'node:fs/promises';
 import { dirname, resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';

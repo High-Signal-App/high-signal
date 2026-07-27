@@ -2,17 +2,17 @@
 // Pure functions shared between the worker (composer + cron), tests, and
 // the /settings/delivery UI for previewing local-window resolution.
 
-import type { BriefSnapshot } from "./brief";
+import type { BriefSnapshot } from './brief';
 
-export type DeliveryChannel = "email" | "rss" | "digest_json";
-export type DeliveryStatus = "queued" | "sent" | "failed" | "skipped";
+export type DeliveryChannel = 'email' | 'rss' | 'digest_json';
+export type DeliveryStatus = 'queued' | 'sent' | 'failed' | 'skipped';
 export type SkipReason =
-  | "no_brief_today"
-  | "preference_disabled"
-  | "email_not_verified"
-  | "bounced_recently"
-  | "window_not_open"
-  | "already_sent";
+  | 'no_brief_today'
+  | 'preference_disabled'
+  | 'email_not_verified'
+  | 'bounced_recently'
+  | 'window_not_open'
+  | 'already_sent';
 
 export interface DeliveryPreference {
   userId: string;
@@ -44,15 +44,15 @@ export interface DeliveryLogEntry {
 /** Manual retries are an explicit email recovery path, never a way to replay
  * sent/skipped rows or future channel transports. */
 export function canRetryDelivery(
-  row: Pick<DeliveryLogEntry, "channel" | "status" | "attempt">,
+  row: Pick<DeliveryLogEntry, 'channel' | 'status' | 'attempt'>
 ): boolean {
-  return row.channel === "email" && row.status === "failed" && row.attempt >= 1;
+  return row.channel === 'email' && row.status === 'failed' && row.attempt >= 1;
 }
 
 /** 256-bit bearer credential for a private RSS/Atom preference. */
 export function createRssToken(): string {
   const bytes = crypto.getRandomValues(new Uint8Array(32));
-  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
 // Time-window resolution. Workers can't trust Date.now() in some contexts
@@ -70,13 +70,13 @@ export function isValidWindow(start: string): boolean {
 // or null if the window is closed. The window is treated as a one-hour open
 // slot starting at `localWindowStart`.
 export function resolveOpenWindow(
-  pref: Pick<DeliveryPreference, "timezone" | "localWindowStart">,
-  nowUtcMs: number,
+  pref: Pick<DeliveryPreference, 'timezone' | 'localWindowStart'>,
+  nowUtcMs: number
 ): { briefDate: string } | null {
   if (!isValidWindow(pref.localWindowStart)) return null;
   const parts = partsInTimezone(new Date(nowUtcMs), pref.timezone);
   if (!parts) return null;
-  const [h, m] = pref.localWindowStart.split(":").map((s) => Number(s));
+  const [h, m] = pref.localWindowStart.split(':').map((s) => Number(s));
   // Open from [H:M, H:M+60min). Close enough for hourly cron polling.
   const localMinutes = parts.hour * 60 + parts.minute;
   const windowStart = h! * 60 + m!;
@@ -102,22 +102,22 @@ interface TzParts {
 // Returns null on an unknown tz.
 function partsInTimezone(d: Date, tz: string): TzParts | null {
   try {
-    const fmt = new Intl.DateTimeFormat("en-US", {
+    const fmt = new Intl.DateTimeFormat('en-US', {
       timeZone: tz,
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
       hour12: false,
     });
     const map = new Map(fmt.formatToParts(d).map((p) => [p.type, p.value]));
-    const year = Number(map.get("year"));
-    const month = Number(map.get("month"));
-    const day = Number(map.get("day"));
-    let hour = Number(map.get("hour"));
+    const year = Number(map.get('year'));
+    const month = Number(map.get('month'));
+    const day = Number(map.get('day'));
+    let hour = Number(map.get('hour'));
     if (hour === 24) hour = 0; // some runtimes emit 24:00 for midnight
-    const minute = Number(map.get("minute"));
+    const minute = Number(map.get('minute'));
     if ([year, month, day, hour, minute].some((n) => Number.isNaN(n))) return null;
     return { year, month, day, hour, minute };
   } catch {
@@ -135,11 +135,7 @@ export function nextRetryMinutes(attempt: number, maxAttempts = 4): number | nul
 }
 
 /** Persistable eligibility timestamp for the next automatic attempt. */
-export function nextRetryAtMs(
-  attempt: number,
-  failedAtMs: number,
-  maxAttempts = 4,
-): number | null {
+export function nextRetryAtMs(attempt: number, failedAtMs: number, maxAttempts = 4): number | null {
   const delayMinutes = nextRetryMinutes(attempt, maxAttempts);
   return delayMinutes == null ? null : failedAtMs + delayMinutes * 60_000;
 }
@@ -150,7 +146,7 @@ export function isAutomaticRetryEligible(
   attempt: number,
   nextAttemptAtMs: number | null,
   nowMs: number,
-  maxAttempts = 4,
+  maxAttempts = 4
 ): boolean {
   if (nextRetryMinutes(attempt, maxAttempts) == null) return false;
   return nextAttemptAtMs == null || nowMs >= nextAttemptAtMs;
@@ -159,12 +155,12 @@ export function isAutomaticRetryEligible(
 // Skip-reason taxonomy guard. The cron must always supply an explicit reason
 // when status === 'skipped'; this helper validates the value at write time.
 const KNOWN_SKIP_REASONS: SkipReason[] = [
-  "no_brief_today",
-  "preference_disabled",
-  "email_not_verified",
-  "bounced_recently",
-  "window_not_open",
-  "already_sent",
+  'no_brief_today',
+  'preference_disabled',
+  'email_not_verified',
+  'bounced_recently',
+  'window_not_open',
+  'already_sent',
 ];
 export function isKnownSkipReason(r: string): r is SkipReason {
   return (KNOWN_SKIP_REASONS as string[]).includes(r);
@@ -174,7 +170,7 @@ export function isKnownSkipReason(r: string): r is SkipReason {
 // disable the preference; the next /settings visit shows the banner.
 export function shouldAutoDisable(recentStatuses: DeliveryStatus[]): boolean {
   const last3 = recentStatuses.slice(-3);
-  return last3.length === 3 && last3.every((s) => s === "failed");
+  return last3.length === 3 && last3.every((s) => s === 'failed');
 }
 
 // ─── Snapshot → email sections ──────────────────────────────────────────────
@@ -201,13 +197,13 @@ export interface CompactDigestItem {
 }
 
 export interface CompactDigestSection {
-  id: "stocks" | "ideas" | "trends" | "perception" | "improvements";
+  id: 'stocks' | 'ideas' | 'trends' | 'perception' | 'improvements';
   title: string;
   items: CompactDigestItem[];
 }
 
 export interface CompactBriefDigest {
-  schema: "high-signal.compact-digest.v1";
+  schema: 'high-signal.compact-digest.v1';
   generatedAt: string;
   region: string;
   sections: CompactDigestSection[];
@@ -220,64 +216,64 @@ function citationLinks(urls: Array<{ url: string }> | undefined): string[] {
 }
 
 export function briefSnapshotToEmailSections(
-  snapshot: Partial<BriefSnapshot> | null | undefined,
+  snapshot: Partial<BriefSnapshot> | null | undefined
 ): EmailSection[] {
   if (!snapshot) return [];
   const sections: EmailSection[] = [
     {
-      title: "01 / stocks watching for a boom",
+      title: '01 / stocks watching for a boom',
       items: (snapshot.stocks ?? []).map((s) => ({
         text: [
-          `${s.entityName}${s.ticker ? ` (${s.ticker})` : ""} — ${s.headline}`,
+          `${s.entityName}${s.ticker ? ` (${s.ticker})` : ''} — ${s.headline}`,
           `${s.direction} · ${s.confidence} confidence`,
           s.hitRate != null
             ? `hit-rate ${pctOf(s.hitRate)} (${s.hitRateBand}, n=${s.hitRateSample})`
-            : "no live calls yet",
-        ].join(" · "),
+            : 'no live calls yet',
+        ].join(' · '),
         links: citationLinks(s.evidenceUrls),
       })),
     },
     {
-      title: "02 / business ideas to build",
+      title: '02 / business ideas to build',
       items: (snapshot.ideas ?? []).map((i) => ({
-        text: `${i.title} — ${i.description}${i.subreddit ? ` (r/${i.subreddit})` : ""}`,
+        text: `${i.title} — ${i.description}${i.subreddit ? ` (r/${i.subreddit})` : ''}`,
         links: citationLinks(i.evidenceUrls),
       })),
     },
     {
-      title: "03 / new lifestyle trends",
+      title: '03 / new lifestyle trends',
       items: (snapshot.trends ?? []).map((t) => ({
         text: `${t.title} — ${t.description} (r/${t.subreddit})`,
         links: citationLinks(t.evidenceUrls),
       })),
     },
     {
-      title: "04 / how the market perceives your products",
+      title: '04 / how the market perceives your products',
       items: (snapshot.perception ?? []).map((p) => ({
         text: [
           `${p.brandName} — mention rate ${
-            p.mentionRate != null ? pctOf(p.mentionRate) : "n/a"
-          }, positive share ${p.positiveShare != null ? pctOf(p.positiveShare) : "n/a"}`,
+            p.mentionRate != null ? pctOf(p.mentionRate) : 'n/a'
+          }, positive share ${p.positiveShare != null ? pctOf(p.positiveShare) : 'n/a'}`,
           p.topIntent
-            ? `${p.topIntent.intentStage} intent on ${p.topIntent.platform} (${p.topIntent.score}/100) · ${p.topIntent.actionType.replaceAll("_", " ")} · ${p.topIntent.sourceTitle}`
+            ? `${p.topIntent.intentStage} intent on ${p.topIntent.platform} (${p.topIntent.score}/100) · ${p.topIntent.actionType.replaceAll('_', ' ')} · ${p.topIntent.sourceTitle}`
             : null,
         ]
           .filter(Boolean)
-          .join(" · "),
+          .join(' · '),
         links: p.topIntent ? [p.topIntent.sourceUrl] : [],
       })),
     },
     {
-      title: "05 / ideas to improve your products",
+      title: '05 / ideas to improve your products',
       items: (snapshot.improvements ?? []).map((im) => ({
         text: [
           `[${im.priority}] ${im.brandName} · ${im.area} — ${im.task}`,
           im.intent
-            ? `${im.intent.intentStage} intent · ${im.intent.actionType.replaceAll("_", " ")} · ${im.intent.score}/100`
+            ? `${im.intent.intentStage} intent · ${im.intent.actionType.replaceAll('_', ' ')} · ${im.intent.score}/100`
             : null,
         ]
           .filter(Boolean)
-          .join(" · "),
+          .join(' · '),
         links: im.sourceUrl ? [im.sourceUrl] : [],
       })),
     },
@@ -285,20 +281,18 @@ export function briefSnapshotToEmailSections(
   return sections.filter((s) => s.items.length > 0);
 }
 
-const COMPACT_SECTION_IDS: CompactDigestSection["id"][] = [
-  "stocks",
-  "ideas",
-  "trends",
-  "perception",
-  "improvements",
+const COMPACT_SECTION_IDS: CompactDigestSection['id'][] = [
+  'stocks',
+  'ideas',
+  'trends',
+  'perception',
+  'improvements',
 ];
 
 /** Channel-neutral, versioned daily-brief payload for private feeds and future
  * transports. It deliberately carries no delivery ids, email address, or user
  * id; the bearer/session boundary stays outside the content contract. */
-export function briefSnapshotToCompactDigest(
-  snapshot: Partial<BriefSnapshot>,
-): CompactBriefDigest {
+export function briefSnapshotToCompactDigest(snapshot: Partial<BriefSnapshot>): CompactBriefDigest {
   const sections = briefSnapshotToEmailSections(snapshot).map((section) => {
     const ordinal = Number(section.title.slice(0, 2));
     const id = COMPACT_SECTION_IDS[ordinal - 1];
@@ -313,9 +307,9 @@ export function briefSnapshotToCompactDigest(
     };
   });
   return {
-    schema: "high-signal.compact-digest.v1",
-    generatedAt: snapshot.generatedAt ?? "",
-    region: snapshot.region ?? "global",
+    schema: 'high-signal.compact-digest.v1',
+    generatedAt: snapshot.generatedAt ?? '',
+    region: snapshot.region ?? 'global',
     sections,
   };
 }
@@ -329,14 +323,14 @@ export function briefSnapshotToCompactDigest(
 export async function unsubscribeToken(secret: string, userId: string): Promise<string> {
   const enc = new TextEncoder();
   const key = await crypto.subtle.importKey(
-    "raw",
+    'raw',
     enc.encode(secret),
-    { name: "HMAC", hash: "SHA-256" },
+    { name: 'HMAC', hash: 'SHA-256' },
     false,
-    ["sign"],
+    ['sign']
   );
-  const sig = await crypto.subtle.sign("HMAC", key, enc.encode(`unsub:${userId}`));
-  return Array.from(new Uint8Array(sig), (b) => b.toString(16).padStart(2, "0"))
-    .join("")
+  const sig = await crypto.subtle.sign('HMAC', key, enc.encode(`unsub:${userId}`));
+  return Array.from(new Uint8Array(sig), (b) => b.toString(16).padStart(2, '0'))
+    .join('')
     .slice(0, 32);
 }

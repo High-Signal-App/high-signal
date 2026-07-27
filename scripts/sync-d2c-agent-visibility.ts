@@ -8,28 +8,28 @@
  *   pnpm tsx scripts/sync-d2c-agent-visibility.ts --remote
  */
 
-import { spawn } from "node:child_process";
-import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
-import { createHash } from "node:crypto";
-import { escSql as esc } from "./sync-signals.lib";
-import { D2C_NICHE_SEEDS, type D2CAgentVisibilityArtifact } from "@high-signal/shared";
+import { spawn } from 'node:child_process';
+import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { createHash } from 'node:crypto';
+import { escSql as esc } from './sync-signals.lib';
+import { D2C_NICHE_SEEDS, type D2CAgentVisibilityArtifact } from '@high-signal/shared';
 
-const __root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const ARTIFACT_DIR = resolve(__root, "data/d2c-agent-visibility");
-const TMP_DIR = resolve(__root, ".tmp");
-const TMP_SQL = resolve(TMP_DIR, "d2c-agent-visibility-sync.sql");
-const flag = process.argv.includes("--remote") ? "--remote" : "--local";
+const __root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const ARTIFACT_DIR = resolve(__root, 'data/d2c-agent-visibility');
+const TMP_DIR = resolve(__root, '.tmp');
+const TMP_SQL = resolve(TMP_DIR, 'd2c-agent-visibility-sync.sql');
+const flag = process.argv.includes('--remote') ? '--remote' : '--local';
 
 function nicheId(slug: string): string {
-  return createHash("sha256").update(`d2c-niche:${slug}`).digest("hex").slice(0, 16);
+  return createHash('sha256').update(`d2c-niche:${slug}`).digest('hex').slice(0, 16);
 }
 
 function entryId(nicheId: string, platform: string, runMs: number): string {
-  return createHash("sha256")
+  return createHash('sha256')
     .update(`d2c-av:${nicheId}:${platform}:${runMs}`)
-    .digest("hex")
+    .digest('hex')
     .slice(0, 16);
 }
 
@@ -52,7 +52,9 @@ function loadLatestArtifact(): D2CAgentVisibilityArtifact | null {
     .reverse();
   if (dated.length === 0) return null;
   try {
-    return JSON.parse(readFileSync(`${ARTIFACT_DIR}/${dated[0]}`, "utf-8")) as D2CAgentVisibilityArtifact;
+    return JSON.parse(
+      readFileSync(`${ARTIFACT_DIR}/${dated[0]}`, 'utf-8')
+    ) as D2CAgentVisibilityArtifact;
   } catch {
     return null;
   }
@@ -61,11 +63,13 @@ function loadLatestArtifact(): D2CAgentVisibilityArtifact | null {
 function main() {
   const artifact = loadLatestArtifact();
   if (!artifact) {
-    console.log("[d2c:sync-av] no artifact found; nothing to sync");
+    console.log('[d2c:sync-av] no artifact found; nothing to sync');
     process.exit(0);
   }
   const runMs = isoDateToEpochMs(artifact.generatedAt);
-  console.log(`[d2c:sync-av] artifact ${artifact.generatedAt.slice(0, 10)}; ${artifact.entries.length} entries`);
+  console.log(
+    `[d2c:sync-av] artifact ${artifact.generatedAt.slice(0, 10)}; ${artifact.entries.length} entries`
+  );
 
   // Build a slug → nicheId lookup.
   const idBySlug = new Map<string, string>();
@@ -81,7 +85,7 @@ function main() {
     sql.push(
       `INSERT INTO d2c_niches (id, slug, name, category, region, status, created_at, updated_at) ` +
         `VALUES (${esc(id)}, ${esc(seed.slug)}, ${esc(seed.name)}, ${esc(seed.category)}, ${esc(seed.region)}, 'active', ${runMs}, ${runMs}) ` +
-        `ON CONFLICT(id) DO UPDATE SET name=excluded.name, category=excluded.category, updated_at=excluded.updated_at;`,
+        `ON CONFLICT(id) DO UPDATE SET name=excluded.name, category=excluded.category, updated_at=excluded.updated_at;`
     );
   }
   // 2. Delete prior entries for this run_date (idempotent re-run).
@@ -97,20 +101,28 @@ function main() {
         `VALUES (${esc(id)}, ${esc(nid)}, ${esc(entry.platform)}, ${esc(entry.model)}, ` +
         `${esc(entry.promptText)}, ${esc(entry.responseText)}, ` +
         `${esc(JSON.stringify(entry.recommendedBrands))}, ${esc(JSON.stringify(entry.citedUrls))}, ` +
-        `${entry.brandMentioned ? 1 : 0}, ${entry.gapScore}, ${runMs}, ${runMs});`,
+        `${entry.brandMentioned ? 1 : 0}, ${entry.gapScore}, ${runMs}, ${runMs});`
     );
   }
 
   mkdirSync(TMP_DIR, { recursive: true });
-  writeFileSync(TMP_SQL, sql.join("\n") + "\n");
+  writeFileSync(TMP_SQL, sql.join('\n') + '\n');
   console.log(`[d2c:sync-av] wrote ${TMP_SQL} (${sql.length} statements)`);
 
   const proc = spawn(
-    "npx",
-    ["wrangler", "d1", "execute", "high-signal-db", flag, `--file=${TMP_SQL}`, "--config=workers/api/wrangler.toml"],
-    { stdio: "inherit", cwd: __root },
+    'npx',
+    [
+      'wrangler',
+      'd1',
+      'execute',
+      'high-signal-db',
+      flag,
+      `--file=${TMP_SQL}`,
+      '--config=workers/api/wrangler.toml',
+    ],
+    { stdio: 'inherit', cwd: __root }
   );
-  proc.on("close", (code) => process.exit(code ?? 0));
+  proc.on('close', (code) => process.exit(code ?? 0));
 }
 
 main();

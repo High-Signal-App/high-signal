@@ -7,9 +7,9 @@
  * to add to the gazetteer.
  */
 
-import { Hono } from "hono";
-import knownTickersJson from "../lib/known-tickers.json";
-import seedEntities from "../lib/seed-entities.json";
+import { Hono } from 'hono';
+import knownTickersJson from '../lib/known-tickers.json';
+import seedEntities from '../lib/seed-entities.json';
 
 type Env = { DB: D1Database };
 
@@ -34,7 +34,7 @@ interface Candidate {
 }
 
 const TICKER_RE = /\$[A-Z]{1,5}(?:\.[A-Z]{1,3})?\b/g;
-const STOP_TOKENS = new Set(["$USD", "$EUR", "$GBP", "$JPY"]);
+const STOP_TOKENS = new Set(['$USD', '$EUR', '$GBP', '$JPY']);
 
 // Bare-ticker detection: uppercase 3-5 char alphabetic tokens that match
 // a real symbol in the equities universe. The length floor at 3 is a
@@ -45,37 +45,193 @@ const STOP_TOKENS = new Set(["$USD", "$EUR", "$GBP", "$JPY"]);
 const BARE_TICKER_RE = /\b[A-Z]{3,5}\b/g;
 export const KNOWN_TICKERS: ReadonlySet<string> = new Set(knownTickersJson as string[]);
 const BARE_TICKER_STOPLIST: ReadonlySet<string> = new Set([
-  "USD", "EUR", "GBP", "JPY", "CNY", "CAD", "CHF", "AUD", "NZD", "HKD",
-  "BTC", "ETH",
-  "CEO", "CFO", "CTO", "COO", "CIO",
-  "USA", "UK", "EU", "UN", "ETF",
-  "AI", "ML", "API", "SDK", "GPU", "CPU", "TPU", "RAM", "SSD",
+  'USD',
+  'EUR',
+  'GBP',
+  'JPY',
+  'CNY',
+  'CAD',
+  'CHF',
+  'AUD',
+  'NZD',
+  'HKD',
+  'BTC',
+  'ETH',
+  'CEO',
+  'CFO',
+  'CTO',
+  'COO',
+  'CIO',
+  'USA',
+  'UK',
+  'EU',
+  'UN',
+  'ETF',
+  'AI',
+  'ML',
+  'API',
+  'SDK',
+  'GPU',
+  'CPU',
+  'TPU',
+  'RAM',
+  'SSD',
   // Tech acronyms that happen to be real tickers (AGI=Alamos Gold,
   // GPT=Q3 Realty, etc.) but always read as the acronym in our event
   // text, not the instrument.
-  "AGI", "GPT", "LLM", "RAG", "VR", "AR", "XR", "IDE", "OS", "UI", "UX",
-  "FAQ", "DEI", "ESG", "KYC", "AML", "PII", "GDPR", "SAAS", "IAAS", "PAAS",
-  "ALL", "AND", "ANY", "ARE", "BUT", "FOR", "GET", "HAS", "HER", "HIS",
-  "HOW", "ITS", "LET", "NEW", "NOT", "NOW", "OFF", "ONE", "OUR", "OUT",
-  "OWN", "PUT", "SEE", "SHE", "THE", "TWO", "WAR", "WAS", "WAY", "WHO",
-  "WHY", "YES", "YOU",
-  "BIG", "OLD", "TOP", "END", "RUN",
-  "HIGH", "LOW", "OPEN", "NEXT", "BEST", "BACK", "DOWN", "FREE", "FULL",
-  "GOOD", "HERE", "HOME", "JUST", "LAST", "LIKE", "LIVE", "LONG", "MORE",
-  "MOST", "NEED", "NEWS", "ONLY", "OVER", "PLAN", "POST", "READ", "REAL",
-  "SAID", "SAYS", "SEEN", "SHOW", "STAY", "TAKE", "THAN", "THAT", "THEM",
-  "THEN", "THIS", "TIME", "VERY", "WANT", "WELL", "WERE", "WHAT", "WHEN",
-  "WILL", "WITH", "WORK", "YEAR", "YOUR",
-  "ABOUT", "AFTER", "AGAIN", "ALONG", "BEING", "COULD", "EVERY", "FIRST",
-  "FORTH", "FOUND", "GIVEN", "GOING", "HAVING", "JUST", "LATER", "MIGHT",
-  "NEVER", "OTHER", "PLACE", "RIGHT", "SHALL", "SHALL", "SHOULD", "SINCE",
-  "STILL", "TAKEN", "THESE", "THINK", "THOSE", "THREE", "TODAY", "UNDER",
-  "UNTIL", "USING", "WHERE", "WHICH", "WHILE", "WORLD", "WOULD",
+  'AGI',
+  'GPT',
+  'LLM',
+  'RAG',
+  'VR',
+  'AR',
+  'XR',
+  'IDE',
+  'OS',
+  'UI',
+  'UX',
+  'FAQ',
+  'DEI',
+  'ESG',
+  'KYC',
+  'AML',
+  'PII',
+  'GDPR',
+  'SAAS',
+  'IAAS',
+  'PAAS',
+  'ALL',
+  'AND',
+  'ANY',
+  'ARE',
+  'BUT',
+  'FOR',
+  'GET',
+  'HAS',
+  'HER',
+  'HIS',
+  'HOW',
+  'ITS',
+  'LET',
+  'NEW',
+  'NOT',
+  'NOW',
+  'OFF',
+  'ONE',
+  'OUR',
+  'OUT',
+  'OWN',
+  'PUT',
+  'SEE',
+  'SHE',
+  'THE',
+  'TWO',
+  'WAR',
+  'WAS',
+  'WAY',
+  'WHO',
+  'WHY',
+  'YES',
+  'YOU',
+  'BIG',
+  'OLD',
+  'TOP',
+  'END',
+  'RUN',
+  'HIGH',
+  'LOW',
+  'OPEN',
+  'NEXT',
+  'BEST',
+  'BACK',
+  'DOWN',
+  'FREE',
+  'FULL',
+  'GOOD',
+  'HERE',
+  'HOME',
+  'JUST',
+  'LAST',
+  'LIKE',
+  'LIVE',
+  'LONG',
+  'MORE',
+  'MOST',
+  'NEED',
+  'NEWS',
+  'ONLY',
+  'OVER',
+  'PLAN',
+  'POST',
+  'READ',
+  'REAL',
+  'SAID',
+  'SAYS',
+  'SEEN',
+  'SHOW',
+  'STAY',
+  'TAKE',
+  'THAN',
+  'THAT',
+  'THEM',
+  'THEN',
+  'THIS',
+  'TIME',
+  'VERY',
+  'WANT',
+  'WELL',
+  'WERE',
+  'WHAT',
+  'WHEN',
+  'WILL',
+  'WITH',
+  'WORK',
+  'YEAR',
+  'YOUR',
+  'ABOUT',
+  'AFTER',
+  'AGAIN',
+  'ALONG',
+  'BEING',
+  'COULD',
+  'EVERY',
+  'FIRST',
+  'FORTH',
+  'FOUND',
+  'GIVEN',
+  'GOING',
+  'HAVING',
+  'JUST',
+  'LATER',
+  'MIGHT',
+  'NEVER',
+  'OTHER',
+  'PLACE',
+  'RIGHT',
+  'SHALL',
+  'SHALL',
+  'SHOULD',
+  'SINCE',
+  'STILL',
+  'TAKEN',
+  'THESE',
+  'THINK',
+  'THOSE',
+  'THREE',
+  'TODAY',
+  'UNDER',
+  'UNTIL',
+  'USING',
+  'WHERE',
+  'WHICH',
+  'WHILE',
+  'WORLD',
+  'WOULD',
 ]);
 
 /** Extract distinct $TICKER tokens from a title (and optionally content). */
 export function extractTickerTokens(title: string, content?: string | null): string[] {
-  const text = `${title} ${content ?? ""}`;
+  const text = `${title} ${content ?? ''}`;
   const matches = text.match(TICKER_RE) ?? [];
   const seen = new Set<string>();
   const out: string[] = [];
@@ -100,9 +256,9 @@ export function extractBareTickerTokens(
   title: string,
   content?: string | null,
   knownTickers: ReadonlySet<string> = KNOWN_TICKERS,
-  stoplist: ReadonlySet<string> = BARE_TICKER_STOPLIST,
+  stoplist: ReadonlySet<string> = BARE_TICKER_STOPLIST
 ): string[] {
-  const text = `${title} ${content ?? ""}`;
+  const text = `${title} ${content ?? ''}`;
   const matches = text.match(BARE_TICKER_RE) ?? [];
   const seen = new Set<string>();
   const out: string[] = [];
@@ -123,14 +279,14 @@ type TokenExtractor = (title: string, content: string | null) => string[];
 export function aggregateCandidatesWith(
   events: UnmappedEvent[],
   extract: TokenExtractor,
-  maxSamples = 3,
+  maxSamples = 3
 ): Candidate[] {
   const byToken = new Map<
     string,
-    { count: number; sources: Set<string>; samples: Candidate["samples"] }
+    { count: number; sources: Set<string>; samples: Candidate['samples'] }
   >();
   for (const ev of events) {
-    const title = ev.title ?? "";
+    const title = ev.title ?? '';
     const tokens = extract(title, ev.content);
     for (const token of tokens) {
       let entry = byToken.get(token);
@@ -168,11 +324,10 @@ export function aggregateCandidates(events: UnmappedEvent[], maxSamples = 3): Ca
 /** Bare-ticker aggregator — UPPERCASE 3-5 char tokens in the equities universe. */
 export function aggregateBareTickerCandidates(
   events: UnmappedEvent[],
-  maxSamples = 3,
+  maxSamples = 3
 ): Candidate[] {
   return aggregateCandidatesWith(events, (t, c) => extractBareTickerTokens(t, c), maxSamples);
 }
-
 
 // ─── Bare-entity detection ───────────────────────────────────────────────
 //
@@ -190,7 +345,8 @@ export function aggregateBareTickerCandidates(
 
 const ENTITY_RE = /\b[A-Z][a-zA-Z0-9]{2,}(?:\s+(?:[A-Z][a-zA-Z0-9]+|AI|ML|XR|VR|AR))*/g;
 
-const ENTITY_SUFFIX_RE = /\s+(?:Inc|Corp|Corporation|Ltd|LLC|Co|PBC|Limited|Holdings|Group|Plc|SA|AG|GmbH|NV|BV)\.?$/;
+const ENTITY_SUFFIX_RE =
+  /\s+(?:Inc|Corp|Corporation|Ltd|LLC|Co|PBC|Limited|Holdings|Group|Plc|SA|AG|GmbH|NV|BV)\.?$/;
 
 // Words that get stripped if they're the first token of a captured
 // phrase — title-case headlines and prediction-market questions
@@ -199,87 +355,363 @@ const ENTITY_SUFFIX_RE = /\s+(?:Inc|Corp|Corporation|Ltd|LLC|Co|PBC|Limited|Hold
 // Weinstein". After stripping, we re-evaluate against the main
 // stoplist below.
 const ENTITY_LEADING_STOPWORDS_LOWER: ReadonlySet<string> = new Set([
-  "will", "would", "could", "should", "shall", "may", "might", "can",
-  "is", "are", "was", "were", "be", "been", "being",
-  "do", "does", "did", "has", "have", "had",
-  "today", "tomorrow", "yesterday",
+  'will',
+  'would',
+  'could',
+  'should',
+  'shall',
+  'may',
+  'might',
+  'can',
+  'is',
+  'are',
+  'was',
+  'were',
+  'be',
+  'been',
+  'being',
+  'do',
+  'does',
+  'did',
+  'has',
+  'have',
+  'had',
+  'today',
+  'tomorrow',
+  'yesterday',
 ]);
 
 // Hand-curated stoplist — common capitalized tokens that aren't proper
 // nouns of interest. Kept lowercase for case-insensitive comparison.
 const ENTITY_STOPLIST_LOWER: ReadonlySet<string> = new Set([
   // Sentence-starting function words
-  "the", "this", "that", "these", "those", "there",
-  "what", "when", "where", "who", "why", "how", "which",
-  "and", "but", "for", "from", "with", "without", "into", "onto", "over",
-  "after", "before", "during", "between", "among",
-  "his", "her", "their", "its", "our", "your", "you", "they", "she",
-  "all", "any", "every", "some", "none",
-  "new", "old", "now", "today", "yesterday", "tomorrow", "soon", "later",
-  "more", "most", "less", "least", "much", "many", "few",
-  "good", "bad", "best", "worst", "great", "high", "low", "huge", "big",
+  'the',
+  'this',
+  'that',
+  'these',
+  'those',
+  'there',
+  'what',
+  'when',
+  'where',
+  'who',
+  'why',
+  'how',
+  'which',
+  'and',
+  'but',
+  'for',
+  'from',
+  'with',
+  'without',
+  'into',
+  'onto',
+  'over',
+  'after',
+  'before',
+  'during',
+  'between',
+  'among',
+  'his',
+  'her',
+  'their',
+  'its',
+  'our',
+  'your',
+  'you',
+  'they',
+  'she',
+  'all',
+  'any',
+  'every',
+  'some',
+  'none',
+  'new',
+  'old',
+  'now',
+  'today',
+  'yesterday',
+  'tomorrow',
+  'soon',
+  'later',
+  'more',
+  'most',
+  'less',
+  'least',
+  'much',
+  'many',
+  'few',
+  'good',
+  'bad',
+  'best',
+  'worst',
+  'great',
+  'high',
+  'low',
+  'huge',
+  'big',
   // Yes/No (prediction-market answer values)
-  "yes", "no", "maybe",
+  'yes',
+  'no',
+  'maybe',
   // Common headline words
-  "breaking", "exclusive", "update", "report", "review", "analysis",
-  "deep", "dive", "explained", "explainer",
-  "stock", "stocks", "market", "markets", "earnings", "revenue",
-  "company", "companies", "startup", "startups", "founder", "founders",
-  "ceo", "cfo", "cto", "president", "investor", "investors",
-  "round", "funding", "raise", "valuation", "ipo", "acquisition",
+  'breaking',
+  'exclusive',
+  'update',
+  'report',
+  'review',
+  'analysis',
+  'deep',
+  'dive',
+  'explained',
+  'explainer',
+  'stock',
+  'stocks',
+  'market',
+  'markets',
+  'earnings',
+  'revenue',
+  'company',
+  'companies',
+  'startup',
+  'startups',
+  'founder',
+  'founders',
+  'ceo',
+  'cfo',
+  'cto',
+  'president',
+  'investor',
+  'investors',
+  'round',
+  'funding',
+  'raise',
+  'valuation',
+  'ipo',
+  'acquisition',
   // Generic tech / AI nouns capitalized
-  "ai", "ml", "api", "sdk", "gpu", "cpu", "tpu", "llm", "llms",
-  "agi", "asi", "gpt", "rag", "vr", "ar", "xr",
-  "agent", "agents", "model", "models", "chip", "chips", "robot", "robots",
-  "compute", "training", "inference", "fine-tuning",
+  'ai',
+  'ml',
+  'api',
+  'sdk',
+  'gpu',
+  'cpu',
+  'tpu',
+  'llm',
+  'llms',
+  'agi',
+  'asi',
+  'gpt',
+  'rag',
+  'vr',
+  'ar',
+  'xr',
+  'agent',
+  'agents',
+  'model',
+  'models',
+  'chip',
+  'chips',
+  'robot',
+  'robots',
+  'compute',
+  'training',
+  'inference',
+  'fine-tuning',
   // Politics descriptors that aren't entities on their own
-  "democratic", "republican", "democrat", "democrats", "republicans",
-  "liberal", "conservative", "progressive",
+  'democratic',
+  'republican',
+  'democrat',
+  'democrats',
+  'republicans',
+  'liberal',
+  'conservative',
+  'progressive',
   // Time / day / month
-  "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday",
-  "january", "february", "march", "april", "may", "june",
-  "july", "august", "september", "october", "november", "december",
+  'monday',
+  'tuesday',
+  'wednesday',
+  'thursday',
+  'friday',
+  'saturday',
+  'sunday',
+  'january',
+  'february',
+  'march',
+  'april',
+  'may',
+  'june',
+  'july',
+  'august',
+  'september',
+  'october',
+  'november',
+  'december',
   // Geography — country names + a few major regions. Country list is
   // intentionally wide because predictive surface dominates with
   // geopolitics events; the gazetteer is AI/tech focused so country
   // names are pure noise for promotion candidates.
-  "united states", "us", "usa", "america", "american", "americans",
-  "china", "chinese", "india", "indian", "japan", "japanese",
-  "korea", "korean", "south korea", "north korea",
-  "europe", "european", "uk", "britain", "british", "england", "scotland", "ireland",
-  "germany", "german", "france", "french", "russia", "russian",
-  "iran", "iranian", "israel", "israeli", "palestine", "palestinian",
-  "ukraine", "ukrainian", "taiwan", "taiwanese",
-  "australia", "australian", "mexico", "mexican",
-  "brazil", "brazilian", "argentina", "canada", "canadian",
-  "italy", "italian", "spain", "spanish", "netherlands", "dutch",
-  "sweden", "swedish", "norway", "norwegian", "denmark", "danish",
-  "finland", "finnish", "switzerland", "swiss",
-  "austria", "austrian", "belgium", "belgian", "greece", "greek",
-  "turkey", "turkish", "egypt", "egyptian",
-  "saudi arabia", "uae", "dubai", "qatar", "kuwait",
-  "vietnam", "vietnamese", "thailand", "thai", "malaysia", "malaysian",
-  "indonesia", "indonesian", "philippines", "filipino",
-  "singapore", "hong kong", "new zealand",
-  "pakistan", "pakistani", "bangladesh", "venezuela", "colombia", "chile",
-  "africa", "asia", "middle east", "south america", "south asia", "latin america",
-  "california", "new york", "san francisco", "silicon valley", "boston",
-  "los angeles", "chicago", "seattle", "austin", "denver",
-  "london", "paris", "berlin", "tokyo", "beijing", "shanghai", "moscow",
-  "hormuz", "strait", "strait of hormuz",
+  'united states',
+  'us',
+  'usa',
+  'america',
+  'american',
+  'americans',
+  'china',
+  'chinese',
+  'india',
+  'indian',
+  'japan',
+  'japanese',
+  'korea',
+  'korean',
+  'south korea',
+  'north korea',
+  'europe',
+  'european',
+  'uk',
+  'britain',
+  'british',
+  'england',
+  'scotland',
+  'ireland',
+  'germany',
+  'german',
+  'france',
+  'french',
+  'russia',
+  'russian',
+  'iran',
+  'iranian',
+  'israel',
+  'israeli',
+  'palestine',
+  'palestinian',
+  'ukraine',
+  'ukrainian',
+  'taiwan',
+  'taiwanese',
+  'australia',
+  'australian',
+  'mexico',
+  'mexican',
+  'brazil',
+  'brazilian',
+  'argentina',
+  'canada',
+  'canadian',
+  'italy',
+  'italian',
+  'spain',
+  'spanish',
+  'netherlands',
+  'dutch',
+  'sweden',
+  'swedish',
+  'norway',
+  'norwegian',
+  'denmark',
+  'danish',
+  'finland',
+  'finnish',
+  'switzerland',
+  'swiss',
+  'austria',
+  'austrian',
+  'belgium',
+  'belgian',
+  'greece',
+  'greek',
+  'turkey',
+  'turkish',
+  'egypt',
+  'egyptian',
+  'saudi arabia',
+  'uae',
+  'dubai',
+  'qatar',
+  'kuwait',
+  'vietnam',
+  'vietnamese',
+  'thailand',
+  'thai',
+  'malaysia',
+  'malaysian',
+  'indonesia',
+  'indonesian',
+  'philippines',
+  'filipino',
+  'singapore',
+  'hong kong',
+  'new zealand',
+  'pakistan',
+  'pakistani',
+  'bangladesh',
+  'venezuela',
+  'colombia',
+  'chile',
+  'africa',
+  'asia',
+  'middle east',
+  'south america',
+  'south asia',
+  'latin america',
+  'california',
+  'new york',
+  'san francisco',
+  'silicon valley',
+  'boston',
+  'los angeles',
+  'chicago',
+  'seattle',
+  'austin',
+  'denver',
+  'london',
+  'paris',
+  'berlin',
+  'tokyo',
+  'beijing',
+  'shanghai',
+  'moscow',
+  'hormuz',
+  'strait',
+  'strait of hormuz',
   // High-volume publishers / news brands often appearing as capitalized
-  "reuters", "bloomberg", "wsj", "ft", "cnbc", "bbc", "cnn", "nyt",
-  "techcrunch", "the verge", "ars technica", "the information",
+  'reuters',
+  'bloomberg',
+  'wsj',
+  'ft',
+  'cnbc',
+  'bbc',
+  'cnn',
+  'nyt',
+  'techcrunch',
+  'the verge',
+  'ars technica',
+  'the information',
   // Market platforms — these appear *in* event titles but they're the
   // source surface, never the subject we'd map. (`polymarket` /
   // `manifold` show up because Manifold question titles often
   // reference each other.)
-  "polymarket", "manifold", "kalshi", "betfair", "predictit",
+  'polymarket',
+  'manifold',
+  'kalshi',
+  'betfair',
+  'predictit',
   // Currency / units that slip into bare-entity capture
-  "usd", "eur", "gbp", "jpy", "cny",
+  'usd',
+  'eur',
+  'gbp',
+  'jpy',
+  'cny',
   // Misc title fragments
-  "interview", "video", "podcast", "newsletter",
-  "live", "live blog", "live update",
+  'interview',
+  'video',
+  'podcast',
+  'newsletter',
+  'live',
+  'live blog',
+  'live update',
 ]);
 
 /** Build a Set of already-mapped names + aliases (lowercase) from seed entities. */
@@ -291,13 +723,13 @@ function buildSeededLookup(): Set<string> {
     aliases?: string | null;
   }>) {
     if (entity.name) {
-      const trimmed = entity.name.toLowerCase().replace(ENTITY_SUFFIX_RE, "").trim();
+      const trimmed = entity.name.toLowerCase().replace(ENTITY_SUFFIX_RE, '').trim();
       out.add(entity.name.toLowerCase());
       if (trimmed && trimmed !== entity.name.toLowerCase()) out.add(trimmed);
     }
     if (entity.ticker) out.add(entity.ticker.toLowerCase());
     if (entity.aliases) {
-      for (const alias of entity.aliases.split("|")) {
+      for (const alias of entity.aliases.split('|')) {
         const a = alias.trim().toLowerCase();
         if (a) out.add(a);
       }
@@ -310,20 +742,17 @@ export const SEEDED_ENTITY_LOOKUP: ReadonlySet<string> = buildSeededLookup();
 
 /** Strip company-form suffixes so "Anthropic PBC" and "Anthropic" hash the same. */
 export function normalizeEntityCandidate(raw: string): string {
-  return raw.replace(ENTITY_SUFFIX_RE, "").trim();
+  return raw.replace(ENTITY_SUFFIX_RE, '').trim();
 }
 
 /** Strip leading question/auxiliary words ("Will Harvey Weinstein" → "Harvey Weinstein"). */
-function stripLeadingStopwords(
-  phrase: string,
-  leading: ReadonlySet<string>,
-): string {
+function stripLeadingStopwords(phrase: string, leading: ReadonlySet<string>): string {
   const tokens = phrase.split(/\s+/);
   let i = 0;
   while (i < tokens.length && leading.has(tokens[i].toLowerCase())) {
     i += 1;
   }
-  return tokens.slice(i).join(" ");
+  return tokens.slice(i).join(' ');
 }
 
 export function extractEntityCandidates(
@@ -331,9 +760,9 @@ export function extractEntityCandidates(
   content?: string | null,
   seeded: ReadonlySet<string> = SEEDED_ENTITY_LOOKUP,
   stoplist: ReadonlySet<string> = ENTITY_STOPLIST_LOWER,
-  leadingStopwords: ReadonlySet<string> = ENTITY_LEADING_STOPWORDS_LOWER,
+  leadingStopwords: ReadonlySet<string> = ENTITY_LEADING_STOPWORDS_LOWER
 ): string[] {
-  const text = `${title} ${content ?? ""}`;
+  const text = `${title} ${content ?? ''}`;
   const matches = text.match(ENTITY_RE) ?? [];
   const seen = new Set<string>();
   const out: string[] = [];
@@ -363,14 +792,11 @@ export function extractEntityCandidates(
 }
 
 /** Bare-entity aggregator. Filters singletons (count<2 and sources<2). */
-export function aggregateEntityCandidates(
-  events: UnmappedEvent[],
-  maxSamples = 3,
-): Candidate[] {
+export function aggregateEntityCandidates(events: UnmappedEvent[], maxSamples = 3): Candidate[] {
   const aggregated = aggregateCandidatesWith(
     events,
     (t, c) => extractEntityCandidates(t, c),
-    maxSamples,
+    maxSamples
   );
   // Open-world detection has a noisier base rate than the closed-world
   // $TICKER / known-ticker paths, so require either repeated mentions
@@ -380,24 +806,26 @@ export function aggregateEntityCandidates(
 
 export const unmappedRoute = new Hono<{ Bindings: Env }>();
 
-unmappedRoute.get("/", async (c) => {
-  const hours = Math.min(Math.max(Number(c.req.query("hours") ?? 24), 1), 24 * 30);
-  const eventLimit = Math.min(Math.max(Number(c.req.query("limit") ?? 500), 1), 2000);
-  const candidateLimit = Math.min(Math.max(Number(c.req.query("top") ?? 30), 1), 200);
+unmappedRoute.get('/', async (c) => {
+  const hours = Math.min(Math.max(Number(c.req.query('hours') ?? 24), 1), 24 * 30);
+  const eventLimit = Math.min(Math.max(Number(c.req.query('limit') ?? 500), 1), 2000);
+  const candidateLimit = Math.min(Math.max(Number(c.req.query('top') ?? 30), 1), 200);
   const since = Math.floor(Date.now() / 1000) - hours * 3600;
 
-  const events = (await c.env.DB.prepare(
-    `SELECT title, content, source, source_url, published_at
+  const events =
+    (
+      await c.env.DB.prepare(
+        `SELECT title, content, source, source_url, published_at
      FROM events
      WHERE primary_entity_id IS NULL
        AND title IS NOT NULL
        AND published_at >= ?
      ORDER BY published_at DESC
-     LIMIT ?`,
-  )
-    .bind(since, eventLimit)
-    .all<UnmappedEvent>())
-    .results ?? [];
+     LIMIT ?`
+      )
+        .bind(since, eventLimit)
+        .all<UnmappedEvent>()
+    ).results ?? [];
 
   const candidates = aggregateCandidates(events).slice(0, candidateLimit);
   const bareTickerCandidates = aggregateBareTickerCandidates(events).slice(0, candidateLimit);
@@ -405,7 +833,7 @@ unmappedRoute.get("/", async (c) => {
 
   console.log(
     JSON.stringify({
-      route: "/unmapped",
+      route: '/unmapped',
       hours,
       eventsScanned: events.length,
       candidates: candidates.length,
@@ -414,7 +842,7 @@ unmappedRoute.get("/", async (c) => {
       topToken: candidates[0]?.token ?? null,
       topBareTicker: bareTickerCandidates[0]?.token ?? null,
       topEntity: entityCandidates[0]?.token ?? null,
-    }),
+    })
   );
 
   return c.json({

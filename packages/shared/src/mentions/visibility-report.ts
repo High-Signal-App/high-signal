@@ -4,4 +4,4 @@ export {
   composeVisibilityReport,
   type AiVisibilityReport,
   type VisibilityRecommendation,
-} from "@saas-maker/ai-visibility";
+} from '@saas-maker/ai-visibility';

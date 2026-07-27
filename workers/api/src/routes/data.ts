@@ -1,43 +1,44 @@
-import { Hono } from "hono";
-import { and, desc, eq, gte, like, lt, or, sql } from "drizzle-orm";
-import { db, schema } from "../db";
+import { Hono } from 'hono';
+import { and, desc, eq, gte, like, lt, or, sql } from 'drizzle-orm';
+import { db, schema } from '../db';
 
 type Env = { DB: D1Database };
 
 export const dataRoute = new Hono<{ Bindings: Env }>();
 
 const SOURCE_FAMILY_ALIASES: Record<string, string> = {
-  market: "markets",
-  "regulations-gov": "regulations",
-  package: "packages",
-  osv: "packages",
+  market: 'markets',
+  'regulations-gov': 'regulations',
+  package: 'packages',
+  osv: 'packages',
 };
 
 const SOURCE_QUERY_ALIASES: Record<string, string[]> = {
-  edgar: ["edgar"],
-  markets: ["markets", "market"],
-  packages: ["packages", "package", "osv"],
-  regulations: ["regulations", "regulations-gov"],
+  edgar: ['edgar'],
+  markets: ['markets', 'market'],
+  packages: ['packages', 'package', 'osv'],
+  regulations: ['regulations', 'regulations-gov'],
 };
 
 // Collapse `legistar:phoenix` / `macro-rates:fred:dgs10` to the catalog family.
 function family(source: string): string {
-  if (source.startsWith("edgar_")) return "edgar";
-  if (source.startsWith("china-news:") || source.startsWith("news:china-news-")) return "china-news";
-  if (source.startsWith("scmp:") || source.startsWith("news:scmp-")) return "scmp";
-  const first = (source || "unknown").split(":", 1)[0]!;
+  if (source.startsWith('edgar_')) return 'edgar';
+  if (source.startsWith('china-news:') || source.startsWith('news:china-news-'))
+    return 'china-news';
+  if (source.startsWith('scmp:') || source.startsWith('news:scmp-')) return 'scmp';
+  const first = (source || 'unknown').split(':', 1)[0]!;
   return SOURCE_FAMILY_ALIASES[first] ?? first;
 }
 
 function sourceMatch(id: string) {
-  if (id === "china-news") {
+  if (id === 'china-news') {
     return or(
-      like(schema.events.source, "china-news:%"),
-      like(schema.events.source, "news:china-news-%"),
+      like(schema.events.source, 'china-news:%'),
+      like(schema.events.source, 'news:china-news-%')
     );
   }
-  if (id === "scmp") {
-    return or(like(schema.events.source, "scmp:%"), like(schema.events.source, "news:scmp-%"));
+  if (id === 'scmp') {
+    return or(like(schema.events.source, 'scmp:%'), like(schema.events.source, 'news:scmp-%'));
   }
   const aliases = SOURCE_QUERY_ALIASES[id] ?? [id];
   const conditions = aliases.flatMap((alias) => [
@@ -68,8 +69,8 @@ interface Sample {
  * Powers the data-explore page: counts + most-recent samples per source family,
  * merged client-side with the static source catalog (storage/history/role).
  */
-dataRoute.get("/sources", async (c) => {
-  const limit = Math.min(Number(c.req.query("samples") ?? 4), 10);
+dataRoute.get('/sources', async (c) => {
+  const limit = Math.min(Number(c.req.query('samples') ?? 4), 10);
   const database = db(c.env.DB);
 
   // Aggregate counts + last-seen per source (grouped in SQL).
@@ -116,7 +117,10 @@ dataRoute.get("/sources", async (c) => {
       arr.push({
         title: r.title,
         url: r.url,
-        publishedAt: r.publishedAt instanceof Date ? Math.floor(r.publishedAt.getTime() / 1000) : Number(r.publishedAt),
+        publishedAt:
+          r.publishedAt instanceof Date
+            ? Math.floor(r.publishedAt.getTime() / 1000)
+            : Number(r.publishedAt),
       });
       samples.set(fam, arr);
     }
@@ -143,16 +147,20 @@ dataRoute.get("/sources", async (c) => {
  * first. Powers the /data/[source] drill-in ("click on data to view it").
  * Matches the family and any `family:variant` sub-source (e.g. legistar:phoenix).
  */
-dataRoute.get("/sources/:id", async (c) => {
-  const id = c.req.param("id");
-  const limit = Math.min(Math.max(Number(c.req.query("limit") ?? 50), 1), 200);
-  const offset = Math.max(Number(c.req.query("offset") ?? 0), 0);
-  const date = c.req.query("date");
+dataRoute.get('/sources/:id', async (c) => {
+  const id = c.req.param('id');
+  const limit = Math.min(Math.max(Number(c.req.query('limit') ?? 50), 1), 200);
+  const offset = Math.max(Number(c.req.query('offset') ?? 0), 0);
+  const date = c.req.query('date');
   const database = db(c.env.DB);
   const match = sourceMatch(id);
   const range = dayRange(date);
   const where = range
-    ? and(match, gte(schema.events.publishedAt, range.start), lt(schema.events.publishedAt, range.end))
+    ? and(
+        match,
+        gte(schema.events.publishedAt, range.start),
+        lt(schema.events.publishedAt, range.end)
+      )
     : match;
 
   let total = 0;
@@ -163,7 +171,14 @@ dataRoute.get("/sources/:id", async (c) => {
       .where(where);
     total = Number(row?.n ?? 0);
   } catch {
-    return c.json({ id, date: range ? date : undefined, total: 0, events: [], hasMore: false, available: false });
+    return c.json({
+      id,
+      date: range ? date : undefined,
+      total: 0,
+      events: [],
+      hasMore: false,
+      available: false,
+    });
   }
 
   const rows = await database
@@ -188,7 +203,9 @@ dataRoute.get("/sources/:id", async (c) => {
     source: r.source,
     entity: r.entity,
     publishedAt:
-      r.publishedAt instanceof Date ? Math.floor(r.publishedAt.getTime() / 1000) : Number(r.publishedAt),
+      r.publishedAt instanceof Date
+        ? Math.floor(r.publishedAt.getTime() / 1000)
+        : Number(r.publishedAt),
   }));
 
   return c.json({

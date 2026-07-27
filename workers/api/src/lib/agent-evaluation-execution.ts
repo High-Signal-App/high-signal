@@ -1,11 +1,11 @@
-import { fetchChatCompletion, FREE_AI_DEFAULT_ENDPOINT } from "./ai-client";
-import type { AIConfig } from "./ai-client";
-import { fetchWithRetry, mapWithConcurrency } from "./resilience";
+import { fetchChatCompletion, FREE_AI_DEFAULT_ENDPOINT } from './ai-client';
+import type { AIConfig } from './ai-client';
+import { fetchWithRetry, mapWithConcurrency } from './resilience';
 import type {
   AgentEvaluationCompetitor,
   AgentEvaluationInput,
   AgentPromptResult,
-} from "@high-signal/shared";
+} from '@high-signal/shared';
 
 type Env = {
   HIGH_SIGNAL_AI_ENDPOINT_URL?: string;
@@ -41,18 +41,18 @@ export async function executePromptsWithAI(input: {
           (signal) =>
             fetchChatCompletion({
               config: aiConfig,
-              messages: [{ role: "user", content: prompt.promptText }],
+              messages: [{ role: 'user', content: prompt.promptText }],
               maxTokens: 600,
               stream: false,
-              headers: signal ? { "X-Request-Abort": signal.aborted ? "1" : "0" } : {},
+              headers: signal ? { 'X-Request-Abort': signal.aborted ? '1' : '0' } : {},
             }),
-          { attempts: AGENT_EVAL_ATTEMPTS, timeoutMs: AGENT_EVAL_TIMEOUT_MS },
+          { attempts: AGENT_EVAL_ATTEMPTS, timeoutMs: AGENT_EVAL_TIMEOUT_MS }
         );
         if (!response.ok) return prompt;
         const data = (await response.json()) as {
           choices?: Array<{ message?: { content?: string } }>;
         };
-        const text = (data.choices?.[0]?.message?.content ?? "").trim();
+        const text = (data.choices?.[0]?.message?.content ?? '').trim();
         if (!text) return prompt;
         return analyzeResponse({
           base: prompt,
@@ -64,7 +64,7 @@ export async function executePromptsWithAI(input: {
       } catch {
         return prompt;
       }
-    },
+    }
   );
   // Unwrap the result envelope — mapWithConcurrency never throws per-item
   // (errors become { ok: false }), and our callback already catches and
@@ -80,15 +80,15 @@ function analyzeResponse(input: {
   brandUrl: string;
   competitors: AgentEvaluationCompetitor[];
 }): AgentPromptResult {
-  const brandPattern = new RegExp(`\\b${escape(input.brandName)}\\b`, "i");
+  const brandPattern = new RegExp(`\\b${escapeRegex(input.brandName)}\\b`, 'i');
   const brandMentioned = brandPattern.test(input.text);
   const recommendPattern = new RegExp(
-    `\\b${escape(input.brandName)}[^.]{0,100}\\b(recommend|best|top|leading|pick|choose)`,
-    "i",
+    `\\b${escapeRegex(input.brandName)}[^.]{0,100}\\b(recommend|best|top|leading|pick|choose)`,
+    'i'
   );
   const brandRecommended = recommendPattern.test(input.text);
   const competitorsMentioned = input.competitors
-    .filter((c) => new RegExp(`\\b${escape(c.name)}\\b`, "i").test(input.text))
+    .filter((c) => new RegExp(`\\b${escapeRegex(c.name)}\\b`, 'i').test(input.text))
     .map((c) => ({ name: c.name, url: c.url }));
   const citations = Array.from(new Set(input.text.match(/https?:\/\/[^\s)>\]"',]+/g) ?? []));
   return {
@@ -101,8 +101,8 @@ function analyzeResponse(input: {
   };
 }
 
-function escape(value: string) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+function escapeRegex(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 function resolveEndpointConfig(env: Env): AIConfig | null {
@@ -111,6 +111,6 @@ function resolveEndpointConfig(env: Env): AIConfig | null {
   return {
     endpointUrl: env.HIGH_SIGNAL_AI_ENDPOINT_URL || FREE_AI_DEFAULT_ENDPOINT,
     apiKey,
-    model: env.HIGH_SIGNAL_AI_MODEL || "auto",
+    model: env.HIGH_SIGNAL_AI_MODEL || 'auto',
   };
 }

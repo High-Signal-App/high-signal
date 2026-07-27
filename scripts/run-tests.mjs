@@ -10,52 +10,52 @@
 // Intentionally NOT vitest — these suites are plain tsx scripts that assert and
 // `process.exit(1)` on failure; a runner is a far smaller change than a migration.
 
-import { spawn } from "node:child_process";
-import { availableParallelism } from "node:os";
-import { fileURLToPath } from "node:url";
-import { dirname, resolve } from "node:path";
+import { spawn } from 'node:child_process';
+import { availableParallelism } from 'node:os';
+import { fileURLToPath } from 'node:url';
+import { dirname, resolve } from 'node:path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const ROOT = resolve(__dirname, "..");
+const ROOT = resolve(__dirname, '..');
 
 // Each job: { name, cmd, args }. tsx suites run directly via the local tsx bin;
 // the workers/api vitest suite runs through pnpm so it uses the package config.
 const TSX_SUITES = [
-  ["signals", "scripts/sync-signals.test.ts"],
-  ["signals:auto-publish", "scripts/auto-publish-rules.test.ts"],
-  ["seo", "scripts/seo-json-ld.test.ts"],
-  ["requirements", "scripts/daily-requirements.test.ts"],
-  ["daily-range", "scripts/daily-range.test.ts"],
-  ["source-registry", "scripts/source-registry.test.ts"],
-  ["daily-automation", "scripts/daily-automation-status.test.ts"],
-  ["daily-source-audit", "scripts/daily-source-audit.test.ts"],
-  ["market-snapshot", "scripts/market-snapshot.test.ts"],
-  ["claim-provenance", "scripts/claim-provenance.test.ts"],
-  ["brief-delivery", "scripts/brief-delivery.test.ts"],
-  ["evidence-ranking", "scripts/evidence-ranking.test.ts"],
-  ["ai-visibility", "scripts/ai-visibility.test.ts"],
-  ["watchlist-impact", "scripts/watchlist-impact.test.ts"],
-  ["openlens-visibility", "scripts/openlens-visibility.test.ts"],
-  ["intent-opportunities", "scripts/intent-opportunities.test.ts"],
+  ['signals', 'scripts/sync-signals.test.ts'],
+  ['signals:auto-publish', 'scripts/auto-publish-rules.test.ts'],
+  ['seo', 'scripts/seo-json-ld.test.ts'],
+  ['requirements', 'scripts/daily-requirements.test.ts'],
+  ['daily-range', 'scripts/daily-range.test.ts'],
+  ['source-registry', 'scripts/source-registry.test.ts'],
+  ['daily-automation', 'scripts/daily-automation-status.test.ts'],
+  ['daily-source-audit', 'scripts/daily-source-audit.test.ts'],
+  ['market-snapshot', 'scripts/market-snapshot.test.ts'],
+  ['claim-provenance', 'scripts/claim-provenance.test.ts'],
+  ['brief-delivery', 'scripts/brief-delivery.test.ts'],
+  ['evidence-ranking', 'scripts/evidence-ranking.test.ts'],
+  ['ai-visibility', 'scripts/ai-visibility.test.ts'],
+  ['watchlist-impact', 'scripts/watchlist-impact.test.ts'],
+  ['openlens-visibility', 'scripts/openlens-visibility.test.ts'],
+  ['intent-opportunities', 'scripts/intent-opportunities.test.ts'],
 ];
 
-const tsxBin = resolve(ROOT, "node_modules/.bin/tsx");
+const tsxBin = resolve(ROOT, 'node_modules/.bin/tsx');
 
 // Plain-node test suites (no tsx cold-start cost). These run alongside the
 // tsx suites; the runner spawns them concurrently just like the others.
 const NODE_SUITES = [
-  ["automation-coverage", "scripts/automation-coverage.test.mjs"],
-  ["foundry-evidence", "scripts/foundry-evidence.test.mjs"],
-  ["foundry-safe-actions", "scripts/foundry-safe-actions.test.mjs"],
-  ["idempotency-guards", "scripts/idempotency-guards.test.mjs"],
+  ['automation-coverage', 'scripts/automation-coverage.test.mjs'],
+  ['foundry-evidence', 'scripts/foundry-evidence.test.mjs'],
+  ['foundry-safe-actions', 'scripts/foundry-safe-actions.test.mjs'],
+  ['idempotency-guards', 'scripts/idempotency-guards.test.mjs'],
 ];
 
 const jobs = [
   // Workspace package tests (equivalent to the old `pnpm -r test`; only
   // workers/api defines a `test` script today — a Vitest run).
-  { name: "workers/api (vitest)", cmd: "pnpm", args: ["-r", "test"] },
+  { name: 'workers/api (vitest)', cmd: 'pnpm', args: ['-r', 'test'] },
   ...TSX_SUITES.map(([name, file]) => ({ name, cmd: tsxBin, args: [file] })),
-  ...NODE_SUITES.map(([name, file]) => ({ name, cmd: "node", args: [file] })),
+  ...NODE_SUITES.map(([name, file]) => ({ name, cmd: 'node', args: [file] })),
 ];
 
 const concurrency = Math.max(1, Math.min(jobs.length, availableParallelism()));
@@ -66,16 +66,22 @@ function runJob(job) {
     const child = spawn(job.cmd, job.args, {
       cwd: ROOT,
       env: process.env,
-      stdio: ["ignore", "pipe", "pipe"],
+      stdio: ['ignore', 'pipe', 'pipe'],
     });
-    let stdout = "";
-    let stderr = "";
-    child.stdout.on("data", (chunk) => (stdout += chunk));
-    child.stderr.on("data", (chunk) => (stderr += chunk));
-    child.on("error", (error) => {
-      resolveJob({ job, code: 1, ms: Date.now() - started, stdout, stderr: `${stderr}\n${error.message}` });
+    let stdout = '';
+    let stderr = '';
+    child.stdout.on('data', (chunk) => (stdout += chunk));
+    child.stderr.on('data', (chunk) => (stderr += chunk));
+    child.on('error', (error) => {
+      resolveJob({
+        job,
+        code: 1,
+        ms: Date.now() - started,
+        stdout,
+        stderr: `${stderr}\n${error.message}`,
+      });
     });
-    child.on("close", (code) => {
+    child.on('close', (code) => {
       resolveJob({ job, code: code ?? 1, ms: Date.now() - started, stdout, stderr });
     });
   });
@@ -92,7 +98,7 @@ async function main() {
       process.stdout.write(`  → ${job.name}\n`);
       const result = await runJob(job);
       results.push(result);
-      const status = result.code === 0 ? "PASS" : "FAIL";
+      const status = result.code === 0 ? 'PASS' : 'FAIL';
       process.stdout.write(`  ${status} ${job.name} (${(result.ms / 1000).toFixed(1)}s)\n`);
     }
   }
@@ -103,7 +109,7 @@ async function main() {
   const failures = results.filter((r) => r.code !== 0);
 
   if (failures.length) {
-    console.log(`\n${"=".repeat(60)}\nFAILURES (${failures.length})\n${"=".repeat(60)}`);
+    console.log(`\n${'='.repeat(60)}\nFAILURES (${failures.length})\n${'='.repeat(60)}`);
     for (const f of failures) {
       console.log(`\n----- ${f.job.name} (exit ${f.code}) -----`);
       if (f.stdout.trim()) console.log(f.stdout.trimEnd());
@@ -114,7 +120,7 @@ async function main() {
   const passed = results.length - failures.length;
   const totalMs = Date.now() - startedAt;
   console.log(
-    `\n${failures.length ? "✗" : "✓"} ${passed}/${results.length} suites passed in ${(totalMs / 1000).toFixed(1)}s`,
+    `\n${failures.length ? '✗' : '✓'} ${passed}/${results.length} suites passed in ${(totalMs / 1000).toFixed(1)}s`
   );
 
   process.exit(failures.length ? 1 : 0);

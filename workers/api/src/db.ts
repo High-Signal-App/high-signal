@@ -1,5 +1,5 @@
-import { drizzle } from "drizzle-orm/d1";
-import * as schema from "@high-signal/db";
+import { drizzle } from 'drizzle-orm/d1';
+import * as schema from '@high-signal/db';
 
 export type DB = ReturnType<typeof drizzle<typeof schema>>;
 

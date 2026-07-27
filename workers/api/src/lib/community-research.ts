@@ -1,9 +1,9 @@
-import { fetchChatCompletion, FREE_AI_DEFAULT_ENDPOINT } from "./ai-client";
-import type { AIConfig } from "./ai-client";
-import { normalizeCommunitySummary } from "@high-signal/shared";
-import type { CommunitySummary } from "@high-signal/shared";
-import type { DB } from "../db";
-import { schema } from "../db";
+import { fetchChatCompletion, FREE_AI_DEFAULT_ENDPOINT } from './ai-client';
+import type { AIConfig } from './ai-client';
+import { normalizeCommunitySummary } from '@high-signal/shared';
+import type { CommunitySummary } from '@high-signal/shared';
+import type { DB } from '../db';
+import { schema } from '../db';
 
 type Env = {
   HIGH_SIGNAL_AI_ENDPOINT_URL?: string;
@@ -24,13 +24,13 @@ type RedditPost = {
 
 const DEFAULT_PROMPTS: Record<string, string> = {
   localllama:
-    "Show the highest-signal posts and comments about running strong local LLM stacks, and extract repeatable setups people confirm working in practice.",
+    'Show the highest-signal posts and comments about running strong local LLM stacks, and extract repeatable setups people confirm working in practice.',
   langchain:
-    "Summarize production-ready patterns, common failure modes, and practical implementation tips for building LLM apps with LangChain.",
+    'Summarize production-ready patterns, common failure modes, and practical implementation tips for building LLM apps with LangChain.',
   ai_agents:
-    "Summarize agent systems that are actually working end-to-end today, including architecture, tooling, and operational blockers.",
+    'Summarize agent systems that are actually working end-to-end today, including architecture, tooling, and operational blockers.',
   startups:
-    "Summarize proven founder tactics for validation, user acquisition, pricing, and early revenue generation.",
+    'Summarize proven founder tactics for validation, user acquisition, pricing, and early revenue generation.',
 };
 
 export async function generateCommunityDigest(input: {
@@ -69,7 +69,7 @@ export async function generateCommunityDigest(input: {
 async function summarizePosts(input: {
   env: Env;
   subreddit: string;
-  period: "day" | "week" | "month";
+  period: 'day' | 'week' | 'month';
   prompt: string;
   posts: RedditPost[];
 }): Promise<{ summaryText: string; summary: CommunitySummary | null }> {
@@ -98,31 +98,32 @@ async function summarizePosts(input: {
     maxTokens: 900,
     messages: [
       {
-        role: "system",
+        role: 'system',
         content:
-          "Return compact JSON with key_trend, notable_discussions, and key_action. Each point needs title, desc, and sourceId as [postId] or [postId, commentId]. No markdown.",
+          'Return compact JSON with key_trend, notable_discussions, and key_action. Each point needs title, desc, and sourceId as [postId] or [postId, commentId]. No markdown.',
       },
-      { role: "user", content: `${input.prompt}\n\n${payload}` },
+      { role: 'user', content: `${input.prompt}\n\n${payload}` },
     ],
   });
   if (!response.ok) return fallbackSummary(input);
   const data = (await response.json()) as { choices?: Array<{ message?: { content?: string } }> };
-  const text = data.choices?.[0]?.message?.content ?? "";
+  const text = data.choices?.[0]?.message?.content ?? '';
   const structured = parseSummary(text) ?? fallbackSummary(input).summary;
   const summary = normalizeCommunitySummary(structured);
   return {
-    summaryText: summary?.keyTrend?.desc || text.slice(0, 500) || fallbackSummary(input).summaryText,
+    summaryText:
+      summary?.keyTrend?.desc || text.slice(0, 500) || fallbackSummary(input).summaryText,
     summary,
   };
 }
 
-async function fetchTopPosts(subreddit: string, period: "day" | "week" | "month") {
+async function fetchTopPosts(subreddit: string, period: 'day' | 'week' | 'month') {
   const response = await fetch(
     `https://www.reddit.com/r/${encodeURIComponent(subreddit)}/top.json?${new URLSearchParams({
       t: period,
-      limit: "12",
+      limit: '12',
     })}`,
-    { headers: { "User-Agent": "HighSignal/1.0 (community research)" } },
+    { headers: { 'User-Agent': 'HighSignal/1.0 (community research)' } }
   );
   if (!response.ok) return [];
   const data = (await response.json()) as {
@@ -131,15 +132,15 @@ async function fetchTopPosts(subreddit: string, period: "day" | "week" | "month"
   return Promise.all(
     (data.data?.children ?? []).map(async (child) => {
       const post = child.data ?? {};
-      const id = `${post["id"] ?? ""}`;
+      const id = `${post['id'] ?? ''}`;
       return {
         id,
-        title: `${post["title"] ?? ""}`,
-        selftext: `${post["selftext"] ?? ""}`,
-        score: Number(post["score"] ?? 0),
+        title: `${post['title'] ?? ''}`,
+        selftext: `${post['selftext'] ?? ''}`,
+        score: Number(post['score'] ?? 0),
         comments: id ? await fetchTopComments(subreddit, id) : [],
       };
-    }),
+    })
   );
 }
 
@@ -147,7 +148,7 @@ async function fetchTopComments(subreddit: string, postId: string) {
   try {
     const response = await fetch(
       `https://www.reddit.com/r/${encodeURIComponent(subreddit)}/comments/${postId}.json?limit=8&sort=top`,
-      { headers: { "User-Agent": "HighSignal/1.0 (community research)" } },
+      { headers: { 'User-Agent': 'HighSignal/1.0 (community research)' } }
     );
     if (!response.ok) return [];
     const data = (await response.json()) as Array<{
@@ -155,11 +156,11 @@ async function fetchTopComments(subreddit: string, postId: string) {
     }>;
     return (data[1]?.data?.children ?? [])
       .map((child) => child.data ?? {})
-      .filter((comment) => typeof comment["body"] === "string")
+      .filter((comment) => typeof comment['body'] === 'string')
       .map((comment) => ({
-        id: `${comment["id"] ?? ""}`,
-        body: `${comment["body"] ?? ""}`,
-        score: Number(comment["score"] ?? 0),
+        id: `${comment['id'] ?? ''}`,
+        body: `${comment['body'] ?? ''}`,
+        score: Number(comment['score'] ?? 0),
       }));
   } catch {
     return [];
@@ -168,7 +169,7 @@ async function fetchTopComments(subreddit: string, postId: string) {
 
 function fallbackSummary(input: {
   subreddit: string;
-  period: "day" | "week" | "month";
+  period: 'day' | 'week' | 'month';
   prompt: string;
   posts: RedditPost[];
 }) {
@@ -187,7 +188,7 @@ function fallbackSummary(input: {
         sourceId: [post.id],
       })),
       key_action: {
-        title: "Review source threads",
+        title: 'Review source threads',
         desc: input.prompt,
         sourceId: topPost?.id ? [topPost.id] : undefined,
       },
@@ -198,11 +199,11 @@ function fallbackSummary(input: {
 function parseSummary(text: string) {
   const trimmed = text
     .trim()
-    .replace(/^```json\s*/i, "")
-    .replace(/^```\s*/i, "")
-    .replace(/\s*```$/i, "");
-  const first = trimmed.indexOf("{");
-  const last = trimmed.lastIndexOf("}");
+    .replace(/^```json\s*/i, '')
+    .replace(/^```\s*/i, '')
+    .replace(/\s*```$/i, '');
+  const first = trimmed.indexOf('{');
+  const last = trimmed.lastIndexOf('}');
   const candidate = first >= 0 && last > first ? trimmed.slice(first, last + 1) : trimmed;
   try {
     return JSON.parse(candidate);
@@ -217,7 +218,7 @@ function resolveEndpointConfig(env: Env): AIConfig | null {
   return {
     endpointUrl: env.HIGH_SIGNAL_AI_ENDPOINT_URL || FREE_AI_DEFAULT_ENDPOINT,
     apiKey,
-    model: env.HIGH_SIGNAL_AI_MODEL || "auto",
+    model: env.HIGH_SIGNAL_AI_MODEL || 'auto',
   };
 }
 

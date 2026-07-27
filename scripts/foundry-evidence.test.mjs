@@ -4,7 +4,7 @@
 // Run: node scripts/foundry-evidence.test.mjs
 
 import assert from 'node:assert/strict';
-import { readFile, mkdir, writeFile, rm } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import { dirname, resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';

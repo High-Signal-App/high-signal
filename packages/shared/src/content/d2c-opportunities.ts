@@ -21,8 +21,8 @@ import type {
   OpportunityBriefPayload,
   OpportunityEvidenceMixItem,
   OpportunityVerdict,
-} from "../core/brief";
-import type { Region } from "../primitives/region";
+} from '../core/brief';
+import type { Region } from '../primitives/region';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -30,13 +30,13 @@ import type { Region } from "../primitives/region";
 
 /** Source class for an evidence item — drives the "source diversity" score. */
 export type D2CSourceClass =
-  | "community" // Reddit / HN / forums
-  | "search" // Google Trends (deferred → null)
-  | "product" // brand / marketplace / Shopify pages (deferred → null)
-  | "review" // public reviews (deferred → null)
-  | "ad-library" // Meta Ad Library (deferred → null)
-  | "launch" // Product Hunt / news / RSS
-  | "agent-visibility"; // ChatGPT/Gemini/Perplexity (Slice 4)
+  | 'community' // Reddit / HN / forums
+  | 'search' // Google Trends (deferred → null)
+  | 'product' // brand / marketplace / Shopify pages (deferred → null)
+  | 'review' // public reviews (deferred → null)
+  | 'ad-library' // Meta Ad Library (deferred → null)
+  | 'launch' // Product Hunt / news / RSS
+  | 'agent-visibility'; // ChatGPT/Gemini/Perplexity (Slice 4)
 
 export interface D2CEvidenceItem {
   sourceClass: D2CSourceClass;
@@ -110,379 +110,490 @@ export interface D2CNicheSeed {
 // Seed: 20 India D2C niches (plan 0013)
 // ---------------------------------------------------------------------------
 
-export const D2C_REGION: Region = "south-asia";
+export const D2C_REGION: Region = 'south-asia';
 
 export const D2C_NICHE_SEEDS: D2CNicheSeed[] = [
   {
-    slug: "hair-growth-scalp-support",
-    name: "Hair growth + scalp support",
-    category: "personal-care",
+    slug: 'hair-growth-scalp-support',
+    name: 'Hair growth + scalp support',
+    category: 'personal-care',
     region: D2C_REGION,
-    targetUser: "Indian men 22-35 seeing early thinning or scalp irritation",
+    targetUser: 'Indian men 22-35 seeing early thinning or scalp irritation',
     problem:
-      "People search for minoxidil compatibility and irritation support, not generic hair oil; existing ayurvedic oils make unverified claims.",
-    firstSku: "A scalp serum with transparent actives (saw palmetto + niacinamide) and a clear minoxidil-compatibility note.",
+      'People search for minoxidil compatibility and irritation support, not generic hair oil; existing ayurvedic oils make unverified claims.',
+    firstSku:
+      'A scalp serum with transparent actives (saw palmetto + niacinamide) and a clear minoxidil-compatibility note.',
     risks: [
-      "Claims can drift into medical language; keep positioning cosmetic.",
+      'Claims can drift into medical language; keep positioning cosmetic.',
       "Generic 'hair oil' positioning is crowded; the wedge is irritation support.",
-      "Retention is uncertain without a subscription ritual.",
+      'Retention is uncertain without a subscription ritual.',
     ],
     nextValidationStep:
-      "Ship a landing page naming the irritation-support wedge, run 10 interviews in r/IndianSkincare, and open a waitlist.",
-    defaultScores: { demand: 0.6, competition: 0.55, pricing: 0.5, adSaturation: null, agentVisibility: null },
+      'Ship a landing page naming the irritation-support wedge, run 10 interviews in r/IndianSkincare, and open a waitlist.',
+    defaultScores: {
+      demand: 0.6,
+      competition: 0.55,
+      pricing: 0.5,
+      adSaturation: null,
+      agentVisibility: null,
+    },
     query: {
-      subs: ["IndianSkincare", "IndianGlowup", "tressless"],
-      keywords: ["hair fall", "scalp irritation", "minoxidil", "dandruff scalp"],
+      subs: ['IndianSkincare', 'IndianGlowup', 'tressless'],
+      keywords: ['hair fall', 'scalp irritation', 'minoxidil', 'dandruff scalp'],
     },
   },
   {
-    slug: "lip-intimate-skincare-sensitive",
-    name: "Lip + intimate skincare for sensitive skin",
-    category: "personal-care",
+    slug: 'lip-intimate-skincare-sensitive',
+    name: 'Lip + intimate skincare for sensitive skin',
+    category: 'personal-care',
     region: D2C_REGION,
-    targetUser: "Indian women 20-40 with sensitive skin avoiding fragrance and common irritants",
+    targetUser: 'Indian women 20-40 with sensitive skin avoiding fragrance and common irritants',
     problem:
-      "Lip and intimate care products are either medicated (clinical) or heavily fragranced; a sensitive-skin middle ground is thin.",
-    firstSku: "A fragrance-free intimate wash with a published ingredient panel and pH claim.",
+      'Lip and intimate care products are either medicated (clinical) or heavily fragranced; a sensitive-skin middle ground is thin.',
+    firstSku: 'A fragrance-free intimate wash with a published ingredient panel and pH claim.',
     risks: [
-      "Intimate-care claims attract regulatory scrutiny; wording must stay cosmetic.",
-      "Distribution is sensitive; performance marketing channels restrict the category.",
+      'Intimate-care claims attract regulatory scrutiny; wording must stay cosmetic.',
+      'Distribution is sensitive; performance marketing channels restrict the category.',
     ],
     nextValidationStep:
-      "Interview 10 users from r/IndianSkincare about current substitutes and test a waitlist page with the ingredient panel.",
-    defaultScores: { demand: 0.5, competition: 0.6, pricing: 0.55, adSaturation: null, agentVisibility: null },
+      'Interview 10 users from r/IndianSkincare about current substitutes and test a waitlist page with the ingredient panel.',
+    defaultScores: {
+      demand: 0.5,
+      competition: 0.6,
+      pricing: 0.55,
+      adSaturation: null,
+      agentVisibility: null,
+    },
     query: {
-      subs: ["IndianSkincare", "IndianGlowup", "SkincareAddiction"],
-      keywords: ["sensitive skin", "intimate wash", "fragrance free", "lip care"],
+      subs: ['IndianSkincare', 'IndianGlowup', 'SkincareAddiction'],
+      keywords: ['sensitive skin', 'intimate wash', 'fragrance free', 'lip care'],
     },
   },
   {
-    slug: "hard-water-hair-care",
-    name: "Hard-water hair care",
-    category: "personal-care",
+    slug: 'hard-water-hair-care',
+    name: 'Hard-water hair care',
+    category: 'personal-care',
     region: D2C_REGION,
-    targetUser: "Indian urban renters in hard-water cities (Bengaluru, Hyderabad, Chennai)",
+    targetUser: 'Indian urban renters in hard-water cities (Bengaluru, Hyderabad, Chennai)',
     problem:
-      "Hard water causes hair fall and dullness complaints; most shampoos are not formulated for chelating calcium/magnesium.",
-    firstSku: "A weekly chelating shampoo with a hard-water claim and a clarifying rinse.",
+      'Hard water causes hair fall and dullness complaints; most shampoos are not formulated for chelating calcium/magnesium.',
+    firstSku: 'A weekly chelating shampoo with a hard-water claim and a clarifying rinse.',
     risks: [
-      "Claim needs to stay cosmetic, not medical.",
-      "Municipal water data varies; the wedge is city-specific positioning.",
+      'Claim needs to stay cosmetic, not medical.',
+      'Municipal water data varies; the wedge is city-specific positioning.',
     ],
     nextValidationStep:
-      "Run a Bengaluru + Hyderabad landing page test and interview 10 renters about their current routine.",
-    defaultScores: { demand: 0.55, competition: 0.65, pricing: 0.5, adSaturation: null, agentVisibility: null },
+      'Run a Bengaluru + Hyderabad landing page test and interview 10 renters about their current routine.',
+    defaultScores: {
+      demand: 0.55,
+      competition: 0.65,
+      pricing: 0.5,
+      adSaturation: null,
+      agentVisibility: null,
+    },
     query: {
-      subs: ["IndianSkincare", "IndianGlowup", "bengaluru"],
-      keywords: ["hard water", "hair fall", "shampoo", "chlorine"],
-      hackernews: ["hard water hair"],
+      subs: ['IndianSkincare', 'IndianGlowup', 'bengaluru'],
+      keywords: ['hard water', 'hair fall', 'shampoo', 'chlorine'],
+      hackernews: ['hard water hair'],
     },
   },
   {
-    slug: "beard-dandruff-beard-scalp",
-    name: "Beard dandruff / beard scalp care",
-    category: "personal-care",
+    slug: 'beard-dandruff-beard-scalp',
+    name: 'Beard dandruff / beard scalp care',
+    category: 'personal-care',
     region: D2C_REGION,
-    targetUser: "Indian men 20-35 with beards experiencing flaking and itch",
+    targetUser: 'Indian men 20-35 with beards experiencing flaking and itch',
     problem:
-      "Beard dandruff is treated with anti-dandruff shampoo for the scalp, not the beard; beard-specific care is underbuilt.",
-    firstSku: "A beard serum + wash duo with anti-flake actives and a beard-comfort claim.",
-    risks: ["Cosmetic claim boundary; flaking can signal seborrheic dermatitis."],
+      'Beard dandruff is treated with anti-dandruff shampoo for the scalp, not the beard; beard-specific care is underbuilt.',
+    firstSku: 'A beard serum + wash duo with anti-flake actives and a beard-comfort claim.',
+    risks: ['Cosmetic claim boundary; flaking can signal seborrheic dermatitis.'],
     nextValidationStep:
-      "Interview 10 bearded users from r/IndianGlowup and test a duo landing page.",
-    defaultScores: { demand: 0.5, competition: 0.6, pricing: 0.55, adSaturation: null, agentVisibility: null },
+      'Interview 10 bearded users from r/IndianGlowup and test a duo landing page.',
+    defaultScores: {
+      demand: 0.5,
+      competition: 0.6,
+      pricing: 0.55,
+      adSaturation: null,
+      agentVisibility: null,
+    },
     query: {
-      subs: ["IndianGlowup", "IndianSkincare", "beards"],
-      keywords: ["beard dandruff", "beard itch", "beard flaking"],
+      subs: ['IndianGlowup', 'IndianSkincare', 'beards'],
+      keywords: ['beard dandruff', 'beard itch', 'beard flaking'],
     },
   },
   {
-    slug: "post-gym-mens-skin-wipes",
+    slug: 'post-gym-mens-skin-wipes',
     name: "Post-gym men's skin wipes / sweat care",
-    category: "personal-care",
+    category: 'personal-care',
     region: D2C_REGION,
-    targetUser: "Indian men 20-35 who gym commute and need on-the-go refresh",
+    targetUser: 'Indian men 20-35 who gym commute and need on-the-go refresh',
     problem:
-      "Gym-goers want a sweat-friendly wipe that does not over-dry; existing wipes are baby or facial, not sport-formulated.",
-    firstSku: "A individually-wrapped post-gym wipe with salicylic acid and a no-rinse claim.",
-    risks: ["Single-use sustainability concern; packaging cost is high."],
-    nextValidationStep:
-      "Sample at 3 Bengaluru gyms and measure re-order intent via a waitlist.",
-    defaultScores: { demand: 0.45, competition: 0.6, pricing: 0.5, adSaturation: null, agentVisibility: null },
+      'Gym-goers want a sweat-friendly wipe that does not over-dry; existing wipes are baby or facial, not sport-formulated.',
+    firstSku: 'A individually-wrapped post-gym wipe with salicylic acid and a no-rinse claim.',
+    risks: ['Single-use sustainability concern; packaging cost is high.'],
+    nextValidationStep: 'Sample at 3 Bengaluru gyms and measure re-order intent via a waitlist.',
+    defaultScores: {
+      demand: 0.45,
+      competition: 0.6,
+      pricing: 0.5,
+      adSaturation: null,
+      agentVisibility: null,
+    },
     query: {
-      subs: ["IndianFitness", "IndianGlowup", "fitness"],
-      keywords: ["post gym", "sweat", "face wipe", "gym skincare"],
+      subs: ['IndianFitness', 'IndianGlowup', 'fitness'],
+      keywords: ['post gym', 'sweat', 'face wipe', 'gym skincare'],
     },
   },
   {
-    slug: "delivery-rider-phone-accessories",
-    name: "Delivery-rider phone accessories",
-    category: "accessories",
+    slug: 'delivery-rider-phone-accessories',
+    name: 'Delivery-rider phone accessories',
+    category: 'accessories',
     region: D2C_REGION,
-    targetUser: "Indian gig delivery riders (Zomato/Swiggy/Zepto) on 8-12 hour shifts",
+    targetUser: 'Indian gig delivery riders (Zomato/Swiggy/Zepto) on 8-12 hour shifts',
     problem:
-      "Riders kill phones from heat, rain, and mount vibration; existing mounts are car-focused, not gig-shift-rated.",
-    firstSku: "A rugged phone mount + rain cover built for 12-hour two-wheeler shifts.",
-    risks: ["B2B2C distribution; rider churn limits LTV."],
-    nextValidationStep:
-      "Pilot with 20 riders in one city and track retention + referral.",
-    defaultScores: { demand: 0.55, competition: 0.55, pricing: 0.6, adSaturation: null, agentVisibility: null },
+      'Riders kill phones from heat, rain, and mount vibration; existing mounts are car-focused, not gig-shift-rated.',
+    firstSku: 'A rugged phone mount + rain cover built for 12-hour two-wheeler shifts.',
+    risks: ['B2B2C distribution; rider churn limits LTV.'],
+    nextValidationStep: 'Pilot with 20 riders in one city and track retention + referral.',
+    defaultScores: {
+      demand: 0.55,
+      competition: 0.55,
+      pricing: 0.6,
+      adSaturation: null,
+      agentVisibility: null,
+    },
     query: {
-      subs: ["IndianStartups", "bengaluru", "SwiggyZomato"],
-      keywords: ["phone mount", "delivery rider", "rider phone", "bike mount"],
+      subs: ['IndianStartups', 'bengaluru', 'SwiggyZomato'],
+      keywords: ['phone mount', 'delivery rider', 'rider phone', 'bike mount'],
     },
   },
   {
-    slug: "heat-resistant-phone-mounts",
-    name: "Heat-resistant phone mounts / commuter accessories",
-    category: "accessories",
+    slug: 'heat-resistant-phone-mounts',
+    name: 'Heat-resistant phone mounts / commuter accessories',
+    category: 'accessories',
     region: D2C_REGION,
-    targetUser: "Indian two-wheeler commuters in high-heat cities",
+    targetUser: 'Indian two-wheeler commuters in high-heat cities',
     problem:
-      "Phone mounts fail in Indian summer heat and monsoon humidity; adhesive and suction mounts melt or slip.",
-    firstSku: "A heat-rated (60°C) mechanical clamp mount with a sun-shield lip.",
-    risks: ["Hardware capex; returns from fit issues."],
-    nextValidationStep:
-      "Sell a 100-unit pilot batch in Hyderabad and track returns + reviews.",
-    defaultScores: { demand: 0.5, competition: 0.5, pricing: 0.55, adSaturation: null, agentVisibility: null },
+      'Phone mounts fail in Indian summer heat and monsoon humidity; adhesive and suction mounts melt or slip.',
+    firstSku: 'A heat-rated (60°C) mechanical clamp mount with a sun-shield lip.',
+    risks: ['Hardware capex; returns from fit issues.'],
+    nextValidationStep: 'Sell a 100-unit pilot batch in Hyderabad and track returns + reviews.',
+    defaultScores: {
+      demand: 0.5,
+      competition: 0.5,
+      pricing: 0.55,
+      adSaturation: null,
+      agentVisibility: null,
+    },
     query: {
-      subs: ["IndianStartups", "bengaluru", "motorcycles"],
-      keywords: ["phone mount", "heat", "bike mount", "summer"],
-      hackernews: ["phone mount heat"],
+      subs: ['IndianStartups', 'bengaluru', 'motorcycles'],
+      keywords: ['phone mount', 'heat', 'bike mount', 'summer'],
+      hackernews: ['phone mount heat'],
     },
   },
   {
-    slug: "office-chai-healthy-snacks",
-    name: "Office chai healthy snacks",
-    category: "food",
+    slug: 'office-chai-healthy-snacks',
+    name: 'Office chai healthy snacks',
+    category: 'food',
     region: D2C_REGION,
-    targetUser: "Indian office workers 25-40 replacing biscuit + chai with better-for-you",
+    targetUser: 'Indian office workers 25-40 replacing biscuit + chai with better-for-you',
     problem:
-      "Chai-time snacking defaults to sugar-heavy biscuits; protein-fortified or low-GI chai snacks are sparse.",
-    firstSku: "A 30g protein chai-biscuit pack with no refined sugar.",
-    risks: ["Taste vs health tradeoff; shelf life in Indian humidity."],
-    nextValidationStep:
-      "Sample at 5 Bengaluru tech offices and measure repeat purchase.",
-    defaultScores: { demand: 0.55, competition: 0.45, pricing: 0.5, adSaturation: null, agentVisibility: null },
+      'Chai-time snacking defaults to sugar-heavy biscuits; protein-fortified or low-GI chai snacks are sparse.',
+    firstSku: 'A 30g protein chai-biscuit pack with no refined sugar.',
+    risks: ['Taste vs health tradeoff; shelf life in Indian humidity.'],
+    nextValidationStep: 'Sample at 5 Bengaluru tech offices and measure repeat purchase.',
+    defaultScores: {
+      demand: 0.55,
+      competition: 0.45,
+      pricing: 0.5,
+      adSaturation: null,
+      agentVisibility: null,
+    },
     query: {
-      subs: ["IndianFoodAddicts", "IndianFitness", "EatCheapAndHealthy"],
-      keywords: ["chai snack", "office snack", "protein biscuit", "healthy snack"],
+      subs: ['IndianFoodAddicts', 'IndianFitness', 'EatCheapAndHealthy'],
+      keywords: ['chai snack', 'office snack', 'protein biscuit', 'healthy snack'],
     },
   },
   {
-    slug: "diabetic-friendly-travel-snacks",
-    name: "Diabetic-friendly travel snacks",
-    category: "food",
+    slug: 'diabetic-friendly-travel-snacks',
+    name: 'Diabetic-friendly travel snacks',
+    category: 'food',
     region: D2C_REGION,
-    targetUser: "Indian diabetics and pre-diabetics traveling for work",
+    targetUser: 'Indian diabetics and pre-diabetics traveling for work',
     problem:
-      "Travel snacks for diabetics are either clinical (glucose biscuits) or unavailable; low-GI portable options are thin.",
-    firstSku: "A low-GI travel snack pack (roasted millet + nut) with a glycemic claim.",
-    risks: ["Medical-adjacent claims; needs conservative wording and labeling."],
+      'Travel snacks for diabetics are either clinical (glucose biscuits) or unavailable; low-GI portable options are thin.',
+    firstSku: 'A low-GI travel snack pack (roasted millet + nut) with a glycemic claim.',
+    risks: ['Medical-adjacent claims; needs conservative wording and labeling.'],
     nextValidationStep:
-      "Interview 10 diabetic users from r/diabetes and test a travel-pack waitlist.",
-    defaultScores: { demand: 0.5, competition: 0.55, pricing: 0.55, adSaturation: null, agentVisibility: null },
+      'Interview 10 diabetic users from r/diabetes and test a travel-pack waitlist.',
+    defaultScores: {
+      demand: 0.5,
+      competition: 0.55,
+      pricing: 0.55,
+      adSaturation: null,
+      agentVisibility: null,
+    },
     query: {
-      subs: ["diabetes", "IndianFoodAddicts", "IndianFitness"],
-      keywords: ["diabetic snack", "low gi", "travel snack", "sugar free"],
+      subs: ['diabetes', 'IndianFoodAddicts', 'IndianFitness'],
+      keywords: ['diabetic snack', 'low gi', 'travel snack', 'sugar free'],
     },
   },
   {
-    slug: "high-protein-regional-snacks",
-    name: "High-protein regional snacks",
-    category: "food",
+    slug: 'high-protein-regional-snacks',
+    name: 'High-protein regional snacks',
+    category: 'food',
     region: D2C_REGION,
-    targetUser: "Indian fitness-curious 20-35 wanting regional flavors with protein",
+    targetUser: 'Indian fitness-curious 20-35 wanting regional flavors with protein',
     problem:
-      "Protein snacks are chocolate/vanilla imported formats; regional savory formats (khakhra, chivda) with protein are rare.",
-    firstSku: "A protein khakhra pack (8g protein) in 2 regional flavors.",
-    risks: ["Taste/texture tradeoff; regional flavor fragmentation."],
-    nextValidationStep:
-      "Launch 2 flavors, sample at 3 gyms, track repeat purchase.",
-    defaultScores: { demand: 0.55, competition: 0.5, pricing: 0.55, adSaturation: null, agentVisibility: null },
+      'Protein snacks are chocolate/vanilla imported formats; regional savory formats (khakhra, chivda) with protein are rare.',
+    firstSku: 'A protein khakhra pack (8g protein) in 2 regional flavors.',
+    risks: ['Taste/texture tradeoff; regional flavor fragmentation.'],
+    nextValidationStep: 'Launch 2 flavors, sample at 3 gyms, track repeat purchase.',
+    defaultScores: {
+      demand: 0.55,
+      competition: 0.5,
+      pricing: 0.55,
+      adSaturation: null,
+      agentVisibility: null,
+    },
     query: {
-      subs: ["IndianFitness", "IndianFoodAddicts", "FitnessIndia"],
-      keywords: ["protein snack", "khakhra", "chivda", "regional snack"],
+      subs: ['IndianFitness', 'IndianFoodAddicts', 'FitnessIndia'],
+      keywords: ['protein snack', 'khakhra', 'chivda', 'regional snack'],
     },
   },
   {
-    slug: "affordable-home-gym-under-5000",
-    name: "Affordable home-gym accessories under INR 5,000",
-    category: "fitness",
+    slug: 'affordable-home-gym-under-5000',
+    name: 'Affordable home-gym accessories under INR 5,000',
+    category: 'fitness',
     region: D2C_REGION,
-    targetUser: "Indian 20-35 starting home workouts on a tight budget",
+    targetUser: 'Indian 20-35 starting home workouts on a tight budget',
     problem:
-      "Home-gym kits are either expensive (INR 20k+) or low-quality; a curated under-INR-5k kit is missing.",
-    firstSku: "A resistance band + door anchor + ab roller kit under INR 3,000.",
-    risks: ["Quality perception vs price; returns from band snap."],
-    nextValidationStep:
-      "Sell a 100-unit pilot, track returns + 30-day usage.",
-    defaultScores: { demand: 0.55, competition: 0.45, pricing: 0.6, adSaturation: null, agentVisibility: null },
+      'Home-gym kits are either expensive (INR 20k+) or low-quality; a curated under-INR-5k kit is missing.',
+    firstSku: 'A resistance band + door anchor + ab roller kit under INR 3,000.',
+    risks: ['Quality perception vs price; returns from band snap.'],
+    nextValidationStep: 'Sell a 100-unit pilot, track returns + 30-day usage.',
+    defaultScores: {
+      demand: 0.55,
+      competition: 0.45,
+      pricing: 0.6,
+      adSaturation: null,
+      agentVisibility: null,
+    },
     query: {
-      subs: ["IndianFitness", "fitness", "homegym"],
-      keywords: ["home gym", "resistance band", "budget gym", "under 5000"],
+      subs: ['IndianFitness', 'fitness', 'homegym'],
+      keywords: ['home gym', 'resistance band', 'budget gym', 'under 5000'],
     },
   },
   {
-    slug: "womens-gym-shorts-fit",
+    slug: 'womens-gym-shorts-fit',
     name: "Women's gym shorts / support and fit",
-    category: "apparel",
+    category: 'apparel',
     region: D2C_REGION,
-    targetUser: "Indian women 20-35 lifting or running, frustrated by fit and chafing",
+    targetUser: 'Indian women 20-35 lifting or running, frustrated by fit and chafing',
     problem:
       "Women's gym shorts are either imported expensive brands or low-quality local; fit for Indian body shapes + chafe-free is underbuilt.",
-    firstSku: "A mid-length compression short with a chafe-free seam and inclusive sizing.",
-    risks: ["Sizing/returns complexity; apparel capex."],
-    nextValidationStep:
-      "Run a fit-survey with 50 women in 3 cities and a pre-order batch.",
-    defaultScores: { demand: 0.55, competition: 0.5, pricing: 0.55, adSaturation: null, agentVisibility: null },
+    firstSku: 'A mid-length compression short with a chafe-free seam and inclusive sizing.',
+    risks: ['Sizing/returns complexity; apparel capex.'],
+    nextValidationStep: 'Run a fit-survey with 50 women in 3 cities and a pre-order batch.',
+    defaultScores: {
+      demand: 0.55,
+      competition: 0.5,
+      pricing: 0.55,
+      adSaturation: null,
+      agentVisibility: null,
+    },
     query: {
-      subs: ["IndianFitness", "xxfitness", "IndianGlowup"],
-      keywords: ["gym shorts", "women fitness", "chafing", "leggings fit"],
+      subs: ['IndianFitness', 'xxfitness', 'IndianGlowup'],
+      keywords: ['gym shorts', 'women fitness', 'chafing', 'leggings fit'],
     },
   },
   {
-    slug: "baby-lotions-transparent-ingredients",
-    name: "Baby lotions/oils with transparent ingredients",
-    category: "baby-care",
+    slug: 'baby-lotions-transparent-ingredients',
+    name: 'Baby lotions/oils with transparent ingredients',
+    category: 'baby-care',
     region: D2C_REGION,
-    targetUser: "Indian new parents 25-35 reading ingredient panels",
+    targetUser: 'Indian new parents 25-35 reading ingredient panels',
     problem:
-      "Parents want baby lotions without mineral oil, fragrance, and parabens; incumbents still lead with old formulations.",
-    firstSku: "A fragrance-free baby lotion with a published ingredient panel and a no-mineral-oil claim.",
-    risks: ["Claim boundary; baby-care regulatory scrutiny."],
+      'Parents want baby lotions without mineral oil, fragrance, and parabens; incumbents still lead with old formulations.',
+    firstSku:
+      'A fragrance-free baby lotion with a published ingredient panel and a no-mineral-oil claim.',
+    risks: ['Claim boundary; baby-care regulatory scrutiny.'],
     nextValidationStep:
-      "Interview 10 new parents from r/IndianParents and test a subscription waitlist.",
-    defaultScores: { demand: 0.5, competition: 0.5, pricing: 0.55, adSaturation: null, agentVisibility: null },
+      'Interview 10 new parents from r/IndianParents and test a subscription waitlist.',
+    defaultScores: {
+      demand: 0.5,
+      competition: 0.5,
+      pricing: 0.55,
+      adSaturation: null,
+      agentVisibility: null,
+    },
     query: {
-      subs: ["IndianParents", "NewParents", "IndianSkincare"],
-      keywords: ["baby lotion", "mineral oil", "fragrance free", "baby skincare"],
+      subs: ['IndianParents', 'NewParents', 'IndianSkincare'],
+      keywords: ['baby lotion', 'mineral oil', 'fragrance free', 'baby skincare'],
     },
   },
   {
-    slug: "ayurvedic-face-care-proof-first",
-    name: "Ayurvedic face care with proof-first positioning",
-    category: "personal-care",
+    slug: 'ayurvedic-face-care-proof-first',
+    name: 'Ayurvedic face care with proof-first positioning',
+    category: 'personal-care',
     region: D2C_REGION,
-    targetUser: "Indian 22-40 open to ayurveda but skeptical of unverified claims",
+    targetUser: 'Indian 22-40 open to ayurveda but skeptical of unverified claims',
     problem:
-      "Ayurvedic skincare makes traditional claims without evidence; a proof-first (patch test, panel results) brand is missing.",
-    firstSku: "A kumkumadi serum with published patch-test + 28-day panel results.",
+      'Ayurvedic skincare makes traditional claims without evidence; a proof-first (patch test, panel results) brand is missing.',
+    firstSku: 'A kumkumadi serum with published patch-test + 28-day panel results.',
     risks: ["Claim boundary; 'ayurvedic' positioning can attract compliance review."],
-    nextValidationStep:
-      "Publish a panel study and run a waitlist with the proof page.",
-    defaultScores: { demand: 0.5, competition: 0.45, pricing: 0.5, adSaturation: null, agentVisibility: null },
+    nextValidationStep: 'Publish a panel study and run a waitlist with the proof page.',
+    defaultScores: {
+      demand: 0.5,
+      competition: 0.45,
+      pricing: 0.5,
+      adSaturation: null,
+      agentVisibility: null,
+    },
     query: {
-      subs: ["IndianSkincare", "IndianGlowup", "Ayurveda"],
-      keywords: ["ayurvedic skincare", "kumkumadi", "herbal face", "proof"],
+      subs: ['IndianSkincare', 'IndianGlowup', 'Ayurveda'],
+      keywords: ['ayurvedic skincare', 'kumkumadi', 'herbal face', 'proof'],
     },
   },
   {
-    slug: "sustainable-cleaning-laundry-refills",
-    name: "Sustainable cleaning/laundry refills",
-    category: "home",
+    slug: 'sustainable-cleaning-laundry-refills',
+    name: 'Sustainable cleaning/laundry refills',
+    category: 'home',
     region: D2C_REGION,
-    targetUser: "Indian urban renters 25-40 reducing plastic and chemical load",
+    targetUser: 'Indian urban renters 25-40 reducing plastic and chemical load',
     problem:
-      "Refill-based, low-plastic cleaning products are niche in India; most cleaning is single-use plastic bottles.",
-    firstSku: "A laundry refill concentrate (dissolve-at-home) with a refill pouch system.",
-    risks: ["Behavior change required; unit economics on refill pouches."],
-    nextValidationStep:
-      "Pilot a refill subscription in 1 Bengaluru apartment complex.",
-    defaultScores: { demand: 0.45, competition: 0.6, pricing: 0.5, adSaturation: null, agentVisibility: null },
+      'Refill-based, low-plastic cleaning products are niche in India; most cleaning is single-use plastic bottles.',
+    firstSku: 'A laundry refill concentrate (dissolve-at-home) with a refill pouch system.',
+    risks: ['Behavior change required; unit economics on refill pouches.'],
+    nextValidationStep: 'Pilot a refill subscription in 1 Bengaluru apartment complex.',
+    defaultScores: {
+      demand: 0.45,
+      competition: 0.6,
+      pricing: 0.5,
+      adSaturation: null,
+      agentVisibility: null,
+    },
     query: {
-      subs: ["IndianStartups", "environment", "IndianParents"],
-      keywords: ["refill", "sustainable cleaning", "laundry", "plastic free"],
+      subs: ['IndianStartups', 'environment', 'IndianParents'],
+      keywords: ['refill', 'sustainable cleaning', 'laundry', 'plastic free'],
     },
   },
   {
-    slug: "pet-health-supplements",
-    name: "Pet health supplements",
-    category: "pet-care",
+    slug: 'pet-health-supplements',
+    name: 'Pet health supplements',
+    category: 'pet-care',
     region: D2C_REGION,
-    targetUser: "Indian urban pet owners 25-45 spending on pet wellness",
+    targetUser: 'Indian urban pet owners 25-45 spending on pet wellness',
     problem:
-      "Pet supplements (joint, coat, gut) are imported and expensive; affordable India-made supplements with vetted formulations are thin.",
-    firstSku: "A joint-support supplement for medium dogs with a published ingredient panel.",
-    risks: ["Vet endorsement needed; regulatory boundary on health claims."],
+      'Pet supplements (joint, coat, gut) are imported and expensive; affordable India-made supplements with vetted formulations are thin.',
+    firstSku: 'A joint-support supplement for medium dogs with a published ingredient panel.',
+    risks: ['Vet endorsement needed; regulatory boundary on health claims.'],
     nextValidationStep:
-      "Interview 10 pet owners from r/IndianPetFood and pilot with a vet partner.",
-    defaultScores: { demand: 0.5, competition: 0.55, pricing: 0.55, adSaturation: null, agentVisibility: null },
+      'Interview 10 pet owners from r/IndianPetFood and pilot with a vet partner.',
+    defaultScores: {
+      demand: 0.5,
+      competition: 0.55,
+      pricing: 0.55,
+      adSaturation: null,
+      agentVisibility: null,
+    },
     query: {
-      subs: ["IndianPetFood", "dogs", "pets"],
-      keywords: ["pet supplement", "dog joint", "coat health", "gut"],
+      subs: ['IndianPetFood', 'dogs', 'pets'],
+      keywords: ['pet supplement', 'dog joint', 'coat health', 'gut'],
     },
   },
   {
-    slug: "oral-care-sub-niches",
-    name: "Oral care sub-niches",
-    category: "personal-care",
+    slug: 'oral-care-sub-niches',
+    name: 'Oral care sub-niches',
+    category: 'personal-care',
     region: D2C_REGION,
-    targetUser: "Indian 20-40 looking for specific oral care (sensitivity, whitening, gum)",
+    targetUser: 'Indian 20-40 looking for specific oral care (sensitivity, whitening, gum)',
     problem:
-      "Oral care is dominated by Colgate/Pepsodent; sub-niche products (gum care, sensitivity serum) are underbuilt.",
-    firstSku: "A gum-care serum (hydroxyapatite + niacinamide) with a sensitivity claim.",
-    risks: ["Medical-adjacent claims; dentist endorsement needed."],
-    nextValidationStep:
-      "Interview 10 users from r/IndianSkincare and test a gum-care waitlist.",
-    defaultScores: { demand: 0.45, competition: 0.5, pricing: 0.55, adSaturation: null, agentVisibility: null },
+      'Oral care is dominated by Colgate/Pepsodent; sub-niche products (gum care, sensitivity serum) are underbuilt.',
+    firstSku: 'A gum-care serum (hydroxyapatite + niacinamide) with a sensitivity claim.',
+    risks: ['Medical-adjacent claims; dentist endorsement needed.'],
+    nextValidationStep: 'Interview 10 users from r/IndianSkincare and test a gum-care waitlist.',
+    defaultScores: {
+      demand: 0.45,
+      competition: 0.5,
+      pricing: 0.55,
+      adSaturation: null,
+      agentVisibility: null,
+    },
     query: {
-      subs: ["IndianSkincare", "IndianGlowup", "Dentistry"],
-      keywords: ["gum care", "sensitivity", "whitening", "oral care"],
+      subs: ['IndianSkincare', 'IndianGlowup', 'Dentistry'],
+      keywords: ['gum care', 'sensitivity', 'whitening', 'oral care'],
     },
   },
   {
-    slug: "sleep-stress-support-products",
-    name: "Sleep/stress support products",
-    category: "wellness",
+    slug: 'sleep-stress-support-products',
+    name: 'Sleep/stress support products',
+    category: 'wellness',
     region: D2C_REGION,
-    targetUser: "Indian 25-45 with sleep/stress issues avoiding pharmaceuticals",
+    targetUser: 'Indian 25-45 with sleep/stress issues avoiding pharmaceuticals',
     problem:
-      "Sleep products are either pharmaceuticals or unverified herbal; a middle ground (mag glycinate + ashwagandha) with dosing transparency is missing.",
-    firstSku: "A sleep-support supplement (magnesium glycenate + ashwagandha) with published doses.",
-    risks: ["Supplement regulatory boundary; claims must stay structural, not medical."],
-    nextValidationStep:
-      "Interview 10 users from r/IndianFitness and test a sleep-diary waitlist.",
-    defaultScores: { demand: 0.5, competition: 0.5, pricing: 0.55, adSaturation: null, agentVisibility: null },
+      'Sleep products are either pharmaceuticals or unverified herbal; a middle ground (mag glycinate + ashwagandha) with dosing transparency is missing.',
+    firstSku:
+      'A sleep-support supplement (magnesium glycenate + ashwagandha) with published doses.',
+    risks: ['Supplement regulatory boundary; claims must stay structural, not medical.'],
+    nextValidationStep: 'Interview 10 users from r/IndianFitness and test a sleep-diary waitlist.',
+    defaultScores: {
+      demand: 0.5,
+      competition: 0.5,
+      pricing: 0.55,
+      adSaturation: null,
+      agentVisibility: null,
+    },
     query: {
-      subs: ["IndianFitness", "sleep", "IndianGlowup"],
-      keywords: ["sleep", "ashwagandha", "magnesium", "stress"],
+      subs: ['IndianFitness', 'sleep', 'IndianGlowup'],
+      keywords: ['sleep', 'ashwagandha', 'magnesium', 'stress'],
     },
   },
   {
-    slug: "intimate-hygiene",
-    name: "Intimate hygiene",
-    category: "personal-care",
+    slug: 'intimate-hygiene',
+    name: 'Intimate hygiene',
+    category: 'personal-care',
     region: D2C_REGION,
-    targetUser: "Indian women 20-40 seeking pH-balanced intimate care without fragrance",
+    targetUser: 'Indian women 20-40 seeking pH-balanced intimate care without fragrance',
     problem:
-      "Intimate hygiene products are either clinical or heavily marketed; a transparent, pH-balanced, fragrance-free line is thin.",
-    firstSku: "A daily intimate wash with a published pH and ingredient panel.",
-    risks: ["Category advertising restrictions; claim boundary."],
+      'Intimate hygiene products are either clinical or heavily marketed; a transparent, pH-balanced, fragrance-free line is thin.',
+    firstSku: 'A daily intimate wash with a published pH and ingredient panel.',
+    risks: ['Category advertising restrictions; claim boundary.'],
     nextValidationStep:
-      "Interview 10 users from r/IndianSkincare and test a subscription waitlist.",
-    defaultScores: { demand: 0.5, competition: 0.55, pricing: 0.55, adSaturation: null, agentVisibility: null },
+      'Interview 10 users from r/IndianSkincare and test a subscription waitlist.',
+    defaultScores: {
+      demand: 0.5,
+      competition: 0.55,
+      pricing: 0.55,
+      adSaturation: null,
+      agentVisibility: null,
+    },
     query: {
-      subs: ["IndianSkincare", "IndianGlowup", "TwoXChromosomes"],
-      keywords: ["intimate hygiene", "ph balanced", "fragrance free"],
+      subs: ['IndianSkincare', 'IndianGlowup', 'TwoXChromosomes'],
+      keywords: ['intimate hygiene', 'ph balanced', 'fragrance free'],
     },
   },
   {
-    slug: "condiments-sauces-regional-identity",
-    name: "Condiments/sauces with regional identity",
-    category: "food",
+    slug: 'condiments-sauces-regional-identity',
+    name: 'Condiments/sauces with regional identity',
+    category: 'food',
     region: D2C_REGION,
-    targetUser: "Indian 25-45 cooking regional cuisine, frustrated by generic sauces",
+    targetUser: 'Indian 25-45 cooking regional cuisine, frustrated by generic sauces',
     problem:
       "Sauces are either generic (Maggi, Ching's) or imported expensive; region-specific (Chettinad, Naga, Kashmiri) D2C sauces are emerging.",
-    firstSku: "A Chettinad curry paste with a regional story and clean ingredient panel.",
-    risks: ["Shelf life; regional flavor fragmentation."],
-    nextValidationStep:
-      "Launch 2 regional sauces, sample at 3 Bengaluru pop-ups, track repeat.",
-    defaultScores: { demand: 0.5, competition: 0.55, pricing: 0.55, adSaturation: null, agentVisibility: null },
+    firstSku: 'A Chettinad curry paste with a regional story and clean ingredient panel.',
+    risks: ['Shelf life; regional flavor fragmentation.'],
+    nextValidationStep: 'Launch 2 regional sauces, sample at 3 Bengaluru pop-ups, track repeat.',
+    defaultScores: {
+      demand: 0.5,
+      competition: 0.55,
+      pricing: 0.55,
+      adSaturation: null,
+      agentVisibility: null,
+    },
     query: {
-      subs: ["IndianFoodAddicts", "cooking", "IndianCuisine"],
-      keywords: ["regional sauce", "chettinad", "naga", "kashmiri", "curry paste"],
+      subs: ['IndianFoodAddicts', 'cooking', 'IndianCuisine'],
+      keywords: ['regional sauce', 'chettinad', 'naga', 'kashmiri', 'curry paste'],
     },
   },
 ];
@@ -546,8 +657,7 @@ function clamp01(value: number): number {
 export function scoreD2CNiche(inputs: D2CScoreInputs): D2CScoreResult {
   const ad = normalizeOptional(inputs.adSaturation);
   const agent = normalizeOptional(inputs.agentVisibility);
-  const usedDefaults =
-    inputs.adSaturation == null || inputs.agentVisibility == null;
+  const usedDefaults = inputs.adSaturation == null || inputs.agentVisibility == null;
   const w = D2C_SCORE_WEIGHTS;
   const score = Math.round(
     clamp01(inputs.demand) * w.demand +
@@ -555,7 +665,7 @@ export function scoreD2CNiche(inputs: D2CScoreInputs): D2CScoreResult {
       clamp01(inputs.competition) * w.competition +
       clamp01(inputs.pricing) * w.pricing +
       ad * w.adSaturation +
-      agent * w.agentVisibility,
+      agent * w.agentVisibility
   );
   return { score, inputs, usedDefaults };
 }
@@ -577,12 +687,12 @@ export function verdictForScore(inputs: D2CScoreInputs, hasFirstSku: boolean): O
   const competition = clamp01(inputs.competition);
   const diversity = clamp01(inputs.sourceDiversity);
   const agentGap = normalizeOptional(inputs.agentVisibility);
-  if (demand < 0.3 || competition < 0.2) return "avoid";
+  if (demand < 0.3 || competition < 0.2) return 'avoid';
   const hasCorroboration = diversity >= 0.34 || agentGap >= 0.5;
   if (demand >= 0.5 && competition >= 0.4 && hasFirstSku && hasCorroboration) {
-    return "test";
+    return 'test';
   }
-  return "watch";
+  return 'watch';
 }
 
 /**
@@ -591,10 +701,10 @@ export function verdictForScore(inputs: D2CScoreInputs, hasFirstSku: boolean): O
  * signal that upgrades confidence from `low` to `medium` even when community
  * evidence is thin.
  */
-export function confidenceForDiversity(sourceClassCount: number): "low" | "medium" | "high" {
-  if (sourceClassCount >= 4) return "high";
-  if (sourceClassCount >= 2) return "medium";
-  return "low";
+export function confidenceForDiversity(sourceClassCount: number): 'low' | 'medium' | 'high' {
+  if (sourceClassCount >= 4) return 'high';
+  if (sourceClassCount >= 2) return 'medium';
+  return 'low';
 }
 
 /**
@@ -605,8 +715,8 @@ export function confidenceForDiversity(sourceClassCount: number): "low" | "mediu
  */
 export function confidenceForDiversityWithOverlay(
   sourceClassCount: number,
-  agentVisibilityGap: number | null,
-): "low" | "medium" | "high" {
+  agentVisibilityGap: number | null
+): 'low' | 'medium' | 'high' {
   // The AV overlay is a rich signal: it includes the AI's answer, the brands
   // it recommends, and the URLs it cites. Count it as 2 source classes.
   const effective = sourceClassCount + (agentVisibilityGap != null ? 2 : 0);
@@ -618,13 +728,13 @@ export function confidenceForDiversityWithOverlay(
 // ---------------------------------------------------------------------------
 
 const ALL_SOURCE_CLASSES: D2CSourceClass[] = [
-  "community",
-  "search",
-  "product",
-  "review",
-  "ad-library",
-  "launch",
-  "agent-visibility",
+  'community',
+  'search',
+  'product',
+  'review',
+  'ad-library',
+  'launch',
+  'agent-visibility',
 ];
 
 /** Distinct source classes present in the evidence list (drives diversity score). */
@@ -642,7 +752,7 @@ export function sourceDiversityFraction(evidence: D2CEvidenceItem[]): number {
 
 function evidenceMixFromNiche(
   seed: D2CNicheSeed,
-  evidence: D2CEvidenceItem[],
+  evidence: D2CEvidenceItem[]
 ): OpportunityEvidenceMixItem[] {
   const byClass = new Map<D2CSourceClass, D2CEvidenceItem[]>();
   for (const item of evidence) {
@@ -651,23 +761,23 @@ function evidenceMixFromNiche(
     byClass.set(item.sourceClass, list);
   }
   const items: OpportunityEvidenceMixItem[] = [];
-  const demandItems = byClass.get("community") ?? byClass.get("search") ?? [];
+  const demandItems = byClass.get('community') ?? byClass.get('search') ?? [];
   if (demandItems.length) {
     items.push({
-      kind: "demand",
-      label: "community / search demand",
-      summary: demandItems[0]?.snippet?.slice(0, 160) ?? "Cited community demand.",
-      strength: demandItems.length >= 3 ? "high" : demandItems.length >= 1 ? "medium" : "low",
+      kind: 'demand',
+      label: 'community / search demand',
+      summary: demandItems[0]?.snippet?.slice(0, 160) ?? 'Cited community demand.',
+      strength: demandItems.length >= 3 ? 'high' : demandItems.length >= 1 ? 'medium' : 'low',
       sourceCount: demandItems.length,
     });
   }
-  const launchItems = byClass.get("launch") ?? [];
+  const launchItems = byClass.get('launch') ?? [];
   if (launchItems.length) {
     items.push({
-      kind: "momentum",
-      label: "new entrants / launches",
-      summary: launchItems[0]?.snippet?.slice(0, 160) ?? "Recent launches observed.",
-      strength: launchItems.length >= 2 ? "medium" : "low",
+      kind: 'momentum',
+      label: 'new entrants / launches',
+      summary: launchItems[0]?.snippet?.slice(0, 160) ?? 'Recent launches observed.',
+      strength: launchItems.length >= 2 ? 'medium' : 'low',
       sourceCount: launchItems.length,
     });
   }
@@ -675,31 +785,31 @@ function evidenceMixFromNiche(
   // renderer shows the full decision shape even before the collector fills
   // them in. They are clearly labelled as "not yet extracted".
   items.push({
-    kind: "competition",
-    label: "competition gap",
-    summary: byClass.has("product")
-      ? "Substitute density sampled from public product pages."
-      : "Substitute density not yet extracted; validate manually before entering.",
-    strength: byClass.has("product") ? "medium" : "low",
-    sourceCount: (byClass.get("product") ?? []).length,
+    kind: 'competition',
+    label: 'competition gap',
+    summary: byClass.has('product')
+      ? 'Substitute density sampled from public product pages.'
+      : 'Substitute density not yet extracted; validate manually before entering.',
+    strength: byClass.has('product') ? 'medium' : 'low',
+    sourceCount: (byClass.get('product') ?? []).length,
   });
   items.push({
-    kind: "pricing",
-    label: "pricing gap",
-    summary: byClass.has("product")
-      ? "Visible price band sampled from public product pages."
-      : "Price band not yet extracted; test willingness to pay before sizing.",
-    strength: byClass.has("product") ? "medium" : "low",
-    sourceCount: (byClass.get("product") ?? []).length,
+    kind: 'pricing',
+    label: 'pricing gap',
+    summary: byClass.has('product')
+      ? 'Visible price band sampled from public product pages.'
+      : 'Price band not yet extracted; test willingness to pay before sizing.',
+    strength: byClass.has('product') ? 'medium' : 'low',
+    sourceCount: (byClass.get('product') ?? []).length,
   });
   items.push({
-    kind: "agent-visibility",
-    label: "agent visibility gap",
-    summary: byClass.has("agent-visibility")
-      ? "AI assistants sampled for category recommendations."
-      : "Run an agent-answer snapshot for this category (Slice 4).",
-    strength: byClass.has("agent-visibility") ? "medium" : "low",
-    sourceCount: (byClass.get("agent-visibility") ?? []).length,
+    kind: 'agent-visibility',
+    label: 'agent visibility gap',
+    summary: byClass.has('agent-visibility')
+      ? 'AI assistants sampled for category recommendations.'
+      : 'Run an agent-answer snapshot for this category (Slice 4).',
+    strength: byClass.has('agent-visibility') ? 'medium' : 'low',
+    sourceCount: (byClass.get('agent-visibility') ?? []).length,
   });
   void seed;
   return items;
@@ -720,11 +830,12 @@ function evidenceUrlsFromNiche(evidence: D2CEvidenceItem[]): { url: string; sour
 export function composeD2COpportunityBrief(
   seed: D2CNicheSeed,
   evidence?: D2CNicheEvidence | null,
-  agentVisibilityGap?: number | null,
+  agentVisibilityGap?: number | null
 ): OpportunityBriefPayload {
   const evList = evidence?.evidence ?? [];
   const diversity = sourceDiversityFraction(evList);
-  const avGap = agentVisibilityGap ?? evidence?.agentVisibilityScore ?? seed.defaultScores.agentVisibility;
+  const avGap =
+    agentVisibilityGap ?? evidence?.agentVisibilityScore ?? seed.defaultScores.agentVisibility;
   const inputs: D2CScoreInputs = {
     demand: evidence?.demandScore ?? seed.defaultScores.demand,
     sourceDiversity: diversity,
@@ -735,32 +846,31 @@ export function composeD2COpportunityBrief(
   };
   const verdict = verdictForScore(inputs, Boolean(seed.firstSku));
   const confidence = confidenceForDiversityWithOverlay(distinctSourceClasses(evList), avGap);
-  const score = scoreD2CNiche(inputs).score;
   const marketTimingReasons = [
     evidence
       ? `Weekly collector ran on ${evidence.freshnessDate.slice(0, 10)}; ${evList.length} cited items across ${distinctSourceClasses(evList)} source class(es).`
-      : "No weekly artifact yet — brief uses conservative seed scores; treat as a watchlist item until corroborated.",
-    "India D2C: validate with region-specific interviews and a landing page before sizing inventory or ads.",
+      : 'No weekly artifact yet — brief uses conservative seed scores; treat as a watchlist item until corroborated.',
+    'India D2C: validate with region-specific interviews and a landing page before sizing inventory or ads.',
   ];
   const evidenceMix = evidenceMixFromNiche(seed, evList);
   const competitorNotes = [
     evidence?.competitionScore != null
       ? `Competition gap: ${(evidence.competitionScore * 100).toFixed(0)}/100 (1 = open, 0 = saturated).`
-      : "Competition gap not yet measured; map 3-5 substitutes before building.",
+      : 'Competition gap not yet measured; map 3-5 substitutes before building.',
   ];
   const pricingNotes = [
     evidence?.pricingScore != null
       ? `Pricing gap: ${(evidence.pricingScore * 100).toFixed(0)}/100.`
-      : "Pricing gap not yet measured; test willingness to pay with a landing page.",
+      : 'Pricing gap not yet measured; test willingness to pay with a landing page.',
   ];
   const agentVisibilityNotes = [
     avGap != null
-      ? `Agent visibility gap: ${(avGap * 100).toFixed(0)}/100 — ${avGap >= 0.5 ? "AI assistants can't name incumbents; wide-open for brand-building." : avGap >= 0.2 ? "AI assistants name a few brands but the field is not locked." : "AI assistants recommend established incumbents; differentiation needed."}`
-      : "Run an agent-answer snapshot for this category (Slice 4) to see whether recommendations are generic or incumbent-led.",
+      ? `Agent visibility gap: ${(avGap * 100).toFixed(0)}/100 — ${avGap >= 0.5 ? "AI assistants can't name incumbents; wide-open for brand-building." : avGap >= 0.2 ? 'AI assistants name a few brands but the field is not locked.' : 'AI assistants recommend established incumbents; differentiation needed.'}`
+      : 'Run an agent-answer snapshot for this category (Slice 4) to see whether recommendations are generic or incumbent-led.',
   ];
   const risks = seed.risks.slice();
   if (evidence == null) {
-    risks.push("No weekly artifact yet — evidence is seed-only; corroborate before acting.");
+    risks.push('No weekly artifact yet — evidence is seed-only; corroborate before acting.');
   }
   return {
     verdict,
@@ -775,13 +885,12 @@ export function composeD2COpportunityBrief(
     risks,
     nextValidationStep: seed.nextValidationStep,
     priorHitRate: {
-      label: "india-d2c-opportunity family",
+      label: 'india-d2c-opportunity family',
       hitRate: null,
       sample: 0,
-      band: "none",
+      band: 'none',
     },
   };
-  void score; // score is exposed via the artifact, not the brief payload
 }
 
 // ---------------------------------------------------------------------------
@@ -790,7 +899,7 @@ export function composeD2COpportunityBrief(
 
 function findEvidenceForNiche(
   artifact: D2COpportunityArtifact | null,
-  slug: string,
+  slug: string
 ): D2CNicheEvidence | null {
   if (!artifact) return null;
   return artifact.niches.find((n) => n.nicheSlug === slug) ?? null;
@@ -812,15 +921,16 @@ export function d2cBriefItems(
   region: Region,
   limit: number,
   artifact: D2COpportunityArtifact | null = null,
-  rotateFor = 0,
+  rotateFor = 0
 ): BriefIdeaItem[] {
-  if (region !== "south-asia" && region !== "global") return [];
+  if (region !== 'south-asia' && region !== 'global') return [];
   if (D2C_NICHE_SEEDS.length === 0) return [];
   let pool = D2C_NICHE_SEEDS;
-  if (region === "global") {
+  if (region === 'global') {
     // Rotate one niche per day so the global brief shows variety without
     // flooding section 02 with India-only items.
-    const idx = ((rotateFor % D2C_NICHE_SEEDS.length) + D2C_NICHE_SEEDS.length) % D2C_NICHE_SEEDS.length;
+    const idx =
+      ((rotateFor % D2C_NICHE_SEEDS.length) + D2C_NICHE_SEEDS.length) % D2C_NICHE_SEEDS.length;
     pool = [D2C_NICHE_SEEDS[idx]!];
   }
   const surfacedAt = artifact?.generatedAt ?? new Date().toISOString();
@@ -829,7 +939,7 @@ export function d2cBriefItems(
     return {
       title: `India D2C: ${seed.name}`,
       description: seed.problem,
-      source: "opportunity" as const,
+      source: 'opportunity' as const,
       region: seed.region,
       subreddit: seed.query.subs[0] ?? null,
       surfacedAt,
@@ -856,7 +966,7 @@ export async function loadLatestD2CArtifact(
   fsImpl: {
     readdir: (path: string) => Promise<string[]>;
     readFile: (path: string) => Promise<string>;
-  },
+  }
 ): Promise<D2COpportunityArtifact | null> {
   let names: string[];
   try {
@@ -887,7 +997,7 @@ export async function loadLatestAgentVisibilityArtifact(
   fsImpl: {
     readdir: (path: string) => Promise<string[]>;
     readFile: (path: string) => Promise<string>;
-  },
+  }
 ): Promise<D2CAgentVisibilityArtifact | null> {
   let names: string[];
   try {
@@ -928,7 +1038,7 @@ export interface D2CNicheSnapshotRecord {
   agentVisibilityScore: number | null;
   sourceDiversity: number;
   verdict: OpportunityVerdict;
-  confidence: "low" | "medium" | "high";
+  confidence: 'low' | 'medium' | 'high';
   freshnessDate: string;
 }
 
@@ -943,7 +1053,7 @@ export interface D2CNicheDelta {
   previousVerdict: OpportunityVerdict | null;
   currentVerdict: OpportunityVerdict;
   /** "improved" | "degraded" | "stable" | "new" — for the renderer's tone. */
-  trend: "improved" | "degraded" | "stable" | "new";
+  trend: 'improved' | 'degraded' | 'stable' | 'new';
 }
 
 /**
@@ -952,7 +1062,7 @@ export interface D2CNicheDelta {
  */
 export function computeD2CDelta(
   current: D2CNicheSnapshotRecord,
-  previous: D2CNicheSnapshotRecord | null,
+  previous: D2CNicheSnapshotRecord | null
 ): D2CNicheDelta {
   if (!previous) {
     return {
@@ -963,18 +1073,18 @@ export function computeD2CDelta(
       verdictChanged: false,
       previousVerdict: null,
       currentVerdict: current.verdict,
-      trend: "new",
+      trend: 'new',
     };
   }
   const scoreDelta = current.opportunityScore - previous.opportunityScore;
   const verdictChanged = current.verdict !== previous.verdict;
-  let trend: D2CNicheDelta["trend"] = "stable";
+  let trend: D2CNicheDelta['trend'] = 'stable';
   if (verdictChanged) {
-    trend = verdictImproved(current.verdict, previous.verdict) ? "improved" : "degraded";
+    trend = verdictImproved(current.verdict, previous.verdict) ? 'improved' : 'degraded';
   } else if (scoreDelta > 0) {
-    trend = "improved";
+    trend = 'improved';
   } else if (scoreDelta < 0) {
-    trend = "degraded";
+    trend = 'degraded';
   }
   return {
     nicheSlug: current.nicheSlug,
@@ -998,7 +1108,7 @@ const VERDICT_RANK: Record<OpportunityVerdict, number> = {
 
 export function verdictImproved(
   current: OpportunityVerdict,
-  previous: OpportunityVerdict,
+  previous: OpportunityVerdict
 ): boolean {
   return VERDICT_RANK[current] > VERDICT_RANK[previous];
 }
@@ -1010,22 +1120,22 @@ export function verdictImproved(
  * `avoid` aged poorly. Returns one of `aged-well` / `aged-poorly` / `stable`
  * / `insufficient-history`.
  */
-export type D2CAgingVerdict = "aged-well" | "aged-poorly" | "stable" | "insufficient-history";
+export type D2CAgingVerdict = 'aged-well' | 'aged-poorly' | 'stable' | 'insufficient-history';
 
 export function assessAging(
   current: D2CNicheSnapshotRecord,
-  history: D2CNicheSnapshotRecord[],
+  history: D2CNicheSnapshotRecord[]
 ): D2CAgingVerdict {
-  if (history.length < 2) return "insufficient-history";
+  if (history.length < 2) return 'insufficient-history';
   // Find the earliest snapshot for this niche (the "prior call").
   const prior = history
     .filter((s) => s.nicheSlug === current.nicheSlug)
     .sort((a, b) => a.snapshotDate.localeCompare(b.snapshotDate))[0];
   if (!prior || prior.snapshotDate === current.snapshotDate) {
-    return "insufficient-history";
+    return 'insufficient-history';
   }
-  if (prior.verdict === current.verdict) return "stable";
-  return verdictImproved(current.verdict, prior.verdict) ? "aged-well" : "aged-poorly";
+  if (prior.verdict === current.verdict) return 'stable';
+  return verdictImproved(current.verdict, prior.verdict) ? 'aged-well' : 'aged-poorly';
 }
 
 /**
@@ -1036,14 +1146,15 @@ export function buildSnapshotRecord(
   seed: D2CNicheSeed,
   evidence: D2CNicheEvidence | null,
   snapshotDate: string,
-  agentVisibilityGap?: number | null,
+  agentVisibilityGap?: number | null
 ): D2CNicheSnapshotRecord {
   const evList = evidence?.evidence ?? [];
   const diversity = sourceDiversityFraction(evList);
   // The agent-visibility overlay runs separately from the weekly collector.
   // If the caller passes a gap score (from the overlay), use it instead of
   // the evidence's agentVisibilityScore (which is usually null on first run).
-  const avGap = agentVisibilityGap ?? evidence?.agentVisibilityScore ?? seed.defaultScores.agentVisibility;
+  const avGap =
+    agentVisibilityGap ?? evidence?.agentVisibilityScore ?? seed.defaultScores.agentVisibility;
   const inputs: D2CScoreInputs = {
     demand: evidence?.demandScore ?? seed.defaultScores.demand,
     sourceDiversity: diversity,
@@ -1075,9 +1186,7 @@ export function buildSnapshotRecord(
  * Compute deltas for a full snapshot history. Returns one delta per niche
  * (the most recent change). Pure function — used by the renderer and tests.
  */
-export function computeD2CDeltas(
-  history: D2CNicheSnapshotRecord[],
-): D2CNicheDelta[] {
+export function computeD2CDeltas(history: D2CNicheSnapshotRecord[]): D2CNicheDelta[] {
   // Group by niche, sort each group ascending by date, take the last pair.
   const byNiche = new Map<string, D2CNicheSnapshotRecord[]>();
   for (const snap of history) {
@@ -1150,7 +1259,7 @@ export function extractRecommendedBrands(responseText: string): string[] {
     const trimmed = line.trim();
     if (!trimmed) continue;
     // Strip leading numbering: "1. ", "1) ", "- ", "• "
-    const stripped = trimmed.replace(/^\d+[\.\)]\s*/, "").replace(/^[-•]\s*/, "");
+    const stripped = trimmed.replace(/^\d+[.)]\s*/, '').replace(/^[-•]\s*/, '');
     // Extract bold text: **BrandName** or **BrandName (description)**
     // The brand name is the first capitalized phrase before any parenthetical
     // or separator.
@@ -1177,22 +1286,39 @@ export function extractRecommendedBrands(responseText: string): string[] {
  */
 function _extractBrandName(raw: string): string | null {
   // Take the part before any opening parenthetical.
-  const beforeParen = raw.split("(")[0]!.trim();
+  const beforeParen = raw.split('(')[0]!.trim();
   // Take the part before any separator (—, –, :, -).
   const beforeSep = beforeParen.split(/[—:\-–]/)[0]!.trim();
   // Strip surrounding quotes/asterisks.
-  const cleaned = beforeSep.replace(/^["'*]+|["'*]+$/g, "").trim();
+  const cleaned = beforeSep.replace(/^["'*]+|["'*]+$/g, '').trim();
   // Must start with a capital letter and be 2+ chars.
   if (cleaned.length < 2 || !/^[A-Z]/.test(cleaned)) return null;
   // Filter out common non-brand phrases.
   const lower = cleaned.toLowerCase();
   const nonBrand = [
-    "based on", "here are", "the best", "for indian", "i recommend",
-    "these brands", "note", "source", "disclaimer",
-    "please note", "honest note", "addressing", "important",
-    "however", "additionally", "ultimately", "overall",
-    "in summary", "to summarize", "it's worth", "its worth",
-    "keep in", "bear in",
+    'based on',
+    'here are',
+    'the best',
+    'for indian',
+    'i recommend',
+    'these brands',
+    'note',
+    'source',
+    'disclaimer',
+    'please note',
+    'honest note',
+    'addressing',
+    'important',
+    'however',
+    'additionally',
+    'ultimately',
+    'overall',
+    'in summary',
+    'to summarize',
+    "it's worth",
+    'its worth',
+    'keep in',
+    'bear in',
   ];
   if (nonBrand.some((p) => lower.startsWith(p))) return null;
   return cleaned;
@@ -1201,12 +1327,13 @@ function _extractBrandName(raw: string): string | null {
 /** Extract URLs from an AI answer (citations). */
 export function extractCitedUrls(responseText: string): string[] {
   const urls = new Set<string>();
-  const urlRegex = /https?:\/\/[^\s\)"'<>\]]+/g;
-  let match: RegExpExecArray | null;
-  while ((match = urlRegex.exec(responseText)) !== null) {
+  const urlRegex = /https?:\/\/[^\s)"'<>\]]+/g;
+  let match = urlRegex.exec(responseText);
+  while (match !== null) {
     // Strip trailing punctuation that's not part of the URL.
-    const url = match[0]!.replace(/[.,;:!?]+$/, "");
+    const url = match[0]!.replace(/[.,;:!?]+$/, '');
     urls.add(url);
+    match = urlRegex.exec(responseText);
   }
   return Array.from(urls);
 }

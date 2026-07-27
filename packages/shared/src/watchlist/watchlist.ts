@@ -1,6 +1,6 @@
-export type WatchlistSurface = "mentions" | "communities" | "markets";
-export type WatchlistPriority = "critical" | "high" | "medium" | "low";
-export type WatchlistStatus = "new" | "watching" | "actionable" | "done";
+export type WatchlistSurface = 'mentions' | 'communities' | 'markets';
+export type WatchlistPriority = 'critical' | 'high' | 'medium' | 'low';
+export type WatchlistStatus = 'new' | 'watching' | 'actionable' | 'done';
 
 export interface WatchlistItem {
   id: string;
@@ -60,30 +60,33 @@ function daysSince(value: string, now: Date) {
 }
 
 function statusWeight(status: WatchlistStatus) {
-  if (status === "actionable") return 3;
-  if (status === "new") return 2;
-  if (status === "watching") return 1;
+  if (status === 'actionable') return 3;
+  if (status === 'new') return 2;
+  if (status === 'watching') return 1;
   return 0;
 }
 
 function actionReason(item: WatchlistItem, now: Date) {
   const age = daysSince(item.observedAt, now);
-  const ageLabel = Number.isFinite(age) ? `${age}d old` : "undated";
-  return `${item.sourceLabel} / ${item.evidenceCount} source${item.evidenceCount === 1 ? "" : "s"} / ${ageLabel}`;
+  const ageLabel = Number.isFinite(age) ? `${age}d old` : 'undated';
+  return `${item.sourceLabel} / ${item.evidenceCount} source${item.evidenceCount === 1 ? '' : 's'} / ${ageLabel}`;
 }
 
 export function buildWatchlistDigest(
   collections: WatchlistCollection[],
-  options: { now?: Date; staleAfterDays?: number; maxActions?: number } = {},
+  options: { now?: Date; staleAfterDays?: number; maxActions?: number } = {}
 ): WatchlistDigest {
   const now = options.now ?? new Date();
   const staleAfterDays = options.staleAfterDays ?? 14;
   const maxActions = options.maxActions ?? 6;
   const items = collections.flatMap((collection) => collection.items);
-  const activeItems = items.filter((item) => item.status !== "done");
+  const activeItems = items.filter((item) => item.status !== 'done');
   const staleItems = activeItems.filter((item) => daysSince(item.observedAt, now) > staleAfterDays);
   const topActions = activeItems
-    .filter((item) => item.status === "actionable" || item.priority === "critical" || item.priority === "high")
+    .filter(
+      (item) =>
+        item.status === 'actionable' || item.priority === 'critical' || item.priority === 'high'
+    )
     .sort((a, b) => {
       const priorityDelta = priorityWeight[b.priority] - priorityWeight[a.priority];
       if (priorityDelta !== 0) return priorityDelta;
@@ -104,8 +107,8 @@ export function buildWatchlistDigest(
 
   return {
     totalItems: activeItems.length,
-    actionableItems: activeItems.filter((item) => item.status === "actionable").length,
-    criticalItems: activeItems.filter((item) => item.priority === "critical").length,
+    actionableItems: activeItems.filter((item) => item.status === 'actionable').length,
+    criticalItems: activeItems.filter((item) => item.priority === 'critical').length,
     staleItems: staleItems.length,
     topActions,
     collections: collections.map((collection) => ({

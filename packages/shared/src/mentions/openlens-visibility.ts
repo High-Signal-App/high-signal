@@ -20,35 +20,35 @@ export {
   type ShareOfVoice,
   type TrendPoint,
   type VisibilityScore,
-} from "@saas-maker/ai-visibility";
+} from '@saas-maker/ai-visibility';
 
 export type AttributeArea =
-  | "positioning"
-  | "pricing"
-  | "proof"
-  | "comparisons"
-  | "docs"
-  | "policies"
-  | "reviews"
-  | "transaction_readiness";
+  | 'positioning'
+  | 'pricing'
+  | 'proof'
+  | 'comparisons'
+  | 'docs'
+  | 'policies'
+  | 'reviews'
+  | 'transaction_readiness';
 
 export interface AttributeRow {
   area: string;
-  status: "missing" | "weak" | "clear" | "strong";
+  status: 'missing' | 'weak' | 'clear' | 'strong';
   evidenceUrls: string[];
   notes: string;
   taskCount: number;
 }
 
 const ATTRIBUTE_ORDER: AttributeArea[] = [
-  "positioning",
-  "pricing",
-  "proof",
-  "comparisons",
-  "docs",
-  "policies",
-  "reviews",
-  "transaction_readiness",
+  'positioning',
+  'pricing',
+  'proof',
+  'comparisons',
+  'docs',
+  'policies',
+  'reviews',
+  'transaction_readiness',
 ];
 
 export function sortAttributes(rows: AttributeRow[]): AttributeRow[] {
@@ -62,22 +62,22 @@ export function sortAttributes(rows: AttributeRow[]): AttributeRow[] {
 export async function visibilityReportToken(secret: string, brandId: string): Promise<string> {
   const encoder = new TextEncoder();
   const key = await crypto.subtle.importKey(
-    "raw",
+    'raw',
     encoder.encode(secret),
-    { name: "HMAC", hash: "SHA-256" },
+    { name: 'HMAC', hash: 'SHA-256' },
     false,
-    ["sign"],
+    ['sign']
   );
-  const signature = await crypto.subtle.sign("HMAC", key, encoder.encode(`report:${brandId}`));
-  return Array.from(new Uint8Array(signature), (byte) => byte.toString(16).padStart(2, "0"))
-    .join("")
+  const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(`report:${brandId}`));
+  return Array.from(new Uint8Array(signature), (byte) => byte.toString(16).padStart(2, '0'))
+    .join('')
     .slice(0, 32);
 }
 
 export async function verifyVisibilityReportToken(
   secret: string,
   brandId: string,
-  candidate: string,
+  candidate: string
 ): Promise<boolean> {
   const expected = await visibilityReportToken(secret, brandId);
   if (candidate.length !== expected.length) return false;

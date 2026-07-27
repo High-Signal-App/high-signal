@@ -1,4 +1,4 @@
-import { Hono } from "hono";
+import { Hono } from 'hono';
 
 type Env = { DB: D1Database };
 
@@ -17,8 +17,8 @@ interface SectorRow {
 
 export const sectorsRoute = new Hono<{ Bindings: Env }>();
 
-sectorsRoute.get("/", async (c) => {
-  const days = Math.min(Number(c.req.query("days") ?? 60), 365);
+sectorsRoute.get('/', async (c) => {
+  const days = Math.min(Number(c.req.query('days') ?? 60), 365);
   const since = Math.floor(Date.now() / 1000) - days * 86400;
 
   // Confidence-weighted directional score per sector. Time-decay drops linearly
@@ -62,7 +62,7 @@ sectorsRoute.get("/", async (c) => {
       0 AS hits, 0 AS misses, 0 AS pushes
     FROM s_w
     GROUP BY sector
-    ORDER BY ABS(net_direction) DESC`,
+    ORDER BY ABS(net_direction) DESC`
   )
     .bind(days, since)
     .all()) as { results: SectorRow[] };
@@ -76,7 +76,7 @@ sectorsRoute.get("/", async (c) => {
      JOIN signals s ON s.id = sr.signal_id
      JOIN entities e ON e.id = s.primary_entity_id
      WHERE s.published_at >= ?
-     GROUP BY e.sector`,
+     GROUP BY e.sector`
   )
     .bind(since)
     .all()) as {
@@ -95,7 +95,7 @@ sectorsRoute.get("/", async (c) => {
       downCount: r.down_count ?? 0,
       neutralCount: r.neutral_count ?? 0,
       netDirection: r.net_direction ?? 0,
-      topEntities: (r.top_entities ?? "").split(",").filter(Boolean),
+      topEntities: (r.top_entities ?? '').split(',').filter(Boolean),
       hits: sc.hits ?? 0,
       misses: sc.misses ?? 0,
       pushes: sc.pushes ?? 0,

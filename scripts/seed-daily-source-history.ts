@@ -1,21 +1,21 @@
 #!/usr/bin/env tsx
-import { readFile, writeFile } from "node:fs/promises";
-import { resolve } from "node:path";
-import { addDays } from "@high-signal/shared";
+import { readFile, writeFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
+import { addDays } from '@high-signal/shared';
 
-type SourceType = "reddit" | "hacker-news" | "github-issues" | "rss";
+type SourceType = 'reddit' | 'hacker-news' | 'github-issues' | 'rss';
 
 type ProductFlowRefreshRecord = {
   source: SourceType;
   sourceId?: string;
   label?: string;
   target?: string;
-  period: "day" | "week" | "month";
+  period: 'day' | 'week' | 'month';
   prompt?: string;
   digest: {
     id: string;
     subreddit?: string;
-    period: "day" | "week" | "month";
+    period: 'day' | 'week' | 'month';
     snapshotDate: string;
     summaryText: string;
     summary?: {
@@ -28,14 +28,14 @@ type ProductFlowRefreshRecord = {
     createdAt?: string;
   };
   createdAt: string;
-  refreshStatus?: "accepted" | "rejected";
+  refreshStatus?: 'accepted' | 'rejected';
   refreshReason?: string;
   refreshError?: string;
-  historyKind?: "seeded-replay";
+  historyKind?: 'seeded-replay';
 };
 
-const ROOT = resolve(__dirname, "..");
-const SOURCE_PATH = resolve(ROOT, "data/product-flow-refresh.jsonl");
+const ROOT = resolve(__dirname, '..');
+const SOURCE_PATH = resolve(ROOT, 'data/product-flow-refresh.jsonl');
 const DEFAULT_DAYS = 30;
 
 function isDate(value: string | undefined) {
@@ -46,7 +46,9 @@ function datePart(record: ProductFlowRefreshRecord) {
   return record.digest.snapshotDate.slice(0, 10);
 }
 
-function keyFor(record: Pick<ProductFlowRefreshRecord, "sourceId" | "label" | "target" | "source" | "period">) {
+function keyFor(
+  record: Pick<ProductFlowRefreshRecord, 'sourceId' | 'label' | 'target' | 'source' | 'period'>
+) {
   return `${record.sourceId ?? record.label ?? record.target ?? record.source}:${record.period}`.toLowerCase();
 }
 
@@ -57,12 +59,12 @@ function dayKey(record: ProductFlowRefreshRecord) {
 function isoFor(date: string, index: number) {
   const hour = 7 + (index % 10);
   const minute = (index * 7) % 60;
-  return `${date}T${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00.000Z`;
+  return `${date}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00.000Z`;
 }
 
 function parseArgs() {
-  const daysArg = process.argv.find((arg) => arg.startsWith("--days="))?.split("=")[1];
-  const toArg = process.argv.find((arg) => arg.startsWith("--to="))?.split("=")[1];
+  const daysArg = process.argv.find((arg) => arg.startsWith('--days='))?.split('=')[1];
+  const toArg = process.argv.find((arg) => arg.startsWith('--to='))?.split('=')[1];
   const days = Math.max(1, Math.min(31, Number(daysArg) || DEFAULT_DAYS));
   return {
     days,
@@ -72,7 +74,7 @@ function parseArgs() {
 
 function parseRecords(raw: string) {
   return raw
-    .split("\n")
+    .split('\n')
     .map((line) => line.trim())
     .filter(Boolean)
     .map((line) => JSON.parse(line) as ProductFlowRefreshRecord)
@@ -80,12 +82,14 @@ function parseRecords(raw: string) {
 }
 
 function isAccepted(record: ProductFlowRefreshRecord) {
-  return record.refreshStatus !== "rejected" && record.digest.sourceCount >= 2;
+  return record.refreshStatus !== 'rejected' && record.digest.sourceCount >= 2;
 }
 
 function latestAcceptedTemplates(records: ProductFlowRefreshRecord[]) {
   const latest = new Map<string, ProductFlowRefreshRecord>();
-  for (const record of records.filter((item) => isAccepted(item) && item.historyKind !== "seeded-replay")) {
+  for (const record of records.filter(
+    (item) => isAccepted(item) && item.historyKind !== 'seeded-replay'
+  )) {
     const key = keyFor(record);
     const previous = latest.get(key);
     if (!previous || record.digest.snapshotDate > previous.digest.snapshotDate) {
@@ -97,19 +101,27 @@ function latestAcceptedTemplates(records: ProductFlowRefreshRecord[]) {
     .sort((a, b) => keyFor(a).localeCompare(keyFor(b)));
 }
 
-function seedRecord(template: ProductFlowRefreshRecord, date: string, index: number): ProductFlowRefreshRecord {
+function seedRecord(
+  template: ProductFlowRefreshRecord,
+  date: string,
+  index: number
+): ProductFlowRefreshRecord {
   const snapshotDate = isoFor(date, index);
-  const sourceKey = keyFor(template).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  const sourceKey = keyFor(template)
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
   const label = template.label ?? template.sourceId ?? template.target ?? template.source;
   const originalTrend = template.digest.summary?.keyTrend;
   const originalTitle = originalTrend?.title ?? `${label}: source-read replay`;
   const originalDesc = originalTrend?.desc ?? template.digest.summaryText;
   const link = originalTrend?.link;
-  const notableDiscussions = (template.digest.summary?.notableDiscussions ?? []).slice(0, 3).map((item) => ({
-    title: item.title,
-    desc: item.desc,
-    link: item.link,
-  }));
+  const notableDiscussions = (template.digest.summary?.notableDiscussions ?? [])
+    .slice(0, 3)
+    .map((item) => ({
+      title: item.title,
+      desc: item.desc,
+      link: item.link,
+    }));
   return {
     ...template,
     digest: {
@@ -125,36 +137,31 @@ function seedRecord(template: ProductFlowRefreshRecord, date: string, index: num
         },
         notableDiscussions,
         keyAction: {
-          title: template.digest.summary?.keyAction?.title ?? "Seeded history implication",
+          title: template.digest.summary?.keyAction?.title ?? 'Seeded history implication',
           desc:
             template.digest.summary?.keyAction?.desc ??
-            "Use this replayed source read only to inspect historical workflows until live daily snapshots accumulate.",
+            'Use this replayed source read only to inspect historical workflows until live daily snapshots accumulate.',
           link: template.digest.summary?.keyAction?.link ?? link,
         },
       },
       createdAt: snapshotDate,
     },
     createdAt: snapshotDate,
-    refreshStatus: "accepted",
+    refreshStatus: 'accepted',
     refreshReason: undefined,
     refreshError: undefined,
-    historyKind: "seeded-replay",
+    historyKind: 'seeded-replay',
   };
 }
 
 async function main() {
   const args = parseArgs();
-  const raw = await readFile(SOURCE_PATH, "utf8").catch(() => "");
+  const raw = await readFile(SOURCE_PATH, 'utf8').catch(() => '');
   const parsed = parseRecords(raw);
-  const liveRecords = parsed.filter((record) => record.historyKind !== "seeded-replay");
+  const liveRecords = parsed.filter((record) => record.historyKind !== 'seeded-replay');
   const templates = latestAcceptedTemplates(parsed);
   const latestDate =
-    args.to ??
-    parsed
-      .map(datePart)
-      .sort()
-      .at(-1) ??
-    new Date().toISOString().slice(0, 10);
+    args.to ?? parsed.map(datePart).sort().at(-1) ?? new Date().toISOString().slice(0, 10);
   const existing = new Set(liveRecords.map(dayKey));
   const seeded: ProductFlowRefreshRecord[] = [];
   for (let offset = 0; offset < args.days; offset += 1) {
@@ -167,8 +174,10 @@ async function main() {
       }
     });
   }
-  const out = [...liveRecords, ...seeded].sort((a, b) => a.digest.snapshotDate.localeCompare(b.digest.snapshotDate));
-  await writeFile(SOURCE_PATH, `${out.map((record) => JSON.stringify(record)).join("\n")}\n`);
+  const out = [...liveRecords, ...seeded].sort((a, b) =>
+    a.digest.snapshotDate.localeCompare(b.digest.snapshotDate)
+  );
+  await writeFile(SOURCE_PATH, `${out.map((record) => JSON.stringify(record)).join('\n')}\n`);
   console.log(
     JSON.stringify({
       source: SOURCE_PATH,
@@ -178,7 +187,7 @@ async function main() {
       totalRecords: out.length,
       from: addDays(latestDate, 1 - args.days),
       to: latestDate,
-    }),
+    })
   );
 }
 

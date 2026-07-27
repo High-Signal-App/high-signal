@@ -31,9 +31,7 @@ export default defineConfig({
     root: '../docs',
     // Archive snapshots are always excluded; internal-only trees (prds/,
     // openspec/) are excluded when DOCS_PUBLIC_INTERNAL=false.
-    exclude: publicInternal
-      ? ['archive/**']
-      : ['archive/**', 'prds/**', 'openspec/**'],
+    exclude: publicInternal ? ['archive/**'] : ['archive/**', 'prds/**', 'openspec/**'],
   },
 
   // Dark, monochrome, single-accent — matches the product's locked UI direction

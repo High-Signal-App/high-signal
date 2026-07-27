@@ -1,2 +1,2 @@
 // Business-idea / community-demand intelligence.
-export * from "./idea-intelligence";
+export * from './idea-intelligence';

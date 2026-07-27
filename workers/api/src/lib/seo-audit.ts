@@ -25,8 +25,8 @@ export interface SeoCheck {
   key: string;
   title: string;
   /** SEO / GEO / both — which axis this primitive lives on. */
-  axis: "seo" | "geo" | "both";
-  status: "strong" | "clear" | "weak" | "missing";
+  axis: 'seo' | 'geo' | 'both';
+  status: 'strong' | 'clear' | 'weak' | 'missing';
   notes: string;
   /** Concrete one-line fix the operator should apply. */
   recommendation: string;
@@ -42,7 +42,7 @@ export interface SeoAuditReport {
   seoScore: number;
   geoScore: number;
   /** Quick read for the brief card. */
-  band: "strong" | "clear" | "weak" | "missing";
+  band: 'strong' | 'clear' | 'weak' | 'missing';
   checks: SeoCheck[];
   /** All evidence URLs we surfaced (sitemaps, feeds, llms.txt). */
   evidenceUrls: string[];
@@ -50,26 +50,26 @@ export interface SeoAuditReport {
 }
 
 const FETCH_TIMEOUT_MS = 12_000;
-const USER_AGENT = "HighSignal-SeoAuditor/1.0 (+https://highsignal.app)";
+const USER_AGENT = 'HighSignal-SeoAuditor/1.0 (+https://highsignal.app)';
 
-function statusScore(status: SeoCheck["status"]): number {
+function statusScore(status: SeoCheck['status']): number {
   switch (status) {
-    case "strong":
+    case 'strong':
       return 100;
-    case "clear":
+    case 'clear':
       return 70;
-    case "weak":
+    case 'weak':
       return 40;
-    case "missing":
+    case 'missing':
       return 0;
   }
 }
 
-function bandFor(score: number): SeoAuditReport["band"] {
-  if (score >= 80) return "strong";
-  if (score >= 55) return "clear";
-  if (score >= 25) return "weak";
-  return "missing";
+function bandFor(score: number): SeoAuditReport['band'] {
+  if (score >= 80) return 'strong';
+  if (score >= 55) return 'clear';
+  if (score >= 25) return 'weak';
+  return 'missing';
 }
 
 async function safeFetch(url: string, init: RequestInit = {}): Promise<Response | null> {
@@ -78,9 +78,9 @@ async function safeFetch(url: string, init: RequestInit = {}): Promise<Response 
   try {
     return await fetch(url, {
       ...init,
-      headers: { "User-Agent": USER_AGENT, ...(init.headers ?? {}) },
+      headers: { 'User-Agent': USER_AGENT, ...(init.headers ?? {}) },
       signal: ctrl.signal,
-      redirect: "follow",
+      redirect: 'follow',
     });
   } catch {
     return null;
@@ -103,17 +103,17 @@ function normalizeOrigin(url: string): string | null {
  * a real DOM parser because we're in a worker bundle — no DOMParser, no
  * cheerio, and meta tags are flat enough that regex is honest here.
  */
-function meta(head: string, attr: "name" | "property", value: string): string | null {
+function meta(head: string, attr: 'name' | 'property', value: string): string | null {
   const re = new RegExp(
-    `<meta\\s+(?:[^>]*\\s+)?${attr}=["']${value.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\$&")}["'][^>]*?content=["']([^"']*)["']`,
-    "i",
+    `<meta\\s+(?:[^>]*\\s+)?${attr}=["']${value.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\$&')}["'][^>]*?content=["']([^"']*)["']`,
+    'i'
   );
   const m = re.exec(head);
   if (m) return m[1] ?? null;
   // Also try content-before-name ordering.
   const re2 = new RegExp(
-    `<meta\\s+(?:[^>]*\\s+)?content=["']([^"']*)["'][^>]*?${attr}=["']${value.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\$&")}["']`,
-    "i",
+    `<meta\\s+(?:[^>]*\\s+)?content=["']([^"']*)["'][^>]*?${attr}=["']${value.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\$&')}["']`,
+    'i'
   );
   const m2 = re2.exec(head);
   return m2?.[1] ?? null;
@@ -123,24 +123,26 @@ function linkRel(head: string, rel: string): string[] {
   const out: string[] = [];
   const re = new RegExp(
     `<link\\s+(?:[^>]*\\s+)?rel=["']${rel}["'][^>]*?href=["']([^"']+)["']`,
-    "gi",
+    'gi'
   );
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(head)) !== null) if (m[1]) out.push(m[1]);
+  for (const m of head.matchAll(re)) {
+    if (m[1]) out.push(m[1]);
+  }
   const re2 = new RegExp(
     `<link\\s+(?:[^>]*\\s+)?href=["']([^"']+)["'][^>]*?rel=["']${rel}["']`,
-    "gi",
+    'gi'
   );
-  while ((m = re2.exec(head)) !== null) if (m[1]) out.push(m[1]);
+  for (const m of head.matchAll(re2)) {
+    if (m[1]) out.push(m[1]);
+  }
   return Array.from(new Set(out));
 }
 
 function ldJsonBlocks(html: string): unknown[] {
   const blocks: unknown[] = [];
   const re = /<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(html)) !== null) {
-    const raw = (m[1] ?? "").trim();
+  for (const m of html.matchAll(re)) {
+    const raw = (m[1] ?? '').trim();
     if (!raw) continue;
     try {
       const parsed = JSON.parse(raw);
@@ -156,9 +158,9 @@ function ldJsonBlocks(html: string): unknown[] {
 function ldTypes(blocks: unknown[]): string[] {
   const types: string[] = [];
   for (const b of blocks) {
-    if (b && typeof b === "object" && "@type" in (b as Record<string, unknown>)) {
-      const t = (b as Record<string, unknown>)["@type"];
-      if (typeof t === "string") types.push(t);
+    if (b && typeof b === 'object' && '@type' in (b as Record<string, unknown>)) {
+      const t = (b as Record<string, unknown>)['@type'];
+      if (typeof t === 'string') types.push(t);
     }
   }
   return types;
@@ -166,18 +168,20 @@ function ldTypes(blocks: unknown[]): string[] {
 
 function titleOf(head: string): string | null {
   const m = /<title[^>]*>([^<]*)<\/title>/i.exec(head);
-  return m ? m[1]?.trim() ?? null : null;
+  return m ? (m[1]?.trim() ?? null) : null;
 }
 
 /** Run a HEAD probe for a known-good resource. */
-async function probe(url: string): Promise<{ ok: boolean; status: number | null; bytes: number | null }> {
+async function probe(
+  url: string
+): Promise<{ ok: boolean; status: number | null; bytes: number | null }> {
   // Some hosts block HEAD; fall back to GET with a small range.
-  let r = await safeFetch(url, { method: "HEAD" });
+  let r = await safeFetch(url, { method: 'HEAD' });
   if (!r || r.status === 405 || r.status === 403) {
-    r = await safeFetch(url, { method: "GET", headers: { Range: "bytes=0-1024" } });
+    r = await safeFetch(url, { method: 'GET', headers: { Range: 'bytes=0-1024' } });
   }
   if (!r) return { ok: false, status: null, bytes: null };
-  const lenHeader = r.headers.get("Content-Length");
+  const lenHeader = r.headers.get('Content-Length');
   const bytes = lenHeader ? Number(lenHeader) || null : null;
   return { ok: r.ok, status: r.status, bytes };
 }
@@ -194,10 +198,10 @@ export async function runSeoAudit(rawUrl: string): Promise<SeoAuditReport> {
       score: 0,
       seoScore: 0,
       geoScore: 0,
-      band: "missing",
+      band: 'missing',
       checks: [],
       evidenceUrls: [],
-      error: "invalid_url",
+      error: 'invalid_url',
     };
   }
 
@@ -211,10 +215,10 @@ export async function runSeoAudit(rawUrl: string): Promise<SeoAuditReport> {
       score: 0,
       seoScore: 0,
       geoScore: 0,
-      band: "missing",
+      band: 'missing',
       checks: [],
       evidenceUrls: [],
-      error: pageResp ? `http_${pageResp.status}` : "fetch_failed",
+      error: pageResp ? `http_${pageResp.status}` : 'fetch_failed',
     };
   }
   const finalUrl = pageResp.url || rawUrl;
@@ -228,123 +232,132 @@ export async function runSeoAudit(rawUrl: string): Promise<SeoAuditReport> {
   // ---- 1. <title> -----------------------------------------------------
   const pageTitle = titleOf(head);
   checks.push({
-    key: "title",
-    title: "Page title",
-    axis: "seo",
-    status: pageTitle && pageTitle.length >= 10 ? "strong" : pageTitle ? "weak" : "missing",
-    notes: pageTitle ? `Title is "${pageTitle.slice(0, 80)}".` : "No <title> tag on the homepage.",
+    key: 'title',
+    title: 'Page title',
+    axis: 'seo',
+    status: pageTitle && pageTitle.length >= 10 ? 'strong' : pageTitle ? 'weak' : 'missing',
+    notes: pageTitle ? `Title is "${pageTitle.slice(0, 80)}".` : 'No <title> tag on the homepage.',
     recommendation: pageTitle
-      ? "Keep titles ≤ 60 chars and place the brand last so the differentiator leads."
-      : "Add a <title> in the layout metadata; this is table-stakes for SEO.",
+      ? 'Keep titles ≤ 60 chars and place the brand last so the differentiator leads.'
+      : 'Add a <title> in the layout metadata; this is table-stakes for SEO.',
   });
 
   // ---- 2. meta description -------------------------------------------
-  const metaDesc = meta(head, "name", "description");
+  const metaDesc = meta(head, 'name', 'description');
   checks.push({
-    key: "meta-description",
-    title: "Meta description",
-    axis: "seo",
-    status: metaDesc && metaDesc.length >= 60 ? "strong" : metaDesc ? "clear" : "missing",
-    notes: metaDesc
-      ? `Description present (${metaDesc.length} chars).`
-      : "No meta description.",
+    key: 'meta-description',
+    title: 'Meta description',
+    axis: 'seo',
+    status: metaDesc && metaDesc.length >= 60 ? 'strong' : metaDesc ? 'clear' : 'missing',
+    notes: metaDesc ? `Description present (${metaDesc.length} chars).` : 'No meta description.',
     recommendation: metaDesc
-      ? "Aim for 110–160 chars and lead with the buyer outcome, not the brand."
+      ? 'Aim for 110–160 chars and lead with the buyer outcome, not the brand.'
       : "Add <meta name='description'> with the value proposition in plain language.",
   });
 
   // ---- 3. canonical ---------------------------------------------------
-  const canonicals = linkRel(head, "canonical");
+  const canonicals = linkRel(head, 'canonical');
   checks.push({
-    key: "canonical",
-    title: "Canonical link",
-    axis: "seo",
-    status: canonicals.length === 1 ? "strong" : canonicals.length > 1 ? "weak" : "missing",
+    key: 'canonical',
+    title: 'Canonical link',
+    axis: 'seo',
+    status: canonicals.length === 1 ? 'strong' : canonicals.length > 1 ? 'weak' : 'missing',
     notes:
       canonicals.length === 0
         ? "No <link rel='canonical'> tag."
         : `Canonical points at ${canonicals[0]}`,
     recommendation:
       canonicals.length === 1
-        ? "Canonical is set. Verify it points at the apex domain, not a workers.dev / vercel.app subdomain."
+        ? 'Canonical is set. Verify it points at the apex domain, not a workers.dev / vercel.app subdomain.'
         : "Add exactly one <link rel='canonical'> per page to avoid splitting link equity.",
   });
 
   // ---- 4. Open Graph --------------------------------------------------
-  const ogTitle = meta(head, "property", "og:title");
-  const ogDesc = meta(head, "property", "og:description");
-  const ogImage = meta(head, "property", "og:image");
-  const ogType = meta(head, "property", "og:type");
+  const ogTitle = meta(head, 'property', 'og:title');
+  const ogDesc = meta(head, 'property', 'og:description');
+  const ogImage = meta(head, 'property', 'og:image');
+  const ogType = meta(head, 'property', 'og:type');
   const ogCount = [ogTitle, ogDesc, ogImage, ogType].filter(Boolean).length;
   checks.push({
-    key: "open-graph",
-    title: "Open Graph tags",
-    axis: "both",
-    status: ogCount >= 4 ? "strong" : ogCount >= 2 ? "clear" : ogCount === 1 ? "weak" : "missing",
+    key: 'open-graph',
+    title: 'Open Graph tags',
+    axis: 'both',
+    status: ogCount >= 4 ? 'strong' : ogCount >= 2 ? 'clear' : ogCount === 1 ? 'weak' : 'missing',
     notes: `${ogCount}/4 essential OG tags present (title / description / image / type).`,
     recommendation:
       ogCount === 4
-        ? "All four OG essentials present. Verify the image is 1200×630 and under 1MB."
-        : "Add og:title, og:description, og:image (1200×630), og:type. Required for X/LinkedIn previews and used by AI assistants for context.",
+        ? 'All four OG essentials present. Verify the image is 1200×630 and under 1MB.'
+        : 'Add og:title, og:description, og:image (1200×630), og:type. Required for X/LinkedIn previews and used by AI assistants for context.',
   });
 
   // ---- 5. Twitter card -----------------------------------------------
-  const twCard = meta(head, "name", "twitter:card");
+  const twCard = meta(head, 'name', 'twitter:card');
   checks.push({
-    key: "twitter-card",
-    title: "Twitter / X card",
-    axis: "seo",
-    status: twCard === "summary_large_image" ? "strong" : twCard ? "clear" : "missing",
-    notes: twCard ? `card=${twCard}` : "No twitter:card meta.",
+    key: 'twitter-card',
+    title: 'Twitter / X card',
+    axis: 'seo',
+    status: twCard === 'summary_large_image' ? 'strong' : twCard ? 'clear' : 'missing',
+    notes: twCard ? `card=${twCard}` : 'No twitter:card meta.',
     recommendation:
-      twCard === "summary_large_image"
-        ? "Best card variant for daily-content brands."
+      twCard === 'summary_large_image'
+        ? 'Best card variant for daily-content brands.'
         : "Add <meta name='twitter:card' content='summary_large_image'>.",
   });
 
   // ---- 6. JSON-LD structured data ------------------------------------
   const blocks = ldJsonBlocks(html);
   const types = ldTypes(blocks);
-  const hasOrg = types.includes("Organization");
-  const hasWebSite = types.includes("WebSite");
+  const hasOrg = types.includes('Organization');
+  const hasWebSite = types.includes('WebSite');
   const hasContent = types.some((t) =>
-    ["Article", "AnalysisNewsArticle", "NewsArticle", "BlogPosting", "WebApplication", "Dataset", "FAQPage", "Product"].includes(t),
+    [
+      'Article',
+      'AnalysisNewsArticle',
+      'NewsArticle',
+      'BlogPosting',
+      'WebApplication',
+      'Dataset',
+      'FAQPage',
+      'Product',
+    ].includes(t)
   );
-  const ldStatus: SeoCheck["status"] = blocks.length === 0
-    ? "missing"
-    : hasOrg && hasWebSite && hasContent
-      ? "strong"
-      : hasOrg || hasWebSite || hasContent
-        ? "clear"
-        : "weak";
+  const ldStatus: SeoCheck['status'] =
+    blocks.length === 0
+      ? 'missing'
+      : hasOrg && hasWebSite && hasContent
+        ? 'strong'
+        : hasOrg || hasWebSite || hasContent
+          ? 'clear'
+          : 'weak';
   checks.push({
-    key: "json-ld",
-    title: "Schema.org JSON-LD",
-    axis: "geo",
+    key: 'json-ld',
+    title: 'Schema.org JSON-LD',
+    axis: 'geo',
     status: ldStatus,
     notes: blocks.length
-      ? `${blocks.length} block(s), types: ${types.join(", ") || "(unknown)"}`
+      ? `${blocks.length} block(s), types: ${types.join(', ') || '(unknown)'}`
       : "No <script type='application/ld+json'> found.",
-    recommendation: hasOrg && hasWebSite && hasContent
-      ? "Solid foundation. Consider adding per-page schemas (Article, FAQPage, Product) where applicable."
-      : "Add Organization + WebSite site-wide, plus a page-specific schema (Article for posts, Product for SKUs, FAQPage for help). This is the single highest-leverage GEO change.",
+    recommendation:
+      hasOrg && hasWebSite && hasContent
+        ? 'Solid foundation. Consider adding per-page schemas (Article, FAQPage, Product) where applicable.'
+        : 'Add Organization + WebSite site-wide, plus a page-specific schema (Article for posts, Product for SKUs, FAQPage for help). This is the single highest-leverage GEO change.',
   });
 
   // ---- 7. RSS / Atom alternates --------------------------------------
-  const rss = linkRel(head, "alternate");
+  const rss = linkRel(head, 'alternate');
   for (const u of rss) {
-    const resolved = u.startsWith("http") ? u : `${origin}${u.startsWith("/") ? "" : "/"}${u}`;
+    const resolved = u.startsWith('http') ? u : `${origin}${u.startsWith('/') ? '' : '/'}${u}`;
     evidence.add(resolved);
   }
   checks.push({
-    key: "feeds",
-    title: "RSS / Atom feeds",
-    axis: "both",
-    status: rss.length >= 2 ? "strong" : rss.length === 1 ? "clear" : "missing",
-    notes: rss.length ? `${rss.length} alternate feed(s).` : "No alternate feed links declared.",
+    key: 'feeds',
+    title: 'RSS / Atom feeds',
+    axis: 'both',
+    status: rss.length >= 2 ? 'strong' : rss.length === 1 ? 'clear' : 'missing',
+    notes: rss.length ? `${rss.length} alternate feed(s).` : 'No alternate feed links declared.',
     recommendation:
       rss.length >= 2
-        ? "Two or more feed alternates is ideal — humans get the picker, agents get a crawlable stream."
+        ? 'Two or more feed alternates is ideal — humans get the picker, agents get a crawlable stream.'
         : "Declare <link rel='alternate' type='application/rss+xml'> and/or atom for any time-series content. AI crawlers prefer these to HTML scraping.",
   });
 
@@ -353,16 +366,16 @@ export async function runSeoAudit(rawUrl: string): Promise<SeoAuditReport> {
   const llmsProbe = await probe(llmsUrl);
   if (llmsProbe.ok) evidence.add(llmsUrl);
   checks.push({
-    key: "llms-txt",
-    title: "llms.txt",
-    axis: "geo",
-    status: llmsProbe.ok ? "strong" : "missing",
+    key: 'llms-txt',
+    title: 'llms.txt',
+    axis: 'geo',
+    status: llmsProbe.ok ? 'strong' : 'missing',
     notes: llmsProbe.ok
-      ? `Present at ${llmsUrl}${llmsProbe.bytes ? ` (${llmsProbe.bytes} bytes)` : ""}.`
-      : "No /llms.txt — AI agents have no canonical discovery document for the site.",
+      ? `Present at ${llmsUrl}${llmsProbe.bytes ? ` (${llmsProbe.bytes} bytes)` : ''}.`
+      : 'No /llms.txt — AI agents have no canonical discovery document for the site.',
     recommendation: llmsProbe.ok
       ? "Keep it current. Update the 'Hard rules' section when product policy changes."
-      : "Ship /llms.txt (see llmstxt.org). One markdown file describing what the site is, its claims, key machine-readable endpoints, and how to cite it.",
+      : 'Ship /llms.txt (see llmstxt.org). One markdown file describing what the site is, its claims, key machine-readable endpoints, and how to cite it.',
   });
 
   // ---- 9. robots.txt -------------------------------------------------
@@ -370,14 +383,14 @@ export async function runSeoAudit(rawUrl: string): Promise<SeoAuditReport> {
   const robotsProbe = await probe(robotsUrl);
   if (robotsProbe.ok) evidence.add(robotsUrl);
   checks.push({
-    key: "robots",
-    title: "robots.txt",
-    axis: "seo",
-    status: robotsProbe.ok ? "strong" : "missing",
-    notes: robotsProbe.ok ? `Present at ${robotsUrl}.` : "No /robots.txt.",
+    key: 'robots',
+    title: 'robots.txt',
+    axis: 'seo',
+    status: robotsProbe.ok ? 'strong' : 'missing',
+    notes: robotsProbe.ok ? `Present at ${robotsUrl}.` : 'No /robots.txt.',
     recommendation: robotsProbe.ok
-      ? "Verify it includes a Sitemap: line."
-      : "Add /robots.txt with at minimum a Sitemap: line so crawlers find the inventory.",
+      ? 'Verify it includes a Sitemap: line.'
+      : 'Add /robots.txt with at minimum a Sitemap: line so crawlers find the inventory.',
   });
 
   // ---- 10. sitemap.xml -----------------------------------------------
@@ -385,21 +398,23 @@ export async function runSeoAudit(rawUrl: string): Promise<SeoAuditReport> {
   const sitemapProbe = await probe(sitemapUrl);
   if (sitemapProbe.ok) evidence.add(sitemapUrl);
   checks.push({
-    key: "sitemap",
-    title: "sitemap.xml",
-    axis: "seo",
-    status: sitemapProbe.ok ? "strong" : "missing",
-    notes: sitemapProbe.ok ? `Present at ${sitemapUrl}.` : "No /sitemap.xml.",
+    key: 'sitemap',
+    title: 'sitemap.xml',
+    axis: 'seo',
+    status: sitemapProbe.ok ? 'strong' : 'missing',
+    notes: sitemapProbe.ok ? `Present at ${sitemapUrl}.` : 'No /sitemap.xml.',
     recommendation: sitemapProbe.ok
-      ? "Include every public route with lastmod set; submit to Google Search Console once."
-      : "Generate /sitemap.xml from the route table; trivial in Next.js, Hono, etc.",
+      ? 'Include every public route with lastmod set; submit to Google Search Console once.'
+      : 'Generate /sitemap.xml from the route table; trivial in Next.js, Hono, etc.',
   });
 
   // ---- Score ---------------------------------------------------------
-  const seoChecks = checks.filter((c) => c.axis === "seo" || c.axis === "both");
-  const geoChecks = checks.filter((c) => c.axis === "geo" || c.axis === "both");
+  const seoChecks = checks.filter((c) => c.axis === 'seo' || c.axis === 'both');
+  const geoChecks = checks.filter((c) => c.axis === 'geo' || c.axis === 'both');
   const avg = (xs: SeoCheck[]) =>
-    xs.length === 0 ? 0 : Math.round(xs.reduce((acc, c) => acc + statusScore(c.status), 0) / xs.length);
+    xs.length === 0
+      ? 0
+      : Math.round(xs.reduce((acc, c) => acc + statusScore(c.status), 0) / xs.length);
   const seoScore = avg(seoChecks);
   const geoScore = avg(geoChecks);
   const score = Math.round(avg(checks));

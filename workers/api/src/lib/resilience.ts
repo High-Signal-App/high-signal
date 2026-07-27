@@ -8,25 +8,31 @@
  */
 
 /** Classify an HTTP status / thrown error into a terminal vs retryable bucket. */
-export type FailureClass = "ok" | "rate_limited" | "server_error" | "timeout" | "client_error" | "network";
+export type FailureClass =
+  | 'ok'
+  | 'rate_limited'
+  | 'server_error'
+  | 'timeout'
+  | 'client_error'
+  | 'network';
 
 export function classifyStatus(status: number): FailureClass {
-  if (status === 429) return "rate_limited";
-  if (status >= 500 && status < 600) return "server_error";
-  if (status >= 400 && status < 500) return "client_error";
-  return "ok";
+  if (status === 429) return 'rate_limited';
+  if (status >= 500 && status < 600) return 'server_error';
+  if (status >= 400 && status < 500) return 'client_error';
+  return 'ok';
 }
 
 export function classifyError(error: unknown): FailureClass {
-  if (error instanceof DOMException && error.name === "TimeoutError") return "timeout";
-  if (error instanceof Error && /abort|timeout/i.test(error.name)) return "timeout";
-  if (error instanceof TypeError) return "network"; // fetch network failure
-  return "network";
+  if (error instanceof DOMException && error.name === 'TimeoutError') return 'timeout';
+  if (error instanceof Error && /abort|timeout/i.test(error.name)) return 'timeout';
+  if (error instanceof TypeError) return 'network'; // fetch network failure
+  return 'network';
 }
 
 /** Only rate-limited and server-error responses (and timeouts/network blips) are retried. */
 export function isRetryable(cls: FailureClass): boolean {
-  return cls === "rate_limited" || cls === "server_error" || cls === "timeout" || cls === "network";
+  return cls === 'rate_limited' || cls === 'server_error' || cls === 'timeout' || cls === 'network';
 }
 
 /** Full-jitter sleep: uniform [0, min(cap, base * 2^(attempt-1))). */
@@ -57,7 +63,7 @@ export interface RetryOptions {
  */
 export async function fetchWithRetry(
   run: (signal: AbortSignal, attempt: number) => Promise<Response>,
-  opts: RetryOptions = {},
+  opts: RetryOptions = {}
 ): Promise<Response> {
   const attempts = opts.attempts ?? 2;
   const baseMs = opts.baseMs ?? 500;
@@ -65,7 +71,7 @@ export async function fetchWithRetry(
   const timeoutMs = opts.timeoutMs ?? 30_000;
 
   let lastStatus: number | undefined;
-  let lastClass: FailureClass = "network";
+  let lastClass: FailureClass = 'network';
   for (let attempt = 1; attempt <= attempts; attempt++) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -74,7 +80,7 @@ export async function fetchWithRetry(
       clearTimeout(timer);
       lastStatus = res.status;
       lastClass = classifyStatus(res.status);
-      if (lastClass === "ok" || !isRetryable(lastClass)) {
+      if (lastClass === 'ok' || !isRetryable(lastClass)) {
         opts.onResult?.({ attempts: attempt, class: lastClass, status: res.status });
         return res;
       }
@@ -111,10 +117,12 @@ export async function fetchWithRetry(
 export async function mapWithConcurrency<T, R>(
   items: readonly T[],
   limit: number,
-  fn: (item: T, index: number) => Promise<R>,
+  fn: (item: T, index: number) => Promise<R>
 ): Promise<Array<{ ok: true; value: R } | { ok: false; error: unknown }>> {
   const cap = Math.max(1, limit);
-  const results: Array<{ ok: true; value: R } | { ok: false; error: unknown }> = new Array(items.length);
+  const results: Array<{ ok: true; value: R } | { ok: false; error: unknown }> = new Array(
+    items.length
+  );
   let cursor = 0;
   async function worker(): Promise<void> {
     while (true) {

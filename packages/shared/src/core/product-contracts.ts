@@ -1,6 +1,6 @@
-export type AIPlatform = "openai" | "anthropic" | "google" | "perplexity" | "custom";
-export type ProductSurface = "mentions" | "communities" | "markets" | "agent-eval";
-export type WorkflowStatus = "draft" | "running" | "completed" | "failed";
+export type AIPlatform = 'openai' | 'anthropic' | 'google' | 'perplexity' | 'custom';
+export type ProductSurface = 'mentions' | 'communities' | 'markets' | 'agent-eval';
+export type WorkflowStatus = 'draft' | 'running' | 'completed' | 'failed';
 
 export interface CompetitorProfile {
   name: string;
@@ -33,7 +33,7 @@ export interface MentionCheck {
   id: string;
   companyId: string;
   configId: string;
-  status: Exclude<WorkflowStatus, "draft">;
+  status: Exclude<WorkflowStatus, 'draft'>;
   totalQueries: number;
   completedQueries: number;
   brandMentionRate: number | null;
@@ -48,7 +48,7 @@ export interface MentionDashboardSnapshot {
   recentChecks: MentionCheck[];
 }
 
-export type RedditPeriod = "day" | "week" | "month";
+export type RedditPeriod = 'day' | 'week' | 'month';
 export type CommunitySourceId = readonly [postId: string, commentId?: string];
 
 export interface TrackedCommunity {
@@ -98,32 +98,33 @@ export interface ProductDashboardSnapshot {
 
 export function normalizeCommunitySourceId(value: unknown): CommunitySourceId | undefined {
   if (!Array.isArray(value) || value.length === 0) return undefined;
-  const postId = `${value[0] ?? ""}`.trim();
-  const commentId = `${value[1] ?? ""}`.trim();
+  const postId = `${value[0] ?? ''}`.trim();
+  const commentId = `${value[1] ?? ''}`.trim();
   if (!postId) return undefined;
   return commentId ? [postId, commentId] : [postId];
 }
 
 export function redditSourceLink(
   subreddit: string,
-  sourceId: CommunitySourceId | undefined,
+  sourceId: CommunitySourceId | undefined
 ): string | undefined {
   if (!sourceId) return undefined;
   const [postId, commentId] = sourceId;
-  if (commentId) return `https://www.reddit.com/r/${subreddit}/comments/${postId}/comment/${commentId}`;
+  if (commentId)
+    return `https://www.reddit.com/r/${subreddit}/comments/${postId}/comment/${commentId}`;
   return `https://www.reddit.com/r/${subreddit}/comments/${postId}`;
 }
 
 function normalizeSummaryItem(value: unknown): CommunitySummaryItem | null {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
   const raw = value as Record<string, unknown>;
-  const title = `${raw["title"] ?? ""}`.trim();
-  const desc = `${raw["desc"] ?? ""}`.trim();
+  const title = `${raw['title'] ?? ''}`.trim();
+  const desc = `${raw['desc'] ?? ''}`.trim();
   if (!title && !desc) return null;
-  const sourceId = normalizeCommunitySourceId(raw["sourceId"]);
-  const link = `${raw["link"] ?? ""}`.trim();
+  const sourceId = normalizeCommunitySourceId(raw['sourceId']);
+  const link = `${raw['link'] ?? ''}`.trim();
   return {
-    title: title || "Untitled signal",
+    title: title || 'Untitled signal',
     desc,
     sourceId,
     link: /^https?:\/\//i.test(link) ? link : undefined,
@@ -134,7 +135,7 @@ function deriveAction(item: CommunitySummaryItem | null): CommunitySummaryItem |
   if (!item) return undefined;
   const desc = (item.desc || item.title).trim();
   if (!desc) return undefined;
-  return { title: "Key Action", desc, sourceId: item.sourceId, link: item.link };
+  return { title: 'Key Action', desc, sourceId: item.sourceId, link: item.link };
 }
 
 export function normalizeCommunitySummary(value: unknown): CommunitySummary | null {
@@ -154,16 +155,16 @@ export function normalizeCommunitySummary(value: unknown): CommunitySummary | nu
     };
   }
 
-  if (typeof value !== "object") return null;
+  if (typeof value !== 'object') return null;
   const raw = value as Record<string, unknown>;
-  const keyTrend = normalizeSummaryItem(raw["key_trend"] ?? raw["overview"]);
+  const keyTrend = normalizeSummaryItem(raw['key_trend'] ?? raw['overview']);
   const keyAction =
-    normalizeSummaryItem(raw["key_action"] ?? raw["actionable_takeaway"] ?? raw["action_item"]) ??
+    normalizeSummaryItem(raw['key_action'] ?? raw['actionable_takeaway'] ?? raw['action_item']) ??
     deriveAction(keyTrend);
-  const notableRaw = Array.isArray(raw["notable_discussions"])
-    ? raw["notable_discussions"]
-    : Array.isArray(raw["discussion_points"])
-      ? raw["discussion_points"]
+  const notableRaw = Array.isArray(raw['notable_discussions'])
+    ? raw['notable_discussions']
+    : Array.isArray(raw['discussion_points'])
+      ? raw['discussion_points']
       : [];
   const notableDiscussions = notableRaw
     .map((item) => normalizeSummaryItem(item))

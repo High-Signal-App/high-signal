@@ -2,16 +2,16 @@
 // Writes live in routes/admin.ts (under /admin/claims/*) so the existing
 // Clerk-fronted /api/admin proxy applies.
 
-import { Hono } from "hono";
-import { and, asc, desc, eq, inArray } from "drizzle-orm";
+import { Hono } from 'hono';
+import { and, asc, desc, eq, inArray } from 'drizzle-orm';
 import {
   rollupEvidence,
   type ClaimDetail,
   type ClaimRecord,
   type ClaimEvidenceLink,
   type ClaimTimelineEvent,
-} from "@high-signal/shared";
-import { db, schema } from "../db";
+} from '@high-signal/shared';
+import { db, schema } from '../db';
 
 type Env = { DB: D1Database };
 
@@ -36,9 +36,7 @@ function toClaim(row: typeof schema.claimRecords.$inferSelect): ClaimRecord {
   };
 }
 
-function toEvidence(
-  row: typeof schema.claimEvidenceLinks.$inferSelect,
-): ClaimEvidenceLink {
+function toEvidence(row: typeof schema.claimEvidenceLinks.$inferSelect): ClaimEvidenceLink {
   return {
     id: row.id,
     claimId: row.claimId,
@@ -52,9 +50,7 @@ function toEvidence(
   };
 }
 
-function toTimeline(
-  row: typeof schema.claimTimelineEvents.$inferSelect,
-): ClaimTimelineEvent {
+function toTimeline(row: typeof schema.claimTimelineEvents.$inferSelect): ClaimTimelineEvent {
   return {
     id: row.id,
     claimId: row.claimId,
@@ -89,15 +85,15 @@ async function loadClaimDetail(d1: D1Database, claimId: string): Promise<ClaimDe
   };
 }
 
-claimsRoute.get("/:id", async (c) => {
-  const detail = await loadClaimDetail(c.env.DB, c.req.param("id"));
-  if (!detail) return c.json({ error: "not_found" }, 404);
+claimsRoute.get('/:id', async (c) => {
+  const detail = await loadClaimDetail(c.env.DB, c.req.param('id'));
+  if (!detail) return c.json({ error: 'not_found' }, 404);
   return c.json({ claim: detail, rollup: rollupEvidence(detail.evidence) });
 });
 
 // List claims attached to a signal slug. Used by /signals/[slug] provenance tab.
-claimsRoute.get("/by-signal/:slug", async (c) => {
-  const slug = c.req.param("slug");
+claimsRoute.get('/by-signal/:slug', async (c) => {
+  const slug = c.req.param('slug');
   const [signal] = await db(c.env.DB)
     .select({ id: schema.signals.id })
     .from(schema.signals)
@@ -108,10 +104,7 @@ claimsRoute.get("/by-signal/:slug", async (c) => {
     .select()
     .from(schema.claimRecords)
     .where(
-      and(
-        eq(schema.claimRecords.signalId, signal.id),
-        eq(schema.claimRecords.surface, "signal"),
-      ),
+      and(eq(schema.claimRecords.signalId, signal.id), eq(schema.claimRecords.surface, 'signal'))
     )
     .orderBy(desc(schema.claimRecords.createdAt));
   if (rows.length === 0) return c.json({ claims: [] });

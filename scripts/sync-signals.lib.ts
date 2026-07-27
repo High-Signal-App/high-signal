@@ -18,19 +18,19 @@ export interface Front {
   evidence_published_at?: string[];
   spillover_entity_ids?: string[];
   supersedes?: string | null;
-  review_status: "draft" | "published" | "corrected" | "killed";
+  review_status: 'draft' | 'published' | 'corrected' | 'killed';
 }
 
 const REQUIRED_FRONT_KEYS = [
-  "slug",
-  "signal_type",
-  "primary_entity",
-  "direction",
-  "confidence",
-  "predicted_window_days",
-  "published_at",
-  "evidence_urls",
-  "review_status",
+  'slug',
+  'signal_type',
+  'primary_entity',
+  'direction',
+  'confidence',
+  'predicted_window_days',
+  'published_at',
+  'evidence_urls',
+  'review_status',
 ] as const;
 
 export function parseTinyYaml(yaml: string): Record<string, unknown> {
@@ -38,9 +38,9 @@ export function parseTinyYaml(yaml: string): Record<string, unknown> {
   let listKey: string | null = null;
   let listAcc: string[] = [];
   for (const lineRaw of yaml.split(/\r?\n/)) {
-    const line = lineRaw.replace(/\s+$/, "");
+    const line = lineRaw.replace(/\s+$/, '');
     if (!line.length) continue;
-    if (listKey && line.startsWith("  - ")) {
+    if (listKey && line.startsWith('  - ')) {
       listAcc.push(unquote(line.slice(4).trim()));
       continue;
     } else if (listKey) {
@@ -48,21 +48,21 @@ export function parseTinyYaml(yaml: string): Record<string, unknown> {
       listKey = null;
       listAcc = [];
     }
-    const idx = line.indexOf(":");
+    const idx = line.indexOf(':');
     if (idx < 0) continue;
     const k = line.slice(0, idx).trim();
     const v = line.slice(idx + 1).trim();
-    if (v === "") {
+    if (v === '') {
       listKey = k;
       listAcc = [];
     } else if (/^\d+$/.test(v)) {
       out[k] = parseInt(v, 10);
-    } else if (v === "null") {
+    } else if (v === 'null') {
       out[k] = null;
-    } else if (v.startsWith("[") && v.endsWith("]")) {
+    } else if (v.startsWith('[') && v.endsWith(']')) {
       out[k] = v
         .slice(1, -1)
-        .split(",")
+        .split(',')
         .map((s) => s.trim())
         .filter(Boolean);
     } else {
@@ -74,12 +74,12 @@ export function parseTinyYaml(yaml: string): Record<string, unknown> {
 }
 
 function unquote(value: string): string {
-  return value.replace(/^['"]|['"]$/g, "");
+  return value.replace(/^['"]|['"]$/g, '');
 }
 
 export function parseFrontmatter(md: string): { front: Front; body: string } {
   const m = md.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
-  if (!m) throw new Error("missing frontmatter");
+  if (!m) throw new Error('missing frontmatter');
   const raw = parseTinyYaml(m[1]);
   const front = validateFront(raw);
   return { front, body: m[2].trim() };
@@ -92,17 +92,17 @@ function validateFront(raw: Record<string, unknown>): Front {
     if (value === undefined || value === null) missing.push(key);
   }
   if (missing.length > 0) {
-    throw new Error(`missing required frontmatter keys: ${missing.join(", ")}`);
+    throw new Error(`missing required frontmatter keys: ${missing.join(', ')}`);
   }
   if (!Array.isArray(raw.evidence_urls) || raw.evidence_urls.length === 0) {
-    throw new Error("evidence_urls must be a non-empty list");
+    throw new Error('evidence_urls must be a non-empty list');
   }
-  if (typeof raw.predicted_window_days !== "number") {
-    throw new Error("predicted_window_days must be an integer");
+  if (typeof raw.predicted_window_days !== 'number') {
+    throw new Error('predicted_window_days must be an integer');
   }
-  const allowedReview = new Set(["draft", "published", "corrected", "killed"]);
+  const allowedReview = new Set(['draft', 'published', 'corrected', 'killed']);
   if (!allowedReview.has(String(raw.review_status))) {
-    throw new Error(`review_status must be one of ${[...allowedReview].join("|")}`);
+    throw new Error(`review_status must be one of ${[...allowedReview].join('|')}`);
   }
   if (Number.isNaN(new Date(String(raw.published_at)).getTime())) {
     throw new Error(`published_at is not a valid ISO datetime: ${raw.published_at}`);
@@ -111,6 +111,6 @@ function validateFront(raw: Record<string, unknown>): Front {
 }
 
 export function escSql(s: string | null | undefined): string {
-  if (s == null) return "NULL";
+  if (s == null) return 'NULL';
   return `'${s.replace(/'/g, "''")}'`;
 }

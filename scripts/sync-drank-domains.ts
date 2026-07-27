@@ -8,14 +8,14 @@
  * Recommended: hook into existing data refresh pipelines.
  */
 
-import { writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 
-const RAW_BASE = "https://raw.githubusercontent.com/High-Signal-App/drank/main/data";
-const OUT_PATH = join(process.cwd(), "data/dr-domains.json");
+const RAW_BASE = 'https://raw.githubusercontent.com/High-Signal-App/drank/main/data';
+const OUT_PATH = join(process.cwd(), 'data/dr-domains.json');
 
 async function main() {
-  console.log("Syncing drank domain data...");
+  console.log('Syncing drank domain data...');
 
   const [drRes, sitesRes] = await Promise.all([
     fetch(`${RAW_BASE}/global-dr.json`),
@@ -23,7 +23,7 @@ async function main() {
   ]);
 
   if (!drRes.ok || !sitesRes.ok) {
-    throw new Error("Failed to fetch drank data");
+    throw new Error('Failed to fetch drank data');
   }
 
   const drData = await drRes.json();
@@ -34,11 +34,11 @@ async function main() {
     sites,
     domains: drData.domains,
     communityNominations: drData.communityNominations || [],
-    source: "drank",
-    sourceUrl: "https://drank-sand.vercel.app",
+    source: 'drank',
+    sourceUrl: 'https://drank-sand.vercel.app',
   };
 
-  writeFileSync(OUT_PATH, JSON.stringify(payload, null, 2) + "\n");
+  writeFileSync(OUT_PATH, JSON.stringify(payload, null, 2) + '\n');
   console.log(`Wrote ${OUT_PATH} (${Object.keys(drData.domains || {}).length} domains)`);
 }
 

@@ -7,8 +7,8 @@
  * yields the right band, and a 404 yields the right error.
  */
 
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { runSeoAudit } from "../lib/seo-audit";
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { runSeoAudit } from '../lib/seo-audit';
 
 const originalFetch = globalThis.fetch;
 
@@ -33,7 +33,8 @@ const WEAK_HTML = `<!DOCTYPE html><html><head><title>X</title></head><body></bod
 
 function mockFetch(routes: Record<string, () => Response>) {
   globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
-    const url = typeof input === "string" ? input : (input as Request).url ?? (input as URL).toString();
+    const url =
+      typeof input === 'string' ? input : ((input as Request).url ?? (input as URL).toString());
     // Match by full path so "://example.com/" doesn't also catch "/llms.txt".
     try {
       const u = new URL(url);
@@ -44,11 +45,11 @@ function mockFetch(routes: Record<string, () => Response>) {
     } catch {
       /* fall through */
     }
-    return new Response("not found", { status: 404 });
+    return new Response('not found', { status: 404 });
   }) as typeof fetch;
 }
 
-describe("runSeoAudit", () => {
+describe('runSeoAudit', () => {
   afterEach(() => {
     globalThis.fetch = originalFetch;
     vi.restoreAllMocks();
@@ -56,57 +57,57 @@ describe("runSeoAudit", () => {
 
   it("returns 'missing' band on a fetch failure", async () => {
     mockFetch({});
-    const report = await runSeoAudit("https://example.com/");
+    const report = await runSeoAudit('https://example.com/');
     expect(report.error).not.toBeNull();
-    expect(report.band).toBe("missing");
+    expect(report.band).toBe('missing');
     expect(report.score).toBe(0);
   });
 
-  it("returns invalid_url for non-URL input", async () => {
-    const report = await runSeoAudit("not a url");
-    expect(report.error).toBe("invalid_url");
+  it('returns invalid_url for non-URL input', async () => {
+    const report = await runSeoAudit('not a url');
+    expect(report.error).toBe('invalid_url');
   });
 
   it("grades a fully-instrumented page as 'strong'", async () => {
     mockFetch({
-      "/llms.txt": () => new Response("# llms.txt", { status: 200 }),
-      "/robots.txt": () => new Response("User-agent: *", { status: 200 }),
-      "/sitemap.xml": () => new Response("<urlset/>", { status: 200 }),
-      "/": () =>
-        new Response(STRONG_HTML, { status: 200, headers: { "Content-Type": "text/html" } }),
+      '/llms.txt': () => new Response('# llms.txt', { status: 200 }),
+      '/robots.txt': () => new Response('User-agent: *', { status: 200 }),
+      '/sitemap.xml': () => new Response('<urlset/>', { status: 200 }),
+      '/': () =>
+        new Response(STRONG_HTML, { status: 200, headers: { 'Content-Type': 'text/html' } }),
     });
-    const report = await runSeoAudit("https://example.com/");
+    const report = await runSeoAudit('https://example.com/');
     expect(report.error).toBeNull();
-    expect(report.band).toBe("strong");
+    expect(report.band).toBe('strong');
     expect(report.score).toBeGreaterThanOrEqual(80);
     expect(report.geoScore).toBeGreaterThanOrEqual(70);
 
     const get = (key: string) => report.checks.find((c) => c.key === key);
-    expect(get("json-ld")?.status).toBe("strong");
-    expect(get("llms-txt")?.status).toBe("strong");
-    expect(get("robots")?.status).toBe("strong");
-    expect(get("sitemap")?.status).toBe("strong");
-    expect(get("canonical")?.status).toBe("strong");
-    expect(get("open-graph")?.status).toBe("strong");
-    expect(get("twitter-card")?.status).toBe("strong");
-    expect(get("feeds")?.status).toBe("strong");
+    expect(get('json-ld')?.status).toBe('strong');
+    expect(get('llms-txt')?.status).toBe('strong');
+    expect(get('robots')?.status).toBe('strong');
+    expect(get('sitemap')?.status).toBe('strong');
+    expect(get('canonical')?.status).toBe('strong');
+    expect(get('open-graph')?.status).toBe('strong');
+    expect(get('twitter-card')?.status).toBe('strong');
+    expect(get('feeds')?.status).toBe('strong');
     expect(report.evidenceUrls.length).toBeGreaterThan(3);
   });
 
   it("grades a minimal page as 'missing'", async () => {
     mockFetch({
-      "/": () => new Response(WEAK_HTML, { status: 200 }),
+      '/': () => new Response(WEAK_HTML, { status: 200 }),
       // Explicit 404s on the discovery files (default catch-all).
     });
-    const report = await runSeoAudit("https://example.com/");
+    const report = await runSeoAudit('https://example.com/');
     expect(report.error).toBeNull();
     expect(report.score).toBeLessThan(40);
     const get = (key: string) => report.checks.find((c) => c.key === key);
-    expect(get("json-ld")?.status).toBe("missing");
-    expect(get("llms-txt")?.status).toBe("missing");
-    expect(get("sitemap")?.status).toBe("missing");
-    expect(get("open-graph")?.status).toBe("missing");
-    expect(get("canonical")?.status).toBe("missing");
+    expect(get('json-ld')?.status).toBe('missing');
+    expect(get('llms-txt')?.status).toBe('missing');
+    expect(get('sitemap')?.status).toBe('missing');
+    expect(get('open-graph')?.status).toBe('missing');
+    expect(get('canonical')?.status).toBe('missing');
   });
 
   it("flags multiple canonicals as 'weak'", async () => {
@@ -117,9 +118,9 @@ describe("runSeoAudit", () => {
 <link rel="canonical" href="https://example.com/b" />
 </head></html>`;
     mockFetch({
-      "/": () => new Response(html, { status: 200 }),
+      '/': () => new Response(html, { status: 200 }),
     });
-    const report = await runSeoAudit("https://example.com/");
-    expect(report.checks.find((c) => c.key === "canonical")?.status).toBe("weak");
+    const report = await runSeoAudit('https://example.com/');
+    expect(report.checks.find((c) => c.key === 'canonical')?.status).toBe('weak');
   });
 });

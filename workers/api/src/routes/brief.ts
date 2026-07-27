@@ -13,8 +13,8 @@
  * `signals` and inlined into each stock item.
  */
 
-import { Hono } from "hono";
-import { and, desc, eq, inArray, gte, sql } from "drizzle-orm";
+import { Hono } from 'hono';
+import { and, desc, eq, inArray, gte, sql } from 'drizzle-orm';
 import {
   BUNDLED_D2C_ARTIFACT,
   composeImpactChain,
@@ -48,19 +48,19 @@ import {
   type Region,
   type SeedProduct,
   type SignalFamily,
-} from "@high-signal/shared";
-import { db, schema } from "../db";
+} from '@high-signal/shared';
+import { db, schema } from '../db';
 
 type Env = { DB: D1Database; BRIEF_CACHE?: KVNamespace };
 
 // Precomputed snapshot regions — the cron precomputes these so the API
 // does a single D1 lookup instead of 5-14 sequential queries.
 const PRECOMPUTED_REGIONS: Region[] = [
-  "global",
-  "north-america",
-  "europe",
-  "south-asia",
-  "east-asia",
+  'global',
+  'north-america',
+  'europe',
+  'south-asia',
+  'east-asia',
 ];
 
 export const STOCKS_LIMIT = 12;
@@ -84,12 +84,12 @@ export const HIT_RATE_FAMILY_MIN = 5;
 
 /** Pure ranking helper — tested directly. */
 export interface RankableRow {
-  direction: "up" | "down" | "neutral";
-  confidence: "low" | "medium" | "high";
+  direction: 'up' | 'down' | 'neutral';
+  confidence: 'low' | 'medium' | 'high';
 }
 export function rankStocks<T extends RankableRow>(rows: T[]): T[] {
-  const dirWeight = (d: string) => (d === "up" ? 0 : d === "down" ? 1 : 2);
-  const confWeight = (c: string) => (c === "high" ? 0 : c === "medium" ? 1 : 2);
+  const dirWeight = (d: string) => (d === 'up' ? 0 : d === 'down' ? 1 : 2);
+  const confWeight = (c: string) => (c === 'high' ? 0 : c === 'medium' ? 1 : 2);
   return rows.slice().sort((a, b) => {
     const direction = dirWeight(a.direction) - dirWeight(b.direction);
     if (direction !== 0) return direction;
@@ -127,13 +127,13 @@ export interface BucketCounts {
 export function resolveHitRate(
   signalType: string,
   byType: Map<string, BucketCounts>,
-  byFamily: Map<SignalFamily, BucketCounts>,
+  byFamily: Map<SignalFamily, BucketCounts>
 ): { hitRate: number | null; sample: number; band: HitRateBand } {
   const direct = byType.get(signalType);
   if (direct) {
     const decided = direct.hit + direct.miss;
     if (decided >= HIT_RATE_SAMPLE_MIN) {
-      return { hitRate: direct.hit / decided, sample: decided, band: "direct" };
+      return { hitRate: direct.hit / decided, sample: decided, band: 'direct' };
     }
   }
   const family = familyForSignalType(signalType);
@@ -141,40 +141,45 @@ export function resolveHitRate(
   if (familyBucket) {
     const decided = familyBucket.hit + familyBucket.miss;
     if (decided >= HIT_RATE_FAMILY_MIN) {
-      return { hitRate: familyBucket.hit / decided, sample: decided, band: "family" };
+      return { hitRate: familyBucket.hit / decided, sample: decided, band: 'family' };
     }
     if (decided >= 1) {
-      return { hitRate: familyBucket.hit / decided, sample: decided, band: "early" };
+      return { hitRate: familyBucket.hit / decided, sample: decided, band: 'early' };
     }
   }
   if (direct) {
     const decided = direct.hit + direct.miss;
     if (decided >= 1) {
-      return { hitRate: direct.hit / decided, sample: decided, band: "early" };
+      return { hitRate: direct.hit / decided, sample: decided, band: 'early' };
     }
   }
-  return { hitRate: null, sample: 0, band: "none" };
+  return { hitRate: null, sample: 0, band: 'none' };
 }
 
 /** Extract a one-line headline from a signal's body markdown, falling back to entity name. */
 export function headlineFromBody(bodyMd: string, fallback: string): string {
-  const firstLine = (bodyMd ?? "").split("\n").find((line) => line.trim());
+  const firstLine = (bodyMd ?? '').split('\n').find((line) => line.trim());
   if (!firstLine) return fallback;
-  return firstLine.replace(/^#+\s*/, "").trim().slice(0, 180) || fallback;
+  return (
+    firstLine
+      .replace(/^#+\s*/, '')
+      .trim()
+      .slice(0, 180) || fallback
+  );
 }
 
 export const briefRoute = new Hono<{ Bindings: Env }>();
 
-briefRoute.get("/daily", async (c) => {
-  const rawRegion = c.req.query("region")?.toLowerCase().trim() ?? "global";
-  const region: Region = isRegion(rawRegion) ? rawRegion : "global";
-  const ownerId = c.req.query("owner")?.trim() ?? "";
-  const productId = c.req.query("product")?.trim() ?? "";
+briefRoute.get('/daily', async (c) => {
+  const rawRegion = c.req.query('region')?.toLowerCase().trim() ?? 'global';
+  const region: Region = isRegion(rawRegion) ? rawRegion : 'global';
+  const ownerId = c.req.query('owner')?.trim() ?? '';
+  const productId = c.req.query('product')?.trim() ?? '';
   // Optional date param for the permanent archive (/brief/<date>). When
   // supplied, the route serves the precomputed snapshot for that day
   // instead of today's. Format: YYYY-MM-DD. Invalid dates fall through
   // to the live path so the URL never 500s.
-  const dateParam = c.req.query("date")?.trim() ?? "";
+  const dateParam = c.req.query('date')?.trim() ?? '';
   const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
   const archiveDate = dateRegex.test(dateParam) ? dateParam : null;
 
@@ -205,7 +210,7 @@ briefRoute.get("/daily", async (c) => {
     // Archive mode with no snapshot: return 404 so the web route can
     // render a "no brief for this date" page instead of rebuilding live.
     if (archiveDate) {
-      return c.json({ error: "no_brief_for_date", date: archiveDate, region }, 404);
+      return c.json({ error: 'no_brief_for_date', date: archiveDate, region }, 404);
     }
   }
 
@@ -216,9 +221,9 @@ briefRoute.get("/daily", async (c) => {
   // the whole brief. This keeps the daily-brief surface live even on a
   // fresh deploy where D1 hasn't been migrated/seeded yet.
   let [stocks, ideas, trends] = await Promise.all([
-    safe(() => buildStocks(database, countries), "stocks"),
-    safe(() => buildIdeas(database, region, countries), "ideas"),
-    safe(() => buildTrends(database, region, countries), "trends"),
+    safe(() => buildStocks(database, countries), 'stocks'),
+    safe(() => buildIdeas(database, region, countries), 'ideas'),
+    safe(() => buildTrends(database, region, countries), 'trends'),
   ]);
 
   if (stocks.length === 0) stocks = fallbackStocks(region, STOCKS_LIMIT);
@@ -234,13 +239,13 @@ briefRoute.get("/daily", async (c) => {
   // Priority 1: a real signed-in owner with their own brand data in D1.
   if (ownerId) {
     [perception, improvements, watching, intentItems] = await Promise.all([
-      safe(() => buildPerception(database, ownerId), "perception"),
-      safe(() => buildImprovements(database, ownerId), "improvements"),
-      safe(() => buildWatching(database, ownerId), "watching"),
+      safe(() => buildPerception(database, ownerId), 'perception'),
+      safe(() => buildImprovements(database, ownerId), 'improvements'),
+      safe(() => buildWatching(database, ownerId), 'watching'),
       // Migration 0014 is additive and may lag the application deploy. Keep
       // this query independent so a missing intent table cannot erase valid
       // mention, Agent Eval, or watchlist output.
-      safe(() => buildIntentBriefItems(database, ownerId), "intent"),
+      safe(() => buildIntentBriefItems(database, ownerId), 'intent'),
     ]);
     perception = mergeIntentIntoPerception(perception, intentItems);
     improvements = mergeIntentIntoImprovements(improvements, intentItems);
@@ -298,9 +303,8 @@ export function renderFromSeed(productId: string): {
 }
 
 export function pickSpotlight(region: Region, nowMs: number = Date.now()): SeedProduct | null {
-  const pool = region === "global"
-    ? SEED_PRODUCTS
-    : SEED_PRODUCTS.filter((p) => p.region === region);
+  const pool =
+    region === 'global' ? SEED_PRODUCTS : SEED_PRODUCTS.filter((p) => p.region === region);
   if (pool.length === 0) return null;
   const hourBucket = Math.floor(nowMs / (1000 * 60 * 60));
   return pool[hourBucket % pool.length] ?? null;
@@ -326,7 +330,7 @@ export async function safe<T>(builder: () => Promise<T[]>, section: string): Pro
  */
 export function mergeIntentIntoPerception(
   perception: BriefPerceptionItem[],
-  intents: BriefIntentItem[],
+  intents: BriefIntentItem[]
 ): BriefPerceptionItem[] {
   if (intents.length === 0) return perception;
   const topByBrand = new Map<string, BriefIntentItem>();
@@ -355,27 +359,28 @@ export function mergeIntentIntoPerception(
   return enriched;
 }
 
-const intentPriority = (score: number): "high" | "medium" | "low" =>
-  score >= 75 ? "high" : score >= 50 ? "medium" : "low";
+const intentPriority = (score: number): 'high' | 'medium' | 'low' =>
+  score >= 75 ? 'high' : score >= 50 ? 'medium' : 'low';
 
 const intentActionCopy = (intent: BriefIntentItem): { area: string; task: string } | null => {
-  const title = intent.sourceTitle.length > 100
-    ? `${intent.sourceTitle.slice(0, 99).trim()}...`
-    : intent.sourceTitle;
+  const title =
+    intent.sourceTitle.length > 100
+      ? `${intent.sourceTitle.slice(0, 99).trim()}...`
+      : intent.sourceTitle;
   switch (intent.actionType) {
-    case "reply":
-      return { area: "buyer response", task: `Review and reply to buyer intent: ${title}` };
-    case "create_proof":
-      return { area: "proof", task: `Add proof for buyer question: ${title}` };
-    case "improve_docs":
-      return { area: "docs", task: `Clarify the docs or support gap behind: ${title}` };
-    case "add_integration":
-      return { area: "integrations", task: `Validate and document integration demand: ${title}` };
-    case "write_comparison":
-      return { area: "comparisons", task: `Publish a sourced comparison response for: ${title}` };
-    case "content_opportunity":
-      return { area: "positioning", task: `Create a sourced answer for: ${title}` };
-    case "watch":
+    case 'reply':
+      return { area: 'buyer response', task: `Review and reply to buyer intent: ${title}` };
+    case 'create_proof':
+      return { area: 'proof', task: `Add proof for buyer question: ${title}` };
+    case 'improve_docs':
+      return { area: 'docs', task: `Clarify the docs or support gap behind: ${title}` };
+    case 'add_integration':
+      return { area: 'integrations', task: `Validate and document integration demand: ${title}` };
+    case 'write_comparison':
+      return { area: 'comparisons', task: `Publish a sourced comparison response for: ${title}` };
+    case 'content_opportunity':
+      return { area: 'positioning', task: `Create a sourced answer for: ${title}` };
+    case 'watch':
       return null;
   }
 };
@@ -386,7 +391,7 @@ const intentActionCopy = (intent: BriefIntentItem): { area: string; task: string
  */
 export function mergeIntentIntoImprovements(
   improvements: BriefImprovementItem[],
-  intents: BriefIntentItem[],
+  intents: BriefIntentItem[]
 ): BriefImprovementItem[] {
   if (intents.length === 0) return improvements;
   const bySource = new Map<string, number>();
@@ -426,7 +431,10 @@ export function mergeIntentIntoImprovements(
     .slice(0, 8);
 }
 
-export function seedToBrief(product: SeedProduct, nowIso: string = new Date().toISOString()): {
+export function seedToBrief(
+  product: SeedProduct,
+  nowIso: string = new Date().toISOString()
+): {
   perception: BriefPerceptionItem[];
   improvements: BriefImprovementItem[];
 } {
@@ -454,7 +462,7 @@ export function seedToBrief(product: SeedProduct, nowIso: string = new Date().to
 
 async function buildStocks(
   database: ReturnType<typeof db>,
-  countries: string[],
+  countries: string[]
 ): Promise<BriefStockItem[]> {
   const sinceMs = Date.now() - RECENT_SIGNAL_WINDOW_DAYS * 24 * 60 * 60 * 1000;
   const sinceDate = new Date(sinceMs);
@@ -479,12 +487,17 @@ async function buildStocks(
     .innerJoin(schema.entities, eq(schema.entities.id, schema.signals.primaryEntityId))
     .where(
       and(
-        eq(schema.signals.reviewStatus, "published"),
+        eq(schema.signals.reviewStatus, 'published'),
         gte(schema.signals.publishedAt, sinceDate),
         ...(countries.length
-          ? [inArray(sql<string>`upper(${schema.entities.country})`, countries.map((c) => c.toUpperCase()))]
-          : []),
-      ),
+          ? [
+              inArray(
+                sql<string>`upper(${schema.entities.country})`,
+                countries.map((c) => c.toUpperCase())
+              ),
+            ]
+          : [])
+      )
     )
     .orderBy(desc(schema.signals.publishedAt))
     .limit(STOCKS_LIMIT * 4); // overfetch so the post-filter can rank by direction
@@ -494,27 +507,30 @@ async function buildStocks(
   // market-only signal that slipped past the draft gate (or predates it) still
   // can't reach the brief. Overfetch above absorbs the drop.
   const rows = allRows.filter(
-    (r) => !isPredictionMarketOnly((Array.isArray(r.evidenceList) ? r.evidenceList : []).map(String)),
+    (r) =>
+      !isPredictionMarketOnly((Array.isArray(r.evidenceList) ? r.evidenceList : []).map(String))
   );
 
   const provenanceBySignal = await loadBriefProvenanceBySignalId(
     database,
-    rows.map((row) => row.signalId),
+    rows.map((row) => row.signalId)
   );
 
   // Pull hit-rate stats — both per-type and per-family — so the renderer can
   // fall back gracefully when a fresh signal type has no scored predictions.
   const signalTypes = Array.from(new Set(rows.map((r) => r.signalType)));
-  const { byType: hitRateBySignalType, byFamily: hitRateByFamily } =
-    await loadHitRateStats(database, signalTypes);
+  const { byType: hitRateBySignalType, byFamily: hitRateByFamily } = await loadHitRateStats(
+    database,
+    signalTypes
+  );
 
   // Prefer up/down over neutral and high-confidence first within a type.
   const ranked = rankStocks(
     rows.map((r) => ({
       ...r,
-      direction: r.direction as "up" | "down" | "neutral",
-      confidence: r.confidence as "low" | "medium" | "high",
-    })),
+      direction: r.direction as 'up' | 'down' | 'neutral',
+      confidence: r.confidence as 'low' | 'medium' | 'high',
+    }))
   ).slice(0, STOCKS_LIMIT);
 
   return ranked.map((row): BriefStockItem => {
@@ -529,20 +545,21 @@ async function buildStocks(
       country: row.country,
       signalType: row.signalType,
       signalFamily: familyForSignalType(row.signalType),
-      direction: row.direction as "up" | "down" | "neutral",
-      confidence: row.confidence as "low" | "medium" | "high",
+      direction: row.direction as 'up' | 'down' | 'neutral',
+      confidence: row.confidence as 'low' | 'medium' | 'high',
       predictedWindowDays: row.predictedWindowDays,
       headline,
       signalSlug: row.slug,
-      publishedAt: row.publishedAt instanceof Date
-        ? row.publishedAt.toISOString()
-        : new Date(Number(row.publishedAt)).toISOString(),
+      publishedAt:
+        row.publishedAt instanceof Date
+          ? row.publishedAt.toISOString()
+          : new Date(Number(row.publishedAt)).toISOString(),
       // Lead with the most authoritative, on-topic citation: downstream
       // surfaces (email caps at 2, cards truncate) must not show a weak or
       // off-entity source first. Reorders only — count is unchanged.
       evidenceUrls: rankEvidenceUrls(
         evidenceArr.map((url) => String(url)),
-        { entityName: row.entityName, ticker: row.ticker },
+        { entityName: row.entityName, ticker: row.ticker }
       ).map((url) => ({ url })),
       hitRate: resolved.hitRate,
       hitRateSample: resolved.sample,
@@ -554,8 +571,8 @@ async function buildStocks(
 
 async function loadBriefProvenanceBySignalId(
   database: ReturnType<typeof db>,
-  signalIds: string[],
-): Promise<Map<string, NonNullable<BriefStockItem["provenance"]>>> {
+  signalIds: string[]
+): Promise<Map<string, NonNullable<BriefStockItem['provenance']>>> {
   const uniqueIds = Array.from(new Set(signalIds));
   if (uniqueIds.length === 0) return new Map();
   const claimRows = await database
@@ -564,8 +581,8 @@ async function loadBriefProvenanceBySignalId(
     .where(
       and(
         inArray(schema.claimRecords.signalId, uniqueIds),
-        eq(schema.claimRecords.surface, "signal"),
-      ),
+        eq(schema.claimRecords.surface, 'signal')
+      )
     )
     .orderBy(desc(schema.claimRecords.createdAt));
   if (claimRows.length === 0) return new Map();
@@ -613,7 +630,7 @@ async function loadBriefProvenanceBySignalId(
     });
     claimsBySignal.set(claim.signalId, claims);
   }
-  const out = new Map<string, NonNullable<BriefStockItem["provenance"]>>();
+  const out = new Map<string, NonNullable<BriefStockItem['provenance']>>();
   for (const [signalId, claims] of claimsBySignal) {
     const provenance = selectBriefClaimProvenance(claims);
     if (provenance) out.set(signalId, provenance);
@@ -623,17 +640,12 @@ async function loadBriefProvenanceBySignalId(
 
 async function buildWatching(
   database: ReturnType<typeof db>,
-  ownerId: string,
+  ownerId: string
 ): Promise<BriefWatchingItem[]> {
   const [watchlist] = await database
     .select({ id: schema.watchlists.id })
     .from(schema.watchlists)
-    .where(
-      and(
-        eq(schema.watchlists.userId, ownerId),
-        eq(schema.watchlists.name, "default"),
-      ),
-    )
+    .where(and(eq(schema.watchlists.userId, ownerId), eq(schema.watchlists.name, 'default')))
     .limit(1);
   if (!watchlist) return [];
 
@@ -649,10 +661,10 @@ async function buildWatching(
     .from(schema.signals)
     .where(
       and(
-        eq(schema.signals.reviewStatus, "published"),
+        eq(schema.signals.reviewStatus, 'published'),
         inArray(schema.signals.primaryEntityId, watchedIds),
-        gte(schema.signals.publishedAt, since),
-      ),
+        gte(schema.signals.publishedAt, since)
+      )
     )
     .orderBy(desc(schema.signals.publishedAt))
     .limit(100);
@@ -667,10 +679,10 @@ async function buildWatching(
         .from(schema.signals)
         .where(
           and(
-            eq(schema.signals.reviewStatus, "published"),
+            eq(schema.signals.reviewStatus, 'published'),
             inArray(schema.signals.primaryEntityId, secondaryIds),
-            gte(schema.signals.publishedAt, since),
-          ),
+            gte(schema.signals.publishedAt, since)
+          )
         )
         .orderBy(desc(schema.signals.publishedAt))
         .limit(150)
@@ -683,12 +695,11 @@ async function buildWatching(
   const horizonDays = new Map(
     watchedRows.map((row) => [
       row.entityId,
-      row.horizon === "day" ? 1 : row.horizon === "month" ? 31 : 7,
-    ]),
+      row.horizon === 'day' ? 1 : row.horizon === 'month' ? 31 : 7,
+    ])
   );
   const withinHorizon = (publishedAt: Date, watchedId: string) =>
-    Date.now() - publishedAt.getTime() <=
-    (horizonDays.get(watchedId) ?? 7) * 24 * 60 * 60 * 1000;
+    Date.now() - publishedAt.getTime() <= (horizonDays.get(watchedId) ?? 7) * 24 * 60 * 60 * 1000;
   const direct = directRows.filter((row) => withinHorizon(row.publishedAt, row.primaryEntityId));
   const edgeBySubject = new Map(edges.map((edge) => [edge.toEntityId, edge]));
   const secondOrder = secondaryRows.filter((row) => {
@@ -721,13 +732,13 @@ async function buildWatching(
   const composed = composeImpactChain(composeArgs).slice(0, 20);
   const provenanceBySignal = await loadBriefProvenanceBySignalId(
     database,
-    composed.map((item) => item.signalId),
+    composed.map((item) => item.signalId)
   );
   const eligible = evidenceBackedWatchItems(composed, provenanceBySignal, 5);
   if (eligible.length === 0) return [];
 
   const entityIds = Array.from(
-    new Set(eligible.flatMap(({ item }) => [item.watchedEntityId, item.subjectEntityId])),
+    new Set(eligible.flatMap(({ item }) => [item.watchedEntityId, item.subjectEntityId]))
   );
   const entityRows = await database
     .select({ id: schema.entities.id, name: schema.entities.name })
@@ -739,19 +750,24 @@ async function buildWatching(
   return eligible.flatMap(({ item, provenance }) => {
     const signal = signalById.get(item.signalId);
     if (!signal) return [];
-    return [{
-      ...item,
-      headline: headlineFromBody(signal.bodyMd, entityNames.get(item.subjectEntityId) ?? item.subjectEntityId),
-      watchedEntityName: entityNames.get(item.watchedEntityId) ?? item.watchedEntityId,
-      subjectEntityName: entityNames.get(item.subjectEntityId) ?? item.subjectEntityId,
-      provenance,
-    }];
+    return [
+      {
+        ...item,
+        headline: headlineFromBody(
+          signal.bodyMd,
+          entityNames.get(item.subjectEntityId) ?? item.subjectEntityId
+        ),
+        watchedEntityName: entityNames.get(item.watchedEntityId) ?? item.watchedEntityId,
+        subjectEntityName: entityNames.get(item.subjectEntityId) ?? item.subjectEntityId,
+        provenance,
+      },
+    ];
   });
 }
 
 async function loadHitRateStats(
   database: ReturnType<typeof db>,
-  signalTypesNeeded: string[],
+  signalTypesNeeded: string[]
 ): Promise<{
   byType: Map<string, BucketCounts>;
   byFamily: Map<SignalFamily, BucketCounts>;
@@ -772,9 +788,9 @@ async function loadHitRateStats(
   const byType = new Map<string, BucketCounts>();
   for (const r of rows) {
     const bucket = byType.get(r.signalType) ?? { hit: 0, miss: 0, push: 0 };
-    if (r.outcome === "hit") bucket.hit += Number(r.count);
-    else if (r.outcome === "miss") bucket.miss += Number(r.count);
-    else if (r.outcome === "push") bucket.push += Number(r.count);
+    if (r.outcome === 'hit') bucket.hit += Number(r.count);
+    else if (r.outcome === 'miss') bucket.miss += Number(r.count);
+    else if (r.outcome === 'push') bucket.push += Number(r.count);
     byType.set(r.signalType, bucket);
   }
 
@@ -798,7 +814,7 @@ async function loadHitRateStats(
 async function buildIdeas(
   database: ReturnType<typeof db>,
   region: Region,
-  countries: string[],
+  countries: string[]
 ): Promise<BriefIdeaItem[]> {
   // India D2C Opportunity Pipeline (plan 0013). Prepend up to 3 briefs for
   // south-asia and 1 rotating brief for global, ahead of community digests.
@@ -818,13 +834,13 @@ async function buildIdeas(
     .from(schema.communityDigestSnapshots)
     .innerJoin(
       schema.trackedCommunities,
-      eq(schema.trackedCommunities.id, schema.communityDigestSnapshots.trackedCommunityId),
+      eq(schema.trackedCommunities.id, schema.communityDigestSnapshots.trackedCommunityId)
     )
     .where(
       and(
         eq(schema.trackedCommunities.isPublic, true),
-        gte(schema.communityDigestSnapshots.snapshotDate, new Date(sinceMs)),
-      ),
+        gte(schema.communityDigestSnapshots.snapshotDate, new Date(sinceMs))
+      )
     )
     .orderBy(desc(schema.communityDigestSnapshots.snapshotDate))
     .limit(60);
@@ -837,12 +853,13 @@ async function buildIdeas(
     ideas.push({
       title: action.title,
       description: action.desc || digest.summaryText.slice(0, 240),
-      source: "community",
+      source: 'community',
       region,
       subreddit: digest.subreddit,
       surfacedAt: (digest.snapshotDate instanceof Date
         ? digest.snapshotDate
-        : new Date(digest.snapshotDate as unknown as string)).toISOString(),
+        : new Date(digest.snapshotDate as unknown as string)
+      ).toISOString(),
       evidenceUrls: action.link ? [{ url: action.link }] : [],
       opportunity: communityActionToOpportunity({
         title: action.title,
@@ -868,8 +885,8 @@ async function buildIdeas(
  * artifact when present, otherwise seed-only briefs.
  */
 export function d2cBriefItemsForRegion(region: Region): BriefIdeaItem[] {
-  if (region !== "south-asia" && region !== "global") return [];
-  const limit = region === "south-asia" ? 3 : 1;
+  if (region !== 'south-asia' && region !== 'global') return [];
+  const limit = region === 'south-asia' ? 3 : 1;
   // Rotate one niche per day so the global brief shows variety across the
   // 20-niche pool without flooding section 02 with India-only items.
   const rotateFor = Math.floor(Date.now() / (24 * 60 * 60 * 1000));
@@ -885,62 +902,66 @@ function communityActionToOpportunity(input: {
 }): OpportunityBriefPayload {
   const hasEvidence = input.evidenceCount > 0;
   return {
-    verdict: hasEvidence ? "test" : "watch",
-    confidence: "low",
+    verdict: hasEvidence ? 'test' : 'watch',
+    confidence: 'low',
     targetUser: inferDigestTargetUser(`${input.title} ${input.description}`),
     problem: input.description || input.title,
     marketTimingReasons: [
       `r/${input.subreddit} surfaced this as a current key action in the community digest.`,
-      input.region === "global"
-        ? "Treat the first validation pass as ICP-specific before assuming broad demand."
+      input.region === 'global'
+        ? 'Treat the first validation pass as ICP-specific before assuming broad demand.'
         : `The brief is scoped to ${input.region}, so interviews should start with that region's buyers.`,
     ],
     evidenceMix: [
       {
-        kind: "demand",
-        label: "community demand",
+        kind: 'demand',
+        label: 'community demand',
         summary: hasEvidence
-          ? "The digest included a cited source thread for the demand signal."
-          : "The digest surfaced demand, but no source link was attached.",
-        strength: "low",
+          ? 'The digest included a cited source thread for the demand signal.'
+          : 'The digest surfaced demand, but no source link was attached.',
+        strength: 'low',
         sourceCount: input.evidenceCount,
       },
     ],
     competitorNotes: [
-      "Competitor density is not extracted from this digest yet; validate substitutes manually.",
+      'Competitor density is not extracted from this digest yet; validate substitutes manually.',
     ],
     pricingNotes: [
-      "Price sensitivity is unknown; test willingness to pay before treating this as an entry call.",
+      'Price sensitivity is unknown; test willingness to pay before treating this as an entry call.',
     ],
     agentVisibilityNotes: [
-      "Run an agent-answer snapshot for this category to see whether recommendations are generic, incumbent-led, or empty.",
+      'Run an agent-answer snapshot for this category to see whether recommendations are generic, incumbent-led, or empty.',
     ],
     risks: [
-      "Community demand can overstate urgency; confirm repeated pain outside the source thread.",
+      'Community demand can overstate urgency; confirm repeated pain outside the source thread.',
     ],
     nextValidationStep:
-      "Turn the complaint into one landing page promise and interview 10 users from the source community.",
+      'Turn the complaint into one landing page promise and interview 10 users from the source community.',
     priorHitRate: null,
   };
 }
 
 function inferDigestTargetUser(text: string): string {
   const normalized = text.toLowerCase();
-  if (normalized.includes("founder")) return "founders evaluating a new category";
-  if (normalized.includes("dev") || normalized.includes("code") || normalized.includes("engineer")) {
-    return "technical operators with repeated workflow friction";
+  if (normalized.includes('founder')) return 'founders evaluating a new category';
+  if (
+    normalized.includes('dev') ||
+    normalized.includes('code') ||
+    normalized.includes('engineer')
+  ) {
+    return 'technical operators with repeated workflow friction';
   }
-  if (normalized.includes("smb") || normalized.includes("business")) {
-    return "SMB operators trying to remove manual work";
+  if (normalized.includes('smb') || normalized.includes('business')) {
+    return 'SMB operators trying to remove manual work';
   }
-  if (normalized.includes("invest")) return "retail investors comparing fragmented options";
-  return "users actively describing an unmet job";
+  if (normalized.includes('invest')) return 'retail investors comparing fragmented options';
+  return 'users actively describing an unmet job';
 }
 
 async function buildTrends(
   database: ReturnType<typeof db>,
   region: Region,
-  countries: string[],
+  countries: string[]
 ): Promise<BriefTrendItem[]> {
   const sinceMs = Date.now() - COMMUNITY_DIGEST_LOOKBACK_DAYS * 24 * 60 * 60 * 1000;
   const digestRows = await database
@@ -954,13 +975,13 @@ async function buildTrends(
     .from(schema.communityDigestSnapshots)
     .innerJoin(
       schema.trackedCommunities,
-      eq(schema.trackedCommunities.id, schema.communityDigestSnapshots.trackedCommunityId),
+      eq(schema.trackedCommunities.id, schema.communityDigestSnapshots.trackedCommunityId)
     )
     .where(
       and(
         eq(schema.trackedCommunities.isPublic, true),
-        gte(schema.communityDigestSnapshots.snapshotDate, new Date(sinceMs)),
-      ),
+        gte(schema.communityDigestSnapshots.snapshotDate, new Date(sinceMs))
+      )
     )
     .orderBy(desc(schema.communityDigestSnapshots.snapshotDate))
     .limit(40);
@@ -980,7 +1001,8 @@ async function buildTrends(
       evidenceUrls: trend.link ? [{ url: trend.link }] : [],
       surfacedAt: (digest.snapshotDate instanceof Date
         ? digest.snapshotDate
-        : new Date(digest.snapshotDate as unknown as string)).toISOString(),
+        : new Date(digest.snapshotDate as unknown as string)
+      ).toISOString(),
     });
     seenSubs.add(digest.subreddit);
     if (trends.length >= TRENDS_LIMIT) break;
@@ -991,7 +1013,7 @@ async function buildTrends(
 
 async function buildIntentBriefItems(
   database: ReturnType<typeof db>,
-  ownerId: string,
+  ownerId: string
 ): Promise<BriefIntentItem[]> {
   const rows = await database
     .select({
@@ -1013,14 +1035,14 @@ async function buildIntentBriefItems(
     .from(schema.intentOpportunities)
     .innerJoin(
       schema.mentionBrandConfigs,
-      eq(schema.mentionBrandConfigs.id, schema.intentOpportunities.brandId),
+      eq(schema.mentionBrandConfigs.id, schema.intentOpportunities.brandId)
     )
     .where(
       and(
         eq(schema.intentOpportunities.ownerId, ownerId),
         eq(schema.mentionBrandConfigs.ownerId, ownerId),
-        eq(schema.intentOpportunities.status, "open"),
-      ),
+        eq(schema.intentOpportunities.status, 'open')
+      )
     )
     .orderBy(desc(schema.intentOpportunities.score), desc(schema.intentOpportunities.updatedAt));
 
@@ -1037,7 +1059,7 @@ async function buildIntentBriefItems(
     actionType: row.actionType,
     score: row.score,
     competitors: Array.isArray(row.competitors)
-      ? row.competitors.filter((value): value is string => typeof value === "string")
+      ? row.competitors.filter((value): value is string => typeof value === 'string')
       : [],
     evidenceTaskId: row.evidenceTaskId,
     foundAt: row.foundAt.toISOString(),
@@ -1046,7 +1068,7 @@ async function buildIntentBriefItems(
 
 async function buildPerception(
   database: ReturnType<typeof db>,
-  ownerId: string,
+  ownerId: string
 ): Promise<BriefPerceptionItem[]> {
   const configs = await database
     .select()
@@ -1066,7 +1088,10 @@ async function buildPerception(
         .select()
         .from(schema.mentionChecks)
         .where(
-          and(eq(schema.mentionChecks.configId, config.id), eq(schema.mentionChecks.status, "completed")),
+          and(
+            eq(schema.mentionChecks.configId, config.id),
+            eq(schema.mentionChecks.status, 'completed')
+          )
         )
         .orderBy(desc(schema.mentionChecks.createdAt))
         .limit(1);
@@ -1076,27 +1101,33 @@ async function buildPerception(
         .from(schema.mentionResults)
         .where(eq(schema.mentionResults.checkId, latestCheck.id));
       const mentioned = results.filter((r) => r.brandMentioned);
-      const positive = mentioned.filter((r) => r.brandSentiment === "positive").length;
+      const positive = mentioned.filter((r) => r.brandSentiment === 'positive').length;
       const competitorMentions = results.reduce((sum, r) => {
         const list = Array.isArray(r.competitorsMentioned) ? r.competitorsMentioned : [];
-        return sum + list.filter((c) => c && typeof c === "object" && (c as { mentioned?: boolean }).mentioned).length;
+        return (
+          sum +
+          list.filter((c) => c && typeof c === 'object' && (c as { mentioned?: boolean }).mentioned)
+            .length
+        );
       }, 0);
       return {
         brandName: config.brandName,
-        mentionRate: latestCheck.brandMentionRate ?? (results.length ? mentioned.length / results.length : null),
+        mentionRate:
+          latestCheck.brandMentionRate ??
+          (results.length ? mentioned.length / results.length : null),
         positiveShare: mentioned.length ? positive / mentioned.length : null,
         competitorPresence: results.length ? competitorMentions / results.length : null,
         latestCheckAt: (latestCheck.completedAt ?? latestCheck.createdAt)?.toISOString() ?? null,
         configId: config.id,
       };
-    }),
+    })
   );
   return perConfig.filter((item): item is BriefPerceptionItem => item !== null);
 }
 
 async function buildImprovements(
   database: ReturnType<typeof db>,
-  ownerId: string,
+  ownerId: string
 ): Promise<BriefImprovementItem[]> {
   const auditRows = await database
     .select()
@@ -1114,12 +1145,12 @@ async function buildImprovements(
       .where(
         and(
           eq(schema.agentEvidenceTasks.auditId, audit.id),
-          eq(schema.agentEvidenceTasks.status, "open"),
-        ),
+          eq(schema.agentEvidenceTasks.status, 'open')
+        )
       )
       .orderBy(
         sql`CASE ${schema.agentEvidenceTasks.priority}
-              WHEN 'high' THEN 0 WHEN 'medium' THEN 1 ELSE 2 END`,
+              WHEN 'high' THEN 0 WHEN 'medium' THEN 1 ELSE 2 END`
       )
       .limit(3);
     for (const task of tasks) {
@@ -1127,7 +1158,7 @@ async function buildImprovements(
         brandName: audit.brandName,
         area: task.area,
         task: task.title,
-        priority: task.priority as "high" | "medium" | "low",
+        priority: task.priority as 'high' | 'medium' | 'low',
         auditId: audit.id,
         surfacedAt: audit.createdAt.toISOString(),
         sourceUrl: task.sourceUrl,
@@ -1150,7 +1181,7 @@ async function buildImprovements(
 async function tryGetPrecomputedSnapshot(
   database: ReturnType<typeof db>,
   date: string,
-  region: Region,
+  region: Region
 ): Promise<BriefSnapshot | null> {
   try {
     const rows = await database
@@ -1159,8 +1190,8 @@ async function tryGetPrecomputedSnapshot(
       .where(
         and(
           eq(schema.dailyBriefSnapshots.date, date),
-          eq(schema.dailyBriefSnapshots.region, region),
-        ),
+          eq(schema.dailyBriefSnapshots.region, region)
+        )
       )
       .limit(1);
     if (rows.length === 0) return null;
@@ -1177,9 +1208,7 @@ async function tryGetPrecomputedSnapshot(
  * trends) are computed once and stored as JSON. The API then does a
  * single D1 lookup instead of 5-14 sequential queries.
  */
-export async function precomputeBriefSnapshots(
-  env: { DB: D1Database },
-): Promise<void> {
+export async function precomputeBriefSnapshots(env: { DB: D1Database }): Promise<void> {
   const database = db(env.DB);
   const today = new Date().toISOString().slice(0, 10);
   const nowIso = new Date().toISOString();
@@ -1189,9 +1218,9 @@ export async function precomputeBriefSnapshots(
       const countries = countriesForRegion(region);
 
       let [stocks, ideas, trends] = await Promise.all([
-        safe(() => buildStocks(database, countries), "stocks"),
-        safe(() => buildIdeas(database, region, countries), "ideas"),
-        safe(() => buildTrends(database, region, countries), "trends"),
+        safe(() => buildStocks(database, countries), 'stocks'),
+        safe(() => buildIdeas(database, region, countries), 'ideas'),
+        safe(() => buildTrends(database, region, countries), 'trends'),
       ]);
 
       if (stocks.length === 0) stocks = fallbackStocks(region, STOCKS_LIMIT);
@@ -1239,7 +1268,9 @@ export async function precomputeBriefSnapshots(
           },
         });
 
-      console.log(`[brief-precompute] ${region}: ${stocks.length} stocks, ${ideas.length} ideas, ${trends.length} trends`);
+      console.log(
+        `[brief-precompute] ${region}: ${stocks.length} stocks, ${ideas.length} ideas, ${trends.length} trends`
+      );
     } catch (err) {
       console.error(`[brief-precompute] ${region} failed:`, err);
     }
@@ -1252,7 +1283,7 @@ export async function precomputeBriefSnapshots(
  * permanent /brief/<date> URLs. Returns dates descending (newest first)
  * with the count of regions available per date.
  */
-briefRoute.get("/dates", async (c) => {
+briefRoute.get('/dates', async (c) => {
   const database = db(c.env.DB);
   try {
     const rows = await database

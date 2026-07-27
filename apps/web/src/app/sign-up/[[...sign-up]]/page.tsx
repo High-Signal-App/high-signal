@@ -2,10 +2,7 @@ import { SignUp } from '@clerk/nextjs';
 
 export default function SignUpPage() {
   const clerkConfigured = Boolean(
-    // biome-ignore lint/complexity/useLiteralKeys: TS noPropertyAccessFromIndexSignature requires bracket access here.
-    process.env['NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY'] &&
-      // biome-ignore lint/complexity/useLiteralKeys: TS noPropertyAccessFromIndexSignature requires bracket access here.
-      process.env['CLERK_SECRET_KEY']
+    process.env['NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY'] && process.env['CLERK_SECRET_KEY']
   );
 
   if (!clerkConfigured) {

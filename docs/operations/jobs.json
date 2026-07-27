@@ -27,7 +27,11 @@
         "deduplicationEvidence": "packages/db/src/schema.ts events_raw_hash_idx, market_quotes id sha16(source:marketId:hourBucket)"
       },
       "freshness": { "windowHours": 30, "evidenceSource": "ingest_runs.started_at" },
-      "outputExpectation": { "minEventsFetched": 0, "minSignalsDrafted": 0, "zeroOutputIsFailure": false },
+      "outputExpectation": {
+        "minEventsFetched": 0,
+        "minSignalsDrafted": 0,
+        "zeroOutputIsFailure": false
+      },
       "failureDestination": {
         "durableState": "ingest_runs row with errors>0 + error_sample",
         "notification": "github-actions job failure email"
@@ -66,9 +70,7 @@
         "lifecycleTable": "signals (review_status, published_at)",
         "adminEndpoint": "/admin/audit/summary (signalsDrafted via ingest_runs; publish outcome via signals)"
       },
-      "acceptedExceptions": [
-        "HOLD biases to KILL without AI judge — by design (ADR-008)"
-      ]
+      "acceptedExceptions": ["HOLD biases to KILL without AI judge — by design (ADR-008)"]
     },
     {
       "id": "personal-brief",
@@ -85,7 +87,10 @@
         "watermark": "apps/web/src/data/daily-source-refreshes.json latestAcceptedDate",
         "deduplicationEvidence": "scripts/daily-automation-status.test.ts; buildDailyAutomationStatus"
       },
-      "freshness": { "windowHours": 36, "evidenceSource": "daily-source-refreshes.json latestAcceptedAt" },
+      "freshness": {
+        "windowHours": 36,
+        "evidenceSource": "daily-source-refreshes.json latestAcceptedAt"
+      },
       "outputExpectation": { "minAcceptedSnapshots": 1, "zeroOutputIsFailure": true },
       "failureDestination": {
         "durableState": "stale apps/web/src/data/daily-source-refreshes.json (freshnessStatus='stale' or 'empty')",
@@ -113,7 +118,10 @@
         "watermark": "workers/api/src/lib/label-backtest.json mtime + git commit sha",
         "deduplicationEvidence": "deterministic replay over events+signals tables"
       },
-      "freshness": { "windowHours": 30, "evidenceSource": "git log -1 workers/api/src/lib/label-backtest.json" },
+      "freshness": {
+        "windowHours": 30,
+        "evidenceSource": "git log -1 workers/api/src/lib/label-backtest.json"
+      },
       "outputExpectation": { "minLabels": 1, "zeroOutputIsFailure": true },
       "failureDestination": {
         "durableState": "stale label-backtest.json (deploy-api auto-redeploys on commit; stale = no redeploy)",
@@ -142,7 +150,10 @@
         "watermark": "data/equities-snapshot.jsonl date + closes.trade_date",
         "deduplicationEvidence": "packages/db/src/schema.ts closes unique (ticker,date); single-source ingress rule (AGENTS.md)"
       },
-      "freshness": { "windowHours": 30, "evidenceSource": "data/equities-snapshot.jsonl mtime; closes max(trade_date)" },
+      "freshness": {
+        "windowHours": 30,
+        "evidenceSource": "data/equities-snapshot.jsonl mtime; closes max(trade_date)"
+      },
       "outputExpectation": { "minTickers": 1, "zeroOutputIsFailure": true },
       "failureDestination": {
         "durableState": "stale equities-snapshot.jsonl; no auto-redeploy of web",
@@ -152,9 +163,7 @@
         "lifecycleArtifact": "data/equities-snapshot.jsonl + derived bundles",
         "deployTrigger": "deploy-web.yml on push to main"
       },
-      "acceptedExceptions": [
-        "Skips Sat/Sun (cron 1-5) — no US market close"
-      ]
+      "acceptedExceptions": ["Skips Sat/Sun (cron 1-5) — no US market close"]
     },
     {
       "id": "cron-markets",
@@ -210,9 +219,7 @@
         "lifecycleTable": "score_runs",
         "adminEndpoint": "/admin/scores, /admin/pending-scores"
       },
-      "acceptedExceptions": [
-        "Only scores signals whose predicted_window_days has elapsed"
-      ]
+      "acceptedExceptions": ["Only scores signals whose predicted_window_days has elapsed"]
     },
     {
       "id": "cron-d2c-opportunities",
@@ -229,7 +236,10 @@
         "watermark": "d2c_niche_snapshots.snapshot_date max",
         "deduplicationEvidence": "packages/db/migrations/0016_d2c_opportunities.sql unique indexes"
       },
-      "freshness": { "windowHours": 168, "evidenceSource": "d2c_niche_snapshots.snapshot_date max" },
+      "freshness": {
+        "windowHours": 168,
+        "evidenceSource": "d2c_niche_snapshots.snapshot_date max"
+      },
       "outputExpectation": { "minNiches": 1, "zeroOutputIsFailure": false },
       "failureDestination": {
         "durableState": "stale d2c bundle; /opportunities/d2c shows stale window",
@@ -303,7 +313,11 @@
       "id": "deploy-web",
       "kind": "deploy",
       "owner": "sarthak",
-      "trigger": { "type": "push", "branches": ["main"], "paths": ["apps/web/**", "data/equities-snapshot.jsonl", "apps/web/src/data/**"] },
+      "trigger": {
+        "type": "push",
+        "branches": ["main"],
+        "paths": ["apps/web/**", "data/equities-snapshot.jsonl", "apps/web/src/data/**"]
+      },
       "workflowFile": ".github/workflows/deploy-web.yml",
       "runtime": "github-actions-ubuntu",
       "command": "pnpm cf:build && pnpm exec opennextjs-cloudflare deploy",
@@ -314,7 +328,10 @@
         "watermark": "git commit sha + cloudflare worker version",
         "deduplicationEvidence": "cloudflare worker deployment revision id"
       },
-      "freshness": { "windowHours": 720, "evidenceSource": "git commit sha on main; cloudflare dashboard" },
+      "freshness": {
+        "windowHours": 720,
+        "evidenceSource": "git commit sha on main; cloudflare dashboard"
+      },
       "outputExpectation": { "minRevision": 1, "zeroOutputIsFailure": false },
       "failureDestination": {
         "durableState": "previous worker revision stays live",
@@ -359,7 +376,12 @@
       "id": "ci",
       "kind": "quality-gate",
       "owner": "sarthak",
-      "trigger": { "type": "push", "branches": ["main"], "paths": ["**"], "alsoOn": "pull_request" },
+      "trigger": {
+        "type": "push",
+        "branches": ["main"],
+        "paths": ["**"],
+        "alsoOn": "pull_request"
+      },
       "workflowFile": ".github/workflows/ci.yml",
       "runtime": "github-actions-ubuntu",
       "command": "pnpm typecheck && pnpm test (ts job); uv run pytest (python job)",
@@ -379,15 +401,27 @@
       "evidence": {
         "lifecycleArtifact": "github-actions ci.yml run history"
       },
-      "acceptedExceptions": [
-        "Event-driven (push/PR) — no freshness contract"
-      ]
+      "acceptedExceptions": ["Event-driven (push/PR) — no freshness contract"]
     },
     {
       "id": "docs-check",
       "kind": "quality-gate",
       "owner": "sarthak",
-      "trigger": { "type": "push", "branches": ["main"], "paths": ["docs/**", "agents.md", "STATUS.md", "PROJECT_STATUS.md", "README.md", "SPEC.md", "scripts/docs-check.mjs", ".github/workflows/docs.yml"], "alsoOn": "pull_request" },
+      "trigger": {
+        "type": "push",
+        "branches": ["main"],
+        "paths": [
+          "docs/**",
+          "agents.md",
+          "STATUS.md",
+          "PROJECT_STATUS.md",
+          "README.md",
+          "SPEC.md",
+          "scripts/docs-check.mjs",
+          ".github/workflows/docs.yml"
+        ],
+        "alsoOn": "pull_request"
+      },
       "workflowFile": ".github/workflows/docs.yml",
       "runtime": "github-actions-ubuntu",
       "command": "node scripts/docs-check.mjs (internal-link check + empty-dir sanity)",
@@ -436,9 +470,7 @@
       "evidence": {
         "lifecycleTable": "events, ingest_runs"
       },
-      "acceptedExceptions": [
-        "On-demand only — no freshness contract"
-      ]
+      "acceptedExceptions": ["On-demand only — no freshness contract"]
     },
     {
       "id": "backfill-sources",

@@ -9,15 +9,15 @@
  * follows their policy (includes contact info).
  */
 
-import { Hono } from "hono";
+import { Hono } from 'hono';
 
 type Env = Record<string, never>;
 
-const SPARQL_ENDPOINT = "https://query.wikidata.org/sparql";
+const SPARQL_ENDPOINT = 'https://query.wikidata.org/sparql';
 const USER_AGENT =
-  "high-signal-enrich/0.1 " +
-  "(+https://github.com/High-Signal-App/high-signal; " +
-  "contact: sarthak@vaultwealth.com)";
+  'high-signal-enrich/0.1 ' +
+  '(+https://github.com/High-Signal-App/high-signal; ' +
+  'contact: sarthak@vaultwealth.com)';
 
 interface Binding<T = string> {
   value: T;
@@ -35,7 +35,7 @@ interface SparqlBindings {
 }
 
 export interface EnrichmentResult {
-  ticker: string;            // bare ticker, no `$`
+  ticker: string; // bare ticker, no `$`
   wikidataId: string | null; // Q12345
   name: string | null;
   country: string | null;
@@ -52,7 +52,7 @@ export interface EnrichmentResult {
  */
 export function parseSparql(
   ticker: string,
-  body: { results?: { bindings?: SparqlBindings[] } } | null,
+  body: { results?: { bindings?: SparqlBindings[] } } | null
 ): EnrichmentResult {
   const fallback: EnrichmentResult = {
     ticker,
@@ -72,7 +72,7 @@ export function parseSparql(
   const itemUrl = b.item?.value ?? null;
   return {
     ...fallback,
-    wikidataId: itemUrl ? itemUrl.split("/").pop() ?? null : null,
+    wikidataId: itemUrl ? (itemUrl.split('/').pop() ?? null) : null,
     name: b.itemLabel?.value ?? null,
     country: b.countryLabel?.value ?? null,
     industry: b.industryLabel?.value ?? null,
@@ -132,18 +132,18 @@ export function buildSparql(ticker: string): string {
  */
 export function enrichmentToCsvRow(e: EnrichmentResult): string {
   const cells = [
-    e.ticker,            // id (default to ticker)
-    e.ticker,            // ticker
-    e.name ?? "",        // name
-    "public",            // type
-    e.country ?? "",     // country
-    e.industry ?? "",    // sector (best-effort from industry label)
-    "",                  // subsector
-    "",                  // aliases
-    e.wikiUrl ?? "",     // wiki_url
-    "",                  // ir_url
+    e.ticker, // id (default to ticker)
+    e.ticker, // ticker
+    e.name ?? '', // name
+    'public', // type
+    e.country ?? '', // country
+    e.industry ?? '', // sector (best-effort from industry label)
+    '', // subsector
+    '', // aliases
+    e.wikiUrl ?? '', // wiki_url
+    '', // ir_url
   ];
-  return cells.map((cell) => (cell.includes(",") ? `"${cell}"` : cell)).join(",");
+  return cells.map((cell) => (cell.includes(',') ? `"${cell}"` : cell)).join(',');
 }
 
 export const enrichRoute = new Hono<{ Bindings: Env }>();
@@ -153,13 +153,13 @@ export const enrichRoute = new Hono<{ Bindings: Env }>();
  * Returns a (name, wikiUrl) pair if anything resembles the ticker.
  */
 async function wikipediaSearchFallback(
-  ticker: string,
+  ticker: string
 ): Promise<{ name: string | null; wikiUrl: string | null }> {
   try {
     const url =
       `https://en.wikipedia.org/w/api.php?action=opensearch&format=json` +
       `&search=${encodeURIComponent(`${ticker} stock`)}&limit=1`;
-    const r = await fetch(url, { headers: { "User-Agent": USER_AGENT } });
+    const r = await fetch(url, { headers: { 'User-Agent': USER_AGENT } });
     if (!r.ok) return { name: null, wikiUrl: null };
     // OpenSearch returns [query, [titles], [descriptions], [urls]]
     const j = (await r.json()) as [string, string[], string[], string[]];
@@ -171,12 +171,12 @@ async function wikipediaSearchFallback(
   }
 }
 
-enrichRoute.get("/ticker", async (c) => {
+enrichRoute.get('/ticker', async (c) => {
   // Strip a leading `$` and any whitespace.
-  const raw = (c.req.query("token") ?? "").trim();
-  const ticker = raw.startsWith("$") ? raw.slice(1) : raw;
+  const raw = (c.req.query('token') ?? '').trim();
+  const ticker = raw.startsWith('$') ? raw.slice(1) : raw;
   if (!ticker) {
-    return c.json({ error: "missing token" }, 400);
+    return c.json({ error: 'missing token' }, 400);
   }
 
   const sparql = buildSparql(ticker);
@@ -185,7 +185,7 @@ enrichRoute.get("/ticker", async (c) => {
   let body: { results?: { bindings?: SparqlBindings[] } } | null = null;
   try {
     const r = await fetch(url, {
-      headers: { Accept: "application/sparql-results+json", "User-Agent": USER_AGENT },
+      headers: { Accept: 'application/sparql-results+json', 'User-Agent': USER_AGENT },
     });
     if (r.ok) body = await r.json();
   } catch {
@@ -196,24 +196,24 @@ enrichRoute.get("/ticker", async (c) => {
 
   // If Wikidata didn't return a name, try Wikipedia OpenSearch as a backup
   // so the user gets something useful even when SPARQL misses.
-  let source: "wikidata" | "wikipedia" | "fallback" = "fallback";
+  let source: 'wikidata' | 'wikipedia' | 'fallback' = 'fallback';
   if (result.name) {
-    source = "wikidata";
+    source = 'wikidata';
   } else {
     const wiki = await wikipediaSearchFallback(ticker);
     if (wiki.name) {
       result = { ...result, name: wiki.name, wikiUrl: wiki.wikiUrl };
-      source = "wikipedia";
+      source = 'wikipedia';
     }
   }
 
   console.log(
     JSON.stringify({
-      route: "/enrich/ticker",
+      route: '/enrich/ticker',
       ticker,
       source,
       hasName: result.name !== null,
-    }),
+    })
   );
 
   return c.json({

@@ -8,7 +8,17 @@
       "description": "Signal intelligence for what to build, what to watch, agent evaluation, communities, and high-level markets.",
       "stage": "active",
       "focus": "personal command system for product opportunities",
-      "terms": ["signal", "market", "community", "agent", "evidence", "product", "opportunity", "complaint", "stock"],
+      "terms": [
+        "signal",
+        "market",
+        "community",
+        "agent",
+        "evidence",
+        "product",
+        "opportunity",
+        "complaint",
+        "stock"
+      ],
       "opportunitySlugs": [
         "agent-evaluation",
         "workflow-observability",
@@ -30,8 +40,22 @@
       "description": "AI code review platform for personally reviewing agent-written code and finding real bugs.",
       "stage": "active",
       "focus": "self-first trustworthy bug-finding review",
-      "terms": ["code", "review", "agent", "bug", "workflow", "provenance", "evaluation", "developer"],
-      "opportunitySlugs": ["workflow-observability", "complaint-to-spec", "developer-workflow-friction", "source-provenance"],
+      "terms": [
+        "code",
+        "review",
+        "agent",
+        "bug",
+        "workflow",
+        "provenance",
+        "evaluation",
+        "developer"
+      ],
+      "opportunitySlugs": [
+        "workflow-observability",
+        "complaint-to-spec",
+        "developer-workflow-friction",
+        "source-provenance"
+      ],
       "defaultAction": "Test whether agent-written-code complaints map to a sharper self-review workflow."
     },
     {
@@ -40,8 +64,23 @@
       "description": "Foundry and fleet cockpit for project metadata, tasks, audits, deployment visibility, and reusable SaaS infrastructure.",
       "stage": "active",
       "focus": "fleet operating system and execution bridge",
-      "terms": ["fleet", "tasks", "audit", "deploy", "monitor", "workflow", "project", "operator", "automation"],
-      "opportunitySlugs": ["workflow-observability", "complaint-to-spec", "agent-evaluation", "launch-distribution"],
+      "terms": [
+        "fleet",
+        "tasks",
+        "audit",
+        "deploy",
+        "monitor",
+        "workflow",
+        "project",
+        "operator",
+        "automation"
+      ],
+      "opportunitySlugs": [
+        "workflow-observability",
+        "complaint-to-spec",
+        "agent-evaluation",
+        "launch-distribution"
+      ],
       "defaultAction": "Use every High Signal recommendation to create durable fleet tasks and feedback loops."
     },
     {
@@ -60,7 +99,16 @@
       "description": "MAL Explorer and anime/manga browsing/list management product.",
       "stage": "active",
       "focus": "media discovery and list experience",
-      "terms": ["anime", "media", "list", "recommendation", "community", "search", "discovery", "viewer"],
+      "terms": [
+        "anime",
+        "media",
+        "list",
+        "recommendation",
+        "community",
+        "search",
+        "discovery",
+        "viewer"
+      ],
       "opportunitySlugs": ["complaint-to-spec"],
       "defaultAction": "Track discovery/list complaints and avoid generic recommendation features."
     },
@@ -70,7 +118,16 @@
       "description": "TV-like app for curated YouTube channels and continuous playback.",
       "stage": "active",
       "focus": "lean-back video curation",
-      "terms": ["video", "youtube", "curation", "playback", "channel", "catalog", "media", "attention"],
+      "terms": [
+        "video",
+        "youtube",
+        "curation",
+        "playback",
+        "channel",
+        "catalog",
+        "media",
+        "attention"
+      ],
       "opportunitySlugs": ["complaint-to-spec"],
       "defaultAction": "Track content-count, playback, and curation failures as product-critical signals."
     },

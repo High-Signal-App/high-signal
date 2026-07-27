@@ -8,4 +8,4 @@ export {
   type MentionAnalysis,
   type MentionSentiment,
   type MentionVisibilityPreview,
-} from "@saas-maker/ai-visibility";
+} from '@saas-maker/ai-visibility';

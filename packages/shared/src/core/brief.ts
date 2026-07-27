@@ -6,28 +6,23 @@
  * (citations + hit-rate where applicable) without a second round-trip.
  */
 
-import type { Region } from "../primitives/region";
-import type { BriefClaimProvenance } from "./claim-provenance";
+import type { Region } from '../primitives/region';
+import type { BriefClaimProvenance } from './claim-provenance';
 
-export type BriefSectionKey =
-  | "stocks"
-  | "ideas"
-  | "trends"
-  | "perception"
-  | "improvements";
+export type BriefSectionKey = 'stocks' | 'ideas' | 'trends' | 'perception' | 'improvements';
 
 export interface BriefCitation {
   url: string;
   source?: string | null;
 }
 
-export type OpportunityVerdict = "enter" | "test" | "watch" | "avoid";
+export type OpportunityVerdict = 'enter' | 'test' | 'watch' | 'avoid';
 
 export interface OpportunityEvidenceMixItem {
-  kind: "demand" | "competition" | "pricing" | "agent-visibility" | "momentum";
+  kind: 'demand' | 'competition' | 'pricing' | 'agent-visibility' | 'momentum';
   label: string;
   summary: string;
-  strength: "low" | "medium" | "high";
+  strength: 'low' | 'medium' | 'high';
   sourceCount: number;
 }
 
@@ -40,7 +35,7 @@ export interface OpportunityHitRateContext {
 
 export interface OpportunityBriefPayload {
   verdict: OpportunityVerdict;
-  confidence: "low" | "medium" | "high";
+  confidence: 'low' | 'medium' | 'high';
   targetUser: string;
   problem: string;
   marketTimingReasons: string[];
@@ -66,7 +61,7 @@ export interface OpportunityBriefPayload {
  * - `none`: no scored predictions anywhere in the family — render "no live
  *   calls yet" and the project gets to keep its honesty.
  */
-export type HitRateBand = "direct" | "family" | "early" | "none";
+export type HitRateBand = 'direct' | 'family' | 'early' | 'none';
 
 export interface BriefStockItem {
   entityId: string;
@@ -75,8 +70,8 @@ export interface BriefStockItem {
   country: string | null;
   signalType: string;
   signalFamily: string;
-  direction: "up" | "down" | "neutral";
-  confidence: "low" | "medium" | "high";
+  direction: 'up' | 'down' | 'neutral';
+  confidence: 'low' | 'medium' | 'high';
   predictedWindowDays: number;
   headline: string;
   signalSlug: string;
@@ -103,9 +98,9 @@ export interface BriefWatchingItem {
   watchedEntityName: string;
   subjectEntityId: string;
   subjectEntityName: string;
-  deltaKind: "direct" | "second_order";
+  deltaKind: 'direct' | 'second_order';
   observed: boolean;
-  confidence: "low" | "medium" | "high";
+  confidence: 'low' | 'medium' | 'high';
   publishedAt: string;
   why: string;
   relationshipPath: Array<{
@@ -123,7 +118,7 @@ export interface BriefWatchingSection {
 export function evidenceBackedWatchItems<T extends { signalId: string }>(
   items: T[],
   provenanceBySignal: Map<string, BriefClaimProvenance>,
-  limit = 5,
+  limit = 5
 ): Array<{ item: T; provenance: BriefClaimProvenance }> {
   const out: Array<{ item: T; provenance: BriefClaimProvenance }> = [];
   for (const item of items) {
@@ -138,7 +133,7 @@ export function evidenceBackedWatchItems<T extends { signalId: string }>(
 export interface BriefIdeaItem {
   title: string;
   description: string;
-  source: "community" | "opportunity";
+  source: 'community' | 'opportunity';
   region: Region;
   evidenceUrls: BriefCitation[];
   /** subreddit name when source='community', null otherwise. */
@@ -169,21 +164,21 @@ export interface BriefIntentItem {
   sourceExcerpt: string;
   platform: string;
   intentStage:
-    | "awareness"
-    | "pain"
-    | "comparison"
-    | "purchase"
-    | "proof"
-    | "integration"
-    | "content";
+    | 'awareness'
+    | 'pain'
+    | 'comparison'
+    | 'purchase'
+    | 'proof'
+    | 'integration'
+    | 'content';
   actionType:
-    | "watch"
-    | "reply"
-    | "create_proof"
-    | "improve_docs"
-    | "add_integration"
-    | "write_comparison"
-    | "content_opportunity";
+    | 'watch'
+    | 'reply'
+    | 'create_proof'
+    | 'improve_docs'
+    | 'add_integration'
+    | 'write_comparison'
+    | 'content_opportunity';
   score: number;
   competitors: string[];
   evidenceTaskId: string | null;
@@ -205,7 +200,7 @@ export interface BriefImprovementItem {
   brandName: string;
   area: string;
   task: string;
-  priority: "high" | "medium" | "low";
+  priority: 'high' | 'medium' | 'low';
   /** Null for an action derived directly from intent rather than an audit. */
   auditId: string | null;
   surfacedAt: string;
@@ -228,5 +223,5 @@ export interface BriefSnapshot {
   improvements: BriefImprovementItem[];
 }
 
-export const BRIEF_PUBLIC_SECTIONS: BriefSectionKey[] = ["stocks", "ideas", "trends"];
-export const BRIEF_PERSONAL_SECTIONS: BriefSectionKey[] = ["perception", "improvements"];
+export const BRIEF_PUBLIC_SECTIONS: BriefSectionKey[] = ['stocks', 'ideas', 'trends'];
+export const BRIEF_PERSONAL_SECTIONS: BriefSectionKey[] = ['perception', 'improvements'];

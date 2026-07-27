@@ -6,10 +6,7 @@
 // `source` was intentionally dropped (2026-06-12 review): schema.signals has no
 // source column today, and toSignal in the worker hardcodes source=null, so the
 // rule was a silent no-op. Reintroduce once a signal-level source field exists.
-export type SuppressionKind =
-  | "signal_type"
-  | "edge_type"
-  | "second_order_from";
+export type SuppressionKind = 'signal_type' | 'edge_type' | 'second_order_from';
 
 export interface SuppressionRule {
   kind: SuppressionKind;
@@ -17,12 +14,12 @@ export interface SuppressionRule {
 }
 
 export type RelationshipEdgeType =
-  | "supplier"
-  | "customer"
-  | "peer"
-  | "subsidiary"
-  | "partner"
-  | "competitor";
+  | 'supplier'
+  | 'customer'
+  | 'peer'
+  | 'subsidiary'
+  | 'partner'
+  | 'competitor';
 
 export interface RelationshipEdge {
   fromEntityId: string;
@@ -37,7 +34,7 @@ export interface SignalForWatch {
   slug: string;
   signalType: string;
   primaryEntityId: string;
-  confidence: "low" | "medium" | "high";
+  confidence: 'low' | 'medium' | 'high';
   publishedAt: string;
 }
 
@@ -47,7 +44,7 @@ export interface WatchItem {
   signalType: string;
   watchedEntityId: string;
   subjectEntityId: string;
-  deltaKind: "direct" | "second_order";
+  deltaKind: 'direct' | 'second_order';
   relationshipPath: Array<{
     fromEntityId: string;
     toEntityId: string;
@@ -55,12 +52,12 @@ export interface WatchItem {
   }>;
   observed: boolean;
   priority: number;
-  confidence: "low" | "medium" | "high";
+  confidence: 'low' | 'medium' | 'high';
   publishedAt: string;
   why: string;
 }
 
-const CONFIDENCE_WEIGHT: Record<SignalForWatch["confidence"], number> = {
+const CONFIDENCE_WEIGHT: Record<SignalForWatch['confidence'], number> = {
   low: 0.4,
   medium: 0.7,
   high: 1.0,
@@ -78,18 +75,19 @@ const EDGE_WEIGHT: Record<RelationshipEdgeType, number> = {
 export function isSuppressed(
   item: {
     signalType: string;
-    relationshipPath: WatchItem["relationshipPath"];
-    deltaKind: "direct" | "second_order";
+    relationshipPath: WatchItem['relationshipPath'];
+    deltaKind: 'direct' | 'second_order';
     watchedEntityId: string;
   },
-  rules: SuppressionRule[],
+  rules: SuppressionRule[]
 ): boolean {
   for (const r of rules) {
-    if (r.kind === "signal_type" && r.value === item.signalType) return true;
-    if (r.kind === "edge_type" && item.relationshipPath.some((p) => p.type === r.value)) return true;
+    if (r.kind === 'signal_type' && r.value === item.signalType) return true;
+    if (r.kind === 'edge_type' && item.relationshipPath.some((p) => p.type === r.value))
+      return true;
     if (
-      r.kind === "second_order_from" &&
-      item.deltaKind === "second_order" &&
+      r.kind === 'second_order_from' &&
+      item.deltaKind === 'second_order' &&
       r.value === item.watchedEntityId
     ) {
       return true;
@@ -132,7 +130,7 @@ export function composeImpactChain(args: ComposeArgs): WatchItem[] {
       signalType: s.signalType,
       watchedEntityId: s.primaryEntityId,
       subjectEntityId: s.primaryEntityId,
-      deltaKind: "direct",
+      deltaKind: 'direct',
       relationshipPath: [],
       observed: true,
       priority,
@@ -171,7 +169,7 @@ export function composeImpactChain(args: ComposeArgs): WatchItem[] {
       signalType: s.signalType,
       watchedEntityId: best.fromEntityId,
       subjectEntityId: subject,
-      deltaKind: "second_order",
+      deltaKind: 'second_order',
       relationshipPath: [
         {
           fromEntityId: best.fromEntityId,
@@ -183,7 +181,7 @@ export function composeImpactChain(args: ComposeArgs): WatchItem[] {
       priority,
       confidence: s.confidence,
       publishedAt: s.publishedAt,
-      why: `${best.fromEntityId} is ${observed ? "observed" : "inferred"} ${best.type} of ${subject}`,
+      why: `${best.fromEntityId} is ${observed ? 'observed' : 'inferred'} ${best.type} of ${subject}`,
     };
     if (isSuppressed(item, args.suppressions)) continue;
     items.push(item);

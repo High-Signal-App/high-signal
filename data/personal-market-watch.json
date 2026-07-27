@@ -10,8 +10,18 @@
       "productImplication": "When broad US growth/risk appetite weakens, prioritize immediate ROI, cost control, and evidence-backed buyer proof over speculative new surfaces.",
       "tickers": [
         { "symbol": "SPY", "ticker": "SPY.US", "name": "S&P 500 ETF", "role": "broad US market" },
-        { "symbol": "QQQ", "ticker": "QQQ.US", "name": "Nasdaq 100 ETF", "role": "US growth and AI software beta" },
-        { "symbol": "IWM", "ticker": "IWM.US", "name": "Russell 2000 ETF", "role": "small-cap risk appetite" }
+        {
+          "symbol": "QQQ",
+          "ticker": "QQQ.US",
+          "name": "Nasdaq 100 ETF",
+          "role": "US growth and AI software beta"
+        },
+        {
+          "symbol": "IWM",
+          "ticker": "IWM.US",
+          "name": "Russell 2000 ETF",
+          "role": "small-cap risk appetite"
+        }
       ]
     },
     {
@@ -23,8 +33,18 @@
       "tickers": [
         { "symbol": "NVDA", "ticker": "NVDA.US", "name": "NVIDIA", "role": "accelerator demand" },
         { "symbol": "AMD", "ticker": "AMD.US", "name": "AMD", "role": "accelerator competition" },
-        { "symbol": "AVGO", "ticker": "AVGO.US", "name": "Broadcom", "role": "custom silicon and networking" },
-        { "symbol": "MSFT", "ticker": "MSFT.US", "name": "Microsoft", "role": "cloud and AI platform spending" }
+        {
+          "symbol": "AVGO",
+          "ticker": "AVGO.US",
+          "name": "Broadcom",
+          "role": "custom silicon and networking"
+        },
+        {
+          "symbol": "MSFT",
+          "ticker": "MSFT.US",
+          "name": "Microsoft",
+          "role": "cloud and AI platform spending"
+        }
       ]
     },
     {
@@ -35,9 +55,24 @@
       "productImplication": "When international AI supply-chain names move together, High Signal should look for cross-border supply, policy, and capex signals before recommending market-intelligence builds.",
       "tickers": [
         { "symbol": "TSM", "ticker": "TSM.US", "name": "TSMC ADR", "role": "foundry demand" },
-        { "symbol": "ASML", "ticker": "ASML.US", "name": "ASML ADR", "role": "lithography bottleneck" },
-        { "symbol": "ARM", "ticker": "ARM.US", "name": "Arm Holdings ADR", "role": "architecture and licensing" },
-        { "symbol": "SAP", "ticker": "SAP.DE", "name": "SAP", "role": "international enterprise software demand" }
+        {
+          "symbol": "ASML",
+          "ticker": "ASML.US",
+          "name": "ASML ADR",
+          "role": "lithography bottleneck"
+        },
+        {
+          "symbol": "ARM",
+          "ticker": "ARM.US",
+          "name": "Arm Holdings ADR",
+          "role": "architecture and licensing"
+        },
+        {
+          "symbol": "SAP",
+          "ticker": "SAP.DE",
+          "name": "SAP",
+          "role": "international enterprise software demand"
+        }
       ]
     }
   ]

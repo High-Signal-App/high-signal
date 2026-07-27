@@ -1,8 +1,8 @@
 // Plan 0010 — Watchlists routes. Clerk-fronted at the proxy layer; the worker
 // trusts X-Clerk-User-Id (injected by the Next.js /api/watchlists proxy).
 
-import { Hono } from "hono";
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { Hono } from 'hono';
+import { and, desc, eq, inArray } from 'drizzle-orm';
 import {
   composeImpactChain,
   type ComposeArgs,
@@ -10,29 +10,29 @@ import {
   type SignalForWatch,
   type SuppressionKind,
   type SuppressionRule,
-} from "@high-signal/shared";
-import { db, schema } from "../db";
-import { sha16 } from "../lib/ids";
+} from '@high-signal/shared';
+import { db, schema } from '../db';
+import { sha16 } from '../lib/ids';
 
 type Env = { DB: D1Database };
 
 export const watchlistsRoute = new Hono<{ Bindings: Env }>();
 
 function userId(c: { req: { header: (k: string) => string | undefined } }): string | null {
-  return c.req.header("X-Clerk-User-Id") ?? null;
+  return c.req.header('X-Clerk-User-Id') ?? null;
 }
 
 async function defaultWatchlistId(d1: D1Database, uid: string): Promise<string> {
   const [row] = await db(d1)
     .select({ id: schema.watchlists.id })
     .from(schema.watchlists)
-    .where(and(eq(schema.watchlists.userId, uid), eq(schema.watchlists.name, "default")))
+    .where(and(eq(schema.watchlists.userId, uid), eq(schema.watchlists.name, 'default')))
     .limit(1);
   if (row) return row.id;
   const id = await sha16(`wl:${uid}:default`);
   await db(d1)
     .insert(schema.watchlists)
-    .values({ id, userId: uid, name: "default", createdAt: new Date() })
+    .values({ id, userId: uid, name: 'default', createdAt: new Date() })
     .onConflictDoNothing({ target: [schema.watchlists.userId, schema.watchlists.name] });
   return id;
 }
@@ -43,9 +43,9 @@ async function defaultWatchlistId(d1: D1Database, uid: string): Promise<string> 
 async function resolveOwnedWatchlistId(
   d1: D1Database,
   uid: string,
-  paramId: string,
+  paramId: string
 ): Promise<string | null> {
-  if (paramId === "default") return defaultWatchlistId(d1, uid);
+  if (paramId === 'default') return defaultWatchlistId(d1, uid);
   const [row] = await db(d1)
     .select({ id: schema.watchlists.id })
     .from(schema.watchlists)
@@ -54,9 +54,9 @@ async function resolveOwnedWatchlistId(
   return row?.id ?? null;
 }
 
-watchlistsRoute.get("/", async (c) => {
+watchlistsRoute.get('/', async (c) => {
   const uid = userId(c);
-  if (!uid) return c.json({ error: "unauthorized" }, 401);
+  if (!uid) return c.json({ error: 'unauthorized' }, 401);
   const wls = await db(c.env.DB)
     .select()
     .from(schema.watchlists)
@@ -64,11 +64,11 @@ watchlistsRoute.get("/", async (c) => {
   return c.json({ watchlists: wls });
 });
 
-watchlistsRoute.post("/", async (c) => {
+watchlistsRoute.post('/', async (c) => {
   const uid = userId(c);
-  if (!uid) return c.json({ error: "unauthorized" }, 401);
+  if (!uid) return c.json({ error: 'unauthorized' }, 401);
   const body = (await c.req.json()) as { name?: string };
-  const name = body.name?.trim() || "default";
+  const name = body.name?.trim() || 'default';
   const id = await sha16(`wl:${uid}:${name}`);
   await db(c.env.DB)
     .insert(schema.watchlists)
@@ -77,13 +77,17 @@ watchlistsRoute.post("/", async (c) => {
   return c.json({ id, name });
 });
 
-watchlistsRoute.post("/:id/entities", async (c) => {
+watchlistsRoute.post('/:id/entities', async (c) => {
   const uid = userId(c);
-  if (!uid) return c.json({ error: "unauthorized" }, 401);
-  const id = await resolveOwnedWatchlistId(c.env.DB, uid, c.req.param("id"));
-  if (!id) return c.json({ error: "not_found" }, 404);
-  const body = (await c.req.json()) as { entityId: string; horizon?: "day" | "week" | "month"; note?: string };
-  if (!body.entityId) return c.json({ error: "missing_entity" }, 400);
+  if (!uid) return c.json({ error: 'unauthorized' }, 401);
+  const id = await resolveOwnedWatchlistId(c.env.DB, uid, c.req.param('id'));
+  if (!id) return c.json({ error: 'not_found' }, 404);
+  const body = (await c.req.json()) as {
+    entityId: string;
+    horizon?: 'day' | 'week' | 'month';
+    note?: string;
+  };
+  if (!body.entityId) return c.json({ error: 'missing_entity' }, 400);
   const rowId = await sha16(`we:${id}:${body.entityId}`);
   await db(c.env.DB)
     .insert(schema.watchlistEntities)
@@ -91,73 +95,73 @@ watchlistsRoute.post("/:id/entities", async (c) => {
       id: rowId,
       watchlistId: id,
       entityId: body.entityId,
-      horizon: body.horizon ?? "week",
+      horizon: body.horizon ?? 'week',
       addedAt: new Date(),
       note: body.note ?? null,
     })
-    .onConflictDoNothing({ target: [schema.watchlistEntities.watchlistId, schema.watchlistEntities.entityId] });
+    .onConflictDoNothing({
+      target: [schema.watchlistEntities.watchlistId, schema.watchlistEntities.entityId],
+    });
   return c.json({ id: rowId });
 });
 
-watchlistsRoute.delete("/:id/entities/:entityId", async (c) => {
+watchlistsRoute.delete('/:id/entities/:entityId', async (c) => {
   const uid = userId(c);
-  if (!uid) return c.json({ error: "unauthorized" }, 401);
-  const id = await resolveOwnedWatchlistId(c.env.DB, uid, c.req.param("id"));
-  if (!id) return c.json({ error: "not_found" }, 404);
-  const entityId = c.req.param("entityId");
+  if (!uid) return c.json({ error: 'unauthorized' }, 401);
+  const id = await resolveOwnedWatchlistId(c.env.DB, uid, c.req.param('id'));
+  if (!id) return c.json({ error: 'not_found' }, 404);
+  const entityId = c.req.param('entityId');
   await db(c.env.DB)
     .delete(schema.watchlistEntities)
     .where(
       and(
         eq(schema.watchlistEntities.watchlistId, id),
-        eq(schema.watchlistEntities.entityId, entityId),
-      ),
+        eq(schema.watchlistEntities.entityId, entityId)
+      )
     );
   return c.json({ ok: true });
 });
 
-watchlistsRoute.post("/:id/suppressions", async (c) => {
+watchlistsRoute.post('/:id/suppressions', async (c) => {
   const uid = userId(c);
-  if (!uid) return c.json({ error: "unauthorized" }, 401);
-  const id = await resolveOwnedWatchlistId(c.env.DB, uid, c.req.param("id"));
-  if (!id) return c.json({ error: "not_found" }, 404);
+  if (!uid) return c.json({ error: 'unauthorized' }, 401);
+  const id = await resolveOwnedWatchlistId(c.env.DB, uid, c.req.param('id'));
+  if (!id) return c.json({ error: 'not_found' }, 404);
   const body = (await c.req.json()) as { kind: SuppressionKind; value: string };
-  if (!body.kind || !body.value) return c.json({ error: "missing_kind_or_value" }, 400);
+  if (!body.kind || !body.value) return c.json({ error: 'missing_kind_or_value' }, 400);
   const rowId = await sha16(`sup:${id}:${body.kind}:${body.value}:${Date.now()}`);
-  await db(c.env.DB)
-    .insert(schema.watchlistSuppressions)
-    .values({
-      id: rowId,
-      watchlistId: id,
-      kind: body.kind,
-      value: body.value,
-      createdAt: new Date(),
-    });
+  await db(c.env.DB).insert(schema.watchlistSuppressions).values({
+    id: rowId,
+    watchlistId: id,
+    kind: body.kind,
+    value: body.value,
+    createdAt: new Date(),
+  });
   return c.json({ id: rowId });
 });
 
-watchlistsRoute.delete("/:id/suppressions/:ruleId", async (c) => {
+watchlistsRoute.delete('/:id/suppressions/:ruleId', async (c) => {
   const uid = userId(c);
-  if (!uid) return c.json({ error: "unauthorized" }, 401);
-  const id = await resolveOwnedWatchlistId(c.env.DB, uid, c.req.param("id"));
-  if (!id) return c.json({ error: "not_found" }, 404);
-  const ruleId = c.req.param("ruleId");
+  if (!uid) return c.json({ error: 'unauthorized' }, 401);
+  const id = await resolveOwnedWatchlistId(c.env.DB, uid, c.req.param('id'));
+  if (!id) return c.json({ error: 'not_found' }, 404);
+  const ruleId = c.req.param('ruleId');
   await db(c.env.DB)
     .delete(schema.watchlistSuppressions)
     .where(
       and(
         eq(schema.watchlistSuppressions.id, ruleId),
-        eq(schema.watchlistSuppressions.watchlistId, id),
-      ),
+        eq(schema.watchlistSuppressions.watchlistId, id)
+      )
     );
   return c.json({ ok: true });
 });
 
-watchlistsRoute.get("/:id/entities", async (c) => {
+watchlistsRoute.get('/:id/entities', async (c) => {
   const uid = userId(c);
-  if (!uid) return c.json({ error: "unauthorized" }, 401);
-  const id = await resolveOwnedWatchlistId(c.env.DB, uid, c.req.param("id"));
-  if (!id) return c.json({ error: "not_found" }, 404);
+  if (!uid) return c.json({ error: 'unauthorized' }, 401);
+  const id = await resolveOwnedWatchlistId(c.env.DB, uid, c.req.param('id'));
+  if (!id) return c.json({ error: 'not_found' }, 404);
   const rows = await db(c.env.DB)
     .select()
     .from(schema.watchlistEntities)
@@ -166,11 +170,11 @@ watchlistsRoute.get("/:id/entities", async (c) => {
   return c.json({ entities: rows });
 });
 
-watchlistsRoute.get("/:id/suppressions", async (c) => {
+watchlistsRoute.get('/:id/suppressions', async (c) => {
   const uid = userId(c);
-  if (!uid) return c.json({ error: "unauthorized" }, 401);
-  const id = await resolveOwnedWatchlistId(c.env.DB, uid, c.req.param("id"));
-  if (!id) return c.json({ error: "not_found" }, 404);
+  if (!uid) return c.json({ error: 'unauthorized' }, 401);
+  const id = await resolveOwnedWatchlistId(c.env.DB, uid, c.req.param('id'));
+  if (!id) return c.json({ error: 'not_found' }, 404);
   const rows = await db(c.env.DB)
     .select()
     .from(schema.watchlistSuppressions)
@@ -179,11 +183,11 @@ watchlistsRoute.get("/:id/suppressions", async (c) => {
   return c.json({ suppressions: rows });
 });
 
-watchlistsRoute.get("/:id/impact", async (c) => {
+watchlistsRoute.get('/:id/impact', async (c) => {
   const uid = userId(c);
-  if (!uid) return c.json({ error: "unauthorized" }, 401);
-  const id = await resolveOwnedWatchlistId(c.env.DB, uid, c.req.param("id"));
-  if (!id) return c.json({ error: "not_found" }, 404);
+  if (!uid) return c.json({ error: 'unauthorized' }, 401);
+  const id = await resolveOwnedWatchlistId(c.env.DB, uid, c.req.param('id'));
+  if (!id) return c.json({ error: 'not_found' }, 404);
   const watching = await db(c.env.DB)
     .select()
     .from(schema.watchlistEntities)
@@ -197,9 +201,9 @@ watchlistsRoute.get("/:id/impact", async (c) => {
     .from(schema.signals)
     .where(
       and(
-        eq(schema.signals.reviewStatus, "published"),
-        inArray(schema.signals.primaryEntityId, watchedIds),
-      ),
+        eq(schema.signals.reviewStatus, 'published'),
+        inArray(schema.signals.primaryEntityId, watchedIds)
+      )
     )
     .orderBy(desc(schema.signals.publishedAt))
     .limit(50);
@@ -217,9 +221,9 @@ watchlistsRoute.get("/:id/impact", async (c) => {
       .from(schema.signals)
       .where(
         and(
-          eq(schema.signals.reviewStatus, "published"),
-          inArray(schema.signals.primaryEntityId, secondaryIds),
-        ),
+          eq(schema.signals.reviewStatus, 'published'),
+          inArray(schema.signals.primaryEntityId, secondaryIds)
+        )
       )
       .orderBy(desc(schema.signals.publishedAt))
       .limit(100);
@@ -234,21 +238,20 @@ watchlistsRoute.get("/:id/impact", async (c) => {
     .select({ signalId: schema.watchlistDeltaLog.signalId })
     .from(schema.watchlistDeltaLog)
     .where(
-      and(
-        eq(schema.watchlistDeltaLog.userId, uid),
-        eq(schema.watchlistDeltaLog.watchlistId, id),
-      ),
+      and(eq(schema.watchlistDeltaLog.userId, uid), eq(schema.watchlistDeltaLog.watchlistId, id))
     );
 
-  const composed = composeImpactChain(buildComposeArgs(
-    watchedIds,
-    directRows,
-    edges,
-    secondaryRows,
-    sups,
-    surfaced.map((s) => s.signalId),
-    since,
-  ));
+  const composed = composeImpactChain(
+    buildComposeArgs(
+      watchedIds,
+      directRows,
+      edges,
+      secondaryRows,
+      sups,
+      surfaced.map((s) => s.signalId),
+      since
+    )
+  );
 
   // Log surfaced deltas. Best-effort; failures here don't block the response.
   try {
@@ -280,7 +283,7 @@ function buildComposeArgs(
   secondaryRows: Array<typeof schema.signals.$inferSelect>,
   sups: Array<typeof schema.watchlistSuppressions.$inferSelect>,
   alreadySurfacedIds: string[],
-  _since: Date,
+  _since: Date
 ): ComposeArgs {
   const toSignal = (r: typeof schema.signals.$inferSelect): SignalForWatch => ({
     id: r.id,
@@ -297,9 +300,7 @@ function buildComposeArgs(
     weight: e.weight ?? 1,
     verified: Boolean(e.verified),
   });
-  const toRule = (
-    s: typeof schema.watchlistSuppressions.$inferSelect,
-  ): SuppressionRule => ({
+  const toRule = (s: typeof schema.watchlistSuppressions.$inferSelect): SuppressionRule => ({
     kind: s.kind,
     value: s.value,
   });

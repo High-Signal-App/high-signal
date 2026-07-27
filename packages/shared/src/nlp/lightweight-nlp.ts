@@ -1,62 +1,62 @@
 export type LightweightIntent =
-  | "complaint"
-  | "purchase-intent"
-  | "feature-request"
-  | "operational-risk"
-  | "market-signal"
-  | "regional-pressure"
-  | "startup-validation"
-  | "developer-workflow"
-  | "general";
+  | 'complaint'
+  | 'purchase-intent'
+  | 'feature-request'
+  | 'operational-risk'
+  | 'market-signal'
+  | 'regional-pressure'
+  | 'startup-validation'
+  | 'developer-workflow'
+  | 'general';
 
-export type LightweightSentiment = "positive" | "negative" | "neutral" | "mixed";
-export type LightweightNlpMethod = "rules-v1" | "semantic-rules-v2";
-export type LightweightClassifierVersion = "semantic-rules-v2.1";
-export type LightweightConfidenceBand = "low" | "medium" | "high";
-export type LightweightSignalLayer = "world-change" | "app-complaint" | "market-watch" | "general";
+export type LightweightSentiment = 'positive' | 'negative' | 'neutral' | 'mixed';
+export type LightweightNlpMethod = 'rules-v1' | 'semantic-rules-v2';
+export type LightweightClassifierVersion = 'semantic-rules-v2.1';
+export type LightweightConfidenceBand = 'low' | 'medium' | 'high';
+export type LightweightSignalLayer = 'world-change' | 'app-complaint' | 'market-watch' | 'general';
 export type LightweightAudience =
-  | "agent-operators"
-  | "consumers"
-  | "developers"
-  | "general"
-  | "market-operators"
-  | "regional-public"
-  | "small-business-owners"
-  | "startup-builders";
+  | 'agent-operators'
+  | 'consumers'
+  | 'developers'
+  | 'general'
+  | 'market-operators'
+  | 'regional-public'
+  | 'small-business-owners'
+  | 'startup-builders';
 export type LightweightRequirementType =
-  | "add-integration"
-  | "automate-workflow"
-  | "fix-bug"
-  | "improve-pricing"
-  | "local-ops"
-  | "monitor-market"
-  | "research-only"
-  | "validate-demand";
+  | 'add-integration'
+  | 'automate-workflow'
+  | 'fix-bug'
+  | 'improve-pricing'
+  | 'local-ops'
+  | 'monitor-market'
+  | 'research-only'
+  | 'validate-demand';
 export type LightweightDecisionStage =
-  | "buyer-evaluation"
-  | "general-awareness"
-  | "market-monitoring"
-  | "pain-discovery"
-  | "solution-request"
-  | "world-change-watch";
-export type LightweightQualityGateStatus = "strong" | "review" | "weak";
+  | 'buyer-evaluation'
+  | 'general-awareness'
+  | 'market-monitoring'
+  | 'pain-discovery'
+  | 'solution-request'
+  | 'world-change-watch';
+export type LightweightQualityGateStatus = 'strong' | 'review' | 'weak';
 export type LightweightDomain =
-  | "agent-evaluation"
-  | "consumer"
-  | "developer"
-  | "market"
-  | "operations"
-  | "regional"
-  | "small-business"
-  | "startup";
+  | 'agent-evaluation'
+  | 'consumer'
+  | 'developer'
+  | 'market'
+  | 'operations'
+  | 'regional'
+  | 'small-business'
+  | 'startup';
 
 export interface LightweightNlpAnnotation {
   intent: LightweightIntent;
   sentiment: LightweightSentiment;
-  urgency: "low" | "medium" | "high";
+  urgency: 'low' | 'medium' | 'high';
   method: LightweightNlpMethod;
   classifierVersion: LightweightClassifierVersion;
-  model: "none";
+  model: 'none';
   llm: false;
   intentScore: number;
   intentConfidence: LightweightConfidenceBand;
@@ -87,180 +87,380 @@ export interface LightweightNlpAnnotation {
 
 const INTENT_TERMS: Array<{ intent: LightweightIntent; terms: string[] }> = [
   {
-    intent: "complaint",
-    terms: ["complaint", "problem", "broken", "frustrating", "annoying", "hate", "issue", "bug", "pain", "doesn't work", "not working"],
+    intent: 'complaint',
+    terms: [
+      'complaint',
+      'problem',
+      'broken',
+      'frustrating',
+      'annoying',
+      'hate',
+      'issue',
+      'bug',
+      'pain',
+      "doesn't work",
+      'not working',
+    ],
   },
   {
-    intent: "purchase-intent",
-    terms: ["buy", "pay", "pricing", "budget", "vendor", "alternative", "recommend", "looking for", "switch", "worth it"],
+    intent: 'purchase-intent',
+    terms: [
+      'buy',
+      'pay',
+      'pricing',
+      'budget',
+      'vendor',
+      'alternative',
+      'recommend',
+      'looking for',
+      'switch',
+      'worth it',
+    ],
   },
   {
-    intent: "feature-request",
-    terms: ["feature", "need", "wish", "missing", "request", "support for", "integration", "would like", "should add"],
+    intent: 'feature-request',
+    terms: [
+      'feature',
+      'need',
+      'wish',
+      'missing',
+      'request',
+      'support for',
+      'integration',
+      'would like',
+      'should add',
+    ],
   },
   {
-    intent: "operational-risk",
-    terms: ["cashflow", "payroll", "rent", "inventory", "fulfillment", "refund", "support", "chargeback", "outage", "delay"],
+    intent: 'operational-risk',
+    terms: [
+      'cashflow',
+      'payroll',
+      'rent',
+      'inventory',
+      'fulfillment',
+      'refund',
+      'support',
+      'chargeback',
+      'outage',
+      'delay',
+    ],
   },
   {
-    intent: "market-signal",
-    terms: ["stock", "market", "equity", "ipo", "guidance", "forecast", "demand", "capex", "margin", "revenue"],
+    intent: 'market-signal',
+    terms: [
+      'stock',
+      'market',
+      'equity',
+      'ipo',
+      'guidance',
+      'forecast',
+      'demand',
+      'capex',
+      'margin',
+      'revenue',
+    ],
   },
   {
-    intent: "regional-pressure",
-    terms: ["traffic", "pollution", "housing", "rent", "permit", "regulation", "tax", "city", "local", "commute"],
+    intent: 'regional-pressure',
+    terms: [
+      'traffic',
+      'pollution',
+      'housing',
+      'rent',
+      'permit',
+      'regulation',
+      'tax',
+      'city',
+      'local',
+      'commute',
+    ],
   },
   {
-    intent: "startup-validation",
-    terms: ["startup", "validate", "launch", "users", "waitlist", "distribution", "customer discovery", "mvp", "revenue"],
+    intent: 'startup-validation',
+    terms: [
+      'startup',
+      'validate',
+      'launch',
+      'users',
+      'waitlist',
+      'distribution',
+      'customer discovery',
+      'mvp',
+      'revenue',
+    ],
   },
   {
-    intent: "developer-workflow",
-    terms: ["github", "deploy", "debug", "ci", "workflow", "observability", "trace", "code review", "developer", "api"],
+    intent: 'developer-workflow',
+    terms: [
+      'github',
+      'deploy',
+      'debug',
+      'ci',
+      'workflow',
+      'observability',
+      'trace',
+      'code review',
+      'developer',
+      'api',
+    ],
   },
 ];
 
 const POSITIVE_TERMS = [
-  "good",
-  "great",
-  "better",
-  "love",
-  "works",
-  "useful",
-  "growth",
-  "improve",
-  "improved",
-  "win",
-  "wins",
-  "surge",
-  "strong",
-  "profitable",
-  "adoption",
+  'good',
+  'great',
+  'better',
+  'love',
+  'works',
+  'useful',
+  'growth',
+  'improve',
+  'improved',
+  'win',
+  'wins',
+  'surge',
+  'strong',
+  'profitable',
+  'adoption',
 ];
 
 const NEGATIVE_TERMS = [
-  "bad",
-  "worse",
-  "hate",
-  "broken",
-  "issue",
-  "problem",
-  "complaint",
-  "decline",
-  "delay",
-  "delays",
-  "hurting",
-  "risk",
-  "lawsuit",
-  "outage",
-  "expensive",
-  "struggling",
-  "stagnation",
-  "friction",
+  'bad',
+  'worse',
+  'hate',
+  'broken',
+  'issue',
+  'problem',
+  'complaint',
+  'decline',
+  'delay',
+  'delays',
+  'hurting',
+  'risk',
+  'lawsuit',
+  'outage',
+  'expensive',
+  'struggling',
+  'stagnation',
+  'friction',
 ];
 
-const URGENCY_TERMS = ["urgent", "immediately", "now", "deadline", "blocked", "can't", "cannot", "critical", "risk", "outage", "lawsuit"];
+const URGENCY_TERMS = [
+  'urgent',
+  'immediately',
+  'now',
+  'deadline',
+  'blocked',
+  "can't",
+  'cannot',
+  'critical',
+  'risk',
+  'outage',
+  'lawsuit',
+];
 
 const WORLD_CHANGE_TERMS = [
-  "announced",
-  "launch",
-  "regulation",
-  "policy",
-  "law",
-  "tariff",
-  "funding",
-  "acquisition",
-  "shutdown",
-  "layoffs",
-  "migration",
-  "mandate",
+  'announced',
+  'launch',
+  'regulation',
+  'policy',
+  'law',
+  'tariff',
+  'funding',
+  'acquisition',
+  'shutdown',
+  'layoffs',
+  'migration',
+  'mandate',
 ];
 
 const PAIN_TERMS = [
-  "problem",
-  "broken",
-  "frustrating",
-  "annoying",
-  "hate",
-  "issue",
-  "bug",
-  "pain",
-  "manual",
-  "workaround",
-  "expensive",
-  "hurting",
-  "blocked",
-  "struggling",
+  'problem',
+  'broken',
+  'frustrating',
+  'annoying',
+  'hate',
+  'issue',
+  'bug',
+  'pain',
+  'manual',
+  'workaround',
+  'expensive',
+  'hurting',
+  'blocked',
+  'struggling',
 ];
 
 const BUYER_INTENT_TERMS = [
-  "buy",
-  "pay",
-  "pricing",
-  "budget",
-  "vendor",
-  "alternative",
-  "recommend",
-  "looking for",
-  "switch",
-  "worth it",
-  "trial",
-  "subscription",
+  'buy',
+  'pay',
+  'pricing',
+  'budget',
+  'vendor',
+  'alternative',
+  'recommend',
+  'looking for',
+  'switch',
+  'worth it',
+  'trial',
+  'subscription',
 ];
 
 const ACTIONABILITY_TERMS = [
-  "need",
-  "missing",
-  "should",
-  "request",
-  "support for",
-  "integration",
-  "automate",
-  "dashboard",
-  "template",
-  "calculator",
-  "api",
-  "workflow",
-  "checklist",
+  'need',
+  'missing',
+  'should',
+  'request',
+  'support for',
+  'integration',
+  'automate',
+  'dashboard',
+  'template',
+  'calculator',
+  'api',
+  'workflow',
+  'checklist',
 ];
 
-const INTEGRATION_TERMS = ["integration", "support for", "quickbooks", "shopify", "stripe", "api", "webhook"];
-const AUTOMATION_TERMS = ["automate", "workflow", "dashboard", "template", "calculator", "checklist", "report"];
-const PRICING_TERMS = ["pricing", "budget", "pay", "expensive", "worth it", "subscription", "trial"];
-const BUG_TERMS = ["broken", "bug", "doesn't work", "not working", "outage", "blocked", "issue"];
+const INTEGRATION_TERMS = [
+  'integration',
+  'support for',
+  'quickbooks',
+  'shopify',
+  'stripe',
+  'api',
+  'webhook',
+];
+const AUTOMATION_TERMS = [
+  'automate',
+  'workflow',
+  'dashboard',
+  'template',
+  'calculator',
+  'checklist',
+  'report',
+];
+const PRICING_TERMS = [
+  'pricing',
+  'budget',
+  'pay',
+  'expensive',
+  'worth it',
+  'subscription',
+  'trial',
+];
+const BUG_TERMS = ['broken', 'bug', "doesn't work", 'not working', 'outage', 'blocked', 'issue'];
 
 const DOMAIN_TERMS: Array<{ domain: LightweightDomain; terms: string[] }> = [
   {
-    domain: "agent-evaluation",
-    terms: ["agent", "llm", "ai search", "citation", "provenance", "retrieval", "mcp", "evaluation", "recommendation"],
+    domain: 'agent-evaluation',
+    terms: [
+      'agent',
+      'llm',
+      'ai search',
+      'citation',
+      'provenance',
+      'retrieval',
+      'mcp',
+      'evaluation',
+      'recommendation',
+    ],
   },
   {
-    domain: "consumer",
-    terms: ["consumer", "budget", "affordability", "jobs", "salary", "rent", "housing", "household"],
+    domain: 'consumer',
+    terms: [
+      'consumer',
+      'budget',
+      'affordability',
+      'jobs',
+      'salary',
+      'rent',
+      'housing',
+      'household',
+    ],
   },
   {
-    domain: "developer",
-    terms: ["github", "deploy", "debug", "ci", "code review", "developer", "api", "trace", "observability"],
+    domain: 'developer',
+    terms: [
+      'github',
+      'deploy',
+      'debug',
+      'ci',
+      'code review',
+      'developer',
+      'api',
+      'trace',
+      'observability',
+    ],
   },
   {
-    domain: "market",
-    terms: ["stock", "market", "ipo", "guidance", "forecast", "capex", "margin", "revenue", "earnings"],
+    domain: 'market',
+    terms: [
+      'stock',
+      'market',
+      'ipo',
+      'guidance',
+      'forecast',
+      'capex',
+      'margin',
+      'revenue',
+      'earnings',
+    ],
   },
   {
-    domain: "operations",
-    terms: ["cashflow", "payroll", "inventory", "fulfillment", "refund", "support", "chargeback", "outage"],
+    domain: 'operations',
+    terms: [
+      'cashflow',
+      'payroll',
+      'inventory',
+      'fulfillment',
+      'refund',
+      'support',
+      'chargeback',
+      'outage',
+    ],
   },
   {
-    domain: "regional",
-    terms: ["traffic", "pollution", "housing", "rent", "permit", "regulation", "tax", "city", "local", "commute"],
+    domain: 'regional',
+    terms: [
+      'traffic',
+      'pollution',
+      'housing',
+      'rent',
+      'permit',
+      'regulation',
+      'tax',
+      'city',
+      'local',
+      'commute',
+    ],
   },
   {
-    domain: "small-business",
-    terms: ["shopify", "etsy", "small business", "merchant", "seller", "freelance", "invoice", "checkout"],
+    domain: 'small-business',
+    terms: [
+      'shopify',
+      'etsy',
+      'small business',
+      'merchant',
+      'seller',
+      'freelance',
+      'invoice',
+      'checkout',
+    ],
   },
   {
-    domain: "startup",
-    terms: ["startup", "validate", "launch", "waitlist", "distribution", "customer discovery", "mvp", "founder"],
+    domain: 'startup',
+    terms: [
+      'startup',
+      'validate',
+      'launch',
+      'waitlist',
+      'distribution',
+      'customer discovery',
+      'mvp',
+      'founder',
+    ],
   },
 ];
 
@@ -269,7 +469,7 @@ function normalized(text: string) {
 }
 
 function escapeRegExp(value: string) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 function hasTerm(text: string, term: string) {
@@ -300,23 +500,28 @@ function signalLayerFor(input: {
   painHits: string[];
   actionabilityHits: string[];
 }): LightweightSignalLayer {
-  if (input.intent === "market-signal" || input.marketHits.length >= 2) return "market-watch";
-  if (input.worldHits.length >= 2 && input.painHits.length === 0) return "world-change";
-  if (input.intent !== "general" || input.painHits.length > 0 || input.actionabilityHits.length > 0) {
-    return "app-complaint";
+  if (input.intent === 'market-signal' || input.marketHits.length >= 2) return 'market-watch';
+  if (input.worldHits.length >= 2 && input.painHits.length === 0) return 'world-change';
+  if (
+    input.intent !== 'general' ||
+    input.painHits.length > 0 ||
+    input.actionabilityHits.length > 0
+  ) {
+    return 'app-complaint';
   }
-  return "general";
+  return 'general';
 }
 
 function audienceFor(domains: LightweightDomain[]): LightweightAudience {
-  if (domains.includes("agent-evaluation")) return "agent-operators";
-  if (domains.includes("developer")) return "developers";
-  if (domains.includes("small-business") || domains.includes("operations")) return "small-business-owners";
-  if (domains.includes("startup")) return "startup-builders";
-  if (domains.includes("regional")) return "regional-public";
-  if (domains.includes("market")) return "market-operators";
-  if (domains.includes("consumer")) return "consumers";
-  return "general";
+  if (domains.includes('agent-evaluation')) return 'agent-operators';
+  if (domains.includes('developer')) return 'developers';
+  if (domains.includes('small-business') || domains.includes('operations'))
+    return 'small-business-owners';
+  if (domains.includes('startup')) return 'startup-builders';
+  if (domains.includes('regional')) return 'regional-public';
+  if (domains.includes('market')) return 'market-operators';
+  if (domains.includes('consumer')) return 'consumers';
+  return 'general';
 }
 
 function requirementTypeFor(input: {
@@ -327,14 +532,16 @@ function requirementTypeFor(input: {
   pricingHits: string[];
   bugHits: string[];
 }): LightweightRequirementType {
-  if (input.intent === "market-signal" || input.domains.includes("market")) return "monitor-market";
-  if (input.intent === "regional-pressure" || input.domains.includes("regional")) return "local-ops";
-  if (input.intent === "startup-validation" || input.domains.includes("startup")) return "validate-demand";
-  if (input.integrationHits.length > 0) return "add-integration";
-  if (input.bugHits.length > 0) return "fix-bug";
-  if (input.automationHits.length > 0) return "automate-workflow";
-  if (input.intent === "purchase-intent" || input.pricingHits.length > 0) return "improve-pricing";
-  return "research-only";
+  if (input.intent === 'market-signal' || input.domains.includes('market')) return 'monitor-market';
+  if (input.intent === 'regional-pressure' || input.domains.includes('regional'))
+    return 'local-ops';
+  if (input.intent === 'startup-validation' || input.domains.includes('startup'))
+    return 'validate-demand';
+  if (input.integrationHits.length > 0) return 'add-integration';
+  if (input.bugHits.length > 0) return 'fix-bug';
+  if (input.automationHits.length > 0) return 'automate-workflow';
+  if (input.intent === 'purchase-intent' || input.pricingHits.length > 0) return 'improve-pricing';
+  return 'research-only';
 }
 
 function decisionStageFor(input: {
@@ -342,46 +549,50 @@ function decisionStageFor(input: {
   signalLayer: LightweightSignalLayer;
   painScore: number;
 }): LightweightDecisionStage {
-  if (input.intent === "purchase-intent") return "buyer-evaluation";
-  if (input.intent === "feature-request") return "solution-request";
-  if (input.signalLayer === "market-watch") return "market-monitoring";
-  if (input.signalLayer === "world-change") return "world-change-watch";
-  if (input.painScore > 0 || input.intent === "complaint" || input.intent === "operational-risk") {
-    return "pain-discovery";
+  if (input.intent === 'purchase-intent') return 'buyer-evaluation';
+  if (input.intent === 'feature-request') return 'solution-request';
+  if (input.signalLayer === 'market-watch') return 'market-monitoring';
+  if (input.signalLayer === 'world-change') return 'world-change-watch';
+  if (input.painScore > 0 || input.intent === 'complaint' || input.intent === 'operational-risk') {
+    return 'pain-discovery';
   }
-  return "general-awareness";
+  return 'general-awareness';
 }
 
 function qualityGateFor(input: {
   painScore: number;
   buyerIntentScore: number;
   actionabilityScore: number;
-  urgency: "low" | "medium" | "high";
+  urgency: 'low' | 'medium' | 'high';
   domains: LightweightDomain[];
   productRequirement: boolean;
 }) {
   const domainBonus = input.domains.length > 0 ? 0.08 : 0;
-  const urgencyBonus = input.urgency === "high" ? 0.12 : input.urgency === "medium" ? 0.06 : 0;
+  const urgencyBonus = input.urgency === 'high' ? 0.12 : input.urgency === 'medium' ? 0.06 : 0;
   const opportunityScore = boundedScore(
-    input.painScore * 0.3 + input.buyerIntentScore * 0.25 + input.actionabilityScore * 0.3 + domainBonus + urgencyBonus,
+    input.painScore * 0.3 +
+      input.buyerIntentScore * 0.25 +
+      input.actionabilityScore * 0.3 +
+      domainBonus +
+      urgencyBonus
   );
   const reasons: string[] = [];
-  if (input.productRequirement) reasons.push("product-requirement");
-  if (input.painScore >= 0.34) reasons.push("pain");
-  if (input.buyerIntentScore >= 0.25) reasons.push("buyer-intent");
-  if (input.actionabilityScore >= 0.34) reasons.push("actionable");
-  if (input.domains.length > 0) reasons.push("domain-tagged");
-  if (input.urgency !== "low") reasons.push(`${input.urgency}-urgency`);
-  if (!reasons.length) reasons.push("weak-explicit-signal");
+  if (input.productRequirement) reasons.push('product-requirement');
+  if (input.painScore >= 0.34) reasons.push('pain');
+  if (input.buyerIntentScore >= 0.25) reasons.push('buyer-intent');
+  if (input.actionabilityScore >= 0.34) reasons.push('actionable');
+  if (input.domains.length > 0) reasons.push('domain-tagged');
+  if (input.urgency !== 'low') reasons.push(`${input.urgency}-urgency`);
+  if (!reasons.length) reasons.push('weak-explicit-signal');
   return {
     opportunityScore,
     qualityGate: {
       status:
         opportunityScore >= 0.7 && input.productRequirement
-          ? "strong"
+          ? 'strong'
           : opportunityScore >= 0.38 || input.productRequirement
-            ? "review"
-            : "weak",
+            ? 'review'
+            : 'weak',
       score: Math.round(opportunityScore * 100),
       reasons,
     },
@@ -393,9 +604,10 @@ function intentConfidenceFor(input: {
   domains: LightweightDomain[];
   productRequirement: boolean;
 }): LightweightConfidenceBand {
-  if (input.intentScore >= 0.67 && input.domains.length > 0) return "high";
-  if (input.intentScore >= 0.34 || input.domains.length > 0 || input.productRequirement) return "medium";
-  return "low";
+  if (input.intentScore >= 0.67 && input.domains.length > 0) return 'high';
+  if (input.intentScore >= 0.34 || input.domains.length > 0 || input.productRequirement)
+    return 'medium';
+  return 'low';
 }
 
 export function annotateLightweightNlp(text: string): LightweightNlpAnnotation {
@@ -416,7 +628,10 @@ export function annotateLightweightNlp(text: string): LightweightNlpAnnotation {
   const automationHits = hits(lower, AUTOMATION_TERMS);
   const pricingHits = hits(lower, PRICING_TERMS);
   const bugHits = hits(lower, BUG_TERMS);
-  const marketHits = hits(lower, DOMAIN_TERMS.find((item) => item.domain === "market")?.terms ?? []);
+  const marketHits = hits(
+    lower,
+    DOMAIN_TERMS.find((item) => item.domain === 'market')?.terms ?? []
+  );
   const domains = DOMAIN_TERMS.map((rule) => ({
     domain: rule.domain,
     hits: hits(lower, rule.terms),
@@ -424,7 +639,7 @@ export function annotateLightweightNlp(text: string): LightweightNlpAnnotation {
   domains.sort((a, b) => b.hits.length - a.hits.length || a.domain.localeCompare(b.domain));
   const topIntentHits = intentScores[0]?.hits ?? [];
   const sentimentHits = positiveHits.length + negativeHits.length;
-  const intent = intentScores[0]?.intent ?? "general";
+  const intent = intentScores[0]?.intent ?? 'general';
   const intentScore = boundedScore(topIntentHits.length / 3);
   const painScore = boundedScore((painHits.length + negativeHits.length) / 6);
   const buyerIntentScore = boundedScore(buyerIntentHits.length / 4);
@@ -437,8 +652,9 @@ export function annotateLightweightNlp(text: string): LightweightNlpAnnotation {
     actionabilityHits,
   });
   const domainValues = unique(domains.map((rule) => rule.domain)).slice(0, 4);
-  const urgency = urgentHits.length >= 2 ? "high" : urgentHits.length === 1 ? "medium" : "low";
-  const productRequirement = painScore >= 0.34 || buyerIntentScore >= 0.25 || actionabilityScore >= 0.34;
+  const urgency = urgentHits.length >= 2 ? 'high' : urgentHits.length === 1 ? 'medium' : 'low';
+  const productRequirement =
+    painScore >= 0.34 || buyerIntentScore >= 0.25 || actionabilityScore >= 0.34;
   const { opportunityScore, qualityGate } = qualityGateFor({
     painScore,
     buyerIntentScore,
@@ -447,7 +663,9 @@ export function annotateLightweightNlp(text: string): LightweightNlpAnnotation {
     domains: domainValues,
     productRequirement,
   });
-  const sentimentPolarity = boundedSignedScore((positiveHits.length - negativeHits.length) / Math.max(1, sentimentHits));
+  const sentimentPolarity = boundedSignedScore(
+    (positiveHits.length - negativeHits.length) / Math.max(1, sentimentHits)
+  );
   const evidenceDensity = boundedScore(
     unique([
       ...topIntentHits,
@@ -459,10 +677,13 @@ export function annotateLightweightNlp(text: string): LightweightNlpAnnotation {
       ...buyerIntentHits,
       ...actionabilityHits,
       ...domainValues,
-    ]).length / 12,
+    ]).length / 12
   );
   const signalStrength = boundedScore(
-    opportunityScore * 0.55 + evidenceDensity * 0.2 + intentScore * 0.15 + Math.abs(sentimentPolarity) * 0.1,
+    opportunityScore * 0.55 +
+      evidenceDensity * 0.2 +
+      intentScore * 0.15 +
+      Math.abs(sentimentPolarity) * 0.1
   );
   const intentConfidence = intentConfidenceFor({
     intentScore,
@@ -477,22 +698,24 @@ export function annotateLightweightNlp(text: string): LightweightNlpAnnotation {
     pricingHits,
     bugHits,
   });
-  let sentiment: LightweightSentiment = "neutral";
-  if (positiveHits.length > 0 && negativeHits.length > 0) sentiment = "mixed";
-  else if (positiveHits.length > negativeHits.length) sentiment = "positive";
-  else if (negativeHits.length > positiveHits.length) sentiment = "negative";
+  let sentiment: LightweightSentiment = 'neutral';
+  if (positiveHits.length > 0 && negativeHits.length > 0) sentiment = 'mixed';
+  else if (positiveHits.length > negativeHits.length) sentiment = 'positive';
+  else if (negativeHits.length > positiveHits.length) sentiment = 'negative';
 
   return {
     intent,
     sentiment,
     urgency,
-    method: "semantic-rules-v2",
-    classifierVersion: "semantic-rules-v2.1",
-    model: "none",
+    method: 'semantic-rules-v2',
+    classifierVersion: 'semantic-rules-v2.1',
+    model: 'none',
     llm: false,
     intentScore,
     intentConfidence,
-    sentimentScore: boundedScore(Math.abs(positiveHits.length - negativeHits.length) / Math.max(1, sentimentHits)),
+    sentimentScore: boundedScore(
+      Math.abs(positiveHits.length - negativeHits.length) / Math.max(1, sentimentHits)
+    ),
     sentimentPolarity,
     positiveHits,
     negativeHits,

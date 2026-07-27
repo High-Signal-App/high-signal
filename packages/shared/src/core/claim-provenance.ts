@@ -2,27 +2,18 @@
 // Shared types and small pure helpers consumed by the worker, the /review
 // editor, the /signals provenance tab, and the auto-publish judge.
 
-export type ClaimSurface = "signal" | "brief" | "agent_eval";
+export type ClaimSurface = 'signal' | 'brief' | 'agent_eval';
 
-export type ClaimReviewStatus =
-  | "draft"
-  | "held"
-  | "published"
-  | "killed"
-  | "corrected";
+export type ClaimReviewStatus = 'draft' | 'held' | 'published' | 'killed' | 'corrected';
 
-export type ClaimEvidenceRole =
-  | "primary"
-  | "corroboration"
-  | "contradiction"
-  | "context";
+export type ClaimEvidenceRole = 'primary' | 'corroboration' | 'contradiction' | 'context';
 
 export type ClaimTimelineKind =
-  | "created"
-  | "evidence_added"
-  | "evidence_removed"
-  | "status_change"
-  | "correction_filed";
+  | 'created'
+  | 'evidence_added'
+  | 'evidence_removed'
+  | 'status_change'
+  | 'correction_filed';
 
 export interface ClaimEvidenceLink {
   id: string;
@@ -52,7 +43,7 @@ export interface ClaimRecord {
   agentEvalResponseId: string | null;
   surface: ClaimSurface;
   assertion: string;
-  confidenceBand: "low" | "medium" | "high";
+  confidenceBand: 'low' | 'medium' | 'high';
   reviewStatus: ClaimReviewStatus;
   publishReason: string | null;
   parentClaimId: string | null;
@@ -74,7 +65,7 @@ export interface HistoricalClaimBackfill {
   assertion: string;
   evidence: Array<{
     url: string;
-    role: "primary" | "corroboration";
+    role: 'primary' | 'corroboration';
   }>;
 }
 
@@ -89,21 +80,19 @@ export function buildHistoricalClaimBackfill(input: {
   evidenceUrls: string[];
 }): HistoricalClaimBackfill {
   const firstLine = input.bodyMd
-    .split("\n")
+    .split('\n')
     .map((line) => line.trim())
     .find(Boolean);
-  const assertion = (firstLine?.replace(/^#+\s*/, "").trim() || input.fallbackAssertion).slice(
+  const assertion = (firstLine?.replace(/^#+\s*/, '').trim() || input.fallbackAssertion).slice(
     0,
-    500,
+    500
   );
-  const urls = Array.from(
-    new Set(input.evidenceUrls.map((url) => url.trim()).filter(Boolean)),
-  );
+  const urls = Array.from(new Set(input.evidenceUrls.map((url) => url.trim()).filter(Boolean)));
   return {
     assertion,
     evidence: urls.map((url, index) => ({
       url,
-      role: index === 0 ? "primary" : "corroboration",
+      role: index === 0 ? 'primary' : 'corroboration',
     })),
   };
 }
@@ -121,11 +110,11 @@ export interface BriefClaimProvenance {
 
 /** Pick the newest evidence-backed claim from an already newest-first list. */
 export function selectBriefClaimProvenance(
-  claims: ClaimWithEvidence[],
+  claims: ClaimWithEvidence[]
 ): BriefClaimProvenance | null {
   for (const claim of claims) {
     const evidenceUrls = Array.from(
-      new Set(claim.evidence.map((link) => link.evidenceUrl).filter(Boolean)),
+      new Set(claim.evidence.map((link) => link.evidenceUrl).filter(Boolean))
     );
     if (evidenceUrls.length === 0) continue;
     const rollup = rollupEvidence(claim.evidence);
@@ -172,9 +161,9 @@ export function rollupEvidence(links: ClaimEvidenceLink[]): EvidenceRollup {
     } catch {
       // Non-URL evidence (rare but allowed) — skip host bookkeeping.
     }
-    if (l.role === "primary") primary++;
-    else if (l.role === "corroboration") corroboration++;
-    else if (l.role === "contradiction") contradiction++;
+    if (l.role === 'primary') primary++;
+    else if (l.role === 'corroboration') corroboration++;
+    else if (l.role === 'contradiction') contradiction++;
     else context++;
   }
   return {
@@ -197,24 +186,22 @@ export interface PublishabilityVerdict {
 // primary link by itself is not enough; we need at least two weight-bearing
 // links (primary + corroboration). Contradiction blocks publish until the
 // reviewer resolves it.
-export function judgePublishability(
-  rollup: EvidenceRollup,
-): PublishabilityVerdict {
+export function judgePublishability(rollup: EvidenceRollup): PublishabilityVerdict {
   const supporting = rollup.primary + rollup.corroboration;
   if (rollup.contradiction > 0) {
     return {
       publishable: false,
-      reason: "contradiction_present",
+      reason: 'contradiction_present',
     };
   }
   if (rollup.primary < 1) {
-    return { publishable: false, reason: "no_primary_evidence" };
+    return { publishable: false, reason: 'no_primary_evidence' };
   }
   if (supporting < 2) {
-    return { publishable: false, reason: "thin_corroboration" };
+    return { publishable: false, reason: 'thin_corroboration' };
   }
   // At least one independent host helps avoid single-source bias.
-  return { publishable: true, reason: "primary_plus_corroboration" };
+  return { publishable: true, reason: 'primary_plus_corroboration' };
 }
 
 // Valid claim-status transitions for the /review editor. Kept lax enough that
@@ -229,24 +216,24 @@ export type ClaimStatusTransition = {
 
 export function canTransition(
   from: ClaimReviewStatus,
-  to: ClaimReviewStatus,
+  to: ClaimReviewStatus
 ): ClaimStatusTransition {
-  if (from === to) return { from, to, ok: false, reason: "same_status" };
-  if (from === "published") {
-    if (to === "corrected") return { from, to, ok: true };
-    return { from, to, ok: false, reason: "publish_is_immutable" };
+  if (from === to) return { from, to, ok: false, reason: 'same_status' };
+  if (from === 'published') {
+    if (to === 'corrected') return { from, to, ok: true };
+    return { from, to, ok: false, reason: 'publish_is_immutable' };
   }
-  if (from === "killed") {
-    if (to === "draft" || to === "held") return { from, to, ok: true };
-    return { from, to, ok: false, reason: "killed_can_only_reopen" };
+  if (from === 'killed') {
+    if (to === 'draft' || to === 'held') return { from, to, ok: true };
+    return { from, to, ok: false, reason: 'killed_can_only_reopen' };
   }
-  if (from === "corrected") {
-    return { from, to, ok: false, reason: "corrected_is_terminal" };
+  if (from === 'corrected') {
+    return { from, to, ok: false, reason: 'corrected_is_terminal' };
   }
   // draft|held → anywhere except corrected (corrected is reached via the
   // correction-filing flow, not a status flip).
-  if (to === "corrected") {
-    return { from, to, ok: false, reason: "use_file_correction" };
+  if (to === 'corrected') {
+    return { from, to, ok: false, reason: 'use_file_correction' };
   }
   return { from, to, ok: true };
 }

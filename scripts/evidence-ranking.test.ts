@@ -15,7 +15,7 @@ import {
   evidenceScore,
   isPredictionMarketOnly,
   rankEvidenceUrls,
-} from "@high-signal/shared";
+} from '@high-signal/shared';
 
 let failures = 0;
 let total = 0;
@@ -31,133 +31,148 @@ function check(label: string, cond: boolean) {
 const first = (urls: string[], t: Parameters<typeof rankEvidenceUrls>[1]) =>
   rankEvidenceUrls(urls, t)[0];
 
-console.log("entityMatchTokens");
+console.log('entityMatchTokens');
 check(
-  "drops corporate boilerplate + short tokens",
-  JSON.stringify(entityMatchTokens({ entityName: "HCL Technologies", ticker: "HCLTECH.NS" })) ===
-    JSON.stringify(["hcl", "hcltech"]),
+  'drops corporate boilerplate + short tokens',
+  JSON.stringify(entityMatchTokens({ entityName: 'HCL Technologies', ticker: 'HCLTECH.NS' })) ===
+    JSON.stringify(['hcl', 'hcltech'])
 );
 check(
-  "numeric ticker base dropped (no alpha)",
-  !entityMatchTokens({ entityName: "SK Hynix Inc.", ticker: "000660.KS" }).includes("000660"),
+  'numeric ticker base dropped (no alpha)',
+  !entityMatchTokens({ entityName: 'SK Hynix Inc.', ticker: '000660.KS' }).includes('000660')
 );
 check(
-  "keeps distinctive name tokens",
-  entityMatchTokens({ entityName: "Alphabet Inc.", ticker: "GOOGL" }).includes("alphabet") &&
-    entityMatchTokens({ entityName: "Alphabet Inc.", ticker: "GOOGL" }).includes("googl"),
+  'keeps distinctive name tokens',
+  entityMatchTokens({ entityName: 'Alphabet Inc.', ticker: 'GOOGL' }).includes('alphabet') &&
+    entityMatchTokens({ entityName: 'Alphabet Inc.', ticker: 'GOOGL' }).includes('googl')
 );
 
-console.log("\nrankEvidenceUrls — real 2026-07-04 defects");
+console.log('\nrankEvidenceUrls — real 2026-07-04 defects');
 
 // HCL design-win: a Bajaj Housing Finance article was stored ahead of hcltech.com.
 check(
-  "HCL: company IR beats an unrelated Bajaj Housing article",
+  'HCL: company IR beats an unrelated Bajaj Housing article',
   first(
     [
-      "https://economictimes.indiatimes.com/markets/stocks/news/bajaj-housing-finance-shares-rally-5-as-q1-aum-climbs-24-yoy/articleshow/132152873.cms",
-      "https://www.hcltech.com/investors",
+      'https://economictimes.indiatimes.com/markets/stocks/news/bajaj-housing-finance-shares-rally-5-as-q1-aum-climbs-24-yoy/articleshow/132152873.cms',
+      'https://www.hcltech.com/investors',
     ],
-    { entityName: "HCL Technologies", ticker: "HCLTECH.NS" },
-  ) === "https://www.hcltech.com/investors",
+    { entityName: 'HCL Technologies', ticker: 'HCLTECH.NS' }
+  ) === 'https://www.hcltech.com/investors'
 );
 
 // Alphabet capex: a crates.io Rust-crate page was stored ahead of the SEC XBRL filing.
 check(
-  "Alphabet: SEC XBRL beats crates.io/hashbrown",
+  'Alphabet: SEC XBRL beats crates.io/hashbrown',
   first(
     [
-      "https://crates.io/crates/hashbrown",
-      "https://data.sec.gov/api/xbrl/companyfacts/CIK0001652044.json",
+      'https://crates.io/crates/hashbrown',
+      'https://data.sec.gov/api/xbrl/companyfacts/CIK0001652044.json',
     ],
-    { entityName: "Alphabet Inc.", ticker: "GOOGL" },
-  ) === "https://data.sec.gov/api/xbrl/companyfacts/CIK0001652044.json",
+    { entityName: 'Alphabet Inc.', ticker: 'GOOGL' }
+  ) === 'https://data.sec.gov/api/xbrl/companyfacts/CIK0001652044.json'
 );
 
 // Intel partnership: prediction markets must never lead over real reporting.
 check(
-  "Intel: news beats a Manifold prediction market",
+  'Intel: news beats a Manifold prediction market',
   first(
     [
-      "https://manifold.markets/SimoneRomeo/will-intel-manufacture-nvidia-chips",
-      "https://www.cnbc.com/2026/07/03/intel-nvidia-foundry-deal.html",
+      'https://manifold.markets/SimoneRomeo/will-intel-manufacture-nvidia-chips',
+      'https://www.cnbc.com/2026/07/03/intel-nvidia-foundry-deal.html',
     ],
-    { entityName: "Intel Corporation", ticker: "INTC" },
-  ) === "https://www.cnbc.com/2026/07/03/intel-nvidia-foundry-deal.html",
+    { entityName: 'Intel Corporation', ticker: 'INTC' }
+  ) === 'https://www.cnbc.com/2026/07/03/intel-nvidia-foundry-deal.html'
 );
 
 // A prediction market must never lead, even when its slug names the entity and
 // the competing source does not (markets are crowd opinion, not information).
 check(
-  "Intel: a low-authority community post still beats an Intel-named Manifold market",
+  'Intel: a low-authority community post still beats an Intel-named Manifold market',
   first(
     [
-      "https://manifold.markets/x/will-intel-manufacture-nvidia-chips",
-      "https://reddit.com/r/hardware/comments/abc/some-thread",
+      'https://manifold.markets/x/will-intel-manufacture-nvidia-chips',
+      'https://reddit.com/r/hardware/comments/abc/some-thread',
     ],
-    { entityName: "Intel Corporation", ticker: "INTC" },
-  ) === "https://reddit.com/r/hardware/comments/abc/some-thread",
+    { entityName: 'Intel Corporation', ticker: 'INTC' }
+  ) === 'https://reddit.com/r/hardware/comments/abc/some-thread'
 );
 check(
-  "entity-named market scores below any non-market source",
-  evidenceScore("https://manifold.markets/x/will-intel-buy-something", {
-    entityName: "Intel Corporation",
-    ticker: "INTC",
+  'entity-named market scores below any non-market source',
+  evidenceScore('https://manifold.markets/x/will-intel-buy-something', {
+    entityName: 'Intel Corporation',
+    ticker: 'INTC',
   }) <
-    evidenceScore("https://example.com/generic-page", {
-      entityName: "Intel Corporation",
-      ticker: "INTC",
-    }),
+    evidenceScore('https://example.com/generic-page', {
+      entityName: 'Intel Corporation',
+      ticker: 'INTC',
+    })
 );
 
-console.log("\nrankEvidenceUrls — invariants");
+console.log('\nrankEvidenceUrls — invariants');
 const sample = [
-  "https://manifold.markets/x/y",
-  "https://www.hcltech.com/investors",
-  "https://reddit.com/r/x/comments/1",
+  'https://manifold.markets/x/y',
+  'https://www.hcltech.com/investors',
+  'https://reddit.com/r/x/comments/1',
 ];
-const ranked = rankEvidenceUrls(sample, { entityName: "HCL Technologies", ticker: "HCLTECH.NS" });
-check("preserves count (nothing dropped)", ranked.length === sample.length);
-check("same set of URLs", JSON.stringify([...ranked].sort()) === JSON.stringify([...sample].sort()));
-check("deterministic across runs", JSON.stringify(ranked) === JSON.stringify(rankEvidenceUrls(sample, { entityName: "HCL Technologies", ticker: "HCLTECH.NS" })));
-check("empty input → empty output", rankEvidenceUrls([], { entityName: "X" }).length === 0);
+const ranked = rankEvidenceUrls(sample, { entityName: 'HCL Technologies', ticker: 'HCLTECH.NS' });
+check('preserves count (nothing dropped)', ranked.length === sample.length);
+check(
+  'same set of URLs',
+  JSON.stringify([...ranked].sort()) === JSON.stringify([...sample].sort())
+);
+check(
+  'deterministic across runs',
+  JSON.stringify(ranked) ===
+    JSON.stringify(
+      rankEvidenceUrls(sample, { entityName: 'HCL Technologies', ticker: 'HCLTECH.NS' })
+    )
+);
+check('empty input → empty output', rankEvidenceUrls([], { entityName: 'X' }).length === 0);
 check(
   "on-topic 'other' outranks off-topic 'official'",
-  evidenceScore("https://www.hcltech.com/design-wins", { entityName: "HCL Technologies", ticker: "HCLTECH.NS" }) >
-    evidenceScore("https://www.sec.gov/some-unrelated-filing", { entityName: "HCL Technologies", ticker: "HCLTECH.NS" }),
+  evidenceScore('https://www.hcltech.com/design-wins', {
+    entityName: 'HCL Technologies',
+    ticker: 'HCLTECH.NS',
+  }) >
+    evidenceScore('https://www.sec.gov/some-unrelated-filing', {
+      entityName: 'HCL Technologies',
+      ticker: 'HCLTECH.NS',
+    })
 );
 check(
-  "malformed URL does not throw",
-  typeof evidenceScore("not a url %E0%A4", { entityName: "HCL" }) === "number",
+  'malformed URL does not throw',
+  typeof evidenceScore('not a url %E0%A4', { entityName: 'HCL' }) === 'number'
 );
 
-console.log("\nisPredictionMarketOnly — the live Intel market-only signal");
+console.log('\nisPredictionMarketOnly — the live Intel market-only signal');
 check(
-  "all-Manifold evidence → market-only (dropped from brief)",
+  'all-Manifold evidence → market-only (dropped from brief)',
   isPredictionMarketOnly([
-    "https://manifold.markets/SimoneRomeo/will-intel-manufacture-nvidia-chips",
-    "https://manifold.markets/elf/will-there-be-a-joint-venture-chip",
-  ]) === true,
+    'https://manifold.markets/SimoneRomeo/will-intel-manufacture-nvidia-chips',
+    'https://manifold.markets/elf/will-there-be-a-joint-venture-chip',
+  ]) === true
 );
 check(
-  "one real source among markets → not market-only (kept)",
+  'one real source among markets → not market-only (kept)',
   isPredictionMarketOnly([
-    "https://manifold.markets/x/y",
-    "https://www.cnbc.com/2026/07/03/intel-foundry.html",
-  ]) === false,
+    'https://manifold.markets/x/y',
+    'https://www.cnbc.com/2026/07/03/intel-foundry.html',
+  ]) === false
 );
-check("empty → not market-only", isPredictionMarketOnly([]) === false);
+check('empty → not market-only', isPredictionMarketOnly([]) === false);
 check(
-  "www + all four platforms recognised",
+  'www + all four platforms recognised',
   isPredictionMarketOnly([
-    "https://www.manifold.markets/a/b",
-    "https://polymarket.com/event/x",
-    "https://kalshi.com/markets/y",
-    "https://metaculus.com/questions/1",
-  ]) === true,
+    'https://www.manifold.markets/a/b',
+    'https://polymarket.com/event/x',
+    'https://kalshi.com/markets/y',
+    'https://metaculus.com/questions/1',
+  ]) === true
 );
 check(
-  "finance.yahoo.com is not a prediction market",
-  isPredictionMarketOnly(["https://finance.yahoo.com/quote/INTC"]) === false,
+  'finance.yahoo.com is not a prediction market',
+  isPredictionMarketOnly(['https://finance.yahoo.com/quote/INTC']) === false
 );
 
 if (failures > 0) {

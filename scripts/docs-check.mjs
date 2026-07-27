@@ -9,7 +9,7 @@
 //
 // Run: pnpm docs:check    (or: node scripts/docs-check.mjs)
 
-import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { dirname, join, relative, resolve, extname, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -63,8 +63,6 @@ function walk(dir, out) {
 // Collect every markdown file under root so link targets resolve anywhere in-repo.
 const allMd = [];
 walk(ROOT, allMd);
-const rootSet = new Set(allMd.map((p) => relative(ROOT, p)));
-
 // Markdown link/image regex. Matches [text](url) and ![](url) and reference-style
 // is intentionally skipped (rare in this repo). Captures the URL only.
 const LINK_RE = /(?:!?\[([^\]]*)\]\(([^)\s]+)(?:\s+"[^"]*")?\))/g;
@@ -131,10 +129,11 @@ for (const file of audited) {
   }
   const lines = src.split('\n');
   for (let i = 0; i < lines.length; i++) {
-    let m;
     LINK_RE.lastIndex = 0;
-    while ((m = LINK_RE.exec(lines[i])) !== null) {
+    let m = LINK_RE.exec(lines[i]);
+    while (m !== null) {
       checkFile(file, m[2], i + 1);
+      m = LINK_RE.exec(lines[i]);
     }
   }
 }

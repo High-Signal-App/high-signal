@@ -35,9 +35,8 @@ async function handle(req: Request, ctx: { params: Promise<{ path: string[] }> }
 
   const headers = new Headers();
   headers.set('Authorization', `Bearer ${token}`);
-  if (req.headers.get('content-type')) {
-    headers.set('Content-Type', req.headers.get('content-type')!);
-  }
+  const contentType = req.headers.get('content-type');
+  if (contentType) headers.set('Content-Type', contentType);
   // Trace who acted. Browser cannot spoof this because this route injects it after Clerk auth.
   headers.set('X-Admin-Email', admin.identity.email);
   headers.set('X-Clerk-User-Id', admin.identity.userId);

@@ -1,11 +1,8 @@
-import {
-  analyzeMentionResponse,
-  type MentionAnalysis,
-} from "@high-signal/shared";
-import { eq } from "drizzle-orm";
-import type { DB } from "../db";
-import { schema } from "../db";
-import { executeHighSignalVisibility } from "./ai-visibility-adapter";
+import { analyzeMentionResponse, type MentionAnalysis } from '@high-signal/shared';
+import { eq } from 'drizzle-orm';
+import type { DB } from '../db';
+import { schema } from '../db';
+import { executeHighSignalVisibility } from './ai-visibility-adapter';
 
 type Env = {
   HIGH_SIGNAL_AI_ENDPOINT_URL?: string;
@@ -36,7 +33,7 @@ export async function runMentionCheck(input: {
     await markCheckFailed(
       input.database,
       input.checkId,
-      `Check failed: ${(error as Error).message}`,
+      `Check failed: ${(error as Error).message}`
     );
   }
 }
@@ -50,7 +47,7 @@ async function runMentionCheckInternal(input: {
 }) {
   const brandAliases = stringArray(input.config.brandAliases);
   const competitors = objectArray<{ name: string }>(input.config.competitors).filter((item) =>
-    Boolean(item.name),
+    Boolean(item.name)
   );
   const run = await executeHighSignalVisibility({
     env: input.env,
@@ -73,7 +70,7 @@ async function runMentionCheckInternal(input: {
     await markCheckFailed(
       input.database,
       input.checkId,
-      "AI endpoint not configured. Set a provider key (OPENAI/GEMINI/PERPLEXITY/ANTHROPIC) or HIGH_SIGNAL_AI_API_KEY.",
+      'AI endpoint not configured. Set a provider key (OPENAI/GEMINI/PERPLEXITY/ANTHROPIC) or HIGH_SIGNAL_AI_API_KEY.'
     );
     return;
   }
@@ -92,11 +89,11 @@ async function runMentionCheckInternal(input: {
       await markCheckFailed(
         input.database,
         input.checkId,
-        `Check failed: missing prompt ${attempt.promptId}`,
+        `Check failed: missing prompt ${attempt.promptId}`
       );
       return;
     }
-    if (attempt.analysis && (attempt.status === "completed" || attempt.status === "cached")) {
+    if (attempt.analysis && (attempt.status === 'completed' || attempt.status === 'cached')) {
       if (attempt.analysis.brandMentioned) mentionCount++;
       await input.database.insert(schema.mentionResults).values({
         id: crypto.randomUUID(),
@@ -107,7 +104,7 @@ async function runMentionCheckInternal(input: {
         platform: attempt.providerId,
         model: attempt.model,
         persona: prompt.persona ?? null,
-        responseText: attempt.responseText ?? "",
+        responseText: attempt.responseText ?? '',
         brandMentioned: attempt.analysis.brandMentioned,
         brandRecommended: attempt.analysis.brandRecommended,
         brandSentiment: attempt.analysis.brandSentiment,
@@ -155,12 +152,12 @@ async function runMentionCheckInternal(input: {
   await input.database
     .update(schema.mentionChecks)
     .set({
-      status: "completed",
+      status: 'completed',
       completedQueries,
       brandMentionRate: mentionRate,
       summary: `Brand mentioned in ${mentionCount}/${totalQueries} answers (${Math.round(
-        mentionRate * 100,
-      )}%) across ${platformLabels.length} engine${platformLabels.length === 1 ? "" : "s"}: ${platformLabels.join(", ")}`,
+        mentionRate * 100
+      )}%) across ${platformLabels.length} engine${platformLabels.length === 1 ? '' : 's'}: ${platformLabels.join(', ')}`,
       completedAt: new Date(),
     })
     .where(eq(schema.mentionChecks.id, input.checkId));
@@ -169,16 +166,16 @@ async function runMentionCheckInternal(input: {
 async function markCheckFailed(database: DB, checkId: string, summary: string) {
   await database
     .update(schema.mentionChecks)
-    .set({ status: "failed", summary, completedAt: new Date() })
+    .set({ status: 'failed', summary, completedAt: new Date() })
     .where(eq(schema.mentionChecks.id, checkId));
 }
 
 function stringArray(value: unknown): string[] {
-  if (Array.isArray(value)) return value.filter((item): item is string => typeof item === "string");
+  if (Array.isArray(value)) return value.filter((item): item is string => typeof item === 'string');
   return [];
 }
 
 function objectArray<T extends object>(value: unknown): T[] {
   if (!Array.isArray(value)) return [];
-  return value.filter((item): item is T => Boolean(item) && typeof item === "object");
+  return value.filter((item): item is T => Boolean(item) && typeof item === 'object');
 }

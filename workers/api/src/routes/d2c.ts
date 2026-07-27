@@ -16,8 +16,8 @@
  *   back to `[]` when no overlay has been run yet.
  */
 
-import { Hono } from "hono";
-import { desc, eq, gte } from "drizzle-orm";
+import { Hono } from 'hono';
+import { desc, eq, gte } from 'drizzle-orm';
 import {
   agentVisibilityGapScore,
   assessAging,
@@ -33,9 +33,9 @@ import {
   type D2CNicheDelta,
   type D2CNicheSnapshotRecord,
   type D2CEvidenceItem,
-} from "@high-signal/shared";
-import { db, schema } from "../db";
-import { FREE_AI_DEFAULT_ENDPOINT, fetchChatCompletion } from "../lib/ai-client";
+} from '@high-signal/shared';
+import { db, schema } from '../db';
+import { FREE_AI_DEFAULT_ENDPOINT, fetchChatCompletion } from '../lib/ai-client';
 
 type Env = {
   DB: D1Database;
@@ -64,7 +64,7 @@ interface AgentVisibilityRow {
 }
 
 function avRowToEntry(
-  row: typeof schema.d2cAgentVisibility.$inferSelect & { nicheSlug: string },
+  row: typeof schema.d2cAgentVisibility.$inferSelect & { nicheSlug: string }
 ): AgentVisibilityRow {
   return {
     nicheSlug: row.nicheSlug,
@@ -78,9 +78,10 @@ function avRowToEntry(
     citedUrls: Array.isArray(row.citedUrls) ? (row.citedUrls as string[]) : [],
     brandMentioned: row.brandMentioned,
     gapScore: row.gapScore,
-    runDate: row.runDate instanceof Date
-      ? row.runDate.toISOString()
-      : new Date(row.runDate as unknown as number).toISOString(),
+    runDate:
+      row.runDate instanceof Date
+        ? row.runDate.toISOString()
+        : new Date(row.runDate as unknown as number).toISOString(),
   };
 }
 
@@ -88,13 +89,14 @@ function avRowToEntry(
 function rowToRecord(
   row: typeof schema.d2cNicheSnapshots.$inferSelect & {
     nicheSlug?: string | null;
-  },
+  }
 ): D2CNicheSnapshotRecord & { evidenceJson?: unknown } {
   return {
-    nicheSlug: row.nicheSlug ?? "",
-    snapshotDate: row.snapshotDate instanceof Date
-      ? row.snapshotDate.toISOString().slice(0, 10)
-      : new Date(row.snapshotDate as unknown as number).toISOString().slice(0, 10),
+    nicheSlug: row.nicheSlug ?? '',
+    snapshotDate:
+      row.snapshotDate instanceof Date
+        ? row.snapshotDate.toISOString().slice(0, 10)
+        : new Date(row.snapshotDate as unknown as number).toISOString().slice(0, 10),
     opportunityScore: row.opportunityScore,
     demandScore: row.demandScore,
     competitionScore: row.competitionScore,
@@ -117,7 +119,7 @@ interface NicheWithLatest {
   status: string;
   latest: D2CNicheSnapshotRecord | null;
   delta: D2CNicheDelta | null;
-  aging: "aged-well" | "aged-poorly" | "stable" | "insufficient-history";
+  aging: 'aged-well' | 'aged-poorly' | 'stable' | 'insufficient-history';
   brief: ReturnType<typeof composeD2COpportunityBrief> | null;
   agentVisibility: AgentVisibilityRow[];
 }
@@ -126,20 +128,22 @@ interface NicheWithLatest {
  * GET /d2c/opportunities — latest snapshot per niche + deltas + aging.
  * Falls back to seed-only briefs when D1 is empty.
  */
-d2cRoute.get("/opportunities", async (c) => {
+d2cRoute.get('/opportunities', async (c) => {
   const database = db(c.env.DB);
   const sinceMs = Date.now() - RECENT_SNAPSHOT_DAYS * 24 * 60 * 60 * 1000;
   const sinceDate = new Date(sinceMs);
 
   // Join niches to their snapshots, recent first. We pull the last 90 days so
   // the renderer can compute deltas + aging without a second round-trip.
-  let rows: Array<typeof schema.d2cNicheSnapshots.$inferSelect & {
-    nicheSlug: string;
-    nicheName: string;
-    nicheCategory: string;
-    nicheRegion: string;
-    nicheStatus: string;
-  }> = [];
+  let rows: Array<
+    typeof schema.d2cNicheSnapshots.$inferSelect & {
+      nicheSlug: string;
+      nicheName: string;
+      nicheCategory: string;
+      nicheRegion: string;
+      nicheStatus: string;
+    }
+  > = [];
   try {
     rows = await database
       .select({
@@ -171,7 +175,7 @@ d2cRoute.get("/opportunities", async (c) => {
       .orderBy(desc(schema.d2cNicheSnapshots.snapshotDate));
   } catch (error) {
     // Fresh deploy / migration not applied yet — fall back to seed-only.
-    console.warn("[d2c] snapshot read failed, falling back to seed:", (error as Error).message);
+    console.warn('[d2c] snapshot read failed, falling back to seed:', (error as Error).message);
   }
 
   // Pull the latest agent-visibility entries per niche (Slice 4). We fetch the
@@ -198,13 +202,16 @@ d2cRoute.get("/opportunities", async (c) => {
       .innerJoin(schema.d2cNiches, eq(schema.d2cNiches.id, schema.d2cAgentVisibility.nicheId))
       .orderBy(desc(schema.d2cAgentVisibility.runDate));
   } catch (error) {
-    console.warn("[d2c] agent-visibility read failed:", (error as Error).message);
+    console.warn('[d2c] agent-visibility read failed:', (error as Error).message);
   }
   // Keep only the latest run's entries per niche.
   const avBySlug = new Map<string, AgentVisibilityRow[]>();
   let latestRunMs = 0;
   for (const row of avRows) {
-    const runMs = row.runDate instanceof Date ? row.runDate.getTime() : new Date(row.runDate as unknown as number).getTime();
+    const runMs =
+      row.runDate instanceof Date
+        ? row.runDate.getTime()
+        : new Date(row.runDate as unknown as number).getTime();
     if (runMs > latestRunMs) {
       latestRunMs = runMs;
       // Reset — only the latest run survives.
@@ -220,7 +227,10 @@ d2cRoute.get("/opportunities", async (c) => {
 
   // Group snapshots by niche slug.
   const bySlug = new Map<string, D2CNicheSnapshotRecord[]>();
-  const nicheMeta = new Map<string, { name: string; category: string; region: string; status: string }>();
+  const nicheMeta = new Map<
+    string,
+    { name: string; category: string; region: string; status: string }
+  >();
   for (const row of rows) {
     const rec = rowToRecord(row);
     const list = bySlug.get(row.nicheSlug) ?? [];
@@ -238,28 +248,27 @@ d2cRoute.get("/opportunities", async (c) => {
   // 20 even on a fresh deploy). Niches with no D1 history get a seed-only
   // snapshot for today + a "new" delta.
   const out: NicheWithLatest[] = D2C_NICHE_SEEDS.map((seed) => {
-    const history = (bySlug.get(seed.slug) ?? []).slice().sort((a, b) =>
-      a.snapshotDate.localeCompare(b.snapshotDate),
-    );
+    const history = (bySlug.get(seed.slug) ?? [])
+      .slice()
+      .sort((a, b) => a.snapshotDate.localeCompare(b.snapshotDate));
     const meta = nicheMeta.get(seed.slug);
     const agentVis = avBySlug.get(seed.slug) ?? [];
     if (history.length === 0) {
       // Seed-only fallback: synthesize a snapshot for today so the renderer
       // has something to show. Marked as "new" with no delta.
       const today = new Date().toISOString().slice(0, 10);
-      const avGapSeed = agentVis.length > 0
-        ? Math.max(...agentVis.map((a) => a.gapScore ?? 0))
-        : null;
+      const avGapSeed =
+        agentVis.length > 0 ? Math.max(...agentVis.map((a) => a.gapScore ?? 0)) : null;
       const synthetic = buildSnapshotRecord(seed, null, today, avGapSeed);
       return {
         slug: seed.slug,
         name: meta?.name ?? seed.name,
         category: meta?.category ?? seed.category,
         region: meta?.region ?? seed.region,
-        status: meta?.status ?? "active",
+        status: meta?.status ?? 'active',
         latest: synthetic,
         delta: computeD2CDelta(synthetic, null),
-        aging: "insufficient-history",
+        aging: 'insufficient-history',
         brief: composeD2COpportunityBrief(seed, null, avGapSeed),
         agentVisibility: agentVis,
       };
@@ -271,9 +280,10 @@ d2cRoute.get("/opportunities", async (c) => {
     // Re-hydrate the brief from the latest snapshot's scores. If the
     // agent-visibility overlay has run, use its gap score (more current than
     // the weekly snapshot's agentVisibilityScore).
-    const avGap = agentVis.length > 0
-      ? Math.max(...agentVis.map((a) => a.gapScore ?? 0))
-      : latest.agentVisibilityScore;
+    const avGap =
+      agentVis.length > 0
+        ? Math.max(...agentVis.map((a) => a.gapScore ?? 0))
+        : latest.agentVisibilityScore;
     // Parse the evidence_json from D1 so the brief's confidence reflects
     // the full evidence picture (community + product + AV-derived).
     // D1's driver may return JSON columns as already-parsed objects.
@@ -281,7 +291,7 @@ d2cRoute.get("/opportunities", async (c) => {
     const rawEv = (latest as D2CNicheSnapshotRecord & { evidenceJson?: unknown }).evidenceJson;
     if (Array.isArray(rawEv)) {
       parsedEvidence = rawEv as D2CEvidenceItem[];
-    } else if (typeof rawEv === "string" && rawEv.length > 0) {
+    } else if (typeof rawEv === 'string' && rawEv.length > 0) {
       try {
         const parsed = JSON.parse(rawEv);
         parsedEvidence = Array.isArray(parsed) ? parsed : [];
@@ -289,22 +299,26 @@ d2cRoute.get("/opportunities", async (c) => {
         parsedEvidence = [];
       }
     }
-    const brief = composeD2COpportunityBrief(seed, {
-      nicheSlug: seed.slug,
-      demandScore: latest.demandScore,
-      competitionScore: latest.competitionScore,
-      pricingScore: latest.pricingScore,
-      adSaturationScore: latest.adSaturationScore,
-      agentVisibilityScore: avGap,
-      evidence: parsedEvidence,
-      freshnessDate: latest.freshnessDate,
-    }, avGap);
+    const brief = composeD2COpportunityBrief(
+      seed,
+      {
+        nicheSlug: seed.slug,
+        demandScore: latest.demandScore,
+        competitionScore: latest.competitionScore,
+        pricingScore: latest.pricingScore,
+        adSaturationScore: latest.adSaturationScore,
+        agentVisibilityScore: avGap,
+        evidence: parsedEvidence,
+        freshnessDate: latest.freshnessDate,
+      },
+      avGap
+    );
     return {
       slug: seed.slug,
       name: meta?.name ?? seed.name,
       category: meta?.category ?? seed.category,
       region: meta?.region ?? seed.region,
-      status: meta?.status ?? "active",
+      status: meta?.status ?? 'active',
       latest,
       delta,
       aging,
@@ -315,20 +329,20 @@ d2cRoute.get("/opportunities", async (c) => {
 
   return c.json({
     generatedAt: new Date().toISOString(),
-    region: "south-asia",
+    region: 'south-asia',
     niches: out,
-    source: rows.length > 0 ? "d1" : "seed-fallback",
+    source: rows.length > 0 ? 'd1' : 'seed-fallback',
   });
 });
 
 /**
  * GET /d2c/opportunities/:slug — full snapshot history for one niche.
  */
-d2cRoute.get("/opportunities/:slug", async (c) => {
-  const slug = c.req.param("slug");
+d2cRoute.get('/opportunities/:slug', async (c) => {
+  const slug = c.req.param('slug');
   const seed = D2C_NICHE_SEEDS.find((s) => s.slug === slug);
   if (!seed) {
-    return c.json({ error: "unknown_niche" }, 404);
+    return c.json({ error: 'unknown_niche' }, 404);
   }
   const database = db(c.env.DB);
   let rows: Array<typeof schema.d2cNicheSnapshots.$inferSelect> = [];
@@ -346,7 +360,7 @@ d2cRoute.get("/opportunities/:slug", async (c) => {
         .orderBy(desc(schema.d2cNicheSnapshots.snapshotDate));
     }
   } catch (error) {
-    console.warn("[d2c] niche history read failed:", (error as Error).message);
+    console.warn('[d2c] niche history read failed:', (error as Error).message);
   }
   const history = rows.map((row) => rowToRecord({ ...row, nicheSlug: slug }));
   return c.json({
@@ -362,7 +376,7 @@ d2cRoute.get("/opportunities/:slug", async (c) => {
  * GET /d2c/agent-visibility — Slice 4 overlay (which brands AI assistants
  * recommend and cite per niche). Returns `[]` until the overlay is run.
  */
-d2cRoute.get("/agent-visibility", async (c) => {
+d2cRoute.get('/agent-visibility', async (c) => {
   const database = db(c.env.DB);
   let rows: Array<typeof schema.d2cAgentVisibility.$inferSelect & { nicheSlug: string }> = [];
   try {
@@ -386,7 +400,7 @@ d2cRoute.get("/agent-visibility", async (c) => {
       .innerJoin(schema.d2cNiches, eq(schema.d2cNiches.id, schema.d2cAgentVisibility.nicheId))
       .orderBy(desc(schema.d2cAgentVisibility.runDate));
   } catch (error) {
-    console.warn("[d2c] agent-visibility read failed:", (error as Error).message);
+    console.warn('[d2c] agent-visibility read failed:', (error as Error).message);
   }
   const entries: D2CAgentVisibilityEntry[] = rows.map((row) => ({
     nicheSlug: row.nicheSlug,
@@ -394,18 +408,21 @@ d2cRoute.get("/agent-visibility", async (c) => {
     model: row.model,
     promptText: row.promptText,
     responseText: row.responseText,
-    recommendedBrands: Array.isArray(row.recommendedBrands) ? (row.recommendedBrands as string[]) : [],
+    recommendedBrands: Array.isArray(row.recommendedBrands)
+      ? (row.recommendedBrands as string[])
+      : [],
     citedUrls: Array.isArray(row.citedUrls) ? (row.citedUrls as string[]) : [],
     brandMentioned: row.brandMentioned,
     gapScore: row.gapScore ?? 0,
-    runDate: row.runDate instanceof Date
-      ? row.runDate.toISOString()
-      : new Date(row.runDate as unknown as number).toISOString(),
+    runDate:
+      row.runDate instanceof Date
+        ? row.runDate.toISOString()
+        : new Date(row.runDate as unknown as number).toISOString(),
   }));
   return c.json({
     generatedAt: new Date().toISOString(),
     entries,
-    source: rows.length > 0 ? "d1" : "not-run-yet",
+    source: rows.length > 0 ? 'd1' : 'not-run-yet',
   });
 });
 
@@ -417,23 +434,26 @@ d2cRoute.get("/agent-visibility", async (c) => {
  *
  * Body: { "limit": 20 } (optional, defaults to all 20 niches)
  */
-d2cRoute.post("/agent-visibility/run", async (c) => {
+d2cRoute.post('/agent-visibility/run', async (c) => {
   const token = c.env.ADMIN_TOKEN;
-  const authHeader = c.req.header("Authorization") ?? "";
-  const provided = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+  const authHeader = c.req.header('Authorization') ?? '';
+  const provided = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
   if (!token || provided !== token) {
-    return c.json({ error: "unauthorized" }, 401);
+    return c.json({ error: 'unauthorized' }, 401);
   }
   const apiKey = c.env.HIGH_SIGNAL_AI_API_KEY || c.env.OPENAI_API_KEY;
   if (!apiKey) {
-    return c.json({ error: "AI endpoint not configured. Set HIGH_SIGNAL_AI_API_KEY or OPENAI_API_KEY." }, 503);
+    return c.json(
+      { error: 'AI endpoint not configured. Set HIGH_SIGNAL_AI_API_KEY or OPENAI_API_KEY.' },
+      503
+    );
   }
-  const model = c.env.HIGH_SIGNAL_AI_MODEL || "auto";
+  const model = c.env.HIGH_SIGNAL_AI_MODEL || 'auto';
   const endpointUrl = c.env.HIGH_SIGNAL_AI_ENDPOINT_URL || FREE_AI_DEFAULT_ENDPOINT;
   let limit = 20;
   try {
     const body = await c.req.json<{ limit?: number }>();
-    if (typeof body.limit === "number" && body.limit > 0) limit = Math.min(body.limit, 20);
+    if (typeof body.limit === 'number' && body.limit > 0) limit = Math.min(body.limit, 20);
   } catch {
     // empty body is fine
   }
@@ -446,19 +466,21 @@ d2cRoute.post("/agent-visibility/run", async (c) => {
   const entries: D2CAgentVisibilityEntry[] = [];
   for (const seed of seeds) {
     const userPrompt = buildAgentVisibilityPrompt(seed);
-    let responseText = "";
+    let responseText = '';
     try {
       const aiRes = await fetchChatCompletion({
         config: { endpointUrl, apiKey, model },
-        messages: [{ role: "user", content: userPrompt }],
+        messages: [{ role: 'user', content: userPrompt }],
         systemPrompt,
         maxTokens: 600,
         stream: false,
-        headers: { "X-Gateway-Project-Id": "high-signal" },
+        headers: { 'X-Gateway-Project-Id': 'high-signal' },
       });
       if (aiRes.ok) {
-        const data = await aiRes.json() as { choices?: Array<{ message?: { content?: string } }> };
-        responseText = data.choices?.[0]?.message?.content ?? "";
+        const data = (await aiRes.json()) as {
+          choices?: Array<{ message?: { content?: string } }>;
+        };
+        responseText = data.choices?.[0]?.message?.content ?? '';
       } else {
         console.warn(`[d2c:av-run] AI call failed for ${seed.slug}: ${aiRes.status}`);
       }
@@ -469,7 +491,7 @@ d2cRoute.post("/agent-visibility/run", async (c) => {
     const urls = extractCitedUrls(responseText);
     entries.push({
       nicheSlug: seed.slug,
-      platform: "free-ai-gateway",
+      platform: 'free-ai-gateway',
       model,
       promptText: userPrompt,
       responseText,
@@ -483,8 +505,8 @@ d2cRoute.post("/agent-visibility/run", async (c) => {
 
   return c.json({
     generatedAt: runDate,
-    region: "IN",
+    region: 'IN',
     entries,
-    source: "live-run",
+    source: 'live-run',
   });
 });

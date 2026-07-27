@@ -47,9 +47,7 @@
           "observedAtMs": null
         },
         "findings": [],
-        "acceptedExceptions": [
-          "HOLD biases to KILL without AI judge — by design (ADR-008)"
-        ]
+        "acceptedExceptions": ["HOLD biases to KILL without AI judge — by design (ADR-008)"]
       },
       {
         "id": "personal-brief",
@@ -117,9 +115,7 @@
           "observedAtMs": null
         },
         "findings": [],
-        "acceptedExceptions": [
-          "Skips Sat/Sun (cron 1-5) — no US market close"
-        ]
+        "acceptedExceptions": ["Skips Sat/Sun (cron 1-5) — no US market close"]
       },
       {
         "id": "cron-markets",
@@ -165,9 +161,7 @@
           "observedAtMs": null
         },
         "findings": [],
-        "acceptedExceptions": [
-          "Only scores signals whose predicted_window_days has elapsed"
-        ]
+        "acceptedExceptions": ["Only scores signals whose predicted_window_days has elapsed"]
       },
       {
         "id": "cron-d2c-opportunities",
@@ -246,14 +240,8 @@
         "kind": "deploy",
         "trigger": {
           "type": "push",
-          "branches": [
-            "main"
-          ],
-          "paths": [
-            "apps/web/**",
-            "data/equities-snapshot.jsonl",
-            "apps/web/src/data/**"
-          ]
+          "branches": ["main"],
+          "paths": ["apps/web/**", "data/equities-snapshot.jsonl", "apps/web/src/data/**"]
         },
         "bounds": {
           "timeoutMinutes": 30,
@@ -276,12 +264,8 @@
         "kind": "deploy",
         "trigger": {
           "type": "push",
-          "branches": [
-            "main"
-          ],
-          "paths": [
-            "workers/api/**"
-          ]
+          "branches": ["main"],
+          "paths": ["workers/api/**"]
         },
         "bounds": {
           "timeoutMinutes": 20,
@@ -304,12 +288,8 @@
         "kind": "quality-gate",
         "trigger": {
           "type": "push",
-          "branches": [
-            "main"
-          ],
-          "paths": [
-            "**"
-          ],
+          "branches": ["main"],
+          "paths": ["**"],
           "alsoOn": "pull_request"
         },
         "bounds": {
@@ -324,18 +304,14 @@
           "observedAtMs": null
         },
         "findings": [],
-        "acceptedExceptions": [
-          "Event-driven (push/PR) — no freshness contract"
-        ]
+        "acceptedExceptions": ["Event-driven (push/PR) — no freshness contract"]
       },
       {
         "id": "docs-check",
         "kind": "quality-gate",
         "trigger": {
           "type": "push",
-          "branches": [
-            "main"
-          ],
+          "branches": ["main"],
           "paths": [
             "docs/**",
             "agents.md",
@@ -383,9 +359,7 @@
           "observedAtMs": null
         },
         "findings": [],
-        "acceptedExceptions": [
-          "On-demand only — no freshness contract"
-        ]
+        "acceptedExceptions": ["On-demand only — no freshness contract"]
       },
       {
         "id": "backfill-sources",

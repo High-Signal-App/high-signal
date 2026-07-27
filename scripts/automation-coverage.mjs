@@ -18,7 +18,6 @@
 import { readFile, readdir, mkdir, writeFile, access, stat } from 'node:fs/promises';
 import { dirname, resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { spawn } from 'node:child_process';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
@@ -27,8 +26,6 @@ const WORKFLOWS_DIR = resolve(ROOT, '.github/workflows');
 const SCHEMA_FILE = resolve(ROOT, 'packages/db/src/schema.ts');
 const DURABILITY_DOC = resolve(ROOT, 'docs/operations/data-durability.md');
 const REPORTS_DIR = resolve(ROOT, 'reports/automation-coverage');
-
-const FRESHNESS_OK_HOURS_DEFAULT = 30;
 
 function fail(msg, code = 2) {
   console.error(`automation-coverage: ${msg}`);
@@ -61,7 +58,7 @@ async function listWorkflows() {
 async function readWorkflow(path) {
   try {
     return await readFile(path, 'utf8');
-  } catch (err) {
+  } catch {
     return null;
   }
 }
@@ -112,19 +109,6 @@ function statusForFreshness(observedAtMs, windowHours, nowMs = Date.now()) {
   const ageHours = (nowMs - observedAtMs) / 3_600_000;
   if (ageHours <= windowHours) return 'pass';
   return 'stale';
-}
-
-// Run a git command and return stdout (best-effort; returns null on failure).
-function git(args) {
-  return new Promise((res) => {
-    const child = spawn('git', args, { cwd: ROOT, stdio: ['ignore', 'pipe', 'ignore'] });
-    let out = '';
-    child.stdout.on('data', (d) => {
-      out += d.toString();
-    });
-    child.on('error', () => res(null));
-    child.on('close', () => res(out.trim() || null));
-  });
 }
 
 async function artifactMtimeMs(path) {
@@ -264,7 +248,7 @@ async function evaluateJob(job, ctx) {
   };
 }
 
-async function evaluateSurface(surface, ctx) {
+async function evaluateSurface(surface) {
   const findings = [];
   if (!surface.canonicalLiveProbe) {
     findings.push({
@@ -486,7 +470,7 @@ async function main() {
   for (const job of jobsJson.jobs) jobResults.push(await evaluateJob(job, ctx));
 
   const surfaceResults = [];
-  for (const s of jobsJson.surfaces) surfaceResults.push(await evaluateSurface(s, ctx));
+  for (const s of jobsJson.surfaces) surfaceResults.push(await evaluateSurface(s));
 
   const unregistered = await findUnregisteredWorkflows(jobsJson.jobs);
 

@@ -1,2 +1,2 @@
-export * from "./schema";
-export type { InferSelectModel, InferInsertModel } from "drizzle-orm";
+export * from './schema';
+export type { InferSelectModel, InferInsertModel } from 'drizzle-orm';

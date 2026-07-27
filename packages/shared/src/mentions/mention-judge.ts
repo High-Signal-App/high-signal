@@ -6,4 +6,4 @@ export {
   parseMentionVerdict,
   type BrandSubject as JudgeSubject,
   type MentionAnalysis as MentionVerdict,
-} from "@saas-maker/ai-visibility";
+} from '@saas-maker/ai-visibility';

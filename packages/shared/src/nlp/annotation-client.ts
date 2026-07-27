@@ -1,9 +1,6 @@
-import {
-  annotateLightweightNlp,
-  type LightweightNlpAnnotation,
-} from "./lightweight-nlp";
+import { annotateLightweightNlp, type LightweightNlpAnnotation } from './lightweight-nlp';
 
-export type AnnotationTransport = Pick<typeof globalThis, "fetch">["fetch"];
+export type AnnotationTransport = Pick<typeof globalThis, 'fetch'>['fetch'];
 
 export interface AnnotationClientOptions {
   /**
@@ -32,7 +29,7 @@ function normalizeTexts(texts: string | string[]) {
  */
 export async function annotateTexts(
   texts: string | string[],
-  _options: AnnotationClientOptions = {},
+  _options: AnnotationClientOptions = {}
 ): Promise<LightweightNlpAnnotation[]> {
   const normalized = normalizeTexts(texts);
   if (!normalized.length) return [];

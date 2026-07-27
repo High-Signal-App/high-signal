@@ -13,7 +13,7 @@ import {
   type RelationshipEdge,
   type SignalForWatch,
   type SuppressionRule,
-} from "@high-signal/shared";
+} from '@high-signal/shared';
 
 let failures = 0;
 let total = 0;
@@ -30,44 +30,53 @@ const NOW = Date.UTC(2026, 5, 12, 12, 0, 0);
 const yesterday = new Date(NOW - 24 * 3600 * 1000).toISOString();
 const lastWeek = new Date(NOW - 6 * 24 * 3600 * 1000).toISOString();
 
-function sig(id: string, primary: string, confidence: SignalForWatch["confidence"] = "medium", publishedAt = yesterday, signalType = "supply_chain"): SignalForWatch {
+function sig(
+  id: string,
+  primary: string,
+  confidence: SignalForWatch['confidence'] = 'medium',
+  publishedAt = yesterday,
+  signalType = 'supply_chain'
+): SignalForWatch {
   return { id, slug: id, signalType, primaryEntityId: primary, confidence, publishedAt };
 }
 
-function edge(from: string, to: string, type: RelationshipEdge["type"] = "supplier", verified = true, weight = 1.0): RelationshipEdge {
+function edge(
+  from: string,
+  to: string,
+  type: RelationshipEdge['type'] = 'supplier',
+  verified = true,
+  weight = 1.0
+): RelationshipEdge {
   return { fromEntityId: from, toEntityId: to, type, weight, verified };
 }
 
-console.log("composeImpactChain — direct items");
+console.log('composeImpactChain — direct items');
 
-console.log("evidenceBackedWatchItems — claim gate");
+console.log('evidenceBackedWatchItems — claim gate');
 {
   const provenance = new Map([
     [
-      "s1",
+      's1',
       {
-        claimId: "claim-1",
-        assertion: "Structured claim",
+        claimId: 'claim-1',
+        assertion: 'Structured claim',
         version: 1,
         evidenceCount: 2,
         primaryCount: 1,
         corroborationCount: 1,
         contradictionCount: 0,
-        evidenceUrls: ["https://a.example/x", "https://b.example/y"],
+        evidenceUrls: ['https://a.example/x', 'https://b.example/y'],
       },
     ],
   ]);
-  const out = evidenceBackedWatchItems(
-    [{ signalId: "missing" }, { signalId: "s1" }],
-    provenance,
-  );
-  checkEq("omits watch item without claim evidence", out.length, 1);
-  checkEq("keeps claim-backed watch item", out[0]?.item.signalId, "s1");
+  const out = evidenceBackedWatchItems([{ signalId: 'missing' }, { signalId: 's1' }], provenance);
+  checkEq('omits watch item without claim evidence', out.length, 1);
+  checkEq('keeps claim-backed watch item', out[0]?.item.signalId, 's1');
 }
 {
   const args: ComposeArgs = {
-    watchedEntityIds: ["NVDA"],
-    directSignals: [sig("s1", "NVDA", "high")],
+    watchedEntityIds: ['NVDA'],
+    directSignals: [sig('s1', 'NVDA', 'high')],
     edges: [],
     secondOrderSignals: [],
     suppressions: [],
@@ -75,83 +84,83 @@ console.log("evidenceBackedWatchItems — claim gate");
     nowMs: NOW,
   };
   const out = composeImpactChain(args);
-  checkEq("count", out.length, 1);
-  checkEq("kind direct", out[0]!.deltaKind, "direct");
-  checkEq("subject = watched", out[0]!.subjectEntityId, "NVDA");
-  checkEq("observed true for direct", out[0]!.observed, true);
+  checkEq('count', out.length, 1);
+  checkEq('kind direct', out[0]!.deltaKind, 'direct');
+  checkEq('subject = watched', out[0]!.subjectEntityId, 'NVDA');
+  checkEq('observed true for direct', out[0]!.observed, true);
 }
 
-console.log("\ncomposeImpactChain — already surfaced is dropped");
+console.log('\ncomposeImpactChain — already surfaced is dropped');
 {
   const args: ComposeArgs = {
-    watchedEntityIds: ["NVDA"],
-    directSignals: [sig("s1", "NVDA")],
+    watchedEntityIds: ['NVDA'],
+    directSignals: [sig('s1', 'NVDA')],
     edges: [],
     secondOrderSignals: [],
     suppressions: [],
-    alreadySurfacedSignalIds: new Set(["s1"]),
+    alreadySurfacedSignalIds: new Set(['s1']),
     nowMs: NOW,
   };
-  checkEq("filtered out", composeImpactChain(args).length, 0);
+  checkEq('filtered out', composeImpactChain(args).length, 0);
 }
 
-console.log("\ncomposeImpactChain — second-order via observed supplier edge");
+console.log('\ncomposeImpactChain — second-order via observed supplier edge');
 {
   const args: ComposeArgs = {
-    watchedEntityIds: ["NVDA"],
+    watchedEntityIds: ['NVDA'],
     directSignals: [],
-    edges: [edge("NVDA", "TSMC", "supplier", true)],
-    secondOrderSignals: [sig("s2", "TSMC", "medium")],
+    edges: [edge('NVDA', 'TSMC', 'supplier', true)],
+    secondOrderSignals: [sig('s2', 'TSMC', 'medium')],
     suppressions: [],
     alreadySurfacedSignalIds: new Set(),
     nowMs: NOW,
   };
   const out = composeImpactChain(args);
-  checkEq("count", out.length, 1);
-  checkEq("kind second_order", out[0]!.deltaKind, "second_order");
-  checkEq("observed true", out[0]!.observed, true);
-  checkEq("subject = TSMC", out[0]!.subjectEntityId, "TSMC");
-  checkEq("watched = NVDA", out[0]!.watchedEntityId, "NVDA");
+  checkEq('count', out.length, 1);
+  checkEq('kind second_order', out[0]!.deltaKind, 'second_order');
+  checkEq('observed true', out[0]!.observed, true);
+  checkEq('subject = TSMC', out[0]!.subjectEntityId, 'TSMC');
+  checkEq('watched = NVDA', out[0]!.watchedEntityId, 'NVDA');
 }
 
-console.log("\ncomposeImpactChain — inferred edge labelled");
+console.log('\ncomposeImpactChain — inferred edge labelled');
 {
   const args: ComposeArgs = {
-    watchedEntityIds: ["NVDA"],
+    watchedEntityIds: ['NVDA'],
     directSignals: [],
-    edges: [edge("NVDA", "TSMC", "supplier", false)],
-    secondOrderSignals: [sig("s3", "TSMC")],
+    edges: [edge('NVDA', 'TSMC', 'supplier', false)],
+    secondOrderSignals: [sig('s3', 'TSMC')],
     suppressions: [],
     alreadySurfacedSignalIds: new Set(),
     nowMs: NOW,
   };
   const out = composeImpactChain(args);
-  checkEq("inferred label", out[0]!.observed, false);
-  checkEq("why mentions inferred", out[0]!.why.includes("inferred"), true);
+  checkEq('inferred label', out[0]!.observed, false);
+  checkEq('why mentions inferred', out[0]!.why.includes('inferred'), true);
 }
 
-console.log("\ncomposeImpactChain — direct outranks second-order by priority");
+console.log('\ncomposeImpactChain — direct outranks second-order by priority');
 {
   const args: ComposeArgs = {
-    watchedEntityIds: ["NVDA"],
-    directSignals: [sig("d", "NVDA", "high", yesterday)],
-    edges: [edge("NVDA", "TSMC", "supplier", true)],
-    secondOrderSignals: [sig("s", "TSMC", "high", yesterday)],
+    watchedEntityIds: ['NVDA'],
+    directSignals: [sig('d', 'NVDA', 'high', yesterday)],
+    edges: [edge('NVDA', 'TSMC', 'supplier', true)],
+    secondOrderSignals: [sig('s', 'TSMC', 'high', yesterday)],
     suppressions: [],
     alreadySurfacedSignalIds: new Set(),
     nowMs: NOW,
   };
   const out = composeImpactChain(args);
-  checkEq("direct first", out[0]!.deltaKind, "direct");
+  checkEq('direct first', out[0]!.deltaKind, 'direct');
 }
 
-console.log("\ncomposeImpactChain — recency lowers older items");
+console.log('\ncomposeImpactChain — recency lowers older items');
 {
   const args: ComposeArgs = {
-    watchedEntityIds: ["NVDA"],
+    watchedEntityIds: ['NVDA'],
     directSignals: [
-      sig("recent", "NVDA", "medium", yesterday),
-      sig("old", "NVDA", "high", lastWeek),
+      sig('recent', 'NVDA', 'medium', yesterday),
+      sig('old', 'NVDA', 'high', lastWeek),
     ],
     edges: [],
     secondOrderSignals: [],
@@ -160,57 +169,57 @@ console.log("\ncomposeImpactChain — recency lowers older items");
     nowMs: NOW,
   };
   const out = composeImpactChain(args);
-  checkEq("recent ranks first", out[0]!.signalId, "recent");
+  checkEq('recent ranks first', out[0]!.signalId, 'recent');
 }
 
-console.log("\nisSuppressed — signal_type rule");
+console.log('\nisSuppressed — signal_type rule');
 {
-  const rules: SuppressionRule[] = [{ kind: "signal_type", value: "noisy" }];
+  const rules: SuppressionRule[] = [{ kind: 'signal_type', value: 'noisy' }];
   const item = {
-    signalType: "noisy",
+    signalType: 'noisy',
     relationshipPath: [],
-    deltaKind: "direct" as const,
-    watchedEntityId: "x",
+    deltaKind: 'direct' as const,
+    watchedEntityId: 'x',
   };
-  checkEq("matches", isSuppressed(item, rules), true);
-  checkEq("misses", isSuppressed({ ...item, signalType: "other" }, rules), false);
+  checkEq('matches', isSuppressed(item, rules), true);
+  checkEq('misses', isSuppressed({ ...item, signalType: 'other' }, rules), false);
 }
 
-console.log("\nisSuppressed — second_order_from gates by watched id");
+console.log('\nisSuppressed — second_order_from gates by watched id');
 {
-  const rules: SuppressionRule[] = [{ kind: "second_order_from", value: "NVDA" }];
+  const rules: SuppressionRule[] = [{ kind: 'second_order_from', value: 'NVDA' }];
   checkEq(
-    "matches second-order from NVDA",
+    'matches second-order from NVDA',
     isSuppressed(
-      { signalType: "x", relationshipPath: [], deltaKind: "second_order", watchedEntityId: "NVDA" },
-      rules,
+      { signalType: 'x', relationshipPath: [], deltaKind: 'second_order', watchedEntityId: 'NVDA' },
+      rules
     ),
-    true,
+    true
   );
   checkEq(
-    "leaves direct alone",
+    'leaves direct alone',
     isSuppressed(
-      { signalType: "x", relationshipPath: [], deltaKind: "direct", watchedEntityId: "NVDA" },
-      rules,
+      { signalType: 'x', relationshipPath: [], deltaKind: 'direct', watchedEntityId: 'NVDA' },
+      rules
     ),
-    false,
+    false
   );
 }
 
-console.log("\ncomposeImpactChain end-to-end — suppression rule drops second-order");
+console.log('\ncomposeImpactChain end-to-end — suppression rule drops second-order');
 {
   const args: ComposeArgs = {
-    watchedEntityIds: ["NVDA"],
-    directSignals: [sig("d", "NVDA")],
-    edges: [edge("NVDA", "TSMC", "supplier", true)],
-    secondOrderSignals: [sig("s", "TSMC")],
-    suppressions: [{ kind: "second_order_from", value: "NVDA" }],
+    watchedEntityIds: ['NVDA'],
+    directSignals: [sig('d', 'NVDA')],
+    edges: [edge('NVDA', 'TSMC', 'supplier', true)],
+    secondOrderSignals: [sig('s', 'TSMC')],
+    suppressions: [{ kind: 'second_order_from', value: 'NVDA' }],
     alreadySurfacedSignalIds: new Set(),
     nowMs: NOW,
   };
   const out = composeImpactChain(args);
-  checkEq("only direct survives", out.length, 1);
-  checkEq("direct kept", out[0]!.deltaKind, "direct");
+  checkEq('only direct survives', out.length, 1);
+  checkEq('direct kept', out[0]!.deltaKind, 'direct');
 }
 
 if (failures > 0) {

@@ -1,19 +1,19 @@
 // Core cross-cutting types used across every domain. No dependencies.
 
-export type Direction = "up" | "down" | "neutral";
-export type Confidence = "low" | "medium" | "high";
-export type ReviewStatus = "draft" | "published" | "corrected" | "killed";
-export type Outcome = "hit" | "miss" | "push" | "pending";
+export type Direction = 'up' | 'down' | 'neutral';
+export type Confidence = 'low' | 'medium' | 'high';
+export type ReviewStatus = 'draft' | 'published' | 'corrected' | 'killed';
+export type Outcome = 'hit' | 'miss' | 'push' | 'pending';
 
 export type RelationshipType =
-  | "supplier"
-  | "customer"
-  | "peer"
-  | "subsidiary"
-  | "partner"
-  | "competitor";
+  | 'supplier'
+  | 'customer'
+  | 'peer'
+  | 'subsidiary'
+  | 'partner'
+  | 'competitor';
 
-export type EntityType = "public" | "private" | "sector" | "product";
+export type EntityType = 'public' | 'private' | 'sector' | 'product';
 
 export interface SignalCard {
   id: string;

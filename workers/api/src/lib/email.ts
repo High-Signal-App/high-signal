@@ -11,7 +11,7 @@
 // the binding throws and the cron records `status='failed'` with the raw
 // reason — visible on /admin/delivery.
 
-import { EmailMessage } from "cloudflare:email";
+import { EmailMessage } from 'cloudflare:email';
 
 export interface EmailEnv {
   SEND_EMAIL?: SendEmailBinding;
@@ -48,10 +48,10 @@ export interface SendResult {
 // outbound DKIM/SPF may not exist yet. Callers check this before touching
 // delivery_log so an unconfigured deploy is a clean no-op, not a failure storm.
 export function emailTransportStatus(
-  env: EmailEnv,
-): { ready: true } | { ready: false; reason: "no_send_email_binding" | "email_from_unset" } {
-  if (!env.SEND_EMAIL) return { ready: false, reason: "no_send_email_binding" };
-  if (!env.EMAIL_FROM) return { ready: false, reason: "email_from_unset" };
+  env: EmailEnv
+): { ready: true } | { ready: false; reason: 'no_send_email_binding' | 'email_from_unset' } {
+  if (!env.SEND_EMAIL) return { ready: false, reason: 'no_send_email_binding' };
+  if (!env.EMAIL_FROM) return { ready: false, reason: 'email_from_unset' };
   return { ready: true };
 }
 
@@ -133,14 +133,7 @@ function buildMime(m: MimeArgs): string {
     ``,
     chunkBase64(m.html),
   ];
-  return [
-    ...headers,
-    ``,
-    ...textPart,
-    ...htmlPart,
-    `--${boundary}--`,
-    ``,
-  ].join("\r\n");
+  return [...headers, ``, ...textPart, ...htmlPart, `--${boundary}--`, ``].join('\r\n');
 }
 
 // RFC 5322 encoded-word for non-ASCII subjects. If the subject is pure ASCII
@@ -158,18 +151,18 @@ function chunkBase64(s: string): string {
   for (let i = 0; i < encoded.length; i += 76) {
     out.push(encoded.slice(i, i + 76));
   }
-  return out.join("\r\n");
+  return out.join('\r\n');
 }
 
 // ─── Body rendering (unchanged from earlier iteration) ────────────────────
 
 function escapeHtml(s: string): string {
   return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 // Only allow http(s) hrefs in transactional email anchors. Other schemes
@@ -196,17 +189,17 @@ function renderHtml(args: SendBriefArgs): string {
                         ? `<a href="${escapeHtml(href)}" style="color:#0aa">source</a>`
                         : `<span>source</span>`;
                     })
-                    .join(", ")}]</span>`
-                : ""
-            }</li>`,
+                    .join(', ')}]</span>`
+                : ''
+            }</li>`
         )
-        .join("");
+        .join('');
       return `<h2 style="font-size:14px;letter-spacing:0.18em;text-transform:uppercase;color:#888;margin-top:24px">${escapeHtml(s.title)}</h2><ul style="padding-left:18px;margin:8px 0">${items}</ul>`;
     })
-    .join("");
+    .join('');
   const unsub = args.unsubscribeUrl && safeHref(args.unsubscribeUrl);
   const footer = `Manage delivery: https://high-signal.app/settings/delivery${
-    unsub ? ` · <a href="${escapeHtml(unsub)}" style="color:#666">unsubscribe</a>` : ""
+    unsub ? ` · <a href="${escapeHtml(unsub)}" style="color:#666">unsubscribe</a>` : ''
   }`;
   return `<!doctype html><html><body style="font-family:ui-sans-serif,system-ui,-apple-system,sans-serif;background:#0a0a0a;color:#e5e5e5;padding:24px"><div style="max-width:640px;margin:0 auto"><div style="font-size:12px;letter-spacing:0.2em;text-transform:uppercase;color:#888">High Signal</div><div style="font-size:11px;color:#666;margin-top:4px">${escapeHtml(args.briefDate)} · ${escapeHtml(args.region)}</div>${sectionsHtml}<p style="margin-top:32px;font-size:11px;color:#666">${footer}</p></div></body></html>`;
 }
@@ -215,14 +208,11 @@ function renderText(args: SendBriefArgs): string {
   const sections = args.body.sections
     .map((s) => {
       const items = s.items
-        .map(
-          (i) =>
-            `- ${i.text}${i.links.length ? ` [${i.links.slice(0, 2).join(", ")}]` : ""}`,
-        )
-        .join("\n");
+        .map((i) => `- ${i.text}${i.links.length ? ` [${i.links.slice(0, 2).join(', ')}]` : ''}`)
+        .join('\n');
       return `${s.title.toUpperCase()}\n${items}`;
     })
-    .join("\n\n");
-  const unsub = args.unsubscribeUrl ? `\nUnsubscribe: ${args.unsubscribeUrl}` : "";
+    .join('\n\n');
+  const unsub = args.unsubscribeUrl ? `\nUnsubscribe: ${args.unsubscribeUrl}` : '';
   return `HIGH SIGNAL\n${args.briefDate} · ${args.region}\n\n${sections}\n\nManage delivery: https://high-signal.app/settings/delivery${unsub}`;
 }

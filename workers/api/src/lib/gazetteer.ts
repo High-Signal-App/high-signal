@@ -23,7 +23,7 @@ interface CompiledPattern {
 }
 
 function escapeRegex(s: string): string {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 /** Extract distinct lowercase terms for one entity: name + ticker + aliases. */
@@ -36,7 +36,7 @@ export function termsFor(entity: GazetteerEntity): string[] {
       const m = JSON.parse(entity.metadata) as { aliases?: unknown };
       if (Array.isArray(m.aliases)) {
         for (const a of m.aliases) {
-          if (typeof a === "string" && a.trim()) out.add(a.toLowerCase());
+          if (typeof a === 'string' && a.trim()) out.add(a.toLowerCase());
         }
       }
     } catch {
@@ -57,7 +57,7 @@ export function buildPatterns(entities: GazetteerEntity[]): CompiledPattern[] {
   for (const e of entities) {
     for (const term of termsFor(e)) {
       out.push({
-        re: new RegExp(`(?<!\\w)${escapeRegex(term)}(?!\\w)`, "i"),
+        re: new RegExp(`(?<!\\w)${escapeRegex(term)}(?!\\w)`, 'i'),
         eid: e.id,
       });
     }

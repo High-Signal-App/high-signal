@@ -1,8 +1,16 @@
 {
   "lastUpdated": "2026-06-10T13:55:00.000Z",
   "sites": [
-    "google.com", "youtube.com", "facebook.com", "instagram.com", "x.com", "linkedin.com",
-    "wikipedia.org", "amazon.com", "github.com", "openai.com"
+    "google.com",
+    "youtube.com",
+    "facebook.com",
+    "instagram.com",
+    "x.com",
+    "linkedin.com",
+    "wikipedia.org",
+    "amazon.com",
+    "github.com",
+    "openai.com"
   ],
   "domains": {
     "google.com": { "history": [{ "ts": 1781098796780, "dr": 99 }] },

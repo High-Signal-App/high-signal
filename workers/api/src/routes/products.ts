@@ -1,15 +1,15 @@
-import { Hono } from "hono";
-import { and, desc, eq, gte, inArray } from "drizzle-orm";
-import { db, schema } from "../db";
-import { BADGE_WIDGET_JS } from "../lib/badge-widget";
-import { sha16 } from "../lib/ids";
-import { fetchChatCompletion, FREE_AI_DEFAULT_ENDPOINT } from "../lib/ai-client";
-import type { AIConfig } from "../lib/ai-client";
-import { generateCommunityDigest } from "../lib/community-research";
-import { searchExternalMentions } from "../lib/external-monitors";
-import { runMentionCheck } from "../lib/mention-execution";
-import { executePromptsWithAI } from "../lib/agent-evaluation-execution";
-import { runSeoAudit } from "../lib/seo-audit";
+import { Hono } from 'hono';
+import { and, desc, eq, gte, inArray } from 'drizzle-orm';
+import { db, schema } from '../db';
+import { BADGE_WIDGET_JS } from '../lib/badge-widget';
+import { sha16 } from '../lib/ids';
+import { fetchChatCompletion, FREE_AI_DEFAULT_ENDPOINT } from '../lib/ai-client';
+import type { AIConfig } from '../lib/ai-client';
+import { generateCommunityDigest } from '../lib/community-research';
+import { searchExternalMentions } from '../lib/external-monitors';
+import { runMentionCheck } from '../lib/mention-execution';
+import { executePromptsWithAI } from '../lib/agent-evaluation-execution';
+import { runSeoAudit } from '../lib/seo-audit';
 import {
   buildAgentEvaluationAudit,
   buildMonthlyCompetitorReport,
@@ -34,7 +34,7 @@ import {
   type IntentOpportunityCandidate,
   type MatrixRow,
   type MentionRow,
-} from "@high-signal/shared";
+} from '@high-signal/shared';
 import type {
   AgentEvaluationAudit,
   AgentEvaluationAuditDetail,
@@ -56,7 +56,7 @@ import type {
   PersistedReelBrief,
   ProductDashboardSnapshot,
   TrackedCommunity,
-} from "@high-signal/shared";
+} from '@high-signal/shared';
 
 type Env = {
   DB: D1Database;
@@ -74,14 +74,18 @@ type NewConfigBody = Partial<{
   platforms: AIPlatform[];
   aiEndpointUrl: string | null;
   aiModel: string | null;
-  checkSchedule: "daily" | "weekly" | null;
+  checkSchedule: 'daily' | 'weekly' | null;
   badgeEnabled: boolean;
 }>;
-type NewPromptBody = Partial<{ promptText: string; category: string | null; persona: string | null }>;
+type NewPromptBody = Partial<{
+  promptText: string;
+  category: string | null;
+  persona: string | null;
+}>;
 type NewCommunityBody = Partial<{
   subreddit: string;
   prompt: string | null;
-  period: "day" | "week" | "month";
+  period: 'day' | 'week' | 'month';
   isPublic: boolean;
 }>;
 type NewDigestBody = Partial<{
@@ -100,14 +104,14 @@ type NewAgentAuditBody = Partial<{
   evidenceText: string | null;
   evidenceUrls: string[];
 }>;
-type IntentStatus = "open" | "dismissed" | "done";
+type IntentStatus = 'open' | 'dismissed' | 'done';
 type PatchIntentOpportunityBody = Partial<{ status: IntentStatus }>;
 
 export const productsRoute = new Hono<{ Bindings: Env }>();
 
-productsRoute.get("/dashboard", async (c) => {
-  const ownerId = c.req.query("owner")?.trim();
-  if (!ownerId) return c.json({ error: "missing_owner" }, 400);
+productsRoute.get('/dashboard', async (c) => {
+  const ownerId = c.req.query('owner')?.trim();
+  if (!ownerId) return c.json({ error: 'missing_owner' }, 400);
 
   const database = db(c.env.DB);
   const [configs, prompts, recentChecks, tracked, latestDigests] = await Promise.all([
@@ -151,7 +155,7 @@ productsRoute.get("/dashboard", async (c) => {
       recentChecks,
       tracked,
       latestDigests,
-    }),
+    })
   );
 });
 
@@ -163,37 +167,37 @@ productsRoute.get("/dashboard", async (c) => {
  *
  * Cached 10 minutes per URL via CF edge headers.
  */
-productsRoute.get("/agent-eval/seo-audit", async (c) => {
-  const url = c.req.query("url")?.trim();
-  if (!url) return c.json({ error: "missing_url" }, 400);
-  if (!/^https?:\/\//i.test(url)) return c.json({ error: "invalid_url" }, 400);
+productsRoute.get('/agent-eval/seo-audit', async (c) => {
+  const url = c.req.query('url')?.trim();
+  if (!url) return c.json({ error: 'missing_url' }, 400);
+  if (!/^https?:\/\//i.test(url)) return c.json({ error: 'invalid_url' }, 400);
   const report = await runSeoAudit(url);
   return c.json(report, 200, {
-    "Cache-Control": "public, max-age=600, s-maxage=600",
+    'Cache-Control': 'public, max-age=600, s-maxage=600',
   });
 });
 
-productsRoute.get("/agent-eval/audits", async (c) => {
+productsRoute.get('/agent-eval/audits', async (c) => {
   const ownerId = requireOwner(c);
-  if (!ownerId) return c.json({ error: "missing_owner" }, 400);
+  if (!ownerId) return c.json({ error: 'missing_owner' }, 400);
 
   const rows = await db(c.env.DB)
     .select()
     .from(schema.agentEvaluationAudits)
     .where(eq(schema.agentEvaluationAudits.ownerId, ownerId))
     .orderBy(desc(schema.agentEvaluationAudits.createdAt))
-    .limit(clampedLimit(c.req.query("limit"), 10, 50));
+    .limit(clampedLimit(c.req.query('limit'), 10, 50));
 
   return c.json({ audits: rows.map(toAgentEvaluationAudit) });
 });
 
-productsRoute.post("/agent-eval/audits", async (c) => {
+productsRoute.post('/agent-eval/audits', async (c) => {
   const ownerId = requireOwner(c);
-  if (!ownerId) return c.json({ error: "missing_owner" }, 400);
+  if (!ownerId) return c.json({ error: 'missing_owner' }, 400);
 
   const body = await safeJson<NewAgentAuditBody>(c.req);
   const parsed = parseAgentAuditInput(ownerId, body);
-  if ("error" in parsed) return c.json({ error: parsed.error }, 400);
+  if ('error' in parsed) return c.json({ error: parsed.error }, 400);
 
   const baseResult = buildAgentEvaluationAudit(parsed.input);
   const enrichedPrompts = await executePromptsWithAI({
@@ -216,7 +220,7 @@ productsRoute.post("/agent-eval/audits", async (c) => {
       buyerMission: parsed.input.buyerMission,
       targetSegment: parsed.input.targetSegment ?? null,
       competitors: parsed.input.competitors ?? [],
-      status: "completed",
+      status: 'completed',
       overallScore: result.overallScore,
       recommendationSummary: result.recommendationSummary,
       evidenceText: parsed.input.evidenceText ?? null,
@@ -240,7 +244,7 @@ productsRoute.post("/agent-eval/audits", async (c) => {
       competitorsMentioned: prompt.competitorsMentioned,
       citations: prompt.citations,
       createdAt: now,
-    })),
+    }))
   );
   await database.insert(schema.agentEvidenceScores).values(
     result.scores.map((score) => ({
@@ -253,7 +257,7 @@ productsRoute.post("/agent-eval/audits", async (c) => {
       evidenceUrls: score.evidenceUrls,
       notes: score.notes,
       createdAt: now,
-    })),
+    }))
   );
   if (result.tasks.length) {
     await database.insert(schema.agentEvidenceTasks).values(
@@ -267,7 +271,7 @@ productsRoute.post("/agent-eval/audits", async (c) => {
         status: task.status,
         sourceUrl: task.sourceUrl ?? null,
         createdAt: now,
-      })),
+      }))
     );
   }
   await database.insert(schema.reelBriefs).values(
@@ -285,23 +289,23 @@ productsRoute.post("/agent-eval/audits", async (c) => {
       claimBoundary: brief.claimBoundary,
       evidenceUrls: brief.evidenceUrls,
       createdAt: now,
-    })),
+    }))
   );
 
   return c.json(await loadAgentEvaluationAudit(c.env.DB, ownerId, audit.id), 201);
 });
 
-productsRoute.get("/agent-eval/audits/:id", async (c) => {
+productsRoute.get('/agent-eval/audits/:id', async (c) => {
   const ownerId = requireOwner(c);
-  if (!ownerId) return c.json({ error: "missing_owner" }, 400);
-  const detail = await loadAgentEvaluationAudit(c.env.DB, ownerId, c.req.param("id"));
-  if (!detail) return c.json({ error: "not_found" }, 404);
+  if (!ownerId) return c.json({ error: 'missing_owner' }, 400);
+  const detail = await loadAgentEvaluationAudit(c.env.DB, ownerId, c.req.param('id'));
+  if (!detail) return c.json({ error: 'not_found' }, 404);
   return c.json(detail);
 });
 
-productsRoute.get("/mentions/configs", async (c) => {
+productsRoute.get('/mentions/configs', async (c) => {
   const ownerId = requireOwner(c);
-  if (!ownerId) return c.json({ error: "missing_owner" }, 400);
+  if (!ownerId) return c.json({ error: 'missing_owner' }, 400);
 
   const rows = await db(c.env.DB)
     .select()
@@ -312,13 +316,13 @@ productsRoute.get("/mentions/configs", async (c) => {
   return c.json({ configs: rows.map(toMentionBrandConfig) });
 });
 
-productsRoute.post("/mentions/configs", async (c) => {
+productsRoute.post('/mentions/configs', async (c) => {
   const ownerId = requireOwner(c);
-  if (!ownerId) return c.json({ error: "missing_owner" }, 400);
+  if (!ownerId) return c.json({ error: 'missing_owner' }, 400);
 
   const body = await safeJson<NewConfigBody>(c.req);
   const parsed = parseBrandConfigInput(ownerId, body);
-  if ("error" in parsed) return c.json({ error: parsed.error }, 400);
+  if ('error' in parsed) return c.json({ error: parsed.error }, 400);
 
   const [row] = await db(c.env.DB)
     .insert(schema.mentionBrandConfigs)
@@ -328,16 +332,16 @@ productsRoute.post("/mentions/configs", async (c) => {
   return c.json({ config: toMentionBrandConfig(row) }, 201);
 });
 
-productsRoute.patch("/mentions/configs/:id", async (c) => {
+productsRoute.patch('/mentions/configs/:id', async (c) => {
   const ownerId = requireOwner(c);
-  if (!ownerId) return c.json({ error: "missing_owner" }, 400);
+  if (!ownerId) return c.json({ error: 'missing_owner' }, 400);
 
-  const existing = await getOwnedConfig(c.env.DB, ownerId, c.req.param("id"));
-  if (!existing) return c.json({ error: "not_found" }, 404);
+  const existing = await getOwnedConfig(c.env.DB, ownerId, c.req.param('id'));
+  if (!existing) return c.json({ error: 'not_found' }, 404);
 
   const body = await safeJson<NewConfigBody>(c.req);
   const parsed = parseBrandConfigInput(ownerId, body, existing);
-  if ("error" in parsed) return c.json({ error: parsed.error }, 400);
+  if ('error' in parsed) return c.json({ error: parsed.error }, 400);
 
   const [row] = await db(c.env.DB)
     .update(schema.mentionBrandConfigs)
@@ -348,11 +352,11 @@ productsRoute.patch("/mentions/configs/:id", async (c) => {
   return c.json({ config: toMentionBrandConfig(row) });
 });
 
-productsRoute.delete("/mentions/configs/:id", async (c) => {
+productsRoute.delete('/mentions/configs/:id', async (c) => {
   const ownerId = requireOwner(c);
-  if (!ownerId) return c.json({ error: "missing_owner" }, 400);
-  const existing = await getOwnedConfig(c.env.DB, ownerId, c.req.param("id"));
-  if (!existing) return c.json({ error: "not_found" }, 404);
+  if (!ownerId) return c.json({ error: 'missing_owner' }, 400);
+  const existing = await getOwnedConfig(c.env.DB, ownerId, c.req.param('id'));
+  if (!existing) return c.json({ error: 'not_found' }, 404);
 
   const database = db(c.env.DB);
   await database
@@ -368,11 +372,11 @@ productsRoute.delete("/mentions/configs/:id", async (c) => {
   return c.json({ ok: true });
 });
 
-productsRoute.get("/mentions/configs/:id/prompts", async (c) => {
+productsRoute.get('/mentions/configs/:id/prompts', async (c) => {
   const ownerId = requireOwner(c);
-  if (!ownerId) return c.json({ error: "missing_owner" }, 400);
-  const config = await getOwnedConfig(c.env.DB, ownerId, c.req.param("id"));
-  if (!config) return c.json({ error: "not_found" }, 404);
+  if (!ownerId) return c.json({ error: 'missing_owner' }, 400);
+  const config = await getOwnedConfig(c.env.DB, ownerId, c.req.param('id'));
+  if (!config) return c.json({ error: 'not_found' }, 404);
 
   const rows = await db(c.env.DB)
     .select()
@@ -383,15 +387,15 @@ productsRoute.get("/mentions/configs/:id/prompts", async (c) => {
   return c.json({ prompts: rows.map(toMentionPrompt) });
 });
 
-productsRoute.post("/mentions/configs/:id/prompts", async (c) => {
+productsRoute.post('/mentions/configs/:id/prompts', async (c) => {
   const ownerId = requireOwner(c);
-  if (!ownerId) return c.json({ error: "missing_owner" }, 400);
-  const config = await getOwnedConfig(c.env.DB, ownerId, c.req.param("id"));
-  if (!config) return c.json({ error: "not_found" }, 404);
+  if (!ownerId) return c.json({ error: 'missing_owner' }, 400);
+  const config = await getOwnedConfig(c.env.DB, ownerId, c.req.param('id'));
+  if (!config) return c.json({ error: 'not_found' }, 404);
 
   const body = await safeJson<NewPromptBody>(c.req);
   const promptText = body.promptText?.trim();
-  if (!promptText) return c.json({ error: "missing_prompt_text" }, 400);
+  if (!promptText) return c.json({ error: 'missing_prompt_text' }, 400);
 
   const [row] = await db(c.env.DB)
     .insert(schema.mentionPrompts)
@@ -409,26 +413,31 @@ productsRoute.post("/mentions/configs/:id/prompts", async (c) => {
   return c.json({ prompt: toMentionPrompt(row) }, 201);
 });
 
-productsRoute.delete("/mentions/prompts/:id", async (c) => {
+productsRoute.delete('/mentions/prompts/:id', async (c) => {
   const ownerId = requireOwner(c);
-  if (!ownerId) return c.json({ error: "missing_owner" }, 400);
+  if (!ownerId) return c.json({ error: 'missing_owner' }, 400);
 
   const [prompt] = await db(c.env.DB)
     .select()
     .from(schema.mentionPrompts)
-    .where(and(eq(schema.mentionPrompts.ownerId, ownerId), eq(schema.mentionPrompts.id, c.req.param("id"))))
+    .where(
+      and(
+        eq(schema.mentionPrompts.ownerId, ownerId),
+        eq(schema.mentionPrompts.id, c.req.param('id'))
+      )
+    )
     .limit(1);
-  if (!prompt) return c.json({ error: "not_found" }, 404);
+  if (!prompt) return c.json({ error: 'not_found' }, 404);
 
   await db(c.env.DB).delete(schema.mentionPrompts).where(eq(schema.mentionPrompts.id, prompt.id));
   return c.json({ ok: true });
 });
 
-productsRoute.get("/mentions/configs/:id/checks", async (c) => {
+productsRoute.get('/mentions/configs/:id/checks', async (c) => {
   const ownerId = requireOwner(c);
-  if (!ownerId) return c.json({ error: "missing_owner" }, 400);
-  const config = await getOwnedConfig(c.env.DB, ownerId, c.req.param("id"));
-  if (!config) return c.json({ error: "not_found" }, 404);
+  if (!ownerId) return c.json({ error: 'missing_owner' }, 400);
+  const config = await getOwnedConfig(c.env.DB, ownerId, c.req.param('id'));
+  if (!config) return c.json({ error: 'not_found' }, 404);
 
   const rows = await db(c.env.DB)
     .select()
@@ -440,17 +449,17 @@ productsRoute.get("/mentions/configs/:id/checks", async (c) => {
   return c.json({ checks: rows.map(toMentionCheck) });
 });
 
-productsRoute.post("/mentions/configs/:id/checks", async (c) => {
+productsRoute.post('/mentions/configs/:id/checks', async (c) => {
   const ownerId = requireOwner(c);
-  if (!ownerId) return c.json({ error: "missing_owner" }, 400);
-  const config = await getOwnedConfig(c.env.DB, ownerId, c.req.param("id"));
-  if (!config) return c.json({ error: "not_found" }, 404);
+  if (!ownerId) return c.json({ error: 'missing_owner' }, 400);
+  const config = await getOwnedConfig(c.env.DB, ownerId, c.req.param('id'));
+  if (!config) return c.json({ error: 'not_found' }, 404);
 
   const prompts = await db(c.env.DB)
     .select()
     .from(schema.mentionPrompts)
     .where(eq(schema.mentionPrompts.configId, config.id));
-  if (prompts.length === 0) return c.json({ error: "missing_prompts" }, 400);
+  if (prompts.length === 0) return c.json({ error: 'missing_prompts' }, 400);
 
   const database = db(c.env.DB);
   const [row] = await database
@@ -459,7 +468,7 @@ productsRoute.post("/mentions/configs/:id/checks", async (c) => {
       id: crypto.randomUUID(),
       configId: config.id,
       ownerId,
-      status: "running",
+      status: 'running',
       totalQueries: prompts.length,
       completedQueries: 0,
       createdAt: new Date(),
@@ -482,41 +491,47 @@ productsRoute.post("/mentions/configs/:id/checks", async (c) => {
             limit: 50,
           }),
         ]);
-        const labels = ["cited-source", "intent-opportunity"];
+        const labels = ['cited-source', 'intent-opportunity'];
         refreshes.forEach((result, index) => {
-          if (result.status === "rejected") {
-            console.error(`High Signal mention check / ${labels[index]} refresh failed:`, result.reason);
+          if (result.status === 'rejected') {
+            console.error(
+              `High Signal mention check / ${labels[index]} refresh failed:`,
+              result.reason
+            );
           }
         });
       })
-      .catch((error) => console.error("High Signal mention check failed:", error)),
+      .catch((error) => console.error('High Signal mention check failed:', error))
   );
 
   return c.json({ check: toMentionCheck(row) }, 201);
 });
 
-productsRoute.get("/mentions/configs/:id/monitors", async (c) => {
+productsRoute.get('/mentions/configs/:id/monitors', async (c) => {
   const ownerId = requireOwner(c);
-  if (!ownerId) return c.json({ error: "missing_owner" }, 400);
-  const config = await getOwnedConfig(c.env.DB, ownerId, c.req.param("id"));
-  if (!config) return c.json({ error: "not_found" }, 404);
+  if (!ownerId) return c.json({ error: 'missing_owner' }, 400);
+  const config = await getOwnedConfig(c.env.DB, ownerId, c.req.param('id'));
+  if (!config) return c.json({ error: 'not_found' }, 404);
 
   const results = await searchExternalMentions({
     brandName: config.brandName,
     aliases: stringArray(config.brandAliases),
-    days: clampedLimit(c.req.query("days"), 30, 365),
+    days: clampedLimit(c.req.query('days'), 30, 365),
   });
   return c.json(results);
 });
 
-productsRoute.get("/mentions/configs/:id/report", async (c) => {
+productsRoute.get('/mentions/configs/:id/report', async (c) => {
   const ownerId = requireOwner(c);
-  if (!ownerId) return c.json({ error: "missing_owner" }, 400);
-  const config = await getOwnedConfig(c.env.DB, ownerId, c.req.param("id"));
-  if (!config) return c.json({ error: "not_found" }, 404);
+  if (!ownerId) return c.json({ error: 'missing_owner' }, 400);
+  const config = await getOwnedConfig(c.env.DB, ownerId, c.req.param('id'));
+  if (!config) return c.json({ error: 'not_found' }, 404);
 
   const [prompts, checks] = await Promise.all([
-    db(c.env.DB).select().from(schema.mentionPrompts).where(eq(schema.mentionPrompts.configId, config.id)),
+    db(c.env.DB)
+      .select()
+      .from(schema.mentionPrompts)
+      .where(eq(schema.mentionPrompts.configId, config.id)),
     db(c.env.DB)
       .select()
       .from(schema.mentionChecks)
@@ -537,7 +552,9 @@ productsRoute.get("/mentions/configs/:id/report", async (c) => {
 
   const competitorReport = buildMonthlyCompetitorReport({
     brandName: config.brandName,
-    competitors: objectArray<{ name?: string; url?: string }>(config.competitors || []).map((c) => c?.name || ""),
+    competitors: objectArray<{ name?: string; url?: string }>(config.competitors || []).map(
+      (c) => c?.name || ''
+    ),
     mentionResults: recentResults.map((r) => ({
       responseText: r.responseText,
       platform: r.platform,
@@ -565,18 +582,18 @@ productsRoute.get("/mentions/configs/:id/report", async (c) => {
 // Dedicated competitor report surface (seed fixture for public/demo verification + real path).
 // GET /products/mentions/competitor-report?seed=linear  (public, uses fixed small seed set)
 // GET /products/mentions/competitor-report?owner=...&config=...  (real data overlay from mentions)
-productsRoute.get("/mentions/competitor-report", async (c) => {
-  const seedId = c.req.query("seed")?.trim();
+productsRoute.get('/mentions/competitor-report', async (c) => {
+  const seedId = c.req.query('seed')?.trim();
   if (seedId) {
     const report = getSeedMonthlyCompetitorReport(seedId);
     if (report) {
       return c.json({ report });
     }
-    return c.json({ error: "unknown_seed_product" }, 404);
+    return c.json({ error: 'unknown_seed_product' }, 404);
   }
 
-  const ownerId = c.req.query("owner")?.trim();
-  const configId = c.req.query("config")?.trim();
+  const ownerId = c.req.query('owner')?.trim();
+  const configId = c.req.query('config')?.trim();
   if (ownerId && configId) {
     const config = await getOwnedConfig(c.env.DB, ownerId, configId);
     if (config) {
@@ -596,7 +613,9 @@ productsRoute.get("/mentions/competitor-report", async (c) => {
       }
       const report = buildMonthlyCompetitorReport({
         brandName: config.brandName,
-        competitors: objectArray<{ name?: string; url?: string }>(config.competitors || []).map((c) => c?.name || ""),
+        competitors: objectArray<{ name?: string; url?: string }>(config.competitors || []).map(
+          (c) => c?.name || ''
+        ),
         mentionResults: recentResults.map((r) => ({
           responseText: r.responseText,
           platform: r.platform,
@@ -607,52 +626,57 @@ productsRoute.get("/mentions/competitor-report", async (c) => {
       });
       return c.json({ report });
     }
-    return c.json({ error: "not_found" }, 404);
+    return c.json({ error: 'not_found' }, 404);
   }
 
   // Default demo fixture (no auth) — satisfies "verify with a local route or data fixture".
-  return c.json({ report: getSeedMonthlyCompetitorReport("linear") });
+  return c.json({ report: getSeedMonthlyCompetitorReport('linear') });
 });
 
-productsRoute.get("/badge/widget.js", () => {
+productsRoute.get('/badge/widget.js', () => {
   return new Response(BADGE_WIDGET_JS, {
     headers: {
-      "Content-Type": "application/javascript; charset=utf-8",
-      "Cache-Control": "public, max-age=86400, s-maxage=86400",
-      "Access-Control-Allow-Origin": "*",
+      'Content-Type': 'application/javascript; charset=utf-8',
+      'Cache-Control': 'public, max-age=86400, s-maxage=86400',
+      'Access-Control-Allow-Origin': '*',
     },
   });
 });
 
-productsRoute.get("/badge/:configId", async (c) => {
-  const config = await getConfig(c.env.DB, c.req.param("configId"));
-  if (!config) return c.json({ error: "not_found" }, 404);
-  if (!config.badgeEnabled) return c.json({ error: "badge_disabled" }, 403);
+productsRoute.get('/badge/:configId', async (c) => {
+  const config = await getConfig(c.env.DB, c.req.param('configId'));
+  if (!config) return c.json({ error: 'not_found' }, 404);
+  if (!config.badgeEnabled) return c.json({ error: 'badge_disabled' }, 403);
 
   const [latestCheck] = await db(c.env.DB)
     .select()
     .from(schema.mentionChecks)
-    .where(and(eq(schema.mentionChecks.configId, config.id), eq(schema.mentionChecks.status, "completed")))
+    .where(
+      and(
+        eq(schema.mentionChecks.configId, config.id),
+        eq(schema.mentionChecks.status, 'completed')
+      )
+    )
     .orderBy(desc(schema.mentionChecks.createdAt))
     .limit(1);
-  if (!latestCheck) return c.json({ error: "no_completed_checks" }, 404);
+  if (!latestCheck) return c.json({ error: 'no_completed_checks' }, 404);
 
   const results = await db(c.env.DB)
     .select()
     .from(schema.mentionResults)
     .where(eq(schema.mentionResults.checkId, latestCheck.id));
-  if (results.length === 0) return c.json({ error: "no_results" }, 404);
+  if (results.length === 0) return c.json({ error: 'no_results' }, 404);
 
   const badge = visibilityBadge(toMentionBrandConfig(config), toMentionCheck(latestCheck), results);
   return c.json(badge, 200, {
-    "Cache-Control": "public, max-age=3600, s-maxage=3600",
-    "Access-Control-Allow-Origin": "*",
+    'Cache-Control': 'public, max-age=3600, s-maxage=3600',
+    'Access-Control-Allow-Origin': '*',
   });
 });
 
-productsRoute.get("/communities/tracked", async (c) => {
+productsRoute.get('/communities/tracked', async (c) => {
   const ownerId = requireOwner(c);
-  if (!ownerId) return c.json({ error: "missing_owner" }, 400);
+  if (!ownerId) return c.json({ error: 'missing_owner' }, 400);
   const rows = await db(c.env.DB)
     .select()
     .from(schema.trackedCommunities)
@@ -662,26 +686,29 @@ productsRoute.get("/communities/tracked", async (c) => {
   return c.json({ communities: rows.map(toTrackedCommunity) });
 });
 
-productsRoute.post("/communities/tracked", async (c) => {
+productsRoute.post('/communities/tracked', async (c) => {
   const ownerId = requireOwner(c);
-  if (!ownerId) return c.json({ error: "missing_owner" }, 400);
+  if (!ownerId) return c.json({ error: 'missing_owner' }, 400);
   const body = await safeJson<NewCommunityBody>(c.req);
   const parsed = parseTrackedCommunityInput(ownerId, body);
-  if ("error" in parsed) return c.json({ error: parsed.error }, 400);
+  if ('error' in parsed) return c.json({ error: parsed.error }, 400);
 
-  const [row] = await db(c.env.DB).insert(schema.trackedCommunities).values(parsed.values).returning();
+  const [row] = await db(c.env.DB)
+    .insert(schema.trackedCommunities)
+    .values(parsed.values)
+    .returning();
   return c.json({ community: toTrackedCommunity(row) }, 201);
 });
 
-productsRoute.patch("/communities/tracked/:id", async (c) => {
+productsRoute.patch('/communities/tracked/:id', async (c) => {
   const ownerId = requireOwner(c);
-  if (!ownerId) return c.json({ error: "missing_owner" }, 400);
-  const existing = await getOwnedCommunity(c.env.DB, ownerId, c.req.param("id"));
-  if (!existing) return c.json({ error: "not_found" }, 404);
+  if (!ownerId) return c.json({ error: 'missing_owner' }, 400);
+  const existing = await getOwnedCommunity(c.env.DB, ownerId, c.req.param('id'));
+  if (!existing) return c.json({ error: 'not_found' }, 404);
 
   const body = await safeJson<NewCommunityBody>(c.req);
   const parsed = parseTrackedCommunityInput(ownerId, body, existing);
-  if ("error" in parsed) return c.json({ error: parsed.error }, 400);
+  if ('error' in parsed) return c.json({ error: parsed.error }, 400);
 
   const [row] = await db(c.env.DB)
     .update(schema.trackedCommunities)
@@ -691,25 +718,27 @@ productsRoute.patch("/communities/tracked/:id", async (c) => {
   return c.json({ community: toTrackedCommunity(row) });
 });
 
-productsRoute.delete("/communities/tracked/:id", async (c) => {
+productsRoute.delete('/communities/tracked/:id', async (c) => {
   const ownerId = requireOwner(c);
-  if (!ownerId) return c.json({ error: "missing_owner" }, 400);
-  const existing = await getOwnedCommunity(c.env.DB, ownerId, c.req.param("id"));
-  if (!existing) return c.json({ error: "not_found" }, 404);
+  if (!ownerId) return c.json({ error: 'missing_owner' }, 400);
+  const existing = await getOwnedCommunity(c.env.DB, ownerId, c.req.param('id'));
+  if (!existing) return c.json({ error: 'not_found' }, 404);
 
   const database = db(c.env.DB);
   await database
     .delete(schema.communityDigestSnapshots)
     .where(eq(schema.communityDigestSnapshots.trackedCommunityId, existing.id));
-  await database.delete(schema.trackedCommunities).where(eq(schema.trackedCommunities.id, existing.id));
+  await database
+    .delete(schema.trackedCommunities)
+    .where(eq(schema.trackedCommunities.id, existing.id));
   return c.json({ ok: true });
 });
 
-productsRoute.post("/communities/tracked/:id/digests", async (c) => {
+productsRoute.post('/communities/tracked/:id/digests', async (c) => {
   const ownerId = requireOwner(c);
-  if (!ownerId) return c.json({ error: "missing_owner" }, 400);
-  const tracked = await getOwnedCommunity(c.env.DB, ownerId, c.req.param("id"));
-  if (!tracked) return c.json({ error: "not_found" }, 404);
+  if (!ownerId) return c.json({ error: 'missing_owner' }, 400);
+  const tracked = await getOwnedCommunity(c.env.DB, ownerId, c.req.param('id'));
+  if (!tracked) return c.json({ error: 'not_found' }, 404);
 
   const body = await safeJson<NewDigestBody>(c.req);
   const summaryText = body.summaryText?.trim();
@@ -721,8 +750,8 @@ productsRoute.post("/communities/tracked/:id/digests", async (c) => {
     });
     return c.json({ digest: toCommunityDigestSnapshot(row) }, 201);
   }
-  const promptUsed = body.promptUsed?.trim() || tracked.prompt || "";
-  if (!promptUsed) return c.json({ error: "missing_prompt_used" }, 400);
+  const promptUsed = body.promptUsed?.trim() || tracked.prompt || '';
+  if (!promptUsed) return c.json({ error: 'missing_prompt_used' }, 400);
 
   const [row] = await db(c.env.DB)
     .insert(schema.communityDigestSnapshots)
@@ -744,50 +773,50 @@ productsRoute.post("/communities/tracked/:id/digests", async (c) => {
   return c.json({ digest: toCommunityDigestSnapshot(row) }, 201);
 });
 
-productsRoute.get("/communities/:subreddit/:period/digests", async (c) => {
-  const subreddit = c.req.param("subreddit");
-  const period = c.req.param("period");
-  if (!isRedditPeriod(period)) return c.json({ error: "invalid_period" }, 400);
+productsRoute.get('/communities/:subreddit/:period/digests', async (c) => {
+  const subreddit = c.req.param('subreddit');
+  const period = c.req.param('period');
+  if (!isRedditPeriod(period)) return c.json({ error: 'invalid_period' }, 400);
 
   const rows = await db(c.env.DB)
     .select({ digest: schema.communityDigestSnapshots })
     .from(schema.communityDigestSnapshots)
     .innerJoin(
       schema.trackedCommunities,
-      eq(schema.communityDigestSnapshots.trackedCommunityId, schema.trackedCommunities.id),
+      eq(schema.communityDigestSnapshots.trackedCommunityId, schema.trackedCommunities.id)
     )
     .where(
       and(
         eq(schema.trackedCommunities.isPublic, true),
         eq(schema.communityDigestSnapshots.subreddit, subreddit),
-        eq(schema.communityDigestSnapshots.period, period),
-      ),
+        eq(schema.communityDigestSnapshots.period, period)
+      )
     )
     .orderBy(desc(schema.communityDigestSnapshots.snapshotDate))
-    .limit(clampedLimit(c.req.query("limit"), 12, 50));
+    .limit(clampedLimit(c.req.query('limit'), 12, 50));
 
   return c.json({ digests: rows.map((row) => toCommunityDigestSnapshot(row.digest)) });
 });
 
-productsRoute.get("/communities/discover", async (c) => {
-  const period = c.req.query("period") ?? "week";
-  if (!isRedditPeriod(period)) return c.json({ error: "invalid_period" }, 400);
+productsRoute.get('/communities/discover', async (c) => {
+  const period = c.req.query('period') ?? 'week';
+  if (!isRedditPeriod(period)) return c.json({ error: 'invalid_period' }, 400);
 
   const rows = await db(c.env.DB)
     .select({ digest: schema.communityDigestSnapshots })
     .from(schema.communityDigestSnapshots)
     .innerJoin(
       schema.trackedCommunities,
-      eq(schema.communityDigestSnapshots.trackedCommunityId, schema.trackedCommunities.id),
+      eq(schema.communityDigestSnapshots.trackedCommunityId, schema.trackedCommunities.id)
     )
     .where(
       and(
         eq(schema.trackedCommunities.isPublic, true),
-        eq(schema.communityDigestSnapshots.period, period),
-      ),
+        eq(schema.communityDigestSnapshots.period, period)
+      )
     )
     .orderBy(desc(schema.communityDigestSnapshots.snapshotDate))
-    .limit(clampedLimit(c.req.query("limit"), 25, 100));
+    .limit(clampedLimit(c.req.query('limit'), 25, 100));
 
   return c.json({ items: rows.map((row) => toCommunityDigestSnapshot(row.digest)) });
 });
@@ -815,7 +844,7 @@ export function productDashboardSnapshot(input: {
 }
 
 function toMentionBrandConfig(
-  row: typeof schema.mentionBrandConfigs.$inferSelect,
+  row: typeof schema.mentionBrandConfigs.$inferSelect
 ): MentionBrandConfig {
   return {
     id: row.id,
@@ -824,7 +853,7 @@ function toMentionBrandConfig(
     brandAliases: stringArray(row.brandAliases),
     brandUrl: row.brandUrl,
     competitors: objectArray<{ name: string; url?: string }>(row.competitors).filter((item) =>
-      Boolean(item.name),
+      Boolean(item.name)
     ),
     platforms: stringArray(row.platforms).filter(isAIPlatform),
     aiEndpointUrl: row.aiEndpointUrl,
@@ -873,7 +902,7 @@ function toTrackedCommunity(row: typeof schema.trackedCommunities.$inferSelect):
 }
 
 function toCommunityDigestSnapshot(
-  row: typeof schema.communityDigestSnapshots.$inferSelect,
+  row: typeof schema.communityDigestSnapshots.$inferSelect
 ): CommunityDigestSnapshot {
   return {
     id: row.id,
@@ -889,7 +918,7 @@ function toCommunityDigestSnapshot(
 }
 
 function toAgentEvaluationAudit(
-  row: typeof schema.agentEvaluationAudits.$inferSelect,
+  row: typeof schema.agentEvaluationAudits.$inferSelect
 ): AgentEvaluationAudit {
   return {
     id: row.id,
@@ -899,7 +928,7 @@ function toAgentEvaluationAudit(
     buyerMission: row.buyerMission,
     targetSegment: row.targetSegment,
     competitors: objectArray<AgentEvaluationCompetitor>(row.competitors).filter((item) =>
-      Boolean(item.name),
+      Boolean(item.name)
     ),
     status: row.status as AgentAuditStatus,
     overallScore: row.overallScore,
@@ -912,7 +941,7 @@ function toAgentEvaluationAudit(
 }
 
 function toAgentPromptResult(
-  row: typeof schema.agentEvaluationResponses.$inferSelect,
+  row: typeof schema.agentEvaluationResponses.$inferSelect
 ): PersistedAgentPromptResult {
   return {
     id: row.id,
@@ -924,7 +953,7 @@ function toAgentPromptResult(
     brandMentioned: row.brandMentioned,
     brandRecommended: row.brandRecommended,
     competitorsMentioned: objectArray<AgentEvaluationCompetitor>(row.competitorsMentioned).filter(
-      (item) => Boolean(item.name),
+      (item) => Boolean(item.name)
     ),
     citations: stringArray(row.citations),
     createdAt: row.createdAt.toISOString(),
@@ -932,7 +961,7 @@ function toAgentPromptResult(
 }
 
 function toEvidenceLayerScore(
-  row: typeof schema.agentEvidenceScores.$inferSelect,
+  row: typeof schema.agentEvidenceScores.$inferSelect
 ): PersistedEvidenceLayerScore {
   return {
     id: row.id,
@@ -947,7 +976,7 @@ function toEvidenceLayerScore(
 }
 
 function toMissingEvidenceTask(
-  row: typeof schema.agentEvidenceTasks.$inferSelect,
+  row: typeof schema.agentEvidenceTasks.$inferSelect
 ): PersistedMissingEvidenceTask {
   return {
     id: row.id,
@@ -981,13 +1010,18 @@ function toReelBrief(row: typeof schema.reelBriefs.$inferSelect): PersistedReelB
 async function loadAgentEvaluationAudit(
   d1: D1Database,
   ownerId: string,
-  id: string,
+  id: string
 ): Promise<AgentEvaluationAuditDetail | null> {
   const database = db(d1);
   const [audit] = await database
     .select()
     .from(schema.agentEvaluationAudits)
-    .where(and(eq(schema.agentEvaluationAudits.ownerId, ownerId), eq(schema.agentEvaluationAudits.id, id)))
+    .where(
+      and(
+        eq(schema.agentEvaluationAudits.ownerId, ownerId),
+        eq(schema.agentEvaluationAudits.id, id)
+      )
+    )
     .limit(1);
   if (!audit) return null;
 
@@ -1029,7 +1063,9 @@ async function getOwnedConfig(d1: D1Database, ownerId: string, id: string) {
   const [row] = await db(d1)
     .select()
     .from(schema.mentionBrandConfigs)
-    .where(and(eq(schema.mentionBrandConfigs.ownerId, ownerId), eq(schema.mentionBrandConfigs.id, id)))
+    .where(
+      and(eq(schema.mentionBrandConfigs.ownerId, ownerId), eq(schema.mentionBrandConfigs.id, id))
+    )
     .limit(1);
   return row ?? null;
 }
@@ -1038,13 +1074,17 @@ async function getOwnedCommunity(d1: D1Database, ownerId: string, id: string) {
   const [row] = await db(d1)
     .select()
     .from(schema.trackedCommunities)
-    .where(and(eq(schema.trackedCommunities.ownerId, ownerId), eq(schema.trackedCommunities.id, id)))
+    .where(
+      and(eq(schema.trackedCommunities.ownerId, ownerId), eq(schema.trackedCommunities.id, id))
+    )
     .limit(1);
   return row ?? null;
 }
 
-function requireOwner(c: { req: { query(name: string): string | undefined; header(name: string): string | undefined } }) {
-  return c.req.query("owner")?.trim() || c.req.header("x-high-signal-owner")?.trim() || "";
+function requireOwner(c: {
+  req: { query(name: string): string | undefined; header(name: string): string | undefined };
+}) {
+  return c.req.query('owner')?.trim() || c.req.header('x-high-signal-owner')?.trim() || '';
 }
 
 async function safeJson<T extends object>(request: { text(): Promise<string> }): Promise<T> {
@@ -1056,18 +1096,18 @@ async function safeJson<T extends object>(request: { text(): Promise<string> }):
 function parseBrandConfigInput(
   ownerId: string,
   body: NewConfigBody,
-  existing?: typeof schema.mentionBrandConfigs.$inferSelect,
-):
-  | { values: typeof schema.mentionBrandConfigs.$inferInsert }
-  | { error: string } {
-  const brandName = body.brandName?.trim() || existing?.brandName || "";
-  if (!brandName) return { error: "missing_brand_name" };
+  existing?: typeof schema.mentionBrandConfigs.$inferSelect
+): { values: typeof schema.mentionBrandConfigs.$inferInsert } | { error: string } {
+  const brandName = body.brandName?.trim() || existing?.brandName || '';
+  if (!brandName) return { error: 'missing_brand_name' };
   const competitors = body.competitors ?? objectArray<CompetitorProfile>(existing?.competitors);
-  if (competitors.length > 8) return { error: "too_many_competitors" };
+  if (competitors.length > 8) return { error: 'too_many_competitors' };
   const platforms = body.platforms ?? stringArray(existing?.platforms).filter(isAIPlatform);
-  if (platforms.length === 0 || !platforms.every(isAIPlatform)) return { error: "invalid_platforms" };
+  if (platforms.length === 0 || !platforms.every(isAIPlatform))
+    return { error: 'invalid_platforms' };
   const schedule = body.checkSchedule === undefined ? existing?.checkSchedule : body.checkSchedule;
-  if (schedule != null && !["daily", "weekly"].includes(schedule)) return { error: "invalid_schedule" };
+  if (schedule != null && !['daily', 'weekly'].includes(schedule))
+    return { error: 'invalid_schedule' };
 
   return {
     values: {
@@ -1093,14 +1133,12 @@ function parseBrandConfigInput(
 function parseTrackedCommunityInput(
   ownerId: string,
   body: NewCommunityBody,
-  existing?: typeof schema.trackedCommunities.$inferSelect,
-):
-  | { values: typeof schema.trackedCommunities.$inferInsert }
-  | { error: string } {
-  const subreddit = (body.subreddit ?? existing?.subreddit ?? "").replace(/^r\//i, "").trim();
-  if (!subreddit) return { error: "missing_subreddit" };
-  const period = body.period ?? existing?.period ?? "week";
-  if (!isRedditPeriod(period)) return { error: "invalid_period" };
+  existing?: typeof schema.trackedCommunities.$inferSelect
+): { values: typeof schema.trackedCommunities.$inferInsert } | { error: string } {
+  const subreddit = (body.subreddit ?? existing?.subreddit ?? '').replace(/^r\//i, '').trim();
+  if (!subreddit) return { error: 'missing_subreddit' };
+  const period = body.period ?? existing?.period ?? 'week';
+  if (!isRedditPeriod(period)) return { error: 'invalid_period' };
   return {
     values: {
       id: existing?.id ?? crypto.randomUUID(),
@@ -1117,7 +1155,7 @@ function parseTrackedCommunityInput(
 
 function parseAgentAuditInput(
   ownerId: string,
-  body: NewAgentAuditBody,
+  body: NewAgentAuditBody
 ):
   | {
       input: {
@@ -1132,19 +1170,19 @@ function parseAgentAuditInput(
       };
     }
   | { error: string } {
-  const brandName = body.brandName?.trim() ?? "";
-  const brandUrl = body.brandUrl?.trim() ?? "";
-  const buyerMission = body.buyerMission?.trim() ?? "";
-  if (!brandName) return { error: "missing_brand_name" };
-  if (!/^https?:\/\//i.test(brandUrl)) return { error: "invalid_brand_url" };
-  if (!buyerMission) return { error: "missing_buyer_mission" };
+  const brandName = body.brandName?.trim() ?? '';
+  const brandUrl = body.brandUrl?.trim() ?? '';
+  const buyerMission = body.buyerMission?.trim() ?? '';
+  if (!brandName) return { error: 'missing_brand_name' };
+  if (!/^https?:\/\//i.test(brandUrl)) return { error: 'invalid_brand_url' };
+  if (!buyerMission) return { error: 'missing_buyer_mission' };
   const competitors = (body.competitors ?? [])
     .map((competitor) => ({
-      name: competitor.name?.trim() ?? "",
+      name: competitor.name?.trim() ?? '',
       url: competitor.url?.trim() || undefined,
     }))
     .filter((competitor) => competitor.name);
-  if (competitors.length > 8) return { error: "too_many_competitors" };
+  if (competitors.length > 8) return { error: 'too_many_competitors' };
   const evidenceUrls = [
     brandUrl,
     ...(body.evidenceUrls ?? []).filter((url) => /^https?:\/\//i.test(url)),
@@ -1167,31 +1205,48 @@ function parseAgentAuditInput(
 function visibilityBadge(
   config: MentionBrandConfig,
   check: MentionCheck,
-  results: Array<typeof schema.mentionResults.$inferSelect>,
+  results: Array<typeof schema.mentionResults.$inferSelect>
 ) {
   const total = Math.max(results.length, 1);
   const mentionedResults = results.filter((result) => result.brandMentioned);
   const mentionRate = check.brandMentionRate ?? mentionedResults.length / total;
   const mentionScore = Math.round(mentionRate * 30);
-  const positiveCount = mentionedResults.filter((result) => result.brandSentiment === "positive").length;
+  const positiveCount = mentionedResults.filter(
+    (result) => result.brandSentiment === 'positive'
+  ).length;
   const sentimentScore = mentionedResults.length
     ? Math.round((positiveCount / mentionedResults.length) * 20)
     : 0;
-  const positioned = mentionedResults.filter((result) => result.brandPosition && result.brandPosition > 0);
+  const positioned = mentionedResults.filter(
+    (result) => result.brandPosition && result.brandPosition > 0
+  );
   const positionScore = positioned.length
-    ? Math.round(Math.max(0, 20 - ((positioned.reduce((sum, result) => sum + (result.brandPosition ?? 0), 0) / positioned.length) - 1) * 4))
+    ? Math.round(
+        Math.max(
+          0,
+          20 -
+            (positioned.reduce((sum, result) => sum + (result.brandPosition ?? 0), 0) /
+              positioned.length -
+              1) *
+              4
+        )
+      )
     : 0;
-  const citationScore = Math.round((results.filter((result) => result.brandCited).length / total) * 15);
+  const citationScore = Math.round(
+    (results.filter((result) => result.brandCited).length / total) * 15
+  );
   const platforms = new Set(results.map((result) => result.platform));
   const mentionedPlatforms = new Set(mentionedResults.map((result) => result.platform));
-  const reachScore = platforms.size ? Math.round((mentionedPlatforms.size / platforms.size) * 15) : 0;
+  const reachScore = platforms.size
+    ? Math.round((mentionedPlatforms.size / platforms.size) * 15)
+    : 0;
   const score = mentionScore + sentimentScore + positionScore + citationScore + reachScore;
 
   return {
     configId: config.id,
     brandName: config.brandName,
     score,
-    grade: score >= 80 ? "A" : score >= 65 ? "B" : score >= 50 ? "C" : score >= 35 ? "D" : "F",
+    grade: score >= 80 ? 'A' : score >= 65 ? 'B' : score >= 50 ? 'C' : score >= 35 ? 'D' : 'F',
     platformsChecked: platforms.size,
     platformsMentioned: mentionedPlatforms.size,
     mentionRate: Math.round(mentionRate * 100) / 100,
@@ -1205,21 +1260,21 @@ function visibilityBadge(
 }
 
 function stringArray(value: unknown): string[] {
-  if (Array.isArray(value)) return value.filter((item): item is string => typeof item === "string");
+  if (Array.isArray(value)) return value.filter((item): item is string => typeof item === 'string');
   return [];
 }
 
 function objectArray<T extends object>(value: unknown): T[] {
   if (!Array.isArray(value)) return [];
-  return value.filter((item): item is T => Boolean(item) && typeof item === "object");
+  return value.filter((item): item is T => Boolean(item) && typeof item === 'object');
 }
 
 function isAIPlatform(value: string): value is AIPlatform {
-  return ["openai", "anthropic", "google", "perplexity", "custom"].includes(value);
+  return ['openai', 'anthropic', 'google', 'perplexity', 'custom'].includes(value);
 }
 
-function isRedditPeriod(value: string): value is "day" | "week" | "month" {
-  return ["day", "week", "month"].includes(value);
+function isRedditPeriod(value: string): value is 'day' | 'week' | 'month' {
+  return ['day', 'week', 'month'].includes(value);
 }
 
 // ─── Plan 0011 — OpenLens visibility surface ──────────────────────────────
@@ -1235,8 +1290,8 @@ async function loadOwnedBrand(d1: D1Database, ownerId: string, brandId: string) 
     .where(
       and(
         eq(schema.mentionBrandConfigs.id, brandId),
-        eq(schema.mentionBrandConfigs.ownerId, ownerId),
-      ),
+        eq(schema.mentionBrandConfigs.ownerId, ownerId)
+      )
     )
     .limit(1);
   return brand ?? null;
@@ -1248,22 +1303,19 @@ async function loadMentionRowsForBrand(d1: D1Database, brandId: string, windowDa
     .select()
     .from(schema.mentionResults)
     .where(
-      and(
-        eq(schema.mentionResults.configId, brandId),
-        gte(schema.mentionResults.createdAt, since),
-      ),
+      and(eq(schema.mentionResults.configId, brandId), gte(schema.mentionResults.createdAt, since))
     )
     .orderBy(desc(schema.mentionResults.createdAt))
     .limit(5000);
 }
 
-productsRoute.get("/mentions/:brandId/visibility-matrix", async (c) => {
+productsRoute.get('/mentions/:brandId/visibility-matrix', async (c) => {
   const ownerId = requireOwner(c);
-  const brandId = c.req.param("brandId");
+  const brandId = c.req.param('brandId');
   if (!(await loadOwnedBrand(c.env.DB, ownerId, brandId))) {
-    return c.json({ error: "brand_not_found" }, 404);
+    return c.json({ error: 'brand_not_found' }, 404);
   }
-  const windowDays = clampedLimit(c.req.query("window") ?? "30", 30, 365);
+  const windowDays = clampedLimit(c.req.query('window') ?? '30', 30, 365);
   const rows = await loadMentionRowsForBrand(c.env.DB, brandId, windowDays);
 
   // Map mention_results rows to MatrixRow. prompt_text is needed to render the
@@ -1273,8 +1325,8 @@ productsRoute.get("/mentions/:brandId/visibility-matrix", async (c) => {
     promptIds.length > 0
       ? await c.env.DB.prepare(
           `SELECT id, prompt_text FROM mention_prompts WHERE id IN (${promptIds
-            .map(() => "?")
-            .join(",")})`,
+            .map(() => '?')
+            .join(',')})`
         )
           .bind(...promptIds)
           .all<{ id: string; prompt_text: string }>()
@@ -1287,8 +1339,8 @@ productsRoute.get("/mentions/:brandId/visibility-matrix", async (c) => {
     platform: r.platform,
     brandMentioned: r.brandMentioned,
     brandRecommended: false, // mention_results carries brandCited; recommended lives in agent-eval responses
-    competitorsMentioned: ((r.competitorsMentioned as unknown) as string[]) ?? [],
-    citations: ((r.citations as unknown) as string[]) ?? [],
+    competitorsMentioned: (r.competitorsMentioned as unknown as string[]) ?? [],
+    citations: (r.citations as unknown as string[]) ?? [],
     runAt: r.createdAt.toISOString(),
   }));
   return c.json({ cells: buildVisibilityMatrix(matrix), windowDays, runs: rows.length });
@@ -1301,7 +1353,7 @@ function toMentionRows(rows: Array<typeof schema.mentionResults.$inferSelect>): 
     // Stored as [{name, mentioned, position}] — reduce to the names actually
     // mentioned so competitor share-of-voice keys on real names, not "[object Object]".
     competitorsMentioned: competitorNames(r.competitorsMentioned),
-    citations: ((r.citations as unknown) as string[]) ?? [],
+    citations: (r.citations as unknown as string[]) ?? [],
     brandCited: r.brandCited,
     platform: r.platform,
     persona: r.persona,
@@ -1314,31 +1366,31 @@ function competitorNames(value: unknown): string[] {
   return value
     .filter(
       (c): c is { name: string; mentioned?: boolean } =>
-        Boolean(c) && typeof c === "object" && typeof (c as { name?: unknown }).name === "string",
+        Boolean(c) && typeof c === 'object' && typeof (c as { name?: unknown }).name === 'string'
     )
     .filter((c) => c.mentioned !== false)
     .map((c) => c.name);
 }
 
-productsRoute.get("/mentions/:brandId/share-of-voice", async (c) => {
+productsRoute.get('/mentions/:brandId/share-of-voice', async (c) => {
   const ownerId = requireOwner(c);
-  const brandId = c.req.param("brandId");
+  const brandId = c.req.param('brandId');
   if (!(await loadOwnedBrand(c.env.DB, ownerId, brandId))) {
-    return c.json({ error: "brand_not_found" }, 404);
+    return c.json({ error: 'brand_not_found' }, 404);
   }
-  const windowDays = clampedLimit(c.req.query("window") ?? "30", 30, 365);
+  const windowDays = clampedLimit(c.req.query('window') ?? '30', 30, 365);
   const rows = await loadMentionRowsForBrand(c.env.DB, brandId, windowDays);
   return c.json(computeShareOfVoice(toMentionRows(rows), windowDays));
 });
 
-productsRoute.get("/mentions/:brandId/cited-sources", async (c) => {
+productsRoute.get('/mentions/:brandId/cited-sources', async (c) => {
   const ownerId = requireOwner(c);
-  const brandId = c.req.param("brandId");
+  const brandId = c.req.param('brandId');
   if (!(await loadOwnedBrand(c.env.DB, ownerId, brandId))) {
-    return c.json({ error: "brand_not_found" }, 404);
+    return c.json({ error: 'brand_not_found' }, 404);
   }
-  const ownership = c.req.query("ownership");
-  const topic = c.req.query("topic");
+  const ownership = c.req.query('ownership');
+  const topic = c.req.query('topic');
   const rows = await db(c.env.DB)
     .select()
     .from(schema.citedUrlIndex)
@@ -1353,24 +1405,25 @@ productsRoute.get("/mentions/:brandId/cited-sources", async (c) => {
   return c.json({ sources: filtered });
 });
 
-productsRoute.post("/mentions/:brandId/cited-sources/refresh", async (c) => {
+productsRoute.post('/mentions/:brandId/cited-sources/refresh', async (c) => {
   const ownerId = requireOwner(c);
-  const brandId = c.req.param("brandId");
+  const brandId = c.req.param('brandId');
   const brand = await loadOwnedBrand(c.env.DB, ownerId, brandId);
-  if (!brand) return c.json({ error: "brand_not_found" }, 404);
+  if (!brand) return c.json({ error: 'brand_not_found' }, 404);
 
-  const windowDays = clampedLimit(c.req.query("window") ?? "30", 30, 365);
+  const windowDays = clampedLimit(c.req.query('window') ?? '30', 30, 365);
   return c.json(await refreshCitedSourcesForBrand(c.env.DB, brand, windowDays));
 });
 
 async function refreshCitedSourcesForBrand(
   d1: D1Database,
   brand: typeof schema.mentionBrandConfigs.$inferSelect,
-  windowDays: number,
+  windowDays: number
 ) {
   const brandId = brand.id;
   const rows = await loadMentionRowsForBrand(d1, brandId, windowDays);
-  const competitors = ((brand.competitors as unknown) as Array<{ id?: string; name?: string; url?: string }>) ?? [];
+  const competitors =
+    (brand.competitors as unknown as Array<{ id?: string; name?: string; url?: string }>) ?? [];
   const competitorUrls = competitors
     .filter((c) => c.url)
     .map((c) => ({ id: c.id ?? c.name ?? c.url!, url: c.url! }));
@@ -1384,7 +1437,7 @@ async function refreshCitedSourcesForBrand(
     {
       url: string;
       host: string;
-      ownership: ReturnType<typeof classifyOwnership>["ownership"];
+      ownership: ReturnType<typeof classifyOwnership>['ownership'];
       competitorId?: string;
       platforms: Set<string>;
       first: Date;
@@ -1394,7 +1447,7 @@ async function refreshCitedSourcesForBrand(
   >();
 
   for (const r of rows) {
-    const citations = ((r.citations as unknown) as string[]) ?? [];
+    const citations = (r.citations as unknown as string[]) ?? [];
     for (const url of citations) {
       const h = hostOf(url);
       if (!h) continue;
@@ -1402,8 +1455,16 @@ async function refreshCitedSourcesForBrand(
       const { ownership, competitorId } = classifyOwnership(url, brandIdentity);
       const platforms = existing?.platforms ?? new Set<string>();
       platforms.add(r.platform);
-      const first = existing ? (r.createdAt < existing.first ? r.createdAt : existing.first) : r.createdAt;
-      const last = existing ? (r.createdAt > existing.last ? r.createdAt : existing.last) : r.createdAt;
+      const first = existing
+        ? r.createdAt < existing.first
+          ? r.createdAt
+          : existing.first
+        : r.createdAt;
+      const last = existing
+        ? r.createdAt > existing.last
+          ? r.createdAt
+          : existing.last
+        : r.createdAt;
       agg.set(url, {
         url,
         host: h,
@@ -1425,7 +1486,7 @@ async function refreshCitedSourcesForBrand(
       .values({
         id,
         brandId,
-        topic: "",
+        topic: '',
         url: entry.url,
         host: entry.host,
         ownership: entry.ownership,
@@ -1451,16 +1512,16 @@ async function refreshCitedSourcesForBrand(
   return { upserts, windowDays };
 }
 
-productsRoute.get("/mentions/:brandId/intent-opportunities", async (c) => {
+productsRoute.get('/mentions/:brandId/intent-opportunities', async (c) => {
   const ownerId = requireOwner(c);
-  const brandId = c.req.param("brandId");
+  const brandId = c.req.param('brandId');
   if (!(await loadOwnedBrand(c.env.DB, ownerId, brandId))) {
-    return c.json({ error: "brand_not_found" }, 404);
+    return c.json({ error: 'brand_not_found' }, 404);
   }
 
-  const status = parseIntentStatus(c.req.query("status")) ?? "open";
-  const source = c.req.query("source")?.trim();
-  const limit = clampedLimit(c.req.query("limit") ?? "25", 25, 100);
+  const status = parseIntentStatus(c.req.query('status')) ?? 'open';
+  const source = c.req.query('source')?.trim();
+  const limit = clampedLimit(c.req.query('limit') ?? '25', 25, 100);
   const rows = await db(c.env.DB)
     .select()
     .from(schema.intentOpportunities)
@@ -1468,8 +1529,8 @@ productsRoute.get("/mentions/:brandId/intent-opportunities", async (c) => {
       and(
         eq(schema.intentOpportunities.brandId, brandId),
         eq(schema.intentOpportunities.ownerId, ownerId),
-        eq(schema.intentOpportunities.status, status),
-      ),
+        eq(schema.intentOpportunities.status, status)
+      )
     )
     .orderBy(desc(schema.intentOpportunities.score), desc(schema.intentOpportunities.updatedAt))
     .limit(200);
@@ -1478,87 +1539,89 @@ productsRoute.get("/mentions/:brandId/intent-opportunities", async (c) => {
   return c.json({ opportunities: filtered.slice(0, limit), status });
 });
 
-productsRoute.post("/mentions/:brandId/intent-opportunities/refresh", async (c) => {
+productsRoute.post('/mentions/:brandId/intent-opportunities/refresh', async (c) => {
   const ownerId = requireOwner(c);
-  const brandId = c.req.param("brandId");
+  const brandId = c.req.param('brandId');
   const brand = await loadOwnedBrand(c.env.DB, ownerId, brandId);
-  if (!brand) return c.json({ error: "brand_not_found" }, 404);
+  if (!brand) return c.json({ error: 'brand_not_found' }, 404);
 
-  const windowDays = clampedLimit(c.req.query("window") ?? "14", 14, 90);
-  const limit = clampedLimit(c.req.query("limit") ?? "50", 50, 200);
-  return c.json(await refreshIntentOpportunitiesForBrand(db(c.env.DB), ownerId, brand, { windowDays, limit }));
+  const windowDays = clampedLimit(c.req.query('window') ?? '14', 14, 90);
+  const limit = clampedLimit(c.req.query('limit') ?? '50', 50, 200);
+  return c.json(
+    await refreshIntentOpportunitiesForBrand(db(c.env.DB), ownerId, brand, { windowDays, limit })
+  );
 });
 
-productsRoute.patch("/mentions/:brandId/intent-opportunities/:id", async (c) => {
+productsRoute.patch('/mentions/:brandId/intent-opportunities/:id', async (c) => {
   const ownerId = requireOwner(c);
-  const brandId = c.req.param("brandId");
+  const brandId = c.req.param('brandId');
   if (!(await loadOwnedBrand(c.env.DB, ownerId, brandId))) {
-    return c.json({ error: "brand_not_found" }, 404);
+    return c.json({ error: 'brand_not_found' }, 404);
   }
   const body = await safeJson<PatchIntentOpportunityBody>(c.req);
   const status = parseIntentStatus(body.status);
-  if (!status) return c.json({ error: "invalid_status" }, 400);
+  if (!status) return c.json({ error: 'invalid_status' }, 400);
 
   const [row] = await db(c.env.DB)
     .update(schema.intentOpportunities)
     .set({ status, updatedAt: new Date() })
     .where(
       and(
-        eq(schema.intentOpportunities.id, c.req.param("id")),
+        eq(schema.intentOpportunities.id, c.req.param('id')),
         eq(schema.intentOpportunities.brandId, brandId),
-        eq(schema.intentOpportunities.ownerId, ownerId),
-      ),
+        eq(schema.intentOpportunities.ownerId, ownerId)
+      )
     )
     .returning();
 
-  if (!row) return c.json({ error: "not_found" }, 404);
+  if (!row) return c.json({ error: 'not_found' }, 404);
   return c.json({ opportunity: row });
 });
 
-productsRoute.post("/mentions/:brandId/intent-opportunities/:id/reply-draft", async (c) => {
+productsRoute.post('/mentions/:brandId/intent-opportunities/:id/reply-draft', async (c) => {
   const ownerId = requireOwner(c);
-  const brandId = c.req.param("brandId");
+  const brandId = c.req.param('brandId');
   const brand = await loadOwnedBrand(c.env.DB, ownerId, brandId);
-  if (!brand) return c.json({ error: "brand_not_found" }, 404);
+  if (!brand) return c.json({ error: 'brand_not_found' }, 404);
 
   const [opportunity] = await db(c.env.DB)
     .select()
     .from(schema.intentOpportunities)
     .where(
       and(
-        eq(schema.intentOpportunities.id, c.req.param("id")),
+        eq(schema.intentOpportunities.id, c.req.param('id')),
         eq(schema.intentOpportunities.brandId, brandId),
-        eq(schema.intentOpportunities.ownerId, ownerId),
-      ),
+        eq(schema.intentOpportunities.ownerId, ownerId)
+      )
     )
     .limit(1);
-  if (!opportunity) return c.json({ error: "not_found" }, 404);
+  if (!opportunity) return c.json({ error: 'not_found' }, 404);
 
   const config = resolveBrandAIConfig(brand, c.env);
-  if (!config) return c.json({ error: "ai_not_configured" }, 409);
+  if (!config) return c.json({ error: 'ai_not_configured' }, 409);
 
   const response = await fetchChatCompletion({
     config,
     stream: false,
     maxTokens: 420,
     systemPrompt:
-      "You draft short, operator-reviewed community replies for a brand. Never auto-post, never fabricate facts, and include a clear affiliation disclosure when the author would be speaking for the brand.",
+      'You draft short, operator-reviewed community replies for a brand. Never auto-post, never fabricate facts, and include a clear affiliation disclosure when the author would be speaking for the brand.',
     messages: [
       {
-        role: "user",
+        role: 'user',
         content: buildIntentReplyPrompt(brand, opportunity),
       },
     ],
   });
   if (!response.ok) {
     const text = await response.text();
-    return c.json({ error: "ai_request_failed", detail: text.slice(0, 200) }, 502);
+    return c.json({ error: 'ai_request_failed', detail: text.slice(0, 200) }, 502);
   }
   const json = (await response.json()) as {
     choices?: Array<{ message?: { content?: string } }>;
   };
-  const replyDraft = cleanReplyDraft(json.choices?.[0]?.message?.content ?? "");
-  if (!replyDraft) return c.json({ error: "empty_reply_draft" }, 502);
+  const replyDraft = cleanReplyDraft(json.choices?.[0]?.message?.content ?? '');
+  if (!replyDraft) return c.json({ error: 'empty_reply_draft' }, 502);
 
   const [row] = await db(c.env.DB)
     .update(schema.intentOpportunities)
@@ -1569,46 +1632,46 @@ productsRoute.post("/mentions/:brandId/intent-opportunities/:id/reply-draft", as
   return c.json({ opportunity: row });
 });
 
-productsRoute.get("/mentions/:brandId/trends", async (c) => {
+productsRoute.get('/mentions/:brandId/trends', async (c) => {
   const ownerId = requireOwner(c);
-  const brandId = c.req.param("brandId");
+  const brandId = c.req.param('brandId');
   if (!(await loadOwnedBrand(c.env.DB, ownerId, brandId))) {
-    return c.json({ error: "brand_not_found" }, 404);
+    return c.json({ error: 'brand_not_found' }, 404);
   }
-  const windowDays = clampedLimit(c.req.query("window") ?? "30", 30, 365);
+  const windowDays = clampedLimit(c.req.query('window') ?? '30', 30, 365);
   const rows = await loadMentionRowsForBrand(c.env.DB, brandId, windowDays);
   return c.json({ points: computeTrends(toMentionRows(rows), windowDays, Date.now()) });
 });
 
-productsRoute.post("/mentions/:brandId/report/share-token", async (c) => {
+productsRoute.post('/mentions/:brandId/report/share-token', async (c) => {
   const ownerId = requireOwner(c);
-  if (!ownerId) return c.json({ error: "missing_owner" }, 401);
-  const brandId = c.req.param("brandId");
+  if (!ownerId) return c.json({ error: 'missing_owner' }, 401);
+  const brandId = c.req.param('brandId');
   const brand = await loadOwnedBrand(c.env.DB, ownerId, brandId);
-  if (!brand) return c.json({ error: "brand_not_found" }, 404);
-  if (!c.env.ADMIN_TOKEN) return c.json({ error: "report_sharing_unavailable" }, 503);
+  if (!brand) return c.json({ error: 'brand_not_found' }, 404);
+  if (!c.env.ADMIN_TOKEN) return c.json({ error: 'report_sharing_unavailable' }, 503);
   return c.json({ token: await visibilityReportToken(c.env.ADMIN_TOKEN, brandId) });
 });
 
-productsRoute.get("/mentions/:brandId/report", async (c) => {
+productsRoute.get('/mentions/:brandId/report', async (c) => {
   const ownerId = requireOwner(c);
-  const brandId = c.req.param("brandId");
+  const brandId = c.req.param('brandId');
   let brand: typeof schema.mentionBrandConfigs.$inferSelect | null = null;
 
   if (ownerId) {
     brand = await loadOwnedBrand(c.env.DB, ownerId, brandId);
-    if (!brand) return c.json({ error: "brand_not_found" }, 404);
+    if (!brand) return c.json({ error: 'brand_not_found' }, 404);
   } else {
     const secret = c.env.ADMIN_TOKEN;
-    if (!secret) return c.json({ error: "report_sharing_unavailable" }, 503);
-    const token = c.req.query("token")?.trim();
+    if (!secret) return c.json({ error: 'report_sharing_unavailable' }, 503);
+    const token = c.req.query('token')?.trim();
     if (!token || !(await verifyVisibilityReportToken(secret, brandId, token))) {
-      return c.json({ error: "unauthorized" }, 401);
+      return c.json({ error: 'unauthorized' }, 401);
     }
     brand = await getConfig(c.env.DB, brandId);
-    if (!brand) return c.json({ error: "brand_not_found" }, 404);
+    if (!brand) return c.json({ error: 'brand_not_found' }, 404);
   }
-  const windowDays = clampedLimit(c.req.query("window") ?? "30", 30, 365);
+  const windowDays = clampedLimit(c.req.query('window') ?? '30', 30, 365);
   const rows = await loadMentionRowsForBrand(c.env.DB, brandId, windowDays);
   const mentionRows = toMentionRows(rows);
   const sov = computeShareOfVoice(mentionRows, windowDays);
@@ -1617,7 +1680,7 @@ productsRoute.get("/mentions/:brandId/report", async (c) => {
   const perPersona = computePersonaVisibility(mentionRows);
   const brandIdentity = toBrandIdentity(brand);
   const citationGaps = computeCitationGaps(mentionRows, brandIdentity);
-  const platforms = Array.from(new Set(mentionRows.map((r) => r.platform ?? "custom")));
+  const platforms = Array.from(new Set(mentionRows.map((r) => r.platform ?? 'custom')));
 
   const matrixRows: MatrixRow[] = rows.map((r) => ({
     prompt: r.promptId,
@@ -1626,7 +1689,7 @@ productsRoute.get("/mentions/:brandId/report", async (c) => {
     brandMentioned: r.brandMentioned,
     brandRecommended: r.brandRecommended,
     competitorsMentioned: competitorNames(r.competitorsMentioned),
-    citations: ((r.citations as unknown) as string[]) ?? [],
+    citations: (r.citations as unknown as string[]) ?? [],
     runAt: r.createdAt.toISOString(),
   }));
   const matrix = buildVisibilityMatrix(matrixRows);
@@ -1658,13 +1721,13 @@ productsRoute.get("/mentions/:brandId/report", async (c) => {
         and(
           eq(schema.intentOpportunities.brandId, brandId),
           eq(schema.intentOpportunities.ownerId, brand.ownerId),
-          eq(schema.intentOpportunities.status, "open"),
-        ),
+          eq(schema.intentOpportunities.status, 'open')
+        )
       )
       .orderBy(desc(schema.intentOpportunities.score), desc(schema.intentOpportunities.updatedAt))
       .limit(10);
   } catch (error) {
-    console.error("High Signal intent opportunities unavailable for report:", error);
+    console.error('High Signal intent opportunities unavailable for report:', error);
   }
 
   return c.json({
@@ -1707,21 +1770,21 @@ function toBrandIdentity(brand: typeof schema.mentionBrandConfigs.$inferSelect):
 }
 
 // Agent-eval attribute grid. Reads agent_evidence_scores + open tasks.
-productsRoute.get("/agent-eval/:auditId/attributes", async (c) => {
+productsRoute.get('/agent-eval/:auditId/attributes', async (c) => {
   const ownerId = requireOwner(c);
-  if (!ownerId) return c.json({ error: "missing_owner" }, 401);
-  const auditId = c.req.param("auditId");
+  if (!ownerId) return c.json({ error: 'missing_owner' }, 401);
+  const auditId = c.req.param('auditId');
   const [audit] = await db(c.env.DB)
     .select({ id: schema.agentEvaluationAudits.id })
     .from(schema.agentEvaluationAudits)
     .where(
       and(
         eq(schema.agentEvaluationAudits.id, auditId),
-        eq(schema.agentEvaluationAudits.ownerId, ownerId),
-      ),
+        eq(schema.agentEvaluationAudits.ownerId, ownerId)
+      )
     )
     .limit(1);
-  if (!audit) return c.json({ error: "audit_not_found" }, 404);
+  if (!audit) return c.json({ error: 'audit_not_found' }, 404);
   const scores = await db(c.env.DB)
     .select()
     .from(schema.agentEvidenceScores)
@@ -1732,12 +1795,12 @@ productsRoute.get("/agent-eval/:auditId/attributes", async (c) => {
     .where(eq(schema.agentEvidenceTasks.auditId, auditId));
   const taskCountByArea = new Map<string, number>();
   for (const t of tasks) {
-    if (t.status === "open") taskCountByArea.set(t.area, (taskCountByArea.get(t.area) ?? 0) + 1);
+    if (t.status === 'open') taskCountByArea.set(t.area, (taskCountByArea.get(t.area) ?? 0) + 1);
   }
   const rows: AttributeRow[] = scores.map((s) => ({
     area: s.area,
     status: s.status,
-    evidenceUrls: ((s.evidenceUrls as unknown) as string[]) ?? [],
+    evidenceUrls: (s.evidenceUrls as unknown as string[]) ?? [],
     notes: s.notes,
     taskCount: taskCountByArea.get(s.area) ?? 0,
   }));
@@ -1745,27 +1808,35 @@ productsRoute.get("/agent-eval/:auditId/attributes", async (c) => {
 });
 
 function parseIntentStatus(value: unknown): IntentStatus | null {
-  return value === "open" || value === "dismissed" || value === "done" ? value : null;
+  return value === 'open' || value === 'dismissed' || value === 'done' ? value : null;
 }
 
 async function refreshIntentOpportunitiesForBrand(
   database: ReturnType<typeof db>,
   ownerId: string,
   brand: typeof schema.mentionBrandConfigs.$inferSelect,
-  options: { windowDays: number; limit: number },
+  options: { windowDays: number; limit: number }
 ) {
   const { windowDays, limit } = options;
   const since = new Date(Date.now() - windowDays * 24 * 3600 * 1000);
   const competitors = objectArray<{ name?: string; url?: string }>(brand.competitors || []);
   const brandAliases = stringArray(brand.brandAliases);
-  const hasSearchTerms = [brand.brandName, ...brandAliases, ...competitors.map((item) => item.name ?? "")]
-    .some((keyword) => keyword.trim().length >= 2);
+  const hasSearchTerms = [
+    brand.brandName,
+    ...brandAliases,
+    ...competitors.map((item) => item.name ?? ''),
+  ].some((keyword) => keyword.trim().length >= 2);
   if (!hasSearchTerms) return { upserts: 0, scanned: 0, windowDays };
 
   const events = await database
     .select()
     .from(schema.events)
-    .where(and(gte(schema.events.publishedAt, since), inArray(schema.events.source, [...COMMUNITY_INTENT_SOURCES])))
+    .where(
+      and(
+        gte(schema.events.publishedAt, since),
+        inArray(schema.events.source, [...COMMUNITY_INTENT_SOURCES])
+      )
+    )
     .orderBy(desc(schema.events.publishedAt))
     .limit(1000);
 
@@ -1783,8 +1854,8 @@ async function refreshIntentOpportunitiesForBrand(
           brandName: brand.brandName,
           brandAliases,
           competitors,
-        },
-      ),
+        }
+      )
     )
     .filter((item): item is IntentOpportunityCandidate => Boolean(item))
     .sort((a, b) => b.score - a.score)
@@ -1812,7 +1883,7 @@ async function refreshIntentOpportunitiesForBrand(
         matchedKeywords: item.matchedKeywords,
         evidenceTaskId,
         replyDraft: null,
-        status: "open",
+        status: 'open',
         foundAt: item.foundAt,
         updatedAt: new Date(),
       })
@@ -1837,8 +1908,8 @@ async function refreshIntentOpportunitiesForBrand(
         .where(
           and(
             eq(schema.intentOpportunities.brandId, brand.id),
-            eq(schema.intentOpportunities.sourceUrl, item.sourceUrl),
-          ),
+            eq(schema.intentOpportunities.sourceUrl, item.sourceUrl)
+          )
         );
     }
     upserts++;
@@ -1851,7 +1922,7 @@ async function ensureIntentEvidenceTask(
   database: ReturnType<typeof db>,
   ownerId: string,
   brand: typeof schema.mentionBrandConfigs.$inferSelect,
-  item: IntentOpportunityCandidate,
+  item: IntentOpportunityCandidate
 ): Promise<string | null> {
   const task = intentEvidenceTaskFor(item);
   if (!task) return null;
@@ -1862,8 +1933,8 @@ async function ensureIntentEvidenceTask(
     .where(
       and(
         eq(schema.agentEvaluationAudits.ownerId, ownerId),
-        eq(schema.agentEvaluationAudits.brandName, brand.brandName),
-      ),
+        eq(schema.agentEvaluationAudits.brandName, brand.brandName)
+      )
     )
     .orderBy(desc(schema.agentEvaluationAudits.createdAt))
     .limit(1);
@@ -1876,8 +1947,8 @@ async function ensureIntentEvidenceTask(
       and(
         eq(schema.agentEvidenceTasks.auditId, audit.id),
         eq(schema.agentEvidenceTasks.sourceUrl, item.sourceUrl),
-        eq(schema.agentEvidenceTasks.status, "open"),
-      ),
+        eq(schema.agentEvidenceTasks.status, 'open')
+      )
     )
     .limit(1);
   if (existing) return existing.id;
@@ -1891,7 +1962,7 @@ async function ensureIntentEvidenceTask(
       area: task.area,
       title: task.title,
       priority: task.priority,
-      status: "open",
+      status: 'open',
       sourceUrl: item.sourceUrl,
       createdAt: new Date(),
     })
@@ -1902,33 +1973,42 @@ async function ensureIntentEvidenceTask(
 function intentEvidenceTaskFor(item: IntentOpportunityCandidate): {
   area: string;
   title: string;
-  priority: "high" | "medium" | "low";
+  priority: 'high' | 'medium' | 'low';
 } | null {
-  const title = item.sourceTitle.length > 90 ? `${item.sourceTitle.slice(0, 89).trim()}...` : item.sourceTitle;
-  if (item.actionType === "create_proof") {
-    return { area: "proof", title: `Add proof for buyer question: ${title}`, priority: "high" };
+  const title =
+    item.sourceTitle.length > 90 ? `${item.sourceTitle.slice(0, 89).trim()}...` : item.sourceTitle;
+  if (item.actionType === 'create_proof') {
+    return { area: 'proof', title: `Add proof for buyer question: ${title}`, priority: 'high' };
   }
-  if (item.actionType === "write_comparison") {
-    return { area: "comparisons", title: `Publish comparison response for: ${title}`, priority: "high" };
+  if (item.actionType === 'write_comparison') {
+    return {
+      area: 'comparisons',
+      title: `Publish comparison response for: ${title}`,
+      priority: 'high',
+    };
   }
-  if (item.actionType === "add_integration") {
-    return { area: "docs", title: `Document integration need from: ${title}`, priority: "medium" };
+  if (item.actionType === 'add_integration') {
+    return { area: 'docs', title: `Document integration need from: ${title}`, priority: 'medium' };
   }
-  if (item.actionType === "improve_docs") {
-    return { area: "docs", title: `Clarify docs/support gap from: ${title}`, priority: "medium" };
+  if (item.actionType === 'improve_docs') {
+    return { area: 'docs', title: `Clarify docs/support gap from: ${title}`, priority: 'medium' };
   }
-  if (item.actionType === "content_opportunity") {
-    return { area: "positioning", title: `Create content answer for: ${title}`, priority: "medium" };
+  if (item.actionType === 'content_opportunity') {
+    return {
+      area: 'positioning',
+      title: `Create content answer for: ${title}`,
+      priority: 'medium',
+    };
   }
   return null;
 }
 
 function resolveBrandAIConfig(
   brand: typeof schema.mentionBrandConfigs.$inferSelect,
-  env: Env,
+  env: Env
 ): AIConfig | null {
   const apiKey = env.HIGH_SIGNAL_AI_API_KEY || env.OPENAI_API_KEY;
-  const model = brand.aiModel || env.HIGH_SIGNAL_AI_MODEL || "auto";
+  const model = brand.aiModel || env.HIGH_SIGNAL_AI_MODEL || 'auto';
   if (!apiKey || !model) return null;
   return {
     endpointUrl: brand.aiEndpointUrl || env.HIGH_SIGNAL_AI_ENDPOINT_URL || FREE_AI_DEFAULT_ENDPOINT,
@@ -1939,13 +2019,13 @@ function resolveBrandAIConfig(
 
 function buildIntentReplyPrompt(
   brand: typeof schema.mentionBrandConfigs.$inferSelect,
-  opportunity: typeof schema.intentOpportunities.$inferSelect,
+  opportunity: typeof schema.intentOpportunities.$inferSelect
 ) {
-  const competitors = stringArray(opportunity.competitors).join(", ") || "none detected";
-  const matchedKeywords = stringArray(opportunity.matchedKeywords).join(", ") || "none";
+  const competitors = stringArray(opportunity.competitors).join(', ') || 'none detected';
+  const matchedKeywords = stringArray(opportunity.matchedKeywords).join(', ') || 'none';
   return [
     `Brand: ${brand.brandName}`,
-    `Brand URL: ${brand.brandUrl || "not provided"}`,
+    `Brand URL: ${brand.brandUrl || 'not provided'}`,
     `Intent stage: ${opportunity.intentStage}`,
     `Suggested action: ${opportunity.actionType}`,
     `Source: ${opportunity.source}`,
@@ -1953,21 +2033,21 @@ function buildIntentReplyPrompt(
     `Source excerpt: ${opportunity.sourceExcerpt}`,
     `Competitors detected: ${competitors}`,
     `Matched terms: ${matchedKeywords}`,
-    "",
-    "Draft one reply the operator could review before posting.",
-    "Requirements:",
-    "- 90 to 150 words.",
-    "- Sound useful and specific, not salesy.",
-    "- If speaking as the brand, disclose affiliation in the first sentence.",
-    "- Do not claim features, pricing, customers, benchmarks, or integrations not present in the source excerpt.",
-    "- If the best response is not to reply publicly, say so and suggest the private/content follow-up instead.",
-  ].join("\n");
+    '',
+    'Draft one reply the operator could review before posting.',
+    'Requirements:',
+    '- 90 to 150 words.',
+    '- Sound useful and specific, not salesy.',
+    '- If speaking as the brand, disclose affiliation in the first sentence.',
+    '- Do not claim features, pricing, customers, benchmarks, or integrations not present in the source excerpt.',
+    '- If the best response is not to reply publicly, say so and suggest the private/content follow-up instead.',
+  ].join('\n');
 }
 
 function cleanReplyDraft(value: string) {
   return value
-    .replace(/^```(?:\w+)?\s*/i, "")
-    .replace(/```$/i, "")
+    .replace(/^```(?:\w+)?\s*/i, '')
+    .replace(/```$/i, '')
     .trim()
     .slice(0, 1800);
 }

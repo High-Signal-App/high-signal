@@ -4,8 +4,8 @@
  * Modal scorer POSTs forward-return rows to /admin/scores.
  * CI / local sync-signals.ts POSTs frontmatter+body to /admin/sync to keep D1 in step with the git-versioned signals/ tree.
  */
-import { Hono } from "hono";
-import { eq } from "drizzle-orm";
+import { Hono } from 'hono';
+import { eq } from 'drizzle-orm';
 import {
   buildHistoricalClaimBackfill,
   canTransition,
@@ -14,20 +14,20 @@ import {
   type ClaimEvidenceRole,
   type ClaimSurface,
   type ClaimReviewStatus,
-} from "@high-signal/shared";
-import { buildPatterns, matchEntity, type GazetteerEntity } from "../lib/gazetteer";
-import { sha16 } from "../lib/ids";
-import { db, schema } from "../db";
+} from '@high-signal/shared';
+import { buildPatterns, matchEntity, type GazetteerEntity } from '../lib/gazetteer';
+import { sha16 } from '../lib/ids';
+import { db, schema } from '../db';
 
 type Env = { DB: D1Database; ADMIN_TOKEN?: string };
 
 export const adminRoute = new Hono<{ Bindings: Env }>();
 
-adminRoute.use("*", async (c, next) => {
+adminRoute.use('*', async (c, next) => {
   const token = c.env.ADMIN_TOKEN;
-  if (!token) return c.json({ error: "admin_disabled" }, 503);
-  const auth = c.req.header("Authorization") ?? "";
-  if (auth !== `Bearer ${token}`) return c.json({ error: "unauthorized" }, 401);
+  if (!token) return c.json({ error: 'admin_disabled' }, 503);
+  const auth = c.req.header('Authorization') ?? '';
+  if (auth !== `Bearer ${token}`) return c.json({ error: 'unauthorized' }, 401);
   await next();
 });
 
@@ -35,18 +35,18 @@ interface ScoreRunInput {
   signalId: string;
   windowDays: number;
   forwardReturn: number | null;
-  outcome: "hit" | "miss" | "push" | "pending";
+  outcome: 'hit' | 'miss' | 'push' | 'pending';
   notes?: string;
 }
 
-adminRoute.post("/scores", async (c) => {
+adminRoute.post('/scores', async (c) => {
   const body = (await c.req.json()) as { runs?: ScoreRunInput[] };
   const runs = body.runs ?? [];
-  if (!Array.isArray(runs)) return c.json({ error: "bad_payload" }, 400);
+  if (!Array.isArray(runs)) return c.json({ error: 'bad_payload' }, 400);
 
   const inserted: string[] = [];
   for (const r of runs) {
-    if (!r.signalId || typeof r.windowDays !== "number" || !r.outcome) continue;
+    if (!r.signalId || typeof r.windowDays !== 'number' || !r.outcome) continue;
     const id = await sha16(`${r.signalId}:${r.windowDays}:${Date.now()}:${Math.random()}`);
     await db(c.env.DB)
       .insert(schema.scoreRuns)
@@ -68,8 +68,8 @@ interface SignalUpsert {
   slug: string;
   signalType: string;
   primaryEntityId: string;
-  direction: "up" | "down" | "neutral";
-  confidence: "low" | "medium" | "high";
+  direction: 'up' | 'down' | 'neutral';
+  confidence: 'low' | 'medium' | 'high';
   predictedWindowDays: number;
   publishedAt: string; // ISO
   evidenceUrls: string[];
@@ -80,12 +80,12 @@ interface SignalUpsert {
     publishedAt?: string | null;
   }>;
   spilloverEntityIds?: string[];
-  reviewStatus?: "draft" | "published" | "corrected" | "killed";
+  reviewStatus?: 'draft' | 'published' | 'corrected' | 'killed';
   supersedesSignalId?: string | null;
   bodyMd: string;
 }
 
-adminRoute.post("/sync", async (c) => {
+adminRoute.post('/sync', async (c) => {
   const body = (await c.req.json()) as { signals?: SignalUpsert[] };
   const sigs = body.signals ?? [];
   let upserts = 0;
@@ -95,18 +95,16 @@ adminRoute.post("/sync", async (c) => {
 
     // Auto-upsert missing entities so the LLM picking up novel names
     // (DEEPSEEK, ASUSTEK, etc.) doesn't kill the whole batch on FK violation.
-    const created = await ensureEntities(
-      c.env.DB,
-      [s.primaryEntityId, ...(s.spilloverEntityIds ?? [])],
-    );
+    const created = await ensureEntities(c.env.DB, [
+      s.primaryEntityId,
+      ...(s.spilloverEntityIds ?? []),
+    ]);
     createdEntities += created;
 
     // Auto-publish normal ingest, but preserve explicit drafts for fallback
     // candidates that need review before entering the public feed.
     const reviewStatus =
-      s.reviewStatus === "draft" || s.reviewStatus === "corrected"
-        ? s.reviewStatus
-        : "published";
+      s.reviewStatus === 'draft' || s.reviewStatus === 'corrected' ? s.reviewStatus : 'published';
 
     try {
       await db(c.env.DB)
@@ -142,7 +140,7 @@ adminRoute.post("/sync", async (c) => {
           },
         });
     } catch (err) {
-      console.error("[admin/sync] insert failed", s.slug, String(err));
+      console.error('[admin/sync] insert failed', s.slug, String(err));
       continue;
     }
 
@@ -182,10 +180,10 @@ async function ensureEntities(d1: D1Database, ids: (string | null | undefined)[]
         id,
         ticker: null,
         name: id,
-        type: "private",
+        type: 'private',
         country: null,
         sector: null,
-        metadata: { autoCreated: true, source: "admin/sync" },
+        metadata: { autoCreated: true, source: 'admin/sync' },
         createdAt: new Date(),
         updatedAt: new Date(),
       })
@@ -196,35 +194,39 @@ async function ensureEntities(d1: D1Database, ids: (string | null | undefined)[]
   return created;
 }
 
-adminRoute.patch("/signals/:slug", async (c) => {
-  const slug = c.req.param("slug");
+adminRoute.patch('/signals/:slug', async (c) => {
+  const slug = c.req.param('slug');
   const body = (await c.req.json()) as {
-    reviewStatus?: "draft" | "published" | "corrected" | "killed";
+    reviewStatus?: 'draft' | 'published' | 'corrected' | 'killed';
     supersedesSignalId?: string | null;
   };
   const updates: Record<string, unknown> = {};
-  if (body.reviewStatus) updates["reviewStatus"] = body.reviewStatus;
-  if ("supersedesSignalId" in body) updates["supersedesSignalId"] = body.supersedesSignalId;
+  if (body.reviewStatus) updates['reviewStatus'] = body.reviewStatus;
+  if ('supersedesSignalId' in body) updates['supersedesSignalId'] = body.supersedesSignalId;
   if (Object.keys(updates).length === 0) {
-    return c.json({ error: "no_updates" }, 400);
+    return c.json({ error: 'no_updates' }, 400);
   }
   const result = await db(c.env.DB)
     .update(schema.signals)
     .set(updates as Partial<typeof schema.signals.$inferInsert>)
     .where(eq(schema.signals.slug, slug))
-    .returning({ id: schema.signals.id, slug: schema.signals.slug, reviewStatus: schema.signals.reviewStatus });
-  if (result.length === 0) return c.json({ error: "not_found" }, 404);
+    .returning({
+      id: schema.signals.id,
+      slug: schema.signals.slug,
+      reviewStatus: schema.signals.reviewStatus,
+    });
+  if (result.length === 0) return c.json({ error: 'not_found' }, 404);
   return c.json({ updated: result[0] });
 });
 
-adminRoute.delete("/signals/:slug", async (c) => {
-  const slug = c.req.param("slug");
+adminRoute.delete('/signals/:slug', async (c) => {
+  const slug = c.req.param('slug');
   const [row] = await db(c.env.DB)
     .select({ id: schema.signals.id })
     .from(schema.signals)
     .where(eq(schema.signals.slug, slug))
     .limit(1);
-  if (!row) return c.json({ error: "not_found" }, 404);
+  if (!row) return c.json({ error: 'not_found' }, 404);
   await db(c.env.DB).delete(schema.evidence).where(eq(schema.evidence.signalId, row.id));
   await db(c.env.DB).delete(schema.scoreRuns).where(eq(schema.scoreRuns.signalId, row.id));
   await db(c.env.DB).delete(schema.signals).where(eq(schema.signals.id, row.id));
@@ -256,7 +258,7 @@ export interface SourceDocumentInput {
   parsedFields?: unknown;
 }
 
-adminRoute.post("/events", async (c) => {
+adminRoute.post('/events', async (c) => {
   const body = (await c.req.json()) as { events?: EventInput[] };
   const events = body.events ?? [];
   let inserted = 0;
@@ -318,7 +320,7 @@ adminRoute.post("/events", async (c) => {
       // The raw_hash unique constraint guards dedup; other errors (FK miss,
       // schema mismatch) should surface, not vanish.
       console.error(
-        `events insert failed: source=${e.source} rawHash=${e.rawHash?.slice(0, 12)} err=${String(err).slice(0, 200)}`,
+        `events insert failed: source=${e.source} rawHash=${e.rawHash?.slice(0, 12)} err=${String(err).slice(0, 200)}`
       );
     }
   }
@@ -350,17 +352,17 @@ export function normalizeSourceDocument(e: EventInput) {
 
 export function canonicalSourceUrl(value: string) {
   if (!value) return value;
-  if (value.startsWith("/")) return value.trim();
+  if (value.startsWith('/')) return value.trim();
   try {
     const url = new URL(value);
-    url.hash = "";
+    url.hash = '';
     for (const key of Array.from(url.searchParams.keys())) {
       if (/^utm_|^ref$|^fbclid$|^gclid$|^mc_cid$|^mc_eid$/i.test(key)) {
         url.searchParams.delete(key);
       }
     }
-    url.hostname = url.hostname.replace(/^www\./, "");
-    return url.toString().replace(/\/$/, "");
+    url.hostname = url.hostname.replace(/^www\./, '');
+    return url.toString().replace(/\/$/, '');
   } catch {
     return value.trim();
   }
@@ -383,25 +385,27 @@ interface LlmRunInput {
   latencyMs?: number;
 }
 
-adminRoute.post("/llm-runs", async (c) => {
+adminRoute.post('/llm-runs', async (c) => {
   const body = (await c.req.json()) as { runs?: LlmRunInput[] };
   const runs = body.runs ?? [];
   for (const r of runs) {
-    const id = await sha16(`llm:${r.signalSlug ?? ""}:${Date.now()}:${Math.random()}`);
-    await db(c.env.DB).insert(schema.llmRuns).values({
-      id,
-      signalSlug: r.signalSlug ?? null,
-      model: r.model,
-      promptVersion: r.promptVersion ?? null,
-      accepted: r.accepted,
-      reason: r.reason ?? null,
-      requestJson: r.requestJson,
-      responseJson: r.responseJson ?? null,
-      tokensIn: r.tokensIn ?? null,
-      tokensOut: r.tokensOut ?? null,
-      latencyMs: r.latencyMs ?? null,
-      createdAt: new Date(),
-    });
+    const id = await sha16(`llm:${r.signalSlug ?? ''}:${Date.now()}:${Math.random()}`);
+    await db(c.env.DB)
+      .insert(schema.llmRuns)
+      .values({
+        id,
+        signalSlug: r.signalSlug ?? null,
+        model: r.model,
+        promptVersion: r.promptVersion ?? null,
+        accepted: r.accepted,
+        reason: r.reason ?? null,
+        requestJson: r.requestJson,
+        responseJson: r.responseJson ?? null,
+        tokensIn: r.tokensIn ?? null,
+        tokensOut: r.tokensOut ?? null,
+        latencyMs: r.latencyMs ?? null,
+        createdAt: new Date(),
+      });
   }
   return c.json({ inserted: runs.length });
 });
@@ -420,32 +424,34 @@ interface IngestRunInput {
   notes?: string;
 }
 
-adminRoute.post("/ingest-runs", async (c) => {
+adminRoute.post('/ingest-runs', async (c) => {
   const body = (await c.req.json()) as IngestRunInput;
   const id = await sha16(`run:${body.source}:${body.startedAt}:${Math.random()}`);
-  await db(c.env.DB).insert(schema.ingestRuns).values({
-    id,
-    source: body.source,
-    startedAt: new Date(body.startedAt),
-    finishedAt: body.finishedAt ? new Date(body.finishedAt) : null,
-    days: body.days ?? null,
-    eventsFetched: body.eventsFetched ?? 0,
-    eventsDroppedNoEntity: body.eventsDroppedNoEntity ?? 0,
-    eventsDroppedLowCluster: body.eventsDroppedLowCluster ?? 0,
-    signalsDrafted: body.signalsDrafted ?? 0,
-    errors: body.errors ?? 0,
-    errorSample: body.errorSample ?? null,
-    notes: body.notes ?? null,
-  });
+  await db(c.env.DB)
+    .insert(schema.ingestRuns)
+    .values({
+      id,
+      source: body.source,
+      startedAt: new Date(body.startedAt),
+      finishedAt: body.finishedAt ? new Date(body.finishedAt) : null,
+      days: body.days ?? null,
+      eventsFetched: body.eventsFetched ?? 0,
+      eventsDroppedNoEntity: body.eventsDroppedNoEntity ?? 0,
+      eventsDroppedLowCluster: body.eventsDroppedLowCluster ?? 0,
+      signalsDrafted: body.signalsDrafted ?? 0,
+      errors: body.errors ?? 0,
+      errorSample: body.errorSample ?? null,
+      notes: body.notes ?? null,
+    });
   return c.json({ id });
 });
 
 interface QuoteInput {
-  source: "polymarket" | "manifold" | "kalshi";
+  source: 'polymarket' | 'manifold' | 'kalshi';
   marketId: string;
   entityId?: string | null;
   question: string;
-  outcome: "yes" | "no" | "binary";
+  outcome: 'yes' | 'no' | 'binary';
   prob: number;
   volume?: number | null;
   resolved?: boolean;
@@ -454,10 +460,10 @@ interface QuoteInput {
   fetchedAt: string; // ISO
 }
 
-adminRoute.post("/quotes", async (c) => {
+adminRoute.post('/quotes', async (c) => {
   const body = (await c.req.json()) as { quotes?: QuoteInput[] };
   const quotes = body.quotes ?? [];
-  if (!Array.isArray(quotes)) return c.json({ error: "bad_payload" }, 400);
+  if (!Array.isArray(quotes)) return c.json({ error: 'bad_payload' }, 400);
 
   let inserted = 0;
   let skipped = 0;
@@ -467,7 +473,7 @@ adminRoute.post("/quotes", async (c) => {
       !q.marketId ||
       !q.question ||
       !q.outcome ||
-      typeof q.prob !== "number" ||
+      typeof q.prob !== 'number' ||
       !q.marketUrl ||
       !q.fetchedAt
     ) {
@@ -502,26 +508,26 @@ adminRoute.post("/quotes", async (c) => {
         .onConflictDoNothing({ target: schema.marketQuotes.id });
       inserted++;
     } catch (err) {
-      console.error("[admin/quotes] insert failed", q.source, q.marketId, String(err));
+      console.error('[admin/quotes] insert failed', q.source, q.marketId, String(err));
       skipped++;
     }
   }
   return c.json({ inserted, skipped });
 });
 
-adminRoute.get("/audit/summary", async (c) => {
-  const days = Number(c.req.query("days") ?? 7);
+adminRoute.get('/audit/summary', async (c) => {
+  const days = Number(c.req.query('days') ?? 7);
   const since = Math.floor(Date.now() / 1000) - days * 86400;
 
   const events = (await c.env.DB.prepare(
-    `SELECT source, count(*) as n FROM events WHERE ingested_at >= ? GROUP BY source ORDER BY n DESC`,
+    `SELECT source, count(*) as n FROM events WHERE ingested_at >= ? GROUP BY source ORDER BY n DESC`
   )
     .bind(since)
     .all()) as { results: Array<{ source: string; n: number }> };
 
   const llm = (await c.env.DB.prepare(
     `SELECT model, accepted, count(*) as n, avg(latency_ms) as avg_ms
-     FROM llm_runs WHERE created_at >= ? GROUP BY model, accepted`,
+     FROM llm_runs WHERE created_at >= ? GROUP BY model, accepted`
   )
     .bind(since)
     .all()) as {
@@ -532,7 +538,7 @@ adminRoute.get("/audit/summary", async (c) => {
     `SELECT source, count(*) as n,
             sum(events_fetched) as fetched, sum(signals_drafted) as drafted,
             sum(errors) as errors
-     FROM ingest_runs WHERE started_at >= ? GROUP BY source`,
+     FROM ingest_runs WHERE started_at >= ? GROUP BY source`
   )
     .bind(since)
     .all()) as {
@@ -553,7 +559,7 @@ adminRoute.get("/audit/summary", async (c) => {
   });
 });
 
-adminRoute.get("/pending-scores", async (c) => {
+adminRoute.get('/pending-scores', async (c) => {
   // Signals whose predicted window has elapsed and no score_run exists yet for that window.
   const rows = (await c.env.DB.prepare(
     `SELECT s.id, s.slug, s.primary_entity_id, s.direction, s.confidence, s.predicted_window_days, s.published_at
@@ -564,7 +570,7 @@ adminRoute.get("/pending-scores", async (c) => {
          SELECT 1 FROM score_runs sr
          WHERE sr.signal_id = s.id AND sr.window_days = s.predicted_window_days
        )
-     LIMIT 200`,
+     LIMIT 200`
   ).all()) as {
     results: Array<{
       id: string;
@@ -590,7 +596,7 @@ interface CreateClaimInput {
   signalId?: string;
   briefItemId?: string;
   agentEvalResponseId?: string;
-  confidenceBand?: "low" | "medium" | "high";
+  confidenceBand?: 'low' | 'medium' | 'high';
   evidence?: Array<{
     url: string;
     role: ClaimEvidenceRole;
@@ -601,11 +607,14 @@ interface CreateClaimInput {
 
 async function resolveSignalId(
   d1: D1Database,
-  input: Pick<CreateClaimInput, "signalId" | "signalSlug">,
+  input: Pick<CreateClaimInput, 'signalId' | 'signalSlug'>
 ): Promise<string | null> {
   // claim_records.signalId has no FK (it's nullable plain text). Validate
   // explicitly here so callers can't dangle a claim to a non-existent signal.
-  const lookup = async (col: typeof schema.signals.id | typeof schema.signals.slug, val: string) => {
+  const lookup = async (
+    col: typeof schema.signals.id | typeof schema.signals.slug,
+    val: string
+  ) => {
     const [row] = await db(d1)
       .select({ id: schema.signals.id })
       .from(schema.signals)
@@ -618,24 +627,24 @@ async function resolveSignalId(
   return null;
 }
 
-function actorFromHeaders(c: { req: { header: (k: string) => string | undefined } }): string | null {
-  return (
-    c.req.header("X-Admin-Email") ??
-    c.req.header("X-Clerk-User-Id") ??
-    null
-  );
+function actorFromHeaders(c: {
+  req: { header: (k: string) => string | undefined };
+}): string | null {
+  return c.req.header('X-Admin-Email') ?? c.req.header('X-Clerk-User-Id') ?? null;
 }
 
-adminRoute.post("/claims", async (c) => {
+adminRoute.post('/claims', async (c) => {
   const body = (await c.req.json()) as CreateClaimInput;
   if (!body.surface || !body.assertion) {
-    return c.json({ error: "missing_surface_or_assertion" }, 400);
+    return c.json({ error: 'missing_surface_or_assertion' }, 400);
   }
   const signalId = await resolveSignalId(c.env.DB, body);
-  if (body.surface === "signal" && !signalId) {
-    return c.json({ error: "signal_not_found" }, 404);
+  if (body.surface === 'signal' && !signalId) {
+    return c.json({ error: 'signal_not_found' }, 404);
   }
-  const id = await sha16(`claim:${body.surface}:${signalId ?? body.briefItemId ?? body.agentEvalResponseId ?? ""}:${body.assertion}:${Date.now()}:${Math.random()}`);
+  const id = await sha16(
+    `claim:${body.surface}:${signalId ?? body.briefItemId ?? body.agentEvalResponseId ?? ''}:${body.assertion}:${Date.now()}:${Math.random()}`
+  );
   const now = new Date();
   const actor = actorFromHeaders(c);
 
@@ -648,8 +657,8 @@ adminRoute.post("/claims", async (c) => {
       agentEvalResponseId: body.agentEvalResponseId ?? null,
       surface: body.surface,
       assertion: body.assertion,
-      confidenceBand: body.confidenceBand ?? "medium",
-      reviewStatus: "draft",
+      confidenceBand: body.confidenceBand ?? 'medium',
+      reviewStatus: 'draft',
       parentClaimId: null,
       version: 1,
       createdAt: now,
@@ -660,7 +669,7 @@ adminRoute.post("/claims", async (c) => {
     .values({
       id: await sha16(`tl:${id}:created:${now.getTime()}`),
       claimId: id,
-      kind: "created",
+      kind: 'created',
       payload: { surface: body.surface, assertion: body.assertion },
       actor,
       createdAt: now,
@@ -687,7 +696,7 @@ adminRoute.post("/claims", async (c) => {
       .values({
         id: await sha16(`tl:${id}:add:${linkId}`),
         claimId: id,
-        kind: "evidence_added",
+        kind: 'evidence_added',
         payload: { linkId, url: link.url, role: link.role },
         actor,
         createdAt: now,
@@ -701,17 +710,17 @@ adminRoute.post("/claims", async (c) => {
 // than a side effect on GET /claims/by-signal/:slug. Repeated opens are safe:
 // an existing signal claim wins, while deterministic IDs make concurrent
 // retries converge on the same rows.
-adminRoute.post("/claims/backfill", async (c) => {
+adminRoute.post('/claims/backfill', async (c) => {
   const body = (await c.req.json()) as { signalSlug?: string };
   const signalSlug = body.signalSlug?.trim();
-  if (!signalSlug) return c.json({ error: "missing_signal_slug" }, 400);
+  if (!signalSlug) return c.json({ error: 'missing_signal_slug' }, 400);
 
   const [signal] = await db(c.env.DB)
     .select()
     .from(schema.signals)
     .where(eq(schema.signals.slug, signalSlug))
     .limit(1);
-  if (!signal) return c.json({ error: "signal_not_found" }, 404);
+  if (!signal) return c.json({ error: 'signal_not_found' }, 404);
 
   const [existing] = await db(c.env.DB)
     .select({ id: schema.claimRecords.id })
@@ -722,26 +731,24 @@ adminRoute.post("/claims/backfill", async (c) => {
 
   const derived = buildHistoricalClaimBackfill({
     bodyMd: signal.bodyMd,
-    fallbackAssertion: signal.slug.replaceAll("-", " "),
-    evidenceUrls: Array.isArray(signal.evidenceUrls)
-      ? signal.evidenceUrls.map(String)
-      : [],
+    fallbackAssertion: signal.slug.replaceAll('-', ' '),
+    evidenceUrls: Array.isArray(signal.evidenceUrls) ? signal.evidenceUrls.map(String) : [],
   });
   const now = new Date();
   const actor = actorFromHeaders(c);
   const claimId = await sha16(`claim:backfill:${signal.id}`);
-  const isPublished = signal.reviewStatus === "published";
+  const isPublished = signal.reviewStatus === 'published';
 
   await db(c.env.DB)
     .insert(schema.claimRecords)
     .values({
       id: claimId,
       signalId: signal.id,
-      surface: "signal",
+      surface: 'signal',
       assertion: derived.assertion,
       confidenceBand: signal.confidence,
-      reviewStatus: isPublished ? "published" : "draft",
-      publishReason: isPublished ? "historical_signal_backfill" : null,
+      reviewStatus: isPublished ? 'published' : 'draft',
+      publishReason: isPublished ? 'historical_signal_backfill' : null,
       version: 1,
       createdAt: now,
       publishedAt: isPublished ? signal.publishedAt : null,
@@ -753,8 +760,8 @@ adminRoute.post("/claims/backfill", async (c) => {
     .values({
       id: await sha16(`tl:${claimId}:backfill`),
       claimId,
-      kind: "created",
-      payload: { source: "historical_signal_backfill", signalSlug },
+      kind: 'created',
+      payload: { source: 'historical_signal_backfill', signalSlug },
       actor,
       createdAt: now,
     })
@@ -779,8 +786,8 @@ adminRoute.post("/claims/backfill", async (c) => {
       .values({
         id: await sha16(`tl:${claimId}:backfill:${linkId}`),
         claimId,
-        kind: "evidence_added",
-        payload: { linkId, url: link.url, role: link.role, source: "historical_signal_backfill" },
+        kind: 'evidence_added',
+        payload: { linkId, url: link.url, role: link.role, source: 'historical_signal_backfill' },
         actor,
         createdAt: now,
       })
@@ -790,8 +797,8 @@ adminRoute.post("/claims/backfill", async (c) => {
   return c.json({ id: claimId, backfilled: true, evidenceCount: derived.evidence.length });
 });
 
-adminRoute.post("/claims/:id/evidence", async (c) => {
-  const claimId = c.req.param("id");
+adminRoute.post('/claims/:id/evidence', async (c) => {
+  const claimId = c.req.param('id');
   const body = (await c.req.json()) as {
     url: string;
     role: ClaimEvidenceRole;
@@ -799,16 +806,16 @@ adminRoute.post("/claims/:id/evidence", async (c) => {
     sourceDocumentId?: string;
   };
   if (!body.url || !body.role) {
-    return c.json({ error: "missing_url_or_role" }, 400);
+    return c.json({ error: 'missing_url_or_role' }, 400);
   }
   const [claim] = await db(c.env.DB)
     .select()
     .from(schema.claimRecords)
     .where(eq(schema.claimRecords.id, claimId))
     .limit(1);
-  if (!claim) return c.json({ error: "not_found" }, 404);
-  if (claim.reviewStatus === "published" || claim.reviewStatus === "corrected") {
-    return c.json({ error: "claim_frozen" }, 409);
+  if (!claim) return c.json({ error: 'not_found' }, 404);
+  if (claim.reviewStatus === 'published' || claim.reviewStatus === 'corrected') {
+    return c.json({ error: 'claim_frozen' }, 409);
   }
   const now = new Date();
   const actor = actorFromHeaders(c);
@@ -831,7 +838,7 @@ adminRoute.post("/claims/:id/evidence", async (c) => {
     .values({
       id: await sha16(`tl:${claimId}:add:${linkId}`),
       claimId,
-      kind: "evidence_added",
+      kind: 'evidence_added',
       payload: { linkId, url: body.url, role: body.role },
       actor,
       createdAt: now,
@@ -839,17 +846,17 @@ adminRoute.post("/claims/:id/evidence", async (c) => {
   return c.json({ id: linkId });
 });
 
-adminRoute.delete("/claims/:id/evidence/:linkId", async (c) => {
-  const claimId = c.req.param("id");
-  const linkId = c.req.param("linkId");
+adminRoute.delete('/claims/:id/evidence/:linkId', async (c) => {
+  const claimId = c.req.param('id');
+  const linkId = c.req.param('linkId');
   const [claim] = await db(c.env.DB)
     .select()
     .from(schema.claimRecords)
     .where(eq(schema.claimRecords.id, claimId))
     .limit(1);
-  if (!claim) return c.json({ error: "not_found" }, 404);
-  if (claim.reviewStatus === "published" || claim.reviewStatus === "corrected") {
-    return c.json({ error: "claim_frozen" }, 409);
+  if (!claim) return c.json({ error: 'not_found' }, 404);
+  if (claim.reviewStatus === 'published' || claim.reviewStatus === 'corrected') {
+    return c.json({ error: 'claim_frozen' }, 409);
   }
   const now = new Date();
   const actor = actorFromHeaders(c);
@@ -858,7 +865,7 @@ adminRoute.delete("/claims/:id/evidence/:linkId", async (c) => {
     .from(schema.claimEvidenceLinks)
     .where(eq(schema.claimEvidenceLinks.id, linkId))
     .limit(1);
-  if (!link) return c.json({ error: "link_not_found" }, 404);
+  if (!link) return c.json({ error: 'link_not_found' }, 404);
   await db(c.env.DB)
     .delete(schema.claimEvidenceLinks)
     .where(eq(schema.claimEvidenceLinks.id, linkId));
@@ -867,7 +874,7 @@ adminRoute.delete("/claims/:id/evidence/:linkId", async (c) => {
     .values({
       id: await sha16(`tl:${claimId}:rm:${linkId}:${now.getTime()}`),
       claimId,
-      kind: "evidence_removed",
+      kind: 'evidence_removed',
       payload: { linkId, url: link.evidenceUrl, role: link.role },
       actor,
       createdAt: now,
@@ -875,20 +882,20 @@ adminRoute.delete("/claims/:id/evidence/:linkId", async (c) => {
   return c.json({ deleted: linkId });
 });
 
-adminRoute.post("/claims/:id/status", async (c) => {
-  const claimId = c.req.param("id");
+adminRoute.post('/claims/:id/status', async (c) => {
+  const claimId = c.req.param('id');
   const body = (await c.req.json()) as { status: ClaimReviewStatus; reason?: string };
   const [claim] = await db(c.env.DB)
     .select()
     .from(schema.claimRecords)
     .where(eq(schema.claimRecords.id, claimId))
     .limit(1);
-  if (!claim) return c.json({ error: "not_found" }, 404);
+  if (!claim) return c.json({ error: 'not_found' }, 404);
   const t = canTransition(claim.reviewStatus, body.status);
-  if (!t.ok) return c.json({ error: t.reason ?? "invalid_transition" }, 409);
+  if (!t.ok) return c.json({ error: t.reason ?? 'invalid_transition' }, 409);
 
   // Re-check cite-or-kill at publish time using structured links.
-  if (body.status === "published") {
+  if (body.status === 'published') {
     const links = await db(c.env.DB)
       .select()
       .from(schema.claimEvidenceLinks)
@@ -904,11 +911,11 @@ adminRoute.post("/claims/:id/status", async (c) => {
         notes: l.notes ?? null,
         addedAt: l.addedAt.toISOString(),
         addedBy: l.addedBy ?? null,
-      })),
+      }))
     );
     const verdict = judgePublishability(rollup);
     if (!verdict.publishable) {
-      return c.json({ error: "cite_or_kill", reason: verdict.reason }, 409);
+      return c.json({ error: 'cite_or_kill', reason: verdict.reason }, 409);
     }
   }
 
@@ -917,7 +924,7 @@ adminRoute.post("/claims/:id/status", async (c) => {
   const updates: Partial<typeof schema.claimRecords.$inferInsert> = {
     reviewStatus: body.status,
   };
-  if (body.status === "published") {
+  if (body.status === 'published') {
     updates.publishedAt = now;
     updates.publishReason = body.reason ?? null;
   }
@@ -930,7 +937,7 @@ adminRoute.post("/claims/:id/status", async (c) => {
     .values({
       id: await sha16(`tl:${claimId}:status:${body.status}:${now.getTime()}`),
       claimId,
-      kind: "status_change",
+      kind: 'status_change',
       payload: { from: claim.reviewStatus, to: body.status, reason: body.reason ?? null },
       actor,
       createdAt: now,
@@ -938,22 +945,24 @@ adminRoute.post("/claims/:id/status", async (c) => {
   return c.json({ id: claimId, status: body.status });
 });
 
-adminRoute.post("/claims/:id/corrections", async (c) => {
-  const parentId = c.req.param("id");
+adminRoute.post('/claims/:id/corrections', async (c) => {
+  const parentId = c.req.param('id');
   const body = (await c.req.json()) as { assertion: string; reason?: string };
-  if (!body.assertion) return c.json({ error: "missing_assertion" }, 400);
+  if (!body.assertion) return c.json({ error: 'missing_assertion' }, 400);
   const [parent] = await db(c.env.DB)
     .select()
     .from(schema.claimRecords)
     .where(eq(schema.claimRecords.id, parentId))
     .limit(1);
-  if (!parent) return c.json({ error: "not_found" }, 404);
-  if (parent.reviewStatus !== "published") {
-    return c.json({ error: "only_published_can_be_corrected" }, 409);
+  if (!parent) return c.json({ error: 'not_found' }, 404);
+  if (parent.reviewStatus !== 'published') {
+    return c.json({ error: 'only_published_can_be_corrected' }, 409);
   }
   const now = new Date();
   const actor = actorFromHeaders(c);
-  const newId = await sha16(`claim:correction:${parentId}:${body.assertion}:${now.getTime()}:${Math.random()}`);
+  const newId = await sha16(
+    `claim:correction:${parentId}:${body.assertion}:${now.getTime()}:${Math.random()}`
+  );
   await db(c.env.DB)
     .insert(schema.claimRecords)
     .values({
@@ -964,21 +973,21 @@ adminRoute.post("/claims/:id/corrections", async (c) => {
       surface: parent.surface,
       assertion: body.assertion,
       confidenceBand: parent.confidenceBand,
-      reviewStatus: "draft",
+      reviewStatus: 'draft',
       parentClaimId: parentId,
       version: parent.version + 1,
       createdAt: now,
     });
   await db(c.env.DB)
     .update(schema.claimRecords)
-    .set({ reviewStatus: "corrected", correctedAt: now })
+    .set({ reviewStatus: 'corrected', correctedAt: now })
     .where(eq(schema.claimRecords.id, parentId));
   await db(c.env.DB)
     .insert(schema.claimTimelineEvents)
     .values({
       id: await sha16(`tl:${parentId}:correction:${newId}`),
       claimId: parentId,
-      kind: "correction_filed",
+      kind: 'correction_filed',
       payload: { newClaimId: newId, reason: body.reason ?? null },
       actor,
       createdAt: now,
@@ -988,7 +997,7 @@ adminRoute.post("/claims/:id/corrections", async (c) => {
     .values({
       id: await sha16(`tl:${newId}:created:${now.getTime()}`),
       claimId: newId,
-      kind: "created",
+      kind: 'created',
       payload: { parentClaimId: parentId, assertion: body.assertion },
       actor,
       createdAt: now,
@@ -998,17 +1007,19 @@ adminRoute.post("/claims/:id/corrections", async (c) => {
 
 // ─── Admin: brief delivery summary (plan 0009) ────────────────────────────
 
-adminRoute.get("/delivery/summary", async (c) => {
-  const days = Math.min(Math.max(Number(c.req.query("days") ?? 7), 1), 90);
+adminRoute.get('/delivery/summary', async (c) => {
+  const days = Math.min(Math.max(Number(c.req.query('days') ?? 7), 1), 90);
   const since = new Date(Date.now() - days * 24 * 3600 * 1000);
   const rows = (await c.env.DB.prepare(
     `SELECT status, reason, count(*) as n, brief_date FROM delivery_log
        WHERE created_at >= ?
        GROUP BY status, reason, brief_date
-       ORDER BY brief_date DESC, n DESC`,
+       ORDER BY brief_date DESC, n DESC`
   )
     .bind(Math.floor(since.getTime() / 1000))
-    .all()) as { results: Array<{ status: string; reason: string | null; n: number; brief_date: string }> };
+    .all()) as {
+    results: Array<{ status: string; reason: string | null; n: number; brief_date: string }>;
+  };
   const totals: Record<string, number> = { sent: 0, skipped: 0, failed: 0, queued: 0 };
   const byReason: Record<string, number> = {};
   for (const r of rows.results ?? []) {
@@ -1019,11 +1030,11 @@ adminRoute.get("/delivery/summary", async (c) => {
 });
 
 function inferSourceType(url: string): string {
-  if (url.includes("sec.gov")) return "edgar";
-  if (url.includes("reddit.com")) return "reddit";
-  if (url.includes("github.com")) return "github";
-  if (url.includes("twitter.com") || url.includes("x.com")) return "x";
-  return "web";
+  if (url.includes('sec.gov')) return 'edgar';
+  if (url.includes('reddit.com')) return 'reddit';
+  if (url.includes('github.com')) return 'github';
+  if (url.includes('twitter.com') || url.includes('x.com')) return 'x';
+  return 'web';
 }
 
 // ─── /admin/backfill-entities ─────────────────────────────────────────────
@@ -1031,33 +1042,37 @@ function inferSourceType(url: string): string {
 // with primary_entity_id NULL that were ingested before the Python matcher
 // was fixed to handle $TICKER. Mirrors python/.../extract/entities.py.
 
-adminRoute.post("/backfill-entities", async (c) => {
-  const hours = Math.min(Math.max(Number(c.req.query("hours") ?? 7 * 24), 1), 90 * 24);
-  const limit = Math.min(Math.max(Number(c.req.query("limit") ?? 2000), 1), 20000);
-  const dryRun = c.req.query("dry_run") === "1";
+adminRoute.post('/backfill-entities', async (c) => {
+  const hours = Math.min(Math.max(Number(c.req.query('hours') ?? 7 * 24), 1), 90 * 24);
+  const limit = Math.min(Math.max(Number(c.req.query('limit') ?? 2000), 1), 20000);
+  const dryRun = c.req.query('dry_run') === '1';
   const since = Math.floor(Date.now() / 1000) - hours * 3600;
 
-  const entities = (await c.env.DB.prepare(
-    "SELECT id, name, ticker, metadata FROM entities",
-  ).all<GazetteerEntity>())
-    .results ?? [];
+  const entities =
+    (
+      await c.env.DB.prepare(
+        'SELECT id, name, ticker, metadata FROM entities'
+      ).all<GazetteerEntity>()
+    ).results ?? [];
   const patterns = buildPatterns(entities);
 
-  const events = (await c.env.DB.prepare(
-    `SELECT id, title, content
+  const events =
+    (
+      await c.env.DB.prepare(
+        `SELECT id, title, content
      FROM events
      WHERE primary_entity_id IS NULL
        AND published_at >= ?
      ORDER BY published_at DESC
-     LIMIT ?`,
-  )
-    .bind(since, limit)
-    .all<{ id: string; title: string | null; content: string | null }>())
-    .results ?? [];
+     LIMIT ?`
+      )
+        .bind(since, limit)
+        .all<{ id: string; title: string | null; content: string | null }>()
+    ).results ?? [];
 
   const matches: Array<{ id: string; eid: string }> = [];
   for (const ev of events) {
-    const haystack = `${ev.title ?? ""} ${ev.content ?? ""}`;
+    const haystack = `${ev.title ?? ''} ${ev.content ?? ''}`;
     const eid = matchEntity(haystack, patterns);
     if (eid) matches.push({ id: ev.id, eid });
   }
@@ -1065,8 +1080,8 @@ adminRoute.post("/backfill-entities", async (c) => {
   if (!dryRun) {
     const stmts = matches.map((m) =>
       c.env.DB.prepare(
-        "UPDATE events SET primary_entity_id = ? WHERE id = ? AND primary_entity_id IS NULL",
-      ).bind(m.eid, m.id),
+        'UPDATE events SET primary_entity_id = ? WHERE id = ? AND primary_entity_id IS NULL'
+      ).bind(m.eid, m.id)
     );
     if (stmts.length > 0) {
       // D1 batch — single round-trip

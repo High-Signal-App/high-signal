@@ -1,6 +1,6 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { executePromptsWithAI } from "../lib/agent-evaluation-execution";
-import type { AgentEvaluationInput, AgentPromptResult } from "@high-signal/shared";
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { executePromptsWithAI } from '../lib/agent-evaluation-execution';
+import type { AgentEvaluationInput, AgentPromptResult } from '@high-signal/shared';
 
 const originalFetch = globalThis.fetch;
 afterEach(() => {
@@ -10,10 +10,10 @@ afterEach(() => {
 
 function makePrompt(overrides: Partial<AgentPromptResult> = {}): AgentPromptResult {
   return {
-    promptKey: "test-key",
-    promptText: "What is the best brand?",
-    surface: "chat",
-    responseText: "",
+    promptKey: 'test-key',
+    promptText: 'What is the best brand?',
+    surface: 'chat',
+    responseText: '',
     brandMentioned: false,
     brandRecommended: false,
     competitorsMentioned: [],
@@ -23,15 +23,15 @@ function makePrompt(overrides: Partial<AgentPromptResult> = {}): AgentPromptResu
 }
 
 const baseInput: AgentEvaluationInput = {
-  ownerId: "owner-1",
-  brandName: "Acme",
-  brandUrl: "https://acme.com",
-  buyerMission: "build widgets",
-  competitors: [{ name: "Beta", url: "https://beta.com" }],
+  ownerId: 'owner-1',
+  brandName: 'Acme',
+  brandUrl: 'https://acme.com',
+  buyerMission: 'build widgets',
+  competitors: [{ name: 'Beta', url: 'https://beta.com' }],
 };
 
-describe("executePromptsWithAI resilience", () => {
-  it("returns original prompts when no AI config is set", async () => {
+describe('executePromptsWithAI resilience', () => {
+  it('returns original prompts when no AI config is set', async () => {
     const prompts = [makePrompt()];
     const out = await executePromptsWithAI({
       env: {},
@@ -41,32 +41,32 @@ describe("executePromptsWithAI resilience", () => {
     expect(out).toBe(prompts);
   });
 
-  it("analyzes successful responses", async () => {
-    const prompts = [makePrompt({ promptKey: "p1" }), makePrompt({ promptKey: "p2" })];
+  it('analyzes successful responses', async () => {
+    const prompts = [makePrompt({ promptKey: 'p1' }), makePrompt({ promptKey: 'p2' })];
     globalThis.fetch = vi.fn().mockResolvedValue(
       new Response(
         JSON.stringify({
-          choices: [{ message: { content: "Acme is the best brand. See https://acme.com" } }],
+          choices: [{ message: { content: 'Acme is the best brand. See https://acme.com' } }],
         }),
-        { status: 200 },
-      ),
+        { status: 200 }
+      )
     );
     const out = await executePromptsWithAI({
-      env: { HIGH_SIGNAL_AI_API_KEY: "test-key" },
+      env: { HIGH_SIGNAL_AI_API_KEY: 'test-key' },
       audit: baseInput,
       prompts,
     });
     expect(out).toHaveLength(2);
     expect(out[0]!.brandMentioned).toBe(true);
     expect(out[0]!.brandRecommended).toBe(true);
-    expect(out[0]!.citations).toContain("https://acme.com");
+    expect(out[0]!.citations).toContain('https://acme.com');
   });
 
-  it("returns original prompt on non-200 (fallback)", async () => {
-    const prompts = [makePrompt({ promptKey: "p1" })];
-    globalThis.fetch = vi.fn().mockResolvedValue(new Response("down", { status: 503 }));
+  it('returns original prompt on non-200 (fallback)', async () => {
+    const prompts = [makePrompt({ promptKey: 'p1' })];
+    globalThis.fetch = vi.fn().mockResolvedValue(new Response('down', { status: 503 }));
     const out = await executePromptsWithAI({
-      env: { HIGH_SIGNAL_AI_API_KEY: "test-key" },
+      env: { HIGH_SIGNAL_AI_API_KEY: 'test-key' },
       audit: baseInput,
       prompts,
     });
@@ -74,11 +74,11 @@ describe("executePromptsWithAI resilience", () => {
     expect(out[0]).toBe(prompts[0]);
   });
 
-  it("returns original prompt on fetch exception (fallback)", async () => {
-    const prompts = [makePrompt({ promptKey: "p1" })];
-    globalThis.fetch = vi.fn().mockRejectedValue(new TypeError("network down"));
+  it('returns original prompt on fetch exception (fallback)', async () => {
+    const prompts = [makePrompt({ promptKey: 'p1' })];
+    globalThis.fetch = vi.fn().mockRejectedValue(new TypeError('network down'));
     const out = await executePromptsWithAI({
-      env: { HIGH_SIGNAL_AI_API_KEY: "test-key" },
+      env: { HIGH_SIGNAL_AI_API_KEY: 'test-key' },
       audit: baseInput,
       prompts,
     });
@@ -86,22 +86,22 @@ describe("executePromptsWithAI resilience", () => {
     expect(out[0]).toBe(prompts[0]);
   });
 
-  it("retries on 429 and succeeds on second attempt", async () => {
-    const prompts = [makePrompt({ promptKey: "p1" })];
+  it('retries on 429 and succeeds on second attempt', async () => {
+    const prompts = [makePrompt({ promptKey: 'p1' })];
     const fetchMock = vi
       .fn()
-      .mockResolvedValueOnce(new Response("rate limited", { status: 429 }))
+      .mockResolvedValueOnce(new Response('rate limited', { status: 429 }))
       .mockResolvedValueOnce(
         new Response(
           JSON.stringify({
-            choices: [{ message: { content: "Acme is great" } }],
+            choices: [{ message: { content: 'Acme is great' } }],
           }),
-          { status: 200 },
-        ),
+          { status: 200 }
+        )
       );
     globalThis.fetch = fetchMock;
     const out = await executePromptsWithAI({
-      env: { HIGH_SIGNAL_AI_API_KEY: "test-key" },
+      env: { HIGH_SIGNAL_AI_API_KEY: 'test-key' },
       audit: baseInput,
       prompts,
     });
@@ -110,12 +110,12 @@ describe("executePromptsWithAI resilience", () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
-  it("does not amplify into infinite retry (bounded attempts)", async () => {
-    const prompts = [makePrompt({ promptKey: "p1" })];
-    const fetchMock = vi.fn().mockResolvedValue(new Response("down", { status: 503 }));
+  it('does not amplify into infinite retry (bounded attempts)', async () => {
+    const prompts = [makePrompt({ promptKey: 'p1' })];
+    const fetchMock = vi.fn().mockResolvedValue(new Response('down', { status: 503 }));
     globalThis.fetch = fetchMock;
     const out = await executePromptsWithAI({
-      env: { HIGH_SIGNAL_AI_API_KEY: "test-key" },
+      env: { HIGH_SIGNAL_AI_API_KEY: 'test-key' },
       audit: baseInput,
       prompts,
     });
@@ -124,7 +124,7 @@ describe("executePromptsWithAI resilience", () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
-  it("caps concurrency at 4 for large prompt lists", async () => {
+  it('caps concurrency at 4 for large prompt lists', async () => {
     const prompts = Array.from({ length: 10 }, (_, i) => makePrompt({ promptKey: `p${i}` }));
     let inFlight = 0;
     let maxInFlight = 0;
@@ -133,13 +133,12 @@ describe("executePromptsWithAI resilience", () => {
       maxInFlight = Math.max(maxInFlight, inFlight);
       await new Promise((r) => setTimeout(r, 10));
       inFlight--;
-      return new Response(
-        JSON.stringify({ choices: [{ message: { content: "Acme" } }] }),
-        { status: 200 },
-      );
+      return new Response(JSON.stringify({ choices: [{ message: { content: 'Acme' } }] }), {
+        status: 200,
+      });
     });
     await executePromptsWithAI({
-      env: { HIGH_SIGNAL_AI_API_KEY: "test-key" },
+      env: { HIGH_SIGNAL_AI_API_KEY: 'test-key' },
       audit: baseInput,
       prompts,
     });

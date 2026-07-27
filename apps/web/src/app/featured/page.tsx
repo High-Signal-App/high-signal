@@ -56,7 +56,8 @@ export default async function FeaturedPage() {
     );
   }
 
-  const pick = sorted[Math.floor(Math.random() * sorted.length)]!;
+  const pick = sorted[Math.floor(Math.random() * sorted.length)];
+  if (!pick) notFound();
   let detail: Awaited<ReturnType<typeof api.signal>>;
   try {
     detail = await api.signal(pick.slug);

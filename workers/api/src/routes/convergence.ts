@@ -6,15 +6,15 @@
  * Pure SQL aggregation against the `events` table; no new ingest needed.
  */
 
-import { Hono } from "hono";
-import seedEntities from "../lib/seed-entities.json";
-import labelBacktest from "../lib/label-backtest.json";
+import { Hono } from 'hono';
+import seedEntities from '../lib/seed-entities.json';
+import labelBacktest from '../lib/label-backtest.json';
 import {
   articleFromWikiUrl,
   buildPageviewsUrl,
   summarize,
   type AttentionResult,
-} from "./attention";
+} from './attention';
 
 interface LabelStats {
   n: number;
@@ -38,14 +38,14 @@ for (const e of seedEntities as Array<{ id: string; wiki_url: string | null }>) 
 }
 
 const ATTENTION_USER_AGENT =
-  "high-signal-convergence/0.1 " +
-  "(+https://github.com/High-Signal-App/high-signal; " +
-  "contact: sarthak@vaultwealth.com)";
+  'high-signal-convergence/0.1 ' +
+  '(+https://github.com/High-Signal-App/high-signal; ' +
+  'contact: sarthak@vaultwealth.com)';
 
 async function fetchAttention(article: string, days = 30): Promise<AttentionResult | null> {
   try {
     const r = await fetch(buildPageviewsUrl(article, days), {
-      headers: { "User-Agent": ATTENTION_USER_AGENT, Accept: "application/json" },
+      headers: { 'User-Agent': ATTENTION_USER_AGENT, Accept: 'application/json' },
       cf: { cacheTtl: 1800, cacheEverything: true } as RequestInitCfProperties,
     });
     if (!r.ok) return null;
@@ -63,10 +63,10 @@ interface ConvergenceRow {
   entity_sector: string | null;
   source_count: number;
   event_count: number;
-  sources: string;            // comma-separated distinct sources
-  latest_at: number;          // unix seconds
-  earliest_at: number;        // unix seconds
-  first_seen_ever: number | null;  // earliest event for this entity, all-time
+  sources: string; // comma-separated distinct sources
+  latest_at: number; // unix seconds
+  earliest_at: number; // unix seconds
+  first_seen_ever: number | null; // earliest event for this entity, all-time
 }
 
 interface RecentEvent {
@@ -91,19 +91,21 @@ interface MarketVelocityRow {
 
 export const convergenceRoute = new Hono<{ Bindings: Env }>();
 
-convergenceRoute.get("/", async (c) => {
+convergenceRoute.get('/', async (c) => {
   // Bound inputs
-  const hours = Math.min(Math.max(Number(c.req.query("hours") ?? 24), 1), 24 * 30);
-  const minSources = Math.min(Math.max(Number(c.req.query("min_sources") ?? 3), 2), 10);
-  const limit = Math.min(Math.max(Number(c.req.query("limit") ?? 50), 1), 200);
+  const hours = Math.min(Math.max(Number(c.req.query('hours') ?? 24), 1), 24 * 30);
+  const minSources = Math.min(Math.max(Number(c.req.query('min_sources') ?? 3), 2), 10);
+  const limit = Math.min(Math.max(Number(c.req.query('limit') ?? 50), 1), 200);
   const since = Math.floor(Date.now() / 1000) - hours * 3600;
 
   // Top entities by distinct-source count in the window.
   // `first_seen_ever` = entity's earliest event across all time (correlated
   // subquery), so the UI can distinguish "brand new convergence" from
   // "recurring chatter on a known name."
-  const summary = (await c.env.DB.prepare(
-    `SELECT
+  const summary =
+    (
+      await c.env.DB.prepare(
+        `SELECT
        e.primary_entity_id,
        ent.name      AS entity_name,
        ent.ticker    AS entity_ticker,
@@ -122,11 +124,11 @@ convergenceRoute.get("/", async (c) => {
      GROUP BY e.primary_entity_id
      HAVING COUNT(DISTINCT e.source) >= ?
      ORDER BY source_count DESC, event_count DESC, latest_at DESC
-     LIMIT ?`,
-  )
-    .bind(since, minSources, limit)
-    .all<ConvergenceRow>())
-    .results ?? [];
+     LIMIT ?`
+      )
+        .bind(since, minSources, limit)
+        .all<ConvergenceRow>()
+    ).results ?? [];
 
   // Recent 3 event titles per entity in the window (for the brief callout).
   const entityIds = summary.map((r) => r.primary_entity_id).filter((x): x is string => Boolean(x));
@@ -141,9 +143,11 @@ convergenceRoute.get("/", async (c) => {
 
   const recentQuery = async (): Promise<RecentEvent[]> => {
     if (entityIds.length === 0) return [];
-    const placeholders = entityIds.map(() => "?").join(",");
-    return (await c.env.DB.prepare(
-      `SELECT primary_entity_id, source, title, source_url, published_at
+    const placeholders = entityIds.map(() => '?').join(',');
+    return (
+      (
+        await c.env.DB.prepare(
+          `SELECT primary_entity_id, source, title, source_url, published_at
        FROM (
          SELECT primary_entity_id, source, title, source_url, published_at,
                 ROW_NUMBER() OVER (
@@ -155,11 +159,12 @@ convergenceRoute.get("/", async (c) => {
            AND published_at >= ?
        )
        WHERE rn <= 3
-       ORDER BY primary_entity_id, published_at DESC`,
-    )
-      .bind(...entityIds, since)
-      .all<RecentEvent>())
-      .results ?? [];
+       ORDER BY primary_entity_id, published_at DESC`
+        )
+          .bind(...entityIds, since)
+          .all<RecentEvent>()
+      ).results ?? []
+    );
   };
 
   // Velocity overlay: for each entity in the summary, find the latest
@@ -168,10 +173,12 @@ convergenceRoute.get("/", async (c) => {
   // market). We look back 12h to cover one cron-markets gap (4h cadence).
   const velocityQuery = async (): Promise<MarketVelocityRow[]> => {
     if (entityIds.length === 0) return [];
-    const placeholders = entityIds.map(() => "?").join(",");
+    const placeholders = entityIds.map(() => '?').join(',');
     const velocityWindow = Math.floor(Date.now() / 1000) - 12 * 3600;
-    return (await c.env.DB.prepare(
-      `WITH ranked AS (
+    return (
+      (
+        await c.env.DB.prepare(
+          `WITH ranked AS (
          SELECT
            entity_id,
            source,
@@ -208,24 +215,25 @@ convergenceRoute.get("/", async (c) => {
          prob_prior,
          fetched_at_prior
        FROM ranked
-       WHERE rn = 1`,
-    )
-      .bind(...entityIds, velocityWindow)
-      .all<MarketVelocityRow>())
-      .results ?? [];
+       WHERE rn = 1`
+        )
+          .bind(...entityIds, velocityWindow)
+          .all<MarketVelocityRow>()
+      ).results ?? []
+    );
   };
 
   // Attention overlay — top-N entities only (limit parallel Wikimedia fetches).
   const attentionQuery = () =>
     Promise.allSettled(
       topEntities.map(async (row) => {
-        const eid = row.primary_entity_id ?? "";
+        const eid = row.primary_entity_id ?? '';
         const wikiUrl = SEED_WIKI_BY_ID.get(eid)?.wiki_url ?? null;
         const article = articleFromWikiUrl(wikiUrl);
         if (!article) return { eid, result: null };
         const result = await fetchAttention(article, 30);
         return { eid, result };
-      }),
+      })
     );
 
   const [recent, velocity, attentionResults] = await Promise.all([
@@ -247,20 +255,20 @@ convergenceRoute.get("/", async (c) => {
 
   const attentionByEntity = new Map<string, AttentionResult | null>();
   for (const r of attentionResults) {
-    if (r.status === "fulfilled" && r.value) {
+    if (r.status === 'fulfilled' && r.value) {
       attentionByEntity.set(r.value.eid, r.value.result);
     }
   }
 
   console.log(
     JSON.stringify({
-      route: "/convergence",
+      route: '/convergence',
       hours,
       minSources,
       entities: summary.length,
       velocityHits: velocity.length,
       attentionHits: Array.from(attentionByEntity.values()).filter(Boolean).length,
-    }),
+    })
   );
 
   return c.json({
@@ -268,7 +276,7 @@ convergenceRoute.get("/", async (c) => {
     windowHours: hours,
     minSources,
     rows: summary.map((row) => {
-      const eid = row.primary_entity_id ?? "";
+      const eid = row.primary_entity_id ?? '';
       const v = velocityByEntity.get(eid);
       const marketQuote = v
         ? {
@@ -300,28 +308,28 @@ convergenceRoute.get("/", async (c) => {
       //                event hasn't crossed into public attention yet. This
       //                is the pre-news lead time slot — most actionable.
       // null otherwise.
-      let label: "breakout" | "divergence" | null = null;
+      let label: 'breakout' | 'divergence' | null = null;
       let labelReason: string | null = null;
       let labelStats: LabelStats | null = null;
       const trend = attention?.trend;
       if (trend && row.source_count >= 3) {
-        if (trend.direction === "up" && trend.deltaPct >= ATTENTION_BREAKOUT_DELTA_PCT) {
-          label = "breakout";
+        if (trend.direction === 'up' && trend.deltaPct >= ATTENTION_BREAKOUT_DELTA_PCT) {
+          label = 'breakout';
           labelStats = BREAKOUT_STATS;
-        } else if (trend.direction === "down") {
-          label = "divergence";
+        } else if (trend.direction === 'down') {
+          label = 'divergence';
           labelStats = DIVERGENCE_STATS;
         }
         if (label) {
           // Compose reason: trigger + measured backtest performance.
           // "Cite-or-kill" — every label carries its own hit-rate inline.
           const triggerText =
-            label === "breakout"
+            label === 'breakout'
               ? `attention +${trend.deltaPct.toFixed(0)}% over prior 7d while ${row.source_count} sources fire`
               : `${row.source_count} sources fire but attention ${trend.deltaPct.toFixed(0)}% (pre-news lead)`;
           if (labelStats && BASELINE_RATE) {
             const rateLabel = `${(labelStats.rate * 100).toFixed(0)}%`;
-            const liftLabel = labelStats.lift ? `${labelStats.lift.toFixed(2)}× baseline` : "";
+            const liftLabel = labelStats.lift ? `${labelStats.lift.toFixed(2)}× baseline` : '';
             labelReason =
               `${triggerText} · backtest: ${rateLabel} next-24h hit-rate ` +
               `(${liftLabel}, n=${labelStats.n})`;
@@ -337,7 +345,7 @@ convergenceRoute.get("/", async (c) => {
         sector: row.entity_sector,
         sourceCount: row.source_count,
         eventCount: row.event_count,
-        sources: (row.sources ?? "").split(",").filter(Boolean),
+        sources: (row.sources ?? '').split(',').filter(Boolean),
         latestAt: row.latest_at,
         earliestAt: row.earliest_at,
         firstSeenEver: row.first_seen_ever,

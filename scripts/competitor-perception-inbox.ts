@@ -33,10 +33,11 @@ export function buildCompetitorPerceptionInbox(mentions: Mention[]) {
   const clusters = clusterMentions(mentions);
   const ownedMentions = mentions.filter((mention) => !mention.competitor).length;
   const competitorMentions = mentions.length - ownedMentions;
-  const topRecommendation = clusters
-    .filter((cluster) => cluster.bucket !== 'praise')
-    .sort((a, b) => b.mentions.length - a.mentions.length)[0]?.recommendation
-    ?? 'Keep collecting evidence before changing positioning.';
+  const topRecommendation =
+    clusters
+      .filter((cluster) => cluster.bucket !== 'praise')
+      .sort((a, b) => b.mentions.length - a.mentions.length)[0]?.recommendation ??
+    'Keep collecting evidence before changing positioning.';
 
   return {
     generatedAt: '2026-06-04T00:00:00.000Z',
@@ -55,7 +56,9 @@ export function buildCompetitorPerceptionInbox(mentions: Mention[]) {
   };
 }
 
-export function renderCompetitorPerceptionMarkdown(report: ReturnType<typeof buildCompetitorPerceptionInbox>) {
+export function renderCompetitorPerceptionMarkdown(
+  report: ReturnType<typeof buildCompetitorPerceptionInbox>
+) {
   return [
     '# Competitor Perception Signal Inbox',
     '',
@@ -69,7 +72,9 @@ export function renderCompetitorPerceptionMarkdown(report: ReturnType<typeof bui
       `Bucket: ${cluster.bucket}`,
       `Recommendation: ${cluster.recommendation}`,
       '',
-      ...cluster.mentions.map((mention) => `- [${mention.source}] ${mention.brand}: ${mention.text} (${mention.url})`),
+      ...cluster.mentions.map(
+        (mention) => `- [${mention.source}] ${mention.brand}: ${mention.text} (${mention.url})`
+      ),
       '',
     ]),
   ].join('\n');
@@ -98,10 +103,14 @@ function headlineFor(bucket: Bucket, mentions: Mention[]) {
 
 function recommendationFor(bucket: Bucket, mentions: Mention[]) {
   const evidenceCount = mentions.length;
-  if (bucket === 'complaint') return `Add source-trail and confidence copy beside each daily brief claim; cited by ${evidenceCount} signal${evidenceCount === 1 ? '' : 's'}.`;
-  if (bucket === 'pricing') return 'Frame the monthly report as an operator add-on, not an enterprise research suite.';
-  if (bucket === 'feature_request') return 'Prototype a report-ready source/evidence strip before expanding ingestion volume.';
-  if (bucket === 'positioning') return 'Position against broad research tools by owning complaint-to-roadmap conversion.';
+  if (bucket === 'complaint')
+    return `Add source-trail and confidence copy beside each daily brief claim; cited by ${evidenceCount} signal${evidenceCount === 1 ? '' : 's'}.`;
+  if (bucket === 'pricing')
+    return 'Frame the monthly report as an operator add-on, not an enterprise research suite.';
+  if (bucket === 'feature_request')
+    return 'Prototype a report-ready source/evidence strip before expanding ingestion volume.';
+  if (bucket === 'positioning')
+    return 'Position against broad research tools by owning complaint-to-roadmap conversion.';
   return 'Keep the cited praise as proof copy, but do not let praise clusters create roadmap tasks.';
 }
 
@@ -116,12 +125,18 @@ function main() {
   const report = buildCompetitorPerceptionInbox(mentions);
   fs.mkdirSync(path.dirname(outPath), { recursive: true });
   fs.writeFileSync(outPath, renderCompetitorPerceptionMarkdown(report));
-  console.log(JSON.stringify({
-    outPath,
-    mentionCount: report.summary.mentionCount,
-    buckets: report.summary.buckets.length,
-    recommendation: report.monthlyReportReadyRecommendation,
-  }, null, 2));
+  console.log(
+    JSON.stringify(
+      {
+        outPath,
+        mentionCount: report.summary.mentionCount,
+        buckets: report.summary.buckets.length,
+        recommendation: report.monthlyReportReadyRecommendation,
+      },
+      null,
+      2
+    )
+  );
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

@@ -12,17 +12,14 @@
  * When no artifact exists, the bundled value stays `null` and the renderer
  * falls back to seed-only briefs.
  */
-import { readdir, readFile, writeFile } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { readdir, readFile, writeFile } from 'node:fs/promises';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const ROOT = resolve(__dirname, "..");
-const ARTIFACT_DIR = resolve(ROOT, "data/d2c-opportunities");
-const OUT_FILE = resolve(
-  ROOT,
-  "packages/shared/src/content/d2c-opportunities-artifact.ts",
-);
+const ROOT = resolve(__dirname, '..');
+const ARTIFACT_DIR = resolve(ROOT, 'data/d2c-opportunities');
+const OUT_FILE = resolve(ROOT, 'packages/shared/src/content/d2c-opportunities-artifact.ts');
 
 async function main() {
   let names: string[];
@@ -43,7 +40,7 @@ async function main() {
     return;
   }
   const latest = dated[0];
-  const raw = await readFile(resolve(ARTIFACT_DIR, latest), "utf-8");
+  const raw = await readFile(resolve(ARTIFACT_DIR, latest), 'utf-8');
   // Validate it parses as JSON before writing it into the bundle.
   JSON.parse(raw);
   console.log(`[d2c:bundle] bundling ${latest}`);
@@ -51,7 +48,7 @@ async function main() {
 }
 
 async function writeArtifact(jsonLiteral: string | null) {
-  const value = jsonLiteral ?? "null";
+  const value = jsonLiteral ?? 'null';
   const content = `/**
  * Build-time bundled India D2C opportunity artifact.
  *
@@ -71,7 +68,7 @@ import type { D2COpportunityArtifact } from "./d2c-opportunities";
 
 export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = ${value};
 `;
-  await writeFile(OUT_FILE, content, "utf-8");
+  await writeFile(OUT_FILE, content, 'utf-8');
   console.log(`[d2c:bundle] wrote ${OUT_FILE}`);
 }
 

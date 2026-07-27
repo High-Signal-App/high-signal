@@ -38,16 +38,16 @@ import {
   applyStructuredClaimEvidence,
   deterministicVerdict,
   type VerdictResult,
-} from "./auto-publish-rules";
-import type { ClaimWithEvidence } from "@high-signal/shared";
+} from './auto-publish-rules';
+import type { ClaimWithEvidence } from '@high-signal/shared';
 
 interface SignalRow {
   id: string;
   slug: string;
   signalType: string;
   primaryEntityId: string;
-  direction: "up" | "down" | "neutral";
-  confidence: "low" | "medium" | "high";
+  direction: 'up' | 'down' | 'neutral';
+  confidence: 'low' | 'medium' | 'high';
   predictedWindowDays: number;
   publishedAt: string;
   evidenceUrls: string[];
@@ -61,31 +61,29 @@ interface SignalRow {
 }
 
 const args = new Set(process.argv.slice(2));
-const REMOTE = args.has("--remote");
-const DRY = args.has("--dry");
+const REMOTE = args.has('--remote');
+const DRY = args.has('--dry');
 const LOCAL = !REMOTE;
 /**
  * --reapply: also re-judge currently-published signals and KILL any that
  * fail the rubric. One-time cleanup mode for after a rule change.
  */
-const REAPPLY_PUBLISHED = args.has("--reapply");
+const REAPPLY_PUBLISHED = args.has('--reapply');
 
 const API_BASE =
-  process.env["API_BASE"] ??
-  (LOCAL
-    ? "http://127.0.0.1:8787"
-    : "https://high-signal-api.sarthakagrawal927.workers.dev");
-const ADMIN_TOKEN = process.env["ADMIN_TOKEN"] ?? "";
-const AI_BASE_URL = process.env["AI_BASE_URL"] ?? "https://api.deepseek.com/v1";
-const AI_API_KEY = process.env["AI_API_KEY"] ?? "";
-const AI_MODEL = process.env["AI_MODEL"] ?? "deepseek-chat";
+  process.env['API_BASE'] ??
+  (LOCAL ? 'http://127.0.0.1:8787' : 'https://high-signal-api.sarthakagrawal927.workers.dev');
+const ADMIN_TOKEN = process.env['ADMIN_TOKEN'] ?? '';
+const AI_BASE_URL = process.env['AI_BASE_URL'] ?? 'https://api.deepseek.com/v1';
+const AI_API_KEY = process.env['AI_API_KEY'] ?? '';
+const AI_MODEL = process.env['AI_MODEL'] ?? 'deepseek-chat';
 
 const MAX_BODY_CHARS = 2400;
 const RATE_LIMIT_MS = 250; // gentle pacing between AI calls
 
-async function fetchSignalsByStatus(status: "draft" | "published"): Promise<SignalRow[]> {
+async function fetchSignalsByStatus(status: 'draft' | 'published'): Promise<SignalRow[]> {
   const url = `${API_BASE}/signals?status=${status}&limit=500`;
-  const r = await fetch(url, { cache: "no-store" } as RequestInit);
+  const r = await fetch(url, { cache: 'no-store' } as RequestInit);
   if (!r.ok) {
     throw new Error(`${status} fetch ${r.status} from ${url}`);
   }
@@ -96,9 +94,11 @@ async function fetchSignalsByStatus(status: "draft" | "published"): Promise<Sign
 async function fetchClaimsBySignal(slug: string): Promise<ClaimWithEvidence[]> {
   const url = `${API_BASE}/claims/by-signal/${encodeURIComponent(slug)}`;
   try {
-    const response = await fetch(url, { cache: "no-store" } as RequestInit);
+    const response = await fetch(url, { cache: 'no-store' } as RequestInit);
     if (!response.ok) {
-      console.warn(`[auto-publish] claim lookup ${response.status} for ${slug}; using legacy evidence`);
+      console.warn(
+        `[auto-publish] claim lookup ${response.status} for ${slug}; using legacy evidence`
+      );
       return [];
     }
     const payload = (await response.json()) as { claims?: ClaimWithEvidence[] };
@@ -111,7 +111,7 @@ async function fetchClaimsBySignal(slug: string): Promise<ClaimWithEvidence[]> {
 
 async function patchReviewStatus(
   slug: string,
-  reviewStatus: "published" | "killed",
+  reviewStatus: 'published' | 'killed'
 ): Promise<boolean> {
   if (DRY) return true;
   if (!ADMIN_TOKEN) {
@@ -119,10 +119,10 @@ async function patchReviewStatus(
     return false;
   }
   const r = await fetch(`${API_BASE}/admin/signals/${encodeURIComponent(slug)}`, {
-    method: "PATCH",
+    method: 'PATCH',
     headers: {
       Authorization: `Bearer ${ADMIN_TOKEN}`,
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
     },
     body: JSON.stringify({ reviewStatus }),
   });
@@ -175,37 +175,42 @@ async function aiVerdict(signal: SignalRow): Promise<VerdictResult | null> {
     body: signal.bodyMd.slice(0, MAX_BODY_CHARS),
   };
   try {
-    const response = await fetch(`${AI_BASE_URL.replace(/\/$/, "")}/chat/completions`, {
-      method: "POST",
+    const response = await fetch(`${AI_BASE_URL.replace(/\/$/, '')}/chat/completions`, {
+      method: 'POST',
       headers: {
         Authorization: `Bearer ${AI_API_KEY}`,
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         model: AI_MODEL,
         temperature: 0.1,
         max_tokens: 200,
         stream: false,
-        response_format: { type: "json_object" },
+        response_format: { type: 'json_object' },
         messages: [
-          { role: "system", content: JUDGE_SYSTEM },
-          { role: "user", content: JSON.stringify(payload) },
+          { role: 'system', content: JUDGE_SYSTEM },
+          { role: 'user', content: JSON.stringify(payload) },
         ],
       }),
     });
     if (!response.ok) {
-      console.warn(`[auto-publish] AI ${response.status}: ${(await response.text()).slice(0, 160)}`);
+      console.warn(
+        `[auto-publish] AI ${response.status}: ${(await response.text()).slice(0, 160)}`
+      );
       return null;
     }
     const data = (await response.json()) as {
       choices?: Array<{ message?: { content?: string } }>;
     };
-    const raw = (data.choices?.[0]?.message?.content ?? "").trim();
+    const raw = (data.choices?.[0]?.message?.content ?? '').trim();
     if (!raw) return null;
-    const trimmed = raw.replace(/^```json\s*/i, "").replace(/```$/i, "").trim();
+    const trimmed = raw
+      .replace(/^```json\s*/i, '')
+      .replace(/```$/i, '')
+      .trim();
     const parsed = JSON.parse(trimmed) as { verdict?: string; reason?: string };
-    if (parsed.verdict === "publish" || parsed.verdict === "kill" || parsed.verdict === "hold") {
-      return { verdict: parsed.verdict, reason: parsed.reason ?? "(no reason)", source: "ai" };
+    if (parsed.verdict === 'publish' || parsed.verdict === 'kill' || parsed.verdict === 'hold') {
+      return { verdict: parsed.verdict, reason: parsed.reason ?? '(no reason)', source: 'ai' };
     }
     return null;
   } catch (error) {
@@ -218,22 +223,26 @@ async function judge(signal: SignalRow): Promise<VerdictResult> {
   const det = deterministicVerdict(signal);
   // If the deterministic rubric is decisive (publish or kill), take it.
   // Reserve the AI call for the genuinely-borderline 'hold' band.
-  if (det.verdict !== "hold") return det;
+  if (det.verdict !== 'hold') return det;
   const ai = await aiVerdict(signal);
   if (ai) return ai;
   // Without AI, prefer KILL over HOLD per Sarthak's "don't block me" policy.
-  return { verdict: "kill", reason: `${det.reason}; no AI available, biasing to kill`, source: "rule" };
+  return {
+    verdict: 'kill',
+    reason: `${det.reason}; no AI available, biasing to kill`,
+    source: 'rule',
+  };
 }
 
 async function main(): Promise<void> {
   console.log(
-    `[auto-publish] target=${API_BASE} dry=${DRY} ai=${AI_API_KEY ? "yes" : "no"} reapply=${REAPPLY_PUBLISHED}`,
+    `[auto-publish] target=${API_BASE} dry=${DRY} ai=${AI_API_KEY ? 'yes' : 'no'} reapply=${REAPPLY_PUBLISHED}`
   );
-  const drafts = await fetchSignalsByStatus("draft");
-  const published = REAPPLY_PUBLISHED ? await fetchSignalsByStatus("published") : [];
+  const drafts = await fetchSignalsByStatus('draft');
+  const published = REAPPLY_PUBLISHED ? await fetchSignalsByStatus('published') : [];
   const toJudge = [...drafts, ...published];
   console.log(
-    `[auto-publish] judging ${drafts.length} drafts${REAPPLY_PUBLISHED ? ` + ${published.length} already-published (reapply)` : ""}`,
+    `[auto-publish] judging ${drafts.length} drafts${REAPPLY_PUBLISHED ? ` + ${published.length} already-published (reapply)` : ''}`
   );
   if (toJudge.length === 0) return;
   const isPublished = new Set(published.map((s) => s.slug));
@@ -254,22 +263,24 @@ async function main(): Promise<void> {
       errors++;
       continue;
     }
-    const tag = verdict.source === "ai" ? "AI " : "rul";
-    const provenanceTag = judgeable.provenanceSource === "structured_claims" ? "claims" : "legacy";
+    const tag = verdict.source === 'ai' ? 'AI ' : 'rul';
+    const provenanceTag = judgeable.provenanceSource === 'structured_claims' ? 'claims' : 'legacy';
     const wasPublished = isPublished.has(signal.slug);
-    if (verdict.verdict === "publish") {
+    if (verdict.verdict === 'publish') {
       // Skip the PATCH if already published — no-op.
       if (wasPublished) {
         publishedCount++;
         continue;
       }
-      const ok = await patchReviewStatus(signal.slug, "published");
-      if (ok) publishedCount++; else errors++;
+      const ok = await patchReviewStatus(signal.slug, 'published');
+      if (ok) publishedCount++;
+      else errors++;
       console.log(`  [${tag}/${provenanceTag}]  PUBLISH  ${signal.slug}  — ${verdict.reason}`);
-    } else if (verdict.verdict === "kill") {
-      const ok = await patchReviewStatus(signal.slug, "killed");
-      if (ok) killed++; else errors++;
-      const label = wasPublished ? "UNPUB" : "KILL";
+    } else if (verdict.verdict === 'kill') {
+      const ok = await patchReviewStatus(signal.slug, 'killed');
+      if (ok) killed++;
+      else errors++;
+      const label = wasPublished ? 'UNPUB' : 'KILL';
       console.log(`  [${tag}/${provenanceTag}]    ${label}  ${signal.slug}  — ${verdict.reason}`);
     } else {
       held++;
@@ -281,12 +292,12 @@ async function main(): Promise<void> {
   }
 
   console.log(
-    `[auto-publish] done: ${publishedCount} published-or-kept / ${killed} killed / ${held} held / ${errors} errors`,
+    `[auto-publish] done: ${publishedCount} published-or-kept / ${killed} killed / ${held} held / ${errors} errors`
   );
   if (errors > 0) process.exit(1);
 }
 
 main().catch((error) => {
-  console.error("[auto-publish] fatal:", error);
+  console.error('[auto-publish] fatal:', error);
   process.exit(1);
 });

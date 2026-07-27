@@ -8,16 +8,16 @@
 // Was a direct Yahoo HTTP fetcher before — replaced 2026-05 so there's one
 // place equity data enters the system, not two.
 
-import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
+import { mkdir, readFile, stat, writeFile } from 'node:fs/promises';
+import { dirname, resolve } from 'node:path';
 
-const ROOT = resolve(__dirname, "..");
+const ROOT = resolve(__dirname, '..');
 const ENTITIES_PATH = resolve(
   ROOT,
-  "python/ingest/src/high_signal_ingest/seed/ai_infra_entities.csv",
+  'python/ingest/src/high_signal_ingest/seed/ai_infra_entities.csv'
 );
-const SNAPSHOT_PATH = resolve(ROOT, "data/equities-snapshot.jsonl");
-const OUT_PATH = resolve(ROOT, "apps/web/src/data/price-context.json");
+const SNAPSHOT_PATH = resolve(ROOT, 'data/equities-snapshot.jsonl');
+const OUT_PATH = resolve(ROOT, 'apps/web/src/data/price-context.json');
 
 type CsvRow = Record<string, string>;
 
@@ -25,7 +25,7 @@ interface PriceContextRow {
   entityId: string;
   ticker: string;
   name: string;
-  source: "yahoo";
+  source: 'yahoo';
   sourceUrl: string;
   asOf: string;
   currentPrice: number;
@@ -50,17 +50,17 @@ interface SnapshotRow {
 }
 
 function parseCsv(raw: string): CsvRow[] {
-  const [headerLine = "", ...lines] = raw.trim().split(/\r?\n/);
+  const [headerLine = '', ...lines] = raw.trim().split(/\r?\n/);
   const headers = parseCsvLine(headerLine);
   return lines
     .map(parseCsvLine)
     .filter((cols) => cols.length > 1)
-    .map((cols) => Object.fromEntries(headers.map((header, index) => [header, cols[index] ?? ""])));
+    .map((cols) => Object.fromEntries(headers.map((header, index) => [header, cols[index] ?? ''])));
 }
 
 function parseCsvLine(line: string) {
   const out: string[] = [];
-  let current = "";
+  let current = '';
   let quoted = false;
   for (let index = 0; index < line.length; index += 1) {
     const char = line[index];
@@ -71,9 +71,9 @@ function parseCsvLine(line: string) {
       } else {
         quoted = !quoted;
       }
-    } else if (char === "," && !quoted) {
+    } else if (char === ',' && !quoted) {
       out.push(current);
-      current = "";
+      current = '';
     } else {
       current += char;
     }
@@ -84,7 +84,7 @@ function parseCsvLine(line: string) {
 
 function parseJsonl(raw: string): SnapshotRow[] {
   return raw
-    .split("\n")
+    .split('\n')
     .map((line) => line.trim())
     .filter(Boolean)
     .map((line) => {
@@ -109,11 +109,11 @@ function toPctRounded(decimal: number | null | undefined): number | null {
 }
 
 function yyyymmddToIso(value: number | null | undefined): string {
-  if (!value || !Number.isFinite(value)) return "";
+  if (!value || !Number.isFinite(value)) return '';
   const y = Math.floor(value / 10000);
   const m = Math.floor((value % 10000) / 100);
   const d = value % 100;
-  return `${y.toString().padStart(4, "0")}-${m.toString().padStart(2, "0")}-${d.toString().padStart(2, "0")}`;
+  return `${y.toString().padStart(4, '0')}-${m.toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}`;
 }
 
 function estimateHistoryDays(snap: SnapshotRow): number {
@@ -133,7 +133,7 @@ function buildSnapshotLookup(rows: SnapshotRow[]): Map<string, SnapshotRow> {
     map.set(row.ticker, row);
     // Also map without the ".US" suffix so ai_infra_entities CSVs with
     // bare US tickers (AAPL, NVDA, …) match against AAPL.US in the snapshot.
-    if (row.ticker.endsWith(".US")) {
+    if (row.ticker.endsWith('.US')) {
       map.set(row.ticker.slice(0, -3), row);
     }
   }
@@ -147,7 +147,7 @@ function buildPriceRow(entity: CsvRow, snap: SnapshotRow): PriceContextRow | nul
     entityId: entity.id,
     ticker: entity.ticker,
     name: entity.name,
-    source: "yahoo",
+    source: 'yahoo',
     sourceUrl: `https://finance.yahoo.com/quote/${encodeURIComponent(entity.ticker)}`,
     asOf: yyyymmddToIso(snap.last_date),
     currentPrice,
@@ -163,14 +163,14 @@ function buildPriceRow(entity: CsvRow, snap: SnapshotRow): PriceContextRow | nul
 }
 
 async function main() {
-  const entitiesRaw = await readFile(ENTITIES_PATH, "utf8");
+  const entitiesRaw = await readFile(ENTITIES_PATH, 'utf8');
   const entities = parseCsv(entitiesRaw)
-    .filter((entity) => entity.type === "public" && entity.ticker)
-    .slice(0, Number(process.env["PRICE_CONTEXT_LIMIT"] ?? 120));
+    .filter((entity) => entity.type === 'public' && entity.ticker)
+    .slice(0, Number(process.env['PRICE_CONTEXT_LIMIT'] ?? 120));
 
-  let snapshotRaw = "";
+  let snapshotRaw = '';
   try {
-    snapshotRaw = await readFile(SNAPSHOT_PATH, "utf8");
+    snapshotRaw = await readFile(SNAPSHOT_PATH, 'utf8');
   } catch {
     console.log(`- no snapshot at ${SNAPSHOT_PATH}; writing empty price-context`);
   }
@@ -188,11 +188,13 @@ async function main() {
     if (row) rows.push(row);
   }
   if (misses.length) {
-    console.log(`- no snapshot rows for ${misses.length} entities: ${misses.slice(0, 8).join(", ")}${misses.length > 8 ? "…" : ""}`);
+    console.log(
+      `- no snapshot rows for ${misses.length} entities: ${misses.slice(0, 8).join(', ')}${misses.length > 8 ? '…' : ''}`
+    );
   }
 
   const payload = {
-    source: "yahoo",
+    source: 'yahoo',
     generatedAt: new Date().toISOString(),
     rows: rows.sort((a, b) => a.entityId.localeCompare(b.entityId)),
   };

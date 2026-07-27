@@ -7,12 +7,12 @@
 // The shape is intentionally minimal — just an array of symbols — so the
 // JSON stays well under 50KB and TypeScript can `import` it directly.
 
-import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
+import { mkdir, readFile, stat, writeFile } from 'node:fs/promises';
+import { dirname, resolve } from 'node:path';
 
-const ROOT = resolve(__dirname, "..");
-const SOURCE_PATH = resolve(ROOT, "apps/web/src/data/equities-snapshot.json");
-const OUT_PATH = resolve(ROOT, "workers/api/src/lib/known-tickers.json");
+const ROOT = resolve(__dirname, '..');
+const SOURCE_PATH = resolve(ROOT, 'apps/web/src/data/equities-snapshot.json');
+const OUT_PATH = resolve(ROOT, 'workers/api/src/lib/known-tickers.json');
 
 interface SnapshotRow {
   ticker?: string;
@@ -24,7 +24,7 @@ interface Snapshot {
 }
 
 async function main() {
-  const raw = await readFile(SOURCE_PATH, "utf8");
+  const raw = await readFile(SOURCE_PATH, 'utf8');
   const snap = JSON.parse(raw) as Snapshot;
 
   // Symbol is the bare equity ticker without yfinance suffixes ("BRK"
@@ -34,7 +34,7 @@ async function main() {
   // won't appear as a bare token in English-language event text.
   const symbols = new Set<string>();
   for (const row of snap.rows ?? []) {
-    const sym = (row.symbol ?? row.ticker ?? "").toUpperCase().trim();
+    const sym = (row.symbol ?? row.ticker ?? '').toUpperCase().trim();
     if (/^[A-Z]{2,5}$/.test(sym)) symbols.add(sym);
   }
 
@@ -42,9 +42,7 @@ async function main() {
   await mkdir(dirname(OUT_PATH), { recursive: true });
   await writeFile(OUT_PATH, `${JSON.stringify(sorted, null, 0)}\n`);
   const { size } = await stat(OUT_PATH);
-  console.log(
-    JSON.stringify({ out: OUT_PATH, symbols: sorted.length, bytes: size }),
-  );
+  console.log(JSON.stringify({ out: OUT_PATH, symbols: sorted.length, bytes: size }));
 }
 
 main().catch((error) => {

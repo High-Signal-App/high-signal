@@ -9,13 +9,9 @@ import {
   type PromptDefinition,
   type ProviderAdapter,
   type ResolvedPlatform,
-} from "@high-signal/shared";
-import {
-  fetchChatCompletion,
-  FREE_AI_DEFAULT_ENDPOINT,
-  type AIConfig,
-} from "./ai-client";
-import { classifyStatus } from "./resilience";
+} from '@high-signal/shared';
+import { fetchChatCompletion, FREE_AI_DEFAULT_ENDPOINT, type AIConfig } from './ai-client';
+import { classifyStatus } from './resilience';
 
 export interface HighSignalVisibilityConfig {
   brandName: string;
@@ -44,7 +40,7 @@ function toProviderAdapter(platform: ResolvedPlatform): ProviderAdapter {
           apiKey: platform.apiKey,
           model: platform.model,
         },
-        messages: [{ role: "user", content: prompt.text }],
+        messages: [{ role: 'user', content: prompt.text }],
         maxTokens: 1024,
         stream: false,
         signal,
@@ -53,7 +49,7 @@ function toProviderAdapter(platform: ResolvedPlatform): ProviderAdapter {
         const classification = classifyStatus(response.status);
         const detail = (await response.text()).slice(0, 200);
         const message = `${platform.platform} endpoint error (${response.status}/${classification}): ${detail}`;
-        if (classification === "rate_limited" || classification === "server_error") {
+        if (classification === 'rate_limited' || classification === 'server_error') {
           throw new RetryableProviderError(message);
         }
         if (response.status === 401 || response.status === 403 || response.status === 404) {
@@ -66,7 +62,7 @@ function toProviderAdapter(platform: ResolvedPlatform): ProviderAdapter {
         model?: string;
       };
       return {
-        text: (json.choices?.[0]?.message?.content ?? "").slice(0, 4000),
+        text: (json.choices?.[0]?.message?.content ?? '').slice(0, 4000),
         model: json.model || platform.model,
       };
     },
@@ -79,15 +75,15 @@ function resolveJudge(env: PlatformEnv): JudgeAdapter | undefined {
   const config: AIConfig = {
     endpointUrl: env.HIGH_SIGNAL_AI_ENDPOINT_URL || FREE_AI_DEFAULT_ENDPOINT,
     apiKey,
-    model: env.HIGH_SIGNAL_AI_MODEL || "auto",
+    model: env.HIGH_SIGNAL_AI_MODEL || 'auto',
   };
   return {
-    id: "high-signal-judge",
+    id: 'high-signal-judge',
     model: config.model,
     async judge({ prompt, signal }) {
       const response = await fetchChatCompletion({
         config,
-        messages: [{ role: "user", content: prompt }],
+        messages: [{ role: 'user', content: prompt }],
         maxTokens: 700,
         stream: false,
         signal,
@@ -96,14 +92,14 @@ function resolveJudge(env: PlatformEnv): JudgeAdapter | undefined {
       const json = (await response.json()) as {
         choices?: Array<{ message?: { content?: string } }>;
       };
-      return json.choices?.[0]?.message?.content ?? "";
+      return json.choices?.[0]?.message?.content ?? '';
     },
   };
 }
 
 export function resolveHighSignalVisibilityProviders(
   env: PlatformEnv,
-  config: HighSignalVisibilityConfig,
+  config: HighSignalVisibilityConfig
 ): ProviderAdapter[] {
   return resolvePlatforms(env, {
     aiEndpointUrl: config.aiEndpointUrl,

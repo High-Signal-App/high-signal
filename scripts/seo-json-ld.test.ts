@@ -17,24 +17,24 @@ import {
   buildSignalArticleJsonLd,
   buildSignalTypeTaxonomyJsonLd,
   buildTrackRecordDatasetJsonLd,
-} from "../apps/web/src/components/seo/json-ld-builders";
-import { SITE_URL } from "../apps/web/src/lib/site";
+} from '../apps/web/src/components/seo/json-ld-builders';
+import { SITE_URL } from '../apps/web/src/lib/site';
 
 let failures = 0;
 let total = 0;
 
-function check(label: string, cond: boolean, reason: string = "") {
+function check(label: string, cond: boolean, reason: string = '') {
   total++;
   if (cond) console.log(`  ✓ ${label}`);
   else {
     failures++;
-    console.error(`  ✗ ${label}${reason ? ` — ${reason}` : ""}`);
+    console.error(`  ✗ ${label}${reason ? ` — ${reason}` : ''}`);
   }
 }
 
 function isAbsoluteUrl(value: unknown): boolean {
-  if (typeof value !== "string") return false;
-  return value.startsWith("https://") || value.startsWith("http://");
+  if (typeof value !== 'string') return false;
+  return value.startsWith('https://') || value.startsWith('http://');
 }
 
 function serialisable(payload: unknown): boolean {
@@ -46,159 +46,207 @@ function serialisable(payload: unknown): boolean {
   }
 }
 
-console.log("Organization + WebSite JSON-LD");
+console.log('Organization + WebSite JSON-LD');
 {
   const blocks = buildOrganizationJsonLd();
-  check("returns 2 blocks (Organization + WebSite)", blocks.length === 2);
+  check('returns 2 blocks (Organization + WebSite)', blocks.length === 2);
   const [org, site] = blocks;
-  check("Organization type", org["@type"] === "Organization");
-  check("WebSite type", site["@type"] === "WebSite");
-  check("Organization @id absolute", isAbsoluteUrl(org["@id"]));
-  check("Organization url absolute", isAbsoluteUrl(org.url));
-  check("WebSite publisher refs Organization @id", (site.publisher as { "@id": string })["@id"] === org["@id"]);
-  check("WebSite potentialAction has SearchAction", (site.potentialAction as { "@type": string })["@type"] === "SearchAction");
-  check("serialises to valid JSON", serialisable(blocks));
+  check('Organization type', org['@type'] === 'Organization');
+  check('WebSite type', site['@type'] === 'WebSite');
+  check('Organization @id absolute', isAbsoluteUrl(org['@id']));
+  check('Organization url absolute', isAbsoluteUrl(org.url));
+  check(
+    'WebSite publisher refs Organization @id',
+    (site.publisher as { '@id': string })['@id'] === org['@id']
+  );
+  check(
+    'WebSite potentialAction has SearchAction',
+    (site.potentialAction as { '@type': string })['@type'] === 'SearchAction'
+  );
+  check('serialises to valid JSON', serialisable(blocks));
 }
 
-console.log("\nHome (WebApplication) JSON-LD");
+console.log('\nHome (WebApplication) JSON-LD');
 {
   const block = buildHomeJsonLd();
-  check("type WebApplication", block["@type"] === "WebApplication");
-  check("url absolute", isAbsoluteUrl(block.url));
-  check("operatingSystem", block.operatingSystem === "Web");
-  check("price = 0 (free)", (block.offers as { price: string }).price === "0");
-  check("publisher refs Organization @id", (block.publisher as { "@id": string })["@id"] === `${SITE_URL}/#organization`);
+  check('type WebApplication', block['@type'] === 'WebApplication');
+  check('url absolute', isAbsoluteUrl(block.url));
+  check('operatingSystem', block.operatingSystem === 'Web');
+  check('price = 0 (free)', (block.offers as { price: string }).price === '0');
+  check(
+    'publisher refs Organization @id',
+    (block.publisher as { '@id': string })['@id'] === `${SITE_URL}/#organization`
+  );
 }
 
-console.log("\nTrack-record Dataset JSON-LD");
+console.log('\nTrack-record Dataset JSON-LD');
 {
   const block = buildTrackRecordDatasetJsonLd({ liveCount: 7, backfillCount: 110 });
-  check("type Dataset", block["@type"] === "Dataset");
-  check("url is /track-record", block.url === `${SITE_URL}/track-record`);
-  check("license is CC-BY-4.0", block.license === "https://creativecommons.org/licenses/by/4.0/");
-  check("description mentions live + backfill counts",
-    typeof block.description === "string" &&
-    block.description.includes("7") && block.description.includes("110"));
-  check("has DataDownload distribution",
+  check('type Dataset', block['@type'] === 'Dataset');
+  check('url is /track-record', block.url === `${SITE_URL}/track-record`);
+  check('license is CC-BY-4.0', block.license === 'https://creativecommons.org/licenses/by/4.0/');
+  check(
+    'description mentions live + backfill counts',
+    typeof block.description === 'string' &&
+      block.description.includes('7') &&
+      block.description.includes('110')
+  );
+  check(
+    'has DataDownload distribution',
     Array.isArray(block.distribution) &&
-    (block.distribution as Array<{ "@type": string }>)[0]["@type"] === "DataDownload");
+      (block.distribution as Array<{ '@type': string }>)[0]['@type'] === 'DataDownload'
+  );
 }
 
-console.log("\nSignal Article JSON-LD");
+console.log('\nSignal Article JSON-LD');
 {
   const block = buildSignalArticleJsonLd({
-    headline: "TSMC bumps capex on AI-accelerator demand",
-    slug: "tsm-capex-raise-2026",
-    publishedAt: "2026-05-26T00:00:00.000Z",
-    bodyMd: "# TSMC bumps capex\n\nTSMC announced a higher capex envelope...\n\n## Evidence",
-    entityName: "TSM",
-    evidenceUrls: ["https://www.bloomberg.com/x", "https://investor.tsmc.com/y"],
-    direction: "up",
-    confidence: "high",
+    headline: 'TSMC bumps capex on AI-accelerator demand',
+    slug: 'tsm-capex-raise-2026',
+    publishedAt: '2026-05-26T00:00:00.000Z',
+    bodyMd: '# TSMC bumps capex\n\nTSMC announced a higher capex envelope...\n\n## Evidence',
+    entityName: 'TSM',
+    evidenceUrls: ['https://www.bloomberg.com/x', 'https://investor.tsmc.com/y'],
+    direction: 'up',
+    confidence: 'high',
     predictedWindowDays: 60,
-    signalType: "capex_raise",
+    signalType: 'capex_raise',
   });
-  check("type AnalysisNewsArticle", block["@type"] === "AnalysisNewsArticle");
-  check("url absolute", isAbsoluteUrl(block.url));
-  check("citation array length matches evidence", Array.isArray(block.citation) && (block.citation as unknown[]).length === 2);
-  check("first citation url is absolute", isAbsoluteUrl((block.citation as Array<{ url: string }>)[0].url));
-  check("about.name is entity", (block.about as { name: string }).name === "TSM");
-  check("description skips H1 line",
-    typeof block.description === "string" &&
-    !block.description.startsWith("# "));
-  check("keywords includes signalType + direction + confidence + window",
-    typeof block.keywords === "string" &&
-    block.keywords.includes("capex_raise") &&
-    block.keywords.includes("up") &&
-    block.keywords.includes("high") &&
-    block.keywords.includes("60d-window"));
+  check('type AnalysisNewsArticle', block['@type'] === 'AnalysisNewsArticle');
+  check('url absolute', isAbsoluteUrl(block.url));
+  check(
+    'citation array length matches evidence',
+    Array.isArray(block.citation) && (block.citation as unknown[]).length === 2
+  );
+  check(
+    'first citation url is absolute',
+    isAbsoluteUrl((block.citation as Array<{ url: string }>)[0].url)
+  );
+  check('about.name is entity', (block.about as { name: string }).name === 'TSM');
+  check(
+    'description skips H1 line',
+    typeof block.description === 'string' && !block.description.startsWith('# ')
+  );
+  check(
+    'keywords includes signalType + direction + confidence + window',
+    typeof block.keywords === 'string' &&
+      block.keywords.includes('capex_raise') &&
+      block.keywords.includes('up') &&
+      block.keywords.includes('high') &&
+      block.keywords.includes('60d-window')
+  );
 }
 
-console.log("\nFAQ JSON-LD");
+console.log('\nFAQ JSON-LD');
 {
   const block = buildFaqJsonLd([
-    { question: "Is it free?", answer: "Yes." },
-    { question: "What sources?", answer: "SEC, news, Reddit, HN, etc." },
+    { question: 'Is it free?', answer: 'Yes.' },
+    { question: 'What sources?', answer: 'SEC, news, Reddit, HN, etc.' },
   ]);
-  check("type FAQPage", block["@type"] === "FAQPage");
-  check("has 2 mainEntity items", Array.isArray(block.mainEntity) && (block.mainEntity as unknown[]).length === 2);
-  const first = (block.mainEntity as Array<{ "@type": string; name: string; acceptedAnswer: { "@type": string; text: string } }>)[0];
-  check("first item is Question", first["@type"] === "Question");
-  check("first item answer type", first.acceptedAnswer["@type"] === "Answer");
+  check('type FAQPage', block['@type'] === 'FAQPage');
+  check(
+    'has 2 mainEntity items',
+    Array.isArray(block.mainEntity) && (block.mainEntity as unknown[]).length === 2
+  );
+  const first = (
+    block.mainEntity as Array<{
+      '@type': string;
+      name: string;
+      acceptedAnswer: { '@type': string; text: string };
+    }>
+  )[0];
+  check('first item is Question', first['@type'] === 'Question');
+  check('first item answer type', first.acceptedAnswer['@type'] === 'Answer');
 }
 
-console.log("\nBreadcrumbList JSON-LD");
+console.log('\nBreadcrumbList JSON-LD');
 {
   const block = buildBreadcrumbJsonLd([
-    { name: "Home", path: "/" },
-    { name: "Signals", path: "/signals" },
-    { name: "TSMC", path: "/signals/types/capex_raise" },
+    { name: 'Home', path: '/' },
+    { name: 'Signals', path: '/signals' },
+    { name: 'TSMC', path: '/signals/types/capex_raise' },
   ]);
-  check("type BreadcrumbList", block["@type"] === "BreadcrumbList");
-  check("3 items in list",
-    Array.isArray(block.itemListElement) && (block.itemListElement as unknown[]).length === 3);
+  check('type BreadcrumbList', block['@type'] === 'BreadcrumbList');
+  check(
+    '3 items in list',
+    Array.isArray(block.itemListElement) && (block.itemListElement as unknown[]).length === 3
+  );
   const items = block.itemListElement as Array<{ position: number; item: string }>;
-  check("positions 1..3", items[0].position === 1 && items[1].position === 2 && items[2].position === 3);
-  check("relative paths resolved to absolute", isAbsoluteUrl(items[0].item) && isAbsoluteUrl(items[2].item));
+  check(
+    'positions 1..3',
+    items[0].position === 1 && items[1].position === 2 && items[2].position === 3
+  );
+  check(
+    'relative paths resolved to absolute',
+    isAbsoluteUrl(items[0].item) && isAbsoluteUrl(items[2].item)
+  );
 }
 
-console.log("\nMethodology (Article + HowTo) JSON-LD");
+console.log('\nMethodology (Article + HowTo) JSON-LD');
 {
   const blocks = buildMethodologyJsonLd({
     steps: [
-      { name: "Ingest", text: "Pull from sources." },
-      { name: "Score", text: "Tag quality." },
-      { name: "Publish", text: "Auto-judge." },
+      { name: 'Ingest', text: 'Pull from sources.' },
+      { name: 'Score', text: 'Tag quality.' },
+      { name: 'Publish', text: 'Auto-judge.' },
     ],
   });
-  check("returns 2 blocks (Article + HowTo)", blocks.length === 2);
-  check("first is Article", blocks[0]["@type"] === "Article");
-  check("second is HowTo", blocks[1]["@type"] === "HowTo");
+  check('returns 2 blocks (Article + HowTo)', blocks.length === 2);
+  check('first is Article', blocks[0]['@type'] === 'Article');
+  check('second is HowTo', blocks[1]['@type'] === 'HowTo');
   const howto = blocks[1];
-  check("HowTo has 3 steps", Array.isArray(howto.step) && (howto.step as unknown[]).length === 3);
-  const steps = howto.step as Array<{ "@type": string; position: number; name: string }>;
-  check("each step is HowToStep with position", steps.every((s, i) => s["@type"] === "HowToStep" && s.position === i + 1));
+  check('HowTo has 3 steps', Array.isArray(howto.step) && (howto.step as unknown[]).length === 3);
+  const steps = howto.step as Array<{ '@type': string; position: number; name: string }>;
+  check(
+    'each step is HowToStep with position',
+    steps.every((s, i) => s['@type'] === 'HowToStep' && s.position === i + 1)
+  );
 }
 
-console.log("\nSignal-type taxonomy (CollectionPage + Dataset) JSON-LD");
+console.log('\nSignal-type taxonomy (CollectionPage + Dataset) JSON-LD');
 {
   const blocks = buildSignalTypeTaxonomyJsonLd({
-    signalType: "capex_raise",
-    family: "supply-demand",
+    signalType: 'capex_raise',
+    family: 'supply-demand',
     totalCount: 12,
     hitRate: 0.75,
     sampleSize: 16,
   });
-  check("returns 2 blocks", blocks.length === 2);
-  check("CollectionPage first", blocks[0]["@type"] === "CollectionPage");
-  check("Dataset second", blocks[1]["@type"] === "Dataset");
+  check('returns 2 blocks', blocks.length === 2);
+  check('CollectionPage first', blocks[0]['@type'] === 'CollectionPage');
+  check('Dataset second', blocks[1]['@type'] === 'Dataset');
   const dataset = blocks[1];
-  check("Dataset variableMeasured has 3 entries",
-    Array.isArray(dataset.variableMeasured) && (dataset.variableMeasured as unknown[]).length === 3);
-  check("Dataset url is absolute",
-    typeof dataset.url === "string" && isAbsoluteUrl(dataset.url));
-  check("Dataset description references family",
-    typeof dataset.description === "string" && dataset.description.includes("supply demand"));
+  check(
+    'Dataset variableMeasured has 3 entries',
+    Array.isArray(dataset.variableMeasured) && (dataset.variableMeasured as unknown[]).length === 3
+  );
+  check('Dataset url is absolute', typeof dataset.url === 'string' && isAbsoluteUrl(dataset.url));
+  check(
+    'Dataset description references family',
+    typeof dataset.description === 'string' && dataset.description.includes('supply demand')
+  );
 }
 
-console.log("\nEntity-month CollectionPage JSON-LD");
+console.log('\nEntity-month CollectionPage JSON-LD');
 {
   const block = buildEntityMonthJsonLd({
-    entityName: "TSMC",
-    entityId: "TSM",
-    period: "2026-05",
+    entityName: 'TSMC',
+    entityId: 'TSM',
+    period: '2026-05',
     signalCount: 4,
   });
-  check("CollectionPage type", block["@type"] === "CollectionPage");
-  check("url is /entities/TSM/2026-05", block.url === `${SITE_URL}/entities/TSM/2026-05`);
-  check("about.name is entity", (block.about as { name: string }).name === "TSMC");
-  check("description includes count",
-    typeof block.description === "string" && block.description.includes("4 signal"));
+  check('CollectionPage type', block['@type'] === 'CollectionPage');
+  check('url is /entities/TSM/2026-05', block.url === `${SITE_URL}/entities/TSM/2026-05`);
+  check('about.name is entity', (block.about as { name: string }).name === 'TSMC');
+  check(
+    'description includes count',
+    typeof block.description === 'string' && block.description.includes('4 signal')
+  );
 }
 
 console.log(`\nseo-json-ld.test.ts: ${total - failures}/${total} passed`);
 if (failures > 0) {
-  console.error(`seo-json-ld.test.ts: FAILED (${failures} failure${failures === 1 ? "" : "s"})`);
+  console.error(`seo-json-ld.test.ts: FAILED (${failures} failure${failures === 1 ? '' : 's'})`);
   process.exit(1);
 }
-console.log("seo-json-ld.test.ts: ok");
+console.log('seo-json-ld.test.ts: ok');

@@ -1,6 +1,6 @@
 export interface ExternalMention {
   id: string;
-  source: "reddit" | "hacker-news" | "product-hunt";
+  source: 'reddit' | 'hacker-news' | 'product-hunt';
   title: string | null;
   body: string | null;
   author: string | null;
@@ -35,14 +35,14 @@ async function searchBrandOnReddit(brandName: string, aliases: string[]) {
     try {
       const params = new URLSearchParams({
         q: `"${term}"`,
-        sort: "new",
-        t: "month",
-        limit: "25",
-        restrict_sr: "",
-        type: "link,comment",
+        sort: 'new',
+        t: 'month',
+        limit: '25',
+        restrict_sr: '',
+        type: 'link,comment',
       });
       const response = await fetch(`https://www.reddit.com/search.json?${params}`, {
-        headers: { "User-Agent": "HighSignal/1.0 (signal monitor)" },
+        headers: { 'User-Agent': 'HighSignal/1.0 (signal monitor)' },
       });
       if (!response.ok) continue;
       const data = (await response.json()) as {
@@ -50,20 +50,22 @@ async function searchBrandOnReddit(brandName: string, aliases: string[]) {
       };
       for (const child of data.data?.children ?? []) {
         const row = child.data ?? {};
-        const id = `${row["id"] ?? ""}`;
+        const id = `${row['id'] ?? ''}`;
         if (!id || seen.has(`reddit:${id}`)) continue;
         seen.add(`reddit:${id}`);
-        const permalink = `${row["permalink"] ?? ""}`;
-        const isComment = child.kind === "t1";
+        const permalink = `${row['permalink'] ?? ''}`;
+        const isComment = child.kind === 't1';
         mentions.push({
           id,
-          source: "reddit",
-          title: isComment ? null : trim(row["title"], 240),
-          body: isComment ? trim(row["body"], 500) : trim(row["selftext"], 500),
-          author: trim(row["author"], 80),
-          score: numberOrNull(row["score"]),
-          url: permalink ? `https://reddit.com${permalink}` : trim(row["url"], 500) || "https://reddit.com",
-          createdAt: new Date(Number(row["created_utc"] ?? 0) * 1000).toISOString(),
+          source: 'reddit',
+          title: isComment ? null : trim(row['title'], 240),
+          body: isComment ? trim(row['body'], 500) : trim(row['selftext'], 500),
+          author: trim(row['author'], 80),
+          score: numberOrNull(row['score']),
+          url: permalink
+            ? `https://reddit.com${permalink}`
+            : trim(row['url'], 500) || 'https://reddit.com',
+          createdAt: new Date(Number(row['created_utc'] ?? 0) * 1000).toISOString(),
         });
       }
     } catch {
@@ -81,7 +83,7 @@ async function searchBrandOnHackerNews(brandName: string, aliases: string[], day
     try {
       const params = new URLSearchParams({
         query: `"${term}"`,
-        hitsPerPage: "20",
+        hitsPerPage: '20',
         numericFilters: `created_at_i>${sinceTimestamp}`,
       });
       const response = await fetch(`https://hn.algolia.com/api/v1/search?${params}`);
@@ -90,18 +92,20 @@ async function searchBrandOnHackerNews(brandName: string, aliases: string[], day
         hits?: Array<Record<string, unknown>>;
       };
       for (const hit of data.hits ?? []) {
-        const id = `${hit["objectID"] ?? ""}`;
+        const id = `${hit['objectID'] ?? ''}`;
         if (!id || seen.has(`hn:${id}`)) continue;
         seen.add(`hn:${id}`);
         mentions.push({
           id,
-          source: "hacker-news",
-          title: trim(hit["title"] ?? hit["story_title"], 240),
-          body: trim(hit["comment_text"], 500),
-          author: trim(hit["author"], 80),
-          score: numberOrNull(hit["points"]),
-          url: trim(hit["url"] ?? hit["story_url"], 500) || `https://news.ycombinator.com/item?id=${id}`,
-          createdAt: trim(hit["created_at"], 80) || new Date().toISOString(),
+          source: 'hacker-news',
+          title: trim(hit['title'] ?? hit['story_title'], 240),
+          body: trim(hit['comment_text'], 500),
+          author: trim(hit['author'], 80),
+          score: numberOrNull(hit['points']),
+          url:
+            trim(hit['url'] ?? hit['story_url'], 500) ||
+            `https://news.ycombinator.com/item?id=${id}`,
+          createdAt: trim(hit['created_at'], 80) || new Date().toISOString(),
         });
       }
     } catch {
@@ -115,29 +119,33 @@ async function searchProductHuntLaunches(brandName: string) {
   try {
     const params = new URLSearchParams({
       query: `"${brandName}"`,
-      tags: "story",
-      hitsPerPage: "20",
+      tags: 'story',
+      hitsPerPage: '20',
     });
     const response = await fetch(`https://hn.algolia.com/api/v1/search?${params}`);
     if (!response.ok) return [];
     const data = (await response.json()) as { hits?: Array<Record<string, unknown>> };
     return (data.hits ?? [])
       .filter((hit) => {
-        const url = `${hit["url"] ?? ""}`.toLowerCase();
-        const title = `${hit["title"] ?? ""}`.toLowerCase();
-        return url.includes("producthunt.com") || title.includes("product hunt") || title.includes("show hn");
+        const url = `${hit['url'] ?? ''}`.toLowerCase();
+        const title = `${hit['title'] ?? ''}`.toLowerCase();
+        return (
+          url.includes('producthunt.com') ||
+          title.includes('product hunt') ||
+          title.includes('show hn')
+        );
       })
       .map((hit): ExternalMention => {
-        const id = `${hit["objectID"] ?? crypto.randomUUID()}`;
+        const id = `${hit['objectID'] ?? crypto.randomUUID()}`;
         return {
           id,
-          source: "product-hunt",
-          title: trim(hit["title"], 240),
+          source: 'product-hunt',
+          title: trim(hit['title'], 240),
           body: null,
-          author: trim(hit["author"], 80),
-          score: numberOrNull(hit["points"]),
-          url: trim(hit["url"], 500) || `https://news.ycombinator.com/item?id=${id}`,
-          createdAt: trim(hit["created_at"], 80) || new Date().toISOString(),
+          author: trim(hit['author'], 80),
+          score: numberOrNull(hit['points']),
+          url: trim(hit['url'], 500) || `https://news.ycombinator.com/item?id=${id}`,
+          createdAt: trim(hit['created_at'], 80) || new Date().toISOString(),
         };
       });
   } catch {
@@ -146,7 +154,7 @@ async function searchProductHuntLaunches(brandName: string) {
 }
 
 function trim(value: unknown, max: number): string | null {
-  const text = `${value ?? ""}`.trim();
+  const text = `${value ?? ''}`.trim();
   if (!text) return null;
   return text.length > max ? `${text.slice(0, max)}...` : text;
 }
