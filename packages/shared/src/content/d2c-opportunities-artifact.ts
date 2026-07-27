@@ -16,11 +16,51 @@
 import type { D2COpportunityArtifact } from "./d2c-opportunities";
 
 export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
-  "generatedAt": "2026-07-20T10:01:35.880444+00:00",
+  "generatedAt": "2026-07-27T10:40:45.864097+00:00",
   "region": "IN",
   "niches": [
     {
       "nicheSlug": "hair-growth-scalp-support",
+      "demandScore": 0.6000000000000001,
+      "competitionScore": null,
+      "pricingScore": null,
+      "adSaturationScore": null,
+      "agentVisibilityScore": null,
+      "evidence": [
+        {
+          "sourceClass": "community",
+          "url": "https://reddit.com/r/tressless/comments/1v7np2d/1_year_on_finasteride_and_minoxidil_72625_72626/",
+          "source": "reddit:tressless",
+          "snippet": "1 year on Finasteride and Minoxidil 7/26/25 - 7/26/26 — Today marks one year since the day I started taking 1mg Finasteride and using topical Minoxidil. The front still looks relatively the same as o…",
+          "observedAt": "2026-07-27T02:31:33+00:00"
+        },
+        {
+          "sourceClass": "community",
+          "url": "https://reddit.com/r/tressless/comments/1v7lccf/best_disguise_ive_found_so_far_for_my_awful/",
+          "source": "reddit:tressless",
+          "snippet": "Best disguise I’ve found so far for my awful thinning balding hair?! — Even though I know it’s prob really bad for the health of my hair and my scalp. Bleaching my hair completely made it look like I…",
+          "observedAt": "2026-07-27T00:42:57+00:00"
+        },
+        {
+          "sourceClass": "community",
+          "url": "https://reddit.com/r/tressless/comments/1v7idck/how_many_approximate_grafts_for_crown/",
+          "source": "reddit:tressless",
+          "snippet": "How many approximate grafts for crown? — 26M, been balding since I was 16-17 years old and always had a ”visible” / bald spot on my crown. I’ve been on finasteride for several years and oral minoxidi…",
+          "observedAt": "2026-07-26T22:34:42+00:00"
+        },
+        {
+          "sourceClass": "community",
+          "url": "https://reddit.com/r/tressless/comments/1v7bpiv/is_the_minoxidil_working_on_my_crown/",
+          "source": "reddit:tressless",
+          "snippet": "Is the minoxidil working on my crown? — Been using minoxidil for quite a while, also using DUT now in place of fin, I feel like my hair shed a bit with the mino at the start but the shed has subsided…",
+          "observedAt": "2026-07-26T18:21:46+00:00"
+        }
+      ],
+      "freshnessDate": "2026-07-27T10:38:41.905819+00:00",
+      "notes": "diversity=0.14; community=4 search=0 product=0 ad-library=0 launch=0"
+    },
+    {
+      "nicheSlug": "lip-intimate-skincare-sensitive",
       "demandScore": 0.30000000000000004,
       "competitionScore": null,
       "pricingScore": null,
@@ -29,83 +69,79 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "evidence": [
         {
           "sourceClass": "community",
-          "url": "https://reddit.com/r/tressless/comments/1v0lr16/4_months_on_duttopical_min_barely_any_progress/",
-          "source": "reddit:tressless",
-          "snippet": "4 Months on Dut+Topical Min barely any progress. — As the subject says, I’ve been on dutasteride every other day (EOD) and topical minoxidil for about 4 months. I haven’t seen any major changes yet.…",
-          "observedAt": "2026-07-19T09:12:55+00:00"
+          "url": "https://reddit.com/r/SkincareAddiction/comments/1v7q14p/product_request_whats_your_holy_grail_moisturizer/",
+          "source": "reddit:SkincareAddiction",
+          "snippet": "[product Request] What's your holy grail moisturizer for dry-combination, sensitive skin? — Can someone please recommend a good moisturizer for dry-combination skin that doesn't clog pores or cause c…",
+          "observedAt": "2026-07-27T04:25:54+00:00"
         }
       ],
-      "freshnessDate": "2026-07-20T09:58:08.591488+00:00",
+      "freshnessDate": "2026-07-27T10:37:06.542896+00:00",
       "notes": "diversity=0.14; community=1 search=0 product=0 ad-library=0 launch=0"
     },
     {
-      "nicheSlug": "lip-intimate-skincare-sensitive",
-      "demandScore": null,
-      "competitionScore": null,
-      "pricingScore": null,
-      "adSaturationScore": null,
-      "agentVisibilityScore": null,
-      "evidence": [],
-      "freshnessDate": "2026-07-20T10:00:35.759879+00:00",
-      "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
-    },
-    {
       "nicheSlug": "hard-water-hair-care",
-      "demandScore": null,
-      "competitionScore": null,
-      "pricingScore": null,
-      "adSaturationScore": null,
-      "agentVisibilityScore": null,
-      "evidence": [],
-      "freshnessDate": "2026-07-20T09:57:58.506854+00:00",
-      "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
-    },
-    {
-      "nicheSlug": "beard-dandruff-beard-scalp",
-      "demandScore": null,
+      "demandScore": 0.30000000000000004,
       "competitionScore": 0.5,
-      "pricingScore": 0.9,
+      "pricingScore": 0.6,
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [
         {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B075VPTZGC",
-          "source": "amazon:in",
-          "snippet": "Beardo Godfather Beard Wash for men, 100ml | Aromatic, Woody Scent | Purifying &amp; Hydrating Beard and Skin Cleaner with Avocado Oil, Argan Oil | Beard Shampoo for Clean &amp; Healthy Beard — ₹233 — 4.2 out of 5 — 2,387 ratings",
-          "observedAt": "2026-07-20T10:01:28.375716+00:00"
+          "sourceClass": "community",
+          "url": "https://news.ycombinator.com/item?id=49024620",
+          "source": "hackernews",
+          "snippet": "Launch HN: Screenpipe (YC S26) – Record how you work and turn that into agents",
+          "observedAt": "2026-07-23T16:48:38+00:00"
         },
         {
           "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B08W8G1J4R",
+          "url": "https://www.amazon.in/dp/B0DQJ46TYL",
           "source": "amazon:in",
-          "snippet": "Man Matters 1% Salicylic Acid Oil Control Face &amp; Beard Wash For Men| Fights Acne, &amp; Beard Dandruff| 1% Glycolic Acid | Reduces Excess Oil and Exfoliates Skin Gently | 120 ml — ₹229 — 3.8 out of 5 — 873 ratings",
-          "observedAt": "2026-07-20T10:01:28.376403+00:00"
+          "snippet": "4.0 out of 5 stars — ₹425 — 4.0 out of 5 — 1,438 ratings",
+          "observedAt": "2026-07-27T10:37:13.436853+00:00"
         },
         {
           "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B09QWTJR3K",
+          "url": "https://www.amazon.in/dp/B0H23WB1GX",
           "source": "amazon:in",
-          "snippet": "Beardo Dandruff Control Sulphate Free Shampoo for men 200 ml | Anti Dandruff | Sulphate and Paraben Free | Climbazole, Menthol &amp; Biotin for Dandruff Control &amp; Itchy Scalp — ₹276 — 3.9 out of 5 — 859 ratings",
-          "observedAt": "2026-07-20T10:01:28.376943+00:00"
+          "snippet": "20 Stage Shower Head Filter for Bathroom Hard Water Softner SF-20 Pro | Water Softener | Hard Water Filter Tap, Reduces hair fall, Protects Skin | Remove Chlorine and Harmful Chemicals (Pack of 1) D22 — ₹580 — 4.0 out of 5 — 30 ratings",
+          "observedAt": "2026-07-27T10:37:13.437374+00:00"
         },
         {
           "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0GYTVKWWN",
+          "url": "https://www.amazon.in/dp/B0CPVDNX1J",
           "source": "amazon:in",
-          "snippet": "Coco Crush Cold Pressed Coconut Oil for Men | Anti Hairfall Nariyal Tel | Hair Growth &amp; Strong Roots | Lauric Acid Rich | Dandruff Control | Beard &amp; Skin Care | 100ml — ₹182",
-          "observedAt": "2026-07-20T10:01:28.382518+00:00"
+          "snippet": "4.5 out of 5 stars — ₹469 — 4.5 out of 5 — 1,622 ratings",
+          "observedAt": "2026-07-27T10:37:13.437894+00:00"
         },
         {
           "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B07MW961QN",
+          "url": "https://www.amazon.in/dp/B0GKFY7T1G",
           "source": "amazon:in",
-          "snippet": "Dapr. Beard Butter (100 grams) |Hydrating and Nourishing with Shea Butter, Bourbon Oil, Orange Bitters &amp; Hemp Seed oil for Softer &amp; Smoother Beard| — ₹649 — 4.2 out of 5 — 1,372 ratings",
-          "observedAt": "2026-07-20T10:01:28.383051+00:00"
+          "snippet": "Parisar Instant Water Softener for Home &amp; Bath 300ml (Pack of 1)| Hard Water Softener Liquid | pH Balanced Formula | For Softer Skin &amp; Smoother Hair — ₹279 — 4.1 out of 5 — 78 ratings",
+          "observedAt": "2026-07-27T10:37:13.442793+00:00"
+        },
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B0FX2GNHFS",
+          "source": "amazon:in",
+          "snippet": "3.8 out of 5 stars — ₹1,178 — 3.8 out of 5 — 68 ratings",
+          "observedAt": "2026-07-27T10:37:13.443344+00:00"
         }
       ],
-      "freshnessDate": "2026-07-20T10:01:28.383290+00:00",
-      "notes": "diversity=0.14; community=0 search=0 product=5 ad-library=0 launch=0"
+      "freshnessDate": "2026-07-27T10:37:13.443456+00:00",
+      "notes": "diversity=0.29; community=0 search=1 product=5 ad-library=0 launch=0"
+    },
+    {
+      "nicheSlug": "beard-dandruff-beard-scalp",
+      "demandScore": null,
+      "competitionScore": null,
+      "pricingScore": null,
+      "adSaturationScore": null,
+      "agentVisibilityScore": null,
+      "evidence": [],
+      "freshnessDate": "2026-07-27T10:39:24.339222+00:00",
+      "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "post-gym-mens-skin-wipes",
@@ -115,7 +151,7 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-20T09:53:13.915522+00:00",
+      "freshnessDate": "2026-07-27T10:34:41.012712+00:00",
       "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
@@ -126,27 +162,62 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-20T09:55:36.216147+00:00",
+      "freshnessDate": "2026-07-27T10:36:07.362604+00:00",
       "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "heat-resistant-phone-mounts",
       "demandScore": 0.30000000000000004,
-      "competitionScore": null,
-      "pricingScore": null,
+      "competitionScore": 0.5,
+      "pricingScore": 0.9,
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [
         {
           "sourceClass": "community",
-          "url": "https://news.ycombinator.com/item?id=48958273",
+          "url": "https://news.ycombinator.com/item?id=49049693",
           "source": "hackernews",
-          "snippet": "LG ThinQ Terms of Use",
-          "observedAt": "2026-07-18T14:04:55+00:00"
+          "snippet": "Show HN: Brolly, a plain-text weather forecast site",
+          "observedAt": "2026-07-25T17:34:34+00:00"
+        },
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B08W1KX225",
+          "source": "amazon:in",
+          "snippet": "TECHONTO® 360° Degree Cell Phone Holder with Adjustable Clamp Phone Tripod Mount Adapter Compatible with Smartphones &amp; All Types of Tripods – Black — ₹155 — 4.2 out of 5 — 7,831 ratings",
+          "observedAt": "2026-07-27T10:36:30.887266+00:00"
+        },
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B0CMJ4Y5GK",
+          "source": "amazon:in",
+          "snippet": "Sounce Mobile Phone Chest Strap Mount GoPro Chest Harness Holder for VLOG/POV Compatible with All Cell Phones and GoPro Hero 9, 8, 7, 6, 5,OSMO Action, AKASO and Other Action Camera — ₹299 — 3.7 out of 5 — 2,864 ratings",
+          "observedAt": "2026-07-27T10:36:30.887825+00:00"
+        },
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B0D4DND58Y",
+          "source": "amazon:in",
+          "snippet": "Like Star 360° Degree Mobile Phone Holder with Universal 1/4 Screw Adjustable Clamp Mobile Tripod Mount Adapter Compatible with Smartphones &amp; TripodsnSelfie Stick (Black) — ₹175 — 4.3 out of 5 — 930 ratings",
+          "observedAt": "2026-07-27T10:36:30.888353+00:00"
+        },
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B0DK7MQ2YY",
+          "source": "amazon:in",
+          "snippet": "Spigen Magnetic Air Vent &amp; Dashboard Car Mount - Orange | Super Strong Magnetic Air Vent &amp; Dashboard Car Mount (MFT13) with Magnetic Ring for iPhone &amp; Samsung Galaxy Series — ₹999 — 4.1 out of 5 — 1,198 ratings",
+          "observedAt": "2026-07-27T10:36:30.889222+00:00"
+        },
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B0BYDQ2MKJ",
+          "source": "amazon:in",
+          "snippet": "wraptastic Car Mobile Phone Holder | Telescopic One Touch Long Neck Arm 360 Degree Rotation | Ultimate Reusable Suction Cup Mount Mirror Stand Anti Shake &amp; Fall Prevention — ₹2,699 — 4.3 out of 5 — 192 ratings",
+          "observedAt": "2026-07-27T10:36:30.889805+00:00"
         }
       ],
-      "freshnessDate": "2026-07-20T09:56:11.804713+00:00",
-      "notes": "diversity=0.14; community=0 search=1 product=0 ad-library=0 launch=0"
+      "freshnessDate": "2026-07-27T10:36:30.889923+00:00",
+      "notes": "diversity=0.29; community=0 search=1 product=5 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "office-chai-healthy-snacks",
@@ -156,19 +227,34 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-20T09:54:24.943234+00:00",
+      "freshnessDate": "2026-07-27T10:36:02.316360+00:00",
       "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "diabetic-friendly-travel-snacks",
-      "demandScore": null,
+      "demandScore": 0.4,
       "competitionScore": null,
       "pricingScore": null,
       "adSaturationScore": null,
       "agentVisibilityScore": null,
-      "evidence": [],
-      "freshnessDate": "2026-07-20T09:55:00.570029+00:00",
-      "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
+      "evidence": [
+        {
+          "sourceClass": "community",
+          "url": "https://reddit.com/r/diabetes/comments/1v7dail/made_a_low_carb_almond_crust_birthday_cake_for/",
+          "source": "reddit:diabetes",
+          "snippet": "Made a low carb almond crust birthday cake for myself — Just almond flour crust, cream cheese, sugar free strawberry jello, whipped cream, and fresh strawberries and I can finally enjoy cake on my bi…",
+          "observedAt": "2026-07-26T19:19:32+00:00"
+        },
+        {
+          "sourceClass": "community",
+          "url": "https://reddit.com/r/diabetes/comments/1v74f7d/test_drinks_for_sugar/",
+          "source": "reddit:diabetes",
+          "snippet": "Test drinks for sugar — Has anyone used urine glucose dip sticks to test if a drink is sugar free or the sugar version? I know about diet detector strips but you don’t get many in a pack versus 100 i…",
+          "observedAt": "2026-07-26T13:49:20+00:00"
+        }
+      ],
+      "freshnessDate": "2026-07-27T10:35:52.213723+00:00",
+      "notes": "diversity=0.14; community=2 search=0 product=0 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "high-protein-regional-snacks",
@@ -178,121 +264,126 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-20T10:00:00.287668+00:00",
+      "freshnessDate": "2026-07-27T10:40:00.047372+00:00",
       "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "affordable-home-gym-under-5000",
-      "demandScore": 0.7,
-      "competitionScore": null,
-      "pricingScore": null,
+      "demandScore": 0.85,
+      "competitionScore": 0.5,
+      "pricingScore": 0.4,
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [
         {
           "sourceClass": "community",
-          "url": "https://reddit.com/r/homegym/comments/1v0abdq/finally_completed_my_basement_gym_office_man_cave/",
+          "url": "https://reddit.com/r/homegym/comments/1v7hz6o/apartment_home_gym/",
           "source": "reddit:homegym",
-          "snippet": "Finally completed my basement gym / office / man cave — After going through multiple layouts and equimpent, I think I've finally gotten my optimal home gym set up done 😆 My basement is officially a p…",
-          "observedAt": "2026-07-18T23:12:54+00:00"
+          "snippet": "Apartment Home Gym — &amp;#x200B; This is my finalised home gym. It's 3.6m x 2.8m room (11ft \\* 9ft). Has a cable rack, attachments and treadmill. Put acoustic panelling and foam flooring for the nei…",
+          "observedAt": "2026-07-26T22:18:14+00:00"
         },
         {
           "sourceClass": "community",
-          "url": "https://reddit.com/r/homegym/comments/1uzkvr1/3rd_car_garage_home_gym/",
+          "url": "https://reddit.com/r/homegym/comments/1v6ds6t/new_home_gym/",
           "source": "reddit:homegym",
-          "snippet": "3rd car garage &gt; home gym 🥲 — Went with Rep summit-all-in-one ares 2.0 and all rep accessories 🥲 truly a dream come true. Just need mirrors and a treadmill",
-          "observedAt": "2026-07-18T03:34:26+00:00"
+          "snippet": "New Home Gym! — I have been slowly working on my home gym the last few months. Everything is used, except my Rep AB 5200. The platform was really easy and fun to put together. Current Equipment Rouge…",
+          "observedAt": "2026-07-25T17:05:35+00:00"
         },
         {
           "sourceClass": "community",
-          "url": "https://reddit.com/r/homegym/comments/1uzgs0j/first_ever_home_gym_nothing_fancy_but_i_love_it/",
+          "url": "https://reddit.com/r/homegym/comments/1v5w9kh/diy_horizontal_stand_for_adjustable_dumbbells/",
           "source": "reddit:homegym",
-          "snippet": "First ever home Gym. Nothing fancy but I love it. Love the pink too! — Hopefully Southern California sunshine does not wreck this thing lol Bought everything used piece by piece on Facebook marketpla…",
-          "observedAt": "2026-07-18T00:17:23+00:00"
+          "snippet": "DIY Horizontal Stand For Adjustable Dumbbells — Just wanted to share my DIY horizontal stand for the REP X Pepin dumbbells, and hopefully this is useful for someone else (it should work for other adj…",
+          "observedAt": "2026-07-25T02:58:15+00:00"
         },
         {
           "sourceClass": "community",
-          "url": "https://reddit.com/r/homegym/comments/1uz6we5/collars_do_you_need_them_what_are_the_best/",
+          "url": "https://reddit.com/r/homegym/comments/1v5bwdu/i_havent_seen_too_many_girlyesque_home_gym_setups/",
           "source": "reddit:homegym",
-          "snippet": "Collars - Do you need them? What are the best? — What is up everyone... Welcome to the Targeted Talk... where we take a topic pertinent to the home gym owner and do what we do best... spend way too m…",
-          "observedAt": "2026-07-17T17:50:27+00:00"
+          "snippet": "I haven’t seen too many girly-esque home gym setups! — Thought I’d share, still a work in progress but happy with what I’ve put together so far to make this space my own.",
+          "observedAt": "2026-07-24T13:46:57+00:00"
         },
         {
           "sourceClass": "community",
-          "url": "https://reddit.com/r/homegym/comments/1uypwly/my_home_gym/",
+          "url": "https://reddit.com/r/homegym/comments/1v5apzy/weekly_freetalk_and_questions_for_rhomegym_week/",
           "source": "reddit:homegym",
-          "snippet": "My home gym — waking up whenever, walking 10 seconds across the backyard to my desk, wearing whatever I feel like, and blasting my own playlist all day",
-          "observedAt": "2026-07-17T04:51:47+00:00"
+          "snippet": "Weekly Free-Talk and Questions for r/HomeGym - week of July 24, 2026 — Welcome to The Garage: The Weekly Free-Talk discussion for [r/HomeGym](https://www.reddit.com/r/HomeGym/)! **What can be posted…",
+          "observedAt": "2026-07-24T13:00:12+00:00"
+        },
+        {
+          "sourceClass": "community",
+          "url": "https://reddit.com/r/homegym/comments/1v50dct/home_gym_setup/",
+          "source": "reddit:homegym",
+          "snippet": "Home Gym Setup — Converted the old office to a home gym",
+          "observedAt": "2026-07-24T04:01:07+00:00"
+        },
+        {
+          "sourceClass": "community",
+          "url": "https://reddit.com/r/homegym/comments/1v4oi1f/minimal_setup/",
+          "source": "reddit:homegym",
+          "snippet": "Minimal setup — I snagged the major fitness rack for $1770 on prime day, the extra plates for $167, the flooring for $119, the chains for $23, and the leg extension/curl machine for $180. Very happy…",
+          "observedAt": "2026-07-23T19:45:02+00:00"
+        },
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B089DF1PXS",
+          "source": "amazon:in",
+          "snippet": "Kore PVC 16 Kg Home Gym Set With One 3 Ft Curl And One Pair Dumbbell Rods With Gym Accessories, Black — ₹1,149 — 3.6 out of 5 — 36,106 ratings",
+          "observedAt": "2026-07-27T10:36:14.054155+00:00"
+        },
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B0C55FKZL6",
+          "source": "amazon:in",
+          "snippet": "Protoner PVC 3 in 1 convertible DM 4-40 Kg Dumbbells Set and Fitness Kit for Men and Women Whole Body Workout (8 kg (2 kg x 4), 3 in 1 convertible) Red Black — ₹499 — 3.8 out of 5 — 4,615 ratings",
+          "observedAt": "2026-07-27T10:36:14.054665+00:00"
+        },
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B0DF6BBPWW",
+          "source": "amazon:in",
+          "snippet": "Lifeline Multi Home Gym Leg Press Machine HG 008 with Preacher Curl &amp; Ab Crunch 72 Kg Weight Stack, Home Gym Equipment Strength Training Workout Gym Exercise Machine, Free Home Installation — ₹26,999 — 4.4 out of 5 — 127 ratings",
+          "observedAt": "2026-07-27T10:36:14.055106+00:00"
+        },
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B0DKJZX382",
+          "source": "amazon:in",
+          "snippet": "PulGos 15-in-1 Pushup Board for Men &amp; Women | Foldable Gym Equipment for Home Workout | 𝐌𝐮𝐥𝐭𝐢- 𝐅𝐮𝐧𝐜𝐭𝐢𝐨𝐧 Push Up Stand for Chest, Triceps, Shoulders &amp; Back | Portable Home Gym Training Kit — ₹299 — 3.8 out of 5 — 1,239 ratings",
+          "observedAt": "2026-07-27T10:36:14.059532+00:00"
+        },
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B0B87JD45W",
+          "source": "amazon:in",
+          "snippet": "BULLAR 16Kg Home Gym Set With 3 Feet Straight Rod and 2 Pieces Dumbbell Rods, Gym Combo &amp; Home Workout Equipments with PVC Weights Plates — ₹1,199 — 3.3 out of 5 — 940 ratings",
+          "observedAt": "2026-07-27T10:36:14.060010+00:00"
         }
       ],
-      "freshnessDate": "2026-07-20T09:57:23.042431+00:00",
-      "notes": "diversity=0.14; community=5 search=0 product=0 ad-library=0 launch=0"
+      "freshnessDate": "2026-07-27T10:36:14.060213+00:00",
+      "notes": "diversity=0.29; community=7 search=0 product=5 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "womens-gym-shorts-fit",
-      "demandScore": 0.30000000000000004,
+      "demandScore": null,
       "competitionScore": null,
       "pricingScore": null,
       "adSaturationScore": null,
       "agentVisibilityScore": null,
-      "evidence": [
-        {
-          "sourceClass": "community",
-          "url": "https://reddit.com/r/xxfitness/comments/1v06lon/title_female_judoka_with_muscular_thighs_looking/",
-          "source": "reddit:xxfitness",
-          "snippet": "Title: Female judoka with muscular thighs, looking for advice on reducing chafing — Hi everyone, I’ve been practicing judo for around 11 years and I train about 5 times a week. Because of judo, my th…",
-          "observedAt": "2026-07-18T20:33:28+00:00"
-        }
-      ],
-      "freshnessDate": "2026-07-20T09:53:49.504018+00:00",
-      "notes": "diversity=0.14; community=1 search=0 product=0 ad-library=0 launch=0"
+      "evidence": [],
+      "freshnessDate": "2026-07-27T10:35:16.697847+00:00",
+      "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "baby-lotions-transparent-ingredients",
       "demandScore": null,
-      "competitionScore": 0.5,
-      "pricingScore": 0.6,
+      "competitionScore": null,
+      "pricingScore": null,
       "adSaturationScore": null,
       "agentVisibilityScore": null,
-      "evidence": [
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0FGJXZ4H5",
-          "source": "amazon:in",
-          "snippet": "LuvLap Baby Lotion with Milk Protein - 700ml, Suitable for Baby’s Delicate Skin, 24 Hour Protection for Sensitive Skin, Shea Butter and VIT E, Paraben Free, Sweet Almond Oil, Dermatologically Tested — ₹143 — 4.3 out of 5 — 829 ratings",
-          "observedAt": "2026-07-20T10:01:35.874207+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0G1MWWPTF",
-          "source": "amazon:in",
-          "snippet": "Himalaya Gentle Baby Lotion 400ml with Almond oil, Olive oil, Country Mallow | No.1 Doctor-Prescribed Brand |pH 5.5 formulation | Nourishes and moisturizes your baby&#x27;s skin | Safe for Newborns — ₹322 — 4.3 out of 5 — 3,035 ratings",
-          "observedAt": "2026-07-20T10:01:35.874830+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0GHXSSGGQ",
-          "source": "amazon:in",
-          "snippet": "Himalaya Gentle Baby Lotion 700ml | with Almond oil, Olive oil, Country Mallow | No.1 Doctor-Prescribed Brand |pH 5.5 formulation | Nourishes and moisturizes your baby&#x27;s skin | Safe for Newborns — ₹449 — 4.3 out of 5 — 3,035 ratings",
-          "observedAt": "2026-07-20T10:01:35.875330+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B07JQYKB61",
-          "source": "amazon:in",
-          "snippet": "Baby Dove Rich Moisture Nourishing Baby Lotion 400 ml, With Moisturising Cream, Gentle Care for Baby&#x27;s Soft Skin — ₹202 — 4.4 out of 5 — 6,737 ratings",
-          "observedAt": "2026-07-20T10:01:35.879375+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B07TWXLK1P",
-          "source": "amazon:in",
-          "snippet": "Cetaphil Baby Daily Lotion, Suitable for baby’s delicate skin, Shea Butter and Vit E, Dermatologist Tested and Pediatrician Recommended, 400 ml — ₹823 — 4.5 out of 5 — 17,586 ratings",
-          "observedAt": "2026-07-20T10:01:35.879932+00:00"
-        }
-      ],
-      "freshnessDate": "2026-07-20T10:01:35.880073+00:00",
-      "notes": "diversity=0.14; community=0 search=0 product=5 ad-library=0 launch=0"
+      "evidence": [],
+      "freshnessDate": "2026-07-27T10:40:45.863765+00:00",
+      "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "ayurvedic-face-care-proof-first",
@@ -302,7 +393,7 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-20T09:58:49.224499+00:00",
+      "freshnessDate": "2026-07-27T10:38:06.270467+00:00",
       "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
@@ -313,97 +404,132 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-20T10:01:11.375249+00:00",
+      "freshnessDate": "2026-07-27T10:40:40.808720+00:00",
       "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "pet-health-supplements",
-      "demandScore": 0.30000000000000004,
-      "competitionScore": null,
-      "pricingScore": null,
-      "adSaturationScore": null,
-      "agentVisibilityScore": null,
-      "evidence": [
-        {
-          "sourceClass": "community",
-          "url": "https://reddit.com/r/dogs/comments/1v0xin5/should_i_foster_fail_again/",
-          "source": "reddit:dogs",
-          "snippet": "Should I foster fail AGAIN — I have 2 elderly small dogs and I regularly foster other dogs and cats for a local rescue. My current foster is a tiny, blind Shih Tzu. She’s the sweetest little thing an…",
-          "observedAt": "2026-07-19T18:04:47+00:00"
-        }
-      ],
-      "freshnessDate": "2026-07-20T09:56:47.456705+00:00",
-      "notes": "diversity=0.14; community=1 search=0 product=0 ad-library=0 launch=0"
-    },
-    {
-      "nicheSlug": "oral-care-sub-niches",
-      "demandScore": 0.30000000000000004,
-      "competitionScore": null,
-      "pricingScore": null,
-      "adSaturationScore": null,
-      "agentVisibilityScore": null,
-      "evidence": [
-        {
-          "sourceClass": "community",
-          "url": "https://reddit.com/r/Dentistry/comments/1v03gwx/any_dentists_here_stressed_out_by_clinical/",
-          "source": "reddit:Dentistry",
-          "snippet": "Any dentists here stressed out by clinical complications? — I don't know if it's just me, but I sometimes feel stressed out by complicated cases and certain recalls where the restorations look off. I…",
-          "observedAt": "2026-07-18T18:29:07+00:00"
-        }
-      ],
-      "freshnessDate": "2026-07-20T09:58:03.547271+00:00",
-      "notes": "diversity=0.14; community=1 search=0 product=0 ad-library=0 launch=0"
-    },
-    {
-      "nicheSlug": "sleep-stress-support-products",
-      "demandScore": 0.6000000000000001,
-      "competitionScore": null,
-      "pricingScore": null,
-      "adSaturationScore": null,
-      "agentVisibilityScore": null,
-      "evidence": [
-        {
-          "sourceClass": "community",
-          "url": "https://reddit.com/r/sleep/comments/1v1bswd/overthinking_is_completely_ruining_my_sleep/",
-          "source": "reddit:sleep",
-          "snippet": "Overthinking is completely ruining my sleep quality. Need advice — Basically the title. I’ve always had a hard time falling asleep but lately it’s getting out of hand. My body feels ready to pass out…",
-          "observedAt": "2026-07-20T04:53:08+00:00"
-        },
-        {
-          "sourceClass": "community",
-          "url": "https://reddit.com/r/sleep/comments/1v1bnf9/can_anyone_else_wake_up_whenever_they_tell/",
-          "source": "reddit:sleep",
-          "snippet": "Can anyone else wake up whenever they tell themselves to? — I have tested this a couple of times and it worked somehow. So basically how it worked was that I wanted to test If i can say to myself whe…",
-          "observedAt": "2026-07-20T04:44:50+00:00"
-        },
-        {
-          "sourceClass": "community",
-          "url": "https://reddit.com/r/sleep/comments/1v172uq/waking_up_every_23_hours_and_pretty_scared/",
-          "source": "reddit:sleep",
-          "snippet": "Waking up every 2-3 hours and pretty scared — For years now, more than a decade now, I’ve never gotten 8 hours of uninterrupted sleep. I always wake up every 2-3 hours I’ll go to bed at 12 am, wake u…",
-          "observedAt": "2026-07-20T00:55:01+00:00"
-        },
-        {
-          "sourceClass": "community",
-          "url": "https://reddit.com/r/sleep/comments/1v13krw/if_you_had_to_fall_asleep_to_only_one_sound_for/",
-          "source": "reddit:sleep",
-          "snippet": "If you had to fall asleep to only ONE sound for the rest of your life, what would you choose? — If you could only choose one sound to fall asleep to for the rest of your life, what would it be? Rain?…",
-          "observedAt": "2026-07-19T22:24:00+00:00"
-        }
-      ],
-      "freshnessDate": "2026-07-20T09:52:38.322134+00:00",
-      "notes": "diversity=0.14; community=4 search=0 product=0 ad-library=0 launch=0"
-    },
-    {
-      "nicheSlug": "intimate-hygiene",
       "demandScore": null,
       "competitionScore": null,
       "pricingScore": null,
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-20T09:58:13.640143+00:00",
+      "freshnessDate": "2026-07-27T10:35:57.267126+00:00",
       "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
+    },
+    {
+      "nicheSlug": "oral-care-sub-niches",
+      "demandScore": null,
+      "competitionScore": 0.5,
+      "pricingScore": 0.9,
+      "adSaturationScore": null,
+      "agentVisibilityScore": null,
+      "evidence": [
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B09S18RQLD",
+          "source": "amazon:in",
+          "snippet": "Gum Care Toothpaste For Complete Oral Care | Prevents From Dry Mouth, Gum Diseases| India&#x27;s First Toothpaste With Carrymax Technology| Made In India| Mint Flavour Pack Of 3 — ₹350 — 4.2 out of 5 — 1,225 ratings",
+          "observedAt": "2026-07-27T10:37:30.649883+00:00"
+        },
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B0CLDFLX9G",
+          "source": "amazon:in",
+          "snippet": "3.9 out of 5 stars — ₹176 — 3.9 out of 5 — 205 ratings",
+          "observedAt": "2026-07-27T10:37:30.650453+00:00"
+        },
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B09JLNL36K",
+          "source": "amazon:in",
+          "snippet": "Toothpaste Expert Gum Care | Daily Fluoride, Gum Protection Tooth Paste Combo Pack 150gm (75gm x 2) | For Redness, Swelling and Bleeding Gums, Freshness, Reduces Plaque — ₹207 — 4.2 out of 5 — 5,572 ratings",
+          "observedAt": "2026-07-27T10:37:30.651023+00:00"
+        },
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B0C3WDNCNN",
+          "source": "amazon:in",
+          "snippet": "Happy Smile Gum Paint Herbal for Bleeding Gums, Bad Breath, Toothache, Strong Teeth, Sensitivity &amp; Gum Pain Relief with Laung Oil (Clove), Pudina Satva | Protect Daily Gum Problems Naturally — ₹267 — 4.1 out of 5 — 305 ratings",
+          "observedAt": "2026-07-27T10:37:30.655151+00:00"
+        },
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B09JLLHYGT",
+          "source": "amazon:in",
+          "snippet": "Ultra Clean Toothpaste For Daily Protection Against Gum Problems, For Long Lasting Ultra Clean Feeling Multi Pack, 75g*2 — ₹207 — 4.3 out of 5 — 5,408 ratings",
+          "observedAt": "2026-07-27T10:37:30.655707+00:00"
+        }
+      ],
+      "freshnessDate": "2026-07-27T10:37:30.655811+00:00",
+      "notes": "diversity=0.14; community=0 search=0 product=5 ad-library=0 launch=0"
+    },
+    {
+      "nicheSlug": "sleep-stress-support-products",
+      "demandScore": 0.30000000000000004,
+      "competitionScore": null,
+      "pricingScore": null,
+      "adSaturationScore": null,
+      "agentVisibilityScore": null,
+      "evidence": [
+        {
+          "sourceClass": "community",
+          "url": "https://reddit.com/r/sleep/comments/1v7nlo1/i_have_been_lied_to_my_entire_life_about_how_to/",
+          "source": "reddit:sleep",
+          "snippet": "I have been lied to my entire life about how to sleep. — I recently started living alone and set my air conditioning to 78 degrees to save money. This is about 10 degrees warmer than what I am used t…",
+          "observedAt": "2026-07-27T02:27:03+00:00"
+        }
+      ],
+      "freshnessDate": "2026-07-27T10:34:35.968472+00:00",
+      "notes": "diversity=0.14; community=1 search=0 product=0 ad-library=0 launch=0"
+    },
+    {
+      "nicheSlug": "intimate-hygiene",
+      "demandScore": null,
+      "competitionScore": 0.5,
+      "pricingScore": 0.9,
+      "adSaturationScore": null,
+      "agentVisibilityScore": null,
+      "evidence": [
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B00KAZYKCE",
+          "source": "amazon:in",
+          "snippet": "VWash Plus Expert Intimate Hygiene|| 100 ml — ₹120 — 4.4 out of 5 — 9,339 ratings",
+          "observedAt": "2026-07-27T10:38:48.697115+00:00"
+        },
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B08GP3FMTV",
+          "source": "amazon:in",
+          "snippet": "Namyaa Intimate Wash with Haldi Chandan, Prevents Dryness, Itchiness and Irritation | pH Balanced | Prevents Bad smell, 100ml — ₹199 — 4.2 out of 5 — 3,739 ratings",
+          "observedAt": "2026-07-27T10:38:48.697731+00:00"
+        },
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B07CN2D6JF",
+          "source": "amazon:in",
+          "snippet": "Pee Safe Intimate Wash For Women 105ml Natural Ayurvedic with Lemongrass Fragrance and 100% Alcohol-Free | pH Balanced | Paraben-Free | Sulfate-Free — ₹148 — 4.3 out of 5 — 5,585 ratings",
+          "observedAt": "2026-07-27T10:38:48.698238+00:00"
+        },
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B07XQPMNLJ",
+          "source": "amazon:in",
+          "snippet": "Pee Safe Natural Intimate Wash for Men | Tea Tree Essential Oil | Ayurvedic | Men Genital Wash | Mens Ball wash | Men&#x27;s Intimate wash 100ml — ₹329 — 4.2 out of 5 — 7,979 ratings",
+          "observedAt": "2026-07-27T10:38:48.702404+00:00"
+        },
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B0CQ89SQW3",
+          "source": "amazon:in",
+          "snippet": "Namyaa Haldi Chandan Intimate Hygiene Wash | With Germ and Odour Protection | pH Balanced (Pack of 2) — ₹211 — 4.2 out of 5 — 279 ratings",
+          "observedAt": "2026-07-27T10:38:48.703051+00:00"
+        }
+      ],
+      "freshnessDate": "2026-07-27T10:38:48.703162+00:00",
+      "notes": "diversity=0.14; community=0 search=0 product=5 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "condiments-sauces-regional-identity",
@@ -413,7 +539,7 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-07-20T09:59:24.687039+00:00",
+      "freshnessDate": "2026-07-27T10:40:35.750598+00:00",
       "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     }
   ]
