@@ -203763,5 +203763,2554 @@
     "createdAt": "2026-07-26T09:33:40.963Z",
     "refreshStatus": "rejected",
     "refreshReason": "no-fresh-usable-items"
+  },
+  {
+    "source": "reddit",
+    "sourceId": "reddit-localllama",
+    "label": "r/LocalLLaMA",
+    "target": "LocalLLaMA",
+    "subreddit": "LocalLLaMA",
+    "period": "week",
+    "prompt": "AI developer workflow pain, local model operations, routing, cost, provenance",
+    "digest": {
+      "id": "refresh-reddit-localllama-2026-07-27-fetch-error",
+      "subreddit": "r/LocalLLaMA",
+      "period": "week",
+      "snapshotDate": "2026-07-27T10:54:05.822Z",
+      "summaryText": "r/LocalLLaMA rejected: r/LocalLLaMA could not be fetched: reddit_403.",
+      "summary": {
+        "keyTrend": {
+          "title": "r/LocalLLaMA: fetch error",
+          "desc": "r/LocalLLaMA could not be fetched: reddit_403."
+        },
+        "notableDiscussions": [],
+        "keyAction": {
+          "title": "Source remediation",
+          "desc": "r/LocalLLaMA could not be fetched: reddit_403."
+        }
+      },
+      "promptUsed": "AI developer workflow pain, local model operations, routing, cost, provenance",
+      "sourceCount": 0,
+      "createdAt": "2026-07-27T10:54:05.822Z"
+    },
+    "createdAt": "2026-07-27T10:54:05.830Z",
+    "refreshStatus": "rejected",
+    "refreshReason": "fetch-error",
+    "refreshError": "reddit_403"
+  },
+  {
+    "source": "reddit",
+    "sourceId": "reddit-saas",
+    "label": "r/SaaS",
+    "target": "SaaS",
+    "subreddit": "SaaS",
+    "period": "week",
+    "prompt": "B2B SaaS pain, pricing, distribution, validation, buyer intent",
+    "digest": {
+      "id": "refresh-reddit-saas-2026-07-27-fetch-error",
+      "subreddit": "r/SaaS",
+      "period": "week",
+      "snapshotDate": "2026-07-27T10:54:05.863Z",
+      "summaryText": "r/SaaS rejected: r/SaaS could not be fetched: reddit_403.",
+      "summary": {
+        "keyTrend": {
+          "title": "r/SaaS: fetch error",
+          "desc": "r/SaaS could not be fetched: reddit_403."
+        },
+        "notableDiscussions": [],
+        "keyAction": {
+          "title": "Source remediation",
+          "desc": "r/SaaS could not be fetched: reddit_403."
+        }
+      },
+      "promptUsed": "B2B SaaS pain, pricing, distribution, validation, buyer intent",
+      "sourceCount": 0,
+      "createdAt": "2026-07-27T10:54:05.863Z"
+    },
+    "createdAt": "2026-07-27T10:54:05.863Z",
+    "refreshStatus": "rejected",
+    "refreshReason": "fetch-error",
+    "refreshError": "reddit_403"
+  },
+  {
+    "source": "reddit",
+    "sourceId": "reddit-startups",
+    "label": "r/startups",
+    "target": "startups",
+    "subreddit": "startups",
+    "period": "week",
+    "prompt": "startup validation, customer discovery, wedge selection, timing",
+    "digest": {
+      "id": "refresh-reddit-startups-2026-07-27-fetch-error",
+      "subreddit": "r/startups",
+      "period": "week",
+      "snapshotDate": "2026-07-27T10:54:05.908Z",
+      "summaryText": "r/startups rejected: r/startups could not be fetched: reddit_403.",
+      "summary": {
+        "keyTrend": {
+          "title": "r/startups: fetch error",
+          "desc": "r/startups could not be fetched: reddit_403."
+        },
+        "notableDiscussions": [],
+        "keyAction": {
+          "title": "Source remediation",
+          "desc": "r/startups could not be fetched: reddit_403."
+        }
+      },
+      "promptUsed": "startup validation, customer discovery, wedge selection, timing",
+      "sourceCount": 0,
+      "createdAt": "2026-07-27T10:54:05.908Z"
+    },
+    "createdAt": "2026-07-27T10:54:05.908Z",
+    "refreshStatus": "rejected",
+    "refreshReason": "fetch-error",
+    "refreshError": "reddit_403"
+  },
+  {
+    "source": "reddit",
+    "sourceId": "reddit-selfhosted",
+    "label": "r/selfhosted",
+    "target": "selfhosted",
+    "subreddit": "selfhosted",
+    "period": "week",
+    "prompt": "privacy, control, self-hosting, operational dashboards, cost sensitivity",
+    "digest": {
+      "id": "refresh-reddit-selfhosted-2026-07-27-fetch-error",
+      "subreddit": "r/selfhosted",
+      "period": "week",
+      "snapshotDate": "2026-07-27T10:54:05.950Z",
+      "summaryText": "r/selfhosted rejected: r/selfhosted could not be fetched: reddit_403.",
+      "summary": {
+        "keyTrend": {
+          "title": "r/selfhosted: fetch error",
+          "desc": "r/selfhosted could not be fetched: reddit_403."
+        },
+        "notableDiscussions": [],
+        "keyAction": {
+          "title": "Source remediation",
+          "desc": "r/selfhosted could not be fetched: reddit_403."
+        }
+      },
+      "promptUsed": "privacy, control, self-hosting, operational dashboards, cost sensitivity",
+      "sourceCount": 0,
+      "createdAt": "2026-07-27T10:54:05.950Z"
+    },
+    "createdAt": "2026-07-27T10:54:05.950Z",
+    "refreshStatus": "rejected",
+    "refreshReason": "fetch-error",
+    "refreshError": "reddit_403"
+  },
+  {
+    "source": "reddit",
+    "sourceId": "reddit-sideproject",
+    "label": "r/SideProject",
+    "target": "SideProject",
+    "subreddit": "SideProject",
+    "period": "week",
+    "prompt": "launch feedback, indie product validation, distribution friction",
+    "digest": {
+      "id": "refresh-reddit-sideproject-2026-07-27-fetch-error",
+      "subreddit": "r/SideProject",
+      "period": "week",
+      "snapshotDate": "2026-07-27T10:54:05.993Z",
+      "summaryText": "r/SideProject rejected: r/SideProject could not be fetched: reddit_403.",
+      "summary": {
+        "keyTrend": {
+          "title": "r/SideProject: fetch error",
+          "desc": "r/SideProject could not be fetched: reddit_403."
+        },
+        "notableDiscussions": [],
+        "keyAction": {
+          "title": "Source remediation",
+          "desc": "r/SideProject could not be fetched: reddit_403."
+        }
+      },
+      "promptUsed": "launch feedback, indie product validation, distribution friction",
+      "sourceCount": 0,
+      "createdAt": "2026-07-27T10:54:05.993Z"
+    },
+    "createdAt": "2026-07-27T10:54:05.993Z",
+    "refreshStatus": "rejected",
+    "refreshReason": "fetch-error",
+    "refreshError": "reddit_403"
+  },
+  {
+    "source": "reddit",
+    "sourceId": "reddit-experienceddevs",
+    "label": "r/ExperiencedDevs",
+    "target": "ExperiencedDevs",
+    "subreddit": "ExperiencedDevs",
+    "period": "week",
+    "prompt": "senior developer workflow complaints and tool requirements",
+    "digest": {
+      "id": "refresh-reddit-experienceddevs-2026-07-27-fetch-error",
+      "subreddit": "r/ExperiencedDevs",
+      "period": "week",
+      "snapshotDate": "2026-07-27T10:54:06.034Z",
+      "summaryText": "r/ExperiencedDevs rejected: r/ExperiencedDevs could not be fetched: reddit_403.",
+      "summary": {
+        "keyTrend": {
+          "title": "r/ExperiencedDevs: fetch error",
+          "desc": "r/ExperiencedDevs could not be fetched: reddit_403."
+        },
+        "notableDiscussions": [],
+        "keyAction": {
+          "title": "Source remediation",
+          "desc": "r/ExperiencedDevs could not be fetched: reddit_403."
+        }
+      },
+      "promptUsed": "senior developer workflow complaints and tool requirements",
+      "sourceCount": 0,
+      "createdAt": "2026-07-27T10:54:06.034Z"
+    },
+    "createdAt": "2026-07-27T10:54:06.035Z",
+    "refreshStatus": "rejected",
+    "refreshReason": "fetch-error",
+    "refreshError": "reddit_403"
+  },
+  {
+    "source": "reddit",
+    "sourceId": "reddit-smallbusiness",
+    "label": "r/smallbusiness",
+    "target": "smallbusiness",
+    "subreddit": "smallbusiness",
+    "period": "week",
+    "prompt": "small business owner pain around cashflow, customers, rent, staff, payroll, reviews, local marketing and inventory",
+    "digest": {
+      "id": "refresh-reddit-smallbusiness-2026-07-27-fetch-error",
+      "subreddit": "r/smallbusiness",
+      "period": "week",
+      "snapshotDate": "2026-07-27T10:54:06.069Z",
+      "summaryText": "r/smallbusiness rejected: r/smallbusiness could not be fetched: reddit_403.",
+      "summary": {
+        "keyTrend": {
+          "title": "r/smallbusiness: fetch error",
+          "desc": "r/smallbusiness could not be fetched: reddit_403."
+        },
+        "notableDiscussions": [],
+        "keyAction": {
+          "title": "Source remediation",
+          "desc": "r/smallbusiness could not be fetched: reddit_403."
+        }
+      },
+      "promptUsed": "small business owner pain around cashflow, customers, rent, staff, payroll, reviews, local marketing and inventory",
+      "sourceCount": 0,
+      "createdAt": "2026-07-27T10:54:06.069Z"
+    },
+    "createdAt": "2026-07-27T10:54:06.069Z",
+    "refreshStatus": "rejected",
+    "refreshReason": "fetch-error",
+    "refreshError": "reddit_403"
+  },
+  {
+    "source": "reddit",
+    "sourceId": "reddit-entrepreneur",
+    "label": "r/Entrepreneur",
+    "target": "Entrepreneur",
+    "subreddit": "Entrepreneur",
+    "period": "week",
+    "prompt": "founder and owner pain around customers, sales, pricing, marketing, cashflow and business operations",
+    "digest": {
+      "id": "refresh-reddit-entrepreneur-2026-07-27-fetch-error",
+      "subreddit": "r/Entrepreneur",
+      "period": "week",
+      "snapshotDate": "2026-07-27T10:54:06.109Z",
+      "summaryText": "r/Entrepreneur rejected: r/Entrepreneur could not be fetched: reddit_403.",
+      "summary": {
+        "keyTrend": {
+          "title": "r/Entrepreneur: fetch error",
+          "desc": "r/Entrepreneur could not be fetched: reddit_403."
+        },
+        "notableDiscussions": [],
+        "keyAction": {
+          "title": "Source remediation",
+          "desc": "r/Entrepreneur could not be fetched: reddit_403."
+        }
+      },
+      "promptUsed": "founder and owner pain around customers, sales, pricing, marketing, cashflow and business operations",
+      "sourceCount": 0,
+      "createdAt": "2026-07-27T10:54:06.109Z"
+    },
+    "createdAt": "2026-07-27T10:54:06.109Z",
+    "refreshStatus": "rejected",
+    "refreshReason": "fetch-error",
+    "refreshError": "reddit_403"
+  },
+  {
+    "source": "reddit",
+    "sourceId": "reddit-ecommerce",
+    "label": "r/ecommerce",
+    "target": "ecommerce",
+    "subreddit": "ecommerce",
+    "period": "week",
+    "prompt": "ecommerce operator pain around checkout, inventory, ads, conversion, returns and fulfillment",
+    "digest": {
+      "id": "refresh-reddit-ecommerce-2026-07-27-fetch-error",
+      "subreddit": "r/ecommerce",
+      "period": "week",
+      "snapshotDate": "2026-07-27T10:54:06.169Z",
+      "summaryText": "r/ecommerce rejected: r/ecommerce could not be fetched: reddit_403.",
+      "summary": {
+        "keyTrend": {
+          "title": "r/ecommerce: fetch error",
+          "desc": "r/ecommerce could not be fetched: reddit_403."
+        },
+        "notableDiscussions": [],
+        "keyAction": {
+          "title": "Source remediation",
+          "desc": "r/ecommerce could not be fetched: reddit_403."
+        }
+      },
+      "promptUsed": "ecommerce operator pain around checkout, inventory, ads, conversion, returns and fulfillment",
+      "sourceCount": 0,
+      "createdAt": "2026-07-27T10:54:06.169Z"
+    },
+    "createdAt": "2026-07-27T10:54:06.169Z",
+    "refreshStatus": "rejected",
+    "refreshReason": "fetch-error",
+    "refreshError": "reddit_403"
+  },
+  {
+    "source": "reddit",
+    "sourceId": "reddit-shopify",
+    "label": "r/shopify",
+    "target": "shopify",
+    "subreddit": "shopify",
+    "period": "week",
+    "prompt": "Shopify merchant problems around apps, checkout, conversion, operations and fulfillment",
+    "digest": {
+      "id": "refresh-reddit-shopify-2026-07-27-fetch-error",
+      "subreddit": "r/shopify",
+      "period": "week",
+      "snapshotDate": "2026-07-27T10:54:06.211Z",
+      "summaryText": "r/shopify rejected: r/shopify could not be fetched: reddit_403.",
+      "summary": {
+        "keyTrend": {
+          "title": "r/shopify: fetch error",
+          "desc": "r/shopify could not be fetched: reddit_403."
+        },
+        "notableDiscussions": [],
+        "keyAction": {
+          "title": "Source remediation",
+          "desc": "r/shopify could not be fetched: reddit_403."
+        }
+      },
+      "promptUsed": "Shopify merchant problems around apps, checkout, conversion, operations and fulfillment",
+      "sourceCount": 0,
+      "createdAt": "2026-07-27T10:54:06.211Z"
+    },
+    "createdAt": "2026-07-27T10:54:06.211Z",
+    "refreshStatus": "rejected",
+    "refreshReason": "fetch-error",
+    "refreshError": "reddit_403"
+  },
+  {
+    "source": "reddit",
+    "sourceId": "reddit-etsy-sellers",
+    "label": "r/EtsySellers",
+    "target": "EtsySellers",
+    "subreddit": "EtsySellers",
+    "period": "week",
+    "prompt": "small seller pain around fees, shipping, orders, reviews, support, inventory and sales",
+    "digest": {
+      "id": "refresh-reddit-etsy-sellers-2026-07-27-fetch-error",
+      "subreddit": "r/EtsySellers",
+      "period": "week",
+      "snapshotDate": "2026-07-27T10:54:06.243Z",
+      "summaryText": "r/EtsySellers rejected: r/EtsySellers could not be fetched: reddit_403.",
+      "summary": {
+        "keyTrend": {
+          "title": "r/EtsySellers: fetch error",
+          "desc": "r/EtsySellers could not be fetched: reddit_403."
+        },
+        "notableDiscussions": [],
+        "keyAction": {
+          "title": "Source remediation",
+          "desc": "r/EtsySellers could not be fetched: reddit_403."
+        }
+      },
+      "promptUsed": "small seller pain around fees, shipping, orders, reviews, support, inventory and sales",
+      "sourceCount": 0,
+      "createdAt": "2026-07-27T10:54:06.243Z"
+    },
+    "createdAt": "2026-07-27T10:54:06.244Z",
+    "refreshStatus": "rejected",
+    "refreshReason": "fetch-error",
+    "refreshError": "reddit_403"
+  },
+  {
+    "source": "reddit",
+    "sourceId": "reddit-freelance",
+    "label": "r/freelance",
+    "target": "freelance",
+    "subreddit": "freelance",
+    "period": "week",
+    "prompt": "freelancer and service business pain around clients, invoices, payment, pricing, leads and scope",
+    "digest": {
+      "id": "refresh-reddit-freelance-2026-07-27-fetch-error",
+      "subreddit": "r/freelance",
+      "period": "week",
+      "snapshotDate": "2026-07-27T10:54:06.277Z",
+      "summaryText": "r/freelance rejected: r/freelance could not be fetched: reddit_403.",
+      "summary": {
+        "keyTrend": {
+          "title": "r/freelance: fetch error",
+          "desc": "r/freelance could not be fetched: reddit_403."
+        },
+        "notableDiscussions": [],
+        "keyAction": {
+          "title": "Source remediation",
+          "desc": "r/freelance could not be fetched: reddit_403."
+        }
+      },
+      "promptUsed": "freelancer and service business pain around clients, invoices, payment, pricing, leads and scope",
+      "sourceCount": 0,
+      "createdAt": "2026-07-27T10:54:06.277Z"
+    },
+    "createdAt": "2026-07-27T10:54:06.277Z",
+    "refreshStatus": "rejected",
+    "refreshReason": "fetch-error",
+    "refreshError": "reddit_403"
+  },
+  {
+    "source": "reddit",
+    "sourceId": "reddit-personalfinance",
+    "label": "r/personalfinance",
+    "target": "personalfinance",
+    "subreddit": "personalfinance",
+    "period": "week",
+    "prompt": "public consumer budget pressure, affordability, subscriptions, jobs, debt and insurance concerns",
+    "digest": {
+      "id": "refresh-reddit-personalfinance-2026-07-27-fetch-error",
+      "subreddit": "r/personalfinance",
+      "period": "week",
+      "snapshotDate": "2026-07-27T10:54:06.310Z",
+      "summaryText": "r/personalfinance rejected: r/personalfinance could not be fetched: reddit_403.",
+      "summary": {
+        "keyTrend": {
+          "title": "r/personalfinance: fetch error",
+          "desc": "r/personalfinance could not be fetched: reddit_403."
+        },
+        "notableDiscussions": [],
+        "keyAction": {
+          "title": "Source remediation",
+          "desc": "r/personalfinance could not be fetched: reddit_403."
+        }
+      },
+      "promptUsed": "public consumer budget pressure, affordability, subscriptions, jobs, debt and insurance concerns",
+      "sourceCount": 0,
+      "createdAt": "2026-07-27T10:54:06.310Z"
+    },
+    "createdAt": "2026-07-27T10:54:06.310Z",
+    "refreshStatus": "rejected",
+    "refreshReason": "fetch-error",
+    "refreshError": "reddit_403"
+  },
+  {
+    "source": "reddit",
+    "sourceId": "reddit-povertyfinance",
+    "label": "r/povertyfinance",
+    "target": "povertyfinance",
+    "subreddit": "povertyfinance",
+    "period": "week",
+    "prompt": "consumer affordability pressure around rent, groceries, jobs, bills, debt and budgeting",
+    "digest": {
+      "id": "refresh-reddit-povertyfinance-2026-07-27-fetch-error",
+      "subreddit": "r/povertyfinance",
+      "period": "week",
+      "snapshotDate": "2026-07-27T10:54:06.341Z",
+      "summaryText": "r/povertyfinance rejected: r/povertyfinance could not be fetched: reddit_403.",
+      "summary": {
+        "keyTrend": {
+          "title": "r/povertyfinance: fetch error",
+          "desc": "r/povertyfinance could not be fetched: reddit_403."
+        },
+        "notableDiscussions": [],
+        "keyAction": {
+          "title": "Source remediation",
+          "desc": "r/povertyfinance could not be fetched: reddit_403."
+        }
+      },
+      "promptUsed": "consumer affordability pressure around rent, groceries, jobs, bills, debt and budgeting",
+      "sourceCount": 0,
+      "createdAt": "2026-07-27T10:54:06.341Z"
+    },
+    "createdAt": "2026-07-27T10:54:06.341Z",
+    "refreshStatus": "rejected",
+    "refreshReason": "fetch-error",
+    "refreshError": "reddit_403"
+  },
+  {
+    "source": "reddit",
+    "sourceId": "reddit-jobs",
+    "label": "r/jobs",
+    "target": "jobs",
+    "subreddit": "jobs",
+    "period": "week",
+    "prompt": "public labor market pain around hiring, applications, recruiters, salaries, layoffs and remote work",
+    "digest": {
+      "id": "refresh-reddit-jobs-2026-07-27-fetch-error",
+      "subreddit": "r/jobs",
+      "period": "week",
+      "snapshotDate": "2026-07-27T10:54:06.372Z",
+      "summaryText": "r/jobs rejected: r/jobs could not be fetched: reddit_403.",
+      "summary": {
+        "keyTrend": {
+          "title": "r/jobs: fetch error",
+          "desc": "r/jobs could not be fetched: reddit_403."
+        },
+        "notableDiscussions": [],
+        "keyAction": {
+          "title": "Source remediation",
+          "desc": "r/jobs could not be fetched: reddit_403."
+        }
+      },
+      "promptUsed": "public labor market pain around hiring, applications, recruiters, salaries, layoffs and remote work",
+      "sourceCount": 0,
+      "createdAt": "2026-07-27T10:54:06.372Z"
+    },
+    "createdAt": "2026-07-27T10:54:06.372Z",
+    "refreshStatus": "rejected",
+    "refreshReason": "fetch-error",
+    "refreshError": "reddit_403"
+  },
+  {
+    "source": "reddit",
+    "sourceId": "reddit-india",
+    "label": "r/india",
+    "target": "india",
+    "subreddit": "india",
+    "period": "week",
+    "prompt": "India regional constraints around jobs, rent, small business, payments, traffic, taxes and regulation",
+    "digest": {
+      "id": "refresh-reddit-india-2026-07-27-fetch-error",
+      "subreddit": "r/india",
+      "period": "week",
+      "snapshotDate": "2026-07-27T10:54:06.404Z",
+      "summaryText": "r/india rejected: r/india could not be fetched: reddit_403.",
+      "summary": {
+        "keyTrend": {
+          "title": "r/india: fetch error",
+          "desc": "r/india could not be fetched: reddit_403."
+        },
+        "notableDiscussions": [],
+        "keyAction": {
+          "title": "Source remediation",
+          "desc": "r/india could not be fetched: reddit_403."
+        }
+      },
+      "promptUsed": "India regional constraints around jobs, rent, small business, payments, traffic, taxes and regulation",
+      "sourceCount": 0,
+      "createdAt": "2026-07-27T10:54:06.404Z"
+    },
+    "createdAt": "2026-07-27T10:54:06.404Z",
+    "refreshStatus": "rejected",
+    "refreshReason": "fetch-error",
+    "refreshError": "reddit_403"
+  },
+  {
+    "source": "reddit",
+    "sourceId": "reddit-bangalore",
+    "label": "r/bangalore",
+    "target": "bangalore",
+    "subreddit": "bangalore",
+    "period": "week",
+    "prompt": "Bangalore local constraints around traffic, rent, jobs, startups, delivery, services and commute",
+    "digest": {
+      "id": "refresh-reddit-bangalore-2026-07-27-fetch-error",
+      "subreddit": "r/bangalore",
+      "period": "week",
+      "snapshotDate": "2026-07-27T10:54:06.436Z",
+      "summaryText": "r/bangalore rejected: r/bangalore could not be fetched: reddit_403.",
+      "summary": {
+        "keyTrend": {
+          "title": "r/bangalore: fetch error",
+          "desc": "r/bangalore could not be fetched: reddit_403."
+        },
+        "notableDiscussions": [],
+        "keyAction": {
+          "title": "Source remediation",
+          "desc": "r/bangalore could not be fetched: reddit_403."
+        }
+      },
+      "promptUsed": "Bangalore local constraints around traffic, rent, jobs, startups, delivery, services and commute",
+      "sourceCount": 0,
+      "createdAt": "2026-07-27T10:54:06.436Z"
+    },
+    "createdAt": "2026-07-27T10:54:06.436Z",
+    "refreshStatus": "rejected",
+    "refreshReason": "fetch-error",
+    "refreshError": "reddit_403"
+  },
+  {
+    "source": "reddit",
+    "sourceId": "reddit-mumbai",
+    "label": "r/mumbai",
+    "target": "mumbai",
+    "subreddit": "mumbai",
+    "period": "week",
+    "prompt": "Mumbai local constraints around rent, commute, housing, jobs, services and local businesses",
+    "digest": {
+      "id": "refresh-reddit-mumbai-2026-07-27-fetch-error",
+      "subreddit": "r/mumbai",
+      "period": "week",
+      "snapshotDate": "2026-07-27T10:54:06.468Z",
+      "summaryText": "r/mumbai rejected: r/mumbai could not be fetched: reddit_403.",
+      "summary": {
+        "keyTrend": {
+          "title": "r/mumbai: fetch error",
+          "desc": "r/mumbai could not be fetched: reddit_403."
+        },
+        "notableDiscussions": [],
+        "keyAction": {
+          "title": "Source remediation",
+          "desc": "r/mumbai could not be fetched: reddit_403."
+        }
+      },
+      "promptUsed": "Mumbai local constraints around rent, commute, housing, jobs, services and local businesses",
+      "sourceCount": 0,
+      "createdAt": "2026-07-27T10:54:06.468Z"
+    },
+    "createdAt": "2026-07-27T10:54:06.469Z",
+    "refreshStatus": "rejected",
+    "refreshReason": "fetch-error",
+    "refreshError": "reddit_403"
+  },
+  {
+    "source": "reddit",
+    "sourceId": "reddit-delhi",
+    "label": "r/delhi",
+    "target": "delhi",
+    "subreddit": "delhi",
+    "period": "week",
+    "prompt": "Delhi local constraints around pollution, rent, traffic, jobs, services, safety and local businesses",
+    "digest": {
+      "id": "refresh-reddit-delhi-2026-07-27-fetch-error",
+      "subreddit": "r/delhi",
+      "period": "week",
+      "snapshotDate": "2026-07-27T10:54:06.499Z",
+      "summaryText": "r/delhi rejected: r/delhi could not be fetched: reddit_403.",
+      "summary": {
+        "keyTrend": {
+          "title": "r/delhi: fetch error",
+          "desc": "r/delhi could not be fetched: reddit_403."
+        },
+        "notableDiscussions": [],
+        "keyAction": {
+          "title": "Source remediation",
+          "desc": "r/delhi could not be fetched: reddit_403."
+        }
+      },
+      "promptUsed": "Delhi local constraints around pollution, rent, traffic, jobs, services, safety and local businesses",
+      "sourceCount": 0,
+      "createdAt": "2026-07-27T10:54:06.499Z"
+    },
+    "createdAt": "2026-07-27T10:54:06.499Z",
+    "refreshStatus": "rejected",
+    "refreshReason": "fetch-error",
+    "refreshError": "reddit_403"
+  },
+  {
+    "source": "reddit",
+    "sourceId": "reddit-nyc",
+    "label": "r/nyc",
+    "target": "nyc",
+    "subreddit": "nyc",
+    "period": "week",
+    "prompt": "NYC local constraints around rent, small business, transit, jobs, permits, restaurants and housing",
+    "digest": {
+      "id": "refresh-reddit-nyc-2026-07-27-fetch-error",
+      "subreddit": "r/nyc",
+      "period": "week",
+      "snapshotDate": "2026-07-27T10:54:06.530Z",
+      "summaryText": "r/nyc rejected: r/nyc could not be fetched: reddit_403.",
+      "summary": {
+        "keyTrend": {
+          "title": "r/nyc: fetch error",
+          "desc": "r/nyc could not be fetched: reddit_403."
+        },
+        "notableDiscussions": [],
+        "keyAction": {
+          "title": "Source remediation",
+          "desc": "r/nyc could not be fetched: reddit_403."
+        }
+      },
+      "promptUsed": "NYC local constraints around rent, small business, transit, jobs, permits, restaurants and housing",
+      "sourceCount": 0,
+      "createdAt": "2026-07-27T10:54:06.530Z"
+    },
+    "createdAt": "2026-07-27T10:54:06.531Z",
+    "refreshStatus": "rejected",
+    "refreshReason": "fetch-error",
+    "refreshError": "reddit_403"
+  },
+  {
+    "source": "reddit",
+    "sourceId": "reddit-bayarea",
+    "label": "r/bayarea",
+    "target": "bayarea",
+    "subreddit": "bayarea",
+    "period": "week",
+    "prompt": "Bay Area regional constraints around rent, startups, jobs, commute, local business, housing and transit",
+    "digest": {
+      "id": "refresh-reddit-bayarea-2026-07-27-fetch-error",
+      "subreddit": "r/bayarea",
+      "period": "week",
+      "snapshotDate": "2026-07-27T10:54:06.562Z",
+      "summaryText": "r/bayarea rejected: r/bayarea could not be fetched: reddit_403.",
+      "summary": {
+        "keyTrend": {
+          "title": "r/bayarea: fetch error",
+          "desc": "r/bayarea could not be fetched: reddit_403."
+        },
+        "notableDiscussions": [],
+        "keyAction": {
+          "title": "Source remediation",
+          "desc": "r/bayarea could not be fetched: reddit_403."
+        }
+      },
+      "promptUsed": "Bay Area regional constraints around rent, startups, jobs, commute, local business, housing and transit",
+      "sourceCount": 0,
+      "createdAt": "2026-07-27T10:54:06.562Z"
+    },
+    "createdAt": "2026-07-27T10:54:06.562Z",
+    "refreshStatus": "rejected",
+    "refreshReason": "fetch-error",
+    "refreshError": "reddit_403"
+  },
+  {
+    "source": "reddit",
+    "sourceId": "reddit-london",
+    "label": "r/london",
+    "target": "london",
+    "subreddit": "london",
+    "period": "week",
+    "prompt": "London regional constraints around rent, commute, jobs, local services, small business and cost of living",
+    "digest": {
+      "id": "refresh-reddit-london-2026-07-27-fetch-error",
+      "subreddit": "r/london",
+      "period": "week",
+      "snapshotDate": "2026-07-27T10:54:06.593Z",
+      "summaryText": "r/london rejected: r/london could not be fetched: reddit_403.",
+      "summary": {
+        "keyTrend": {
+          "title": "r/london: fetch error",
+          "desc": "r/london could not be fetched: reddit_403."
+        },
+        "notableDiscussions": [],
+        "keyAction": {
+          "title": "Source remediation",
+          "desc": "r/london could not be fetched: reddit_403."
+        }
+      },
+      "promptUsed": "London regional constraints around rent, commute, jobs, local services, small business and cost of living",
+      "sourceCount": 0,
+      "createdAt": "2026-07-27T10:54:06.593Z"
+    },
+    "createdAt": "2026-07-27T10:54:06.594Z",
+    "refreshStatus": "rejected",
+    "refreshReason": "fetch-error",
+    "refreshError": "reddit_403"
+  },
+  {
+    "source": "reddit",
+    "sourceId": "reddit-toronto",
+    "label": "r/toronto",
+    "target": "toronto",
+    "subreddit": "toronto",
+    "period": "week",
+    "prompt": "Toronto regional constraints around rent, commute, jobs, housing, local services, small business and cost of living",
+    "digest": {
+      "id": "refresh-reddit-toronto-2026-07-27-fetch-error",
+      "subreddit": "r/toronto",
+      "period": "week",
+      "snapshotDate": "2026-07-27T10:54:06.625Z",
+      "summaryText": "r/toronto rejected: r/toronto could not be fetched: reddit_403.",
+      "summary": {
+        "keyTrend": {
+          "title": "r/toronto: fetch error",
+          "desc": "r/toronto could not be fetched: reddit_403."
+        },
+        "notableDiscussions": [],
+        "keyAction": {
+          "title": "Source remediation",
+          "desc": "r/toronto could not be fetched: reddit_403."
+        }
+      },
+      "promptUsed": "Toronto regional constraints around rent, commute, jobs, housing, local services, small business and cost of living",
+      "sourceCount": 0,
+      "createdAt": "2026-07-27T10:54:06.625Z"
+    },
+    "createdAt": "2026-07-27T10:54:06.625Z",
+    "refreshStatus": "rejected",
+    "refreshReason": "fetch-error",
+    "refreshError": "reddit_403"
+  },
+  {
+    "source": "reddit",
+    "sourceId": "reddit-ukpersonalfinance",
+    "label": "r/UKPersonalFinance",
+    "target": "UKPersonalFinance",
+    "subreddit": "UKPersonalFinance",
+    "period": "week",
+    "prompt": "UK consumer affordability pressure around rent, bills, debt, jobs, mortgages, insurance and subscriptions",
+    "digest": {
+      "id": "refresh-reddit-ukpersonalfinance-2026-07-27-fetch-error",
+      "subreddit": "r/UKPersonalFinance",
+      "period": "week",
+      "snapshotDate": "2026-07-27T10:54:06.656Z",
+      "summaryText": "r/UKPersonalFinance rejected: r/UKPersonalFinance could not be fetched: reddit_403.",
+      "summary": {
+        "keyTrend": {
+          "title": "r/UKPersonalFinance: fetch error",
+          "desc": "r/UKPersonalFinance could not be fetched: reddit_403."
+        },
+        "notableDiscussions": [],
+        "keyAction": {
+          "title": "Source remediation",
+          "desc": "r/UKPersonalFinance could not be fetched: reddit_403."
+        }
+      },
+      "promptUsed": "UK consumer affordability pressure around rent, bills, debt, jobs, mortgages, insurance and subscriptions",
+      "sourceCount": 0,
+      "createdAt": "2026-07-27T10:54:06.656Z"
+    },
+    "createdAt": "2026-07-27T10:54:06.656Z",
+    "refreshStatus": "rejected",
+    "refreshReason": "fetch-error",
+    "refreshError": "reddit_403"
+  },
+  {
+    "source": "reddit",
+    "sourceId": "reddit-personalfinancecanada",
+    "label": "r/PersonalFinanceCanada",
+    "target": "PersonalFinanceCanada",
+    "subreddit": "PersonalFinanceCanada",
+    "period": "week",
+    "prompt": "Canada consumer affordability pressure around rent, mortgages, jobs, bills, debt, insurance and budgeting",
+    "digest": {
+      "id": "refresh-reddit-personalfinancecanada-2026-07-27-fetch-error",
+      "subreddit": "r/PersonalFinanceCanada",
+      "period": "week",
+      "snapshotDate": "2026-07-27T10:54:06.688Z",
+      "summaryText": "r/PersonalFinanceCanada rejected: r/PersonalFinanceCanada could not be fetched: reddit_403.",
+      "summary": {
+        "keyTrend": {
+          "title": "r/PersonalFinanceCanada: fetch error",
+          "desc": "r/PersonalFinanceCanada could not be fetched: reddit_403."
+        },
+        "notableDiscussions": [],
+        "keyAction": {
+          "title": "Source remediation",
+          "desc": "r/PersonalFinanceCanada could not be fetched: reddit_403."
+        }
+      },
+      "promptUsed": "Canada consumer affordability pressure around rent, mortgages, jobs, bills, debt, insurance and budgeting",
+      "sourceCount": 0,
+      "createdAt": "2026-07-27T10:54:06.688Z"
+    },
+    "createdAt": "2026-07-27T10:54:06.688Z",
+    "refreshStatus": "rejected",
+    "refreshReason": "fetch-error",
+    "refreshError": "reddit_403"
+  },
+  {
+    "source": "reddit",
+    "sourceId": "reddit-marketing",
+    "label": "r/marketing",
+    "target": "marketing",
+    "subreddit": "marketing",
+    "period": "week",
+    "prompt": "small-business and startup marketing pain around leads, ads, attribution, conversion, clients and pricing",
+    "digest": {
+      "id": "refresh-reddit-marketing-2026-07-27-fetch-error",
+      "subreddit": "r/marketing",
+      "period": "week",
+      "snapshotDate": "2026-07-27T10:54:06.719Z",
+      "summaryText": "r/marketing rejected: r/marketing could not be fetched: reddit_403.",
+      "summary": {
+        "keyTrend": {
+          "title": "r/marketing: fetch error",
+          "desc": "r/marketing could not be fetched: reddit_403."
+        },
+        "notableDiscussions": [],
+        "keyAction": {
+          "title": "Source remediation",
+          "desc": "r/marketing could not be fetched: reddit_403."
+        }
+      },
+      "promptUsed": "small-business and startup marketing pain around leads, ads, attribution, conversion, clients and pricing",
+      "sourceCount": 0,
+      "createdAt": "2026-07-27T10:54:06.719Z"
+    },
+    "createdAt": "2026-07-27T10:54:06.719Z",
+    "refreshStatus": "rejected",
+    "refreshReason": "fetch-error",
+    "refreshError": "reddit_403"
+  },
+  {
+    "source": "reddit",
+    "sourceId": "reddit-sales",
+    "label": "r/sales",
+    "target": "sales",
+    "subreddit": "sales",
+    "period": "week",
+    "prompt": "sales workflow pain around leads, outreach, CRM, pipeline, pricing, customers and buyer behavior",
+    "digest": {
+      "id": "refresh-reddit-sales-2026-07-27-fetch-error",
+      "subreddit": "r/sales",
+      "period": "week",
+      "snapshotDate": "2026-07-27T10:54:06.750Z",
+      "summaryText": "r/sales rejected: r/sales could not be fetched: reddit_403.",
+      "summary": {
+        "keyTrend": {
+          "title": "r/sales: fetch error",
+          "desc": "r/sales could not be fetched: reddit_403."
+        },
+        "notableDiscussions": [],
+        "keyAction": {
+          "title": "Source remediation",
+          "desc": "r/sales could not be fetched: reddit_403."
+        }
+      },
+      "promptUsed": "sales workflow pain around leads, outreach, CRM, pipeline, pricing, customers and buyer behavior",
+      "sourceCount": 0,
+      "createdAt": "2026-07-27T10:54:06.750Z"
+    },
+    "createdAt": "2026-07-27T10:54:06.750Z",
+    "refreshStatus": "rejected",
+    "refreshReason": "fetch-error",
+    "refreshError": "reddit_403"
+  },
+  {
+    "source": "reddit",
+    "sourceId": "reddit-accounting",
+    "label": "r/Accounting",
+    "target": "Accounting",
+    "subreddit": "Accounting",
+    "period": "week",
+    "prompt": "accounting and back-office pain around clients, small business, tax, invoices, payroll, deadlines and workflow",
+    "digest": {
+      "id": "refresh-reddit-accounting-2026-07-27-fetch-error",
+      "subreddit": "r/Accounting",
+      "period": "week",
+      "snapshotDate": "2026-07-27T10:54:06.781Z",
+      "summaryText": "r/Accounting rejected: r/Accounting could not be fetched: reddit_403.",
+      "summary": {
+        "keyTrend": {
+          "title": "r/Accounting: fetch error",
+          "desc": "r/Accounting could not be fetched: reddit_403."
+        },
+        "notableDiscussions": [],
+        "keyAction": {
+          "title": "Source remediation",
+          "desc": "r/Accounting could not be fetched: reddit_403."
+        }
+      },
+      "promptUsed": "accounting and back-office pain around clients, small business, tax, invoices, payroll, deadlines and workflow",
+      "sourceCount": 0,
+      "createdAt": "2026-07-27T10:54:06.781Z"
+    },
+    "createdAt": "2026-07-27T10:54:06.781Z",
+    "refreshStatus": "rejected",
+    "refreshReason": "fetch-error",
+    "refreshError": "reddit_403"
+  },
+  {
+    "source": "reddit",
+    "sourceId": "reddit-cscareerquestions",
+    "label": "r/cscareerquestions",
+    "target": "cscareerquestions",
+    "subreddit": "cscareerquestions",
+    "period": "week",
+    "prompt": "developer labor-market pressure around interviews, jobs, resumes, recruiters, salaries, remote work and layoffs",
+    "digest": {
+      "id": "refresh-reddit-cscareerquestions-2026-07-27-fetch-error",
+      "subreddit": "r/cscareerquestions",
+      "period": "week",
+      "snapshotDate": "2026-07-27T10:54:06.823Z",
+      "summaryText": "r/cscareerquestions rejected: r/cscareerquestions could not be fetched: reddit_403.",
+      "summary": {
+        "keyTrend": {
+          "title": "r/cscareerquestions: fetch error",
+          "desc": "r/cscareerquestions could not be fetched: reddit_403."
+        },
+        "notableDiscussions": [],
+        "keyAction": {
+          "title": "Source remediation",
+          "desc": "r/cscareerquestions could not be fetched: reddit_403."
+        }
+      },
+      "promptUsed": "developer labor-market pressure around interviews, jobs, resumes, recruiters, salaries, remote work and layoffs",
+      "sourceCount": 0,
+      "createdAt": "2026-07-27T10:54:06.823Z"
+    },
+    "createdAt": "2026-07-27T10:54:06.823Z",
+    "refreshStatus": "rejected",
+    "refreshReason": "fetch-error",
+    "refreshError": "reddit_403"
+  },
+  {
+    "source": "reddit",
+    "sourceId": "reddit-developersindia",
+    "label": "r/developersIndia",
+    "target": "developersIndia",
+    "subreddit": "developersIndia",
+    "period": "week",
+    "prompt": "India developer and startup labor-market pain around jobs, interviews, clients, salaries, remote work and tools",
+    "digest": {
+      "id": "refresh-reddit-developersindia-2026-07-27-fetch-error",
+      "subreddit": "r/developersIndia",
+      "period": "week",
+      "snapshotDate": "2026-07-27T10:54:06.869Z",
+      "summaryText": "r/developersIndia rejected: r/developersIndia could not be fetched: reddit_403.",
+      "summary": {
+        "keyTrend": {
+          "title": "r/developersIndia: fetch error",
+          "desc": "r/developersIndia could not be fetched: reddit_403."
+        },
+        "notableDiscussions": [],
+        "keyAction": {
+          "title": "Source remediation",
+          "desc": "r/developersIndia could not be fetched: reddit_403."
+        }
+      },
+      "promptUsed": "India developer and startup labor-market pain around jobs, interviews, clients, salaries, remote work and tools",
+      "sourceCount": 0,
+      "createdAt": "2026-07-27T10:54:06.869Z"
+    },
+    "createdAt": "2026-07-27T10:54:06.869Z",
+    "refreshStatus": "rejected",
+    "refreshReason": "fetch-error",
+    "refreshError": "reddit_403"
+  },
+  {
+    "source": "reddit",
+    "sourceId": "reddit-indiehackers",
+    "label": "r/indiehackers",
+    "target": "indiehackers",
+    "subreddit": "indiehackers",
+    "period": "week",
+    "prompt": "indie builder pain around customer discovery, pricing, launch, distribution, revenue, validation and onboarding",
+    "digest": {
+      "id": "refresh-reddit-indiehackers-2026-07-27-fetch-error",
+      "subreddit": "r/indiehackers",
+      "period": "week",
+      "snapshotDate": "2026-07-27T10:54:06.901Z",
+      "summaryText": "r/indiehackers rejected: r/indiehackers could not be fetched: reddit_403.",
+      "summary": {
+        "keyTrend": {
+          "title": "r/indiehackers: fetch error",
+          "desc": "r/indiehackers could not be fetched: reddit_403."
+        },
+        "notableDiscussions": [],
+        "keyAction": {
+          "title": "Source remediation",
+          "desc": "r/indiehackers could not be fetched: reddit_403."
+        }
+      },
+      "promptUsed": "indie builder pain around customer discovery, pricing, launch, distribution, revenue, validation and onboarding",
+      "sourceCount": 0,
+      "createdAt": "2026-07-27T10:54:06.901Z"
+    },
+    "createdAt": "2026-07-27T10:54:06.901Z",
+    "refreshStatus": "rejected",
+    "refreshReason": "fetch-error",
+    "refreshError": "reddit_403"
+  },
+  {
+    "source": "reddit",
+    "sourceId": "reddit-productmanagement",
+    "label": "r/ProductManagement",
+    "target": "ProductManagement",
+    "subreddit": "ProductManagement",
+    "period": "week",
+    "prompt": "product-management pain around customer research, roadmaps, prioritization, feedback, stakeholders and metrics",
+    "digest": {
+      "id": "refresh-reddit-productmanagement-2026-07-27-fetch-error",
+      "subreddit": "r/ProductManagement",
+      "period": "week",
+      "snapshotDate": "2026-07-27T10:54:06.933Z",
+      "summaryText": "r/ProductManagement rejected: r/ProductManagement could not be fetched: reddit_403.",
+      "summary": {
+        "keyTrend": {
+          "title": "r/ProductManagement: fetch error",
+          "desc": "r/ProductManagement could not be fetched: reddit_403."
+        },
+        "notableDiscussions": [],
+        "keyAction": {
+          "title": "Source remediation",
+          "desc": "r/ProductManagement could not be fetched: reddit_403."
+        }
+      },
+      "promptUsed": "product-management pain around customer research, roadmaps, prioritization, feedback, stakeholders and metrics",
+      "sourceCount": 0,
+      "createdAt": "2026-07-27T10:54:06.933Z"
+    },
+    "createdAt": "2026-07-27T10:54:06.933Z",
+    "refreshStatus": "rejected",
+    "refreshReason": "fetch-error",
+    "refreshError": "reddit_403"
+  },
+  {
+    "source": "reddit",
+    "sourceId": "reddit-openai",
+    "label": "r/OpenAI",
+    "target": "OpenAI",
+    "subreddit": "OpenAI",
+    "period": "week",
+    "prompt": "OpenAI product changes, API complaints, agent/search behavior, workflow requirements",
+    "digest": {
+      "id": "refresh-reddit-openai-2026-07-27-fetch-error",
+      "subreddit": "r/OpenAI",
+      "period": "week",
+      "snapshotDate": "2026-07-27T10:54:06.964Z",
+      "summaryText": "r/OpenAI rejected: r/OpenAI could not be fetched: reddit_403.",
+      "summary": {
+        "keyTrend": {
+          "title": "r/OpenAI: fetch error",
+          "desc": "r/OpenAI could not be fetched: reddit_403."
+        },
+        "notableDiscussions": [],
+        "keyAction": {
+          "title": "Source remediation",
+          "desc": "r/OpenAI could not be fetched: reddit_403."
+        }
+      },
+      "promptUsed": "OpenAI product changes, API complaints, agent/search behavior, workflow requirements",
+      "sourceCount": 0,
+      "createdAt": "2026-07-27T10:54:06.964Z"
+    },
+    "createdAt": "2026-07-27T10:54:06.964Z",
+    "refreshStatus": "rejected",
+    "refreshReason": "fetch-error",
+    "refreshError": "reddit_403"
+  },
+  {
+    "source": "reddit",
+    "sourceId": "reddit-claudeai",
+    "label": "r/ClaudeAI",
+    "target": "ClaudeAI",
+    "subreddit": "ClaudeAI",
+    "period": "week",
+    "prompt": "Claude user pain around coding, agents, projects, tool use, memory, and workflow reliability",
+    "digest": {
+      "id": "refresh-reddit-claudeai-2026-07-27-fetch-error",
+      "subreddit": "r/ClaudeAI",
+      "period": "week",
+      "snapshotDate": "2026-07-27T10:54:06.995Z",
+      "summaryText": "r/ClaudeAI rejected: r/ClaudeAI could not be fetched: reddit_403.",
+      "summary": {
+        "keyTrend": {
+          "title": "r/ClaudeAI: fetch error",
+          "desc": "r/ClaudeAI could not be fetched: reddit_403."
+        },
+        "notableDiscussions": [],
+        "keyAction": {
+          "title": "Source remediation",
+          "desc": "r/ClaudeAI could not be fetched: reddit_403."
+        }
+      },
+      "promptUsed": "Claude user pain around coding, agents, projects, tool use, memory, and workflow reliability",
+      "sourceCount": 0,
+      "createdAt": "2026-07-27T10:54:06.995Z"
+    },
+    "createdAt": "2026-07-27T10:54:06.996Z",
+    "refreshStatus": "rejected",
+    "refreshReason": "fetch-error",
+    "refreshError": "reddit_403"
+  },
+  {
+    "source": "reddit",
+    "sourceId": "reddit-aiagents",
+    "label": "r/AI_Agents",
+    "target": "AI_Agents",
+    "subreddit": "AI_Agents",
+    "period": "week",
+    "prompt": "agent workflow requirements, evaluation issues, tool use, MCP, memory and automation pain",
+    "digest": {
+      "id": "refresh-reddit-aiagents-2026-07-27-fetch-error",
+      "subreddit": "r/AI_Agents",
+      "period": "week",
+      "snapshotDate": "2026-07-27T10:54:07.027Z",
+      "summaryText": "r/AI_Agents rejected: r/AI_Agents could not be fetched: reddit_403.",
+      "summary": {
+        "keyTrend": {
+          "title": "r/AI_Agents: fetch error",
+          "desc": "r/AI_Agents could not be fetched: reddit_403."
+        },
+        "notableDiscussions": [],
+        "keyAction": {
+          "title": "Source remediation",
+          "desc": "r/AI_Agents could not be fetched: reddit_403."
+        }
+      },
+      "promptUsed": "agent workflow requirements, evaluation issues, tool use, MCP, memory and automation pain",
+      "sourceCount": 0,
+      "createdAt": "2026-07-27T10:54:07.027Z"
+    },
+    "createdAt": "2026-07-27T10:54:07.027Z",
+    "refreshStatus": "rejected",
+    "refreshReason": "fetch-error",
+    "refreshError": "reddit_403"
+  },
+  {
+    "source": "reddit",
+    "sourceId": "reddit-webdev",
+    "label": "r/webdev",
+    "target": "webdev",
+    "subreddit": "webdev",
+    "period": "week",
+    "prompt": "web developer workflow pain, deployment friction, AI tool adoption, client/product constraints",
+    "digest": {
+      "id": "refresh-reddit-webdev-2026-07-27-fetch-error",
+      "subreddit": "r/webdev",
+      "period": "week",
+      "snapshotDate": "2026-07-27T10:54:07.060Z",
+      "summaryText": "r/webdev rejected: r/webdev could not be fetched: reddit_403.",
+      "summary": {
+        "keyTrend": {
+          "title": "r/webdev: fetch error",
+          "desc": "r/webdev could not be fetched: reddit_403."
+        },
+        "notableDiscussions": [],
+        "keyAction": {
+          "title": "Source remediation",
+          "desc": "r/webdev could not be fetched: reddit_403."
+        }
+      },
+      "promptUsed": "web developer workflow pain, deployment friction, AI tool adoption, client/product constraints",
+      "sourceCount": 0,
+      "createdAt": "2026-07-27T10:54:07.060Z"
+    },
+    "createdAt": "2026-07-27T10:54:07.060Z",
+    "refreshStatus": "rejected",
+    "refreshReason": "fetch-error",
+    "refreshError": "reddit_403"
+  },
+  {
+    "source": "reddit",
+    "sourceId": "reddit-devops",
+    "label": "r/devops",
+    "target": "devops",
+    "subreddit": "devops",
+    "period": "week",
+    "prompt": "ops workflow, monitoring, observability, cost, incident and automation requirements",
+    "digest": {
+      "id": "refresh-reddit-devops-2026-07-27-fetch-error",
+      "subreddit": "r/devops",
+      "period": "week",
+      "snapshotDate": "2026-07-27T10:54:07.094Z",
+      "summaryText": "r/devops rejected: r/devops could not be fetched: reddit_403.",
+      "summary": {
+        "keyTrend": {
+          "title": "r/devops: fetch error",
+          "desc": "r/devops could not be fetched: reddit_403."
+        },
+        "notableDiscussions": [],
+        "keyAction": {
+          "title": "Source remediation",
+          "desc": "r/devops could not be fetched: reddit_403."
+        }
+      },
+      "promptUsed": "ops workflow, monitoring, observability, cost, incident and automation requirements",
+      "sourceCount": 0,
+      "createdAt": "2026-07-27T10:54:07.094Z"
+    },
+    "createdAt": "2026-07-27T10:54:07.095Z",
+    "refreshStatus": "rejected",
+    "refreshReason": "fetch-error",
+    "refreshError": "reddit_403"
+  },
+  {
+    "source": "hacker-news",
+    "sourceId": "hn-agent-eval",
+    "label": "HN: agent evaluation",
+    "target": "agent evaluation ai search product comparison",
+    "period": "week",
+    "prompt": "world-level agent/search/product-comparison shifts",
+    "digest": {
+      "id": "refresh-hn-agent-eval-2026-07-27-no-fresh-usable-items",
+      "subreddit": "HN: agent evaluation",
+      "period": "week",
+      "snapshotDate": "2026-07-27T10:54:07.594Z",
+      "summaryText": "HN: agent evaluation rejected: No fresh usable items matched HN: agent evaluation for the week window.",
+      "summary": {
+        "keyTrend": {
+          "title": "HN: agent evaluation: no fresh usable items",
+          "desc": "No fresh usable items matched HN: agent evaluation for the week window."
+        },
+        "notableDiscussions": [],
+        "keyAction": {
+          "title": "Source remediation",
+          "desc": "No fresh usable items matched HN: agent evaluation for the week window."
+        }
+      },
+      "promptUsed": "world-level agent/search/product-comparison shifts",
+      "sourceCount": 0,
+      "createdAt": "2026-07-27T10:54:07.594Z"
+    },
+    "createdAt": "2026-07-27T10:54:07.594Z",
+    "refreshStatus": "rejected",
+    "refreshReason": "no-fresh-usable-items"
+  },
+  {
+    "source": "hacker-news",
+    "sourceId": "hn-ai-observability",
+    "label": "HN: AI observability",
+    "target": "LLM observability evals tracing agents cost",
+    "period": "week",
+    "prompt": "AI workflow reliability, evals, traces, cost, monitoring",
+    "digest": {
+      "id": "refresh-hn-ai-observability-2026-07-27-no-fresh-usable-items",
+      "subreddit": "HN: AI observability",
+      "period": "week",
+      "snapshotDate": "2026-07-27T10:54:07.862Z",
+      "summaryText": "HN: AI observability rejected: No fresh usable items matched HN: AI observability for the week window.",
+      "summary": {
+        "keyTrend": {
+          "title": "HN: AI observability: no fresh usable items",
+          "desc": "No fresh usable items matched HN: AI observability for the week window."
+        },
+        "notableDiscussions": [],
+        "keyAction": {
+          "title": "Source remediation",
+          "desc": "No fresh usable items matched HN: AI observability for the week window."
+        }
+      },
+      "promptUsed": "AI workflow reliability, evals, traces, cost, monitoring",
+      "sourceCount": 0,
+      "createdAt": "2026-07-27T10:54:07.862Z"
+    },
+    "createdAt": "2026-07-27T10:54:07.862Z",
+    "refreshStatus": "rejected",
+    "refreshReason": "no-fresh-usable-items"
+  },
+  {
+    "source": "hacker-news",
+    "sourceId": "hn-product-validation",
+    "label": "HN: product validation",
+    "target": "startup product validation pricing distribution",
+    "period": "week",
+    "prompt": "product validation, pricing, distribution, customer pull",
+    "digest": {
+      "id": "refresh-hn-product-validation-2026-07-27-no-fresh-usable-items",
+      "subreddit": "HN: product validation",
+      "period": "week",
+      "snapshotDate": "2026-07-27T10:54:08.156Z",
+      "summaryText": "HN: product validation rejected: No fresh usable items matched HN: product validation for the week window.",
+      "summary": {
+        "keyTrend": {
+          "title": "HN: product validation: no fresh usable items",
+          "desc": "No fresh usable items matched HN: product validation for the week window."
+        },
+        "notableDiscussions": [],
+        "keyAction": {
+          "title": "Source remediation",
+          "desc": "No fresh usable items matched HN: product validation for the week window."
+        }
+      },
+      "promptUsed": "product validation, pricing, distribution, customer pull",
+      "sourceCount": 0,
+      "createdAt": "2026-07-27T10:54:08.156Z"
+    },
+    "createdAt": "2026-07-27T10:54:08.156Z",
+    "refreshStatus": "rejected",
+    "refreshReason": "no-fresh-usable-items"
+  },
+  {
+    "source": "hacker-news",
+    "sourceId": "hn-small-business",
+    "label": "HN: small business",
+    "target": "small business SaaS payments payroll ecommerce local business",
+    "period": "week",
+    "prompt": "small business software, payments, payroll, ecommerce, local business and SMB workflow changes",
+    "digest": {
+      "id": "refresh-hn-small-business-2026-07-27-no-fresh-usable-items",
+      "subreddit": "HN: small business",
+      "period": "week",
+      "snapshotDate": "2026-07-27T10:54:08.419Z",
+      "summaryText": "HN: small business rejected: No fresh usable items matched HN: small business for the week window.",
+      "summary": {
+        "keyTrend": {
+          "title": "HN: small business: no fresh usable items",
+          "desc": "No fresh usable items matched HN: small business for the week window."
+        },
+        "notableDiscussions": [],
+        "keyAction": {
+          "title": "Source remediation",
+          "desc": "No fresh usable items matched HN: small business for the week window."
+        }
+      },
+      "promptUsed": "small business software, payments, payroll, ecommerce, local business and SMB workflow changes",
+      "sourceCount": 0,
+      "createdAt": "2026-07-27T10:54:08.419Z"
+    },
+    "createdAt": "2026-07-27T10:54:08.420Z",
+    "refreshStatus": "rejected",
+    "refreshReason": "no-fresh-usable-items"
+  },
+  {
+    "source": "hacker-news",
+    "sourceId": "hn-consumer-behavior",
+    "label": "HN: consumer behavior",
+    "target": "consumer subscriptions pricing jobs housing local services",
+    "period": "week",
+    "prompt": "consumer budget, pricing, subscriptions, jobs, housing and local service behavior shifts",
+    "digest": {
+      "id": "refresh-hn-consumer-behavior-2026-07-27-no-fresh-usable-items",
+      "subreddit": "HN: consumer behavior",
+      "period": "week",
+      "snapshotDate": "2026-07-27T10:54:08.662Z",
+      "summaryText": "HN: consumer behavior rejected: No fresh usable items matched HN: consumer behavior for the week window.",
+      "summary": {
+        "keyTrend": {
+          "title": "HN: consumer behavior: no fresh usable items",
+          "desc": "No fresh usable items matched HN: consumer behavior for the week window."
+        },
+        "notableDiscussions": [],
+        "keyAction": {
+          "title": "Source remediation",
+          "desc": "No fresh usable items matched HN: consumer behavior for the week window."
+        }
+      },
+      "promptUsed": "consumer budget, pricing, subscriptions, jobs, housing and local service behavior shifts",
+      "sourceCount": 0,
+      "createdAt": "2026-07-27T10:54:08.662Z"
+    },
+    "createdAt": "2026-07-27T10:54:08.662Z",
+    "refreshStatus": "rejected",
+    "refreshReason": "no-fresh-usable-items"
+  },
+  {
+    "source": "hacker-news",
+    "sourceId": "hn-ai-coding-agents",
+    "label": "HN: AI coding agents",
+    "target": "AI coding agents code review developer tools",
+    "period": "week",
+    "prompt": "agent-written code, code review, developer tooling, workflow reliability",
+    "digest": {
+      "id": "refresh-hn-ai-coding-agents-2026-07-27-weak-signal",
+      "subreddit": "HN: AI coding agents",
+      "period": "week",
+      "snapshotDate": "2026-07-27T10:54:08.860Z",
+      "summaryText": "HN: AI coding agents rejected: HN: AI coding agents passed source relevance but failed quality gate: thin-source-count.",
+      "summary": {
+        "keyTrend": {
+          "title": "HN: AI coding agents: weak signal",
+          "desc": "HN: AI coding agents passed source relevance but failed quality gate: thin-source-count.",
+          "link": "https://news.ycombinator.com/item?id=49045271"
+        },
+        "notableDiscussions": [
+          {
+            "title": "Ask HN: How would you harden AI changes to a 1M-line legacy SaaS before review?",
+            "desc": "16 comments on Hacker News.",
+            "link": "https://news.ycombinator.com/item?id=49045271"
+          }
+        ],
+        "keyAction": {
+          "title": "Source remediation",
+          "desc": "HN: AI coding agents passed source relevance but failed quality gate: thin-source-count.",
+          "link": "https://news.ycombinator.com/item?id=49045271"
+        }
+      },
+      "promptUsed": "agent-written code, code review, developer tooling, workflow reliability",
+      "sourceCount": 1,
+      "createdAt": "2026-07-27T10:54:08.860Z"
+    },
+    "createdAt": "2026-07-27T10:54:08.860Z",
+    "refreshStatus": "rejected",
+    "refreshReason": "weak-signal"
+  },
+  {
+    "source": "hacker-news",
+    "sourceId": "hn-mcp-tools",
+    "label": "HN: MCP and tools",
+    "target": "MCP tools agents tool use integration",
+    "period": "week",
+    "prompt": "agent tool integrations, MCP adoption, auth, reliability, developer workflow requirements",
+    "digest": {
+      "id": "refresh-hn-mcp-tools-2026-07-27-no-fresh-usable-items",
+      "subreddit": "HN: MCP and tools",
+      "period": "week",
+      "snapshotDate": "2026-07-27T10:54:09.072Z",
+      "summaryText": "HN: MCP and tools rejected: No fresh usable items matched HN: MCP and tools for the week window.",
+      "summary": {
+        "keyTrend": {
+          "title": "HN: MCP and tools: no fresh usable items",
+          "desc": "No fresh usable items matched HN: MCP and tools for the week window."
+        },
+        "notableDiscussions": [],
+        "keyAction": {
+          "title": "Source remediation",
+          "desc": "No fresh usable items matched HN: MCP and tools for the week window."
+        }
+      },
+      "promptUsed": "agent tool integrations, MCP adoption, auth, reliability, developer workflow requirements",
+      "sourceCount": 0,
+      "createdAt": "2026-07-27T10:54:09.072Z"
+    },
+    "createdAt": "2026-07-27T10:54:09.073Z",
+    "refreshStatus": "rejected",
+    "refreshReason": "no-fresh-usable-items"
+  },
+  {
+    "source": "hacker-news",
+    "sourceId": "hn-rag-citations",
+    "label": "HN: RAG citations",
+    "target": "RAG citations hallucination retrieval provenance",
+    "period": "week",
+    "prompt": "source provenance, retrieval quality, hallucination and citation concerns",
+    "digest": {
+      "id": "refresh-hn-rag-citations-2026-07-27-no-fresh-usable-items",
+      "subreddit": "HN: RAG citations",
+      "period": "week",
+      "snapshotDate": "2026-07-27T10:54:09.284Z",
+      "summaryText": "HN: RAG citations rejected: No fresh usable items matched HN: RAG citations for the week window.",
+      "summary": {
+        "keyTrend": {
+          "title": "HN: RAG citations: no fresh usable items",
+          "desc": "No fresh usable items matched HN: RAG citations for the week window."
+        },
+        "notableDiscussions": [],
+        "keyAction": {
+          "title": "Source remediation",
+          "desc": "No fresh usable items matched HN: RAG citations for the week window."
+        }
+      },
+      "promptUsed": "source provenance, retrieval quality, hallucination and citation concerns",
+      "sourceCount": 0,
+      "createdAt": "2026-07-27T10:54:09.284Z"
+    },
+    "createdAt": "2026-07-27T10:54:09.284Z",
+    "refreshStatus": "rejected",
+    "refreshReason": "no-fresh-usable-items"
+  },
+  {
+    "source": "github-issues",
+    "sourceId": "github-llm-observability",
+    "label": "GitHub issues: LLM observability",
+    "target": "LLM observability tracing evals agent cost",
+    "period": "month",
+    "prompt": "developer complaints that show up as issues around LLM reliability and traces",
+    "digest": {
+      "id": "refresh-github-llm-observability-2026-07-27",
+      "subreddit": "GitHub issues: LLM observability",
+      "period": "month",
+      "snapshotDate": "2026-07-27T10:54:09.846Z",
+      "summaryText": "GitHub issues: LLM observability points toward workflow reliability. Top item: 📰 Weekly Digest — 2026-W30 (July 13 – July 20, 2026)",
+      "summary": {
+        "keyTrend": {
+          "title": "GitHub issues: LLM observability: workflow reliability",
+          "desc": "GitHub issues: LLM observability points toward workflow reliability. Top item: 📰 Weekly Digest — 2026-W30 (July 13 – July 20, 2026)",
+          "link": "https://github.com/sujithq/updates/issues/153"
+        },
+        "notableDiscussions": [
+          {
+            "title": "📰 Weekly Digest — 2026-W30 (July 13 – July 20, 2026)",
+            "desc": "# Weekly Digest — 2026-W30\n\n*July 13 – July 20, 2026*\n\n# Weekly Digest: July 13–20, 2026\n\n## Executive summary\n\nThis week’s announcements were dominated by the rapid maturation of agent platforms across Microsoft and GitHub, with Microsoft Agent Framework, Azu",
+            "link": "https://github.com/sujithq/updates/issues/153"
+          },
+          {
+            "title": "[Question] Practical reliability patterns for multi-agent production",
+            "desc": "Hi maintainers and community,\n\nI’m running an AI-native operations lab focused on practical multi-agent reliability.\nCurrent focus: deterministic feedback loops for non-deterministic agents.\n\nI’m collecting practical patterns for:\n1) Minimal eval loops that su",
+            "link": "https://github.com/microsoft/autogen/issues/7265"
+          },
+          {
+            "title": "[STANDING LEDGER] Agent Todo Queue — scheduled pickup packets",
+            "desc": "## Standing role\n\nThis issue is the durable, append-only queue for scheduled **agent Todo-list pickup packets** across the HUMMBL fleet.\n\n**Keep this issue open.** The scheduled `Todo List Generator` may append at most one top-level comment per successful run.",
+            "link": "https://github.com/hummbl-dev/agent-handoffs/issues/12"
+          }
+        ],
+        "keyAction": {
+          "title": "Personal build implication",
+          "desc": "Collect repeated workflow failures and turn them into one validation artifact before building tooling.",
+          "link": "https://github.com/sujithq/updates/issues/153"
+        }
+      },
+      "promptUsed": "developer complaints that show up as issues around LLM reliability and traces",
+      "sourceCount": 3,
+      "createdAt": "2026-07-27T10:54:09.846Z"
+    },
+    "createdAt": "2026-07-27T10:54:09.846Z",
+    "refreshStatus": "accepted"
+  },
+  {
+    "source": "github-issues",
+    "sourceId": "github-rag-provenance",
+    "label": "GitHub issues: RAG provenance",
+    "target": "RAG citations provenance source links hallucination",
+    "period": "month",
+    "prompt": "source citation, provenance, hallucination and retrieval complaints",
+    "digest": {
+      "id": "refresh-github-rag-provenance-2026-07-27",
+      "subreddit": "GitHub issues: RAG provenance",
+      "period": "month",
+      "snapshotDate": "2026-07-27T10:54:10.204Z",
+      "summaryText": "GitHub issues: RAG provenance points toward source provenance. Top item: 🚨 Zero Day Pulse — Active Vulnerability Tracker",
+      "summary": {
+        "keyTrend": {
+          "title": "GitHub issues: RAG provenance: source provenance",
+          "desc": "GitHub issues: RAG provenance points toward source provenance. Top item: 🚨 Zero Day Pulse — Active Vulnerability Tracker",
+          "link": "https://github.com/peleduri/zero-day-pulse/issues/7"
+        },
+        "notableDiscussions": [
+          {
+            "title": "🚨 Zero Day Pulse — Active Vulnerability Tracker",
+            "desc": "# Zero Day Pulse\n\n> **Generated:** 2026-05-26 14:37 UTC &nbsp;|&nbsp; **Total:** 15 &nbsp;|&nbsp; 🔴 KEV: 0 &nbsp;|&nbsp; 🟠 Zero-Day: 13 &nbsp;|&nbsp; 🟡 High: 2 &nbsp;|&nbsp; ✨ Enriched: 10\n\n---\n\n## 1. 🟠 Zero-Day — Ransomware Actors Exploit Unpatched Simple",
+            "link": "https://github.com/peleduri/zero-day-pulse/issues/7"
+          },
+          {
+            "title": "Platform Backlog — open roadmap items (2026-05)",
+            "desc": "Umbrella tracker for the open platform backlog captured in `apps/docs/notes/PLATFORM_ROADMAP_2026_05.md`. Each line links a sub-issue; check it off as it lands. Pull the full set anytime with:\n\n```\ngh issue list --label roadmap --limit 50\n```\n\n**Already shippe",
+            "link": "https://github.com/Jaal-Yantra-Textiles/v2/issues/352"
+          },
+          {
+            "title": "[RAG] Citation / grounding UI + answer-verification pass",
+            "desc": "## Background\n\niHub system prompts already wrap sources in `<source id=… type=… link=…>` XML tags (`server/sources/SourceManager.js:177-181`). The LLM frequently emits citations that reference those tags, but the chat UI does not render them as actionable link",
+            "link": "https://github.com/intrafind/ihub-apps/issues/1466"
+          }
+        ],
+        "keyAction": {
+          "title": "Personal build implication",
+          "desc": "Turn provenance complaints into evidence-layer tasks before shipping new generation surfaces.",
+          "link": "https://github.com/peleduri/zero-day-pulse/issues/7"
+        }
+      },
+      "promptUsed": "source citation, provenance, hallucination and retrieval complaints",
+      "sourceCount": 3,
+      "createdAt": "2026-07-27T10:54:10.204Z"
+    },
+    "createdAt": "2026-07-27T10:54:10.204Z",
+    "refreshStatus": "accepted"
+  },
+  {
+    "source": "github-issues",
+    "sourceId": "github-local-ai",
+    "label": "GitHub issues: local AI",
+    "target": "local AI privacy offline model routing cost",
+    "period": "month",
+    "prompt": "local AI, privacy, offline control, routing and cost requirements",
+    "digest": {
+      "id": "refresh-github-local-ai-2026-07-27",
+      "subreddit": "GitHub issues: local AI",
+      "period": "month",
+      "snapshotDate": "2026-07-27T10:54:10.535Z",
+      "summaryText": "GitHub issues: local AI points toward workflow reliability. Top item: [GOVERNANCE] Nexus 五道事件驱动交付 Gate 与唯一根因账本",
+      "summary": {
+        "keyTrend": {
+          "title": "GitHub issues: local AI: workflow reliability",
+          "desc": "GitHub issues: local AI points toward workflow reliability. Top item: [GOVERNANCE] Nexus 五道事件驱动交付 Gate 与唯一根因账本",
+          "link": "https://github.com/Maximvonshaft/nexus_helpdesk/issues/722"
+        },
+        "notableDiscussions": [
+          {
+            "title": "[GOVERNANCE] Nexus 五道事件驱动交付 Gate 与唯一根因账本",
+            "desc": "# Nexus Delivery Governance v5\n\n```yaml\nprotocol_id: nexus-delivery-gates-v5\nprotocol_version: 5.0.0\neffective_at: 2026-07-27T00:00:00Z\nrepository: Maximvonshaft/nexus_helpdesk\nauthority_issue: 722\nexecution_model: EVENT_DRIVEN\ncurrent_gate_count: 5\nroot_cause",
+            "link": "https://github.com/Maximvonshaft/nexus_helpdesk/issues/722"
+          },
+          {
+            "title": "Portfolio release-readiness blockers — live exact-state ledger",
+            "desc": "## Status\n\nThe owned GitHub portfolio is **not release ready**. This issue is the stable fail-closed policy and routing index for repository-health work. It does not authorize merge, publication, release, deployment, credential issuance, payment execution, inf",
+            "link": "https://github.com/aevespers2/0/issues/9"
+          },
+          {
+            "title": "[ONBOARD: 3 RTC] Compare RustChain to Another Blockchain Project",
+            "desc": "## Bounty: 3 RTC\n\n### What You'll Do\nResearch RustChain and compare it to another blockchain project you know.\n\n### Steps\n1. **Pick any other blockchain project**: Bitcoin, Ethereum, Solana, Ergo, Chia, whatever you know\n2. **Write a comparison** (300-800 word",
+            "link": "https://github.com/Scottcjn/rustchain-bounties/issues/2786"
+          }
+        ],
+        "keyAction": {
+          "title": "Personal build implication",
+          "desc": "Collect repeated workflow failures and turn them into one validation artifact before building tooling.",
+          "link": "https://github.com/Maximvonshaft/nexus_helpdesk/issues/722"
+        }
+      },
+      "promptUsed": "local AI, privacy, offline control, routing and cost requirements",
+      "sourceCount": 3,
+      "createdAt": "2026-07-27T10:54:10.535Z"
+    },
+    "createdAt": "2026-07-27T10:54:10.535Z",
+    "refreshStatus": "accepted"
+  },
+  {
+    "source": "github-issues",
+    "sourceId": "github-mcp-tools",
+    "label": "GitHub issues: MCP and tools",
+    "target": "MCP server tool use auth agents integration error",
+    "period": "month",
+    "prompt": "agent tool integration failures, MCP server auth, reliability and setup complaints",
+    "digest": {
+      "id": "refresh-github-mcp-tools-2026-07-27",
+      "subreddit": "GitHub issues: MCP and tools",
+      "period": "month",
+      "snapshotDate": "2026-07-27T10:54:11.039Z",
+      "summaryText": "GitHub issues: MCP and tools points toward developer workflow friction. Top item: 🐝 Hive Advisory Report",
+      "summary": {
+        "keyTrend": {
+          "title": "GitHub issues: MCP and tools: developer workflow friction",
+          "desc": "GitHub issues: MCP and tools points toward developer workflow friction. Top item: 🐝 Hive Advisory Report",
+          "link": "https://github.com/kubestellar/console/issues/20963"
+        },
+        "notableDiscussions": [
+          {
+            "title": "🐝 Hive Advisory Report",
+            "desc": "This issue collects advisory findings from Hive agents.\n\nAt lower ACMM levels, some agents work in advisory mode — they analyze code and post findings here but do not create issues or PRs. At higher levels, designated agents (e.g. quality) can open issues and ",
+            "link": "https://github.com/kubestellar/console/issues/20963"
+          },
+          {
+            "title": "最新版本，自定义路由导向 LiteLLM 网关，探测正确，但是路由一直是502",
+            "desc": "<img width=\"1029\" height=\"1024\" alt=\"Image\" src=\"https://github.com/user-attachments/assets/91421271-4b48-4195-a391-9815bc633137\" />\n\n验证请求的时候后端的gateway已经能看到响应OK\n\n<img width=\"1968\" height=\"903\" alt=\"Image\" src=\"https://github.com/user-attachments/assets/5b5ca55",
+            "link": "https://github.com/musistudio/claude-code-router/issues/1590"
+          },
+          {
+            "title": "Improve FailureReport trace coverage with framework-native instrumentation",
+            "desc": "## Research objective\n\nEstablish trustworthy, framework-native tracing for FailureReport so HALO can\nobserve and improve the real Root/Codex diagnostic loop. This is a Shea Halo\nresearch item, not a pre-approved implementation contract.\n\n## Questions to resolv",
+            "link": "https://github.com/Alive24/FailureReport/issues/26"
+          },
+          {
+            "title": "Architecture reset: validate differentiation and select an upstream base before more implementation",
+            "desc": "# Architecture Consolidation and Differentiation Validation\n\n```text\nSTATUS: PLANNING_REFERENCE_ONLY\nEXECUTION_AUTHORITY: NONE\nREPOSITORY: dddd2024/reverse-agent\nPROGRAM: #45\nFROZEN_IMPLEMENTATION_PR: #49\nTRUSTED_APP_PLAN: #53\nEXTERNAL_SETUP_CONTRACT: #54\nFROZ",
+            "link": "https://github.com/dddd2024/reverse-agent/issues/55"
+          }
+        ],
+        "keyAction": {
+          "title": "Personal build implication",
+          "desc": "Convert developer workflow friction into a bug-finding, review, or observability requirement.",
+          "link": "https://github.com/kubestellar/console/issues/20963"
+        }
+      },
+      "promptUsed": "agent tool integration failures, MCP server auth, reliability and setup complaints",
+      "sourceCount": 4,
+      "createdAt": "2026-07-27T10:54:11.039Z"
+    },
+    "createdAt": "2026-07-27T10:54:11.039Z",
+    "refreshStatus": "accepted"
+  },
+  {
+    "source": "github-issues",
+    "sourceId": "github-copilot-review",
+    "label": "GitHub issues: Copilot review",
+    "target": "Copilot code review bug suggestion workflow",
+    "period": "month",
+    "prompt": "AI code review complaints, review workflow gaps, suggested change quality",
+    "digest": {
+      "id": "refresh-github-copilot-review-2026-07-27",
+      "subreddit": "GitHub issues: Copilot review",
+      "period": "month",
+      "snapshotDate": "2026-07-27T10:54:11.440Z",
+      "summaryText": "GitHub issues: Copilot review points toward developer workflow friction. Top item: 🐝 Hive Advisory Report",
+      "summary": {
+        "keyTrend": {
+          "title": "GitHub issues: Copilot review: developer workflow friction",
+          "desc": "GitHub issues: Copilot review points toward developer workflow friction. Top item: 🐝 Hive Advisory Report",
+          "link": "https://github.com/kellyaa/agent-newsletter/issues/77"
+        },
+        "notableDiscussions": [
+          {
+            "title": "🐝 Hive Advisory Report",
+            "desc": "This issue collects advisory findings from Hive agents.\n\nAt lower ACMM levels, some agents work in advisory mode — they analyze code and post findings here but do not create issues or PRs. At higher levels, designated agents (e.g. quality) can open issues and ",
+            "link": "https://github.com/kellyaa/agent-newsletter/issues/77"
+          },
+          {
+            "title": "[aw] No-Op Runs",
+            "desc": "This issue tracks all no-op runs from agentic workflows in this repository. Each workflow run that completes with a no-op message (indicating no action was needed) posts a comment here.\n\n<details>\n<summary>What is a No-Op?</summary>\n\nA no-op (no operation) occ",
+            "link": "https://github.com/github/gh-aw/issues/43499"
+          },
+          {
+            "title": "[aw] No-Op Runs",
+            "desc": "This issue tracks all no-op runs from agentic workflows in this repository. Each workflow run that completes with a no-op message (indicating no action was needed) posts a comment here.\n\n<details>\n<summary>What is a No-Op?</summary>\n\nA no-op (no operation) occ",
+            "link": "https://github.com/elastic/ai-github-actions/issues/945"
+          },
+          {
+            "title": "[aw] No-Op Runs",
+            "desc": "This issue tracks all no-op runs from agentic workflows in this repository. Each workflow run that completes with a no-op message (indicating no action was needed) posts a comment here.\n\n<details>\n<summary><b>📘 What is a No-Op?</b></summary>\n\nA no-op (no oper",
+            "link": "https://github.com/githubnext/ado-aw/issues/13"
+          }
+        ],
+        "keyAction": {
+          "title": "Personal build implication",
+          "desc": "Convert developer workflow friction into a bug-finding, review, or observability requirement.",
+          "link": "https://github.com/kellyaa/agent-newsletter/issues/77"
+        }
+      },
+      "promptUsed": "AI code review complaints, review workflow gaps, suggested change quality",
+      "sourceCount": 5,
+      "createdAt": "2026-07-27T10:54:11.440Z"
+    },
+    "createdAt": "2026-07-27T10:54:11.440Z",
+    "refreshStatus": "accepted"
+  },
+  {
+    "source": "github-issues",
+    "sourceId": "github-rag-retrieval",
+    "label": "GitHub issues: RAG retrieval",
+    "target": "RAG retrieval citation source hallucination chunking",
+    "period": "month",
+    "prompt": "retrieval and citation failures that create source-provenance requirements",
+    "digest": {
+      "id": "refresh-github-rag-retrieval-2026-07-27",
+      "subreddit": "GitHub issues: RAG retrieval",
+      "period": "month",
+      "snapshotDate": "2026-07-27T10:54:11.958Z",
+      "summaryText": "GitHub issues: RAG retrieval points toward source provenance. Top item: Epic: Ask AI for Docs — become the default documentation assistant",
+      "summary": {
+        "keyTrend": {
+          "title": "GitHub issues: RAG retrieval: source provenance",
+          "desc": "GitHub issues: RAG retrieval points toward source provenance. Top item: Epic: Ask AI for Docs — become the default documentation assistant",
+          "link": "https://github.com/arnavv-guptaa/chat-widget/issues/188"
+        },
+        "notableDiscussions": [
+          {
+            "title": "Epic: Ask AI for Docs — become the default documentation assistant",
+            "desc": "# Ask AI for Docs\n\n**Thesis:** the fastest wedge to \"Clerk-for-AI-chat\" is owning ONE high-frequency use case end-to-end: the **\"Ask AI\" assistant on technical documentation sites**. Every devtool company needs one; today they choose between closed SaaS (Kapa.",
+            "link": "https://github.com/arnavv-guptaa/chat-widget/issues/188"
+          },
+          {
+            "title": "RAG en 2026 : bien au-delà du naïf",
+            "desc": "---\nlede: Le RAG de 2026 n'a plus rien du « embedding + top-k » de 2023 : recherche hybride, reranking, chunking sémantique et évaluation forment désormais un pipeline exigeant.\nlede_en: RAG in 2026 bears no resemblance to the 2023 \"embedding + top-k\": hybrid ",
+            "link": "https://github.com/khalilbenaz/khalilbenaz.github.io/issues/466"
+          },
+          {
+            "title": "Plan 08：Dataset v4 擴充、全新 Held-Out Evaluation 與 Multi-Judge 評估",
+            "desc": "# Plan 08：Oracle Failure Diagnosis、Dataset v4 擴充與 Multi-Judge 評估\n\n## 0. 計畫定位\n\n本計畫接續已完成的 Version-Aware RAG v3 pilot study。v3 已有：\n\n- 583 個 frozen corpus chunks；\n- 40 個 evaluation queries；\n- 51 個 adjudicated relation pairs；\n- development / validation / test = 24 ",
+            "link": "https://github.com/archie0732/healthy-diet-ai-agent/issues/6"
+          }
+        ],
+        "keyAction": {
+          "title": "Personal build implication",
+          "desc": "Turn provenance complaints into evidence-layer tasks before shipping new generation surfaces.",
+          "link": "https://github.com/arnavv-guptaa/chat-widget/issues/188"
+        }
+      },
+      "promptUsed": "retrieval and citation failures that create source-provenance requirements",
+      "sourceCount": 3,
+      "createdAt": "2026-07-27T10:54:11.958Z"
+    },
+    "createdAt": "2026-07-27T10:54:11.958Z",
+    "refreshStatus": "accepted"
+  },
+  {
+    "source": "github-issues",
+    "sourceId": "github-otel-ai",
+    "label": "GitHub issues: AI observability",
+    "target": "OpenTelemetry LLM tracing metrics agents observability",
+    "period": "month",
+    "prompt": "LLM tracing, metrics, observability, evaluation and agent workflow instrumentation",
+    "digest": {
+      "id": "refresh-github-otel-ai-2026-07-27",
+      "subreddit": "GitHub issues: AI observability",
+      "period": "month",
+      "snapshotDate": "2026-07-27T10:54:12.309Z",
+      "summaryText": "GitHub issues: AI observability points toward developer workflow friction. Top item: Weekly upstream digest",
+      "summary": {
+        "keyTrend": {
+          "title": "GitHub issues: AI observability: developer workflow friction",
+          "desc": "GitHub issues: AI observability points toward developer workflow friction. Top item: Weekly upstream digest",
+          "link": "https://github.com/o11y-dev/opentelemetry-skill/issues/91"
+        },
+        "notableDiscussions": [
+          {
+            "title": "Weekly upstream digest",
+            "desc": "# OpenTelemetry upstream digest - Weekly - 2026-07-27\n\n_Auto-generated by `.github/workflows/upstream-tier2.yml`. Review the releases and recent issues below; the \"Skills watching this repo\" column points at the skill files most likely to need edits._\n\n## Late",
+            "link": "https://github.com/o11y-dev/opentelemetry-skill/issues/91"
+          },
+          {
+            "title": "Tracking: migrate OpenInference Python instrumentations into this repo",
+            "desc": "This issue tracks porting the OpenInference Python instrumentation packages into\n`opentelemetry-python-genai`, so that GenAI instrumentation is built on the shared\n`opentelemetry-util-genai` utilities and emits telemetry that conforms to the\n[GenAI semantic co",
+            "link": "https://github.com/open-telemetry/opentelemetry-python-genai/issues/141"
+          },
+          {
+            "title": "Feature: Cryptographic action receipts for enterprise agent governance (AAR)",
+            "desc": "## Problem\n\nAutoGen enables multi-agent conversations and workflows for enterprise use cases. Enterprise deployments require verifiable audit trails — not just logs, but cryptographic proof of:\n\n- Which agent was instructed to do what\n- What each agent actuall",
+            "link": "https://github.com/microsoft/autogen/issues/7353"
+          },
+          {
+            "title": "[STANDING LEDGER] Agent Todo Queue — scheduled pickup packets",
+            "desc": "## Standing role\n\nThis issue is the durable, append-only queue for scheduled **agent Todo-list pickup packets** across the HUMMBL fleet.\n\n**Keep this issue open.** The scheduled `Todo List Generator` may append at most one top-level comment per successful run.",
+            "link": "https://github.com/hummbl-dev/agent-handoffs/issues/12"
+          }
+        ],
+        "keyAction": {
+          "title": "Personal build implication",
+          "desc": "Convert developer workflow friction into a bug-finding, review, or observability requirement.",
+          "link": "https://github.com/o11y-dev/opentelemetry-skill/issues/91"
+        }
+      },
+      "promptUsed": "LLM tracing, metrics, observability, evaluation and agent workflow instrumentation",
+      "sourceCount": 5,
+      "createdAt": "2026-07-27T10:54:12.309Z"
+    },
+    "createdAt": "2026-07-27T10:54:12.309Z",
+    "refreshStatus": "accepted"
+  },
+  {
+    "source": "github-issues",
+    "sourceId": "github-nextjs-deploy",
+    "label": "GitHub issues: Next.js deploy",
+    "target": "Next.js deployment app router edge runtime error",
+    "period": "month",
+    "prompt": "developer complaints about Next.js deploys, app router, edge runtime, build errors and production workflow friction",
+    "digest": {
+      "id": "refresh-github-nextjs-deploy-2026-07-27-weak-signal",
+      "subreddit": "GitHub issues: Next.js deploy",
+      "period": "month",
+      "snapshotDate": "2026-07-27T10:54:12.732Z",
+      "summaryText": "GitHub issues: Next.js deploy rejected: GitHub issues: Next.js deploy passed source relevance but failed quality gate: thin-source-count.",
+      "summary": {
+        "keyTrend": {
+          "title": "GitHub issues: Next.js deploy: weak signal",
+          "desc": "GitHub issues: Next.js deploy passed source relevance but failed quality gate: thin-source-count.",
+          "link": "https://github.com/opennextjs/opennextjs-netlify/issues/3546"
+        },
+        "notableDiscussions": [
+          {
+            "title": "[Bug]: Unhandled rejection from disk-lru-cache mkdir '/var/task/.next/cache' tears down Lambda worker (Next 15.5.x)",
+            "desc": "### Summary\n\nOn Netlify Functions (AWS Lambda), Next.js's disk LRU cache\n(`next/dist/server/lib/disk-lru-cache.external.js`) intermittently attempts to\n`mkdir '/var/task/.next/cache'` at runtime. `/var/task` is read-only, the mkdir\nfails with `ENOENT`, and bec",
+            "link": "https://github.com/opennextjs/opennextjs-netlify/issues/3546"
+          },
+          {
+            "title": "XPElevator Simulator — enhancement path (control + log)",
+            "desc": "Control plane for the **canonical XPElevator**: the live virtual-customer training simulator on xpelevator.com (founder decision 2026-07-04 — the journeys build is dead; see #12, PAUSE&#39;d, and the harvest into the-calling#21). Full audit evidence: comment b",
+            "link": "https://github.com/Latimer-Woods-Tech/xpelevator/issues/16"
+          }
+        ],
+        "keyAction": {
+          "title": "Source remediation",
+          "desc": "GitHub issues: Next.js deploy passed source relevance but failed quality gate: thin-source-count.",
+          "link": "https://github.com/opennextjs/opennextjs-netlify/issues/3546"
+        }
+      },
+      "promptUsed": "developer complaints about Next.js deploys, app router, edge runtime, build errors and production workflow friction",
+      "sourceCount": 2,
+      "createdAt": "2026-07-27T10:54:12.732Z"
+    },
+    "createdAt": "2026-07-27T10:54:12.732Z",
+    "refreshStatus": "rejected",
+    "refreshReason": "weak-signal"
+  },
+  {
+    "source": "github-issues",
+    "sourceId": "github-cloudflare-workers",
+    "label": "GitHub issues: Cloudflare Workers",
+    "target": "Cloudflare Workers durable objects deploy bindings error pricing",
+    "period": "month",
+    "prompt": "developer complaints about Cloudflare Workers, Durable Objects, bindings, deploy failures, pricing and platform workflow",
+    "digest": {
+      "id": "refresh-github-cloudflare-workers-2026-07-27-weak-signal",
+      "subreddit": "GitHub issues: Cloudflare Workers",
+      "period": "month",
+      "snapshotDate": "2026-07-27T10:54:13.093Z",
+      "summaryText": "GitHub issues: Cloudflare Workers rejected: GitHub issues: Cloudflare Workers passed source relevance but failed quality gate: thin-source-count.",
+      "summary": {
+        "keyTrend": {
+          "title": "GitHub issues: Cloudflare Workers: weak signal",
+          "desc": "GitHub issues: Cloudflare Workers passed source relevance but failed quality gate: thin-source-count.",
+          "link": "https://github.com/Jaal-Yantra-Textiles/v2/issues/352"
+        },
+        "notableDiscussions": [
+          {
+            "title": "Platform Backlog — open roadmap items (2026-05)",
+            "desc": "Umbrella tracker for the open platform backlog captured in `apps/docs/notes/PLATFORM_ROADMAP_2026_05.md`. Each line links a sub-issue; check it off as it lands. Pull the full set anytime with:\n\n```\ngh issue list --label roadmap --limit 50\n```\n\n**Already shippe",
+            "link": "https://github.com/Jaal-Yantra-Textiles/v2/issues/352"
+          }
+        ],
+        "keyAction": {
+          "title": "Source remediation",
+          "desc": "GitHub issues: Cloudflare Workers passed source relevance but failed quality gate: thin-source-count.",
+          "link": "https://github.com/Jaal-Yantra-Textiles/v2/issues/352"
+        }
+      },
+      "promptUsed": "developer complaints about Cloudflare Workers, Durable Objects, bindings, deploy failures, pricing and platform workflow",
+      "sourceCount": 1,
+      "createdAt": "2026-07-27T10:54:13.093Z"
+    },
+    "createdAt": "2026-07-27T10:54:13.093Z",
+    "refreshStatus": "rejected",
+    "refreshReason": "weak-signal"
+  },
+  {
+    "source": "rss",
+    "sourceId": "rss-openai-news",
+    "label": "OpenAI news",
+    "target": "https://openai.com/news/rss.xml",
+    "period": "month",
+    "prompt": "primary-source model, agent, API, and product changes that can create new product requirements",
+    "digest": {
+      "id": "refresh-rss-openai-news-2026-07-27-no-fresh-usable-items",
+      "subreddit": "OpenAI news",
+      "period": "month",
+      "snapshotDate": "2026-07-27T10:54:13.216Z",
+      "summaryText": "OpenAI news rejected: No fresh usable items matched OpenAI news for the month window.",
+      "summary": {
+        "keyTrend": {
+          "title": "OpenAI news: no fresh usable items",
+          "desc": "No fresh usable items matched OpenAI news for the month window."
+        },
+        "notableDiscussions": [],
+        "keyAction": {
+          "title": "Source remediation",
+          "desc": "No fresh usable items matched OpenAI news for the month window."
+        }
+      },
+      "promptUsed": "primary-source model, agent, API, and product changes that can create new product requirements",
+      "sourceCount": 0,
+      "createdAt": "2026-07-27T10:54:13.216Z"
+    },
+    "createdAt": "2026-07-27T10:54:13.216Z",
+    "refreshStatus": "rejected",
+    "refreshReason": "no-fresh-usable-items"
+  },
+  {
+    "source": "rss",
+    "sourceId": "rss-anthropic-release-notes",
+    "label": "Anthropic release notes",
+    "target": "https://platform.claude.com/docs/en/release-notes/rss.xml",
+    "period": "month",
+    "prompt": "primary-source Claude/API changes affecting agent workflows, tools, citations, and product expectations",
+    "digest": {
+      "id": "refresh-rss-anthropic-release-notes-2026-07-27-fetch-error",
+      "subreddit": "Anthropic release notes",
+      "period": "month",
+      "snapshotDate": "2026-07-27T10:54:13.615Z",
+      "summaryText": "Anthropic release notes rejected: Anthropic release notes could not be fetched: rss_404.",
+      "summary": {
+        "keyTrend": {
+          "title": "Anthropic release notes: fetch error",
+          "desc": "Anthropic release notes could not be fetched: rss_404."
+        },
+        "notableDiscussions": [],
+        "keyAction": {
+          "title": "Source remediation",
+          "desc": "Anthropic release notes could not be fetched: rss_404."
+        }
+      },
+      "promptUsed": "primary-source Claude/API changes affecting agent workflows, tools, citations, and product expectations",
+      "sourceCount": 0,
+      "createdAt": "2026-07-27T10:54:13.615Z"
+    },
+    "createdAt": "2026-07-27T10:54:13.615Z",
+    "refreshStatus": "rejected",
+    "refreshReason": "fetch-error",
+    "refreshError": "rss_404"
+  },
+  {
+    "source": "rss",
+    "sourceId": "rss-cloudflare-blog",
+    "label": "Cloudflare blog",
+    "target": "https://blog.cloudflare.com/rss/",
+    "period": "month",
+    "prompt": "primary-source infrastructure and developer-platform changes relevant to app requirements",
+    "digest": {
+      "id": "refresh-rss-cloudflare-blog-2026-07-27-weak-signal",
+      "subreddit": "Cloudflare blog",
+      "period": "month",
+      "snapshotDate": "2026-07-27T10:54:13.696Z",
+      "summaryText": "Cloudflare blog rejected: Cloudflare blog passed source relevance but failed quality gate: thin-source-count.",
+      "summary": {
+        "keyTrend": {
+          "title": "Cloudflare blog: weak signal",
+          "desc": "Cloudflare blog passed source relevance but failed quality gate: thin-source-count.",
+          "link": "https://blog.cloudflare.com/internal-dns/"
+        },
+        "notableDiscussions": [
+          {
+            "title": "Cloudflare Internal DNS is now generally available",
+            "desc": "Cloudflare Internal DNS brings authoritative and recursive DNS for private networks to the same global network and control plane that runs Cloudflare's Zero Trust, networking, and public DNS.",
+            "link": "https://blog.cloudflare.com/internal-dns/"
+          },
+          {
+            "title": "Cloudflare WAF protects WordPress applications from two high-severity vulnerabilities",
+            "desc": "Cloudflare has deployed two WAF rules in response to high-severity vulnerabilities disclosed to us by the WordPress security team. The new rules protect all Cloudflare customers using affected WordPress versions, but customers should still update immediately t",
+            "link": "https://blog.cloudflare.com/wordpress-vulnerabilities/"
+          }
+        ],
+        "keyAction": {
+          "title": "Source remediation",
+          "desc": "Cloudflare blog passed source relevance but failed quality gate: thin-source-count.",
+          "link": "https://blog.cloudflare.com/internal-dns/"
+        }
+      },
+      "promptUsed": "primary-source infrastructure and developer-platform changes relevant to app requirements",
+      "sourceCount": 2,
+      "createdAt": "2026-07-27T10:54:13.696Z"
+    },
+    "createdAt": "2026-07-27T10:54:13.696Z",
+    "refreshStatus": "rejected",
+    "refreshReason": "weak-signal"
+  },
+  {
+    "source": "rss",
+    "sourceId": "rss-github-changelog",
+    "label": "GitHub changelog",
+    "target": "https://github.blog/changelog/feed/",
+    "period": "month",
+    "prompt": "primary-source developer workflow and platform changes around GitHub, Copilot, issues, and CI",
+    "digest": {
+      "id": "refresh-rss-github-changelog-2026-07-27",
+      "subreddit": "GitHub changelog",
+      "period": "month",
+      "snapshotDate": "2026-07-27T10:54:13.781Z",
+      "summaryText": "GitHub changelog points toward developer workflow friction. Top item: Claude Opus 5 is now available in GitHub Copilot",
+      "summary": {
+        "keyTrend": {
+          "title": "GitHub changelog: developer workflow friction",
+          "desc": "GitHub changelog points toward developer workflow friction. Top item: Claude Opus 5 is now available in GitHub Copilot",
+          "link": "https://github.blog/changelog/2026-07-24-claude-opus-5-is-now-available-in-github-copilot"
+        },
+        "notableDiscussions": [
+          {
+            "title": "Claude Opus 5 is now available in GitHub Copilot",
+            "desc": "Claude Opus 5, Anthropic&#8217;s newest Opus model, is now available in GitHub Copilot. It is designed for complex, long-running coding tasks that require careful reasoning, effective tool use, and reliable&#8230; The post Claude Opus 5 is now available in Git",
+            "link": "https://github.blog/changelog/2026-07-24-claude-opus-5-is-now-available-in-github-copilot"
+          },
+          {
+            "title": "Copilot cloud agent for Linear is now generally available",
+            "desc": "You can now assign issues in Linear to Copilot cloud agent, our asynchronous, autonomous background agent. When you assign a Linear issue to Copilot, it will: Analyze the issue contents&#8230; The post Copilot cloud agent for Linear is now generally available ",
+            "link": "https://github.blog/changelog/2026-07-23-copilot-cloud-agent-for-linear-is-now-generally-available"
+          },
+          {
+            "title": "GitHub MCP Server supports the next MCP specification",
+            "desc": "The MCP protocol is going stateless on 28th July 2026, and the GitHub MCP Server supports the latest spec ahead of the official release. What&#8217;s changing The new stateless core&#8230; The post GitHub MCP Server supports the next MCP specification appeared",
+            "link": "https://github.blog/changelog/2026-07-23-github-mcp-server-supports-the-next-mcp-specification"
+          },
+          {
+            "title": "GitHub Mobile: Fix failing Actions checks with Copilot cloud agent",
+            "desc": "Now when a GitHub Actions check fails on your pull request, you can ask Copilot coding agent to investigate and directly fix the problem from GitHub Mobile. From the failed&#8230; The post GitHub Mobile: Fix failing Actions checks with Copilot cloud agent appe",
+            "link": "https://github.blog/changelog/2026-07-23-github-mobile-fix-failing-actions-checks-with-copilot-cloud-agent"
+          }
+        ],
+        "keyAction": {
+          "title": "Personal build implication",
+          "desc": "Convert developer workflow friction into a bug-finding, review, or observability requirement.",
+          "link": "https://github.blog/changelog/2026-07-24-claude-opus-5-is-now-available-in-github-copilot"
+        }
+      },
+      "promptUsed": "primary-source developer workflow and platform changes around GitHub, Copilot, issues, and CI",
+      "sourceCount": 8,
+      "createdAt": "2026-07-27T10:54:13.781Z"
+    },
+    "createdAt": "2026-07-27T10:54:13.781Z",
+    "refreshStatus": "accepted"
+  },
+  {
+    "source": "rss",
+    "sourceId": "rss-google-developers",
+    "label": "Google Developers blog",
+    "target": "https://feeds.feedburner.com/GDBcode",
+    "period": "month",
+    "prompt": "primary-source Google AI, search, Gemini, developer platform and API changes",
+    "digest": {
+      "id": "refresh-rss-google-developers-2026-07-27",
+      "subreddit": "Google Developers blog",
+      "period": "month",
+      "snapshotDate": "2026-07-27T10:54:13.978Z",
+      "summaryText": "Google Developers blog points toward workflow reliability. Top item: Scaling Agentic RL: High-Throughput Agentic Training with Tunix",
+      "summary": {
+        "keyTrend": {
+          "title": "Google Developers blog: workflow reliability",
+          "desc": "Google Developers blog points toward workflow reliability. Top item: Scaling Agentic RL: High-Throughput Agentic Training with Tunix",
+          "link": "https://developers.googleblog.com/scaling-agentic-rl-high-throughput-agentic-training-with-tunix/"
+        },
+        "notableDiscussions": [
+          {
+            "title": "Scaling Agentic RL: High-Throughput Agentic Training with Tunix",
+            "desc": "Tunix is Google’s new JAX-native post-training library designed to eliminate TPU idling bottlenecks when training multi-turn, tool-using LLM reasoning agents. It maximizes hardware throughput by combining highly concurrent, asynchronous rollouts with a decoupl",
+            "link": "https://developers.googleblog.com/scaling-agentic-rl-high-throughput-agentic-training-with-tunix/"
+          },
+          {
+            "title": "Run Ray on TPU, Part 1: The foundations",
+            "desc": "Ray 2.55 introduces official, first-class support for Google Cloud TPUs, enabling developers to run distributed Python workloads on Google's accelerators using the familiar Ray task-and-actor APIs. To handle the strict networking requirement of keeping multi-h",
+            "link": "https://developers.googleblog.com/run-ray-on-tpu-part-1-the-foundations/"
+          },
+          {
+            "title": "Evolving Spec-Driven Development: Conductor Now Supports Antigravity",
+            "desc": "Conductor has evolved from a Gemini CLI extension into a portable plugin, bringing conversational Spec-Driven Development (SDD) to ecosystems like Antigravity CLI and Claude. Rather than relying on strict command sequences, developers can now chat naturally wi",
+            "link": "https://developers.googleblog.com/evolving-spec-driven-development-conductor-now-supports-antigravity/"
+          },
+          {
+            "title": "Expanding Choice in Gemini Enterprise Agent Platform: Introducing Grounding with Parallel Web Search",
+            "desc": "Google Cloud has partnered with Parallel Web Systems to natively integrate Parallel's search infrastructure as a web grounding provider on the Gemini Enterprise Agent Platform. This integration enables developers to anchor their AI agents in verifiable, real-t",
+            "link": "https://developers.googleblog.com/expanding-choice-in-gemini-enterprise-agent-platform-introducing-grounding-with-parallel-web-search/"
+          }
+        ],
+        "keyAction": {
+          "title": "Personal build implication",
+          "desc": "Collect repeated workflow failures and turn them into one validation artifact before building tooling.",
+          "link": "https://developers.googleblog.com/scaling-agentic-rl-high-throughput-agentic-training-with-tunix/"
+        }
+      },
+      "promptUsed": "primary-source Google AI, search, Gemini, developer platform and API changes",
+      "sourceCount": 5,
+      "createdAt": "2026-07-27T10:54:13.978Z"
+    },
+    "createdAt": "2026-07-27T10:54:13.978Z",
+    "refreshStatus": "accepted"
+  },
+  {
+    "source": "rss",
+    "sourceId": "rss-stripe-blog",
+    "label": "Stripe blog",
+    "target": "https://stripe.com/blog/feed.rss",
+    "period": "month",
+    "prompt": "primary-source payments, billing, checkout and commerce infrastructure changes",
+    "digest": {
+      "id": "refresh-rss-stripe-blog-2026-07-27-no-fresh-usable-items",
+      "subreddit": "Stripe blog",
+      "period": "month",
+      "snapshotDate": "2026-07-27T10:54:14.123Z",
+      "summaryText": "Stripe blog rejected: No fresh usable items matched Stripe blog for the month window.",
+      "summary": {
+        "keyTrend": {
+          "title": "Stripe blog: no fresh usable items",
+          "desc": "No fresh usable items matched Stripe blog for the month window."
+        },
+        "notableDiscussions": [],
+        "keyAction": {
+          "title": "Source remediation",
+          "desc": "No fresh usable items matched Stripe blog for the month window."
+        }
+      },
+      "promptUsed": "primary-source payments, billing, checkout and commerce infrastructure changes",
+      "sourceCount": 0,
+      "createdAt": "2026-07-27T10:54:14.123Z"
+    },
+    "createdAt": "2026-07-27T10:54:14.124Z",
+    "refreshStatus": "rejected",
+    "refreshReason": "no-fresh-usable-items"
+  },
+  {
+    "source": "rss",
+    "sourceId": "rss-shopify-changelog",
+    "label": "Shopify changelog",
+    "target": "https://shopify.dev/changelog/feed.xml",
+    "period": "month",
+    "prompt": "primary-source commerce platform changes affecting agentic commerce and app requirements",
+    "digest": {
+      "id": "refresh-rss-shopify-changelog-2026-07-27",
+      "subreddit": "Shopify changelog",
+      "period": "month",
+      "snapshotDate": "2026-07-27T10:54:14.396Z",
+      "summaryText": "Shopify changelog points toward small-business operations pressure. Top item: Invalid metafield queries now return errors in the GraphQL Admin API",
+      "summary": {
+        "keyTrend": {
+          "title": "Shopify changelog: small-business operations pressure",
+          "desc": "Shopify changelog points toward small-business operations pressure. Top item: Invalid metafield queries now return errors in the GraphQL Admin API",
+          "link": "https://shopify.dev/changelog/invalid-metafield-queries-now-return-errors-in-the-graphql-admin-api"
+        },
+        "notableDiscussions": [
+          {
+            "title": "Invalid metafield queries now return errors in the GraphQL Admin API",
+            "desc": "Starting in API version 2026-10, the GraphQL Admin API returns an error when a query filters by a metafield that isn't set up for filtering, instead of silently returning incorrect results. This is a breaking change. It affects apps that filter resources by me",
+            "link": "https://shopify.dev/changelog/invalid-metafield-queries-now-return-errors-in-the-graphql-admin-api"
+          },
+          {
+            "title": "Metafield triggers and additional topics are now available for Events",
+            "desc": "Apps can now subscribe to events for Order , Collection , InventoryItem , InventoryShipment , Location , and can subscribe to metafield changes on Product , Order , Customer , Collection and Location . ProductVariant metafields are supported through the Produc",
+            "link": "https://shopify.dev/changelog/metafield-triggers-and-additional-topics-are-now-available-for-events"
+          },
+          {
+            "title": "Liquid templates can now compose pages with blocks and partials",
+            "desc": "The Liquid July ’26 developer preview introduces a simpler way to build theme pages. Page structure can live directly in a Liquid template, where developers and coding agents can read and edit everything in one place. The peview adds two Liquid tags: {% block ",
+            "link": "https://shopify.dev/changelog/developer-preview-liquid-block-and-partial-tags"
+          },
+          {
+            "title": "Full-stack capabilities to power app analytics",
+            "desc": "For app developers, building merchant-facing analytics has always meant standing up your own stack: a charting library, a data warehouse to sync merchant data into, handling currencies and locales, and a UI that never quite matched the Shopify admin. With thes",
+            "link": "https://shopify.dev/changelog/full-stack-capabilities-to-power-app-analytics"
+          }
+        ],
+        "keyAction": {
+          "title": "Personal build implication",
+          "desc": "Promote only owner/operator problems tied to revenue, time, customer trust, compliance, or recurring workflow drag.",
+          "link": "https://shopify.dev/changelog/invalid-metafield-queries-now-return-errors-in-the-graphql-admin-api"
+        }
+      },
+      "promptUsed": "primary-source commerce platform changes affecting agentic commerce and app requirements",
+      "sourceCount": 6,
+      "createdAt": "2026-07-27T10:54:14.396Z"
+    },
+    "createdAt": "2026-07-27T10:54:14.397Z",
+    "refreshStatus": "accepted"
+  },
+  {
+    "source": "rss",
+    "sourceId": "rss-google-news-smb",
+    "label": "Google News: small business operations",
+    "target": "https://news.google.com/rss/search?q=small%20business%20cashflow%20rent%20hiring%20inventory%20customers&hl=en-US&gl=US&ceid=US:en",
+    "period": "week",
+    "prompt": "current news about small-business operations, cashflow, rent, hiring, inventory and customer demand",
+    "digest": {
+      "id": "refresh-rss-google-news-smb-2026-07-27-weak-signal",
+      "subreddit": "Google News: small business operations",
+      "period": "week",
+      "snapshotDate": "2026-07-27T10:54:14.752Z",
+      "summaryText": "Google News: small business operations rejected: Google News: small business operations passed source relevance but failed quality gate: thin-source-count.",
+      "summary": {
+        "keyTrend": {
+          "title": "Google News: small business operations: weak signal",
+          "desc": "Google News: small business operations passed source relevance but failed quality gate: thin-source-count.",
+          "link": "https://news.google.com/rss/articles/CBMixwFBVV95cUxOU00yMm1ZY295dllfQjBheXNtV2JIMUxyRVBILWdsWS1LV3gyR21ENkxoaU5Vd2QwUmtlSW02OWlRejl3OGtURUNBb2pQVE5EMXdiZVUyRnFHNlBPVnlVYVlkQUQ0VE5KTDRkV20yaFZVOGFhS1hoNE5felFTNHVnaWsxX29zc2FFTEt2U0JyNjVEbUJYY3dScFdheklpTGRTZDl3NmxNTU5ZTHNMOTNmRkNDM2N1MkdWU09hMVVrR0VGNy0xd3Vv?oc=5"
+        },
+        "notableDiscussions": [
+          {
+            "title": "Big Yellow stock trades near yearly high as occupancy and rent growth support earnings - AD HOC NEWS",
+            "desc": "<a href=\"https://news.google.com/rss/articles/CBMixwFBVV95cUxOU00yMm1ZY295dllfQjBheXNtV2JIMUxyRVBILWdsWS1LV3gyR21ENkxoaU5Vd2QwUmtlSW02OWlRejl3OGtURUNBb2pQVE5EMXdiZVUyRnFHNlBPVnlVYVlkQUQ0VE5KTDRkV20yaFZVOGFhS1hoNE5felFTNHVnaWsxX29zc2FFTEt2U0JyNjVEbUJYY3dScFdhek",
+            "link": "https://news.google.com/rss/articles/CBMixwFBVV95cUxOU00yMm1ZY295dllfQjBheXNtV2JIMUxyRVBILWdsWS1LV3gyR21ENkxoaU5Vd2QwUmtlSW02OWlRejl3OGtURUNBb2pQVE5EMXdiZVUyRnFHNlBPVnlVYVlkQUQ0VE5KTDRkV20yaFZVOGFhS1hoNE5felFTNHVnaWsxX29zc2FFTEt2U0JyNjVEbUJYY3dScFdheklpTGRTZDl3NmxNTU5ZTHNMOTNmRkNDM2N1MkdWU09hMVVrR0VGNy0xd3Vv?oc=5"
+          }
+        ],
+        "keyAction": {
+          "title": "Source remediation",
+          "desc": "Google News: small business operations passed source relevance but failed quality gate: thin-source-count.",
+          "link": "https://news.google.com/rss/articles/CBMixwFBVV95cUxOU00yMm1ZY295dllfQjBheXNtV2JIMUxyRVBILWdsWS1LV3gyR21ENkxoaU5Vd2QwUmtlSW02OWlRejl3OGtURUNBb2pQVE5EMXdiZVUyRnFHNlBPVnlVYVlkQUQ0VE5KTDRkV20yaFZVOGFhS1hoNE5felFTNHVnaWsxX29zc2FFTEt2U0JyNjVEbUJYY3dScFdheklpTGRTZDl3NmxNTU5ZTHNMOTNmRkNDM2N1MkdWU09hMVVrR0VGNy0xd3Vv?oc=5"
+        }
+      },
+      "promptUsed": "current news about small-business operations, cashflow, rent, hiring, inventory and customer demand",
+      "sourceCount": 1,
+      "createdAt": "2026-07-27T10:54:14.752Z"
+    },
+    "createdAt": "2026-07-27T10:54:14.752Z",
+    "refreshStatus": "rejected",
+    "refreshReason": "weak-signal"
+  },
+  {
+    "source": "rss",
+    "sourceId": "rss-google-news-india-startups",
+    "label": "Google News: India startups and SMB",
+    "target": "https://news.google.com/rss/search?q=India%20startup%20small%20business%20funding%20jobs%20payments%20regulation&hl=en-IN&gl=IN&ceid=IN:en",
+    "period": "week",
+    "prompt": "India startup and small-business news around funding, jobs, payments, regulation and regional constraints",
+    "digest": {
+      "id": "refresh-rss-google-news-india-startups-2026-07-27-weak-signal",
+      "subreddit": "Google News: India startups and SMB",
+      "period": "week",
+      "snapshotDate": "2026-07-27T10:54:15.312Z",
+      "summaryText": "Google News: India startups and SMB rejected: Google News: India startups and SMB passed source relevance but failed quality gate: thin-source-count.",
+      "summary": {
+        "keyTrend": {
+          "title": "Google News: India startups and SMB: weak signal",
+          "desc": "Google News: India startups and SMB passed source relevance but failed quality gate: thin-source-count.",
+          "link": "https://news.google.com/rss/articles/CBMiXEFVX3lxTFB1N2d4NnYwN0JiU181Tm9vV0dUM1c1NWVMUHNCdlZFVmRSZXpmRFp3TnBQUVJXYnFYV1VlNVBIZXU0TzY4bE5BNTd4NGpIT21aYlZHMy1qSW1HWDFH?oc=5"
+        },
+        "notableDiscussions": [
+          {
+            "title": "Layoff Tracker: CLINUVEL will cut up to 20% of staff, relocate HQ to New York - BioSpace",
+            "desc": "<a href=\"https://news.google.com/rss/articles/CBMiXEFVX3lxTFB1N2d4NnYwN0JiU181Tm9vV0dUM1c1NWVMUHNCdlZFVmRSZXpmRFp3TnBQUVJXYnFYV1VlNVBIZXU0TzY4bE5BNTd4NGpIT21aYlZHMy1qSW1HWDFH?oc=5\" target=\"_blank\">Layoff Tracker: CLINUVEL will cut up to 20% of staff, relocate ",
+            "link": "https://news.google.com/rss/articles/CBMiXEFVX3lxTFB1N2d4NnYwN0JiU181Tm9vV0dUM1c1NWVMUHNCdlZFVmRSZXpmRFp3TnBQUVJXYnFYV1VlNVBIZXU0TzY4bE5BNTd4NGpIT21aYlZHMy1qSW1HWDFH?oc=5"
+          }
+        ],
+        "keyAction": {
+          "title": "Source remediation",
+          "desc": "Google News: India startups and SMB passed source relevance but failed quality gate: thin-source-count.",
+          "link": "https://news.google.com/rss/articles/CBMiXEFVX3lxTFB1N2d4NnYwN0JiU181Tm9vV0dUM1c1NWVMUHNCdlZFVmRSZXpmRFp3TnBQUVJXYnFYV1VlNVBIZXU0TzY4bE5BNTd4NGpIT21aYlZHMy1qSW1HWDFH?oc=5"
+        }
+      },
+      "promptUsed": "India startup and small-business news around funding, jobs, payments, regulation and regional constraints",
+      "sourceCount": 1,
+      "createdAt": "2026-07-27T10:54:15.312Z"
+    },
+    "createdAt": "2026-07-27T10:54:15.312Z",
+    "refreshStatus": "rejected",
+    "refreshReason": "weak-signal"
+  },
+  {
+    "source": "rss",
+    "sourceId": "rss-google-news-consumer-pressure",
+    "label": "Google News: consumer pressure",
+    "target": "https://news.google.com/rss/search?q=consumer%20spending%20rent%20jobs%20subscriptions%20prices%20budget&hl=en-US&gl=US&ceid=US:en",
+    "period": "week",
+    "prompt": "consumer affordability, spending, jobs, rent, subscriptions, prices and budget pressure",
+    "digest": {
+      "id": "refresh-rss-google-news-consumer-pressure-2026-07-27-no-fresh-usable-items",
+      "subreddit": "Google News: consumer pressure",
+      "period": "week",
+      "snapshotDate": "2026-07-27T10:54:15.792Z",
+      "summaryText": "Google News: consumer pressure rejected: No fresh usable items matched Google News: consumer pressure for the week window.",
+      "summary": {
+        "keyTrend": {
+          "title": "Google News: consumer pressure: no fresh usable items",
+          "desc": "No fresh usable items matched Google News: consumer pressure for the week window."
+        },
+        "notableDiscussions": [],
+        "keyAction": {
+          "title": "Source remediation",
+          "desc": "No fresh usable items matched Google News: consumer pressure for the week window."
+        }
+      },
+      "promptUsed": "consumer affordability, spending, jobs, rent, subscriptions, prices and budget pressure",
+      "sourceCount": 0,
+      "createdAt": "2026-07-27T10:54:15.792Z"
+    },
+    "createdAt": "2026-07-27T10:54:15.792Z",
+    "refreshStatus": "rejected",
+    "refreshReason": "no-fresh-usable-items"
+  },
+  {
+    "source": "rss",
+    "sourceId": "rss-google-news-regional-india",
+    "label": "Google News: India regional issues",
+    "target": "https://news.google.com/rss/search?q=India%20city%20traffic%20rent%20jobs%20pollution%20local%20business&hl=en-IN&gl=IN&ceid=IN:en",
+    "period": "week",
+    "prompt": "India city and regional issues around traffic, rent, jobs, pollution and local businesses",
+    "digest": {
+      "id": "refresh-rss-google-news-regional-india-2026-07-27-no-fresh-usable-items",
+      "subreddit": "Google News: India regional issues",
+      "period": "week",
+      "snapshotDate": "2026-07-27T10:54:16.133Z",
+      "summaryText": "Google News: India regional issues rejected: No fresh usable items matched Google News: India regional issues for the week window.",
+      "summary": {
+        "keyTrend": {
+          "title": "Google News: India regional issues: no fresh usable items",
+          "desc": "No fresh usable items matched Google News: India regional issues for the week window."
+        },
+        "notableDiscussions": [],
+        "keyAction": {
+          "title": "Source remediation",
+          "desc": "No fresh usable items matched Google News: India regional issues for the week window."
+        }
+      },
+      "promptUsed": "India city and regional issues around traffic, rent, jobs, pollution and local businesses",
+      "sourceCount": 0,
+      "createdAt": "2026-07-27T10:54:16.133Z"
+    },
+    "createdAt": "2026-07-27T10:54:16.133Z",
+    "refreshStatus": "rejected",
+    "refreshReason": "no-fresh-usable-items"
+  },
+  {
+    "source": "rss",
+    "sourceId": "rss-google-news-us-local-business",
+    "label": "Google News: US local business",
+    "target": "https://news.google.com/rss/search?q=US%20local%20business%20rent%20labor%20permits%20restaurants%20retail&hl=en-US&gl=US&ceid=US:en",
+    "period": "week",
+    "prompt": "US local-business constraints around rent, labor, permits, restaurants, retail and local demand",
+    "digest": {
+      "id": "refresh-rss-google-news-us-local-business-2026-07-27-weak-signal",
+      "subreddit": "Google News: US local business",
+      "period": "week",
+      "snapshotDate": "2026-07-27T10:54:16.522Z",
+      "summaryText": "Google News: US local business rejected: Google News: US local business passed source relevance but failed quality gate: thin-source-count.",
+      "summary": {
+        "keyTrend": {
+          "title": "Google News: US local business: weak signal",
+          "desc": "Google News: US local business passed source relevance but failed quality gate: thin-source-count.",
+          "link": "https://news.google.com/rss/articles/CBMisAFBVV95cUxNcHRVaEtqRTZOdl9zU1BDRDJ1Wi13emJNb2lIVGgzc2JYOGFidXA4ZEdtRzk2SGRYdTEtYjR5VmkzSUNwOHJVa0J5Ylo4WDA5UXBCZzBYeHEtdzJ3RzBmdEdYNWl0bVJuWnpJWlF0ZDBQR1NDcHhxbUNUaWsxWXAtZ2ZEQVV1cVR2U2xkZTE1Ym9JejFSeGEwTG9mSndIVXpjN0RkRllNTUY0U0xvRDRCeQ?oc=5"
+        },
+        "notableDiscussions": [
+          {
+            "title": "Mayor Mamdani Announces \"OPEN for Small Business,\" Over 50 Reforms to Slash Red Tape and Increase Support for Small Businesses - NYC.gov",
+            "desc": "<a href=\"https://news.google.com/rss/articles/CBMisAFBVV95cUxNcHRVaEtqRTZOdl9zU1BDRDJ1Wi13emJNb2lIVGgzc2JYOGFidXA4ZEdtRzk2SGRYdTEtYjR5VmkzSUNwOHJVa0J5Ylo4WDA5UXBCZzBYeHEtdzJ3RzBmdEdYNWl0bVJuWnpJWlF0ZDBQR1NDcHhxbUNUaWsxWXAtZ2ZEQVV1cVR2U2xkZTE1Ym9JejFSeGEwTG9mSn",
+            "link": "https://news.google.com/rss/articles/CBMisAFBVV95cUxNcHRVaEtqRTZOdl9zU1BDRDJ1Wi13emJNb2lIVGgzc2JYOGFidXA4ZEdtRzk2SGRYdTEtYjR5VmkzSUNwOHJVa0J5Ylo4WDA5UXBCZzBYeHEtdzJ3RzBmdEdYNWl0bVJuWnpJWlF0ZDBQR1NDcHhxbUNUaWsxWXAtZ2ZEQVV1cVR2U2xkZTE1Ym9JejFSeGEwTG9mSndIVXpjN0RkRllNTUY0U0xvRDRCeQ?oc=5"
+          }
+        ],
+        "keyAction": {
+          "title": "Source remediation",
+          "desc": "Google News: US local business passed source relevance but failed quality gate: thin-source-count.",
+          "link": "https://news.google.com/rss/articles/CBMisAFBVV95cUxNcHRVaEtqRTZOdl9zU1BDRDJ1Wi13emJNb2lIVGgzc2JYOGFidXA4ZEdtRzk2SGRYdTEtYjR5VmkzSUNwOHJVa0J5Ylo4WDA5UXBCZzBYeHEtdzJ3RzBmdEdYNWl0bVJuWnpJWlF0ZDBQR1NDcHhxbUNUaWsxWXAtZ2ZEQVV1cVR2U2xkZTE1Ym9JejFSeGEwTG9mSndIVXpjN0RkRllNTUY0U0xvRDRCeQ?oc=5"
+        }
+      },
+      "promptUsed": "US local-business constraints around rent, labor, permits, restaurants, retail and local demand",
+      "sourceCount": 1,
+      "createdAt": "2026-07-27T10:54:16.522Z"
+    },
+    "createdAt": "2026-07-27T10:54:16.522Z",
+    "refreshStatus": "rejected",
+    "refreshReason": "weak-signal"
+  },
+  {
+    "source": "rss",
+    "sourceId": "rss-google-news-eu-startups",
+    "label": "Google News: Europe startups and SMB",
+    "target": "https://news.google.com/rss/search?q=Europe%20startup%20small%20business%20funding%20jobs%20regulation%20payments&hl=en-GB&gl=GB&ceid=GB:en",
+    "period": "week",
+    "prompt": "Europe startup and small-business signals around funding, jobs, payments, regulation and market constraints",
+    "digest": {
+      "id": "refresh-rss-google-news-eu-startups-2026-07-27-no-fresh-usable-items",
+      "subreddit": "Google News: Europe startups and SMB",
+      "period": "week",
+      "snapshotDate": "2026-07-27T10:54:16.964Z",
+      "summaryText": "Google News: Europe startups and SMB rejected: No fresh usable items matched Google News: Europe startups and SMB for the week window.",
+      "summary": {
+        "keyTrend": {
+          "title": "Google News: Europe startups and SMB: no fresh usable items",
+          "desc": "No fresh usable items matched Google News: Europe startups and SMB for the week window."
+        },
+        "notableDiscussions": [],
+        "keyAction": {
+          "title": "Source remediation",
+          "desc": "No fresh usable items matched Google News: Europe startups and SMB for the week window."
+        }
+      },
+      "promptUsed": "Europe startup and small-business signals around funding, jobs, payments, regulation and market constraints",
+      "sourceCount": 0,
+      "createdAt": "2026-07-27T10:54:16.964Z"
+    },
+    "createdAt": "2026-07-27T10:54:16.964Z",
+    "refreshStatus": "rejected",
+    "refreshReason": "no-fresh-usable-items"
+  },
+  {
+    "source": "rss",
+    "sourceId": "rss-google-news-ai-regulation",
+    "label": "Google News: AI regulation and agents",
+    "target": "https://news.google.com/rss/search?q=AI%20regulation%20agents%20search%20privacy%20copyright%20enterprise%20software&hl=en-US&gl=US&ceid=US:en",
+    "period": "week",
+    "prompt": "world-level AI regulation, agent, privacy, copyright and enterprise-software changes that affect product requirements",
+    "digest": {
+      "id": "refresh-rss-google-news-ai-regulation-2026-07-27-no-fresh-usable-items",
+      "subreddit": "Google News: AI regulation and agents",
+      "period": "week",
+      "snapshotDate": "2026-07-27T10:54:17.334Z",
+      "summaryText": "Google News: AI regulation and agents rejected: No fresh usable items matched Google News: AI regulation and agents for the week window.",
+      "summary": {
+        "keyTrend": {
+          "title": "Google News: AI regulation and agents: no fresh usable items",
+          "desc": "No fresh usable items matched Google News: AI regulation and agents for the week window."
+        },
+        "notableDiscussions": [],
+        "keyAction": {
+          "title": "Source remediation",
+          "desc": "No fresh usable items matched Google News: AI regulation and agents for the week window."
+        }
+      },
+      "promptUsed": "world-level AI regulation, agent, privacy, copyright and enterprise-software changes that affect product requirements",
+      "sourceCount": 0,
+      "createdAt": "2026-07-27T10:54:17.334Z"
+    },
+    "createdAt": "2026-07-27T10:54:17.334Z",
+    "refreshStatus": "rejected",
+    "refreshReason": "no-fresh-usable-items"
+  },
+  {
+    "source": "rss",
+    "sourceId": "rss-google-news-creator-economy",
+    "label": "Google News: creator and content businesses",
+    "target": "https://news.google.com/rss/search?q=creator%20economy%20small%20business%20subscriptions%20ads%20platform%20income&hl=en-US&gl=US&ceid=US:en",
+    "period": "week",
+    "prompt": "creator and content-business signals around platform shifts, subscriptions, ads, income and small-business monetization",
+    "digest": {
+      "id": "refresh-rss-google-news-creator-economy-2026-07-27-no-fresh-usable-items",
+      "subreddit": "Google News: creator and content businesses",
+      "period": "week",
+      "snapshotDate": "2026-07-27T10:54:17.805Z",
+      "summaryText": "Google News: creator and content businesses rejected: No fresh usable items matched Google News: creator and content businesses for the week window.",
+      "summary": {
+        "keyTrend": {
+          "title": "Google News: creator and content businesses: no fresh usable items",
+          "desc": "No fresh usable items matched Google News: creator and content businesses for the week window."
+        },
+        "notableDiscussions": [],
+        "keyAction": {
+          "title": "Source remediation",
+          "desc": "No fresh usable items matched Google News: creator and content businesses for the week window."
+        }
+      },
+      "promptUsed": "creator and content-business signals around platform shifts, subscriptions, ads, income and small-business monetization",
+      "sourceCount": 0,
+      "createdAt": "2026-07-27T10:54:17.805Z"
+    },
+    "createdAt": "2026-07-27T10:54:17.805Z",
+    "refreshStatus": "rejected",
+    "refreshReason": "no-fresh-usable-items"
   }
 ]
