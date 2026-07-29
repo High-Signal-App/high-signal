@@ -329,12 +329,12 @@ export default async function OpportunitiesPage() {
                     <span className={verdictTone(brief.verdict)}>{brief.verdict}</span>
                     {' · '}
                     {seed.name}
-                    <span className="ml-2 font-mono text-xs text-[var(--color-muted)]">
+                    <span className="mt-2 inline-flex font-mono text-xs text-[var(--color-muted)] sm:ml-2 sm:mt-0">
                       {score}/100
                     </span>
                     {delta && delta.scoreDelta != null && (
                       <span
-                        className={`ml-2 font-mono text-xs ${
+                        className={`ml-2 inline-flex font-mono text-xs ${
                           delta.scoreDelta > 0
                             ? 'text-[var(--color-accent)]'
                             : delta.scoreDelta < 0
@@ -458,7 +458,7 @@ export default async function OpportunitiesPage() {
                     {evidence.evidence.slice(0, 5).map((item) => (
                       <li key={item.url}>
                         <a
-                          className="hover:text-[var(--color-accent)]"
+                          className="inline-flex min-h-11 items-center hover:text-[var(--color-accent)] sm:min-h-0"
                           href={item.url}
                           rel="noreferrer"
                           target="_blank"

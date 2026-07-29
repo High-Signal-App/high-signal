@@ -55,11 +55,11 @@ export default async function TrackRecordPage() {
   const backfillCount = cohorts.backfill.reduce((sum, b) => sum + b.total, 0);
 
   return (
-    <main className="mx-auto max-w-5xl px-6 py-16">
+    <main className="mx-auto max-w-5xl px-5 py-14 sm:px-6 sm:py-16">
       <TrackRecordDatasetJsonLd liveCount={liveCount} backfillCount={backfillCount} />
       <a
         href="/"
-        className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500 hover:text-zinc-300"
+        className="inline-flex min-h-11 items-center font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500 hover:text-zinc-300 sm:min-h-0"
       >
         ← high signal
       </a>
@@ -124,7 +124,7 @@ export default async function TrackRecordPage() {
 
       {isAdmin ? (
         <section className="mt-12">
-          <div className="flex items-baseline justify-between border-b border-zinc-800 pb-3">
+          <div className="flex flex-col gap-2 border-b border-zinc-800 pb-3 sm:flex-row sm:items-baseline sm:justify-between">
             <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">
               raw combined ledger (admin only)
             </h2>
@@ -173,7 +173,7 @@ function CohortBlock({
 
   return (
     <div className="border border-zinc-800 bg-zinc-950/40 p-5">
-      <div className="flex items-baseline justify-between">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-baseline sm:justify-between">
         <h2 className={`font-mono text-[10px] uppercase tracking-[0.2em] ${titleClass}`}>
           {title}
         </h2>
@@ -181,7 +181,7 @@ function CohortBlock({
           {subtitle}
         </span>
       </div>
-      <div className="nums mt-4 flex items-baseline gap-4">
+      <div className="nums mt-4 flex flex-col gap-4 sm:flex-row sm:items-baseline">
         <div>
           <div className="text-3xl font-medium">{formatHitRate(overallHitRate)}</div>
           <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
@@ -244,36 +244,44 @@ function BucketTable({
     );
   }
   return (
-    <table className="mt-2 w-full text-sm">
-      <thead className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
-        <tr>
-          <th className="border-b border-zinc-800 py-2 text-left">type</th>
-          <th className="border-b border-zinc-800 py-2 text-right">n</th>
-          <th className="border-b border-zinc-800 py-2 text-right">hit</th>
-          <th className="border-b border-zinc-800 py-2 text-right">miss</th>
-          <th className="border-b border-zinc-800 py-2 text-right">push</th>
-          <th className="border-b border-zinc-800 py-2 text-right">hit-rate</th>
-        </tr>
-      </thead>
-      <tbody className="nums">
-        {buckets
-          .slice()
-          .sort((a, b) => (b.hitRate ?? 0) - (a.hitRate ?? 0))
-          .map((b) => (
-            <tr key={b.signalType}>
-              <td className="border-b border-zinc-900 py-1.5 font-mono text-xs">{b.signalType}</td>
-              <td className="border-b border-zinc-900 py-1.5 text-right">{b.total}</td>
-              <td className="border-b border-zinc-900 py-1.5 text-right text-emerald-400">
-                {b.hit}
-              </td>
-              <td className="border-b border-zinc-900 py-1.5 text-right text-rose-400">{b.miss}</td>
-              <td className="border-b border-zinc-900 py-1.5 text-right text-zinc-500">{b.push}</td>
-              <td className="border-b border-zinc-900 py-1.5 text-right">
-                {formatHitRate(b.hitRate)}
-              </td>
-            </tr>
-          ))}
-      </tbody>
-    </table>
+    <section className="mt-2 max-w-full overflow-x-auto" aria-label="Signal-type hit-rate ledger">
+      <table className="w-full min-w-[520px] text-sm">
+        <thead className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
+          <tr>
+            <th className="border-b border-zinc-800 py-2 text-left">type</th>
+            <th className="border-b border-zinc-800 py-2 text-right">n</th>
+            <th className="border-b border-zinc-800 py-2 text-right">hit</th>
+            <th className="border-b border-zinc-800 py-2 text-right">miss</th>
+            <th className="border-b border-zinc-800 py-2 text-right">push</th>
+            <th className="border-b border-zinc-800 py-2 text-right">hit-rate</th>
+          </tr>
+        </thead>
+        <tbody className="nums">
+          {buckets
+            .slice()
+            .sort((a, b) => (b.hitRate ?? 0) - (a.hitRate ?? 0))
+            .map((b) => (
+              <tr key={b.signalType}>
+                <td className="border-b border-zinc-900 py-1.5 font-mono text-xs">
+                  {b.signalType}
+                </td>
+                <td className="border-b border-zinc-900 py-1.5 text-right">{b.total}</td>
+                <td className="border-b border-zinc-900 py-1.5 text-right text-emerald-400">
+                  {b.hit}
+                </td>
+                <td className="border-b border-zinc-900 py-1.5 text-right text-rose-400">
+                  {b.miss}
+                </td>
+                <td className="border-b border-zinc-900 py-1.5 text-right text-zinc-500">
+                  {b.push}
+                </td>
+                <td className="border-b border-zinc-900 py-1.5 text-right">
+                  {formatHitRate(b.hitRate)}
+                </td>
+              </tr>
+            ))}
+        </tbody>
+      </table>
+    </section>
   );
 }

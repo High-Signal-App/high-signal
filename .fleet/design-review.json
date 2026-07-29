@@ -2,7 +2,7 @@
   "$schema": "fleet.design-review.v1",
   "version": 1,
   "project": "high-signal",
-  "target": "/changelog owned product history",
+  "target": "mobile sectors, opportunities, labels, and track-record ledgers",
   "mode": "preserve",
   "register": "product",
   "context": {
@@ -14,21 +14,33 @@
     "probes": [],
     "selected": "existing-design",
     "approval": "not-required",
-    "before": ".fleet/evidence/changelog/before-1440.png"
+    "before": ".fleet/evidence/mobile-ledgers/before-1440.png"
   },
   "evidence": {
     "screenshots": [
       {
         "width": 390,
-        "path": ".fleet/evidence/changelog/after-390.png"
+        "path": ".fleet/evidence/mobile-ledgers/after-sectors-390.png"
+      },
+      {
+        "width": 390,
+        "path": ".fleet/evidence/mobile-ledgers/after-opportunities-390.png"
+      },
+      {
+        "width": 390,
+        "path": ".fleet/evidence/mobile-ledgers/after-track-record-390.png"
+      },
+      {
+        "width": 390,
+        "path": ".fleet/evidence/mobile-ledgers/after-labels-390.png"
       },
       {
         "width": 768,
-        "path": ".fleet/evidence/changelog/after-768.png"
+        "path": ".fleet/evidence/mobile-ledgers/after-sectors-768.png"
       },
       {
         "width": 1440,
-        "path": ".fleet/evidence/changelog/after-1440.png"
+        "path": ".fleet/evidence/mobile-ledgers/after-sectors-1440.png"
       }
     ],
     "projectCheck": {
@@ -36,7 +48,7 @@
       "status": "pass"
     },
     "critique": {
-      "score": 36,
+      "score": 37,
       "maximum": 40
     },
     "audit": {
@@ -50,10 +62,17 @@
     "detector": {
       "posture": "advisory",
       "findings": []
+    },
+    "browserReview": {
+      "tool": "Browser control",
+      "viewports": [390, 768, 1440],
+      "horizontalOverflow": false,
+      "consoleErrors": 0,
+      "note": "All four named mobile ledger routes remain page-contained at 390px; dense tables scroll within labeled regions and long evidence titles wrap."
     }
   },
   "ownerFeedback": {
     "decision": "delegated",
-    "note": "The owner delegated the cross-project changelog implementation while preserving each product's established visual system."
+    "note": "The owner explicitly delegated final judgment for the responsive remediation wave; the locked zinc, cyan, mono, and 1px-line visual system was preserved."
   }
 }

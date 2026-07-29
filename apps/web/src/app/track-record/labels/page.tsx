@@ -104,49 +104,54 @@ export default async function LabelTrackRecord() {
             </div>
           </section>
 
-          <table className="mt-6 w-full text-sm">
-            <thead className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
-              <tr className="border-b border-zinc-800">
-                <th className="py-2 text-left">label</th>
-                <th className="py-2 text-left">n</th>
-                <th className="py-2 text-left">hits</th>
-                <th className="py-2 text-left">rate</th>
-                <th className="py-2 text-left">lift</th>
-                <th className="py-2 text-left">vs baseline</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr key={r.key} className="border-b border-zinc-900">
-                  <td className="py-3 align-top">
-                    <div className="font-mono text-zinc-100">{r.label}</div>
-                    <div className="text-xs text-zinc-500">{r.desc}</div>
-                  </td>
-                  <td className="py-3 align-top font-mono text-zinc-300">{r.stats.n}</td>
-                  <td className="py-3 align-top font-mono text-zinc-300">{r.stats.hits}</td>
-                  <td className="py-3 align-top font-mono">
-                    <span
-                      className={
-                        r.stats.rate > data.baseline.rate
-                          ? 'text-emerald-300'
-                          : r.stats.rate < data.baseline.rate
-                            ? 'text-red-300'
-                            : 'text-zinc-300'
-                      }
-                    >
-                      {fmtPct(r.stats.rate)}
-                    </span>
-                  </td>
-                  <td className="py-3 align-top font-mono text-zinc-300">
-                    {fmtLift(r.stats.lift)}
-                  </td>
-                  <td className="py-3 align-top">
-                    <Bar rate={r.stats.rate} baselineRate={data.baseline.rate} />
-                  </td>
+          <section
+            className="mt-6 max-w-full overflow-x-auto"
+            aria-label="Convergence label backtest"
+          >
+            <table className="w-full min-w-[620px] text-sm">
+              <thead className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
+                <tr className="border-b border-zinc-800">
+                  <th className="py-2 text-left">label</th>
+                  <th className="py-2 text-left">n</th>
+                  <th className="py-2 text-left">hits</th>
+                  <th className="py-2 text-left">rate</th>
+                  <th className="py-2 text-left">lift</th>
+                  <th className="py-2 text-left">vs baseline</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {rows.map((r) => (
+                  <tr key={r.key} className="border-b border-zinc-900">
+                    <td className="py-3 align-top">
+                      <div className="font-mono text-zinc-100">{r.label}</div>
+                      <div className="text-xs text-zinc-500">{r.desc}</div>
+                    </td>
+                    <td className="py-3 align-top font-mono text-zinc-300">{r.stats.n}</td>
+                    <td className="py-3 align-top font-mono text-zinc-300">{r.stats.hits}</td>
+                    <td className="py-3 align-top font-mono">
+                      <span
+                        className={
+                          r.stats.rate > data.baseline.rate
+                            ? 'text-emerald-300'
+                            : r.stats.rate < data.baseline.rate
+                              ? 'text-red-300'
+                              : 'text-zinc-300'
+                        }
+                      >
+                        {fmtPct(r.stats.rate)}
+                      </span>
+                    </td>
+                    <td className="py-3 align-top font-mono text-zinc-300">
+                      {fmtLift(r.stats.lift)}
+                    </td>
+                    <td className="py-3 align-top">
+                      <Bar rate={r.stats.rate} baselineRate={data.baseline.rate} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </section>
 
           <p className="mt-6 text-xs text-zinc-500">
             Bar: solid = label hit-rate, vertical tick = baseline. To the right of the tick means
