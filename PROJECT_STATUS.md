@@ -90,6 +90,11 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 
 ## Timeline
 
+- **2026-07-29 — Owned product changelog:** added a same-origin
+  `/changelog` that turns verified shipped milestones into concise,
+  user-visible outcomes. The site footer now makes it discoverable and routes
+  Roadmap to GitHub Issues and Source to the canonical repository; no runtime,
+  data, or deployment behavior changed.
 - **2026-07-25** — Cancelled the deferred Knowledgebase integration plan. High
   Signal does not currently need private-corpus search: its public evidence,
   signals, and Daily Brief already use the product-owned Git + D1 path.

@@ -13,6 +13,7 @@ const PRODUCT: FooterLink[] = [
   { href: '/signals', label: 'Signals' },
   { href: '/track-record', label: 'Track record' },
   { href: '/watchlist/entities', label: 'Watched entities' },
+  { href: '/changelog', label: 'Changelog' },
 ];
 
 const LENSES: FooterLink[] = [
@@ -66,6 +67,18 @@ export function SiteFooter() {
             </a>
             <a href="https://sassmaker.com" className="hover:text-[var(--color-fg)]">
               Foundry
+            </a>
+            <a
+              href="https://github.com/High-Signal-App/high-signal/issues"
+              className="hover:text-[var(--color-fg)]"
+            >
+              Roadmap
+            </a>
+            <a
+              href="https://github.com/High-Signal-App/high-signal"
+              className="hover:text-[var(--color-fg)]"
+            >
+              Source
             </a>
             <a href={`${SITE_URL}/signals/rss`} className="hover:text-[var(--color-fg)]">
               Signals RSS
