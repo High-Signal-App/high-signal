@@ -275,7 +275,7 @@ export function FeedList({
             <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
               {item.kicker}
             </div>
-            <div className="mt-2 text-lg">{item.title}</div>
+            <div className="mt-2 break-words text-lg">{item.title}</div>
             {item.body ? (
               <p className="mt-2 text-sm leading-6 text-[var(--color-muted)]">{item.body}</p>
             ) : null}
