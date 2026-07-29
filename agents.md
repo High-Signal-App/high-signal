@@ -2,8 +2,8 @@
 
 > Concise agent bootloader. Deep detail lives in [`docs/`](docs/) — see
 > [`docs/index.md`](docs/index.md) for the full map. Day-to-day status:
-> [`STATUS.md`](STATUS.md) (short) and [`PROJECT_STATUS.md`](PROJECT_STATUS.md)
-> (detailed ledger). Full product spec: [`SPEC.md`](SPEC.md).
+> [`PROJECT_STATUS.md`](PROJECT_STATUS.md) (current/shipped product truth).
+> Full product spec: [`SPEC.md`](SPEC.md); open work lives in GitHub Issues.
 
 ## Shared Fleet Standard
 
@@ -13,8 +13,8 @@ changes scoped, verify work, and record durable follow-up tasks when something
 remains incomplete or blocked.
 
 Before broad product or architecture work, read [`PROJECT_STATUS.md`](PROJECT_STATUS.md).
-Update it (and [`STATUS.md`](STATUS.md)) whenever active scope, shipped features,
-planned work, or deferred work changes.
+Update it when durable current/shipped truth changes. Track planned, deferred,
+and blocked work in GitHub Issues.
 
 ## Purpose
 

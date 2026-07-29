@@ -313,58 +313,8 @@ Python adapters under `python/ingest/src/high_signal_ingest/sources/` — all wi
   credential change, or production deploy. Closes the `automate-high-signal`
   OpenSpec change.
 
-## Todo / Planned / Deferred / Blocked
+## Work queue
 
-### Planned
-
-0. **Cloudflare CPU abuse incident mitigated (2026-07-12):** Workers analytics
-   attributed more than 90% of billing-period CPU to `high-signal-web` and
-   `high-signal-api`. A live trace identified a single unverified hosting-ASN
-   scanner issuing random page/date combinations over plain HTTP at roughly
-   166k requests/day since July 3. The web Worker now rejects the evidenced
-   source before OpenNext and redirects all other HTTP requests to HTTPS before
-   application execution. A second live trace showed verified GPTBot walking
-   unbounded historical `/data/*` and `/daily*` combinations; verified AI
-   crawlers now retain reader-facing content but receive a cheap 404 on those
-   query-heavy history surfaces, which are also excluded in `robots.txt`. Keep
-   the exact-IP guard until traffic remains normal for a full billing cycle;
-   prefer a Cloudflare WAF rule when zone-level rules permission is available.
-
-1. **Remaining source API keys (manual signup needed):** `FRED_API_KEY` (macro rates — highest value, 2 min signup), `ETHERSCAN_API_KEY` (Ethereum gas, 2 min), `COMPANIES_HOUSE_API_KEY` (UK filings, 3 min). All others have keyless alternatives or are niche — see session notes. AgentMail inbox `highsignal-keys@agentmail.to` is set up for registrations.
-3. **Plan 0009 follow-up:** Complete Email Routing setup (DKIM/SPF + `EMAIL_FROM`) before cron sends real mail. Remote migration 0019 is applied. Checked-in surfaces are otherwise complete: the `*/30` cron is fail-closed and idempotent, automatic failures persist and enforce their next eligible attempt, live-brief compose feeds email/private RSS/private Atom/compact JSON, failed rows are retryable from the owner UI, one-click unsubscribe (HMAC token, RFC 8058 `List-Unsubscribe`) works from any mail client, and 3 consecutive failed rows auto-disable a channel.
-6. Clarify event semantics — `normalized_events` vs current `events` as source observations.
-7. Keep source pipeline small and quality-gated; run `pnpm source:quality` after full ingest.
-8. Promote `/unmapped` candidates into seed CSV; expand curated adapter lists before new firehoses.
-9. Tighten brief quality — evidence links, hit-rate context, cull weak inputs.
-14. **Evidence attribution — DONE (2026-07-04, credibility-critical).** The live `/brief/daily` (2026-07-04) showed evidence URLs mis-attributed to the wrong entity: HCL `design_win` cited a Bajaj Housing Finance article; Alphabet `capex` cited `crates.io/hashbrown`; Intel `partnership` led with Manifold prediction markets. Root cause: attribution (`_event_entity` → `primary_entity`) scanned the full scraped body (`content[:4000]`) and returned the alphabetically-first gazetteer hit, so a single incidental mention in a "top movers" widget / related-article rail / crate description won. Fixed across three layers:
-    - **Attribution** (`extract/entities.py`): `primary_entity` is now title-weighted (`entity_scores`: title match ×4 + body ×1) with a min-strength floor (`_MIN_PRIMARY_SCORE=2`) — an entity mentioned once outside the title is too incidental to own the event → returns None. `_event_entity` scores title + an 800-char lead only (not `[:4000]`). Adapter-assigned `primary_entity_id` (filings/IR) stays authoritative.
-    - **Evidence relevance** (`generator.py` `_relevant_events`, applied in `generate` + `generate_batch`): drops an event from a candidate's evidence when its title+lead names *other* tracked entities but neither the subject nor a spillover candidate. Conservative — events naming no tracked entity (bare filings) are kept.
-    - **Display** (`brief.ts` `rankEvidenceUrls`, shipped earlier): the two citations a reader sees lead with the strongest/on-topic source.
-    - **Market handling** (deployed follow-ups): `rankEvidenceUrls` demotes prediction markets below all non-market evidence (crowd opinion never *leads* a claim), and `buildStocks` drops prediction-market-only signals at read time — a live check found a published Intel signal evidenced entirely by Manifold that the draft-time KILL rule had missed. Canonical `isPredictionMarketOnly` + `PREDICTION_MARKET_DOMAINS` now live in `@high-signal/shared`, shared with `auto-publish-rules.ts` (single source of truth).
-    Tests: `tests/test_entity_attribution.py` (11) + `scripts/evidence-ranking.test.ts` (19). **Declined:** a full entity-relevance floor in `auto-publish-rules.ts` — it would duplicate the gazetteer in TS; generation-layer filtering is the correct home for topical relevance.
-13. **FINRA short interest (deferred — feasible, fiddly):** free + non-scraping positioning signal (days-to-cover, squeeze risk; maps to tickers). API confirmed accessible at `api.finra.org/data/group/otcMarket/name/consolidatedShortInterest?format=json` (returns real rows at small limits), but the data-platform API caps `limit` low, rate-limits aggressively, and needs offset-pagination + a latest-settlement-period filter to surface notable shorts. Needs a focused pass with proper pagination + backoff; not worth blocking the clean sources. Reopen when wanted.
-10. **Entity-less thematic municipal signals — DONE (2026-06-26).** `run()` no longer discards entity-less events: after the entity loop, `_emit_thematic_drafts` clusters them by theme (`grouping.classify_themes`), and themes in `_THEME_SIGNALS` (currently `data-center-buildout` → `THEME_DATACENTER`/`data_center_buildout`) emit a thematic signal **only when backed by ≥2 distinct sources AND ≥2 distinct URLs** (cite-or-kill). Keyed to a seeded `THEME_DATACENTER` pseudo-entity (type=sector, FK-valid, excluded from the gazetteer so it's never *detected* from text). Uses `generator.thematic_candidate` (a real evidence body, not the auto-killed "fallback" marker), so it can publish on its own merit. Additive — never affects the entity path. Add more themes by extending `_THEME_SIGNALS` + seeding a `THEME_*` row. This also unblocks the Tier-B scrapers (NoVA/fab-town records, also entity-less) whenever they're built.
-11. **Common-word ticker/alias collisions in the entity gazetteer — DONE (2026-06-26).** `entity_gazetteer` auto-added every ticker as a case-insensitive word-match, so common-English-word tickers polluted the map across **all** text sources (`net`→Cloudflare on "net income", `meta`→Meta on "meta-learning", plus `onto`/`form`/`snow`/`arm`). Fixed in `extract/entities.py` with **case-aware matching**: these six match only the uppercase/`$`-prefixed ticker form (the unambiguous company ref), not the lowercase word; each still resolves via its distinctive full name (Cloudflare, Snowflake, FormFactor, Onto Innovation, Arm Holdings, Meta Platforms/Facebook). Bare-alias cases `TOGETHER`/`SANCTUARY` fixed earlier by tightening aliases.
-12. **RedShip-style engagement layer (partial — scorer shipped, rest deferred):** redship.io = Reddit monitoring → 0-100 relevance scoring → daily opportunity inbox → reply drafts → SEO-ranking → alerts. Mapping to High Signal: monitoring + scoring + inbox is **shipped** as `opportunities.py` (deterministic, over all community sources, generalised beyond Reddit). Already-existing analogues: the **Mentions** lens (brand/competitor monitoring, checks), **Communities** lens (tracked subs, digests), and the brand-connected Brief sections 4/5. **Net-new pieces:** (a) auto-keyword generation from a submitted website — deferred; (b) **LLM reply-draft suggestions — DONE** (`opportunities.draft_reply`, via the OpenAI-compatible gateway; operator *suggestions*, not auto-posts; `None` without a key; CLI `--reply --brand --brand-blurb`); (c) SEO-opportunity detection (posts ranking on Google) — deferred (needs SERP data); (d) real-time Slack/email/webhook alerts — deferred (worker/Mentions surface). **Reopening trigger for the deferred pieces:** a brand is connected and wants actionable engagement on the web surface.
-13. **Plan 0012 — DONE:** remote migration 0014 is applied. The intent inbox, best-effort evidence-task linking, defensive post-check refresh, report section, operator-reviewed AI reply drafts, and intent-aware brief output are in place.
-15. **Plan 0013 — India D2C Opportunity Pipeline (Slices 1–4 DONE 2026-07-08):** 20 curated India D2C niches → deterministic 0–100 score → `test/watch/avoid` verdict → `OpportunityBriefPayload` rendered in `/opportunities` and Daily Brief section 02 (south-asia: 3, global: 1 rotating). Weekly Python collector writes cited JSON artifacts; `pnpm d2c:bundle` bundles the latest into the shared package. **Slice 3 (DONE 2026-07-08):** D1 persistence via `d2c_niches` / `d2c_niche_snapshots` tables (migration 0016), score deltas + verdict-change trends + aging rendered in `/opportunities`, weekly GitHub Actions cron (Mondays 07:00 UTC). **Slice 4 (DONE 2026-07-08):** agent-visibility overlay — `d2c_agent_visibility` table, Python runner asks each AI assistant "best <category> brands in India for <target user>?", extracts recommended brands + cited URLs, computes a 0–1 gap score; the brief overrides `agentVisibilityScore` with the more-recent overlay gap and `/opportunities` renders "AI recommends: <brands>" or "no brand named — wide-open". No impuls8 data, no paid sources. **Operator step to light up the overlay:** set `AI_API_KEY` on the GitHub Actions secrets (or run `pnpm d2c:agent-visibility` locally with `AI_API_KEY` exported); without it the overlay records gap=1 "wide-open" entries.
-
-### Deferred
-
-- **Lab** — local discovery substrate only; not product infrastructure.
-- **Personal/operator cockpit** — `/personal` internal tooling.
-- **Standalone equities UI** — data feeds brief, not a stock terminal.
-- **Standalone communities product** — digest input to ideas/trends only.
-- **Broad source expansion** — only when corroboration, novelty, entity coverage, or hit-rate improves.
-- **Paid plans / billing** — until usage proves willingness to pay.
-- **Per-platform Mentions/Agent Eval fan-out** — single OpenAI-compatible endpoint today.
-- **Knowledgebase integration** — separate fleet service; no dependency yet.
-- **Signal Studio / marketing playgrounds** — discussed in README; not scoped.
-
-### Blocked
-
-- Brief delivery still requires `EMAIL_FROM`, `API_BASE`, Email Routing, and destination verification before cron sends real mail; remote migration 0019 is complete.
-- USPTO PatentsView in ODP transition may return no events.
-- Worker `scheduled` handler no-ops unless `MODAL_TRIGGER_URL` set; daily ingest/scoring primary path is GitHub Actions.
-- `send_email` binding declared in `workers/api/wrangler.toml`; operator checklist in file comments.
-- Production: Cloudflare Workers; no secrets in repo. Modal retained for manual long backfills only.
+Open work is tracked only in [GitHub Issues](https://github.com/High-Signal-App/high-signal/issues).
+An open issue is a to-do, a linked pull request is in progress, and merge plus
+issue closure makes the work done.
