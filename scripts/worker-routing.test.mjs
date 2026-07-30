@@ -63,5 +63,14 @@ assert.doesNotMatch(
   /export const dynamic = ['"]force-dynamic['"];/,
   '/history must not force request-time rendering'
 );
+assert.doesNotMatch(
+  historyPage,
+  /being worked on|planned/i,
+  '/history must not expose work-in-progress copy'
+);
+
+for (const route of ['/track-record', '/daily/history', '/markets/history', '/brief/archive']) {
+  assert.ok(historyPage.includes(route), `/history must link to the live ${route} surface`);
+}
 
 console.log('Worker routing contract passed.');
