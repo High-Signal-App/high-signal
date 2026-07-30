@@ -1,116 +1,339 @@
-/**
- * Portable agent-edge handler — copy or generate into each product.
- * Spec: fleet-ops/docs/agent-indexing-standard.md
- *
- * Usage in worker.mjs (before openNext.fetch):
- *   import { handleAgentEdge } from './agent-edge.mjs'
- *   const agent = handleAgentEdge(request)
- *   if (agent) return agent
- */
+import {
+  PUBLIC_DYNAMIC_ROUTE_TEMPLATES,
+  PUBLIC_STATIC_ROUTES,
+  isPublicHtmlPath,
+  normalizePublicPath,
+} from './public-route-registry.mjs';
 
-/** @type {{ name: string, url: string, llmsTxt: string, llmsFullTxt?: string, indexMd: string, catalog: object }} */
-// biome-ignore format: generated payload from apply-agent-surfaces (JSON keys/quotes)
-export const AGENT_SURFACE = {
-  "name": "High Signal",
-  "url": "https://highsignal.app",
-  "llmsFullTxt": "# High Signal — full agent brief\n\nDaily synthesized brief on technology, startups, and finance — five sections with inline hit-rates, no signup required.\n\n## Index\n\n# High Signal\n\nDaily synthesized intelligence brief on technology, startups, and finance.\n\n## What it is\n\n- Five-section composed brief at `/` and `/brief`\n- Inline hit-rates on market calls\n- Public track record and methodology pages\n- Free, no signup for the brief\n\n## Who it's for\n\nOperators and investors who want a high-signal daily read instead of raw feed noise.\n\n## Agent entrypoints\n\n- https://highsignal.app/llms.txt\n- https://highsignal.app/api/ai\n- https://highsignal.app/index.md\n- RSS: https://highsignal.app/signals/rss\n\n## Product links\n\n- Daily brief: https://highsignal.app/ — Primary composed brief\n- Track record: https://highsignal.app/track-record — Public hit-rate ledger\n- Markets: https://highsignal.app/markets — Market signals\n\n## Machine surfaces\n\n- https://highsignal.app/llms.txt\n- https://highsignal.app/llms-full.txt\n- https://highsignal.app/api/ai\n- https://highsignal.app/index.md\n- https://highsignal.app/sitemap.xml\n- https://highsignal.app/robots.txt\n\n## Contact / fleet\n\n- Fleet: https://sassmaker.com\n- Agent email for directory verification: sarthakagrawal@agentmail.to\n",
-  "llmsTxt": "# High Signal\n\n> Daily synthesized brief on technology, startups, and finance — five sections with inline hit-rates, no signup required.\n\n## Product\n\n- [Daily brief](https://highsignal.app/): Primary composed brief\n- [Track record](https://highsignal.app/track-record): Public hit-rate ledger\n- [Markets](https://highsignal.app/markets): Market signals\n\n## Machine surfaces\n\n- [Agent catalog](https://highsignal.app/api/ai): JSON inventory of public surfaces\n- [Homepage markdown](https://highsignal.app/index.md): Product brief without JS\n- [This index](https://highsignal.app/llms.txt)\n\n## Optional\n\n- [Foundry](https://sassmaker.com): Parent fleet showcase\n",
-  "indexMd": "# High Signal\n\nDaily synthesized intelligence brief on technology, startups, and finance.\n\n## What it is\n\n- Five-section composed brief at `/` and `/brief`\n- Inline hit-rates on market calls\n- Public track record and methodology pages\n- Free, no signup for the brief\n\n## Who it's for\n\nOperators and investors who want a high-signal daily read instead of raw feed noise.\n\n## Agent entrypoints\n\n- https://highsignal.app/llms.txt\n- https://highsignal.app/api/ai\n- https://highsignal.app/index.md\n- RSS: https://highsignal.app/signals/rss\n",
-  "catalog": {
-    "name": "High Signal",
-    "version": "1",
-    "url": "https://highsignal.app",
-    "llms": "https://highsignal.app/llms.txt",
-    "llmsFull": "https://highsignal.app/llms-full.txt",
-    "sitemap": "https://highsignal.app/sitemap.xml",
-    "robots": "https://highsignal.app/robots.txt",
-    "markdown": {
-      "suffix": ".md",
-      "negotiation": true
-    },
-    "surfaces": [
-      {
-        "id": "home",
-        "url": "https://highsignal.app/",
-        "md": "https://highsignal.app/index.md",
-        "kind": "static",
-        "description": "Product home"
-      },
-      {
-        "id": "daily-brief",
-        "url": "https://highsignal.app/",
-        "md": null,
-        "kind": "static",
-        "description": "Primary composed brief"
-      },
-      {
-        "id": "track-record",
-        "url": "https://highsignal.app/track-record",
-        "md": null,
-        "kind": "static",
-        "description": "Public hit-rate ledger"
-      },
-      {
-        "id": "markets",
-        "url": "https://highsignal.app/markets",
-        "md": null,
-        "kind": "static",
-        "description": "Market signals"
-      }
-    ],
-    "auth": {
-      "public": true,
-      "notes": "Auth-walled app routes are not agent-indexed unless listed here."
-    }
-  }
+const PRODUCT = {
+  name: 'High Signal',
+  url: 'https://highsignal.app',
+  summary:
+    'Daily synthesized brief on technology, startups, and finance with cited evidence and a public hit-rate ledger.',
 };
 
-/**
- * @param {Request} request
- * @returns {Response | null}
- */
+const INDEX_MARKDOWN = `# High Signal
+
+High Signal turns noisy public evidence into one daily synthesized brief across
+technology, startups, markets, buyer intent, brand perception, and product
+opportunities.
+
+## Evidence contract
+
+- Published signals require at least two cited sources.
+- Predictions carry direction, confidence, and a maturity window.
+- Matured calls feed a public hit-rate ledger.
+- Corrections are additive and cite the prior signal.
+- Prediction-market probabilities are context, not equity prices.
+
+## Main product surfaces
+
+- [Daily Brief](https://highsignal.app/brief)
+- [Published signals](https://highsignal.app/signals)
+- [Track record](https://highsignal.app/track-record)
+- [Methodology](https://highsignal.app/methodology)
+- [Company universe](https://highsignal.app/case-studies)
+- [Markets](https://highsignal.app/markets)
+- [Mentions and AI visibility](https://highsignal.app/mentions)
+- [Agent Eval](https://highsignal.app/agent-eval)
+- [Changelog](https://highsignal.app/changelog)
+
+## Machine surfaces
+
+- [Agent catalog](https://highsignal.app/api/ai)
+- [Short agent index](https://highsignal.app/llms.txt)
+- [Full agent brief](https://highsignal.app/llms-full.txt)
+- [Canonical sitemap](https://highsignal.app/sitemap.xml)
+- [Signals RSS](https://highsignal.app/signals/rss)
+`;
+
+const LLMS_MARKDOWN = `# High Signal
+
+> ${PRODUCT.summary}
+
+## Start here
+
+- [Daily Brief](https://highsignal.app/brief)
+- [Signals](https://highsignal.app/signals)
+- [Track record](https://highsignal.app/track-record)
+- [Methodology](https://highsignal.app/methodology)
+- [Agent catalog](https://highsignal.app/api/ai)
+
+Every canonical public HTML route has a Markdown alternate. Large dynamic
+corpora use the templates declared by the agent catalog.
+`;
+
+const LLMS_FULL_MARKDOWN = `${INDEX_MARKDOWN}
+
+## Dynamic public corpora
+
+- Dated Daily Brief archives
+- Published signal detail pages
+- Entity and entity-month archives
+- Signal-type taxonomies
+- Company-universe profiles and pagination
+
+These Markdown responses are rendered from the same server-side product output
+as the human page. Private review, admin, authentication, personal, delivery,
+and JSON machinery is excluded.
+
+## Data resources
+
+- https://highsignal.app/signals/rss
+- https://highsignal.app/signals/atom
+- https://highsignal.app/digest/rss
+- https://highsignal.app/digest/atom
+- https://highsignal.app/signals.json
+- https://highsignal.app/entities.json
+- https://highsignal.app/data/hit-rate.json
+`;
+
+function catalogForOrigin(origin) {
+  const staticSurfaces = PUBLIC_STATIC_ROUTES.map((route) => ({
+    id: route.path === '/' ? 'home' : route.path.slice(1).replaceAll('/', '-'),
+    url: `${origin}${route.path}`,
+    md: route.path === '/' ? `${origin}/index.md` : `${origin}${route.path}.md`,
+    kind: 'static',
+    description: route.description,
+  }));
+  const templates = PUBLIC_DYNAMIC_ROUTE_TEMPLATES.map((route) => ({
+    id: route.id,
+    urlTemplate: `${origin}${route.html}`,
+    mdTemplate: `${origin}${route.markdown}`,
+    kind: 'dynamic-template',
+    description: route.description,
+  }));
+
+  return {
+    name: PRODUCT.name,
+    version: '2',
+    url: origin,
+    llms: `${origin}/llms.txt`,
+    llmsFull: `${origin}/llms-full.txt`,
+    sitemap: `${origin}/sitemap.xml`,
+    robots: `${origin}/robots.txt`,
+    markdown: {
+      suffix: '.md',
+      negotiation: true,
+    },
+    surfaces: staticSurfaces,
+    templates,
+    dataResources: [
+      {
+        id: 'signals-rss',
+        url: `${origin}/signals/rss`,
+        kind: 'rss',
+        description: 'Published signal feed.',
+      },
+      {
+        id: 'signals-atom',
+        url: `${origin}/signals/atom`,
+        kind: 'atom',
+        description: 'Published signal feed.',
+      },
+      {
+        id: 'digest-rss',
+        url: `${origin}/digest/rss`,
+        kind: 'rss',
+        description: 'Public digest feed.',
+      },
+      {
+        id: 'hit-rate-json',
+        url: `${origin}/data/hit-rate.json`,
+        kind: 'json',
+        description: 'Public hit-rate ledger data.',
+      },
+    ],
+    auth: {
+      public: true,
+      notes:
+        'Only public reader surfaces are cataloged. Review, admin, auth, personal, delivery, and private feeds are excluded.',
+    },
+  };
+}
+
 export function handleAgentEdge(request) {
   if (request.method !== 'GET' && request.method !== 'HEAD') return null;
   const url = new URL(request.url);
-  const path = url.pathname === '' ? '/' : url.pathname;
+  const path = normalizePublicPath(url.pathname);
 
   if (path === '/llms.txt') {
-    return text(AGENT_SURFACE.llmsTxt, 'text/plain; charset=utf-8');
+    return text(request, LLMS_MARKDOWN, 'text/plain; charset=utf-8');
   }
-  if (path === '/llms-full.txt' && AGENT_SURFACE.llmsFullTxt) {
-    return text(AGENT_SURFACE.llmsFullTxt, 'text/plain; charset=utf-8');
+  if (path === '/llms-full.txt') {
+    return text(request, LLMS_FULL_MARKDOWN, 'text/plain; charset=utf-8');
   }
   if (path === '/index.md') {
-    return text(AGENT_SURFACE.indexMd, 'text/markdown; charset=utf-8');
+    return text(request, INDEX_MARKDOWN, 'text/markdown; charset=utf-8');
   }
-  if (path === '/api/ai') {
-    // Re-bind origin so preview/custom domains stay correct
-    const catalog = {
-      ...AGENT_SURFACE.catalog,
-      url: url.origin,
-      llms: `${url.origin}/llms.txt`,
-      llmsFull: `${url.origin}/llms-full.txt`,
-      sitemap: AGENT_SURFACE.catalog.sitemap
-        ? String(AGENT_SURFACE.catalog.sitemap).replace(AGENT_SURFACE.url, url.origin)
-        : `${url.origin}/sitemap.xml`,
-      surfaces: (AGENT_SURFACE.catalog.surfaces || []).map((s) => ({
-        ...s,
-        url: s.url ? String(s.url).replace(AGENT_SURFACE.url, url.origin) : s.url,
-        md: s.md ? String(s.md).replace(AGENT_SURFACE.url, url.origin) : s.md,
-      })),
-    };
-    return json(catalog);
+  if (path === '/api/ai' || path === '/api-ai.json') {
+    return json(request, catalogForOrigin(url.origin));
   }
 
-  // Homepage markdown negotiation
-  if ((path === '/' || path === '') && wantsMarkdown(request)) {
-    return text(AGENT_SURFACE.indexMd, 'text/markdown; charset=utf-8', {
+  if (path === '/' && wantsMarkdown(request)) {
+    return text(request, INDEX_MARKDOWN, 'text/markdown; charset=utf-8', {
       Link: '</index.md>; rel="alternate"; type="text/markdown"',
       Vary: 'Accept',
     });
   }
 
   return null;
+}
+
+export function resolvePublicMarkdownTarget(request) {
+  if (request.method !== 'GET' && request.method !== 'HEAD') return null;
+  const url = new URL(request.url);
+  const normalized = normalizePublicPath(url.pathname);
+  let publicPath = normalized;
+  let suffixRequest = false;
+
+  if (normalized.endsWith('.md')) {
+    publicPath = normalizePublicPath(normalized.slice(0, -3));
+    suffixRequest = true;
+  } else if (!wantsMarkdown(request)) {
+    return null;
+  }
+
+  if (!isPublicHtmlPath(publicPath)) return null;
+  return {
+    publicPath,
+    suffixRequest,
+    markdownPath: publicPath === '/' ? '/index.md' : `${publicPath}.md`,
+  };
+}
+
+export async function handleRenderedMarkdown(request, renderHtml) {
+  const target = resolvePublicMarkdownTarget(request);
+  if (!target) return null;
+
+  const htmlUrl = new URL(request.url);
+  htmlUrl.pathname = target.publicPath;
+  const headers = new Headers(request.headers);
+  headers.set('Accept', 'text/html');
+  headers.set('x-high-signal-agent-render', 'markdown');
+  const htmlRequest = new Request(htmlUrl, {
+    method: 'GET',
+    headers,
+  });
+  const rendered = await renderHtml(htmlRequest);
+  const contentType = rendered.headers.get('content-type') ?? '';
+
+  if (!rendered.ok || !contentType.includes('text/html')) {
+    return new Response(request.method === 'HEAD' ? null : rendered.body, {
+      status: rendered.status,
+      statusText: rendered.statusText,
+      headers: rendered.headers,
+    });
+  }
+
+  const markdown = htmlDocumentToMarkdown(
+    await rendered.text(),
+    new URL(target.publicPath, htmlUrl.origin).toString()
+  );
+  if (!markdown) {
+    return new Response('Public page rendered without readable content.\n', {
+      status: 502,
+      headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+    });
+  }
+
+  return text(request, markdown, 'text/markdown; charset=utf-8', {
+    Link: `<${target.publicPath}>; rel="canonical"; type="text/html"`,
+    Vary: 'Accept',
+  });
+}
+
+export function htmlDocumentToMarkdown(html, canonicalUrl) {
+  const main = html.match(/<main\b[^>]*>([\s\S]*?)<\/main>/i);
+  const body = html.match(/<body\b[^>]*>([\s\S]*?)<\/body>/i);
+  let source = main?.[1] ?? body?.[1] ?? html;
+  const codeBlocks = [];
+
+  source = source
+    .replace(/<!--[\s\S]*?-->/g, '')
+    .replace(/<(script|style|svg|noscript|template)\b[^>]*>[\s\S]*?<\/\1>/gi, '')
+    .replace(/<pre\b[^>]*>([\s\S]*?)<\/pre>/gi, (_, block) => {
+      const decoded = decodeHtml(stripTags(block)).trim();
+      const token = `\n\n@@CODE_BLOCK_${codeBlocks.length}@@\n\n`;
+      codeBlocks.push(`\`\`\`\n${decoded}\n\`\`\``);
+      return token;
+    })
+    .replace(/<h([1-6])\b[^>]*>([\s\S]*?)<\/h\1>/gi, (_, level, content) => {
+      return `\n\n${'#'.repeat(Number(level))} ${inlineText(content)}\n\n`;
+    })
+    .replace(/<a\b[^>]*href=(['"])(.*?)\1[^>]*>([\s\S]*?)<\/a>/gi, (_, _quote, href, content) => {
+      const label = inlineText(content);
+      if (!label) return '';
+      const target = absoluteLink(href, canonicalUrl);
+      return target ? `[${label}](${target})` : label;
+    })
+    .replace(/<img\b[^>]*alt=(['"])(.*?)\1[^>]*>/gi, (_, _quote, alt) => decodeHtml(alt))
+    .replace(/<(strong|b)\b[^>]*>([\s\S]*?)<\/\1>/gi, (_, _tag, content) => {
+      const value = inlineText(content);
+      return value ? `**${value}**` : '';
+    })
+    .replace(/<(em|i)\b[^>]*>([\s\S]*?)<\/\1>/gi, (_, _tag, content) => {
+      const value = inlineText(content);
+      return value ? `*${value}*` : '';
+    })
+    .replace(/<code\b[^>]*>([\s\S]*?)<\/code>/gi, (_, content) => {
+      const value = decodeHtml(stripTags(content)).trim();
+      return value ? `\`${value}\`` : '';
+    })
+    .replace(/<li\b[^>]*>/gi, '\n- ')
+    .replace(/<\/li>/gi, '\n')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(p|div|section|article|header|footer|aside|nav|ul|ol|table|tr)>/gi, '\n\n')
+    .replace(/<(p|div|section|article|header|footer|aside|nav|ul|ol|table|tr)\b[^>]*>/gi, '\n\n')
+    .replace(/<\/(td|th)>/gi, ' | ')
+    .replace(/<(td|th)\b[^>]*>/gi, '')
+    .replace(/<[^>]+>/g, '');
+
+  source = decodeHtml(source)
+    .split('\n')
+    .map((line) => line.replace(/[ \t]+/g, ' ').trim())
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .replace(/(?:^|\n)-\s*(?=\n|$)/g, '')
+    .trim();
+
+  for (const [index, block] of codeBlocks.entries()) {
+    source = source.replace(`@@CODE_BLOCK_${index}@@`, block);
+  }
+
+  if (!source) return '';
+  return `${source}\n\n---\n\nCanonical HTML: ${canonicalUrl}\n`;
+}
+
+function inlineText(value) {
+  return decodeHtml(stripTags(value)).replace(/\s+/g, ' ').trim();
+}
+
+function stripTags(value) {
+  return String(value).replace(/<[^>]+>/g, '');
+}
+
+function absoluteLink(href, canonicalUrl) {
+  if (!href || href.startsWith('#') || href.startsWith('javascript:')) return '';
+  if (href.startsWith('mailto:') || href.startsWith('tel:')) return href;
+  try {
+    return new URL(href, canonicalUrl).toString();
+  } catch {
+    return '';
+  }
+}
+
+function decodeHtml(value) {
+  return String(value)
+    .replace(/&#(\d+);/g, (_, number) => String.fromCodePoint(Number(number)))
+    .replace(/&#x([0-9a-f]+);/gi, (_, number) => String.fromCodePoint(Number.parseInt(number, 16)))
+    .replaceAll('&nbsp;', ' ')
+    .replaceAll('&amp;', '&')
+    .replaceAll('&lt;', '<')
+    .replaceAll('&gt;', '>')
+    .replaceAll('&quot;', '"')
+    .replaceAll('&#39;', "'")
+    .replaceAll('&apos;', "'");
 }
 
 function wantsMarkdown(request) {
@@ -120,23 +343,23 @@ function wantsMarkdown(request) {
   return accept.indexOf('text/markdown') < accept.indexOf('text/html');
 }
 
-function text(body, type, extra = {}) {
-  return new Response(body, {
+function text(request, body, type, extra = {}) {
+  return new Response(request.method === 'HEAD' ? null : body, {
     status: 200,
     headers: {
       'Content-Type': type,
-      'Cache-Control': 'public, max-age=300',
+      'Cache-Control': 'public, max-age=300, s-maxage=3600',
       ...extra,
     },
   });
 }
 
-function json(data) {
-  return new Response(`${JSON.stringify(data, null, 2)}\n`, {
+function json(request, data) {
+  return new Response(request.method === 'HEAD' ? null : `${JSON.stringify(data, null, 2)}\n`, {
     status: 200,
     headers: {
       'Content-Type': 'application/json; charset=utf-8',
-      'Cache-Control': 'public, max-age=300',
+      'Cache-Control': 'public, max-age=300, s-maxage=3600',
     },
   });
 }

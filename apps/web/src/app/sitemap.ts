@@ -1,4 +1,5 @@
 import type { MetadataRoute } from 'next';
+import { PUBLIC_STATIC_ROUTES } from '../../public-route-registry.mjs';
 
 import {
   CASE_STUDIES,
@@ -13,138 +14,12 @@ export const dynamic = 'force-dynamic';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
-  // Static routes ordered roughly by importance. The brief (`/`) is the
-  // product, hourly because it recomposes; the lenses change less often.
-  const staticRoutes: MetadataRoute.Sitemap = [
-    { url: `${SITE_URL}/`, lastModified: now, changeFrequency: 'hourly', priority: 1.0 },
-    { url: `${SITE_URL}/brief`, lastModified: now, changeFrequency: 'hourly', priority: 0.95 },
-    {
-      url: `${SITE_URL}/brief/archive`,
-      lastModified: now,
-      changeFrequency: 'daily',
-      priority: 0.85,
-    },
-    { url: `${SITE_URL}/track-record`, lastModified: now, changeFrequency: 'daily', priority: 0.9 },
-    { url: `${SITE_URL}/signals`, lastModified: now, changeFrequency: 'hourly', priority: 0.9 },
-    {
-      url: `${SITE_URL}/signals/today`,
-      lastModified: now,
-      changeFrequency: 'hourly',
-      priority: 0.85,
-    },
-    { url: `${SITE_URL}/digest`, lastModified: now, changeFrequency: 'weekly', priority: 0.8 },
-    { url: `${SITE_URL}/markets`, lastModified: now, changeFrequency: 'daily', priority: 0.8 },
-    { url: `${SITE_URL}/communities`, lastModified: now, changeFrequency: 'daily', priority: 0.75 },
-    { url: `${SITE_URL}/mentions`, lastModified: now, changeFrequency: 'weekly', priority: 0.7 },
-    { url: `${SITE_URL}/agent-eval`, lastModified: now, changeFrequency: 'weekly', priority: 0.7 },
-    { url: `${SITE_URL}/lab`, lastModified: now, changeFrequency: 'daily', priority: 0.65 },
-    { url: `${SITE_URL}/entities`, lastModified: now, changeFrequency: 'weekly', priority: 0.65 },
-    { url: `${SITE_URL}/sectors`, lastModified: now, changeFrequency: 'weekly', priority: 0.6 },
-    {
-      url: `${SITE_URL}/opportunities`,
-      lastModified: now,
-      changeFrequency: 'weekly',
-      priority: 0.6,
-    },
-    { url: `${SITE_URL}/ideas`, lastModified: now, changeFrequency: 'weekly', priority: 0.55 },
-    {
-      url: `${SITE_URL}/methodology`,
-      lastModified: now,
-      changeFrequency: 'monthly',
-      priority: 0.85,
-    },
-    {
-      url: `${SITE_URL}/data`,
-      lastModified: now,
-      changeFrequency: 'daily',
-      priority: 0.85,
-    },
-    {
-      url: `${SITE_URL}/signals/types`,
-      lastModified: now,
-      changeFrequency: 'daily',
-      priority: 0.75,
-    },
-    {
-      url: `${SITE_URL}/agent-eval/seo`,
-      lastModified: now,
-      changeFrequency: 'monthly',
-      priority: 0.7,
-    },
-    {
-      url: `${SITE_URL}/agent-eval/sample`,
-      lastModified: now,
-      changeFrequency: 'monthly',
-      priority: 0.65,
-    },
-    // Marketing / value-add surfaces
-    {
-      url: `${SITE_URL}/case-studies`,
-      lastModified: now,
-      changeFrequency: 'weekly',
-      priority: 0.85,
-    },
-    // /case-studies/search is intentionally omitted: it declares
-    // `robots: { index: false }`, so advertising it here makes the sitemap
-    // contradict the page and wastes crawl budget on a parameterised search UI.
-    {
-      url: `${SITE_URL}/teardowns`,
-      lastModified: now,
-      changeFrequency: 'weekly',
-      priority: 0.8,
-    },
-    {
-      url: `${SITE_URL}/domains`,
-      lastModified: now,
-      changeFrequency: 'weekly',
-      priority: 0.75,
-    },
-    {
-      url: `${SITE_URL}/explore`,
-      lastModified: now,
-      changeFrequency: 'daily',
-      priority: 0.75,
-    },
-    {
-      url: `${SITE_URL}/convergence`,
-      lastModified: now,
-      changeFrequency: 'weekly',
-      priority: 0.7,
-    },
-    {
-      url: `${SITE_URL}/markets/history`,
-      lastModified: now,
-      changeFrequency: 'daily',
-      priority: 0.65,
-    },
-    {
-      url: `${SITE_URL}/featured`,
-      lastModified: now,
-      changeFrequency: 'weekly',
-      priority: 0.7,
-    },
-    {
-      url: `${SITE_URL}/api-docs`,
-      lastModified: now,
-      changeFrequency: 'monthly',
-      priority: 0.65,
-    },
-    { url: `${SITE_URL}/about`, lastModified: now, changeFrequency: 'monthly', priority: 0.5 },
-    { url: `${SITE_URL}/llms.txt`, lastModified: now, changeFrequency: 'weekly', priority: 0.45 },
-    { url: `${SITE_URL}/index.md`, lastModified: now, changeFrequency: 'weekly', priority: 0.45 },
-    { url: `${SITE_URL}/api/ai`, lastModified: now, changeFrequency: 'weekly', priority: 0.4 },
-    { url: `${SITE_URL}/privacy`, lastModified: now, changeFrequency: 'yearly', priority: 0.3 },
-    { url: `${SITE_URL}/terms`, lastModified: now, changeFrequency: 'yearly', priority: 0.3 },
-    { url: `${SITE_URL}/digest/rss`, lastModified: now, changeFrequency: 'weekly', priority: 0.4 },
-    { url: `${SITE_URL}/digest/atom`, lastModified: now, changeFrequency: 'weekly', priority: 0.4 },
-    { url: `${SITE_URL}/signals/rss`, lastModified: now, changeFrequency: 'hourly', priority: 0.4 },
-    {
-      url: `${SITE_URL}/signals/atom`,
-      lastModified: now,
-      changeFrequency: 'hourly',
-      priority: 0.4,
-    },
-  ];
+  const staticRoutes: MetadataRoute.Sitemap = PUBLIC_STATIC_ROUTES.map((route) => ({
+    url: `${SITE_URL}${route.path}`,
+    lastModified: now,
+    changeFrequency: route.changeFrequency,
+    priority: route.priority,
+  }));
 
   let signalEntries: MetadataRoute.Sitemap = [];
   let entityEntries: MetadataRoute.Sitemap = [];

@@ -1,6 +1,6 @@
 # high-signal — PROJECT STATUS
 
-Last updated: 2026-07-25
+Last updated: 2026-07-31
 
 ## Why/What
 
@@ -90,6 +90,16 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 
 ## Timeline
 
+- **2026-07-31 — Public SEO/GEO route contract:** centralized the 32
+  canonical static reader routes and seven large-corpus route templates used by
+  the sitemap and Worker. Every canonical public HTML route now supports a
+  `.md` alternate and `Accept: text/markdown` by rendering the same
+  server-side product output as the human page. The compact `/api/ai` catalog
+  separates static surfaces, dynamic templates, and feeds/data resources;
+  review, admin, auth, personal, delivery, search, and non-HTML endpoints fail
+  closed outside the public Markdown boundary. Source checks, local Worker
+  probes, the OpenNext/Cloudflare build, and Wrangler dry-run pass. Production
+  remains unchanged until a manual deploy.
 - **2026-07-29 — Owned product changelog:** added a same-origin
   `/changelog` that turns verified shipped milestones into concise,
   user-visible outcomes. The site footer now makes it discoverable and routes
@@ -166,6 +176,10 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 - Footer grouped Product / Lenses / Operator / Legal.
 - Default `/` is the signals home feed. Primary navigation is grouped into `data`, `signals`, `history`, and `evals`; `/brief` remains the source-linked daily brief.
 - Public pages: `/about`, `/methodology`, `/featured`, `/api-docs`, `/privacy`, `/terms`, `/sign-in`, `/sign-up`.
+- Agent-readable public corpus: 32 static surfaces plus dated briefs, signals,
+  signal taxonomies, entities, entity-month archives, case studies, and
+  company-universe pagination share the same server-rendered source as HTML;
+  private/operator and non-HTML routes are excluded by tested route rules.
 - Clerk auth; region picker and seed product pickers on brief.
 - SEO JSON-LD tests (`pnpm seo:test`).
 
