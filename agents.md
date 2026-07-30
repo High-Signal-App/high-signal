@@ -5,12 +5,12 @@
 > [`PROJECT_STATUS.md`](PROJECT_STATUS.md) (current/shipped product truth).
 > Full product spec: [`SPEC.md`](SPEC.md); open work lives in GitHub Issues.
 
-## Shared Fleet Standard
+## Repository operating rules
 
-Also read and follow the shared fleet-level agent standard at `../AGENTS.md`.
-Treat this repository as owned product code: protect production stability, keep
-changes scoped, verify work, and record durable follow-up tasks when something
-remains incomplete or blocked.
+This repository is independently operable. Its tracked instructions and
+commands are authoritative; no sibling Fleet checkout is required. Protect
+production stability, keep changes scoped, verify work with repo-local checks,
+and record durable follow-up in this repository's GitHub Issues.
 
 Before broad product or architecture work, read [`PROJECT_STATUS.md`](PROJECT_STATUS.md).
 Update it when durable current/shipped truth changes. Track planned, deferred,
