@@ -5,6 +5,11 @@ import { Search } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
+import { TurnstileWidget } from '@/components/turnstile-widget';
+
+const TURNSTILE_SITE_KEY =
+  process.env['NEXT_PUBLIC_TURNSTILE_SITE_KEY'] ?? '0x4AAAAAAECKL9dzkPASkdm0';
+
 interface LookupResponse {
   created: boolean;
   company?: { slug: string; name: string; status?: string };
@@ -17,16 +22,19 @@ export function CompanyLookupForm() {
   const [domain, setDomain] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [turnstileResetSignal, setTurnstileResetSignal] = useState(0);
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!turnstileToken) return;
     setPending(true);
     setError(null);
     try {
       const response = await fetch('/api/company-universe/lookup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, domain }),
+        body: JSON.stringify({ name, domain, turnstileToken }),
       });
       const payload = (await response.json()) as LookupResponse;
       if (!response.ok || !payload.company?.slug) {
@@ -37,6 +45,8 @@ export function CompanyLookupForm() {
       setError(err instanceof Error ? err.message : 'Could not create company');
     } finally {
       setPending(false);
+      setTurnstileToken(null);
+      setTurnstileResetSignal((value) => value + 1);
     }
   }
 
@@ -71,12 +81,20 @@ export function CompanyLookupForm() {
         </label>
         <button
           type="submit"
-          disabled={pending || (!name.trim() && !domain.trim())}
+          disabled={pending || !turnstileToken || (!name.trim() && !domain.trim())}
           className="mt-5 inline-flex h-10 items-center justify-center gap-2 border border-[var(--color-accent)] px-4 font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-accent)] transition hover:bg-[var(--color-accent)] hover:text-black disabled:cursor-not-allowed disabled:border-zinc-700 disabled:text-zinc-600 disabled:hover:bg-transparent"
         >
           <Search className="size-3.5" aria-hidden="true" />
           {pending ? 'creating' : 'lookup'}
         </button>
+      </div>
+      <div className="mt-3">
+        <TurnstileWidget
+          siteKey={TURNSTILE_SITE_KEY}
+          action="turnstile-spin-v2"
+          resetSignal={turnstileResetSignal}
+          onTokenChange={setTurnstileToken}
+        />
       </div>
       {error && <p className="mt-3 text-sm text-red-300">{error}</p>}
     </form>

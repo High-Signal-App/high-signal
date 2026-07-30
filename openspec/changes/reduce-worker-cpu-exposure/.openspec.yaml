@@ -1,0 +1,4 @@
+schema: spec-driven
+created: 2026-07-30
+goal: Bound high-signal-web CPU exposure by serving public static routes without
+  avoidable Worker rendering while preserving dynamic personalized behavior.

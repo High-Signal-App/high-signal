@@ -1,8 +1,13 @@
 import { Hono } from 'hono';
 import { and, asc, desc, eq, inArray, like, or, sql, type SQL, type SQLWrapper } from 'drizzle-orm';
 import { db, schema } from '../db';
+import { verifyTurnstile } from '../lib/turnstile';
 
-type Env = { DB: D1Database };
+type Env = {
+  DB: D1Database;
+  TURNSTILE_HOSTNAMES?: string;
+  TURNSTILE_SECRET?: string;
+};
 
 export const companyUniverseRoute = new Hono<{ Bindings: Env }>();
 
@@ -532,6 +537,7 @@ companyUniverseRoute.post('/lookup', async (c) => {
     name?: string;
     domain?: string;
     requestedBy?: string;
+    turnstileToken?: unknown;
   };
   const domain = normalizeDomain(body.domain);
   const name = (body.name?.trim() || (domain ? nameFromDomain(domain) : '')).trim();
@@ -542,6 +548,17 @@ companyUniverseRoute.post('/lookup', async (c) => {
   const slug = slugify(name) || (domain ? slugify(domain) : '');
   if (!slug) {
     return c.json({ error: 'invalid_company_name' }, 400);
+  }
+
+  const verified = await verifyTurnstile({
+    token: body.turnstileToken,
+    action: 'turnstile-spin-v2',
+    remoteIp: c.req.header('CF-Connecting-IP') ?? 'unknown',
+    secret: c.env.TURNSTILE_SECRET,
+    hostnameList: c.env.TURNSTILE_HOSTNAMES,
+  });
+  if (!verified) {
+    return c.json({ error: 'verification_failed' }, 403);
   }
 
   const existing = await findExistingCompany(database, { slug, name, domain });

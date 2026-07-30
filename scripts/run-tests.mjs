@@ -48,6 +48,7 @@ const NODE_SUITES = [
   ['foundry-evidence', 'scripts/foundry-evidence.test.mjs'],
   ['foundry-safe-actions', 'scripts/foundry-safe-actions.test.mjs'],
   ['idempotency-guards', 'scripts/idempotency-guards.test.mjs'],
+  ['worker-routing', 'scripts/worker-routing.test.mjs'],
 ];
 
 const jobs = [
