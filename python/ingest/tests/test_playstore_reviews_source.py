@@ -22,6 +22,14 @@ def test_reviews_to_events_parses() -> None:
     assert ev.source == "playstore-reviews"
     assert "ChatGPT (2★): Keeps logging me out" in ev.title
     assert "com.openai.chatgpt" in ev.source_url
+    assert ev.primary_entity_id == "OPENAI"
+
+
+def test_default_apps_have_explicit_entity_ids() -> None:
+    names = {name for name, _package in playstore_reviews.DEFAULT_APPS}
+    assert names == set(playstore_reviews.APP_ENTITY_IDS)
+    assert "Google Gemini" in names
+    assert "Microsoft Copilot" in names
 
 
 def test_reviews_to_events_honours_window() -> None:

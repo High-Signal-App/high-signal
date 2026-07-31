@@ -184,6 +184,15 @@ MISTRAL,,Mistral AI,private,FR,software,foundation-model,Mistral|Mistral AI,http
 COHERE,,Cohere Inc.,private,CA,software,foundation-model,Cohere,https://en.wikipedia.org/wiki/Cohere,https://cohere.com
 INFLECTION,,Inflection AI,private,US,software,foundation-model,Inflection AI,https://en.wikipedia.org/wiki/Inflection_AI,https://inflection.ai
 PERPLEXITY,,Perplexity AI,private,US,software,ai-search,Perplexity,https://en.wikipedia.org/wiki/Perplexity_AI,https://www.perplexity.ai
+NOTION,,Notion,product,US,software,productivity-workspace,Notion|Notion Labs,,https://www.notion.so
+CURSOR,,Cursor by Anysphere,product,US,software,ai-code-editor,Anysphere,,https://cursor.com
+FIGMA,,Figma,product,US,software,design-collaboration,Figma,,https://www.figma.com
+ARC_SEARCH,,Arc Search by The Browser Company,product,US,software,ai-browser,The Browser Company,,https://arc.net
+COIN,COIN,Coinbase Global Inc.,public,US,software,crypto-exchange,Coinbase,,
+HOOD,HOOD,Robinhood Markets Inc.,public,US,software,retail-brokerage,Robinhood,,
+DUOL,DUOL,Duolingo Inc.,public,US,software,consumer-learning,Duolingo,,
+RDDT,RDDT,Reddit Inc.,public,US,software,online-community,Reddit,,
+RBLX,RBLX,Roblox Corporation,public,US,software,creator-platform,Roblox,,
 STABILITYAI,,Stability AI,private,UK,software,foundation-model-image,Stability AI|Stable Diffusion,https://en.wikipedia.org/wiki/Stability_AI,https://stability.ai
 AI21,,AI21 Labs,private,IL,software,foundation-model,AI21,https://en.wikipedia.org/wiki/AI21_Labs,https://www.ai21.com
 DEEPSEEK,,DeepSeek,private,CN,software,foundation-model,DeepSeek,https://en.wikipedia.org/wiki/DeepSeek,https://www.deepseek.com

@@ -31,7 +31,19 @@ DEFAULT_APPS: tuple[tuple[str, str], ...] = (
     ("Coinbase", "com.coinbase.android"),
     ("Robinhood", "com.robinhood.android"),
     ("Duolingo", "com.duolingo"),
+    ("Google Gemini", "com.google.android.apps.bard"),
+    ("Microsoft Copilot", "com.microsoft.copilot"),
 )
+APP_ENTITY_IDS = {
+    "ChatGPT": "OPENAI",
+    "Perplexity": "PERPLEXITY",
+    "Notion": "NOTION",
+    "Coinbase": "COIN",
+    "Robinhood": "HOOD",
+    "Duolingo": "DUOL",
+    "Google Gemini": "GOOGL",
+    "Microsoft Copilot": "MSFT",
+}
 PER_APP = 30
 
 
@@ -72,7 +84,7 @@ def reviews_to_events(app: str, rows: list[dict], since: datetime) -> list[Event
                 published_at=published,
                 title=f"Play Store review — {app} ({score}★): {content[:60]}"[:300],
                 content=f"{score}★ review of {app}: {content}"[:20_000] or None,
-                primary_entity_id=None,
+                primary_entity_id=APP_ENTITY_IDS.get(app),
                 raw_hash=raw_hash,
             )
         )
