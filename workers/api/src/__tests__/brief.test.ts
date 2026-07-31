@@ -24,6 +24,8 @@ import {
   headlineFromBody,
   HIT_RATE_FAMILY_MIN,
   HIT_RATE_SAMPLE_MIN,
+  isBriefStockEvidenceEligible,
+  isPublicSourceLink,
   pickSpotlight,
   rankStocks,
   renderFromSeed,
@@ -119,6 +121,46 @@ describe('brief stock ranking', () => {
     const snapshot = original.slice();
     rankStocks(original);
     expect(original).toEqual(snapshot);
+  });
+});
+
+describe('brief read-time evidence gate', () => {
+  it('requires two unique citations for legacy published stocks', () => {
+    expect(isBriefStockEvidenceEligible([])).toBe(false);
+    expect(isBriefStockEvidenceEligible(['https://example.com/one'])).toBe(false);
+    expect(
+      isBriefStockEvidenceEligible(['https://example.com/one', ' https://example.com/one '])
+    ).toBe(false);
+    expect(
+      isBriefStockEvidenceEligible(['https://example.com/one', 'https://another.example/two'])
+    ).toBe(true);
+    expect(isBriefStockEvidenceEligible(['https://example.com/one', 'javascript:alert(1)'])).toBe(
+      false
+    );
+  });
+
+  it('rejects prediction-market-only citation sets', () => {
+    expect(
+      isBriefStockEvidenceEligible([
+        'https://polymarket.com/event/one',
+        'https://manifold.markets/question/two',
+      ])
+    ).toBe(false);
+    expect(
+      isBriefStockEvidenceEligible([
+        'https://polymarket.com/event/one',
+        'https://www.sec.gov/Archives/filing.htm',
+      ])
+    ).toBe(true);
+  });
+
+  it('accepts only HTTP(S) community source links', () => {
+    expect(isPublicSourceLink('https://reddit.com/r/tools/comments/one')).toBe(true);
+    expect(isPublicSourceLink(' http://example.com/thread ')).toBe(true);
+    expect(isPublicSourceLink('javascript:alert(1)')).toBe(false);
+    expect(isPublicSourceLink('/relative/thread')).toBe(false);
+    expect(isPublicSourceLink('')).toBe(false);
+    expect(isPublicSourceLink(null)).toBe(false);
   });
 });
 

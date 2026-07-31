@@ -97,6 +97,23 @@ export function rankStocks<T extends RankableRow>(rows: T[]): T[] {
   });
 }
 
+/** Read-time defense for legacy published signals that predate cite-or-kill. */
+export function isBriefStockEvidenceEligible(urls: readonly string[]): boolean {
+  const unique = Array.from(new Set(urls.map((url) => url.trim()).filter(isPublicSourceLink)));
+  return unique.length >= 2 && !isPredictionMarketOnly(unique);
+}
+
+/** Community brief inputs must carry a safe public source thread. */
+export function isPublicSourceLink(value: unknown): value is string {
+  if (typeof value !== 'string' || !value.trim()) return false;
+  try {
+    const url = new URL(value.trim());
+    return url.protocol === 'https:' || url.protocol === 'http:';
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Compute hit-rate from a bag of outcomes, applying the sample-size gate.
  * Returns null when there are fewer than HIT_RATE_SAMPLE_MIN decided outcomes
@@ -502,13 +519,13 @@ async function buildStocks(
     .orderBy(desc(schema.signals.publishedAt))
     .limit(STOCKS_LIMIT * 4); // overfetch so the post-filter can rank by direction
 
-  // Never surface a claim evidenced only by prediction markets — crowd opinion,
-  // not information. Mirrors the auto-publish KILL rule at read time so a
-  // market-only signal that slipped past the draft gate (or predates it) still
-  // can't reach the brief. Overfetch above absorbs the drop.
-  const rows = allRows.filter(
-    (r) =>
-      !isPredictionMarketOnly((Array.isArray(r.evidenceList) ? r.evidenceList : []).map(String))
+  // Defend the public brief from legacy rows that predate cite-or-kill: require
+  // two unique citations and never surface prediction-market-only evidence.
+  // Overfetch above absorbs the drop.
+  const rows = allRows.filter((row) =>
+    isBriefStockEvidenceEligible(
+      (Array.isArray(row.evidenceList) ? row.evidenceList : []).map(String)
+    )
   );
 
   const provenanceBySignal = await loadBriefProvenanceBySignalId(
@@ -849,7 +866,8 @@ async function buildIdeas(
   for (const digest of digestRows) {
     const summary = normalizeCommunitySummary(digest.summary);
     const action = summary?.keyAction;
-    if (!action) continue;
+    if (!action || !isPublicSourceLink(action.link)) continue;
+    const evidenceUrl = action.link.trim();
     ideas.push({
       title: action.title,
       description: action.desc || digest.summaryText.slice(0, 240),
@@ -860,13 +878,13 @@ async function buildIdeas(
         ? digest.snapshotDate
         : new Date(digest.snapshotDate as unknown as string)
       ).toISOString(),
-      evidenceUrls: action.link ? [{ url: action.link }] : [],
+      evidenceUrls: [{ url: evidenceUrl }],
       opportunity: communityActionToOpportunity({
         title: action.title,
         description: action.desc || digest.summaryText.slice(0, 240),
         region,
         subreddit: digest.subreddit,
-        evidenceCount: action.link ? 1 : 0,
+        evidenceCount: 1,
       }),
     });
     if (ideas.length >= IDEAS_LIMIT) break;
@@ -992,13 +1010,14 @@ async function buildTrends(
     if (seenSubs.has(digest.subreddit)) continue; // one trend per subreddit per brief
     const summary = normalizeCommunitySummary(digest.summary);
     const trend = summary?.keyTrend;
-    if (!trend) continue;
+    if (!trend || !isPublicSourceLink(trend.link)) continue;
+    const evidenceUrl = trend.link.trim();
     trends.push({
       title: trend.title,
       description: trend.desc || digest.summaryText.slice(0, 240),
       subreddit: digest.subreddit,
       region,
-      evidenceUrls: trend.link ? [{ url: trend.link }] : [],
+      evidenceUrls: [{ url: evidenceUrl }],
       surfacedAt: (digest.snapshotDate instanceof Date
         ? digest.snapshotDate
         : new Date(digest.snapshotDate as unknown as string)

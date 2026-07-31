@@ -90,6 +90,12 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 
 ## Timeline
 
+- **2026-07-31 — Daily Brief read-time quality gate:** legacy published stock
+  rows now need two unique citations and cannot rely only on prediction-market
+  evidence; live community ideas and trends need a valid HTTP(S) source thread.
+  Weak rows are skipped and the existing cited seed fallback preserves section
+  completeness. Existing direct/family/early hit-rate context remains inline.
+  No schema, migration, remote data mutation, or deployment was performed.
 - **2026-07-31 — Curated source promotion:** promoted nine recurring unmapped
   consumer/software entities into the seed gazetteer, made Apple and Google
   review events carry explicit entity IDs, and added Gemini and Copilot to
@@ -203,6 +209,9 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 ### Daily Brief
 
 - `/` and `/brief` render five sections with hit-rate inline on stock claims.
+- Public stock cards enforce two unique citations at read time and reject
+  prediction-market-only evidence; live community ideas and trends require a
+  valid source thread before entering the brief.
 - Worker `GET /brief/daily?region=&owner=` composes from D1 with seed fallback.
 - Worker `GET /learning/daily` publishes a compact versioned learning feed derived from public brief sections only.
 - Section 02 ideas now render Opportunity Brief context: verdict, confidence, target user/problem, evidence mix, why-now, risk, next validation step, and prior hit-rate where present.
