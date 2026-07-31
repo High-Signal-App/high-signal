@@ -90,6 +90,10 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 
 ## Timeline
 
+- **2026-07-31 — Public landing search semantics tightened:** shortened the
+  homepage title and description to crawler-safe lengths, promoted the visible
+  brief label into the page heading hierarchy, and clarified the verification
+  promise without changing the landing layout or product scope.
 - **2026-07-31 — Public agent boundary corrected:** removed the sign-in-only
   Mentions lens from the public sitemap and agent catalog while retaining the
   authenticated product route.
