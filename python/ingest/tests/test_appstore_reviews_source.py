@@ -33,6 +33,13 @@ def test_reviews_from_feed_skips_metadata_and_parses() -> None:
     assert ev.source == "appstore-reviews"
     assert "ChatGPT (1★): Crashes constantly" in ev.title
     assert ev.source_url == "https://apps.apple.com/r/999?reviewId=999"  # distinct per review
+    assert ev.primary_entity_id == "OPENAI"
+
+
+def test_default_apps_have_explicit_entity_ids() -> None:
+    assert set(appstore_reviews.DEFAULT_APPS) == set(appstore_reviews.APP_ENTITY_IDS)
+    assert "Google Gemini" in appstore_reviews.DEFAULT_APPS
+    assert "Microsoft Copilot" in appstore_reviews.DEFAULT_APPS
 
 
 def test_reviews_from_feed_honours_window() -> None:

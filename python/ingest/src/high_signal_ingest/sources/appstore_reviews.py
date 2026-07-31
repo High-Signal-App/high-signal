@@ -29,7 +29,22 @@ REVIEWS_URL = "https://itunes.apple.com/us/rss/customerreviews/page=1/id={app_id
 DEFAULT_APPS = (
     "ChatGPT", "Perplexity AI", "Claude by Anthropic", "Notion", "Cursor",
     "Figma", "Robinhood", "Coinbase", "Duolingo", "Arc Search",
+    "Google Gemini", "Microsoft Copilot",
 )
+APP_ENTITY_IDS = {
+    "ChatGPT": "OPENAI",
+    "Perplexity AI": "PERPLEXITY",
+    "Claude by Anthropic": "ANTHROPIC",
+    "Notion": "NOTION",
+    "Cursor": "CURSOR",
+    "Figma": "FIGMA",
+    "Robinhood": "HOOD",
+    "Coinbase": "COIN",
+    "Duolingo": "DUOL",
+    "Arc Search": "ARC_SEARCH",
+    "Google Gemini": "GOOGL",
+    "Microsoft Copilot": "MSFT",
+}
 
 
 def _apps_from_env() -> list[str]:
@@ -73,7 +88,7 @@ def reviews_from_feed(app: str, payload: dict, since: datetime) -> list[Event]:
                 published_at=published,
                 title=f"App Store review — {app} ({rating}★): {title}"[:300],
                 content=f"{rating}★ review of {app}: {body}"[:20_000] or None,
-                primary_entity_id=None,
+                primary_entity_id=APP_ENTITY_IDS.get(app),
                 raw_hash=raw_hash,
             )
         )

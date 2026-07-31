@@ -90,6 +90,12 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 
 ## Timeline
 
+- **2026-07-31 — Curated source promotion:** promoted nine recurring unmapped
+  consumer/software entities into the seed gazetteer, made Apple and Google
+  review events carry explicit entity IDs, and added Gemini and Copilot to
+  those bounded existing adapters. Generic `cursor` prose remains unmapped to
+  avoid a broad false-positive alias. No new source, dependency, migration,
+  remote sync, or deployment was added.
 - **2026-07-31 — Event semantics contract:** documented the existing Python
   `Event` type and D1 `events` table as normalized source observations, with
   actionable conclusions beginning at `SignalCandidate` and `signals`.
@@ -278,6 +284,12 @@ The Python `Event` type and D1 `events` table are normalized source
 observations, not actionable product conclusions. `SignalCandidate` and
 `signals` own the actionable interpretation boundary; no `normalized_events`
 model exists.
+
+- The seed gazetteer includes recurring `/unmapped` and source-quality
+  candidates for Notion, Cursor/Anysphere, Figma, Arc Search, Coinbase,
+  Robinhood, Duolingo, Reddit, and Roblox. Curated App Store and Play Store
+  reviews assign their known entity IDs directly; Gemini and Copilot extend
+  those existing bounded lists without introducing another firehose.
 
 Python adapters under `python/ingest/src/high_signal_ingest/sources/` — all wired on daily or wider-window cron unless noted:
 

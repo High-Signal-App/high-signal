@@ -20,6 +20,26 @@ def test_entities_load() -> None:
         assert must in ids, f"missing {must}"
 
 
+def test_promoted_unmapped_entities_are_seeded() -> None:
+    ids = {entity.id for entity in load_entities()}
+    assert {
+        "NOTION",
+        "CURSOR",
+        "FIGMA",
+        "ARC_SEARCH",
+        "COIN",
+        "HOOD",
+        "DUOL",
+        "RDDT",
+        "RBLX",
+    } <= ids
+
+
+def test_generic_cursor_word_does_not_match_product() -> None:
+    assert "CURSOR" not in gazetteer_match("Move the cursor to the next line")
+    assert "CURSOR" in gazetteer_match("Anysphere released a new Cursor model")
+
+
 def test_relationships_load() -> None:
     rs = load_relationships()
     assert len(rs) >= 100
