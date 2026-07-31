@@ -90,6 +90,9 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 
 ## Timeline
 
+- **2026-07-31 — Public agent boundary corrected:** removed the sign-in-only
+  Mentions lens from the public sitemap and agent catalog while retaining the
+  authenticated product route.
 - **2026-07-31 — Daily Brief read-time quality gate:** legacy published stock
   rows now need two unique citations and cannot rely only on prediction-market
   evidence; live community ideas and trends need a valid HTTP(S) source thread.

@@ -17,7 +17,7 @@ import {
 const markdownRequest = (path, headers = {}) =>
   new Request(`https://highsignal.app${path}`, { headers });
 
-assert.equal(PUBLIC_STATIC_ROUTES.length, 32, 'static public route count must be deliberate');
+assert.equal(PUBLIC_STATIC_ROUTES.length, 31, 'static public route count must be deliberate');
 assert.equal(
   PUBLIC_DYNAMIC_ROUTE_TEMPLATES.length,
   7,

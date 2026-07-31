@@ -56,13 +56,6 @@ export const PUBLIC_STATIC_ROUTES = [
     priority: 0.75,
   },
   {
-    path: '/mentions',
-    title: 'Mentions',
-    description: 'Brand visibility, prompt, and citation evidence.',
-    changeFrequency: 'weekly',
-    priority: 0.7,
-  },
-  {
     path: '/agent-eval',
     title: 'Agent Eval',
     description: 'Evidence-based agent-readiness evaluations.',
