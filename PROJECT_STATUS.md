@@ -90,6 +90,12 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 
 ## Timeline
 
+- **2026-07-31 — Bounded web Worker routing:** verified immutable Next.js,
+  Astro, docs, discovery, and icon assets now bypass Worker-first execution,
+  while application, authenticated, personalized, API, and write routes remain
+  on the OpenNext Worker. The request-independent `/history` route is
+  prerendered, and the focused routing contract plus Cloudflare build guard the
+  boundary. No application deployment was performed.
 - **2026-07-31 — Public SEO/GEO route contract:** centralized the 32
   canonical static reader routes and seven large-corpus route templates used by
   the sitemap and Worker. Every canonical public HTML route now supports a
@@ -321,6 +327,9 @@ Python adapters under `python/ingest/src/high_signal_ingest/sources/` — all wi
 - GitHub Actions: `ci.yml`, `cron-ingest.yml`, `cron-score.yml`, `cron-markets.yml`, `cron-equities.yml`, `cron-backtest.yml`, `cron-publish.yml`, `personal-brief.yml`, `weekly.yml`, `backfill.yml`.
 - Personal command brief scripts → SaaS Maker task sync (`pnpm personal:brief sync-tasks --apply`).
 - In-process lightweight annotation with contract tests (`pnpm annotation:test`).
+- Static asset requests bypass the OpenNext Worker only through the verified
+  `assets.run_worker_first` exclusions; all application routes remain
+  Worker-first by default, with a focused routing regression test.
 - **Automation readiness (2026-07-19):** machine-readable job inventory
   (`docs/operations/jobs.json`), data durability registry
   (`docs/operations/data-durability.md`), Foundry safe-actions registry
