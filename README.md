@@ -21,7 +21,8 @@ Pricing: free. No paid tier, no billing. Region is a free filter.
 
 ## What it does today
 - Ingests SEC filings, IR pages, AI-infra news/blogs, Reddit, GitHub, government feeds, YouTube transcripts, HKEX announcements, GDELT, and prediction markets
-- Extracts events + entities + relationships
+- Extracts source observations (`Event` / D1 `events`) + entities + relationships;
+  reviewed actionable conclusions live in `signals`
 - Turns world-level changes and repeated app complaints into product opportunities under `/opportunities`
 - Maps those opportunities onto the personal product graph under `/personal`
 - Drafts daily signal candidates across low / medium / high confidence bands

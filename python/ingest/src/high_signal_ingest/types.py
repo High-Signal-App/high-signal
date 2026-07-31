@@ -48,6 +48,8 @@ class SourceDocument(BaseModel):
 
 
 class Event(BaseModel):
+    """Normalized source observation; actionable conclusions are SignalCandidates."""
+
     id: str
     source: str
     source_url: str
