@@ -1,7 +1,7 @@
 # Data Service Boundary
 
 Status: phase 1 started
-Updated: 2026-06-02
+Updated: 2026-07-31
 
 High Signal should remain the insight product, not the long-term data warehouse.
 The current source adapters are useful and should stay working, but they are an
@@ -10,7 +10,7 @@ interim ingestion layer. The durable architecture is:
 ```text
 Data substrate
   raw payloads
-  normalized documents/events
+  normalized documents/source observations
   canonical URLs and dedupe
   source health
   entity resolution
@@ -66,6 +66,24 @@ sources like SEC XBRL, Form D, USAspending, Podcast Index, and package
 registries. Do not add dozens of source-specific columns directly to the signal
 tables to compensate.
 
+## Event naming contract
+
+The physical D1 table remains named `events`, and Python adapters continue to
+emit the `Event` type for compatibility. Semantically, both represent
+**normalized source observations**: fetched filings, posts, releases, records,
+quotes, or other source items. An `events` row is evidence input, not an
+actionable product conclusion.
+
+The actionable boundary starts with `SignalCandidate` and the D1 `signals`
+table. Candidates are extracted interpretations awaiting product quality gates;
+reviewed signals are the published, scored conclusions used by the Daily Brief
+and track record.
+
+There is no `normalized_events` table or type today. That name is reserved for
+a future actionable-event model only if a concrete use case requires one. It
+must not be used as an alias for the current `events` table. Adding it would be
+a separately specified schema and migration change.
+
 ## Migration Path
 
 Phase 1: keep adapters local, add raw-document preservation. **Started in
@@ -93,7 +111,8 @@ Current implementation:
 Phase 2: separate ingestion execution.
 
 - Move source fetchers and backfills behind a data-substrate API or service.
-- High Signal consumes normalized documents/events, not source APIs.
+- High Signal consumes normalized documents/source observations, not source
+  APIs.
 - Keep source-quality audit in High Signal, but point it at the substrate output.
 
 Phase 3: make High Signal an insight layer only.

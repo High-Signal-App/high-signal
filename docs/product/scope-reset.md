@@ -66,4 +66,7 @@ The repo can stay consolidated for now, but the navigation and docs should refle
 - De-emphasize: communities and lab.
 - Keep direct URLs available for parked areas while decisions settle.
 
-The next cleanup should be semantic, not expansive: clarify `events` as source observations versus actionable normalized events, and keep source-of-truth ownership clear for market/equity data.
+The event boundary is now explicit: the existing `Event` type and D1 `events`
+table are normalized source observations, while actionable conclusions begin at
+`SignalCandidate` and `signals`. No `normalized_events` model exists today.
+Keep source-of-truth ownership clear for market/equity data.

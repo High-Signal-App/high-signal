@@ -84,7 +84,12 @@ The Worker scheduled handler also dispatches ingest and scoring jobs when `MODAL
 | `evidence` | Evidence rows attached to signals | Signal sync/admin | Signal details, cite-or-kill | Core High Signal object |
 | `score_runs` | Outcome scoring and hit/miss/push/pending ledger | Score/backtest scripts | Track record, brief hit-rate, labels | Core moat |
 
-Recommended cleanup: either rename current `events` concept to `observations`/`source_events` in documentation and code over time, or introduce a new `normalized_events` table for actionable events only. Do not overload the current `events` table with both meanings.
+Decision recorded 2026-07-31: keep the physical `events` table and Python
+`Event` type for compatibility, but describe them as normalized source
+observations wherever the distinction matters. Actionable conclusions begin at
+`SignalCandidate` and `signals`. There is no `normalized_events` model today;
+that name is reserved for a separately specified actionable-event model. Do not
+overload the current `events` table with both meanings.
 
 ### Entity graph tables
 
@@ -250,9 +255,10 @@ The locked decision is **one product, lenses not deployables** (`agents.md`,
 
 ## Recommended immediate cleanup before building more
 
-1. Decide the naming boundary for `events`.
-   - Option A: keep the current table but document it as `source_events` / normalized observations.
-   - Option B: add a new actionable `normalized_events` model and leave current `events` as source observations.
+1. Preserve the decided naming boundary for `events`: the current table and
+   Python type are normalized source observations; actionable conclusions begin
+   at `SignalCandidate` and `signals`. A future `normalized_events` model
+   requires its own concrete use case, spec, and migration.
 2. Mark generated JSON artifacts as derived read bundles in docs and tests.
 3. Pick one canonical owner for stock/equity data. Recommended: market data module/service owns time series and derived snapshots; High Signal consumes snapshots for insights.
 4. Keep brand intelligence separate at the API boundary even if it remains in this repo for now.

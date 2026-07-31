@@ -90,6 +90,11 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 
 ## Timeline
 
+- **2026-07-31 — Event semantics contract:** documented the existing Python
+  `Event` type and D1 `events` table as normalized source observations, with
+  actionable conclusions beginning at `SignalCandidate` and `signals`.
+  `normalized_events` remains reserved for a future separately specified model;
+  no schema, migration, or runtime behavior changed.
 - **2026-07-31 — Bounded web Worker routing:** verified immutable Next.js,
   Astro, docs, discovery, and icon assets now bypass Worker-first execution,
   while application, authenticated, personalized, API, and write routes remain
@@ -268,6 +273,11 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 - Plan file: `plans/0012-ai-visibility-and-reddit-intent-response.md`.
 
 ### Source ingest pipeline
+
+The Python `Event` type and D1 `events` table are normalized source
+observations, not actionable product conclusions. `SignalCandidate` and
+`signals` own the actionable interpretation boundary; no `normalized_events`
+model exists.
 
 Python adapters under `python/ingest/src/high_signal_ingest/sources/` — all wired on daily or wider-window cron unless noted:
 

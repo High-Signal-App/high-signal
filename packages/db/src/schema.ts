@@ -81,6 +81,8 @@ export const sourceDocuments = sqliteTable(
   ]
 );
 
+// Normalized source observations used as evidence input. Actionable product
+// conclusions live in `signals`; this table is not an actionable-event ledger.
 export const events = sqliteTable(
   'events',
   {
