@@ -37,4 +37,4 @@
 
 - [x] 7.1 Run the smallest focused tests after each task group, then run the web typecheck and production build.
 - [x] 7.2 Validate the OpenSpec change strictly and retire the superseded one-page High Signal content manifest in favor of the approved corpus policy.
-- [ ] 7.3 Commit and push the reviewed implementation with `Closes #<issue>`; do not deploy.
+- [x] 7.3 Commit and push the reviewed implementation with `Closes #65`; do not deploy.
