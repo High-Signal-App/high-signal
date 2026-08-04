@@ -1,0 +1,21 @@
+{
+  "capturedAt": "2026-08-05T00:00:00.000Z",
+  "sourceRevision": "d4edeee164b332c487fbed3c390768b90c7b6b4e",
+  "companyArtifactGeneratedAt": "2026-07-15T16:41:03.981Z",
+  "currentDiscovery": {
+    "staticRoutes": 31,
+    "companyProfiles": 12964,
+    "directoryPaginationPages": 260,
+    "signalLimit": 5000,
+    "entityLimit": 5000,
+    "entityPeriodLimit": 20000
+  },
+  "companyQuality": {
+    "total": 12964,
+    "noDescription": 949,
+    "descriptionUnder80": 3881,
+    "descriptionAtLeast160": 5634,
+    "withExtractedFacets": 11959,
+    "initialQualifiedEstimate": 5178
+  }
+}

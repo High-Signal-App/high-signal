@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { BackLink, HeroHeader, PageShell, Panel, StatGrid } from '@/components/system/HighSignalUI';
 import { SITE_URL } from '@/lib/site';
+import { evaluateDirectoryPage, robotsForVerdict } from '../../../../../public-corpus-policy.mjs';
 import { CompanyUniverseList } from '../../CompanyUniverseList';
 import {
   CASE_STUDIES,
@@ -34,6 +35,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     title: `Company universe, page ${page}`,
     description: `Page ${page} of the generated High Signal company universe with source-backed companies and competitor mappings.`,
     alternates: { canonical: `${SITE_URL}/case-studies/page/${page}` },
+    robots: robotsForVerdict(evaluateDirectoryPage()),
   };
 }
 

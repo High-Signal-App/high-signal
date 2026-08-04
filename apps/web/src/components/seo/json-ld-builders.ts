@@ -280,3 +280,29 @@ export function buildEntityMonthJsonLd(opts: {
     about: { '@type': 'Thing', name: opts.entityName },
   };
 }
+
+export function buildCompanyProfileJsonLd(opts: {
+  name: string;
+  slug: string;
+  description: string;
+  category: string;
+  sourceUrls: string[];
+  peerNames: string[];
+}): JsonLdBlock {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'ProfilePage',
+    name: `${opts.name} company profile`,
+    description: opts.description,
+    url: `${SITE_URL}/case-studies/${opts.slug}`,
+    mainEntity: {
+      '@type': 'Organization',
+      name: opts.name,
+      description: opts.description,
+      additionalType: opts.category,
+      subjectOf: opts.sourceUrls.map((url) => ({ '@type': 'WebPage', url })),
+      relatedLink: opts.peerNames,
+    },
+    publisher: { '@id': `${SITE_URL}/#organization` },
+  };
+}

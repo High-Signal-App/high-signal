@@ -11,6 +11,7 @@ import { BreadcrumbJsonLd, EntityMonthJsonLd } from '@/components/seo/structured
 import { api, type SignalRow } from '@/lib/api';
 import { signalHeadline } from '@/lib/signal-format';
 import { SITE_URL } from '@/lib/site';
+import { evaluateCollection, robotsForVerdict } from '../../../../../public-corpus-policy.mjs';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,10 +33,27 @@ export async function generateMetadata({
   params: Promise<{ id: string; period: string }>;
 }): Promise<Metadata> {
   const { id, period } = await params;
+  const window = periodWindow(period);
+  if (!window) return { title: 'Archive not found', robots: { index: false, follow: true } };
+  let childCount = 0;
+  try {
+    const detail = await api.entity(id);
+    childCount = detail.signals.filter((signal) => {
+      const timestamp =
+        typeof signal.publishedAt === 'number'
+          ? signal.publishedAt
+          : Date.parse(String(signal.publishedAt));
+      return timestamp >= window.start.getTime() && timestamp < window.end.getTime();
+    }).length;
+  } catch {
+    /* Missing data fails closed to noindex. */
+  }
+  const verdict = evaluateCollection('entity-period', { childCount }, 2);
   return {
     title: `${id} signals — ${period} archive`,
     description: `Every published High Signal call on ${id} during ${period}, with citations and directional confidence inline.`,
     alternates: { canonical: `${SITE_URL}/entities/${id}/${period}` },
+    robots: robotsForVerdict(verdict),
   };
 }
 
@@ -74,6 +92,7 @@ export default async function EntityMonthPage({
   const ups = monthSignals.filter((s) => s.direction === 'up').length;
   const downs = monthSignals.filter((s) => s.direction === 'down').length;
   const types = Array.from(new Set(monthSignals.map((s) => s.signalType)));
+  const verdict = evaluateCollection('entity-period', { childCount: monthSignals.length }, 2);
 
   return (
     <PageShell>
@@ -86,12 +105,14 @@ export default async function EntityMonthPage({
           { name: period, path: `/entities/${id}/${period}` },
         ]}
       />
-      <EntityMonthJsonLd
-        entityName={entity.name}
-        entityId={id}
-        period={period}
-        signalCount={monthSignals.length}
-      />
+      {verdict.eligible && (
+        <EntityMonthJsonLd
+          entityName={entity.name}
+          entityId={id}
+          period={period}
+          signalCount={monthSignals.length}
+        />
+      )}
 
       <SectionHeader
         eyebrow={`${entity.name}${entity.ticker ? ` · ${entity.ticker}` : ''} · archive`}

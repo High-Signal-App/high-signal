@@ -59,8 +59,9 @@ const LLMS_MARKDOWN = `# High Signal
 - [Methodology](https://highsignal.app/methodology)
 - [Agent catalog](https://highsignal.app/api/ai)
 
-Every canonical public HTML route has a Markdown alternate. Large dynamic
-corpora use the templates declared by the agent catalog.
+Every index-eligible public HTML route has a Markdown alternate. Large dynamic
+corpora use the templates declared by the agent catalog and the same eligibility
+policy as the canonical sitemap.
 `;
 
 const LLMS_FULL_MARKDOWN = `${INDEX_MARKDOWN}
@@ -71,7 +72,7 @@ const LLMS_FULL_MARKDOWN = `${INDEX_MARKDOWN}
 - Published signal detail pages
 - Entity and entity-month archives
 - Signal-type taxonomies
-- Company-universe profiles and pagination
+- Qualified company-universe profiles
 
 These Markdown responses are rendered from the same server-side product output
 as the human page. Private review, admin, authentication, personal, delivery,
@@ -102,6 +103,7 @@ function catalogForOrigin(origin) {
     mdTemplate: `${origin}${route.markdown}`,
     kind: 'dynamic-template',
     description: route.description,
+    eligibility: 'Rendered pages must permit indexing under the public corpus policy.',
   }));
 
   return {
@@ -226,8 +228,16 @@ export async function handleRenderedMarkdown(request, renderHtml) {
     });
   }
 
+  const html = await rendered.text();
+  if (htmlDisallowsIndexing(html)) {
+    return new Response('This public route is not part of the agent discovery corpus.\n', {
+      status: 404,
+      headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+    });
+  }
+
   const markdown = htmlDocumentToMarkdown(
-    await rendered.text(),
+    html,
     new URL(target.publicPath, htmlUrl.origin).toString()
   );
   if (!markdown) {
@@ -240,6 +250,15 @@ export async function handleRenderedMarkdown(request, renderHtml) {
   return text(request, markdown, 'text/markdown; charset=utf-8', {
     Link: `<${target.publicPath}>; rel="canonical"; type="text/html"`,
     Vary: 'Accept',
+  });
+}
+
+export function htmlDisallowsIndexing(html) {
+  return [...html.matchAll(/<meta\b[^>]*>/gi)].some((match) => {
+    const tag = match[0];
+    const name = tag.match(/\bname\s*=\s*(['"])(.*?)\1/i)?.[2]?.toLowerCase();
+    const content = tag.match(/\bcontent\s*=\s*(['"])(.*?)\1/i)?.[2]?.toLowerCase();
+    return name === 'robots' && (content ?? '').split(/[\s,]+/).includes('noindex');
   });
 }
 

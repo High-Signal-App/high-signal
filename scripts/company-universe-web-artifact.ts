@@ -31,7 +31,16 @@ export function buildWebCompanyUniverseArtifact(artifact: CompanyUniverseArtifac
         description: company.description,
         category: company.category,
         investors: company.investors,
-        sourceEvidence: [],
+        sourceEvidence: company.sourceEvidence.map((item) => ({
+          source: item.source,
+          sourceUrl: item.sourceUrl,
+          fund: item.fund,
+          position: item.position,
+          title: item.title,
+          description: '',
+          ...(item.cohort ? { cohort: item.cohort } : {}),
+          ...(item.program ? { program: item.program } : {}),
+        })),
         sourceEvidenceCount: company.sourceEvidence.length,
         searchMetadata: [
           ...new Set(

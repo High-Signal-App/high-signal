@@ -4,6 +4,7 @@ import { api } from '@/lib/api';
 import { SignalCard } from '@/components/molecules/SignalCard';
 import { SpilloverGraph } from '@/components/organisms/SpilloverGraph';
 import { SITE_URL } from '@/lib/site';
+import { evaluateEntity, robotsForVerdict } from '../../../../public-corpus-policy.mjs';
 import WatchButton from './WatchButton';
 
 export const dynamic = 'force-dynamic';
@@ -19,15 +20,21 @@ export async function generateMetadata({
   // self-canonicalises, this parent was missed.
   const base: Metadata = { alternates: { canonical: `${SITE_URL}/entities/${id}` } };
   try {
-    const { entity } = await api.entity(id);
+    const { entity, relationships, signals, marketQuotes = [] } = await api.entity(id);
     const label = entity.ticker ? `${entity.name} (${entity.ticker})` : entity.name;
+    const verdict = evaluateEntity({
+      signalCount: signals.length,
+      relationshipCount: relationships.length,
+      marketQuoteCount: marketQuotes.length,
+    });
     return {
       ...base,
       title: `${label} — signals`,
       description: `Every published High Signal call tied to ${label}, with citations, directional confidence, and the spillover map of related entities.`,
+      robots: robotsForVerdict(verdict),
     };
   } catch {
-    return { ...base, title: `${id} — signals` };
+    return { ...base, title: `${id} — signals`, robots: { index: false, follow: true } };
   }
 }
 

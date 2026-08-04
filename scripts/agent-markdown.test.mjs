@@ -6,6 +6,7 @@ import {
   handleAgentEdge,
   handleRenderedMarkdown,
   htmlDocumentToMarkdown,
+  htmlDisallowsIndexing,
   resolvePublicMarkdownTarget,
 } from '../apps/web/agent-edge.mjs';
 import {
@@ -118,11 +119,29 @@ const missing = await handleRenderedMarkdown(markdownRequest('/signals/missing.m
 });
 assert.equal(missing.status, 404, 'missing dynamic content must not become a fake Markdown 200');
 
+assert.equal(
+  htmlDisallowsIndexing(
+    '<html><head><meta content="follow, noindex" name="robots"></head><body></body></html>'
+  ),
+  true,
+  'robots attributes may appear in any order'
+);
+const withheld = await handleRenderedMarkdown(
+  markdownRequest('/case-studies/page/2.md'),
+  async () =>
+    new Response(
+      '<html><head><meta name="robots" content="noindex, follow"></head><body><main><h1>Page 2</h1></main></body></html>',
+      { headers: { 'Content-Type': 'text/html; charset=utf-8' } }
+    )
+);
+assert.equal(withheld.status, 404, 'noindex HTML must not receive an agent Markdown alternate');
+
 const catalogResponse = handleAgentEdge(markdownRequest('/api/ai'));
 assert.ok(catalogResponse);
 const catalog = await catalogResponse.json();
 assert.equal(catalog.surfaces.length, PUBLIC_STATIC_ROUTES.length);
 assert.equal(catalog.templates.length, PUBLIC_DYNAMIC_ROUTE_TEMPLATES.length);
+assert.ok(catalog.templates.every((template) => template.eligibility));
 assert.ok(catalog.surfaces.every((surface) => surface.url && surface.md));
 assert.equal(catalog.markdown.negotiation, true);
 assert.match(catalog.auth.notes, /Review, admin, auth, personal, delivery/);
