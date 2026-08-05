@@ -35,7 +35,10 @@ cannot poison the cache. Cache writes are asynchronous through `ctx.waitUntil`.
 ## Observability
 
 Eligible responses carry `x-edge-cache: AGENT-HIT` or `AGENT-MISS`. This is
-diagnostic only and does not change caching or content semantics.
+diagnostic only and does not change caching or content semantics. Cache hits
+also restore the agent response's declared five-minute browser and one-hour
+shared freshness because a zone-level Browser Cache TTL may otherwise rewrite
+`max-age` on Cache API reads.
 
 ## Rollback
 
