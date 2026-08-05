@@ -7,6 +7,7 @@ import { PageShell } from '@/components/system/HighSignalUI';
 import { api, type BriefSnapshot } from '@/lib/api';
 import { isRegion, type Region } from '@high-signal/shared';
 import { SITE_URL } from '@/lib/site';
+import { evaluateCollection, robotsForVerdict } from '../../../../public-corpus-policy.mjs';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,10 +21,24 @@ interface BriefDatePageProps {
 export async function generateMetadata({ params }: BriefDatePageProps): Promise<Metadata> {
   const { date } = await params;
   if (!DATE_REGEX.test(date)) return { title: 'Brief not found' };
+  let brief: BriefSnapshot | null = null;
+  try {
+    brief = await api.brief({ region: 'global', date });
+  } catch {
+    /* Missing data fails closed to noindex. */
+  }
+  const publicItems = brief ? [...brief.stocks, ...brief.ideas, ...brief.trends] : [];
+  const citedItems = publicItems.filter((item) => item.evidenceUrls.length > 0);
+  const verdict = evaluateCollection(
+    'brief',
+    { childCount: publicItems.length, hasProvenance: citedItems.length === publicItems.length },
+    3
+  );
   return {
     title: `Daily Brief — ${date} archive`,
     description: `The High Signal Daily Brief for ${date}, preserved as a permanent archive. Every claim cites two independent sources and a public hit-rate ledger.`,
     alternates: { canonical: `${SITE_URL}/brief/${date}` },
+    robots: robotsForVerdict(verdict),
   };
 }
 

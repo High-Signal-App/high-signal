@@ -12,7 +12,7 @@ const expected = buildWebCompanyUniverseArtifact(fullArtifact as CompanyUniverse
 assert.deepEqual(webArtifact, expected);
 assert.equal(webArtifact.companies.length, fullArtifact.companies.length);
 assert.equal(
-  webArtifact.companies.every((company) => company.sourceEvidence.length === 0),
+  webArtifact.companies.every((company) => company.sourceEvidence.length > 0),
   true
 );
 assert.equal(
@@ -24,10 +24,23 @@ assert.equal(
   true
 );
 assert.equal(
+  webArtifact.companies.every((company) =>
+    company.sourceEvidence.every(
+      (evidence) =>
+        evidence.source.length > 0 &&
+        evidence.sourceUrl.startsWith('https://') &&
+        evidence.fund.length > 0 &&
+        evidence.title.length > 0 &&
+        evidence.description === ''
+    )
+  ),
+  true
+);
+assert.equal(
   webArtifact.companies.some((company) => company.searchMetadata.length > 0),
   true
 );
-assert.equal(statSync(WEB_ARTIFACT_PATH).size < 24 * 1024 * 1024, true);
+assert.equal(statSync(WEB_ARTIFACT_PATH).size < 28 * 1024 * 1024, true);
 assert.doesNotThrow(() => JSON.parse(readFileSync(WEB_ARTIFACT_PATH, 'utf8')));
 
 console.log('company-universe web artifact tests passed');

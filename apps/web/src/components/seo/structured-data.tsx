@@ -1,5 +1,6 @@
 import {
   buildBreadcrumbJsonLd,
+  buildCompanyProfileJsonLd,
   buildEntityMonthJsonLd,
   buildFaqJsonLd,
   buildHomeJsonLd,
@@ -119,4 +120,15 @@ export function EntityMonthJsonLd(props: {
   signalCount: number;
 }): React.JSX.Element {
   return <LdJson data={buildEntityMonthJsonLd(props)} />;
+}
+
+export function CompanyProfileJsonLd(props: {
+  name: string;
+  slug: string;
+  description: string;
+  category: string;
+  sourceUrls: string[];
+  peerNames: string[];
+}): React.JSX.Element {
+  return <LdJson data={buildCompanyProfileJsonLd(props)} />;
 }

@@ -50,6 +50,8 @@ const NODE_SUITES = [
   ['foundry-safe-actions', 'scripts/foundry-safe-actions.test.mjs'],
   ['idempotency-guards', 'scripts/idempotency-guards.test.mjs'],
   ['worker-routing', 'scripts/worker-routing.test.mjs'],
+  ['public-corpus', 'scripts/public-corpus-policy.test.mjs'],
+  ['public-corpus-receipt', 'scripts/public-corpus-receipt.test.mjs'],
 ];
 
 const jobs = [

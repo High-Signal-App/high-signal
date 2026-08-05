@@ -9,6 +9,7 @@ import { MarkdownView } from '@/components/system/MarkdownView';
 import { SignalArticleJsonLd } from '@/components/seo/structured-data';
 import catalog from '@/lib/source-catalog.json';
 import { SITE_URL } from '@/lib/site';
+import { evaluateSignal, robotsForVerdict } from '../../../../public-corpus-policy.mjs';
 
 export const dynamic = 'force-dynamic';
 
@@ -80,6 +81,7 @@ export async function generateMetadata({
   const { slug } = await params;
   try {
     const { signal } = await api.signal(slug);
+    const verdict = evaluateSignal({ ...signal, isBackfill: isBackfillSignal(signal) });
     const headline = deriveHeadline(signal.bodyMd ?? '');
     const description = `${signal.direction.toUpperCase()} · ${signal.confidence} confidence · ${signal.signalType.replaceAll('_', ' ')}`;
     const ogImage = `/api/og?title=${encodeURIComponent(headline)}`;
@@ -90,6 +92,7 @@ export async function generateMetadata({
       // canonical de-indexes the corpus), so a route without this ships no
       // canonical at all. This is the highest-volume route in the sitemap.
       alternates: { canonical: `${SITE_URL}/signals/${slug}` },
+      robots: robotsForVerdict(verdict),
       openGraph: {
         title: headline,
         description,
@@ -133,23 +136,26 @@ export default async function SignalDetail({ params }: { params: Promise<{ slug:
   }
   const headline = signalHeadline(signal.bodyMd, signal.slug);
   const summary = signalSummary(signal.bodyMd, signal.slug, 720);
+  const verdict = evaluateSignal({ ...signal, isBackfill: isBackfillSignal(signal) });
   const price = pricedInContext(signal.primaryEntityId, signal.direction);
   const bodyMarkdown = markdownWithoutFirstHeading(signal.bodyMd);
 
   return (
     <main className="mx-auto max-w-4xl px-6 py-16">
-      <SignalArticleJsonLd
-        headline={headline}
-        slug={signal.slug}
-        publishedAt={new Date(signal.publishedAt).toISOString()}
-        bodyMd={signal.bodyMd}
-        entityName={signal.primaryEntityId}
-        evidenceUrls={signal.evidenceUrls}
-        direction={signal.direction}
-        confidence={signal.confidence}
-        predictedWindowDays={signal.predictedWindowDays}
-        signalType={signal.signalType}
-      />
+      {verdict.eligible && (
+        <SignalArticleJsonLd
+          headline={headline}
+          slug={signal.slug}
+          publishedAt={new Date(signal.publishedAt).toISOString()}
+          bodyMd={signal.bodyMd}
+          entityName={signal.primaryEntityId}
+          evidenceUrls={signal.evidenceUrls}
+          direction={signal.direction}
+          confidence={signal.confidence}
+          predictedWindowDays={signal.predictedWindowDays}
+          signalType={signal.signalType}
+        />
+      )}
       <a
         href="/signals"
         className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500 hover:text-zinc-300"

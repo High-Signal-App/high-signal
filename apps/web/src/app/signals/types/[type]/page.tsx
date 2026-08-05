@@ -13,6 +13,7 @@ import { api, type SignalRow } from '@/lib/api';
 import { signalHeadline } from '@/lib/signal-format';
 import { familyForSignalType, familyLabel } from '@high-signal/shared';
 import { SITE_URL } from '@/lib/site';
+import { evaluateCollection, robotsForVerdict } from '../../../../../public-corpus-policy.mjs';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,10 +25,18 @@ export async function generateMetadata({
   const { type } = await params;
   const family = familyForSignalType(type);
   const human = type.replaceAll('_', ' ');
+  let childCount = 0;
+  try {
+    childCount = (await api.signals({ type, limit: 3 })).signals.length;
+  } catch {
+    /* Missing data fails closed to noindex. */
+  }
+  const verdict = evaluateCollection('taxonomy', { childCount }, 3);
   return {
     title: `${human} signals`,
     description: `Every High Signal call tagged ${human}. Family: ${familyLabel(family)}. Hit-rate, recent examples, and citation policy on one page.`,
     alternates: { canonical: `${SITE_URL}/signals/types/${type}` },
+    robots: robotsForVerdict(verdict),
   };
 }
 
@@ -75,6 +84,7 @@ export default async function SignalTypePage({ params }: { params: Promise<{ typ
     familyHits + familyMisses > 0 ? familyHits / (familyHits + familyMisses) : null;
 
   const human = type.replaceAll('_', ' ');
+  const verdict = evaluateCollection('taxonomy', { childCount: signals.length }, 3);
 
   return (
     <PageShell>
@@ -87,13 +97,15 @@ export default async function SignalTypePage({ params }: { params: Promise<{ typ
           { name: human, path: `/signals/types/${type}` },
         ]}
       />
-      <SignalTypeTaxonomyJsonLd
-        signalType={type}
-        family={family}
-        totalCount={signals.length}
-        hitRate={hitRate}
-        sampleSize={sample}
-      />
+      {verdict.eligible && (
+        <SignalTypeTaxonomyJsonLd
+          signalType={type}
+          family={family}
+          totalCount={signals.length}
+          hitRate={hitRate}
+          sampleSize={sample}
+        />
+      )}
 
       <SectionHeader eyebrow={`signal type · ${familyLabel(family)}`} title={human}>
         Every published <strong>{human}</strong> signal with its public hit-rate inline. Belongs to

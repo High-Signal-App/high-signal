@@ -9,6 +9,7 @@
 
 import {
   buildBreadcrumbJsonLd,
+  buildCompanyProfileJsonLd,
   buildEntityMonthJsonLd,
   buildFaqJsonLd,
   buildHomeJsonLd,
@@ -242,6 +243,23 @@ console.log('\nEntity-month CollectionPage JSON-LD');
     'description includes count',
     typeof block.description === 'string' && block.description.includes('4 signal')
   );
+}
+
+console.log('\nCompany profile JSON-LD');
+{
+  const block = buildCompanyProfileJsonLd({
+    name: 'Example',
+    slug: 'example',
+    description: 'Example builds source-backed workflow software.',
+    category: 'Developer tools',
+    sourceUrls: ['https://www.ycombinator.com/companies/example'],
+    peerNames: ['Peer one', 'Peer two'],
+  });
+  check('type ProfilePage', block['@type'] === 'ProfilePage');
+  check('url is canonical company profile', block.url === `${SITE_URL}/case-studies/example`);
+  const company = block.mainEntity as { '@type': string; subjectOf: Array<{ url: string }> };
+  check('main entity is Organization', company['@type'] === 'Organization');
+  check('source URL is retained', company.subjectOf[0].url.includes('ycombinator.com'));
 }
 
 console.log(`\nseo-json-ld.test.ts: ${total - failures}/${total} passed`);
