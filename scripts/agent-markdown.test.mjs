@@ -116,7 +116,9 @@ const cacheEntries = new Map();
 const cacheWrites = [];
 const markdownCache = {
   async match(request) {
-    return cacheEntries.get(request.url)?.clone();
+    const response = cacheEntries.get(request.url)?.clone();
+    if (response) response.headers.set('Cache-Control', 'public, max-age=14400, s-maxage=3600');
+    return response;
   },
   async put(request, response) {
     cacheEntries.set(request.url, response.clone());
@@ -152,6 +154,11 @@ const cacheHit = await handleCachedRenderedMarkdown(
   cacheOptions
 );
 assert.equal(cacheHit.headers.get('x-edge-cache'), 'AGENT-HIT');
+assert.equal(
+  cacheHit.headers.get('cache-control'),
+  'public, max-age=300, s-maxage=3600',
+  'cache hits must preserve the public agent TTL even when the edge mutates browser max-age'
+);
 assert.equal(cachedRenderCount, 1, 'cache hit must not invoke OpenNext');
 assert.equal(await cacheHit.text(), missBody, 'cache hit must preserve the rendered Markdown body');
 

@@ -12,6 +12,8 @@ const PRODUCT = {
     'Daily synthesized brief on technology, startups, and finance with cited evidence and a public hit-rate ledger.',
 };
 
+const AGENT_CACHE_CONTROL = 'public, max-age=300, s-maxage=3600';
+
 const INDEX_MARKDOWN = `# High Signal
 
 High Signal turns noisy public evidence into one daily synthesized brief across
@@ -307,6 +309,9 @@ function isCacheableRenderedMarkdown(response) {
 
 function withEdgeCacheStatus(response, status) {
   const headers = new Headers(response.headers);
+  // Cloudflare may apply a zone Browser Cache TTL to a Cache API hit. Keep the
+  // public contract identical to a freshly rendered agent response.
+  headers.set('Cache-Control', AGENT_CACHE_CONTROL);
   headers.set('x-edge-cache', status);
   return new Response(response.body, {
     status: response.status,
@@ -434,7 +439,7 @@ function text(request, body, type, extra = {}) {
     status: 200,
     headers: {
       'Content-Type': type,
-      'Cache-Control': 'public, max-age=300, s-maxage=3600',
+      'Cache-Control': AGENT_CACHE_CONTROL,
       ...extra,
     },
   });
@@ -445,7 +450,7 @@ function json(request, data) {
     status: 200,
     headers: {
       'Content-Type': 'application/json; charset=utf-8',
-      'Cache-Control': 'public, max-age=300, s-maxage=3600',
+      'Cache-Control': AGENT_CACHE_CONTROL,
     },
   });
 }
