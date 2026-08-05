@@ -6,6 +6,7 @@
 
 export const SITE_URL = 'https://highsignal.app';
 export const SITE_NAME = 'High Signal';
+export const SITE_ALTERNATE_NAMES = ['HighSignal', 'highsignal.app'] as const;
 export const SITE_TAGLINE = 'Evidence-first intelligence brief';
 export const SITE_DESCRIPTION =
   'High Signal is evidence-first intelligence on technology, startups, and finance. ' +

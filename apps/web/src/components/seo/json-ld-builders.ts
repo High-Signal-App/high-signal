@@ -8,7 +8,7 @@
 
 // Relative path (not the @/ alias) so this module is importable from the
 // repo root for unit testing without an apps/web build context.
-import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from '../../lib/site';
+import { SITE_ALTERNATE_NAMES, SITE_DESCRIPTION, SITE_NAME, SITE_URL } from '../../lib/site';
 
 export interface JsonLdBlock {
   '@context': string;
@@ -100,6 +100,7 @@ export function buildOrganizationJsonLd(): JsonLdBlock[] {
       '@type': 'Organization',
       '@id': `${SITE_URL}/#organization`,
       name: SITE_NAME,
+      alternateName: SITE_ALTERNATE_NAMES,
       url: SITE_URL,
       description: SITE_DESCRIPTION,
       logo: `${SITE_URL}/icon.svg`,
@@ -111,6 +112,7 @@ export function buildOrganizationJsonLd(): JsonLdBlock[] {
       '@id': `${SITE_URL}/#website`,
       url: SITE_URL,
       name: SITE_NAME,
+      alternateName: SITE_ALTERNATE_NAMES,
       description: SITE_DESCRIPTION,
       publisher: { '@id': `${SITE_URL}/#organization` },
       inLanguage: 'en',
@@ -128,6 +130,7 @@ export function buildHomeJsonLd(): JsonLdBlock {
     '@context': 'https://schema.org',
     '@type': 'WebApplication',
     name: `${SITE_NAME} Daily Brief`,
+    alternateName: SITE_ALTERNATE_NAMES,
     url: SITE_URL,
     applicationCategory: 'BusinessApplication',
     operatingSystem: 'Web',
@@ -324,6 +327,7 @@ export function buildSoftwareApplicationJsonLd(): JsonLdBlock {
     '@context': 'https://schema.org',
     '@type': 'SoftwareApplication',
     name: SITE_NAME,
+    alternateName: SITE_ALTERNATE_NAMES,
     applicationCategory: 'NewsApplication',
     operatingSystem: 'Web Browser',
     url: SITE_URL,

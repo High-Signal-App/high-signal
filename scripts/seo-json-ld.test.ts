@@ -19,7 +19,7 @@ import {
   buildSignalTypeTaxonomyJsonLd,
   buildTrackRecordDatasetJsonLd,
 } from '../apps/web/src/components/seo/json-ld-builders';
-import { SITE_URL } from '../apps/web/src/lib/site';
+import { SITE_ALTERNATE_NAMES, SITE_URL } from '../apps/web/src/lib/site';
 
 let failures = 0;
 let total = 0;
@@ -57,6 +57,14 @@ console.log('Organization + WebSite JSON-LD');
   check('Organization @id absolute', isAbsoluteUrl(org['@id']));
   check('Organization url absolute', isAbsoluteUrl(org.url));
   check(
+    'Organization carries reviewed brand aliases',
+    JSON.stringify(org.alternateName) === JSON.stringify(SITE_ALTERNATE_NAMES)
+  );
+  check(
+    'WebSite carries reviewed brand aliases',
+    JSON.stringify(site.alternateName) === JSON.stringify(SITE_ALTERNATE_NAMES)
+  );
+  check(
     'WebSite publisher refs Organization @id',
     (site.publisher as { '@id': string })['@id'] === org['@id']
   );
@@ -73,6 +81,10 @@ console.log('\nHome (WebApplication) JSON-LD');
   check('type WebApplication', block['@type'] === 'WebApplication');
   check('url absolute', isAbsoluteUrl(block.url));
   check('operatingSystem', block.operatingSystem === 'Web');
+  check(
+    'WebApplication carries reviewed brand aliases',
+    JSON.stringify(block.alternateName) === JSON.stringify(SITE_ALTERNATE_NAMES)
+  );
   check('price = 0 (free)', (block.offers as { price: string }).price === '0');
   check(
     'publisher refs Organization @id',
