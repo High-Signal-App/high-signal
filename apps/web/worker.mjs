@@ -25,7 +25,6 @@ const CACHEABLE_EXACT = new Set([
   '/case-studies/search',
   '/teardowns',
   '/agent-eval',
-  '/agent-eval/seo',
   '/agent-eval/sample',
   '/domains',
   '/explore',
