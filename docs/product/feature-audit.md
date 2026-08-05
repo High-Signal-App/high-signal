@@ -229,7 +229,7 @@ Lab is already a candidate separate subsystem because it owns a different databa
 | `data/equities-snapshot.jsonl` | Generated equities snapshot bundle | Derived artifact, not source of truth |
 | `apps/web/src/data/equities-snapshot.json` | Web-consumable equity bundle | Derived artifact |
 | `data/product-flow-refresh.jsonl` | Product/daily flow refresh records | Operator/internal or brief input |
-| `apps/web/src/data/daily-source-refreshes.json` | Web-consumable daily source refreshes | Derived artifact |
+| `apps/web/src/data/daily-source-refreshes.json` | Offline daily-source audit snapshot | Derived artifact |
 | Personal source registry/snapshots | Personal command brief source definitions and outputs | Internal operator data, not core product source truth |
 
 These generated artifacts are useful for fast read surfaces but should not be treated as independent source systems. When a generated artifact exists alongside D1 tables, the audit should name one canonical owner and treat the other as cache/read bundle.

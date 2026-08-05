@@ -14,9 +14,12 @@ import {
   type SignalContentCategory,
 } from '@high-signal/shared';
 import sourceRegistry from '../../../../data/personal-source-registry.json';
-import bundledRefreshes from '../data/daily-source-refreshes.json';
 
-const DATA_ROOT = resolve(process.cwd(), '../../data');
+const SOURCE_REFRESH_PATHS = [
+  resolve(process.cwd(), 'data/product-flow-refresh.jsonl'),
+  resolve(process.cwd(), '../../data/product-flow-refresh.jsonl'),
+] as const;
+const SOURCE_REFRESH_ASSET_URL = 'https://assets.local/_private/daily-source-refreshes.jsonl';
 
 type SourceType = 'reddit' | 'hacker-news' | 'github-issues' | 'rss';
 
@@ -183,7 +186,7 @@ export type DailyAutomationStatus = {
   workflow: 'personal-brief';
   schedule: 'daily 07:30 UTC';
   sourcePath: 'data/product-flow-refresh.jsonl';
-  bundledPath: 'apps/web/src/data/daily-source-refreshes.json';
+  bundledPath: '_private/daily-source-refreshes.jsonl';
   deployPath: 'personal-brief commit -> deploy-web';
   freshnessStatus: 'fresh' | 'stale' | 'empty';
   freshnessHours: number | null;
@@ -299,17 +302,41 @@ function sourceClass(source: SourceRegistry['sources'][number]) {
   return 'ai-dev';
 }
 
-export async function readSourceRefreshes(): Promise<ProductFlowRefreshRecord[]> {
+function parseSourceRefreshes(raw: string) {
+  return raw
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => JSON.parse(line) as ProductFlowRefreshRecord);
+}
+
+async function readSourceRefreshAsset() {
   try {
-    const raw = await readFile(resolve(DATA_ROOT, 'product-flow-refresh.jsonl'), 'utf8');
-    return raw
-      .split('\n')
-      .map((line) => line.trim())
-      .filter(Boolean)
-      .map((line) => JSON.parse(line) as ProductFlowRefreshRecord);
+    const mod = await import('@opennextjs/cloudflare');
+    const context = (
+      mod as unknown as {
+        getCloudflareContext?: (...args: unknown[]) => { env?: Record<string, unknown> };
+      }
+    ).getCloudflareContext?.();
+    const assets = context?.env?.['ASSETS'];
+    if (!assets || typeof (assets as { fetch?: unknown }).fetch !== 'function') return null;
+    const response = await (assets as { fetch: typeof fetch }).fetch(SOURCE_REFRESH_ASSET_URL);
+    return response.ok ? response.text() : null;
   } catch {
-    return bundledRefreshes as ProductFlowRefreshRecord[];
+    return null;
   }
+}
+
+export async function readSourceRefreshes(): Promise<ProductFlowRefreshRecord[]> {
+  for (const path of SOURCE_REFRESH_PATHS) {
+    try {
+      return parseSourceRefreshes(await readFile(path, 'utf8'));
+    } catch {
+      // Try the next known runtime root.
+    }
+  }
+  const asset = await readSourceRefreshAsset();
+  return asset ? parseSourceRefreshes(asset) : [];
 }
 
 export function latestRefreshRecords(records: ProductFlowRefreshRecord[]) {
@@ -614,7 +641,7 @@ export function buildDailyAutomationStatus(
     workflow: 'personal-brief',
     schedule: 'daily 07:30 UTC',
     sourcePath: 'data/product-flow-refresh.jsonl',
-    bundledPath: 'apps/web/src/data/daily-source-refreshes.json',
+    bundledPath: '_private/daily-source-refreshes.jsonl',
     deployPath: 'personal-brief commit -> deploy-web',
     freshnessStatus: freshnessHours === null ? 'empty' : freshnessHours <= 36 ? 'fresh' : 'stale',
     freshnessHours,

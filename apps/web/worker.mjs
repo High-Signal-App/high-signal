@@ -12,6 +12,7 @@ export {
 } from './.open-next/worker.js';
 
 const CACHE_CONTROL = 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800';
+const PRIVATE_ASSET_PREFIX = '/_private/';
 // Marketing hubs + lenses (anon). Dynamic case-study slugs rely on Next
 // s-maxage; edge-cache the high-traffic entry pages here.
 const CACHEABLE_EXACT = new Set([
@@ -73,6 +74,10 @@ function hasAuthCookie(request) {
 
 const worker = {
   fetch: withTiming(async function fetch(request, env, ctx) {
+    const url = new URL(request.url);
+    if (url.pathname.startsWith(PRIVATE_ASSET_PREFIX)) {
+      return new Response('Not found', { status: 404 });
+    }
     // Agent / LLM indexing surfaces (fleet GEO standard)
     {
       const agent = handleAgentEdge(request);
@@ -89,7 +94,6 @@ const worker = {
     if (request.method !== 'GET') {
       return openNext.fetch(request, env, ctx);
     }
-    const url = new URL(request.url);
     if (!isCacheableDocumentPath(url.pathname)) {
       return openNext.fetch(request, env, ctx);
     }

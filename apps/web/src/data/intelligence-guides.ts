@@ -78,7 +78,8 @@ export const INTELLIGENCE_GUIDES: Record<IntelligenceGuideKey, IntelligenceGuide
       {
         href: '/methodology',
         label: 'Publication contract',
-        detail: 'Published claims require at least two independent sources and matured calls enter the public ledger.',
+        detail:
+          'Published claims require at least two independent sources and matured calls enter the public ledger.',
         verifiedAt: '2026-08-05',
       },
       {
@@ -90,15 +91,32 @@ export const INTELLIGENCE_GUIDES: Record<IntelligenceGuideKey, IntelligenceGuide
       {
         href: '/track-record',
         label: 'Outcome record',
-        detail: 'Hits, misses, pushes, sample sizes, and attributed fallback rates remain inspectable.',
+        detail:
+          'Hits, misses, pushes, sample sizes, and attributed fallback rates remain inspectable.',
         verifiedAt: '2026-08-05',
       },
     ],
     related: [
-      { href: '/brief', title: "Today's Daily Brief", description: 'Read the current compressed view.' },
-      { href: '/methodology', title: 'Methodology', description: 'Inspect the cite-or-kill rules.' },
-      { href: '/track-record', title: 'Public track record', description: 'Check matured calls and sample size.' },
-      { href: '/brief/archive', title: 'Brief archive', description: 'Return to a permanent dated brief.' },
+      {
+        href: '/brief',
+        title: "Today's Daily Brief",
+        description: 'Read the current compressed view.',
+      },
+      {
+        href: '/methodology',
+        title: 'Methodology',
+        description: 'Inspect the cite-or-kill rules.',
+      },
+      {
+        href: '/track-record',
+        title: 'Public track record',
+        description: 'Check matured calls and sample size.',
+      },
+      {
+        href: '/brief/archive',
+        title: 'Brief archive',
+        description: 'Return to a permanent dated brief.',
+      },
     ],
     cta: {
       href: '/brief',
@@ -169,10 +187,26 @@ export const INTELLIGENCE_GUIDES: Record<IntelligenceGuideKey, IntelligenceGuide
       },
     ],
     related: [
-      { href: '/case-studies', title: 'Company universe', description: 'Search the qualified company graph.' },
-      { href: '/signals', title: 'Current signals', description: 'Connect company context to changing evidence.' },
-      { href: '/opportunities', title: 'Opportunities', description: 'Inspect source-backed product hypotheses.' },
-      { href: '/data', title: 'Data sources', description: 'Review source coverage and freshness.' },
+      {
+        href: '/case-studies',
+        title: 'Company universe',
+        description: 'Search the qualified company graph.',
+      },
+      {
+        href: '/signals',
+        title: 'Current signals',
+        description: 'Connect company context to changing evidence.',
+      },
+      {
+        href: '/opportunities',
+        title: 'Opportunities',
+        description: 'Inspect source-backed product hypotheses.',
+      },
+      {
+        href: '/data',
+        title: 'Data sources',
+        description: 'Review source coverage and freshness.',
+      },
     ],
     cta: {
       href: '/case-studies',
@@ -238,26 +272,41 @@ export const INTELLIGENCE_GUIDES: Record<IntelligenceGuideKey, IntelligenceGuide
       {
         href: '/convergence',
         label: 'Independent-source convergence',
-        detail: 'Fresh evidence is grouped across distinct source classes instead of headline count alone.',
+        detail:
+          'Fresh evidence is grouped across distinct source classes instead of headline count alone.',
         verifiedAt: '2026-08-05',
       },
       {
         href: '/opportunities',
         label: 'Opportunity briefs',
-        detail: 'Hypotheses expose target user, problem, evidence mix, why now, risk, and next validation step.',
+        detail:
+          'Hypotheses expose target user, problem, evidence mix, why now, risk, and next validation step.',
         verifiedAt: '2026-08-05',
       },
     ],
     related: [
-      { href: '/brief', title: 'Daily Brief', description: 'Scan the current evidence-backed changes.' },
-      { href: '/convergence', title: 'Convergence', description: 'Check independent source classes together.' },
-      { href: '/case-studies', title: 'Company universe', description: 'Map companies and local alternatives.' },
+      {
+        href: '/brief',
+        title: 'Daily Brief',
+        description: 'Scan the current evidence-backed changes.',
+      },
+      {
+        href: '/convergence',
+        title: 'Convergence',
+        description: 'Check independent source classes together.',
+      },
+      {
+        href: '/case-studies',
+        title: 'Company universe',
+        description: 'Map companies and local alternatives.',
+      },
       { href: '/track-record', title: 'Track record', description: 'Return to matured outcomes.' },
     ],
     cta: {
       href: '/brief',
       title: "Read today's brief",
-      description: 'Investigate one converging signal and turn it into a source-backed research list.',
+      description:
+        'Investigate one converging signal and turn it into a source-backed research list.',
     },
   },
   'technology-trend-intelligence': {
@@ -312,7 +361,8 @@ export const INTELLIGENCE_GUIDES: Record<IntelligenceGuideKey, IntelligenceGuide
       {
         href: '/entities',
         label: '34 qualified entities and 26 monthly archives',
-        detail: 'Entity surfaces qualify from eligible signals or substantive relationship evidence.',
+        detail:
+          'Entity surfaces qualify from eligible signals or substantive relationship evidence.',
         verifiedAt: '2026-08-05',
       },
       {
@@ -330,14 +380,23 @@ export const INTELLIGENCE_GUIDES: Record<IntelligenceGuideKey, IntelligenceGuide
     ],
     related: [
       { href: '/signals', title: 'Signals', description: 'Inspect current claims and evidence.' },
-      { href: '/signals/types', title: 'Signal types', description: 'Follow recurring patterns over time.' },
-      { href: '/convergence', title: 'Convergence', description: 'See independent source classes together.' },
+      {
+        href: '/signals/types',
+        title: 'Signal types',
+        description: 'Follow recurring patterns over time.',
+      },
+      {
+        href: '/convergence',
+        title: 'Convergence',
+        description: 'See independent source classes together.',
+      },
       { href: '/sectors', title: 'Sectors', description: 'Find where patterns concentrate.' },
     ],
     cta: {
       href: '/signals',
       title: 'Explore current signals',
-      description: 'Follow one pattern through its type, entities, sectors, evidence, and track record.',
+      description:
+        'Follow one pattern through its type, entities, sectors, evidence, and track record.',
     },
   },
 };
@@ -347,7 +406,7 @@ export const INTELLIGENCE_GUIDE_LINKS: GuideLink[] = Object.values(INTELLIGENCE_
     href: guide.slug,
     title: guide.title,
     description: guide.summary,
-  }),
+  })
 );
 
 export function intelligenceGuide(key: IntelligenceGuideKey): IntelligenceGuide {
