@@ -11,21 +11,10 @@ import { BreadcrumbJsonLd, EntityMonthJsonLd } from '@/components/seo/structured
 import { api, type SignalRow } from '@/lib/api';
 import { signalHeadline } from '@/lib/signal-format';
 import { SITE_URL } from '@/lib/site';
+import { entityPeriodSignalFilters } from '../../../../../public-corpus-records.mjs';
 import { evaluateCollection, robotsForVerdict } from '../../../../../public-corpus-policy.mjs';
 
 export const dynamic = 'force-dynamic';
-
-const PERIOD_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
-
-function periodWindow(period: string): { start: Date; end: Date } | null {
-  if (!PERIOD_RE.test(period)) return null;
-  const [yearStr, monthStr] = period.split('-');
-  const year = Number(yearStr);
-  const month = Number(monthStr) - 1; // 0-indexed for Date
-  const start = new Date(Date.UTC(year, month, 1));
-  const end = new Date(Date.UTC(year, month + 1, 1));
-  return { start, end };
-}
 
 export async function generateMetadata({
   params,
@@ -33,18 +22,13 @@ export async function generateMetadata({
   params: Promise<{ id: string; period: string }>;
 }): Promise<Metadata> {
   const { id, period } = await params;
-  const window = periodWindow(period);
-  if (!window) return { title: 'Archive not found', robots: { index: false, follow: true } };
+  const signalFilters = entityPeriodSignalFilters(id, period);
+  if (!signalFilters) {
+    return { title: 'Archive not found', robots: { index: false, follow: true } };
+  }
   let childCount = 0;
   try {
-    const detail = await api.entity(id);
-    childCount = detail.signals.filter((signal) => {
-      const timestamp =
-        typeof signal.publishedAt === 'number'
-          ? signal.publishedAt
-          : Date.parse(String(signal.publishedAt));
-      return timestamp >= window.start.getTime() && timestamp < window.end.getTime();
-    }).length;
+    childCount = (await api.signals(signalFilters)).signals.length;
   } catch {
     /* Missing data fails closed to noindex. */
   }
@@ -63,31 +47,19 @@ export default async function EntityMonthPage({
   params: Promise<{ id: string; period: string }>;
 }) {
   const { id, period } = await params;
-  const window = periodWindow(period);
-  if (!window) notFound();
+  const signalFilters = entityPeriodSignalFilters(id, period);
+  if (!signalFilters) notFound();
 
   let entity: { id: string; name: string; ticker: string | null } | null = null;
-  let allSignals: SignalRow[] = [];
+  let monthSignals: SignalRow[] = [];
   try {
-    const detail = await api.entity(id);
+    const [detail, periodSignals] = await Promise.all([api.entity(id), api.signals(signalFilters)]);
     entity = detail.entity;
-    allSignals = detail.signals;
+    monthSignals = periodSignals.signals;
   } catch {
     /* api offline or entity missing */
   }
   if (!entity) notFound();
-
-  // Filter signals to this month (UTC). The API returns the entity's full
-  // signal history; we slice client-side because the volume per entity
-  // is small (<1000) and the API doesn't accept a date filter on the
-  // entity sub-route.
-  const startMs = window.start.getTime();
-  const endMs = window.end.getTime();
-  const monthSignals = allSignals.filter((s) => {
-    const ts =
-      typeof s.publishedAt === 'number' ? s.publishedAt : Date.parse(String(s.publishedAt));
-    return ts >= startMs && ts < endMs;
-  });
 
   const ups = monthSignals.filter((s) => s.direction === 'up').length;
   const downs = monthSignals.filter((s) => s.direction === 'down').length;
