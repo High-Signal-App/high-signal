@@ -39,5 +39,5 @@
   run Impeccable detection, critique, and audit with zero unresolved P0/P1.
 - [x] 5.3 Validate the OpenSpec change strictly and update `PROJECT_STATUS.md`
   only with shipped truth after merge.
-- [ ] 5.4 Commit and push the issue-linked implementation; deployment remains a
+- [x] 5.4 Commit and push the issue-linked implementation; deployment remains a
   separately gated action.
