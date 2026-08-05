@@ -23,28 +23,32 @@ export const PUBLIC_STATIC_ROUTES = [
   {
     path: '/daily-intelligence-brief',
     title: 'Daily intelligence brief',
-    description: 'How High Signal builds one evidence-first brief across technology, startups, and finance.',
+    description:
+      'How High Signal builds one evidence-first brief across technology, startups, and finance.',
     changeFrequency: 'monthly',
     priority: 0.85,
   },
   {
     path: '/startup-intelligence-platform',
     title: 'Startup intelligence platform',
-    description: 'The qualified company universe, product facets, provenance, and links to current signals.',
+    description:
+      'The qualified company universe, product facets, provenance, and links to current signals.',
     changeFrequency: 'weekly',
     priority: 0.8,
   },
   {
     path: '/market-intelligence-for-founders',
     title: 'Market intelligence for founders',
-    description: 'A source-backed workflow from the Daily Brief to companies, opportunities, and outcomes.',
+    description:
+      'A source-backed workflow from the Daily Brief to companies, opportunities, and outcomes.',
     changeFrequency: 'monthly',
     priority: 0.8,
   },
   {
     path: '/technology-trend-intelligence',
     title: 'Technology trend intelligence',
-    description: 'A research path through cited signals, convergence, entities, sectors, and history.',
+    description:
+      'A research path through cited signals, convergence, entities, sectors, and history.',
     changeFrequency: 'weekly',
     priority: 0.8,
   },

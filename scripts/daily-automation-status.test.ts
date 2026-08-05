@@ -21,7 +21,7 @@ assert.ok(status.configuredSources >= 69);
 assert.ok(status.acceptedSnapshots > 0);
 assert.ok(status.rejectedSnapshots >= 0);
 assert.ok(status.acceptedUnderlyingItems > 0);
-assert.equal(status.bundledPath, 'apps/web/src/data/daily-source-refreshes.json');
+assert.equal(status.bundledPath, '_private/daily-source-refreshes.jsonl');
 assert.equal(status.deployPath, 'personal-brief commit -> deploy-web');
 
 console.log('daily-automation-status.test.ts: ok');
