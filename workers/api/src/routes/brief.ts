@@ -32,6 +32,7 @@ import {
   rankEvidenceUrls,
   selectBriefClaimProvenance,
   SEED_PRODUCTS,
+  summarizeBriefDiscovery,
   type BriefIdeaItem,
   type BriefImprovementItem,
   type BriefIntentItem,
@@ -1310,6 +1311,9 @@ briefRoute.get('/dates', async (c) => {
         date: schema.dailyBriefSnapshots.date,
         regionCount: sql<number>`count(${schema.dailyBriefSnapshots.region})`,
         computedAt: sql<string>`max(${schema.dailyBriefSnapshots.computedAt})`,
+        globalBriefJson: sql<
+          string | null
+        >`max(case when ${schema.dailyBriefSnapshots.region} = 'global' then ${schema.dailyBriefSnapshots.briefJson} end)`,
       })
       .from(schema.dailyBriefSnapshots)
       .groupBy(schema.dailyBriefSnapshots.date)
@@ -1317,11 +1321,22 @@ briefRoute.get('/dates', async (c) => {
       .limit(500);
 
     return c.json({
-      dates: rows.map((r) => ({
-        date: r.date,
-        regionCount: r.regionCount,
-        computedAt: r.computedAt,
-      })),
+      dates: rows.map((r) => {
+        let discovery = { publicItemCount: 0, citedItemCount: 0 };
+        if (r.globalBriefJson) {
+          try {
+            discovery = summarizeBriefDiscovery(JSON.parse(r.globalBriefJson) as BriefSnapshot);
+          } catch {
+            // A malformed snapshot is not safe to advertise for discovery.
+          }
+        }
+        return {
+          date: r.date,
+          regionCount: r.regionCount,
+          computedAt: r.computedAt,
+          ...discovery,
+        };
+      }),
     });
   } catch {
     // Table might not exist yet (pre-migration) — return empty list.

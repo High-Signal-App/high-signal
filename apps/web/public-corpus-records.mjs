@@ -96,7 +96,15 @@ export function buildPublicCorpusCandidates({
     candidate(
       'brief',
       `/brief/${brief.date}`,
-      evaluateCollection('brief', { childCount: brief.regionCount }, 1),
+      evaluateCollection(
+        'brief',
+        {
+          childCount: brief.publicItemCount,
+          hasProvenance:
+            brief.publicItemCount > 0 && brief.citedItemCount === brief.publicItemCount,
+        },
+        3
+      ),
       brief.computedAt,
       brief.date
     )

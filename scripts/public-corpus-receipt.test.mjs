@@ -37,7 +37,22 @@ const candidates = buildPublicCorpusCandidates({
   companies,
   signals,
   entities: [{ id: 'ACME' }],
-  briefDates: [{ date: '2026-08-01', regionCount: 1, computedAt: '2026-08-01T01:00:00.000Z' }],
+  briefDates: [
+    {
+      date: '2026-08-01',
+      regionCount: 1,
+      computedAt: '2026-08-01T01:00:00.000Z',
+      publicItemCount: 3,
+      citedItemCount: 3,
+    },
+    {
+      date: '2026-07-27',
+      regionCount: 5,
+      computedAt: '2026-07-27T23:30:54.604Z',
+      publicItemCount: 21,
+      citedItemCount: 20,
+    },
+  ],
   directoryPageCount: 2,
 });
 
@@ -54,6 +69,12 @@ assert.equal(first.initialBaseline, true);
 assert.equal(first.families.company.eligible, 1);
 assert.equal(first.families.company.withheld, 1);
 assert.equal(first.families['directory-page'].eligible, 0);
+assert.equal(first.families.brief.eligible, 1);
+assert.equal(first.families.brief.withheld, 1);
+assert.deepEqual(
+  first.eligibleUrls.filter((path) => path.startsWith('/brief/')),
+  ['/brief/2026-08-01']
+);
 assert.doesNotThrow(() =>
   assertPublicCorpusReceipt(first, { requiredFamilies: ['company', 'signal', 'entity'] })
 );
