@@ -29,6 +29,10 @@ opportunities.
 ## Main product surfaces
 
 - [Daily Brief](https://highsignal.app/brief)
+- [How the Daily Brief works](https://highsignal.app/daily-intelligence-brief)
+- [Startup intelligence platform](https://highsignal.app/startup-intelligence-platform)
+- [Market intelligence for founders](https://highsignal.app/market-intelligence-for-founders)
+- [Technology trend intelligence](https://highsignal.app/technology-trend-intelligence)
 - [Published signals](https://highsignal.app/signals)
 - [Track record](https://highsignal.app/track-record)
 - [Methodology](https://highsignal.app/methodology)
@@ -54,6 +58,10 @@ const LLMS_MARKDOWN = `# High Signal
 ## Start here
 
 - [Daily Brief](https://highsignal.app/brief)
+- [Daily intelligence guide](https://highsignal.app/daily-intelligence-brief)
+- [Startup intelligence guide](https://highsignal.app/startup-intelligence-platform)
+- [Founder market-intelligence workflow](https://highsignal.app/market-intelligence-for-founders)
+- [Technology trend-intelligence guide](https://highsignal.app/technology-trend-intelligence)
 - [Signals](https://highsignal.app/signals)
 - [Track record](https://highsignal.app/track-record)
 - [Methodology](https://highsignal.app/methodology)

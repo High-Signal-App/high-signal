@@ -1,7 +1,8 @@
-import type { Metadata } from 'next';
+import type { Metadata, Route } from 'next';
 import Link from 'next/link';
 import { api, type SignalRow, type TrackBucket } from '@/lib/api';
 import { isBackfillSignal, signalHeadline, signalSummary } from '@/lib/signal-format';
+import { INTELLIGENCE_GUIDES } from '@/data/intelligence-guides';
 import { FaqJsonLd, SoftwareApplicationJsonLd, HomeJsonLd } from '@/components/seo/structured-data';
 import { SITE_NAME, SITE_TAGLINE, SITE_URL } from '@/lib/site';
 
@@ -513,6 +514,39 @@ export default async function HomePage() {
               </summary>
               <p className="mt-3 max-w-3xl text-sm leading-6 text-zinc-400">{item.answer}</p>
             </details>
+          ))}
+        </div>
+      </section>
+
+      <section className="mb-14" aria-labelledby="intelligence-guides-heading">
+        <div className="flex items-baseline justify-between border-b border-zinc-800 pb-3">
+          <h2
+            id="intelligence-guides-heading"
+            className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--color-accent)]"
+          >
+            intelligence guides
+          </h2>
+          <Link
+            href="/explore"
+            className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500 hover:text-zinc-300"
+          >
+            explore all →
+          </Link>
+        </div>
+        <div className="divide-y divide-zinc-800 border-b border-zinc-800">
+          {Object.values(INTELLIGENCE_GUIDES).map((guide) => (
+            <Link
+              key={guide.key}
+              href={guide.slug as Route}
+              className="group grid gap-2 py-4 sm:grid-cols-[minmax(14rem,0.8fr)_minmax(0,1.4fr)] sm:items-baseline"
+            >
+              <span className="font-medium text-zinc-100 group-hover:text-[var(--color-accent)]">
+                {guide.title}
+              </span>
+              <span className="text-sm leading-6 text-zinc-400 sm:text-right">
+                {guide.metaDescription}
+              </span>
+            </Link>
           ))}
         </div>
       </section>

@@ -49,6 +49,32 @@ const GROUPS: Group[] = [
     ],
   },
   {
+    title: 'Intelligence guides',
+    blurb: 'Public entry points into the brief, qualified corpus, and research workflows.',
+    surfaces: [
+      {
+        href: '/daily-intelligence-brief',
+        label: 'Daily intelligence brief',
+        note: 'How evidence becomes one cited, measured brief.',
+      },
+      {
+        href: '/startup-intelligence-platform',
+        label: 'Startup intelligence platform',
+        note: 'Qualified company profiles, product facets, and current signals.',
+      },
+      {
+        href: '/market-intelligence-for-founders',
+        label: 'Market intelligence for founders',
+        note: 'A practical workflow from change to focused research.',
+      },
+      {
+        href: '/technology-trend-intelligence',
+        label: 'Technology trend intelligence',
+        note: 'Follow converging technology evidence through the public graph.',
+      },
+    ],
+  },
+  {
     title: 'Signals + evidence',
     blurb: 'Public claims store. Every signal carries cited evidence; provenance shows why.',
     surfaces: [
