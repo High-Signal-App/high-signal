@@ -90,6 +90,13 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 
 ## Timeline
 
+- **2026-08-05 — Public intelligence intent cluster:** added four evidence-led
+  guides for daily briefs, startup intelligence platforms, founder market
+  intelligence, and technology-trend intelligence; expanded the existing SEO
+  agent audit with a clearer readiness-versus-awareness explanation. All five
+  surfaces retain the incumbent High Signal shell, expose visible evidence
+  receipts and page-matched structured data, and participate in the canonical
+  sitemap, Markdown alternates, agent catalog, homepage, and Explore directory.
 - **2026-07-31 — Public landing search semantics tightened:** shortened the
   homepage title and description to crawler-safe lengths, promoted the visible
   brief label into the page heading hierarchy, and clarified the verification
@@ -186,6 +193,7 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 | Product surface | Route / entry | Role |
 | --- | --- | --- |
 | Daily Brief | `/`, `/brief` | Primary homepage — five synthesized sections |
+| Intelligence guides | `/daily-intelligence-brief`, `/startup-intelligence-platform`, `/market-intelligence-for-founders`, `/technology-trend-intelligence` | Evidence-led public explanations for core search intents |
 | Signals & evidence | `/signals`, `/evidence`, `/track-record` | Feed, provenance, hit-rate history |
 | Markets lens | `/markets` | Prediction-market quotes (not equity prices) |
 | Communities input | `/communities` | Tracked-subreddit digests → brief sections 2–3 |
@@ -206,10 +214,15 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 - Footer grouped Product / Lenses / Operator / Legal.
 - Default `/` is the signals home feed. Primary navigation is grouped into `data`, `signals`, `history`, and `evals`; `/brief` remains the source-linked daily brief.
 - Public pages: `/about`, `/methodology`, `/featured`, `/api-docs`, `/privacy`, `/terms`, `/sign-in`, `/sign-up`.
-- Agent-readable public corpus: 32 static surfaces plus dated briefs, signals,
+- Agent-readable public corpus: 35 static surfaces plus dated briefs, signals,
   signal taxonomies, entities, entity-month archives, case studies, and
   company-universe pagination share the same server-rendered source as HTML;
   private/operator and non-HTML routes are excluded by tested route rules.
+- Four public intelligence guides use one typed content registry and reusable
+  renderer, with visible evidence receipts, breadcrumbs, contextual product
+  links, page-matched JSON-LD, canonical metadata, and Markdown parity.
+- `/agent-eval/seo` distinguishes technical search/agent readiness from actual
+  audience awareness while preserving the live audit and fix-first results.
 - Clerk auth; region picker and seed product pickers on brief.
 - SEO JSON-LD tests (`pnpm seo:test`).
 

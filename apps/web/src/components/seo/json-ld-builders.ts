@@ -16,6 +16,83 @@ export interface JsonLdBlock {
   [k: string]: unknown;
 }
 
+export function buildIntelligenceGuideJsonLd(opts: {
+  slug: string;
+  title: string;
+  description: string;
+  kind: 'article' | 'dataset' | 'howto';
+  sections: Array<{ title: string; paragraphs: string[] }>;
+}): JsonLdBlock[] {
+  const url = `${SITE_URL}${opts.slug}`;
+  const article: JsonLdBlock = {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: opts.title,
+    description: opts.description,
+    url,
+    mainEntityOfPage: url,
+    inLanguage: 'en',
+    datePublished: '2026-08-05',
+    dateModified: '2026-08-05',
+    publisher: { '@id': `${SITE_URL}/#organization` },
+    author: { '@id': `${SITE_URL}/#organization` },
+  };
+
+  if (opts.kind === 'howto') {
+    return [
+      article,
+      {
+        '@context': 'https://schema.org',
+        '@type': 'HowTo',
+        name: opts.title,
+        description: opts.description,
+        step: opts.sections.map((section, index) => ({
+          '@type': 'HowToStep',
+          position: index + 1,
+          name: section.title.replace(/^\d+\.\s*/u, ''),
+          text: section.paragraphs.join(' '),
+        })),
+      },
+    ];
+  }
+
+  if (opts.kind === 'dataset') {
+    return [
+      article,
+      {
+        '@context': 'https://schema.org',
+        '@type': 'Dataset',
+        name: 'High Signal qualified startup company universe',
+        description: opts.description,
+        url,
+        creator: { '@id': `${SITE_URL}/#organization` },
+        isBasedOn: `${SITE_URL}/case-studies`,
+        variableMeasured: [
+          { '@type': 'PropertyValue', name: 'company profiles', value: 12964 },
+          { '@type': 'PropertyValue', name: 'discovery-eligible profiles', value: 5178 },
+        ],
+      },
+    ];
+  }
+
+  return [article];
+}
+
+export function buildSeoGeoAuditJsonLd(): JsonLdBlock {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'WebApplication',
+    name: 'High Signal AI visibility and search-readiness audit',
+    description:
+      'Audit canonical metadata, social metadata, structured data, robots, sitemap, feeds, and agent-readable surfaces without confusing technical readiness with observed mentions or citations.',
+    url: `${SITE_URL}/agent-eval/seo`,
+    applicationCategory: 'DeveloperApplication',
+    operatingSystem: 'Web Browser',
+    offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+    publisher: { '@id': `${SITE_URL}/#organization` },
+  };
+}
+
 export function buildOrganizationJsonLd(): JsonLdBlock[] {
   return [
     {

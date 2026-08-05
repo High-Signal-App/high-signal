@@ -4,13 +4,16 @@ import {
   buildEntityMonthJsonLd,
   buildFaqJsonLd,
   buildHomeJsonLd,
+  buildIntelligenceGuideJsonLd,
   buildMethodologyJsonLd,
   buildOrganizationJsonLd,
   buildSignalArticleJsonLd,
   buildSignalTypeTaxonomyJsonLd,
+  buildSeoGeoAuditJsonLd,
   buildSoftwareApplicationJsonLd,
   buildTrackRecordDatasetJsonLd,
 } from '@/components/seo/json-ld-builders';
+import type { IntelligenceGuide } from '@/data/intelligence-guides';
 
 /**
  * Schema.org JSON-LD components for GEO (generative-engine optimization).
@@ -55,6 +58,28 @@ export function HomeJsonLd(): React.JSX.Element {
 
 export function SoftwareApplicationJsonLd(): React.JSX.Element {
   return <LdJson data={buildSoftwareApplicationJsonLd()} />;
+}
+
+export function IntelligenceGuideJsonLd({
+  guide,
+}: {
+  guide: IntelligenceGuide;
+}): React.JSX.Element {
+  return (
+    <LdJson
+      data={buildIntelligenceGuideJsonLd({
+        slug: guide.slug,
+        title: guide.title,
+        description: guide.metaDescription,
+        kind: guide.schemaKind,
+        sections: guide.sections,
+      })}
+    />
+  );
+}
+
+export function SeoGeoAuditJsonLd(): React.JSX.Element {
+  return <LdJson data={buildSeoGeoAuditJsonLd()} />;
 }
 
 export function TrackRecordDatasetJsonLd(props: {

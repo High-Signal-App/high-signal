@@ -1,58 +1,54 @@
 {
   "$schema": "fleet.design-review.v1",
   "version": 1,
-  "project": "high-signal",
-  "target": "mobile sectors, opportunities, labels, and track-record ledgers",
+  "project": "high-signal-intelligence-cluster",
+  "target": "High Signal public intelligence cluster",
   "mode": "preserve",
   "register": "product",
   "context": {
-    "product": "PROJECT_STATUS.md",
-    "design": "apps/web/src/app/globals.css"
+    "product": "PRODUCT.md",
+    "design": "DESIGN.md"
   },
   "direction": {
     "references": [],
     "probes": [],
     "selected": "existing-design",
     "approval": "not-required",
-    "before": ".fleet/evidence/mobile-ledgers/before-1440.png"
+    "before": "artifacts/design/before.png"
   },
   "evidence": {
     "screenshots": [
       {
         "width": 390,
-        "path": ".fleet/evidence/mobile-ledgers/after-sectors-390.png"
-      },
-      {
-        "width": 390,
-        "path": ".fleet/evidence/mobile-ledgers/after-opportunities-390.png"
-      },
-      {
-        "width": 390,
-        "path": ".fleet/evidence/mobile-ledgers/after-track-record-390.png"
-      },
-      {
-        "width": 390,
-        "path": ".fleet/evidence/mobile-ledgers/after-labels-390.png"
+        "path": "artifacts/design/after-390.png"
       },
       {
         "width": 768,
-        "path": ".fleet/evidence/mobile-ledgers/after-sectors-768.png"
+        "path": "artifacts/design/after-768.png"
       },
       {
         "width": 1440,
-        "path": ".fleet/evidence/mobile-ledgers/after-sectors-1440.png"
+        "path": "artifacts/design/after-1440.png"
+      },
+      {
+        "width": 390,
+        "path": "artifacts/design/after-trends-390.png"
+      },
+      {
+        "width": 1440,
+        "path": "artifacts/design/after-audit-1440.png"
       }
     ],
     "projectCheck": {
-      "command": "pnpm -C apps/web build",
+      "command": "pnpm --filter @high-signal/web typecheck && pnpm --filter @high-signal/web build",
       "status": "pass"
     },
     "critique": {
-      "score": 37,
+      "score": 33,
       "maximum": 40
     },
     "audit": {
-      "score": 19,
+      "score": 17,
       "maximum": 20
     },
     "unresolved": {
@@ -64,15 +60,15 @@
       "findings": []
     },
     "browserReview": {
-      "tool": "Browser control",
+      "tool": "Playwright with installed Chrome",
       "viewports": [390, 768, 1440],
       "horizontalOverflow": false,
       "consoleErrors": 0,
-      "note": "All four named mobile ledger routes remain page-contained at 390px; dense tables scroll within labeled regions and long evidence titles wrap."
+      "note": "All five routes returned 200 with one main and one H1, correct canonicals, no heading skips, AA content and shared-shell contrast, and visible keyboard focus. The unrelated Fleet vitals collector still returns 404 and is outside this approved content scope."
     }
   },
   "ownerFeedback": {
-    "decision": "delegated",
-    "note": "The owner explicitly delegated final judgment for the responsive remediation wave; the locked zinc, cyan, mono, and 1px-line visual system was preserved."
+    "decision": "keep",
+    "note": "Owner approved the refined preserve-lane design on 2026-08-05."
   }
 }
