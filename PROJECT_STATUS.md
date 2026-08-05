@@ -1,6 +1,6 @@
 # high-signal — PROJECT STATUS
 
-Last updated: 2026-07-31
+Last updated: 2026-08-05
 
 ## Why/What
 
@@ -90,6 +90,13 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 
 ## Timeline
 
+- **2026-08-05 — Agent Markdown crawl capacity:** canonical anonymous `.md`
+  responses now enter Cloudflare's edge cache after the first successful
+  OpenNext render, while authenticated, query-bearing, HEAD, noindex, and error
+  responses keep their prior uncached behavior. Cache hits preserve the public
+  five-minute browser and one-hour shared freshness contract. Production
+  verification covered 35/35 catalog surfaces and a deterministic 250/250
+  sample across 5,504 sitemap routes with zero failures.
 - **2026-08-05 — Entity-month discovery parity:** entity-month pages now load
   their published, evidence-qualified signals through the same bounded
   entity-and-date query used by the public signal API. Older eligible archives
@@ -223,6 +230,9 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
   signal taxonomies, entities, entity-month archives, case studies, and
   company-universe pagination share the same server-rendered source as HTML;
   private/operator and non-HTML routes are excluded by tested route rules.
+- Successful anonymous canonical Markdown responses are cached at the edge
+  before repeated OpenNext work; public content, eligibility, and TTL remain
+  identical on misses and hits.
 - Four public intelligence guides use one typed content registry and reusable
   renderer, with visible evidence receipts, breadcrumbs, contextual product
   links, page-matched JSON-LD, canonical metadata, and Markdown parity.

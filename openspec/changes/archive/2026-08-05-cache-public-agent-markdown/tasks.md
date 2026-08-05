@@ -7,8 +7,8 @@
 - [x] Run the focused Markdown and Worker routing tests.
 - [x] Run web typecheck, targeted lint, public corpus receipt, and production
       build.
-- [ ] Archive the OpenSpec change and update `PROJECT_STATUS.md`.
-- [ ] Open a PR with `Closes #79`, merge after green CI, run the deploy guard,
+- [x] Archive the OpenSpec change and update `PROJECT_STATUS.md`.
+- [x] Open a PR with `Closes #79`, merge after green CI, run the deploy guard,
       deploy the exact main SHA, and verify production cache behavior.
-- [ ] Warm the 35 catalog Markdown URLs and rerun the full production agent
+- [x] Warm the 35 catalog Markdown URLs and rerun the full production agent
       audit for 250/250 route coverage and 35/35 catalog integrity.
