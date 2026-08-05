@@ -261,6 +261,65 @@ export async function handleRenderedMarkdown(request, renderHtml) {
   });
 }
 
+/**
+ * Cache the canonical `.md` form without changing the underlying renderer.
+ *
+ * The Worker passes `cacheEnabled: false` for authenticated requests. Query
+ * variants, HEAD requests, and Accept-negotiated HTML URLs also bypass this
+ * public cache so only the sitemap/catalog form can be shared safely.
+ */
+export async function handleCachedRenderedMarkdown(
+  request,
+  renderHtml,
+  { cache, waitUntil, cacheEnabled = true } = {}
+) {
+  const target = resolvePublicMarkdownTarget(request);
+  const url = new URL(request.url);
+  const canCache =
+    cacheEnabled &&
+    request.method === 'GET' &&
+    target?.suffixRequest === true &&
+    url.search === '' &&
+    cache &&
+    typeof cache.match === 'function' &&
+    typeof cache.put === 'function';
+
+  if (!canCache) return handleRenderedMarkdown(request, renderHtml);
+
+  const cacheKey = new Request(url.toString(), { method: 'GET' });
+  const cached = await cache.match(cacheKey);
+  if (cached) return withEdgeCacheStatus(cached, 'AGENT-HIT');
+
+  const rendered = await handleRenderedMarkdown(request, renderHtml);
+  if (!isCacheableRenderedMarkdown(rendered)) return rendered;
+
+  const write = Promise.resolve(cache.put(cacheKey, rendered.clone())).catch(() => undefined);
+  if (typeof waitUntil === 'function') waitUntil(write);
+  else await write;
+
+  return withEdgeCacheStatus(rendered, 'AGENT-MISS');
+}
+
+function isCacheableRenderedMarkdown(response) {
+  if (response?.status !== 200 || response.headers.has('set-cookie')) return false;
+  return isMarkdownContentType(response.headers.get('content-type') ?? '');
+}
+
+function withEdgeCacheStatus(response, status) {
+  const headers = new Headers(response.headers);
+  headers.set('x-edge-cache', status);
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
+function isMarkdownContentType(contentType) {
+  const normalized = contentType.toLowerCase();
+  return normalized.includes('text/markdown') || normalized.includes('text/plain');
+}
+
 export function htmlDisallowsIndexing(html) {
   return [...html.matchAll(/<meta\b[^>]*>/gi)].some((match) => {
     const tag = match[0];
