@@ -10,6 +10,24 @@ function candidate(family, path, verdict, lastModified, sourceId) {
   return Object.freeze({ family, path, verdict, lastModified, sourceId });
 }
 
+const ENTITY_PERIOD_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
+
+export function entityPeriodSignalFilters(entityId, period) {
+  if (!ENTITY_PERIOD_RE.test(period)) return null;
+  const [yearString, monthString] = period.split('-');
+  const year = Number(yearString);
+  const month = Number(monthString) - 1;
+  const start = new Date(Date.UTC(year, month, 1));
+  const end = new Date(Date.UTC(year, month + 1, 1));
+  return Object.freeze({
+    entity: entityId,
+    status: 'published',
+    from: start.toISOString(),
+    to: end.toISOString(),
+    limit: 200,
+  });
+}
+
 /**
  * @param {{
  *   companies?: any[],

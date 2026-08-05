@@ -90,6 +90,11 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 
 ## Timeline
 
+- **2026-08-05 — Entity-month discovery parity:** entity-month pages now load
+  their published, evidence-qualified signals through the same bounded
+  entity-and-date query used by the public signal API. Older eligible archives
+  no longer become noindex/agent-404 pages merely because they fall outside an
+  entity endpoint's latest-20 response.
 - **2026-08-05 — Public intelligence intent cluster:** added four evidence-led
   guides for daily briefs, startup intelligence platforms, founder market
   intelligence, and technology-trend intelligence; expanded the existing SEO

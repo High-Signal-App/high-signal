@@ -2,7 +2,10 @@
 
 import assert from 'node:assert/strict';
 
-import { buildPublicCorpusCandidates } from '../apps/web/public-corpus-records.mjs';
+import {
+  buildPublicCorpusCandidates,
+  entityPeriodSignalFilters,
+} from '../apps/web/public-corpus-records.mjs';
 import {
   assertPublicCorpusReceipt,
   buildPublicCorpusReceipt,
@@ -55,6 +58,15 @@ const candidates = buildPublicCorpusCandidates({
   ],
   directoryPageCount: 2,
 });
+
+assert.deepEqual(entityPeriodSignalFilters('OPENAI', '2026-07'), {
+  entity: 'OPENAI',
+  status: 'published',
+  from: '2026-07-01T00:00:00.000Z',
+  to: '2026-08-01T00:00:00.000Z',
+  limit: 200,
+});
+assert.equal(entityPeriodSignalFilters('OPENAI', '2026-13'), null);
 
 for (const item of candidates) {
   const sitemapIncludes = shouldIncludeInDiscovery(item.verdict);
