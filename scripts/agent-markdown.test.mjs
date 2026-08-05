@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 
 import {
   handleAgentEdge,
+  handleCachedRenderedMarkdown,
   handleRenderedMarkdown,
   htmlDocumentToMarkdown,
   htmlDisallowsIndexing,
@@ -110,6 +111,111 @@ const rendered = await handleRenderedMarkdown(markdownRequest('/markets.md'), as
 assert.equal(rendered.status, 200);
 assert.match(rendered.headers.get('content-type') ?? '', /text\/markdown/);
 assert.match(await rendered.text(), /Current cited market evidence/);
+
+const cacheEntries = new Map();
+const cacheWrites = [];
+const markdownCache = {
+  async match(request) {
+    return cacheEntries.get(request.url)?.clone();
+  },
+  async put(request, response) {
+    cacheEntries.set(request.url, response.clone());
+  },
+};
+let cachedRenderCount = 0;
+const renderCachedMarkets = async () => {
+  cachedRenderCount += 1;
+  return new Response(
+    '<html><body><main><h1>Markets</h1><p>Cached cited market evidence.</p></main></body></html>',
+    { headers: { 'Content-Type': 'text/html; charset=utf-8' } }
+  );
+};
+const cacheOptions = {
+  cache: markdownCache,
+  waitUntil(promise) {
+    cacheWrites.push(promise);
+  },
+};
+const cacheMiss = await handleCachedRenderedMarkdown(
+  markdownRequest('/markets.md'),
+  renderCachedMarkets,
+  cacheOptions
+);
+assert.equal(cacheMiss.headers.get('x-edge-cache'), 'AGENT-MISS');
+assert.equal(cachedRenderCount, 1);
+const missBody = await cacheMiss.text();
+await Promise.all(cacheWrites);
+
+const cacheHit = await handleCachedRenderedMarkdown(
+  markdownRequest('/markets.md'),
+  renderCachedMarkets,
+  cacheOptions
+);
+assert.equal(cacheHit.headers.get('x-edge-cache'), 'AGENT-HIT');
+assert.equal(cachedRenderCount, 1, 'cache hit must not invoke OpenNext');
+assert.equal(await cacheHit.text(), missBody, 'cache hit must preserve the rendered Markdown body');
+
+for (const request of [
+  markdownRequest('/markets.md?view=compact'),
+  new Request('https://highsignal.app/markets.md', { method: 'HEAD' }),
+]) {
+  await handleCachedRenderedMarkdown(request, renderCachedMarkets, cacheOptions);
+}
+await handleCachedRenderedMarkdown(markdownRequest('/markets.md'), renderCachedMarkets, {
+  ...cacheOptions,
+  cacheEnabled: false,
+});
+assert.equal(cachedRenderCount, 4, 'query, HEAD, and authenticated paths must bypass the cache');
+
+let errorCacheWrites = 0;
+const errorResponse = await handleCachedRenderedMarkdown(
+  markdownRequest('/signals/missing.md'),
+  async () =>
+    new Response('not found', {
+      status: 404,
+      headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+    }),
+  {
+    cache: {
+      async match() {
+        return undefined;
+      },
+      async put() {
+        errorCacheWrites += 1;
+      },
+    },
+  }
+);
+assert.equal(errorResponse.status, 404);
+assert.equal(errorCacheWrites, 0, 'error responses must not enter the public Markdown cache');
+
+let personalizedCacheWrites = 0;
+const personalizedResponse = await handleCachedRenderedMarkdown(
+  markdownRequest('/markets.md'),
+  async () =>
+    new Response('# Personalized markets\n', {
+      headers: {
+        'Content-Type': 'text/markdown; charset=utf-8',
+        'Set-Cookie': 'session=private',
+      },
+    }),
+  {
+    cache: {
+      async match() {
+        return undefined;
+      },
+      async put() {
+        personalizedCacheWrites += 1;
+      },
+    },
+  }
+);
+assert.equal(personalizedResponse.status, 200);
+assert.equal(
+  personalizedCacheWrites,
+  0,
+  'responses carrying Set-Cookie must not enter the public Markdown cache'
+);
 
 const missing = await handleRenderedMarkdown(markdownRequest('/signals/missing.md'), async () => {
   return new Response('not found', {

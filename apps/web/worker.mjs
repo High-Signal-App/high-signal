@@ -3,7 +3,7 @@
 import openNext from './.open-next/worker.js';
 import { guardPublicRequest } from './abuse-guard.mjs';
 import { withTiming } from './timing.mjs';
-import { handleAgentEdge, handleRenderedMarkdown } from './agent-edge.mjs';
+import { handleAgentEdge, handleCachedRenderedMarkdown } from './agent-edge.mjs';
 
 export {
   DOQueueHandler,
@@ -85,8 +85,14 @@ const worker = {
     const guarded = guardPublicRequest(request);
     if (guarded) return guarded;
 
-    const markdown = await handleRenderedMarkdown(request, (htmlRequest) =>
-      openNext.fetch(htmlRequest, env, ctx)
+    const markdown = await handleCachedRenderedMarkdown(
+      request,
+      (htmlRequest) => openNext.fetch(htmlRequest, env, ctx),
+      {
+        cache: caches.default,
+        cacheEnabled: !hasAuthCookie(request),
+        waitUntil: (promise) => ctx.waitUntil(promise),
+      }
     );
     if (markdown) return markdown;
 
