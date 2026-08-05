@@ -5,7 +5,7 @@ import { BriefSections } from '@/components/brief/BriefSections';
 import { DailyBriefHero } from '@/components/brief/DailyBriefHero';
 import { PageShell } from '@/components/system/HighSignalUI';
 import { api, type BriefSnapshot } from '@/lib/api';
-import { isRegion, type Region } from '@high-signal/shared';
+import { isRegion, summarizeBriefDiscovery, type Region } from '@high-signal/shared';
 import { SITE_URL } from '@/lib/site';
 import { evaluateCollection, robotsForVerdict } from '../../../../public-corpus-policy.mjs';
 
@@ -27,11 +27,14 @@ export async function generateMetadata({ params }: BriefDatePageProps): Promise<
   } catch {
     /* Missing data fails closed to noindex. */
   }
-  const publicItems = brief ? [...brief.stocks, ...brief.ideas, ...brief.trends] : [];
-  const citedItems = publicItems.filter((item) => item.evidenceUrls.length > 0);
+  const discovery = summarizeBriefDiscovery(brief);
   const verdict = evaluateCollection(
     'brief',
-    { childCount: publicItems.length, hasProvenance: citedItems.length === publicItems.length },
+    {
+      childCount: discovery.publicItemCount,
+      hasProvenance:
+        discovery.publicItemCount > 0 && discovery.citedItemCount === discovery.publicItemCount,
+    },
     3
   );
   return {

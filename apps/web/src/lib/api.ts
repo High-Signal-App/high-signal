@@ -866,7 +866,13 @@ export const api = {
   },
   briefDates: () =>
     fetchJson<{
-      dates: Array<{ date: string; regionCount: number; computedAt: string }>;
+      dates: Array<{
+        date: string;
+        regionCount: number;
+        computedAt: string;
+        publicItemCount: number;
+        citedItemCount: number;
+      }>;
     }>('/brief/dates'),
   labFeed: async (
     params: { query?: string; source?: string; limit?: number; byCluster?: boolean } = {}

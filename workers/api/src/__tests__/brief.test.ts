@@ -15,6 +15,7 @@ import {
   SEED_PRODUCTS,
   SEED_STOCK_SIGNALS,
   SEED_TRENDS,
+  summarizeBriefDiscovery,
   type Region,
   type BriefIntentItem,
   type SignalFamily,
@@ -161,6 +162,25 @@ describe('brief read-time evidence gate', () => {
     expect(isPublicSourceLink('/relative/thread')).toBe(false);
     expect(isPublicSourceLink('')).toBe(false);
     expect(isPublicSourceLink(null)).toBe(false);
+  });
+});
+
+describe('brief discovery summary', () => {
+  it('counts public items and requires evidence on each one', () => {
+    expect(
+      summarizeBriefDiscovery({
+        stocks: [{ evidenceUrls: [{ url: 'https://example.com/stock' }] }],
+        ideas: [{ evidenceUrls: [] }],
+        trends: [{ evidenceUrls: [{ url: 'https://example.com/trend' }] }],
+      })
+    ).toEqual({ publicItemCount: 3, citedItemCount: 2 });
+  });
+
+  it('fails closed for a missing or malformed public corpus', () => {
+    expect(summarizeBriefDiscovery(null)).toEqual({ publicItemCount: 0, citedItemCount: 0 });
+    expect(
+      summarizeBriefDiscovery({ stocks: undefined, ideas: undefined, trends: undefined })
+    ).toEqual({ publicItemCount: 0, citedItemCount: 0 });
   });
 });
 

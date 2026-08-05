@@ -223,5 +223,39 @@ export interface BriefSnapshot {
   improvements: BriefImprovementItem[];
 }
 
+export interface BriefDiscoverySummary {
+  publicItemCount: number;
+  citedItemCount: number;
+}
+
+interface DiscoverableBriefItem {
+  evidenceUrls?: readonly unknown[];
+}
+
+interface DiscoverableBriefSections {
+  stocks?: readonly DiscoverableBriefItem[];
+  ideas?: readonly DiscoverableBriefItem[];
+  trends?: readonly DiscoverableBriefItem[];
+}
+
+/**
+ * Summarize the public brief sections for sitemap and robots eligibility.
+ * Keeping this rule beside the BriefSnapshot contract prevents the API's
+ * archive inventory and the web route metadata from drifting apart.
+ */
+export function summarizeBriefDiscovery(
+  snapshot: DiscoverableBriefSections | null
+): BriefDiscoverySummary {
+  const publicItems = [snapshot?.stocks, snapshot?.ideas, snapshot?.trends].flatMap((section) =>
+    Array.isArray(section) ? section : []
+  );
+  return {
+    publicItemCount: publicItems.length,
+    citedItemCount: publicItems.filter(
+      (item) => Array.isArray(item.evidenceUrls) && item.evidenceUrls.length > 0
+    ).length,
+  };
+}
+
 export const BRIEF_PUBLIC_SECTIONS: BriefSectionKey[] = ['stocks', 'ideas', 'trends'];
 export const BRIEF_PERSONAL_SECTIONS: BriefSectionKey[] = ['perception', 'improvements'];
