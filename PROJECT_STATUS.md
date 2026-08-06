@@ -90,6 +90,12 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 
 ## Timeline
 
+- **2026-08-06 — Worker CPU cache hardening:** anonymous dynamic company
+  profiles, History, sitemap XML, and the daily-range JSON now enter the
+  guarded edge cache after the first successful render. Authenticated and
+  `Set-Cookie` responses still bypass storage, cached responses stream without
+  whole-body buffering, and bundled company profiles no longer pay for a D1
+  lookup before rendering.
 - **2026-08-05 — Agent Markdown crawl capacity:** canonical anonymous `.md`
   responses now enter Cloudflare's edge cache after the first successful
   OpenNext render, while authenticated, query-bearing, HEAD, noindex, and error

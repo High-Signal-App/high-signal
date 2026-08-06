@@ -68,7 +68,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function CaseStudyDetailPage({ params }: PageProps) {
   const { slug } = await params;
   const staticStudy = getCaseStudy(slug);
-  const liveStudy = await getLiveCompany(slug);
+  const liveStudy = staticStudy ? null : await getLiveCompany(slug);
   const study: LiveCompany | null = liveStudy
     ? { ...staticStudy, ...liveStudy }
     : staticStudy

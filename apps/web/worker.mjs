@@ -12,9 +12,13 @@ export {
 } from './.open-next/worker.js';
 
 const CACHE_CONTROL = 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800';
+const DATA_CACHE_CONTROL = new Map([
+  ['/sitemap.xml', 'public, max-age=300, s-maxage=3600'],
+  ['/daily/range.json', 'public, max-age=60, s-maxage=300'],
+]);
 const PRIVATE_ASSET_PREFIX = '/_private/';
-// Marketing hubs + lenses (anon). Dynamic case-study slugs rely on Next
-// s-maxage; edge-cache the high-traffic entry pages here.
+// Public marketing, discovery, and crawler surfaces. Authenticated requests
+// bypass this cache below, and only explicit content types are stored.
 const CACHEABLE_EXACT = new Set([
   '/',
   '/brief',
@@ -28,6 +32,7 @@ const CACHEABLE_EXACT = new Set([
   '/agent-eval/sample',
   '/domains',
   '/explore',
+  '/history',
   '/convergence',
   '/lab',
   '/api-docs',
@@ -46,8 +51,10 @@ const CACHEABLE_EXACT = new Set([
   '/featured',
   '/privacy',
   '/terms',
+  '/sitemap.xml',
+  '/daily/range.json',
 ]);
-const CACHEABLE_PREFIXES = ['/case-studies/page', '/signals/types'];
+const CACHEABLE_PREFIXES = ['/case-studies', '/signals/types'];
 function isCacheableDocumentPath(pathname) {
   if (!pathname) return false;
   if (CACHEABLE_EXACT.has(pathname)) return true;
@@ -55,6 +62,16 @@ function isCacheableDocumentPath(pathname) {
     if (pathname === prefix || pathname.startsWith(`${prefix}/`)) return true;
   }
   return false;
+}
+
+function cacheControlForPath(pathname) {
+  return DATA_CACHE_CONTROL.get(pathname) ?? CACHE_CONTROL;
+}
+
+function isCacheableContentType(pathname, contentType) {
+  if (pathname === '/sitemap.xml') return contentType.includes('xml');
+  if (pathname === '/daily/range.json') return contentType.includes('json');
+  return contentType.includes('text/html');
 }
 
 const AUTH_COOKIE_FRAGMENTS = [
@@ -153,28 +170,25 @@ const worker = {
 
     const response = await openNext.fetch(request, env, ctx);
     const contentType = response.headers.get('content-type') ?? '';
-    if (response.status !== 200 || !contentType.includes('text/html')) {
+    if (
+      response.status !== 200 ||
+      response.headers.has('set-cookie') ||
+      !isCacheableContentType(url.pathname, contentType)
+    ) {
       return response;
     }
 
-    const body = await response.arrayBuffer();
     const headers = new Headers(response.headers);
-    headers.set('Cache-Control', CACHE_CONTROL);
+    headers.set('Cache-Control', cacheControlForPath(url.pathname));
 
-    const cacheable = new Response(body, {
+    const cacheable = new Response(response.body, {
       status: response.status,
       statusText: response.statusText,
       headers,
     });
     ctx.waitUntil(cache.put(request, cacheable.clone()));
-
-    const clientResponse = new Response(body, {
-      status: response.status,
-      statusText: response.statusText,
-      headers,
-    });
-    clientResponse.headers.set('x-edge-cache', 'MISS');
-    return clientResponse;
+    cacheable.headers.set('x-edge-cache', 'MISS');
+    return cacheable;
   }),
 };
 
