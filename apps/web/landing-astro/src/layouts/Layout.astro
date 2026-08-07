@@ -5,10 +5,48 @@ import '@fontsource-variable/geist';
 interface Props {
   title: string;
   description: string;
+  /** Pathname for this page, e.g. `/compared`. Defaults to `/`. */
+  pathname?: string;
 }
 
-const { title, description } = Astro.props;
+const { title, description, pathname = '/' } = Astro.props;
 const SITE_URL = 'https://highsignal.app';
+const path = pathname === '/' ? '/' : pathname.replace(/\/$/, '') || '/';
+const canonical = path === '/' ? SITE_URL : `${SITE_URL}${path}`;
+const jsonLd =
+  path === '/'
+    ? {
+        '@context': 'https://schema.org',
+        '@type': 'WebSite',
+        name: 'High Signal',
+        url: SITE_URL,
+        description:
+          'One daily brief from 20+ noisy public sources — SEC filings, Reddit, Hacker News, YouTube transcripts, GitHub, prediction markets, and more. Every claim cites at least two independent sources.',
+        inLanguage: 'en',
+        publisher: {
+          '@type': 'Organization',
+          name: 'High Signal',
+          url: SITE_URL,
+        },
+      }
+    : {
+        '@context': 'https://schema.org',
+        '@type': 'Article',
+        headline: title,
+        description,
+        url: canonical,
+        mainEntityOfPage: canonical,
+        isPartOf: {
+          '@type': 'WebSite',
+          name: 'High Signal',
+          url: SITE_URL,
+        },
+        publisher: {
+          '@type': 'Organization',
+          name: 'High Signal',
+          url: SITE_URL,
+        },
+      };
 ---
 
 <!doctype html>
@@ -22,9 +60,9 @@ const SITE_URL = 'https://highsignal.app';
     <meta name="keywords" content="daily brief, stocks, startups, finance, technology, ai signals, hit-rate, evidence-first, market intelligence, agent evaluation" />
     <meta name="author" content="High Signal" />
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
-    <link rel="canonical" href={SITE_URL} />
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content={SITE_URL} />
+    <link rel="canonical" href={canonical} />
+    <meta property="og:type" content={path === '/' ? 'website' : 'article'} />
+    <meta property="og:url" content={canonical} />
     <meta property="og:site_name" content="High Signal" />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
@@ -42,19 +80,7 @@ const SITE_URL = 'https://highsignal.app';
         --font-geist-sans: 'Geist Variable', ui-sans-serif, system-ui, sans-serif;
       }
     </style>
-    <script type="application/ld+json" set:html={JSON.stringify({
-      "@context": "https://schema.org",
-      "@type": "WebSite",
-      "name": "High Signal",
-      "url": "https://highsignal.app",
-      "description": "One daily brief from 20+ noisy public sources — SEC filings, Reddit, Hacker News, YouTube transcripts, GitHub, prediction markets, and more. Every claim cites at least two independent sources.",
-      "inLanguage": "en",
-      "publisher": {
-        "@type": "Organization",
-        "name": "High Signal",
-        "url": "https://highsignal.app"
-      }
-    })} />
+    <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
   </head>
   <body>
     <script is:inline>

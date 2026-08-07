@@ -1,5 +1,6 @@
 export type IntelligenceGuideKey =
   | 'daily-intelligence-brief'
+  | 'daily-briefs-compared'
   | 'startup-intelligence-platform'
   | 'market-intelligence-for-founders'
   | 'technology-trend-intelligence';
@@ -103,6 +104,11 @@ export const INTELLIGENCE_GUIDES: Record<IntelligenceGuideKey, IntelligenceGuide
         description: 'Read the current compressed view.',
       },
       {
+        href: '/compared',
+        title: 'Daily briefs compared',
+        description: 'Compare sourcing contracts across daily brief products.',
+      },
+      {
         href: '/methodology',
         title: 'Methodology',
         description: 'Inspect the cite-or-kill rules.',
@@ -122,6 +128,98 @@ export const INTELLIGENCE_GUIDES: Record<IntelligenceGuideKey, IntelligenceGuide
       href: '/brief',
       title: "Read today's Daily Brief",
       description: 'Then inspect the methodology and public track record behind it.',
+    },
+  },
+  'daily-briefs-compared': {
+    key: 'daily-briefs-compared',
+    slug: '/compared',
+    eyebrow: 'comparison',
+    title: 'Daily technology, startup, and finance briefs compared',
+    metaDescription:
+      'Compare daily intelligence briefs for founders who want concise, source-backed technology, startup, and finance signals.',
+    summary:
+      'Founders comparing daily briefs usually care about three things: will this save time, can a claim be trusted, and can the source be re-checked later. This comparison focuses on sourcing contracts and auditability rather than marketing scores.',
+    schemaKind: 'article',
+    sections: [
+      {
+        title: 'Decision criteria',
+        paragraphs: [
+          'Evaluate any daily brief on five axes: the sourcing contract (one link, many links, or a hard multi-source gate), scope (startups only, markets only, or a mixed founder brief), length (skimmable morning read versus long-form digest), auditability (public samples, track record, stable URLs), and failure mode (what the product refuses to publish).',
+        ],
+      },
+      {
+        title: 'How High Signal positions',
+        paragraphs: [
+          'High Signal is an evidence-first daily brief across technology, startups, and finance. A published claim needs at least two independent public sources, or it does not ship. The product keeps the brief short, preserves dated archives, and publishes a track-record ledger for matured directional calls.',
+          'That contract trades coverage for trust. Single-source viral stories may be delayed or dropped. High Signal is not a real-time market terminal and is not investment advice.',
+        ],
+      },
+      {
+        title: 'How to read adjacent products',
+        paragraphs: [
+          'Products such as Cusp (https://readcusp.com) and Discovery Daily (https://www.discovery-daily.com) appear in the same buyer conversation. Treat public competitor descriptions as starting points only: re-check each live site for citation depth, sample archives, and whether claims link to primary sources.',
+          'A newsletter can be excellent writing without a multi-source publication gate. A discovery feed can maximize idea volume without a public hit-rate ledger. Choose based on the contract you need, not brand heat.',
+        ],
+      },
+      {
+        title: 'Where High Signal is behind',
+        paragraphs: [
+          'Domain authority and third-party reviews are still early—judge samples and the public ledger, not domain rating. Coverage can lag headlines that only have one source. Operators who need Bloomberg-depth market data, full newsroom coverage, or maximum story count should pick a different product.',
+        ],
+      },
+      {
+        title: 'When High Signal is the better fit',
+        paragraphs: [
+          'Choose High Signal when you want a short daily founder brief and care more about multi-source claims and inspectable outcomes than maximum story count. Start with the category guide, then open today’s brief and the track record.',
+        ],
+      },
+    ],
+    evidence: [
+      {
+        href: '/methodology',
+        label: 'Cite-or-kill rules',
+        detail: 'At least two independent sources per published claim.',
+        verifiedAt: '2026-08-07',
+      },
+      {
+        href: '/track-record',
+        label: 'Public track record',
+        detail: 'Matured calls remain inspectable as hit, miss, or push.',
+        verifiedAt: '2026-08-07',
+      },
+      {
+        href: '/daily-intelligence-brief',
+        label: 'Category guide',
+        detail: 'What a useful daily intelligence brief requires.',
+        verifiedAt: '2026-08-07',
+      },
+    ],
+    related: [
+      {
+        href: '/daily-intelligence-brief',
+        title: 'Category guide',
+        description: 'What a source-backed daily brief needs.',
+      },
+      {
+        href: '/brief',
+        title: "Today's Daily Brief",
+        description: 'Read the current compressed view.',
+      },
+      {
+        href: '/methodology',
+        title: 'Methodology',
+        description: 'Inspect publication rules.',
+      },
+      {
+        href: '/track-record',
+        title: 'Track record',
+        description: 'Check matured outcomes.',
+      },
+    ],
+    cta: {
+      href: '/brief',
+      title: "Open today's brief",
+      description: 'Judge the product from a real sample, then inspect sources on any signal.',
     },
   },
   'startup-intelligence-platform': {
