@@ -51,6 +51,12 @@ const CACHEABLE_EXACT = new Set([
   '/featured',
   '/privacy',
   '/terms',
+  // Buyer-prompt and intelligence-guide surfaces (crawler-hot)
+  '/compared',
+  '/daily-intelligence-brief',
+  '/market-intelligence-for-founders',
+  '/startup-intelligence-platform',
+  '/technology-trend-intelligence',
   '/sitemap.xml',
   '/daily/range.json',
 ]);
