@@ -29,6 +29,14 @@ export const PUBLIC_STATIC_ROUTES = [
     priority: 0.85,
   },
   {
+    path: '/compared',
+    title: 'Daily briefs compared',
+    description:
+      'Compare daily technology, startup, and finance briefs by sourcing contract and auditability.',
+    changeFrequency: 'monthly',
+    priority: 0.85,
+  },
+  {
     path: '/startup-intelligence-platform',
     title: 'Startup intelligence platform',
     description:
