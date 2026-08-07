@@ -15,7 +15,8 @@ export const dynamic = 'force-dynamic';
 
 const discoveryPresentation = {
   brief: { changeFrequency: 'monthly', priority: 0.8 },
-  signal: { changeFrequency: 'monthly', priority: 0.7 },
+  // News-like discovery product (Digg-shaped): story URLs refresh often.
+  signal: { changeFrequency: 'daily', priority: 0.8 },
   entity: { changeFrequency: 'weekly', priority: 0.5 },
   'entity-period': { changeFrequency: 'weekly', priority: 0.55 },
   taxonomy: { changeFrequency: 'daily', priority: 0.7 },

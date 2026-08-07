@@ -83,7 +83,13 @@ export async function generateMetadata({
     const { signal } = await api.signal(slug);
     const verdict = evaluateSignal({ ...signal, isBackfill: isBackfillSignal(signal) });
     const headline = deriveHeadline(signal.bodyMd ?? '');
-    const description = `${signal.direction.toUpperCase()} · ${signal.confidence} confidence · ${signal.signalType.replaceAll('_', ' ')}`;
+    // Digg-like SEO: meta description should read as a story blurb, not an
+    // internal score line. Keep direction/confidence for humans in the body.
+    const storyBlurb = signalSummary(signal.bodyMd ?? '', slug, 160);
+    const description =
+      storyBlurb.length >= 40
+        ? storyBlurb
+        : `${signal.direction.toUpperCase()} · ${signal.confidence} confidence · ${signal.signalType.replaceAll('_', ' ')}`;
     const ogImage = `/api/og?title=${encodeURIComponent(headline)}`;
     return {
       title: headline,
