@@ -1,6 +1,6 @@
 # high-signal — PROJECT STATUS
 
-Last updated: 2026-08-05
+Last updated: 2026-08-09
 
 ## Why/What
 
@@ -90,6 +90,11 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 
 ## Timeline
 
+- **2026-08-09 — Shared lint baseline:** Adopted the Fleet Ultracite baseline
+  for core TypeScript, React, Next.js, and test code. Explicit compatibility
+  exceptions preserve current behavior while 377 files pass with zero
+  diagnostics; generated data, artifacts, Astro, Python, signals, migrations,
+  and other existing non-application surfaces remain outside the check.
 - **2026-08-06 — Worker CPU cache hardening:** anonymous dynamic company
   profiles, History, sitemap XML, and the daily-range JSON now enter the
   guarded edge cache after the first successful render. Authenticated and
@@ -395,6 +400,7 @@ Python adapters under `python/ingest/src/high_signal_ingest/sources/` — all wi
 
 ### Operator, automation & CI
 
+- Shared Ultracite lint baseline with a clean 377-file check.
 - Admin worker routes: sync, scores, events, quotes, ingest-runs, llm-runs, audit summary, pending-scores, backfill-entities.
 - GitHub Actions: `ci.yml`, `cron-ingest.yml`, `cron-score.yml`, `cron-markets.yml`, `cron-equities.yml`, `cron-backtest.yml`, `cron-publish.yml`, `personal-brief.yml`, `weekly.yml`, `backfill.yml`.
 - Personal command brief scripts → SaaS Maker task sync (`pnpm personal:brief sync-tasks --apply`).

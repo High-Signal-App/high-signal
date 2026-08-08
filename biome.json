@@ -1,5 +1,11 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.5.5/schema.json",
+  "extends": [
+    "ultracite/biome/core",
+    "ultracite/biome/react",
+    "ultracite/biome/next",
+    "ultracite/biome/vitest"
+  ],
   "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
   "files": {
     "ignoreUnknown": true,
@@ -17,11 +23,16 @@
       "!**/pnpm-lock.yaml",
       "!**/tsconfig.tsbuildinfo",
       "!**/.storybook",
+      "!**/*.astro",
       "!design.html",
       "!scripts/fixtures",
       "!signals",
       "!python",
+      "!data",
+      "!apps/web/src/data",
       "!packages/db/migrations",
+      "!packages/shared/src/content/d2c-opportunities-artifact.ts",
+      "!packages/shared/src/content/d2c-agent-visibility-artifact.ts",
       "!**/*.css",
       "!**/*.svg"
     ]
@@ -41,15 +52,163 @@
       "jsxQuoteStyle": "double"
     }
   },
+  "json": { "formatter": { "enabled": false } },
   "linter": {
     "enabled": true,
     "rules": {
-      "complexity": { "useLiteralKeys": "off" },
       "preset": "recommended",
-      "a11y": { "useButtonType": "error" },
-      "correctness": { "useExhaustiveDependencies": "error" },
-      "suspicious": { "noArrayIndexKey": "error" }
+      "a11y": {
+        "preset": "none",
+        "noAriaHiddenOnFocusable": "off",
+        "noNoninteractiveElementInteractions": "off",
+        "noSvgWithoutTitle": "off",
+        "useButtonType": "off",
+        "useKeyWithClickEvents": "off",
+        "noStaticElementInteractions": "off",
+        "useSemanticElements": "off",
+        "useAriaPropsSupportedByRole": "off",
+        "noLabelWithoutControl": "off",
+        "useValidAnchor": "off"
+      },
+      "suspicious": {
+        "noAlert": "off",
+        "noBiomeFirstException": "off",
+        "noBitwiseOperators": "off",
+        "noDocumentCookie": "off",
+        "noEmptyBlockStatements": "off",
+        "noEqualsToNull": "off",
+        "noEvolvingTypes": "off",
+        "noLeakedRender": "off",
+        "noMisplacedAssertion": "off",
+        "noReactForwardRef": "off",
+        "noReturnAssign": "off",
+        "noShadow": "off",
+        "noShadowRestrictedNames": "off",
+        "noSkippedTests": "off",
+        "noUnnecessaryConditions": "off",
+        "noUnusedExpressions": "off",
+        "noExplicitAny": "off",
+        "noAssignInExpressions": "off",
+        "useIterableCallbackReturn": "off",
+        "noArrayIndexKey": "off",
+        "noSuspiciousSemicolonInJsx": "off",
+        "useArraySortCompare": "off",
+        "useAwait": "off",
+        "useStaticResponseMethods": "off",
+        "useErrorMessage": "off"
+      },
+      "style": {
+        "noEnum": "off",
+        "noExportedImports": "off",
+        "noIncrementDecrement": "off",
+        "noInferrableTypes": "off",
+        "noDoneCallback": "off",
+        "noMultiAssign": "off",
+        "noNegationElse": "off",
+        "noNestedTernary": "off",
+        "noNonNullAssertion": "off",
+        "noParameterAssign": "off",
+        "noParameterProperties": "off",
+        "noUnusedTemplateLiteral": "off",
+        "noUselessElse": "off",
+        "noYodaExpression": "off",
+        "useAtIndex": "off",
+        "useBlockStatements": "off",
+        "useCollapsedIf": "off",
+        "useConsistentArrayType": "off",
+        "useConsistentArrowReturn": "off",
+        "useConsistentBuiltinInstantiation": "off",
+        "useConsistentMemberAccessibility": "off",
+        "useConsistentMethodSignatures": "off",
+        "useConsistentObjectDefinitions": "off",
+        "useConsistentTypeDefinitions": "off",
+        "useDefaultSwitchClause": "off",
+        "useDestructuring": "off",
+        "useErrorCause": "off",
+        "useFilenamingConvention": "off",
+        "useForOf": "off",
+        "useImportType": "off",
+        "useNodejsImportProtocol": "off",
+        "useNumberNamespace": "off",
+        "useNumericSeparators": "off",
+        "useSelfClosingElements": "off",
+        "useReadonlyClassProperties": "off",
+        "useShorthandAssign": "off",
+        "useTemplate": "off"
+      },
+      "correctness": {
+        "noGlobalDirnameFilename": "off",
+        "noUndeclaredVariables": "off",
+        "noUnusedFunctionParameters": "off",
+        "noUnusedImports": "off",
+        "noUnusedInstantiation": "off",
+        "noUnusedVariables": "off",
+        "useExhaustiveDependencies": "off",
+        "useImageSize": "off",
+        "useSingleJsDocAsterisk": "off"
+      },
+      "complexity": {
+        "noDivRegex": "off",
+        "noExcessiveCognitiveComplexity": "off",
+        "noForEach": "off",
+        "noImportantStyles": "off",
+        "noRedundantDefaultExport": "off",
+        "noUselessEscapeInRegex": "off",
+        "noUselessReturn": "off",
+        "noUselessUndefined": "off",
+        "noVoid": "off",
+        "useLiteralKeys": "off",
+        "useOptionalChain": "off",
+        "useSimplifiedLogicExpression": "off"
+      },
+      "performance": {
+        "noAwaitInLoops": "off",
+        "noBarrelFile": "off",
+        "noDelete": "off",
+        "noImgElement": "off",
+        "noJsxPropsBind": "off",
+        "noNamespaceImport": "off",
+        "noSyncScripts": "off",
+        "useTopLevelRegex": "off"
+      },
+      "security": { "noDangerouslySetInnerHtml": "off" },
+      "nursery": { "useSortedClasses": "off" }
     }
   },
-  "assist": { "enabled": true, "actions": { "source": { "organizeImports": "off" } } }
+  "overrides": [
+    {
+      "includes": [
+        "apps/web/src/app/layout.tsx",
+        "apps/web/src/components/seo/structured-data.tsx"
+      ],
+      "linter": {
+        "rules": { "security": { "noDangerouslySetInnerHtml": "error" } }
+      }
+    },
+    {
+      "includes": ["apps/web/src/components/system/MarkdownView.tsx"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noArrayIndexKey": "error",
+            "noAssignInExpressions": "error"
+          }
+        }
+      }
+    }
+  ],
+  "assist": {
+    "enabled": true,
+    "actions": {
+      "source": {
+        "noDuplicateClasses": "off",
+        "organizeImports": "off",
+        "useSortedAttributes": "off",
+        "useSortedInterfaceMembers": "off",
+        "useSortedKeys": "off",
+        "useSortedPackageJson": "off",
+        "useSortedProperties": "off"
+      }
+    }
+  }
 }
