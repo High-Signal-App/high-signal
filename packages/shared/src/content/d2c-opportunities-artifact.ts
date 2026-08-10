@@ -16,12 +16,12 @@
 import type { D2COpportunityArtifact } from "./d2c-opportunities";
 
 export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
-  "generatedAt": "2026-08-03T10:40:37.947660+00:00",
+  "generatedAt": "2026-08-10T08:26:27.931792+00:00",
   "region": "IN",
   "niches": [
     {
       "nicheSlug": "hair-growth-scalp-support",
-      "demandScore": 0.85,
+      "demandScore": 0.4,
       "competitionScore": null,
       "pricingScore": null,
       "adSaturationScore": null,
@@ -29,63 +29,21 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "evidence": [
         {
           "sourceClass": "community",
-          "url": "https://reddit.com/r/tressless/comments/1ve3yzc/10_months_of_1mg_finasteride_only_saved_my_hair/",
+          "url": "https://reddit.com/r/tressless/comments/1vk42fz/is_amazon_minoxidil_5_legit_never_seen_it_before/",
           "source": "reddit:tressless",
-          "snippet": "10 months of 1mg finasteride only saved my hair. — I am currently 21 years old. My first \"oh shit i'm balding moment\" happened around the end of my junior year in college. I lifted up my hair one day…",
-          "observedAt": "2026-08-03T05:06:31+00:00"
+          "snippet": "Is Amazon Minoxidil 5% Legit? Never seen it before — Costco is still cheaper, but curious if anyone has used this.",
+          "observedAt": "2026-08-09T23:02:46+00:00"
         },
         {
           "sourceClass": "community",
-          "url": "https://reddit.com/r/tressless/comments/1vdwpfm/3_months_on_finasteride_and_minoxidil/",
+          "url": "https://reddit.com/r/tressless/comments/1vjz213/m24_doctor_advised_against_immediate_ht_due_to/",
           "source": "reddit:tressless",
-          "snippet": "3 months on finasteride and minoxidil — Definitely see results. Cant wait till 6 months. Using HIMs biotin gummys and fin/mox spray",
-          "observedAt": "2026-08-02T23:17:20+00:00"
-        },
-        {
-          "sourceClass": "community",
-          "url": "https://reddit.com/r/tressless/comments/1vdvhex/6_months_of_using_dutastride_and_minoxidil/",
-          "source": "reddit:tressless",
-          "snippet": "6 months of using dutastride and minoxidil — So its been 6 months using minoxidil foam 5% and .5% dutastride i want to show you guys before and after tell me pls what you guys think about it first 5…",
-          "observedAt": "2026-08-02T22:24:25+00:00"
-        },
-        {
-          "sourceClass": "community",
-          "url": "https://reddit.com/r/tressless/comments/1vdtpqs/i_wanted_to_share_this_microneedling_study_with/",
-          "source": "reddit:tressless",
-          "snippet": "I wanted to share this micro-needling study with you guys, it cites multiple studies and goes pretty in-depth and shows promising results for those who do it. — TLDR Don't go over .6mm, .6mm saw bett…",
-          "observedAt": "2026-08-02T21:11:20+00:00"
-        },
-        {
-          "sourceClass": "community",
-          "url": "https://reddit.com/r/tressless/comments/1vdkl1n/2_months_and_2_weeks_on_topical_dutasteride/",
-          "source": "reddit:tressless",
-          "snippet": "2 months and 2 weeks on topical dutasteride + minoxidil — Sharing my 2-month progress using topical dutasteride and minoxidil. I know it’s still early, but I think I’m seeing some small hairs along t…",
-          "observedAt": "2026-08-02T15:12:08+00:00"
-        },
-        {
-          "sourceClass": "community",
-          "url": "https://reddit.com/r/tressless/comments/1vdkegj/monoxidil_treatment_after_8months_10_days/",
-          "source": "reddit:tressless",
-          "snippet": "Monoxidil treatment after 8months 10 days — The left photo was taken before I started treatment. The right is today after **8 months and 10 days** of daily minoxidil, weekly microneedling, scalp care…",
-          "observedAt": "2026-08-02T15:04:54+00:00"
-        },
-        {
-          "sourceClass": "community",
-          "url": "https://reddit.com/r/tressless/comments/1vdhuow/19m_6_months_result_on_minoxidil_25mg_and/",
-          "source": "reddit:tressless",
-          "snippet": "19m. 6 Months Result on minoxidil 2.5mg and finasteride 1mg — Hi everyone here are my results so far. I started on a combo spray 10% minoxidil and 0.1% finasteride once daily. Around day 40 I switche…",
-          "observedAt": "2026-08-02T13:16:20+00:00"
-        },
-        {
-          "sourceClass": "community",
-          "url": "https://reddit.com/r/tressless/comments/1vdduzl/near_full_recovery_then_lost_it_all/",
-          "source": "reddit:tressless",
-          "snippet": "Near full recovery then lost it all. — (Pics in order from starting treatment to today) Hi everyone, I’m looking for some advice because I’m not sure where to go from here. I started treatment about…",
-          "observedAt": "2026-08-02T09:46:32+00:00"
+          "snippet": "M24 – Doctor advised against immediate HT due to weak donor area. Thoughts? — I’m 24M and started losing my hair in 2019 at 17. I took finasteride for about a year around 2020–2022 because I mainly h…",
+          "observedAt": "2026-08-09T19:35:21+00:00"
         }
       ],
-      "freshnessDate": "2026-08-03T10:37:10.692715+00:00",
-      "notes": "diversity=0.14; community=8 search=0 product=0 ad-library=0 launch=0"
+      "freshnessDate": "2026-08-10T08:23:35.263366+00:00",
+      "notes": "diversity=0.14; community=2 search=0 product=0 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "lip-intimate-skincare-sensitive",
@@ -95,19 +53,27 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-08-03T10:37:05.624418+00:00",
+      "freshnessDate": "2026-08-10T08:23:45.356454+00:00",
       "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "hard-water-hair-care",
-      "demandScore": null,
+      "demandScore": 0.30000000000000004,
       "competitionScore": null,
       "pricingScore": null,
       "adSaturationScore": null,
       "agentVisibilityScore": null,
-      "evidence": [],
-      "freshnessDate": "2026-08-03T10:38:21.604491+00:00",
-      "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
+      "evidence": [
+        {
+          "sourceClass": "community",
+          "url": "https://news.ycombinator.com/item?id=49157807",
+          "source": "hackernews",
+          "snippet": "Show HN: Product analytics (and evals) for agent sessions on your MCP",
+          "observedAt": "2026-08-03T16:17:59+00:00"
+        }
+      ],
+      "freshnessDate": "2026-08-10T08:23:40.315276+00:00",
+      "notes": "diversity=0.14; community=0 search=1 product=0 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "beard-dandruff-beard-scalp",
@@ -117,7 +83,7 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-08-03T10:39:32.485374+00:00",
+      "freshnessDate": "2026-08-10T08:25:01.507421+00:00",
       "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
@@ -128,7 +94,7 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-08-03T10:34:22.056442+00:00",
+      "freshnessDate": "2026-08-10T08:22:39.498088+00:00",
       "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
@@ -139,74 +105,30 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-08-03T10:36:55.410869+00:00",
+      "freshnessDate": "2026-08-10T08:23:20.090170+00:00",
       "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "heat-resistant-phone-mounts",
-      "demandScore": 0.30000000000000004,
+      "demandScore": null,
       "competitionScore": null,
       "pricingScore": null,
       "adSaturationScore": null,
       "agentVisibilityScore": null,
-      "evidence": [
-        {
-          "sourceClass": "community",
-          "url": "https://reddit.com/r/motorcycles/comments/1ve2onh/hit_a_deer_at_60_kmh/",
-          "source": "reddit:motorcycles",
-          "snippet": "Hit a deer at 60 km/h. — Some 13 hours ago I hit a young deer. My right collarbone snapped upon hitting the asphalt on my right side. Was in the hospital for 7 hours, luckily didn't need surgery. I c…",
-          "observedAt": "2026-08-03T03:59:59+00:00"
-        }
-      ],
-      "freshnessDate": "2026-08-03T10:36:19.924816+00:00",
-      "notes": "diversity=0.14; community=1 search=0 product=0 ad-library=0 launch=0"
+      "evidence": [],
+      "freshnessDate": "2026-08-10T08:23:25.126402+00:00",
+      "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "office-chai-healthy-snacks",
       "demandScore": null,
-      "competitionScore": 0.5,
-      "pricingScore": 0.9,
+      "competitionScore": null,
+      "pricingScore": null,
       "adSaturationScore": null,
       "agentVisibilityScore": null,
-      "evidence": [
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0F9T81MSB",
-          "source": "amazon:in",
-          "snippet": "Bikano Bombay Mixture | Spicy &amp; Tangy Indian Namkeen Snack | Crunchy Blend of Sev, Peanuts &amp; Spices | Tea-Time Snack – 800g — ₹178 — 4.0 out of 5 — 2,396 ratings",
-          "observedAt": "2026-08-03T10:34:33.619341+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0FBGHFCZ3",
-          "source": "amazon:in",
-          "snippet": "4.3 out of 5 stars — ₹505 — 4.3 out of 5 — 7 ratings",
-          "observedAt": "2026-08-03T10:34:33.620020+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0FBG7TQ1H",
-          "source": "amazon:in",
-          "snippet": "Haldiram&#x27;s Nagpur Chai Ke Saath Tea Time Namkeen Combo � 3 x 200g | Masala Tit Bit, Jeera Puri, Methi Sticks | Indian Snacks for Evening Chai &amp; Light Munching — ₹195",
-          "observedAt": "2026-08-03T10:34:33.620495+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0C55QM8XK",
-          "source": "amazon:in",
-          "snippet": "Sweet Karam Coffee Ribbon Pakoda (Kokku Vada) | pakkavada | No Palm Oil | No Preservatives | No Maida | Authentic South Indian Namkeen | Fresh &amp; Crispy Tea Snacks | Homemade Taste | 95 Grams — ₹83 — 4.0 out of 5 — 400 ratings",
-          "observedAt": "2026-08-03T10:34:33.622377+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0FBGD2GK6",
-          "source": "amazon:in",
-          "snippet": "4.4 out of 5 stars — ₹390 — 4.4 out of 5 — 8 ratings",
-          "observedAt": "2026-08-03T10:34:33.622915+00:00"
-        }
-      ],
-      "freshnessDate": "2026-08-03T10:34:33.623114+00:00",
-      "notes": "diversity=0.14; community=0 search=0 product=5 ad-library=0 launch=0"
+      "evidence": [],
+      "freshnessDate": "2026-08-10T08:22:44.535889+00:00",
+      "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "diabetic-friendly-travel-snacks",
@@ -216,55 +138,19 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-08-03T10:35:08.996971+00:00",
+      "freshnessDate": "2026-08-10T08:22:59.789910+00:00",
       "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "high-protein-regional-snacks",
       "demandScore": null,
-      "competitionScore": 0.5,
-      "pricingScore": 0.9,
+      "competitionScore": null,
+      "pricingScore": null,
       "adSaturationScore": null,
       "agentVisibilityScore": null,
-      "evidence": [
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0FZHCJ8MT",
-          "source": "amazon:in",
-          "snippet": "Eat Anytime - Multigrain Protein Chips, Peri Peri | 40 g protein per pack | Baked, Not Fried | No Palm Oil | High Protein, Low Calories (under 160) | 150 g — ₹185 — 4.2 out of 5 — 44 ratings",
-          "observedAt": "2026-08-03T10:40:24.375249+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0G59MC2XP",
-          "source": "amazon:in",
-          "snippet": "Urban Platter Roasted Salted Edamame, 150g (46% Protein, 14% Fiber, Lightly Salted Young Green Soybeans, Highest Plant Protein Supersnack) — ₹195 — 4.3 out of 5 — 488 ratings",
-          "observedAt": "2026-08-03T10:40:24.375827+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0FQ2RRXMR",
-          "source": "amazon:in",
-          "snippet": "WellNuts &amp; Co. Pan-Roasted Protein Salad Mix (450g) | Non-Fried Healthy Snack | High Protein &amp; Fiber Rich Diet Mix | Zero Cholesterol &amp; Vegan — ₹380 — 4.3 out of 5 — 43 ratings",
-          "observedAt": "2026-08-03T10:40:24.376332+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0FTT4ZFJS",
-          "source": "amazon:in",
-          "snippet": "Superyou Assorted Protein Wafer Mini Bars (Pack Of 10)| 5g Protein | Made with Atta &amp; Jowar | No Added Sugar | Yeast Fermented | Energy Bars | 100% Vegetarian |No Palm Oil | 200g — ₹269 — 4.2 out of 5 — 139 ratings",
-          "observedAt": "2026-08-03T10:40:24.378109+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0GQLGXGMC",
-          "source": "amazon:in",
-          "snippet": "Greenfinity Roasted Edamame 250g | High Protein Vegan Snack | Roasted Not Fried Soybeans | Healthy Crunchy Diet Snack for Gym, Weight Loss &amp; Office | Premium Plant Protein — ₹199 — 4.2 out of 5 — 321 ratings",
-          "observedAt": "2026-08-03T10:40:24.378609+00:00"
-        }
-      ],
-      "freshnessDate": "2026-08-03T10:40:24.378755+00:00",
-      "notes": "diversity=0.14; community=0 search=0 product=5 ad-library=0 launch=0"
+      "evidence": [],
+      "freshnessDate": "2026-08-10T08:25:11.641367+00:00",
+      "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "affordable-home-gym-under-5000",
@@ -276,62 +162,62 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "evidence": [
         {
           "sourceClass": "community",
-          "url": "https://reddit.com/r/homegym/comments/1vdlhuh/be_it_ever_so_humble/",
+          "url": "https://reddit.com/r/homegym/comments/1vk8pcu/basement_home_gym/",
           "source": "reddit:homegym",
-          "snippet": "Be it ever so humble... — ...there is no place like the home gym. Floor mats in, new equipment built, and it's finally feeling like a real gym space instead of just a dining room with some equipment…",
-          "observedAt": "2026-08-02T15:48:49+00:00"
+          "snippet": "Basement home gym — 15' x 11' space excluding the rowing room, with a 11.5' x 7' workout area (mats). Earmarked this space as \"Exercise room\" on the blueprints in 2019 but most of this has been insta…",
+          "observedAt": "2026-08-10T02:38:38+00:00"
         },
         {
           "sourceClass": "community",
-          "url": "https://reddit.com/r/homegym/comments/1vdh0tj/almost_there_home_gym/",
+          "url": "https://reddit.com/r/homegym/comments/1vk2wqu/my_home_gym_a_work_in_progress/",
           "source": "reddit:homegym",
-          "snippet": "Almost there home gym — I’ve been going to a gym 5 days a week for 3 years a block from my work. I usually go at 1:00 pm because it’s less crowded which means less waiting for the equipment. Well at…",
-          "observedAt": "2026-08-02T12:37:35+00:00"
+          "snippet": "My Home Gym - A Work in Progress — This is my home gym. We started it during COVID and have been adding to it as we go. My wife also has a pilates station downstairs with a Tonal that she uses more o…",
+          "observedAt": "2026-08-09T22:13:10+00:00"
         },
         {
           "sourceClass": "community",
-          "url": "https://reddit.com/r/homegym/comments/1vd2dyp/finally_finished_my_dream_garage_gym/",
+          "url": "https://reddit.com/r/homegym/comments/1vjwo6n/my_finished_home_gym/",
           "source": "reddit:homegym",
-          "snippet": "Finally Finished My Dream Garage Gym — Finished setting up my home gym in one bay of my 3-car garage, and I couldn’t be happier with how it turned out. Huge thanks to everyone who answered all of my…",
-          "observedAt": "2026-08-01T23:43:18+00:00"
+          "snippet": "My finished home gym — It is finally finished.",
+          "observedAt": "2026-08-09T18:02:56+00:00"
         },
         {
           "sourceClass": "community",
-          "url": "https://reddit.com/r/homegym/comments/1vc5pvj/now_and_then/",
+          "url": "https://reddit.com/r/homegym/comments/1vjqrfl/my_home_gym_under_the_stairs/",
           "source": "reddit:homegym",
-          "snippet": "Now and Then — Recently moved my gym from a small 70 ft² corner of a two-car garage to the 300+ ft² wall of a new shop. Next: some mirrors, a custom heavy club hanger, and some cardio equipment. - RE…",
-          "observedAt": "2026-07-31T22:41:18+00:00"
+          "snippet": "My Home Gym Under The Stairs",
+          "observedAt": "2026-08-09T14:05:39+00:00"
         },
         {
           "sourceClass": "community",
-          "url": "https://reddit.com/r/homegym/comments/1vbuwio/finally_did_it/",
+          "url": "https://reddit.com/r/homegym/comments/1vjb9pf/my_home_gym_setup/",
           "source": "reddit:homegym",
-          "snippet": "Finally did it — Have wanted to build out a home gym for the better part of a decade and finally made it a reality!! Space is a priority so needed everything to be able to be stored away with limited…",
-          "observedAt": "2026-07-31T15:55:49+00:00"
+          "snippet": "My home gym setup! — Just got a set of used dumbell!! the gym is getting pretty full",
+          "observedAt": "2026-08-09T00:15:25+00:00"
         },
         {
           "sourceClass": "community",
-          "url": "https://reddit.com/r/homegym/comments/1vbd9u8/view_from_my_throne/",
+          "url": "https://reddit.com/r/homegym/comments/1viz1m4/home_gym/",
           "source": "reddit:homegym",
-          "snippet": "View from my throne — I bought my home a year ago and all I’ve ever wanted was a home gym. So I’ve slowly been getting equipment. I started with a rusty bench and recumbent bike that my god father wa…",
-          "observedAt": "2026-07-31T01:58:50+00:00"
+          "snippet": "Home gym 💪🏻💪🏻🦍🦍 — FINALLY got it set up.",
+          "observedAt": "2026-08-08T15:35:29+00:00"
         },
         {
           "sourceClass": "community",
-          "url": "https://reddit.com/r/homegym/comments/1vbbfc1/every_thing_i_need/",
+          "url": "https://reddit.com/r/homegym/comments/1vi1kfp/completed_home_gym/",
           "source": "reddit:homegym",
-          "snippet": "Every thing I need. — We took a bedroom in our basement and made it into our home gym.",
-          "observedAt": "2026-07-31T00:35:59+00:00"
+          "snippet": "Completed Home Gym — Key Pieces: Temple of Gainz Quadsend Temple of Gainz Leg Ext / Curl Temple of Gainz Multiflight Megamass Linear T Bar Row Rep Adonis Rep Pepin Dumbbells Rogue RM-4 Rogue GHD TITA…",
+          "observedAt": "2026-08-07T14:04:45+00:00"
         },
         {
           "sourceClass": "community",
-          "url": "https://reddit.com/r/homegym/comments/1va8qta/slowly_but_surely/",
+          "url": "https://reddit.com/r/homegym/comments/1vhzzlu/weekly_freetalk_and_questions_for_rhomegym_week/",
           "source": "reddit:homegym",
-          "snippet": "Slowly but surely — Got ways to go, but this will definitely help out significantly. I got tired of going to the gym that is always packed. Only thing I will be keeping a membership for is the sauna.…",
-          "observedAt": "2026-07-29T20:53:40+00:00"
+          "snippet": "Weekly Free-Talk and Questions for r/HomeGym - week of August 07, 2026 — Welcome to The Garage: The Weekly Free-Talk discussion for [r/HomeGym](https://www.reddit.com/r/HomeGym/)! **What can be poste…",
+          "observedAt": "2026-08-07T13:00:21+00:00"
         }
       ],
-      "freshnessDate": "2026-08-03T10:35:44.522088+00:00",
+      "freshnessDate": "2026-08-10T08:23:30.220471+00:00",
       "notes": "diversity=0.14; community=8 search=0 product=0 ad-library=0 launch=0"
     },
     {
@@ -342,55 +228,19 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-08-03T10:34:11.956057+00:00",
+      "freshnessDate": "2026-08-10T08:22:34.459504+00:00",
       "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "baby-lotions-transparent-ingredients",
       "demandScore": null,
-      "competitionScore": 0.5,
-      "pricingScore": 0.9,
+      "competitionScore": null,
+      "pricingScore": null,
       "adSaturationScore": null,
       "agentVisibilityScore": null,
-      "evidence": [
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0G1MWWPTF",
-          "source": "amazon:in",
-          "snippet": "Himalaya Gentle Baby Lotion 400ml with Almond oil, Olive oil, Country Mallow | No.1 Doctor-Prescribed Brand |pH 5.5 formulation | Nourishes and moisturizes your baby&#x27;s skin | Safe for Newborns — ₹297 — 4.3 out of 5 — 3,138 ratings",
-          "observedAt": "2026-08-03T10:40:37.942190+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0FGJXZ4H5",
-          "source": "amazon:in",
-          "snippet": "LuvLap Baby Lotion with Milk Protein - 700ml, Suitable for Baby’s Delicate Skin, 24 Hour Protection for Sensitive Skin, Shea Butter and VIT E, Paraben Free, Sweet Almond Oil, Dermatologically Tested — ₹198 — 4.3 out of 5 — 885 ratings",
-          "observedAt": "2026-08-03T10:40:37.942763+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B07JQYKB61",
-          "source": "amazon:in",
-          "snippet": "Baby Dove Rich Moisture Nourishing Baby Lotion 400 ml, With Moisturising Cream, Gentle Care for Baby&#x27;s Soft Skin — ₹200 — 4.4 out of 5 — 6,759 ratings",
-          "observedAt": "2026-08-03T10:40:37.943369+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0FJY6QCNX",
-          "source": "amazon:in",
-          "snippet": "Mother Sparsh Natural Care Baby Body Lotion-400ml | Baby Lotion For All Skin Types | With Organic Shea Butter, Coconut Oil &amp; Avocado | Suitable for Newborn Sensitive Skin — ₹255 — 4.3 out of 5 — 501 ratings",
-          "observedAt": "2026-08-03T10:40:37.946503+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B00OKJGLI2",
-          "source": "amazon:in",
-          "snippet": "Cetaphil Baby Daily Lotion With Organic Calendula - (400ml) — ₹1,370 — 4.5 out of 5 — 4,063 ratings",
-          "observedAt": "2026-08-03T10:40:37.947111+00:00"
-        }
-      ],
-      "freshnessDate": "2026-08-03T10:40:37.947247+00:00",
-      "notes": "diversity=0.14; community=0 search=0 product=5 ad-library=0 launch=0"
+      "evidence": [],
+      "freshnessDate": "2026-08-10T08:26:27.931530+00:00",
+      "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "ayurvedic-face-care-proof-first",
@@ -400,58 +250,33 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-08-03T10:37:46.169078+00:00",
+      "freshnessDate": "2026-08-10T08:24:20.967209+00:00",
       "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "sustainable-cleaning-laundry-refills",
       "demandScore": null,
-      "competitionScore": 0.5,
-      "pricingScore": 0.9,
+      "competitionScore": null,
+      "pricingScore": null,
       "adSaturationScore": null,
       "agentVisibilityScore": null,
-      "evidence": [
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0C86RTS5X",
-          "source": "amazon:in",
-          "snippet": "Good Knight Flash Liquid Vaporiser | Pack Of 4 (45ml Each) | Lavender Fragrance | 2x Faster Than Before | Mosquito Repellent Refill | India s Most Powerful Liquid Vaporizer — ₹243 — 4.3 out of 5 — 13,129 ratings",
-          "observedAt": "2026-08-03T10:40:31.030349+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B07YY9N6TY",
-          "source": "amazon:in",
-          "snippet": "Mortein 45ml x 6 (Buy 4 Get 2 Free) Fits All Machines | SmartPlus Mosquito Repellent Refill | Mosquito Repellent &amp; Killer | 100% Protection from Dengue Mosquitoes, Pack of 6 — ₹270 — 4.0 out of 5 — 39,781 ratings",
-          "observedAt": "2026-08-03T10:40:31.030925+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B07XRPH6RW",
-          "source": "amazon:in",
-          "snippet": "Godrej aer Matic Refill - Automatic Room Fresheners | Alive | 2200 Sprays Guaranteed | Lasts up to 60 days (225ml) — ₹228 — 4.3 out of 5 — 14,058 ratings",
-          "observedAt": "2026-08-03T10:40:31.031424+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0982DRKF9",
-          "source": "amazon:in",
-          "snippet": "Odomos Universal Liquid Vaporiser 45ml X Pack Of 6 | Mosquito Repellent Single Refill | 100% Protection| Fits All Machines | Protects Dengue, Malaria &amp; Chikungunya Mosquitoes | — ₹259 — 4.0 out of 5 — 13,785 ratings",
-          "observedAt": "2026-08-03T10:40:31.032058+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B07FPKP85K",
-          "source": "amazon:in",
-          "snippet": "Godrej aer Matic Automatic Room Fresheners Refill Pack | Fresh Lush Green | 2000 Sprays Guaranteed | Lasts up to 60 days (210ml) — ₹239 — 4.2 out of 5 — 8,780 ratings",
-          "observedAt": "2026-08-03T10:40:31.032609+00:00"
-        }
-      ],
-      "freshnessDate": "2026-08-03T10:40:31.032745+00:00",
-      "notes": "diversity=0.14; community=0 search=0 product=5 ad-library=0 launch=0"
+      "evidence": [],
+      "freshnessDate": "2026-08-10T08:25:52.333831+00:00",
+      "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "pet-health-supplements",
+      "demandScore": null,
+      "competitionScore": null,
+      "pricingScore": null,
+      "adSaturationScore": null,
+      "agentVisibilityScore": null,
+      "evidence": [],
+      "freshnessDate": "2026-08-10T08:23:04.837940+00:00",
+      "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
+    },
+    {
+      "nicheSlug": "oral-care-sub-niches",
       "demandScore": 0.30000000000000004,
       "competitionScore": null,
       "pricingScore": null,
@@ -460,29 +285,18 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "evidence": [
         {
           "sourceClass": "community",
-          "url": "https://reddit.com/r/Pets/comments/1vdmwgt/update_university_walked_back_the_rule_that_my/",
-          "source": "reddit:pets",
-          "snippet": "Update: university walked back the rule that my cat had to be crated when I'm gone (and what finally worked) — Quick update to my earlier freakout about the university saying my ESA cat had to be kep…",
-          "observedAt": "2026-08-02T16:44:38+00:00"
+          "url": "https://reddit.com/r/Dentistry/comments/1vjwvgo/thoughts_on_this_tooth/",
+          "source": "reddit:Dentistry",
+          "snippet": "Thoughts on this tooth? — I had a new pt the other day, fractured DB cusp on #15, no symptoms and pt was completely unaware. No percussion or thermal sensitivity. She brought X-rays from previous den…",
+          "observedAt": "2026-08-09T18:10:39+00:00"
         }
       ],
-      "freshnessDate": "2026-08-03T10:34:27.096249+00:00",
+      "freshnessDate": "2026-08-10T08:25:06.568020+00:00",
       "notes": "diversity=0.14; community=1 search=0 product=0 ad-library=0 launch=0"
     },
     {
-      "nicheSlug": "oral-care-sub-niches",
-      "demandScore": null,
-      "competitionScore": null,
-      "pricingScore": null,
-      "adSaturationScore": null,
-      "agentVisibilityScore": null,
-      "evidence": [],
-      "freshnessDate": "2026-08-03T10:38:57.046071+00:00",
-      "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
-    },
-    {
       "nicheSlug": "sleep-stress-support-products",
-      "demandScore": 0.7,
+      "demandScore": 0.4,
       "competitionScore": null,
       "pricingScore": null,
       "adSaturationScore": null,
@@ -490,42 +304,21 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "evidence": [
         {
           "sourceClass": "community",
-          "url": "https://reddit.com/r/indianfitness/comments/1vc42nn/hi_i_29f_need_beginner_guidance_pls_help/",
-          "source": "reddit:IndianFitness",
-          "snippet": "Hi, I (29F) need beginner guidance. Pls help! — Hey, I want to start with the most basic fitness journey to build strength, stamina and flexibility. My immediate concern is a bit of lower pooch but I…",
-          "observedAt": "2026-07-31T21:35:06+00:00"
+          "url": "https://reddit.com/r/sleep/comments/1vk9xxc/sleep_earbuds_turned_out_to_be_way_more_useful/",
+          "source": "reddit:sleep",
+          "snippet": "Sleep earbuds turned out to be way more useful than I expected — I’ve been seeing a few discussions about sleep earbuds lately, so I figured I’d share my experience too. I’ve always had a hard time f…",
+          "observedAt": "2026-08-10T03:39:57+00:00"
         },
         {
           "sourceClass": "community",
-          "url": "https://reddit.com/r/sleep/comments/1ve6gf2/found_a_way_to_fall_asleep_quickly/",
+          "url": "https://reddit.com/r/sleep/comments/1vk3ulf/always_tired_but_never_sleepy/",
           "source": "reddit:sleep",
-          "snippet": "Found a way to fall asleep quickly — Hi everyone. Just wanted to share this method I accidentally devised to fall asleep quickly. So what I do is watch something on YouTube in a language that I don't…",
-          "observedAt": "2026-08-03T07:25:54+00:00"
-        },
-        {
-          "sourceClass": "community",
-          "url": "https://reddit.com/r/sleep/comments/1ve2bg9/can_we_talk_about_the_longterm_effects_of_chronic/",
-          "source": "reddit:sleep",
-          "snippet": "Can we talk about the long-term effects of chronic sleep deprivation? — I've been dealing with this since I was 14, and I'm 19 years old now. I dealt with insomnia caused by severe anxiety from ages…",
-          "observedAt": "2026-08-03T03:41:11+00:00"
-        },
-        {
-          "sourceClass": "community",
-          "url": "https://reddit.com/r/sleep/comments/1ve1eey/cant_wake_up_at_430500_am_consistently_even_after/",
-          "source": "reddit:sleep",
-          "snippet": "Can't wake up at 4:30–5:00 AM consistently, even after weeks of trying. What am I doing wrong? — I've been trying to build the habit of waking up at around 4:30 -5:00 AM, but I just can't seem to mak…",
-          "observedAt": "2026-08-03T02:55:31+00:00"
-        },
-        {
-          "sourceClass": "community",
-          "url": "https://reddit.com/r/sleep/comments/1vdz4du/my_mom_says_she_can_only_sleep_standing_up_how_do/",
-          "source": "reddit:sleep",
-          "snippet": "My mom says she can only sleep standing up, how do I help her? — This is 100% serious; she for real needs a Coneheads type situation. My mom has neck and back problems and RLS, and she's in her early…",
-          "observedAt": "2026-08-03T01:06:12+00:00"
+          "snippet": "always tired, but never sleepy — holy hell am i tired. i avoid caffeine 8h before bed, relax before bed all that. i lay in bed tired but cant fall asleep. I do intense exercise 3 days a week, go outs…",
+          "observedAt": "2026-08-09T22:53:18+00:00"
         }
       ],
-      "freshnessDate": "2026-08-03T10:34:17.018501+00:00",
-      "notes": "diversity=0.14; community=5 search=0 product=0 ad-library=0 launch=0"
+      "freshnessDate": "2026-08-10T08:22:29.414978+00:00",
+      "notes": "diversity=0.14; community=2 search=0 product=0 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "intimate-hygiene",
@@ -535,7 +328,7 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-08-03T10:37:00.465829+00:00",
+      "freshnessDate": "2026-08-10T08:24:56.462179+00:00",
       "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
@@ -546,7 +339,7 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-08-03T10:40:07.868800+00:00",
+      "freshnessDate": "2026-08-10T08:25:16.718332+00:00",
       "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     }
   ]
