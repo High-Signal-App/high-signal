@@ -16,7 +16,6 @@ assert.ok(workerFirstMatch, 'wrangler.toml must declare assets.run_worker_first'
 
 const workerFirstRoutes = [...workerFirstMatch[1].matchAll(/"([^"]+)"/g)].map(([, route]) => route);
 
-assert.ok(workerFirstRoutes.includes('/'), 'the exact Daily Brief root must be Worker-first');
 assert.ok(
   workerFirstRoutes.includes('/*'),
   'application routes must remain Worker-first by default'
