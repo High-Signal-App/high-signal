@@ -2,12 +2,19 @@ import Link from 'next/link';
 import type { Route } from 'next';
 import { BriefSections } from '@/components/brief/BriefSections';
 import { DailyBriefHero } from '@/components/brief/DailyBriefHero';
+import { EditionCoverageReceipt } from '@/components/brief/EditionCoverageReceipt';
+import { PublicationSwitcher } from '@/components/brief/PublicationSwitcher';
 import { ShareBar } from '@/components/molecules/ShareBar';
 import { HomeJsonLd } from '@/components/seo/structured-data';
 import { PageShell } from '@/components/system/HighSignalUI';
 import { api, type BriefSnapshot } from '@/lib/api';
 import { SITE_URL } from '@/lib/site';
-import { isRegion, type Region } from '@high-signal/shared';
+import {
+  briefFeedDefinition,
+  coverageReceiptForSnapshot,
+  isRegion,
+  type Region,
+} from '@high-signal/shared';
 
 const EMPTY_BRIEF: BriefSnapshot = {
   generatedAt: new Date().toISOString(),
@@ -87,10 +94,12 @@ export async function CurrentBriefPage({
   if (convergenceResult.status === 'fulfilled') convergence = convergenceResult.value;
 
   const canonicalUrl = `${SITE_URL}${region === 'global' ? '' : `?region=${region}`}`;
+  const coverage = coverageReceiptForSnapshot(briefFeedDefinition('brief'), brief);
 
   return (
     <PageShell>
       <HomeJsonLd />
+      <PublicationSwitcher feed="brief" cadence="daily" region={region} />
       <DailyBriefHero brief={brief} region={region} />
 
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[var(--color-line)] py-4">
@@ -105,10 +114,13 @@ export async function CurrentBriefPage({
         </div>
       </div>
 
-      <BriefSections
-        brief={brief}
-        marketContext={<ConvergenceContext convergence={convergence} />}
-      />
+      <EditionCoverageReceipt coverage={coverage} />
+      <div className="brief-edition">
+        <BriefSections
+          brief={brief}
+          marketContext={<ConvergenceContext convergence={convergence} />}
+        />
+      </div>
     </PageShell>
   );
 }

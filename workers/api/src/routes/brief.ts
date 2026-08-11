@@ -13,11 +13,13 @@
  * `signals` and inlined into each stock item.
  */
 
-import { Hono } from 'hono';
-import { and, desc, eq, inArray, gte, sql } from 'drizzle-orm';
+import { Hono, type Context } from 'hono';
+import { and, asc, desc, eq, inArray, gte, lte, sql } from 'drizzle-orm';
 import {
   BUNDLED_D2C_ARTIFACT,
+  briefFeedDefinition,
   buildBriefEditionReceipt,
+  composeBriefFeedEdition,
   composeImpactChain,
   countriesForRegion,
   d2cBriefItems,
@@ -26,9 +28,12 @@ import {
   familyForSignalType,
   findSeedProduct,
   isPredictionMarketOnly,
+  isBriefFeedSlug,
   isRegion,
   normalizeCommunitySummary,
   rankEvidenceUrls,
+  resolveBriefFeedPeriod,
+  resolveFeedCadence,
   selectBriefClaimProvenance,
   SEED_PRODUCTS,
   summarizeBriefDiscovery,
@@ -42,6 +47,8 @@ import {
   type BriefStockItem,
   type BriefTrendItem,
   type BriefWatchingItem,
+  type BriefFeedEdition,
+  type BriefFeedPeriod,
   type ClaimEvidenceLink,
   type ClaimWithEvidence,
   type ComposeArgs,
@@ -1243,6 +1250,97 @@ async function tryGetPrecomputedSnapshot(
     return null;
   }
 }
+
+interface BriefFeedSnapshotRow {
+  date: string;
+  briefJson: string;
+  computedAt: string;
+}
+
+/**
+ * Read only the accepted daily records needed by one bounded feed period.
+ * Malformed or legacy snapshots that do not satisfy the current edition gate
+ * remain available at their original daily URL but are not republished into a
+ * new period rollup.
+ */
+export async function loadBriefFeedEdition(
+  database: ReturnType<typeof db>,
+  input: {
+    feed: ReturnType<typeof briefFeedDefinition>;
+    requestedCadence: string | null;
+    cadence: BriefFeedEdition['cadence'];
+    cadenceFellBack: boolean;
+    period: BriefFeedPeriod;
+    region: Region;
+  }
+): Promise<BriefFeedEdition> {
+  let rows: BriefFeedSnapshotRow[] = [];
+  try {
+    rows = await database
+      .select({
+        date: schema.dailyBriefSnapshots.date,
+        briefJson: schema.dailyBriefSnapshots.briefJson,
+        computedAt: schema.dailyBriefSnapshots.computedAt,
+      })
+      .from(schema.dailyBriefSnapshots)
+      .where(
+        and(
+          eq(schema.dailyBriefSnapshots.region, input.region),
+          gte(schema.dailyBriefSnapshots.date, input.period.startsOn),
+          lte(schema.dailyBriefSnapshots.date, input.period.endsOn)
+        )
+      )
+      .orderBy(asc(schema.dailyBriefSnapshots.date))
+      .limit(31);
+  } catch {
+    rows = [];
+  }
+
+  const accepted = rows.flatMap((row) => {
+    try {
+      const snapshot = JSON.parse(row.briefJson) as BriefSnapshot;
+      return buildBriefEditionReceipt(snapshot).publishable ? [{ date: row.date, snapshot }] : [];
+    } catch {
+      return [];
+    }
+  });
+
+  return composeBriefFeedEdition({
+    ...input,
+    rows: accepted,
+    generatedAt: rows.at(-1)?.computedAt,
+  });
+}
+
+async function handleBriefFeedRequest(c: Context<{ Bindings: Env }>) {
+  const feedParam = c.req.param('feed')?.trim() ?? '';
+  if (!isBriefFeedSlug(feedParam)) return c.json({ error: 'unknown_brief_feed' }, 404);
+
+  const feed = briefFeedDefinition(feedParam);
+  const requestedCadence = c.req.param('cadence')?.toLowerCase().trim() || null;
+  const { cadence, fellBack } = resolveFeedCadence(feed, requestedCadence);
+  const rawRegion = c.req.query('region')?.toLowerCase().trim() ?? 'global';
+  const region: Region = isRegion(rawRegion) ? rawRegion : 'global';
+  // A period key belongs to the requested cadence. If that cadence is not
+  // supported, resolve to the current edition at the feed's default cadence.
+  const periodParam = fellBack ? undefined : c.req.param('period')?.trim();
+  const period = resolveBriefFeedPeriod(cadence, periodParam);
+  if (!period) return c.json({ error: 'invalid_brief_feed_period', cadence }, 400);
+
+  const edition = await loadBriefFeedEdition(db(c.env.DB), {
+    feed,
+    requestedCadence,
+    cadence,
+    cadenceFellBack: fellBack,
+    period,
+    region,
+  });
+  c.header('Cache-Control', 'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400');
+  return c.json(edition);
+}
+
+briefRoute.get('/feeds/:feed/:cadence', handleBriefFeedRequest);
+briefRoute.get('/feeds/:feed/:cadence/:period', handleBriefFeedRequest);
 
 /**
  * Precompute brief snapshots for all configured regions. Called by the

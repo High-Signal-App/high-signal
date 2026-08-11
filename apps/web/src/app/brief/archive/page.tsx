@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import type { Route } from 'next';
 import Link from 'next/link';
 import { api } from '@/lib/api';
 import { PageShell } from '@/components/system/HighSignalUI';
@@ -65,6 +66,35 @@ export default async function BriefArchivePage() {
           always returns the same content. Snapshots are precomputed daily by the brief cron and
           stored in the <code className="text-zinc-300">daily_brief_snapshots</code> table.
         </p>
+        <nav
+          aria-label="Current publication editions"
+          className="mt-5 flex flex-wrap gap-x-4 gap-y-2 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-500"
+        >
+          <Link href={'/feeds/brief/weekly' as Route} className="hover:text-[var(--color-accent)]">
+            weekly brief
+          </Link>
+          <Link href={'/feeds/brief/monthly' as Route} className="hover:text-[var(--color-accent)]">
+            monthly brief
+          </Link>
+          <Link
+            href={'/feeds/markets-companies/daily' as Route}
+            className="hover:text-[var(--color-accent)]"
+          >
+            markets &amp; companies
+          </Link>
+          <Link
+            href={'/feeds/opportunity-radar/weekly' as Route}
+            className="hover:text-[var(--color-accent)]"
+          >
+            opportunity radar
+          </Link>
+          <Link
+            href={'/feeds/behavior-culture/weekly' as Route}
+            className="hover:text-[var(--color-accent)]"
+          >
+            behavior &amp; culture
+          </Link>
+        </nav>
         {available && (
           <p className="mt-4 font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
             {entries.length} archived date{entries.length === 1 ? '' : 's'}

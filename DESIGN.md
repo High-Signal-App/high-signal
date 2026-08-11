@@ -4,7 +4,7 @@ description: Evidence-first intelligence in a restrained public ledger.
 colors:
   background: "oklch(0.16 0 0)"
   foreground: "oklch(0.96 0 0)"
-  muted: "oklch(0.55 0 0)"
+  muted: "oklch(0.67 0 0)"
   muted-readable: "oklch(0.67 0 0)"
   line: "oklch(0.27 0 0)"
   accent: "oklch(0.78 0.18 195)"

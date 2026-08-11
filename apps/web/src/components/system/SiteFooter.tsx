@@ -35,6 +35,7 @@ const OPERATOR: FooterLink[] = [
 const LEGAL: FooterLink[] = [
   { href: '/about', label: 'About' },
   { href: '/methodology', label: 'Methodology' },
+  { href: '/methodology/data-parity', label: 'Data parity' },
   { href: '/privacy', label: 'Privacy' },
   { href: '/terms', label: 'Terms' },
 ];

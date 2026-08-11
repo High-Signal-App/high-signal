@@ -14,7 +14,7 @@ const PRIMARY_ITEMS: NavItem[] = [
   {
     href: '/',
     label: 'brief',
-    match: (path) => path === '/' || path.startsWith('/brief'),
+    match: (path) => path === '/' || path.startsWith('/brief') || path.startsWith('/feeds'),
   },
   {
     href: '/signals',

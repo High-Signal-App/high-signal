@@ -89,6 +89,9 @@ export function DailyBriefHero({
           </Link>
         ))}
       </nav>
+      <p className="mt-1 font-mono text-[9px] uppercase tracking-[0.12em] text-[var(--color-muted)] sm:hidden">
+        swipe to see all three sections →
+      </p>
     </header>
   );
 }

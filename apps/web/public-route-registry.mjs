@@ -139,6 +139,14 @@ export const PUBLIC_STATIC_ROUTES = [
     priority: 0.85,
   },
   {
+    path: '/methodology/data-parity',
+    title: 'Public-data parity methodology',
+    description:
+      'Capability coverage against referenced intelligence tools, with premium and restricted-data gaps disclosed.',
+    changeFrequency: 'monthly',
+    priority: 0.8,
+  },
+  {
     path: '/data',
     title: 'Data sources',
     description: 'Public source coverage and freshness evidence.',

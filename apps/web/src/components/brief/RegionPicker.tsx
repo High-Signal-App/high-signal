@@ -10,7 +10,7 @@ export function RegionPicker({ active }: { active: Region }) {
   const searchParams = useSearchParams();
 
   return (
-    <div className="flex flex-wrap items-center gap-2 font-mono text-[10px] uppercase tracking-[0.18em]">
+    <label className="flex flex-wrap items-center gap-2 font-mono text-[10px] uppercase tracking-[0.18em]">
       <span className="text-[var(--color-muted)]">region:</span>
       <select
         value={active}
@@ -26,7 +26,7 @@ export function RegionPicker({ active }: { active: Region }) {
           const href = (query ? `${pathname}?${query}` : pathname) as Route;
           router.replace(href);
         }}
-        className="border border-[var(--color-line)] bg-[var(--color-bg)] px-2 py-1 text-[var(--color-fg)] outline-none focus:border-[var(--color-accent)]"
+        className="min-h-11 border border-[var(--color-line)] bg-[var(--color-bg)] px-3 py-2 text-[var(--color-fg)] outline-none focus:border-[var(--color-accent)]"
       >
         {DEMO_REGIONS.map((region) => (
           <option key={region} value={region}>
@@ -34,6 +34,6 @@ export function RegionPicker({ active }: { active: Region }) {
           </option>
         ))}
       </select>
-    </div>
+    </label>
   );
 }

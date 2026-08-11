@@ -3,10 +3,18 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { BriefSections } from '@/components/brief/BriefSections';
 import { DailyBriefHero } from '@/components/brief/DailyBriefHero';
+import { EditionCoverageReceipt } from '@/components/brief/EditionCoverageReceipt';
+import { PublicationSwitcher } from '@/components/brief/PublicationSwitcher';
 import { PageShell } from '@/components/system/HighSignalUI';
 import { ShareBar } from '@/components/molecules/ShareBar';
 import { api, type BriefSnapshot } from '@/lib/api';
-import { isRegion, summarizeBriefDiscovery, type Region } from '@high-signal/shared';
+import {
+  briefFeedDefinition,
+  coverageReceiptForSnapshot,
+  isRegion,
+  summarizeBriefDiscovery,
+  type Region,
+} from '@high-signal/shared';
 import { SITE_URL } from '@/lib/site';
 import { evaluateCollection, robotsForVerdict } from '../../../../public-corpus-policy.mjs';
 
@@ -78,9 +86,11 @@ export default async function BriefDatePage({ params, searchParams }: BriefDateP
       trends: { status: 'empty', source: 'live', reason: 'snapshot_missing' },
     },
   };
+  const coverage = coverageReceiptForSnapshot(briefFeedDefinition('brief'), heroBrief);
 
   return (
     <PageShell>
+      <PublicationSwitcher feed="brief" cadence="daily" region={region} />
       <DailyBriefHero brief={heroBrief} region={region} editionDate={date} />
 
       <section className="border-b border-[var(--color-line)] py-5">
@@ -107,8 +117,12 @@ export default async function BriefDatePage({ params, searchParams }: BriefDateP
         />
       </section>
 
+      <EditionCoverageReceipt coverage={coverage} />
+
       {hasBrief && brief ? (
-        <BriefSections brief={brief} />
+        <div className="brief-edition">
+          <BriefSections brief={brief} />
+        </div>
       ) : (
         <section className="mt-8 border border-dashed border-zinc-800 p-10 text-center">
           <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500">

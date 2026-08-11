@@ -4,3 +4,5 @@ export * from './product-contracts';
 export * from './signal-intelligence';
 export * from './claim-provenance';
 export * from './brief-delivery';
+export * from './brief-feeds';
+export * from './feed-data-coverage';

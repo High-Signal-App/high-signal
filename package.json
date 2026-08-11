@@ -63,6 +63,8 @@
     "requirements:test": "tsx scripts/daily-requirements.test.ts",
     "daily-range:test": "tsx scripts/daily-range.test.ts",
     "source-registry:test": "tsx scripts/source-registry.test.ts",
+    "brief-feeds:test": "tsx scripts/brief-feeds.test.ts",
+    "feed-data-parity:test": "tsx scripts/feed-data-parity.test.ts",
     "daily-automation:test": "tsx scripts/daily-automation-status.test.ts",
     "automation-coverage": "node scripts/automation-coverage.mjs",
     "automation-coverage:test": "node scripts/automation-coverage.test.mjs",

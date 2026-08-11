@@ -87,6 +87,16 @@ assert.doesNotMatch(
   /build:landing|overlay-astro-landing/,
   'the production build must not upload the retired Astro landing as the root asset'
 );
+assert.match(
+  workerSource,
+  /CACHEABLE_PREFIXES\s*=\s*\[[^\]]*['"]\/feeds['"]/,
+  'anonymous feed HTML must enter the guarded public edge cache'
+);
+assert.match(
+  workerSource,
+  /FEED_CACHE_CONTROL\s*=\s*['"]public, max-age=300, s-maxage=3600, stale-while-revalidate=86400['"]/,
+  'feed HTML must use the bounded five-minute browser and one-hour shared-cache policy'
+);
 
 for (const route of requiredAssetBypasses) {
   assert.ok(

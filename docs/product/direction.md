@@ -47,6 +47,22 @@ clears the same editorial and evidence gates; no category is filled with seed or
 synthetic fallback content. `ready`, `empty`, and `unavailable` are explicit
 states, and an unavailable category prevents a new dated snapshot.
 
+### Cadenced public feeds
+
+`/` remains the non-personalized current Daily Brief. A subordinate publication
+switcher exposes four bounded feeds: The Brief and Markets & Companies at
+daily, weekly, and monthly cadences; Opportunity Radar and Behavior & Culture at
+weekly and monthly cadences. Weekly editions use UTC Monday-through-Sunday
+periods and monthly editions use UTC calendar months. Both are deterministic,
+de-duplicated rollups of accepted daily snapshots and retain links to every
+contributing immutable daily edition. Missing periods stay unavailable rather
+than being rebuilt from live data.
+
+Brief and Newspaper are presentation choices over the same edition content and
+item order. The anonymous preference is stored only in the browser; it never
+changes the feed request, canonical URL, metadata, cache identity, or root
+default.
+
 ## Product-specific intelligence stays in dedicated helpers
 
 The public web edition is intentionally non-personalized. Mention intelligence
@@ -79,6 +95,14 @@ IR pages, papers, government feeds, prediction markets. The job is
 **curation + cleaning + de-duplication**, not aggregation volume. The live
 source catalog is regenerated from code at
 [`operations/source-catalog.md`](../operations/source-catalog.md).
+
+Public capability coverage against The Daily Diff, Octolens, Peekaboo,
+Subreddit Signals, AlphaSense, Quartr, and RavenPack is recorded at
+`/methodology/data-parity`. Parity means an implemented public-data capability,
+not matched source volume, language breadth, latency, proprietary models, or
+licensed archives. Premium broker research, expert calls, licensed private-
+company data, dependable restricted-social firehoses, and real-time global
+earnings media remain explicit gaps.
 
 ## Hard rules baked in
 
@@ -128,6 +152,9 @@ boundaries.
   Perplexity detail views.
 - Animations only on state change (signal published, hit-rate update). No
   decorative motion.
+- The default Brief view preserves the evidence-terminal reading path.
+  Newspaper may recompose the same semantic item order into a lead-plus-columns
+  layout on wider screens and must collapse to one column on narrow screens.
 
 ## Out of scope (resist)
 
