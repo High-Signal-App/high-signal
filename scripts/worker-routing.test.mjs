@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const wranglerConfig = readFileSync(resolve(root, 'apps/web/wrangler.toml'), 'utf8');
 const workerSource = readFileSync(resolve(root, 'apps/web/worker.mjs'), 'utf8');
+const webPackage = JSON.parse(readFileSync(resolve(root, 'apps/web/package.json'), 'utf8'));
 const historyPage = readFileSync(resolve(root, 'apps/web/src/app/history/page.tsx'), 'utf8');
 
 const workerFirstMatch = wranglerConfig.match(/run_worker_first\s*=\s*\[([\s\S]*?)\]/);
@@ -15,7 +16,11 @@ assert.ok(workerFirstMatch, 'wrangler.toml must declare assets.run_worker_first'
 
 const workerFirstRoutes = [...workerFirstMatch[1].matchAll(/"([^"]+)"/g)].map(([, route]) => route);
 
-assert.equal(workerFirstRoutes[0], '/*', 'application routes must remain Worker-first by default');
+assert.ok(workerFirstRoutes.includes('/'), 'the exact Daily Brief root must be Worker-first');
+assert.ok(
+  workerFirstRoutes.includes('/*'),
+  'application routes must remain Worker-first by default'
+);
 assert.ok(
   !workerFirstRoutes.includes('!/*'),
   'wrangler.toml must not bypass the Worker for all application routes'
@@ -57,6 +62,16 @@ assert.match(
   workerSource,
   /cacheKeyForRequest\(request, url\.pathname\)/,
   'the versioned Daily Brief cache key must be used for edge reads and writes'
+);
+assert.match(
+  workerSource,
+  /if \(pathname === ['"]\/brief['"]\) return false;/,
+  'the /brief compatibility redirect must bypass legacy HTML cache entries'
+);
+assert.doesNotMatch(
+  webPackage.scripts['cf:build'],
+  /build:landing|overlay-astro-landing/,
+  'the production build must not upload the retired Astro landing as the root asset'
 );
 
 for (const route of requiredAssetBypasses) {
