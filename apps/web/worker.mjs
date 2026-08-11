@@ -12,6 +12,7 @@ export {
 } from './.open-next/worker.js';
 
 const CACHE_CONTROL = 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800';
+const FEED_CACHE_CONTROL = 'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400';
 const DATA_CACHE_CONTROL = new Map([
   ['/', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600'],
   ['/brief/archive', 'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400'],
@@ -66,7 +67,7 @@ const CACHEABLE_EXACT = new Set([
   '/sitemap.xml',
   '/daily/range.json',
 ]);
-const CACHEABLE_PREFIXES = ['/brief', '/case-studies', '/signals/types'];
+const CACHEABLE_PREFIXES = ['/brief', '/feeds', '/case-studies', '/signals/types'];
 function isCacheableDocumentPath(pathname) {
   if (!pathname) return false;
   // This compatibility route must reach Next.js on every request so a cached
@@ -80,6 +81,7 @@ function isCacheableDocumentPath(pathname) {
 }
 
 function cacheControlForPath(pathname) {
+  if (pathname === '/feeds' || pathname.startsWith('/feeds/')) return FEED_CACHE_CONTROL;
   return DATA_CACHE_CONTROL.get(pathname) ?? CACHE_CONTROL;
 }
 

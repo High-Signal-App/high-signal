@@ -4,9 +4,9 @@ Last updated: 2026-08-11
 
 ## Why/What
 
-**Thesis:** One product — a synthesized **Daily Brief** from many noisy public sources across technology, startups, and finance. Global by default; region is a free filter. The public edition has three evidence-qualified categories: (1) markets and companies, (2) business opportunities, and (3) behavior and culture. Owner-specific perception and improvement intelligence remains in authenticated delivery plus the dedicated Mentions and Agent Eval surfaces. Free; no billing.
+**Thesis:** One product — a synthesized **Daily Brief** from many noisy public sources across technology, startups, and finance. Global by default; region is a free filter. The public edition has three evidence-qualified categories: (1) markets and companies, (2) business opportunities, and (3) behavior and culture. The same accepted daily records also power four bounded daily/weekly/monthly feed views; `/` remains the non-personalized default. Owner-specific perception and improvement intelligence remains in authenticated delivery plus the dedicated Mentions and Agent Eval surfaces. Free; no billing.
 
-**In scope:** Daily Brief (`/` `/brief`), Signals feed, Evidence, Track Record, source ingest pipeline, Markets lens, Communities input, Mentions, Agent Eval, Domains (drank companion), Convergence, Unmapped gazetteer, Equities snapshot, operator review/admin, plans 0008–0012 scaffolds.
+**In scope:** Daily Brief (`/` `/brief`), cadenced public feeds (`/feeds/*`), Signals feed, Evidence, Track Record, source ingest pipeline, Markets lens, Communities input, Mentions, Agent Eval, Domains (drank companion), Convergence, Unmapped gazetteer, Equities snapshot, operator review/admin, plans 0008–0012 scaffolds.
 
 **Out / parked:** Lab as product infrastructure, personal/operator cockpit as headline product, standalone equities terminal, standalone communities product, broad source expansion without quality gates, paid tiers, per-platform Mentions fan-out, Knowledgebase integration/dependency. High Signal's current evidence is already queryable through its Git signal store and D1 APIs; revisit only for a concrete retrieval use case those stores cannot serve.
 
@@ -90,6 +90,20 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 
 ## Timeline
 
+- **2026-08-11 — Cadenced feeds and public-data parity (local, not deployed):**
+  added exactly four public feed definitions with honest supported cadences: The
+  Brief and Markets & Companies at daily/weekly/monthly, Opportunity Radar and
+  Behavior & Culture at weekly/monthly. New `/brief/feeds/*` API and `/feeds/*`
+  reader routes compose bounded UTC periods only from accepted daily snapshots,
+  de-duplicate stable items, retain contributing daily provenance, and expose
+  configured-versus-contributing evidence coverage plus material gaps. Anonymous
+  feed JSON and HTML use matching five-minute browser, one-hour shared, and
+  one-day stale-while-revalidate policies; authenticated HTML bypasses the edge
+  cache. Brief and Newspaper are local-only presentation modes over identical
+  content and cache identity. `/methodology/data-parity` maps implemented public
+  capabilities to seven discussed reference tools and explicitly excludes
+  premium/licensed and restricted-social claims. Focused shared/parity/API
+  tests, typechecks, browser checks, and design review pass; production is unchanged.
 - **2026-08-11 — Daily Brief becomes the public starting point:** `/` now renders
   the current evidence-qualified edition and `/brief` permanently redirects to
   it, with archive and dated routes preserved. Public composition contains only
@@ -229,7 +243,7 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 
 | Product surface | Route / entry | Role |
 | --- | --- | --- |
-| Daily Brief | `/`, `/brief` | Primary homepage — five synthesized sections |
+| Daily Brief + cadenced feeds | `/`, `/brief`, `/feeds/*` | Primary homepage with three public categories plus deterministic daily/weekly/monthly feed views |
 | Intelligence guides | `/daily-intelligence-brief`, `/startup-intelligence-platform`, `/market-intelligence-for-founders`, `/technology-trend-intelligence` | Evidence-led public explanations for core search intents |
 | Signals & evidence | `/signals`, `/evidence`, `/track-record` | Feed, provenance, hit-rate history |
 | Markets lens | `/markets` | Prediction-market quotes (not equity prices) |
@@ -241,7 +255,7 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 | Unmapped gazetteer | `/unmapped` | Ticker/bare-entity candidates for enrichment |
 | Equities snapshot | `/equities` | Sortable table from snapshot pipeline (not a terminal) |
 | Operator / admin | `/review`, `/admin/*` | Review queue, ingest hooks, delivery admin |
-| Legal & docs | `/about`, `/methodology`, `/privacy`, `/terms`, `/api-docs` | Public trust surfaces |
+| Legal & docs | `/about`, `/methodology`, `/methodology/data-parity`, `/privacy`, `/terms`, `/api-docs` | Public trust and data-parity surfaces |
 
 ## Features (shipped)
 

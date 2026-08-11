@@ -5,6 +5,9 @@ import type {
   AgentEvaluationCompetitor,
   AIPlatform,
   BriefSnapshot,
+  BriefFeedEdition,
+  BriefFeedCadence,
+  BriefFeedSlug,
   CommunityDigestSnapshot,
   MentionBrandConfig,
   MentionCheck,
@@ -34,6 +37,9 @@ export type {
   AgentEvaluationCompetitor,
   AIPlatform,
   BriefSnapshot,
+  BriefFeedEdition,
+  BriefFeedCadence,
+  BriefFeedSlug,
   CommunityDigestSnapshot,
   MentionBrandConfig,
   MentionCheck,
@@ -863,6 +869,20 @@ export const api = {
     if (params.date) search.set('date', params.date);
     const suffix = search.toString();
     return fetchJson<BriefSnapshot>(`/brief/daily${suffix ? `?${suffix}` : ''}`);
+  },
+  briefFeed: (params: {
+    feed: BriefFeedSlug;
+    cadence: BriefFeedCadence | string;
+    period?: string;
+    region?: Region;
+  }) => {
+    const path = `/brief/feeds/${encodeURIComponent(params.feed)}/${encodeURIComponent(params.cadence)}${
+      params.period ? `/${encodeURIComponent(params.period)}` : ''
+    }`;
+    const search = new URLSearchParams();
+    if (params.region) search.set('region', params.region);
+    const suffix = search.toString();
+    return fetchJson<BriefFeedEdition>(`${path}${suffix ? `?${suffix}` : ''}`);
   },
   briefDates: () =>
     fetchJson<{
