@@ -210,6 +210,7 @@ function checkSuppressions() {
       '(biome-ignore|eslint-disable|@ts-ignore|@ts-expect-error|istanbul ignore|c8 ignore|# (noqa|type: ignore|pragma: no cover))',
       '--',
       ...productionPaths,
+      ':(exclude)scripts/check-code-health.mjs',
     ],
     { allowFailure: true }
   );
