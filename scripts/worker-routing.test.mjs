@@ -59,8 +59,23 @@ assert.match(
 );
 assert.match(
   workerSource,
+  /ROOT_CLIENT_CACHE_CONTROL\s*=\s*['"]private, no-cache['"]/,
+  'the current edition must revalidate in browsers while the edge cache remains shared'
+);
+assert.match(
+  workerSource,
   /cacheKeyForRequest\(request, url\.pathname\)/,
   'the versioned Daily Brief cache key must be used for edge reads and writes'
+);
+assert.match(
+  workerSource,
+  /hit\.headers\.set\(['"]Cache-Control['"], clientCacheControlForPath\(url\.pathname\)\)/,
+  'Daily Brief edge hits must not leak the shared-cache TTL to browsers'
+);
+assert.match(
+  workerSource,
+  /cacheable\.headers\.set\(['"]Cache-Control['"], clientCacheControlForPath\(url\.pathname\)\)/,
+  'Daily Brief edge misses must not leak the shared-cache TTL to browsers'
 );
 assert.match(
   workerSource,

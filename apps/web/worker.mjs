@@ -21,6 +21,7 @@ const DATA_CACHE_CONTROL = new Map([
 // Root previously cached the Astro landing under the unversioned URL. Keep a
 // distinct cache key so this release cannot inherit that document at the edge.
 const ROOT_CACHE_SCHEMA = 'daily-brief-v1';
+const ROOT_CLIENT_CACHE_CONTROL = 'private, no-cache';
 const PRIVATE_ASSET_PREFIX = '/_private/';
 // Public marketing, discovery, and crawler surfaces. Authenticated requests
 // bypass this cache below, and only explicit content types are stored.
@@ -80,6 +81,10 @@ function isCacheableDocumentPath(pathname) {
 
 function cacheControlForPath(pathname) {
   return DATA_CACHE_CONTROL.get(pathname) ?? CACHE_CONTROL;
+}
+
+function clientCacheControlForPath(pathname) {
+  return pathname === '/' ? ROOT_CLIENT_CACHE_CONTROL : cacheControlForPath(pathname);
 }
 
 function cacheKeyForRequest(request, pathname) {
@@ -149,6 +154,7 @@ const worker = {
     const cached = await cache.match(cacheKey);
     if (cached) {
       const hit = new Response(cached.body, cached);
+      hit.headers.set('Cache-Control', clientCacheControlForPath(url.pathname));
       hit.headers.set('x-edge-cache', 'HIT');
       return hit;
     }
@@ -172,6 +178,7 @@ const worker = {
       headers,
     });
     ctx.waitUntil(cache.put(cacheKey, cacheable.clone()));
+    cacheable.headers.set('Cache-Control', clientCacheControlForPath(url.pathname));
     cacheable.headers.set('x-edge-cache', 'MISS');
     return cacheable;
   }),

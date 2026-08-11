@@ -101,7 +101,9 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
   Brief → Signals → Track record → Sources, and anonymous root HTML uses a
   versioned five-minute edge cache so the retired landing page cannot survive a
   deploy. The production bundle no longer overlays the retired Astro index,
-  and the `/brief` compatibility redirect bypasses legacy HTML cache entries.
+  the `/brief` compatibility redirect bypasses legacy HTML cache entries, and
+  browser responses revalidate while the five-minute shared edge cache remains
+  warm.
 - **2026-08-09 — Shared lint baseline:** Adopted the Fleet Ultracite baseline
   for core TypeScript, React, Next.js, and test code. Explicit compatibility
   exceptions preserve current behavior while 377 files pass with zero
