@@ -68,6 +68,9 @@ const CACHEABLE_EXACT = new Set([
 const CACHEABLE_PREFIXES = ['/brief', '/case-studies', '/signals/types'];
 function isCacheableDocumentPath(pathname) {
   if (!pathname) return false;
+  // This compatibility route must reach Next.js on every request so a cached
+  // pre-cutover 200 response can never mask its permanent redirect.
+  if (pathname === '/brief') return false;
   if (CACHEABLE_EXACT.has(pathname)) return true;
   for (const prefix of CACHEABLE_PREFIXES) {
     if (pathname === prefix || pathname.startsWith(`${prefix}/`)) return true;
