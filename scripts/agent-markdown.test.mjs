@@ -19,7 +19,11 @@ import {
 const markdownRequest = (path, headers = {}) =>
   new Request(`https://highsignal.app${path}`, { headers });
 
-assert.equal(PUBLIC_STATIC_ROUTES.length, 36, 'static public route count must be deliberate');
+assert.equal(PUBLIC_STATIC_ROUTES.length, 35, 'static public route count must be deliberate');
+assert.ok(
+  !PUBLIC_STATIC_ROUTES.some((route) => route.path === '/brief'),
+  'the /brief compatibility redirect must not compete with the canonical root in the agent catalog'
+);
 assert.equal(
   PUBLIC_DYNAMIC_ROUTE_TEMPLATES.length,
   7,
