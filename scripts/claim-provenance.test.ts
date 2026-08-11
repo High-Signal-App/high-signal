@@ -30,10 +30,10 @@ function link(
     id: `l-${role}-${total}`,
     claimId: 'c-1',
     evidenceUrl: url,
-    sourceDocumentId: null,
+    sourceDocumentId: `source-${role}-${total}`,
     role,
     weight: 1,
-    notes: null,
+    notes: 'alignment:verified',
     addedAt: new Date().toISOString(),
     addedBy: null,
   };
@@ -61,7 +61,7 @@ console.log('historical backfill derivation');
   checkEq('headline becomes assertion', backfill.assertion, 'NVIDIA capacity expands');
   checkEq('backfill deduplicates urls', backfill.evidence.length, 2);
   checkEq('first evidence is primary', backfill.evidence[0]?.role, 'primary');
-  checkEq('later evidence corroborates', backfill.evidence[1]?.role, 'corroboration');
+  checkEq('later evidence stays context until reviewed', backfill.evidence[1]?.role, 'context');
 }
 {
   const r = rollupEvidence([
@@ -137,11 +137,26 @@ console.log('\njudgePublishability — cite-or-kill at link level');
 }
 {
   const verdict = judgePublishability(rollupEvidence([link('primary'), link('corroboration')]));
-  checkEq('primary + corroboration passes', verdict.publishable, true);
+  checkEq('same-host primary + corroboration fails', verdict.publishable, false);
+  checkEq('same-host reason', verdict.reason, 'support_not_independent');
 }
 {
-  const verdict = judgePublishability(rollupEvidence([link('primary'), link('primary')]));
-  checkEq('two primaries pass', verdict.publishable, true);
+  const verdict = judgePublishability(
+    rollupEvidence([
+      link('primary', 'https://primary.example/source'),
+      link('corroboration', 'https://corroboration.example/source'),
+    ])
+  );
+  checkEq('independent primary + corroboration passes', verdict.publishable, true);
+}
+{
+  const verdict = judgePublishability(
+    rollupEvidence([
+      link('primary', 'https://primary.example/source'),
+      link('primary', 'https://second.example/source'),
+    ])
+  );
+  checkEq('two primaries do not replace corroboration', verdict.publishable, false);
 }
 {
   const verdict = judgePublishability(
@@ -155,6 +170,30 @@ console.log('\njudgePublishability — cite-or-kill at link level');
     rollupEvidence([link('primary'), link('context'), link('context')])
   );
   checkEq('context does not count as corroboration', verdict.publishable, false);
+}
+{
+  const unusable = link('corroboration', 'https://corroboration.example/source');
+  unusable.notes = 'alignment:rejected';
+  const verdict = judgePublishability(
+    rollupEvidence([link('primary', 'https://primary.example/source'), unusable])
+  );
+  checkEq('rejected alignment receives no corroboration credit', verdict.publishable, false);
+}
+{
+  const noReceipt = link('corroboration', 'https://corroboration.example/source');
+  noReceipt.sourceDocumentId = null;
+  const verdict = judgePublishability(
+    rollupEvidence([link('primary', 'https://primary.example/source'), noReceipt])
+  );
+  checkEq('support without a retained receipt receives no credit', verdict.publishable, false);
+}
+{
+  const unverified = link('corroboration', 'https://corroboration.example/source');
+  unverified.notes = null;
+  const verdict = judgePublishability(
+    rollupEvidence([link('primary', 'https://primary.example/source'), unverified])
+  );
+  checkEq('support without verified alignment receives no credit', verdict.publishable, false);
 }
 
 console.log('\ncanTransition — status flow guards');

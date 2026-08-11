@@ -12,8 +12,32 @@ interface NavItem {
 
 const PRIMARY_ITEMS: NavItem[] = [
   {
+    href: '/',
+    label: 'brief',
+    match: (path) => path === '/' || path.startsWith('/brief'),
+  },
+  {
+    href: '/signals',
+    label: 'signals',
+    match: (path) =>
+      path.startsWith('/signals') ||
+      path === '/daily' ||
+      path.startsWith('/watchlist') ||
+      path.startsWith('/opportunities') ||
+      path.startsWith('/review'),
+  },
+  {
+    href: '/track-record',
+    label: 'track record',
+    match: (path) =>
+      path.startsWith('/history') ||
+      path.startsWith('/daily/history') ||
+      path.startsWith('/track-record') ||
+      path.startsWith('/backtest-workbench'),
+  },
+  {
     href: '/data',
-    label: 'data',
+    label: 'sources',
     match: (path) =>
       path.startsWith('/data') ||
       path.startsWith('/daily/sources') ||
@@ -23,32 +47,6 @@ const PRIMARY_ITEMS: NavItem[] = [
       path.startsWith('/equities') ||
       path.startsWith('/communities') ||
       path.startsWith('/unmapped'),
-  },
-  {
-    href: '/',
-    label: 'signals',
-    match: (path) =>
-      path === '/' ||
-      path.startsWith('/signals') ||
-      path === '/daily' ||
-      path.startsWith('/watchlist') ||
-      path.startsWith('/opportunities') ||
-      path.startsWith('/review'),
-  },
-  {
-    href: '/history',
-    label: 'history',
-    match: (path) =>
-      path.startsWith('/history') ||
-      path.startsWith('/daily/history') ||
-      path.startsWith('/track-record') ||
-      path.startsWith('/backtest-workbench'),
-  },
-  {
-    href: '/agent-eval',
-    label: 'evals',
-    match: (path) =>
-      path.startsWith('/agent-eval') || path.startsWith('/mentions') || path.startsWith('/domains'),
   },
 ];
 

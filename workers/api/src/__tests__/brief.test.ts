@@ -1,13 +1,17 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
+  buildBriefEditionReceipt,
+  categoryStatesForSnapshot,
   countriesForRegion,
   DEMO_REGIONS,
+  extractBriefEditorialSummary,
   fallbackIdeas,
   fallbackStocks,
   fallbackTrends,
   familyForSignalType,
   familyLabel,
   findSeedProduct,
+  isCompleteBriefText,
   isRegion,
   REGIONS,
   regionLabel,
@@ -18,6 +22,7 @@ import {
   summarizeBriefDiscovery,
   type Region,
   type BriefIntentItem,
+  type BriefSnapshot,
   type SignalFamily,
 } from '@high-signal/shared';
 import {
@@ -233,6 +238,135 @@ describe('brief headline extraction', () => {
   });
 });
 
+describe('brief editorial quality', () => {
+  it('extracts only complete grounded editorial sentences', () => {
+    const summary = extractBriefEditorialSummary(`
+## What changed
+Amazon committed to a new power-backed data-center expansion in Texas.
+## Why it matters
+The expansion signals durable demand for accelerators, networking, and grid equipment.
+## Uncertainty
+The project could still face permitting, financing, and climate-policy risk.
+`);
+    expect(summary).toEqual({
+      whatChanged: 'Amazon committed to a new power-backed data-center expansion in Texas.',
+      whyItMatters:
+        'The expansion signals durable demand for accelerators, networking, and grid equipment.',
+      uncertainty: 'The project could still face permitting, financing, and climate-policy risk.',
+    });
+    expect(
+      extractBriefEditorialSummary(
+        'Amazon announced a new data center. The expansion signals more infrastructure demand. Risks include permitting delays.'
+      )
+    ).toEqual({
+      whatChanged: 'Amazon announced a new data center.',
+      whyItMatters: 'The expansion signals more infrastructure demand.',
+      uncertainty: 'Risks include permitting delays.',
+    });
+    expect(extractBriefEditorialSummary('Amazon announced a new data center.')).toBeNull();
+    expect(isCompleteBriefText('A complete editorial sentence with grounded detail.')).toBe(true);
+    expect(isCompleteBriefText('broken [link](https://example.com')).toBe(false);
+  });
+
+  const validSnapshot = (): BriefSnapshot => ({
+    generatedAt: '2026-08-11T07:00:00.000Z',
+    region: 'global',
+    hasBrand: false,
+    categoryStates: {
+      stocks: { status: 'ready', source: 'live' },
+      ideas: { status: 'empty', source: 'live' },
+      trends: { status: 'empty', source: 'live' },
+    },
+    stocks: [
+      {
+        entityId: 'amazon',
+        entityName: 'Amazon',
+        ticker: 'AMZN',
+        country: 'US',
+        signalType: 'data_center_buildout',
+        signalFamily: 'supply-demand',
+        direction: 'up',
+        confidence: 'high',
+        predictedWindowDays: 60,
+        headline: 'Amazon expands power-backed data-center capacity.',
+        whatChanged: 'Amazon committed to a new power-backed data-center expansion in Texas.',
+        whyItMatters:
+          'The expansion signals durable demand for accelerators, networking, and grid equipment.',
+        uncertainty: 'The project could still face permitting, financing, and climate-policy risk.',
+        signalSlug: 'amzn-data-center-buildout',
+        publishedAt: '2026-08-11T06:00:00.000Z',
+        evidenceUrls: [
+          { url: 'https://primary.example/report' },
+          { url: 'https://corroboration.example/report' },
+        ],
+        hitRate: null,
+        hitRateSample: 0,
+        hitRateBand: 'none',
+        provenance: {
+          claimId: 'claim-1',
+          assertion: 'Amazon is expanding power-backed data-center capacity.',
+          version: 1,
+          evidenceCount: 2,
+          primaryCount: 1,
+          corroborationCount: 1,
+          contradictionCount: 0,
+          evidenceUrls: ['https://primary.example/report', 'https://corroboration.example/report'],
+        },
+      },
+    ],
+    ideas: [],
+    trends: [],
+    perception: [],
+    improvements: [],
+  });
+
+  it('accepts a real partial edition with explicit empty categories', () => {
+    const snapshot = validSnapshot();
+    expect(categoryStatesForSnapshot(snapshot)).toEqual(snapshot.categoryStates);
+    expect(buildBriefEditionReceipt(snapshot)).toMatchObject({
+      publishable: true,
+      counts: { stocks: 1, ideas: 0, trends: 0 },
+      issues: [],
+    });
+  });
+
+  it('fails closed for fixture, malformed, unsupported, and unavailable editions', () => {
+    const fixture = validSnapshot();
+    if (!fixture.categoryStates) throw new Error('expected category state fixture');
+    fixture.categoryStates.stocks.source = 'fixture';
+    expect(buildBriefEditionReceipt(fixture).issues).toContainEqual({
+      section: 'stocks',
+      item: null,
+      reason: 'fixture_content',
+    });
+
+    const malformed = validSnapshot();
+    malformed.stocks[0].whyItMatters = 'broken [link](https://example.com';
+    expect(buildBriefEditionReceipt(malformed).issues).toContainEqual({
+      section: 'stocks',
+      item: 0,
+      reason: 'incomplete_editorial_summary',
+    });
+
+    const unsupported = validSnapshot();
+    unsupported.stocks[0].provenance = undefined;
+    expect(buildBriefEditionReceipt(unsupported).issues).toContainEqual({
+      section: 'stocks',
+      item: 0,
+      reason: 'unsupported_structured_claim',
+    });
+
+    const unavailable = validSnapshot();
+    if (!unavailable.categoryStates) throw new Error('expected category state fixture');
+    unavailable.categoryStates.trends = { status: 'unavailable', reason: 'query_failed' };
+    expect(buildBriefEditionReceipt(unavailable).issues).toContainEqual({
+      section: 'trends',
+      item: null,
+      reason: 'query_failed',
+    });
+  });
+});
+
 describe('seed-product picker', () => {
   it('has at least 30 products spanning all three domains', () => {
     expect(SEED_PRODUCTS.length).toBeGreaterThanOrEqual(30);
@@ -259,7 +393,8 @@ describe('seed-product picker', () => {
 
 describe('brief seed fallback', () => {
   it('seedToBrief surfaces every improvement from a product', () => {
-    const stripe = findSeedProduct('stripe')!;
+    const stripe = findSeedProduct('stripe');
+    if (!stripe) throw new Error('expected stripe seed fixture');
     const rendered = seedToBrief(stripe, '2026-05-25T00:00:00.000Z');
     expect(rendered.perception).toHaveLength(1);
     expect(rendered.perception[0].brandName).toBe('Stripe');

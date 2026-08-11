@@ -1,4 +1,4 @@
-// worker.mjs — wraps OpenNext; anon GET / serves the Astro landing from ASSETS.
+// worker.mjs — wraps OpenNext with guarded public HTML and agent-surface caching.
 
 import openNext from './.open-next/worker.js';
 import { guardPublicRequest } from './abuse-guard.mjs';
@@ -13,9 +13,14 @@ export {
 
 const CACHE_CONTROL = 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800';
 const DATA_CACHE_CONTROL = new Map([
+  ['/', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600'],
+  ['/brief/archive', 'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400'],
   ['/sitemap.xml', 'public, max-age=300, s-maxage=3600'],
   ['/daily/range.json', 'public, max-age=60, s-maxage=300'],
 ]);
+// Root previously cached the Astro landing under the unversioned URL. Keep a
+// distinct cache key so this release cannot inherit that document at the edge.
+const ROOT_CACHE_SCHEMA = 'daily-brief-v1';
 const PRIVATE_ASSET_PREFIX = '/_private/';
 // Public marketing, discovery, and crawler surfaces. Authenticated requests
 // bypass this cache below, and only explicit content types are stored.
@@ -60,7 +65,7 @@ const CACHEABLE_EXACT = new Set([
   '/sitemap.xml',
   '/daily/range.json',
 ]);
-const CACHEABLE_PREFIXES = ['/case-studies', '/signals/types'];
+const CACHEABLE_PREFIXES = ['/brief', '/case-studies', '/signals/types'];
 function isCacheableDocumentPath(pathname) {
   if (!pathname) return false;
   if (CACHEABLE_EXACT.has(pathname)) return true;
@@ -72,6 +77,13 @@ function isCacheableDocumentPath(pathname) {
 
 function cacheControlForPath(pathname) {
   return DATA_CACHE_CONTROL.get(pathname) ?? CACHE_CONTROL;
+}
+
+function cacheKeyForRequest(request, pathname) {
+  if (pathname !== '/') return request;
+  const cacheUrl = new URL(request.url);
+  cacheUrl.searchParams.set('__hs_cache_schema', ROOT_CACHE_SCHEMA);
+  return new Request(cacheUrl, request);
 }
 
 function isCacheableContentType(pathname, contentType) {
@@ -129,45 +141,9 @@ const worker = {
       return openNext.fetch(request, env, ctx);
     }
 
-    // Only Astro overlay at `/` is static; marketing pages use edge HTML cache.
-    if (env.ASSETS && url.pathname === '/') {
-      const assetResp = await env.ASSETS.fetch(request);
-      if (assetResp.status === 304) {
-        const headers = new Headers(assetResp.headers);
-        headers.set('Cache-Control', CACHE_CONTROL);
-        headers.set('x-edge-cache', 'ASSET');
-        return new Response(null, { status: 304, headers });
-      }
-      if (assetResp.ok && assetResp.body) {
-        const acceptEnc = request.headers.get('accept-encoding') ?? '';
-        const wantsGzip = acceptEnc.includes('gzip');
-        const headers = new Headers(assetResp.headers);
-        headers.set('Cache-Control', CACHE_CONTROL);
-        headers.set('x-edge-cache', 'ASSET');
-
-        if (wantsGzip && !headers.has('content-encoding')) {
-          headers.set('content-encoding', 'gzip');
-          headers.delete('content-length');
-          const vary = headers.get('vary');
-          headers.set('vary', vary ? `${vary}, Accept-Encoding` : 'Accept-Encoding');
-          return new Response(assetResp.body.pipeThrough(new CompressionStream('gzip')), {
-            status: assetResp.status,
-            statusText: assetResp.statusText,
-            headers,
-            encodeBody: 'manual',
-          });
-        }
-
-        return new Response(assetResp.body, {
-          status: assetResp.status,
-          statusText: assetResp.statusText,
-          headers,
-        });
-      }
-    }
-
     const cache = caches.default;
-    const cached = await cache.match(request);
+    const cacheKey = cacheKeyForRequest(request, url.pathname);
+    const cached = await cache.match(cacheKey);
     if (cached) {
       const hit = new Response(cached.body, cached);
       hit.headers.set('x-edge-cache', 'HIT');
@@ -192,7 +168,7 @@ const worker = {
       statusText: response.statusText,
       headers,
     });
-    ctx.waitUntil(cache.put(request, cacheable.clone()));
+    ctx.waitUntil(cache.put(cacheKey, cacheable.clone()));
     cacheable.headers.set('x-edge-cache', 'MISS');
     return cacheable;
   }),

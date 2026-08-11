@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const wranglerConfig = readFileSync(resolve(root, 'apps/web/wrangler.toml'), 'utf8');
+const workerSource = readFileSync(resolve(root, 'apps/web/worker.mjs'), 'utf8');
 const historyPage = readFileSync(resolve(root, 'apps/web/src/app/history/page.tsx'), 'utf8');
 
 const workerFirstMatch = wranglerConfig.match(/run_worker_first\s*=\s*\[([\s\S]*?)\]/);
@@ -21,7 +22,6 @@ assert.ok(
 );
 
 const requiredAssetBypasses = [
-  '!/',
   '!/_next/static/*',
   '!/_astro/*',
   '!/docs',
@@ -33,6 +33,31 @@ const requiredAssetBypasses = [
   '!/favicon.svg',
   '!/icon.svg',
 ];
+
+assert.ok(
+  !workerFirstRoutes.includes('!/'),
+  'the canonical Daily Brief root must remain Worker-first instead of serving the Astro overlay'
+);
+assert.doesNotMatch(
+  workerSource,
+  /env\.ASSETS\s*&&\s*url\.pathname\s*===\s*['"]\/['"]/,
+  'the Worker must not replace the canonical Daily Brief root with a static asset'
+);
+assert.match(
+  workerSource,
+  /\['\/',\s*'public, max-age=60, s-maxage=300, stale-while-revalidate=600'\]/,
+  'the current Daily Brief must use the short edge-cache policy'
+);
+assert.match(
+  workerSource,
+  /ROOT_CACHE_SCHEMA\s*=\s*['"]daily-brief-v1['"]/,
+  'the Daily Brief root cache key must be versioned away from the prior landing page'
+);
+assert.match(
+  workerSource,
+  /cacheKeyForRequest\(request, url\.pathname\)/,
+  'the versioned Daily Brief cache key must be used for edge reads and writes'
+);
 
 for (const route of requiredAssetBypasses) {
   assert.ok(

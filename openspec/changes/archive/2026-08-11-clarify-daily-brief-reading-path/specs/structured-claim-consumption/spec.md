@@ -1,9 +1,4 @@
-# structured-claim-consumption Specification
-
-## Purpose
-Define how structured claim evidence is consumed by publishing, backfill, and brief surfaces.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Auto-publish uses structured claim evidence
 The auto-publish runner SHALL load claims attached to each signal and SHALL judge evidence by its structured role and claim alignment whenever at least one structured claim exists. A publishable claim SHALL include at least one semantically aligned primary source and one semantically aligned corroborating source from an independent host or source class; context SHALL NOT count as support, contradiction SHALL block publication until resolved, and unusable required evidence SHALL fail closed.
@@ -28,17 +23,6 @@ The auto-publish runner SHALL load claims attached to each signal and SHALL judg
 - **WHEN** a queued historical signal has no attached claim record
 - **THEN** auto-publish uses the legacy signal payload only as an explicitly reported compatibility path
 - **AND** that compatibility path cannot make the item eligible for a new Daily Brief snapshot until supporting evidence roles are established
-
-### Requirement: Historical claims backfill lazily and idempotently
-The system SHALL provide an authenticated operator action that creates a single signal claim and role-tagged evidence links from a historical signal when no claim exists, and SHALL return the existing claim without duplicating rows on retries.
-
-#### Scenario: Operator opens provenance for an unbackfilled signal
-- **WHEN** `/review` opens the provenance disclosure for a signal with legacy evidence but no claim record
-- **THEN** the system creates one claim, assigns the first distinct URL `primary` and later distinct URLs `corroboration`, records timeline events, and returns the new claim
-
-#### Scenario: Backfill is retried
-- **WHEN** the backfill action runs for a signal that already has a claim
-- **THEN** no additional claim or evidence rows are created and the existing claim identifier is returned
 
 ### Requirement: Brief items expose compact provenance
 Eligible brief signal items SHALL expose a structured claim reference, editorial summary fields, and evidence-role summary that the UI can reveal without navigating away. A new Daily Brief snapshot SHALL NOT include a legacy signal that lacks qualifying structured support.

@@ -2,16 +2,10 @@ export const PUBLIC_STATIC_ROUTES = [
   {
     path: '/',
     title: 'Daily Brief',
-    description: 'The current five-section High Signal brief.',
+    description:
+      'The current evidence-first edition across markets, business opportunities, and behavior.',
     changeFrequency: 'hourly',
     priority: 1,
-  },
-  {
-    path: '/brief',
-    title: 'Daily Brief',
-    description: 'The current synthesized brief with cited evidence.',
-    changeFrequency: 'hourly',
-    priority: 0.95,
   },
   {
     path: '/brief/archive',

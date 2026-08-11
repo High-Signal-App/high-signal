@@ -1,0 +1,47 @@
+{
+  "$schema": "fleet.design-review.v1",
+  "version": 1,
+  "project": "high-signal-intelligence-cluster",
+  "target": "High Signal public intelligence cluster",
+  "mode": "preserve",
+  "register": "product",
+  "context": {
+    "product": "PRODUCT.md",
+    "design": "DESIGN.md"
+  },
+  "direction": {
+    "references": [],
+    "probes": [],
+    "selected": "existing-design",
+    "approval": "not-required",
+    "before": "artifacts/design/before.png"
+  },
+  "evidence": {
+    "screenshots": [
+      { "width": 390, "path": "artifacts/design/after-390.png" },
+      { "width": 768, "path": "artifacts/design/after-768.png" },
+      { "width": 1440, "path": "artifacts/design/after-1440.png" },
+      { "width": 390, "path": "artifacts/design/after-trends-390.png" },
+      { "width": 1440, "path": "artifacts/design/after-audit-1440.png" }
+    ],
+    "projectCheck": {
+      "command": "pnpm --filter @high-signal/web typecheck && pnpm --filter @high-signal/web build",
+      "status": "pass"
+    },
+    "critique": { "score": 33, "maximum": 40 },
+    "audit": { "score": 17, "maximum": 20 },
+    "unresolved": { "p0": 0, "p1": 0 },
+    "detector": { "posture": "advisory", "findings": [] },
+    "browserReview": {
+      "tool": "Playwright with installed Chrome",
+      "viewports": [390, 768, 1440],
+      "horizontalOverflow": false,
+      "consoleErrors": 0,
+      "note": "All five routes returned 200 with one main and one H1, correct canonicals, no heading skips, AA content and shared-shell contrast, and visible keyboard focus. The unrelated Fleet vitals collector still returns 404 and is outside this approved content scope."
+    }
+  },
+  "ownerFeedback": {
+    "decision": "keep",
+    "note": "Owner approved the refined preserve-lane design on 2026-08-05."
+  }
+}

@@ -1,6 +1,6 @@
 # High Signal — full agent brief
 
-Daily synthesized brief on technology, startups, and finance — five sections with inline hit-rates, no signup required.
+Daily evidence-first brief across markets, business opportunities, and behavior — source roles, direct hit-rate history, and no signup required.
 
 ## Index
 
@@ -10,8 +10,8 @@ Daily synthesized intelligence brief on technology, startups, and finance.
 
 ## What it is
 
-- Five-section composed brief at `/` and `/brief`
-- Inline hit-rates on market calls
+- Three-category public edition at `/`; `/brief` permanently redirects there
+- Inline direct hit-rates on market calls after the exact signal type earns a reliable sample
 - Public track record and methodology pages
 - Free, no signup for the brief
 

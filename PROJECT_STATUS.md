@@ -1,10 +1,10 @@
 # high-signal — PROJECT STATUS
 
-Last updated: 2026-08-09
+Last updated: 2026-08-11
 
 ## Why/What
 
-**Thesis:** One product — a synthesized **Daily Brief** from many noisy public sources across technology, startups, and finance. Global by default; region is a free filter. Five brief sections: (1) stocks watching, (2) business ideas, (3) lifestyle trends, (4) brand perception (connected brand), (5) product improvements (connected brand). Free; no billing.
+**Thesis:** One product — a synthesized **Daily Brief** from many noisy public sources across technology, startups, and finance. Global by default; region is a free filter. The public edition has three evidence-qualified categories: (1) markets and companies, (2) business opportunities, and (3) behavior and culture. Owner-specific perception and improvement intelligence remains in authenticated delivery plus the dedicated Mentions and Agent Eval surfaces. Free; no billing.
 
 **In scope:** Daily Brief (`/` `/brief`), Signals feed, Evidence, Track Record, source ingest pipeline, Markets lens, Communities input, Mentions, Agent Eval, Domains (drank companion), Convergence, Unmapped gazetteer, Equities snapshot, operator review/admin, plans 0008–0012 scaffolds.
 
@@ -35,7 +35,7 @@ Last updated: 2026-08-09
 
 - Next.js web app and Cloudflare Worker API monorepo are in place.
 - Clerk auth is wired for the app shell with admin helpers.
-- Primary nav now reflects active scope: brief, track record, lenses (markets, watchlist, mentions, agent eval, domains), ops (review, settings, explore). Removed dead `/discover` nav link (communities product is parked; link caused prod smoke 404).
+- Primary nav follows the public reading path: Brief, Signals, Track record, and Sources. Explore and contextual links keep the wider set of lenses and operator surfaces discoverable. Removed dead `/discover` nav link (communities product is parked; link caused prod smoke 404).
 - Public/support pages exist: about, methodology, featured, API docs, privacy, terms, auth pages.
 - `/explore` ships a canonical sitemap of every reachable surface (brief, signals + evidence, entities, lenses, ideas/opportunities/teardowns, equities, operator/admin, docs), with `new | operator | admin | parked` flags. The site footer now groups links into Product / Lenses / Operator / Legal so nothing built becomes invisible from the homepage.
 - Plan 0008/0009/0010/0011 surfaces are reachable from primary nav and the footer: `/watchlist/entities` (nav lenses), `/settings/delivery` (nav ops + footer), `/mentions/[brandId]` (linked from each row in `/mentions`), `/agent-eval/[auditId]/attributes` (linked from each audit panel in `/agent-eval`), `/admin/delivery` (linked from `/explore` under operator/admin). Plan 0012 adds an `intent` tab under `/mentions/[brandId]`.
@@ -90,6 +90,17 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 
 ## Timeline
 
+- **2026-08-11 — Daily Brief becomes the public starting point:** `/` now renders
+  the current evidence-qualified edition and `/brief` permanently redirects to
+  it, with archive and dated routes preserved. Public composition contains only
+  the three market/company, opportunity, and behavior/culture categories; it
+  fails closed to explicit empty or unavailable states instead of using seed or
+  personalized fallback content. Structured primary-plus-independent-
+  corroboration evidence, complete inline editorial summaries, and an edition-
+  level receipt gate new archive writes. The primary navigation now follows
+  Brief → Signals → Track record → Sources, and anonymous root HTML uses a
+  versioned five-minute edge cache so the retired landing page cannot survive a
+  deploy.
 - **2026-08-09 — Shared lint baseline:** Adopted the Fleet Ultracite baseline
   for core TypeScript, React, Next.js, and test code. Explicit compatibility
   exceptions preserve current behavior while 377 files pass with zero

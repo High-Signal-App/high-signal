@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { BriefSections } from '@/components/brief/BriefSections';
 import { DailyBriefHero } from '@/components/brief/DailyBriefHero';
 import { PageShell } from '@/components/system/HighSignalUI';
+import { ShareBar } from '@/components/molecules/ShareBar';
 import { api, type BriefSnapshot } from '@/lib/api';
 import { isRegion, summarizeBriefDiscovery, type Region } from '@high-signal/shared';
 import { SITE_URL } from '@/lib/site';
@@ -62,18 +63,27 @@ export default async function BriefDatePage({ params, searchParams }: BriefDateP
 
   const hasBrief =
     brief !== null && brief.stocks.length + brief.ideas.length + brief.trends.length > 0;
+  const heroBrief: BriefSnapshot = brief ?? {
+    generatedAt: `${date}T00:00:00.000Z`,
+    region,
+    hasBrand: false,
+    stocks: [],
+    ideas: [],
+    trends: [],
+    perception: [],
+    improvements: [],
+    categoryStates: {
+      stocks: { status: 'empty', source: 'live', reason: 'snapshot_missing' },
+      ideas: { status: 'empty', source: 'live', reason: 'snapshot_missing' },
+      trends: { status: 'empty', source: 'live', reason: 'snapshot_missing' },
+    },
+  };
 
   return (
     <PageShell>
-      <DailyBriefHero
-        activeProductId="archive"
-        generatedAt={brief?.generatedAt ?? new Date().toISOString()}
-        region={region}
-        selectedProductName={undefined}
-        spotlightName={null}
-      />
+      <DailyBriefHero brief={heroBrief} region={region} editionDate={date} />
 
-      <section className="mt-4 border border-[var(--color-line)] bg-zinc-950/40 p-4">
+      <section className="border-b border-[var(--color-line)] py-5">
         <div className="flex items-baseline justify-between">
           <h2 className="font-mono text-[11px] uppercase tracking-[0.2em] text-[var(--color-accent)]">
             permanent archive — {date}
@@ -90,6 +100,11 @@ export default async function BriefDatePage({ params, searchParams }: BriefDateP
           record, not a live rebuild. Region filter applies if a precomputed snapshot exists for
           that region on this date.
         </p>
+        <ShareBar
+          url={`${SITE_URL}/brief/${date}`}
+          title={`High Signal Daily Brief — ${date}`}
+          className="mt-4"
+        />
       </section>
 
       {hasBrief && brief ? (
@@ -117,7 +132,7 @@ export default async function BriefDatePage({ params, searchParams }: BriefDateP
               global region
             </Link>
             <Link
-              href="/brief"
+              href="/"
               className="border border-zinc-800 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-400 hover:border-zinc-700"
             >
               today’s brief →
