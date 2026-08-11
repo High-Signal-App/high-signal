@@ -120,7 +120,7 @@ function checkDuplication() {
   const observed = JSON.parse(readFileSync(join(outputDirectory, 'jscpd-report.json'), 'utf8'))
     .statistics.total;
   // Debt: https://github.com/High-Signal-App/high-signal/issues/104
-  const baseline = { clones: 122, duplicatedLines: 1615, percentage: 2.6325655696285066 };
+  const baseline = { clones: 122, duplicatedLines: 1615, percentage: 2.6325226576253504 };
   console.log(
     `Duplication: ${observed.duplicatedLines}/${observed.lines} lines ` +
       `(${observed.percentage.toFixed(4)}%), ${observed.clones} groups across ` +
