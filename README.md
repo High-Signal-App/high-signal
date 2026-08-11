@@ -275,6 +275,24 @@ uv run python -m high_signal_lab.server                      # http://localhost:
 export LAB_API_URL=http://localhost:8765 && pnpm dev
 ```
 
+## Code health
+
+Install the repository's check-only tooling, then run the same aggregate gate as CI:
+
+```bash
+pnpm install --frozen-lockfile
+uv sync --project python/ingest --only-group dev
+pnpm quality
+```
+
+`pnpm quality` covers formatting, lint, types, tests, API coverage, unused code and
+dependencies, Python dead code, complexity, duplication, dependency advisories,
+cycles, inline suppressions, and documentation integrity. Existing measured debt
+is held to checked-in no-regression baselines in `scripts/check-code-health.mjs`;
+lower a baseline when cleanup improves it, and link any accepted debt to a GitHub
+issue rather than refreshing a number automatically. The ingest and parked Lab
+Python surfaces also run their native checks in separate CI jobs.
+
 ## Quick links
 - Spec: `SPEC.md`
 - Commercial handoff: `docs/product/handoff.md`

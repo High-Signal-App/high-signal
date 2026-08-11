@@ -21,7 +21,10 @@ export default defineConfig({
         'src/**/*.config.{ts,js}',
         'src/**/__tests__/**',
       ],
+      // Debt: https://github.com/High-Signal-App/high-signal/issues/104
       thresholds: {
+        branches: 25,
+        statements: 33,
         lines: 34,
         functions: 30,
       },

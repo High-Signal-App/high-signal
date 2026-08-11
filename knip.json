@@ -1,0 +1,77 @@
+{
+  "$schema": "https://unpkg.com/knip@latest/schema.json",
+  "workspaces": {
+    ".": {
+      "entry": ["scripts/**/*.{ts,mjs}"],
+      "project": ["scripts/**/*.{ts,mjs}"],
+      "ignoreDependencies": ["husky", "jscpd", "next"],
+      "ignoreBinaries": ["uv", "wrangler"]
+    },
+    "apps/web": {
+      "entry": [
+        "agent-edge.mjs",
+        "next.config.ts",
+        "open-next.config.ts",
+        "playwright.config.ts",
+        "postcss.config.mjs",
+        "public-corpus-policy.mjs",
+        "public-corpus-records.mjs",
+        "public-corpus-receipt.mjs",
+        "public-route-registry.mjs",
+        "scripts/**/*.mjs",
+        "timing.mjs",
+        "worker.mjs"
+      ],
+      "project": [
+        "*.{ts,mts,mjs}",
+        "e2e/**/*.ts",
+        "scripts/**/*.mjs",
+        "src/**/*.{ts,tsx}"
+      ],
+      "ignore": ["public-route-registry.d.mts"],
+      "ignoreDependencies": [
+        "@opennextjs/cloudflare",
+        "@storybook/addon-docs",
+        "@storybook/nextjs",
+        "@tailwindcss/postcss",
+        "@tailwindcss/typography",
+        "postcss",
+        "storybook",
+        "tailwindcss",
+        "wrangler"
+      ],
+      "ignoreBinaries": ["wrangler"]
+    },
+    "apps/web/landing-astro": {
+      "entry": ["astro.config.mjs"],
+      "project": ["src/**/*.{astro,ts,tsx}", "astro.config.mjs"],
+      "ignoreDependencies": ["lightningcss", "tailwindcss"]
+    },
+    "docs-site": {
+      "entry": ["blume.config.ts"],
+      "project": ["blume.config.ts"],
+      "ignoreBinaries": ["blume"]
+    },
+    "packages/db": {
+      "entry": ["src/index.ts"],
+      "project": ["src/**/*.ts"],
+      "ignoreDependencies": ["drizzle-kit"],
+      "ignoreBinaries": ["wrangler"]
+    },
+    "packages/shared": {
+      "entry": ["src/index.ts"],
+      "project": ["src/**/*.ts"],
+      "ignore": [
+        "src/mentions/mention-intelligence.ts",
+        "src/mentions/mention-judge.ts",
+        "src/mentions/visibility-report.ts"
+      ]
+    },
+    "workers/api": {
+      "entry": ["src/index.ts", "test/stubs/cloudflare-email.ts", "vitest.config.ts"],
+      "project": ["src/**/*.ts", "test/**/*.ts", "vitest.config.ts"],
+      "ignoreDependencies": ["cloudflare", "wrangler"],
+      "ignoreBinaries": ["wrangler"]
+    }
+  }
+}
