@@ -15,11 +15,16 @@ The system SHALL allow each business-idea item in the Daily Brief to include an 
 - **THEN** the brief renderer still shows the title, description, source, subreddit, date, and evidence links without failing
 
 ### Requirement: Empty data environments demonstrate Opportunity Briefs
-The system SHALL populate fallback business ideas with Opportunity Brief payloads so anonymous and empty-D1 brief views demonstrate the full decision workflow.
+The public Daily Brief SHALL render an explicit empty or unavailable state when no cited real opportunity qualifies. Synthetic Opportunity Briefs MAY remain available in explicitly labeled development fixtures or test-only demonstrations but SHALL NOT appear in the public current brief or new dated snapshots.
 
-#### Scenario: Fallback ideas expose full decision context
-- **WHEN** `fallbackIdeas()` is used for a supported region
-- **THEN** returned ideas include Opportunity Brief payloads with verdict, confidence, evidence mix, and validation-step fields
+#### Scenario: Public opportunity category is empty
+- **WHEN** no real cited opportunity qualifies for the requested region
+- **THEN** the Daily Brief renders an explicit empty state
+- **AND** `fallbackIdeas()` output is not returned as public editorial content
+
+#### Scenario: Development fixture is requested explicitly
+- **WHEN** a test or explicitly labeled development surface requests an Opportunity Brief fixture
+- **THEN** the fixture can demonstrate the payload without being represented as current sourced intelligence
 
 ### Requirement: Real community ideas degrade conservatively
 The system SHALL enrich real community-derived ideas with conservative Opportunity Brief defaults when detailed source-specific extraction is not available.
@@ -36,22 +41,23 @@ The system SHALL render Opportunity Brief payloads inside the existing section 0
 - **THEN** the card displays the verdict, confidence, target user, problem, evidence mix, market timing, risks, and next validation step in a compact layout
 
 ### Requirement: India D2C niches produce cited Opportunity Briefs
-The system SHALL produce an Opportunity Brief for each of 20 curated India D2C niches, reusing the existing `OpportunityBriefPayload` contract, with verdict, confidence, target user, problem, evidence mix, competitor/pricing/agent-visibility notes, risks, and next validation step.
+The system SHALL produce an Opportunity Brief for a curated India D2C niche only when retained evidence supports its displayed demand, competition, pricing, or momentum statements. Seed metadata MAY define the tracked niche and evaluation template but SHALL NOT create a public verdict or evidence claim without a qualifying collected artifact.
 
-#### Scenario: Seed briefs render without a weekly artifact
-- **WHEN** no `data/d2c-opportunities/<date>.json` artifact exists
-- **THEN** the system emits Opportunity Briefs from the static niche seed with conservative placeholder evidence and a `watch` or `test` verdict
+#### Scenario: No weekly artifact exists
+- **WHEN** no qualifying `data/d2c-opportunities/<date>.json` artifact exists for a niche
+- **THEN** the niche does not appear as a current Daily Brief opportunity
+- **AND** the standalone opportunities surface identifies the evidence as unavailable rather than emitting placeholder evidence or a synthetic verdict
 
-#### Scenario: Weekly artifact enriches seed briefs
-- **WHEN** a weekly collector artifact exists for a niche
-- **THEN** the brief for that niche replaces placeholder evidence with cited community/search evidence and recomputes the verdict and confidence from the artifact's scores
+#### Scenario: Weekly artifact enriches a niche
+- **WHEN** a weekly collector artifact contains qualifying cited evidence for a niche
+- **THEN** the system computes and displays its verdict, confidence, evidence mix, and next validation step from that artifact
 
 #### Scenario: Verdict mapping is deterministic
-- **WHEN** a niche has demand ≥ 0.5, competition gap ≥ 0.4, and a first SKU
+- **WHEN** a cited niche has demand ≥ 0.5, competition gap ≥ 0.4, and a first SKU
 - **THEN** the verdict is `test`
-- **WHEN** a niche has demand < 0.3 or competition gap < 0.2
+- **WHEN** a cited niche has demand < 0.3 or competition gap < 0.2
 - **THEN** the verdict is `avoid`
-- **WHEN** a niche has demand ≥ 0.3 but missing corroboration
+- **WHEN** a cited niche has demand ≥ 0.3 but missing corroboration
 - **THEN** the verdict is `watch`
 
 ### Requirement: India D2C briefs surface in the Daily Brief and opportunities page
@@ -83,4 +89,3 @@ The system SHALL provide a weekly collector that pulls narrow public community s
 #### Scenario: Collector is fail-closed without paid sources
 - **WHEN** the collector runs
 - **THEN** it uses only free public sources (Reddit, HN, Product Hunt RSS) and never requires a paid data provider
-

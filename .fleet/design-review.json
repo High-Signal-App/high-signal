@@ -1,8 +1,8 @@
 {
   "$schema": "fleet.design-review.v1",
   "version": 1,
-  "project": "high-signal-intelligence-cluster",
-  "target": "High Signal public intelligence cluster",
+  "project": "high-signal",
+  "target": "Daily Brief reader path and public navigation",
   "mode": "preserve",
   "register": "product",
   "context": {
@@ -14,41 +14,45 @@
     "probes": [],
     "selected": "existing-design",
     "approval": "not-required",
-    "before": "artifacts/design/before.png"
+    "before": "artifacts/design/before-1440.png"
   },
   "evidence": {
     "screenshots": [
       {
         "width": 390,
-        "path": "artifacts/design/after-390.png"
+        "path": "artifacts/design/after-daily-brief-390.png"
       },
       {
         "width": 768,
-        "path": "artifacts/design/after-768.png"
+        "path": "artifacts/design/after-daily-brief-768.png"
       },
       {
         "width": 1440,
-        "path": "artifacts/design/after-1440.png"
+        "path": "artifacts/design/after-daily-brief-1440.png"
       },
       {
         "width": 390,
-        "path": "artifacts/design/after-trends-390.png"
+        "path": "artifacts/design/after-dated-brief-390.png"
+      },
+      {
+        "width": 768,
+        "path": "artifacts/design/after-dated-brief-768.png"
       },
       {
         "width": 1440,
-        "path": "artifacts/design/after-audit-1440.png"
+        "path": "artifacts/design/after-dated-brief-1440.png"
       }
     ],
     "projectCheck": {
-      "command": "pnpm --filter @high-signal/web typecheck && pnpm --filter @high-signal/web build",
+      "command": "pnpm --filter @high-signal/web typecheck && NEXT_PUBLIC_API_BASE=<local-mock> pnpm --filter @high-signal/web build",
       "status": "pass"
     },
     "critique": {
-      "score": 33,
+      "score": 36,
       "maximum": 40
     },
     "audit": {
-      "score": 17,
+      "score": 19,
       "maximum": 20
     },
     "unresolved": {
@@ -60,15 +64,23 @@
       "findings": []
     },
     "browserReview": {
-      "tool": "Playwright with installed Chrome",
-      "viewports": [390, 768, 1440],
+      "tool": "Playwright with installed Chrome and representative eligible local API fixtures",
+      "viewports": [
+        390,
+        768,
+        1440
+      ],
+      "routes": [
+        "/",
+        "/brief/2026-08-11"
+      ],
       "horizontalOverflow": false,
-      "consoleErrors": 0,
-      "note": "All five routes returned 200 with one main and one H1, correct canonicals, no heading skips, AA content and shared-shell contrast, and visible keyboard focus. The unrelated Fleet vitals collector still returns 404 and is outside this approved content scope."
+      "appConsoleErrors": 0,
+      "note": "Both routes returned 200 with one main and one H1, correct canonicals, all three stable category anchors, and visible cyan keyboard focus. The unrelated Fleet vitals collector returned 404 and is outside this brief scope. /brief returned a 308 permanent redirect to / in the production-style local build."
     }
   },
   "ownerFeedback": {
     "decision": "keep",
-    "note": "Owner approved the refined preserve-lane design on 2026-08-05."
+    "note": "Owner approved the preserve-lane Daily Brief reader path and production root-routing switch on 2026-08-11."
   }
 }

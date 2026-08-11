@@ -16,6 +16,25 @@ export interface BriefCitation {
   source?: string | null;
 }
 
+export type BriefPublicSectionKey = 'stocks' | 'ideas' | 'trends';
+export type BriefCategoryStatus = 'ready' | 'empty' | 'unavailable';
+
+export interface BriefCategoryState {
+  status: BriefCategoryStatus;
+  /** Stable, non-sensitive reason for diagnostics and honest empty-state copy. */
+  reason?: string | null;
+  /** New public snapshots are live-only; fixture is reserved for explicit demos/tests. */
+  source?: 'live' | 'fixture';
+}
+
+export type BriefCategoryStates = Record<BriefPublicSectionKey, BriefCategoryState>;
+
+export interface BriefEditorialSummary {
+  whatChanged: string;
+  whyItMatters: string;
+  uncertainty: string;
+}
+
 export type OpportunityVerdict = 'enter' | 'test' | 'watch' | 'avoid';
 
 export interface OpportunityEvidenceMixItem {
@@ -53,9 +72,8 @@ export interface OpportunityBriefPayload {
  *
  * - `direct`: enough scored predictions on this exact signal_type to quote
  *   the rate with confidence.
- * - `family`: not enough on the exact type yet, so we show the broader
- *   *family* hit-rate (capex/order-book → "supply-demand", etc.) — still
- *   useful, lower-precision.
+ * - `family`: not enough on the exact type yet; retained for historical and
+ *   internal analysis, but public renderers withhold the generic percentage.
  * - `early`: a small live sample (1–2 scored calls) exists; we surface the
  *   number with an "early" qualifier so users see motion, not silence.
  * - `none`: no scored predictions anywhere in the family — render "no live
@@ -85,6 +103,10 @@ export interface BriefStockItem {
   hitRate: number | null;
   hitRateSample: number;
   hitRateBand: HitRateBand;
+  /** Grounded editorial copy; optional only for legacy archived snapshots. */
+  whatChanged?: string;
+  whyItMatters?: string;
+  uncertainty?: string;
   /** Optional on legacy/precomputed snapshots while claim coverage backfills. */
   provenance?: BriefClaimProvenance;
 }
@@ -140,6 +162,8 @@ export interface BriefIdeaItem {
   subreddit: string | null;
   /** ISO date when this opportunity/digest was generated. */
   surfacedAt: string;
+  /** Grounded reader-value statement; optional on legacy cached snapshots. */
+  whyNow?: string;
   /** Optional decision-grade payload. Missing on legacy cached snapshots. */
   opportunity?: OpportunityBriefPayload;
 }
@@ -151,6 +175,8 @@ export interface BriefTrendItem {
   region: Region;
   evidenceUrls: BriefCitation[];
   surfacedAt: string;
+  /** Grounded reader-value statement; optional on legacy cached snapshots. */
+  whyNow?: string;
 }
 
 /** Source-backed buyer/community intent attached to owner-scoped brief items. */
@@ -221,6 +247,204 @@ export interface BriefSnapshot {
   watching?: BriefWatchingSection;
   perception: BriefPerceptionItem[];
   improvements: BriefImprovementItem[];
+  /** Explicit composition states on new snapshots; absent on historical records. */
+  categoryStates?: BriefCategoryStates;
+}
+
+export interface BriefEditionIssue {
+  section: BriefPublicSectionKey | 'edition';
+  item: number | null;
+  reason: string;
+}
+
+export interface BriefEditionReceipt {
+  publishable: boolean;
+  counts: Record<BriefPublicSectionKey, number>;
+  states: BriefCategoryStates;
+  issues: BriefEditionIssue[];
+}
+
+const COMPLETE_SENTENCE = /[.!?][\])"']?$/;
+const MALFORMED_MARKDOWN_LINK = /\]\([^)]*\][^)]*\)|\]\([^\s)]*$/;
+
+export function isCompleteBriefText(value: unknown, minimumLength = 24): value is string {
+  if (typeof value !== 'string') return false;
+  const text = value.trim();
+  return (
+    text.length >= minimumLength &&
+    COMPLETE_SENTENCE.test(text) &&
+    !MALFORMED_MARKDOWN_LINK.test(text) &&
+    !/^https?:\/\//i.test(text)
+  );
+}
+
+function cleanEditorialText(value: string): string {
+  return value
+    .replace(/!\[([^\]]*)\]\([^)]+\)/g, '$1')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/[`*_>#]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function sentenceList(bodyMd: string): string[] {
+  const prose = bodyMd
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line && !/^#{1,6}\s/.test(line) && !/^[-*]\s/.test(line))
+    .join(' ');
+  return cleanEditorialText(prose)
+    .split(/(?<=[.!?])\s+(?=[A-Z0-9“"'])/)
+    .map((sentence) => sentence.trim())
+    .filter((sentence) => isCompleteBriefText(sentence));
+}
+
+/**
+ * Reuse complete sentences already present in signal prose. This helper never
+ * writes new claims: if implication or uncertainty is missing, the signal is
+ * not editorially ready for a new brief snapshot.
+ */
+export function extractBriefEditorialSummary(bodyMd: string): BriefEditorialSummary | null {
+  const sections = new Map<string, string>();
+  const lines = bodyMd.split('\n');
+  let heading: string | null = null;
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    const match = line.match(/^#{1,6}\s+(what changed|why it matters|uncertainty|risk(?:s)?)/i);
+    if (match) {
+      heading = match[1].toLowerCase();
+      continue;
+    }
+    if (heading && line && !line.startsWith('#')) {
+      sections.set(heading, `${sections.get(heading) ?? ''} ${line}`.trim());
+    }
+  }
+
+  const explicitWhat = cleanEditorialText(sections.get('what changed') ?? '');
+  const explicitWhy = cleanEditorialText(sections.get('why it matters') ?? '');
+  const explicitRisk = cleanEditorialText(
+    sections.get('uncertainty') ?? sections.get('risk') ?? sections.get('risks') ?? ''
+  );
+  if (
+    isCompleteBriefText(explicitWhat) &&
+    isCompleteBriefText(explicitWhy) &&
+    isCompleteBriefText(explicitRisk)
+  ) {
+    return {
+      whatChanged: explicitWhat,
+      whyItMatters: explicitWhy,
+      uncertainty: explicitRisk,
+    };
+  }
+
+  const sentences = sentenceList(bodyMd);
+  const whatChanged = sentences[0];
+  const uncertainty = sentences.find((sentence) =>
+    /\b(risks?|uncertain|depends|could reverse|could fail|may not|however|but)\b/i.test(sentence)
+  );
+  const whyItMatters = sentences.find(
+    (sentence, index) =>
+      index > 0 &&
+      sentence !== uncertainty &&
+      /\b(implies|means|signals?|tailwind|headwind|demand|opportunity|impact|expansion|pressure|bottleneck|adoption)\b/i.test(
+        sentence
+      )
+  );
+  if (!whatChanged || !whyItMatters || !uncertainty) return null;
+  return { whatChanged, whyItMatters, uncertainty };
+}
+
+export function categoryStatesForSnapshot(
+  snapshot: Pick<BriefSnapshot, 'stocks' | 'ideas' | 'trends' | 'categoryStates'>
+): BriefCategoryStates {
+  const existing = snapshot.categoryStates;
+  if (existing) return existing;
+  return {
+    stocks: { status: snapshot.stocks.length > 0 ? 'ready' : 'empty', source: 'live' },
+    ideas: { status: snapshot.ideas.length > 0 ? 'ready' : 'empty', source: 'live' },
+    trends: { status: snapshot.trends.length > 0 ? 'ready' : 'empty', source: 'live' },
+  };
+}
+
+function isUsableCitation(value: BriefCitation): boolean {
+  try {
+    const url = new URL(value.url);
+    return url.protocol === 'https:' || url.protocol === 'http:';
+  } catch {
+    return false;
+  }
+}
+
+/** Validate only new edition writes; historical snapshots remain readable. */
+export function buildBriefEditionReceipt(snapshot: BriefSnapshot): BriefEditionReceipt {
+  const states = categoryStatesForSnapshot(snapshot);
+  const counts = {
+    stocks: snapshot.stocks.length,
+    ideas: snapshot.ideas.length,
+    trends: snapshot.trends.length,
+  };
+  const issues: BriefEditionIssue[] = [];
+
+  for (const section of ['stocks', 'ideas', 'trends'] as const) {
+    const state = states[section];
+    if (state.source === 'fixture') issues.push({ section, item: null, reason: 'fixture_content' });
+    if (state.status === 'unavailable') {
+      issues.push({ section, item: null, reason: state.reason || 'category_unavailable' });
+    }
+    if (state.status === 'ready' && counts[section] === 0) {
+      issues.push({ section, item: null, reason: 'ready_category_is_empty' });
+    }
+    if (state.status === 'empty' && counts[section] > 0) {
+      issues.push({ section, item: null, reason: 'empty_category_has_items' });
+    }
+  }
+
+  snapshot.stocks.forEach((item, index) => {
+    if (
+      !isCompleteBriefText(item.whatChanged) ||
+      !isCompleteBriefText(item.whyItMatters) ||
+      !isCompleteBriefText(item.uncertainty)
+    ) {
+      issues.push({ section: 'stocks', item: index, reason: 'incomplete_editorial_summary' });
+    }
+    const supporting = item.provenance;
+    if (
+      !supporting ||
+      supporting.primaryCount < 1 ||
+      supporting.corroborationCount < 1 ||
+      supporting.contradictionCount > 0
+    ) {
+      issues.push({ section: 'stocks', item: index, reason: 'unsupported_structured_claim' });
+    }
+    if (item.evidenceUrls.filter(isUsableCitation).length < 2) {
+      issues.push({ section: 'stocks', item: index, reason: 'insufficient_usable_evidence' });
+    }
+  });
+
+  snapshot.ideas.forEach((item, index) => {
+    if (
+      !isCompleteBriefText(item.description) ||
+      !isCompleteBriefText(item.whyNow) ||
+      !item.evidenceUrls.some(isUsableCitation)
+    ) {
+      issues.push({ section: 'ideas', item: index, reason: 'malformed_or_uncited_item' });
+    }
+  });
+  snapshot.trends.forEach((item, index) => {
+    if (
+      !isCompleteBriefText(item.description) ||
+      !isCompleteBriefText(item.whyNow) ||
+      !item.evidenceUrls.some(isUsableCitation)
+    ) {
+      issues.push({ section: 'trends', item: index, reason: 'malformed_or_uncited_item' });
+    }
+  });
+
+  if (counts.stocks + counts.ideas + counts.trends === 0) {
+    issues.push({ section: 'edition', item: null, reason: 'edition_has_no_items' });
+  }
+  return { publishable: issues.length === 0, counts, states, issues };
 }
 
 export interface BriefDiscoverySummary {

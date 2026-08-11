@@ -76,10 +76,10 @@ export function resolveOpenWindow(
   if (!isValidWindow(pref.localWindowStart)) return null;
   const parts = partsInTimezone(new Date(nowUtcMs), pref.timezone);
   if (!parts) return null;
-  const [h, m] = pref.localWindowStart.split(':').map((s) => Number(s));
+  const [h = 0, m = 0] = pref.localWindowStart.split(':').map((s) => Number(s));
   // Open from [H:M, H:M+60min). Close enough for hourly cron polling.
   const localMinutes = parts.hour * 60 + parts.minute;
-  const windowStart = h! * 60 + m!;
+  const windowStart = h * 60 + m;
   const windowEnd = windowStart + 60;
   if (localMinutes < windowStart || localMinutes >= windowEnd) return null;
   return { briefDate: `${parts.year}-${pad2(parts.month)}-${pad2(parts.day)}` };
@@ -211,6 +211,16 @@ export interface CompactBriefDigest {
 
 const pctOf = (rate: number): string => `${Math.round(rate * 100)}%`;
 
+function publicHitRateLine(stock: NonNullable<BriefSnapshot['stocks']>[number]): string {
+  if (stock.hitRate != null && stock.hitRateBand === 'direct') {
+    return `hit-rate ${pctOf(stock.hitRate)} (direct, n=${stock.hitRateSample})`;
+  }
+  if (stock.hitRate != null && stock.hitRateBand === 'early') {
+    return `early direct sample (n=${stock.hitRateSample})`;
+  }
+  return 'no reliable direct sample yet';
+}
+
 function citationLinks(urls: Array<{ url: string }> | undefined): string[] {
   return (urls ?? []).map((c) => c.url).slice(0, 2);
 }
@@ -225,11 +235,14 @@ export function briefSnapshotToEmailSections(
       items: (snapshot.stocks ?? []).map((s) => ({
         text: [
           `${s.entityName}${s.ticker ? ` (${s.ticker})` : ''} — ${s.headline}`,
+          s.whatChanged ? `What changed: ${s.whatChanged}` : null,
+          s.whyItMatters ? `Why it matters: ${s.whyItMatters}` : null,
+          s.uncertainty ? `Uncertainty: ${s.uncertainty}` : null,
           `${s.direction} · ${s.confidence} confidence`,
-          s.hitRate != null
-            ? `hit-rate ${pctOf(s.hitRate)} (${s.hitRateBand}, n=${s.hitRateSample})`
-            : 'no live calls yet',
-        ].join(' · '),
+          publicHitRateLine(s),
+        ]
+          .filter(Boolean)
+          .join(' · '),
         links: citationLinks(s.evidenceUrls),
       })),
     },

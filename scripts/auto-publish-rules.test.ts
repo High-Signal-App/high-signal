@@ -51,7 +51,9 @@ function checkBool(label: string, actual: boolean, expected: boolean) {
 
 function claimWithEvidence(
   urls: string[],
-  role: 'primary' | 'corroboration' | 'contradiction' = 'primary'
+  roles: Array<'primary' | 'corroboration' | 'contradiction' | 'context'> = urls.map((_, index) =>
+    index === 0 ? 'primary' : 'corroboration'
+  )
 ): ClaimWithEvidence {
   return {
     id: 'claim-1',
@@ -72,10 +74,10 @@ function claimWithEvidence(
       id: `link-${index}`,
       claimId: 'claim-1',
       evidenceUrl: url,
-      sourceDocumentId: null,
-      role,
+      sourceDocumentId: `source-${index}`,
+      role: roles[index] ?? 'context',
       weight: 1,
-      notes: null,
+      notes: 'alignment:verified',
       addedAt: new Date().toISOString(),
       addedBy: null,
     })),
@@ -111,9 +113,25 @@ console.log('structured claim evidence enrichment');
 }
 {
   const contradicted = applyStructuredClaimEvidence({ evidenceUrls: [], publishable: true }, [
-    claimWithEvidence(['https://a.example/x', 'https://b.example/y'], 'contradiction'),
+    claimWithEvidence(['https://a.example/x', 'https://b.example/y'], ['primary', 'contradiction']),
   ]);
   check('structured contradiction kills', contradicted, 'kill', 'contradictory');
+}
+{
+  const contextOnly = applyStructuredClaimEvidence({ evidenceUrls: [], publishable: true }, [
+    claimWithEvidence(['https://a.example/x', 'https://b.example/y'], ['primary', 'context']),
+  ]);
+  check('context does not corroborate', contextOnly, 'kill', 'thin_corroboration');
+}
+{
+  const unverified = claimWithEvidence(['https://a.example/x', 'https://b.example/y']);
+  const corroboration = unverified.evidence[1];
+  if (!corroboration) throw new Error('expected corroborating fixture');
+  corroboration.notes = 'alignment:unverified';
+  const enriched = applyStructuredClaimEvidence({ evidenceUrls: [], publishable: true }, [
+    unverified,
+  ]);
+  check('unverified alignment fails closed', enriched, 'kill', 'thin_corroboration');
 }
 
 console.log('auto-publish rubric — cite-or-kill floor');

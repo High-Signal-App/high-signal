@@ -7,7 +7,7 @@ workers_dev = true
 preview_urls = false
 # Serve verified generated assets without invoking the Worker. Application
 # routes remain Worker-first through the leading "/*" rule.
-assets = { directory = ".open-next/assets", binding = "ASSETS", run_worker_first = [ "/*", "!/", "!/_next/static/*", "!/_astro/*", "!/docs", "!/docs/*", "!/.well-known/security.txt", "!/apple-touch-icon.png", "!/favicon-32.png", "!/favicon.ico", "!/favicon.svg", "!/icon.svg" ] }
+assets = { directory = ".open-next/assets", binding = "ASSETS", run_worker_first = [ "/*", "!/_next/static/*", "!/_astro/*", "!/docs", "!/docs/*", "!/.well-known/security.txt", "!/apple-touch-icon.png", "!/favicon-32.png", "!/favicon.ico", "!/favicon.svg", "!/icon.svg" ] }
 
 # Custom domains — created/reconciled on deploy (idempotent if already added via dashboard).
 # www is redirected to the apex by next.config.ts redirects().

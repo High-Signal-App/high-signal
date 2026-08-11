@@ -17,13 +17,12 @@ import { Hono } from 'hono';
 import { and, desc, eq, inArray, gte, sql } from 'drizzle-orm';
 import {
   BUNDLED_D2C_ARTIFACT,
+  buildBriefEditionReceipt,
   composeImpactChain,
   countriesForRegion,
   d2cBriefItems,
   evidenceBackedWatchItems,
-  fallbackIdeas,
-  fallbackStocks,
-  fallbackTrends,
+  extractBriefEditorialSummary,
   familyForSignalType,
   findSeedProduct,
   isPredictionMarketOnly,
@@ -34,6 +33,8 @@ import {
   SEED_PRODUCTS,
   summarizeBriefDiscovery,
   type BriefIdeaItem,
+  type BriefCategoryState,
+  type BriefCategoryStates,
   type BriefImprovementItem,
   type BriefIntentItem,
   type BriefPerceptionItem,
@@ -64,14 +65,14 @@ const PRECOMPUTED_REGIONS: Region[] = [
   'east-asia',
 ];
 
-export const STOCKS_LIMIT = 12;
-export const IDEAS_LIMIT = 10;
-export const TRENDS_LIMIT = 8;
+// Operational safety bounds, not editorial targets. Composition never weakens
+// a quality gate to fill these values; strong coverage days may use the room.
+export const STOCKS_LIMIT = 24;
+export const IDEAS_LIMIT = 20;
+export const TRENDS_LIMIT = 20;
 /**
  * 4-week window. Sarthak's 2026-05-25 directive: "sync at least 4 weeks of
- * data everywhere." The brief reads from real D1 wherever it exists; seed
- * fallback only kicks in for the personal sections when nothing's available
- * for the picked product.
+ * data everywhere." The public brief reads only from real D1 evidence.
  */
 export const RECENT_SIGNAL_WINDOW_DAYS = 28;
 export const COMMUNITY_DIGEST_LOOKBACK_DAYS = 28;
@@ -213,17 +214,13 @@ briefRoute.get('/daily', async (c) => {
     const lookupDate = archiveDate ?? today;
     const snapshot = await tryGetPrecomputedSnapshot(database, lookupDate, region);
     if (snapshot) {
-      // If a product query param is supplied, overlay the seed product's
-      // personal sections on top of the precomputed public sections.
-      if (productId) {
-        const seeded = renderFromSeed(productId);
-        if (seeded) {
-          snapshot.perception = seeded.perception;
-          snapshot.improvements = seeded.improvements;
-          snapshot.hasBrand = true;
-        }
+      // Historical editions remain readable under their original contract.
+      // Today's cache must satisfy the current editorial gate; otherwise the
+      // request recomposes from live evidence rather than serving stale demo
+      // or malformed content.
+      if (archiveDate || buildBriefEditionReceipt(snapshot).publishable) {
+        return c.json(snapshot);
       }
-      return c.json(snapshot);
     }
     // Archive mode with no snapshot: return 404 so the web route can
     // render a "no brief for this date" page instead of rebuilding live.
@@ -234,19 +231,14 @@ briefRoute.get('/daily', async (c) => {
 
   const countries = countriesForRegion(region);
 
-  // Each section is independently fault-tolerant: a missing table, empty
-  // result, or driver error degrades to seed fallback rather than failing
-  // the whole brief. This keeps the daily-brief surface live even on a
-  // fresh deploy where D1 hasn't been migrated/seeded yet.
-  let [stocks, ideas, trends] = await Promise.all([
-    safe(() => buildStocks(database, countries), 'stocks'),
-    safe(() => buildIdeas(database, region, countries), 'ideas'),
-    safe(() => buildTrends(database, region, countries), 'trends'),
+  const [stockResult, ideaResult, trendResult] = await Promise.all([
+    safeCategory(() => buildStocks(database, countries), 'stocks'),
+    safeCategory(() => buildIdeas(database, region, countries), 'ideas'),
+    safeCategory(() => buildTrends(database, region, countries), 'trends'),
   ]);
-
-  if (stocks.length === 0) stocks = fallbackStocks(region, STOCKS_LIMIT);
-  if (ideas.length === 0) ideas = fallbackIdeas(region, IDEAS_LIMIT);
-  if (trends.length === 0) trends = fallbackTrends(region, TRENDS_LIMIT);
+  const stocks = stockResult.items;
+  const ideas = ideaResult.items;
+  const trends = trendResult.items;
 
   let perception: BriefPerceptionItem[] = [];
   let improvements: BriefImprovementItem[] = [];
@@ -270,30 +262,14 @@ briefRoute.get('/daily', async (c) => {
     hasBrand = perception.length > 0 || improvements.length > 0;
   }
 
-  // Priority 2: an explicit product= seed selection (no auth needed). This is
-  // the public demo path Sarthak called out — 30-40 seed products users can
-  // switch between to see what sections 4 + 5 look like.
+  // Explicit seed products remain an API compatibility path for authenticated
+  // delivery/tests. The public web client no longer sends this parameter.
   if (!hasBrand && productId) {
     const seeded = renderFromSeed(productId);
     if (seeded) {
       perception = seeded.perception;
       improvements = seeded.improvements;
       hasBrand = true;
-    }
-  }
-
-  // Priority 3: no owner, no product. Pick a rotating spotlight from the seed
-  // so anonymous visitors still see populated sections instead of an empty
-  // hint. Hour-based rotation so the spotlight feels alive.
-  if (!hasBrand) {
-    const spotlight = pickSpotlight(region);
-    if (spotlight) {
-      const seeded = renderFromSeed(spotlight.id);
-      if (seeded) {
-        perception = seeded.perception;
-        improvements = seeded.improvements;
-        hasBrand = true;
-      }
     }
   }
 
@@ -307,6 +283,11 @@ briefRoute.get('/daily', async (c) => {
     watching: { items: watching },
     perception,
     improvements,
+    categoryStates: {
+      stocks: stockResult.state,
+      ideas: ideaResult.state,
+      trends: trendResult.state,
+    },
   };
   return c.json(snapshot);
 });
@@ -329,16 +310,43 @@ export function pickSpotlight(region: Region, nowMs: number = Date.now()): SeedP
 }
 
 /**
- * Run a section builder and absorb any error (missing table, transient D1
- * outage, schema drift) — the brief route falls back to seed content when a
- * builder returns an empty array.
+ * Run a non-public builder and absorb an independent failure.
  */
 export async function safe<T>(builder: () => Promise<T[]>, section: string): Promise<T[]> {
   try {
     return await builder();
   } catch (error) {
-    console.warn(`[brief] ${section} builder failed; falling back to seed`, error);
+    console.warn(`[brief] ${section} builder failed`, error);
     return [];
+  }
+}
+
+export interface PublicCategoryResult<T> {
+  items: T[];
+  state: BriefCategoryState;
+}
+
+/** Public categories expose failure instead of disguising it as demo data. */
+export async function safeCategory<T>(
+  builder: () => Promise<T[]>,
+  section: string
+): Promise<PublicCategoryResult<T>> {
+  try {
+    const items = await builder();
+    return {
+      items,
+      state: {
+        status: items.length > 0 ? 'ready' : 'empty',
+        source: 'live',
+        reason: items.length > 0 ? null : 'no_qualifying_items',
+      },
+    };
+  } catch (error) {
+    console.warn(`[brief] ${section} builder unavailable`, error);
+    return {
+      items: [],
+      state: { status: 'unavailable', source: 'live', reason: 'builder_failed' },
+    };
   }
 }
 
@@ -549,42 +557,49 @@ async function buildStocks(
       direction: r.direction as 'up' | 'down' | 'neutral',
       confidence: r.confidence as 'low' | 'medium' | 'high',
     }))
-  ).slice(0, STOCKS_LIMIT);
+  );
 
-  return ranked.map((row): BriefStockItem => {
-    const headline = headlineFromBody(row.bodyMd, row.entityName);
-    const evidenceArr = Array.isArray(row.evidenceList) ? row.evidenceList : [];
-    const resolved = resolveHitRate(row.signalType, hitRateBySignalType, hitRateByFamily);
-    const provenance = provenanceBySignal.get(row.signalId);
-    return {
-      entityId: row.entityId,
-      entityName: row.entityName,
-      ticker: row.ticker,
-      country: row.country,
-      signalType: row.signalType,
-      signalFamily: familyForSignalType(row.signalType),
-      direction: row.direction as 'up' | 'down' | 'neutral',
-      confidence: row.confidence as 'low' | 'medium' | 'high',
-      predictedWindowDays: row.predictedWindowDays,
-      headline,
-      signalSlug: row.slug,
-      publishedAt:
-        row.publishedAt instanceof Date
-          ? row.publishedAt.toISOString()
-          : new Date(Number(row.publishedAt)).toISOString(),
-      // Lead with the most authoritative, on-topic citation: downstream
-      // surfaces (email caps at 2, cards truncate) must not show a weak or
-      // off-entity source first. Reorders only — count is unchanged.
-      evidenceUrls: rankEvidenceUrls(
-        evidenceArr.map((url) => String(url)),
-        { entityName: row.entityName, ticker: row.ticker }
-      ).map((url) => ({ url })),
-      hitRate: resolved.hitRate,
-      hitRateSample: resolved.sample,
-      hitRateBand: resolved.band,
-      ...(provenance ? { provenance } : {}),
-    };
-  });
+  return ranked
+    .flatMap((row): BriefStockItem[] => {
+      const headline = headlineFromBody(row.bodyMd, row.entityName);
+      const resolved = resolveHitRate(row.signalType, hitRateBySignalType, hitRateByFamily);
+      const provenance = provenanceBySignal.get(row.signalId);
+      const editorial = extractBriefEditorialSummary(row.bodyMd);
+      if (!provenance || !editorial) return [];
+      const evidenceUrls = rankEvidenceUrls(provenance.evidenceUrls, {
+        entityName: row.entityName,
+        ticker: row.ticker,
+      });
+      if (!isBriefStockEvidenceEligible(evidenceUrls)) return [];
+      return [
+        {
+          entityId: row.entityId,
+          entityName: row.entityName,
+          ticker: row.ticker,
+          country: row.country,
+          signalType: row.signalType,
+          signalFamily: familyForSignalType(row.signalType),
+          direction: row.direction as 'up' | 'down' | 'neutral',
+          confidence: row.confidence as 'low' | 'medium' | 'high',
+          predictedWindowDays: row.predictedWindowDays,
+          headline,
+          signalSlug: row.slug,
+          publishedAt:
+            row.publishedAt instanceof Date
+              ? row.publishedAt.toISOString()
+              : new Date(Number(row.publishedAt)).toISOString(),
+          // Brief citations come from the claim's supporting roles only; context
+          // remains available on the full signal page.
+          evidenceUrls: evidenceUrls.map((url) => ({ url })),
+          hitRate: resolved.hitRate,
+          hitRateSample: resolved.sample,
+          hitRateBand: resolved.band,
+          ...editorial,
+          provenance,
+        },
+      ];
+    })
+    .slice(0, STOCKS_LIMIT);
 }
 
 async function loadBriefProvenanceBySignalId(
@@ -837,7 +852,12 @@ async function buildIdeas(
   // India D2C Opportunity Pipeline (plan 0013). Prepend up to 3 briefs for
   // south-asia and 1 rotating brief for global, ahead of community digests.
   // Real D1 community ideas still fill the remaining slots up to IDEAS_LIMIT.
-  const d2cItems = d2cBriefItemsForRegion(region);
+  const d2cItems = d2cBriefItemsForRegion(region)
+    .filter((item) => item.evidenceUrls.some((evidence) => isPublicSourceLink(evidence.url)))
+    .map((item) => ({
+      ...item,
+      whyNow: item.opportunity?.marketTimingReasons[0] ?? item.description,
+    }));
 
   const sinceMs = Date.now() - COMMUNITY_DIGEST_LOOKBACK_DAYS * 24 * 60 * 60 * 1000;
   // Source A: community digests' key_action items across public digests.
@@ -872,6 +892,7 @@ async function buildIdeas(
     ideas.push({
       title: action.title,
       description: action.desc || digest.summaryText.slice(0, 240),
+      whyNow: action.desc || digest.summaryText.slice(0, 240),
       source: 'community',
       region,
       subreddit: digest.subreddit,
@@ -1016,6 +1037,7 @@ async function buildTrends(
     trends.push({
       title: trend.title,
       description: trend.desc || digest.summaryText.slice(0, 240),
+      whyNow: trend.desc || digest.summaryText.slice(0, 240),
       subreddit: digest.subreddit,
       region,
       evidenceUrls: [{ url: evidenceUrl }],
@@ -1237,40 +1259,37 @@ export async function precomputeBriefSnapshots(env: { DB: D1Database }): Promise
     try {
       const countries = countriesForRegion(region);
 
-      let [stocks, ideas, trends] = await Promise.all([
-        safe(() => buildStocks(database, countries), 'stocks'),
-        safe(() => buildIdeas(database, region, countries), 'ideas'),
-        safe(() => buildTrends(database, region, countries), 'trends'),
+      const [stockResult, ideaResult, trendResult] = await Promise.all([
+        safeCategory(() => buildStocks(database, countries), 'stocks'),
+        safeCategory(() => buildIdeas(database, region, countries), 'ideas'),
+        safeCategory(() => buildTrends(database, region, countries), 'trends'),
       ]);
-
-      if (stocks.length === 0) stocks = fallbackStocks(region, STOCKS_LIMIT);
-      if (ideas.length === 0) ideas = fallbackIdeas(region, IDEAS_LIMIT);
-      if (trends.length === 0) trends = fallbackTrends(region, TRENDS_LIMIT);
-
-      // Spotlight rotation for anonymous visitors (personal sections).
-      const spotlight = pickSpotlight(region);
-      let perception: BriefPerceptionItem[] = [];
-      let improvements: BriefImprovementItem[] = [];
-      let hasBrand = false;
-      if (spotlight) {
-        const seeded = renderFromSeed(spotlight.id);
-        if (seeded) {
-          perception = seeded.perception;
-          improvements = seeded.improvements;
-          hasBrand = true;
-        }
-      }
+      const stocks = stockResult.items;
+      const ideas = ideaResult.items;
+      const trends = trendResult.items;
+      const categoryStates: BriefCategoryStates = {
+        stocks: stockResult.state,
+        ideas: ideaResult.state,
+        trends: trendResult.state,
+      };
 
       const snapshot: BriefSnapshot = {
         generatedAt: nowIso,
         region,
-        hasBrand,
+        hasBrand: false,
         stocks,
         ideas,
         trends,
-        perception,
-        improvements,
+        perception: [],
+        improvements: [],
+        categoryStates,
       };
+
+      const receipt = buildBriefEditionReceipt(snapshot);
+      if (!receipt.publishable) {
+        console.warn(`[brief-precompute] ${region} rejected`, JSON.stringify(receipt));
+        continue;
+      }
 
       await database
         .insert(schema.dailyBriefSnapshots)
@@ -1289,7 +1308,7 @@ export async function precomputeBriefSnapshots(env: { DB: D1Database }): Promise
         });
 
       console.log(
-        `[brief-precompute] ${region}: ${stocks.length} stocks, ${ideas.length} ideas, ${trends.length} trends`
+        `[brief-precompute] ${region}: ${stocks.length} stocks, ${ideas.length} ideas, ${trends.length} trends; gate=pass`
       );
     } catch (err) {
       console.error(`[brief-precompute] ${region} failed:`, err);

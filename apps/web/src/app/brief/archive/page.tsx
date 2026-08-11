@@ -49,7 +49,7 @@ export default async function BriefArchivePage() {
     <PageShell>
       <header className="border-b border-[var(--color-line)] pb-6">
         <Link
-          href="/brief"
+          href="/"
           className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500 hover:text-zinc-300"
         >
           ← today’s brief
@@ -80,8 +80,8 @@ export default async function BriefArchivePage() {
           <p className="mt-3 text-sm text-zinc-500">
             Brief snapshots are stored daily by the precompute cron. The archive will populate as
             the cron runs. Today’s brief is always available at{' '}
-            <Link href="/brief" className="text-[var(--color-accent)] hover:underline">
-              /brief
+            <Link href="/" className="text-[var(--color-accent)] hover:underline">
+              today’s brief
             </Link>
             .
           </p>

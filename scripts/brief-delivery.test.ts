@@ -162,6 +162,9 @@ const fullSnapshot = {
       direction: 'up' as const,
       confidence: 'high' as const,
       headline: 'H200 supply loosening',
+      whatChanged: 'Nvidia suppliers reported shorter H200 delivery windows.',
+      whyItMatters: 'Faster deliveries may unlock delayed accelerator deployments.',
+      uncertainty: 'The improvement may be temporary if hyperscaler orders accelerate again.',
       signalType: 'supply-demand',
       evidenceUrls: [
         { url: 'https://a.example/1' },
@@ -170,7 +173,7 @@ const fullSnapshot = {
       ] as Array<{ url: string }>,
       hitRate: 0.667,
       hitRateSample: 9,
-      hitRateBand: 'medium' as const,
+      hitRateBand: 'direct' as const,
     },
   ],
   ideas: [
@@ -219,6 +222,11 @@ const secs = briefSnapshotToEmailSections(
 checkEq('empty trends dropped → 4 sections', secs.length, 4);
 checkEq('stocks section title', secs[0]?.title, '01 / stocks watching for a boom');
 checkEq('hit-rate rounded to percent', secs[0]?.items[0]?.text.includes('hit-rate 67%'), true);
+checkEq(
+  'new editorial fields flow through compact-compatible rendering',
+  secs[0]?.items[0]?.text.includes('What changed: Nvidia suppliers'),
+  true
+);
 checkEq('citation links capped at 2', secs[0]?.items[0]?.links.length, 2);
 checkEq('ideas subreddit rendered', secs[1]?.items[0]?.text.includes('(r/smallbusiness)'), true);
 checkEq(
@@ -262,6 +270,29 @@ checkEq(
   'compact payload has no delivery identity',
   JSON.stringify(compact).includes('userId'),
   false
+);
+
+const familyRateSnapshot = {
+  ...fullSnapshot,
+  categoryStates: {
+    stocks: { status: 'ready', source: 'live' },
+    ideas: { status: 'ready', source: 'live' },
+    trends: { status: 'empty', source: 'live' },
+  },
+  stocks: [{ ...fullSnapshot.stocks[0], hitRateBand: 'family' as const }],
+};
+const familyRateDigest = briefSnapshotToCompactDigest(
+  familyRateSnapshot as unknown as Parameters<typeof briefSnapshotToCompactDigest>[0]
+);
+checkEq(
+  'generic family hit-rate is withheld from agent-readable delivery',
+  familyRateDigest.sections[0]?.items[0]?.text.includes('hit-rate 67%'),
+  false
+);
+checkEq(
+  'category states remain backward-compatible with compact v1',
+  familyRateDigest.schema,
+  'high-signal.compact-digest.v1'
 );
 
 async function main() {

@@ -65,7 +65,7 @@ export interface HistoricalClaimBackfill {
   assertion: string;
   evidence: Array<{
     url: string;
-    role: 'primary' | 'corroboration';
+    role: 'primary' | 'context';
   }>;
 }
 
@@ -92,7 +92,10 @@ export function buildHistoricalClaimBackfill(input: {
     assertion,
     evidence: urls.map((url, index) => ({
       url,
-      role: index === 0 ? 'primary' : 'corroboration',
+      // URL order proves neither independence nor semantic corroboration.
+      // Historical imports stay contextual until an operator/judge promotes
+      // an aligned source explicitly.
+      role: index === 0 ? 'primary' : 'context',
     })),
   };
 }
@@ -113,11 +116,21 @@ export function selectBriefClaimProvenance(
   claims: ClaimWithEvidence[]
 ): BriefClaimProvenance | null {
   for (const claim of claims) {
+    if (claim.reviewStatus !== 'published') continue;
+    const rollup = rollupEvidence(claim.evidence);
+    if (!judgePublishability(rollup).publishable) continue;
     const evidenceUrls = Array.from(
-      new Set(claim.evidence.map((link) => link.evidenceUrl).filter(Boolean))
+      new Set(
+        claim.evidence
+          .filter(
+            (link) =>
+              (link.role === 'primary' || link.role === 'corroboration') &&
+              isUsableClaimEvidenceLink(link)
+          )
+          .map((link) => link.evidenceUrl)
+      )
     );
     if (evidenceUrls.length === 0) continue;
-    const rollup = rollupEvidence(claim.evidence);
     return {
       claimId: claim.id,
       assertion: claim.assertion,
@@ -145,26 +158,62 @@ export interface EvidenceRollup {
   context: number;
   distinctUrls: number;
   hosts: string[];
+  supportingHosts: string[];
+  unusableSupporting: number;
+}
+
+export function isUsableClaimEvidenceLink(link: ClaimEvidenceLink): boolean {
+  if (!Number.isFinite(link.weight) || link.weight <= 0) return false;
+  try {
+    const url = new URL(link.evidenceUrl);
+    if (url.protocol !== 'https:' && url.protocol !== 'http:') return false;
+  } catch {
+    return false;
+  }
+  const notes = link.notes ?? '';
+  if (/\b(alignment:(?:unverified|rejected)|status:(?:dead|unreachable))\b/i.test(notes)) {
+    return false;
+  }
+
+  // A URL alone is not a retained receipt. New supporting links must point to
+  // an ingested source document; an explicit receipt marker keeps older,
+  // operator-verified links compatible without pretending URL order proves
+  // semantic alignment.
+  const retainedReceipt = Boolean(link.sourceDocumentId) || /\breceipt:verified\b/i.test(notes);
+  const aligned = /\balignment:verified\b/i.test(notes);
+  return retainedReceipt && aligned;
 }
 
 export function rollupEvidence(links: ClaimEvidenceLink[]): EvidenceRollup {
   const hosts = new Set<string>();
+  const supportingHosts = new Set<string>();
   const urls = new Set<string>();
   let primary = 0;
   let corroboration = 0;
   let contradiction = 0;
   let context = 0;
+  let unusableSupporting = 0;
   for (const l of links) {
     urls.add(l.evidenceUrl);
+    let host: string | null = null;
     try {
-      hosts.add(new URL(l.evidenceUrl).host);
+      host = new URL(l.evidenceUrl).host.toLowerCase();
+      hosts.add(host);
     } catch {
       // Non-URL evidence (rare but allowed) — skip host bookkeeping.
     }
-    if (l.role === 'primary') primary++;
-    else if (l.role === 'corroboration') corroboration++;
-    else if (l.role === 'contradiction') contradiction++;
+    const usable = isUsableClaimEvidenceLink(l);
+    if (l.role === 'primary') {
+      if (usable) primary++;
+      else unusableSupporting++;
+    } else if (l.role === 'corroboration') {
+      if (usable) corroboration++;
+      else unusableSupporting++;
+    } else if (l.role === 'contradiction') contradiction++;
     else context++;
+    if (usable && host && (l.role === 'primary' || l.role === 'corroboration')) {
+      supportingHosts.add(host);
+    }
   }
   return {
     total: links.length,
@@ -174,6 +223,8 @@ export function rollupEvidence(links: ClaimEvidenceLink[]): EvidenceRollup {
     context,
     distinctUrls: urls.size,
     hosts: Array.from(hosts),
+    supportingHosts: Array.from(supportingHosts),
+    unusableSupporting,
   };
 }
 
@@ -187,7 +238,6 @@ export interface PublishabilityVerdict {
 // links (primary + corroboration). Contradiction blocks publish until the
 // reviewer resolves it.
 export function judgePublishability(rollup: EvidenceRollup): PublishabilityVerdict {
-  const supporting = rollup.primary + rollup.corroboration;
   if (rollup.contradiction > 0) {
     return {
       publishable: false,
@@ -197,10 +247,15 @@ export function judgePublishability(rollup: EvidenceRollup): PublishabilityVerdi
   if (rollup.primary < 1) {
     return { publishable: false, reason: 'no_primary_evidence' };
   }
-  if (supporting < 2) {
+  if (rollup.corroboration < 1) {
     return { publishable: false, reason: 'thin_corroboration' };
   }
-  // At least one independent host helps avoid single-source bias.
+  if (rollup.supportingHosts.length < 2) {
+    return { publishable: false, reason: 'support_not_independent' };
+  }
+  if (rollup.unusableSupporting > 0) {
+    return { publishable: false, reason: 'unusable_supporting_evidence' };
+  }
   return { publishable: true, reason: 'primary_plus_corroboration' };
 }
 

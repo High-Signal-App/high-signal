@@ -1,77 +1,94 @@
 import Link from 'next/link';
 import type { Route } from 'next';
-import { ProductPicker } from '@/components/brief/ProductPicker';
 import { RegionPicker } from '@/components/brief/RegionPicker';
-import { regionLabel, type Region } from '@high-signal/shared';
+import {
+  categoryStatesForSnapshot,
+  regionLabel,
+  type BriefCategoryStatus,
+  type BriefSnapshot,
+  type Region,
+} from '@high-signal/shared';
 
-const productLoop = [
-  {
-    label: 'Data',
-    href: '/data',
-  },
-  {
-    label: 'Signals',
-    href: '/signals',
-  },
-  {
-    label: 'History',
-    href: '/daily/history',
-  },
-  {
-    label: 'Evals',
-    href: '/agent-eval',
-  },
-];
+function stateLabel(status: BriefCategoryStatus, count: number) {
+  if (status === 'ready') return `${count} ${count === 1 ? 'item' : 'items'}`;
+  if (status === 'unavailable') return 'unavailable';
+  return 'no qualifying items';
+}
 
 export function DailyBriefHero({
+  brief,
   region,
-  activeProductId,
-  generatedAt,
-  selectedProductName,
-  spotlightName,
+  editionDate,
 }: {
+  brief: BriefSnapshot;
   region: Region;
-  activeProductId: string;
-  generatedAt: string;
-  selectedProductName?: string | null;
-  spotlightName?: string | null;
+  editionDate?: string;
 }) {
-  const generated = generatedAt.slice(0, 16).replace('T', ' ');
-  const productContext = selectedProductName ?? spotlightName ?? 'rotating product spotlight';
+  const generated = brief.generatedAt.slice(0, 16).replace('T', ' ');
+  const date = editionDate ?? brief.generatedAt.slice(0, 10);
+  const states = categoryStatesForSnapshot(brief);
+  const contents = [
+    {
+      href: '#markets-companies',
+      label: 'Markets & companies',
+      status: states.stocks.status,
+      count: brief.stocks.length,
+    },
+    {
+      href: '#business-opportunities',
+      label: 'Business opportunities',
+      status: states.ideas.status,
+      count: brief.ideas.length,
+    },
+    {
+      href: '#behavior-culture',
+      label: 'Behavior & culture',
+      status: states.trends.status,
+      count: brief.trends.length,
+    },
+  ] as const;
 
   return (
-    <section className="border-b border-[var(--color-line)] pb-6">
+    <header className="border-b border-[var(--color-line)] pb-7">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-muted)]">
-        <span className="text-[var(--color-accent)]">daily brief</span>
-        <span>{regionLabel(region).toLowerCase()}</span>
-        <span>{productContext.toLowerCase()}</span>
-        <span className="ml-auto">{generated} UTC</span>
+        <span className="text-[var(--color-accent)]">Daily Brief</span>
+        <span>Edition {date}</span>
+        <span>{regionLabel(region)}</span>
+        <span className="sm:ml-auto">Published {generated} UTC</span>
       </div>
 
-      <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+      <div className="mt-6 grid gap-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
         <div>
-          <h1 className="text-3xl font-medium leading-tight tracking-tight text-[var(--color-fg)] sm:text-4xl">
-            Daily signal brief
+          <h1 className="max-w-3xl text-4xl font-medium leading-[1.05] tracking-[-0.03em] text-[var(--color-fg)] sm:text-5xl">
+            What changed, why it matters, and what remains uncertain.
           </h1>
-          <p className="mt-3 max-w-3xl text-sm leading-6 text-[var(--color-muted)]">
-            A source-linked readout across data, signals, history, and evaluations. Cited evidence
-            stays attached to every claim.
+          <p className="mt-4 max-w-[70ch] text-sm leading-6 text-[var(--color-muted)]">
+            One evidence-first edition across markets, business opportunities, and behavior. Items
+            earn their place; empty categories stay empty, and every archived edition is permanent.
           </p>
         </div>
-
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
-          <RegionPicker active={region} />
-          <ProductPicker active={activeProductId} />
-        </div>
+        <RegionPicker active={region} />
       </div>
 
-      <nav className="mt-5 flex flex-wrap gap-x-4 gap-y-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-muted)]">
-        {productLoop.map(({ label, href }, index) => (
-          <Link key={label} href={href as Route} className="hover:text-[var(--color-accent)]">
-            {String(index + 1).padStart(2, '0')} / {label}
+      <nav
+        aria-label="Brief contents"
+        className="mt-7 -mx-1 flex snap-x gap-2 overflow-x-auto px-1 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
+        {contents.map((item, index) => (
+          <Link
+            key={item.href}
+            href={item.href as Route}
+            className="min-w-[210px] snap-start border-t border-[var(--color-line)] pt-3 hover:border-[var(--color-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-accent)] sm:min-w-0 sm:flex-1"
+          >
+            <span className="block text-sm font-medium text-[var(--color-fg)]">
+              {index + 1}. {item.label}
+            </span>
+            <span className="mt-1 block font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--color-muted)]">
+              {stateLabel(item.status, item.count)}
+            </span>
           </Link>
         ))}
       </nav>
-    </section>
+    </header>
   );
 }

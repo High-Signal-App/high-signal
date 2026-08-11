@@ -33,12 +33,7 @@ const GROUPS: Group[] = [
       {
         href: '/',
         label: 'Brief (homepage)',
-        note: 'Anonymous + signed-in homepage. Five sections.',
-      },
-      {
-        href: '/brief',
-        label: 'Brief (full surface)',
-        note: 'Same content as homepage, deep-linkable region/product.',
+        note: 'The current public edition with three evidence-qualified categories and a region filter.',
       },
       {
         href: '/settings/delivery',

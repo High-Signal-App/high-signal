@@ -15,8 +15,8 @@ which of these are active vs parked.
 ## Brand & core product
 
 - **Brand**: High Signal.
-- **Core product**: one **Daily Brief** per user per day, generated end-of-day
-  from the helpers below. The brief is the homepage for signed-in users.
+- **Core product**: one public **Daily Brief** per day, generated end-of-day
+  from the helpers below. The current edition is the homepage for every visitor.
 - **Codename**: `high-signal` (rebrand TBD post-traction).
 
 ## Knowledge domains (three, no more)
@@ -34,33 +34,39 @@ of scope as of 2026-05-25.)
 
 ## Public default feed (homepage for any visitor, signed in or not) — 3 sections
 
-1. **Stocks watching for a boom** — finance × technology overlap. Every claim
-   shows the project's prior **hit-rate** on that signal type inline (the moat).
-2. **Business ideas to build** — startups × community-demand signals.
-3. **New lifestyle trends** — community + cultural shifts surfaced from forums
+1. **Markets & companies** — finance × technology overlap. Each eligible item
+   states what changed, why it matters, and the principal uncertainty. A direct
+   **hit-rate** appears only after that exact signal type earns enough history;
+   generic family percentages are not shown in the public edition.
+2. **Business opportunities** — startups × retained community-demand signals.
+3. **Behavior & culture** — community and cultural shifts surfaced from forums
    and transcripts.
 
-## Two more sections appear after a brand is connected
+The edition has no target length. More items may ship when each independently
+clears the same editorial and evidence gates; no category is filled with seed or
+synthetic fallback content. `ready`, `empty`, and `unavailable` are explicit
+states, and an unavailable category prevents a new dated snapshot.
 
-4. **How the market perceives your products** — mention intelligence over the
-   connected brand.
-5. **Ideas to improve your products** — agent-evaluation gaps for the connected
-   brand.
+## Product-specific intelligence stays in dedicated helpers
+
+The public web edition is intentionally non-personalized. Mention intelligence
+and agent-evaluation gaps remain available in Mentions and Agent Eval, and may
+remain in backward-compatible authenticated delivery payloads, but they do not
+become public Daily Brief categories or rotating product spotlights.
 
 ## Region
 
-Free filter on every section. Default = global. Users can switch to any region;
-brief recomputes scoped to that region's entities + sources. Preference persists
-via Clerk `publicMetadata.region` for signed-in users.
+Free filter on every section. Default = global. Visitors can switch region and
+the public brief recomputes from that region's entities and retained sources.
 
 ## Helpers / lenses (engine room, not destinations)
 
-- **Markets lens** feeds section 1. The AI-infra / semiconductors signal pipeline
+- **Markets lens** feeds Markets & companies. The AI-infra / semiconductors signal pipeline
   + public hit-rate ledger remain the proof-of-quality.
-- **Communities lens** feeds sections 2 and 3 — pain, demand, narrative,
+- **Communities lens** feeds Business opportunities and Behavior & culture — pain, demand, narrative,
   lifestyle drift.
-- **Mentions lens** feeds section 4 — requires the user to connect a brand.
-- **Agent Eval lens** feeds section 5 — requires the user to connect a brand.
+- **Mentions lens** remains a dedicated connected-brand helper.
+- **Agent Eval lens** remains a dedicated product-evidence helper.
 - **Lab substrate** (plan `0007`) is the local-first ingestion + index layer
   underneath all of them.
 - Surfaced under `/lenses/*` so the word "products" in the UI stays unambiguously
@@ -76,7 +82,12 @@ source catalog is regenerated from code at
 
 ## Hard rules baked in
 
-- **Cite or kill** — every claim in the brief points at ≥ 2 sources.
+- **Cite or kill** — every claim in the brief has a semantically aligned primary
+  source plus independent corroboration on the same assertion. Context receives
+  no support credit; unresolved contradiction and unusable receipts fail closed.
+- **Archive only after the edition gate** — every included item must pass
+  evidence, editorial, category, URL, and real-content checks before the dated
+  snapshot is written. Existing archived snapshots remain immutable.
 - **Memory is git-versioned markdown** — corrections are new entries citing
   prior, never edits. (See ADR-002 in
   [`../architecture/decisions.md`](../architecture/decisions.md).)

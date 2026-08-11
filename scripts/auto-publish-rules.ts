@@ -6,7 +6,10 @@
 
 import {
   PREDICTION_MARKET_DOMAINS,
+  isUsableClaimEvidenceLink,
   isPredictionMarketOnly as isPredictionMarketOnlyUrls,
+  judgePublishability,
+  rollupEvidence,
   type ClaimWithEvidence,
 } from '@high-signal/shared';
 
@@ -46,20 +49,38 @@ export function applyStructuredClaimEvidence<T extends JudgeableSignal>(
   if (claims.length === 0) {
     return { ...signal, provenanceSource: 'legacy_signal' };
   }
-  const links = claims.flatMap((claim) => claim.evidence);
-  const evidenceUrls = Array.from(new Set(links.map((link) => link.evidenceUrl).filter(Boolean)));
+  const evaluated = claims.map((claim) => {
+    const rollup = rollupEvidence(claim.evidence);
+    return { claim, rollup, verdict: judgePublishability(rollup) };
+  });
+  const eligible = evaluated.find(({ verdict }) => verdict.publishable);
+  const selected = eligible ?? evaluated[0];
+  const links = selected?.claim.evidence ?? [];
+  const supportingLinks = links.filter(
+    (link) =>
+      (link.role === 'primary' || link.role === 'corroboration') && isUsableClaimEvidenceLink(link)
+  );
+  const evidenceUrls = Array.from(
+    new Set(supportingLinks.map((link) => link.evidenceUrl).filter(Boolean))
+  );
   const hosts = new Set(evidenceUrls.map(urlHost).filter(Boolean));
   const marketOnly = isPredictionMarketOnlyUrls(evidenceUrls);
-  const contradiction = links.some((link) => link.role === 'contradiction');
+  const reason = selected?.verdict.reason ?? 'no_structured_claim';
+  const structuredEligible = Boolean(eligible);
   return {
     ...signal,
     evidenceUrls,
     independentSourceCount: hosts.size,
     sourceClasses: marketOnly ? ['market'] : [],
-    publishable: contradiction ? false : signal.publishable,
-    qualityReasons: contradiction
-      ? [...(signal.qualityReasons ?? []), 'structured_contradiction']
-      : signal.qualityReasons,
+    publishable: structuredEligible ? signal.publishable : false,
+    qualityReasons: structuredEligible
+      ? signal.qualityReasons
+      : [
+          ...(signal.qualityReasons ?? []),
+          reason === 'contradiction_present'
+            ? 'structured_contradiction'
+            : `structured_claim_ineligible:${reason}`,
+        ],
     provenanceSource: 'structured_claims',
   };
 }
@@ -146,18 +167,32 @@ export function deterministicVerdict(signal: JudgeableSignal): VerdictResult {
   const reasons = signal.qualityReasons ?? [];
   const classes = signal.sourceClasses ?? [];
 
-  if (evidence < 2) {
-    return {
-      verdict: 'kill',
-      reason: `only ${evidence} evidence url(s) — fails cite-or-kill`,
-      source: 'rule',
-    };
-  }
-
   if (reasons.includes('structured_contradiction')) {
     return {
       verdict: 'kill',
       reason: 'structured claim contains unresolved contradictory evidence',
+      source: 'rule',
+    };
+  }
+
+  const structuredFailure = reasons.find((reason) =>
+    reason.startsWith('structured_claim_ineligible:')
+  );
+  if (structuredFailure) {
+    return {
+      verdict: 'kill',
+      reason: structuredFailure.replace(
+        'structured_claim_ineligible:',
+        'structured claim failed: '
+      ),
+      source: 'rule',
+    };
+  }
+
+  if (evidence < 2) {
+    return {
+      verdict: 'kill',
+      reason: `only ${evidence} evidence url(s) — fails cite-or-kill`,
       source: 'rule',
     };
   }

@@ -30,11 +30,11 @@ const STEPS = [
   },
   {
     name: 'Score and tag each candidate',
-    text: "Each candidate is scored against the pipeline's quality rubric: number of evidence URLs, number of independent source classes, presence of fallback flags, semantic clarity of the directional claim. Output is a quality band and a publishable boolean.",
+    text: "Each candidate is scored against the pipeline's quality rubric and converted into a structured assertion. Supporting links must be semantically aligned, retained as source receipts, and assigned explicit primary, corroboration, context, or contradiction roles.",
   },
   {
     name: 'Auto-judge — publish, kill, or escalate',
-    text: 'A deterministic rubric runs at 07:00 UTC. Drafts with ≥ 2 independent source classes and pipeline blessing PUBLISH. Prediction-market-only drafts (Manifold, Polymarket, Kalshi alone) KILL — markets reflect crowd opinion, not new information. Borderline cases ESCALATE to an AI judge with the same hard rules in its system prompt.',
+    text: 'A deterministic rubric runs at 07:00 UTC. A structured claim needs one aligned primary source and independent aligned corroboration on the same assertion. Context does not count, contradiction blocks, and unusable receipts fail closed. Prediction-market-only drafts KILL. Ambiguous alignment may escalate to the configured AI judge; unavailable judging still fails closed.',
   },
   {
     name: 'Score against subsequent market moves',
@@ -42,7 +42,15 @@ const STEPS = [
   },
   {
     name: 'Surface in the Daily Brief',
-    text: 'The brief composes five sections from D1: stocks watching for a boom, business ideas to build, lifestyle trends, market perception of operator brands, and product-improvement ideas. Region filter free for everyone. Hit-rate inline on every stock claim.',
+    text: 'The public brief composes three categories from retained evidence: Markets & companies, Business opportunities, and Behavior & culture. It has no target item count and inserts no seed fallback. Each market item states what changed, why it matters, and what remains uncertain; only reliable direct hit-rate history appears inline.',
+  },
+  {
+    name: 'Gate the permanent edition',
+    text: 'Before a dated snapshot is written, the edition gate verifies category states, editorial sentence integrity, supporting evidence roles, usable links, and the absence of synthetic markers. Valid partial editions may archive with explicit empty categories; unavailable infrastructure leaves the prior snapshot unchanged.',
+  },
+  {
+    name: 'Correct with a successor, never rewrite',
+    text: 'Published signals are append-only. Errors are fixed by publishing a new signal that cites the prior slug; the original row flips to corrected. This preserves the public ledger and the hit-rate history.',
   },
 ];
 
@@ -50,22 +58,22 @@ const FAQ = [
   {
     question: 'What does cite-or-kill mean?',
     answer:
-      "Every published signal must reference at least two independent sources. If it can't, it doesn't ship — it gets killed by the auto-judge. This is the project's hardest rule; it's why prediction-market-only drafts are explicitly killed even when the upstream pipeline marks them publishable.",
+      'Every published claim needs a semantically aligned primary source and independent aligned corroboration attached to the same assertion. Context links do not count as support, unresolved contradiction blocks publication, and required evidence without a retained receipt fails closed.',
   },
   {
     question: 'How is the hit-rate computed?',
     answer:
-      "Hits / (hits + misses). Pushes (market moves too small to call) are excluded. A signal needs at least 3 scored predictions on its exact type before its direct hit-rate displays; below that, the page shows the family-level rate so a fresh signal type isn't silent. Below the family threshold, the page shows 'early calls' with the current sample, or 'no live calls yet'.",
+      'Hits / (hits + misses). Pushes (market moves too small to call) are excluded. A signal needs at least 3 scored predictions on its exact type before its direct hit-rate displays. Smaller direct samples are labeled early; generic family percentages remain available for internal calibration but are withheld from the public brief.',
   },
   {
     question: 'What are signal families?',
     answer:
-      "Signal types are grouped into 8 families (supply-demand, ai-adoption, macro-demand, capital-allocation, consumer-behavior, platform-momentum, regulatory-shift, other). When a brand-new signal type appears, it borrows confidence from its family's historical hit-rate until it earns its own sample. This is honest because the family rule is published — the rate isn't being inflated, it's being attributed to the right scope.",
+      'Signal types are grouped into 8 families (supply-demand, ai-adoption, macro-demand, capital-allocation, consumer-behavior, platform-momentum, regulatory-shift, other). Families help internal calibration and sparse-sample analysis, but a family percentage is not presented as the public track record of a new exact signal type.',
   },
   {
     question: 'What sources do you consider independent?',
     answer:
-      "Different domains AND different source classes. Two Reuters URLs don't corroborate; one Reuters URL plus one SEC filing does. Source classes today include news, ir (company investor relations), filing (SEC / regulatory), blog, regulator, transcript, repo, and market (prediction markets). A draft that cites only one class is killed.",
+      'The supporting links must come from different hosts or qualifying source classes and support the same assertion in different roles. Two links from one host are not independent, two primary links do not replace corroboration, and entity-adjacent context never becomes support merely because it was attached to the draft.',
   },
   {
     question: 'Why kill prediction-market drafts?',
@@ -75,7 +83,7 @@ const FAQ = [
   {
     question: 'Why no signup wall?',
     answer:
-      "Auto-publish without a human gate (sarthak's 2026-05-26 directive) means the brief is fully composable and shareable. Region picker is free. The five-section brief renders identically for anonymous and signed-in users — connecting a brand only unlocks the personal sections being scoped to the operator's own product instead of the rotating spotlight.",
+      'The Daily Brief is a public, shareable record. Its three categories render identically for anonymous and signed-in visitors, the region picker is free, and no rotating product spotlight or public personalization changes the edition. Connected-brand work stays in Mentions and Agent Eval.',
   },
   {
     question: 'Where do the published signals live?',
@@ -112,7 +120,7 @@ export default function MethodologyPage() {
 
       <StatGrid
         items={[
-          { label: 'core principle', value: 'cite or kill', sub: '≥ 2 independent sources' },
+          { label: 'core principle', value: 'cite or kill', sub: 'primary + corroboration' },
           { label: 'decision gate', value: 'auto-judge', sub: 'deterministic + AI escalation' },
           { label: 'trust mechanism', value: 'public ledger', sub: 'hit-rate inline per signal' },
           { label: 'scope', value: 'tech / startups / finance', sub: 'global + 7 regions' },
