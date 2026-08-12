@@ -84,6 +84,18 @@ const GROUPS: Group[] = [
       { href: '/signals/types', label: 'Signals by type', note: 'Browse by signal type.' },
       { href: '/track-record', label: 'Track record', note: 'Public hit-rate ledger.' },
       {
+        href: '/data/hit-rate',
+        label: 'Hit-rate dataset',
+        note: 'Human-readable ledger with JSON/CSV downloads.',
+        flag: 'new',
+      },
+      {
+        href: '/data/source-accuracy',
+        label: 'Source accuracy',
+        note: 'Per-source-class hit-rate.',
+        flag: 'new',
+      },
+      {
         href: '/track-record/labels',
         label: 'Track record (labels)',
         note: 'Per-label rates: breakout vs divergence.',
@@ -120,6 +132,7 @@ const GROUPS: Group[] = [
     blurb: 'Engine-room surfaces that feed the brief.',
     surfaces: [
       { href: '/markets', label: 'Markets', note: 'Narrow markets lens.' },
+      { href: '/markets/tickers', label: 'Tickers', note: 'Company pages by ticker symbol.' },
       { href: '/markets/history', label: 'Markets history', note: 'Historical market context.' },
       { href: '/mentions', label: 'Mentions', note: 'Brand mention intelligence.' },
       {
@@ -252,6 +265,12 @@ const GROUPS: Group[] = [
     surfaces: [
       { href: '/about', label: 'About', note: 'What High Signal is.' },
       { href: '/methodology', label: 'Methodology', note: 'How evidence-first scoring works.' },
+      {
+        href: '/editorial-policy',
+        label: 'Editorial policy',
+        note: 'Accuracy, source independence, and corrections.',
+        flag: 'new',
+      },
       { href: '/api-docs', label: 'API docs', note: 'Worker API reference.' },
       { href: '/privacy', label: 'Privacy', note: 'Privacy policy.' },
       { href: '/terms', label: 'Terms', note: 'Terms of use.' },

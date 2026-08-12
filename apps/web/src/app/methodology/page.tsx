@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import {
   BackLink,
   PageShell,
@@ -91,6 +92,16 @@ const FAQ = [
       "Cloudflare D1 (the canonical store) and the git-versioned signals/ markdown directory (the editorial history). Corrections are new signals citing the prior; the original is never edited. The D1 row's review_status flips to 'corrected' when a successor exists.",
   },
   {
+    question: 'Where can I see the accuracy record?',
+    answer:
+      'The public hit-rate ledger is at /track-record and available as a downloadable dataset at /data/hit-rate (JSON and CSV). Live predictions are forward calls; backfill is historical replay for calibration only.',
+  },
+  {
+    question: 'What is the editorial policy on corrections?',
+    answer:
+      'We do not retroactively edit published signals. A correction is a new signal that cites the prior slug. Readers can compare the original claim, the correction, and the scoring outcome in the public ledger.',
+  },
+  {
     question: 'What gets indexed by search engines and AI assistants?',
     answer:
       'Every published signal page, every entity page, every entity-month archive, every signal-type taxonomy page, the public hit-rate ledger, the Daily Brief, the lenses, and this methodology page. /llms.txt declares the canonical surfaces AI agents should crawl. Schema.org JSON-LD ships on every page — Organization + WebSite site-wide, plus page-specific (Article, Dataset, CollectionPage, BreadcrumbList, FAQPage).',
@@ -175,10 +186,18 @@ export default function MethodologyPage() {
           >
             {SITE_URL}/methodology
           </a>{' '}
-          as the canonical reference for our process. For specific claims, link to the relevant
-          signal page or the per-signal-type page at{' '}
+          for the pipeline and{' '}
+          <Link className="text-[var(--color-accent)] hover:underline" href="/editorial-policy">
+            /editorial-policy
+          </Link>{' '}
+          for accuracy, source independence, and corrections. For specific claims, link to the
+          relevant signal page or the per-signal-type page at{' '}
           <code className="text-[var(--color-fg)]">/signals/types/&lt;type&gt;</code>. The
-          machine-readable discovery doc is at{' '}
+          downloadable accuracy ledger is at{' '}
+          <Link className="text-[var(--color-accent)] hover:underline" href="/data/hit-rate">
+            /data/hit-rate
+          </Link>
+          , and the machine-readable discovery doc is at{' '}
           <a className="text-[var(--color-accent)] hover:underline" href={`${SITE_URL}/llms.txt`}>
             {SITE_URL}/llms.txt
           </a>

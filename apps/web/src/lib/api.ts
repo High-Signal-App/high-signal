@@ -183,6 +183,15 @@ export interface TrackBucket {
   hitRate: number | null;
 }
 
+export interface SourceAccuracyBucket {
+  sourceType: string;
+  hit: number;
+  miss: number;
+  push: number;
+  total: number;
+  hitRate: number | null;
+}
+
 export interface BacktestWorkbenchExample {
   id: string;
   slug: string;
@@ -395,6 +404,10 @@ export const api = {
   trackRecordCohorts: () =>
     fetchJson<{ live: TrackBucket[]; backfill: TrackBucket[]; all: TrackBucket[] }>(
       '/track-record/cohorts'
+    ),
+  sourceAccuracy: () =>
+    fetchJson<{ live: SourceAccuracyBucket[]; backfill: SourceAccuracyBucket[] }>(
+      '/track-record/source-accuracy'
     ),
   backtestWorkbench: (cohort: 'all' | 'live' | 'backfill' = 'live') =>
     fetchJson<BacktestWorkbench>(`/track-record/workbench?cohort=${cohort}`),

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 
-export default function WatchButton({ entityId }: { entityId: string }) {
+export function WatchButton({ entityId }: { entityId: string }) {
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
   const [err, setErr] = useState<string | null>(null);

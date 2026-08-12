@@ -147,11 +147,33 @@ export const PUBLIC_STATIC_ROUTES = [
     priority: 0.8,
   },
   {
+    path: '/editorial-policy',
+    title: 'Editorial policy',
+    description:
+      'Accuracy, source independence, AI disclosure, and the no-retroactive-edits corrections policy.',
+    changeFrequency: 'monthly',
+    priority: 0.8,
+  },
+  {
     path: '/data',
     title: 'Data sources',
     description: 'Public source coverage and freshness evidence.',
     changeFrequency: 'daily',
     priority: 0.85,
+  },
+  {
+    path: '/data/hit-rate',
+    title: 'Hit-rate ledger dataset',
+    description: 'Downloadable public hit-rate ledger for every High Signal market call.',
+    changeFrequency: 'daily',
+    priority: 0.85,
+  },
+  {
+    path: '/data/source-accuracy',
+    title: 'Source accuracy',
+    description: 'Per-source accuracy for High Signal evidence classes.',
+    changeFrequency: 'daily',
+    priority: 0.8,
   },
   {
     path: '/signals/types',
@@ -215,6 +237,13 @@ export const PUBLIC_STATIC_ROUTES = [
     description: 'Historical market intelligence snapshots.',
     changeFrequency: 'daily',
     priority: 0.65,
+  },
+  {
+    path: '/markets/tickers',
+    title: 'Ticker index',
+    description: 'Ticker-first index of every tracked public company.',
+    changeFrequency: 'weekly',
+    priority: 0.6,
   },
   {
     path: '/featured',
@@ -288,6 +317,13 @@ export const PUBLIC_DYNAMIC_ROUTE_TEMPLATES = [
     markdown: '/entities/{id}/{yyyy-mm}.md',
     description: 'One entity monthly signal archive.',
     pattern: /^\/entities\/[^/]+\/\d{4}-(0[1-9]|1[0-2])$/,
+  },
+  {
+    id: 'ticker',
+    html: '/markets/{ticker}',
+    markdown: '/markets/{ticker}.md',
+    description: 'One tracked public company by ticker symbol.',
+    pattern: /^\/markets\/[A-Z0-9]+(?:\.[A-Z]+)?$/i,
   },
   {
     id: 'entity',

@@ -227,6 +227,18 @@ export default async function DataPage() {
             >
               view interactive ledger →
             </Link>
+            <Link
+              href="/data/hit-rate"
+              className="border border-zinc-800 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.16em] text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
+            >
+              human-readable hit-rate page →
+            </Link>
+            <Link
+              href="/data/source-accuracy"
+              className="border border-zinc-800 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.16em] text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
+            >
+              source accuracy →
+            </Link>
           </div>
           <p className="mt-3 font-mono text-[10px] text-zinc-600">
             License: CC-BY-4.0. Cite as &ldquo;High Signal Public Hit-Rate Ledger&rdquo; with the

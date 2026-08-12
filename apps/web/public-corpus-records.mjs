@@ -71,6 +71,18 @@ export function buildPublicCorpusCandidates({
     )
   );
 
+  const tickerCandidates = entities
+    .filter((entity) => entity.ticker)
+    .map((entity) =>
+      candidate(
+        'ticker',
+        `/markets/${entity.ticker}`,
+        evaluateEntity({ signalCount: signalCounts.get(entity.id) ?? 0 }),
+        null,
+        `${entity.ticker}|${entity.id}`
+      )
+    );
+
   const entityPeriods = new Map();
   for (const signal of eligibleSignals) {
     const observed = new Date(signal.publishedAt);
@@ -156,6 +168,7 @@ export function buildPublicCorpusCandidates({
     ...briefCandidates,
     ...signalCandidates,
     ...entityCandidates,
+    ...tickerCandidates,
     ...entityPeriodCandidates,
     ...taxonomyCandidates,
     ...companyCandidates,

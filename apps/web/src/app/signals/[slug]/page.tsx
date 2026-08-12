@@ -7,6 +7,7 @@ import { DirectionPill } from '@/components/atoms/DirectionPill';
 import { ConfidenceBadge } from '@/components/atoms/ConfidenceBadge';
 import { MarkdownView } from '@/components/system/MarkdownView';
 import { SignalArticleJsonLd } from '@/components/seo/structured-data';
+import { ShareBar } from '@/components/molecules/ShareBar';
 import catalog from '@/lib/source-catalog.json';
 import { SITE_URL } from '@/lib/site';
 import { evaluateSignal, robotsForVerdict } from '../../../../public-corpus-policy.mjs';
@@ -212,6 +213,7 @@ export default async function SignalDetail({ params }: { params: Promise<{ slug:
             </span>
           ) : null}
         </div>
+        <ShareBar url={`${SITE_URL}/signals/${slug}`} title={headline} className="mt-6" />
       </header>
 
       <section className="mt-8 border border-zinc-800 bg-zinc-950/35 p-4">
@@ -456,7 +458,9 @@ export default async function SignalDetail({ params }: { params: Promise<{ slug:
         </section>
       )}
 
-      <p className="mt-10 border-l-2 border-zinc-800 pl-3 font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
+      <ShareBar url={`${SITE_URL}/signals/${slug}`} title={headline} className="mt-10" />
+
+      <p className="mt-6 border-l-2 border-zinc-800 pl-3 font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
         Decision support, not stock advice. This signal is research with cited evidence — not a
         recommendation to buy, sell, or hold any security.
       </p>
