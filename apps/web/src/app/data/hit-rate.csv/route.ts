@@ -25,15 +25,14 @@ function toRow(cohort: 'live' | 'backfill', b: TrackBucket): string {
 }
 
 export async function GET(): Promise<Response> {
-  let cohorts: { live: TrackBucket[]; backfill: TrackBucket[]; all: TrackBucket[] } = {
-    live: [],
-    backfill: [],
-    all: [],
-  };
+  let cohorts: { live: TrackBucket[]; backfill: TrackBucket[]; all: TrackBucket[] };
   try {
     cohorts = await api.trackRecordCohorts();
   } catch {
-    /* offline — return header only */
+    return new Response('hit-rate ledger temporarily unavailable\n', {
+      status: 503,
+      headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' },
+    });
   }
 
   const header = 'signal_type,cohort,hit,miss,push,pending,total,hit_rate';

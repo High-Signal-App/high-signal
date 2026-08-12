@@ -18,12 +18,12 @@ export function EntityDetail({ backHref, backLabel, canonicalPath, data }: Entit
     <main className="mx-auto max-w-5xl px-6 py-16">
       <a
         href={backHref}
-        className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500 hover:text-zinc-300"
+        className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--color-muted)] hover:text-zinc-300"
       >
         ← {backLabel}
       </a>
       <header className="mt-3 border-b border-zinc-800 pb-6">
-        <div className="flex items-baseline gap-3 font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
+        <div className="flex items-baseline gap-3 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
           {entity.ticker && <span className="text-[var(--color-accent)]">{entity.ticker}</span>}
           {entity.country && <span>{entity.country}</span>}
           {entity.sector && <span>{entity.sector}</span>}
@@ -38,14 +38,14 @@ export function EntityDetail({ backHref, backLabel, canonicalPath, data }: Entit
 
       <section className="mt-10 grid gap-12 md:grid-cols-[480px_1fr] md:gap-8">
         <div>
-          <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">
+          <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--color-muted)]">
             spillover graph <span className="nums">{relationships.length}</span>
           </h2>
           <div className="mt-4">
             {relationships.length > 0 ? (
               <SpilloverGraph primary={entity.id} relationships={relationships} />
             ) : (
-              <div className="border border-dashed border-zinc-800 p-10 text-center font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
+              <div className="border border-dashed border-zinc-800 p-10 text-center font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
                 no relationships seeded yet
               </div>
             )}
@@ -53,7 +53,7 @@ export function EntityDetail({ backHref, backLabel, canonicalPath, data }: Entit
         </div>
 
         <div>
-          <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">
+          <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--color-muted)]">
             relationship list
           </h2>
           <ul className="mt-4 divide-y divide-zinc-900">
@@ -69,15 +69,17 @@ export function EntityDetail({ backHref, backLabel, canonicalPath, data }: Entit
                     className="flex items-baseline justify-between gap-3 py-2 font-mono text-xs"
                   >
                     <span className="flex items-baseline gap-3">
-                      <span className="text-zinc-600">{dir}</span>
+                      <span className="text-[var(--color-muted)]">{dir}</span>
                       <a href={`/entities/${other}`} className="text-zinc-200 hover:text-white">
                         {other}
                       </a>
-                      <span className="text-[10px] uppercase tracking-[0.18em] text-zinc-500">
+                      <span className="text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
                         {r.type}
                       </span>
                     </span>
-                    <span className="nums text-[10px] text-zinc-500">{r.weight.toFixed(2)}</span>
+                    <span className="nums text-[10px] text-[var(--color-muted)]">
+                      {r.weight.toFixed(2)}
+                    </span>
                   </li>
                 );
               })}
@@ -87,9 +89,11 @@ export function EntityDetail({ backHref, backLabel, canonicalPath, data }: Entit
 
       {marketQuotes.length > 0 && (
         <section className="mt-12">
-          <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">
+          <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--color-muted)]">
             market consensus <span className="nums">{marketQuotes.length}</span>
-            <span className="ml-2 text-zinc-700">prediction-market quotes (latest)</span>
+            <span className="ml-2 text-[var(--color-muted)]">
+              prediction-market quotes (latest)
+            </span>
           </h2>
           <ul className="mt-4 divide-y divide-zinc-900">
             {marketQuotes.map((q) => {
@@ -97,7 +101,10 @@ export function EntityDetail({ backHref, backLabel, canonicalPath, data }: Entit
               const tone =
                 pct >= 65 ? 'text-emerald-400' : pct <= 35 ? 'text-rose-400' : 'text-zinc-300';
               return (
-                <li key={q.id} className="flex items-baseline gap-4 py-3">
+                <li
+                  key={q.id}
+                  className="flex flex-wrap items-baseline gap-x-4 gap-y-2 py-3 sm:flex-nowrap"
+                >
                   <span className={`nums w-14 shrink-0 font-mono text-lg font-medium ${tone}`}>
                     {pct}%
                   </span>
@@ -109,11 +116,11 @@ export function EntityDetail({ backHref, backLabel, canonicalPath, data }: Entit
                   >
                     {q.question}
                   </a>
-                  <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
+                  <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
                     {q.source}
                   </span>
                   {q.volume != null && (
-                    <span className="nums font-mono text-[10px] text-zinc-600">
+                    <span className="nums font-mono text-[10px] text-[var(--color-muted)]">
                       ${formatVolume(q.volume)}
                     </span>
                   )}
@@ -130,11 +137,11 @@ export function EntityDetail({ backHref, backLabel, canonicalPath, data }: Entit
       )}
 
       <section className="mt-12">
-        <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">
+        <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--color-muted)]">
           recent signals
         </h2>
         {signals.length === 0 ? (
-          <div className="mt-4 border border-dashed border-zinc-800 p-6 text-center font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
+          <div className="mt-4 border border-dashed border-zinc-800 p-6 text-center font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
             no signals yet
           </div>
         ) : (

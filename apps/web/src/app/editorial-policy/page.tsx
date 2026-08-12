@@ -48,7 +48,7 @@ const FAQ = [
   {
     question: 'How do you correct mistakes?',
     answer:
-      'Report an error through the contact link. We investigate, and if confirmed we publish a new signal citing the prior slug. The original remains visible with a corrected status and a link to the successor.',
+      'Report an error through the correction link on this page. We investigate, and if confirmed we publish a new signal citing the prior slug. The original remains visible with a corrected status and a link to the successor.',
   },
   {
     question: 'Can I rely on a signal for trading?',
@@ -116,6 +116,22 @@ export default function EditorialPolicyPage() {
             </details>
           ))}
         </div>
+      </section>
+
+      <section className="mt-12 border border-[var(--color-line)] p-5">
+        <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--color-accent)]">
+          corrections
+        </h2>
+        <p className="mt-3 max-w-3xl text-sm leading-6 text-[var(--color-muted)]">
+          Found a factual error or a broken source?{' '}
+          <a
+            className="text-[var(--color-accent)] underline-offset-2 hover:underline"
+            href="https://github.com/High-Signal-App/high-signal/issues/new"
+          >
+            Open a correction report
+          </a>{' '}
+          with the signal URL and the evidence that needs review.
+        </p>
       </section>
 
       <section className="mt-12 border border-[var(--color-line)] p-5">

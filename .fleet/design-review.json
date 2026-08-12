@@ -2,7 +2,7 @@
   "$schema": "fleet.design-review.v1",
   "version": 1,
   "project": "high-signal",
-  "target": "Cadenced brief feeds and Brief/Newspaper reader",
+  "target": "Owned evidence and ticker pages",
   "mode": "preserve",
   "register": "product",
   "context": {
@@ -14,57 +14,33 @@
     "probes": [],
     "selected": "existing-design",
     "approval": "not-required",
-    "before": "artifacts/design/before-cadenced-feeds-1440.png"
+    "before": "artifacts/design/before.png"
   },
   "evidence": {
     "screenshots": [
       {
         "width": 390,
-        "path": "artifacts/design/after-cadenced-feeds-brief-390.png"
+        "path": "artifacts/design/after-owned-evidence-390.png"
       },
       {
         "width": 768,
-        "path": "artifacts/design/after-cadenced-feeds-brief-768.png"
+        "path": "artifacts/design/after-owned-evidence-768.png"
       },
       {
         "width": 1440,
-        "path": "artifacts/design/after-cadenced-feeds-brief-1440.png"
-      },
-      {
-        "width": 390,
-        "path": "artifacts/design/after-cadenced-feeds-newspaper-390.png"
-      },
-      {
-        "width": 768,
-        "path": "artifacts/design/after-cadenced-feeds-newspaper-768.png"
-      },
-      {
-        "width": 1440,
-        "path": "artifacts/design/after-cadenced-feeds-newspaper-1440.png"
-      },
-      {
-        "width": 1440,
-        "path": "artifacts/design/after-cadenced-feeds-weekly-market-1440.png"
-      },
-      {
-        "width": 768,
-        "path": "artifacts/design/after-cadenced-feeds-monthly-brief-768.png"
-      },
-      {
-        "width": 390,
-        "path": "artifacts/design/after-cadenced-feeds-daily-archive-390.png"
+        "path": "artifacts/design/after-owned-evidence-1440.png"
       }
     ],
     "projectCheck": {
-      "command": "pnpm brief-feeds:test && pnpm feed-data-parity:test && pnpm --filter @high-signal/api exec vitest run src/__tests__/brief.test.ts && node scripts/worker-routing.test.mjs && pnpm --filter @high-signal/shared typecheck && pnpm --filter @high-signal/api typecheck && pnpm --filter @high-signal/web typecheck && pnpm --filter @high-signal/web build",
+      "command": "pnpm quality && pnpm --filter @high-signal/web build",
       "status": "pass"
     },
     "critique": {
-      "score": 33,
+      "score": 32,
       "maximum": 40
     },
     "audit": {
-      "score": 19,
+      "score": 16,
       "maximum": 20
     },
     "unresolved": {
@@ -74,27 +50,10 @@
     "detector": {
       "posture": "advisory",
       "findings": []
-    },
-    "browserReview": {
-      "tool": "Playwright with installed Chromium against the local webpack server",
-      "viewports": [
-        390,
-        768,
-        1440
-      ],
-      "routes": [
-        "/",
-        "/brief/2026-08-10",
-        "/feeds/markets-companies/weekly/2026-W33",
-        "/feeds/brief/monthly/2026-08"
-      ],
-      "horizontalOverflow": false,
-      "appConsoleErrors": 1,
-      "note": "All routes returned 200 with named controls, 44px primary targets, 6.49:1 muted text contrast, visible cyan keyboard focus, functioning local view persistence, and no document overflow. The existing unrelated Fleet vitals collector returned 404 and remains outside this feature scope."
     }
   },
   "ownerFeedback": {
     "decision": "delegated",
-    "note": "Owner explicitly delegated feed/cadence sorting and design preference handling, then approved the preserve-lane proposal on 2026-08-11."
+    "note": "Owner delegated final review and merge judgment in the fleet-wide sync request. Preserve-mode review passed after independent critique and audit, with zero unresolved P0/P1 findings."
   }
 }

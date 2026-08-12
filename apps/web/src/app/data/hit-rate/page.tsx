@@ -35,14 +35,16 @@ function fmtRate(value: number | null) {
 }
 
 async function loadCohorts(): Promise<{
+  available: boolean;
   live: TrackBucket[];
   backfill: TrackBucket[];
   all: TrackBucket[];
 }> {
   try {
-    return await api.trackRecordCohorts();
+    return { available: true, ...(await api.trackRecordCohorts()) };
   } catch {
     return {
+      available: false,
       live: [],
       backfill: [],
       all: [],
@@ -51,22 +53,33 @@ async function loadCohorts(): Promise<{
 }
 
 export default async function HitRateDataPage() {
-  const cohorts = await loadCohorts();
+  const { available, ...cohorts } = await loadCohorts();
 
   const live = summarize(cohorts.live);
   const backfill = summarize(cohorts.backfill);
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-12">
-      <TrackRecordDatasetJsonLd liveCount={live.total} backfillCount={backfill.total} />
+      {available && (
+        <TrackRecordDatasetJsonLd liveCount={live.total} backfillCount={backfill.total} />
+      )}
 
+      <LedgerHeader />
+      <LedgerContent available={available} cohorts={cohorts} live={live} backfill={backfill} />
+      <LedgerSchema />
+    </main>
+  );
+}
+
+function LedgerHeader() {
+  return (
+    <div>
       <Link
         href="/data"
-        className="font-mono text-[11px] text-zinc-500 underline-offset-2 hover:text-[var(--color-accent)] hover:underline"
+        className="font-mono text-[11px] text-[var(--color-muted)] hover:text-[var(--color-accent)] hover:underline"
       >
         ← data directory
       </Link>
-
       <header className="mt-4 mb-10 border-b border-zinc-800 pb-6">
         <h1 className="font-mono text-2xl font-semibold tracking-tight text-zinc-100">
           Public hit-rate ledger
@@ -80,83 +93,75 @@ export default async function HitRateDataPage() {
         <div className="mt-5 flex flex-wrap gap-3">
           <a
             href="/data/hit-rate.json"
-            className="border border-[var(--color-accent)]/60 bg-cyan-400/5 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.16em] text-[var(--color-accent)] hover:border-[var(--color-accent)]"
+            className="border border-[var(--color-accent)]/60 px-4 py-2 font-mono text-[11px] uppercase text-[var(--color-accent)]"
           >
             ↓ hit-rate.json
           </a>
           <a
             href="/data/hit-rate.csv"
-            className="border border-zinc-800 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.16em] text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
+            className="border border-zinc-800 px-4 py-2 font-mono text-[11px] uppercase text-zinc-400"
           >
             ↓ hit-rate.csv
           </a>
           <Link
             href="/track-record"
-            className="border border-zinc-800 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.16em] text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
+            className="border border-zinc-800 px-4 py-2 font-mono text-[11px] uppercase text-zinc-400"
           >
             interactive track record →
           </Link>
         </div>
       </header>
+    </div>
+  );
+}
 
-      <section className="mb-10 grid gap-px border border-zinc-800 bg-zinc-800 sm:grid-cols-3">
-        <MetricBox
-          label="live predictions"
-          value={live.total}
-          sub={`${fmtRate(hitRate(live.hit, live.miss))} hit-rate · ${live.hit} hit · ${live.miss} miss`}
-          tone="accent"
-        />
-        <MetricBox
-          label="backfill calibration"
-          value={backfill.total}
-          sub={`${fmtRate(hitRate(backfill.hit, backfill.miss))} hit-rate · ${backfill.hit} hit · ${backfill.miss} miss`}
-        />
-        <MetricBox
-          label="signal types scored"
-          value={cohorts.live.length}
-          sub={`${cohorts.live.length + cohorts.backfill.length} across live + backfill`}
-        />
-      </section>
+function LedgerContent({
+  available,
+  cohorts,
+  live,
+  backfill,
+}: {
+  available: boolean;
+  cohorts: { live: TrackBucket[]; backfill: TrackBucket[]; all: TrackBucket[] };
+  live: ReturnType<typeof summarize>;
+  backfill: ReturnType<typeof summarize>;
+}) {
+  return available ? (
+    <AvailableLedger cohorts={cohorts} live={live} backfill={backfill} />
+  ) : (
+    <section className="mb-10 border border-[var(--color-line)] p-5" role="status">
+      <h2 className="font-medium">Ledger temporarily unavailable</h2>
+      <p className="mt-2 text-sm text-[var(--color-muted)]">
+        The evidence service did not respond. This is not a zero-result dataset. Retry this page or
+        its downloads later.
+      </p>
+    </section>
+  );
+}
 
-      <section className="mb-12">
-        <h2 className="font-mono text-xs uppercase tracking-[0.18em] text-zinc-300">
-          live predictions by signal type
-        </h2>
-        <BucketTable buckets={cohorts.live} emptyHint="no live scored predictions yet" />
-      </section>
-
-      <section className="mb-12">
-        <h2 className="font-mono text-xs uppercase tracking-[0.18em] text-zinc-500">
-          backfill calibration by signal type
-        </h2>
-        <p className="mt-2 max-w-2xl text-sm text-zinc-500">
-          Use backfill to spot weak signal types and scoring bias. Do not market this as proof of
-          product quality.
-        </p>
-        <BucketTable buckets={cohorts.backfill} emptyHint="no backfill scored predictions yet" />
-      </section>
-
-      <section className="border border-zinc-800 p-5">
-        <h2 className="font-mono text-xs uppercase tracking-[0.18em] text-zinc-300">schema</h2>
-        <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
-          {[
-            ['signal_type', 'The signal type slug (e.g. capex_raise, order_book_softness).'],
-            ['cohort', '"live" (forward predictions) or "backfill" (historical replay).'],
-            ['hit', 'Predictions where the market moved in the predicted direction.'],
-            ['miss', 'Predictions where the market moved against the prediction.'],
-            ['push', 'Predictions where the move was too small to call.'],
-            ['pending', 'Predictions whose scoring window has not closed.'],
-            ['total', 'hit + miss + push + pending.'],
-            ['hit_rate', 'hits / (hits + misses); null when no scored predictions.'],
-          ].map(([k, v]) => (
-            <div key={k} className="flex flex-col gap-1">
-              <dt className="font-mono text-xs text-[var(--color-accent)]">{k}</dt>
-              <dd className="text-zinc-400">{v}</dd>
-            </div>
-          ))}
-        </dl>
-      </section>
-    </main>
+function LedgerSchema() {
+  const rows = [
+    ['signal_type', 'The signal type slug.'],
+    ['cohort', 'Live or backfill.'],
+    ['hit', 'Moved in the predicted direction.'],
+    ['miss', 'Moved against the prediction.'],
+    ['push', 'Move was too small to call.'],
+    ['pending', 'Scoring window has not closed.'],
+    ['total', 'hit + miss + push + pending.'],
+    ['hit_rate', 'hits / (hits + misses).'],
+  ];
+  return (
+    <section className="border border-zinc-800 p-5">
+      <h2 className="font-mono text-xs uppercase">schema</h2>
+      <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+        {rows.map(([key, value]) => (
+          <div key={key}>
+            <dt className="font-mono text-xs text-[var(--color-accent)]">{key}</dt>
+            <dd className="text-zinc-400">{value}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
   );
 }
 
@@ -174,9 +179,11 @@ function MetricBox({
   const valueClass = tone === 'accent' ? 'text-[var(--color-accent)]' : 'text-zinc-100';
   return (
     <div className="bg-zinc-950/50 p-4">
-      <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">{label}</div>
+      <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
+        {label}
+      </div>
       <div className={`nums mt-2 text-2xl font-medium ${valueClass}`}>{value.toLocaleString()}</div>
-      <div className="mt-1 font-mono text-[10px] text-zinc-600">{sub}</div>
+      <div className="mt-1 font-mono text-[10px] text-[var(--color-muted)]">{sub}</div>
     </div>
   );
 }
@@ -184,7 +191,7 @@ function MetricBox({
 function BucketTable({ buckets, emptyHint }: { buckets: TrackBucket[]; emptyHint: string }) {
   if (buckets.length === 0) {
     return (
-      <div className="mt-4 border border-dashed border-zinc-800 p-6 text-center font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500">
+      <div className="mt-4 border border-dashed border-zinc-800 p-6 text-center font-mono text-[11px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
         {emptyHint}
       </div>
     );
@@ -193,7 +200,7 @@ function BucketTable({ buckets, emptyHint }: { buckets: TrackBucket[]; emptyHint
   return (
     <div className="mt-4 max-w-full overflow-x-auto">
       <table className="w-full min-w-[520px] text-sm">
-        <thead className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
+        <thead className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
           <tr>
             <th className="border-b border-zinc-800 py-2 text-left">type</th>
             <th className="border-b border-zinc-800 py-2 text-right">n</th>
@@ -222,10 +229,10 @@ function BucketTable({ buckets, emptyHint }: { buckets: TrackBucket[]; emptyHint
                 <td className="border-b border-zinc-900 py-1.5 text-right text-rose-400">
                   {b.miss}
                 </td>
-                <td className="border-b border-zinc-900 py-1.5 text-right text-zinc-500">
+                <td className="border-b border-zinc-900 py-1.5 text-right text-[var(--color-muted)]">
                   {b.push}
                 </td>
-                <td className="border-b border-zinc-900 py-1.5 text-right text-zinc-500">
+                <td className="border-b border-zinc-900 py-1.5 text-right text-[var(--color-muted)]">
                   {b.pending}
                 </td>
                 <td className="border-b border-zinc-900 py-1.5 text-right text-zinc-200">
@@ -235,6 +242,55 @@ function BucketTable({ buckets, emptyHint }: { buckets: TrackBucket[]; emptyHint
             ))}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+function AvailableLedger({
+  cohorts,
+  live,
+  backfill,
+}: {
+  cohorts: { live: TrackBucket[]; backfill: TrackBucket[]; all: TrackBucket[] };
+  live: ReturnType<typeof summarize>;
+  backfill: ReturnType<typeof summarize>;
+}) {
+  return (
+    <div>
+      <section className="mb-10 grid gap-px border border-zinc-800 bg-zinc-800 sm:grid-cols-3">
+        <MetricBox
+          label="live predictions"
+          value={live.total}
+          sub={`${fmtRate(hitRate(live.hit, live.miss))} hit-rate · ${live.hit} hit · ${live.miss} miss`}
+          tone="accent"
+        />
+        <MetricBox
+          label="backfill calibration"
+          value={backfill.total}
+          sub={`${fmtRate(hitRate(backfill.hit, backfill.miss))} hit-rate · ${backfill.hit} hit · ${backfill.miss} miss`}
+        />
+        <MetricBox
+          label="signal types scored"
+          value={cohorts.live.length}
+          sub={`${cohorts.live.length + cohorts.backfill.length} across live + backfill`}
+        />
+      </section>
+      {live.hit + live.miss < 10 && (
+        <p className="mb-10 text-sm text-[var(--color-muted)]">
+          Small sample: only {live.hit + live.miss} live predictions have a directional outcome.
+          Treat this as calibration evidence, not proof.
+        </p>
+      )}
+      <section className="mb-12">
+        <h2 className="font-mono text-xs uppercase">live predictions by signal type</h2>
+        <BucketTable buckets={cohorts.live} emptyHint="no live scored predictions yet" />
+      </section>
+      <section className="mb-12">
+        <h2 className="font-mono text-xs uppercase text-[var(--color-muted)]">
+          backfill calibration by signal type
+        </h2>
+        <BucketTable buckets={cohorts.backfill} emptyHint="no backfill scored predictions yet" />
+      </section>
     </div>
   );
 }

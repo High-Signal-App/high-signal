@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { api } from '@/lib/api';
 import { EntityDetail } from '@/components/organisms/EntityDetail';
@@ -55,14 +56,14 @@ export default async function TickerPage({ params }: { params: Promise<{ ticker:
     if (!entity) return notFound();
     entityId = entity.id;
   } catch {
-    return notFound();
+    return <TickerUnavailable ticker={ticker} />;
   }
 
   let data: Awaited<ReturnType<typeof api.entity>>;
   try {
     data = await api.entity(entityId);
   } catch {
-    return notFound();
+    return <TickerUnavailable ticker={ticker} />;
   }
 
   return (
@@ -72,5 +73,27 @@ export default async function TickerPage({ params }: { params: Promise<{ ticker:
       canonicalPath={`${SITE_URL}/markets/${ticker}`}
       data={data}
     />
+  );
+}
+
+function TickerUnavailable({ ticker }: { ticker: string }) {
+  return (
+    <main className="mx-auto max-w-5xl px-6 py-12">
+      <Link
+        href="/markets/tickers"
+        className="font-mono text-xs uppercase tracking-[0.18em] text-[var(--color-muted)] hover:text-[var(--color-accent)]"
+      >
+        ← ticker index
+      </Link>
+      <section className="mt-8 border border-[var(--color-line)] p-5" role="status">
+        <h1 className="text-2xl font-medium tracking-tight text-[var(--color-fg)]">
+          {ticker} is temporarily unavailable
+        </h1>
+        <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--color-muted)]">
+          High Signal could not reach the market evidence service. This is not a missing-ticker
+          result. Retry this page later or return to the ticker index.
+        </p>
+      </section>
+    </main>
   );
 }

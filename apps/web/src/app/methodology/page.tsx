@@ -104,7 +104,7 @@ const FAQ = [
   {
     question: 'What gets indexed by search engines and AI assistants?',
     answer:
-      'Every published signal page, every entity page, every entity-month archive, every signal-type taxonomy page, the public hit-rate ledger, the Daily Brief, the lenses, and this methodology page. /llms.txt declares the canonical surfaces AI agents should crawl. Schema.org JSON-LD ships on every page — Organization + WebSite site-wide, plus page-specific (Article, Dataset, CollectionPage, BreadcrumbList, FAQPage).',
+      'Every published signal page, every evidence-qualified entity page, every qualified entity-month archive, every signal-type taxonomy page, the public hit-rate ledger, the Daily Brief, the lenses, and this methodology page. Thin entity pages remain withheld until their evidence improves. /llms.txt declares the canonical surfaces AI agents should crawl. Schema.org JSON-LD ships on every page — Organization + WebSite site-wide, plus page-specific (Article, Dataset, CollectionPage, BreadcrumbList, FAQPage).',
   },
 ];
 
