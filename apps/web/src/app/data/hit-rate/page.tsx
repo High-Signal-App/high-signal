@@ -34,17 +34,24 @@ function fmtRate(value: number | null) {
   return value != null ? `${(value * 100).toFixed(0)}%` : '—';
 }
 
-export default async function HitRateDataPage() {
-  let cohorts: { live: TrackBucket[]; backfill: TrackBucket[]; all: TrackBucket[] } = {
-    live: [],
-    backfill: [],
-    all: [],
-  };
+async function loadCohorts(): Promise<{
+  live: TrackBucket[];
+  backfill: TrackBucket[];
+  all: TrackBucket[];
+}> {
   try {
-    cohorts = await api.trackRecordCohorts();
+    return await api.trackRecordCohorts();
   } catch {
-    /* offline */
+    return {
+      live: [],
+      backfill: [],
+      all: [],
+    };
   }
+}
+
+export default async function HitRateDataPage() {
+  const cohorts = await loadCohorts();
 
   const live = summarize(cohorts.live);
   const backfill = summarize(cohorts.backfill);
