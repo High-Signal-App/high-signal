@@ -10,19 +10,24 @@ on:
 jobs:
   ts:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v6
+      - uses: astral-sh/setup-uv@v8.1.0
       - uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: pnpm
+      - uses: actions/setup-python@v6
+        with: { python-version: "3.11" }
+      - run: uv sync --project python/ingest --only-group dev
       - run: pnpm install --frozen-lockfile
-      - run: pnpm typecheck
-      - run: pnpm test
+      - run: pnpm quality
 
   python:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     defaults:
       run:
         working-directory: python/ingest
@@ -33,5 +38,25 @@ jobs:
         with: { python-version: "3.11" }
       - run: uv sync --dev
       - run: uv run ruff check --select E4,E7,E9,F src
+      - run: uv run vulture src --min-confidence 90
       - run: uv run python -m high_signal_ingest.preflight
-      - run: uv run pytest -q
+      # Debt: https://github.com/High-Signal-App/high-signal/issues/104
+      - run: uv run pytest -q --cov=high_signal_ingest --cov-branch --cov-fail-under=55
+      - run: uv run pip-audit --local
+
+  python-lab:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: python/lab
+    steps:
+      - uses: actions/checkout@v6
+      - uses: astral-sh/setup-uv@v8.1.0
+      - uses: actions/setup-python@v6
+        with: { python-version: "3.11" }
+      - run: uv sync --dev
+      - run: uv run ruff check --select E4,E7,E9,F src
+      - run: uv run vulture src --min-confidence 90
+      - run: uv run python -m compileall -q src
+      - run: uv run pip-audit --local

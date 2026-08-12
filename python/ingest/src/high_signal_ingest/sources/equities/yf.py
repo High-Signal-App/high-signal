@@ -45,7 +45,7 @@ class _YfBatchTimeout(Exception):
     """Raised when a yf.download batch exceeds the wall-clock timeout."""
 
 
-def _alarm_handler(signum: int, frame: object) -> None:  # noqa: ARG001
+def _alarm_handler(_signum: int, _frame: object) -> None:
     raise _YfBatchTimeout("yf.download exceeded per-batch timeout")
 
 

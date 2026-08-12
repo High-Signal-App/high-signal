@@ -7,6 +7,8 @@ node_modules
 dist
 out
 coverage
+.coverage
+python/lab/uv.lock
 
 .env
 .env.local
@@ -63,4 +65,3 @@ data/d2c-agent-visibility/
 # `*.log` above already covers loose log files; agent runtime session caches:
 .devin/
 agents.log
-
