@@ -84,6 +84,18 @@ const GROUPS: Group[] = [
       { href: '/signals/types', label: 'Signals by type', note: 'Browse by signal type.' },
       { href: '/track-record', label: 'Track record', note: 'Public hit-rate ledger.' },
       {
+        href: '/data/hit-rate',
+        label: 'Hit-rate dataset',
+        note: 'Human-readable ledger with JSON/CSV downloads.',
+        flag: 'new',
+      },
+      {
+        href: '/data/source-accuracy',
+        label: 'Source accuracy',
+        note: 'Per-source-class hit-rate.',
+        flag: 'new',
+      },
+      {
         href: '/track-record/labels',
         label: 'Track record (labels)',
         note: 'Per-label rates: breakout vs divergence.',
@@ -120,6 +132,7 @@ const GROUPS: Group[] = [
     blurb: 'Engine-room surfaces that feed the brief.',
     surfaces: [
       { href: '/markets', label: 'Markets', note: 'Narrow markets lens.' },
+      { href: '/markets/tickers', label: 'Tickers', note: 'Company pages by ticker symbol.' },
       { href: '/markets/history', label: 'Markets history', note: 'Historical market context.' },
       { href: '/mentions', label: 'Mentions', note: 'Brand mention intelligence.' },
       {
@@ -252,6 +265,12 @@ const GROUPS: Group[] = [
     surfaces: [
       { href: '/about', label: 'About', note: 'What High Signal is.' },
       { href: '/methodology', label: 'Methodology', note: 'How evidence-first scoring works.' },
+      {
+        href: '/editorial-policy',
+        label: 'Editorial policy',
+        note: 'Accuracy, source independence, and corrections.',
+        flag: 'new',
+      },
       { href: '/api-docs', label: 'API docs', note: 'Worker API reference.' },
       { href: '/privacy', label: 'Privacy', note: 'Privacy policy.' },
       { href: '/terms', label: 'Terms', note: 'Terms of use.' },
@@ -272,7 +291,7 @@ export default function ExplorePage() {
     <main className="mx-auto max-w-5xl px-6 py-16">
       <a
         href="/"
-        className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500 hover:text-zinc-300"
+        className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--color-muted)] hover:text-zinc-300"
       >
         ← high signal
       </a>
@@ -288,7 +307,7 @@ export default function ExplorePage() {
       <div className="mt-10 space-y-12">
         {GROUPS.map((group) => (
           <section key={group.title}>
-            <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">
+            <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--color-muted)]">
               {group.title}
             </h2>
             <p className="mt-2 max-w-3xl text-sm text-zinc-400">{group.blurb}</p>
@@ -310,7 +329,7 @@ export default function ExplorePage() {
                           </span>
                         )}
                       </div>
-                      <div className="mt-1 font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
+                      <div className="mt-1 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
                         {s.href}
                       </div>
                       <p className="mt-2 text-xs leading-5 text-zinc-400">{s.note}</p>
@@ -323,7 +342,7 @@ export default function ExplorePage() {
         ))}
       </div>
 
-      <p className="mt-16 border-l-2 border-zinc-800 pl-3 font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
+      <p className="mt-16 border-l-2 border-zinc-800 pl-3 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
         Some surfaces are parked (per PROJECT_STATUS.md) or operator-only. They remain reachable so
         nothing built becomes invisible.
       </p>

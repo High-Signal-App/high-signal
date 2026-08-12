@@ -90,6 +90,7 @@ export default async function DataPage() {
   }
 
   // Hit-rate ledger data for the public dataset section.
+  let ledgerAvailable = true;
   let cohorts: { live: TrackBucket[]; backfill: TrackBucket[]; all: TrackBucket[] } = {
     live: [],
     backfill: [],
@@ -98,7 +99,7 @@ export default async function DataPage() {
   try {
     cohorts = await api.trackRecordCohorts();
   } catch {
-    /* offline */
+    ledgerAvailable = false;
   }
   const liveCount2 = cohorts.live.reduce((sum, b) => sum + b.total, 0);
   const backfillCount = cohorts.backfill.reduce((sum, b) => sum + b.total, 0);
@@ -112,13 +113,16 @@ export default async function DataPage() {
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-12">
-      <TrackRecordDatasetJsonLd liveCount={liveCount2} backfillCount={backfillCount} />
+      {ledgerAvailable && (
+        <TrackRecordDatasetJsonLd liveCount={liveCount2} backfillCount={backfillCount} />
+      )}
       <header className="mb-10">
-        <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-zinc-500">
+        <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[var(--color-muted)]">
           Data directory + hit-rate ledger
         </p>
         <h1 className="mt-2 text-2xl font-semibold tracking-tight text-zinc-100">
-          {sources.length} data sources · {liveCount2 + backfillCount} scored predictions
+          {sources.length} data sources
+          {ledgerAvailable ? ` · ${liveCount2 + backfillCount} scored predictions` : ''}
         </h1>
         <p className="mt-3 max-w-2xl text-sm leading-relaxed text-zinc-400">
           Every public source High Signal curates into the daily brief. We{' '}
@@ -178,34 +182,60 @@ export default async function DataPage() {
           </div>
         </div>
 
-        <div className="mt-4 grid gap-px border border-zinc-800 bg-zinc-800 sm:grid-cols-3">
-          <div className="bg-zinc-950/50 p-4">
-            <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
-              live predictions
+        {!ledgerAvailable && (
+          <p
+            className="mt-4 border border-[var(--color-line)] p-5 text-sm text-[var(--color-muted)]"
+            role="status"
+          >
+            The hit-rate service is temporarily unavailable. This is not a zero-result dataset;
+            retry this page or its downloads later.
+          </p>
+        )}
+
+        {ledgerAvailable && (
+          <div className="mt-4 grid gap-px border border-zinc-800 bg-zinc-800 sm:grid-cols-3">
+            <div className="bg-zinc-950/50 p-4">
+              <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
+                live predictions
+              </div>
+              <div className="nums mt-2 text-2xl font-medium text-zinc-100">{liveCount2}</div>
+              <div className="mt-1 font-mono text-[10px] text-[var(--color-muted)]">
+                forward calls
+              </div>
             </div>
-            <div className="nums mt-2 text-2xl font-medium text-zinc-100">{liveCount2}</div>
-            <div className="mt-1 font-mono text-[10px] text-zinc-600">forward calls</div>
+            <div className="bg-zinc-950/50 p-4">
+              <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
+                backfill calibration
+              </div>
+              <div className="nums mt-2 text-2xl font-medium text-zinc-400">{backfillCount}</div>
+              <div className="mt-1 font-mono text-[10px] text-[var(--color-muted)]">
+                historical replay
+              </div>
+            </div>
+            <div className="bg-zinc-950/50 p-4">
+              <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
+                signal types (live)
+              </div>
+              <div className="nums mt-2 text-2xl font-medium text-zinc-100">
+                {cohorts.live.length}
+              </div>
+              <div className="mt-1 font-mono text-[10px] text-[var(--color-muted)]">
+                distinct types scored
+              </div>
+            </div>
           </div>
-          <div className="bg-zinc-950/50 p-4">
-            <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
-              backfill calibration
-            </div>
-            <div className="nums mt-2 text-2xl font-medium text-zinc-400">{backfillCount}</div>
-            <div className="mt-1 font-mono text-[10px] text-zinc-600">historical replay</div>
-          </div>
-          <div className="bg-zinc-950/50 p-4">
-            <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
-              signal types (live)
-            </div>
-            <div className="nums mt-2 text-2xl font-medium text-zinc-100">
-              {cohorts.live.length}
-            </div>
-            <div className="mt-1 font-mono text-[10px] text-zinc-600">distinct types scored</div>
-          </div>
-        </div>
+        )}
+
+        {ledgerAvailable &&
+          cohorts.live.reduce((total, bucket) => total + bucket.hit + bucket.miss, 0) < 10 && (
+            <p className="mt-4 max-w-2xl text-sm leading-6 text-[var(--color-muted)]">
+              Small sample: fewer than 10 live predictions have directional outcomes. Treat the
+              current hit-rate as calibration evidence, not proof of predictive quality.
+            </p>
+          )}
 
         <div className="mt-5">
-          <h3 className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
+          <h3 className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
             download
           </h3>
           <div className="mt-3 flex flex-wrap gap-3">
@@ -227,61 +257,76 @@ export default async function DataPage() {
             >
               view interactive ledger →
             </Link>
+            <Link
+              href="/data/hit-rate"
+              className="border border-zinc-800 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.16em] text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
+            >
+              human-readable hit-rate page →
+            </Link>
+            <Link
+              href="/data/source-accuracy"
+              className="border border-zinc-800 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.16em] text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
+            >
+              source accuracy →
+            </Link>
           </div>
-          <p className="mt-3 font-mono text-[10px] text-zinc-600">
+          <p className="mt-3 font-mono text-[10px] text-[var(--color-muted)]">
             License: CC-BY-4.0. Cite as &ldquo;High Signal Public Hit-Rate Ledger&rdquo; with the
             download date. Schema: signal_type, cohort, hit, miss, push, pending, total, hit_rate.
           </p>
         </div>
 
-        {cohorts.live.length > 0 ? (
-          <div className="mt-5">
-            <h3 className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
-              live predictions by signal type
-            </h3>
-            <table className="mt-3 w-full text-sm">
-              <thead className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
-                <tr>
-                  <th className="border-b border-zinc-800 py-2 text-left">type</th>
-                  <th className="border-b border-zinc-800 py-2 text-right">n</th>
-                  <th className="border-b border-zinc-800 py-2 text-right">hit</th>
-                  <th className="border-b border-zinc-800 py-2 text-right">miss</th>
-                  <th className="border-b border-zinc-800 py-2 text-right">push</th>
-                  <th className="border-b border-zinc-800 py-2 text-right">hit-rate</th>
-                </tr>
-              </thead>
-              <tbody className="nums">
-                {cohorts.live
-                  .slice()
-                  .sort((a, b) => b.total - a.total)
-                  .map((b) => (
-                    <tr key={b.signalType}>
-                      <td className="border-b border-zinc-900 py-1.5 font-mono text-xs">
-                        {b.signalType.replaceAll('_', ' ')}
-                      </td>
-                      <td className="border-b border-zinc-900 py-1.5 text-right">{b.total}</td>
-                      <td className="border-b border-zinc-900 py-1.5 text-right text-emerald-400">
-                        {b.hit}
-                      </td>
-                      <td className="border-b border-zinc-900 py-1.5 text-right text-rose-400">
-                        {b.miss}
-                      </td>
-                      <td className="border-b border-zinc-900 py-1.5 text-right text-zinc-500">
-                        {b.push}
-                      </td>
-                      <td className="border-b border-zinc-900 py-1.5 text-right">
-                        {b.hitRate != null ? `${(b.hitRate * 100).toFixed(0)}%` : '—'}
-                      </td>
+        {ledgerAvailable &&
+          (cohorts.live.length > 0 ? (
+            <div className="mt-5">
+              <h3 className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
+                live predictions by signal type
+              </h3>
+              <div className="mt-3 max-w-full overflow-x-auto">
+                <table className="w-full min-w-[560px] text-sm">
+                  <thead className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
+                    <tr>
+                      <th className="border-b border-zinc-800 py-2 text-left">type</th>
+                      <th className="border-b border-zinc-800 py-2 text-right">n</th>
+                      <th className="border-b border-zinc-800 py-2 text-right">hit</th>
+                      <th className="border-b border-zinc-800 py-2 text-right">miss</th>
+                      <th className="border-b border-zinc-800 py-2 text-right">push</th>
+                      <th className="border-b border-zinc-800 py-2 text-right">hit-rate</th>
                     </tr>
-                  ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <p className="mt-5 border border-dashed border-zinc-800 p-4 text-center font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500">
-            no scored predictions yet — the ledger populates as signals mature
-          </p>
-        )}
+                  </thead>
+                  <tbody className="nums">
+                    {cohorts.live
+                      .slice()
+                      .sort((a, b) => b.total - a.total)
+                      .map((b) => (
+                        <tr key={b.signalType}>
+                          <td className="border-b border-zinc-900 py-1.5 font-mono text-xs">
+                            {b.signalType.replaceAll('_', ' ')}
+                          </td>
+                          <td className="border-b border-zinc-900 py-1.5 text-right">{b.total}</td>
+                          <td className="border-b border-zinc-900 py-1.5 text-right text-emerald-400">
+                            {b.hit}
+                          </td>
+                          <td className="border-b border-zinc-900 py-1.5 text-right text-rose-400">
+                            {b.miss}
+                          </td>
+                          <td className="border-b border-zinc-900 py-1.5 text-right text-[var(--color-muted)]">
+                            {b.push}
+                          </td>
+                          <td className="border-b border-zinc-900 py-1.5 text-right">
+                            {b.hitRate != null ? `${(b.hitRate * 100).toFixed(0)}%` : '—'}
+                          </td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : (
+            <p className="mt-5 border border-dashed border-zinc-800 p-4 text-center font-mono text-[11px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
+              no scored predictions yet — the ledger populates as signals mature
+            </p>
+          ))}
       </section>
 
       {ROLE_ORDER.map((role) => {
@@ -293,7 +338,7 @@ export default async function DataPage() {
               <h2 className="font-mono text-xs uppercase tracking-[0.18em] text-zinc-300">
                 {role}
               </h2>
-              <span className="text-xs text-zinc-500">{ROLE_BLURB[role]}</span>
+              <span className="text-xs text-[var(--color-muted)]">{ROLE_BLURB[role]}</span>
             </div>
             <div className="divide-y divide-zinc-900">
               {rows.map((s) => {
@@ -306,7 +351,7 @@ export default async function DataPage() {
                     <code className="w-32 shrink-0 truncate font-mono text-sm text-zinc-100 sm:w-40">
                       {s.id}
                     </code>
-                    <span className="hidden w-48 shrink-0 truncate text-xs text-zinc-500 sm:block">
+                    <span className="hidden w-48 shrink-0 truncate text-xs text-[var(--color-muted)] sm:block">
                       {s.provider}
                     </span>
                     <span
@@ -316,14 +361,14 @@ export default async function DataPage() {
                     </span>
                     {s.official && (
                       <span
-                        className="shrink-0 font-mono text-[9px] text-zinc-500"
+                        className="shrink-0 font-mono text-[9px] text-[var(--color-muted)]"
                         title="counts toward the cite-or-kill official-source bar"
                       >
                         ⚖️
                       </span>
                     )}
                     <span
-                      className="shrink-0 font-mono text-[10px] text-zinc-600"
+                      className="shrink-0 font-mono text-[10px] text-[var(--color-muted)]"
                       title={TEMPORAL_META[s.temporal]?.title}
                     >
                       {TEMPORAL_META[s.temporal]?.icon}
@@ -332,11 +377,11 @@ export default async function DataPage() {
                       {s.windowDays}d hist
                     </span>
                     <span
-                      className={`ml-auto w-14 shrink-0 text-right font-mono text-sm tabular-nums sm:ml-0 sm:w-16 ${count > 0 ? 'text-[var(--color-accent)]' : 'text-zinc-600'}`}
+                      className={`ml-auto w-14 shrink-0 text-right font-mono text-sm tabular-nums sm:ml-0 sm:w-16 ${count > 0 ? 'text-[var(--color-accent)]' : 'text-[var(--color-muted)]'}`}
                     >
                       {count > 0 ? count.toLocaleString() : '—'}
                     </span>
-                    <span className="hidden w-24 shrink-0 text-right font-mono text-[10px] tabular-nums text-zinc-600 md:block">
+                    <span className="hidden w-24 shrink-0 text-right font-mono text-[10px] tabular-nums text-[var(--color-muted)] md:block">
                       {count > 0 ? day : 'no data'}
                     </span>
                   </>
@@ -351,9 +396,7 @@ export default async function DataPage() {
                         {sourceSummary}
                       </Link>
                     ) : (
-                      <div className="-mx-1 flex items-center gap-3 px-1 py-1 opacity-60">
-                        {sourceSummary}
-                      </div>
+                      <div className="-mx-1 flex items-center gap-3 px-1 py-1">{sourceSummary}</div>
                     )}
                   </div>
                 );
@@ -363,7 +406,7 @@ export default async function DataPage() {
         );
       })}
 
-      <footer className="mt-12 border-t border-zinc-800 pt-4 font-mono text-[11px] text-zinc-600">
+      <footer className="mt-12 border-t border-zinc-800 pt-4 font-mono text-[11px] text-[var(--color-muted)]">
         <p className="mb-1">
           Temporal: <span className="text-zinc-400">●</span> live (recent only) ·{' '}
           <span className="text-zinc-400">▤</span> archive (full history) ·{' '}

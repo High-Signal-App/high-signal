@@ -230,6 +230,11 @@ export default async function MarketsPage({
             title: 'market history',
             sub: 'date archive for stock context snapshots',
           },
+          {
+            href: '/markets/tickers',
+            title: 'tickers',
+            sub: 'company pages by ticker symbol',
+          },
           { href: '/daily', title: 'daily read', sub: 'fresh source reads and product work' },
           { href: '/signals', title: 'signals', sub: 'published market and company signals' },
           { href: '/entities', title: 'entities', sub: 'company and sector graph' },

@@ -157,6 +157,56 @@ trackRecordRoute.get('/series', async (c) => {
   return c.json({ cohort, series: rows.results ?? [] });
 });
 
+trackRecordRoute.get('/source-accuracy', async (c) => {
+  // Per-source accuracy: join evidence source_type to the signal's scored outcome.
+  // DISTINCT keeps a single (signal, source_type, outcome) tuple even when a source
+  // contributes multiple evidence rows or the signal has multiple scoring windows.
+  const rows = (await c.env.DB.prepare(
+    `SELECT DISTINCT
+       e.source_type as sourceType,
+       sr.outcome,
+       CASE WHEN s.slug LIKE 'bf-%' THEN 'backfill' ELSE 'live' END as cohort
+     FROM score_runs sr
+     JOIN signals s ON s.id = sr.signal_id
+     JOIN evidence e ON e.signal_id = s.id
+     WHERE sr.outcome IN ('hit', 'miss', 'push')`
+  ).all()) as {
+    results: Array<{
+      sourceType: string;
+      outcome: Outcome;
+      cohort: 'live' | 'backfill';
+    }>;
+  };
+
+  const acc: Record<
+    'live' | 'backfill',
+    Map<string, { hit: number; miss: number; push: number; total: number }>
+  > = {
+    live: new Map(),
+    backfill: new Map(),
+  };
+  for (const r of rows.results ?? []) {
+    const m = acc[r.cohort];
+    const b = m.get(r.sourceType) ?? { hit: 0, miss: 0, push: 0, total: 0 };
+    if (r.outcome !== 'pending') {
+      b[r.outcome] += 1;
+      b.total += 1;
+    }
+    m.set(r.sourceType, b);
+  }
+
+  const toBuckets = (m: typeof acc.live) =>
+    Array.from(m.entries())
+      .map(([sourceType, b]) => ({
+        sourceType,
+        ...b,
+        hitRate: b.hit + b.miss > 0 ? b.hit / (b.hit + b.miss) : null,
+      }))
+      .sort((a, b) => b.total - a.total || a.sourceType.localeCompare(b.sourceType));
+
+  return c.json({ live: toBuckets(acc.live), backfill: toBuckets(acc.backfill) });
+});
+
 trackRecordRoute.get('/workbench', async (c) => {
   const cohort = (c.req.query('cohort') ?? 'live') as Cohort;
   const filter = cohortFilter(cohort);
