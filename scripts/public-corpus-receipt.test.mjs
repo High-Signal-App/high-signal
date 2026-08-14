@@ -19,6 +19,12 @@ const companies = [
     description: 'A'.repeat(180),
     sourceEvidence: [
       { sourceUrl: 'https://example.com', source: 'official', fund: 'Fund', title: 'Qualified' },
+      {
+        sourceUrl: 'https://example.com/about',
+        source: 'company-site',
+        fund: 'Company website',
+        title: 'Qualified',
+      },
     ],
     entities: [{ text: 'workflow' }, { text: 'teams' }],
     competitors: [{ slug: 'peer', reason: 'shared product terms: workflow' }],

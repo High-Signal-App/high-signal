@@ -37,6 +37,7 @@ export const metadata = {
   // canonical de-indexes the corpus), so a route without this ships no
   // canonical at all.
   alternates: { canonical: `${SITE_URL}/signals/today` },
+  robots: { index: false, follow: true },
 };
 
 const CONFIDENCE_RANK: Record<string, number> = { high: 0, medium: 1, low: 2 };

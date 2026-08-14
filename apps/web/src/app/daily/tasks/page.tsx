@@ -18,11 +18,14 @@ import {
 } from '@/lib/daily-intelligence';
 import productGraph from '../../../../../../data/personal-product-graph.json';
 import type { PersonalProductProfile, SignalContentCategory } from '@high-signal/shared';
+import { SITE_URL } from '@/lib/site';
 
 export const dynamic = 'force-dynamic';
 export const metadata = {
   title: 'Daily Tasks',
   description: 'Actionable build/change tasks generated from High Signal daily requirement reads.',
+  alternates: { canonical: `${SITE_URL}/daily/tasks` },
+  robots: { index: false, follow: true },
 };
 
 const CATEGORY_LABELS: Array<{ value: SignalContentCategory; label: string }> = [

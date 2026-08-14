@@ -51,8 +51,6 @@ export default function robots(): MetadataRoute.Robots {
           '/sign-up',
           '/backtest-workbench',
           '/data/',
-          '/daily',
-          '/signals/today',
           '/*.json',
         ],
       },
