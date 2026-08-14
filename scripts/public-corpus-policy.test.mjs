@@ -22,7 +22,15 @@ const provenance = {
 const qualifiedCompany = {
   description:
     'Example builds an evidence-backed workflow for engineering teams that need to compare operational software, retain source provenance, and understand the product differences before making a decision.',
-  sourceEvidence: [provenance],
+  sourceEvidence: [
+    provenance,
+    {
+      ...provenance,
+      source: 'official-company-site',
+      sourceUrl: 'https://example.com',
+      fund: 'Company website',
+    },
+  ],
   entities: [
     { text: 'engineering teams', label: 'target customer', score: 0.8 },
     { text: 'workflow software', label: 'product', score: 0.7 },
@@ -61,8 +69,8 @@ const sparseCompany = evaluateCompany({
 assert.equal(sparseCompany.eligible, false);
 assert.deepEqual(sparseCompany.reasons, [
   'description-under-160',
+  'fewer-than-two-official-sources',
   'fewer-than-two-product-facets',
-  'missing-official-provenance',
   'no-product-supported-similarity',
 ]);
 

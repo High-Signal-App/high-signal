@@ -1,4 +1,4 @@
-export const PUBLIC_CORPUS_POLICY_REVISION = '2026-08-05.1';
+export const PUBLIC_CORPUS_POLICY_REVISION = '2026-08-14.1';
 
 export const PUBLIC_CORPUS_ROUTE_FAMILIES = Object.freeze([
   'company',
@@ -34,7 +34,7 @@ function count(value) {
 
 export function evaluateCompany(company) {
   const reasons = [];
-  if (count(company?.sourceEvidence) === 0) reasons.push('missing-official-provenance');
+  if (count(company?.sourceEvidence) < 2) reasons.push('fewer-than-two-official-sources');
   if (textLength(company?.description) < 160) reasons.push('description-under-160');
   if (count(company?.entities) < 2) reasons.push('fewer-than-two-product-facets');
   if (!company?.competitors?.some((edge) => PRODUCT_OVERLAP.test(edge?.reason ?? ''))) {
