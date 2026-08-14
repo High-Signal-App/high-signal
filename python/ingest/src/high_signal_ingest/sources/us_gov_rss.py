@@ -129,9 +129,7 @@ async def _fetch_text(client: httpx.AsyncClient, url: str) -> str:
     try:
         r = await client.get(url)
         if r.status_code != 200:
-            LOGGER.warning(
-                "us-gov-rss: non-200 (%s) for %s", r.status_code, url
-            )
+            LOGGER.warning("us-gov-rss: non-200 (%s) for %s", r.status_code, url)
             return ""
         return r.text
     except httpx.HTTPError as exc:
@@ -155,9 +153,7 @@ def _parse_halt_pub(entry: object) -> datetime | None:
             parts = halt_time.split(":")
             hh, mm = int(parts[0]), int(parts[1])
             ss = int(parts[2].split(".")[0]) if len(parts) > 2 else 0
-        return datetime(year, month, day, hh, mm, ss, tzinfo=_ET).astimezone(
-            timezone.utc
-        )
+        return datetime(year, month, day, hh, mm, ss, tzinfo=_ET).astimezone(timezone.utc)
     except (ValueError, IndexError):
         return None
 
@@ -165,10 +161,7 @@ def _parse_halt_pub(entry: object) -> datetime | None:
 def _halt_source_url(symbol: str) -> str:
     """Nasdaq halt items have no per-item link; point at the public halts
     page so every event still carries a citable source URL."""
-    return (
-        "https://www.nasdaqtrader.com/Trader.aspx?id=TradeHalts"
-        f"&symbol={symbol}"
-    )
+    return f"https://www.nasdaqtrader.com/Trader.aspx?id=TradeHalts&symbol={symbol}"
 
 
 async def fetch_feed_async(
@@ -196,8 +189,7 @@ async def fetch_feed_async(
             link = _halt_source_url(symbol)
             title = f"{symbol} — {issue_name}" if issue_name else symbol
             body = (
-                f"Trade halt on {market}. Reason code: {reason}. "
-                f"Issue: {issue_name} ({symbol})."
+                f"Trade halt on {market}. Reason code: {reason}. Issue: {issue_name} ({symbol})."
             ).strip()
             pub = _parse_halt_pub(entry)
             if pub is None:
@@ -208,9 +200,7 @@ async def fetch_feed_async(
                 except Exception:
                     pub = None
                 if pub is None or pub.tzinfo is None:
-                    pub = (pub or datetime.now(timezone.utc)).replace(
-                        tzinfo=timezone.utc
-                    )
+                    pub = (pub or datetime.now(timezone.utc)).replace(tzinfo=timezone.utc)
         else:
             link = (entry.get("link") or "").strip()
             if not link:
@@ -221,9 +211,7 @@ async def fetch_feed_async(
             try:
                 pub = parsedate_to_datetime(published) if published else None
                 if pub is None or pub.tzinfo is None:
-                    pub = (pub or datetime.now(timezone.utc)).replace(
-                        tzinfo=timezone.utc
-                    )
+                    pub = (pub or datetime.now(timezone.utc)).replace(tzinfo=timezone.utc)
             except Exception:
                 continue
         if pub < since:

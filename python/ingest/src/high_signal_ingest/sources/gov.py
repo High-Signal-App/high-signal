@@ -14,7 +14,6 @@ extraction runs downstream.
 from __future__ import annotations
 
 import asyncio
-import hashlib
 import logging
 import re
 from datetime import datetime, timedelta, timezone
@@ -24,6 +23,7 @@ import feedparser
 import httpx
 
 from ..types import Event
+from ..utils import event_hash
 
 
 USER_AGENT = "high-signal/0.1 gov-ingest"
@@ -162,10 +162,6 @@ DEFAULT_FEEDS: list[tuple[str, str, str, str | None]] = [
 ]
 
 
-def _hash(*parts: str) -> str:
-    return hashlib.sha256("␟".join(parts).encode("utf-8")).hexdigest()
-
-
 def _is_relevant(title: str, body: str) -> bool:
     text = f"{title} {body}".lower()
     for term in RELEVANT_TERMS:
@@ -219,7 +215,7 @@ async def fetch_feed_async(
             continue
         if not _is_relevant(title, body):
             continue
-        raw_hash = _hash("gov", fid, link)
+        raw_hash = event_hash("gov", fid, link)
         out.append(
             Event(
                 id=raw_hash[:16],

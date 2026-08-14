@@ -130,9 +130,14 @@ def embed_repos(reindex: bool = False, limit: int | None = None) -> int:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="HighSignal Lab embedding pass")
-    parser.add_argument("--target", choices=("documents", "repos", "all"), default="all")
-    parser.add_argument("--reindex", action="store_true",
-                        help="Re-embed all rows, not just NULL embeddings.")
+    parser.add_argument(
+        "--target", choices=("documents", "repos", "all"), default="all"
+    )
+    parser.add_argument(
+        "--reindex",
+        action="store_true",
+        help="Re-embed all rows, not just NULL embeddings.",
+    )
     parser.add_argument("--limit", type=int, default=None)
     args = parser.parse_args()
 

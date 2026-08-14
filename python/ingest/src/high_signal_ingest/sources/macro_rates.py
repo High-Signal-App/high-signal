@@ -7,7 +7,6 @@ ETF, index, or crypto prices.
 from __future__ import annotations
 
 import csv
-import hashlib
 import logging
 import os
 import xml.etree.ElementTree as ET
@@ -17,6 +16,7 @@ from io import StringIO
 import httpx
 
 from ..types import Event
+from ..utils import event_hash
 
 
 USER_AGENT = "high-signal/0.1 macro-rates-ingest"
@@ -24,10 +24,6 @@ LOGGER = logging.getLogger(__name__)
 ECB_URL = "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml"
 FRED_URL = "https://api.stlouisfed.org/fred/series/observations"
 FRED_SERIES = ("DGS3MO", "DGS10")
-
-
-def _hash(*parts: str) -> str:
-    return hashlib.sha256("␟".join(parts).encode("utf-8")).hexdigest()
 
 
 def ecb_events_from_xml(xml_text: str) -> list[Event]:
@@ -48,8 +44,10 @@ def ecb_events_from_xml(xml_text: str) -> list[Event]:
         }
         if not rates:
             continue
-        summary = ", ".join(f"EUR/{currency}={rate}" for currency, rate in sorted(rates.items())[:12])
-        raw_hash = _hash("ecb-fx", date_value)
+        summary = ", ".join(
+            f"EUR/{currency}={rate}" for currency, rate in sorted(rates.items())[:12]
+        )
+        raw_hash = event_hash("ecb-fx", date_value)
         out.append(
             Event(
                 id=raw_hash[:16],
@@ -79,7 +77,7 @@ def fred_events_from_csv(series_id: str, csv_text: str, since: datetime) -> list
             continue
         if published < since:
             continue
-        raw_hash = _hash("fred", series_id, date_value, value)
+        raw_hash = event_hash("fred", series_id, date_value, value)
         out.append(
             Event(
                 id=raw_hash[:16],

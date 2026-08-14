@@ -54,7 +54,9 @@ def events_from_feed(xml: str, since: datetime) -> list[Event]:
 def fetch_all(days: int = 7) -> list[Event]:
     since = datetime.now(timezone.utc) - timedelta(days=days)
     try:
-        with httpx.Client(headers={"User-Agent": USER_AGENT}, timeout=20.0, follow_redirects=True) as c:
+        with httpx.Client(
+            headers={"User-Agent": USER_AGENT}, timeout=20.0, follow_redirects=True
+        ) as c:
             r = c.get(FEED_URL)
             r.raise_for_status()
             xml = r.text

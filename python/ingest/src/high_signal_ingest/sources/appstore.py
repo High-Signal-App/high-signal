@@ -27,7 +27,9 @@ API = "https://rss.applemarketingtools.com/api/v2/us/apps"
 CHARTS: tuple[tuple[str, str, int], ...] = (("top-free", "Top Free", 50),)
 
 
-def events_from_chart(chart: str, label: str, payload: dict[str, Any], now: datetime) -> list[Event]:
+def events_from_chart(
+    chart: str, label: str, payload: dict[str, Any], now: datetime
+) -> list[Event]:
     results = payload.get("feed", {}).get("results", []) if isinstance(payload, dict) else []
     out: list[Event] = []
     for rank, app in enumerate(results, start=1):
@@ -59,7 +61,9 @@ def fetch_all(days: int = 1) -> list[Event]:
     now = datetime.now(timezone.utc)
     out: list[Event] = []
     with httpx.Client(
-        headers={"User-Agent": USER_AGENT, "Accept": "application/json"}, timeout=20.0, follow_redirects=True
+        headers={"User-Agent": USER_AGENT, "Accept": "application/json"},
+        timeout=20.0,
+        follow_redirects=True,
     ) as c:
         for chart, label, count in CHARTS:
             try:

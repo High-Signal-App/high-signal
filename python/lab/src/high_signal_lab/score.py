@@ -12,7 +12,9 @@ from datetime import UTC, datetime
 
 from .db import connect
 
-GITHUB_URL_RE = re.compile(r"^https?://(?:www\.)?github\.com/([^/]+)/([^/?#]+)", re.IGNORECASE)
+GITHUB_URL_RE = re.compile(
+    r"^https?://(?:www\.)?github\.com/([^/]+)/([^/?#]+)", re.IGNORECASE
+)
 
 # Weights — eyeball-tuned starting point. Calibrate against the feed.
 # Recency captures "is this new?"; velocity captures "is this *accelerating*?"

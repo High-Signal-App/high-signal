@@ -7,7 +7,6 @@ source returns no events.
 
 from __future__ import annotations
 
-import hashlib
 import logging
 import os
 from dataclasses import dataclass
@@ -17,6 +16,7 @@ from typing import Any
 import httpx
 
 from ..types import Event
+from ..utils import event_hash
 
 
 USER_AGENT = "high-signal/0.1 bluesky-ingest"
@@ -38,21 +38,23 @@ QUERIES = [
 ]
 
 
-def _hash(*parts: str) -> str:
-    return hashlib.sha256("␟".join(parts).encode("utf-8")).hexdigest()
-
-
 def _parse_datetime(value: str | None) -> datetime | None:
     if not value:
         return None
     try:
         parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
-        return parsed.astimezone(timezone.utc) if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+        return (
+            parsed.astimezone(timezone.utc)
+            if parsed.tzinfo
+            else parsed.replace(tzinfo=timezone.utc)
+        )
     except ValueError:
         return None
 
 
-def events_from_response(query: BlueskyQuery, payload: dict[str, Any], since: datetime) -> list[Event]:
+def events_from_response(
+    query: BlueskyQuery, payload: dict[str, Any], since: datetime
+) -> list[Event]:
     posts = payload.get("posts") if isinstance(payload.get("posts"), list) else []
     out: list[Event] = []
     for post in posts:
@@ -66,7 +68,7 @@ def events_from_response(query: BlueskyQuery, payload: dict[str, Any], since: da
         handle = str(author.get("handle") or "").strip()
         if not uri or indexed is None or indexed < since or not text:
             continue
-        raw_hash = _hash("bluesky", query.query, uri)
+        raw_hash = event_hash("bluesky", query.query, uri)
         out.append(
             Event(
                 id=raw_hash[:16],

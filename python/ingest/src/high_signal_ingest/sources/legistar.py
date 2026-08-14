@@ -51,15 +51,15 @@ DEFAULT_CLIENTS: list[tuple[str, str]] = [
     # Data-center / fab corridors verified reachable on the free Legistar API.
     ("phoenix", "Phoenix AZ"),
     ("mesa", "Mesa AZ"),
-    ("goodyear", "Goodyear AZ"),         # West Valley data-center growth
+    ("goodyear", "Goodyear AZ"),  # West Valley data-center growth
     ("maricopa", "Maricopa County AZ"),  # county-level zoning for greater Phoenix
     ("sanjose", "San Jose CA"),
     ("santaclara", "Santa Clara CA"),
-    ("sanantonio", "San Antonio TX"),    # Microsoft / Google data centers
-    ("columbus", "Columbus OH"),         # Intel fab metro + hyperscaler builds
-    ("atlantaga", "Atlanta GA"),         # Southeast data-center hub
+    ("sanantonio", "San Antonio TX"),  # Microsoft / Google data centers
+    ("columbus", "Columbus OH"),  # Intel fab metro + hyperscaler builds
+    ("atlantaga", "Atlanta GA"),  # Southeast data-center hub
     ("mecklenburg", "Mecklenburg County NC"),  # Charlotte metro
-    ("racine", "Racine County WI"),      # Microsoft Mount Pleasant campus
+    ("racine", "Racine County WI"),  # Microsoft Mount Pleasant campus
     # Broader tech metros (verified reachable on the free API).
     ("seattle", "Seattle WA"),
     ("denver", "Denver CO"),
@@ -87,7 +87,7 @@ RELEVANT_TERMS = (
     "data center campus",
     "hyperscale",
     "colocation",
-    "rezon",            # rezone / rezoning
+    "rezon",  # rezone / rezoning
     "conditional use",
     "conditional use permit",
     "special use",
@@ -147,8 +147,10 @@ def _parse_datetime(value: str | None) -> datetime | None:
     for candidate in (value, value[:19], value[:10]):
         try:
             parsed = datetime.fromisoformat(candidate.replace("Z", "+00:00"))
-            return parsed.astimezone(timezone.utc) if parsed.tzinfo else parsed.replace(
-                tzinfo=timezone.utc
+            return (
+                parsed.astimezone(timezone.utc)
+                if parsed.tzinfo
+                else parsed.replace(tzinfo=timezone.utc)
             )
         except ValueError:
             continue
@@ -163,9 +165,7 @@ def _is_relevant(matter: dict) -> bool:
     return _RELEVANT_RE.search(text) is not None
 
 
-def events_from_matters(
-    code: str, name: str, matters: list[dict], since: datetime
-) -> list[Event]:
+def events_from_matters(code: str, name: str, matters: list[dict], since: datetime) -> list[Event]:
     out: list[Event] = []
     for matter in matters:
         if not isinstance(matter, dict) or not _is_relevant(matter):
@@ -183,16 +183,17 @@ def events_from_matters(
             continue
         body = str(matter.get("MatterBodyName") or "").strip()
         guid = str(matter.get("MatterGuid") or "").strip()
-        url = (
-            f"https://{code}.legistar.com/LegislationDetail.aspx?ID={matter_id}"
-            + (f"&GUID={guid}" if guid else "")
+        url = f"https://{code}.legistar.com/LegislationDetail.aspx?ID={matter_id}" + (
+            f"&GUID={guid}" if guid else ""
         )
         content = "\n".join(
             part
             for part in [
                 f"File: {matter.get('MatterFile')}" if matter.get("MatterFile") else "",
                 f"Type: {matter.get('MatterTypeName')}" if matter.get("MatterTypeName") else "",
-                f"Status: {matter.get('MatterStatusName')}" if matter.get("MatterStatusName") else "",
+                f"Status: {matter.get('MatterStatusName')}"
+                if matter.get("MatterStatusName")
+                else "",
                 f"Body: {body}" if body else "",
                 f"Introduced: {intro.date().isoformat()}" if intro else "",
                 f"Agenda date: {agenda.date().isoformat()}" if agenda else "",
@@ -260,9 +261,7 @@ async def fetch_all_async(
     return [event for batch in batches for event in batch]
 
 
-def fetch_all(
-    days: int = 30, clients: list[tuple[str, str]] | None = None
-) -> list[Event]:
+def fetch_all(days: int = 30, clients: list[tuple[str, str]] | None = None) -> list[Event]:
     return asyncio.run(fetch_all_async(days=days, clients=clients))
 
 

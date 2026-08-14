@@ -55,7 +55,10 @@ def _post(path: str, body: dict[str, Any]) -> bool:
                 expected = len(body.get("events", []))
                 if resp["inserted"] < expected:
                     LOGGER.warning(
-                        "audit %s: only %d/%d events inserted", path, resp["inserted"], expected,
+                        "audit %s: only %d/%d events inserted",
+                        path,
+                        resp["inserted"],
+                        expected,
                     )
         except Exception:
             pass

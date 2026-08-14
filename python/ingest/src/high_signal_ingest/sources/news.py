@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import hashlib
 import logging
 from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
@@ -14,16 +13,13 @@ import httpx
 
 from ..seed import load_sources
 from ..types import Event
+from ..utils import event_hash
 
 
 USER_AGENT = "high-signal/0.1 (+https://github.com/sarthakagrawal927)"
 LOGGER = logging.getLogger(__name__)
 DEFAULT_CONCURRENCY = 16
 PER_HOST_CONCURRENCY = 4
-
-
-def _hash(*parts: str) -> str:
-    return hashlib.sha256("␟".join(parts).encode("utf-8")).hexdigest()
 
 
 def _parse_rfc822(s: str) -> datetime | None:
@@ -145,7 +141,7 @@ async def fetch_rss_async(
     for it, pub in candidates:
         link = it["link"]
         body = await body_tasks[link] if fetch_body else ""
-        raw_hash = _hash(source["id"], link)
+        raw_hash = event_hash(source["id"], link)
         out.append(
             Event(
                 id=raw_hash[:16],

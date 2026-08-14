@@ -123,7 +123,9 @@ def annotate(text: str, *, use_hf: bool | None = None) -> SemanticNlpAnnotation:
     """
 
     base = annotate_lightweight(text)
-    should_use_hf = use_hf if use_hf is not None else os.environ.get("HIGH_SIGNAL_ENABLE_HF_NLP") == "1"
+    should_use_hf = (
+        use_hf if use_hf is not None else os.environ.get("HIGH_SIGNAL_ENABLE_HF_NLP") == "1"
+    )
     if not should_use_hf:
         return SemanticNlpAnnotation(
             intent=base.intent,
@@ -146,7 +148,9 @@ def annotate(text: str, *, use_hf: bool | None = None) -> SemanticNlpAnnotation:
 
     return SemanticNlpAnnotation(
         intent=intent if intent is not None and (intent_score or 0) >= 0.35 else base.intent,
-        sentiment=sentiment if sentiment is not None and (sentiment_score or 0) >= 0.55 else base.sentiment,
+        sentiment=sentiment
+        if sentiment is not None and (sentiment_score or 0) >= 0.55
+        else base.sentiment,
         urgency=base.urgency,
         method=method,
         model_names=models,

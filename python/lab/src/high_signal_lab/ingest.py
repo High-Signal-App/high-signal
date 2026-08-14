@@ -113,8 +113,15 @@ def domain_of(url: str) -> str | None:
         return None
 
 
-def upsert_document(conn, *, url: str, source: str, title: str, text: str | None,
-                    published_at: datetime | None) -> int:
+def upsert_document(
+    conn,
+    *,
+    url: str,
+    source: str,
+    title: str,
+    text: str | None,
+    published_at: datetime | None,
+) -> int:
     with conn.cursor() as cur:
         cur.execute(
             """
@@ -143,8 +150,15 @@ def upsert_document(conn, *, url: str, source: str, title: str, text: str | None
         return int(row[0]) if row else 0
 
 
-def upsert_hn_thread(conn, *, hn_id: int, document_id: int, score: int,
-                     comment_count: int, posted_at: datetime) -> None:
+def upsert_hn_thread(
+    conn,
+    *,
+    hn_id: int,
+    document_id: int,
+    score: int,
+    comment_count: int,
+    posted_at: datetime,
+) -> None:
     with conn.cursor() as cur:
         cur.execute(
             """
@@ -161,8 +175,14 @@ def upsert_hn_thread(conn, *, hn_id: int, document_id: int, score: int,
         )
 
 
-def record_link(conn, *, from_document_id: int, to_url: str, link_type: str,
-                to_document_id: int | None = None) -> None:
+def record_link(
+    conn,
+    *,
+    from_document_id: int,
+    to_url: str,
+    link_type: str,
+    to_document_id: int | None = None,
+) -> None:
     with conn.cursor() as cur:
         cur.execute(
             """
@@ -177,7 +197,10 @@ def ingest_hn(limit: int = 30, extract_pages: bool = True) -> tuple[int, int]:
     """Ingest the top HN stories. Returns (inserted_or_updated, errors)."""
     inserted = 0
     errors = 0
-    with httpx.Client(headers={"User-Agent": "HighSignal-Lab/0.1"}) as client, connect() as conn:
+    with (
+        httpx.Client(headers={"User-Agent": "HighSignal-Lab/0.1"}) as client,
+        connect() as conn,
+    ):
         ids = fetch_top_story_ids(client, limit)
         with conn.cursor() as cur:
             cur.execute(

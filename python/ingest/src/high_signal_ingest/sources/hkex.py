@@ -14,7 +14,6 @@ stock code. The pipeline maps hkex_code → entity_id via metadata.
 from __future__ import annotations
 
 import asyncio
-import hashlib
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import Iterator
@@ -22,6 +21,7 @@ from typing import Iterator
 import httpx
 
 from ..types import Event
+from ..utils import event_hash
 
 
 USER_AGENT = "high-signal/0.1 hkex-ingest"
@@ -53,13 +53,7 @@ SIGNAL_TYPES = {
 LISTED_FEED = "https://www1.hkexnews.hk/listedco/listconews/sehk/{date}/{idx}.htm"
 
 
-def _hash(*parts: str) -> str:
-    return hashlib.sha256("␟".join(parts).encode("utf-8")).hexdigest()
-
-
-async def _fetch_day_async(
-    client: httpx.AsyncClient, day: datetime
-) -> list[Event]:
+async def _fetch_day_async(client: httpx.AsyncClient, day: datetime) -> list[Event]:
     """HKEXnews exposes a daily list per stock; we pull the issuer-search JSON."""
     out: list[Event] = []
     date_str = day.strftime("%Y%m%d")
@@ -84,7 +78,7 @@ async def _fetch_day_async(
         if "No. of records" in r.text and "0\xa0" in r.text:
             continue
         title = f"HKEX filings — {entity_id} ({code}) {date_str}"
-        raw_hash = _hash("hkex", code, date_str)
+        raw_hash = event_hash("hkex", code, date_str)
         out.append(
             Event(
                 id=raw_hash[:16],
@@ -100,9 +94,7 @@ async def _fetch_day_async(
     return out
 
 
-async def fetch_range_async(
-    since: datetime, until: datetime | None = None
-) -> list[Event]:
+async def fetch_range_async(since: datetime, until: datetime | None = None) -> list[Event]:
     if until is None:
         until = datetime.now(timezone.utc)
     headers = {"User-Agent": USER_AGENT}

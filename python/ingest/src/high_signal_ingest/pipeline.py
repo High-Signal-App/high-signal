@@ -264,6 +264,7 @@ def _fetch_tasks(source: Source, days: int) -> list[tuple[str, str, Callable[[],
         tasks.append((name, _host_key(host), fn))
 
     if source in {"edgar", "all"}:
+
         def _edgar() -> list[Event]:
             tickers = [e.ticker for e in load_entities() if e.ticker and e.type == "public"]
             ticker_limit = _int_env("EDGAR_TICKER_LIMIT", DEFAULT_DAILY_EDGAR_TICKER_LIMIT)
@@ -274,7 +275,11 @@ def _fetch_tasks(source: Source, days: int) -> list[tuple[str, str, Callable[[],
 
         add("edgar", "https://www.sec.gov", _edgar)
     if source in {"news", "all"}:
-        add("news", "https://newsapi.org", lambda: news.fetch_all(days=days, tier_max=2, fetch_body=True))
+        add(
+            "news",
+            "https://newsapi.org",
+            lambda: news.fetch_all(days=days, tier_max=2, fetch_body=True),
+        )
     if source in {"reddit", "all"}:
         add("reddit", "https://www.reddit.com", lambda: reddit.fetch_all(days=days))
     if source in {"ir", "all"}:
@@ -282,11 +287,19 @@ def _fetch_tasks(source: Source, days: int) -> list[tuple[str, str, Callable[[],
     if source in {"github", "all"}:
         add("github", "https://api.github.com", lambda: github.fetch_all(days=max(days, 7)))
     if source in {"github-archive", "all"}:
-        add("github-archive", "https://data.gharchive.org", lambda: github_archive.fetch_all(days=days))
+        add(
+            "github-archive",
+            "https://data.gharchive.org",
+            lambda: github_archive.fetch_all(days=days),
+        )
     if source in {"gov", "all"}:
         add("gov", "https://www.federalregister.gov", lambda: gov.fetch_all(days=max(days, 3)))
     if source in {"huggingface", "all"}:
-        add("huggingface", "https://huggingface.co", lambda: huggingface.fetch_all(days=max(days, 7)))
+        add(
+            "huggingface",
+            "https://huggingface.co",
+            lambda: huggingface.fetch_all(days=max(days, 7)),
+        )
     if source in {"youtube", "all"}:
         add("youtube", "https://www.youtube.com", lambda: youtube.fetch_all(days=max(days, 7)))
     if source in {"bluesky", "all"}:
@@ -301,6 +314,7 @@ def _fetch_tasks(source: Source, days: int) -> list[tuple[str, str, Callable[[],
     if source in {"hkex", "all"}:
         add("hkex", "https://www1.hkexnews.hk", lambda: hkex.fetch_all(days=max(days, 3)))
     if source in {"markets", "all"}:
+
         def _markets() -> list[Event]:
             market_events, market_quotes = markets.fetch_all(days=max(days, 30))
             # Quotes are the primary output of the markets source — push directly.
@@ -321,17 +335,31 @@ def _fetch_tasks(source: Source, days: int) -> list[tuple[str, str, Callable[[],
     if source in {"techmeme", "all"}:
         add("techmeme", "https://www.techmeme.com", lambda: techmeme.fetch_all(days=max(days, 3)))
     if source in {"packages", "all"}:
-        add("packages", "https://www.npmjs.com", lambda: package_registries.fetch_all(days=max(days, 7)))
+        add(
+            "packages",
+            "https://www.npmjs.com",
+            lambda: package_registries.fetch_all(days=max(days, 7)),
+        )
     if source in {"jobs", "all"}:
         add("jobs", "https://boards.greenhouse.io", lambda: jobs.fetch_all(days=max(days, 14)))
     if source in {"nvd", "all"}:
         add("nvd", "https://services.nvd.nist.gov", lambda: nvd.fetch_all(days=max(days, 14)))
     if source in {"guardian", "all"}:
-        add("guardian", "https://content.guardianapis.com", lambda: guardian.fetch_all(days=max(days, 7)))
+        add(
+            "guardian",
+            "https://content.guardianapis.com",
+            lambda: guardian.fetch_all(days=max(days, 7)),
+        )
     if source in {"patents", "all"}:
-        add("patents", "https://api.patentsview.org", lambda: patents.fetch_all(days=max(days, 365)))
+        add(
+            "patents", "https://api.patentsview.org", lambda: patents.fetch_all(days=max(days, 365))
+        )
     if source in {"gov-contracts", "all"}:
-        add("gov-contracts", "https://api.www.sbir.gov", lambda: gov_contracts.fetch_all(days=max(days, 30)))
+        add(
+            "gov-contracts",
+            "https://api.www.sbir.gov",
+            lambda: gov_contracts.fetch_all(days=max(days, 30)),
+        )
     if source == "wikidata":
         add("wikidata", "https://www.wikidata.org", lambda: wikidata.fetch_all(days=days))
     if source in {"semantic-scholar", "all"}:
@@ -341,7 +369,11 @@ def _fetch_tasks(source: Source, days: int) -> list[tuple[str, str, Callable[[],
             lambda: semantic_scholar.fetch_all(days=max(days, 30)),
         )
     if source in {"regulations", "all"}:
-        add("regulations", "https://api.regulations.gov", lambda: regulations.fetch_all(days=max(days, 30)))
+        add(
+            "regulations",
+            "https://api.regulations.gov",
+            lambda: regulations.fetch_all(days=max(days, 30)),
+        )
     if source == "companies-house":
         add(
             "companies-house",
@@ -349,11 +381,23 @@ def _fetch_tasks(source: Source, days: int) -> list[tuple[str, str, Callable[[],
             lambda: companies_house.fetch_all(days=days),
         )
     if source in {"metaculus", "all"}:
-        add("metaculus", "https://www.metaculus.com", lambda: metaculus.fetch_all(days=max(days, 30)))
+        add(
+            "metaculus",
+            "https://www.metaculus.com",
+            lambda: metaculus.fetch_all(days=max(days, 30)),
+        )
     if source in {"podcast-index", "all"}:
-        add("podcast-index", "https://api.podcastindex.org", lambda: podcast_index.fetch_all(days=max(days, 14)))
+        add(
+            "podcast-index",
+            "https://api.podcastindex.org",
+            lambda: podcast_index.fetch_all(days=max(days, 14)),
+        )
     if source in {"macro-rates", "all"}:
-        add("macro-rates", "https://www.ecb.europa.eu", lambda: macro_rates.fetch_all(days=max(days, 30)))
+        add(
+            "macro-rates",
+            "https://www.ecb.europa.eu",
+            lambda: macro_rates.fetch_all(days=max(days, 30)),
+        )
     if source in {"sec-xbrl", "all"}:
         # Shares the sec.gov host gate with `edgar` so the two never hammer SEC together.
         add("sec-xbrl", "https://www.sec.gov", lambda: sec_xbrl.fetch_all(days=max(days, 120)))
@@ -362,39 +406,73 @@ def _fetch_tasks(source: Source, days: int) -> list[tuple[str, str, Callable[[],
     if source in {"legistar", "all"}:
         # Municipal land-use moves slowly; widen the window so daily runs still
         # catch newly-introduced data-center / fab / rezoning matters.
-        add("legistar", "https://webapi.legistar.com", lambda: legistar.fetch_all(days=max(days, 30)))
+        add(
+            "legistar",
+            "https://webapi.legistar.com",
+            lambda: legistar.fetch_all(days=max(days, 30)),
+        )
     if source in {"courtlistener", "all"}:
         # Litigation moves slowly; widen the window so daily runs catch newly
         # filed antitrust / IP / M&A opinions.
-        add("courtlistener", "https://www.courtlistener.com", lambda: courtlistener.fetch_all(days=max(days, 30)))
+        add(
+            "courtlistener",
+            "https://www.courtlistener.com",
+            lambda: courtlistener.fetch_all(days=max(days, 30)),
+        )
     if source in {"openstates", "all"}:
         # Skipped without OPENSTATES_API_KEY; state bills move on a weeks cadence.
-        add("openstates", "https://v3.openstates.org", lambda: openstates.fetch_all(days=max(days, 30)))
+        add(
+            "openstates",
+            "https://v3.openstates.org",
+            lambda: openstates.fetch_all(days=max(days, 30)),
+        )
     if source in {"hackernews", "all"}:
         add("hackernews", "https://hn.algolia.com", lambda: hackernews.fetch_all(days=max(days, 7)))
     if source in {"stackexchange", "all"}:
-        add("stackexchange", "https://api.stackexchange.com", lambda: stackexchange.fetch_all(days=max(days, 30)))
+        add(
+            "stackexchange",
+            "https://api.stackexchange.com",
+            lambda: stackexchange.fetch_all(days=max(days, 30)),
+        )
     if source in {"eia", "all"}:
         # Skipped without EIA_API_KEY; monthly series, so widen the window.
         add("eia", "https://api.eia.gov", lambda: eia.fetch_all(days=max(days, 120)))
     if source in {"producthunt", "all"}:
-        add("producthunt", "https://www.producthunt.com", lambda: producthunt.fetch_all(days=max(days, 7)))
+        add(
+            "producthunt",
+            "https://www.producthunt.com",
+            lambda: producthunt.fetch_all(days=max(days, 7)),
+        )
     if source in {"vc-portfolios", "all"}:
         add("vc-portfolios", "https://www.ycombinator.com/companies", lambda: [])
     if source in {"coingecko", "all"}:
         add("coingecko", "https://api.coingecko.com", lambda: coingecko.fetch_all(days=days))
     if source in {"google-trends", "all"}:
-        add("google-trends", "https://trends.google.com", lambda: google_trends.fetch_all(days=max(days, 2)))
+        add(
+            "google-trends",
+            "https://trends.google.com",
+            lambda: google_trends.fetch_all(days=max(days, 2)),
+        )
     if source in {"appstore", "all"}:
-        add("appstore", "https://rss.applemarketingtools.com", lambda: appstore.fetch_all(days=days))
+        add(
+            "appstore", "https://rss.applemarketingtools.com", lambda: appstore.fetch_all(days=days)
+        )
     if source in {"defillama", "all"}:
         add("defillama", "https://api.llama.fi", lambda: defillama.fetch_all(days=days))
     if source in {"bls", "all"}:
         add("bls", "https://api.bls.gov", lambda: bls.fetch_all(days=max(days, 120)))
     if source in {"appstore-reviews", "all"}:
-        add("appstore-reviews", "https://itunes.apple.com", lambda: appstore_reviews.fetch_all(days=max(days, 14)))
+        add(
+            "appstore-reviews",
+            "https://itunes.apple.com",
+            lambda: appstore_reviews.fetch_all(days=max(days, 14)),
+        )
     if source in {"playstore-reviews", "all"}:
-        add("playstore-reviews", "https://play.google.com", lambda: playstore_reviews.fetch_all(days=max(days, 14)))
+        add(
+            "playstore-reviews",
+            "https://play.google.com",
+            lambda: playstore_reviews.fetch_all(days=max(days, 14)),
+        )
     if source in {"us-gov-rss", "all"}:
         add("us-gov-rss", "https://www.sec.gov", lambda: us_gov_rss.fetch_all(days=max(days, 7)))
     if source in {"us-gov-api", "all"}:
@@ -402,13 +480,21 @@ def _fetch_tasks(source: Source, days: int) -> list[tuple[str, str, Callable[[],
     if source in {"india-gov", "all"}:
         add("india-gov", "https://www.sebi.gov.in", lambda: india_gov.fetch_all(days=max(days, 3)))
     if source in {"global-macro", "all"}:
-        add("global-macro", "https://api.worldbank.org", lambda: global_macro.fetch_all(days=max(days, 30)))
+        add(
+            "global-macro",
+            "https://api.worldbank.org",
+            lambda: global_macro.fetch_all(days=max(days, 30)),
+        )
     if source in {"crypto-onchain", "all"}:
         add("crypto-onchain", "https://mempool.space", lambda: crypto_onchain.fetch_all(days=days))
     if source in {"ai-benchmarks", "all"}:
         add("ai-benchmarks", "https://api.wulong.dev", lambda: ai_benchmarks.fetch_all(days=days))
     if source in {"dev-ecosystems", "all"}:
-        add("dev-ecosystems", "https://paperswithcode.com", lambda: dev_ecosystems.fetch_all(days=max(days, 7)))
+        add(
+            "dev-ecosystems",
+            "https://paperswithcode.com",
+            lambda: dev_ecosystems.fetch_all(days=max(days, 7)),
+        )
 
     return tasks
 
@@ -498,7 +584,7 @@ def _pre_group_clusters(
     - ``small_batches`` = list of batches, each a list of ``(entity_id, events)``
     """
     threshold = _small_cluster_threshold()
-    ranked = _ranked_entity_groups(by_entity)[:_cluster_limit()]
+    ranked = _ranked_entity_groups(by_entity)[: _cluster_limit()]
 
     large: list[tuple[str, list[Event]]] = []
     small: dict[str, list[Event]] = {}
@@ -594,7 +680,7 @@ def cluster_and_generate(events: list[Event]) -> list[str]:
             by_entity[eid].append(ev)
 
     written: list[str] = []
-    for entity_id, evs in _ranked_entity_groups(by_entity)[:_cluster_limit()]:
+    for entity_id, evs in _ranked_entity_groups(by_entity)[: _cluster_limit()]:
         cand = generate(entity_id, evs, _spillover_candidates(entity_id))
         if cand:
             written.append(emit(cand))
@@ -721,15 +807,16 @@ def run(source: Source, days: int) -> dict:
     # Small clusters: batched by graph-connected components (one LLM call per batch)
     for batch in small_batches:
         clusters_with_spillover = [
-            (entity_id, evs, _spillover_candidates(entity_id))
-            for entity_id, evs in batch
+            (entity_id, evs, _spillover_candidates(entity_id)) for entity_id, evs in batch
         ]
         try:
             cands = generate_batch(clusters_with_spillover)
         except Exception as exc:
             errors += 1
             if error_sample is None:
-                error_sample = f"generate_batch {[e for e, _, _ in clusters_with_spillover]}: {exc}"[:300]
+                error_sample = (
+                    f"generate_batch {[e for e, _, _ in clusters_with_spillover]}: {exc}"[:300]
+                )
             for entity_id, evs in batch:
                 fallback_by_entity[entity_id] = evs
             continue

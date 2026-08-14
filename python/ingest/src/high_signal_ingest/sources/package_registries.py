@@ -7,7 +7,6 @@ packages tied to tracked entities rather than indexing entire registries.
 
 from __future__ import annotations
 
-import hashlib
 import logging
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
@@ -16,6 +15,7 @@ from typing import Any
 import httpx
 
 from ..types import Event, SourceDocument
+from ..utils import event_hash
 
 
 USER_AGENT = "high-signal/0.1 package-registry-ingest"
@@ -78,14 +78,14 @@ PACKAGIST_TARGETS = [
 ]
 
 
-def _hash(*parts: str) -> str:
-    return hashlib.sha256("␟".join(parts).encode("utf-8")).hexdigest()
-
-
 def _parse_datetime(value: str) -> datetime | None:
     try:
         parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
-        return parsed.astimezone(timezone.utc) if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+        return (
+            parsed.astimezone(timezone.utc)
+            if parsed.tzinfo
+            else parsed.replace(tzinfo=timezone.utc)
+        )
     except (TypeError, ValueError):
         return None
 
@@ -108,7 +108,7 @@ def npm_events_from_metadata(
             continue
         meta = versions.get(version) if isinstance(versions.get(version), dict) else {}
         description = str(meta.get("description") or payload.get("description") or "").strip()
-        raw_hash = _hash("npm", package.name, str(version), str(published_raw))
+        raw_hash = event_hash("npm", package.name, str(version), str(published_raw))
         out.append(
             Event(
                 id=raw_hash[:16],
@@ -159,7 +159,7 @@ def pypi_events_from_metadata(
         published = min(published_candidates)
         if published < since:
             continue
-        raw_hash = _hash("pypi", package.name, str(version), published.isoformat())
+        raw_hash = event_hash("pypi", package.name, str(version), published.isoformat())
         out.append(
             Event(
                 id=raw_hash[:16],
@@ -202,7 +202,9 @@ def crates_events_from_metadata(
         num = str(version.get("num") or "").strip()
         if not num:
             continue
-        published = _parse_datetime(str(version.get("created_at") or version.get("updated_at") or ""))
+        published = _parse_datetime(
+            str(version.get("created_at") or version.get("updated_at") or "")
+        )
         if published is None or published < since:
             continue
         yanked = bool(version.get("yanked"))
@@ -212,7 +214,7 @@ def crates_events_from_metadata(
             content_parts.append("yanked")
         if isinstance(downloads, int):
             content_parts.append(f"downloads={downloads}")
-        raw_hash = _hash("crates-io", package.name, num, published.isoformat())
+        raw_hash = event_hash("crates-io", package.name, num, published.isoformat())
         out.append(
             Event(
                 id=raw_hash[:16],
@@ -239,9 +241,7 @@ def crates_events_from_metadata(
     return out
 
 
-def crates_events_from_trending(
-    payload: dict[str, Any], since: datetime
-) -> list[Event]:
+def crates_events_from_trending(payload: dict[str, Any], since: datetime) -> list[Event]:
     crates = payload.get("crates") if isinstance(payload.get("crates"), list) else []
     out: list[Event] = []
     published = datetime.now(timezone.utc)
@@ -254,7 +254,7 @@ def crates_events_from_trending(
         if not name:
             continue
         downloads = crate.get("recent_downloads") or crate.get("downloads") or 0
-        raw_hash = _hash("crates-io-trending", name, published.date().isoformat())
+        raw_hash = event_hash("crates-io-trending", name, published.date().isoformat())
         out.append(
             Event(
                 id=raw_hash[:16],
@@ -302,7 +302,7 @@ def maven_events_from_response(
             published = _parse_datetime(str(ts or ""))
         if published is None or published < since:
             continue
-        raw_hash = _hash("maven", package.name, version, published.isoformat())
+        raw_hash = event_hash("maven", package.name, version, published.isoformat())
         out.append(
             Event(
                 id=raw_hash[:16],
@@ -340,10 +340,12 @@ def rubygems_events_from_metadata(
     out: list[Event] = []
     if not version:
         return out
-    published = _parse_datetime(str(payload.get("version_created_at") or payload.get("created_at") or ""))
+    published = _parse_datetime(
+        str(payload.get("version_created_at") or payload.get("created_at") or "")
+    )
     if published is None or published < since:
         return out
-    raw_hash = _hash("rubygems", package.name, version, published.isoformat())
+    raw_hash = event_hash("rubygems", package.name, version, published.isoformat())
     out.append(
         Event(
             id=raw_hash[:16],
@@ -374,7 +376,9 @@ def packagist_events_from_metadata(
     package: PackageTarget, payload: dict[str, Any], since: datetime
 ) -> list[Event]:
     packages = payload.get("packages") if isinstance(payload.get("packages"), dict) else {}
-    versions_list = packages.get(package.name) if isinstance(packages.get(package.name), list) else []
+    versions_list = (
+        packages.get(package.name) if isinstance(packages.get(package.name), list) else []
+    )
     evidence_url = f"https://packagist.org/packages/{package.name}"
     out: list[Event] = []
     for entry in versions_list:
@@ -387,7 +391,7 @@ def packagist_events_from_metadata(
         published = _parse_datetime(str(entry.get("time") or ""))
         if published is None or published < since:
             continue
-        raw_hash = _hash("packagist", package.name, version, published.isoformat())
+        raw_hash = event_hash("packagist", package.name, version, published.isoformat())
         out.append(
             Event(
                 id=raw_hash[:16],
@@ -429,7 +433,9 @@ def osv_events_from_response(
             continue
         aliases = ", ".join(str(alias) for alias in vuln.get("aliases", []) if alias)
         summary = str(vuln.get("summary") or vuln.get("details") or "").strip()
-        raw_hash = _hash("osv", package.ecosystem, package.name, vuln_id, published.isoformat())
+        raw_hash = event_hash(
+            "osv", package.ecosystem, package.name, vuln_id, published.isoformat()
+        )
         out.append(
             Event(
                 id=raw_hash[:16],

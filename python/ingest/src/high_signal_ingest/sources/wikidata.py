@@ -7,7 +7,6 @@ sector/entity-resolution work.
 
 from __future__ import annotations
 
-import hashlib
 import logging
 from datetime import datetime, timezone
 from typing import Any
@@ -16,15 +15,12 @@ import httpx
 
 from ..seed import load_entities
 from ..types import Event
+from ..utils import event_hash
 
 
 USER_AGENT = "high-signal/0.1 wikidata-ingest"
 LOGGER = logging.getLogger(__name__)
 API_URL = "https://www.wikidata.org/w/api.php"
-
-
-def _hash(*parts: str) -> str:
-    return hashlib.sha256("␟".join(parts).encode("utf-8")).hexdigest()
 
 
 def event_from_search_result(entity_id: str, query: str, result: dict[str, Any]) -> Event | None:
@@ -34,7 +30,7 @@ def event_from_search_result(entity_id: str, query: str, result: dict[str, Any])
     concepturi = str(result.get("concepturi") or f"https://www.wikidata.org/wiki/{qid}").strip()
     if not qid:
         return None
-    raw_hash = _hash("wikidata", entity_id, qid)
+    raw_hash = event_hash("wikidata", entity_id, qid)
     return Event(
         id=raw_hash[:16],
         source="wikidata",

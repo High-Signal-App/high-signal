@@ -85,9 +85,7 @@ def _shared_link_edges(conn) -> list[tuple[int, int]]:
 def _embedding_edges(conn, threshold: float, k: int) -> list[tuple[int, int]]:
     edges: list[tuple[int, int]] = []
     with conn.cursor() as cur:
-        cur.execute(
-            "SELECT id FROM documents WHERE embedding IS NOT NULL ORDER BY id"
-        )
+        cur.execute("SELECT id FROM documents WHERE embedding IS NOT NULL ORDER BY id")
         ids = [int(row[0]) for row in cur.fetchall() or []]
         for doc_id in ids:
             cur.execute(
@@ -109,7 +107,9 @@ def _embedding_edges(conn, threshold: float, k: int) -> list[tuple[int, int]]:
     return edges
 
 
-def cluster(threshold: float = DEFAULT_THRESHOLD, neighbours: int = DEFAULT_NEIGHBOURS) -> int:
+def cluster(
+    threshold: float = DEFAULT_THRESHOLD, neighbours: int = DEFAULT_NEIGHBOURS
+) -> int:
     """Recompute `cluster_id` for every document. Returns count of clusters."""
     with connect() as conn:
         _ensure_column(conn)

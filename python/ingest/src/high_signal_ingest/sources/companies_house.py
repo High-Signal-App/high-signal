@@ -6,7 +6,6 @@ tracked companies, not a daily public signal source.
 
 from __future__ import annotations
 
-import hashlib
 import logging
 import os
 from datetime import datetime, timezone
@@ -16,15 +15,12 @@ import httpx
 
 from ..seed import load_entities
 from ..types import Event
+from ..utils import event_hash
 
 
 USER_AGENT = "high-signal/0.1 companies-house-ingest"
 LOGGER = logging.getLogger(__name__)
 API_URL = "https://api.company-information.service.gov.uk/search/companies"
-
-
-def _hash(*parts: str) -> str:
-    return hashlib.sha256("␟".join(parts).encode("utf-8")).hexdigest()
 
 
 def event_from_search_item(entity_id: str, query: str, item: dict[str, Any]) -> Event | None:
@@ -35,7 +31,7 @@ def event_from_search_item(entity_id: str, query: str, item: dict[str, Any]) -> 
     status = str(item.get("company_status") or "").strip()
     company_type = str(item.get("company_type") or "").strip()
     address = item.get("address_snippet")
-    raw_hash = _hash("companies-house", entity_id, company_number)
+    raw_hash = event_hash("companies-house", entity_id, company_number)
     content = "\n".join(
         part
         for part in [

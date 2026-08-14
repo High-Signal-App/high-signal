@@ -98,7 +98,9 @@ def _fetch_cftc_cot(days: int) -> list[Event]:
         if not isinstance(row, dict):
             continue
         report_date = str(row.get("report_date_as_yyyy_mm_dd") or "").strip()
-        market = str(row.get("market_and_exchange_names") or row.get("cftc_market_name") or "").strip()
+        market = str(
+            row.get("market_and_exchange_names") or row.get("cftc_market_name") or ""
+        ).strip()
         if not report_date or not market:
             continue
         published = _parse_dt(report_date)
@@ -140,7 +142,9 @@ def _fetch_cftc_cot(days: int) -> list[Event]:
 # 2. US Treasury yield curve (keyless XML)
 # ---------------------------------------------------------------------------
 
-TREASURY_XML_URL = "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml"
+TREASURY_XML_URL = (
+    "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml"
+)
 
 
 def _fetch_treasury_yields(days: int) -> list[Event]:
@@ -150,7 +154,10 @@ def _fetch_treasury_yields(days: int) -> list[Event]:
     try:
         r = httpx.get(
             TREASURY_XML_URL,
-            params={"type": "daily_treasury_yield_curve", "field_tdr_date_value": since.strftime("%Y-%m-%d")},
+            params={
+                "type": "daily_treasury_yield_curve",
+                "field_tdr_date_value": since.strftime("%Y-%m-%d"),
+            },
             headers={"User-Agent": USER_AGENT, "Accept": "application/xml"},
             timeout=TIMEOUT,
             follow_redirects=True,
@@ -184,7 +191,10 @@ def _fetch_treasury_yields(days: int) -> list[Event]:
             continue
         if not rates:
             continue
-        rate_pairs = ", ".join(f"{k.replace('BC_', '').replace('MONTH', 'mo').replace('YEAR', 'yr')}={v}" for k, v in sorted(rates.items()))
+        rate_pairs = ", ".join(
+            f"{k.replace('BC_', '').replace('MONTH', 'mo').replace('YEAR', 'yr')}={v}"
+            for k, v in sorted(rates.items())
+        )
         raw_hash = event_hash("us-gov-api:treasury-yields", date_str[:10])
         out.append(
             Event(
@@ -222,7 +232,20 @@ def _fetch_cfpb_complaints(days: int) -> list[Event]:
                     "bool": {
                         "must": [
                             {"range": {"date_received": {"gte": since.strftime("%Y-%m-%d")}}},
-                            {"terms": {"product": ["Credit card", "Credit reporting", "Debt collection", "Mortgage", "Payday loan", "Student loan", "Prepaid card", "Money transfer"]}},
+                            {
+                                "terms": {
+                                    "product": [
+                                        "Credit card",
+                                        "Credit reporting",
+                                        "Debt collection",
+                                        "Mortgage",
+                                        "Payday loan",
+                                        "Student loan",
+                                        "Prepaid card",
+                                        "Money transfer",
+                                    ]
+                                }
+                            },
                         ]
                     }
                 },
@@ -257,12 +280,16 @@ def _fetch_cfpb_complaints(days: int) -> list[Event]:
             f"Product: {product}. Issue: {issue}.\n"
             f"{narrative}".strip()
         )
-        raw_hash = event_hash("us-gov-api:cfpb-complaints", comp_id or f"{company}|{date_str}|{product}")
+        raw_hash = event_hash(
+            "us-gov-api:cfpb-complaints", comp_id or f"{company}|{date_str}|{product}"
+        )
         out.append(
             Event(
                 id=raw_hash[:16],
                 source="us-gov-api:cfpb-complaints",
-                source_url=f"https://www.consumerfinance.gov/data-research/consumer-complaints/search/detail/{comp_id}" if comp_id else "https://www.consumerfinance.gov/data-research/consumer-complaints/",
+                source_url=f"https://www.consumerfinance.gov/data-research/consumer-complaints/search/detail/{comp_id}"
+                if comp_id
+                else "https://www.consumerfinance.gov/data-research/consumer-complaints/",
                 published_at=published,
                 title=title,
                 content=content,
@@ -290,7 +317,15 @@ def _fetch_nih_reporter(days: int) -> list[Event]:
             json={
                 "criteria": {
                     "project_start_date": {"from_date": since.strftime("%Y-%m-%d")},
-                    "project_title": ["artificial intelligence", "machine learning", "deep learning", "semiconductor", "biotechnology", "genomics", "quantum"],
+                    "project_title": [
+                        "artificial intelligence",
+                        "machine learning",
+                        "deep learning",
+                        "semiconductor",
+                        "biotechnology",
+                        "genomics",
+                        "quantum",
+                    ],
                 },
                 "offset": 0,
                 "limit": 50,
@@ -339,7 +374,9 @@ def _fetch_nih_reporter(days: int) -> list[Event]:
             Event(
                 id=raw_hash[:16],
                 source="us-gov-api:nih-reporter",
-                source_url=f"https://reporter.nih.gov/project-details/{proj_id}" if proj_id else "https://reporter.nih.gov/",
+                source_url=f"https://reporter.nih.gov/project-details/{proj_id}"
+                if proj_id
+                else "https://reporter.nih.gov/",
                 published_at=published,
                 title=f"NIH grant: {title}" + (f" ({proj_id})" if proj_id else ""),
                 content=content,
@@ -404,7 +441,9 @@ def _fetch_nsf_awards(days: int) -> list[Event]:
             Event(
                 id=raw_hash[:16],
                 source="us-gov-api:nsf-awards",
-                source_url=f"https://www.nsf.gov/awardsearch/showAward?AWD_ID={aw_id}" if aw_id else "https://www.nsf.gov/awardsearch/",
+                source_url=f"https://www.nsf.gov/awardsearch/showAward?AWD_ID={aw_id}"
+                if aw_id
+                else "https://www.nsf.gov/awardsearch/",
                 published_at=published,
                 title=f"NSF award: {title}" + (f" ({aw_id})" if aw_id else ""),
                 content=content,
@@ -456,7 +495,11 @@ def _fetch_usgs_earthquakes(days: int) -> list[Event]:
         place = str(props.get("place") or "").strip()
         title = str(props.get("title") or "").strip() or f"M{mag} earthquake {place}"
         ts = props.get("time")
-        published = datetime.fromtimestamp(ts / 1000.0, tz=timezone.utc) if isinstance(ts, (int, float)) else None
+        published = (
+            datetime.fromtimestamp(ts / 1000.0, tz=timezone.utc)
+            if isinstance(ts, (int, float))
+            else None
+        )
         if published is None or published < since:
             continue
         url = str(props.get("url") or "").strip()
@@ -467,7 +510,9 @@ def _fetch_usgs_earthquakes(days: int) -> list[Event]:
             f"{title}\nMagnitude: {mag}. Place: {place}. "
             f"Significance: {sig}. Tsunami: {tsunami}. Alert: {alert or 'none'}."
         )
-        raw_hash = event_hash("us-gov-api:usgs-earthquakes", eq_id or f"{title}|{published.isoformat()}")
+        raw_hash = event_hash(
+            "us-gov-api:usgs-earthquakes", eq_id or f"{title}|{published.isoformat()}"
+        )
         out.append(
             Event(
                 id=raw_hash[:16],
@@ -528,7 +573,9 @@ def _fetch_noaa_weather(days: int) -> list[Event]:
         content = _cap(
             f"{event} — {area}\nSeverity: {severity}. Certainty: {certainty}.\n{description}".strip()
         )
-        raw_hash = event_hash("us-gov-api:noaa-weather", alert_id or f"{event}|{area}|{published.isoformat()}")
+        raw_hash = event_hash(
+            "us-gov-api:noaa-weather", alert_id or f"{event}|{area}|{published.isoformat()}"
+        )
         out.append(
             Event(
                 id=raw_hash[:16],
@@ -560,7 +607,7 @@ def _fetch_bea(days: int) -> list[Event]:
     since = _now() - timedelta(days=days)
     out: list[Event] = []
     datasets = [
-        ("NIPA", "T10101", "GDP"),       # Table 1.1.1 — percent change in GDP
+        ("NIPA", "T10101", "GDP"),  # Table 1.1.1 — percent change in GDP
         ("NIPA", "T20304", "Personal Income"),  # personal income
     ]
     for dataset, table, label in datasets:
@@ -584,7 +631,11 @@ def _fetch_bea(days: int) -> list[Event]:
         except (httpx.HTTPError, ValueError) as exc:
             LOGGER.debug("bea %s fetch failed: %s", label, exc)
             continue
-        data = payload.get("BEAAPI", {}).get("Results", {}).get("Data", []) if isinstance(payload, dict) else []
+        data = (
+            payload.get("BEAAPI", {}).get("Results", {}).get("Data", [])
+            if isinstance(payload, dict)
+            else []
+        )
         for row in data:
             if not isinstance(row, dict):
                 continue
@@ -629,7 +680,7 @@ def _fetch_census(days: int) -> list[Event]:
     since = _now() - timedelta(days=days)
     out: list[Event] = []
     programs = [
-        ("mart", "MART", "Retail sales"),       # Monthly retail trade
+        ("mart", "MART", "Retail sales"),  # Monthly retail trade
         ("bfs", "BFS", "Business formations"),  # Business formation stats
     ]
     for prog_code, program, label in programs:
@@ -725,13 +776,17 @@ def _fetch_congress(days: int) -> list[Event]:
         title = str(bill.get("title") or "").strip()
         if not title:
             continue
-        date_str = str(bill.get("latestAction", {}).get("actionDate") or bill.get("updateDate") or "").strip()
+        date_str = str(
+            bill.get("latestAction", {}).get("actionDate") or bill.get("updateDate") or ""
+        ).strip()
         published = _parse_dt(date_str) or _now()
         if published < since:
             continue
         action = str(bill.get("latestAction", {}).get("text") or "").strip()
         sponsor = str(bill.get("sponsor", {}).get("fullName") or "").strip()
-        bill_slug = f"{bill_type}{number}-{congress_num}" if bill_type and number else f"{congress_num}"
+        bill_slug = (
+            f"{bill_type}{number}-{congress_num}" if bill_type and number else f"{congress_num}"
+        )
         content = _cap(
             f"Congress bill {bill_slug}: {title}\n"
             f"Sponsor: {sponsor or 'unknown'}. Latest action ({date_str}): {action}".strip()
@@ -741,7 +796,9 @@ def _fetch_congress(days: int) -> list[Event]:
             Event(
                 id=raw_hash[:16],
                 source="us-gov-api:congress",
-                source_url=f"https://www.congress.gov/bill/{congress_num}th-congress/{bill_type.lower()}/{number}" if bill_type and number else "https://www.congress.gov/",
+                source_url=f"https://www.congress.gov/bill/{congress_num}th-congress/{bill_type.lower()}/{number}"
+                if bill_type and number
+                else "https://www.congress.gov/",
                 published_at=published,
                 title=f"Congress: {title}" + (f" ({bill_slug})" if bill_type and number else ""),
                 content=content,
@@ -800,7 +857,9 @@ def _fetch_fec(days: int) -> list[Event]:
         amount = str(item.get("expenditure_amount") or item.get("total") or "").strip()
         support_oppose = str(item.get("support_oppose_indicator") or "").strip()
         memo = str(item.get("memo_text") or "").strip()
-        title = f"FEC independent expenditure: ${amount} to {payee}" + (f" ({support_oppose} {candidate})" if candidate else "")
+        title = f"FEC independent expenditure: ${amount} to {payee}" + (
+            f" ({support_oppose} {candidate})" if candidate else ""
+        )
         content = _cap(
             f"FEC Schedule E — {date_str}\n"
             f"Payee: {payee}. Committee: {committee}. Candidate: {candidate}.\n"
@@ -862,7 +921,9 @@ def _fetch_lda(days: int) -> list[Event]:
         published = _parse_dt(date_str) or _now()
         if published < since:
             continue
-        registrant = str(item.get("registrant", {}).get("name") or item.get("registrant_name") or "").strip()
+        registrant = str(
+            item.get("registrant", {}).get("name") or item.get("registrant_name") or ""
+        ).strip()
         client = str(item.get("client", {}).get("name") or item.get("client_name") or "").strip()
         filing_id = str(item.get("id") or item.get("filing_id") or "").strip()
         lobbying_issues = item.get("lobbying_activities") or item.get("lobbying_issues") or []
@@ -870,7 +931,9 @@ def _fetch_lda(days: int) -> list[Event]:
         if isinstance(lobbying_issues, list):
             for li in lobbying_issues[:5]:
                 if isinstance(li, dict):
-                    code = str(li.get("general_issue_code") or li.get("general_issue_code_display") or "").strip()
+                    code = str(
+                        li.get("general_issue_code") or li.get("general_issue_code_display") or ""
+                    ).strip()
                     if code:
                         issue_topics.append(code)
         title = f"LDA filing: {registrant} → {client}" + (f" ({filing_id})" if filing_id else "")
@@ -884,7 +947,9 @@ def _fetch_lda(days: int) -> list[Event]:
             Event(
                 id=raw_hash[:16],
                 source="us-gov-api:lda",
-                source_url=f"https://lda.gov/filing/{filing_id}" if filing_id else "https://lda.gov/",
+                source_url=f"https://lda.gov/filing/{filing_id}"
+                if filing_id
+                else "https://lda.gov/",
                 published_at=published,
                 title=title,
                 content=content,
@@ -940,7 +1005,11 @@ def _fetch_fda(days: int) -> list[Event]:
         drug_names = []
         for d in drugs[:5]:
             if isinstance(d, dict):
-                name = str(d.get("medicinalproduct") or d.get("openfda", {}).get("brand_name", [""])[0] if isinstance(d.get("openfda"), dict) else "").strip()
+                name = str(
+                    d.get("medicinalproduct") or d.get("openfda", {}).get("brand_name", [""])[0]
+                    if isinstance(d.get("openfda"), dict)
+                    else ""
+                ).strip()
                 if name:
                     drug_names.append(name)
         reactions = patient.get("reaction") if isinstance(patient.get("reaction"), list) else []
@@ -951,14 +1020,18 @@ def _fetch_fda(days: int) -> list[Event]:
                 if term:
                     reaction_terms.append(term)
         serious = str(item.get("serious") or "").strip()
-        title = f"FDA adverse event: {', '.join(drug_names[:2]) or 'unknown drug'}" + (f" ({safety_id})" if safety_id else "")
+        title = f"FDA adverse event: {', '.join(drug_names[:2]) or 'unknown drug'}" + (
+            f" ({safety_id})" if safety_id else ""
+        )
         content = _cap(
             f"FDA adverse event {safety_id} — received {receive_date}\n"
             f"Serious: {'yes' if serious == '1' else 'no'}.\n"
             f"Drugs: {', '.join(drug_names) or 'n/a'}.\n"
             f"Reactions: {', '.join(reaction_terms) or 'n/a'}."
         )
-        raw_hash = event_hash("us-gov-api:fda", safety_id or f"{receive_date}|{','.join(drug_names)}")
+        raw_hash = event_hash(
+            "us-gov-api:fda", safety_id or f"{receive_date}|{','.join(drug_names)}"
+        )
         out.append(
             Event(
                 id=raw_hash[:16],
@@ -1033,7 +1106,9 @@ def _fetch_usda_nass(days: int) -> list[Event]:
                 source_url="https://quickstats.nass.usda.gov/",
                 published_at=published,
                 title=f"USDA NASS: {commodity} {period} {year} = {value} {unit}".strip(),
-                content=_cap(f"USDA NASS — {commodity} production, {freq} {period} {year}: {value} {unit}."),
+                content=_cap(
+                    f"USDA NASS — {commodity} production, {freq} {period} {year}: {value} {unit}."
+                ),
                 primary_entity_id=None,
                 raw_hash=raw_hash,
             )

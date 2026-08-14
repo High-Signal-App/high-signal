@@ -54,31 +54,106 @@ INTENT_TERMS: list[tuple[Intent, tuple[str, ...]]] = [
     ),
     (
         "purchase-intent",
-        ("buy", "pay", "pricing", "budget", "vendor", "alternative", "recommend", "looking for", "switch", "worth it"),
+        (
+            "buy",
+            "pay",
+            "pricing",
+            "budget",
+            "vendor",
+            "alternative",
+            "recommend",
+            "looking for",
+            "switch",
+            "worth it",
+        ),
     ),
     (
         "feature-request",
-        ("feature", "need", "wish", "missing", "request", "support for", "integration", "would like", "should add"),
+        (
+            "feature",
+            "need",
+            "wish",
+            "missing",
+            "request",
+            "support for",
+            "integration",
+            "would like",
+            "should add",
+        ),
     ),
     (
         "operational-risk",
-        ("cashflow", "payroll", "rent", "inventory", "fulfillment", "refund", "support", "chargeback", "outage", "delay"),
+        (
+            "cashflow",
+            "payroll",
+            "rent",
+            "inventory",
+            "fulfillment",
+            "refund",
+            "support",
+            "chargeback",
+            "outage",
+            "delay",
+        ),
     ),
     (
         "market-signal",
-        ("stock", "market", "equity", "ipo", "guidance", "forecast", "demand", "capex", "margin", "revenue"),
+        (
+            "stock",
+            "market",
+            "equity",
+            "ipo",
+            "guidance",
+            "forecast",
+            "demand",
+            "capex",
+            "margin",
+            "revenue",
+        ),
     ),
     (
         "regional-pressure",
-        ("traffic", "pollution", "housing", "rent", "permit", "regulation", "tax", "city", "local", "commute"),
+        (
+            "traffic",
+            "pollution",
+            "housing",
+            "rent",
+            "permit",
+            "regulation",
+            "tax",
+            "city",
+            "local",
+            "commute",
+        ),
     ),
     (
         "startup-validation",
-        ("startup", "validate", "launch", "users", "waitlist", "distribution", "customer discovery", "mvp", "revenue"),
+        (
+            "startup",
+            "validate",
+            "launch",
+            "users",
+            "waitlist",
+            "distribution",
+            "customer discovery",
+            "mvp",
+            "revenue",
+        ),
     ),
     (
         "developer-workflow",
-        ("github", "deploy", "debug", "ci", "workflow", "observability", "trace", "code review", "developer", "api"),
+        (
+            "github",
+            "deploy",
+            "debug",
+            "ci",
+            "workflow",
+            "observability",
+            "trace",
+            "code review",
+            "developer",
+            "api",
+        ),
     ),
 ]
 
@@ -119,7 +194,19 @@ NEGATIVE_TERMS = (
     "friction",
 )
 
-URGENCY_TERMS = ("urgent", "immediately", "now", "deadline", "blocked", "can't", "cannot", "critical", "risk", "outage", "lawsuit")
+URGENCY_TERMS = (
+    "urgent",
+    "immediately",
+    "now",
+    "deadline",
+    "blocked",
+    "can't",
+    "cannot",
+    "critical",
+    "risk",
+    "outage",
+    "lawsuit",
+)
 
 
 def _hits(text: str, terms: tuple[str, ...]) -> list[str]:
@@ -129,9 +216,7 @@ def _hits(text: str, terms: tuple[str, ...]) -> list[str]:
 def annotate(text: str) -> LightweightNlpAnnotation:
     lower = text.lower()
     intent_scores = [
-        (intent, hits)
-        for intent, terms in INTENT_TERMS
-        if (hits := _hits(lower, terms))
+        (intent, hits) for intent, terms in INTENT_TERMS if (hits := _hits(lower, terms))
     ]
     intent_scores.sort(key=lambda item: len(item[1]), reverse=True)
     positive_hits = _hits(lower, POSITIVE_TERMS)

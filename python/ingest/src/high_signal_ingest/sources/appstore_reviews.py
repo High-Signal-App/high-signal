@@ -25,11 +25,22 @@ from ..utils import event_hash
 USER_AGENT = "high-signal/0.1 appstore-reviews-ingest"
 LOGGER = logging.getLogger(__name__)
 SEARCH_URL = "https://itunes.apple.com/search"
-REVIEWS_URL = "https://itunes.apple.com/us/rss/customerreviews/page=1/id={app_id}/sortby=mostrecent/json"
+REVIEWS_URL = (
+    "https://itunes.apple.com/us/rss/customerreviews/page=1/id={app_id}/sortby=mostrecent/json"
+)
 DEFAULT_APPS = (
-    "ChatGPT", "Perplexity AI", "Claude by Anthropic", "Notion", "Cursor",
-    "Figma", "Robinhood", "Coinbase", "Duolingo", "Arc Search",
-    "Google Gemini", "Microsoft Copilot",
+    "ChatGPT",
+    "Perplexity AI",
+    "Claude by Anthropic",
+    "Notion",
+    "Cursor",
+    "Figma",
+    "Robinhood",
+    "Coinbase",
+    "Duolingo",
+    "Arc Search",
+    "Google Gemini",
+    "Microsoft Copilot",
 )
 APP_ENTITY_IDS = {
     "ChatGPT": "OPENAI",
@@ -97,7 +108,9 @@ def reviews_from_feed(app: str, payload: dict, since: datetime) -> list[Event]:
 
 def _resolve_app_id(client: httpx.Client, name: str) -> str | None:
     try:
-        r = client.get(SEARCH_URL, params={"term": name, "entity": "software", "limit": 1, "country": "us"})
+        r = client.get(
+            SEARCH_URL, params={"term": name, "entity": "software", "limit": 1, "country": "us"}
+        )
         r.raise_for_status()
         results = r.json().get("results", [])
         return str(results[0]["trackId"]) if results else None
@@ -109,7 +122,7 @@ def fetch_all(days: int = 14, apps: list[str] | None = None) -> list[Event]:
     since = datetime.now(timezone.utc) - timedelta(days=days)
     out: list[Event] = []
     with httpx.Client(headers={"User-Agent": USER_AGENT}, timeout=20.0, follow_redirects=True) as c:
-        for name in (apps or _apps_from_env()):
+        for name in apps or _apps_from_env():
             app_id = _resolve_app_id(c, name)
             if not app_id:
                 continue

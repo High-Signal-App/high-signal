@@ -43,9 +43,7 @@ def _compiled_patterns() -> list[tuple[re.Pattern[str], str, bool]]:
         if len(term) < 3:
             continue
         if term in _COMMON_WORD_TICKERS:
-            out.append(
-                (re.compile(rf"(?<![\w$])\$?{re.escape(term.upper())}(?!\w)"), eid, True)
-            )
+            out.append((re.compile(rf"(?<![\w$])\$?{re.escape(term.upper())}(?!\w)"), eid, True))
         else:
             out.append((re.compile(rf"(?<!\w){re.escape(term)}(?!\w)"), eid, False))
     return out

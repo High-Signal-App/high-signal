@@ -7,7 +7,6 @@ risk candidates, not a broad CVE firehose.
 
 from __future__ import annotations
 
-import hashlib
 import logging
 import re
 from datetime import datetime, timedelta, timezone
@@ -18,16 +17,13 @@ import httpx
 
 from ..seed import load_entities
 from ..types import Event
+from ..utils import event_hash
 
 
 USER_AGENT = "high-signal/0.1 cisa-kev-ingest"
 LOGGER = logging.getLogger(__name__)
 CATALOG_URL = "https://www.cisa.gov/known-exploited-vulnerabilities-catalog"
 JSON_URL = "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json"
-
-
-def _hash(*parts: str) -> str:
-    return hashlib.sha256("␟".join(parts).encode("utf-8")).hexdigest()
 
 
 def _parse_date_added(value: str) -> datetime | None:
@@ -100,7 +96,7 @@ def event_from_vulnerability(row: dict[str, Any]) -> Event | None:
         f"References: {' '.join(note_urls)}" if note_urls else "",
     ]
     content = "\n".join(part for part in content_parts if part)
-    raw_hash = _hash("cisa-kev", cve_id, str(row.get("dateAdded") or ""))
+    raw_hash = event_hash("cisa-kev", cve_id, str(row.get("dateAdded") or ""))
 
     return Event(
         id=raw_hash[:16],

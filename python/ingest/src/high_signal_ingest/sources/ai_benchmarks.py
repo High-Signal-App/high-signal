@@ -52,7 +52,11 @@ def _parse_datetime(value: str | None) -> datetime | None:
         return None
     try:
         parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
-        return parsed.astimezone(timezone.utc) if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+        return (
+            parsed.astimezone(timezone.utc)
+            if parsed.tzinfo
+            else parsed.replace(tzinfo=timezone.utc)
+        )
     except ValueError:
         return None
 
@@ -68,6 +72,7 @@ def _format_table(header: list[str], rows: list[list[str]]) -> str:
 # ---------------------------------------------------------------------------
 # lmsys — Arena AI (formerly LMSYS Chatbot Arena) ELO leaderboard (keyless)
 # ---------------------------------------------------------------------------
+
 
 def _fetch_lmsys(days: int = 1) -> list[Event]:
     """Fetch the latest Arena AI text (LLM) leaderboard snapshot.
@@ -125,9 +130,7 @@ def _fetch_lmsys(days: int = 1) -> list[Event]:
         ]
         for m in top
     ]
-    content = _format_table(
-        ["Rank", "Model", "Vendor", "ELO", "CI", "Votes"], table_rows
-    )
+    content = _format_table(["Rank", "Model", "Vendor", "ELO", "CI", "Votes"], table_rows)
 
     raw_hash = event_hash("ai-benchmarks:lmsys", LMSYS_LEADERBOARD, fetched_at.date().isoformat())
     return [
@@ -146,6 +149,7 @@ def _fetch_lmsys(days: int = 1) -> list[Event]:
 # ---------------------------------------------------------------------------
 # artificial-analysis — independent benchmarks (free-key gated)
 # ---------------------------------------------------------------------------
+
 
 def _fetch_artificial_analysis(days: int = 1) -> list[Event]:
     """Fetch the Artificial Analysis free-tier model leaderboard.
@@ -254,6 +258,7 @@ def _fetch_artificial_analysis(days: int = 1) -> list[Event]:
 # openrouter-data — daily token-usage rankings (free-key gated)
 # ---------------------------------------------------------------------------
 
+
 def _fetch_openrouter(days: int = 1) -> list[Event]:
     """Fetch OpenRouter daily token-usage rankings for the trailing window.
 
@@ -316,10 +321,7 @@ def _fetch_openrouter(days: int = 1) -> list[Event]:
         return []
 
     latest_date = sorted(by_date.keys())[-1]
-    day_rows = [
-        r for r in by_date[latest_date]
-        if str(r.get("model_permaslug") or "") != "other"
-    ]
+    day_rows = [r for r in by_date[latest_date] if str(r.get("model_permaslug") or "") != "other"]
     if not day_rows:
         day_rows = by_date[latest_date]
 
@@ -371,6 +373,7 @@ def _fetch_openrouter(days: int = 1) -> list[Event]:
 # ---------------------------------------------------------------------------
 # top-level fan-out
 # ---------------------------------------------------------------------------
+
 
 def fetch_all(days: int = 1) -> list[Event]:
     """Run every AI-benchmark sub-source and concatenate results.

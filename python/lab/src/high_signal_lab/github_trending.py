@@ -70,8 +70,16 @@ def fetch_trending(language: str = "", since: str = "daily") -> list[dict]:
     return rows
 
 
-def upsert_repo(conn, *, full_name: str, url: str, description: str | None,
-                language: str | None, stars: int, forks: int) -> int:
+def upsert_repo(
+    conn,
+    *,
+    full_name: str,
+    url: str,
+    description: str | None,
+    language: str | None,
+    stars: int,
+    forks: int,
+) -> int:
     with conn.cursor() as cur:
         cur.execute(
             """
@@ -107,7 +115,10 @@ def ingest_trending(languages: list[str], periods: tuple[str, ...]) -> tuple[int
                     rows = fetch_trending(language=language, since=period)
                 except Exception as exc:
                     errors += 1
-                    print(f"[gh-trending] error {language}/{period}: {exc}", file=sys.stderr)
+                    print(
+                        f"[gh-trending] error {language}/{period}: {exc}",
+                        file=sys.stderr,
+                    )
                     continue
                 for row in rows:
                     try:
@@ -115,8 +126,10 @@ def ingest_trending(languages: list[str], periods: tuple[str, ...]) -> tuple[int
                         inserted += 1
                     except Exception as exc:
                         errors += 1
-                        print(f"[gh-trending] upsert error {row['full_name']}: {exc}",
-                              file=sys.stderr)
+                        print(
+                            f"[gh-trending] upsert error {row['full_name']}: {exc}",
+                            file=sys.stderr,
+                        )
         with conn.cursor() as cur:
             cur.execute(
                 """
@@ -135,7 +148,9 @@ def ingest_trending(languages: list[str], periods: tuple[str, ...]) -> tuple[int
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="HighSignal Lab GitHub trending ingest")
+    parser = argparse.ArgumentParser(
+        description="HighSignal Lab GitHub trending ingest"
+    )
     parser.add_argument(
         "--language",
         action="append",
@@ -153,8 +168,10 @@ def main() -> None:
     languages = args.language if args.language else DEFAULT_LANGUAGES
     periods = tuple(args.period) if args.period else PERIODS
     inserted, errors = ingest_trending(languages, periods)
-    print(f"gh-trending: {inserted} rows upserted, {errors} errors "
-          f"(now={datetime.now(UTC).isoformat()})")
+    print(
+        f"gh-trending: {inserted} rows upserted, {errors} errors "
+        f"(now={datetime.now(UTC).isoformat()})"
+    )
 
 
 if __name__ == "__main__":

@@ -8,7 +8,6 @@ wild source.
 
 from __future__ import annotations
 
-import hashlib
 import logging
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
@@ -17,6 +16,7 @@ from typing import Any
 import httpx
 
 from ..types import Event
+from ..utils import event_hash
 
 
 USER_AGENT = "high-signal/0.1 nvd-ingest"
@@ -41,16 +41,16 @@ KEYWORDS = [
 ]
 
 
-def _hash(*parts: str) -> str:
-    return hashlib.sha256("␟".join(parts).encode("utf-8")).hexdigest()
-
-
 def _parse_datetime(value: str | None) -> datetime | None:
     if not value:
         return None
     try:
         parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
-        return parsed.astimezone(timezone.utc) if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+        return (
+            parsed.astimezone(timezone.utc)
+            if parsed.tzinfo
+            else parsed.replace(tzinfo=timezone.utc)
+        )
     except ValueError:
         return None
 
@@ -72,7 +72,9 @@ def _cvss_summary(cve: dict[str, Any]) -> str:
 def events_from_response(
     keyword: NvdKeyword, payload: dict[str, Any], since: datetime
 ) -> list[Event]:
-    rows = payload.get("vulnerabilities") if isinstance(payload.get("vulnerabilities"), list) else []
+    rows = (
+        payload.get("vulnerabilities") if isinstance(payload.get("vulnerabilities"), list) else []
+    )
     out: list[Event] = []
     for row in rows:
         if not isinstance(row, dict):
@@ -103,7 +105,7 @@ def events_from_response(
             ]
             if part
         )
-        raw_hash = _hash("nvd", keyword.keyword, cve_id, published.isoformat())
+        raw_hash = event_hash("nvd", keyword.keyword, cve_id, published.isoformat())
         out.append(
             Event(
                 id=raw_hash[:16],

@@ -19,7 +19,6 @@ two modes:
 from __future__ import annotations
 
 import asyncio
-import hashlib
 import logging
 import os
 import time
@@ -30,6 +29,7 @@ import httpx
 import feedparser
 
 from ..types import Event
+from ..utils import event_hash
 
 
 # Reddit requires a unique, descriptive User-Agent. Generic ones get blocked.
@@ -63,10 +63,6 @@ DEFAULT_SUBS = [
     "webdev",
     "devops",
 ]
-
-
-def _hash(*parts: str) -> str:
-    return hashlib.sha256("␟".join(parts).encode("utf-8")).hexdigest()
 
 
 async def _get_oauth_token(client: httpx.AsyncClient) -> str | None:
@@ -133,9 +129,7 @@ async def fetch_subreddit_async(
         return await fetch_subreddit_rss_async(sub, since, client, limit=limit)
 
 
-def _parse_reddit_json(
-    data: dict, sub: str, since: datetime, min_score: int
-) -> list[Event]:
+def _parse_reddit_json(data: dict, sub: str, since: datetime, min_score: int) -> list[Event]:
     """Parse Reddit JSON ``data`` into Events. Shared by OAuth + unauth paths."""
     children = data.get("data", {}).get("children", [])
     out: list[Event] = []
@@ -152,7 +146,7 @@ def _parse_reddit_json(
         body = d.get("selftext", "")
         if d.get("score", 0) < min_score:
             continue
-        raw_hash = _hash("reddit", sub, permalink)
+        raw_hash = event_hash("reddit", sub, permalink)
         out.append(
             Event(
                 id=raw_hash[:16],
@@ -205,7 +199,7 @@ async def fetch_subreddit_rss_async(
         summary = (entry.get("summary") or "").strip()
         if not link or not title:
             continue
-        raw_hash = _hash("reddit-rss", sub, link)
+        raw_hash = event_hash("reddit-rss", sub, link)
         out.append(
             Event(
                 id=raw_hash[:16],
@@ -251,10 +245,15 @@ async def fetch_all_async(
         limits=limits,
     ) as client:
         batches = await asyncio.gather(
-            *(fetch_subreddit_async(sub, since, client, min_score=min_score) for sub in subs or DEFAULT_SUBS)
+            *(
+                fetch_subreddit_async(sub, since, client, min_score=min_score)
+                for sub in subs or DEFAULT_SUBS
+            )
         )
     return [event for batch in batches for event in batch]
 
 
-def fetch_all(days: int = 1, subs: list[str] | None = None, min_score: int = DEFAULT_MIN_SCORE) -> list[Event]:
+def fetch_all(
+    days: int = 1, subs: list[str] | None = None, min_score: int = DEFAULT_MIN_SCORE
+) -> list[Event]:
     return asyncio.run(fetch_all_async(days=days, subs=subs, min_score=min_score))

@@ -28,6 +28,7 @@ def _embed_model():
         ) from exc
     return SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
 
+
 app = FastAPI(title="HighSignal Lab API", version="0.1.0")
 app.add_middleware(
     CORSMiddleware,
@@ -38,7 +39,16 @@ app.add_middleware(
 
 
 def _row_to_item(row: tuple) -> dict[str, Any]:
-    (doc_id, url, source, title, short_summary, published_at, signal_score, cluster_id) = row
+    (
+        doc_id,
+        url,
+        source,
+        title,
+        short_summary,
+        published_at,
+        signal_score,
+        cluster_id,
+    ) = row
     return {
         "id": str(doc_id),
         "source": source,
@@ -71,7 +81,9 @@ def feed(
         params.append(source)
     clause = ("WHERE " + " AND ".join(where)) if where else ""
 
-    rank_select = "ts_rank(tsv, websearch_to_tsquery('english', %s))" if q else "signal_score"
+    rank_select = (
+        "ts_rank(tsv, websearch_to_tsquery('english', %s))" if q else "signal_score"
+    )
     rank_params = [q] if q else []
 
     if by_cluster:
@@ -115,9 +127,7 @@ def feed(
         documents = int(cur.fetchone()[0] or 0)
         cur.execute("SELECT COUNT(DISTINCT source) FROM documents")
         sources = int(cur.fetchone()[0] or 0)
-        cur.execute(
-            "SELECT COUNT(*) FROM documents WHERE embedding IS NOT NULL"
-        )
+        cur.execute("SELECT COUNT(*) FROM documents WHERE embedding IS NOT NULL")
         embeddings = int(cur.fetchone()[0] or 0)
         cur.execute(
             """
@@ -162,7 +172,16 @@ def search(
         rows = cur.fetchall() or []
     items = []
     for row in rows:
-        doc_id, url, source, title, short_summary, published_at, signal_score, similarity = row
+        (
+            doc_id,
+            url,
+            source,
+            title,
+            short_summary,
+            published_at,
+            signal_score,
+            similarity,
+        ) = row
         items.append(
             {
                 "id": str(doc_id),

@@ -55,7 +55,13 @@ def trending_events(payload: dict[str, Any], now: datetime) -> list[Event]:
         sym = str(item.get("symbol") or "").upper()
         rank = item.get("market_cap_rank")
         out.append(
-            _event(cid, f"Crypto trending: {name} ({sym})", f"Trending on CoinGecko. Market-cap rank: {rank}.", now, "trend")
+            _event(
+                cid,
+                f"Crypto trending: {name} ({sym})",
+                f"Trending on CoinGecko. Market-cap rank: {rank}.",
+                now,
+                "trend",
+            )
         )
     return out
 
@@ -88,7 +94,9 @@ def fetch_all(days: int = 1) -> list[Event]:
     now = datetime.now(timezone.utc)
     out: list[Event] = []
     with httpx.Client(
-        headers={"User-Agent": USER_AGENT, "Accept": "application/json"}, timeout=20.0, follow_redirects=True
+        headers={"User-Agent": USER_AGENT, "Accept": "application/json"},
+        timeout=20.0,
+        follow_redirects=True,
     ) as c:
         try:
             r = c.get(f"{API}/search/trending")
@@ -99,7 +107,12 @@ def fetch_all(days: int = 1) -> list[Event]:
         try:
             r = c.get(
                 f"{API}/coins/markets",
-                params={"vs_currency": "usd", "order": "market_cap_desc", "per_page": 100, "page": 1},
+                params={
+                    "vs_currency": "usd",
+                    "order": "market_cap_desc",
+                    "per_page": 100,
+                    "page": 1,
+                },
             )
             r.raise_for_status()
             out.extend(mover_events(r.json(), now))

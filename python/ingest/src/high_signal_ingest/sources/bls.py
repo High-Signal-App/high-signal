@@ -88,7 +88,12 @@ def fetch_all(days: int = 120, api_key: str | None = None) -> list[Event]:
         body["registrationkey"] = key
         url = V2_URL
     try:
-        r = httpx.post(url, json=body, headers={"User-Agent": USER_AGENT, "Content-Type": "application/json"}, timeout=25.0)
+        r = httpx.post(
+            url,
+            json=body,
+            headers={"User-Agent": USER_AGENT, "Content-Type": "application/json"},
+            timeout=25.0,
+        )
         r.raise_for_status()
         payload = r.json()
     except (httpx.HTTPError, ValueError) as exc:

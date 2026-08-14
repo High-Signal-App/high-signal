@@ -6,7 +6,6 @@ require ``SAM_API_KEY`` and are skipped when it is absent.
 
 from __future__ import annotations
 
-import hashlib
 import logging
 import os
 from datetime import datetime, timedelta, timezone
@@ -15,6 +14,7 @@ from typing import Any
 import httpx
 
 from ..types import Event, SourceDocument
+from ..utils import event_hash
 
 
 USER_AGENT = "high-signal/0.1 gov-contracts-ingest"
@@ -33,10 +33,6 @@ USASPENDING_FIELDS = [
     "Awarding Sub Agency",
     "Description",
 ]
-
-
-def _hash(*parts: str) -> str:
-    return hashlib.sha256("␟".join(parts).encode("utf-8")).hexdigest()
 
 
 def _parse_date(value: str | None) -> datetime | None:
@@ -73,7 +69,7 @@ def sbir_events_from_response(payload: list[Any], since: datetime) -> list[Event
             ]
             if part
         )
-        raw_hash = _hash("sbir", str(row.get("agency_tracking_number") or award_link or title))
+        raw_hash = event_hash("sbir", str(row.get("agency_tracking_number") or award_link or title))
         out.append(
             Event(
                 id=raw_hash[:16],
@@ -102,7 +98,11 @@ def sbir_events_from_response(payload: list[Any], since: datetime) -> list[Event
 
 
 def sam_events_from_response(payload: dict[str, Any], since: datetime) -> list[Event]:
-    rows = payload.get("opportunitiesData") if isinstance(payload.get("opportunitiesData"), list) else []
+    rows = (
+        payload.get("opportunitiesData")
+        if isinstance(payload.get("opportunitiesData"), list)
+        else []
+    )
     out: list[Event] = []
     for row in rows:
         if not isinstance(row, dict):
@@ -112,7 +112,7 @@ def sam_events_from_response(payload: dict[str, Any], since: datetime) -> list[E
             continue
         notice_id = str(row.get("noticeId") or row.get("solicitationNumber") or "").strip()
         title = str(row.get("title") or "").strip()
-        raw_hash = _hash("sam", notice_id or title, str(row.get("postedDate") or ""))
+        raw_hash = event_hash("sam", notice_id or title, str(row.get("postedDate") or ""))
         out.append(
             Event(
                 id=raw_hash[:16],
@@ -156,7 +156,7 @@ def usaspending_events_from_response(
         description = str(row.get("Description") or "").strip()
         if not award_id:
             continue
-        raw_hash = _hash("usaspending", keyword, award_id)
+        raw_hash = event_hash("usaspending", keyword, award_id)
         content = "\n".join(
             part
             for part in [

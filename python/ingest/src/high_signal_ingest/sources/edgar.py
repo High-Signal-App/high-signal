@@ -7,7 +7,6 @@ through SEC's search-index endpoint.
 
 from __future__ import annotations
 
-import hashlib
 import logging
 import os
 from datetime import datetime, timedelta, timezone
@@ -16,6 +15,7 @@ from typing import Any, Iterable, Iterator
 import httpx
 
 from ..types import Event, SourceDocument
+from ..utils import event_hash
 
 
 # Forms most likely to carry directional signals
@@ -34,10 +34,6 @@ PRIVATE_FORM_D_QUERIES = (
     "Cerebras",
 )
 LOGGER = logging.getLogger(__name__)
-
-
-def _hash(*parts: str) -> str:
-    return hashlib.sha256("␟".join(parts).encode("utf-8")).hexdigest()
 
 
 def _ensure_identity() -> None:
@@ -94,7 +90,7 @@ def form_d_events_from_search(query: str, payload: dict[str, Any], since: dateti
             for item in source.get("items", [])
             if isinstance(item, str) and item.strip()
         ]
-        raw_hash = _hash("sec-form-d", query, accession)
+        raw_hash = event_hash("sec-form-d", query, accession)
         out.append(
             Event(
                 id=raw_hash[:16],
@@ -172,7 +168,7 @@ def fetch_filings(
                     content = (filing.text() or "")[:50_000]
                 except Exception:
                     pass
-                raw_hash = _hash(ticker, form, str(filed_at), url)
+                raw_hash = event_hash(ticker, form, str(filed_at), url)
                 yield Event(
                     id=raw_hash[:16],
                     source=f"edgar_{form.lower().replace('-', '')}",

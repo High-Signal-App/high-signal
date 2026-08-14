@@ -111,14 +111,21 @@ def run_daily(
 
 def main(argv: Optional[list[str]] = None) -> int:
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--limit", type=int, default=None,
-                   help="only process the first N tickers (for smoke runs)")
-    p.add_argument("--period", default="6y",
-                   help="yfinance period string for close history (default 6y, covers ret_5y)")
-    p.add_argument("--out", type=Path, default=None,
-                   help="output JSONL path (default: <repo>/data/equities-snapshot.jsonl)")
-    p.add_argument("--batch", type=int, default=50,
-                   help="batch size for yf.download (default 50)")
+    p.add_argument(
+        "--limit", type=int, default=None, help="only process the first N tickers (for smoke runs)"
+    )
+    p.add_argument(
+        "--period",
+        default="6y",
+        help="yfinance period string for close history (default 6y, covers ret_5y)",
+    )
+    p.add_argument(
+        "--out",
+        type=Path,
+        default=None,
+        help="output JSONL path (default: <repo>/data/equities-snapshot.jsonl)",
+    )
+    p.add_argument("--batch", type=int, default=50, help="batch size for yf.download (default 50)")
     args = p.parse_args(argv)
     run_daily(
         universe_limit=args.limit,

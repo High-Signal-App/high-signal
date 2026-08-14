@@ -13,7 +13,6 @@ Two scopes per source:
 
 from __future__ import annotations
 
-import hashlib
 import logging
 import os
 from datetime import datetime, timezone
@@ -23,6 +22,7 @@ import httpx
 
 from ..extract.entities import gazetteer_match
 from ..types import Event
+from ..utils import event_hash
 
 
 LOGGER = logging.getLogger(__name__)
@@ -46,10 +46,6 @@ DEFAULT_KEYWORDS: list[str] = [
     "data center",
     "Stargate",
 ]
-
-
-def _hash(*parts: str) -> str:
-    return hashlib.sha256("␟".join(parts).encode("utf-8")).hexdigest()
 
 
 def _resolve_entity(text: str) -> str | None:
@@ -79,7 +75,9 @@ def _poly_url(slug: str | None, market_id: str) -> str:
     return f"https://polymarket.com/market/{market_id}"
 
 
-def fetch_polymarket(keywords: list[str] | None = None, days: int = 30) -> tuple[list[Event], list[dict]]:
+def fetch_polymarket(
+    keywords: list[str] | None = None, days: int = 30
+) -> tuple[list[Event], list[dict]]:
     """Pull active Polymarket markets matching keywords. Returns (events, quotes)."""
     kws = keywords or DEFAULT_KEYWORDS
     events: list[Event] = []
@@ -127,7 +125,7 @@ def fetch_polymarket(keywords: list[str] | None = None, days: int = 30) -> tuple
                     resolved_outcome = m.get("winningOutcome") or m.get("resolution")
 
                 entity_id = _resolve_entity(question)
-                raw_hash = _hash("polymarket", mid, fetched_at.strftime("%Y%m%d%H"))
+                raw_hash = event_hash("polymarket", mid, fetched_at.strftime("%Y%m%d%H"))
                 events.append(
                     Event(
                         id=raw_hash[:16],
@@ -231,9 +229,11 @@ def fetch_polymarket_firehose(top_n: int = 200) -> tuple[list[Event], list[dict]
             url = _poly_url(slug, mid)
             volume = _safe_float(m.get("volumeNum") or m.get("volume"))
             resolved = bool(m.get("closed") or m.get("resolved"))
-            resolved_outcome = (m.get("winningOutcome") or m.get("resolution")) if resolved else None
+            resolved_outcome = (
+                (m.get("winningOutcome") or m.get("resolution")) if resolved else None
+            )
             entity_id = _resolve_entity(question)
-            raw_hash = _hash("polymarket-firehose", mid, fetched_at.strftime("%Y%m%d%H"))
+            raw_hash = event_hash("polymarket-firehose", mid, fetched_at.strftime("%Y%m%d%H"))
 
             events.append(
                 Event(
@@ -312,9 +312,7 @@ def parse_kalshi_market(m: dict) -> Optional[dict]:
     prob = _kalshi_prob(m)
     if prob is None:
         return None
-    question = (
-        (m.get("title") or m.get("subtitle") or m.get("yes_sub_title") or "").strip()
-    )
+    question = (m.get("title") or m.get("subtitle") or m.get("yes_sub_title") or "").strip()
     if not question:
         question = ticker  # fallback so the row carries something useful
     volume = _safe_float(m.get("volume"))
@@ -379,7 +377,7 @@ def fetch_kalshi(top_n: int = 200, max_pages: int = 4) -> tuple[list[Event], lis
 
             for q in parse_kalshi_response(data):
                 quotes.append(q)
-                raw_hash = _hash("kalshi", q["marketId"], fetched_at.strftime("%Y%m%d%H"))
+                raw_hash = event_hash("kalshi", q["marketId"], fetched_at.strftime("%Y%m%d%H"))
                 events.append(
                     Event(
                         id=raw_hash[:16],
@@ -444,7 +442,7 @@ def fetch_manifold(keywords: list[str] | None = None) -> tuple[list[Event], list
                 resolved = bool(m.get("isResolved"))
                 resolved_outcome = m.get("resolution") if resolved else None
                 entity_id = _resolve_entity(question)
-                raw_hash = _hash("manifold", mid, fetched_at.strftime("%Y%m%d%H"))
+                raw_hash = event_hash("manifold", mid, fetched_at.strftime("%Y%m%d%H"))
 
                 events.append(
                     Event(
@@ -509,10 +507,10 @@ def fetch_all(
             seen_quote_ids.add(key)
             quotes.append(q)
 
-    _extend("polymarket (keyword)",   lambda: fetch_polymarket(keywords, days=days))
-    _extend("polymarket (firehose)",  lambda: fetch_polymarket_firehose(top_n=firehose_top_n))
-    _extend("manifold",               lambda: fetch_manifold(keywords))
-    _extend("kalshi",                 lambda: fetch_kalshi(top_n=firehose_top_n))
+    _extend("polymarket (keyword)", lambda: fetch_polymarket(keywords, days=days))
+    _extend("polymarket (firehose)", lambda: fetch_polymarket_firehose(top_n=firehose_top_n))
+    _extend("manifold", lambda: fetch_manifold(keywords))
+    _extend("kalshi", lambda: fetch_kalshi(top_n=firehose_top_n))
     return events, quotes
 
 

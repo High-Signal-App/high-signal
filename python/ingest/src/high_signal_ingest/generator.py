@@ -35,6 +35,7 @@ def _relevant_events(
         e for e in events if event_supports_entity(primary_entity_id, e.title, e.content, spill)
     ]
 
+
 _PROMPT_TEMPLATE = """You are a signal extractor for the active High Signal collection:
 AI-infra / semiconductor market intelligence.
 
@@ -369,9 +370,7 @@ def _ai_complete(prompt: str, content: str) -> tuple[dict | None, dict]:
     """
     # Default to user's free-ai-gateway (OpenAI-compatible router across CF
     # Workers AI / HF Router / Groq / etc., open-auth, project-scoped quotas).
-    base = os.environ.get(
-        "AI_BASE_URL", "https://ai-gateway.sassmaker.com/v1"
-    )
+    base = os.environ.get("AI_BASE_URL", "https://ai-gateway.sassmaker.com/v1")
     key = os.environ.get("AI_API_KEY") or os.environ.get("HF_TOKEN")
     model = os.environ.get("AI_MODEL", "auto")
     project_id = os.environ.get("AI_PROJECT_ID", "high-signal")
@@ -439,7 +438,9 @@ def _ai_complete(prompt: str, content: str) -> tuple[dict | None, dict]:
             meta["failure_class"] = "exception"
             meta["reason"] = f"exception:{exc}"[:200]
             # Network/timeout blips are retryable; JSON parse errors are terminal.
-            if attempt < _AI_RETRIES and isinstance(exc, (httpx.TimeoutException, httpx.NetworkError)):
+            if attempt < _AI_RETRIES and isinstance(
+                exc, (httpx.TimeoutException, httpx.NetworkError)
+            ):
                 sleep_for = min(_AI_BACKOFF_CAP, _AI_BACKOFF_BASE * (2 ** (attempt - 1)))
                 sleep_for = random.uniform(0, sleep_for)
                 time.sleep(sleep_for)

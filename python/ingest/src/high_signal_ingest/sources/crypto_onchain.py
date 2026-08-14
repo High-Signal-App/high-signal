@@ -57,7 +57,9 @@ def _client() -> httpx.Client:
     )
 
 
-def _event(sub: str, source_url: str, title: str, content: str, now: datetime, key_parts: tuple[str, ...]) -> Event:
+def _event(
+    sub: str, source_url: str, title: str, content: str, now: datetime, key_parts: tuple[str, ...]
+) -> Event:
     raw_hash = event_hash("crypto-onchain", sub, *key_parts)
     return Event(
         id=raw_hash[:16],
@@ -100,7 +102,14 @@ def _fetch_mempool_space(days: int = 1) -> list[Event]:
                 f"economy={economy}, minimum={minimum}."
             )
             out.append(
-                _event("mempool-space", MEMPOOL_FEES_URL, title, content, now, ("fees", now.date().isoformat()))
+                _event(
+                    "mempool-space",
+                    MEMPOOL_FEES_URL,
+                    title,
+                    content,
+                    now,
+                    ("fees", now.date().isoformat()),
+                )
             )
 
         tip: Any = None
@@ -187,10 +196,7 @@ def _fetch_l2beat(days: int = 1) -> list[Event]:
         stage = r["stage"]
         stage_txt = f", stage {stage}" if stage not in (None, "") else ""
         title = f"L2 TVL: {r['name']} ${tvl_b:.2f}B{stage_txt}"
-        content = (
-            f"{r['name']} — L2 rollup TVL ${tvl_b:.2f}B"
-            f"{stage_txt}. Source: l2beat.com."
-        )
+        content = f"{r['name']} — L2 rollup TVL ${tvl_b:.2f}B{stage_txt}. Source: l2beat.com."
         out.append(
             _event(
                 "l2beat",
@@ -276,7 +282,9 @@ def _fetch_etherscan(days: int = 1) -> list[Event]:
     with _client() as c:
         # ETH supply
         try:
-            r = c.get(ETHERSCAN_BASE, params={"module": "stats", "action": "ethsupply", "apikey": key})
+            r = c.get(
+                ETHERSCAN_BASE, params={"module": "stats", "action": "ethsupply", "apikey": key}
+            )
             r.raise_for_status()
             payload = r.json()
         except (httpx.HTTPError, ValueError) as exc:
@@ -304,7 +312,9 @@ def _fetch_etherscan(days: int = 1) -> list[Event]:
 
         # Gas price
         try:
-            r = c.get(ETHERSCAN_BASE, params={"module": "proxy", "action": "eth_gasPrice", "apikey": key})
+            r = c.get(
+                ETHERSCAN_BASE, params={"module": "proxy", "action": "eth_gasPrice", "apikey": key}
+            )
             r.raise_for_status()
             payload = r.json()
         except (httpx.HTTPError, ValueError) as exc:
@@ -314,7 +324,11 @@ def _fetch_etherscan(days: int = 1) -> list[Event]:
             result = payload.get("result")
             try:
                 gas_wei_hex = str(result)
-                gas_wei = int(gas_wei_hex, 16) if gas_wei_hex.startswith(("0x", "0X")) else int(gas_wei_hex)
+                gas_wei = (
+                    int(gas_wei_hex, 16)
+                    if gas_wei_hex.startswith(("0x", "0X"))
+                    else int(gas_wei_hex)
+                )
                 gas_gwei = gas_wei / 1e9
                 title = f"Ethereum gas price: {gas_gwei:.1f} gwei"
                 content = f"Current Ethereum gas price: {gas_gwei:.2f} gwei ({gas_wei} wei). Source: Etherscan."

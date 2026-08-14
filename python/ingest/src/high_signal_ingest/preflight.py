@@ -45,7 +45,9 @@ def _check_relationships(entities: list[Entity], relationships: Iterable) -> lis
         if r.type not in _VALID_RELATIONSHIP_TYPES:
             errors.append(f"bad type: {r.type} for {r.from_entity_id}→{r.to_entity_id}")
         if not (0 < r.weight <= 1.0):
-            errors.append(f"weight out of range: {r.weight} for {r.from_entity_id}→{r.to_entity_id}")
+            errors.append(
+                f"weight out of range: {r.weight} for {r.from_entity_id}→{r.to_entity_id}"
+            )
     return errors
 
 

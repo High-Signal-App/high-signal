@@ -9,7 +9,6 @@ Channel RSS pattern: https://www.youtube.com/feeds/videos.xml?channel_id=UCxxxx
 from __future__ import annotations
 
 import asyncio
-import hashlib
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import Iterator
@@ -18,6 +17,7 @@ import feedparser
 import httpx
 
 from ..types import Event
+from ..utils import event_hash
 
 
 USER_AGENT = "high-signal/0.1 youtube-ingest"
@@ -42,10 +42,6 @@ DEFAULT_CHANNELS: list[tuple[str, str, str | None]] = [
     ("UCf0PBRjhf0rF8fWBIxTuoWA", "20VC with Harry Stebbings", None),
     ("UCxBcwypKK-W3GHd_RZ9FZrQ", "Latent Space", None),
 ]
-
-
-def _hash(*parts: str) -> str:
-    return hashlib.sha256("␟".join(parts).encode("utf-8")).hexdigest()
 
 
 async def _fetch_text(client: httpx.AsyncClient, url: str) -> str:
@@ -106,7 +102,7 @@ async def fetch_channel_async(
         if not content:
             # Skip if transcript and description are both missing — title alone is too thin.
             continue
-        raw_hash = _hash("youtube", channel_id, video_id)
+        raw_hash = event_hash("youtube", channel_id, video_id)
         out.append(
             Event(
                 id=raw_hash[:16],

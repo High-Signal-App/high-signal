@@ -35,9 +35,25 @@ JACCARD_THRESHOLD = 0.6
 # distinct records into one.
 _TRACKING_PARAMS = frozenset(
     {
-        "utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content",
-        "fbclid", "gclid", "msclkid", "mc_cid", "mc_eid", "ref", "ref_src",
-        "ref_url", "source", "cmpid", "igshid", "spm", "_hsenc", "_hsmi",
+        "utm_source",
+        "utm_medium",
+        "utm_campaign",
+        "utm_term",
+        "utm_content",
+        "fbclid",
+        "gclid",
+        "msclkid",
+        "mc_cid",
+        "mc_eid",
+        "ref",
+        "ref_src",
+        "ref_url",
+        "source",
+        "cmpid",
+        "igshid",
+        "spm",
+        "_hsenc",
+        "_hsmi",
     }
 )
 
@@ -45,14 +61,47 @@ _TRACKING_PARAMS = frozenset(
 # "Stack Overflow [pytorch]: ", "Court opinion: ", "Phoenix AZ — Council: ").
 _PREFIX_RE = re.compile(r"^([A-Za-z .]+(\[[^\]]*\])?\s*[—:]\s*)+")
 _STOP = {
-    "the", "a", "an", "to", "of", "for", "and", "or", "in", "on", "with", "at",
-    "by", "is", "are", "new", "how", "why", "what", "from", "this", "that",
+    "the",
+    "a",
+    "an",
+    "to",
+    "of",
+    "for",
+    "and",
+    "or",
+    "in",
+    "on",
+    "with",
+    "at",
+    "by",
+    "is",
+    "are",
+    "new",
+    "how",
+    "why",
+    "what",
+    "from",
+    "this",
+    "that",
 }
 # Authority rank for choosing the representative item of a cluster.
 _SOURCE_RANK = {
-    "edgar": 9, "sec-xbrl": 9, "ir": 9, "hkex": 9, "courtlistener": 8,
-    "legistar": 8, "openstates": 8, "regulations": 8, "gov": 8, "gov-contracts": 8,
-    "cisa-kev": 7, "eia": 7, "news": 6, "guardian": 6, "techmeme": 6, "gdelt": 5,
+    "edgar": 9,
+    "sec-xbrl": 9,
+    "ir": 9,
+    "hkex": 9,
+    "courtlistener": 8,
+    "legistar": 8,
+    "openstates": 8,
+    "regulations": 8,
+    "gov": 8,
+    "gov-contracts": 8,
+    "cisa-kev": 7,
+    "eia": 7,
+    "news": 6,
+    "guardian": 6,
+    "techmeme": 6,
+    "gdelt": 5,
 }
 
 
