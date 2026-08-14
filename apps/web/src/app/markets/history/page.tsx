@@ -1,8 +1,13 @@
+import type { Metadata } from 'next';
 import { BackLink, MetricGrid, PageShell, SectionHeader } from '@/components/system/HighSignalUI';
 import { buildMarketWatchSnapshot, formatMarketPct, marketDirectionTone } from '@/lib/market-watch';
+import { SITE_URL } from '@/lib/site';
 
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'Market History' };
+export const metadata: Metadata = {
+  title: 'Market History',
+  alternates: { canonical: `${SITE_URL}/markets/history` },
+};
 
 function formatTimestamp(value: string) {
   return value.slice(0, 16).replace('T', ' ');

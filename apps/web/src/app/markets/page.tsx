@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import {
   BackLink,
   MetricGrid,
@@ -13,9 +14,13 @@ import {
   marketDirectionTone,
   marketRefreshDates,
 } from '@/lib/market-watch';
+import { SITE_URL } from '@/lib/site';
 
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'Market Intelligence' };
+export const metadata: Metadata = {
+  title: 'Market Intelligence',
+  alternates: { canonical: `${SITE_URL}/markets` },
+};
 
 function formatNumber(value: number) {
   return new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(value);
