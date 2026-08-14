@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   title: { absolute: `${SITE_NAME} — Daily Brief` },
   description:
     'The current High Signal Daily Brief: evidence-backed market changes, business opportunities, and behavior shifts with permanent history.',
-  alternates: { canonical: SITE_URL },
+  alternates: { canonical: `${SITE_URL}/` },
 };
 
 export default function HomePage({

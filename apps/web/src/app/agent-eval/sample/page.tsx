@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import type { Route } from 'next';
+import type { Metadata, Route } from 'next';
 import {
   BackLink,
   MetricGrid,
@@ -15,11 +15,13 @@ import {
   type CompetitorPromptTemplate,
   type VisibilityIntentCategory,
 } from '@high-signal/shared';
+import { SITE_URL } from '@/lib/site';
 
-export const metadata = {
+export const metadata: Metadata = {
   title: 'Sample AI visibility audit',
   description:
     'Walk-through of a finished AI visibility audit: how a brand shows up in ChatGPT, Claude, Gemini, and Perplexity vs its competitors, and the recommendation gaps to close.',
+  alternates: { canonical: `${SITE_URL}/agent-eval/sample` },
 };
 
 type CaseKey = 'linear' | 'cursor' | 'posthog';

@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import assert from 'node:assert/strict';
+import { existsSync, readFileSync } from 'node:fs';
 
 import {
   handleAgentEdge,
@@ -32,6 +33,14 @@ assert.equal(
 
 for (const route of PUBLIC_STATIC_ROUTES) {
   assert.ok(isPublicHtmlPath(route.path), `${route.path} must be recognized as public HTML`);
+  const pageSource =
+    route.path === '/' ? 'apps/web/src/app/page.tsx' : `apps/web/src/app${route.path}/page.tsx`;
+  assert.ok(existsSync(pageSource), `${route.path} must have a page source`);
+  assert.match(
+    readFileSync(pageSource, 'utf8'),
+    /alternates\s*:\s*\{\s*canonical\s*:/u,
+    `${route.path} must declare a self-canonical before entering the sitemap`
+  );
   const markdownPath = route.path === '/' ? '/index.md' : `${route.path}.md`;
   if (route.path !== '/') {
     assert.equal(
