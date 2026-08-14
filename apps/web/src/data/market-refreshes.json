@@ -11284,5 +11284,176 @@
         ]
       }
     ]
+  },
+  {
+    "source": "yahoo",
+    "createdAt": "2026-08-14T08:45:46.605Z",
+    "groups": [
+      {
+        "id": "us-market-beta",
+        "title": "US market risk appetite",
+        "region": "national",
+        "thesis": "Broad US risk-on/risk-off movement changes appetite for new SaaS spending, AI tooling, and experimental product bets.",
+        "productImplication": "When broad US growth/risk appetite weakens, prioritize immediate ROI, cost control, and evidence-backed buyer proof over speculative new surfaces.",
+        "direction": "risk-on",
+        "averageChangePct": 0.7050933789518895,
+        "quotes": [
+          {
+            "symbol": "SPY",
+            "name": "S&P 500 ETF",
+            "role": "broad US market",
+            "ticker": "SPY.US",
+            "date": "2026-08-13",
+            "time": "eod",
+            "open": 772.489990234375,
+            "close": 777.8800048828125,
+            "changePct": 0.6977455651952402,
+            "volume": 47101597.6
+          },
+          {
+            "symbol": "QQQ",
+            "name": "Nasdaq 100 ETF",
+            "role": "US growth and AI software beta",
+            "ticker": "QQQ.US",
+            "date": "2026-08-13",
+            "time": "eod",
+            "open": 723.7000122070312,
+            "close": 732.0700073242188,
+            "changePct": 1.1565558900105577,
+            "volume": 39028865.86666667
+          },
+          {
+            "symbol": "IWM",
+            "name": "Russell 2000 ETF",
+            "role": "small-cap risk appetite",
+            "ticker": "IWM.US",
+            "date": "2026-08-13",
+            "time": "eod",
+            "open": 302.7099914550781,
+            "close": 303.5,
+            "changePct": 0.2609786816498705,
+            "volume": 20331039.533333335
+          }
+        ]
+      },
+      {
+        "id": "us-ai-infra",
+        "title": "US AI infrastructure bellwethers",
+        "region": "national",
+        "thesis": "AI infrastructure equities are a fast proxy for whether the market is rewarding compute, chips, cloud, and model-platform expansion.",
+        "productImplication": "Strength supports AI-infra and agent-evaluation narratives; weakness pushes High Signal toward cost control, proof, and practical workflow value.",
+        "direction": "mixed",
+        "averageChangePct": 0.4714130727544841,
+        "quotes": [
+          {
+            "symbol": "NVDA",
+            "name": "NVIDIA",
+            "role": "accelerator demand",
+            "ticker": "NVDA.US",
+            "date": "2026-08-13",
+            "time": "eod",
+            "open": 224.08999633789062,
+            "close": 225.3000030517578,
+            "changePct": 0.5399646274448999,
+            "volume": 125570228.9
+          },
+          {
+            "symbol": "AMD",
+            "name": "AMD",
+            "role": "accelerator competition",
+            "ticker": "AMD.US",
+            "date": "2026-08-13",
+            "time": "eod",
+            "open": 482.92999267578125,
+            "close": 483.010009765625,
+            "changePct": 0.016569086836049074,
+            "volume": 27816035.9
+          },
+          {
+            "symbol": "AVGO",
+            "name": "Broadcom",
+            "role": "custom silicon and networking",
+            "ticker": "AVGO.US",
+            "date": "2026-08-13",
+            "time": "eod",
+            "open": 416.04998779296875,
+            "close": 417.82000732421875,
+            "changePct": 0.42543434279123105,
+            "volume": 19554264.866666667
+          },
+          {
+            "symbol": "MSFT",
+            "name": "Microsoft",
+            "role": "cloud and AI platform spending",
+            "ticker": "MSFT.US",
+            "date": "2026-08-13",
+            "time": "eod",
+            "open": 492.42999267578125,
+            "close": 496.8800048828125,
+            "changePct": 0.9036842339457563,
+            "volume": 36293471.53333333
+          }
+        ]
+      },
+      {
+        "id": "international-ai-supply-chain",
+        "title": "International AI supply chain",
+        "region": "international",
+        "thesis": "International semiconductor and platform bellwethers show whether AI demand is broadening outside US mega-cap narratives.",
+        "productImplication": "When international AI supply-chain names move together, High Signal should look for cross-border supply, policy, and capex signals before recommending market-intelligence builds.",
+        "direction": "mixed",
+        "averageChangePct": 0.5682336863527815,
+        "quotes": [
+          {
+            "symbol": "TSM",
+            "name": "TSMC ADR",
+            "role": "foundry demand",
+            "ticker": "TSM.US",
+            "date": "2026-08-13",
+            "time": "eod",
+            "open": 429.1499938964844,
+            "close": 430.489990234375,
+            "changePct": 0.3122442868340958,
+            "volume": 13947014.566666666
+          },
+          {
+            "symbol": "ASML",
+            "name": "ASML ADR",
+            "role": "lithography bottleneck",
+            "ticker": "ASML.US",
+            "date": "2026-08-13",
+            "time": "eod",
+            "open": 1810.0699462890627,
+            "close": 1847.9000244140625,
+            "changePct": 2.089978799026948,
+            "volume": 1818515.6
+          },
+          {
+            "symbol": "ARM",
+            "name": "Arm Holdings ADR",
+            "role": "architecture and licensing",
+            "ticker": "ARM.US",
+            "date": "2026-08-13",
+            "time": "eod",
+            "open": 271.8699951171875,
+            "close": 278.6499938964844,
+            "changePct": 2.493838562940498,
+            "volume": 5889138.5
+          },
+          {
+            "symbol": "SAP",
+            "name": "SAP",
+            "role": "international enterprise software demand",
+            "ticker": "SAP.DE",
+            "date": "2026-08-12",
+            "time": "eod",
+            "open": 180.6999969482422,
+            "close": 175.9600067138672,
+            "changePct": -2.623126903390416,
+            "volume": 2846096.8333333335
+          }
+        ]
+      }
+    ]
   }
 ]
