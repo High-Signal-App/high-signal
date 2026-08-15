@@ -132,6 +132,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="min-h-dvh font-sans antialiased">
         {clerkConfigured ? <ClerkProvider>{app}</ClerkProvider> : app}
+        <script src="https://sassmaker.com/project-strip.js" data-project="high-signal" defer />
       </body>
     </html>
   );
