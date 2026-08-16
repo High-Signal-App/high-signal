@@ -39,7 +39,7 @@ import { briefRoute, parseDailyBriefRequest, safeCategory } from '../routes/brie
 const env = { DB: {} as D1Database };
 
 describe('parseDailyBriefRequest', () => {
-  const app = new Hono();
+  const app = new Hono<{ Bindings: { DB: D1Database } }>();
   app.get('/', (c) => c.json(parseDailyBriefRequest(c)));
 
   it('defaults to the global public edition', async () => {
@@ -86,7 +86,7 @@ describe('GET /daily', () => {
   });
 
   it('composes live public sections when the cache misses', async () => {
-    mocks.buildStocks.mockResolvedValue([{ ticker: 'NVDA' }]);
+    mocks.buildStocks.mockResolvedValue([{ ticker: 'NVDA' }] as never);
     mocks.buildIdeas.mockRejectedValue(new Error('ideas down'));
     mocks.buildTrends.mockResolvedValue([]);
 
@@ -103,12 +103,12 @@ describe('GET /daily', () => {
     expect(body.hasBrand).toBe(false);
     expect(body.stocks).toEqual([{ ticker: 'NVDA' }]);
     expect(body.ideas).toEqual([]);
-    expect(body.categoryStates.stocks).toMatchObject({ status: 'ready' });
-    expect(body.categoryStates.ideas).toMatchObject({
+    expect(body.categoryStates['stocks']).toMatchObject({ status: 'ready' });
+    expect(body.categoryStates['ideas']).toMatchObject({
       status: 'unavailable',
       reason: 'builder_failed',
     });
-    expect(body.categoryStates.trends).toMatchObject({
+    expect(body.categoryStates['trends']).toMatchObject({
       status: 'empty',
       reason: 'no_qualifying_items',
     });
