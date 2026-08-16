@@ -25,4 +25,4 @@ export {
 
 export { loadBriefFeedEdition } from './query';
 
-export { briefRoute, precomputeBriefSnapshots } from './route';
+export { briefRoute, parseDailyBriefRequest, precomputeBriefSnapshots } from './route';

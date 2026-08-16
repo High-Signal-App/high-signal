@@ -1,0 +1,129 @@
+import { Hono } from 'hono';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const mocks = vi.hoisted(() => ({
+  tryGetPrecomputedSnapshot: vi.fn(),
+  buildStocks: vi.fn(async () => []),
+  buildIdeas: vi.fn(async () => []),
+  buildTrends: vi.fn(async () => []),
+  buildPerception: vi.fn(async () => []),
+  buildImprovements: vi.fn(async () => []),
+  buildWatching: vi.fn(async () => []),
+  buildIntentBriefItems: vi.fn(async () => []),
+  loadBriefFeedEdition: vi.fn(),
+}));
+
+vi.mock('../../db', () => ({
+  db: () => ({ mocked: true }),
+  schema: {},
+}));
+
+vi.mock('../routes/brief/query', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../routes/brief/query')>();
+  return {
+    ...actual,
+    tryGetPrecomputedSnapshot: mocks.tryGetPrecomputedSnapshot,
+    buildStocks: mocks.buildStocks,
+    buildIdeas: mocks.buildIdeas,
+    buildTrends: mocks.buildTrends,
+    buildPerception: mocks.buildPerception,
+    buildImprovements: mocks.buildImprovements,
+    buildWatching: mocks.buildWatching,
+    buildIntentBriefItems: mocks.buildIntentBriefItems,
+    loadBriefFeedEdition: mocks.loadBriefFeedEdition,
+  };
+});
+
+import { briefRoute, parseDailyBriefRequest, safeCategory } from '../routes/brief';
+
+const env = { DB: {} as D1Database };
+
+describe('parseDailyBriefRequest', () => {
+  const app = new Hono();
+  app.get('/', (c) => c.json(parseDailyBriefRequest(c)));
+
+  it('defaults to the global public edition', async () => {
+    const response = await app.request('http://test/');
+    await expect(response.json()).resolves.toEqual({
+      region: 'global',
+      ownerId: '',
+      productId: '',
+      archiveDate: null,
+    });
+  });
+
+  it('keeps a valid archive date and unknown regions fall back to global', async () => {
+    const response = await app.request(
+      'http://test/?region=not-a-region&date=2026-01-02&owner=user-1&product=acme'
+    );
+    await expect(response.json()).resolves.toEqual({
+      region: 'global',
+      ownerId: 'user-1',
+      productId: 'acme',
+      archiveDate: '2026-01-02',
+    });
+  });
+});
+
+describe('GET /daily', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.tryGetPrecomputedSnapshot.mockResolvedValue(null);
+    mocks.buildStocks.mockResolvedValue([]);
+    mocks.buildIdeas.mockResolvedValue([]);
+    mocks.buildTrends.mockResolvedValue([]);
+  });
+
+  it('returns 404 when an archive date has no snapshot', async () => {
+    const response = await briefRoute.request('http://test/daily?date=2020-01-01', {}, env);
+    expect(response.status).toBe(404);
+    await expect(response.json()).resolves.toEqual({
+      error: 'no_brief_for_date',
+      date: '2020-01-01',
+      region: 'global',
+    });
+    expect(mocks.buildStocks).not.toHaveBeenCalled();
+  });
+
+  it('composes live public sections when the cache misses', async () => {
+    mocks.buildStocks.mockResolvedValue([{ ticker: 'NVDA' }]);
+    mocks.buildIdeas.mockRejectedValue(new Error('ideas down'));
+    mocks.buildTrends.mockResolvedValue([]);
+
+    const response = await briefRoute.request('http://test/daily?region=north-america', {}, env);
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as {
+      region: string;
+      hasBrand: boolean;
+      stocks: unknown[];
+      ideas: unknown[];
+      categoryStates: Record<string, { status: string; reason: string | null }>;
+    };
+    expect(body.region).toBe('north-america');
+    expect(body.hasBrand).toBe(false);
+    expect(body.stocks).toEqual([{ ticker: 'NVDA' }]);
+    expect(body.ideas).toEqual([]);
+    expect(body.categoryStates.stocks).toMatchObject({ status: 'ready' });
+    expect(body.categoryStates.ideas).toMatchObject({
+      status: 'unavailable',
+      reason: 'builder_failed',
+    });
+    expect(body.categoryStates.trends).toMatchObject({
+      status: 'empty',
+      reason: 'no_qualifying_items',
+    });
+    expect(mocks.buildStocks).toHaveBeenCalled();
+  });
+});
+
+describe('safeCategory', () => {
+  it('marks a thrown builder unavailable instead of substituting demo items', async () => {
+    const result = await safeCategory(async () => {
+      throw new Error('d1 timeout');
+    }, 'stocks');
+    expect(result).toEqual({
+      items: [],
+      state: { status: 'unavailable', source: 'live', reason: 'builder_failed' },
+    });
+  });
+});
