@@ -26,7 +26,6 @@ import {
   summarizeBriefDiscovery,
   type BriefCategoryStates,
   type BriefImprovementItem,
-  type BriefIntentItem,
   type BriefPerceptionItem,
   type BriefSnapshot,
   type BriefWatchingItem,
