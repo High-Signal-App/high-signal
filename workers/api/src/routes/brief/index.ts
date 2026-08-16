@@ -21,8 +21,6 @@ export {
   safeCategory,
   seedToBrief,
   type BucketCounts,
-  type PublicCategoryResult,
-  type RankableRow,
 } from './compose';
 
 export { loadBriefFeedEdition } from './query';
