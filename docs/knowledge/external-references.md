@@ -23,8 +23,9 @@ in a zero-shot setting.
 Why it matters: the spillover graph needs supply/customer/peer edges; GLiREL is
 the planned path for automated edge discovery.
 Paper: https://arxiv.org/abs/2501.03787
-Where: `python/ingest/src/high_signal_ingest/extract/relations.py` (stubbed — returns
-`[]` until validation infra is ready; see ADR-004 in `docs/architecture/decisions.md`)
+Where: `python/ingest/src/high_signal_ingest/extract/relations.py` (parked —
+typed empty `RelationExtractionResult` until validation infra is ready; see
+ADR-004 in `docs/architecture/decisions.md`)
 
 **FinBERT — Financial Sentiment Analysis**
 BERT fine-tuned on financial corpora (analyst reports, earnings calls, financial
