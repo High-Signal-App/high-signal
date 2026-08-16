@@ -628,7 +628,7 @@ def _parse_amazon_search(html: str, query: str) -> list[EvidenceItem]:
 
         # Title: <h2>...<span>Product Title</span>...</h2>
         title_match = re.search(
-            r'<h2[^>]*>.*?<span[^>]*>([^<]{15,200})</span>',
+            r"<h2[^>]*>.*?<span[^>]*>([^<]{15,200})</span>",
             block,
             re.DOTALL,
         )
@@ -648,7 +648,7 @@ def _parse_amazon_search(html: str, query: str) -> list[EvidenceItem]:
         rating = rating_match.group(1) if rating_match else ""
 
         # Review count
-        review_match = re.search(r'(\d[\d,]*)\s+ratings?', block)
+        review_match = re.search(r"(\d[\d,]*)\s+ratings?", block)
         reviews = review_match.group(1) if review_match else ""
 
         url = f"https://www.amazon.in/dp/{asin}"
@@ -704,16 +704,17 @@ async def collect_amazon(
                 wait = 10.0 * (attempt + 1)
                 LOGGER.info(
                     "amazon 503 niche=%s, retrying in %.0fs (attempt %d/%d)",
-                    niche.slug, wait, attempt + 1, _AMAZON_RETRIES,
+                    niche.slug,
+                    wait,
+                    attempt + 1,
+                    _AMAZON_RETRIES,
                 )
                 await asyncio.sleep(wait)
                 continue
             LOGGER.debug("amazon fetch failed niche=%s status=%s", niche.slug, r.status_code)
             return []
     products = _parse_amazon_search(r.text, query)
-    LOGGER.info(
-        "amazon niche=%s query=%r → %d products", niche.slug, query, len(products)
-    )
+    LOGGER.info("amazon niche=%s query=%r → %d products", niche.slug, query, len(products))
     return products
 
 

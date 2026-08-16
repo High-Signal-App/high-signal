@@ -120,7 +120,7 @@ function checkDuplication() {
   const observed = JSON.parse(readFileSync(join(outputDirectory, 'jscpd-report.json'), 'utf8'))
     .statistics.total;
   // Debt: https://github.com/High-Signal-App/high-signal/issues/104
-  const baseline = { clones: 122, duplicatedLines: 1615, percentage: 2.6325226576253504 };
+  const baseline = { clones: 119, duplicatedLines: 1552, percentage: 2.4779269714048504 };
   console.log(
     `Duplication: ${observed.duplicatedLines}/${observed.lines} lines ` +
       `(${observed.percentage.toFixed(4)}%), ${observed.clones} groups across ` +
@@ -241,7 +241,7 @@ function checkPythonFormat() {
   const match = output.match(/(\d+) files? would be reformatted/u);
   const observed = { files: match ? Number(match[1]) : 0 };
   // Debt: https://github.com/High-Signal-App/high-signal/issues/104
-  const baseline = { files: 68 };
+  const baseline = { files: 0 };
   console.log(`Python format: ${observed.files} files outside the Ruff format baseline.`);
   failRegressions('Python format', observed, baseline);
 }

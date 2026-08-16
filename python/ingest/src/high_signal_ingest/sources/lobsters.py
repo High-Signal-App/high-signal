@@ -6,16 +6,15 @@ instead of broad social firehose ingestion.
 
 from __future__ import annotations
 
-import hashlib
 import logging
 from datetime import datetime, timedelta, timezone
-from email.utils import parsedate_to_datetime
 from typing import Iterator
 
 import feedparser
 import httpx
 
 from ..types import Event
+from ..utils import event_hash, parse_published_datetime
 
 
 USER_AGENT = "high-signal/0.1 lobsters-ingest"
@@ -52,22 +51,6 @@ RELEVANT_TERMS = (
 )
 
 
-def _hash(*parts: str) -> str:
-    return hashlib.sha256("␟".join(parts).encode("utf-8")).hexdigest()
-
-
-def _parse_published(value: str) -> datetime | None:
-    try:
-        parsed = parsedate_to_datetime(value)
-        return parsed.astimezone(timezone.utc) if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
-    except Exception:
-        try:
-            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
-            return parsed.astimezone(timezone.utc) if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
-        except Exception:
-            return None
-
-
 def _is_relevant(title: str, summary: str, tags: list[str]) -> bool:
     text = f"{title} {summary} {' '.join(tags)}".lower()
     return any(term in text for term in RELEVANT_TERMS)
@@ -80,7 +63,7 @@ def events_from_feed(xml: str, since: datetime) -> list[Event]:
         link = (entry.get("link") or "").strip()
         if not link:
             continue
-        published = _parse_published(entry.get("published") or entry.get("updated") or "")
+        published = parse_published_datetime(entry.get("published") or entry.get("updated") or "")
         if published is None or published < since:
             continue
         title = (entry.get("title") or "").strip()
@@ -89,7 +72,7 @@ def events_from_feed(xml: str, since: datetime) -> list[Event]:
         if not _is_relevant(title, summary, tags):
             continue
         tag_text = f"\nTags: {', '.join(tags)}" if tags else ""
-        raw_hash = _hash("lobsters", link)
+        raw_hash = event_hash("lobsters", link)
         out.append(
             Event(
                 id=raw_hash[:16],

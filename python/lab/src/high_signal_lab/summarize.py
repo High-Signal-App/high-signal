@@ -28,7 +28,9 @@ import httpx
 
 from .db import connect
 
-DEFAULT_BASE_URL = os.environ.get("HIGH_SIGNAL_LAB_AI_BASE_URL", "http://localhost:11434/v1")
+DEFAULT_BASE_URL = os.environ.get(
+    "HIGH_SIGNAL_LAB_AI_BASE_URL", "http://localhost:11434/v1"
+)
 DEFAULT_MODEL = os.environ.get("HIGH_SIGNAL_LAB_AI_MODEL", "qwen2.5:7b")
 DEFAULT_API_KEY = os.environ.get("HIGH_SIGNAL_LAB_AI_API_KEY", "")
 MIN_TEXT_LEN = 400
@@ -43,7 +45,9 @@ SYSTEM_PROMPT = (
 )
 
 
-def _candidate_documents(conn, reindex: bool, limit: int | None) -> list[tuple[int, str, str]]:
+def _candidate_documents(
+    conn, reindex: bool, limit: int | None
+) -> list[tuple[int, str, str]]:
     where = (
         ""
         if reindex
@@ -61,10 +65,14 @@ def _candidate_documents(conn, reindex: bool, limit: int | None) -> list[tuple[i
             {limit_clause}
             """
         )
-        return [(int(row[0]), row[1] or "", row[2] or "") for row in cur.fetchall() or []]
+        return [
+            (int(row[0]), row[1] or "", row[2] or "") for row in cur.fetchall() or []
+        ]
 
 
-def _summarize_one(client: httpx.Client, title: str, text: str, model: str) -> dict | None:
+def _summarize_one(
+    client: httpx.Client, title: str, text: str, model: str
+) -> dict | None:
     user = f"TITLE: {title}\n\nBODY:\n{text}".strip()
     payload = {
         "model": model,
@@ -82,8 +90,10 @@ def _summarize_one(client: httpx.Client, title: str, text: str, model: str) -> d
         print(f"[summarize] HTTP error: {exc}", file=sys.stderr)
         return None
     if not response.is_success:
-        print(f"[summarize] non-2xx: {response.status_code} {response.text[:200]}",
-              file=sys.stderr)
+        print(
+            f"[summarize] non-2xx: {response.status_code} {response.text[:200]}",
+            file=sys.stderr,
+        )
         return None
     try:
         data = response.json()
@@ -172,8 +182,11 @@ def main() -> None:
     parser.add_argument("--model", default=DEFAULT_MODEL)
     parser.add_argument("--api-key", default=DEFAULT_API_KEY)
     parser.add_argument("--limit", type=int, default=30)
-    parser.add_argument("--reindex", action="store_true",
-                        help="Re-summarize documents that already have a summary.")
+    parser.add_argument(
+        "--reindex",
+        action="store_true",
+        help="Re-summarize documents that already have a summary.",
+    )
     args = parser.parse_args()
     summarize(
         base_url=args.base_url,

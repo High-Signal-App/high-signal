@@ -30,8 +30,7 @@ LOGGER = logging.getLogger(__name__)
 SEED_DIR = Path(__file__).resolve().parents[2] / "seed"
 
 SP500_CONSTITUENTS_URL = (
-    "https://raw.githubusercontent.com/datasets/s-and-p-500-companies/"
-    "main/data/constituents.csv"
+    "https://raw.githubusercontent.com/datasets/s-and-p-500-companies/main/data/constituents.csv"
 )
 COINGECKO_TOP_N_URL = (
     "https://api.coingecko.com/api/v3/coins/markets"
@@ -112,7 +111,9 @@ def load_ai_infra_entities(path: Optional[Path] = None) -> list[TickerSpec]:
             # universe the exchange matters more. ADRs trade on US exchanges,
             # so default to .US unless the ticker already carries a suffix.
             ticker = symbol if "." in symbol or symbol.startswith("^") else f"{symbol}.US"
-            exchange = "US" if ticker.endswith(".US") else ticker.split(".", 1)[1] if "." in ticker else ""
+            exchange = (
+                "US" if ticker.endswith(".US") else ticker.split(".", 1)[1] if "." in ticker else ""
+            )
             specs.append(
                 TickerSpec(
                     ticker=ticker,
@@ -165,8 +166,14 @@ def parse_sp500_csv(csv_text: str) -> list[TickerSpec]:
         if not symbol:
             continue
         name = row[name_idx].strip() if name_idx is not None and len(row) > name_idx else None
-        sector = row[sector_idx].strip() if sector_idx is not None and len(row) > sector_idx else None
-        industry = row[industry_idx].strip() if industry_idx is not None and len(row) > industry_idx else None
+        sector = (
+            row[sector_idx].strip() if sector_idx is not None and len(row) > sector_idx else None
+        )
+        industry = (
+            row[industry_idx].strip()
+            if industry_idx is not None and len(row) > industry_idx
+            else None
+        )
         cik = row[cik_idx].strip() if cik_idx is not None and len(row) > cik_idx else None
         specs.append(
             TickerSpec(

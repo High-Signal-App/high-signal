@@ -71,7 +71,7 @@ class WikipediaIndexSpec:
 # separate ``Country`` column.
 _BBG_COUNTRY_TO_EXCHANGE: dict[str, tuple[str, str, str]] = {
     "US": ("US", "US", "USD"),
-    "LN": ("L",  "UK", "GBP"),
+    "LN": ("L", "UK", "GBP"),
     "GR": ("DE", "DE", "EUR"),
     "FP": ("PA", "FR", "EUR"),
     "NA": ("AS", "NL", "EUR"),

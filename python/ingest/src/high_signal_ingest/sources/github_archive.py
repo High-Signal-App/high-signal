@@ -8,7 +8,6 @@ public-event firehose coverage without ingesting unrelated GitHub noise.
 from __future__ import annotations
 
 import gzip
-import hashlib
 import json
 import logging
 from datetime import datetime, timedelta, timezone
@@ -17,6 +16,7 @@ import httpx
 
 from ..types import Event
 from .github import DEFAULT_REPOS
+from ..utils import event_hash
 
 
 USER_AGENT = "high-signal/0.1 github-archive-ingest"
@@ -25,16 +25,16 @@ ARCHIVE_URL = "https://data.gharchive.org/{stamp}.json.gz"
 EVENT_TYPES = {"WatchEvent", "ForkEvent", "PullRequestEvent", "IssuesEvent", "ReleaseEvent"}
 
 
-def _hash(*parts: str) -> str:
-    return hashlib.sha256("␟".join(parts).encode("utf-8")).hexdigest()
-
-
 def _parse_datetime(value: str | None) -> datetime | None:
     if not value:
         return None
     try:
         parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
-        return parsed.astimezone(timezone.utc) if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+        return (
+            parsed.astimezone(timezone.utc)
+            if parsed.tzinfo
+            else parsed.replace(tzinfo=timezone.utc)
+        )
     except ValueError:
         return None
 
@@ -63,7 +63,7 @@ def events_from_lines(
         event_id = str(item.get("id") or "").strip()
         if created is None or created < since or not event_id:
             continue
-        raw_hash = _hash("github-archive", event_id)
+        raw_hash = event_hash("github-archive", event_id)
         actor = item.get("actor") if isinstance(item.get("actor"), dict) else {}
         payload = item.get("payload") if isinstance(item.get("payload"), dict) else {}
         title = f"GitHub Archive {event_type}: {repo.get('name') or repo_name}"
@@ -95,8 +95,7 @@ def _hour_stamps(days: int, max_hours: int) -> list[str]:
     now = datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0)
     hours = min(max(1, days * 24), max_hours)
     return [
-        (now - timedelta(hours=offset)).strftime("%Y-%m-%d-%H")
-        for offset in range(1, hours + 1)
+        (now - timedelta(hours=offset)).strftime("%Y-%m-%d-%H") for offset in range(1, hours + 1)
     ]
 
 

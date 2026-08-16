@@ -7,7 +7,6 @@ tracked AI/startup entities and can be widened by adding board slugs.
 
 from __future__ import annotations
 
-import hashlib
 import logging
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
@@ -16,6 +15,7 @@ from typing import Any
 import httpx
 
 from ..types import Event
+from ..utils import event_hash
 
 
 USER_AGENT = "high-signal/0.1 jobs-ingest"
@@ -68,16 +68,16 @@ RELEVANT_TERMS = (
 )
 
 
-def _hash(*parts: str) -> str:
-    return hashlib.sha256("␟".join(parts).encode("utf-8")).hexdigest()
-
-
 def _parse_datetime(value: str | None) -> datetime | None:
     if not value:
         return None
     try:
         parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
-        return parsed.astimezone(timezone.utc) if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+        return (
+            parsed.astimezone(timezone.utc)
+            if parsed.tzinfo
+            else parsed.replace(tzinfo=timezone.utc)
+        )
     except ValueError:
         return None
 
@@ -111,12 +111,14 @@ def greenhouse_events_from_payload(
         if not _job_relevant(title, location.get("name")):
             continue
         content = f"Location: {location.get('name') or 'unknown'}".strip()
-        raw_hash = _hash("greenhouse", target.slug, job_id, title)
+        raw_hash = event_hash("greenhouse", target.slug, job_id, title)
         out.append(
             Event(
                 id=raw_hash[:16],
                 source=f"jobs:greenhouse:{target.slug}",
-                source_url=str(job.get("absolute_url") or f"https://boards.greenhouse.io/{target.slug}"),
+                source_url=str(
+                    job.get("absolute_url") or f"https://boards.greenhouse.io/{target.slug}"
+                ),
                 published_at=published,
                 title=f"{target.company_name} hiring: {title}",
                 content=content,
@@ -148,11 +150,15 @@ def lever_events_from_payload(
             for part in [
                 f"Team: {categories.get('team')}" if categories.get("team") else "",
                 f"Location: {categories.get('location')}" if categories.get("location") else "",
-                f"Commitment: {categories.get('commitment')}" if categories.get("commitment") else "",
+                f"Commitment: {categories.get('commitment')}"
+                if categories.get("commitment")
+                else "",
             ]
             if part
         )
-        raw_hash = _hash("lever", target.slug, str(job.get("id") or job.get("hostedUrl") or title))
+        raw_hash = event_hash(
+            "lever", target.slug, str(job.get("id") or job.get("hostedUrl") or title)
+        )
         out.append(
             Event(
                 id=raw_hash[:16],
@@ -186,7 +192,9 @@ def ashby_events_from_payload(
         department = job.get("department") if isinstance(job.get("department"), dict) else {}
         if not _job_relevant(title, location.get("name"), department.get("name")):
             continue
-        raw_hash = _hash("ashby", target.slug, str(job.get("id") or job.get("externalLink") or title))
+        raw_hash = event_hash(
+            "ashby", target.slug, str(job.get("id") or job.get("externalLink") or title)
+        )
         out.append(
             Event(
                 id=raw_hash[:16],

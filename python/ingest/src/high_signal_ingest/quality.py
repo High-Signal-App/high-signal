@@ -13,7 +13,9 @@ from urllib.parse import urlparse
 
 from .types import Confidence, SignalCandidate
 
-SourceClass = Literal["official", "news", "community", "market", "developer", "regional", "review", "other"]
+SourceClass = Literal[
+    "official", "news", "community", "market", "developer", "regional", "review", "other"
+]
 QualityBand = Literal["strong", "usable", "watch", "draft"]
 ContentCategory = Literal[
     "ai-infra",
@@ -73,9 +75,21 @@ NEWS_DOMAINS = (
 )
 MARKET_DOMAINS = ("manifold.markets", "polymarket.com", "kalshi.com", "finance.yahoo.com")
 COMMUNITY_DOMAINS = ("reddit.com", "news.ycombinator.com", "producthunt.com")
-DEVELOPER_DOMAINS = ("github.com", "github.blog", "developers.google.com", "cloudflare.com", "stripe.com", "stackoverflow.com")
+DEVELOPER_DOMAINS = (
+    "github.com",
+    "github.blog",
+    "developers.google.com",
+    "cloudflare.com",
+    "stripe.com",
+    "stackoverflow.com",
+)
 REVIEW_DOMAINS = ("g2.com", "capterra.com", "trustpilot.com", "apps.shopify.com")
-REGIONAL_DOMAINS = ("timesofindia.indiatimes.com", "thehindu.com", "livemint.com", "indianexpress.com")
+REGIONAL_DOMAINS = (
+    "timesofindia.indiatimes.com",
+    "thehindu.com",
+    "livemint.com",
+    "indianexpress.com",
+)
 
 
 def _clean(value: str) -> str:
@@ -118,19 +132,95 @@ def classify_source(url: str) -> SourceClass:
 def classify_content_category(signal_type: str, body_md: str) -> ContentCategory:
     text = f"{_clean(signal_type)} {_clean(body_md[:1200])}"
     rules: list[tuple[ContentCategory, tuple[str, ...]]] = [
-        ("market-pulse", ("market", "prediction", "probability", "quote", "stock", "equity", "ipo", "analyst")),
-        ("customer-complaint", ("complaint", "review", "churn", "support", "refund", "bug", "missing", "friction")),
-        ("security-risk", ("cve", "vulnerability", "ransomware", "exploit", "exploited", "privilege_escalation", "remote_code_execution", "malicious_code", "cisa", "kev", "security_risk", "supply_chain_compromise")),
-        ("product-opportunity", ("product", "launch", "developer", "workflow", "requirement", "adoption", "integration", "devtool_trust", "ai_pricing_pressure")),
-        ("startup-move", ("startup", "funding", "m_and_a", "acquisition", "partnership", "talent", "hiring")),
-        ("regional-issue", ("regional", "india", "china", "taiwan", "korea", "eu", "local", "city")),
-        ("agent-evaluation", ("agent", "llm", "ai_answer", "retrievability", "comparison", "evidence_layer")),
-        ("policy-regulatory", ("regulatory", "policy", "export", "restriction", "antitrust", "lawsuit", "probe", "gov", "ai_policy_competition")),
+        (
+            "market-pulse",
+            ("market", "prediction", "probability", "quote", "stock", "equity", "ipo", "analyst"),
+        ),
+        (
+            "customer-complaint",
+            ("complaint", "review", "churn", "support", "refund", "bug", "missing", "friction"),
+        ),
+        (
+            "security-risk",
+            (
+                "cve",
+                "vulnerability",
+                "ransomware",
+                "exploit",
+                "exploited",
+                "privilege_escalation",
+                "remote_code_execution",
+                "malicious_code",
+                "cisa",
+                "kev",
+                "security_risk",
+                "supply_chain_compromise",
+            ),
+        ),
+        (
+            "product-opportunity",
+            (
+                "product",
+                "launch",
+                "developer",
+                "workflow",
+                "requirement",
+                "adoption",
+                "integration",
+                "devtool_trust",
+                "ai_pricing_pressure",
+            ),
+        ),
+        (
+            "startup-move",
+            ("startup", "funding", "m_and_a", "acquisition", "partnership", "talent", "hiring"),
+        ),
+        (
+            "regional-issue",
+            ("regional", "india", "china", "taiwan", "korea", "eu", "local", "city"),
+        ),
+        (
+            "agent-evaluation",
+            ("agent", "llm", "ai_answer", "retrievability", "comparison", "evidence_layer"),
+        ),
+        (
+            "policy-regulatory",
+            (
+                "regulatory",
+                "policy",
+                "export",
+                "restriction",
+                "antitrust",
+                "lawsuit",
+                "probe",
+                "gov",
+                "ai_policy_competition",
+            ),
+        ),
     ]
     for category, terms in rules:
         if any(_clean(term) in text for term in terms):
             return category
-    if any(term in text for term in ("hbm", "gpu", "chip", "semiconductor", "foundry", "substrate", "litho", "euv", "packaging", "capex", "datacenter", "data_center", "neocloud", "memory", "asic")):
+    if any(
+        term in text
+        for term in (
+            "hbm",
+            "gpu",
+            "chip",
+            "semiconductor",
+            "foundry",
+            "substrate",
+            "litho",
+            "euv",
+            "packaging",
+            "capex",
+            "datacenter",
+            "data_center",
+            "neocloud",
+            "memory",
+            "asic",
+        )
+    ):
         return "ai-infra"
     return "company-event"
 
@@ -140,10 +230,14 @@ def _fallback_or_backfill(body_md: str) -> bool:
     return "fallback draft generated" in body or body.startswith("> _backfill_")
 
 
-def _explicit_market_probability(signal_type: str, body_md: str, source_classes: list[SourceClass]) -> bool:
+def _explicit_market_probability(
+    signal_type: str, body_md: str, source_classes: list[SourceClass]
+) -> bool:
     text = _clean(f"{signal_type} {body_md[:800]}")
-    return bool(source_classes) and all(s == "market" for s in source_classes) and (
-        "prediction" in text or "probability" in text or "market" in text
+    return (
+        bool(source_classes)
+        and all(s == "market" for s in source_classes)
+        and ("prediction" in text or "probability" in text or "market" in text)
     )
 
 
@@ -162,7 +256,9 @@ def assess_signal_quality(candidate: SignalCandidate) -> SignalQuality:
     official = "official" in source_classes
     market_only = len(source_classes) == 1 and source_classes[0] == "market"
     fallback = _fallback_or_backfill(candidate.body_md)
-    explicit_market = _explicit_market_probability(candidate.signal_type, candidate.body_md, source_classes)
+    explicit_market = _explicit_market_probability(
+        candidate.signal_type, candidate.body_md, source_classes
+    )
     reasons: list[str] = []
 
     score = 0

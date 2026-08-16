@@ -7,7 +7,6 @@ dockets and comments that matter after the Federal Register notice appears.
 
 from __future__ import annotations
 
-import hashlib
 import logging
 import os
 from dataclasses import dataclass
@@ -17,6 +16,7 @@ from typing import Any
 import httpx
 
 from ..types import Event
+from ..utils import event_hash
 
 
 USER_AGENT = "high-signal/0.1 regulations-ingest"
@@ -39,17 +39,17 @@ QUERIES = [
 ]
 
 
-def _hash(*parts: str) -> str:
-    return hashlib.sha256("␟".join(parts).encode("utf-8")).hexdigest()
-
-
 def _parse_datetime(value: str | None) -> datetime | None:
     if not value:
         return None
     for candidate in (value, value[:10]):
         try:
             parsed = datetime.fromisoformat(candidate.replace("Z", "+00:00"))
-            return parsed.astimezone(timezone.utc) if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+            return (
+                parsed.astimezone(timezone.utc)
+                if parsed.tzinfo
+                else parsed.replace(tzinfo=timezone.utc)
+            )
         except ValueError:
             continue
     return None
@@ -71,7 +71,7 @@ def events_from_response(
         )
         if not document_id or not title or posted is None or posted < since:
             continue
-        raw_hash = _hash("regulations", query.search_term, document_id)
+        raw_hash = event_hash("regulations", query.search_term, document_id)
         content = "\n".join(
             part
             for part in [
@@ -127,7 +127,9 @@ def fetch_all(days: int = 30, api_key: str | None = None) -> list[Event]:
                 response.raise_for_status()
                 payload = response.json()
             except (httpx.HTTPError, ValueError) as exc:
-                LOGGER.debug("regulations.gov fetch failed query=%s error=%s", query.search_term, exc)
+                LOGGER.debug(
+                    "regulations.gov fetch failed query=%s error=%s", query.search_term, exc
+                )
                 continue
             if isinstance(payload, dict):
                 out.extend(events_from_response(query, payload, since))

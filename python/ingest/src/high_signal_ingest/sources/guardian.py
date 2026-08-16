@@ -7,7 +7,6 @@ not a unique primary evidence source.
 
 from __future__ import annotations
 
-import hashlib
 import logging
 import os
 from datetime import datetime, timedelta, timezone
@@ -16,6 +15,7 @@ from typing import Any
 import httpx
 
 from ..types import Event
+from ..utils import event_hash
 
 
 USER_AGENT = "high-signal/0.1 guardian-ingest"
@@ -29,16 +29,16 @@ QUERIES = [
 ]
 
 
-def _hash(*parts: str) -> str:
-    return hashlib.sha256("␟".join(parts).encode("utf-8")).hexdigest()
-
-
 def _parse_datetime(value: str | None) -> datetime | None:
     if not value:
         return None
     try:
         parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
-        return parsed.astimezone(timezone.utc) if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+        return (
+            parsed.astimezone(timezone.utc)
+            if parsed.tzinfo
+            else parsed.replace(tzinfo=timezone.utc)
+        )
     except ValueError:
         return None
 
@@ -56,7 +56,7 @@ def events_from_response(query: str, payload: dict[str, Any], since: datetime) -
             continue
         fields = row.get("fields") if isinstance(row.get("fields"), dict) else {}
         body = str(fields.get("bodyText") or fields.get("trailText") or "").strip()
-        raw_hash = _hash("guardian", query, url)
+        raw_hash = event_hash("guardian", query, url)
         out.append(
             Event(
                 id=raw_hash[:16],

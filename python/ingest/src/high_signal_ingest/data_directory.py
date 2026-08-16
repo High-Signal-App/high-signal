@@ -89,7 +89,9 @@ def build(days: int, limit: int, out_dir: Path) -> dict[str, int]:
     return counts
 
 
-def _write_index(out_dir: Path, counts: dict[str, int], days: int, dedupe_stats: dict[str, int]) -> None:
+def _write_index(
+    out_dir: Path, counts: dict[str, int], days: int, dedupe_stats: dict[str, int]
+) -> None:
     cat = by_id()
     total = sum(counts.values())
     live = sum(1 for v in counts.values() if v > 0)
@@ -116,7 +118,13 @@ def _write_index(out_dir: Path, counts: dict[str, int], days: int, dedupe_stats:
     ]
     for entry in sorted(CATALOG, key=lambda e: (-counts.get(e.id, 0), e.id)):
         n = counts.get(entry.id, 0)
-        avail = str(n) if n else ("— (needs key)" if "key" in entry.access and "keyless" not in entry.access else "—")
+        avail = (
+            str(n)
+            if n
+            else (
+                "— (needs key)" if "key" in entry.access and "keyless" not in entry.access else "—"
+            )
+        )
         lines.append(
             f"| `{entry.id}` | {avail} | {entry.window_days}d | {entry.access} "
             f"| {entry.role} | [{entry.id}.json](./{entry.id}.json) |"
@@ -126,7 +134,9 @@ def _write_index(out_dir: Path, counts: dict[str, int], days: int, dedupe_stats:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Build a viewable data directory of available source data.")
+    parser = argparse.ArgumentParser(
+        description="Build a viewable data directory of available source data."
+    )
     parser.add_argument("--days", type=int, default=7)
     parser.add_argument("--limit", type=int, default=40, help="max sample events per source file")
     parser.add_argument("--out", default=str(_DEFAULT_OUT))

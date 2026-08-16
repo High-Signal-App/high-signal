@@ -181,15 +181,21 @@ def draft_reply(op: "Opportunity", brand: str, brand_blurb: str = "") -> str | N
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Score a brand's community opportunities (RedShip-style).")
+    parser = argparse.ArgumentParser(
+        description="Score a brand's community opportunities (RedShip-style)."
+    )
     parser.add_argument("--keywords", required=True, help="comma-separated brand keywords")
     parser.add_argument("--source", default="all", help="all | reddit | hackernews | ...")
     parser.add_argument("--days", type=int, default=7)
     parser.add_argument("--min-score", type=int, default=40)
     parser.add_argument("--limit", type=int, default=25)
-    parser.add_argument("--reply", action="store_true", help="generate an AI reply draft per opportunity")
+    parser.add_argument(
+        "--reply", action="store_true", help="generate an AI reply draft per opportunity"
+    )
     parser.add_argument("--brand", default="", help="brand name (for reply drafts)")
-    parser.add_argument("--brand-blurb", default="", help="one-line brand description (for reply drafts)")
+    parser.add_argument(
+        "--brand-blurb", default="", help="one-line brand description (for reply drafts)"
+    )
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args([a for a in sys.argv[1:] if a != "--"])
 

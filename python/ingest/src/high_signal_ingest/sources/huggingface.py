@@ -6,7 +6,6 @@ an adoption/distribution source for AI ecosystems, not a model-card mirror.
 
 from __future__ import annotations
 
-import hashlib
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import Any
@@ -14,6 +13,7 @@ from typing import Any
 import httpx
 
 from ..types import Event
+from ..utils import event_hash
 
 
 USER_AGENT = "high-signal/0.1 huggingface-ingest"
@@ -31,16 +31,16 @@ AUTHOR_ENTITY_MAP = {
 }
 
 
-def _hash(*parts: str) -> str:
-    return hashlib.sha256("␟".join(parts).encode("utf-8")).hexdigest()
-
-
 def _parse_datetime(value: str | None) -> datetime | None:
     if not value:
         return None
     try:
         parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
-        return parsed.astimezone(timezone.utc) if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+        return (
+            parsed.astimezone(timezone.utc)
+            if parsed.tzinfo
+            else parsed.replace(tzinfo=timezone.utc)
+        )
     except ValueError:
         return None
 
@@ -73,7 +73,7 @@ def events_from_items(kind: str, items: list[Any], since: datetime) -> list[Even
             ]
             if part
         )
-        raw_hash = _hash("huggingface", kind, repo_id, published.isoformat())
+        raw_hash = event_hash("huggingface", kind, repo_id, published.isoformat())
         out.append(
             Event(
                 id=raw_hash[:16],
@@ -109,7 +109,9 @@ def fetch_all(days: int = 7, limit: int = 50) -> list[Event]:
         follow_redirects=True,
     ) as client:
         model_items = _fetch_items(client, MODEL_URL, sort="lastModified", limit=limit)
-        dataset_items = _fetch_items(client, DATASET_URL, sort="lastModified", limit=max(10, limit // 2))
+        dataset_items = _fetch_items(
+            client, DATASET_URL, sort="lastModified", limit=max(10, limit // 2)
+        )
     out.extend(events_from_items("model", model_items, since))
     out.extend(events_from_items("dataset", dataset_items, since))
     return out

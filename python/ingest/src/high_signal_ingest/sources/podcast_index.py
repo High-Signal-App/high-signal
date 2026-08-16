@@ -18,6 +18,7 @@ from typing import Any
 import httpx
 
 from ..types import Event, SourceDocument
+from ..utils import event_hash
 
 
 USER_AGENT = "high-signal/0.1 podcast-index-ingest"
@@ -36,10 +37,6 @@ FEEDS = [
     PodcastFeed("20VC", 802199),
     PodcastFeed("Acquired", 1251427),
 ]
-
-
-def _hash(*parts: str) -> str:
-    return hashlib.sha256("␟".join(parts).encode("utf-8")).hexdigest()
 
 
 def _parse_epoch(value: Any) -> datetime | None:
@@ -66,7 +63,9 @@ def _auth_headers() -> dict[str, str] | None:
     }
 
 
-def events_from_response(feed: PodcastFeed, payload: dict[str, Any], since: datetime) -> list[Event]:
+def events_from_response(
+    feed: PodcastFeed, payload: dict[str, Any], since: datetime
+) -> list[Event]:
     rows = payload.get("items") if isinstance(payload.get("items"), list) else []
     out: list[Event] = []
     for item in rows:
@@ -77,7 +76,7 @@ def events_from_response(feed: PodcastFeed, payload: dict[str, Any], since: date
         title = str(item.get("title") or "").strip()
         if not episode_id or published is None or published < since or not title:
             continue
-        raw_hash = _hash("podcast-index", str(feed.feed_id), episode_id)
+        raw_hash = event_hash("podcast-index", str(feed.feed_id), episode_id)
         out.append(
             Event(
                 id=raw_hash[:16],

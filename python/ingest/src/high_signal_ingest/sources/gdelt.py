@@ -16,13 +16,13 @@ Use cases here:
 from __future__ import annotations
 
 import asyncio
-import hashlib
 import logging
 from datetime import datetime, timedelta, timezone
 
 import httpx
 
 from ..types import Event
+from ..utils import event_hash
 
 
 USER_AGENT = "high-signal/0.1 gdelt-ingest"
@@ -83,10 +83,6 @@ DEFAULT_QUERIES: list[tuple[str, str, str | None]] = [
 TOP_COUNTRIES = ["US", "TW", "KR", "JP", "CH", "HK", "NL", "DE", "UK", "IN", "FR", "IL", "SG"]
 
 
-def _hash(*parts: str) -> str:
-    return hashlib.sha256("␟".join(parts).encode("utf-8")).hexdigest()
-
-
 def _gdelt_dt(d: datetime) -> str:
     """GDELT expects YYYYMMDDhhmmss in UTC."""
     return d.astimezone(timezone.utc).strftime("%Y%m%d%H%M%S")
@@ -144,7 +140,7 @@ def _query_sync(
             continue
         country = item.get("sourcecountry")
         domain = item.get("domain")
-        raw_hash = _hash("gdelt", name, link)
+        raw_hash = event_hash("gdelt", name, link)
         out.append(
             Event(
                 id=raw_hash[:16],

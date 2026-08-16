@@ -55,7 +55,9 @@ def _load_model(name: str):
     return GLiNER.from_pretrained(name)
 
 
-def _candidate_documents(conn, reindex: bool, limit: int | None) -> list[tuple[int, str]]:
+def _candidate_documents(
+    conn, reindex: bool, limit: int | None
+) -> list[tuple[int, str]]:
     where = (
         ""
         if reindex
@@ -155,11 +157,16 @@ def extract(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="HighSignal Lab GLiNER entity extraction")
+    parser = argparse.ArgumentParser(
+        description="HighSignal Lab GLiNER entity extraction"
+    )
     parser.add_argument("--model", default=DEFAULT_MODEL)
     parser.add_argument("--limit", type=int, default=100)
-    parser.add_argument("--reindex", action="store_true",
-                        help="Re-extract for documents that already have entities.")
+    parser.add_argument(
+        "--reindex",
+        action="store_true",
+        help="Re-extract for documents that already have entities.",
+    )
     args = parser.parse_args()
     extract(model_name=args.model, limit=args.limit, reindex=args.reindex)
 

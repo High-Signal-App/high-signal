@@ -96,11 +96,21 @@ def materialize(limit: int = 50, sleep_seconds: float = 0.25) -> tuple[int, int]
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="HighSignal Lab one-hop materialization")
-    parser.add_argument("--limit", type=int, default=50,
-                        help="Max NULL-targeted links to fetch this run.")
-    parser.add_argument("--sleep", type=float, default=0.25,
-                        help="Seconds to sleep between fetches (be polite).")
+    parser = argparse.ArgumentParser(
+        description="HighSignal Lab one-hop materialization"
+    )
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=50,
+        help="Max NULL-targeted links to fetch this run.",
+    )
+    parser.add_argument(
+        "--sleep",
+        type=float,
+        default=0.25,
+        help="Seconds to sleep between fetches (be polite).",
+    )
     args = parser.parse_args()
     fetched, errors = materialize(limit=args.limit, sleep_seconds=args.sleep)
     print(f"materialize: {fetched} documents materialized, {errors} errors")

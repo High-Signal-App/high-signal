@@ -57,7 +57,9 @@ QUERIES: tuple[StateQuery, ...] = (
 )
 
 
-def events_from_response(query: StateQuery, payload: dict[str, Any], since: datetime) -> list[Event]:
+def events_from_response(
+    query: StateQuery, payload: dict[str, Any], since: datetime
+) -> list[Event]:
     rows = payload.get("results") if isinstance(payload.get("results"), list) else []
     out: list[Event] = []
     for row in rows:

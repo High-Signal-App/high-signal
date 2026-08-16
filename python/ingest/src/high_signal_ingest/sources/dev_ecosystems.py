@@ -75,9 +75,7 @@ def _fetch_papers_with_code(days: int = 7) -> list[Event]:
     since = datetime.now(timezone.utc) - timedelta(days=days)
     out: list[Event] = []
 
-    payload = _get_json(
-        "https://paperswithcode.com/api/v1/papers/?ordering=-created&limit=20"
-    )
+    payload = _get_json("https://paperswithcode.com/api/v1/papers/?ordering=-created&limit=20")
     if isinstance(payload, dict):
         results = payload.get("results")
         if isinstance(results, list):
@@ -98,7 +96,9 @@ def _fetch_papers_with_code(days: int = 7) -> list[Event]:
                 abstract = str(paper.get("abstract") or "").strip()
                 content_parts = [abstract]
                 if paper.get("authors"):
-                    content_parts.append(f"Authors: {', '.join(str(a) for a in paper['authors'] if a)}")
+                    content_parts.append(
+                        f"Authors: {', '.join(str(a) for a in paper['authors'] if a)}"
+                    )
                 content = "\n\n".join(p for p in content_parts if p)[:CONTENT_CAP]
                 raw_hash = event_hash("dev-ecosystems:papers-with-code", paper_id, title)
                 out.append(
@@ -240,8 +240,9 @@ def _fetch_docker_hub(days: int = 7) -> list[Event]:
         if updated is not None and not _within_days(updated, since):
             continue
         url = (
-            image.get("url")
-            or f"https://hub.docker.com/r/{namespace}/{name}" if namespace else f"https://hub.docker.com/_/{name}"
+            image.get("url") or f"https://hub.docker.com/r/{namespace}/{name}"
+            if namespace
+            else f"https://hub.docker.com/_/{name}"
         )
         description = str(image.get("description") or "").strip()
         pulls = image.get("pull_count")
@@ -292,7 +293,9 @@ def _fetch_devto(days: int = 7) -> list[Event]:
         title = str(article.get("title") or "").strip()
         if not article_id or not title:
             continue
-        published = _parse_datetime(article.get("published_at") or article.get("published_timestamp"))
+        published = _parse_datetime(
+            article.get("published_at") or article.get("published_timestamp")
+        )
         if published is not None and not _within_days(published, since):
             continue
         url = str(article.get("url") or "").strip()
@@ -366,10 +369,7 @@ def _fetch_libraries_io(days: int = 7) -> list[Event]:
             )
             if updated is not None and not _within_days(updated, since):
                 continue
-            url = (
-                package.get("package_manager_url")
-                or f"https://libraries.io/{platform}/{name}"
-            )
+            url = package.get("package_manager_url") or f"https://libraries.io/{platform}/{name}"
             description = str(package.get("description") or "").strip()
             stars = package.get("stars")
             forks = package.get("forks")
@@ -383,9 +383,7 @@ def _fetch_libraries_io(days: int = 7) -> list[Event]:
                 meta_bits.append(f"forks={forks}")
             content_parts.append(" | ".join(meta_bits))
             content = "\n\n".join(content_parts)[:CONTENT_CAP]
-            raw_hash = event_hash(
-                "dev-ecosystems:libraries-io", platform, name, str(updated or "")
-            )
+            raw_hash = event_hash("dev-ecosystems:libraries-io", platform, name, str(updated or ""))
             out.append(
                 Event(
                     id=raw_hash[:16],
@@ -431,14 +429,20 @@ def _fetch_replicate(days: int = 7) -> list[Event]:
         if not name:
             continue
         full_name = f"{owner}/{name}" if owner else name
-        updated = _parse_datetime(model.get("latest_version", {}).get("created_at")) if isinstance(
-            model.get("latest_version"), dict
-        ) else None
+        updated = (
+            _parse_datetime(model.get("latest_version", {}).get("created_at"))
+            if isinstance(model.get("latest_version"), dict)
+            else None
+        )
         if updated is None:
             updated = _parse_datetime(model.get("created_at"))
         if updated is not None and not _within_days(updated, since):
             continue
-        url = model.get("url") or f"https://replicate.com/{full_name}" if owner else f"https://replicate.com/{name}"
+        url = (
+            model.get("url") or f"https://replicate.com/{full_name}"
+            if owner
+            else f"https://replicate.com/{name}"
+        )
         description = str(model.get("description") or "").strip()
         visibility = str(model.get("visibility") or "").strip()
         content_parts: list[str] = []

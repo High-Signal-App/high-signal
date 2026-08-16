@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import hashlib
 import logging
 from datetime import datetime, timezone
 from typing import Iterator
@@ -12,15 +11,12 @@ import httpx
 
 from ..seed import load_entities
 from ..types import Event
+from ..utils import event_hash
 
 
 USER_AGENT = "high-signal/0.1 ir-ingest"
 LOGGER = logging.getLogger(__name__)
 DEFAULT_CONCURRENCY = 16
-
-
-def _hash(*parts: str) -> str:
-    return hashlib.sha256("␟".join(parts).encode("utf-8")).hexdigest()
 
 
 def _extract_ir_text(html: str) -> str:
@@ -66,7 +62,7 @@ async def poll_ir_page_async(
     text = await asyncio.to_thread(_extract_ir_text, r.text)
     if not text:
         return []
-    raw_hash = _hash("ir", entity_id, ir_url, str(datetime.now(timezone.utc).date()))
+    raw_hash = event_hash("ir", entity_id, ir_url, str(datetime.now(timezone.utc).date()))
     return [
         Event(
             id=raw_hash[:16],

@@ -6,11 +6,9 @@ an item has already crossed into mainstream tech/business attention.
 
 from __future__ import annotations
 
-import hashlib
 import logging
 import re
 from datetime import datetime, timedelta, timezone
-from email.utils import parsedate_to_datetime
 from html import unescape
 from typing import Iterator
 
@@ -18,28 +16,13 @@ import feedparser
 import httpx
 
 from ..types import Event
+from ..utils import event_hash, parse_published_datetime
 
 
 USER_AGENT = "high-signal/0.1 techmeme-ingest"
 LOGGER = logging.getLogger(__name__)
 RSS_URL = "https://www.techmeme.com/feed.xml"
 HREF_RE = re.compile(r"""<a\s+[^>]*href=["']([^"']+)["']""", re.IGNORECASE)
-
-
-def _hash(*parts: str) -> str:
-    return hashlib.sha256("␟".join(parts).encode("utf-8")).hexdigest()
-
-
-def _parse_published(value: str) -> datetime | None:
-    try:
-        parsed = parsedate_to_datetime(value)
-        return parsed.astimezone(timezone.utc) if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
-    except Exception:
-        try:
-            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
-            return parsed.astimezone(timezone.utc) if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
-        except Exception:
-            return None
 
 
 def _first_article_url(summary: str, fallback: str) -> str:
@@ -57,13 +40,13 @@ def events_from_feed(xml: str, since: datetime) -> list[Event]:
         permalink = (entry.get("link") or "").strip()
         if not permalink:
             continue
-        published = _parse_published(entry.get("published") or entry.get("updated") or "")
+        published = parse_published_datetime(entry.get("published") or entry.get("updated") or "")
         if published is None or published < since:
             continue
         title = (entry.get("title") or "").strip()
         summary = (entry.get("summary") or entry.get("description") or "").strip()
         source_url = _first_article_url(summary, permalink)
-        raw_hash = _hash("techmeme", permalink)
+        raw_hash = event_hash("techmeme", permalink)
         content = f"Techmeme permalink: {permalink}\n\n{summary}".strip()
         out.append(
             Event(

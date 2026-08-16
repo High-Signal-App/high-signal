@@ -6,7 +6,6 @@ signals only; they should not be treated as primary evidence or new facts.
 
 from __future__ import annotations
 
-import hashlib
 import logging
 import os
 from dataclasses import dataclass
@@ -16,6 +15,7 @@ from typing import Any
 import httpx
 
 from ..types import Event
+from ..utils import event_hash
 
 
 USER_AGENT = "high-signal/0.1 metaculus-ingest"
@@ -36,21 +36,23 @@ QUERIES = [
 ]
 
 
-def _hash(*parts: str) -> str:
-    return hashlib.sha256("␟".join(parts).encode("utf-8")).hexdigest()
-
-
 def _parse_datetime(value: str | None) -> datetime | None:
     if not value:
         return None
     try:
         parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
-        return parsed.astimezone(timezone.utc) if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+        return (
+            parsed.astimezone(timezone.utc)
+            if parsed.tzinfo
+            else parsed.replace(tzinfo=timezone.utc)
+        )
     except ValueError:
         return None
 
 
-def events_from_response(query: MetaculusQuery, payload: dict[str, Any], since: datetime) -> list[Event]:
+def events_from_response(
+    query: MetaculusQuery, payload: dict[str, Any], since: datetime
+) -> list[Event]:
     rows = payload.get("results") if isinstance(payload.get("results"), list) else []
     out: list[Event] = []
     for row in rows:
@@ -62,8 +64,10 @@ def events_from_response(query: MetaculusQuery, payload: dict[str, Any], since: 
         if not post_id or not title or published is None or published < since:
             continue
         question = row.get("question") if isinstance(row.get("question"), dict) else {}
-        aggregate = question.get("aggregations") if isinstance(question.get("aggregations"), dict) else {}
-        raw_hash = _hash("metaculus", query.search, post_id)
+        aggregate = (
+            question.get("aggregations") if isinstance(question.get("aggregations"), dict) else {}
+        )
+        raw_hash = event_hash("metaculus", query.search, post_id)
         content = "\n".join(
             part
             for part in [

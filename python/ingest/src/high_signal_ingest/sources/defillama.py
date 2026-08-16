@@ -25,7 +25,7 @@ LOGGER = logging.getLogger(__name__)
 API = "https://api.llama.fi/protocols"
 PROTOCOL_URL = "https://defillama.com/protocol/"
 MIN_TVL = 100_000_000.0  # $100M — material protocols only
-MIN_MOVE = 10.0          # |1d %| to count as notable
+MIN_MOVE = 10.0  # |1d %| to count as notable
 MAX_EVENTS = 25
 
 
@@ -69,7 +69,9 @@ def fetch_all(days: int = 1) -> list[Event]:
     now = datetime.now(timezone.utc)
     try:
         with httpx.Client(
-            headers={"User-Agent": USER_AGENT, "Accept": "application/json"}, timeout=25.0, follow_redirects=True
+            headers={"User-Agent": USER_AGENT, "Accept": "application/json"},
+            timeout=25.0,
+            follow_redirects=True,
         ) as c:
             r = c.get(API)
             r.raise_for_status()

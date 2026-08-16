@@ -127,9 +127,7 @@ _NSE_HOME = "https://www.nseindia.com/"
 _NSE_ANN = "https://www.nseindia.com/api/corporate-announcements?index=equities"
 
 
-async def _fetch_nse_announcements(
-    since: datetime, client: httpx.AsyncClient
-) -> list[Event]:
+async def _fetch_nse_announcements(since: datetime, client: httpx.AsyncClient) -> list[Event]:
     out: list[Event] = []
     try:
         # NSE requires a homepage hit to seed cookies before the API call.
@@ -148,17 +146,10 @@ async def _fetch_nse_announcements(
         if not isinstance(item, dict):
             continue
         sym = str(item.get("symbol") or item.get("Symbol") or "").strip()
-        desc = str(
-            item.get("desc") or item.get("description") or item.get("subject") or ""
-        ).strip()
-        company = str(
-            item.get("companyName") or item.get("company") or sym
-        ).strip()
+        desc = str(item.get("desc") or item.get("description") or item.get("subject") or "").strip()
+        company = str(item.get("companyName") or item.get("company") or sym).strip()
         ann_dt = str(
-            item.get("date")
-            or item.get("announcementDate")
-            or item.get("disseminationTime")
-            or ""
+            item.get("date") or item.get("announcementDate") or item.get("disseminationTime") or ""
         ).strip()
         pub = _parse_nse_date(ann_dt)
         if pub is None or pub < since:
@@ -194,9 +185,7 @@ def _parse_nse_date(value: str) -> datetime | None:
     for cand in (value[:19].replace("Z", "+00:00"), value[:10]):
         try:
             dt = datetime.fromisoformat(cand)
-            return dt.astimezone(timezone.utc) if dt.tzinfo else dt.replace(
-                tzinfo=timezone.utc
-            )
+            return dt.astimezone(timezone.utc) if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
         except ValueError:
             continue
     # DD-MMM-YYYY HH:MM:SS  (e.g. 02-Jun-2026 14:30:00)
@@ -229,9 +218,7 @@ _MF_SCHEMES: dict[str, str] = {
 }
 
 
-async def _fetch_amfi(
-    since: datetime, client: httpx.AsyncClient
-) -> list[Event]:
+async def _fetch_amfi(since: datetime, client: httpx.AsyncClient) -> list[Event]:
     out: list[Event] = []
 
     async def _one(code: str, name: str) -> Event | None:
@@ -261,8 +248,8 @@ async def _fetch_amfi(
         content = (
             f"Mutual Fund NAV update — {fund_name} (code {code}). "
             f"NAV ₹{nav} as on {nav_date}. "
-            f"Category: {meta.get('scheme_category','n/a')}. "
-            f"Type: {meta.get('scheme_type','n/a')}."
+            f"Category: {meta.get('scheme_category', 'n/a')}. "
+            f"Type: {meta.get('scheme_type', 'n/a')}."
         )
         raw_hash = event_hash("india-gov", "amfi", code, nav, nav_date)
         return Event(
@@ -275,9 +262,7 @@ async def _fetch_amfi(
             raw_hash=raw_hash,
         )
 
-    results = await asyncio.gather(
-        *(_one(code, name) for code, name in _MF_SCHEMES.items())
-    )
+    results = await asyncio.gather(*(_one(code, name) for code, name in _MF_SCHEMES.items()))
     for ev in results:
         if ev is not None:
             out.append(ev)
@@ -317,17 +302,13 @@ _MOSPI_ENDPOINTS: list[tuple[str, str, dict[str, str]]] = [
 ]
 
 
-async def _fetch_mospi(
-    since: datetime, client: httpx.AsyncClient
-) -> list[Event]:
+async def _fetch_mospi(since: datetime, client: httpx.AsyncClient) -> list[Event]:
     out: list[Event] = []
 
     async def _one(fid: str, label: str, params: dict[str, str]) -> list[Event]:
         url = f"{_MOSPI_BASE}/api/getCPIIndex" if fid == "cpi" else f"{_MOSPI_BASE}/api/getIIPIndex"
         try:
-            r = await client.get(
-                url, params=params, headers={"User-Agent": USER_AGENT}
-            )
+            r = await client.get(url, params=params, headers={"User-Agent": USER_AGENT})
             if r.status_code != 200:
                 return []
             payload = r.json()
@@ -341,9 +322,7 @@ async def _fetch_mospi(
                 continue
             year = str(row.get("Year") or row.get("year") or "").strip()
             month = str(row.get("Month") or row.get("month") or "").strip()
-            value = str(
-                row.get("Index") or row.get("index") or row.get("Value") or ""
-            ).strip()
+            value = str(row.get("Index") or row.get("index") or row.get("Value") or "").strip()
             if not value or not year:
                 continue
             pub = _parse_mospi_date(year, month)
@@ -359,7 +338,7 @@ async def _fetch_mospi(
                 Event(
                     id=raw_hash[:16],
                     source="india-gov:mospi",
-                    source_url=f"{_MOSPI_BASE}/api/{'getCPIIndex' if fid=='cpi' else 'getIIPIndex'}",
+                    source_url=f"{_MOSPI_BASE}/api/{'getCPIIndex' if fid == 'cpi' else 'getIIPIndex'}",
                     published_at=pub,
                     title=title[:500],
                     content=content[:CONTENT_CAP],
@@ -385,11 +364,29 @@ def _parse_mospi_date(year: str, month: str) -> datetime | None:
     except ValueError:
         return None
     months = {
-        "january": 1, "february": 2, "march": 3, "april": 4,
-        "may": 5, "june": 6, "july": 7, "august": 8,
-        "september": 9, "october": 10, "november": 11, "december": 12,
-        "jan": 1, "feb": 2, "mar": 3, "apr": 4, "jun": 6, "jul": 7,
-        "aug": 8, "sep": 9, "oct": 10, "nov": 11, "dec": 12,
+        "january": 1,
+        "february": 2,
+        "march": 3,
+        "april": 4,
+        "may": 5,
+        "june": 6,
+        "july": 7,
+        "august": 8,
+        "september": 9,
+        "october": 10,
+        "november": 11,
+        "december": 12,
+        "jan": 1,
+        "feb": 2,
+        "mar": 3,
+        "apr": 4,
+        "jun": 6,
+        "jul": 7,
+        "aug": 8,
+        "sep": 9,
+        "oct": 10,
+        "nov": 11,
+        "dec": 12,
     }
     m = months.get(month.strip().lower())
     if m is None:
@@ -419,9 +416,7 @@ _UPI_ROW_RE = re.compile(
 )
 
 
-async def _fetch_upi_npci(
-    since: datetime, client: httpx.AsyncClient
-) -> list[Event]:
+async def _fetch_upi_npci(since: datetime, client: httpx.AsyncClient) -> list[Event]:
     try:
         r = await client.get(_UPI_URL, headers={"User-Agent": USER_AGENT})
         if r.status_code != 200:
@@ -465,8 +460,18 @@ def _parse_upi_month(value: str) -> datetime | None:
     if not value:
         return None
     months = {
-        "jan": 1, "feb": 2, "mar": 3, "apr": 4, "may": 5, "jun": 6,
-        "jul": 7, "aug": 8, "sep": 9, "oct": 10, "nov": 11, "dec": 12,
+        "jan": 1,
+        "feb": 2,
+        "mar": 3,
+        "apr": 4,
+        "may": 5,
+        "jun": 6,
+        "jul": 7,
+        "aug": 8,
+        "sep": 9,
+        "oct": 10,
+        "nov": 11,
+        "dec": 12,
     }
     parts = value.strip().split("-")
     if len(parts) != 2:
@@ -550,10 +555,7 @@ async def fetch_all_async(days: int = 3) -> list[Event]:
         headers=headers, follow_redirects=True, timeout=timeout, limits=limits
     ) as client:
         results = await asyncio.gather(
-            *(
-                _fetch_rss(fid, name, url, since, client)
-                for fid, name, url in RSS_FEEDS
-            ),
+            *(_fetch_rss(fid, name, url, since, client) for fid, name, url in RSS_FEEDS),
             _fetch_nse_announcements(since, client),
             _fetch_amfi(since, client),
             _fetch_mospi(since, client),

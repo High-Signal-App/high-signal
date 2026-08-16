@@ -37,23 +37,134 @@ from .utils import event_text, source_family  # noqa: F401  (source_family re-ex
 # Aligned to the three product domains (technology / startups / finance) plus
 # the data-center thesis the new sources feed.
 THEME_BUCKETS: list[tuple[str, tuple[str, ...]]] = [
-    ("ai-infra", ("gpu", "accelerator", "datacenter", "data center", "semiconductor",
-                  "hbm", "foundry", "inference", "training", "compute", "cluster", "tpu", "chip")),
-    ("energy-power", ("electricity", "power purchase", "megawatt", "substation", "grid",
-                      "transmission", "nuclear", "solar", "energy", "kilowatt")),
-    ("data-center-buildout", ("rezon", "conditional use", "special exception", "site plan",
-                              "development agreement", "hyperscale", "comprehensive plan", "zoning")),
-    ("startup-funding", ("funding", "raises", "raised", "seed round", "series a", "series b",
-                         "acquisition", "acquires", "ipo", "valuation", "venture", "startup")),
-    ("model-release", ("model", "llm", "gpt", "open-weight", "open source", "benchmark",
-                       "fine-tune", "release", "checkpoint")),
-    ("litigation-regulatory", ("lawsuit", "antitrust", "court", "ruling", "regulation",
-                               "patent", "settlement", "fine", "probe", "ban", "sue", "opinion")),
-    ("security", ("cve", "vulnerability", "exploit", "breach", "ransomware", "malware", "zero-day")),
-    ("developer-tooling", ("framework", "library", "sdk", "kubernetes", "pytorch", "deploy",
-                           "api", "runtime", "compiler", "package")),
-    ("markets-macro", ("inflation", "treasury", "fed ", "rate cut", "rate hike", "capex",
-                       "guidance", "earnings", "demand", "margin")),
+    (
+        "ai-infra",
+        (
+            "gpu",
+            "accelerator",
+            "datacenter",
+            "data center",
+            "semiconductor",
+            "hbm",
+            "foundry",
+            "inference",
+            "training",
+            "compute",
+            "cluster",
+            "tpu",
+            "chip",
+        ),
+    ),
+    (
+        "energy-power",
+        (
+            "electricity",
+            "power purchase",
+            "megawatt",
+            "substation",
+            "grid",
+            "transmission",
+            "nuclear",
+            "solar",
+            "energy",
+            "kilowatt",
+        ),
+    ),
+    (
+        "data-center-buildout",
+        (
+            "rezon",
+            "conditional use",
+            "special exception",
+            "site plan",
+            "development agreement",
+            "hyperscale",
+            "comprehensive plan",
+            "zoning",
+        ),
+    ),
+    (
+        "startup-funding",
+        (
+            "funding",
+            "raises",
+            "raised",
+            "seed round",
+            "series a",
+            "series b",
+            "acquisition",
+            "acquires",
+            "ipo",
+            "valuation",
+            "venture",
+            "startup",
+        ),
+    ),
+    (
+        "model-release",
+        (
+            "model",
+            "llm",
+            "gpt",
+            "open-weight",
+            "open source",
+            "benchmark",
+            "fine-tune",
+            "release",
+            "checkpoint",
+        ),
+    ),
+    (
+        "litigation-regulatory",
+        (
+            "lawsuit",
+            "antitrust",
+            "court",
+            "ruling",
+            "regulation",
+            "patent",
+            "settlement",
+            "fine",
+            "probe",
+            "ban",
+            "sue",
+            "opinion",
+        ),
+    ),
+    (
+        "security",
+        ("cve", "vulnerability", "exploit", "breach", "ransomware", "malware", "zero-day"),
+    ),
+    (
+        "developer-tooling",
+        (
+            "framework",
+            "library",
+            "sdk",
+            "kubernetes",
+            "pytorch",
+            "deploy",
+            "api",
+            "runtime",
+            "compiler",
+            "package",
+        ),
+    ),
+    (
+        "markets-macro",
+        (
+            "inflation",
+            "treasury",
+            "fed ",
+            "rate cut",
+            "rate hike",
+            "capex",
+            "guidance",
+            "earnings",
+            "demand",
+            "margin",
+        ),
+    ),
 ]
 
 
@@ -152,10 +263,12 @@ def summarize(axes: dict[str, dict[str, Group]]) -> dict[str, object]:
         "distinct_themes": len(axes["theme"]),
         "distinct_sources": len(axes["source"]),
         "events_per_source": {
-            k: g.events for k, g in sorted(axes["source"].items(), key=lambda kv: kv[1].events, reverse=True)
+            k: g.events
+            for k, g in sorted(axes["source"].items(), key=lambda kv: kv[1].events, reverse=True)
         },
         "events_per_theme": {
-            k: g.events for k, g in sorted(axes["theme"].items(), key=lambda kv: kv[1].events, reverse=True)
+            k: g.events
+            for k, g in sorted(axes["theme"].items(), key=lambda kv: kv[1].events, reverse=True)
         },
     }
 
@@ -168,10 +281,14 @@ def run(source: str, days: int, min_sources: int) -> dict[str, object]:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Group ingested events deterministically (no RAG).")
+    parser = argparse.ArgumentParser(
+        description="Group ingested events deterministically (no RAG)."
+    )
     parser.add_argument("--source", default="all")
     parser.add_argument("--days", type=int, default=7)
-    parser.add_argument("--min-sources", type=int, default=2, help="convergence corroboration floor")
+    parser.add_argument(
+        "--min-sources", type=int, default=2, help="convergence corroboration floor"
+    )
     parser.add_argument("--json", action="store_true")
     argv = [arg for arg in sys.argv[1:] if arg != "--"]
     args = parser.parse_args(argv)
@@ -191,7 +308,9 @@ def main() -> None:
         print(f"  {theme:24} {n}")
     print(f"\nconvergence (groups with ≥{args.min_sources} distinct sources):")
     for c in result["convergence"]:  # type: ignore[union-attr]
-        print(f"  [{c['axis']}] {c['key']:22} {c['distinct_sources']} sources, {c['events']} events  {c['sources']}")
+        print(
+            f"  [{c['axis']}] {c['key']:22} {c['distinct_sources']} sources, {c['events']} events  {c['sources']}"
+        )
         for t in c["sample_titles"][:2]:
             print(f"       - {t}")
 

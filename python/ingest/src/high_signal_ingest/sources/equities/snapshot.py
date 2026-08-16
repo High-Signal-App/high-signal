@@ -95,9 +95,7 @@ def returns_over_window(closes: Sequence[Close], days_back: int) -> Optional[flo
     if len(closes) < 2:
         return None
     latest = closes[-1]
-    target = _date_to_yyyymmdd(
-        _yyyymmdd_to_date(latest.date) - timedelta(days=days_back)
-    )
+    target = _date_to_yyyymmdd(_yyyymmdd_to_date(latest.date) - timedelta(days=days_back))
     if target < closes[0].date:
         return None
     prior = _find_close_at_or_before(closes, target)
@@ -180,9 +178,9 @@ def beta(
     n = len(asset_rets)
     asset_mean = sum(asset_rets) / n
     bench_mean = sum(bench_rets) / n
-    cov = sum(
-        (asset_rets[i] - asset_mean) * (bench_rets[i] - bench_mean) for i in range(n)
-    ) / (n - 1)
+    cov = sum((asset_rets[i] - asset_mean) * (bench_rets[i] - bench_mean) for i in range(n)) / (
+        n - 1
+    )
     return cov / bench_var
 
 
@@ -211,9 +209,7 @@ def _usd_return(
     if len(closes) < 2 or len(fx_to_usd_closes) < 2:
         return None
     latest_local = closes[-1]
-    target = _date_to_yyyymmdd(
-        _yyyymmdd_to_date(latest_local.date) - timedelta(days=days_back)
-    )
+    target = _date_to_yyyymmdd(_yyyymmdd_to_date(latest_local.date) - timedelta(days=days_back))
     if target < closes[0].date:
         return None
     prior_local = _find_close_at_or_before(closes, target)
@@ -278,7 +274,7 @@ def compute_tier1(
     snap.volatility_30d = volatility_annualized(closes, 30)
 
     # 52-week (~252 trading days) high/low
-    one_year_window = closes[-min(len(closes), 252):]
+    one_year_window = closes[-min(len(closes), 252) :]
     if one_year_window:
         snap.high_52w = max(c.close for c in one_year_window)
         snap.low_52w = min(c.close for c in one_year_window)
@@ -291,7 +287,7 @@ def compute_tier1(
     if len(closes) >= 252:
         snap.max_drawdown_1y = max_drawdown(closes[-252:])
     if len(closes) >= 252 * 5:
-        snap.max_drawdown_5y = max_drawdown(closes[-(252 * 5):])
+        snap.max_drawdown_5y = max_drawdown(closes[-(252 * 5) :])
 
     # SMAs + golden/death cross
     snap.sma_50 = sma(closes, 50)

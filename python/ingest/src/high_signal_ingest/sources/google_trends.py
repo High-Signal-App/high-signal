@@ -66,7 +66,7 @@ def fetch_all(days: int = 2, geos: tuple[tuple[str, str], ...] | None = None) ->
     since = datetime.now(timezone.utc) - timedelta(days=days)
     out: list[Event] = []
     with httpx.Client(headers={"User-Agent": USER_AGENT}, timeout=20.0, follow_redirects=True) as c:
-        for geo, url in (geos or DEFAULT_GEOS):
+        for geo, url in geos or DEFAULT_GEOS:
             try:
                 r = c.get(url)
                 r.raise_for_status()

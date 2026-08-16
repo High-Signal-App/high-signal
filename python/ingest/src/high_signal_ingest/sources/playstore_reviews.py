@@ -70,7 +70,9 @@ def reviews_to_events(app: str, rows: list[dict], since: datetime) -> list[Event
         at = r.get("at")
         if not rid or not content or not isinstance(at, datetime):
             continue
-        published = at.replace(tzinfo=timezone.utc) if at.tzinfo is None else at.astimezone(timezone.utc)
+        published = (
+            at.replace(tzinfo=timezone.utc) if at.tzinfo is None else at.astimezone(timezone.utc)
+        )
         if published < since:
             continue
         raw_hash = event_hash("playstore-reviews", rid)
@@ -100,7 +102,7 @@ def fetch_all(days: int = 14, apps: list[tuple[str, str]] | None = None) -> list
 
     since = datetime.now(timezone.utc) - timedelta(days=days)
     out: list[Event] = []
-    for name, pkg in (apps or _apps_from_env()):
+    for name, pkg in apps or _apps_from_env():
         try:
             rows, _ = reviews(pkg, lang="en", country="us", sort=Sort.NEWEST, count=PER_APP)
             for r in rows:

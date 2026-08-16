@@ -7,7 +7,6 @@ raise to 5000 req/hr.
 from __future__ import annotations
 
 import asyncio
-import hashlib
 import logging
 import os
 from datetime import datetime, timedelta, timezone
@@ -16,6 +15,7 @@ from typing import Iterator
 import httpx
 
 from ..types import Event
+from ..utils import event_hash
 
 
 USER_AGENT = "high-signal/0.1 github-ingest"
@@ -36,10 +36,6 @@ DEFAULT_REPOS: list[tuple[str, str | None]] = [
     ("openai/triton", None),
     ("huggingface/transformers", None),
 ]
-
-
-def _hash(*parts: str) -> str:
-    return hashlib.sha256("␟".join(parts).encode("utf-8")).hexdigest()
 
 
 async def _fetch_releases(
@@ -94,7 +90,7 @@ async def fetch_repo_async(
         if r["prerelease"]:
             continue
         url = r["html_url"]
-        raw_hash = _hash("github", repo, r["tag"])
+        raw_hash = event_hash("github", repo, r["tag"])
         title = f"{repo} {r['tag']}: {r['name']}"
         out.append(
             Event(
@@ -125,10 +121,7 @@ async def fetch_all_async(
         headers=headers, follow_redirects=True, timeout=timeout, limits=limits
     ) as client:
         batches = await asyncio.gather(
-            *(
-                fetch_repo_async(repo, eid, since, client)
-                for repo, eid in (repos or DEFAULT_REPOS)
-            )
+            *(fetch_repo_async(repo, eid, since, client) for repo, eid in (repos or DEFAULT_REPOS))
         )
     return [event for batch in batches for event in batch]
 

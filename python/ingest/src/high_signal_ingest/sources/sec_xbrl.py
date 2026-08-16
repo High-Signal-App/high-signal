@@ -7,7 +7,6 @@ join these facts to the existing equities snapshot source of truth.
 
 from __future__ import annotations
 
-import hashlib
 import logging
 import os
 from datetime import datetime, timedelta, timezone
@@ -17,6 +16,7 @@ import httpx
 
 from ..seed import load_entities
 from ..types import Event, SourceDocument
+from ..utils import event_hash
 
 
 USER_AGENT = "high-signal/0.1 sec-xbrl-ingest"
@@ -33,10 +33,6 @@ FACTS = {
     "CommonStocksIncludingAdditionalPaidInCapital": "common_stock_capital",
     "EntityCommonStockSharesOutstanding": "shares_outstanding",
 }
-
-
-def _hash(*parts: str) -> str:
-    return hashlib.sha256("␟".join(parts).encode("utf-8")).hexdigest()
 
 
 def _user_agent() -> str:
@@ -94,7 +90,7 @@ def event_from_companyfacts(
         latest_filed = filed_at if latest_filed is None else max(latest_filed, filed_at)
     if not latest or latest_filed is None:
         return None
-    raw_hash = _hash("sec-xbrl", ticker, latest_filed.date().isoformat(), str(sorted(latest)))
+    raw_hash = event_hash("sec-xbrl", ticker, latest_filed.date().isoformat(), str(sorted(latest)))
     content = "\n".join(
         f"{label}: {row.get('val')} ({row.get('form')} filed {row.get('filed')})"
         for label, row in sorted(latest.items())

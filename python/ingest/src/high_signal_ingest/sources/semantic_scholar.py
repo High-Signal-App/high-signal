@@ -7,7 +7,6 @@ signal and corroboration lane, not a replacement for the Lab paper pipeline.
 
 from __future__ import annotations
 
-import hashlib
 import logging
 import os
 from dataclasses import dataclass
@@ -17,6 +16,7 @@ from typing import Any
 import httpx
 
 from ..types import Event
+from ..utils import event_hash
 
 
 USER_AGENT = "high-signal/0.1 semantic-scholar-ingest"
@@ -53,10 +53,6 @@ QUERIES = [
 ]
 
 
-def _hash(*parts: str) -> str:
-    return hashlib.sha256("␟".join(parts).encode("utf-8")).hexdigest()
-
-
 def _parse_date(value: str | None, year: int | None = None) -> datetime:
     if value:
         try:
@@ -68,7 +64,9 @@ def _parse_date(value: str | None, year: int | None = None) -> datetime:
     return datetime.now(timezone.utc)
 
 
-def events_from_response(query: PaperQuery, payload: dict[str, Any], since: datetime) -> list[Event]:
+def events_from_response(
+    query: PaperQuery, payload: dict[str, Any], since: datetime
+) -> list[Event]:
     rows = payload.get("data") if isinstance(payload.get("data"), list) else []
     out: list[Event] = []
     for row in rows:
@@ -98,7 +96,7 @@ def events_from_response(query: PaperQuery, payload: dict[str, Any], since: date
             ]
             if part
         )
-        raw_hash = _hash("semantic-scholar", query.query, paper_id)
+        raw_hash = event_hash("semantic-scholar", query.query, paper_id)
         out.append(
             Event(
                 id=raw_hash[:16],

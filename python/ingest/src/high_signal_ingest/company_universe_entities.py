@@ -23,9 +23,7 @@ DEFAULT_LABELS: tuple[str, ...] = (
     "product",
 )
 DEFAULT_THRESHOLD = 0.42
-DEFAULT_ARTIFACT = (
-    Path(__file__).resolve().parents[4] / "apps/web/src/data/company-universe.json"
-)
+DEFAULT_ARTIFACT = Path(__file__).resolve().parents[4] / "apps/web/src/data/company-universe.json"
 
 
 def normalize_predictions(predictions: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -41,15 +39,15 @@ def normalize_predictions(predictions: Iterable[dict[str, Any]]) -> list[dict[st
         existing = by_key.get(key)
         if existing is None or score > existing["score"]:
             by_key[key] = {"text": text, "label": label, "score": score}
-    return sorted(by_key.values(), key=lambda item: (-item["score"], item["label"], item["text"]))[:16]
+    return sorted(by_key.values(), key=lambda item: (-item["score"], item["label"], item["text"]))[
+        :16
+    ]
 
 
 def company_text(company: dict[str, Any]) -> str:
     evidence = company.get("sourceEvidence") or []
     evidence_descriptions = [
-        str(item.get("description") or "")
-        for item in evidence
-        if isinstance(item, dict)
+        str(item.get("description") or "") for item in evidence if isinstance(item, dict)
     ]
     return "\n".join(
         part

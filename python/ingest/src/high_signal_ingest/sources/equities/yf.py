@@ -68,23 +68,23 @@ _EXCHANGE_TO_YF_SUFFIX: dict[str, str] = {
     "HE": ".HE",
     "VI": ".VI",
     "WA": ".WA",
-    "IR": ".IR",     # Ireland (Euronext Dublin)
-    "JP": ".T",      # Tokyo: 7203.JP → 7203.T
-    "T": ".T",       # already in yfinance form
+    "IR": ".IR",  # Ireland (Euronext Dublin)
+    "JP": ".T",  # Tokyo: 7203.JP → 7203.T
+    "T": ".T",  # already in yfinance form
     "HK": ".HK",
-    "SS": ".SS",     # Shanghai
-    "SZ": ".SZ",     # Shenzhen
-    "TO": ".TO",     # Toronto
-    "V": ".V",       # TSX Venture
-    "AX": ".AX",     # ASX
-    "NS": ".NS",     # NSE India
-    "BO": ".BO",     # BSE India
-    "KS": ".KS",     # KRX
-    "KQ": ".KQ",     # KOSDAQ
-    "SA": ".SA",     # B3 Brazil
+    "SS": ".SS",  # Shanghai
+    "SZ": ".SZ",  # Shenzhen
+    "TO": ".TO",  # Toronto
+    "V": ".V",  # TSX Venture
+    "AX": ".AX",  # ASX
+    "NS": ".NS",  # NSE India
+    "BO": ".BO",  # BSE India
+    "KS": ".KS",  # KRX
+    "KQ": ".KQ",  # KOSDAQ
+    "SA": ".SA",  # B3 Brazil
     "MX": ".MX",
-    "IS": ".IS",     # Istanbul
-    "JO": ".JO",     # JSE
+    "IS": ".IS",  # Istanbul
+    "JO": ".JO",  # JSE
     "CRYPTO": "-USD",
 }
 
@@ -187,6 +187,7 @@ def _download_batch(
     to ``pipeline._with_backoff`` so a single flaky Yahoo response does not
     abort the universe-wide snapshot. Returns ``None`` if every attempt fails.
     """
+
     def _one_attempt() -> Optional[pd.DataFrame]:
         use_alarm = _YF_BATCH_TIMEOUT > 0 and hasattr(signal, "SIGALRM")
         if use_alarm:

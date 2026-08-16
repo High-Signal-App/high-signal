@@ -7,6 +7,7 @@ from __future__ import annotations
 import calendar
 import hashlib
 from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
 
 from .types import Event
 
@@ -38,6 +39,29 @@ def rss_published(entry: object) -> datetime | None:
     if not st:
         return None
     return datetime.fromtimestamp(calendar.timegm(st), tz=timezone.utc)
+
+
+def parse_published_datetime(value: str) -> datetime | None:
+    """Parse an RFC-822 or ISO-8601 datetime string and normalise to UTC.
+    Tries ``parsedate_to_datetime`` first (RFC-2822), then falls back to
+    ``datetime.fromisoformat`` (ISO-8601 with ``Z`` tolerance)."""
+    try:
+        parsed = parsedate_to_datetime(value)
+        return (
+            parsed.astimezone(timezone.utc)
+            if parsed.tzinfo
+            else parsed.replace(tzinfo=timezone.utc)
+        )
+    except Exception:
+        try:
+            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+            return (
+                parsed.astimezone(timezone.utc)
+                if parsed.tzinfo
+                else parsed.replace(tzinfo=timezone.utc)
+            )
+        except Exception:
+            return None
 
 
 def source_family(source: str) -> str:

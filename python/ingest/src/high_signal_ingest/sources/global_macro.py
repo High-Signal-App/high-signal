@@ -77,7 +77,11 @@ def _parse_period(period: str) -> datetime | None:
     for candidate in (period[:7], period[:10]):
         try:
             dt = datetime.fromisoformat(candidate)
-            return dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt.astimezone(timezone.utc)
+            return (
+                dt.replace(tzinfo=timezone.utc)
+                if dt.tzinfo is None
+                else dt.astimezone(timezone.utc)
+            )
         except ValueError:
             continue
     return None
@@ -205,7 +209,9 @@ WORLDBANK_COUNTRIES: dict[str, str] = {
 }
 
 
-def worldbank_events_from_json(payload: list, indicator_code: str, country_code: str) -> list[Event]:
+def worldbank_events_from_json(
+    payload: list, indicator_code: str, country_code: str
+) -> list[Event]:
     """Parse a World Bank API JSON response (a 2-element list) into Events."""
     out: list[Event] = []
     if not isinstance(payload, list) or len(payload) < 2:
@@ -225,7 +231,9 @@ def worldbank_events_from_json(payload: list, indicator_code: str, country_code:
         published = _parse_period(str(date_value))
         if published is None:
             continue
-        raw_hash = event_hash("global-macro:worldbank", country_code, indicator_code, str(date_value), str(value))
+        raw_hash = event_hash(
+            "global-macro:worldbank", country_code, indicator_code, str(date_value), str(value)
+        )
         title = f"World Bank {country_label} {indicator_label}: {value} ({date_value})"
         content = (
             f"World Bank World Development Indicators — {country_label} ({country_code})\n"
@@ -332,7 +340,11 @@ def bis_events_from_xml(
         return out
 
     country_label = BIS_COUNTRIES.get(country_code, country_code)
-    flow_label = "Effective exchange rate (nominal, broad)" if flow == BIS_EER_FLOW else "Central bank policy rate"
+    flow_label = (
+        "Effective exchange rate (nominal, broad)"
+        if flow == BIS_EER_FLOW
+        else "Central bank policy rate"
+    )
     source_tag = "global-macro:bis"
 
     # In SDMX 2.1 structure-specific data, observations are <Obs> elements
@@ -381,7 +393,10 @@ def _fetch_bis(days: int = 30) -> list[Event]:
     out: list[Event] = []
 
     with httpx.Client(
-        headers={"User-Agent": USER_AGENT, "Accept": "application/vnd.sdmx.structurespecificdata+xml;version=2.1"},
+        headers={
+            "User-Agent": USER_AGENT,
+            "Accept": "application/vnd.sdmx.structurespecificdata+xml;version=2.1",
+        },
         timeout=25.0,
         follow_redirects=True,
     ) as client:
@@ -410,7 +425,9 @@ def _fetch_bis(days: int = 30) -> list[Event]:
             except httpx.HTTPError as exc:
                 LOGGER.debug("bis cbpol fetch failed country=%s error=%s", country_code, exc)
             else:
-                out.extend(bis_events_from_xml(response.text, BIS_CBPOL_FLOW, country_code, cbpol_key))
+                out.extend(
+                    bis_events_from_xml(response.text, BIS_CBPOL_FLOW, country_code, cbpol_key)
+                )
     return out
 
 
@@ -533,7 +550,9 @@ def _fetch_un_comtrade(days: int = 30) -> list[Event]:
                 except ValueError as exc:
                     LOGGER.debug("comtrade json decode failed period=%s error=%s", period, exc)
                     continue
-                out.extend(comtrade_events_from_json(payload, COMTRADE_INDIA_CODE, COMTRADE_US_CODE))
+                out.extend(
+                    comtrade_events_from_json(payload, COMTRADE_INDIA_CODE, COMTRADE_US_CODE)
+                )
 
         # US as reporter, India as partner — exports and imports
         for period in periods:
@@ -563,7 +582,9 @@ def _fetch_un_comtrade(days: int = 30) -> list[Event]:
                 except ValueError as exc:
                     LOGGER.debug("comtrade json decode failed period=%s error=%s", period, exc)
                     continue
-                out.extend(comtrade_events_from_json(payload, COMTRADE_US_CODE, COMTRADE_INDIA_CODE))
+                out.extend(
+                    comtrade_events_from_json(payload, COMTRADE_US_CODE, COMTRADE_INDIA_CODE)
+                )
     return out
 
 
