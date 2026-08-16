@@ -80,7 +80,7 @@ async function handleDailyBriefRequest(c: Context<{ Bindings: Env }>) {
   return c.json(snapshot);
 }
 
-function parseDailyBriefRequest(c: Context<{ Bindings: Env }>) {
+export function parseDailyBriefRequest(c: Context<{ Bindings: Env }>) {
   const rawRegion = c.req.query('region')?.toLowerCase().trim() ?? 'global';
   const dateParam = c.req.query('date')?.trim() ?? '';
   return {
