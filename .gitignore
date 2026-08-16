@@ -65,3 +65,6 @@ data/d2c-agent-visibility/
 # `*.log` above already covers loose log files; agent runtime session caches:
 .devin/
 agents.log
+
+# Generated automation reports
+reports/
