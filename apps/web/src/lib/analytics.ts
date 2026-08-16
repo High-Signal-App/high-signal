@@ -36,13 +36,23 @@ export function trackEvent(event: string, properties: Record<string, unknown> = 
 
 function emit<K extends keyof AnalyticsEventMap>(
   event: K,
-  props: Omit<AnalyticsEventMap[K], 'project_id'>,
+  props: Omit<AnalyticsEventMap[K], 'project_id'>
 ): void {
   trackEvent(event, props);
 }
 
-export function trackPageView(): void { emit('page_view', {}); }
-export function trackSignup(): void { emit('signup', {}); }
-export function trackActivated(): void { emit('activated', {}); }
-export function trackCoreAction(action: CoreAction): void { emit('core_action', { action }); }
-export function trackReturned(): void { emit('returned', {}); }
+export function trackPageView(): void {
+  emit('page_view', {});
+}
+export function trackSignup(): void {
+  emit('signup', {});
+}
+export function trackActivated(): void {
+  emit('activated', {});
+}
+export function trackCoreAction(action: CoreAction): void {
+  emit('core_action', { action });
+}
+export function trackReturned(): void {
+  emit('returned', {});
+}
