@@ -66,83 +66,104 @@ const PRECOMPUTED_REGIONS: Region[] = [
 
 export const briefRoute = new Hono<{ Bindings: Env }>();
 
-briefRoute.get('/daily', async (c) => {
-  const rawRegion = c.req.query('region')?.toLowerCase().trim() ?? 'global';
-  const region: Region = isRegion(rawRegion) ? rawRegion : 'global';
-  const ownerId = c.req.query('owner')?.trim() ?? '';
-  const productId = c.req.query('product')?.trim() ?? '';
-  // Optional date param for the permanent archive (/brief/<date>). When
-  // supplied, the route serves the precomputed snapshot for that day
-  // instead of today's. Format: YYYY-MM-DD. Invalid dates fall through
-  // to the live path so the URL never 500s.
-  const dateParam = c.req.query('date')?.trim() ?? '';
-  const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-  const archiveDate = dateRegex.test(dateParam) ? dateParam : null;
+briefRoute.get('/daily', async (c) => handleDailyBriefRequest(c));
 
+async function handleDailyBriefRequest(c: Context<{ Bindings: Env }>) {
+  const request = parseDailyBriefRequest(c);
   const database = db(c.env.DB);
 
-  // Fast path: try precomputed snapshot for public sections (no owner).
-  // Personal sections (perception/improvements) always need live queries
-  // since they depend on the specific owner.
-  // Archive mode: only serve precomputed snapshots (no live rebuild of
-  // historical data — the snapshot IS the permanent record).
-  if (!ownerId) {
-    const today = new Date().toISOString().slice(0, 10);
-    const lookupDate = archiveDate ?? today;
-    const snapshot = await tryGetPrecomputedSnapshot(database, lookupDate, region);
-    if (snapshot) {
-      // Historical editions remain readable under their original contract.
-      // Today's cache must satisfy the current editorial gate; otherwise the
-      // request recomposes from live evidence rather than serving stale demo
-      // or malformed content.
-      if (archiveDate || buildBriefEditionReceipt(snapshot).publishable) {
-        return c.json(snapshot);
-      }
-    }
-    // Archive mode with no snapshot: return 404 so the web route can
-    // render a "no brief for this date" page instead of rebuilding live.
-    if (archiveDate) {
-      return c.json({ error: 'no_brief_for_date', date: archiveDate, region }, 404);
-    }
+  if (!request.ownerId) {
+    const cached = await cachedDailyBrief(database, request);
+    if (cached) return c.json(cached.body, cached.status);
   }
 
-  const countries = countriesForRegion(region);
+  const snapshot = await composeDailyBrief(database, request);
+  return c.json(snapshot);
+}
 
+function parseDailyBriefRequest(c: Context<{ Bindings: Env }>) {
+  const rawRegion = c.req.query('region')?.toLowerCase().trim() ?? 'global';
+  const dateParam = c.req.query('date')?.trim() ?? '';
+  return {
+    region: (isRegion(rawRegion) ? rawRegion : 'global') as Region,
+    ownerId: c.req.query('owner')?.trim() ?? '',
+    productId: c.req.query('product')?.trim() ?? '',
+    archiveDate: /^\d{4}-\d{2}-\d{2}$/.test(dateParam) ? dateParam : null,
+  };
+}
+
+async function cachedDailyBrief(
+  database: ReturnType<typeof db>,
+  request: ReturnType<typeof parseDailyBriefRequest>
+) {
+  const lookupDate = request.archiveDate ?? new Date().toISOString().slice(0, 10);
+  const snapshot = await tryGetPrecomputedSnapshot(database, lookupDate, request.region);
+  if (snapshot && (request.archiveDate || buildBriefEditionReceipt(snapshot).publishable)) {
+    return { body: snapshot, status: 200 as const };
+  }
+  if (request.archiveDate) {
+    return {
+      body: { error: 'no_brief_for_date', date: request.archiveDate, region: request.region },
+      status: 404 as const,
+    };
+  }
+  return null;
+}
+
+async function composeDailyBrief(
+  database: ReturnType<typeof db>,
+  request: ReturnType<typeof parseDailyBriefRequest>
+) {
+  const countries = countriesForRegion(request.region);
   const [stockResult, ideaResult, trendResult] = await Promise.all([
     safeCategory(() => buildStocks(database, countries), 'stocks'),
-    safeCategory(() => buildIdeas(database, region, countries), 'ideas'),
-    safeCategory(() => buildTrends(database, region, countries), 'trends'),
+    safeCategory(() => buildIdeas(database, request.region, countries), 'ideas'),
+    safeCategory(() => buildTrends(database, request.region, countries), 'trends'),
   ]);
-  const stocks = stockResult.items;
-  const ideas = ideaResult.items;
-  const trends = trendResult.items;
 
+  const brand = await loadDailyBriefBrand(database, request);
+  return {
+    generatedAt: new Date().toISOString(),
+    region: request.region,
+    hasBrand: brand.hasBrand,
+    stocks: stockResult.items,
+    ideas: ideaResult.items,
+    trends: trendResult.items,
+    watching: { items: brand.watching },
+    perception: brand.perception,
+    improvements: brand.improvements,
+    categoryStates: {
+      stocks: stockResult.state,
+      ideas: ideaResult.state,
+      trends: trendResult.state,
+    },
+  } satisfies BriefSnapshot;
+}
+
+async function loadDailyBriefBrand(
+  database: ReturnType<typeof db>,
+  request: ReturnType<typeof parseDailyBriefRequest>
+) {
   let perception: BriefPerceptionItem[] = [];
   let improvements: BriefImprovementItem[] = [];
   let watching: BriefWatchingItem[] = [];
-  let intentItems: BriefIntentItem[] = [];
   let hasBrand = false;
 
-  // Priority 1: a real signed-in owner with their own brand data in D1.
-  if (ownerId) {
-    [perception, improvements, watching, intentItems] = await Promise.all([
-      safe(() => buildPerception(database, ownerId), 'perception'),
-      safe(() => buildImprovements(database, ownerId), 'improvements'),
-      safe(() => buildWatching(database, ownerId), 'watching'),
-      // Migration 0014 is additive and may lag the application deploy. Keep
-      // this query independent so a missing intent table cannot erase valid
-      // mention, Agent Eval, or watchlist output.
-      safe(() => buildIntentBriefItems(database, ownerId), 'intent'),
+  if (request.ownerId) {
+    const [nextPerception, nextImprovements, nextWatching, intentItems] = await Promise.all([
+      safe(() => buildPerception(database, request.ownerId), 'perception'),
+      safe(() => buildImprovements(database, request.ownerId), 'improvements'),
+      safe(() => buildWatching(database, request.ownerId), 'watching'),
+      safe(() => buildIntentBriefItems(database, request.ownerId), 'intent'),
     ]);
-    perception = mergeIntentIntoPerception(perception, intentItems);
-    improvements = mergeIntentIntoImprovements(improvements, intentItems);
+    perception = mergeIntentIntoPerception(nextPerception, intentItems);
+    improvements = mergeIntentIntoImprovements(nextImprovements, intentItems);
+    watching = nextWatching;
     hasBrand = perception.length > 0 || improvements.length > 0;
   }
 
-  // Explicit seed products remain an API compatibility path for authenticated
-  // delivery/tests. The public web client no longer sends this parameter.
-  if (!hasBrand && productId) {
-    const seeded = renderFromSeed(productId);
+  if (!hasBrand && request.productId) {
+    const seeded = renderFromSeed(request.productId);
     if (seeded) {
       perception = seeded.perception;
       improvements = seeded.improvements;
@@ -150,24 +171,8 @@ briefRoute.get('/daily', async (c) => {
     }
   }
 
-  const snapshot: BriefSnapshot = {
-    generatedAt: new Date().toISOString(),
-    region,
-    hasBrand,
-    stocks,
-    ideas,
-    trends,
-    watching: { items: watching },
-    perception,
-    improvements,
-    categoryStates: {
-      stocks: stockResult.state,
-      ideas: ideaResult.state,
-      trends: trendResult.state,
-    },
-  };
-  return c.json(snapshot);
-});
+  return { perception, improvements, watching, hasBrand };
+}
 
 async function handleBriefFeedRequest(c: Context<{ Bindings: Env }>) {
   const feedParam = c.req.param('feed')?.trim() ?? '';
