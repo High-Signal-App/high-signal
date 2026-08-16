@@ -81,7 +81,7 @@ High Signal High Signal is one product : a synthesized Daily Brief assembled fro
 - `workers/api/src/index.ts`
 - `workers/api/src/routes/admin.ts`
 - `workers/api/src/routes/attention.ts`
-- `workers/api/src/routes/brief.ts`
+- `workers/api/src/routes/brief/`
 
 ## Current Stack
 

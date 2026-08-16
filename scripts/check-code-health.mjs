@@ -277,7 +277,7 @@ function checkUnused() {
     { exports: 0, types: 0 }
   );
   // Debt: https://github.com/High-Signal-App/high-signal/issues/104
-  const baseline = { exports: 28, types: 31 };
+  const baseline = { exports: 28, types: 30 };
   console.log(
     `Unused: 0 high-confidence findings; ${observed.exports} exports, ${observed.types} types.`
   );

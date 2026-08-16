@@ -44,8 +44,8 @@ pitfalls see [`learnings/lessons.md`](learnings/lessons.md).
 ## GLiREL automated relation extraction (deferred)
 
 - **Considered:** Auto-extract supply/customer/peer edges with GLiREL.
-- **Deferred:** `extract/relations.py` returns `[]`; hand-curated
-  `relationships.csv` covers all live edges (ADR-004).
+- **Deferred:** `extract/relations.py` returns a typed empty parked result;
+  hand-curated `relationships.csv` covers all live edges (ADR-004).
 - **Why:** Accurate edges matter more than broad coverage at the AI-infra wedge
   size; GLiREL needs validation infrastructure to prevent hallucinated edges
   from corrupting the spillover map.

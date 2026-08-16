@@ -36,7 +36,7 @@ prior "umbrella + 5 sub-products" framing in `plans/0004-platform-consolidation.
 - **API**: Hono on Cloudflare Workers — `workers/api`
 - **DB**: Cloudflare D1 + Drizzle — schema in `packages/db`
 - **Lab substrate**: local-first Postgres (FTS + `pgvector`) — `python/lab` (plan `0007`, parked)
-- **Python ingestion + scoring**: edgartools, Trafilatura, GLiNER, NetworkX — `python/ingest`. Relation extraction (GLiREL) is a deferred stub returning `[]` (not a declared dep); FinBERT sentiment is code-present but its `transformers` dep is undeclared and falls back to rules. Daily crons on GitHub Actions; Modal kept for ad-hoc backfills only.
+- **Python ingestion + scoring**: edgartools, Trafilatura, GLiNER, NetworkX — `python/ingest`. Relation extraction (GLiREL) is a parked stub returning a typed empty result (not a declared dep); FinBERT sentiment is code-present but its `transformers` dep is undeclared and returns an unavailable/neutral-with-reason result. Daily crons on GitHub Actions; Modal kept for ad-hoc backfills only.
 - **Signal store**: git-versioned markdown under `signals/YYYY-MM-DD/<slug>.md` — append-only, never rewritten.
 - **Auth**: Clerk (Google + email). Server gates: `requireSignedIn()` / `requireAdmin()` (`ADMIN_ALLOWED_EMAILS`). CF Access was abandoned — do not reintroduce without a migration plan.
 - **Testing**: Vitest (TS), pytest (Python), Playwright (e2e).

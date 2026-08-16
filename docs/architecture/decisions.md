@@ -327,4 +327,29 @@ clear homepage, hard to explain the value prop.
 **Tradeoffs.** Some sub-product surfaces (equities, communities, lab) are still
 reachable by URL but are de-emphasized. The brief's quality depends on all five
 lenses working; a broken lens degrades one brief section rather than failing
-silently (the `safe()` wrapper in `workers/api/src/routes/brief.ts` handles this).
+silently (the `safe()` wrapper in `workers/api/src/routes/brief/` handles this).
+
+---
+
+## ADR-012 — Parked extract stubs return typed unavailable results
+
+Date: 2026-08-16
+Status: active (narrows ADR-004 and ADR-005 implementation)
+
+**Context.** `extract/relations.py` always returned `[]`. `score/sentiment.py`
+returned `("neutral", 0.0)` when `transformers` was missing. Callers could not
+tell a parked stub from a real empty/neutral model result.
+
+**Decision.** Keep GLiREL and FinBERT unimplemented and undeclared. Relation
+extraction returns a typed empty `RelationExtractionResult` (`available=False`,
+`reason=glirel_parked`) and logs that once. Sentiment returns a
+`SentimentScore` whose `available` flag is True only for a real FinBERT pass;
+missing `transformers`, empty text, or pipeline failure are explicit reasons.
+Do not add those models as production dependencies.
+
+**Rationale.** A silent `[]` or `("neutral", 0.0)` looks like extraction ran.
+Typed unavailable results fail closed and keep the parked status honest.
+
+**Alternatives rejected.** Wiring GLiREL/FinBERT for real: still blocked on
+validation infra and an undeclared `transformers` dep. Keeping the old tuples:
+callers cannot distinguish "model said neutral" from "model never ran."

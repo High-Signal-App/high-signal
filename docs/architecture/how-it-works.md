@@ -107,7 +107,7 @@ into a NetworkX directed multigraph and does a hop-decayed BFS (`spillover_ids`,
 2 hops, weight × decay) to find suppliers/customers/peers up to two hops out.
 This is the moat mechanic — an event on one entity implies 2nd-order impact on
 connected ones (e.g. TSMC capex → ASML → cloud). Relationship *extraction*
-(GLiREL) is deliberately stubbed to `[]` for v0 because accurate edges matter
+(GLiREL) is deliberately parked as a typed empty result for v0 because accurate edges matter
 more than broad coverage at this size (ADR-004); the graph grows by manual
 curation.
 
@@ -182,7 +182,7 @@ commit and a test update — that is intentional.
 
 ### 7. The API — composing the brief
 
-`workers/api/src/routes/brief.ts` (`GET /brief/daily?region=&owner=`) composes
+`workers/api/src/routes/brief/` (`GET /brief/daily?region=&owner=`) composes
 the Daily Brief's five sections: three public (stocks / ideas / trends) that
 render without a user, and two personal (perception / improvements) that need an
 `ownerId` with a connected brand. Per-signal-type hit-rate is computed from

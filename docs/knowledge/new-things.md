@@ -12,14 +12,14 @@ Technologies, tools, and patterns encountered while building this project. 3-5 l
 
 ## GLiREL (zero-shot relation extraction)
 - What: companion to GLiNER that extracts typed relation triples from text without training data
-- Why here: intended to auto-populate spillover graph edges from text, but deferred — the live graph is fed by hand-curated `relationships.csv` instead (stub returns `[]`)
-- Gotcha (from code): `extract/relations.py:8-15` — `extract_relations()` always returns `[]`; GLiREL is not even listed in `pyproject.toml` (confirmed absent), so the stub is the only wiring that exists; hand-curated `relationships.csv` covers all live edges
+- Why here: intended to auto-populate spillover graph edges from text, but deferred — the live graph is fed by hand-curated `relationships.csv` instead (typed empty parked result)
+- Gotcha (from code): `extract/relations.py` — `extract_relations()` returns a typed empty `RelationExtractionResult` (`available=False`, `reason=glirel_parked`) and logs that once; GLiREL is not listed in `pyproject.toml`, so the stub is the only wiring that exists; hand-curated `relationships.csv` covers all live edges
 - Source: https://github.com/jackboyla/GLiREL — See also external-references.md
 
 ## FinBERT
 - What: BERT model fine-tuned on financial corpora (analyst reports, earnings calls) for sentiment classification
-- Why here: scores sentiment on financial text during ingest; code-present but its `transformers` dep is undeclared so it falls back to rule-based scoring
-- Gotcha (from code): `score/sentiment.py:31` hard-slices input to `text[:512]` before passing to the pipeline — the Transformers tokenizer also caps at 512 tokens, but this character slice means long tokens are cut mid-word with no truncation warning surfaced in the output tuple
+- Why here: scores sentiment on financial text during ingest; code-present but its `transformers` dep is undeclared, so the default path returns an unavailable/neutral-with-reason result rather than a fake FinBERT score
+- Gotcha (from code): `score/sentiment.py` hard-slices input to `text[:512]` before passing to the pipeline — the Transformers tokenizer also caps at 512 tokens, but this character slice means long tokens are cut mid-word; callers must check `available` before treating `label`/`confidence` as a model score
 - Source: https://huggingface.co/ProsusAI/finbert — See also external-references.md
 
 ## pgvector

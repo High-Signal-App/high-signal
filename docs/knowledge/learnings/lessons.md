@@ -18,19 +18,24 @@ the gazetteer path.
 
 ### GLiREL is "heavy" even for a stub — defer it fully, don't half-integrate
 
-`extract/relations.py` documents the stub decision explicitly: "GLiREL is heavy;
-for v0 we return [] and rely on: (1) hand-curated relationships.csv, (2) manual
-review queue." The lesson: do not add a heavy model dependency until you have
-the validation infrastructure to trust its output. A zero-return stub with a
-clear comment is preferable to a wired but unvalidated model.
+`extract/relations.py` is parked: it returns a typed empty
+`RelationExtractionResult` (`available=False`, `reason=glirel_parked`) and logs
+that once. Live edges still come from hand-curated `relationships.csv` and the
+manual review queue. The lesson: do not add a heavy model dependency until you
+have the validation infrastructure to trust its output. A typed empty result is
+preferable to a wired but unvalidated model or a silent `[]` that looks like
+"we extracted nothing."
 
 ### FinBERT's 512-token cap silently truncates long documents
 
 `score/sentiment.py` caps input at `text[:512]`. This is fine for headlines and
 short snippets but silently drops context for SEC filings, earnings call
-transcripts, and long Reddit threads. The model returns a result without any
-signal that truncation happened. For longer documents, run sentiment on the most
-relevant excerpt rather than the raw head.
+transcripts, and long Reddit threads. When FinBERT actually runs, the model
+returns a result without any signal that truncation happened. When
+`transformers` is missing, the function now returns `available=False` with
+`reason=transformers_unavailable` instead of a fake `("neutral", 0.0)` score.
+For longer documents, run sentiment on the most relevant excerpt rather than
+the raw head.
 
 ### Local sentence-transformer embeddings (384-dim MiniLM) download on first run
 
