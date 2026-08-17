@@ -755,22 +755,47 @@ const BROAD_PUBLIC_ACTION_TERMS = [
   'why is',
 ];
 
-async function fetchRedditTopPosts(
-  subreddit: string,
-  period: 'day' | 'week' | 'month'
-): Promise<RedditPost[]> {
-  const response = await fetch(
-    `https://www.reddit.com/r/${encodeURIComponent(subreddit)}/top.json?${new URLSearchParams({
-      t: period,
-      limit: '10',
-    })}`,
-    { headers: { 'User-Agent': 'HighSignalPersonal/1.0 (source refresh)' } }
-  );
-  if (!response.ok) throw new Error(`reddit_${response.status}`);
-  const data = (await response.json()) as {
-    data?: { children?: Array<{ data?: Record<string, unknown> }> };
-  };
-  return (data.data?.children ?? [])
+const REDDIT_USER_AGENT = 'HighSignalPersonal/1.0 (source refresh)';
+const REDDIT_OAUTH_BASE = 'https://oauth.reddit.com';
+const REDDIT_PUBLIC_BASE = 'https://www.reddit.com';
+
+// OAuth token cache (process-lifetime). Reddit tokens last 1 hour; refresh at 55 min.
+let redditOAuthToken: { token: string; expiresAt: number } | null = null;
+const REDDIT_OAUTH_TTL_MS = 55 * 60 * 1000;
+
+async function getRedditOAuthToken(): Promise<string | null> {
+  const clientId = process.env.REDDIT_CLIENT_ID ?? '';
+  const clientSecret = process.env.REDDIT_CLIENT_SECRET ?? '';
+  if (!clientId || !clientSecret) return null;
+
+  if (redditOAuthToken && redditOAuthToken.expiresAt > Date.now()) {
+    return redditOAuthToken.token;
+  }
+
+  try {
+    const response = await fetch(`${REDDIT_PUBLIC_BASE}/api/v1/access_token`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'User-Agent': REDDIT_USER_AGENT,
+      },
+      body: 'grant_type=client_credentials',
+    });
+    if (!response.ok) return null;
+    const data = (await response.json()) as { access_token?: string };
+    if (!data.access_token) return null;
+    redditOAuthToken = { token: data.access_token, expiresAt: Date.now() + REDDIT_OAUTH_TTL_MS };
+    return data.access_token;
+  } catch {
+    return null;
+  }
+}
+
+function parseRedditChildren(data: unknown): RedditPost[] {
+  const children = (data as { data?: { children?: Array<{ data?: Record<string, unknown> }> } })
+    ?.data?.children ?? [];
+  return children
     .map((child) => child.data ?? {})
     .map((post) => ({
       id: `${post['id'] ?? ''}`,
@@ -782,6 +807,59 @@ async function fetchRedditTopPosts(
     .filter((post) => post.id && post.title);
 }
 
+async function fetchRedditRssPosts(subreddit: string, period: SourcePeriod): Promise<RedditPost[]> {
+  const response = await fetch(
+    `${REDDIT_PUBLIC_BASE}/r/${encodeURIComponent(subreddit)}/.rss`,
+    { headers: { 'User-Agent': REDDIT_USER_AGENT } }
+  );
+  if (!response.ok) return [];
+  const xml = await response.text();
+  const since = sinceDateForPeriod(period).getTime();
+  return xmlBlocks(xml)
+    .map((block) => {
+      const title = firstXmlValue(block, 'title');
+      const link = firstXmlHref(block);
+      const rawDate =
+        firstXmlValue(block, 'pubDate') || firstXmlValue(block, 'updated') || firstXmlValue(block, 'published');
+      const time = rawDate ? Date.parse(rawDate) : Date.now();
+      return { title, link, time, id: link };
+    })
+    .filter((entry) => entry.title && entry.link)
+    .filter((entry) => Number.isNaN(entry.time) || entry.time >= since)
+    .slice(0, 10)
+    .map((entry) => ({
+      id: `rss-${subreddit}-${entry.id}`,
+      title: entry.title,
+      selftext: '',
+      score: 0,
+      permalink: entry.link,
+    }));
+}
+
+async function fetchRedditTopPosts(
+  subreddit: string,
+  period: 'day' | 'week' | 'month'
+): Promise<RedditPost[]> {
+  const token = await getRedditOAuthToken();
+  const base = token ? REDDIT_OAUTH_BASE : REDDIT_PUBLIC_BASE;
+  const headers: Record<string, string> = { 'User-Agent': REDDIT_USER_AGENT };
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  const response = await fetch(
+    `${base}/r/${encodeURIComponent(subreddit)}/top.json?${new URLSearchParams({
+      t: period,
+      limit: '10',
+    })}`,
+    { headers }
+  );
+  if (!response.ok) {
+    // Unauthenticated JSON returns 403 from most IPs; fall back to RSS.
+    if (!token && response.status === 403) return fetchRedditRssPosts(subreddit, period);
+    throw new Error(`reddit_${response.status}`);
+  }
+  return parseRedditChildren(await response.json());
+}
+
 async function fetchRedditSearchPosts(
   subreddit: string,
   period: SourcePeriod,
@@ -791,30 +869,27 @@ async function fetchRedditSearchPosts(
     queryOverride ??
     PRODUCT_SIGNAL_QUERIES[subreddit.toLowerCase()] ??
     'workflow OR problem OR validate OR cost OR privacy OR agent OR monitoring';
+  const token = await getRedditOAuthToken();
+  const base = token ? REDDIT_OAUTH_BASE : REDDIT_PUBLIC_BASE;
+  const headers: Record<string, string> = { 'User-Agent': REDDIT_USER_AGENT };
+  if (token) headers.Authorization = `Bearer ${token}`;
+
   const response = await fetch(
-    `https://www.reddit.com/r/${encodeURIComponent(subreddit)}/search.json?${new URLSearchParams({
+    `${base}/r/${encodeURIComponent(subreddit)}/search.json?${new URLSearchParams({
       q: query,
       restrict_sr: '1',
       sort: 'new',
       t: period,
       limit: '12',
     })}`,
-    { headers: { 'User-Agent': 'HighSignalPersonal/1.0 (source refresh)' } }
+    { headers }
   );
-  if (!response.ok) throw new Error(`reddit_search_${response.status}`);
-  const data = (await response.json()) as {
-    data?: { children?: Array<{ data?: Record<string, unknown> }> };
-  };
-  return (data.data?.children ?? [])
-    .map((child) => child.data ?? {})
-    .map((post) => ({
-      id: `${post['id'] ?? ''}`,
-      title: `${post['title'] ?? ''}`.trim(),
-      selftext: `${post['selftext'] ?? ''}`.trim(),
-      score: Number(post['score'] ?? 0),
-      permalink: `https://www.reddit.com${post['permalink'] ?? ''}`,
-    }))
-    .filter((post) => post.id && post.title);
+  if (!response.ok) {
+    // Search has no RSS equivalent; return empty on 403 without OAuth.
+    if (!token && response.status === 403) return [];
+    throw new Error(`reddit_search_${response.status}`);
+  }
+  return parseRedditChildren(await response.json());
 }
 
 function mergePosts(primary: RedditPost[], fallback: RedditPost[]) {

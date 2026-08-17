@@ -23,6 +23,9 @@ jobs:
 
       - name: Refresh personal source evidence
         run: pnpm personal:brief refresh-sources
+        env:
+          REDDIT_CLIENT_ID: ${{ secrets.REDDIT_CLIENT_ID }}
+          REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}
 
       # Reads data/equities-snapshot.jsonl; do not add a second quote provider here.
       - name: Refresh personal market context
