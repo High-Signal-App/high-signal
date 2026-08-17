@@ -16,12 +16,12 @@
 import type { D2COpportunityArtifact } from "./d2c-opportunities";
 
 export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
-  "generatedAt": "2026-08-10T08:26:27.931792+00:00",
+  "generatedAt": "2026-08-17T07:53:32.743714+00:00",
   "region": "IN",
   "niches": [
     {
       "nicheSlug": "hair-growth-scalp-support",
-      "demandScore": 0.4,
+      "demandScore": 0.5,
       "competitionScore": null,
       "pricingScore": null,
       "adSaturationScore": null,
@@ -29,35 +29,31 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "evidence": [
         {
           "sourceClass": "community",
-          "url": "https://reddit.com/r/tressless/comments/1vk42fz/is_amazon_minoxidil_5_legit_never_seen_it_before/",
+          "url": "https://reddit.com/r/tressless/comments/1vqg6rl/im_42_and_this_is_an_80_day_update_on_my_current/",
           "source": "reddit:tressless",
-          "snippet": "Is Amazon Minoxidil 5% Legit? Never seen it before — Costco is still cheaper, but curious if anyone has used this.",
-          "observedAt": "2026-08-09T23:02:46+00:00"
+          "snippet": "I’m 42 and this is an 80 day update on my current hair treatment. Taking oral finasteride and minoxidil plus topical minoxidil. — Any tips are appreciated I’m honestly suprised at what results I have…",
+          "observedAt": "2026-08-17T02:46:19+00:00"
         },
         {
           "sourceClass": "community",
-          "url": "https://reddit.com/r/tressless/comments/1vjz213/m24_doctor_advised_against_immediate_ht_due_to/",
+          "url": "https://reddit.com/r/tressless/comments/1vq721i/trust_the_process_with_a_ht_18_month_progression/",
           "source": "reddit:tressless",
-          "snippet": "M24 – Doctor advised against immediate HT due to weak donor area. Thoughts? — I’m 24M and started losing my hair in 2019 at 17. I took finasteride for about a year around 2020–2022 because I mainly h…",
-          "observedAt": "2026-08-09T19:35:21+00:00"
+          "snippet": "Trust the process with a HT! 18 month progression — Medication: been on daily oral minoxidil and twice weekly oral Dutasteride (0.5mg) since the operation in Dec 2024 DM me for clinic info and any ot…",
+          "observedAt": "2026-08-16T20:02:39+00:00"
+        },
+        {
+          "sourceClass": "community",
+          "url": "https://reddit.com/r/tressless/comments/1vq67o2/7_months_progress_of_chewable_finasteride_12_mg/",
+          "source": "reddit:tressless",
+          "snippet": "7 months progress of chewable finasteride 1.2 mg and minoxidil 3 mg — First 3 pics are Jan 2026, pics 4-6 are Aug 2026",
+          "observedAt": "2026-08-16T19:29:36+00:00"
         }
       ],
-      "freshnessDate": "2026-08-10T08:23:35.263366+00:00",
-      "notes": "diversity=0.14; community=2 search=0 product=0 ad-library=0 launch=0"
+      "freshnessDate": "2026-08-17T07:49:09.468290+00:00",
+      "notes": "diversity=0.14; community=3 search=0 product=0 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "lip-intimate-skincare-sensitive",
-      "demandScore": null,
-      "competitionScore": null,
-      "pricingScore": null,
-      "adSaturationScore": null,
-      "agentVisibilityScore": null,
-      "evidence": [],
-      "freshnessDate": "2026-08-10T08:23:45.356454+00:00",
-      "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
-    },
-    {
-      "nicheSlug": "hard-water-hair-care",
       "demandScore": 0.30000000000000004,
       "competitionScore": null,
       "pricingScore": null,
@@ -66,14 +62,25 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "evidence": [
         {
           "sourceClass": "community",
-          "url": "https://news.ycombinator.com/item?id=49157807",
-          "source": "hackernews",
-          "snippet": "Show HN: Product analytics (and evals) for agent sessions on your MCP",
-          "observedAt": "2026-08-03T16:17:59+00:00"
+          "url": "https://reddit.com/r/SkincareAddiction/comments/1vqar43/psa_you_might_be_allergic_to_beeswax/",
+          "source": "reddit:SkincareAddiction",
+          "snippet": "[PSA] You might be allergic to beeswax! — I just found out I'm allergic to beeswax. I used to use Burts Bees for years and had to constantly reapply because my lips were always dry and chapped. I tri…",
+          "observedAt": "2026-08-16T22:34:20+00:00"
         }
       ],
-      "freshnessDate": "2026-08-10T08:23:40.315276+00:00",
-      "notes": "diversity=0.14; community=0 search=1 product=0 ad-library=0 launch=0"
+      "freshnessDate": "2026-08-17T07:49:44.944045+00:00",
+      "notes": "diversity=0.14; community=1 search=0 product=0 ad-library=0 launch=0"
+    },
+    {
+      "nicheSlug": "hard-water-hair-care",
+      "demandScore": null,
+      "competitionScore": null,
+      "pricingScore": null,
+      "adSaturationScore": null,
+      "agentVisibilityScore": null,
+      "evidence": [],
+      "freshnessDate": "2026-08-17T07:50:20.342606+00:00",
+      "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "beard-dandruff-beard-scalp",
@@ -83,7 +90,7 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-08-10T08:25:01.507421+00:00",
+      "freshnessDate": "2026-08-17T07:52:42.102392+00:00",
       "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
@@ -94,7 +101,7 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-08-10T08:22:39.498088+00:00",
+      "freshnessDate": "2026-08-17T07:47:43.338797+00:00",
       "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
@@ -105,19 +112,27 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-08-10T08:23:20.090170+00:00",
+      "freshnessDate": "2026-08-17T07:48:23.870218+00:00",
       "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "heat-resistant-phone-mounts",
-      "demandScore": null,
+      "demandScore": 0.30000000000000004,
       "competitionScore": null,
       "pricingScore": null,
       "adSaturationScore": null,
       "agentVisibilityScore": null,
-      "evidence": [],
-      "freshnessDate": "2026-08-10T08:23:25.126402+00:00",
-      "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
+      "evidence": [
+        {
+          "sourceClass": "community",
+          "url": "https://reddit.com/r/Bengaluru/comments/1vpqjmm/who_knows_malleswaram_cooperative_bank_near_to_ctr/",
+          "source": "reddit:bengaluru",
+          "snippet": "Who knows Malleswaram Cooperative Bank ...near to CTR — Today is its 106th Annual General Body meeting in case you or your family is a member you go have tiffin snacks and get bonus to your account.…",
+          "observedAt": "2026-08-16T07:25:58+00:00"
+        }
+      ],
+      "freshnessDate": "2026-08-17T07:48:28.932350+00:00",
+      "notes": "diversity=0.14; community=1 search=0 product=0 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "office-chai-healthy-snacks",
@@ -127,19 +142,27 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-08-10T08:22:44.535889+00:00",
+      "freshnessDate": "2026-08-17T07:46:32.459345+00:00",
       "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "diabetic-friendly-travel-snacks",
-      "demandScore": null,
+      "demandScore": 0.30000000000000004,
       "competitionScore": null,
       "pricingScore": null,
       "adSaturationScore": null,
       "agentVisibilityScore": null,
-      "evidence": [],
-      "freshnessDate": "2026-08-10T08:22:59.789910+00:00",
-      "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
+      "evidence": [
+        {
+          "sourceClass": "community",
+          "url": "https://reddit.com/r/diabetes/comments/1vq9kns/i_think_the_speedway_gas_station_by_me_has_been/",
+          "source": "reddit:diabetes",
+          "snippet": "I think the Speedway gas station by me has been selling sugar free Fresca slurpies that contain full sugar blue raspberry flavoring, but they don't care when I tell them. — I've been buying sugar fre…",
+          "observedAt": "2026-08-16T21:44:30+00:00"
+        }
+      ],
+      "freshnessDate": "2026-08-17T07:48:18.750092+00:00",
+      "notes": "diversity=0.14; community=1 search=0 product=0 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "high-protein-regional-snacks",
@@ -149,12 +172,12 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-08-10T08:25:11.641367+00:00",
+      "freshnessDate": "2026-08-17T07:53:17.588385+00:00",
       "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "affordable-home-gym-under-5000",
-      "demandScore": 0.85,
+      "demandScore": 0.6000000000000001,
       "competitionScore": null,
       "pricingScore": null,
       "adSaturationScore": null,
@@ -162,74 +185,82 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "evidence": [
         {
           "sourceClass": "community",
-          "url": "https://reddit.com/r/homegym/comments/1vk8pcu/basement_home_gym/",
+          "url": "https://reddit.com/r/homegym/comments/1vpsny0/almost_there_gym/",
           "source": "reddit:homegym",
-          "snippet": "Basement home gym — 15' x 11' space excluding the rowing room, with a 11.5' x 7' workout area (mats). Earmarked this space as \"Exercise room\" on the blueprints in 2019 but most of this has been insta…",
-          "observedAt": "2026-08-10T02:38:38+00:00"
+          "snippet": "Almost there gym — Clean little setup so far for a home gym. The room is 12x10ft, so making the most of this space, by choosing the Force USA C10 V2 over the C20. Hope I'm not too limited by the 2x2…",
+          "observedAt": "2026-08-16T09:34:50+00:00"
         },
         {
           "sourceClass": "community",
-          "url": "https://reddit.com/r/homegym/comments/1vk2wqu/my_home_gym_a_work_in_progress/",
+          "url": "https://reddit.com/r/homegym/comments/1vpn2wh/cliche_heres_my_setup/",
           "source": "reddit:homegym",
-          "snippet": "My Home Gym - A Work in Progress — This is my home gym. We started it during COVID and have been adding to it as we go. My wife also has a pilates station downstairs with a Tonal that she uses more o…",
-          "observedAt": "2026-08-09T22:13:10+00:00"
+          "snippet": "Cliche “here’s my setup” — I started my home gym back in 2020 with the gym closures and haven’t regretted it one bit. I started with a an adjustable bench setup in the first picture comprised of an a…",
+          "observedAt": "2026-08-16T04:13:40+00:00"
         },
         {
           "sourceClass": "community",
-          "url": "https://reddit.com/r/homegym/comments/1vjwo6n/my_finished_home_gym/",
+          "url": "https://reddit.com/r/homegym/comments/1voqf05/not_much_but_it_does_the_job/",
           "source": "reddit:homegym",
-          "snippet": "My finished home gym — It is finally finished.",
-          "observedAt": "2026-08-09T18:02:56+00:00"
+          "snippet": "Not much but it does the job — Finally set up a home gym as I absolutely hate commercial gyms these days. Home gym rack with pull up bar and dip attachment, flat bench, 20kg barbell, EZ curl bar and…",
+          "observedAt": "2026-08-15T02:10:23+00:00"
         },
         {
           "sourceClass": "community",
-          "url": "https://reddit.com/r/homegym/comments/1vjqrfl/my_home_gym_under_the_stairs/",
+          "url": "https://reddit.com/r/homegym/comments/1vobdtr/whats_your_most_underrated_piece_of_home_gym/",
           "source": "reddit:homegym",
-          "snippet": "My Home Gym Under The Stairs",
-          "observedAt": "2026-08-09T14:05:39+00:00"
-        },
-        {
-          "sourceClass": "community",
-          "url": "https://reddit.com/r/homegym/comments/1vjb9pf/my_home_gym_setup/",
-          "source": "reddit:homegym",
-          "snippet": "My home gym setup! — Just got a set of used dumbell!! the gym is getting pretty full",
-          "observedAt": "2026-08-09T00:15:25+00:00"
-        },
-        {
-          "sourceClass": "community",
-          "url": "https://reddit.com/r/homegym/comments/1viz1m4/home_gym/",
-          "source": "reddit:homegym",
-          "snippet": "Home gym 💪🏻💪🏻🦍🦍 — FINALLY got it set up.",
-          "observedAt": "2026-08-08T15:35:29+00:00"
-        },
-        {
-          "sourceClass": "community",
-          "url": "https://reddit.com/r/homegym/comments/1vi1kfp/completed_home_gym/",
-          "source": "reddit:homegym",
-          "snippet": "Completed Home Gym — Key Pieces: Temple of Gainz Quadsend Temple of Gainz Leg Ext / Curl Temple of Gainz Multiflight Megamass Linear T Bar Row Rep Adonis Rep Pepin Dumbbells Rogue RM-4 Rogue GHD TITA…",
-          "observedAt": "2026-08-07T14:04:45+00:00"
-        },
-        {
-          "sourceClass": "community",
-          "url": "https://reddit.com/r/homegym/comments/1vhzzlu/weekly_freetalk_and_questions_for_rhomegym_week/",
-          "source": "reddit:homegym",
-          "snippet": "Weekly Free-Talk and Questions for r/HomeGym - week of August 07, 2026 — Welcome to The Garage: The Weekly Free-Talk discussion for [r/HomeGym](https://www.reddit.com/r/HomeGym/)! **What can be poste…",
-          "observedAt": "2026-08-07T13:00:21+00:00"
+          "snippet": "What’s your most underrated piece of home gym equipment? — What is up everyone... Welcome to the Targeted Talk... where we take a topic pertinent to the home gym owner and do what we do best... spend…",
+          "observedAt": "2026-08-14T16:04:54+00:00"
         }
       ],
-      "freshnessDate": "2026-08-10T08:23:30.220471+00:00",
-      "notes": "diversity=0.14; community=8 search=0 product=0 ad-library=0 launch=0"
+      "freshnessDate": "2026-08-17T07:48:33.985234+00:00",
+      "notes": "diversity=0.14; community=4 search=0 product=0 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "womens-gym-shorts-fit",
       "demandScore": null,
-      "competitionScore": null,
-      "pricingScore": null,
+      "competitionScore": 0.5,
+      "pricingScore": 0.6,
       "adSaturationScore": null,
       "agentVisibilityScore": null,
-      "evidence": [],
-      "freshnessDate": "2026-08-10T08:22:34.459504+00:00",
-      "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
+      "evidence": [
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B0D4J11GPQ",
+          "source": "amazon:in",
+          "snippet": "2 in 1 Active Dual Shorts with Inner Tights Layer | Men&#x27;s Double Layer Short for Running, Gym &amp; Sports — ₹499 — 3.9 out of 5 — 2,999 ratings",
+          "observedAt": "2026-08-17T07:45:57.049041+00:00"
+        },
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B0H1QR34GD",
+          "source": "amazon:in",
+          "snippet": "Sports Men’s Running Shorts | Lightweight Quick-Dry Gym &amp; Sports Shorts for Running, Training, Workout &amp; Outdoor Activities — ₹190 — 4.2 out of 5 — 15 ratings",
+          "observedAt": "2026-08-17T07:45:57.049709+00:00"
+        },
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B0GVN6W6R4",
+          "source": "amazon:in",
+          "snippet": "Men&#x27;s Lycra Gym Shorts | Stretchable Running Shorts for Men | Quick Dry Sports Shorts with Pockets | Elastic Waist Active Wear | Regular Fit — ₹262 — 3.3 out of 5 — 60 ratings",
+          "observedAt": "2026-08-17T07:45:57.051587+00:00"
+        },
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B0D636M7FS",
+          "source": "amazon:in",
+          "snippet": "BLUE STAR SHARK — ₹399 — 3.9 out of 5 — 1,436 ratings",
+          "observedAt": "2026-08-17T07:45:57.056893+00:00"
+        },
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B0CVV3WTSJ",
+          "source": "amazon:in",
+          "snippet": "Mens 2 Pack Polyester Yoga Short Men Summer Running Gym Sports Shorts with Pockets Shorts for Men (in, Alpha, M, Regular, Black) — ₹598 — 3.8 out of 5 — 1,920 ratings",
+          "observedAt": "2026-08-17T07:45:57.057888+00:00"
+        }
+      ],
+      "freshnessDate": "2026-08-17T07:45:57.058087+00:00",
+      "notes": "diversity=0.14; community=0 search=0 product=5 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "baby-lotions-transparent-ingredients",
@@ -239,7 +270,7 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-08-10T08:26:27.931530+00:00",
+      "freshnessDate": "2026-08-17T07:53:32.743398+00:00",
       "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
@@ -250,7 +281,7 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-08-10T08:24:20.967209+00:00",
+      "freshnessDate": "2026-08-17T07:50:55.834392+00:00",
       "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
@@ -261,22 +292,11 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-08-10T08:25:52.333831+00:00",
+      "freshnessDate": "2026-08-17T07:53:27.698595+00:00",
       "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "pet-health-supplements",
-      "demandScore": null,
-      "competitionScore": null,
-      "pricingScore": null,
-      "adSaturationScore": null,
-      "agentVisibilityScore": null,
-      "evidence": [],
-      "freshnessDate": "2026-08-10T08:23:04.837940+00:00",
-      "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
-    },
-    {
-      "nicheSlug": "oral-care-sub-niches",
       "demandScore": 0.30000000000000004,
       "competitionScore": null,
       "pricingScore": null,
@@ -285,18 +305,29 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "evidence": [
         {
           "sourceClass": "community",
-          "url": "https://reddit.com/r/Dentistry/comments/1vjwvgo/thoughts_on_this_tooth/",
-          "source": "reddit:Dentistry",
-          "snippet": "Thoughts on this tooth? — I had a new pt the other day, fractured DB cusp on #15, no symptoms and pt was completely unaware. No percussion or thermal sensitivity. She brought X-rays from previous den…",
-          "observedAt": "2026-08-09T18:10:39+00:00"
+          "url": "https://reddit.com/r/Pets/comments/1vqdsn8/im_realizing_that_my_parents_have_neglected_our/",
+          "source": "reddit:pets",
+          "snippet": "I’m realizing that my parents have neglected our dogs — Apologies in advance for the long post. TL;DR at the bottom. I’ve had 4 dogs in my lifetime. 2 of them were there when I was born. I didn’t thi…",
+          "observedAt": "2026-08-17T00:52:03+00:00"
         }
       ],
-      "freshnessDate": "2026-08-10T08:25:06.568020+00:00",
+      "freshnessDate": "2026-08-17T07:47:07.934971+00:00",
       "notes": "diversity=0.14; community=1 search=0 product=0 ad-library=0 launch=0"
     },
     {
+      "nicheSlug": "oral-care-sub-niches",
+      "demandScore": null,
+      "competitionScore": null,
+      "pricingScore": null,
+      "adSaturationScore": null,
+      "agentVisibilityScore": null,
+      "evidence": [],
+      "freshnessDate": "2026-08-17T07:52:06.642963+00:00",
+      "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
+    },
+    {
       "nicheSlug": "sleep-stress-support-products",
-      "demandScore": 0.4,
+      "demandScore": 0.30000000000000004,
       "competitionScore": null,
       "pricingScore": null,
       "adSaturationScore": null,
@@ -304,21 +335,14 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "evidence": [
         {
           "sourceClass": "community",
-          "url": "https://reddit.com/r/sleep/comments/1vk9xxc/sleep_earbuds_turned_out_to_be_way_more_useful/",
+          "url": "https://reddit.com/r/sleep/comments/1vqc1y1/ive_the_worst_sleeping_schedule/",
           "source": "reddit:sleep",
-          "snippet": "Sleep earbuds turned out to be way more useful than I expected — I’ve been seeing a few discussions about sleep earbuds lately, so I figured I’d share my experience too. I’ve always had a hard time f…",
-          "observedAt": "2026-08-10T03:39:57+00:00"
-        },
-        {
-          "sourceClass": "community",
-          "url": "https://reddit.com/r/sleep/comments/1vk3ulf/always_tired_but_never_sleepy/",
-          "source": "reddit:sleep",
-          "snippet": "always tired, but never sleepy — holy hell am i tired. i avoid caffeine 8h before bed, relax before bed all that. i lay in bed tired but cant fall asleep. I do intense exercise 3 days a week, go outs…",
-          "observedAt": "2026-08-09T22:53:18+00:00"
+          "snippet": "I’ve the worst sleeping schedule — Oky I know that most of the young people have bad sleep schedules these days. But for me, it’s getting worse. I can’t sleep at all, I can stay up to 48 hours with n…",
+          "observedAt": "2026-08-16T23:31:53+00:00"
         }
       ],
-      "freshnessDate": "2026-08-10T08:22:29.414978+00:00",
-      "notes": "diversity=0.14; community=2 search=0 product=0 ad-library=0 launch=0"
+      "freshnessDate": "2026-08-17T07:45:20.127421+00:00",
+      "notes": "diversity=0.14; community=1 search=0 product=0 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "intimate-hygiene",
@@ -328,7 +352,7 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-08-10T08:24:56.462179+00:00",
+      "freshnessDate": "2026-08-17T07:51:31.227265+00:00",
       "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
@@ -339,7 +363,7 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-08-10T08:25:16.718332+00:00",
+      "freshnessDate": "2026-08-17T07:53:22.660426+00:00",
       "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     }
   ]
