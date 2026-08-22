@@ -49,10 +49,16 @@ describe('worker routes', () => {
     expect(j.community.subscribers).toBe(1234);
   });
 
-  it('/products/dashboard validates owner boundary', async () => {
+  // The per-owner product dashboard was removed with the rest of the per-user
+  // surface; the tracked-community registry it exposed now lives behind
+  // ADMIN_TOKEN on /admin/communities/tracked.
+  it('/products/dashboard is gone', async () => {
     const res = await fetcher.fetch(new Request('http://t/products/dashboard'), testEnv);
-    expect(res.status).toBe(400);
-    const j = (await res.json()) as { error: string };
-    expect(j.error).toBe('missing_owner');
+    expect(res.status).toBe(404);
+  });
+
+  it('/admin/communities/tracked refuses an unauthenticated caller', async () => {
+    const res = await fetcher.fetch(new Request('http://t/admin/communities/tracked'), testEnv);
+    expect([401, 503]).toContain(res.status);
   });
 });

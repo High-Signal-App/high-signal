@@ -7,8 +7,6 @@ import {
   briefFeedDefinition,
   buildBriefEditionReceipt,
   composeBriefFeedEdition,
-  composeImpactChain,
-  evidenceBackedWatchItems,
   extractBriefEditorialSummary,
   familyForSignalType,
   normalizeCommunitySummary,
@@ -17,16 +15,11 @@ import {
   type BriefFeedEdition,
   type BriefFeedPeriod,
   type BriefIdeaItem,
-  type BriefImprovementItem,
-  type BriefIntentItem,
-  type BriefPerceptionItem,
   type BriefSnapshot,
   type BriefStockItem,
   type BriefTrendItem,
-  type BriefWatchingItem,
   type ClaimEvidenceLink,
   type ClaimWithEvidence,
-  type ComposeArgs,
   type OpportunityBriefPayload,
   type Region,
   type SignalFamily,
@@ -232,133 +225,6 @@ async function loadBriefProvenanceBySignalId(
     if (provenance) out.set(signalId, provenance);
   }
   return out;
-}
-
-export async function buildWatching(
-  database: BriefDatabase,
-  ownerId: string
-): Promise<BriefWatchingItem[]> {
-  const [watchlist] = await database
-    .select({ id: schema.watchlists.id })
-    .from(schema.watchlists)
-    .where(and(eq(schema.watchlists.userId, ownerId), eq(schema.watchlists.name, 'default')))
-    .limit(1);
-  if (!watchlist) return [];
-
-  const watchedRows = await database
-    .select()
-    .from(schema.watchlistEntities)
-    .where(eq(schema.watchlistEntities.watchlistId, watchlist.id));
-  if (watchedRows.length === 0) return [];
-  const watchedIds = watchedRows.map((row) => row.entityId);
-  const since = new Date(Date.now() - 31 * 24 * 60 * 60 * 1000);
-  const directRows = await database
-    .select()
-    .from(schema.signals)
-    .where(
-      and(
-        eq(schema.signals.reviewStatus, 'published'),
-        inArray(schema.signals.primaryEntityId, watchedIds),
-        gte(schema.signals.publishedAt, since)
-      )
-    )
-    .orderBy(desc(schema.signals.publishedAt))
-    .limit(100);
-  const edges = await database
-    .select()
-    .from(schema.relationships)
-    .where(inArray(schema.relationships.fromEntityId, watchedIds));
-  const secondaryIds = Array.from(new Set(edges.map((edge) => edge.toEntityId)));
-  const secondaryRows = secondaryIds.length
-    ? await database
-        .select()
-        .from(schema.signals)
-        .where(
-          and(
-            eq(schema.signals.reviewStatus, 'published'),
-            inArray(schema.signals.primaryEntityId, secondaryIds),
-            gte(schema.signals.publishedAt, since)
-          )
-        )
-        .orderBy(desc(schema.signals.publishedAt))
-        .limit(150)
-    : [];
-  const suppressions = await database
-    .select()
-    .from(schema.watchlistSuppressions)
-    .where(eq(schema.watchlistSuppressions.watchlistId, watchlist.id));
-
-  const horizonDays = new Map(
-    watchedRows.map((row) => [
-      row.entityId,
-      row.horizon === 'day' ? 1 : row.horizon === 'month' ? 31 : 7,
-    ])
-  );
-  const withinHorizon = (publishedAt: Date, watchedId: string) =>
-    Date.now() - publishedAt.getTime() <= (horizonDays.get(watchedId) ?? 7) * 24 * 60 * 60 * 1000;
-  const direct = directRows.filter((row) => withinHorizon(row.publishedAt, row.primaryEntityId));
-  const edgeBySubject = new Map(edges.map((edge) => [edge.toEntityId, edge]));
-  const secondOrder = secondaryRows.filter((row) => {
-    const edge = edgeBySubject.get(row.primaryEntityId);
-    return edge ? withinHorizon(row.publishedAt, edge.fromEntityId) : false;
-  });
-  const toSignal = (row: typeof schema.signals.$inferSelect) => ({
-    id: row.id,
-    slug: row.slug,
-    signalType: row.signalType,
-    primaryEntityId: row.primaryEntityId,
-    confidence: row.confidence,
-    publishedAt: row.publishedAt.toISOString(),
-  });
-  const composeArgs: ComposeArgs = {
-    watchedEntityIds: watchedIds,
-    directSignals: direct.map(toSignal),
-    edges: edges.map((edge) => ({
-      fromEntityId: edge.fromEntityId,
-      toEntityId: edge.toEntityId,
-      type: edge.type,
-      weight: edge.weight ?? 1,
-      verified: Boolean(edge.verified),
-    })),
-    secondOrderSignals: secondOrder.map(toSignal),
-    suppressions: suppressions.map((rule) => ({ kind: rule.kind, value: rule.value })),
-    alreadySurfacedSignalIds: new Set(),
-    nowMs: Date.now(),
-  };
-  const composed = composeImpactChain(composeArgs).slice(0, 20);
-  const provenanceBySignal = await loadBriefProvenanceBySignalId(
-    database,
-    composed.map((item) => item.signalId)
-  );
-  const eligible = evidenceBackedWatchItems(composed, provenanceBySignal, 5);
-  if (eligible.length === 0) return [];
-
-  const entityIds = Array.from(
-    new Set(eligible.flatMap(({ item }) => [item.watchedEntityId, item.subjectEntityId]))
-  );
-  const entityRows = await database
-    .select({ id: schema.entities.id, name: schema.entities.name })
-    .from(schema.entities)
-    .where(inArray(schema.entities.id, entityIds));
-  const entityNames = new Map(entityRows.map((entity) => [entity.id, entity.name]));
-  const signalById = new Map([...direct, ...secondOrder].map((signal) => [signal.id, signal]));
-
-  return eligible.flatMap(({ item, provenance }) => {
-    const signal = signalById.get(item.signalId);
-    if (!signal) return [];
-    return [
-      {
-        ...item,
-        headline: headlineFromBody(
-          signal.bodyMd,
-          entityNames.get(item.subjectEntityId) ?? item.subjectEntityId
-        ),
-        watchedEntityName: entityNames.get(item.watchedEntityId) ?? item.watchedEntityId,
-        subjectEntityName: entityNames.get(item.subjectEntityId) ?? item.subjectEntityId,
-        provenance,
-      },
-    ];
-  });
 }
 
 async function loadHitRateStats(
@@ -600,164 +466,6 @@ export async function buildTrends(
   }
   void countries;
   return trends;
-}
-
-export async function buildIntentBriefItems(
-  database: BriefDatabase,
-  ownerId: string
-): Promise<BriefIntentItem[]> {
-  const rows = await database
-    .select({
-      id: schema.intentOpportunities.id,
-      brandId: schema.intentOpportunities.brandId,
-      brandName: schema.mentionBrandConfigs.brandName,
-      source: schema.intentOpportunities.source,
-      sourceUrl: schema.intentOpportunities.sourceUrl,
-      sourceTitle: schema.intentOpportunities.sourceTitle,
-      sourceExcerpt: schema.intentOpportunities.sourceExcerpt,
-      platform: schema.intentOpportunities.platform,
-      intentStage: schema.intentOpportunities.intentStage,
-      actionType: schema.intentOpportunities.actionType,
-      score: schema.intentOpportunities.score,
-      competitors: schema.intentOpportunities.competitors,
-      evidenceTaskId: schema.intentOpportunities.evidenceTaskId,
-      foundAt: schema.intentOpportunities.foundAt,
-    })
-    .from(schema.intentOpportunities)
-    .innerJoin(
-      schema.mentionBrandConfigs,
-      eq(schema.mentionBrandConfigs.id, schema.intentOpportunities.brandId)
-    )
-    .where(
-      and(
-        eq(schema.intentOpportunities.ownerId, ownerId),
-        eq(schema.mentionBrandConfigs.ownerId, ownerId),
-        eq(schema.intentOpportunities.status, 'open')
-      )
-    )
-    .orderBy(desc(schema.intentOpportunities.score), desc(schema.intentOpportunities.updatedAt));
-
-  return rows.map((row) => ({
-    id: row.id,
-    brandId: row.brandId,
-    brandName: row.brandName,
-    source: row.source,
-    sourceUrl: row.sourceUrl,
-    sourceTitle: row.sourceTitle,
-    sourceExcerpt: row.sourceExcerpt,
-    platform: row.platform,
-    intentStage: row.intentStage,
-    actionType: row.actionType,
-    score: row.score,
-    competitors: Array.isArray(row.competitors)
-      ? row.competitors.filter((value): value is string => typeof value === 'string')
-      : [],
-    evidenceTaskId: row.evidenceTaskId,
-    foundAt: row.foundAt.toISOString(),
-  }));
-}
-
-export async function buildPerception(
-  database: BriefDatabase,
-  ownerId: string
-): Promise<BriefPerceptionItem[]> {
-  const configs = await database
-    .select()
-    .from(schema.mentionBrandConfigs)
-    .where(eq(schema.mentionBrandConfigs.ownerId, ownerId))
-    .orderBy(desc(schema.mentionBrandConfigs.updatedAt))
-    .limit(4);
-
-  if (!configs.length) return [];
-
-  // Each config's latestCheck → results is a real dependency (sequential
-  // within a config), but the ≤4 configs are independent of each other, so we
-  // fan them out concurrently and preserve input order on the way out.
-  const perConfig = await Promise.all(
-    configs.map(async (config): Promise<BriefPerceptionItem | null> => {
-      const [latestCheck] = await database
-        .select()
-        .from(schema.mentionChecks)
-        .where(
-          and(
-            eq(schema.mentionChecks.configId, config.id),
-            eq(schema.mentionChecks.status, 'completed')
-          )
-        )
-        .orderBy(desc(schema.mentionChecks.createdAt))
-        .limit(1);
-      if (!latestCheck) return null;
-      const results = await database
-        .select()
-        .from(schema.mentionResults)
-        .where(eq(schema.mentionResults.checkId, latestCheck.id));
-      const mentioned = results.filter((r) => r.brandMentioned);
-      const positive = mentioned.filter((r) => r.brandSentiment === 'positive').length;
-      const competitorMentions = results.reduce((sum, r) => {
-        const list = Array.isArray(r.competitorsMentioned) ? r.competitorsMentioned : [];
-        return (
-          sum +
-          list.filter((c) => c && typeof c === 'object' && (c as { mentioned?: boolean }).mentioned)
-            .length
-        );
-      }, 0);
-      return {
-        brandName: config.brandName,
-        mentionRate:
-          latestCheck.brandMentionRate ??
-          (results.length ? mentioned.length / results.length : null),
-        positiveShare: mentioned.length ? positive / mentioned.length : null,
-        competitorPresence: results.length ? competitorMentions / results.length : null,
-        latestCheckAt: (latestCheck.completedAt ?? latestCheck.createdAt)?.toISOString() ?? null,
-        configId: config.id,
-      };
-    })
-  );
-  return perConfig.filter((item): item is BriefPerceptionItem => item !== null);
-}
-
-export async function buildImprovements(
-  database: BriefDatabase,
-  ownerId: string
-): Promise<BriefImprovementItem[]> {
-  const auditRows = await database
-    .select()
-    .from(schema.agentEvaluationAudits)
-    .where(eq(schema.agentEvaluationAudits.ownerId, ownerId))
-    .orderBy(desc(schema.agentEvaluationAudits.createdAt))
-    .limit(4);
-  if (!auditRows.length) return [];
-
-  const out: BriefImprovementItem[] = [];
-  for (const audit of auditRows) {
-    const tasks = await database
-      .select()
-      .from(schema.agentEvidenceTasks)
-      .where(
-        and(
-          eq(schema.agentEvidenceTasks.auditId, audit.id),
-          eq(schema.agentEvidenceTasks.status, 'open')
-        )
-      )
-      .orderBy(
-        sql`CASE ${schema.agentEvidenceTasks.priority}
-              WHEN 'high' THEN 0 WHEN 'medium' THEN 1 ELSE 2 END`
-      )
-      .limit(3);
-    for (const task of tasks) {
-      out.push({
-        brandName: audit.brandName,
-        area: task.area,
-        task: task.title,
-        priority: task.priority as 'high' | 'medium' | 'low',
-        auditId: audit.id,
-        surfacedAt: audit.createdAt.toISOString(),
-        sourceUrl: task.sourceUrl,
-      });
-      if (out.length >= 6) return out;
-    }
-  }
-  return out;
 }
 
 /**

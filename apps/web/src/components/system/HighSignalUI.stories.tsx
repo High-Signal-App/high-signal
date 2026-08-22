@@ -39,7 +39,7 @@ export const ProductShell: Story = {
       <ProductAreaGrid
         items={[
           {
-            href: '/mentions',
+            href: '/communities',
             title: 'Mention Intelligence',
             kicker: 'company',
             body: 'Brand, competitor, AI visibility, citation, and share-of-voice signals.',

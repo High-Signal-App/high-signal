@@ -1,4 +1,4 @@
-import { requireAdmin } from '@/lib/clerk-admin';
+import { hasAdminSession } from '@/lib/admin-guard';
 import { api, type TrackBucket } from '@/lib/api';
 import { TrackRecordDatasetJsonLd } from '@/components/seo/structured-data';
 
@@ -41,8 +41,9 @@ function formatHitRate(value: number | null) {
 }
 
 export default async function TrackRecordPage() {
-  const admin = await requireAdmin();
-  const isAdmin = admin.ok;
+  // The ledger itself is public — it is the product's proof of quality. Only
+  // the raw combined debugging table below is operator-only.
+  const isAdmin = await hasAdminSession();
 
   let cohorts: Cohorts = { live: [], backfill: [], all: [] };
   try {

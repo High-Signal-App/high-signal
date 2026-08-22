@@ -1,6 +1,6 @@
 # high-signal — PROJECT STATUS
 
-Last updated: 2026-08-11
+Last updated: 2026-08-22
 
 ## Why/What
 
@@ -14,7 +14,7 @@ Last updated: 2026-08-11
 
 ### External
 
-- **Auth:** Clerk (app shell, admin proxy). Worker admin routes use `ADMIN_TOKEN` bearer.
+- **Auth:** none for readers — the product is fully public. One operator session (password → signed httpOnly cookie) fronts the admin proxy; worker admin routes use the `ADMIN_TOKEN` bearer. See ADR-013.
 - **Deploy:** Cloudflare Workers — `high-signal-web`, `high-signal-api`, D1 `high-signal-db`; annotation runs in-process.
 - **Email:** Cloudflare `send_email` binding (`SEND_EMAIL`) for brief delivery (plan 0009).
 - **AI:** OpenAI-compatible endpoint via `AI_BASE_URL`, `AI_API_KEY`, `AI_MODEL`, `HIGH_SIGNAL_AI_API_KEY`.
@@ -34,7 +34,7 @@ Last updated: 2026-08-11
 - **SaaS Maker:** Personal command brief scripts sync tasks via `pnpm personal:brief sync-tasks --apply`.
 
 - Next.js web app and Cloudflare Worker API monorepo are in place.
-- Clerk auth is wired for the app shell with admin helpers.
+- Operator admin session gates `/review`, `/backtest-workbench`, `/personal`, and community curation.
 - Primary nav follows the public reading path: Brief, Signals, Track record, and Sources. Explore and contextual links keep the wider set of lenses and operator surfaces discoverable. Removed dead `/discover` nav link (communities product is parked; link caused prod smoke 404).
 - Public/support pages exist: about, methodology, featured, API docs, privacy, terms, auth pages.
 - `/explore` ships a canonical sitemap of every reachable surface (brief, signals + evidence, entities, lenses, ideas/opportunities/teardowns, equities, operator/admin, docs), with `new | operator | admin | parked` flags. The site footer now groups links into Product / Lenses / Operator / Legal so nothing built becomes invisible from the homepage.
@@ -45,7 +45,7 @@ Last updated: 2026-08-11
 
 | Layer | Technology | Deploy target |
 | --- | --- | --- |
-| Web | Next.js 16, Tailwind v4, Clerk, OpenNext | Cloudflare Worker `high-signal-web` |
+| Web | Next.js 16, Tailwind v4, OpenNext | Cloudflare Worker `high-signal-web` |
 | API | Hono, D1 binding | Cloudflare Worker `high-signal-api` |
 | DB | Drizzle + D1 (`packages/db`, migrations 0000–0019) | `high-signal-db` |
 | Shared | `@high-signal/shared` types, scorers, composers | — |
@@ -89,6 +89,23 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 **Deploy workflows:** `.github/workflows/deploy-web.yml`, `deploy-api.yml`. (The former standalone annotation worker was decommissioned; annotation runs in-process via `annotateLightweightNlp`.)
 
 ## Timeline
+
+- **2026-08-22 — Per-user surface removed; one public product, one operator gate
+  (local, not deployed):** deleted Mentions, Watchlists, email brief delivery,
+  and saved Agent Eval history, and removed Clerk entirely. Every readable
+  surface is now anonymous and cacheable; the only gate is a single operator
+  session (password → signed httpOnly cookie) fronting the `/api/admin` proxy,
+  which injects `ADMIN_TOKEN` server-side so it never reaches the browser.
+  Migration `0020` drops 18 tables. Kept: the community lens (its
+  `tracked_communities` registry is operator curation the public brief's
+  Behavior & Culture section reads, so its CRUD moved behind `ADMIN_TOKEN` in
+  `routes/admin.ts`), and Agent Eval as a stateless public tool. `/personal` is
+  now gated and `noindex`; `/track-record` stays public. `?owner=` no longer
+  fragments the brief's edge cache, and `hs_admin` is registered as a
+  cache-bypass cookie. Rationale: ADR-013. 24/24 test suites pass; typecheck,
+  lint, and build clean. **Not applied to remote D1 and not deployed** —
+  migration `0020` and the new `ADMIN_PASSWORD` / `ADMIN_SESSION_SECRET`
+  secrets are operator steps (`docs/operations/runbooks/admin-access.md`).
 
 - **2026-08-11 — Cadenced feeds and public-data parity (local, not deployed):**
   added exactly four public feed definitions with honest supported cadences: The
@@ -277,7 +294,7 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
   links, page-matched JSON-LD, canonical metadata, and Markdown parity.
 - `/agent-eval/seo` distinguishes technical search/agent readiness from actual
   audience awareness while preserving the live audit and fix-first results.
-- Clerk auth; region picker and seed product pickers on brief.
+- Region picker and seed product pickers on brief; no sign-in anywhere.
 - SEO JSON-LD tests (`pnpm seo:test`).
 
 ### Daily Brief

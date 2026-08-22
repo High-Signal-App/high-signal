@@ -1,52 +1,6 @@
-export type AIPlatform = 'openai' | 'anthropic' | 'google' | 'perplexity' | 'custom';
-export type ProductSurface = 'mentions' | 'communities' | 'markets' | 'agent-eval';
-export type WorkflowStatus = 'draft' | 'running' | 'completed' | 'failed';
-
-export interface CompetitorProfile {
-  name: string;
-  url?: string;
-}
-
-export interface MentionBrandConfig {
-  id: string;
-  companyId: string;
-  brandName: string;
-  brandAliases: string[];
-  brandUrl: string | null;
-  competitors: CompetitorProfile[];
-  platforms: AIPlatform[];
-  aiEndpointUrl: string | null;
-  aiModel: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface MentionPrompt {
-  id: string;
-  companyId: string;
-  promptText: string;
-  category: string | null;
-  createdAt: string;
-}
-
-export interface MentionCheck {
-  id: string;
-  companyId: string;
-  configId: string;
-  status: Exclude<WorkflowStatus, 'draft'>;
-  totalQueries: number;
-  completedQueries: number;
-  brandMentionRate: number | null;
-  summary: string | null;
-  createdAt: string;
-  completedAt: string | null;
-}
-
-export interface MentionDashboardSnapshot {
-  configs: MentionBrandConfig[];
-  prompts: MentionPrompt[];
-  recentChecks: MentionCheck[];
-}
+// Mentions (brand configs, prompts, checks) and the per-owner product dashboard
+// were removed when High Signal went fully public. What remains here is the
+// community lens: tracked subreddits and their source-linked digests.
 
 export type RedditPeriod = 'day' | 'week' | 'month';
 export type CommunitySourceId = readonly [postId: string, commentId?: string];
@@ -85,15 +39,6 @@ export interface CommunityDigestSnapshot {
   promptUsed: string;
   sourceCount: number;
   createdAt: string;
-}
-
-export interface ProductDashboardSnapshot {
-  ownerId: string;
-  mentions: MentionDashboardSnapshot;
-  communities: {
-    tracked: TrackedCommunity[];
-    latestDigests: CommunityDigestSnapshot[];
-  };
 }
 
 export function normalizeCommunitySourceId(value: unknown): CommunitySourceId | undefined {

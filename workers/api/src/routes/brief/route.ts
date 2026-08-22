@@ -1,13 +1,14 @@
 /**
  * Daily Brief route. The single composed surface for High Signal.
  *
- * GET /brief/daily?region=<region>&owner=<ownerId>
+ * GET /brief/daily?region=<region>&product=<seedProductId>
  *
  * - Three public sections (stocks / ideas / trends) compose without a user.
- * - Two personal sections (perception / improvements) compose only when an
- *   ownerId is supplied AND that owner has a connected brand.
+ * - Perception / improvements are seed-only demo content driven by `product`.
  * - Everything filters by region when one is supplied; "global" or absent
  *   means no country filter.
+ *
+ * There is no per-user variant. Every response is anonymous and cacheable.
  *
  * Hit-rate per stock signal type is computed from `score_runs` joined to
  * `signals` and inlined into each stock item.
@@ -28,25 +29,14 @@ import {
   type BriefImprovementItem,
   type BriefPerceptionItem,
   type BriefSnapshot,
-  type BriefWatchingItem,
   type Region,
 } from '@high-signal/shared';
 import { db, schema } from '../../db';
-import {
-  mergeIntentIntoImprovements,
-  mergeIntentIntoPerception,
-  renderFromSeed,
-  safe,
-  safeCategory,
-} from './compose';
+import { renderFromSeed, safeCategory } from './compose';
 import {
   buildIdeas,
-  buildImprovements,
-  buildIntentBriefItems,
-  buildPerception,
   buildStocks,
   buildTrends,
-  buildWatching,
   loadBriefFeedEdition,
   tryGetPrecomputedSnapshot,
 } from './query';
@@ -71,10 +61,8 @@ async function handleDailyBriefRequest(c: Context<{ Bindings: Env }>) {
   const request = parseDailyBriefRequest(c);
   const database = db(c.env.DB);
 
-  if (!request.ownerId) {
-    const cached = await cachedDailyBrief(database, request);
-    if (cached) return c.json(cached.body, cached.status);
-  }
+  const cached = await cachedDailyBrief(database, request);
+  if (cached) return c.json(cached.body, cached.status);
 
   const snapshot = await composeDailyBrief(database, request);
   return c.json(snapshot);
@@ -85,7 +73,6 @@ export function parseDailyBriefRequest(c: Context<{ Bindings: Env }>) {
   const dateParam = c.req.query('date')?.trim() ?? '';
   return {
     region: (isRegion(rawRegion) ? rawRegion : 'global') as Region,
-    ownerId: c.req.query('owner')?.trim() ?? '',
     productId: c.req.query('product')?.trim() ?? '',
     archiveDate: /^\d{4}-\d{2}-\d{2}$/.test(dateParam) ? dateParam : null,
   };
@@ -120,7 +107,7 @@ async function composeDailyBrief(
     safeCategory(() => buildTrends(database, request.region, countries), 'trends'),
   ]);
 
-  const brand = await loadDailyBriefBrand(database, request);
+  const brand = loadDailyBriefBrand(request);
   return {
     generatedAt: new Date().toISOString(),
     region: request.region,
@@ -128,7 +115,6 @@ async function composeDailyBrief(
     stocks: stockResult.items,
     ideas: ideaResult.items,
     trends: trendResult.items,
-    watching: { items: brand.watching },
     perception: brand.perception,
     improvements: brand.improvements,
     categoryStates: {
@@ -139,29 +125,18 @@ async function composeDailyBrief(
   } satisfies BriefSnapshot;
 }
 
-async function loadDailyBriefBrand(
-  database: ReturnType<typeof db>,
-  request: ReturnType<typeof parseDailyBriefRequest>
-) {
+/**
+ * Perception and improvements are seed-only. They used to be composed from a
+ * signed-in owner's connected brand (mention configs + agent-eval audits), but
+ * per-user data was removed when the product went fully public; the `?product=`
+ * seed picker is all that remains.
+ */
+function loadDailyBriefBrand(request: ReturnType<typeof parseDailyBriefRequest>) {
   let perception: BriefPerceptionItem[] = [];
   let improvements: BriefImprovementItem[] = [];
-  let watching: BriefWatchingItem[] = [];
   let hasBrand = false;
 
-  if (request.ownerId) {
-    const [nextPerception, nextImprovements, nextWatching, intentItems] = await Promise.all([
-      safe(() => buildPerception(database, request.ownerId), 'perception'),
-      safe(() => buildImprovements(database, request.ownerId), 'improvements'),
-      safe(() => buildWatching(database, request.ownerId), 'watching'),
-      safe(() => buildIntentBriefItems(database, request.ownerId), 'intent'),
-    ]);
-    perception = mergeIntentIntoPerception(nextPerception, intentItems);
-    improvements = mergeIntentIntoImprovements(nextImprovements, intentItems);
-    watching = nextWatching;
-    hasBrand = perception.length > 0 || improvements.length > 0;
-  }
-
-  if (!hasBrand && request.productId) {
+  if (request.productId) {
     const seeded = renderFromSeed(request.productId);
     if (seeded) {
       perception = seeded.perception;
@@ -170,7 +145,7 @@ async function loadDailyBriefBrand(
     }
   }
 
-  return { perception, improvements, watching, hasBrand };
+  return { perception, improvements, hasBrand };
 }
 
 async function handleBriefFeedRequest(c: Context<{ Bindings: Env }>) {

@@ -24,7 +24,7 @@ description: Authoritative sources, reconstruction paths, migration guards, and 
 | `python/lab` Postgres | Local docker-compose only (parked, plan 0007) | Yes — re-ingest from D1 + python adapters | D1 + python/ingest | Not production. Not backed up. |
 | GitHub Actions secrets | GitHub (repo settings) | No — operator must re-set | operator | `API_BASE`, `ADMIN_TOKEN`, `CLOUDFLARE_API_TOKEN`, source API keys. Not in repo. |
 | Cloudflare Worker revisions | Cloudflare dashboard | Yes — re-deploy from git main | git main + `deploy-web.yml` / `deploy-api.yml` | Previous revision stays live on deploy failure. |
-| Clerk production instance | Clerk dashboard | No — operator-managed | operator | Production cutover pending (STATUS.md blocker). Dev key in repo is not a secret. |
+| Operator admin secrets (`ADMIN_PASSWORD`, `ADMIN_SESSION_SECRET`) | Cloudflare Worker secrets | No — operator-managed | operator | Rotating `ADMIN_SESSION_SECRET` invalidates the live session. See `runbooks/admin-access.md`. |
 
 ## D1 table durability map
 

@@ -22,7 +22,6 @@ const PRIMARY_ITEMS: NavItem[] = [
     match: (path) =>
       path.startsWith('/signals') ||
       path === '/daily' ||
-      path.startsWith('/watchlist') ||
       path.startsWith('/opportunities') ||
       path.startsWith('/review'),
   },
@@ -55,11 +54,6 @@ const SECONDARY_ITEMS: NavItem[] = [
     href: '/explore',
     label: 'explore',
     match: (path) => path.startsWith('/explore'),
-  },
-  {
-    href: '/settings/delivery',
-    label: 'settings',
-    match: (path) => path.startsWith('/settings'),
   },
 ];
 

@@ -63,11 +63,11 @@ assert.ok(
   'd2c_niche_snapshots must be in schema — weekly D2C cron dedupes on (niche, snapshot_date)'
 );
 
-// 7. delivery_log has a unique index that prevents double-sends across cron
-// ticks (plan 0009 idempotency guard).
+// 7. delivery_log is gone. Brief email delivery was removed with the rest of
+// the per-user surface (migration 0020), so there is no send to deduplicate.
 assert.ok(
-  /deliveryLog|delivery_log/.test(schema),
-  'delivery_log must be in schema — unique index prevents double-sends across 30-min ticks'
+  !/deliveryLog|delivery_log/.test(schema),
+  'delivery_log must NOT be in schema — brief email delivery was removed'
 );
 
 // 8. daily_brief_snapshots upsert by date — precompute re-runs overwrite, not

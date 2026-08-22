@@ -21,7 +21,12 @@ const PUBLIC_DATA_CACHE_CONTROL = new Map([
   ['/daily/range.json', 'public, max-age=60, s-maxage=300'],
 ]);
 
+// A request carrying one of these must never be served from, or written to,
+// the shared edge cache. `hs_admin` is the single-operator session cookie
+// (lib/admin-session.ts). The Clerk fragments are retained so any cookie still
+// sitting in a returning visitor's browser keeps bypassing the cache.
 const AUTH_COOKIE_FRAGMENTS = [
+  'hs_admin',
   '__session',
   '__client',
   '__clerk',

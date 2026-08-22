@@ -41,14 +41,22 @@ for (const denied of [
   request('/about', { method: 'POST' }),
   request('/about', { headers: { Authorization: 'Bearer private' } }),
   request('/about', { headers: { Cookie: '__session=private' } }),
+  request('/about', { headers: { Cookie: 'hs_admin=1700000000000.deadbeef' } }),
 ]) {
   assert.equal(isCacheableDocumentRequest(denied), false, `${denied.url} must bypass the cache`);
 }
 
+// The operator session cookie must bypass the shared edge cache, as must any
+// stale Clerk cookie still held by a returning visitor.
+assert.equal(
+  hasAuthCookie(request('/about', { headers: { Cookie: 'hs_admin=1700000000000.deadbeef' } })),
+  true
+);
 assert.equal(
   hasAuthCookie(request('/about', { headers: { Cookie: '__clerk_db_jwt=private' } })),
   true
 );
+assert.equal(hasAuthCookie(request('/about', { headers: { Cookie: 'theme=dark' } })), false);
 
 const rsc = request('/signals/a-published-signal?_rsc=route-state', {
   headers: { RSC: '1', 'Next-Router-State-Tree': 'state' },

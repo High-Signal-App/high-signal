@@ -14,7 +14,6 @@ python/lab/uv.lock
 .env.local
 .env.*.local
 .clerk/
-apps/web/.clerk/
 *.pem
 *.key
 *.tsbuildinfo

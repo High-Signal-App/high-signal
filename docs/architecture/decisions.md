@@ -353,3 +353,54 @@ Typed unavailable results fail closed and keep the parked status honest.
 **Alternatives rejected.** Wiring GLiREL/FinBERT for real: still blocked on
 validation infra and an undeclared `transformers` dep. Keeping the old tuples:
 callers cannot distinguish "model said neutral" from "model never ran."
+
+---
+
+## ADR-013 — Remove per-user features; one public product, one operator gate
+
+Date: 2026-08-22
+Status: active (supersedes the Clerk half of ADR-006; supersedes the
+`mentionpilot`/`agentMode` retention rule in `docs/product/direction.md`)
+
+**Context.** High Signal carried a per-user surface — Mentions, Watchlists,
+email brief delivery, and saved Agent Eval history — behind Clerk. Nobody used
+it. Worse, the auth was not real where it mattered: the API worker is public at
+its `workers.dev` hostname with `cors({ origin: '*' })`, and 26 of 41 write
+routes were guarded only by a client-supplied `X-Clerk-User-Id` header or a
+`?owner=` query parameter. Clerk gated *pages* while the *endpoints* behind them
+stood open. Production also still ran a `pk_test_` Clerk key.
+
+**Decision.** Delete the per-user surface entirely. Every readable surface is
+public and anonymous. The single operator authenticates with a password that
+mints a signed httpOnly session cookie (`apps/web/src/lib/admin-session.ts`);
+the `/api/admin` proxy verifies that cookie and injects `ADMIN_TOKEN`
+server-side, so the bearer token never reaches the browser. Migration `0020`
+drops 18 tables. Clerk is removed as a dependency.
+
+**Rationale.** The gate that actually matters is "nobody but the operator can
+publish, kill, or correct a signal," and that is enforced in the worker by
+`ADMIN_TOKEN` — not by any user system. Everything else auth was doing was
+suppressing reach: gated pages bypass the edge cache and cannot be indexed,
+which works directly against a public-corpus product whose moat is its indexed
+hit-rate ledger.
+
+**What was kept, and why.** `tracked_communities` and
+`community_digest_snapshots` survive despite their `owner_id` column. They are
+operator curation, not user data: the registry decides which subreddits get
+digested, and the public brief's Behavior & Culture section reads the resulting
+digests (`workers/api/src/routes/brief/query.ts`). Their CRUD moved to
+`routes/admin.ts` behind `ADMIN_TOKEN` rather than being deleted. Agent Eval
+also survives as a public tool — its evaluator is deterministic and runs
+in-process, so only the saved history was removed.
+
+**Consequences.** No team accounts (Clerk orgs are gone), no email brief
+delivery, and no per-user RSS tokens; the public weekly digest feeds remain.
+`?owner=` no longer fragments the brief's edge cache. The operator session
+cookie (`hs_admin`) is registered in `apps/web/worker-cache-policy.mjs` so
+operator requests still bypass the shared cache.
+
+**Alternatives rejected.** Keeping Clerk for a single operator: a whole auth
+vendor and a `ClerkProvider` in the root layout for one account. Pasting
+`ADMIN_TOKEN` into the browser: simpler, but puts the master token in
+`localStorage` where any XSS reaches it. Cloudflare Access: explicitly barred
+without a migration plan (ADR-006), and this change does not supply one.

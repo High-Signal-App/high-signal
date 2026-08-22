@@ -601,7 +601,7 @@ companyUniverseRoute.post('/lookup', async (c) => {
       updatedAt: now,
       status: 'pending_enrichment',
       domain,
-      requestedBy: body.requestedBy?.trim() || c.req.header('X-Clerk-User-Id') || null,
+      requestedBy: body.requestedBy?.trim() || c.req.header('X-Admin-Email') || null,
       requestedAt: now,
       lastEnrichedAt: null,
     })

@@ -8,7 +8,6 @@ import {
   StatGrid,
 } from '@/components/system/HighSignalUI';
 import { api, fetchJson, type SignalRow } from '@/lib/api';
-import { getRequestAuth } from '@/lib/require-auth';
 import {
   BUNDLED_D2C_ARTIFACT,
   D2C_NICHE_SEEDS,
@@ -110,25 +109,16 @@ function verdictTone(verdict: 'enter' | 'test' | 'watch' | 'avoid') {
 }
 
 export default async function OpportunitiesPage() {
-  // Public surface — anonymous visitors see the cross-source evidence
-  // grid. Per-owner dashboard is fetched only when signed in.
-  const auth = await getRequestAuth();
-  const userId = (auth && 'userId' in auth && auth.userId) || null;
-  const ownerId = (auth && 'orgId' in auth && auth.orgId) || userId || '';
-  const [signalsResult, dashboardResult, discoverResult] = await Promise.allSettled([
+  // Public surface — identical for every visitor.
+  const [signalsResult, discoverResult] = await Promise.allSettled([
     api.signals({ status: 'published' }),
-    ownerId
-      ? api.productDashboard(ownerId)
-      : Promise.resolve(null as unknown as Awaited<ReturnType<typeof api.productDashboard>>),
     api.productCommunityDiscover('week'),
   ]);
   const signals = signalsResult.status === 'fulfilled' ? signalsResult.value.signals : [];
-  const dashboard = dashboardResult.status === 'fulfilled' ? dashboardResult.value : null;
   const discover = discoverResult.status === 'fulfilled' ? discoverResult.value.items : [];
   const evidence = [
     ...evidenceFromSignals(signals),
     ...evidenceFromDigests(discover),
-    ...evidenceFromDigests(dashboard?.communities.latestDigests ?? []),
     ...fallbackFlows,
   ];
   const opportunities = generateProductOpportunities(evidence);

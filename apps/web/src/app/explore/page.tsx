@@ -35,12 +35,6 @@ const GROUPS: Group[] = [
         label: 'Brief (homepage)',
         note: 'The current public edition with three evidence-qualified categories and a region filter.',
       },
-      {
-        href: '/settings/delivery',
-        label: 'Delivery preferences',
-        note: 'Email channel, timezone, region. Plan 0009.',
-        flag: 'new',
-      },
     ],
   },
   {
@@ -110,12 +104,6 @@ const GROUPS: Group[] = [
       { href: '/entities', label: 'Entity directory', note: 'All entities in the graph.' },
       { href: '/sectors', label: 'Sector pressure', note: 'Per-sector hit rates and momentum.' },
       {
-        href: '/watchlist/entities',
-        label: 'Watched entities',
-        note: 'Personal watchlist + impact chain. Plan 0010.',
-        flag: 'new',
-      },
-      {
         href: '/convergence',
         label: 'Convergence',
         note: 'Multi-source clustering of fresh mentions.',
@@ -134,7 +122,6 @@ const GROUPS: Group[] = [
       { href: '/markets', label: 'Markets', note: 'Narrow markets lens.' },
       { href: '/markets/tickers', label: 'Tickers', note: 'Company pages by ticker symbol.' },
       { href: '/markets/history', label: 'Markets history', note: 'Historical market context.' },
-      { href: '/mentions', label: 'Mentions', note: 'Brand mention intelligence.' },
       {
         href: '/agent-eval',
         label: 'Agent Eval',
@@ -202,7 +189,6 @@ const GROUPS: Group[] = [
         label: 'Backtest workbench',
         note: 'Cohort + label backtest UI.',
       },
-      { href: '/dashboard', label: 'Dashboard', note: 'Operator dashboard view.' },
     ],
   },
   {
@@ -220,12 +206,6 @@ const GROUPS: Group[] = [
         label: 'Lab candidates',
         note: 'Top Lab docs ready to become signals.',
         flag: 'operator',
-      },
-      {
-        href: '/admin/delivery',
-        label: 'Delivery admin',
-        note: 'Per-day delivery counts + failure reasons. Plan 0009.',
-        flag: 'admin',
       },
       {
         href: '/daily',
@@ -253,9 +233,10 @@ const GROUPS: Group[] = [
         flag: 'operator',
       },
       {
-        href: '/watchlist',
-        label: 'Unified watchlist',
-        note: 'Operator cross-surface action queue.',
+        href: '/admin/login',
+        label: 'Operator sign-in',
+        note: 'The single gate on the whole product. Controls publishing only.',
+        flag: 'admin',
       },
     ],
   },
@@ -299,8 +280,8 @@ export default function ExplorePage() {
         <h1 className="text-3xl font-medium tracking-tight">Explore</h1>
         <p className="mt-2 max-w-2xl text-sm text-zinc-400">
           Every surface in High Signal. The brief is the homepage; everything else is either a deep
-          view, a lens, an operator tool, or supporting docs. Operator and admin surfaces are gated
-          behind Clerk.
+          view, a lens, an operator tool, or supporting docs. Everything readable is public; only
+          operator tools sit behind the admin session.
         </p>
       </header>
 

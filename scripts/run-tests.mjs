@@ -23,6 +23,7 @@ const ROOT = resolve(__dirname, '..');
 const TSX_SUITES = [
   ['signals', 'scripts/sync-signals.test.ts'],
   ['signals:auto-publish', 'scripts/auto-publish-rules.test.ts'],
+  ['admin-session', 'scripts/admin-session.test.ts'],
   ['seo', 'scripts/seo-json-ld.test.ts'],
   ['requirements', 'scripts/daily-requirements.test.ts'],
   ['daily-range', 'scripts/daily-range.test.ts'],
@@ -33,12 +34,7 @@ const TSX_SUITES = [
   ['daily-source-audit', 'scripts/daily-source-audit.test.ts'],
   ['market-snapshot', 'scripts/market-snapshot.test.ts'],
   ['claim-provenance', 'scripts/claim-provenance.test.ts'],
-  ['brief-delivery', 'scripts/brief-delivery.test.ts'],
   ['evidence-ranking', 'scripts/evidence-ranking.test.ts'],
-  ['ai-visibility', 'scripts/ai-visibility.test.ts'],
-  ['watchlist-impact', 'scripts/watchlist-impact.test.ts'],
-  ['openlens-visibility', 'scripts/openlens-visibility.test.ts'],
-  ['intent-opportunities', 'scripts/intent-opportunities.test.ts'],
 ];
 
 const tsxBin = resolve(ROOT, 'node_modules/.bin/tsx');

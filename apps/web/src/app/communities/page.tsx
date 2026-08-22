@@ -11,7 +11,8 @@ import {
 } from '@/components/system/HighSignalUI';
 import { api, type CommunityDigestSnapshot, type TrackedCommunity } from '@/lib/api';
 import { redditSourceLink } from '@high-signal/shared';
-import { getRequestAuth, requireSignedIn } from '@/lib/require-auth';
+import { hasAdminSession } from '@/lib/admin-guard';
+import { adminWorkerJson } from '@/lib/admin-worker';
 import { revalidatePath } from 'next/cache';
 
 import { SITE_URL } from '@/lib/site';
@@ -23,41 +24,49 @@ export const metadata = {
   title: 'Community Intelligence',
 };
 
+// The tracked-community registry is operator curation, not user data: it
+// decides which subreddits get digested, and the public Daily Brief's
+// "Behavior & Culture" section reads the resulting digests. These actions are
+// gated on the operator session and forwarded to the worker's /admin routes.
+
 async function trackSubreddit(formData: FormData) {
   'use server';
-  const { userId, orgId } = await requireSignedIn();
-  const ownerId = orgId ?? userId;
+  if (!(await hasAdminSession())) return;
   const subreddit = `${formData.get('newSubreddit') ?? ''}`.replace(/^r\//i, '').trim();
   const prompt = `${formData.get('newPrompt') ?? ''}`.trim() || null;
   const period = `${formData.get('newPeriod') ?? 'week'}`;
   const isPublic = formData.get('newPublic') === 'on';
   if (!subreddit) return;
-  await api.createTrackedCommunity(ownerId, {
-    subreddit,
-    prompt,
-    period: period === 'day' || period === 'month' ? period : 'week',
-    isPublic,
+  await adminWorkerJson('communities/tracked', {
+    method: 'POST',
+    json: {
+      subreddit,
+      prompt,
+      period: period === 'day' || period === 'month' ? period : 'week',
+      isPublic,
+    },
   });
   revalidatePath('/communities');
 }
 
 async function generateDigest(formData: FormData) {
   'use server';
-  const { userId, orgId } = await requireSignedIn();
-  const ownerId = orgId ?? userId;
+  if (!(await hasAdminSession())) return;
   const id = `${formData.get('trackedId') ?? ''}`.trim();
   if (!id) return;
-  await api.generateCommunityDigest(ownerId, id);
+  await adminWorkerJson(`communities/tracked/${encodeURIComponent(id)}/digests`, {
+    method: 'POST',
+    json: {},
+  });
   revalidatePath('/communities');
 }
 
 async function removeTracked(formData: FormData) {
   'use server';
-  const { userId, orgId } = await requireSignedIn();
-  const ownerId = orgId ?? userId;
+  if (!(await hasAdminSession())) return;
   const id = `${formData.get('trackedId') ?? ''}`.trim();
   if (!id) return;
-  await api.deleteTrackedCommunity(ownerId, id);
+  await adminWorkerJson(`communities/tracked/${encodeURIComponent(id)}`, { method: 'DELETE' });
   revalidatePath('/communities');
 }
 
@@ -73,66 +82,69 @@ export default async function CommunitiesPage({
 }: {
   searchParams?: Promise<{ subreddit?: string; q?: string }>;
 }) {
-  // Page is public — anonymous visitors see the discover feed and ad-hoc
-  // lookup. Personal tracked-community CRUD still requires sign-in (the
-  // server actions above call `requireSignedIn`).
-  const auth = await getRequestAuth();
-  const userId = (auth && 'userId' in auth && auth.userId) || null;
-  const ownerId = (auth && 'orgId' in auth && auth.orgId) || userId || 'anonymous';
-  const isSignedIn = Boolean(userId);
+  // Fully public — every visitor sees the discover feed and ad-hoc lookup. The
+  // tracked-community registry below renders only for the operator.
+  const isAdmin = await hasAdminSession();
   const params = (await searchParams) ?? {};
   const subreddit = (params.subreddit ?? 'LocalLLaMA').replace(/^r\//i, '').trim();
   const query = (params.q ?? 'AI agents').trim();
 
-  const [dashboardResult, discoverResult, communityResult, mentionsResult] =
+  const [registryResult, discoverResult, communityResult, mentionsResult] =
     await Promise.allSettled([
-      // Skip the per-owner dashboard fetch entirely when anonymous —
-      // there's nothing to render for them.
-      isSignedIn
-        ? api.productDashboard(ownerId)
-        : Promise.resolve(null as unknown as Awaited<ReturnType<typeof api.productDashboard>>),
+      isAdmin
+        ? adminWorkerJson<{
+            communities: TrackedCommunity[];
+            latestDigests: CommunityDigestSnapshot[];
+          }>('communities/tracked')
+        : Promise.resolve(null),
       api.productCommunityDiscover('week'),
       api.redditCommunity(subreddit),
       api.redditMentions(query, 8),
     ]);
 
-  const dashboard = dashboardResult.status === 'fulfilled' ? dashboardResult.value : null;
+  const registry = registryResult.status === 'fulfilled' ? registryResult.value : null;
   const discover = discoverResult.status === 'fulfilled' ? discoverResult.value.items : [];
   const community = communityResult.status === 'fulfilled' ? communityResult.value.community : null;
   const mentions = mentionsResult.status === 'fulfilled' ? mentionsResult.value.mentions : [];
 
-  const tracked = dashboard?.communities.tracked ?? [];
-  const latestDigests = dashboard?.communities.latestDigests ?? [];
+  const tracked = registry?.communities ?? [];
+  const latestDigests = registry?.latestDigests ?? [];
 
   return (
     <PageShell>
       <BackLink />
       <SectionHeader eyebrow="community signal layer" title="Community Intelligence">
         Tracked subreddits with periodic source-linked digests. Pain, demand, and narrative shifts —
-        captured weekly, exportable to the planning brief.
+        captured weekly, and feeding the Daily Brief's behaviour and culture section.
       </SectionHeader>
 
       <StatGrid
-        items={[
-          {
-            label: 'tracked',
-            value: tracked.length.toString(),
-            sub: 'subreddits in your watchlist',
-          },
-          {
-            label: 'digests',
-            value: latestDigests.length.toString(),
-            sub: 'recent source-linked snapshots',
-          },
-          {
-            label: 'discover',
-            value: discover.length.toString(),
-            sub: 'public digests across users',
-          },
-        ]}
+        items={
+          isAdmin
+            ? [
+                { label: 'tracked', value: tracked.length.toString(), sub: 'subreddits curated' },
+                {
+                  label: 'digests',
+                  value: latestDigests.length.toString(),
+                  sub: 'recent source-linked snapshots',
+                },
+                {
+                  label: 'public',
+                  value: discover.length.toString(),
+                  sub: 'digests on the public feed',
+                },
+              ]
+            : [
+                {
+                  label: 'public digests',
+                  value: discover.length.toString(),
+                  sub: 'source-linked weekly snapshots',
+                },
+              ]
+        }
       />
 
-      {tracked.length === 0 ? (
+      {isAdmin && tracked.length === 0 ? (
         <Panel eyebrow="get started" title="Track your first subreddit">
           <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">
             Pick a subreddit relevant to a product, audience, or buyer signal. Digests roll up the
@@ -142,34 +154,38 @@ export default async function CommunitiesPage({
         </Panel>
       ) : null}
 
-      <section className="mt-10 grid gap-8 md:grid-cols-[0.9fr_1.1fr]">
-        <Panel eyebrow="add tracked subreddit">
-          <form action={trackSubreddit}>
-            <Field label="Subreddit" name="newSubreddit" defaultValue="LocalLLaMA" />
-            <Field label="Digest prompt (optional)" name="newPrompt" defaultValue="" multiline />
-            <label className="mt-5 block text-sm text-[var(--color-muted)]">
-              Period
-              <select
-                name="newPeriod"
-                defaultValue="week"
-                className="mt-2 block w-full border border-[var(--color-line)] bg-transparent px-3 py-2 text-sm text-[var(--color-fg)] outline-none focus:border-[var(--color-accent)]"
-              >
-                <option value="day">day</option>
-                <option value="week">week</option>
-                <option value="month">month</option>
-              </select>
-            </label>
-            <label className="mt-5 flex items-center gap-3 text-sm text-[var(--color-muted)]">
-              <input
-                type="checkbox"
-                name="newPublic"
-                className="size-4 border border-[var(--color-line)] bg-transparent accent-[var(--color-accent)]"
-              />
-              publish digests to public discover feed
-            </label>
-            <CommandButton>track</CommandButton>
-          </form>
-        </Panel>
+      <section
+        className={isAdmin ? 'mt-10 grid gap-8 md:grid-cols-[0.9fr_1.1fr]' : 'mt-10 grid gap-8'}
+      >
+        {isAdmin ? (
+          <Panel eyebrow="add tracked subreddit">
+            <form action={trackSubreddit}>
+              <Field label="Subreddit" name="newSubreddit" defaultValue="LocalLLaMA" />
+              <Field label="Digest prompt (optional)" name="newPrompt" defaultValue="" multiline />
+              <label className="mt-5 block text-sm text-[var(--color-muted)]">
+                Period
+                <select
+                  name="newPeriod"
+                  defaultValue="week"
+                  className="mt-2 block w-full border border-[var(--color-line)] bg-transparent px-3 py-2 text-sm text-[var(--color-fg)] outline-none focus:border-[var(--color-accent)]"
+                >
+                  <option value="day">day</option>
+                  <option value="week">week</option>
+                  <option value="month">month</option>
+                </select>
+              </label>
+              <label className="mt-5 flex items-center gap-3 text-sm text-[var(--color-muted)]">
+                <input
+                  type="checkbox"
+                  name="newPublic"
+                  className="size-4 border border-[var(--color-line)] bg-transparent accent-[var(--color-accent)]"
+                />
+                publish digests to public discover feed
+              </label>
+              <CommandButton>track</CommandButton>
+            </form>
+          </Panel>
+        ) : null}
 
         <Panel eyebrow="ad-hoc lookup">
           <form>
@@ -200,10 +216,10 @@ export default async function CommunitiesPage({
         </Panel>
       </section>
 
-      {tracked.length > 0 ? (
+      {isAdmin && tracked.length > 0 ? (
         <section className="mt-10 border-y border-[var(--color-line)]">
           <div className="py-4 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-accent)]">
-            your tracked communities
+            tracked communities (operator)
           </div>
           <div className="divide-y divide-[var(--color-line)]">
             {tracked.map((row) => {
@@ -281,7 +297,7 @@ export default async function CommunitiesPage({
 
       <FeedList
         eyebrow="public discover (week)"
-        empty="No public digests across users yet."
+        empty="No public digests yet."
         items={discover.slice(0, 12).map((digest) => ({
           href: `/communities/${encodeURIComponent(digest.subreddit)}/${digest.period}`,
           kicker: `r/${digest.subreddit} / ${digest.period} / ${digest.snapshotDate.slice(0, 10)}`,

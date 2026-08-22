@@ -1,55 +1,39 @@
 /**
  * /api/admin/<...> — same-origin proxy to the api worker's /admin/* routes.
  *
- * Auth: Clerk session plus a server-side allow-list.
- *
- * The proxy injects the worker-internal ADMIN_TOKEN before forwarding to the
- * service-bound `API`. This keeps the bearer token off the browser entirely.
+ * Auth: the single-operator admin session cookie (see lib/admin-session.ts).
+ * Forwarding + ADMIN_TOKEN injection live in lib/admin-worker.ts, so the token
+ * stays on the server and never reaches the browser.
  */
 
-import { requireAdmin } from '@/lib/clerk-admin';
+import { hasAdminSession } from '@/lib/admin-guard';
+import { forwardToAdminWorker } from '@/lib/admin-worker';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 async function handle(req: Request, ctx: { params: Promise<{ path: string[] }> }) {
-  const admin = await requireAdmin(req);
-  if (!admin.ok) return Response.json(admin.body, { status: admin.status });
+  if (!(await hasAdminSession(req))) {
+    return Response.json({ error: 'unauthorized' }, { status: 401 });
+  }
 
   const { path } = await ctx.params;
-  const u = new URL(req.url);
-  const targetPath = `/admin/${path.join('/')}${u.search}`;
+  const search = new URL(req.url).search;
+  const body = ['GET', 'HEAD'].includes(req.method) ? undefined : await req.arrayBuffer();
 
-  const mod = await import('@opennextjs/cloudflare');
-  const cfctx = (
-    mod as unknown as {
-      getCloudflareContext?: (...args: unknown[]) => { env?: Record<string, unknown> };
-    }
-  ).getCloudflareContext?.();
-  const api = cfctx?.env?.['API'] as { fetch?: typeof fetch } | undefined;
-  const token = (cfctx?.env?.['ADMIN_TOKEN'] as string | undefined) ?? '';
+  const result = await forwardToAdminWorker(`${path.join('/')}${search}`, {
+    method: req.method,
+    contentType: req.headers.get('content-type'),
+    body,
+  });
 
-  if (!api?.fetch || !token) {
+  if (result.status === 500 && result.body === null) {
     return Response.json({ error: 'proxy_misconfigured' }, { status: 500 });
   }
 
-  const headers = new Headers();
-  headers.set('Authorization', `Bearer ${token}`);
-  const contentType = req.headers.get('content-type');
-  if (contentType) headers.set('Content-Type', contentType);
-  // Trace who acted. Browser cannot spoof this because this route injects it after Clerk auth.
-  headers.set('X-Admin-Email', admin.identity.email);
-  headers.set('X-Clerk-User-Id', admin.identity.userId);
-
-  const body = ['GET', 'HEAD'].includes(req.method) ? undefined : await req.arrayBuffer();
-  const r = await api.fetch(`https://api${targetPath}`, {
-    method: req.method,
-    headers,
-    body,
-  });
-  return new Response(r.body, {
-    status: r.status,
-    headers: { 'Content-Type': r.headers.get('content-type') ?? 'application/json' },
+  return new Response(result.body, {
+    status: result.status,
+    headers: { 'Content-Type': result.contentType },
   });
 }
 

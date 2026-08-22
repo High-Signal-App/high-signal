@@ -17,9 +17,25 @@ import {
 } from '@high-signal/shared';
 import { buildPatterns, matchEntity, type GazetteerEntity } from '../lib/gazetteer';
 import { sha16 } from '../lib/ids';
+import { generateCommunityDigest } from '../lib/community-research';
+import {
+  isRedditPeriod,
+  toCommunityDigestSnapshot,
+  toTrackedCommunity,
+} from '../lib/community-contracts';
+import type { CommunitySummary } from '@high-signal/shared';
+import { desc, eq as eqOp } from 'drizzle-orm';
 import { db, schema } from '../db';
 
-type Env = { DB: D1Database; ADMIN_TOKEN?: string };
+type Env = {
+  DB: D1Database;
+  ADMIN_TOKEN?: string;
+  // Community digest generation calls the free-AI gateway.
+  HIGH_SIGNAL_AI_ENDPOINT_URL?: string;
+  HIGH_SIGNAL_AI_API_KEY?: string;
+  HIGH_SIGNAL_AI_MODEL?: string;
+  OPENAI_API_KEY?: string;
+};
 
 export const adminRoute = new Hono<{ Bindings: Env }>();
 
@@ -586,7 +602,7 @@ adminRoute.get('/pending-scores', async (c) => {
 });
 
 // ─── Claim provenance writes (plan 0008) ──────────────────────────────────
-// Read side lives in routes/claims.ts. Writes go through the Clerk-fronted
+// Read side lives in routes/claims.ts. Writes go through the session-fronted
 // /api/admin proxy so the actor is identified.
 
 interface CreateClaimInput {
@@ -630,7 +646,7 @@ async function resolveSignalId(
 function actorFromHeaders(c: {
   req: { header: (k: string) => string | undefined };
 }): string | null {
-  return c.req.header('X-Admin-Email') ?? c.req.header('X-Clerk-User-Id') ?? null;
+  return c.req.header('X-Admin-Email') ?? null;
 }
 
 adminRoute.post('/claims', async (c) => {
@@ -1005,30 +1021,6 @@ adminRoute.post('/claims/:id/corrections', async (c) => {
   return c.json({ id: newId, parentId, version: parent.version + 1 });
 });
 
-// ─── Admin: brief delivery summary (plan 0009) ────────────────────────────
-
-adminRoute.get('/delivery/summary', async (c) => {
-  const days = Math.min(Math.max(Number(c.req.query('days') ?? 7), 1), 90);
-  const since = new Date(Date.now() - days * 24 * 3600 * 1000);
-  const rows = (await c.env.DB.prepare(
-    `SELECT status, reason, count(*) as n, brief_date FROM delivery_log
-       WHERE created_at >= ?
-       GROUP BY status, reason, brief_date
-       ORDER BY brief_date DESC, n DESC`
-  )
-    .bind(Math.floor(since.getTime() / 1000))
-    .all()) as {
-    results: Array<{ status: string; reason: string | null; n: number; brief_date: string }>;
-  };
-  const totals: Record<string, number> = { sent: 0, skipped: 0, failed: 0, queued: 0 };
-  const byReason: Record<string, number> = {};
-  for (const r of rows.results ?? []) {
-    totals[r.status] = (totals[r.status] ?? 0) + r.n;
-    if (r.reason) byReason[r.reason] = (byReason[r.reason] ?? 0) + r.n;
-  }
-  return c.json({ days, totals, byReason, perDay: rows.results ?? [] });
-});
-
 function inferSourceType(url: string): string {
   if (url.includes('sec.gov')) return 'edgar';
   if (url.includes('reddit.com')) return 'reddit';
@@ -1097,4 +1089,169 @@ adminRoute.post('/backfill-entities', async (c) => {
     stillNull: events.length - matches.length,
     dryRun,
   });
+});
+
+// ─── Tracked communities (operator curation registry) ─────────────────────
+// Moved here from routes/products.ts when per-user accounts were removed.
+// These are NOT user data: the registry decides which subreddits get digested,
+// and the public Daily Brief's "Behavior & Culture" section reads the resulting
+// digests (routes/brief/query.ts). The `*` middleware above applies the
+// ADMIN_TOKEN bearer check to every route in this file.
+//
+// Reads deliberately do not filter on owner_id — rows created before accounts
+// accounts were removed carry a legacy user id and must stay editable.
+
+type NewCommunityBody = Partial<{
+  subreddit: string;
+  prompt: string | null;
+  period: 'day' | 'week' | 'month';
+  isPublic: boolean;
+}>;
+
+type NewDigestBody = Partial<{
+  summaryText: string;
+  summary: CommunitySummary | null;
+  promptUsed: string;
+  sourceCount: number;
+  snapshotDate: string;
+}>;
+
+/** Owner stamped on rows this operator creates. */
+const OPERATOR_OWNER = 'operator';
+
+async function adminSafeJson<T extends object>(request: { text(): Promise<string> }): Promise<T> {
+  const raw = await request.text();
+  if (!raw.trim()) return {} as T;
+  return JSON.parse(raw) as T;
+}
+
+async function getTrackedCommunity(d1: D1Database, id: string) {
+  const [row] = await db(d1)
+    .select()
+    .from(schema.trackedCommunities)
+    .where(eqOp(schema.trackedCommunities.id, id))
+    .limit(1);
+  return row ?? null;
+}
+
+function parseTrackedCommunityInput(
+  body: NewCommunityBody,
+  existing?: typeof schema.trackedCommunities.$inferSelect
+): { values: typeof schema.trackedCommunities.$inferInsert } | { error: string } {
+  const subreddit = (body.subreddit ?? existing?.subreddit ?? '').replace(/^r\//i, '').trim();
+  if (!subreddit) return { error: 'missing_subreddit' };
+  const period = body.period ?? existing?.period ?? 'week';
+  if (!isRedditPeriod(period)) return { error: 'invalid_period' };
+  return {
+    values: {
+      id: existing?.id ?? crypto.randomUUID(),
+      ownerId: existing?.ownerId ?? OPERATOR_OWNER,
+      subreddit,
+      prompt: body.prompt === undefined ? (existing?.prompt ?? null) : body.prompt,
+      period,
+      isPublic: body.isPublic ?? existing?.isPublic ?? false,
+      createdAt: existing?.createdAt ?? new Date(),
+      updatedAt: new Date(),
+    },
+  };
+}
+
+adminRoute.get('/communities/tracked', async (c) => {
+  const database = db(c.env.DB);
+  // Recent digests ship alongside the registry so the operator view renders in
+  // one round trip. Unlike the public reads, this is not filtered on is_public.
+  const [rows, digests] = await Promise.all([
+    database
+      .select()
+      .from(schema.trackedCommunities)
+      .orderBy(desc(schema.trackedCommunities.updatedAt)),
+    database
+      .select()
+      .from(schema.communityDigestSnapshots)
+      .orderBy(desc(schema.communityDigestSnapshots.snapshotDate))
+      .limit(50),
+  ]);
+  return c.json({
+    communities: rows.map(toTrackedCommunity),
+    latestDigests: digests.map(toCommunityDigestSnapshot),
+  });
+});
+
+adminRoute.post('/communities/tracked', async (c) => {
+  const body = await adminSafeJson<NewCommunityBody>(c.req);
+  const parsed = parseTrackedCommunityInput(body);
+  if ('error' in parsed) return c.json({ error: parsed.error }, 400);
+
+  const [row] = await db(c.env.DB)
+    .insert(schema.trackedCommunities)
+    .values(parsed.values)
+    .returning();
+  return c.json({ community: toTrackedCommunity(row) }, 201);
+});
+
+adminRoute.patch('/communities/tracked/:id', async (c) => {
+  const existing = await getTrackedCommunity(c.env.DB, c.req.param('id'));
+  if (!existing) return c.json({ error: 'not_found' }, 404);
+
+  const body = await adminSafeJson<NewCommunityBody>(c.req);
+  const parsed = parseTrackedCommunityInput(body, existing);
+  if ('error' in parsed) return c.json({ error: parsed.error }, 400);
+
+  const [row] = await db(c.env.DB)
+    .update(schema.trackedCommunities)
+    .set({ ...parsed.values, id: existing.id, updatedAt: new Date() })
+    .where(eqOp(schema.trackedCommunities.id, existing.id))
+    .returning();
+  return c.json({ community: toTrackedCommunity(row) });
+});
+
+adminRoute.delete('/communities/tracked/:id', async (c) => {
+  const existing = await getTrackedCommunity(c.env.DB, c.req.param('id'));
+  if (!existing) return c.json({ error: 'not_found' }, 404);
+
+  const database = db(c.env.DB);
+  await database
+    .delete(schema.communityDigestSnapshots)
+    .where(eqOp(schema.communityDigestSnapshots.trackedCommunityId, existing.id));
+  await database
+    .delete(schema.trackedCommunities)
+    .where(eqOp(schema.trackedCommunities.id, existing.id));
+  return c.json({ ok: true });
+});
+
+adminRoute.post('/communities/tracked/:id/digests', async (c) => {
+  const tracked = await getTrackedCommunity(c.env.DB, c.req.param('id'));
+  if (!tracked) return c.json({ error: 'not_found' }, 404);
+
+  const body = await adminSafeJson<NewDigestBody>(c.req);
+  const summaryText = body.summaryText?.trim();
+  if (!summaryText) {
+    const row = await generateCommunityDigest({
+      database: db(c.env.DB),
+      env: c.env,
+      tracked,
+    });
+    return c.json({ digest: toCommunityDigestSnapshot(row) }, 201);
+  }
+  const promptUsed = body.promptUsed?.trim() || tracked.prompt || '';
+  if (!promptUsed) return c.json({ error: 'missing_prompt_used' }, 400);
+
+  const [row] = await db(c.env.DB)
+    .insert(schema.communityDigestSnapshots)
+    .values({
+      id: crypto.randomUUID(),
+      trackedCommunityId: tracked.id,
+      ownerId: tracked.ownerId,
+      subreddit: tracked.subreddit,
+      period: tracked.period,
+      snapshotDate: body.snapshotDate ? new Date(body.snapshotDate) : new Date(),
+      summaryText,
+      summary: body.summary ?? null,
+      promptUsed,
+      sourceCount: Math.max(0, Math.floor(body.sourceCount ?? 0)),
+      createdAt: new Date(),
+    })
+    .returning();
+
+  return c.json({ digest: toCommunityDigestSnapshot(row) }, 201);
 });

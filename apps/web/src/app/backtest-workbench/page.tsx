@@ -6,7 +6,7 @@ import {
   SectionHeader,
 } from '@/components/system/HighSignalUI';
 import { api, type BacktestWorkbench, type BacktestWorkbenchBucket } from '@/lib/api';
-import { requireSignedIn } from '@/lib/require-auth';
+import { requireAdminSession } from '@/lib/admin-guard';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Backtest Workbench' };
@@ -49,7 +49,7 @@ function bandTone(band: string) {
 }
 
 export default async function BacktestWorkbenchPage() {
-  await requireSignedIn();
+  await requireAdminSession();
 
   let workbench = emptyWorkbench;
   try {

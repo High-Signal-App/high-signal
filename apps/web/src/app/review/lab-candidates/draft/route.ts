@@ -1,5 +1,5 @@
 import type { NextRequest } from 'next/server';
-import { requireSignedIn } from '@/lib/require-auth';
+import { requireAdminSession } from '@/lib/admin-guard';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic';
  * needing direct filesystem access from a Cloudflare Worker.
  */
 export async function GET(request: NextRequest) {
-  await requireSignedIn();
+  await requireAdminSession();
   const url = new URL(request.url);
   const id = url.searchParams.get('id') ?? '';
   const sourceUrl = url.searchParams.get('url') ?? '';

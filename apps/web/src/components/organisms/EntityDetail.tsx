@@ -1,6 +1,5 @@
 import { SignalCard } from '@/components/molecules/SignalCard';
 import { ShareBar } from '@/components/molecules/ShareBar';
-import { WatchButton } from '@/components/molecules/WatchButton';
 import { SpilloverGraph } from '@/components/organisms/SpilloverGraph';
 import type { api } from '@/lib/api';
 
@@ -31,7 +30,6 @@ export function EntityDetail({ backHref, backLabel, canonicalPath, data }: Entit
         </div>
         <div className="mt-2 flex items-start justify-between gap-4">
           <h1 className="text-3xl font-medium tracking-tight">{entity.name}</h1>
-          <WatchButton entityId={entity.id} />
         </div>
         <ShareBar url={canonicalPath} title={entity.name} className="mt-6" />
       </header>

@@ -46,7 +46,6 @@ describe('parseDailyBriefRequest', () => {
     const response = await app.request('http://test/');
     await expect(response.json()).resolves.toEqual({
       region: 'global',
-      ownerId: '',
       productId: '',
       archiveDate: null,
     });
@@ -54,13 +53,23 @@ describe('parseDailyBriefRequest', () => {
 
   it('keeps a valid archive date and unknown regions fall back to global', async () => {
     const response = await app.request(
-      'http://test/?region=not-a-region&date=2026-01-02&owner=user-1&product=acme'
+      'http://test/?region=not-a-region&date=2026-01-02&product=acme'
     );
     await expect(response.json()).resolves.toEqual({
       region: 'global',
-      ownerId: 'user-1',
       productId: 'acme',
       archiveDate: '2026-01-02',
+    });
+  });
+
+  // There is no per-user brief variant any more, so `owner` must not survive
+  // into the request shape — if it did it would fragment the edge cache.
+  it('ignores a legacy owner parameter', async () => {
+    const response = await app.request('http://test/?owner=user-1');
+    await expect(response.json()).resolves.toEqual({
+      region: 'global',
+      productId: '',
+      archiveDate: null,
     });
   });
 });

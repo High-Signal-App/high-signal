@@ -1,6 +1,6 @@
 // Plan 0008 — public read surface for the claim ledger.
 // Writes live in routes/admin.ts (under /admin/claims/*) so the existing
-// Clerk-fronted /api/admin proxy applies.
+// session-fronted /api/admin proxy applies.
 
 import { Hono } from 'hono';
 import { and, asc, desc, eq, inArray } from 'drizzle-orm';

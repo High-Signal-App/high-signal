@@ -9,8 +9,7 @@ import {
   SectionHeader,
   StatGrid,
 } from '@/components/system/HighSignalUI';
-import { api, type AgentEvaluationAuditDetail, type AgentEvaluationCompetitor } from '@/lib/api';
-import { getRequestAuth, requireSignedIn } from '@/lib/require-auth';
+import type { AgentEvaluationAuditDetail, AgentEvaluationCompetitor } from '@/lib/api';
 import {
   buildAgentEvaluationAudit,
   type AgentEvaluationInput,
@@ -19,8 +18,6 @@ import {
   type PersistedMissingEvidenceTask,
   type PersistedReelBrief,
 } from '@high-signal/shared';
-import type { Route } from 'next';
-import { redirect } from 'next/navigation';
 
 import { SITE_URL } from '@/lib/site';
 export const dynamic = 'force-dynamic';
@@ -160,29 +157,6 @@ function buildLocalAuditDetail(input: AgentEvaluationInput): AgentEvaluationAudi
   };
 }
 
-async function createAudit(formData: FormData) {
-  'use server';
-  const { userId, orgId } = await requireSignedIn();
-  const ownerId = orgId ?? userId;
-  const brandName = `${formData.get('brandName') ?? ''}`.trim();
-  const brandUrl = `${formData.get('brandUrl') ?? ''}`.trim();
-  const buyerMission = `${formData.get('buyerMission') ?? ''}`.trim();
-  const targetSegment = `${formData.get('targetSegment') ?? ''}`.trim();
-  const competitors = parseCompetitors(`${formData.get('competitors') ?? ''}`);
-  const evidenceText = `${formData.get('evidenceText') ?? ''}`.trim();
-  const evidenceUrls = parseUrls(`${formData.get('evidenceUrls') ?? ''}`);
-  const detail = await api.createAgentEvaluationAudit(ownerId, {
-    brandName,
-    brandUrl,
-    buyerMission,
-    targetSegment,
-    competitors,
-    evidenceText,
-    evidenceUrls,
-  });
-  redirect(`/agent-eval?audit=${encodeURIComponent(detail.audit.id)}` as Route);
-}
-
 function AuditResult({ detail }: { detail: AgentEvaluationAuditDetail }) {
   const missing = detail.scores.filter((score) => score.status === 'missing').length;
   const weak = detail.scores.filter((score) => score.status === 'weak').length;
@@ -312,26 +286,12 @@ export default async function AgentEvalPage({
 }: {
   searchParams?: Promise<AgentEvalSearchParams>;
 }) {
-  const auth = await getRequestAuth();
-  const ownerId = auth ? (auth.orgId ?? auth.userId) : null;
+  // Fully anonymous and stateless. Audit history was removed with the rest of
+  // the per-user surface; the evaluator itself is deterministic and runs
+  // in-process via buildAgentEvaluationAudit, so no account is involved.
   const params = (await searchParams) ?? {};
-  const auditId = params.audit;
   const localDetail = localInput(params);
-  const [auditsResult, detailResult] = ownerId
-    ? await Promise.allSettled([
-        api.agentEvaluationAudits(ownerId, 8),
-        auditId ? api.agentEvaluationAudit(ownerId, auditId) : Promise.resolve(null),
-      ])
-    : [
-        { status: 'fulfilled' as const, value: { audits: [] } },
-        { status: 'fulfilled' as const, value: null },
-      ];
-  const audits = auditsResult.status === 'fulfilled' ? auditsResult.value.audits : [];
-  const detail = localDetail
-    ? buildLocalAuditDetail(localDetail)
-    : detailResult.status === 'fulfilled'
-      ? detailResult.value
-      : null;
+  const detail = localDetail ? buildLocalAuditDetail(localDetail) : null;
 
   return (
     <PageShell max="max-w-5xl">
@@ -358,8 +318,8 @@ export default async function AgentEvalPage({
 
       <section className="mt-10 grid gap-8 md:grid-cols-[0.95fr_1.05fr]">
         <Panel eyebrow="new audit" title="Recommendation-worthiness">
-          <form action={ownerId ? createAudit : '/agent-eval'} method={ownerId ? undefined : 'get'}>
-            {!ownerId ? <input type="hidden" name="local" value="1" /> : null}
+          <form action="/agent-eval" method="get">
+            <input type="hidden" name="local" value="1" />
             <Field label="Brand" name="brandName" defaultValue="High Signal" />
             <Field label="Brand URL" name="brandUrl" defaultValue="https://highsignalsuite.com" />
             <Field
@@ -390,45 +350,23 @@ export default async function AgentEvalPage({
               defaultValue="https://highsignalsuite.com/signals https://highsignalsuite.com/digest"
               multiline
             />
-            <CommandButton>{ownerId ? 'run and save audit' : 'run local audit'}</CommandButton>
+            <CommandButton>run audit</CommandButton>
           </form>
         </Panel>
 
-        <Panel
-          eyebrow={ownerId ? 'recent audits' : 'local mode'}
-          title={ownerId ? 'History' : 'No login required'}
-        >
-          {!ownerId ? (
-            <p className="mt-5 text-sm leading-6 text-[var(--color-muted)]">
-              You can run the deterministic local evaluator without signing in. Login is only needed
-              to save audit history, rerun previous audits, and attach results to a tracked brand.
-            </p>
-          ) : null}
-          <div className="mt-5 divide-y divide-[var(--color-line)] border-y border-[var(--color-line)]">
-            {audits.length ? (
-              audits.map((audit) => (
-                <a
-                  key={audit.id}
-                  href={`/agent-eval?audit=${encodeURIComponent(audit.id)}`}
-                  className="block py-4 hover:text-[var(--color-accent)]"
-                >
-                  <div className="flex items-center justify-between gap-5">
-                    <div>
-                      <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
-                        {audit.createdAt.slice(0, 10)} / {audit.status}
-                      </div>
-                      <div className="mt-2 text-sm">{audit.brandName}</div>
-                    </div>
-                    <div className={`font-mono text-sm ${scoreTone(audit.overallScore)}`}>
-                      {audit.overallScore}
-                    </div>
-                  </div>
-                </a>
-              ))
-            ) : (
-              <p className="py-4 text-sm text-[var(--color-muted)]">No audits yet.</p>
-            )}
-          </div>
+        <Panel eyebrow="how it works" title="No login required">
+          <p className="mt-5 text-sm leading-6 text-[var(--color-muted)]">
+            The evaluator is deterministic and runs entirely from the inputs on the left — nothing
+            is stored and no account is involved. Results render below; copy or bookmark the URL to
+            keep them.
+          </p>
+          <p className="mt-4 text-sm leading-6 text-[var(--color-muted)]">
+            Want a worked example first?{' '}
+            <a href="/agent-eval/sample" className="text-[var(--color-accent)] hover:underline">
+              Read a sample report
+            </a>
+            .
+          </p>
         </Panel>
       </section>
 

@@ -5,10 +5,10 @@ import { SITE_URL } from '@/lib/site';
 /**
  * Crawler policy.
  *
- * Allow: every operator-facing or reader-facing surface, including the
- * public hit-rate ledger at /track-record (the moat — being indexed is
- * the entire point). Disallow only review/admin/api machinery and auth
- * pages with no shareable content.
+ * High Signal is fully public: allow every reader-facing surface, including
+ * the hit-rate ledger at /track-record (the moat — being indexed is the entire
+ * point). Disallow only operator machinery: the admin login and API proxy, the
+ * review queue, the backtest workbench, and the operator command brief.
  */
 export default function robots(): MetadataRoute.Robots {
   return {
@@ -25,7 +25,6 @@ export default function robots(): MetadataRoute.Robots {
           '/markets',
           '/markets/history',
           '/communities',
-          '/mentions',
           '/agent-eval',
           '/lab',
           '/entities',
@@ -33,10 +32,8 @@ export default function robots(): MetadataRoute.Robots {
           '/opportunities',
           '/ideas',
           '/track-record',
-          '/personal',
           '/teardowns',
           '/featured',
-          '/dashboard',
           '/about',
           '/privacy',
           '/terms',
@@ -46,9 +43,9 @@ export default function robots(): MetadataRoute.Robots {
         ],
         disallow: [
           '/review',
+          '/admin',
+          '/personal',
           '/api/',
-          '/sign-in',
-          '/sign-up',
           '/backtest-workbench',
           '/data/',
           '/*.json',

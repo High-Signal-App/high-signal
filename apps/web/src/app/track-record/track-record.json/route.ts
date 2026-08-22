@@ -1,11 +1,12 @@
-import { requireAdmin } from '@/lib/clerk-admin';
+import { hasAdminSession } from '@/lib/admin-guard';
 import { api } from '@/lib/api';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
-  const admin = await requireAdmin(request);
-  if (!admin.ok) return Response.json(admin.body, { status: admin.status });
+  if (!(await hasAdminSession(request))) {
+    return Response.json({ error: 'unauthorized' }, { status: 401 });
+  }
 
   let cohorts: Awaited<ReturnType<typeof api.trackRecordCohorts>> = {
     live: [],

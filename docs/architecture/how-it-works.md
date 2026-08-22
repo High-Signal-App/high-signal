@@ -55,7 +55,7 @@ flowchart TD
         API["Hono API (workers/api)<br/>/brief/daily composes 5 sections"]
     end
 
-    WEB["Next.js web app (apps/web)<br/>Clerk-gated brief + lenses"]
+    WEB["Next.js web app (apps/web)<br/>public brief + lenses"]
 
     SRC --> F --> E --> C --> G --> W
     W -->|local dev| MD
@@ -191,16 +191,16 @@ visible. Each section is wrapped in a `safe()` helper so one broken lens
 degrades a single brief section instead of failing the whole response. Common
 regions are precomputed by cron so the API does one D1 lookup instead of many.
 
-### 8. The web app — rendering, gated by Clerk
+### 8. The web app — rendering, fully public
 
 `apps/web` (Next.js 16 App Router) reads the API through `apps/web/src/lib/api.ts`
 (`fetchJson('/brief/daily?...')`). The signals brief is the homepage; the lenses
-(Markets, Communities, Mentions, Agent Eval) are deep views, not separate
-products (ADR-011). Auth is **Clerk** — server gates `requireSignedIn()` /
-`requireAdmin()` (`ADMIN_ALLOWED_EMAILS`) protect user and admin surfaces.
-Cloudflare Access was the day-1 choice and was abandoned once the product needed
-a real session model and user metadata; **do not reintroduce it** without a
-migration plan (ADR-007).
+(Markets, Communities, Agent Eval) are deep views, not separate products
+(ADR-011). There is **no reader auth** — every page is anonymous and cacheable.
+A single operator session (`requireAdminSession()` in
+`apps/web/src/lib/admin-guard.ts`) gates the operator consoles and publishing.
+Cloudflare Access, then Clerk, were both tried and removed; **do not
+reintroduce either** without a migration plan (ADR-007, ADR-013).
 
 ## Key design decisions and why
 
@@ -210,7 +210,7 @@ migration plan (ADR-007).
 | **Append-only git signal memory** | Git diff is the audit trail; corrections cite the prior signal, never overwrite. | ADR-002 |
 | **D1 + Drizzle, not Postgres** | Co-located with the Worker (no network hop), zero-ops, adequate at this scale. | ADR-001 |
 | **No second stock-price ingress** | All EOD equity/ETF/index/crypto prices enter through the single yfinance path (`equities_daily.py` → `data/equities-snapshot.jsonl`); a parallel fetcher would fork the price source of truth. Prediction-market probabilities are **not** prices. | [`data-service-boundary.md`](data-service-boundary.md), [`../operations/jobs.md`](../operations/jobs.md) |
-| **Clerk auth (not CF Access)** | Needed a full session model + user metadata as the product went user-facing. | ADR-007 |
+| **No accounts; one operator gate** | Nobody used the per-user surface, and page-level Clerk gates left the worker's write routes open anyway. Gated pages also bypass the edge cache and cannot be indexed, which works against a public-corpus product. | ADR-013 |
 | **Auto-publish, no human gate** | The daily review queue did not scale; deterministic rules + AI-on-HOLD keep quality without blocking. | ADR-008 |
 | **Ingestion as an interim layer** | High Signal is the insight product, not the data warehouse; keep the substrate split so signal tables never grow source-specific columns. | [`data-service-boundary.md`](data-service-boundary.md) |
 

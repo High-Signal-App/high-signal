@@ -30,7 +30,6 @@ export const SITE_KEY_PATHS = [
   '/digest/atom',
   '/markets',
   '/communities',
-  '/mentions',
   '/agent-eval',
   '/lab',
   '/entities',

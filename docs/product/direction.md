@@ -27,7 +27,8 @@ which of these are active vs parked.
 
 ## Pricing
 
-Everything is free for now. No paid tier, no billing, no Clerk metadata gates.
+Everything is free for now. No paid tier, no billing, and no accounts at all —
+see ADR-013.
 Region is a free filter, not a paywall. Revisit once usage proves a
 willingness-to-pay surface. (See `scope-reset.md` — paid tiers explicitly out
 of scope as of 2026-05-25.)

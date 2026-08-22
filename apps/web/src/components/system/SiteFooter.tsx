@@ -13,14 +13,12 @@ const PRODUCT: FooterLink[] = [
   { href: '/signals', label: 'Signals' },
   { href: '/track-record', label: 'Track record' },
   { href: '/data/hit-rate', label: 'Hit-rate data' },
-  { href: '/watchlist/entities', label: 'Watched entities' },
   { href: '/changelog', label: 'Changelog' },
 ];
 
 const LENSES: FooterLink[] = [
   { href: '/markets', label: 'Markets' },
   { href: '/markets/history', label: 'Market history' },
-  { href: '/mentions', label: 'Mentions' },
   { href: '/agent-eval', label: 'Agent Eval' },
   { href: '/domains', label: 'Domains' },
   { href: '/communities', label: 'Communities' },
@@ -29,7 +27,6 @@ const LENSES: FooterLink[] = [
 
 const OPERATOR: FooterLink[] = [
   { href: '/review', label: 'Review queue' },
-  { href: '/settings/delivery', label: 'Delivery preferences' },
   { href: '/explore', label: 'Explore all features' },
   { href: '/api-docs', label: 'API docs' },
 ];

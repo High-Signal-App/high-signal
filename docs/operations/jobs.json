@@ -15,18 +15,29 @@
       "id": "cron-ingest",
       "kind": "ingestion",
       "owner": "sarthak",
-      "trigger": { "type": "schedule", "cron": "0 6 * * *", "tz": "UTC" },
+      "trigger": {
+        "type": "schedule",
+        "cron": "0 6 * * *",
+        "tz": "UTC"
+      },
       "workflowFile": ".github/workflows/cron-ingest.yml",
       "runtime": "github-actions-ubuntu",
       "command": "uv run python -m high_signal_ingest.pipeline --source all --days 1",
       "workingDirectory": "python/ingest",
-      "bounds": { "timeoutMinutes": 45, "concurrency": 1, "retryMax": 0 },
+      "bounds": {
+        "timeoutMinutes": 45,
+        "concurrency": 1,
+        "retryMax": 0
+      },
       "idempotency": {
         "mechanism": "events.raw_hash unique index + market_quotes hour-bucket id",
         "watermark": "ingest_runs.started_at per source; events.fetch_run_id",
         "deduplicationEvidence": "packages/db/src/schema.ts events_raw_hash_idx, market_quotes id sha16(source:marketId:hourBucket)"
       },
-      "freshness": { "windowHours": 30, "evidenceSource": "ingest_runs.started_at" },
+      "freshness": {
+        "windowHours": 30,
+        "evidenceSource": "ingest_runs.started_at"
+      },
       "outputExpectation": {
         "minEventsFetched": 0,
         "minSignalsDrafted": 0,
@@ -49,19 +60,33 @@
       "id": "cron-publish",
       "kind": "publish",
       "owner": "sarthak",
-      "trigger": { "type": "schedule", "cron": "0 7 * * *", "tz": "UTC" },
+      "trigger": {
+        "type": "schedule",
+        "cron": "0 7 * * *",
+        "tz": "UTC"
+      },
       "workflowFile": ".github/workflows/cron-publish.yml",
       "runtime": "github-actions-ubuntu",
       "command": "tsx scripts/auto-publish-drafts.ts --remote",
       "workingDirectory": ".",
-      "bounds": { "timeoutMinutes": 15, "concurrency": 1, "retryMax": 0 },
+      "bounds": {
+        "timeoutMinutes": 15,
+        "concurrency": 1,
+        "retryMax": 0
+      },
       "idempotency": {
         "mechanism": "signals.review_status transition guard (canTransition) + auto-publish-rules deterministic rubric",
         "watermark": "signals.published_at / review_status='published' or 'killed'",
         "deduplicationEvidence": "scripts/auto-publish-rules.test.ts; canTransition in @high-signal/shared"
       },
-      "freshness": { "windowHours": 26, "evidenceSource": "signals.published_at max per day" },
-      "outputExpectation": { "minPublishedOrKilled": 0, "zeroOutputIsFailure": false },
+      "freshness": {
+        "windowHours": 26,
+        "evidenceSource": "signals.published_at max per day"
+      },
+      "outputExpectation": {
+        "minPublishedOrKilled": 0,
+        "zeroOutputIsFailure": false
+      },
       "failureDestination": {
         "durableState": "signals row stays in 'draft' review_status; re-run via workflow_dispatch",
         "notification": "github-actions job failure email"
@@ -70,18 +95,28 @@
         "lifecycleTable": "signals (review_status, published_at)",
         "adminEndpoint": "/admin/audit/summary (signalsDrafted via ingest_runs; publish outcome via signals)"
       },
-      "acceptedExceptions": ["HOLD biases to KILL without AI judge — by design (ADR-008)"]
+      "acceptedExceptions": [
+        "HOLD biases to KILL without AI judge \u2014 by design (ADR-008)"
+      ]
     },
     {
       "id": "personal-brief",
       "kind": "operator-brief",
       "owner": "sarthak",
-      "trigger": { "type": "schedule", "cron": "30 7 * * *", "tz": "UTC" },
+      "trigger": {
+        "type": "schedule",
+        "cron": "30 7 * * *",
+        "tz": "UTC"
+      },
       "workflowFile": ".github/workflows/personal-brief.yml",
       "runtime": "github-actions-ubuntu",
       "command": "pnpm personal:brief refresh-sources && pnpm daily:snapshot && git commit + push",
       "workingDirectory": ".",
-      "bounds": { "timeoutMinutes": 30, "concurrency": 1, "retryMax": 0 },
+      "bounds": {
+        "timeoutMinutes": 30,
+        "concurrency": 1,
+        "retryMax": 0
+      },
       "idempotency": {
         "mechanism": "daily-source-refreshes.json content-hash skip cache; append-only product-flow-refresh.jsonl",
         "watermark": "apps/web/src/data/daily-source-refreshes.json latestAcceptedDate",
@@ -91,7 +126,10 @@
         "windowHours": 36,
         "evidenceSource": "daily-source-refreshes.json latestAcceptedAt"
       },
-      "outputExpectation": { "minAcceptedSnapshots": 1, "zeroOutputIsFailure": true },
+      "outputExpectation": {
+        "minAcceptedSnapshots": 1,
+        "zeroOutputIsFailure": true
+      },
       "failureDestination": {
         "durableState": "stale apps/web/src/data/daily-source-refreshes.json (freshnessStatus='stale' or 'empty')",
         "notification": "github-actions job failure email; surfaced on /operator dashboard"
@@ -107,12 +145,20 @@
       "id": "cron-backtest",
       "kind": "backtest",
       "owner": "sarthak",
-      "trigger": { "type": "schedule", "cron": "0 9 * * *", "tz": "UTC" },
+      "trigger": {
+        "type": "schedule",
+        "cron": "0 9 * * *",
+        "tz": "UTC"
+      },
       "workflowFile": ".github/workflows/cron-backtest.yml",
       "runtime": "github-actions-ubuntu",
       "command": "python scripts/backtest-convergence-labels.py + commit workers/api/src/lib/label-backtest.json",
       "workingDirectory": ".",
-      "bounds": { "timeoutMinutes": 30, "concurrency": 1, "retryMax": 0 },
+      "bounds": {
+        "timeoutMinutes": 30,
+        "concurrency": 1,
+        "retryMax": 0
+      },
       "idempotency": {
         "mechanism": "label-backtest.json is a deterministic derived artifact; re-run overwrites",
         "watermark": "workers/api/src/lib/label-backtest.json mtime + git commit sha",
@@ -122,7 +168,10 @@
         "windowHours": 30,
         "evidenceSource": "git log -1 workers/api/src/lib/label-backtest.json"
       },
-      "outputExpectation": { "minLabels": 1, "zeroOutputIsFailure": true },
+      "outputExpectation": {
+        "minLabels": 1,
+        "zeroOutputIsFailure": true
+      },
       "failureDestination": {
         "durableState": "stale label-backtest.json (deploy-api auto-redeploys on commit; stale = no redeploy)",
         "notification": "github-actions job failure email"
@@ -132,19 +181,27 @@
         "deployTrigger": "deploy-api.yml on push to main matching workers/api/**"
       },
       "acceptedExceptions": [
-        "Requires CLOUDFLARE_API_TOKEN — fails loudly at wrangler step if missing"
+        "Requires CLOUDFLARE_API_TOKEN \u2014 fails loudly at wrangler step if missing"
       ]
     },
     {
       "id": "cron-equities",
       "kind": "ingestion",
       "owner": "sarthak",
-      "trigger": { "type": "schedule", "cron": "30 21 * * 1-5", "tz": "UTC" },
+      "trigger": {
+        "type": "schedule",
+        "cron": "30 21 * * 1-5",
+        "tz": "UTC"
+      },
       "workflowFile": ".github/workflows/cron-equities.yml",
       "runtime": "github-actions-ubuntu",
       "command": "python -m high_signal_ingest.equities_daily + pnpm equities:snapshot + pnpm tickers:bundle + commit",
       "workingDirectory": ".",
-      "bounds": { "timeoutMinutes": 45, "concurrency": 1, "retryMax": 0 },
+      "bounds": {
+        "timeoutMinutes": 45,
+        "concurrency": 1,
+        "retryMax": 0
+      },
       "idempotency": {
         "mechanism": "data/equities-snapshot.jsonl is date-bucketed; closes/ticker_snapshot use (ticker,date) unique keys",
         "watermark": "data/equities-snapshot.jsonl date + closes.trade_date",
@@ -154,7 +211,10 @@
         "windowHours": 30,
         "evidenceSource": "data/equities-snapshot.jsonl mtime; closes max(trade_date)"
       },
-      "outputExpectation": { "minTickers": 1, "zeroOutputIsFailure": true },
+      "outputExpectation": {
+        "minTickers": 1,
+        "zeroOutputIsFailure": true
+      },
       "failureDestination": {
         "durableState": "stale equities-snapshot.jsonl; no auto-redeploy of web",
         "notification": "github-actions job failure email"
@@ -163,25 +223,41 @@
         "lifecycleArtifact": "data/equities-snapshot.jsonl + derived bundles",
         "deployTrigger": "deploy-web.yml on push to main"
       },
-      "acceptedExceptions": ["Skips Sat/Sun (cron 1-5) — no US market close"]
+      "acceptedExceptions": [
+        "Skips Sat/Sun (cron 1-5) \u2014 no US market close"
+      ]
     },
     {
       "id": "cron-markets",
       "kind": "ingestion",
       "owner": "sarthak",
-      "trigger": { "type": "schedule", "cron": "0 */4 * * *", "tz": "UTC" },
+      "trigger": {
+        "type": "schedule",
+        "cron": "0 */4 * * *",
+        "tz": "UTC"
+      },
       "workflowFile": ".github/workflows/cron-markets.yml",
       "runtime": "github-actions-ubuntu",
       "command": "uv run python -m high_signal_ingest.pipeline --source markets --days 1",
       "workingDirectory": "python/ingest",
-      "bounds": { "timeoutMinutes": 20, "concurrency": 1, "retryMax": 0 },
+      "bounds": {
+        "timeoutMinutes": 20,
+        "concurrency": 1,
+        "retryMax": 0
+      },
       "idempotency": {
-        "mechanism": "market_quotes id = sha16(source:marketId:hourBucket) — re-runs in same hour dedupe",
+        "mechanism": "market_quotes id = sha16(source:marketId:hourBucket) \u2014 re-runs in same hour dedupe",
         "watermark": "market_quotes.fetched_at max per source",
         "deduplicationEvidence": "workers/api/src/routes/admin.ts /admin/quotes onConflictDoNothing"
       },
-      "freshness": { "windowHours": 5, "evidenceSource": "market_quotes.fetched_at max" },
-      "outputExpectation": { "minQuotes": 1, "zeroOutputIsFailure": false },
+      "freshness": {
+        "windowHours": 5,
+        "evidenceSource": "market_quotes.fetched_at max"
+      },
+      "outputExpectation": {
+        "minQuotes": 1,
+        "zeroOutputIsFailure": false
+      },
       "failureDestination": {
         "durableState": "stale market_quotes; /markets lens shows stale window",
         "notification": "github-actions job failure email"
@@ -191,26 +267,40 @@
         "adminEndpoint": "/admin/quotes"
       },
       "acceptedExceptions": [
-        "Prediction-market probabilities only — never equity prices (AGENTS.md)"
+        "Prediction-market probabilities only \u2014 never equity prices (AGENTS.md)"
       ]
     },
     {
       "id": "cron-score",
       "kind": "scoring",
       "owner": "sarthak",
-      "trigger": { "type": "schedule", "cron": "30 22 * * *", "tz": "UTC" },
+      "trigger": {
+        "type": "schedule",
+        "cron": "30 22 * * *",
+        "tz": "UTC"
+      },
       "workflowFile": ".github/workflows/cron-score.yml",
       "runtime": "github-actions-ubuntu",
       "command": "uv run python -m high_signal_ingest.score.runner",
       "workingDirectory": "python/ingest",
-      "bounds": { "timeoutMinutes": 30, "concurrency": 1, "retryMax": 0 },
+      "bounds": {
+        "timeoutMinutes": 30,
+        "concurrency": 1,
+        "retryMax": 0
+      },
       "idempotency": {
-        "mechanism": "score_runs (signalId, windowDays) — re-score overwrites outcome",
+        "mechanism": "score_runs (signalId, windowDays) \u2014 re-score overwrites outcome",
         "watermark": "score_runs.run_at max per signal",
         "deduplicationEvidence": "packages/db/src/schema.ts score_runs; /admin/scores upsert"
       },
-      "freshness": { "windowHours": 30, "evidenceSource": "score_runs.run_at max" },
-      "outputExpectation": { "minScored": 0, "zeroOutputIsFailure": false },
+      "freshness": {
+        "windowHours": 30,
+        "evidenceSource": "score_runs.run_at max"
+      },
+      "outputExpectation": {
+        "minScored": 0,
+        "zeroOutputIsFailure": false
+      },
       "failureDestination": {
         "durableState": "signals remain 'pending' in /admin/pending-scores",
         "notification": "github-actions job failure email"
@@ -219,18 +309,28 @@
         "lifecycleTable": "score_runs",
         "adminEndpoint": "/admin/scores, /admin/pending-scores"
       },
-      "acceptedExceptions": ["Only scores signals whose predicted_window_days has elapsed"]
+      "acceptedExceptions": [
+        "Only scores signals whose predicted_window_days has elapsed"
+      ]
     },
     {
       "id": "cron-d2c-opportunities",
       "kind": "ingestion",
       "owner": "sarthak",
-      "trigger": { "type": "schedule", "cron": "0 7 * * 1", "tz": "UTC" },
+      "trigger": {
+        "type": "schedule",
+        "cron": "0 7 * * 1",
+        "tz": "UTC"
+      },
       "workflowFile": ".github/workflows/cron-d2c-opportunities.yml",
       "runtime": "github-actions-ubuntu",
       "command": "pnpm d2c:collect + pnpm d2c:agent-visibility + pnpm d2c:sync:remote + pnpm d2c:bundle + commit",
       "workingDirectory": ".",
-      "bounds": { "timeoutMinutes": 30, "concurrency": 1, "retryMax": 0 },
+      "bounds": {
+        "timeoutMinutes": 30,
+        "concurrency": 1,
+        "retryMax": 0
+      },
       "idempotency": {
         "mechanism": "d2c_niche_snapshots (niche_id, snapshot_date) unique; agent_visibility (niche_id, snapshot_date) unique",
         "watermark": "d2c_niche_snapshots.snapshot_date max",
@@ -240,7 +340,10 @@
         "windowHours": 168,
         "evidenceSource": "d2c_niche_snapshots.snapshot_date max"
       },
-      "outputExpectation": { "minNiches": 1, "zeroOutputIsFailure": false },
+      "outputExpectation": {
+        "minNiches": 1,
+        "zeroOutputIsFailure": false
+      },
       "failureDestination": {
         "durableState": "stale d2c bundle; /opportunities/d2c shows stale window",
         "notification": "github-actions job failure email"
@@ -250,7 +353,7 @@
         "lifecycleArtifact": "apps/web/src/data/d2c-opportunities-bundle.json (committed)"
       },
       "acceptedExceptions": [
-        "Weekly cadence — freshness window 7 days",
+        "Weekly cadence \u2014 freshness window 7 days",
         "AI overlay falls back to gap=1 'wide-open' entries when AI_API_KEY absent"
       ]
     },
@@ -258,19 +361,33 @@
       "id": "weekly-quality",
       "kind": "quality-gate",
       "owner": "sarthak",
-      "trigger": { "type": "schedule", "cron": "0 9 * * 1", "tz": "UTC" },
+      "trigger": {
+        "type": "schedule",
+        "cron": "0 9 * * 1",
+        "tz": "UTC"
+      },
       "workflowFile": ".github/workflows/weekly.yml",
       "runtime": "github-actions-ubuntu",
       "command": "pnpm lint && pnpm typecheck && pnpm test && pnpm build (if scripts exist)",
       "workingDirectory": ".",
-      "bounds": { "timeoutMinutes": 60, "concurrency": 1, "retryMax": 0 },
+      "bounds": {
+        "timeoutMinutes": 60,
+        "concurrency": 1,
+        "retryMax": 0
+      },
       "idempotency": {
         "mechanism": "read-only quality gate; no state mutation",
         "watermark": "github-actions run id",
         "deduplicationEvidence": "n/a (read-only)"
       },
-      "freshness": { "windowHours": 192, "evidenceSource": "github-actions weekly.yml last run" },
-      "outputExpectation": { "minChecks": 1, "zeroOutputIsFailure": false },
+      "freshness": {
+        "windowHours": 192,
+        "evidenceSource": "github-actions weekly.yml last run"
+      },
+      "outputExpectation": {
+        "minChecks": 1,
+        "zeroOutputIsFailure": false
+      },
       "failureDestination": {
         "durableState": "github-actions run status",
         "notification": "github-actions job failure email"
@@ -284,30 +401,43 @@
       "id": "worker-cron-brief-precompute",
       "kind": "precompute",
       "owner": "sarthak",
-      "trigger": { "type": "worker-cron", "cron": "*/30 * * * *", "tz": "UTC" },
+      "trigger": {
+        "type": "worker-cron",
+        "cron": "*/30 * * * *",
+        "tz": "UTC"
+      },
       "workflowFile": "workers/api/wrangler.toml [triggers]",
       "runtime": "cloudflare-worker",
-      "command": "precomputeBriefSnapshots + runDeliveryWindow (workers/api/src/index.ts scheduled handler)",
+      "command": "precomputeBriefSnapshots (workers/api/src/index.ts scheduled handler)",
       "workingDirectory": "workers/api",
-      "bounds": { "timeoutMinutes": 0, "concurrency": 1, "retryMax": 0, "cpuMsLimit": 30000 },
-      "idempotency": {
-        "mechanism": "daily_brief_snapshots upsert by (date); delivery_log unique index prevents double-send",
-        "watermark": "daily_brief_snapshots.date; delivery_log unique on (user_id, brief_date)",
-        "deduplicationEvidence": "packages/db/migrations/0013_brief_snapshots.sql, 0010_delivery.sql"
+      "bounds": {
+        "timeoutMinutes": 0,
+        "concurrency": 1,
+        "retryMax": 0,
+        "cpuMsLimit": 30000
       },
-      "freshness": { "windowHours": 1, "evidenceSource": "daily_brief_snapshots.updated_at" },
-      "outputExpectation": { "minSnapshots": 0, "zeroOutputIsFailure": false },
+      "idempotency": {
+        "mechanism": "daily_brief_snapshots upsert by (date)",
+        "watermark": "daily_brief_snapshots.date",
+        "deduplicationEvidence": "packages/db/migrations/0013_brief_snapshots.sql"
+      },
+      "freshness": {
+        "windowHours": 1,
+        "evidenceSource": "daily_brief_snapshots.updated_at"
+      },
+      "outputExpectation": {
+        "minSnapshots": 0,
+        "zeroOutputIsFailure": false
+      },
       "failureDestination": {
         "durableState": "console.error in Worker logs; stale daily_brief_snapshots",
         "notification": "cloudflare observability (head_sampling_rate 0.1)"
       },
       "evidence": {
-        "lifecycleTable": "daily_brief_snapshots, delivery_log",
+        "lifecycleTable": "daily_brief_snapshots",
         "observability": "workers/api/wrangler.toml [observability]"
       },
-      "acceptedExceptions": [
-        "Delivery sweep fail-closes to no-op until EMAIL_FROM + SEND_EMAIL configured (plan 0009)"
-      ]
+      "acceptedExceptions": []
     },
     {
       "id": "deploy-web",
@@ -315,16 +445,26 @@
       "owner": "sarthak",
       "trigger": {
         "type": "push",
-        "branches": ["main"],
-        "paths": ["apps/web/**", "data/equities-snapshot.jsonl", "apps/web/src/data/**"]
+        "branches": [
+          "main"
+        ],
+        "paths": [
+          "apps/web/**",
+          "data/equities-snapshot.jsonl",
+          "apps/web/src/data/**"
+        ]
       },
       "workflowFile": ".github/workflows/deploy-web.yml",
       "runtime": "github-actions-ubuntu",
       "command": "pnpm cf:build && pnpm exec opennextjs-cloudflare deploy",
       "workingDirectory": "apps/web",
-      "bounds": { "timeoutMinutes": 30, "concurrency": 1, "retryMax": 0 },
+      "bounds": {
+        "timeoutMinutes": 30,
+        "concurrency": 1,
+        "retryMax": 0
+      },
       "idempotency": {
-        "mechanism": "opennext deploy is revision-idempotent (same commit → same worker)",
+        "mechanism": "opennext deploy is revision-idempotent (same commit \u2192 same worker)",
         "watermark": "git commit sha + cloudflare worker version",
         "deduplicationEvidence": "cloudflare worker deployment revision id"
       },
@@ -332,7 +472,10 @@
         "windowHours": 720,
         "evidenceSource": "git commit sha on main; cloudflare dashboard"
       },
-      "outputExpectation": { "minRevision": 1, "zeroOutputIsFailure": false },
+      "outputExpectation": {
+        "minRevision": 1,
+        "zeroOutputIsFailure": false
+      },
       "failureDestination": {
         "durableState": "previous worker revision stays live",
         "notification": "github-actions job failure email"
@@ -348,19 +491,37 @@
       "id": "deploy-api",
       "kind": "deploy",
       "owner": "sarthak",
-      "trigger": { "type": "push", "branches": ["main"], "paths": ["workers/api/**"] },
+      "trigger": {
+        "type": "push",
+        "branches": [
+          "main"
+        ],
+        "paths": [
+          "workers/api/**"
+        ]
+      },
       "workflowFile": ".github/workflows/deploy-api.yml",
       "runtime": "github-actions-ubuntu",
       "command": "wrangler deploy + curl /health",
       "workingDirectory": "workers/api",
-      "bounds": { "timeoutMinutes": 20, "concurrency": 1, "retryMax": 0 },
+      "bounds": {
+        "timeoutMinutes": 20,
+        "concurrency": 1,
+        "retryMax": 0
+      },
       "idempotency": {
         "mechanism": "wrangler deploy is revision-idempotent",
         "watermark": "git commit sha + cloudflare worker version",
         "deduplicationEvidence": "cloudflare worker deployment revision id + /health smoke"
       },
-      "freshness": { "windowHours": 720, "evidenceSource": "git commit sha on main; /health" },
-      "outputExpectation": { "minRevision": 1, "zeroOutputIsFailure": false },
+      "freshness": {
+        "windowHours": 720,
+        "evidenceSource": "git commit sha on main; /health"
+      },
+      "outputExpectation": {
+        "minRevision": 1,
+        "zeroOutputIsFailure": false
+      },
       "failureDestination": {
         "durableState": "previous worker revision stays live",
         "notification": "github-actions job failure email"
@@ -378,22 +539,36 @@
       "owner": "sarthak",
       "trigger": {
         "type": "push",
-        "branches": ["main"],
-        "paths": ["**"],
+        "branches": [
+          "main"
+        ],
+        "paths": [
+          "**"
+        ],
         "alsoOn": "pull_request"
       },
       "workflowFile": ".github/workflows/ci.yml",
       "runtime": "github-actions-ubuntu",
       "command": "pnpm typecheck && pnpm test (ts job); uv run pytest (python job)",
       "workingDirectory": ".",
-      "bounds": { "timeoutMinutes": 30, "concurrency": 1, "retryMax": 0 },
+      "bounds": {
+        "timeoutMinutes": 30,
+        "concurrency": 1,
+        "retryMax": 0
+      },
       "idempotency": {
         "mechanism": "read-only quality gate; no state mutation",
         "watermark": "github-actions run id + commit sha",
         "deduplicationEvidence": "n/a (read-only)"
       },
-      "freshness": { "windowHours": 0, "evidenceSource": "n/a (event-driven, not scheduled)" },
-      "outputExpectation": { "minChecks": 1, "zeroOutputIsFailure": false },
+      "freshness": {
+        "windowHours": 0,
+        "evidenceSource": "n/a (event-driven, not scheduled)"
+      },
+      "outputExpectation": {
+        "minChecks": 1,
+        "zeroOutputIsFailure": false
+      },
       "failureDestination": {
         "durableState": "github-actions run status; blocks merge to main",
         "notification": "github-actions check failure on PR"
@@ -401,7 +576,9 @@
       "evidence": {
         "lifecycleArtifact": "github-actions ci.yml run history"
       },
-      "acceptedExceptions": ["Event-driven (push/PR) — no freshness contract"]
+      "acceptedExceptions": [
+        "Event-driven (push/PR) \u2014 no freshness contract"
+      ]
     },
     {
       "id": "docs-check",
@@ -409,7 +586,9 @@
       "owner": "sarthak",
       "trigger": {
         "type": "push",
-        "branches": ["main"],
+        "branches": [
+          "main"
+        ],
         "paths": [
           "docs/**",
           "agents.md",
@@ -426,14 +605,24 @@
       "runtime": "github-actions-ubuntu",
       "command": "node scripts/docs-check.mjs (internal-link check + empty-dir sanity)",
       "workingDirectory": ".",
-      "bounds": { "timeoutMinutes": 10, "concurrency": 1, "retryMax": 0 },
+      "bounds": {
+        "timeoutMinutes": 10,
+        "concurrency": 1,
+        "retryMax": 0
+      },
       "idempotency": {
         "mechanism": "read-only docs validation; no state mutation",
         "watermark": "github-actions run id + commit sha",
         "deduplicationEvidence": "n/a (read-only)"
       },
-      "freshness": { "windowHours": 0, "evidenceSource": "n/a (event-driven, not scheduled)" },
-      "outputExpectation": { "minChecks": 1, "zeroOutputIsFailure": false },
+      "freshness": {
+        "windowHours": 0,
+        "evidenceSource": "n/a (event-driven, not scheduled)"
+      },
+      "outputExpectation": {
+        "minChecks": 1,
+        "zeroOutputIsFailure": false
+      },
       "failureDestination": {
         "durableState": "github-actions run status; blocks merge to main",
         "notification": "github-actions check failure on PR"
@@ -442,27 +631,39 @@
         "lifecycleArtifact": "github-actions docs.yml run history"
       },
       "acceptedExceptions": [
-        "Event-driven (push/PR) — no freshness contract",
-        "Blume (presentation layer) is NOT installed in CI — docs:blume:dev is local-only"
+        "Event-driven (push/PR) \u2014 no freshness contract",
+        "Blume (presentation layer) is NOT installed in CI \u2014 docs:blume:dev is local-only"
       ]
     },
     {
       "id": "backfill",
       "kind": "backfill",
       "owner": "sarthak",
-      "trigger": { "type": "workflow_dispatch" },
+      "trigger": {
+        "type": "workflow_dispatch"
+      },
       "workflowFile": ".github/workflows/backfill.yml",
       "runtime": "github-actions-ubuntu",
       "command": "uv run python -m high_signal_ingest.backfill --start --end --sources --chunk-days",
       "workingDirectory": "python/ingest",
-      "bounds": { "timeoutMinutes": 350, "concurrency": 1, "retryMax": 0 },
+      "bounds": {
+        "timeoutMinutes": 350,
+        "concurrency": 1,
+        "retryMax": 0
+      },
       "idempotency": {
         "mechanism": "events.raw_hash unique; re-replay over same window dedupes",
         "watermark": "events.ingested_at + fetch_run_id",
         "deduplicationEvidence": "events_raw_hash_idx"
       },
-      "freshness": { "windowHours": 0, "evidenceSource": "n/a (on-demand)" },
-      "outputExpectation": { "minEvents": 0, "zeroOutputIsFailure": false },
+      "freshness": {
+        "windowHours": 0,
+        "evidenceSource": "n/a (on-demand)"
+      },
+      "outputExpectation": {
+        "minEvents": 0,
+        "zeroOutputIsFailure": false
+      },
       "failureDestination": {
         "durableState": "partial events persisted; re-run window",
         "notification": "github-actions job failure email"
@@ -470,25 +671,39 @@
       "evidence": {
         "lifecycleTable": "events, ingest_runs"
       },
-      "acceptedExceptions": ["On-demand only — no freshness contract"]
+      "acceptedExceptions": [
+        "On-demand only \u2014 no freshness contract"
+      ]
     },
     {
       "id": "backfill-sources",
       "kind": "backfill",
       "owner": "sarthak",
-      "trigger": { "type": "workflow_dispatch" },
+      "trigger": {
+        "type": "workflow_dispatch"
+      },
       "workflowFile": ".github/workflows/backfill-sources.yml",
       "runtime": "github-actions-ubuntu",
-      "command": "per-source pipeline --days N (no AI_API_KEY → free-ai gateway / deterministic drafts)",
+      "command": "per-source pipeline --days N (no AI_API_KEY \u2192 free-ai gateway / deterministic drafts)",
       "workingDirectory": "python/ingest",
-      "bounds": { "timeoutMinutes": 45, "concurrency": 1, "retryMax": 0 },
+      "bounds": {
+        "timeoutMinutes": 45,
+        "concurrency": 1,
+        "retryMax": 0
+      },
       "idempotency": {
         "mechanism": "events.raw_hash unique; one pipeline process per source",
         "watermark": "events.ingested_at + fetch_run_id",
         "deduplicationEvidence": "events_raw_hash_idx; per-source isolation prevents one failure masking others"
       },
-      "freshness": { "windowHours": 0, "evidenceSource": "n/a (on-demand)" },
-      "outputExpectation": { "minEvents": 0, "zeroOutputIsFailure": false },
+      "freshness": {
+        "windowHours": 0,
+        "evidenceSource": "n/a (on-demand)"
+      },
+      "outputExpectation": {
+        "minEvents": 0,
+        "zeroOutputIsFailure": false
+      },
       "failureDestination": {
         "durableState": "partial events persisted per source",
         "notification": "github-actions job failure email"
@@ -497,8 +712,8 @@
         "lifecycleTable": "events, ingest_runs"
       },
       "acceptedExceptions": [
-        "On-demand only — no freshness contract",
-        "Intentionally free: no AI_API_KEY set → free-ai gateway / deterministic drafts"
+        "On-demand only \u2014 no freshness contract",
+        "Intentionally free: no AI_API_KEY set \u2192 free-ai gateway / deterministic drafts"
       ]
     }
   ],
@@ -511,12 +726,12 @@
       "buildEvidence": "github-actions ci.yml (pnpm typecheck + pnpm test)",
       "indexingEvidence": "apps/web public sitemap + robots.txt + llms.txt (agent-ready audit)",
       "acquisitionSignal": "daily-source-refreshes.json acceptedSnapshots (operator-facing) + /explore sitemap",
-      "ctaSignal": "n/a — free product, no signup conversion target today (accepted exception: no billing)",
+      "ctaSignal": "n/a \u2014 free product, no signup conversion target today (accepted exception: no billing)",
       "activationSignal": "Clerk sign-in events on /auth (Clerk dashboard)",
       "returnSignal": "daily_brief_snapshots daily refresh + delivery_log (plan 0009)",
       "clientErrorSignal": "next.js error boundary + cloudflare observability (head_sampling_rate 0.1)",
       "acceptedExceptions": [
-        "No billing conversion target — free product (PROJECT_STATUS.md)",
+        "No billing conversion target \u2014 free product (PROJECT_STATUS.md)",
         "Clerk production cutover still pending (STATUS.md blockers)"
       ]
     },
@@ -526,14 +741,14 @@
       "deploy": "high-signal-api (Cloudflare Worker)",
       "canonicalLiveProbe": "https://high-signal-api.sarthakagrawal927.workers.dev/health",
       "buildEvidence": "github-actions ci.yml + workers/api vitest suite",
-      "healthProbe": "/health → { ok: true, ts }",
+      "healthProbe": "/health \u2192 { ok: true, ts }",
       "structuredRequestLogs": "cloudflare observability + console.error in app.onError",
       "latencyErrorSignal": "/admin/audit/summary (eventsBySource, llmRuns avg_ms, ingestRuns errors); per-route latency not yet exported (accepted exception)",
       "deploymentEvidence": "deploy-api.yml + /health smoke + cloudflare worker revisions",
       "costResourceVisibility": "llm_runs.tokens_in/tokens_out/latency_ms; market_quotes volume; no aggregate $ cost view (accepted exception: provider policy unchanged)",
       "acceptedExceptions": [
-        "Per-route latency histogram not exported — cloudflare observability + /admin/audit/summary are the bounded substitute",
-        "Aggregate $ cost view not built — provider rate limits and spend policy unchanged (proposal non-goal)"
+        "Per-route latency histogram not exported \u2014 cloudflare observability + /admin/audit/summary are the bounded substitute",
+        "Aggregate $ cost view not built \u2014 provider rate limits and spend policy unchanged (proposal non-goal)"
       ]
     }
   ]

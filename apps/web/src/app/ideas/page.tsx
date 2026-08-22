@@ -10,7 +10,6 @@ import {
   SectionHeader,
 } from '@/components/system/HighSignalUI';
 import { api, type SignalRow } from '@/lib/api';
-import { getRequestAuth } from '@/lib/require-auth';
 import {
   analyzeIdeaAgainstFlow,
   type CommunityDigestSnapshot,
@@ -37,16 +36,6 @@ const fallbackFlows: IdeaFlowEvidence[] = [
     summary:
       'Community discussion keeps moving from broad AI hype into monitoring, provenance, repeatable workflows, and cost control.',
     href: '/communities',
-    observedAt: '2026-05-01T00:00:00.000Z',
-    confidence: 'medium',
-  },
-  {
-    id: 'fallback-mention-citations',
-    source: 'mention',
-    title: 'AI visibility depends on cited source presence',
-    summary:
-      'Prompt opportunities show that brands need to know where competitors appear, where citations are missing, and what content should exist.',
-    href: '/mentions',
     observedAt: '2026-05-01T00:00:00.000Z',
     confidence: 'medium',
   },
@@ -103,29 +92,19 @@ export default async function IdeasPage({
 }: {
   searchParams?: Promise<{ idea?: string }>;
 }) {
-  // Public surface — any visitor can type a thesis and see it scored
-  // against published signals + community digests. Per-owner dashboard
-  // is only fetched when signed in.
-  const auth = await getRequestAuth();
-  const userId = (auth && 'userId' in auth && auth.userId) || null;
-  const ownerId = (auth && 'orgId' in auth && auth.orgId) || userId || '';
+  // Public surface — identical for every visitor.
   const params = (await searchParams) ?? {};
   const idea = (params.idea ?? DEFAULT_IDEA).trim();
 
-  const [signalsResult, dashboardResult, discoverResult] = await Promise.allSettled([
+  const [signalsResult, discoverResult] = await Promise.allSettled([
     api.signals({ status: 'published' }),
-    ownerId
-      ? api.productDashboard(ownerId)
-      : Promise.resolve(null as unknown as Awaited<ReturnType<typeof api.productDashboard>>),
     api.productCommunityDiscover('week'),
   ]);
   const signals = signalsResult.status === 'fulfilled' ? signalsResult.value.signals : [];
-  const dashboard = dashboardResult.status === 'fulfilled' ? dashboardResult.value : null;
   const discover = discoverResult.status === 'fulfilled' ? discoverResult.value.items : [];
   const evidence = [
     ...evidenceFromSignals(signals),
     ...evidenceFromDigests(discover),
-    ...evidenceFromDigests(dashboard?.communities.latestDigests ?? []),
     ...fallbackFlows,
   ];
   const analysis = analyzeIdeaAgainstFlow(idea, evidence);

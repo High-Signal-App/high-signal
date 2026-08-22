@@ -1,15 +1,8 @@
-import {
-  api,
-  type Direction,
-  type Confidence,
-  type SignalRow,
-  type MentionBrandConfig,
-} from '@/lib/api';
+import { api, type Direction, type Confidence, type SignalRow } from '@/lib/api';
 import { isBackfillSignal } from '@/lib/signal-format';
 import { SignalCard } from '@/components/molecules/SignalCard';
 import { FilterBar, type Facets } from '@/components/molecules/FilterBar';
 import { assessSignalQuality, type SignalContentCategory } from '@high-signal/shared';
-import { getRequestAuth } from '@/lib/require-auth';
 import { FaqJsonLd, SoftwareApplicationJsonLd } from '@/components/seo/structured-data';
 
 export const dynamic = 'force-dynamic';
@@ -213,7 +206,7 @@ const LANDING_FAQ: Array<{ question: string; answer: string }> = [
   {
     question: 'Can I filter by region?',
     answer:
-      'Yes, region is a free filter on every section. The default is global. Users can switch to any region and the brief recomputes scoped to that region\u2019s entities and sources. Preference persists for signed-in users via Clerk publicMetadata.',
+      'Yes, region is a free filter on every section. The default is global. Anyone can switch to any region and the brief recomputes scoped to that region\u2019s entities and sources. No account is involved.',
   },
   {
     question: 'Does High Signal have an API or RSS feed?',
@@ -222,11 +215,22 @@ const LANDING_FAQ: Array<{ question: string; answer: string }> = [
   },
 ];
 
-const nowIso = new Date(0).toISOString();
-const DEFAULT_COMPANY_CONFIGS: MentionBrandConfig[] = [
+/**
+ * Static company focus lists for /signals. These were typed as
+ * CompanyFocus before the Mentions surface was removed; the shape a
+ * public focus list actually needs is much smaller.
+ */
+interface CompanyFocus {
+  id: string;
+  brandName: string;
+  brandAliases: string[];
+  brandUrl: string | null;
+  competitors: Array<{ name: string; url?: string }>;
+}
+
+const DEFAULT_COMPANY_CONFIGS: CompanyFocus[] = [
   {
     id: 'default-nvidia',
-    companyId: 'default',
     brandName: 'NVIDIA',
     brandAliases: ['NVDA', 'Nvidia', 'CUDA', 'Blackwell'],
     brandUrl: 'https://nvidia.com',
@@ -234,15 +238,9 @@ const DEFAULT_COMPANY_CONFIGS: MentionBrandConfig[] = [
       { name: 'AMD', url: 'https://amd.com' },
       { name: 'Intel', url: 'https://intel.com' },
     ],
-    platforms: ['custom'],
-    aiEndpointUrl: null,
-    aiModel: null,
-    createdAt: nowIso,
-    updatedAt: nowIso,
   },
   {
     id: 'default-openai',
-    companyId: 'default',
     brandName: 'OpenAI',
     brandAliases: ['ChatGPT', 'GPT-5', 'OpenAI'],
     brandUrl: 'https://openai.com',
@@ -250,15 +248,9 @@ const DEFAULT_COMPANY_CONFIGS: MentionBrandConfig[] = [
       { name: 'Anthropic', url: 'https://anthropic.com' },
       { name: 'Google Gemini', url: 'https://gemini.google.com' },
     ],
-    platforms: ['custom'],
-    aiEndpointUrl: null,
-    aiModel: null,
-    createdAt: nowIso,
-    updatedAt: nowIso,
   },
   {
     id: 'default-apple',
-    companyId: 'default',
     brandName: 'Apple',
     brandAliases: ['AAPL', 'iPhone', 'App Store', 'Apple Intelligence'],
     brandUrl: 'https://apple.com',
@@ -266,15 +258,9 @@ const DEFAULT_COMPANY_CONFIGS: MentionBrandConfig[] = [
       { name: 'Samsung', url: 'https://samsung.com' },
       { name: 'Google', url: 'https://google.com' },
     ],
-    platforms: ['custom'],
-    aiEndpointUrl: null,
-    aiModel: null,
-    createdAt: nowIso,
-    updatedAt: nowIso,
   },
   {
     id: 'default-alibaba',
-    companyId: 'default',
     brandName: 'Alibaba',
     brandAliases: ['BABA', 'Alibaba Cloud', 'Qwen', 'Aliyun'],
     brandUrl: 'https://alibabagroup.com',
@@ -282,15 +268,9 @@ const DEFAULT_COMPANY_CONFIGS: MentionBrandConfig[] = [
       { name: 'Tencent', url: 'https://tencent.com' },
       { name: 'Baidu', url: 'https://baidu.com' },
     ],
-    platforms: ['custom'],
-    aiEndpointUrl: null,
-    aiModel: null,
-    createdAt: nowIso,
-    updatedAt: nowIso,
   },
   {
     id: 'default-smic',
-    companyId: 'default',
     brandName: 'SMIC',
     brandAliases: ['SMIC', 'Semiconductor Manufacturing International', '0981.HK'],
     brandUrl: 'https://smics.com',
@@ -298,15 +278,9 @@ const DEFAULT_COMPANY_CONFIGS: MentionBrandConfig[] = [
       { name: 'TSMC', url: 'https://tsmc.com' },
       { name: 'Samsung Foundry', url: 'https://semiconductor.samsung.com' },
     ],
-    platforms: ['custom'],
-    aiEndpointUrl: null,
-    aiModel: null,
-    createdAt: nowIso,
-    updatedAt: nowIso,
   },
   {
     id: 'default-reliance',
-    companyId: 'default',
     brandName: 'Reliance / Jio',
     brandAliases: ['Reliance', 'Jio', 'RELIANCE', 'Jio Platforms'],
     brandUrl: 'https://ril.com',
@@ -314,11 +288,6 @@ const DEFAULT_COMPANY_CONFIGS: MentionBrandConfig[] = [
       { name: 'Bharti Airtel', url: 'https://airtel.in' },
       { name: 'Tata Communications', url: 'https://tatacommunications.com' },
     ],
-    platforms: ['custom'],
-    aiEndpointUrl: null,
-    aiModel: null,
-    createdAt: nowIso,
-    updatedAt: nowIso,
   },
 ];
 
@@ -380,7 +349,7 @@ function host(value: string | null | undefined) {
   }
 }
 
-function companyTerms(config: MentionBrandConfig) {
+function companyTerms(config: CompanyFocus) {
   const competitors = config.competitors ?? [];
   return {
     direct: [config.brandName, ...(config.brandAliases ?? []), host(config.brandUrl)]
@@ -458,7 +427,7 @@ function scopedHref(country: CountryId, companyId?: string) {
   return query ? `/signals?${query}` : '/signals';
 }
 
-function relevanceScore(signal: SignalRow, config: MentionBrandConfig) {
+function relevanceScore(signal: SignalRow, config: CompanyFocus) {
   const terms = companyTerms(config);
   const text = signalText(signal);
   let score = 0;
@@ -482,7 +451,7 @@ function relevanceScore(signal: SignalRow, config: MentionBrandConfig) {
   return score;
 }
 
-function companySignals(signals: SignalRow[], config: MentionBrandConfig) {
+function companySignals(signals: SignalRow[], config: CompanyFocus) {
   return signals
     .map((signal) => ({ signal, relevance: relevanceScore(signal, config) }))
     .filter((item) => item.relevance > 0)
@@ -495,24 +464,16 @@ function companySignals(signals: SignalRow[], config: MentionBrandConfig) {
     .map((item) => item.signal);
 }
 
-async function loadCompanyConfigs() {
-  const auth = await getRequestAuth();
-  const userId = auth && 'userId' in auth ? auth.userId : null;
-  const orgId = auth && 'orgId' in auth ? auth.orgId : null;
-  const ownerId = orgId ?? userId;
-  if (!ownerId) return { ownerId: null, configs: DEFAULT_COMPANY_CONFIGS };
-  try {
-    const { configs } = await api.mentionConfigs(ownerId);
-    return { ownerId, configs: configs.length ? configs : DEFAULT_COMPANY_CONFIGS };
-  } catch {
-    return { ownerId, configs: DEFAULT_COMPANY_CONFIGS };
-  }
+// Company focus lists are the same for every visitor now that per-user brand
+// configs are gone.
+function loadCompanyConfigs() {
+  return { configs: DEFAULT_COMPANY_CONFIGS };
 }
 
 // Public per agents.md: signals are a "public web page" output channel.
 export default async function SignalsPage({ searchParams }: { searchParams: Promise<SP> }) {
   const sp = await searchParams;
-  const { ownerId, configs } = await loadCompanyConfigs();
+  const { configs } = loadCompanyConfigs();
   const activeCountry = countryFeed(sp.country);
   const activeCompany =
     sp.company && sp.company !== 'global'
@@ -574,7 +535,6 @@ export default async function SignalsPage({ searchParams }: { searchParams: Prom
           activeCompanyId={activeCompany?.id ?? 'global'}
           activeCountryId={activeCountry.id}
           countryCounts={counts}
-          ownerId={ownerId}
         />
         <div className="min-w-0">
           <Header company={activeCompany} country={activeCountry} />
@@ -611,13 +571,11 @@ function SignalsSidebar({
   activeCompanyId,
   activeCountryId,
   countryCounts,
-  ownerId,
 }: {
-  configs: MentionBrandConfig[];
+  configs: CompanyFocus[];
   activeCompanyId: string;
   activeCountryId: CountryId;
   countryCounts: Record<CountryId, number>;
-  ownerId: string | null;
 }) {
   return (
     <aside className="min-w-0 overflow-hidden border-b border-zinc-800 pb-5 lg:sticky lg:top-20 lg:flex lg:h-[calc(100vh-6rem)] lg:flex-col lg:overflow-visible lg:border-b-0 lg:pb-0">
@@ -653,21 +611,8 @@ function SignalsSidebar({
                 />
               ))}
             </nav>
-          ) : (
-            <p className="mt-3 border border-dashed border-zinc-800 p-3 text-xs leading-5 text-zinc-500">
-              Add a company or idea to make this feed personal.
-            </p>
-          )}
+          ) : null}
         </div>
-      </div>
-
-      <div className="mt-3 shrink-0 border-t border-zinc-800 pt-4">
-        <a
-          href={ownerId ? '/mentions' : '/sign-in'}
-          className="block border border-zinc-800 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-accent)] hover:border-[var(--color-accent)]/60 hover:text-cyan-200"
-        >
-          + add new company
-        </a>
       </div>
     </aside>
   );
@@ -739,7 +684,7 @@ function Header({
   company,
   country,
 }: {
-  company: MentionBrandConfig | null;
+  company: CompanyFocus | null;
   country: (typeof COUNTRY_FEEDS)[number];
 }) {
   const isGlobal = country.id === 'global';
@@ -796,7 +741,7 @@ function ActiveSummary({
 }: {
   count: number;
   active: [string, unknown][];
-  company: MentionBrandConfig | null;
+  company: CompanyFocus | null;
   country: (typeof COUNTRY_FEEDS)[number];
 }) {
   return (
@@ -821,7 +766,7 @@ function Empty({
   country,
 }: {
   filtered: boolean;
-  company: MentionBrandConfig | null;
+  company: CompanyFocus | null;
   country: (typeof COUNTRY_FEEDS)[number];
 }) {
   return (

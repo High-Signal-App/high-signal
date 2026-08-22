@@ -6,7 +6,7 @@ import {
   StatGrid,
 } from '@/components/system/HighSignalUI';
 import { api, type LabFeedResult } from '@/lib/api';
-import { requireSignedIn } from '@/lib/require-auth';
+import { requireAdminSession } from '@/lib/admin-guard';
 import type { Route } from 'next';
 
 export const dynamic = 'force-dynamic';
@@ -17,7 +17,7 @@ export default async function LabCandidatesPage({
 }: {
   searchParams?: Promise<{ q?: string; source?: string }>;
 }) {
-  await requireSignedIn();
+  await requireAdminSession();
   const params = (await searchParams) ?? {};
   const query = (params.q ?? '').trim();
   const source = (params.source ?? '').trim();

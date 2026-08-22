@@ -1,20 +1,11 @@
 // Default to deployed prod API. Override at build time with NEXT_PUBLIC_API_BASE for local dev.
 import type {
-  AgentEvaluationAudit,
-  AgentEvaluationAuditDetail,
-  AgentEvaluationCompetitor,
-  AIPlatform,
   BriefSnapshot,
   BriefFeedEdition,
   BriefFeedCadence,
   BriefFeedSlug,
   CommunityDigestSnapshot,
-  MentionBrandConfig,
-  MentionCheck,
-  MentionPrompt,
-  ProductDashboardSnapshot,
   Region,
-  TrackedCommunity,
 } from '@high-signal/shared';
 import type { SignalContentCategory, SignalQualityBand, SourceClass } from '@high-signal/shared';
 import type {
@@ -35,16 +26,11 @@ export type {
   AgentEvaluationAudit,
   AgentEvaluationAuditDetail,
   AgentEvaluationCompetitor,
-  AIPlatform,
   BriefSnapshot,
   BriefFeedEdition,
   BriefFeedCadence,
   BriefFeedSlug,
   CommunityDigestSnapshot,
-  MentionBrandConfig,
-  MentionCheck,
-  MentionPrompt,
-  ProductDashboardSnapshot,
   Region,
   TrackedCommunity,
 } from '@high-signal/shared';
@@ -536,10 +522,6 @@ export const api = {
     fetchJson<{ mentions: RedditMention[]; total: number }>(
       `/communities/reddit-mentions?${new URLSearchParams({ q: query, limit: String(limit) })}`
     ),
-  productDashboard: (ownerId: string) =>
-    fetchJson<ProductDashboardSnapshot>(
-      `/products/dashboard?${new URLSearchParams({ owner: ownerId })}`
-    ),
   productCommunityDiscover: (period: 'day' | 'week' | 'month' = 'week') =>
     fetchJson<{ items: CommunityDigestSnapshot[] }>(
       `/products/communities/discover?${new URLSearchParams({ period })}`
@@ -548,336 +530,11 @@ export const api = {
     fetchJson<{ digests: CommunityDigestSnapshot[] }>(
       `/products/communities/${encodeURIComponent(subreddit)}/${period}/digests`
     ),
-  agentEvaluationAudits: (ownerId: string, limit = 10) =>
-    fetchJson<{ audits: AgentEvaluationAudit[] }>(
-      `/products/agent-eval/audits?${new URLSearchParams({ owner: ownerId, limit: String(limit) })}`
-    ),
-  createAgentEvaluationAudit: (
-    ownerId: string,
-    input: {
-      brandName: string;
-      brandUrl: string;
-      buyerMission: string;
-      targetSegment?: string | null;
-      competitors?: AgentEvaluationCompetitor[];
-      evidenceText?: string | null;
-      evidenceUrls?: string[];
-    }
-  ) =>
-    fetchJson<AgentEvaluationAuditDetail>(
-      `/products/agent-eval/audits?${new URLSearchParams({ owner: ownerId })}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(input),
-      }
-    ),
-  agentEvaluationAudit: (ownerId: string, id: string) =>
-    fetchJson<AgentEvaluationAuditDetail>(
-      `/products/agent-eval/audits/${encodeURIComponent(id)}?${new URLSearchParams({ owner: ownerId })}`
-    ),
   seoAudit: (url: string) =>
     fetchJson<SeoAuditReport>(`/products/agent-eval/seo-audit?${new URLSearchParams({ url })}`),
-  trackedCommunities: (ownerId: string) =>
-    fetchJson<{ communities: TrackedCommunity[] }>(
-      `/products/communities/tracked?${new URLSearchParams({ owner: ownerId })}`
-    ),
-  createTrackedCommunity: (
-    ownerId: string,
-    input: {
-      subreddit: string;
-      prompt?: string | null;
-      period?: 'day' | 'week' | 'month';
-      isPublic?: boolean;
-    }
-  ) =>
-    fetchJson<{ community: TrackedCommunity }>(
-      `/products/communities/tracked?${new URLSearchParams({ owner: ownerId })}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(input),
-      }
-    ),
-  deleteTrackedCommunity: (ownerId: string, id: string) =>
-    fetchJson<{ ok: true }>(
-      `/products/communities/tracked/${encodeURIComponent(id)}?${new URLSearchParams({ owner: ownerId })}`,
-      { method: 'DELETE' }
-    ),
-  generateCommunityDigest: (ownerId: string, id: string) =>
-    fetchJson<{ digest: CommunityDigestSnapshot }>(
-      `/products/communities/tracked/${encodeURIComponent(id)}/digests?${new URLSearchParams({ owner: ownerId })}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: '{}',
-      }
-    ),
-  mentionConfigs: (ownerId: string) =>
-    fetchJson<{ configs: MentionBrandConfig[] }>(
-      `/products/mentions/configs?${new URLSearchParams({ owner: ownerId })}`
-    ),
-  visibilityMatrix: (ownerId: string, brandId: string, window = 30) =>
-    fetchJson<{
-      cells: Array<{
-        prompt: string;
-        platform: string;
-        brandMentioned: boolean;
-        brandRecommended: boolean;
-        competitors: string[];
-        citationsCount: number;
-        runAt: string;
-      }>;
-      windowDays: number;
-      runs: number;
-    }>(
-      `/products/mentions/${encodeURIComponent(brandId)}/visibility-matrix?window=${window}&owner=${encodeURIComponent(ownerId)}`
-    ),
-  shareOfVoice: (ownerId: string, brandId: string, window = 30) =>
-    fetchJson<{
-      windowDays: number;
-      runs: number;
-      brandMentionRate: number;
-      brandRecommendationRate: number;
-      brandCitationRate: number;
-      competitorShare: Record<string, number>;
-      citationShare: Record<string, number>;
-    }>(
-      `/products/mentions/${encodeURIComponent(brandId)}/share-of-voice?window=${window}&owner=${encodeURIComponent(ownerId)}`
-    ),
-  citedSources: (ownerId: string, brandId: string, ownership?: string) =>
-    fetchJson<{
-      sources: Array<{
-        id: string;
-        url: string;
-        host: string;
-        ownership: 'owned' | 'competitor' | 'third_party' | 'unknown';
-        competitorId: string | null;
-        firstSeenAt: string;
-        lastSeenAt: string;
-        platforms: string[];
-        mentionRunCount: number;
-      }>;
-    }>(
-      `/products/mentions/${encodeURIComponent(brandId)}/cited-sources?owner=${encodeURIComponent(ownerId)}${ownership ? `&ownership=${ownership}` : ''}`
-    ),
-  intentOpportunities: (
-    ownerId: string,
-    brandId: string,
-    opts: { status?: 'open' | 'dismissed' | 'done'; source?: string; limit?: number } = {}
-  ) => {
-    const params = new URLSearchParams({ owner: ownerId });
-    if (opts.status) params.set('status', opts.status);
-    if (opts.source) params.set('source', opts.source);
-    if (opts.limit != null) params.set('limit', String(opts.limit));
-    return fetchJson<{ opportunities: IntentOpportunity[]; status: string }>(
-      `/products/mentions/${encodeURIComponent(brandId)}/intent-opportunities?${params}`
-    );
-  },
-  refreshIntentOpportunities: (ownerId: string, brandId: string, window = 14) =>
-    fetchJson<{ upserts: number; scanned: number; windowDays: number }>(
-      `/products/mentions/${encodeURIComponent(brandId)}/intent-opportunities/refresh?window=${window}&owner=${encodeURIComponent(ownerId)}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: '{}',
-      }
-    ),
-  updateIntentOpportunity: (
-    ownerId: string,
-    brandId: string,
-    id: string,
-    status: 'open' | 'dismissed' | 'done'
-  ) =>
-    fetchJson<{ opportunity: IntentOpportunity }>(
-      `/products/mentions/${encodeURIComponent(brandId)}/intent-opportunities/${encodeURIComponent(id)}?owner=${encodeURIComponent(ownerId)}`,
-      {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status }),
-      }
-    ),
-  generateIntentReplyDraft: (ownerId: string, brandId: string, id: string) =>
-    fetchJson<{ opportunity: IntentOpportunity }>(
-      `/products/mentions/${encodeURIComponent(brandId)}/intent-opportunities/${encodeURIComponent(id)}/reply-draft?owner=${encodeURIComponent(ownerId)}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: '{}',
-      }
-    ),
-  mentionTrends: (ownerId: string, brandId: string, window = 30) =>
-    fetchJson<{
-      points: Array<{
-        date: string;
-        runs: number;
-        mentionRate: number;
-        recommendationRate: number;
-        citedHosts: number;
-      }>;
-    }>(
-      `/products/mentions/${encodeURIComponent(brandId)}/trends?window=${window}&owner=${encodeURIComponent(ownerId)}`
-    ),
-  mentionReport: (ownerId: string, brandId: string, window = 30) =>
-    fetchJson<{
-      windowDays: number;
-      report?: {
-        brandName: string;
-        windowDays: number;
-        generatedForRuns: number;
-        score: {
-          score: number;
-          grade: 'A' | 'B' | 'C' | 'D' | 'F';
-          components: {
-            mention: number;
-            recommendation: number;
-            citation: number;
-            consistency: number;
-          };
-          platformsCovered: number;
-          platformsTotal: number;
-        };
-        platforms: string[];
-        perPersona: Array<{
-          persona: string;
-          runs: number;
-          mentionRate: number;
-          recommendationRate: number;
-          citationRate: number;
-        }>;
-        citationGaps: Array<{
-          host: string;
-          ownership: string;
-          citations: number;
-          competitorId?: string;
-        }>;
-        trend: { direction: 'up' | 'down' | 'flat'; deltaMentionRate: number };
-        recommendations: Array<{
-          priority: 'high' | 'medium' | 'low';
-          area: string;
-          title: string;
-          detail: string;
-        }>;
-      };
-      summary: {
-        runs: number;
-        brandMentionRate: number;
-        brandRecommendationRate?: number;
-        brandCitationRate: number;
-        visibilityScore?: number;
-        grade?: 'A' | 'B' | 'C' | 'D' | 'F';
-        platforms?: string[];
-        trendPoints: number;
-      };
-      matrix: Array<{
-        prompt: string;
-        platform: string;
-        brandMentioned: boolean;
-        brandRecommended: boolean;
-        competitors: string[];
-        citationsCount: number;
-        runAt: string;
-      }>;
-      shareOfVoice: {
-        windowDays: number;
-        runs: number;
-        brandMentionRate: number;
-        brandRecommendationRate: number;
-        brandCitationRate: number;
-        competitorShare: Record<string, number>;
-        citationShare: Record<string, number>;
-      };
-      citedSources: Array<{
-        id: string;
-        url: string;
-        host: string;
-        ownership: string;
-        mentionRunCount: number;
-      }>;
-      intentOpportunities: IntentOpportunity[];
-    }>(
-      `/products/mentions/${encodeURIComponent(brandId)}/report?window=${window}&owner=${encodeURIComponent(ownerId)}`
-    ),
-  createMentionReportShareToken: (ownerId: string, brandId: string) =>
-    fetchJson<{ token: string }>(
-      `/products/mentions/${encodeURIComponent(brandId)}/report/share-token?owner=${encodeURIComponent(ownerId)}`,
-      { method: 'POST' }
-    ),
-  agentEvalAttributes: (ownerId: string, auditId: string) =>
-    fetchJson<{
-      attributes: Array<{
-        area: string;
-        status: 'missing' | 'weak' | 'clear' | 'strong';
-        evidenceUrls: string[];
-        notes: string;
-        taskCount: number;
-      }>;
-    }>(
-      `/products/agent-eval/${encodeURIComponent(auditId)}/attributes?owner=${encodeURIComponent(ownerId)}`
-    ),
-  createMentionConfig: (
-    ownerId: string,
-    input: {
-      brandName: string;
-      brandAliases?: string[];
-      brandUrl?: string | null;
-      competitors?: Array<{ name: string; url?: string }>;
-      platforms?: AIPlatform[];
-      aiEndpointUrl?: string | null;
-      aiModel?: string | null;
-      checkSchedule?: 'daily' | 'weekly' | null;
-      badgeEnabled?: boolean;
-    }
-  ) =>
-    fetchJson<{ config: MentionBrandConfig }>(
-      `/products/mentions/configs?${new URLSearchParams({ owner: ownerId })}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(input),
-      }
-    ),
-  deleteMentionConfig: (ownerId: string, id: string) =>
-    fetchJson<{ ok: true }>(
-      `/products/mentions/configs/${encodeURIComponent(id)}?${new URLSearchParams({ owner: ownerId })}`,
-      { method: 'DELETE' }
-    ),
-  mentionConfigPrompts: (ownerId: string, configId: string) =>
-    fetchJson<{ prompts: MentionPrompt[] }>(
-      `/products/mentions/configs/${encodeURIComponent(configId)}/prompts?${new URLSearchParams({ owner: ownerId })}`
-    ),
-  createMentionPrompt: (
-    ownerId: string,
-    configId: string,
-    input: { promptText: string; category?: string | null }
-  ) =>
-    fetchJson<{ prompt: MentionPrompt }>(
-      `/products/mentions/configs/${encodeURIComponent(configId)}/prompts?${new URLSearchParams({ owner: ownerId })}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(input),
-      }
-    ),
-  mentionConfigChecks: (ownerId: string, configId: string) =>
-    fetchJson<{ checks: MentionCheck[] }>(
-      `/products/mentions/configs/${encodeURIComponent(configId)}/checks?${new URLSearchParams({ owner: ownerId })}`
-    ),
-  runMentionCheck: (ownerId: string, configId: string) =>
-    fetchJson<{ check: MentionCheck }>(
-      `/products/mentions/configs/${encodeURIComponent(configId)}/checks?${new URLSearchParams({ owner: ownerId })}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: '{}',
-      }
-    ),
-  brief: (
-    params: { region?: Region; ownerId?: string; productId?: string; date?: string } = {}
-  ) => {
+  brief: (params: { region?: Region; productId?: string; date?: string } = {}) => {
     const search = new URLSearchParams();
     if (params.region) search.set('region', params.region);
-    if (params.ownerId) search.set('owner', params.ownerId);
     if (params.productId) search.set('product', params.productId);
     if (params.date) search.set('date', params.date);
     const suffix = search.toString();

@@ -299,13 +299,13 @@ export default async function SeoAuditPage({
             next step
           </p>
           <p className="mt-4 max-w-[72ch] text-sm leading-7 text-[var(--color-muted)]">
-            Run the audit on a canonical page, fix the weakest technical primitive, and then measure
-            actual provider mentions separately in{' '}
+            Run the audit on a canonical page, fix the weakest technical primitive, and then re-run
+            the full{' '}
             <a
               className="inline-flex min-h-11 items-center text-[var(--color-fg)] hover:text-[var(--color-accent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
-              href="/mentions"
+              href="/agent-eval"
             >
-              Mentions
+              agent evaluation
             </a>
             .
           </p>

@@ -27,13 +27,14 @@ cpu_ms = 30000
 NODE_ENV = "production"
 NEXT_PUBLIC_SAASMAKER_API_KEY = "pk_3eb4816ef2179c25f364315aa1c3148a88e8004bfa5e5235"
 NEXT_PUBLIC_API_BASE = "https://high-signal-api.sarthakagrawal927.workers.dev"
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = "pk_test_ZmFpci1ob3JuZXQtMjcuY2xlcmsuYWNjb3VudHMuZGV2JA"
-# Auth is Clerk. Set in the Cloudflare dashboard (Secrets, not vars):
-#   CLERK_SECRET_KEY            (sk_…)
-#   ADMIN_ALLOWED_EMAILS        comma-separated allow-list, gates /track-record admin view
-#   ADMIN_TOKEN                 wrangler secret put ADMIN_TOKEN (used by Modal scorer + sync)
+# Everything readable is public. The only gate is the single-operator session
+# at /admin/login. Set these in the Cloudflare dashboard (Secrets, not vars):
+#   ADMIN_PASSWORD              operator login password for /admin/login
+#   ADMIN_SESSION_SECRET        HMAC key for the operator session cookie
+#   ADMIN_TOKEN                 wrangler secret put ADMIN_TOKEN (used by Modal scorer + sync,
+#                               and injected server-side by the /api/admin proxy)
 #   LAB_API_URL                 optional, points the /lab page at a Lab Postgres FastAPI
-#   HIGH_SIGNAL_AI_API_KEY      optional, unlocks LLM calls in Mentions / Agent Eval / community digests
+#   HIGH_SIGNAL_AI_API_KEY      optional, unlocks LLM calls in community digests
 
 [[services]]
 binding = "API"

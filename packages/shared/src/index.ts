@@ -8,8 +8,6 @@ export * from './core';
 export * from './nlp';
 export * from './ideas';
 export * from './markets';
-export * from './mentions';
 export * from './agent-eval';
 export * from './personal';
-export * from './watchlist';
 export * from './content';

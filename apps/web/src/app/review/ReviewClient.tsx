@@ -43,7 +43,7 @@ export default function ReviewPage() {
     setErr(null);
     const r = await fetch(url, { ...init, credentials: 'include' });
     if (r.status === 401 || r.status === 403) {
-      setErr('not authorized — sign in with a Clerk account that is allowed to review signals');
+      setErr('not authorized — sign in at /admin/login');
       return null;
     }
     if (!r.ok) {
@@ -95,8 +95,8 @@ export default function ReviewPage() {
       <header className="mt-3 border-b border-zinc-800 pb-6">
         <h1 className="text-3xl font-medium tracking-tight">Review queue</h1>
         <p className="mt-2 max-w-2xl text-sm text-zinc-400">
-          Behind Clerk. Browser requests stay same-origin, and the server injects privileged worker
-          credentials only after the signed-in user passes the admin allow-list.
+          Operator only. Browser requests stay same-origin, and the server injects privileged worker
+          credentials only after the admin session cookie is verified.
         </p>
       </header>
 

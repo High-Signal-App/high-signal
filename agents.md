@@ -22,8 +22,10 @@ and blocked work in GitHub Issues.
 public sources (Reddit, news, Hacker News, YouTube transcripts, SEC filings,
 GitHub, IR pages, etc.), curates and cleans them, and emits an end-of-day
 message answering five questions for the operator. Everything else — Markets,
-Communities, Mentions, Agent Eval, Lab — is an **intelligence helper** feeding
-that brief, not a standalone product.
+Communities, Agent Eval, Lab — is an **intelligence helper** feeding that
+brief, not a standalone product. There are no user accounts: everything
+readable is public, and the only gate is a single operator session that
+controls publishing.
 
 Locked product direction (brand, sections, pricing, lenses, hard rules, UI
 direction, out-of-scope): [`docs/product/direction.md`](docs/product/direction.md).
@@ -38,7 +40,7 @@ prior "umbrella + 5 sub-products" framing in `plans/0004-platform-consolidation.
 - **Lab substrate**: local-first Postgres (FTS + `pgvector`) — `python/lab` (plan `0007`, parked)
 - **Python ingestion + scoring**: edgartools, Trafilatura, GLiNER, NetworkX — `python/ingest`. Relation extraction (GLiREL) is a parked stub returning a typed empty result (not a declared dep); FinBERT sentiment is code-present but its `transformers` dep is undeclared and returns an unavailable/neutral-with-reason result. Daily crons on GitHub Actions; Modal kept for ad-hoc backfills only.
 - **Signal store**: git-versioned markdown under `signals/YYYY-MM-DD/<slug>.md` — append-only, never rewritten.
-- **Auth**: Clerk (Google + email). Server gates: `requireSignedIn()` / `requireAdmin()` (`ADMIN_ALLOWED_EMAILS`). CF Access was abandoned — do not reintroduce without a migration plan.
+- **Auth**: none for readers — the product is fully public. A single operator session gates publishing: password → signed httpOnly cookie (`apps/web/src/lib/admin-session.ts`), verified by `requireAdminSession()` / `hasAdminSession()` (`admin-guard.ts`). The `/api/admin` proxy injects `ADMIN_TOKEN` server-side so it never reaches the browser. Clerk and CF Access were both removed — do not reintroduce either without a migration plan (ADR-013).
 - **Testing**: Vitest (TS), pytest (Python), Playwright (e2e).
 - **Deploy**: Cloudflare Workers for web (`high-signal-web` via OpenNext) and API (`high-signal-api`). No Vercel.
 - **Package manager**: pnpm workspace + uv (Python).
@@ -96,8 +98,8 @@ Data service boundary: [`docs/architecture/data-service-boundary.md`](docs/archi
 - **Prediction markets are not equity prices.** `market_quotes` = Polymarket/Manifold/Kalshi probabilities (schema enum; `cron-markets.yml` runs `--source markets`). Metaculus is a separate forecast/events source, not a `market_quotes` row. Never use that table as equity-price evidence. Auto-publish KILLs prediction-market-only signals.
 - **Signals are append-only.** Never edit a published signal markdown; supersede with a new file citing the prior.
 - **No secrets in the repo.** No `.env`, keys, or production configs in commits. Cron secrets live in GitHub Actions secrets / Infisical.
-- **Do not reintroduce Cloudflare Access** for auth without a migration plan (Clerk is the auth layer).
-- **Do not delete `mentionpilot` / `agentMode`** until feature migration is verified (consolidation rule in [`docs/product/direction.md`](docs/product/direction.md)).
+- **No user accounts.** Per-user features (Mentions, Watchlists, email brief delivery, saved Agent Eval history) were deleted in migration `0020` — see ADR-013. Do not add a per-user table, a login for readers, or a second auth vendor without a new ADR.
+- **`tracked_communities` is operator curation, not user data.** Its `owner_id` column is vestigial. The public brief's Behavior & Culture section reads its digests, so its CRUD lives behind `ADMIN_TOKEN` in `workers/api/src/routes/admin.ts` — never re-scope it per user or delete it.
 - **Free AI first.** Prefer the `free-ai` gateway / local models / free tiers; escalate to paid models only when justified.
 
 ## Documentation navigation
@@ -119,7 +121,7 @@ Data service boundary: [`docs/architecture/data-service-boundary.md`](docs/archi
 | Data source audit | [`docs/operations/data-source-audit.md`](docs/operations/data-source-audit.md) |
 | Cron jobs reference | [`docs/operations/jobs.md`](docs/operations/jobs.md) |
 | Ingest runbook | [`docs/operations/runbooks/ingest.md`](docs/operations/runbooks/ingest.md) |
-| Clerk production cutover | [`docs/operations/runbooks/clerk-production.md`](docs/operations/runbooks/clerk-production.md) |
+| Operator admin access | [`docs/operations/runbooks/admin-access.md`](docs/operations/runbooks/admin-access.md) |
 | Durable learnings | [`docs/knowledge/learnings/lessons.md`](docs/knowledge/learnings/lessons.md) |
 | Failed & deferred approaches | [`docs/knowledge/failed-approaches.md`](docs/knowledge/failed-approaches.md) |
 | External references (papers/libs) | [`docs/knowledge/external-references.md`](docs/knowledge/external-references.md) |

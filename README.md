@@ -206,7 +206,7 @@ Worth playgrounding as marketing tools:
 
 ## Architecture
 ```
-apps/web              Next.js 16 + Tailwind v4 — futurist + clean UI, Clerk auth
+apps/web              Next.js 16 + Tailwind v4 — futurist + clean UI, fully public
 workers/api           Hono on Cloudflare Workers + D1 binding + cron
 packages/db           Drizzle schema + migrations (sqlite/D1) — signals, mentions,
                       communities, agent-eval, market quotes

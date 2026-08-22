@@ -8,6 +8,7 @@ import {
   StatGrid,
 } from '@/components/system/HighSignalUI';
 import { MarkdownView } from '@/components/system/MarkdownView';
+import { requireAdminSession } from '@/lib/admin-guard';
 import { api, type SignalRow } from '@/lib/api';
 import {
   buildDailyAutomationStatus,
@@ -132,7 +133,7 @@ const fallbackFlows: IdeaFlowEvidence[] = [
     title: 'Multi-product builders need an operating system for product decisions',
     summary:
       'A fleet of small products needs ranked build/change/watch decisions, not more disconnected dashboards.',
-    href: '/watchlist',
+    href: '/signals',
     observedAt: '2026-05-21T00:00:00.000Z',
     confidence: 'high',
   },
@@ -328,6 +329,9 @@ export default async function PersonalPage({
     requirement?: string;
   }>;
 }) {
+  // Operator command brief — not part of the public product. Everything else
+  // on High Signal is public; this one page is the operator's own cockpit.
+  await requireAdminSession('/personal');
   const params = (await searchParams) ?? {};
   const reports = (reportIndex as PersonalReportIndex).reports
     .slice()
@@ -340,14 +344,11 @@ export default async function PersonalPage({
   const selectedReadLayer = safeReadLayer(params.layer);
   const selectedReadDomain = safeReadDomain(params.domain);
   const selectedRequirement = params.requirement === 'yes';
-  const ownerId = productGraph.owner;
-  const [signalsResult, dashboardResult, discoverResult] = await Promise.allSettled([
+  const [signalsResult, discoverResult] = await Promise.allSettled([
     api.signals({ status: 'published' }),
-    api.productDashboard(ownerId),
     api.productCommunityDiscover('week'),
   ]);
   const signals = signalsResult.status === 'fulfilled' ? signalsResult.value.signals : [];
-  const dashboard = dashboardResult.status === 'fulfilled' ? dashboardResult.value : null;
   const discover = discoverResult.status === 'fulfilled' ? discoverResult.value.items : [];
   const refreshes = await readSourceRefreshes();
   const marketRefreshes = await readMarketRefreshes();
@@ -406,7 +407,6 @@ export default async function PersonalPage({
     ...evidenceFromRefreshes(refreshes),
     ...evidenceFromSignals(signals),
     ...evidenceFromDigests(discover),
-    ...evidenceFromDigests(dashboard?.communities.latestDigests ?? []),
     ...fallbackFlows,
   ];
   const opportunities = generateProductOpportunities(evidence);

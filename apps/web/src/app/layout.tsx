@@ -1,10 +1,8 @@
 import type { Metadata } from 'next';
-import { ClerkProvider } from '@clerk/nextjs';
 import './globals.css';
 import { AnalyticsProvider } from '@/components/posthog-provider';
 import { SaaSMakerFeedback } from '@/components/saasmaker-feedback';
 import { VitalsReporter } from '@/components/VitalsReporter';
-import { AuthNav } from '@/components/auth/AuthNav';
 import { PrimaryNav } from '@/components/system/PrimaryNav';
 import { SiteFooter } from '@/components/system/SiteFooter';
 import {
@@ -96,14 +94,12 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  const clerkConfigured = Boolean(
-    process.env['NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY'] && process.env['CLERK_SECRET_KEY']
-  );
+  // No auth provider: High Signal is fully public. The only gate is the
+  // operator session at /admin/login (see lib/admin-session.ts).
   const app = (
     <AnalyticsProvider>
       <PrimaryNav />
       <div aria-hidden="true" className="h-14" />
-      {clerkConfigured ? <AuthNav /> : null}
       {children}
       <SiteFooter />
       <SaaSMakerFeedback />
@@ -131,7 +127,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* fleet-jsonld:end */}
       </head>
       <body className="min-h-dvh font-sans antialiased">
-        {clerkConfigured ? <ClerkProvider>{app}</ClerkProvider> : app}
+        {app}
         <script src="https://sassmaker.com/project-strip.js" data-project="high-signal" defer />
       </body>
     </html>

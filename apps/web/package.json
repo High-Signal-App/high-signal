@@ -18,7 +18,6 @@
     "lint": "biome check ."
   },
   "dependencies": {
-    "@clerk/nextjs": "^7.2.9",
     "@high-signal/shared": "workspace:*",
     "@saas-maker/feedback": "^0.2.1",
     "lucide-react": "1.11.0",
