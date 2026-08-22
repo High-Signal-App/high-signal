@@ -7,6 +7,15 @@ const ROOT_CLIENT_CACHE_CONTROL = 'private, no-cache';
 const RSC_CACHE_CONTROL = 'public, max-age=0, s-maxage=3600';
 const ROOT_CACHE_SCHEMA = 'daily-brief-v2';
 
+// Public pages that intentionally do not advertise an AI-crawler Markdown
+// representation. They still benefit from the same anonymous HTML/RSC cache.
+const PUBLIC_HTML_ONLY_PATHS = new Set([
+  '/case-studies/search',
+  '/history',
+  '/mentions',
+  '/signals/today',
+]);
+
 const PUBLIC_DATA_CACHE_CONTROL = new Map([
   ['/sitemap.xml', 'public, max-age=300, s-maxage=3600'],
   ['/daily/range.json', 'public, max-age=60, s-maxage=300'],
@@ -44,7 +53,7 @@ export function isCacheableDocumentRequest(request) {
   // receive or serve a payload for a different router state.
   if (isRscRequest(request)) {
     return (
-      isPublicHtmlPath(pathname) && [...url.searchParams.keys()].every((key) => key === '_rsc')
+      isPublicDocumentPath(pathname) && [...url.searchParams.keys()].every((key) => key === '_rsc')
     );
   }
   return url.search === '' && request.headers.get('rsc') !== '1';
@@ -103,8 +112,12 @@ export function edgeCacheStatus(request, result) {
 
 function isPublicCachePath(pathname) {
   return (
-    isPublicHtmlPath(pathname) ||
+    isPublicDocumentPath(pathname) ||
     pathname.startsWith('/feeds/') ||
     PUBLIC_DATA_CACHE_CONTROL.has(pathname)
   );
+}
+
+function isPublicDocumentPath(pathname) {
+  return isPublicHtmlPath(pathname) || PUBLIC_HTML_ONLY_PATHS.has(pathname);
 }

@@ -23,6 +23,10 @@ for (const path of [
   '/entities/openai/2026-08',
   '/markets/NVDA',
   '/case-studies/page/2',
+  '/case-studies/search',
+  '/history',
+  '/mentions',
+  '/signals/today',
   '/feeds/brief/weekly',
   '/sitemap.xml',
   '/daily/range.json',
@@ -51,6 +55,11 @@ const rsc = request('/signals/a-published-signal?_rsc=route-state', {
 });
 assert.equal(isRscRequest(rsc), true);
 assert.equal(isCacheableDocumentRequest(rsc), true, 'canonical anonymous RSC must be cacheable');
+assert.equal(
+  isCacheableDocumentRequest(request('/signals/today?_rsc=route-state', { headers: { RSC: '1' } })),
+  true,
+  'public HTML-only RSC routes must be cacheable'
+);
 assert.equal(
   isCacheableDocumentRequest(
     request('/signals/a-published-signal?_rsc=route-state&preview=1', { headers: { RSC: '1' } })
