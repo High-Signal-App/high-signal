@@ -7,6 +7,7 @@ import {
   handleAgentEdge,
   handleCachedCrawlerMarkdown,
   handleCachedRenderedMarkdown,
+  RATE_LIMIT_HEADERS,
   wantsMarkdown,
 } from './agent-edge.mjs';
 import {
@@ -51,6 +52,7 @@ function postProcessResponse(request, url, response) {
         headers: {
           'Content-Type': 'application/json; charset=utf-8',
           'Cache-Control': 'no-store',
+          ...RATE_LIMIT_HEADERS,
         },
       }
     );

@@ -14,6 +14,18 @@ const PRODUCT = {
 
 const AGENT_CACHE_CONTROL = 'public, max-age=300, s-maxage=86400';
 
+/**
+ * Quota headers advertised on machine-readable API responses so agent
+ * clients can pace themselves. These describe the public anonymous budget
+ * (120 requests / 60s) and are informational; actual enforcement lives in the
+ * abuse guard and origin API.
+ */
+export const RATE_LIMIT_HEADERS = {
+  'RateLimit-Limit': '120',
+  'RateLimit-Remaining': '119',
+  'RateLimit-Reset': '60',
+};
+
 const BULK_AI_CRAWLER_USER_AGENTS = [
   'amazonbot',
   'bytespider',
@@ -707,6 +719,7 @@ function json(request, data) {
     headers: {
       'Content-Type': 'application/json; charset=utf-8',
       'Cache-Control': AGENT_CACHE_CONTROL,
+      ...RATE_LIMIT_HEADERS,
     },
   });
 }
