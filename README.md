@@ -241,8 +241,9 @@ pnpm personal:brief sync-tasks           # dry-runs idempotent SaaS Maker task c
 pnpm personal:brief sync-tasks --apply   # creates missing accepted-action tasks via SaaS Maker
 pnpm personal:brief report               # writes reports/personal/YYYY-MM-DD.md for weekly review
 
-# 4. Env (.dev.vars + Modal Secret named `high-signal`)
-#   AI_BASE_URL, AI_API_KEY, AI_MODEL
+# 4. Env (dedicated Infisical project; production defaults to `prod`)
+#   ADMIN_TOKEN, AI_BASE_URL, AI_API_KEY, AI_MODEL
+#   Modal's manual-backfill Secret remains named `high-signal`.
 #   SEC_USER_AGENT="your-name your@email"
 
 # 5. Dev

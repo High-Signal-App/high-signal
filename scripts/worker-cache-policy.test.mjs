@@ -40,20 +40,14 @@ for (const denied of [
   request('/about?preview=1'),
   request('/about', { method: 'POST' }),
   request('/about', { headers: { Authorization: 'Bearer private' } }),
-  request('/about', { headers: { Cookie: '__session=private' } }),
   request('/about', { headers: { Cookie: 'CF_Authorization=access.jwt.token' } }),
 ]) {
   assert.equal(isCacheableDocumentRequest(denied), false, `${denied.url} must bypass the cache`);
 }
 
-// The operator session cookie must bypass the shared edge cache, as must any
-// stale Clerk cookie still held by a returning visitor.
+// The operator session cookie must bypass the shared edge cache.
 assert.equal(
   hasAuthCookie(request('/about', { headers: { Cookie: 'CF_Authorization=access.jwt.token' } })),
-  true
-);
-assert.equal(
-  hasAuthCookie(request('/about', { headers: { Cookie: '__clerk_db_jwt=private' } })),
   true
 );
 assert.equal(hasAuthCookie(request('/about', { headers: { Cookie: 'theme=dark' } })), false);

@@ -62,7 +62,8 @@ hours, matching the retired password session.
 
 High Signal owns a dedicated Infisical project so this repository stays
 independently operable. Infisical is the source of truth, not a second copy of
-dashboard-set values.
+dashboard-set values. The tracked `.infisical.json` selects project
+`dec85e87-28ea-4896-8b4e-d0f18afbb80a` and the `prod` environment.
 
 Store at minimum:
 
@@ -73,12 +74,17 @@ Store at minimum:
 | `ADMIN_TOKEN` | both Workers and the GitHub repository |
 | existing cron/source keys | GitHub repository; Modal only when a manual backfill needs them |
 
-Use one-way Cloudflare Worker Secret Syncs for secret values on the two Workers
-and a GitHub Secret Sync for the existing Actions contract. Start with
-destination deletion disabled, verify the selected environment and folder,
-then make Infisical the only secret-mutation path. Modal remains a manual
-exception until its `high-signal` secret has been reconciled; a backfill must
-not be called successful without a write receipt from the API.
+Provider propagation is an explicit operator operation so a rotation cannot
+silently update only one consumer. Pipe values directly from Infisical to the
+destination CLI; never use `--show-values`, shell tracing, or a command-line
+argument containing the value. The required order is GitHub Actions, API
+Worker, web Worker, and finally the Modal `high-signal` secret. Verify the new
+token against `/admin/audit/summary`, confirm the prior token receives 401,
+and load `/review` before declaring the rotation complete.
+
+Modal has no partial-update CLI contract for an existing multi-key Secret. Edit
+only `ADMIN_TOKEN` and `API_BASE` in the dashboard so `SEC_USER_AGENT` is
+preserved, then run a bounded manual backfill and query its `ingest_runs` row.
 
 ## Verify before retiring the password gate
 
@@ -95,10 +101,23 @@ not be called successful without a write receipt from the API.
    exposing `ADMIN_TOKEN` to the browser.
 8. `pnpm quality` passes on the exact deploy SHA.
 
-Only after those receipts exist, remove `ADMIN_PASSWORD` and
-`ADMIN_SESSION_SECRET` from `high-signal-web` through the configured Infisical
-sync. Cloudflare secrets are write-only; verify their absence by secret name,
-never by attempting to print values.
+Only after those receipts exist, remove `ADMIN_PASSWORD`,
+`ADMIN_SESSION_SECRET`, and any retired auth-vendor secret from
+`high-signal-web`. Cloudflare secrets are write-only; verify their absence by
+secret name, never by attempting to print values.
+
+## 2026-08-22 cleanup receipt
+
+- Infisical project `High Signal` / `prod` owns `ADMIN_TOKEN`, the active
+  source credentials, and the free-AI gateway configuration.
+- GitHub Actions and both Workers received the same rotated `ADMIN_TOKEN`; the
+  previous Infisical copy receives 401 while the new token receives 200 from
+  `/admin/audit/summary`.
+- `high-signal-web` now lists only `ADMIN_TOKEN`; `ADMIN_PASSWORD`,
+  `ADMIN_SESSION_SECRET`, and `CLERK_SECRET_KEY` were deleted.
+- Modal's `high-signal` Secret now targets `https://api.highsignal.app` with the
+  rotated token. Run `ap-TSRnnBF5BBHoputTkFd30j` completed a five-minute GDELT
+  replay and persisted D1 audit row `b9bb1c6d00e7d9dd` with zero errors.
 
 ## Revocation
 

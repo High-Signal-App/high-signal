@@ -178,7 +178,7 @@ Primary docs and handoff files:
 - `agents.md`
 - `docs/README.md`
 - `docs/operations/runbooks/cf-access.md`
-- `docs/operations/runbooks/clerk-production.md`
+- `docs/operations/runbooks/admin-access.md`
 - `docs/architecture/data-service-boundary.md`
 - `docs/operations/data-source-audit.md`
 - `docs/product/feature-audit.md`

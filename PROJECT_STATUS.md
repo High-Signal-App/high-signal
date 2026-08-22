@@ -17,8 +17,8 @@ Last updated: 2026-08-22
 - **Auth:** none for readers — the product is fully public. Cloudflare Access
   protects the bounded operator paths with the reusable `Allow Sarthak only`
   policy, and the web Worker verifies the Access JWT again before the admin
-  proxy injects `ADMIN_TOKEN`. See ADR-014. Infisical secret consolidation is
-  tracked separately and does not block the login boundary.
+  proxy injects `ADMIN_TOKEN`. The dedicated High Signal Infisical project is
+  the production secret source of truth. See ADR-014 and the Access runbook.
 - **Deploy:** Cloudflare Workers — `high-signal-web`, `high-signal-api`, D1 `high-signal-db`; annotation runs in-process.
 - **Email:** Cloudflare `send_email` binding (`SEND_EMAIL`) for brief delivery (plan 0009).
 - **AI:** OpenAI-compatible endpoint via `AI_BASE_URL`, `AI_API_KEY`, `AI_MODEL`, `HIGH_SIGNAL_AI_API_KEY`.
@@ -103,8 +103,11 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
   Operator` Access application protects four bounded path families with the
   reusable operator-only policy and a 12-hour session; the Worker tracks the
   public AUD/team identifiers and validates the origin assertion. ADR-014 and
-  the Access runbook are current. Infisical syncs, inert password-secret
-  retirement, and the Modal token receipt remain operational follow-up.
+  the Access runbook are current. The dedicated Infisical project now owns the
+  production API/source/AI values, `ADMIN_TOKEN` was rotated across both
+  Workers, GitHub Actions, and Modal, and the obsolete password/session/Clerk
+  Worker secrets were removed. A bounded Modal replay persisted production
+  audit row `b9bb1c6d00e7d9dd` with zero errors.
 
 - **2026-08-22 — Per-user surface removed; one public product, one operator gate
   (shipped and deployed):** deleted Mentions, Watchlists, email brief delivery,

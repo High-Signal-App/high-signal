@@ -22,7 +22,7 @@ description: Authoritative sources, reconstruction paths, migration guards, and 
 | `apps/web/src/data/d2c-opportunities-bundle.json` | Git (this repo) | Yes — `pnpm d2c:bundle` | D1 `d2c_niches`, `d2c_niche_snapshots`, `d2c_agent_visibility` | Bundle is the deployed render artifact; D1 is canonical. |
 | `workers/api/src/lib/label-backtest.json` | Git (this repo) | Yes — deterministic replay | `scripts/backtest-convergence-labels.py` over D1 `events`+`signals` | Committing this file auto-redeploys `high-signal-api`. |
 | `python/lab` Postgres | Local docker-compose only (parked, plan 0007) | Yes — re-ingest from D1 + python adapters | D1 + python/ingest | Not production. Not backed up. |
-| GitHub Actions secrets | GitHub (repo settings) | No — operator must re-set | operator | `API_BASE`, `ADMIN_TOKEN`, `CLOUDFLARE_API_TOKEN`, source API keys. Not in repo. |
+| GitHub Actions secrets | GitHub (repo settings) | Yes — re-sync from Infisical | Infisical `High Signal` / `prod` | `API_BASE`, `ADMIN_TOKEN`, AI credentials, `CLOUDFLARE_API_TOKEN`, and source API keys. Values are never stored in git. |
 | Cloudflare Worker revisions | Cloudflare dashboard | Yes — re-deploy from git main | git main + `deploy-web.yml` / `deploy-api.yml` | Previous revision stays live on deploy failure. |
 | Operator access values (`CF_ACCESS_AUD`, `CF_ACCESS_TEAM_DOMAIN`, `ADMIN_TOKEN`) | Infisical → Cloudflare/GitHub secret syncs | No — operator-managed | Infisical | Access policy revokes browser sessions; `ADMIN_TOKEN` rotation must reach both Workers, GitHub Actions, and retained Modal backfills. See `runbooks/cf-access.md`. |
 

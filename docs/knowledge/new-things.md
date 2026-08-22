@@ -61,11 +61,11 @@ Technologies, tools, and patterns encountered while building this project. 3-5 l
 - Why here: powers the `workers/api` backend — lightweight routing that runs natively on the Cloudflare Workers edge runtime
 - Source: https://hono.dev/
 
-## Clerk (auth)
-- What: drop-in auth provider with session model, user metadata, and pre-built sign-in/sign-up UI
-- Why here: the live auth layer (Google + email) — chosen over Cloudflare Access because it provides the session model and user identity storage needed for per-user features
-- Gotcha (from code): Cloudflare Access was shipped first (2026-04-25) and abandoned within one week — CF Access lacks a full session model and user identity storage needed for per-user features; `apps/web/src/lib/require-auth.ts` and `clerk-admin.ts` are the live gates
-- Source: https://clerk.com/docs
+## Cloudflare Access (operator auth)
+- What: identity-aware edge policy for a bounded set of operator-only routes
+- Why here: High Signal has no reader accounts; Access provides the single-operator gate while the Worker verifies the Access JWT again before injecting `ADMIN_TOKEN`
+- Gotcha (from code): Access protects the custom hostname, so both Workers must keep `workers_dev = false`; origin verification in `apps/web/src/lib/access.ts` remains the fail-closed second boundary
+- Source: https://developers.cloudflare.com/cloudflare-one/access-controls/applications/http-apps/
 
 ## Two-tier judge pattern
 - What: deterministic rules handle clear cases cheaply; an AI model fires only on ambiguous HOLD verdicts

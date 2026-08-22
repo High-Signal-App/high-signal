@@ -21,17 +21,9 @@ const PUBLIC_DATA_CACHE_CONTROL = new Map([
   ['/daily/range.json', 'public, max-age=60, s-maxage=300'],
 ]);
 
-// A request carrying one of these must never be served from, or written to,
-// the shared edge cache. `CF_Authorization` is Cloudflare Access's operator
-// session cookie. Clerk fragments remain so stale browser cookies fail safe.
-const AUTH_COOKIE_FRAGMENTS = [
-  'CF_Authorization',
-  '__session',
-  '__client',
-  '__clerk',
-  'session_token',
-  'session-token',
-];
+// A request carrying Cloudflare Access's operator-session cookie must never be
+// served from, or written to, the shared edge cache.
+const AUTH_COOKIE_FRAGMENTS = ['CF_Authorization'];
 
 export function hasAuthCookie(request) {
   const cookie = request.headers.get('cookie');
