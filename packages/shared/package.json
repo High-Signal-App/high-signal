@@ -8,7 +8,6 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@saas-maker/ai-visibility": "file:../../vendor/saas-maker-ai-visibility-0.1.0.tgz"
   },
   "devDependencies": {
     "typescript": "6.0.3"

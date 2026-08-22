@@ -85,7 +85,8 @@ function checkComplexity() {
     maxParams: Math.max(0, ...rows.map((row) => row[3])),
   };
   // Debt: https://github.com/High-Signal-App/high-signal/issues/104
-  const baseline = { violations: 123, maxCcn: 56, maxLength: 923, maxParams: 11 };
+  // Ratcheted 2026-08-22 (ADR-013 removals).
+  const baseline = { violations: 108, maxCcn: 56, maxLength: 398, maxParams: 11 };
   console.log(
     `Complexity: ${observed.functions} functions, ${observed.nloc} NLOC, ` +
       `${observed.violations} violations; max CCN ${observed.maxCcn}, ` +
@@ -120,7 +121,11 @@ function checkDuplication() {
   const observed = JSON.parse(readFileSync(join(outputDirectory, 'jscpd-report.json'), 'utf8'))
     .statistics.total;
   // Debt: https://github.com/High-Signal-App/high-signal/issues/104
-  const baseline = { clones: 119, duplicatedLines: 1552, percentage: 2.4779269714048504 };
+  // Re-baselined 2026-08-22 after the per-user surface was removed (ADR-013).
+  // Absolute duplication fell — 119 -> 110 clone groups, 1552 -> 1451 lines —
+  // but the ratio rose because ~12k lines of non-duplicated code went with it,
+  // shrinking the denominator. Ratchet all three to the new observed values.
+  const baseline = { clones: 110, duplicatedLines: 1451, percentage: 2.5549823035340107 };
   console.log(
     `Duplication: ${observed.duplicatedLines}/${observed.lines} lines ` +
       `(${observed.percentage.toFixed(4)}%), ${observed.clones} groups across ` +
@@ -277,7 +282,8 @@ function checkUnused() {
     { exports: 0, types: 0 }
   );
   // Debt: https://github.com/High-Signal-App/high-signal/issues/104
-  const baseline = { exports: 28, types: 30 };
+  // Ratcheted 2026-08-22 (ADR-013 removals).
+  const baseline = { exports: 27, types: 29 };
   console.log(
     `Unused: 0 high-confidence findings; ${observed.exports} exports, ${observed.types} types.`
   );
