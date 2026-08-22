@@ -1,3 +1,4 @@
 node_modules/
 dist/
 .blume/
+package-lock.json
