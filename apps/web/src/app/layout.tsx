@@ -94,8 +94,8 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  // No auth provider: High Signal is fully public. The only gate is the
-  // operator session at /admin/login (see lib/admin-session.ts).
+  // No reader auth provider: High Signal is fully public. Cloudflare Access
+  // protects only the bounded operator paths.
   const app = (
     <AnalyticsProvider>
       <PrimaryNav />
