@@ -1,4 +1,4 @@
-"""Modal deploy: scheduled ingest + scoring."""
+"""Manual Modal entry points for long ingest and scoring backfills."""
 
 from __future__ import annotations
 

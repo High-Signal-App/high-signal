@@ -20,11 +20,12 @@
   "dependencies": {
     "@high-signal/shared": "workspace:*",
     "@saas-maker/feedback": "^0.2.1",
+    "jose": "6.2.10",
     "lucide-react": "1.11.0",
     "next": "16.2.12",
+    "posthog-js": "^1.372.1",
     "react": "19.2.5",
     "react-dom": "19.2.5",
-    "posthog-js": "^1.372.1",
     "web-vitals": "^4.2.4"
   },
   "devDependencies": {

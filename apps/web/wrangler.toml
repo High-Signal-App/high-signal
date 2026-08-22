@@ -3,7 +3,7 @@ account_id = "7d048325699a5acddb44d3be31cf6ba9"
 main = "worker.mjs"
 compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
-workers_dev = true
+workers_dev = false
 preview_urls = false
 # Serve verified generated assets without invoking the Worker. Application
 # routes remain Worker-first through the leading "/*" rule.
@@ -26,13 +26,13 @@ cpu_ms = 30000
 [vars]
 NODE_ENV = "production"
 NEXT_PUBLIC_SAASMAKER_API_KEY = "pk_3eb4816ef2179c25f364315aa1c3148a88e8004bfa5e5235"
-NEXT_PUBLIC_API_BASE = "https://high-signal-api.sarthakagrawal927.workers.dev"
-# Everything readable is public. The only gate is the single-operator session
-# at /admin/login. Set these in the Cloudflare dashboard (Secrets, not vars):
-#   ADMIN_PASSWORD              operator login password for /admin/login
-#   ADMIN_SESSION_SECRET        HMAC key for the operator session cookie
-#   ADMIN_TOKEN                 wrangler secret put ADMIN_TOKEN (used by Modal scorer + sync,
-#                               and injected server-side by the /api/admin proxy)
+NEXT_PUBLIC_API_BASE = "https://api.highsignal.app"
+CF_ACCESS_AUD = "db098be998f8be05d9a950f8b2c29cc90f7d66343a3722cd0f5578cec0e15165"
+CF_ACCESS_TEAM_DOMAIN = "long-frog-c8a6.cloudflareaccess.com"
+# Everything readable is public. Cloudflare Access protects the operator paths,
+# and the Worker verifies Access JWTs again before injecting ADMIN_TOKEN.
+# The Access AUD and team domain are public identifiers tracked above.
+# Infisical owns and syncs ADMIN_TOKEN and other secret values.
 #   LAB_API_URL                 optional, points the /lab page at a Lab Postgres FastAPI
 #   HIGH_SIGNAL_AI_API_KEY      optional, unlocks LLM calls in community digests
 

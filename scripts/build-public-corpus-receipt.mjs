@@ -14,8 +14,7 @@ import {
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const artifactPath = resolve(root, 'apps/web/src/data/company-universe-web.json');
 const receiptPath = resolve(root, 'apps/web/src/data/public-corpus-receipt.json');
-const apiBase =
-  process.env.NEXT_PUBLIC_API_BASE ?? 'https://high-signal-api.sarthakagrawal927.workers.dev';
+const apiBase = process.env.NEXT_PUBLIC_API_BASE ?? 'https://api.highsignal.app';
 const accept = process.argv.includes('--accept');
 
 async function readJson(path, fallback = null) {

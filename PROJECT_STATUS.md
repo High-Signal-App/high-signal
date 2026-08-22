@@ -14,14 +14,19 @@ Last updated: 2026-08-22
 
 ### External
 
-- **Auth:** none for readers — the product is fully public. One operator session (password → signed httpOnly cookie) fronts the admin proxy; worker admin routes use the `ADMIN_TOKEN` bearer. See ADR-013.
+- **Auth:** none for readers — the product is fully public. Cloudflare Access
+  protects the bounded operator paths with the reusable `Allow Sarthak only`
+  policy, and the web Worker verifies the Access JWT again before the admin
+  proxy injects `ADMIN_TOKEN`. See ADR-014. Infisical secret consolidation is
+  tracked separately and does not block the login boundary.
 - **Deploy:** Cloudflare Workers — `high-signal-web`, `high-signal-api`, D1 `high-signal-db`; annotation runs in-process.
 - **Email:** Cloudflare `send_email` binding (`SEND_EMAIL`) for brief delivery (plan 0009).
 - **AI:** OpenAI-compatible endpoint via `AI_BASE_URL`, `AI_API_KEY`, `AI_MODEL`, `HIGH_SIGNAL_AI_API_KEY`.
 - **Ingest sources:** SEC EDGAR, HKEX, yfinance, Polymarket/Manifold/Kalshi/Metaculus, GDELT, RSS, Guardian, FRED, Semantic Scholar, Bluesky, Podcast Index, NVD, CISA KEV, the official YC/Antler/a16z/Techstars directories, and 50+ other adapters (see ingest pipeline). 55 catalog sources, 43 with live data in D1 (180K+ events).
 - **Optional source keys:** Guardian, SAM, Companies House, Metaculus, Bluesky, Podcast Index, FRED, Semantic Scholar, Etherscan, Token Unlocks, Artificial Analysis, OpenRouter, Libraries.io, Replicate.
 - **Active source keys (set in GitHub Secrets):** `EIA_API_KEY`, `OPENSTATES_API_KEY`, `FDA_API_KEY`, `CONGRESS_API_KEY`, `FEC_API_KEY`, `BEA_API_KEY`, `CENSUS_API_KEY`, `LDA_API_KEY`, `USDA_NASS_API_KEY`, `REGULATIONS_GOV_API_KEY` — all via a single api.data.gov key (registered autonomously via AgentMail + Playwright).
-- **Legacy cron fallback:** `MODAL_TRIGGER_*` for Modal long backfills only.
+- **Manual backfill escape hatch:** `python/ingest/modal_app.py` via `modal run`;
+  it has no schedule or web trigger.
 - **Env (representative):** `SEC_USER_AGENT`, `EMAIL_FROM`, `API_BASE` (brief delivery).
 
 ### Internal fleet
@@ -90,8 +95,19 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 
 ## Timeline
 
+- **2026-08-22 — Cloudflare Access operator gate released:** replaced the
+  password-session implementation with
+  cryptographically verified Access JWTs, made `CF_Authorization` a shared-cache
+  bypass, disabled both Workers' `workers.dev` and preview hostnames in tracked
+  config, and moved the public API to `api.highsignal.app`. The `High Signal
+  Operator` Access application protects four bounded path families with the
+  reusable operator-only policy and a 12-hour session; the Worker tracks the
+  public AUD/team identifiers and validates the origin assertion. ADR-014 and
+  the Access runbook are current. Infisical syncs, inert password-secret
+  retirement, and the Modal token receipt remain operational follow-up.
+
 - **2026-08-22 — Per-user surface removed; one public product, one operator gate
-  (local, not deployed):** deleted Mentions, Watchlists, email brief delivery,
+  (shipped and deployed):** deleted Mentions, Watchlists, email brief delivery,
   and saved Agent Eval history, and removed Clerk entirely. Every readable
   surface is now anonymous and cacheable; the only gate is a single operator
   session (password → signed httpOnly cookie) fronting the `/api/admin` proxy,
@@ -102,10 +118,10 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
   `routes/admin.ts`), and Agent Eval as a stateless public tool. `/personal` is
   now gated and `noindex`; `/track-record` stays public. `?owner=` no longer
   fragments the brief's edge cache, and `hs_admin` is registered as a
-  cache-bypass cookie. Rationale: ADR-013. 24/24 test suites pass; typecheck,
-  lint, and build clean. **Not applied to remote D1 and not deployed** —
-  migration `0020` and the new `ADMIN_PASSWORD` / `ADMIN_SESSION_SECRET`
-  secrets are operator steps (`docs/operations/runbooks/admin-access.md`).
+  cache-bypass cookie. Rationale: ADR-013. Migration `0020` was applied to
+  remote D1 with all 18 removed tables confirmed empty, and both Workers were
+  deployed at `7f6c683`. The password gate was superseded and removed by the
+  ADR-014 release above.
 
 - **2026-08-11 — Cadenced feeds and public-data parity (local, not deployed):**
   added exactly four public feed definitions with honest supported cadences: The

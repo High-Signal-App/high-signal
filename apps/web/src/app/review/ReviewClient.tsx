@@ -6,8 +6,7 @@ import { DirectionPill } from '@/components/atoms/DirectionPill';
 import { ConfidenceBadge } from '@/components/atoms/ConfidenceBadge';
 import { MarkdownView } from '@/components/system/MarkdownView';
 
-const API_BASE =
-  process.env['NEXT_PUBLIC_API_BASE'] ?? 'https://high-signal-api.sarthakagrawal927.workers.dev';
+const API_BASE = process.env['NEXT_PUBLIC_API_BASE'] ?? 'https://api.highsignal.app';
 
 type Status = 'draft' | 'published' | 'corrected';
 
@@ -43,7 +42,7 @@ export default function ReviewPage() {
     setErr(null);
     const r = await fetch(url, { ...init, credentials: 'include' });
     if (r.status === 401 || r.status === 403) {
-      setErr('not authorized — sign in at /admin/login');
+      setErr('operator access required');
       return null;
     }
     if (!r.ok) {

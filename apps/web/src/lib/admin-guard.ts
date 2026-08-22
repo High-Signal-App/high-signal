@@ -1,28 +1,25 @@
-/**
- * Request-bound admin gate. Split from `admin-session.ts` so the crypto core
- * stays importable outside Next (see scripts/admin-session.test.ts).
- */
+/** Request-bound Cloudflare Access gate for the single operator. */
 
-import type { Route } from 'next';
-import { cookies } from 'next/headers';
-import { redirect } from 'next/navigation';
+import { headers } from 'next/headers';
+import { notFound } from 'next/navigation';
 
-import { ADMIN_COOKIE, isValidSessionValue, parseCookie } from '@/lib/admin-session';
+import { verifyOperator } from '@/lib/access';
 
 /**
  * True when the caller presents a valid admin cookie. Pass `request` from route
  * handlers; server components can omit it and read the ambient cookie store.
  */
 export async function hasAdminSession(request?: Request): Promise<boolean> {
-  const value = request
-    ? parseCookie(request.headers.get('cookie'), ADMIN_COOKIE)
-    : (await cookies()).get(ADMIN_COOKIE)?.value;
-  return isValidSessionValue(value, Date.now());
+  const requestHeaders = request ? request.headers : new Headers(await headers());
+  return Boolean(await verifyOperator(requestHeaders));
 }
 
-/** Server-component gate. Redirects to the login page when unauthenticated. */
-export async function requireAdminSession(returnTo?: string): Promise<void> {
+/**
+ * Access redirects normal browser traffic before it reaches the Worker. A
+ * request that bypasses the edge receives a generic 404 from server-rendered
+ * pages; route handlers return an explicit 401 at their own boundary.
+ */
+export async function requireAdminSession(): Promise<void> {
   if (await hasAdminSession()) return;
-  const next = returnTo ? `?next=${encodeURIComponent(returnTo)}` : '';
-  redirect(`/admin/login${next}` as Route);
+  notFound();
 }

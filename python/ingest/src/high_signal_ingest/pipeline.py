@@ -350,7 +350,11 @@ def _fetch_tasks(source: Source, days: int) -> list[tuple[str, str, Callable[[],
             "https://content.guardianapis.com",
             lambda: guardian.fetch_all(days=max(days, 7)),
         )
-    if source in {"patents", "all"}:
+    # Parked after the 2026 USPTO ODP migration: the legacy PatentsView URL now
+    # redirects to an account-, MFA-, and API-key-gated replacement. Keep the
+    # explicit source id as a compatibility probe, but never spend a daily
+    # `all` run on an endpoint that is known to yield nothing.
+    if source == "patents":
         add(
             "patents", "https://api.patentsview.org", lambda: patents.fetch_all(days=max(days, 365))
         )

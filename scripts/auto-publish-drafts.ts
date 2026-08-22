@@ -26,7 +26,7 @@
  *                 and falls back to a deterministic rubric (≥ 2 independent
  *                 source classes → publish, else kill).
  *   AI_MODEL      default deepseek-chat
- *   API_BASE      default https://high-signal-api.sarthakagrawal927.workers.dev
+ *   API_BASE      default https://api.highsignal.app
  *   ADMIN_TOKEN   required when not --dry
  *
  * Per Sarthak (2026-05-26): "I don't want it blocked by me. I want it
@@ -71,8 +71,7 @@ const LOCAL = !REMOTE;
 const REAPPLY_PUBLISHED = args.has('--reapply');
 
 const API_BASE =
-  process.env['API_BASE'] ??
-  (LOCAL ? 'http://127.0.0.1:8787' : 'https://high-signal-api.sarthakagrawal927.workers.dev');
+  process.env['API_BASE'] ?? (LOCAL ? 'http://127.0.0.1:8787' : 'https://api.highsignal.app');
 const ADMIN_TOKEN = process.env['ADMIN_TOKEN'] ?? '';
 const AI_BASE_URL = process.env['AI_BASE_URL'] ?? 'https://api.deepseek.com/v1';
 const AI_API_KEY = process.env['AI_API_KEY'] ?? '';

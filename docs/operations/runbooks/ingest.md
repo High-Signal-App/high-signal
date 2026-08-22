@@ -74,11 +74,10 @@ The `/admin/health` route surfaces the same shape via HTTP for dashboards.
 ## Triage
 
 1. **No new `ingest_runs` rows since the last cron tick.**
-   - The workflow/Modal job didn't run, or `API_BASE` / `ADMIN_TOKEN` aren't
-     set for that runtime. Check the GitHub Actions job first; it now runs
-     `source_diagnose --require-persistence --require-sec-identity` before
-     ingest. For Modal, check `modal logs high-signal-ingest`. Audit pushes are
-     best-effort and log on failure — see
+   - The workflow didn't run, or `API_BASE` / `ADMIN_TOKEN` aren't set for that
+     runtime. Check the GitHub Actions job first; it runs `source_diagnose
+     --require-persistence --require-sec-identity` before ingest. Audit pushes
+     are best-effort and log on failure — see
      `python/ingest/src/high_signal_ingest/audit.py`.
 
 2. **Rows exist but `events_fetched = 0` for one source.**

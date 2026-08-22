@@ -68,7 +68,9 @@ The most important boundary issue: `events` are not strictly actionable events t
 | `/enrich` | Enrichment endpoint | Entity/source context | Working route present | Clarify ownership before expanding |
 | `/attention` | Attention/article endpoint | Attention source context | Working route present | Source/lens boundary |
 
-The Worker scheduled handler also dispatches ingest and scoring jobs when `MODAL_TRIGGER_URL`, `MODAL_SCORE_URL`, and `MODAL_TRIGGER_TOKEN` are configured. GitHub Actions are now the documented daily cron path, while Modal is retained for ad-hoc/backfill use.
+The Worker scheduled handler only precomputes Daily Brief snapshots. GitHub
+Actions own scheduled ingest and scoring; Modal is retained solely for manual
+long backfills through `modal run`.
 
 ## Data model audit
 

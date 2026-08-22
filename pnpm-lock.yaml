@@ -41,6 +41,9 @@ importers:
       '@saas-maker/feedback':
         specifier: ^0.2.1
         version: 0.2.1(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
+      jose:
+        specifier: 6.2.10
+        version: 6.2.10
       lucide-react:
         specifier: 1.11.0
         version: 1.11.0(react@19.2.5)
@@ -5240,6 +5243,9 @@ packages:
 
   jose@5.10.0:
     resolution: {integrity: sha512-s+3Al/p9g32Iq+oqXxkW//7jk2Vig6FF1CFqzVXoTUXt2qz89YWbL+OwS17NFYEvxC35n0FKeGO2LGYSxeM2Gg==}
+
+  jose@6.2.10:
+    resolution: {integrity: sha512-iiW7J9qRFlGxvCOIBDBDxFePQSn7ZMAnrYGhrrOo6siO/MIqwfyilLR27pkfDgUk+raLuzADS8A3S/KLBisc0g==}
 
   js-tokens@10.0.0:
     resolution: {integrity: sha512-lM/UBzQmfJRo9ABXbPWemivdCW8V2G8FHaHdypQaIy523snUjog0W71ayWXTjiR+ixeMyVHN2XcpnTd/liPg/Q==}
@@ -12999,6 +13005,8 @@ snapshots:
 
   jose@5.10.0:
     optional: true
+
+  jose@6.2.10: {}
 
   js-tokens@10.0.0: {}
 

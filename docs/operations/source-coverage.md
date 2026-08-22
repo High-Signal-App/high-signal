@@ -53,7 +53,10 @@ Generate daily draft signals from:
 - `huggingface` — public Hub model/dataset activity; useful for ecosystem adoption and model-distribution drift.
 - `nvd` — curated NVD CVE queries for tracked security/devtool products; lower priority than CISA KEV unless corroborated.
 - `guardian` — optional-key mainstream news corroboration lane; skipped when `GUARDIAN_API_KEY` is absent.
-- `patents` — curated USPTO PatentsView grants for long-horizon product-lookahead evidence; adapter is wired, but the live API currently returns the USPTO ODP transition page.
+- `patents` — parked legacy compatibility probe. The PatentsView endpoint now
+  redirects to USPTO ODP, whose current access requires a USPTO account, MFA,
+  completed ODP profile, and API key. It is excluded from daily and default
+  backfill runs; reopen only when expected patent yield justifies that overhead.
 - `gov-contracts` — SBIR public awards plus optional-key SAM.gov opportunity search for federal demand signals.
 - `wikidata` — explicit enrichment/audit source, not included in the daily `--source all` signal run; improves mapping and candidate promotion, not public signal volume.
 - `semantic-scholar` — curated recent research-paper search; useful for technical trend corroboration and early research weak signals.

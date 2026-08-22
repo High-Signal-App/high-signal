@@ -233,9 +233,9 @@ const GROUPS: Group[] = [
         flag: 'operator',
       },
       {
-        href: '/admin/login',
-        label: 'Operator sign-in',
-        note: 'The single gate on the whole product. Controls publishing only.',
+        href: '/review',
+        label: 'Operator review',
+        note: 'Cloudflare Access gate for publishing and corrections.',
         flag: 'admin',
       },
     ],

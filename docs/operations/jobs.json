@@ -739,7 +739,7 @@
       "id": "api",
       "kind": "api-worker",
       "deploy": "high-signal-api (Cloudflare Worker)",
-      "canonicalLiveProbe": "https://high-signal-api.sarthakagrawal927.workers.dev/health",
+      "canonicalLiveProbe": "https://api.highsignal.app/health",
       "buildEvidence": "github-actions ci.yml + workers/api vitest suite",
       "healthProbe": "/health \u2192 { ok: true, ts }",
       "structuredRequestLogs": "cloudflare observability + console.error in app.onError",

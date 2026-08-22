@@ -19,7 +19,7 @@ on:
       sources:
         description: space-separated source ids (or "all")
         type: string
-        default: "appstore appstore-reviews playstore-reviews producthunt coingecko defillama google-trends bls eia openstates edgar patents nvd courtlistener legistar wikidata hackernews stackexchange"
+        default: "appstore appstore-reviews playstore-reviews producthunt coingecko defillama google-trends bls eia openstates edgar nvd courtlistener legistar wikidata hackernews stackexchange"
       days:
         description: lookback days
         type: string

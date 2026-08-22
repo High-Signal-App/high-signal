@@ -22,11 +22,10 @@ const PUBLIC_DATA_CACHE_CONTROL = new Map([
 ]);
 
 // A request carrying one of these must never be served from, or written to,
-// the shared edge cache. `hs_admin` is the single-operator session cookie
-// (lib/admin-session.ts). The Clerk fragments are retained so any cookie still
-// sitting in a returning visitor's browser keeps bypassing the cache.
+// the shared edge cache. `CF_Authorization` is Cloudflare Access's operator
+// session cookie. Clerk fragments remain so stale browser cookies fail safe.
 const AUTH_COOKIE_FRAGMENTS = [
-  'hs_admin',
+  'CF_Authorization',
   '__session',
   '__client',
   '__clerk',

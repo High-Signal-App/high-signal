@@ -30,7 +30,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: auto-publish drafts
         env:
-          API_BASE: ${{ secrets.API_BASE || 'https://high-signal-api.sarthakagrawal927.workers.dev' }}
+          API_BASE: ${{ secrets.API_BASE || 'https://api.highsignal.app' }}
           ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
           AI_BASE_URL: ${{ secrets.AI_BASE_URL || 'https://api.deepseek.com/v1' }}
           AI_API_KEY: ${{ secrets.AI_API_KEY }}

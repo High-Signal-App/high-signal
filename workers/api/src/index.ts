@@ -24,14 +24,18 @@ type Env = {
   DB: D1Database;
   ENVIRONMENT: string;
   ADMIN_TOKEN?: string;
-  MODAL_TRIGGER_URL?: string;
-  MODAL_TRIGGER_TOKEN?: string;
-  MODAL_SCORE_URL?: string;
   API_BASE?: string;
 };
 
 const app = new Hono<{ Bindings: Env }>();
-app.use('*', cors({ origin: '*' }));
+const publicCors = cors({ origin: '*' });
+
+app.use('*', async (c, next) => {
+  const isAdminPath = c.req.path === '/admin' || c.req.path.startsWith('/admin/');
+  if (!isAdminPath) return publicCors(c, next);
+  if (c.req.method === 'OPTIONS') return c.json({ error: 'cors_not_allowed' }, 403);
+  return next();
+});
 
 app.get('/', (c) => c.json({ name: 'high-signal-api', env: c.env.ENVIRONMENT }));
 app.get('/health', (c) => c.json({ ok: true, ts: Date.now() }));
@@ -63,13 +67,8 @@ app.onError((err, c) => {
 
 export default {
   fetch: app.fetch,
-  async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext) {
-    const headers = (token: string) => ({
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    });
-
-    // Brief precompute runs on every cron trigger regardless of Modal config.
+  async scheduled(_event: ScheduledEvent, env: Env, ctx: ExecutionContext) {
+    // Brief precompute is the API Worker's only scheduled responsibility.
     // This populates daily_brief_snapshots so /brief/daily does 1 D1 lookup
     // instead of 5-14 sequential queries.
     ctx.waitUntil(
@@ -77,29 +76,5 @@ export default {
         console.error('[cron] brief precompute failed:', err)
       )
     );
-
-    if (!env.MODAL_TRIGGER_TOKEN) {
-      console.log('[cron] MODAL_TRIGGER_TOKEN not set — skipping Modal dispatch');
-      return;
-    }
-    // 06:00 UTC daily — kick ingest + scoring sweep in parallel
-    if (env.MODAL_TRIGGER_URL) {
-      ctx.waitUntil(
-        fetch(env.MODAL_TRIGGER_URL, {
-          method: 'POST',
-          headers: headers(env.MODAL_TRIGGER_TOKEN),
-          body: JSON.stringify({ source: 'all', days: 1 }),
-        }).then((r) => console.log('[cron] ingest status:', r.status))
-      );
-    }
-    if (env.MODAL_SCORE_URL) {
-      ctx.waitUntil(
-        fetch(env.MODAL_SCORE_URL, {
-          method: 'POST',
-          headers: headers(env.MODAL_TRIGGER_TOKEN),
-          body: JSON.stringify({ scheduled: event.cron }),
-        }).then((r) => console.log('[cron] score status:', r.status))
-      );
-    }
   },
 };

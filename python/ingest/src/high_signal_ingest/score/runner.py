@@ -23,7 +23,7 @@ LOGGER = logging.getLogger(__name__)
 
 
 def _api_base() -> str:
-    return os.environ.get("API_BASE", "https://high-signal-api.sarthakagrawal927.workers.dev")
+    return os.environ.get("API_BASE", "https://api.highsignal.app")
 
 
 def _admin_token() -> str:

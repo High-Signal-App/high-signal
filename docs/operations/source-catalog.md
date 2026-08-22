@@ -38,7 +38,7 @@ Persisted in **Cloudflare D1** (events/signals/evidence) + git-versioned `signal
 | `ir` | Investor-relations pages | finance | keyless | ⚖️ | 1d | entity | recent | headline, IR url |
 | `jobs` | Greenhouse/Lever/Ashby | startups | keyless |  | 14d | entity | recent | role, company, location |
 | `news` | NewsAPI + RSS | technology | free-key:NEWSAPI_KEY |  | 1d | entity | recent | headline, source, snippet |
-| `patents` | USPTO PatentsView | technology | keyless |  | 365d | entity | historical | patent title, assignee |
+| `patents` | USPTO PatentsView (legacy probe; parked) | technology | parked:USPTO_ODP_API_KEY |  | 365d | entity | historical | patent title, assignee |
 | `sec-xbrl` | SEC XBRL frames | finance | keyless | ⚖️ | 120d | entity | series | fundamental metric + value |
 | `wikidata` | Wikidata | technology | keyless |  | 1d | entity | recent | entity enrichment fields |
 | `bls` | BLS economic data | finance | optional-key:BLS_API_KEY | ⚖️ | 120d | numeric | series | CPI / unemployment / payrolls latest print |

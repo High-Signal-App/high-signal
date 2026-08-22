@@ -4,9 +4,11 @@ Public, no-key patent grants/applications for a curated set of AI/startup
 assignees. Patents are long-horizon product-lookahead evidence, not short-term
 market signals by themselves.
 
-As of the 2026 USPTO ODP migration, the legacy endpoint may redirect to the
-transition guide. In that state this adapter returns no events and stays
-non-fatal until USPTO republishes the updated PatentSearch API surface.
+After the 2026 USPTO ODP migration, the legacy endpoint redirects to the
+transition guide. This adapter is retained as an explicit compatibility probe,
+returns no events non-fatally, and is excluded from automatic runs. Reopen only
+after an account-backed ODP source has enough expected yield to justify its
+MFA, profile, API-key, and secret-management overhead.
 """
 
 from __future__ import annotations

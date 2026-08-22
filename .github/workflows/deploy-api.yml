@@ -20,4 +20,4 @@ jobs:
           workingDirectory: workers/api
           command: deploy --tag ${{ github.sha }}
       - name: Smoke production API
-        run: curl --fail --silent --show-error --location --max-time 30 https://high-signal-api.sarthakagrawal927.workers.dev/health >/dev/null
+        run: curl --fail --silent --show-error --location --max-time 30 https://api.highsignal.app/health >/dev/null

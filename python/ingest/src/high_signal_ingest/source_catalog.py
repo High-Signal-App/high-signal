@@ -143,9 +143,9 @@ CATALOG: list[CatalogEntry] = [
     ),
     CatalogEntry(
         "patents",
-        "USPTO PatentsView",
+        "USPTO PatentsView (legacy probe; parked)",
         "technology",
-        "keyless",
+        "parked:USPTO_ODP_API_KEY",
         False,
         365,
         "entity",

@@ -61,4 +61,32 @@ describe('worker routes', () => {
     const res = await fetcher.fetch(new Request('http://t/admin/communities/tracked'), testEnv);
     expect([401, 503]).toContain(res.status);
   });
+
+  it('allows cross-origin preflights only for public routes', async () => {
+    const publicResponse = await fetcher.fetch(
+      new Request('http://t/signals', {
+        method: 'OPTIONS',
+        headers: {
+          Origin: 'https://reader.example',
+          'Access-Control-Request-Method': 'GET',
+        },
+      }),
+      testEnv
+    );
+    expect(publicResponse.status).toBe(204);
+    expect(publicResponse.headers.get('access-control-allow-origin')).toBe('*');
+
+    const adminResponse = await fetcher.fetch(
+      new Request('http://t/admin/signals/example', {
+        method: 'OPTIONS',
+        headers: {
+          Origin: 'https://attacker.example',
+          'Access-Control-Request-Method': 'PATCH',
+        },
+      }),
+      testEnv
+    );
+    expect(adminResponse.status).toBe(403);
+    expect(adminResponse.headers.get('access-control-allow-origin')).toBeNull();
+  });
 });

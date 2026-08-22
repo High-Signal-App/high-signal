@@ -404,3 +404,53 @@ vendor and a `ClerkProvider` in the root layout for one account. Pasting
 `ADMIN_TOKEN` into the browser: simpler, but puts the master token in
 `localStorage` where any XSS reaches it. Cloudflare Access: explicitly barred
 without a migration plan (ADR-006), and this change does not supply one.
+
+---
+
+## ADR-014 — Cloudflare Access for the bounded operator gate
+
+Date: 2026-08-22
+Status: accepted and released
+
+**Supersedes.** ADR-007's abandonment of Cloudflare Access. Amends only the
+operator-gate implementation in ADR-013; the no-reader-accounts and fully
+public product decisions remain unchanged.
+
+**Context.** ADR-007 moved from Access to Clerk because High Signal had
+per-user watchlists, brand configuration, and delivery preferences. ADR-013
+deleted those features and Clerk. The replacement password session removed the
+vendor dependency quickly, but left High Signal owning password rotation,
+cookie signing, and session crypto for one operator.
+
+**Decision.** Protect `/review`, `/personal`, `/backtest-workbench`, and
+`/api/admin/*` with one Cloudflare Access self-hosted application and an
+email-restricted operator policy. The web Worker validates
+`Cf-Access-Jwt-Assertion` (with `CF_Authorization` as the browser fallback)
+against the team's rotating JWKS, issuer, audience, expiry, and email claim.
+The admin proxy continues to inject `ADMIN_TOKEN`; Access does not replace
+machine-to-machine authentication. Disable both Workers' `workers.dev` and
+preview hostnames so the Access policy cannot be bypassed by an alternate
+origin.
+
+**Secret ownership.** High Signal gets its own Infisical project. Infisical is
+the source of truth and syncs secret values one-way into both Workers and
+GitHub Actions. `ADMIN_TOKEN` and existing cron/source keys are recorded there.
+The Access AUD and team domain are public protocol identifiers tracked in the
+web Worker configuration. Modal is retained only for manual long backfills and
+must produce an API write receipt after its token is reconciled.
+
+**Rationale.** Access is the smallest identity layer for a single operator and
+removes locally maintained passwords and session crypto. Origin verification
+is still required because an edge policy can be bypassed by routing mistakes.
+The dedicated Infisical project preserves independent repo operation and avoids
+dashboard drift across three `ADMIN_TOKEN` consumers.
+
+**Tradeoffs.** Operator access now depends on Cloudflare Zero Trust and its IdP.
+`jose` is a production dependency for standards-compliant signature and claim
+validation. The tracked AUD and team-domain identifiers fail closed if removed;
+secret consolidation remains an explicit Infisical operation.
+
+**Alternatives rejected.** Keep the password cookie: more secret/session code
+for no product value. Trust `Cf-Access-Authenticated-User-Email`: forgeable
+when Access is bypassed. Protect the entire site: breaks the public-product
+boundary. Share the Fleet Infisical project: violates independent operability.

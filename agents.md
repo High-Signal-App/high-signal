@@ -40,7 +40,7 @@ prior "umbrella + 5 sub-products" framing in `plans/0004-platform-consolidation.
 - **Lab substrate**: local-first Postgres (FTS + `pgvector`) — `python/lab` (plan `0007`, parked)
 - **Python ingestion + scoring**: edgartools, Trafilatura, GLiNER, NetworkX — `python/ingest`. Relation extraction (GLiREL) is a parked stub returning a typed empty result (not a declared dep); FinBERT sentiment is code-present but its `transformers` dep is undeclared and returns an unavailable/neutral-with-reason result. Daily crons on GitHub Actions; Modal kept for ad-hoc backfills only.
 - **Signal store**: git-versioned markdown under `signals/YYYY-MM-DD/<slug>.md` — append-only, never rewritten.
-- **Auth**: none for readers — the product is fully public. A single operator session gates publishing: password → signed httpOnly cookie (`apps/web/src/lib/admin-session.ts`), verified by `requireAdminSession()` / `hasAdminSession()` (`admin-guard.ts`). The `/api/admin` proxy injects `ADMIN_TOKEN` server-side so it never reaches the browser. Clerk and CF Access were both removed — do not reintroduce either without a migration plan (ADR-013).
+- **Auth**: none for readers — the product is fully public. Cloudflare Access gates the bounded operator paths, and `apps/web/src/lib/access.ts` verifies the Access JWT again at the Worker. The `/api/admin` proxy then injects `ADMIN_TOKEN` server-side so it never reaches the browser. ADR-014 is the migration plan that supersedes the abandoned Access decision in ADR-007 and amends ADR-013's password gate.
 - **Testing**: Vitest (TS), pytest (Python), Playwright (e2e).
 - **Deploy**: Cloudflare Workers for web (`high-signal-web` via OpenNext) and API (`high-signal-api`). No Vercel.
 - **Package manager**: pnpm workspace + uv (Python).

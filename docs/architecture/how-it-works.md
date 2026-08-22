@@ -196,11 +196,10 @@ regions are precomputed by cron so the API does one D1 lookup instead of many.
 `apps/web` (Next.js 16 App Router) reads the API through `apps/web/src/lib/api.ts`
 (`fetchJson('/brief/daily?...')`). The signals brief is the homepage; the lenses
 (Markets, Communities, Agent Eval) are deep views, not separate products
-(ADR-011). There is **no reader auth** — every page is anonymous and cacheable.
-A single operator session (`requireAdminSession()` in
-`apps/web/src/lib/admin-guard.ts`) gates the operator consoles and publishing.
-Cloudflare Access, then Clerk, were both tried and removed; **do not
-reintroduce either** without a migration plan (ADR-007, ADR-013).
+(ADR-011). There is **no reader auth** — every readable page is anonymous and
+cacheable. Cloudflare Access gates the bounded operator paths, and
+`apps/web/src/lib/access.ts` verifies the JWT again before the admin proxy can
+inject `ADMIN_TOKEN` (ADR-014).
 
 ## Key design decisions and why
 
@@ -210,7 +209,7 @@ reintroduce either** without a migration plan (ADR-007, ADR-013).
 | **Append-only git signal memory** | Git diff is the audit trail; corrections cite the prior signal, never overwrite. | ADR-002 |
 | **D1 + Drizzle, not Postgres** | Co-located with the Worker (no network hop), zero-ops, adequate at this scale. | ADR-001 |
 | **No second stock-price ingress** | All EOD equity/ETF/index/crypto prices enter through the single yfinance path (`equities_daily.py` → `data/equities-snapshot.jsonl`); a parallel fetcher would fork the price source of truth. Prediction-market probabilities are **not** prices. | [`data-service-boundary.md`](data-service-boundary.md), [`../operations/jobs.md`](../operations/jobs.md) |
-| **No accounts; one operator gate** | Nobody used the per-user surface, and page-level Clerk gates left the worker's write routes open anyway. Gated pages also bypass the edge cache and cannot be indexed, which works against a public-corpus product. | ADR-013 |
+| **No accounts; one operator gate** | Nobody used the per-user surface, and page-level Clerk gates left the worker's write routes open anyway. Bounded Cloudflare Access plus origin JWT verification protects only operator paths without suppressing the public corpus. | ADR-013, ADR-014 |
 | **Auto-publish, no human gate** | The daily review queue did not scale; deterministic rules + AI-on-HOLD keep quality without blocking. | ADR-008 |
 | **Ingestion as an interim layer** | High Signal is the insight product, not the data warehouse; keep the substrate split so signal tables never grow source-specific columns. | [`data-service-boundary.md`](data-service-boundary.md) |
 

@@ -47,7 +47,7 @@ src/high_signal_ingest/
   graph.py        spillover_ids() — hop-decayed BFS over relationships
   pipeline.py     run(source, days) → dict summary
   writer.py       emit() writes signals/YYYY-MM-DD/<slug>.md
-modal_app.py      Modal cron entry, deploys daily ingest
+modal_app.py      Manual Modal entry points for long backfills
 tests/            pytest
 ```
 
@@ -93,12 +93,16 @@ The HF pass never calls an LLM API and never blocks publication if model loading
 fails; it falls back to `rules-v1`. Use it for higher-quality batch enrichment,
 not for latency-sensitive edge request handling.
 
-## Deploy to Modal
+## Run a manual Modal backfill
 
 ```bash
-uv run modal deploy modal_app.py
-modal logs high-signal-ingest        # follow the cron
+uv run modal run modal_app.py::manual_backfill \
+  --start 2026-03-26 --end 2026-04-26 --sources gdelt
 ```
+
+The app intentionally has no scheduled functions or web endpoints. Daily jobs
+run in GitHub Actions; Modal is only an escape hatch for work that exceeds an
+Actions job's time limit.
 
 ## Adding a new source
 
@@ -110,8 +114,8 @@ modal logs high-signal-ingest        # follow the cron
    the `Source` union + the argparse `--source` choices list.
 3. Add at least one unit test under `tests/` that pins the response shape
    (use a recorded HTTP fixture; don't hit the live API in CI).
-4. If the source needs a new env var, document it here and add it to the
-   Modal Secret.
+4. If the source needs a new env var, document it here and add it to GitHub
+   Actions. Add it to the Modal Secret only when manual backfills need it.
 
 ## Audit
 

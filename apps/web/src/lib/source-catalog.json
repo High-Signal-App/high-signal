@@ -167,9 +167,9 @@
     },
     {
       "id": "patents",
-      "provider": "USPTO PatentsView",
+      "provider": "USPTO PatentsView (legacy probe; parked)",
       "domains": "technology",
-      "access": "keyless",
+      "access": "parked:USPTO_ODP_API_KEY",
       "official": false,
       "windowDays": 365,
       "role": "entity",

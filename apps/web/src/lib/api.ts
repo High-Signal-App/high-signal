@@ -35,12 +35,11 @@ export type {
   TrackedCommunity,
 } from '@high-signal/shared';
 
-const API_BASE =
-  process.env['NEXT_PUBLIC_API_BASE'] ?? 'https://high-signal-api.sarthakagrawal927.workers.dev';
+const API_BASE = process.env['NEXT_PUBLIC_API_BASE'] ?? 'https://api.highsignal.app';
 
-// Service binding when running inside the high-signal-web Worker (avoids CF
-// "fetch loop" guard that blocks workers.dev → workers.dev fetches in the same
-// account). Resolved lazily so it works in both Worker SSR and `next dev`.
+// Service binding when running inside the high-signal-web Worker keeps internal
+// traffic off the public API hostname. Resolved lazily so it works in both
+// Worker SSR and `next dev`.
 async function getBinding(): Promise<{ fetch: typeof fetch } | null> {
   if (typeof process === 'undefined') return null;
   try {

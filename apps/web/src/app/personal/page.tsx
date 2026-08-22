@@ -331,7 +331,7 @@ export default async function PersonalPage({
 }) {
   // Operator command brief — not part of the public product. Everything else
   // on High Signal is public; this one page is the operator's own cockpit.
-  await requireAdminSession('/personal');
+  await requireAdminSession();
   const params = (await searchParams) ?? {};
   const reports = (reportIndex as PersonalReportIndex).reports
     .slice()

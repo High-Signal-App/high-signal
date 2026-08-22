@@ -1,7 +1,7 @@
 /**
  * Server-side forwarder to the API worker's /admin/* routes.
  *
- * Callers must have already verified the operator session. This is the only
+ * Callers must have already verified the operator's Access JWT. This is the only
  * place ADMIN_TOKEN is read, and it never leaves the server: both the
  * /api/admin/[...path] proxy (for browser fetches) and server actions
  * (for form posts) go through here.

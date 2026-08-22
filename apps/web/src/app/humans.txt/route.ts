@@ -3,7 +3,7 @@ export const dynamic = 'force-static';
 const BODY = `/* TEAM */
 Maintainer: Sarthak Agrawal
 GitHub: sarthakagrawal927
-Site: https://high-signal-web.sarthakagrawal927.workers.dev
+Site: https://highsignal.app
 
 /* THANKS */
 edgartools, Trafilatura, GLiNER, GLiREL, NetworkX, FinBERT, VectorBT —

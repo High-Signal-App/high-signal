@@ -1,7 +1,7 @@
 /**
  * /api/admin/<...> — same-origin proxy to the api worker's /admin/* routes.
  *
- * Auth: the single-operator admin session cookie (see lib/admin-session.ts).
+ * Auth: a cryptographically verified Cloudflare Access JWT.
  * Forwarding + ADMIN_TOKEN injection live in lib/admin-worker.ts, so the token
  * stays on the server and never reaches the browser.
  */

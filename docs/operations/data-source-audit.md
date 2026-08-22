@@ -47,7 +47,7 @@ daily-brief insights. Pipeline jobs are only the mechanism that runs them.
 | Substack / newsletters | Wired | Curated writer RSS feeds | Narrative and founder/developer weak signals; never publish alone. |
 | Lobsters / technical forums | Wired | Developer discussion RSS/forum signals | Small but high-quality technical weak signals. |
 | Jobs boards | Wired | Greenhouse, Lever, Ashby targets | Hiring velocity, product-focus, budget and expansion clues. |
-| Patents | Wired, low-yield | PatentsView grants | Long-horizon technical/product lookahead; current API health is weak. |
+| Patents | Parked | Legacy PatentsView probe | ODP replacement now requires account + MFA + profile + API key; excluded from automatic runs until expected yield justifies the credential overhead. |
 | HKEX filings | Wired | HK-listed company announcements | Asia-listed company primary evidence. |
 | Macro rates | Wired | ECB FX and optional FRED rates | Macro context; explicitly not an equity-price source. |
 | Wikidata | Manual/enrichment | Entity metadata | Entity mapping and enrichment, not prediction volume. |
@@ -187,7 +187,7 @@ These are reachable from `python/ingest/src/high_signal_ingest/pipeline.py`.
 | `hkex` | Wired | Primary filings | HK-listed announcements | Useful for Asia-listed AI and semiconductor entities |
 | `markets` | Connected | Forecast context | Prediction market events and quotes | Not stock prices; never primary evidence alone |
 | `macro-rates` | Wired | Macro context | ECB FX and optional-key FRED rates | Not an equity-price source |
-| `patents` | Wired but currently low-yield | Long-horizon primary evidence | PatentsView grants | Current adapter notes USPTO API transition page risk |
+| `patents` | Parked compatibility probe | Long-horizon primary evidence | Legacy PatentsView grants | Excluded from automatic runs after the account-gated ODP migration; reopen only with a credentialed adapter and concrete yield case |
 | `jobs` | Wired | Hiring / budget / product-focus signal | Greenhouse, Lever, Ashby targets | Good leading indicator; requires careful entity mapping |
 | `bluesky` | Wired, optional-auth | Social weak signal | AT Protocol search lane | Weak context only; auth required for best path |
 | `metaculus` | Wired, optional-auth | Forecast context | Metaculus forecast search | Terms and auth matter; never primary evidence |

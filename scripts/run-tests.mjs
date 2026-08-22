@@ -23,7 +23,7 @@ const ROOT = resolve(__dirname, '..');
 const TSX_SUITES = [
   ['signals', 'scripts/sync-signals.test.ts'],
   ['signals:auto-publish', 'scripts/auto-publish-rules.test.ts'],
-  ['admin-session', 'scripts/admin-session.test.ts'],
+  ['access-jwt', 'apps/web/scripts/access-jwt.test.ts'],
   ['seo', 'scripts/seo-json-ld.test.ts'],
   ['requirements', 'scripts/daily-requirements.test.ts'],
   ['daily-range', 'scripts/daily-range.test.ts'],
