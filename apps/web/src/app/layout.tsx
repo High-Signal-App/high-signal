@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Script from 'next/script';
 import './globals.css';
 import { AnalyticsProvider } from '@/components/posthog-provider';
 import { SaaSMakerFeedback } from '@/components/saasmaker-feedback';
@@ -128,6 +129,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="min-h-dvh font-sans antialiased">
         {app}
+        {/* Microsoft Clarity — session replay + heatmaps (additive; PostHog stays) */}
+        <Script id="microsoft-clarity" strategy="afterInteractive">
+          {`(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/y39u4kk9oq";y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window,document,"clarity","script","y39u4kk9oq");window.clarity("set","project_id","high-signal");`}
+        </Script>
         <script src="https://sassmaker.com/project-strip.js" data-project="high-signal" defer />
       </body>
     </html>
