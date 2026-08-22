@@ -803,7 +803,16 @@ adminRoute.post('/claims/backfill', async (c) => {
         id: await sha16(`tl:${claimId}:backfill:${linkId}`),
         claimId,
         kind: 'evidence_added',
-        payload: { linkId, url: link.url, role: link.role, source: 'historical_signal_backfill' },
+        payload: {
+          linkId,
+          url: link.url,
+          role: link.role,
+          source: 'historical_signal_backfill',
+          // Corroboration here is source independence (a different publisher),
+          // not a read-and-confirmed semantic match. Record which it was so a
+          // later judge — or an operator demoting the link — can tell.
+          ...(link.role === 'corroboration' ? { basis: 'independent_publisher' } : {}),
+        },
         actor,
         createdAt: now,
       })

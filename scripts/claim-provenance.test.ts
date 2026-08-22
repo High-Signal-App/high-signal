@@ -11,6 +11,7 @@
 
 import {
   buildHistoricalClaimBackfill,
+  isIndependentCorroboration,
   canTransition,
   judgePublishability,
   rollupEvidence,
@@ -61,7 +62,57 @@ console.log('historical backfill derivation');
   checkEq('headline becomes assertion', backfill.assertion, 'NVIDIA capacity expands');
   checkEq('backfill deduplicates urls', backfill.evidence.length, 2);
   checkEq('first evidence is primary', backfill.evidence[0]?.role, 'primary');
-  checkEq('later evidence stays context until reviewed', backfill.evidence[1]?.role, 'context');
+  checkEq(
+    'a different publisher is promoted to corroboration',
+    backfill.evidence[1]?.role,
+    'corroboration'
+  );
+}
+{
+  // Same publisher twice is the same outlet, not corroboration.
+  const sameHost = buildHistoricalClaimBackfill({
+    bodyMd: '# Same outlet twice',
+    fallbackAssertion: 'fallback',
+    evidenceUrls: ['https://a.example/one', 'https://a.example/two'],
+  });
+  checkEq('same-host second link stays context', sameHost.evidence[1]?.role, 'context');
+
+  // Crowd opinion never corroborates; the auto-publish rubric already kills it.
+  const market = buildHistoricalClaimBackfill({
+    bodyMd: '# Market only',
+    fallbackAssertion: 'fallback',
+    evidenceUrls: ['https://a.example/one', 'https://polymarket.com/event/two'],
+  });
+  checkEq('prediction market stays context', market.evidence[1]?.role, 'context');
+
+  // Exactly one corroboration; extra independent sources remain context so the
+  // count reflects a decision rather than a source tally.
+  const many = buildHistoricalClaimBackfill({
+    bodyMd: '# Three publishers',
+    fallbackAssertion: 'fallback',
+    evidenceUrls: ['https://a.example/one', 'https://b.example/two', 'https://c.example/three'],
+  });
+  checkEq('only the first independent link is promoted', many.evidence[1]?.role, 'corroboration');
+  checkEq('further independent links stay context', many.evidence[2]?.role, 'context');
+
+  // A non-citation cannot corroborate anything.
+  const bad = buildHistoricalClaimBackfill({
+    bodyMd: '# Bad link',
+    fallbackAssertion: 'fallback',
+    evidenceUrls: ['https://a.example/one', 'javascript:alert(1)'],
+  });
+  checkEq('non-http link stays context', bad.evidence[1]?.role, 'context');
+
+  checkEq(
+    'isIndependentCorroboration rejects same host',
+    isIndependentCorroboration('https://a.example/one', 'https://www.a.example/two'),
+    false
+  );
+  checkEq(
+    'isIndependentCorroboration accepts a different host',
+    isIndependentCorroboration('https://a.example/one', 'https://b.example/two'),
+    true
+  );
 }
 {
   const r = rollupEvidence([

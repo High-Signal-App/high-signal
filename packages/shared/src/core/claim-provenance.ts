@@ -2,6 +2,8 @@
 // Shared types and small pure helpers consumed by the worker, the /review
 // editor, the /signals provenance tab, and the auto-publish judge.
 
+import { isPredictionMarketOnly, sourceDomain } from './signal-intelligence';
+
 export type ClaimSurface = 'signal' | 'brief' | 'agent_eval';
 
 export type ClaimReviewStatus = 'draft' | 'held' | 'published' | 'killed' | 'corrected';
@@ -65,8 +67,43 @@ export interface HistoricalClaimBackfill {
   assertion: string;
   evidence: Array<{
     url: string;
-    role: 'primary' | 'context';
+    role: 'primary' | 'corroboration' | 'context';
   }>;
+}
+
+/**
+ * Decide whether a second source corroborates the primary strongly enough to
+ * carry a published claim.
+ *
+ * This is a deliberately narrow, mechanical test: a *different publisher*.
+ * Same registrable-ish host as the primary is not corroboration, it is the same
+ * outlet twice; a prediction market is crowd opinion, which the auto-publish
+ * rubric already kills; a non-HTTP(S) link is not a citation at all.
+ *
+ * What it does NOT claim is semantic agreement — nobody has read both sources
+ * and confirmed they assert the same thing. It claims source independence,
+ * which is checkable, and it is why promoted links record
+ * `independent_publisher` rather than an editorial judgement. Upgrading to
+ * semantic corroboration needs a judge that reads the text; until then this is
+ * the honest ceiling, and an operator can still demote a link by hand.
+ *
+ * Before this existed the backfill assigned `primary` + `context` only, while
+ * the brief's per-item gate required `corroborationCount >= 1` — so no
+ * backfilled claim could ever publish, and the public brief ran empty from
+ * 2026-08-11 to 2026-08-22.
+ */
+export function isIndependentCorroboration(primaryUrl: string, candidateUrl: string): boolean {
+  const usable = (value: string) => {
+    try {
+      const url = new URL(value);
+      return url.protocol === 'https:' || url.protocol === 'http:';
+    } catch {
+      return false;
+    }
+  };
+  if (!usable(primaryUrl) || !usable(candidateUrl)) return false;
+  if (isPredictionMarketOnly([candidateUrl])) return false;
+  return sourceDomain(primaryUrl) !== sourceDomain(candidateUrl);
 }
 
 /**
@@ -88,15 +125,22 @@ export function buildHistoricalClaimBackfill(input: {
     500
   );
   const urls = Array.from(new Set(input.evidenceUrls.map((url) => url.trim()).filter(Boolean)));
+  const [primaryUrl] = urls;
+  // URL order proves nothing on its own, so only the first link is primary.
+  // Later links are promoted to corroboration only when they clear the
+  // independent-publisher test; everything else stays context, exactly as
+  // before. Promotion is mechanical and auditable, never inferred from order.
+  let corroborated = false;
   return {
     assertion,
-    evidence: urls.map((url, index) => ({
-      url,
-      // URL order proves neither independence nor semantic corroboration.
-      // Historical imports stay contextual until an operator/judge promotes
-      // an aligned source explicitly.
-      role: index === 0 ? 'primary' : 'context',
-    })),
+    evidence: urls.map((url, index) => {
+      if (index === 0) return { url, role: 'primary' as const };
+      if (!corroborated && isIndependentCorroboration(primaryUrl, url)) {
+        corroborated = true;
+        return { url, role: 'corroboration' as const };
+      }
+      return { url, role: 'context' as const };
+    }),
   };
 }
 

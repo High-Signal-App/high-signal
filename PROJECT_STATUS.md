@@ -95,6 +95,22 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 
 ## Timeline
 
+- **2026-08-23 — Corroboration is now decided by an independent-publisher
+  test:** `buildHistoricalClaimBackfill` promotes the first later evidence link
+  to `corroboration` when it clears `isIndependentCorroboration` — a different
+  publisher host from the primary, HTTP(S), and not one of the four
+  prediction-market domains. Same-host links, market links and non-citations
+  stay `context`, and only one link is promoted so the count reflects a decision
+  rather than a source tally. Promoted links record
+  `basis: 'independent_publisher'` on their timeline event, because this asserts
+  source independence and not a read-and-confirmed semantic match; a judge that
+  reads the text, or an operator demotion, can still override. This unblocks the
+  deadlock that kept the brief empty: the backfill previously assigned only
+  `primary` + `context` while the per-item gate required
+  `corroborationCount >= 1`, so no backfilled claim could publish. The gate
+  itself is unchanged. `POST /admin/claims/backfill` still has to be run per
+  signal against the 3,038-row signal table to populate `claim_records`.
+
 - **2026-08-22 — Twelve-day silent brief outage diagnosed; publish gate now
   withholds items, not editions:** the global edition published nothing from
   2026-08-11 to 2026-08-22 and rendered as "no qualifying items", which reads as
