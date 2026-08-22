@@ -12,6 +12,7 @@ export function SignalCard({ s }: { s: SignalRow }) {
   return (
     <Link
       href={`/signals/${s.slug}`}
+      prefetch={false}
       className="group block border-b border-zinc-800 px-1 py-7 transition-colors hover:bg-white/[0.02] sm:px-3"
     >
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">

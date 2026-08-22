@@ -316,7 +316,7 @@ export default function ExplorePage() {
                 const flag = flagLabel(s.flag);
                 return (
                   <li key={s.href} className="border border-zinc-900 p-3 hover:border-zinc-700">
-                    <Link href={s.href as Route} className="block group">
+                    <Link href={s.href as Route} prefetch={false} className="block group">
                       <div className="flex items-baseline justify-between gap-2">
                         <span className="text-zinc-200 group-hover:text-[var(--color-accent)]">
                           {s.label}

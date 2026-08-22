@@ -29,6 +29,7 @@ export function CompanyUniverseTable({
               <Link
                 key={item.slug}
                 href={`/case-studies/${item.slug}` as Route}
+                prefetch={false}
                 className="grid grid-cols-[minmax(10rem,1fr)_minmax(8rem,0.7fr)_minmax(12rem,1.1fr)_minmax(14rem,1.4fr)] gap-3 px-3 py-3 text-sm transition hover:bg-zinc-950"
               >
                 <div>

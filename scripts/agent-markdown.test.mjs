@@ -5,10 +5,12 @@ import { existsSync, readFileSync } from 'node:fs';
 
 import {
   handleAgentEdge,
+  handleCachedCrawlerMarkdown,
   handleCachedRenderedMarkdown,
   handleRenderedMarkdown,
   htmlDocumentToMarkdown,
   htmlDisallowsIndexing,
+  isBulkAiCrawler,
   resolvePublicMarkdownTarget,
 } from '../apps/web/agent-edge.mjs';
 import {
@@ -170,11 +172,78 @@ const cacheHit = await handleCachedRenderedMarkdown(
 assert.equal(cacheHit.headers.get('x-edge-cache'), 'AGENT-HIT');
 assert.equal(
   cacheHit.headers.get('cache-control'),
-  'public, max-age=300, s-maxage=3600',
+  'public, max-age=300, s-maxage=86400',
   'cache hits must preserve the public agent TTL even when the edge mutates browser max-age'
 );
 assert.equal(cachedRenderCount, 1, 'cache hit must not invoke OpenNext');
 assert.equal(await cacheHit.text(), missBody, 'cache hit must preserve the rendered Markdown body');
+
+const bulkCrawlerRequest = markdownRequest('/markets/NVDA', {
+  'User-Agent':
+    'meta-externalagent/1.1 (+https://developers.facebook.com/docs/sharing/webmasters/crawler)',
+});
+assert.equal(isBulkAiCrawler(bulkCrawlerRequest), true);
+assert.equal(
+  isBulkAiCrawler(markdownRequest('/markets/NVDA', { 'User-Agent': 'OAI-SearchBot/1.0' })),
+  false,
+  'AI search crawlers must keep the normal HTML experience'
+);
+const verifiedAiCrawlerRequest = markdownRequest('/markets/NVDA', {
+  'User-Agent': 'unknown-crawler/1.0',
+});
+Object.defineProperty(verifiedAiCrawlerRequest, 'cf', {
+  value: { verifiedBotCategory: 'AI Crawler' },
+});
+assert.equal(isBulkAiCrawler(verifiedAiCrawlerRequest), true);
+
+let crawlerRenderCount = 0;
+const renderCrawlerMarket = async (htmlRequest) => {
+  crawlerRenderCount += 1;
+  assert.equal(new URL(htmlRequest.url).pathname, '/markets/NVDA');
+  assert.equal(htmlRequest.headers.get('accept'), 'text/html');
+  return new Response(
+    '<html><body><main><h1>NVDA</h1><p>Cached market evidence for agents.</p></main></body></html>',
+    { headers: { 'Content-Type': 'text/html; charset=utf-8' } }
+  );
+};
+const crawlerMiss = await handleCachedCrawlerMarkdown(
+  bulkCrawlerRequest,
+  renderCrawlerMarket,
+  cacheOptions
+);
+assert.ok(crawlerMiss);
+assert.equal(crawlerMiss.headers.get('x-edge-cache'), 'AGENT-MISS');
+assert.equal(crawlerMiss.headers.get('x-high-signal-crawler-view'), 'markdown');
+assert.equal(crawlerMiss.headers.get('content-location'), '/markets/NVDA.md');
+assert.match(crawlerMiss.headers.get('content-type') ?? '', /text\/markdown/);
+assert.match(crawlerMiss.headers.get('vary') ?? '', /User-Agent/i);
+await crawlerMiss.text();
+await Promise.all(cacheWrites);
+
+const crawlerHit = await handleCachedCrawlerMarkdown(
+  bulkCrawlerRequest,
+  renderCrawlerMarket,
+  cacheOptions
+);
+assert.ok(crawlerHit);
+assert.equal(crawlerHit.headers.get('x-edge-cache'), 'AGENT-HIT');
+assert.equal(crawlerRenderCount, 1, 'bulk crawler cache hit must not invoke OpenNext');
+assert.match(await crawlerHit.text(), /Cached market evidence for agents/);
+
+for (const bypassed of [
+  markdownRequest('/markets/NVDA', { 'User-Agent': 'OAI-SearchBot/1.0' }),
+  markdownRequest('/markets/NVDA?preview=1', { 'User-Agent': 'meta-externalagent/1.1' }),
+  markdownRequest('/markets/NVDA?_rsc=state', {
+    RSC: '1',
+    'User-Agent': 'meta-externalagent/1.1',
+  }),
+]) {
+  assert.equal(
+    await handleCachedCrawlerMarkdown(bypassed, renderCrawlerMarket, cacheOptions),
+    null,
+    `${bypassed.url} must retain the normal application path`
+  );
+}
 
 for (const request of [
   markdownRequest('/markets.md?view=compact'),
@@ -276,6 +345,19 @@ assert.match(catalog.auth.notes, /Review, admin, auth, personal, delivery/);
 const staticCatalogResponse = handleAgentEdge(markdownRequest('/api-ai.json'));
 assert.ok(staticCatalogResponse);
 assert.deepEqual(await staticCatalogResponse.json(), catalog);
+
+const openapiResponse = handleAgentEdge(markdownRequest('/openapi.json'));
+assert.ok(openapiResponse);
+const openapi = await openapiResponse.json();
+assert.equal(openapi.openapi, '3.1.0');
+assert.ok(openapi.paths['/signals/{slug}']);
+assert.ok(openapi.paths['/entities/{id}/{period}']);
+assert.equal(openapi.paths['/entities/{id}/{id}'], undefined);
+assert.deepEqual(
+  openapi.paths['/entities/{id}/{period}'].get.parameters.map((parameter) => parameter.name),
+  ['id', 'period'],
+  'OpenAPI dynamic paths must keep distinct, valid parameter names'
+);
 
 console.log(
   `Agent Markdown contract passed: ${catalog.surfaces.length} static surfaces, ${catalog.templates.length} dynamic templates.`

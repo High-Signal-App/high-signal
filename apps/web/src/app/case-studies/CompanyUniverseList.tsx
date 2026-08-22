@@ -95,6 +95,7 @@ function PageLink({
   return (
     <Link
       href={caseStudiesPageHref(page) as Route}
+      prefetch={false}
       aria-current={active ? 'page' : undefined}
       className={
         active

@@ -793,8 +793,9 @@ async function getRedditOAuthToken(): Promise<string | null> {
 }
 
 function parseRedditChildren(data: unknown): RedditPost[] {
-  const children = (data as { data?: { children?: Array<{ data?: Record<string, unknown> }> } })
-    ?.data?.children ?? [];
+  const children =
+    (data as { data?: { children?: Array<{ data?: Record<string, unknown> }> } })?.data?.children ??
+    [];
   return children
     .map((child) => child.data ?? {})
     .map((post) => ({
@@ -808,10 +809,9 @@ function parseRedditChildren(data: unknown): RedditPost[] {
 }
 
 async function fetchRedditRssPosts(subreddit: string, period: SourcePeriod): Promise<RedditPost[]> {
-  const response = await fetch(
-    `${REDDIT_PUBLIC_BASE}/r/${encodeURIComponent(subreddit)}/.rss`,
-    { headers: { 'User-Agent': REDDIT_USER_AGENT } }
-  );
+  const response = await fetch(`${REDDIT_PUBLIC_BASE}/r/${encodeURIComponent(subreddit)}/.rss`, {
+    headers: { 'User-Agent': REDDIT_USER_AGENT },
+  });
   if (!response.ok) return [];
   const xml = await response.text();
   const since = sinceDateForPeriod(period).getTime();
@@ -820,7 +820,9 @@ async function fetchRedditRssPosts(subreddit: string, period: SourcePeriod): Pro
       const title = firstXmlValue(block, 'title');
       const link = firstXmlHref(block);
       const rawDate =
-        firstXmlValue(block, 'pubDate') || firstXmlValue(block, 'updated') || firstXmlValue(block, 'published');
+        firstXmlValue(block, 'pubDate') ||
+        firstXmlValue(block, 'updated') ||
+        firstXmlValue(block, 'published');
       const time = rawDate ? Date.parse(rawDate) : Date.now();
       return { title, link, time, id: link };
     })

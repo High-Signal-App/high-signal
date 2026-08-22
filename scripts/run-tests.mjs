@@ -51,6 +51,7 @@ const NODE_SUITES = [
   ['foundry-evidence', 'scripts/foundry-evidence.test.mjs'],
   ['foundry-safe-actions', 'scripts/foundry-safe-actions.test.mjs'],
   ['idempotency-guards', 'scripts/idempotency-guards.test.mjs'],
+  ['worker-cache-policy', 'scripts/worker-cache-policy.test.mjs'],
   ['worker-routing', 'scripts/worker-routing.test.mjs'],
   ['public-corpus', 'scripts/public-corpus-policy.test.mjs'],
   ['public-corpus-receipt', 'scripts/public-corpus-receipt.test.mjs'],

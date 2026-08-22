@@ -74,6 +74,7 @@ export function PrimaryNav() {
       <div className="mx-auto flex max-w-7xl items-center gap-5 px-4 py-2.5 sm:px-6">
         <Link
           href={'/' as Route}
+          prefetch={false}
           className="shrink-0 font-mono text-[11px] uppercase tracking-[0.12em] text-[var(--color-fg)] transition-colors duration-150 hover:text-[var(--color-accent)]"
         >
           <span className="mr-2 inline-block size-1 rounded-full bg-[var(--color-accent)] align-middle" />
@@ -87,6 +88,7 @@ export function PrimaryNav() {
               <li key={item.href}>
                 <Link
                   href={item.href as Route}
+                  prefetch={false}
                   className={`${linkBase} ${
                     active
                       ? 'border-[var(--color-accent)] text-[var(--color-accent)]'
@@ -107,6 +109,7 @@ export function PrimaryNav() {
               <li key={item.href}>
                 <Link
                   href={item.href as Route}
+                  prefetch={false}
                   className={`${linkBase} ${
                     active
                       ? 'border-[var(--color-accent)] text-[var(--color-accent)]'

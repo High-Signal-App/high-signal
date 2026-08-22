@@ -4,6 +4,7 @@
   "url": "https://highsignal.app",
   "llms": "https://highsignal.app/llms.txt",
   "llmsFull": "https://highsignal.app/llms-full.txt",
+  "openapi": "https://highsignal.app/openapi.json",
   "sitemap": "https://highsignal.app/sitemap.xml",
   "robots": "https://highsignal.app/robots.txt",
   "markdown": {

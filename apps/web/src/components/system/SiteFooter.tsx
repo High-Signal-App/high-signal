@@ -108,6 +108,7 @@ function FooterColumn({ title, links }: { title: string; links: FooterLink[] }) 
           <li key={link.href}>
             <Link
               href={link.href as Route}
+              prefetch={false}
               className="text-[var(--color-fg)] hover:text-[var(--color-accent)]"
             >
               {link.label}

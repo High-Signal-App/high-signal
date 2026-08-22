@@ -12,7 +12,18 @@ const PRODUCT = {
     'Daily synthesized brief on technology, startups, and finance with cited evidence and a public hit-rate ledger.',
 };
 
-const AGENT_CACHE_CONTROL = 'public, max-age=300, s-maxage=3600';
+const AGENT_CACHE_CONTROL = 'public, max-age=300, s-maxage=86400';
+
+const BULK_AI_CRAWLER_USER_AGENTS = [
+  'amazonbot',
+  'bytespider',
+  'ccbot',
+  'claudebot',
+  'facebookbot',
+  'google-cloudvertexbot',
+  'gptbot',
+  'meta-externalagent',
+];
 
 const INDEX_MARKDOWN = `# High Signal
 
@@ -122,6 +133,7 @@ function catalogForOrigin(origin) {
     url: origin,
     llms: `${origin}/llms.txt`,
     llmsFull: `${origin}/llms-full.txt`,
+    openapi: `${origin}/openapi.json`,
     sitemap: `${origin}/sitemap.xml`,
     robots: `${origin}/robots.txt`,
     markdown: {
@@ -164,6 +176,169 @@ function catalogForOrigin(origin) {
   };
 }
 
+const OPENAPI_MACHINE_SURFACES = [
+  {
+    path: '/llms.txt',
+    tag: 'agent-surfaces',
+    summary: 'Short LLM index',
+    description: 'Concise index of product surfaces for LLM agents.',
+    responseDescription: 'Plain-text LLM index',
+    contentType: 'text/plain',
+    schemaType: 'string',
+  },
+  {
+    path: '/llms-full.txt',
+    tag: 'agent-surfaces',
+    summary: 'Full LLM brief',
+    description: 'Complete agent brief with all surfaces and data resources.',
+    responseDescription: 'Plain-text full agent brief',
+    contentType: 'text/plain',
+    schemaType: 'string',
+  },
+  {
+    path: '/api/ai',
+    tag: 'agent-surfaces',
+    summary: 'Agent catalog',
+    description: 'JSON inventory of all public agent surfaces, templates, and data resources.',
+    responseDescription: 'Agent catalog JSON',
+    contentType: 'application/json',
+    schemaType: 'object',
+  },
+  {
+    path: '/openapi.json',
+    tag: 'agent-surfaces',
+    summary: 'OpenAPI specification',
+    description: 'OpenAPI 3.1 description of public agent surfaces.',
+    responseDescription: 'OpenAPI 3.1 JSON',
+    contentType: 'application/json',
+    schemaType: 'object',
+  },
+  {
+    path: '/index.md',
+    tag: 'agent-surfaces',
+    summary: 'Homepage Markdown',
+    description: 'Product brief in Markdown without JavaScript.',
+    responseDescription: 'Markdown product brief',
+    contentType: 'text/markdown',
+    schemaType: 'string',
+  },
+  {
+    path: '/signals/rss',
+    tag: 'data',
+    summary: 'Signals RSS feed',
+    description: 'Published signals as RSS.',
+    responseDescription: 'RSS XML feed of published signals',
+    contentType: 'application/rss+xml',
+    schemaType: 'string',
+  },
+  {
+    path: '/signals.json',
+    tag: 'data',
+    summary: 'Published signals JSON',
+    description: 'Published signals as JSON.',
+    responseDescription: 'JSON array of published signals',
+    contentType: 'application/json',
+    schemaType: 'array',
+  },
+  {
+    path: '/data/hit-rate.json',
+    tag: 'data',
+    summary: 'Hit-rate ledger JSON',
+    description: 'Downloadable public hit-rate ledger for every market call.',
+    responseDescription: 'Hit-rate ledger JSON',
+    contentType: 'application/json',
+    schemaType: 'object',
+  },
+];
+
+const OPENAPI_PARAMETER_NAMES = new Map([['yyyy-mm', 'period']]);
+const OPENAPI_TEMPLATE_PATTERN = compilePattern(String.raw`\{([^}]+)\}`, 'g');
+
+function openapiSpecForOrigin(origin) {
+  return {
+    openapi: '3.1.0',
+    info: {
+      title: PRODUCT.name,
+      version: '1.0.0',
+      description: PRODUCT.summary,
+      contact: { url: origin },
+    },
+    servers: [{ url: origin }],
+    tags: [
+      { name: 'agent-surfaces', description: 'Machine-readable discovery surfaces' },
+      { name: 'public-pages', description: 'Public HTML pages with Markdown alternates' },
+      { name: 'data', description: 'Public JSON and feed data resources' },
+    ],
+    paths: Object.fromEntries([
+      ...OPENAPI_MACHINE_SURFACES.map((surface) => [surface.path, machinePathItem(surface)]),
+      ...PUBLIC_STATIC_ROUTES.map((route) => [
+        route.path,
+        publicPagePathItem(route.title, route.description),
+      ]),
+      ...PUBLIC_DYNAMIC_ROUTE_TEMPLATES.map((route) => [
+        openapiPath(route.html),
+        publicPagePathItem(route.description, route.description, openapiParameters(route.html)),
+      ]),
+    ]),
+  };
+}
+
+function machinePathItem(surface) {
+  return {
+    get: {
+      tags: [surface.tag],
+      summary: surface.summary,
+      description: surface.description,
+      responses: {
+        200: {
+          description: surface.responseDescription,
+          content: { [surface.contentType]: { schema: { type: surface.schemaType } } },
+        },
+      },
+    },
+  };
+}
+
+function publicPagePathItem(summary, description, parameters = []) {
+  return {
+    get: {
+      tags: ['public-pages'],
+      summary,
+      description,
+      parameters,
+      responses: {
+        200: {
+          description: 'HTML page with a Markdown alternate.',
+          content: {
+            'text/html': { schema: { type: 'string' } },
+            'text/markdown': { schema: { type: 'string' } },
+          },
+        },
+      },
+    },
+  };
+}
+
+function openapiPath(pathTemplate) {
+  return pathTemplate.replace(OPENAPI_TEMPLATE_PATTERN, (_, name) => {
+    return `{${OPENAPI_PARAMETER_NAMES.get(name) ?? name}}`;
+  });
+}
+
+function openapiParameters(pathTemplate) {
+  return [...pathTemplate.matchAll(OPENAPI_TEMPLATE_PATTERN)].map((match) => {
+    const sourceName = match[1];
+    const name = OPENAPI_PARAMETER_NAMES.get(sourceName) ?? sourceName;
+    return {
+      name,
+      in: 'path',
+      required: true,
+      schema: { type: 'string' },
+      description: `${name} path segment`,
+    };
+  });
+}
+
 export function handleAgentEdge(request) {
   if (request.method !== 'GET' && request.method !== 'HEAD') return null;
   const url = new URL(request.url);
@@ -180,6 +355,9 @@ export function handleAgentEdge(request) {
   }
   if (path === '/api/ai' || path === '/api-ai.json') {
     return json(request, catalogForOrigin(url.origin));
+  }
+  if (path === '/openapi.json') {
+    return json(request, openapiSpecForOrigin(url.origin));
   }
 
   if (path === '/' && wantsMarkdown(request)) {
@@ -302,6 +480,52 @@ export async function handleCachedRenderedMarkdown(
   return withEdgeCacheStatus(rendered, 'AGENT-MISS');
 }
 
+/**
+ * Keep bulk AI training crawlers useful without sending them through the
+ * browser-oriented Next.js/RSC prefetch graph. Search crawlers and user-driven
+ * assistants continue to receive normal HTML.
+ */
+export async function handleCachedCrawlerMarkdown(
+  request,
+  renderHtml,
+  { cache, waitUntil, cacheEnabled = true } = {}
+) {
+  if (!cacheEnabled || !isBulkAiCrawler(request) || request.method !== 'GET') return null;
+  if (request.headers.get('rsc') === '1') return null;
+
+  const url = new URL(request.url);
+  const publicPath = normalizePublicPath(url.pathname);
+  if (url.search !== '' || !isPublicHtmlPath(publicPath)) return null;
+
+  const markdownUrl = new URL(url);
+  markdownUrl.pathname = publicPath === '/' ? '/index.md' : `${publicPath}.md`;
+  const headers = new Headers(request.headers);
+  headers.set('Accept', 'text/markdown');
+  const markdownRequest = new Request(markdownUrl, { method: 'GET', headers });
+  const response = await handleCachedRenderedMarkdown(markdownRequest, renderHtml, {
+    cache,
+    waitUntil,
+    cacheEnabled: true,
+  });
+  if (!response) return null;
+
+  const responseHeaders = new Headers(response.headers);
+  responseHeaders.set('Content-Location', markdownUrl.pathname);
+  responseHeaders.set('x-high-signal-crawler-view', 'markdown');
+  responseHeaders.set('Vary', mergeVary(responseHeaders.get('Vary'), 'User-Agent'));
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers: responseHeaders,
+  });
+}
+
+export function isBulkAiCrawler(request) {
+  if (request.cf?.verifiedBotCategory === 'AI Crawler') return true;
+  const userAgent = (request.headers.get('user-agent') ?? '').toLowerCase();
+  return BULK_AI_CRAWLER_USER_AGENTS.some((crawler) => userAgent.includes(crawler));
+}
+
 function isCacheableRenderedMarkdown(response) {
   if (response?.status !== 200 || response.headers.has('set-cookie')) return false;
   return isMarkdownContentType(response.headers.get('content-type') ?? '');
@@ -325,13 +549,34 @@ function isMarkdownContentType(contentType) {
   return normalized.includes('text/markdown') || normalized.includes('text/plain');
 }
 
+function mergeVary(current, value) {
+  const values = (current ?? '')
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+  if (!values.some((entry) => entry.toLowerCase() === value.toLowerCase())) values.push(value);
+  return values.join(', ');
+}
+
+const HTML_META_TAG_PATTERN = compilePattern(String.raw`<meta\b[^>]*>`, 'gi');
+const HTML_NAME_ATTRIBUTE_PATTERN = compilePattern(String.raw`\bname\s*=\s*(['"])(.*?)\1`, 'i');
+const HTML_CONTENT_ATTRIBUTE_PATTERN = compilePattern(
+  String.raw`\bcontent\s*=\s*(['"])(.*?)\1`,
+  'i'
+);
+
+function compilePattern(source, flags) {
+  return new RegExp(source, flags);
+}
+
 export function htmlDisallowsIndexing(html) {
-  return [...html.matchAll(/<meta\b[^>]*>/gi)].some((match) => {
+  for (const match of html.matchAll(HTML_META_TAG_PATTERN)) {
     const tag = match[0];
-    const name = tag.match(/\bname\s*=\s*(['"])(.*?)\1/i)?.[2]?.toLowerCase();
-    const content = tag.match(/\bcontent\s*=\s*(['"])(.*?)\1/i)?.[2]?.toLowerCase();
-    return name === 'robots' && (content ?? '').split(/[\s,]+/).includes('noindex');
-  });
+    const name = tag.match(HTML_NAME_ATTRIBUTE_PATTERN)?.[2]?.toLowerCase();
+    const content = tag.match(HTML_CONTENT_ATTRIBUTE_PATTERN)?.[2]?.toLowerCase();
+    if (name === 'robots' && (content ?? '').split(/[\s,]+/).includes('noindex')) return true;
+  }
+  return false;
 }
 
 export function htmlDocumentToMarkdown(html, canonicalUrl) {
@@ -340,7 +585,41 @@ export function htmlDocumentToMarkdown(html, canonicalUrl) {
   let source = main?.[1] ?? body?.[1] ?? html;
   const codeBlocks = [];
 
-  source = source
+  source = replaceHtmlWithMarkdown(source, canonicalUrl, codeBlocks);
+  source = normalizeMarkdownSource(source);
+
+  for (const [index, block] of codeBlocks.entries()) {
+    source = source.replace(`@@CODE_BLOCK_${index}@@`, block);
+  }
+
+  if (!source) return '';
+  return `${source}\n\n---\n\nCanonical HTML: ${canonicalUrl}\n`;
+}
+
+function replaceHtmlWithMarkdown(source, canonicalUrl, codeBlocks) {
+  return replaceRichHtml(source, canonicalUrl, codeBlocks)
+    .replace(/<li\b[^>]*>/gi, '\n- ')
+    .replace(/<\/li>/gi, '\n')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(p|div|section|article|header|footer|aside|nav|ul|ol|table|tr)>/gi, '\n\n')
+    .replace(/<(p|div|section|article|header|footer|aside|nav|ul|ol|table|tr)\b[^>]*>/gi, '\n\n')
+    .replace(/<\/(td|th)>/gi, ' | ')
+    .replace(/<(td|th)\b[^>]*>/gi, '')
+    .replace(/<[^>]+>/g, '');
+}
+
+function normalizeMarkdownSource(source) {
+  return decodeHtml(source)
+    .split('\n')
+    .map((line) => line.replace(/[ \t]+/g, ' ').trim())
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .replace(/(?:^|\n)-\s*(?=\n|$)/g, '')
+    .trim();
+}
+
+function replaceRichHtml(source, canonicalUrl, codeBlocks) {
+  return source
     .replace(/<!--[\s\S]*?-->/g, '')
     .replace(/<(script|style|svg|noscript|template)\b[^>]*>[\s\S]*?<\/\1>/gi, '')
     .replace(/<pre\b[^>]*>([\s\S]*?)<\/pre>/gi, (_, block) => {
@@ -370,30 +649,7 @@ export function htmlDocumentToMarkdown(html, canonicalUrl) {
     .replace(/<code\b[^>]*>([\s\S]*?)<\/code>/gi, (_, content) => {
       const value = decodeHtml(stripTags(content)).trim();
       return value ? `\`${value}\`` : '';
-    })
-    .replace(/<li\b[^>]*>/gi, '\n- ')
-    .replace(/<\/li>/gi, '\n')
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<\/(p|div|section|article|header|footer|aside|nav|ul|ol|table|tr)>/gi, '\n\n')
-    .replace(/<(p|div|section|article|header|footer|aside|nav|ul|ol|table|tr)\b[^>]*>/gi, '\n\n')
-    .replace(/<\/(td|th)>/gi, ' | ')
-    .replace(/<(td|th)\b[^>]*>/gi, '')
-    .replace(/<[^>]+>/g, '');
-
-  source = decodeHtml(source)
-    .split('\n')
-    .map((line) => line.replace(/[ \t]+/g, ' ').trim())
-    .join('\n')
-    .replace(/\n{3,}/g, '\n\n')
-    .replace(/(?:^|\n)-\s*(?=\n|$)/g, '')
-    .trim();
-
-  for (const [index, block] of codeBlocks.entries()) {
-    source = source.replace(`@@CODE_BLOCK_${index}@@`, block);
-  }
-
-  if (!source) return '';
-  return `${source}\n\n---\n\nCanonical HTML: ${canonicalUrl}\n`;
+    });
 }
 
 function inlineText(value) {
@@ -427,7 +683,7 @@ function decodeHtml(value) {
     .replaceAll('&apos;', "'");
 }
 
-function wantsMarkdown(request) {
+export function wantsMarkdown(request) {
   const accept = (request.headers.get('accept') || '').toLowerCase();
   if (!accept.includes('text/markdown')) return false;
   if (!accept.includes('text/html')) return true;
