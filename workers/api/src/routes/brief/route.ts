@@ -22,6 +22,7 @@ import {
   countriesForRegion,
   isBriefFeedSlug,
   isRegion,
+  pruneUnpublishableBriefItems,
   resolveBriefFeedPeriod,
   resolveFeedCadence,
   summarizeBriefDiscovery,
@@ -219,9 +220,28 @@ export async function precomputeBriefSnapshots(env: { DB: D1Database }): Promise
         categoryStates,
       };
 
-      const receipt = buildBriefEditionReceipt(snapshot);
+      // Withhold the items that fail a per-item gate rather than letting them
+      // reject the whole edition. Every gate still applies at full strength;
+      // section-level failures (fixture content, unavailable category) remain
+      // fatal below, so this still fails closed.
+      const pruned = pruneUnpublishableBriefItems(snapshot);
+      const publishedSnapshot = pruned.snapshot;
+      if (pruned.withheld.length > 0) {
+        console.error(
+          `[brief-precompute] ${region} withheld ${pruned.withheld.length} item(s) on ${today}`,
+          JSON.stringify(pruned.withheld)
+        );
+      }
+
+      const receipt = buildBriefEditionReceipt(publishedSnapshot);
       if (!receipt.publishable) {
-        console.warn(`[brief-precompute] ${region} rejected`, JSON.stringify(receipt));
+        // Loud on purpose. This path wrote no snapshot for twelve consecutive
+        // days at console.warn and nobody saw it; the reader just saw an empty
+        // brief. scripts/verify-daily-brief.mjs now fails CI on the same state.
+        console.error(
+          `[brief-precompute] ${region} REJECTED on ${today} — no snapshot written`,
+          JSON.stringify({ counts: receipt.counts, issues: receipt.issues })
+        );
         continue;
       }
 
@@ -230,19 +250,19 @@ export async function precomputeBriefSnapshots(env: { DB: D1Database }): Promise
         .values({
           date: today,
           region,
-          briefJson: JSON.stringify(snapshot),
+          briefJson: JSON.stringify(publishedSnapshot),
           computedAt: nowIso,
         })
         .onConflictDoUpdate({
           target: [schema.dailyBriefSnapshots.date, schema.dailyBriefSnapshots.region],
           set: {
-            briefJson: JSON.stringify(snapshot),
+            briefJson: JSON.stringify(publishedSnapshot),
             computedAt: nowIso,
           },
         });
 
       console.log(
-        `[brief-precompute] ${region}: ${stocks.length} stocks, ${ideas.length} ideas, ${trends.length} trends; gate=pass`
+        `[brief-precompute] ${region}: ${publishedSnapshot.stocks.length} stocks, ${publishedSnapshot.ideas.length} ideas, ${publishedSnapshot.trends.length} trends, ${pruned.withheld.length} withheld; gate=pass`
       );
     } catch (err) {
       console.error(`[brief-precompute] ${region} failed:`, err);

@@ -95,6 +95,26 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 
 ## Timeline
 
+- **2026-08-22 — Twelve-day silent brief outage diagnosed; publish gate now
+  withholds items, not editions:** the global edition published nothing from
+  2026-08-11 to 2026-08-22 and rendered as "no qualifying items", which reads as
+  a quiet day rather than an outage. Cause: `buildBriefEditionReceipt` is
+  all-or-nothing (`publishable = issues.length === 0`), so one failing item
+  silenced the edition, `precomputeBriefSnapshots` wrote no row at
+  `console.warn`, and `/brief/daily` 404'd. `pruneUnpublishableBriefItems` now
+  withholds failing items at full gate strength while publishing the rest;
+  section-level failures (fixture content, unavailable category) stay fatal, and
+  a category emptied by pruning records `items_withheld_by_publish_gate` so
+  "withheld" stays distinguishable from "found nothing". Rejections log at
+  `console.error`, and `scripts/verify-daily-brief.mjs` fails `cron-publish`
+  when a reader would get an empty brief. **Still empty in production:**
+  `claim_records` and `claim_evidence_links` hold 0 rows against 3,038 signals,
+  so every stock item is dropped for want of provenance. `POST
+  /admin/claims/backfill` populates them per signal, but
+  `buildHistoricalClaimBackfill` assigns roles `primary` + `context` and never
+  `corroboration`, while the per-item gate requires `corroborationCount >= 1` —
+  so backfilled claims still cannot publish. Promoting a second aligned source
+  (operator review or an automated independence judge) is the open decision.
 - **2026-08-22 — Cloudflare Access operator gate released:** replaced the
   password-session implementation with
   cryptographically verified Access JWTs, made `CF_Authorization` a shared-cache

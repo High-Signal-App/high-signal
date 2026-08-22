@@ -404,6 +404,79 @@ export function buildBriefEditionReceipt(snapshot: BriefSnapshot): BriefEditionR
   return { publishable: issues.length === 0, counts, states, issues };
 }
 
+export interface BriefWithheldItem {
+  section: BriefPublicSectionKey;
+  index: number;
+  reasons: string[];
+}
+
+export interface BriefEditionPrune {
+  snapshot: BriefSnapshot;
+  withheld: BriefWithheldItem[];
+}
+
+/**
+ * Drop the items an edition cannot stand behind, rather than discarding the
+ * whole edition because of them.
+ *
+ * `buildBriefEditionReceipt` is all-or-nothing: `publishable` is
+ * `issues.length === 0`, so a single uncited or unsupported item silences every
+ * other item that day. Between 2026-08-11 and 2026-08-22 that turned one
+ * unsatisfiable per-item rule into twelve consecutive editions that published
+ * nothing and rendered as "no qualifying items" — indistinguishable, to a
+ * reader, from a genuinely quiet day.
+ *
+ * This weakens no evidence rule. Every per-item gate still applies with the
+ * same strictness; a failing item is withheld instead of published. Rules that
+ * a prune cannot honestly repair — fixture content, an unavailable category —
+ * stay fatal to the edition, so the caller's receipt check still fails closed.
+ *
+ * A category emptied by pruning records `items_withheld_by_publish_gate`, which
+ * keeps "we withheld what we had" distinguishable from "we found nothing".
+ */
+export function pruneUnpublishableBriefItems(snapshot: BriefSnapshot): BriefEditionPrune {
+  const reasonsByItem = new Map<string, string[]>();
+  for (const issue of buildBriefEditionReceipt(snapshot).issues) {
+    if (issue.section === 'edition' || issue.item === null) continue;
+    const key = `${issue.section}:${issue.item}`;
+    reasonsByItem.set(key, [...(reasonsByItem.get(key) ?? []), issue.reason]);
+  }
+  if (reasonsByItem.size === 0) return { snapshot, withheld: [] };
+
+  const withheld: BriefWithheldItem[] = [];
+  const keep = <T>(section: BriefPublicSectionKey, items: readonly T[]): T[] =>
+    items.filter((_item, index) => {
+      const reasons = reasonsByItem.get(`${section}:${index}`);
+      if (!reasons) return true;
+      withheld.push({ section, index, reasons });
+      return false;
+    });
+
+  const stocks = keep('stocks', snapshot.stocks);
+  const ideas = keep('ideas', snapshot.ideas);
+  const trends = keep('trends', snapshot.trends);
+  const states: BriefCategoryStates = { ...categoryStatesForSnapshot(snapshot) };
+
+  for (const [section, kept, before] of [
+    ['stocks', stocks.length, snapshot.stocks.length],
+    ['ideas', ideas.length, snapshot.ideas.length],
+    ['trends', trends.length, snapshot.trends.length],
+  ] as const) {
+    // An unavailable category is a real upstream failure; pruning cannot make
+    // it honest, so leave it — and its reason — exactly as composed.
+    if (kept === before || states[section].status === 'unavailable') continue;
+    states[section] =
+      kept > 0
+        ? { ...states[section], status: 'ready' }
+        : { ...states[section], status: 'empty', reason: 'items_withheld_by_publish_gate' };
+  }
+
+  return {
+    snapshot: { ...snapshot, stocks, ideas, trends, categoryStates: states },
+    withheld,
+  };
+}
+
 export interface BriefDiscoverySummary {
   publicItemCount: number;
   citedItemCount: number;

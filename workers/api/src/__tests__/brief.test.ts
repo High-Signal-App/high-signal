@@ -13,6 +13,7 @@ import {
   findSeedProduct,
   isCompleteBriefText,
   isRegion,
+  pruneUnpublishableBriefItems,
   REGIONS,
   regionLabel,
   SEED_IDEAS,
@@ -411,6 +412,70 @@ The project could still face permitting, financing, and climate-policy risk.
       item: null,
       reason: 'query_failed',
     });
+  });
+
+  it('leaves a clean edition untouched', () => {
+    const snapshot = validSnapshot();
+    const pruned = pruneUnpublishableBriefItems(snapshot);
+    expect(pruned.withheld).toEqual([]);
+    expect(pruned.snapshot).toBe(snapshot);
+  });
+
+  it('withholds the failing item instead of silencing the edition', () => {
+    const snapshot = validSnapshot();
+    const good = snapshot.stocks[0];
+    // Two items, one uncited. Before pruning the whole edition is rejected.
+    snapshot.stocks = [
+      good,
+      { ...good, entityId: 'nvidia', entityName: 'Nvidia', provenance: undefined },
+    ];
+    expect(buildBriefEditionReceipt(snapshot).publishable).toBe(false);
+
+    const pruned = pruneUnpublishableBriefItems(snapshot);
+    expect(pruned.withheld).toEqual([
+      { section: 'stocks', index: 1, reasons: ['unsupported_structured_claim'] },
+    ]);
+    expect(pruned.snapshot.stocks).toEqual([good]);
+    expect(buildBriefEditionReceipt(pruned.snapshot).publishable).toBe(true);
+  });
+
+  it('marks a category emptied by pruning as withheld, not as nothing found', () => {
+    const snapshot = validSnapshot();
+    snapshot.stocks[0].provenance = undefined;
+
+    const pruned = pruneUnpublishableBriefItems(snapshot);
+    expect(pruned.snapshot.stocks).toEqual([]);
+    expect(pruned.snapshot.categoryStates?.stocks).toMatchObject({
+      status: 'empty',
+      reason: 'items_withheld_by_publish_gate',
+    });
+    // Nothing survived anywhere, so the edition still fails closed.
+    expect(buildBriefEditionReceipt(pruned.snapshot).issues).toContainEqual({
+      section: 'edition',
+      item: null,
+      reason: 'edition_has_no_items',
+    });
+  });
+
+  it('cannot rescue an edition whose failure a prune would misrepresent', () => {
+    const fixture = validSnapshot();
+    if (!fixture.categoryStates) throw new Error('expected category state fixture');
+    fixture.categoryStates.stocks.source = 'fixture';
+    expect(pruneUnpublishableBriefItems(fixture).withheld).toEqual([]);
+    expect(
+      buildBriefEditionReceipt(pruneUnpublishableBriefItems(fixture).snapshot).publishable
+    ).toBe(false);
+
+    const unavailable = validSnapshot();
+    if (!unavailable.categoryStates) throw new Error('expected category state fixture');
+    unavailable.categoryStates.stocks = { status: 'unavailable', reason: 'query_failed' };
+    unavailable.stocks[0].provenance = undefined;
+    const pruned = pruneUnpublishableBriefItems(unavailable);
+    expect(pruned.snapshot.categoryStates?.stocks).toEqual({
+      status: 'unavailable',
+      reason: 'query_failed',
+    });
+    expect(buildBriefEditionReceipt(pruned.snapshot).publishable).toBe(false);
   });
 });
 

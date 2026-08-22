@@ -43,3 +43,23 @@ jobs:
           else
             pnpm signals:auto-publish:remote
           fi
+
+  # The product's one daily output is a published brief. Assert a reader can
+  # actually get one — the 2026-08-11..08-22 outage published nothing for twelve
+  # days because no job checked. Runs even when auto-publish fails, since a
+  # failed publish is exactly when the brief is most likely to be empty.
+  verify-brief:
+    needs: auto-publish
+    if: always() && github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+      - name: verify the public brief is publishing
+        env:
+          HIGH_SIGNAL_API: ${{ secrets.API_BASE || 'https://api.highsignal.app' }}
+          BRIEF_REGIONS: global
+        run: node scripts/verify-daily-brief.mjs
