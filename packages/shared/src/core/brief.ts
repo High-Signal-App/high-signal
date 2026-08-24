@@ -138,6 +138,62 @@ export interface BriefTrendItem {
   whyNow?: string;
 }
 
+export type DiggAttentionState = 'matched_signal' | 'investigation_lead';
+export type DiggAttentionGapType =
+  | 'attention_stronger_than_evidence'
+  | 'evidence_stronger_than_attention'
+  | 'single_origin_amplification'
+  | 'framing_conflict';
+
+/**
+ * A derived attention observation. It is deliberately separate from
+ * BriefCitation and carries an explicit no-confidence contribution contract.
+ */
+export interface DiggAttentionItem {
+  shortId: string;
+  canonicalDiggUrl: string;
+  title: string;
+  summary: string | null;
+  firstSeenAt: string;
+  retrievedAt: string;
+  position: number | null;
+  positionDelta: number | null;
+  peakPosition: number | null;
+  entryStatus: string | null;
+  badges: string[];
+  distinctAccountCount: number;
+  attentionDurationHours: number;
+  canonicalSourceCount: number;
+  sourceUrls: string[];
+  signalSlug: string | null;
+  entityName: string | null;
+  matchBasis: 'evidence_url' | 'entity' | null;
+  matchConfidence: number | null;
+  attentionState: DiggAttentionState;
+  sourceClass: 'attention_aggregator';
+  evidenceTier: 'derived';
+  confidenceContribution: 'none';
+}
+
+export interface DiggAttentionGapItem {
+  id: string;
+  gapType: DiggAttentionGapType;
+  title: string;
+  explanation: string;
+  signalSlug: string | null;
+  canonicalDiggUrl: string | null;
+  position: number | null;
+  distinctAccountCount: number;
+  canonicalSourceCount: number;
+  evidenceUrls: BriefCitation[];
+}
+
+export interface BriefAttentionSections {
+  attentionLeaders: DiggAttentionItem[];
+  emergingBeforeMainstream: DiggAttentionItem[];
+  attentionEvidenceGaps: DiggAttentionGapItem[];
+}
+
 /** Source-backed buyer/community intent attached to owner-scoped brief items. */
 export interface BriefIntentItem {
   id: string;
@@ -204,6 +260,10 @@ export interface BriefSnapshot {
   trends: BriefTrendItem[];
   perception: BriefPerceptionItem[];
   improvements: BriefImprovementItem[];
+  /** Derived attention is optional on archived snapshots created before Digg. */
+  attentionLeaders?: DiggAttentionItem[];
+  emergingBeforeMainstream?: DiggAttentionItem[];
+  attentionEvidenceGaps?: DiggAttentionGapItem[];
   /** Explicit composition states on new snapshots; absent on historical records. */
   categoryStates?: BriefCategoryStates;
 }

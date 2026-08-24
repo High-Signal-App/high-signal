@@ -2,7 +2,7 @@
   "$schema": "fleet.design-review.v1",
   "version": 1,
   "project": "high-signal",
-  "target": "Owned evidence and ticker pages",
+  "target": "Daily Brief Digg attention sections",
   "mode": "preserve",
   "register": "product",
   "context": {
@@ -14,29 +14,29 @@
     "probes": [],
     "selected": "existing-design",
     "approval": "not-required",
-    "before": "artifacts/design/before.png"
+    "before": "artifacts/design/before-digg-attention-1440.png"
   },
   "evidence": {
     "screenshots": [
       {
         "width": 390,
-        "path": "artifacts/design/after-owned-evidence-390.png"
+        "path": "artifacts/design/after-digg-attention-390.png"
       },
       {
         "width": 768,
-        "path": "artifacts/design/after-owned-evidence-768.png"
+        "path": "artifacts/design/after-digg-attention-768.png"
       },
       {
         "width": 1440,
-        "path": "artifacts/design/after-owned-evidence-1440.png"
+        "path": "artifacts/design/after-digg-attention-1440.png"
       }
     ],
     "projectCheck": {
-      "command": "pnpm quality && pnpm --filter @high-signal/web build",
+      "command": "20 focused API tests; 24/24 repo suites; web/api/shared/db typechecks; Biome; docs; Python Digg tests; source registry; automation; agent markdown; Ruff; Wrangler dry-run",
       "status": "pass"
     },
     "critique": {
-      "score": 32,
+      "score": 34,
       "maximum": 40
     },
     "audit": {
@@ -49,11 +49,15 @@
     },
     "detector": {
       "posture": "advisory",
-      "findings": []
+      "findings": [
+        "The scoped detector ran exactly once and returned no implementation-integrity findings.",
+        "The audit found undersized source actions, inconsistent focus treatment, token drift, and missing attention availability semantics; the scoped findings were fixed before handoff.",
+        "The final independent critique scored 34/40 with zero unresolved P0 or P1 findings."
+      ]
     }
   },
   "ownerFeedback": {
-    "decision": "delegated",
-    "note": "Owner delegated final review and merge judgment in the fleet-wide sync request. Preserve-mode review passed after independent critique and audit, with zero unresolved P0/P1 findings."
+    "decision": "keep",
+    "note": "Owner approved the reviewed direction by requesting the completed Digg, daily API, caching, and UI work be released."
   }
 }

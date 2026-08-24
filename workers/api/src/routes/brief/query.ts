@@ -2,7 +2,7 @@
  * Daily brief D1 queries: public sections, personal sections, snapshots, feeds.
  */
 
-import { and, asc, desc, eq, inArray, gte, lte, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, gte, isNull, lte, sql } from 'drizzle-orm';
 import {
   briefFeedDefinition,
   buildBriefEditionReceipt,
@@ -14,6 +14,9 @@ import {
   selectBriefClaimProvenance,
   type BriefFeedEdition,
   type BriefFeedPeriod,
+  type BriefAttentionSections,
+  type DiggAttentionGapItem,
+  type DiggAttentionItem,
   type BriefIdeaItem,
   type BriefSnapshot,
   type BriefStockItem,
@@ -41,6 +44,241 @@ import {
 } from './compose';
 
 type BriefDatabase = ReturnType<typeof db>;
+
+const DIGG_ATTENTION_WINDOW_HOURS = 36;
+const DIGG_SECTION_LIMIT = 8;
+
+function jsonValue<T>(value: unknown, fallback: T): T {
+  if (value == null) return fallback;
+  if (typeof value !== 'string') return value as T;
+  try {
+    return JSON.parse(value) as T;
+  } catch {
+    return fallback;
+  }
+}
+
+function epochIso(value: Date | number | string | null): string {
+  if (value instanceof Date) return value.toISOString();
+  if (typeof value === 'number') return new Date(value * 1000).toISOString();
+  return new Date(value ?? 0).toISOString();
+}
+
+export async function buildDiggAttention(
+  database: BriefDatabase,
+  now = new Date()
+): Promise<BriefAttentionSections> {
+  const since = new Date(now.getTime() - DIGG_ATTENTION_WINDOW_HOURS * 60 * 60 * 1000);
+  let rows: Array<{
+    shortId: string;
+    canonicalDiggUrl: string;
+    title: string;
+    summary: string | null;
+    firstSeenAt: Date;
+    retrievedAt: Date;
+    position: number | null;
+    positionDelta: number | null;
+    peakPosition: number | null;
+    entryStatus: string | null;
+    badges: unknown;
+    distinctAccountCount: number;
+    sourceUrls: unknown;
+    rawPayload: unknown;
+    signalSlug: string | null;
+    entityName: string | null;
+    matchBasis: 'evidence_url' | 'entity' | null;
+    matchConfidence: number | null;
+  }> = [];
+  try {
+    rows = await database
+      .select({
+        shortId: schema.diggClusters.shortId,
+        canonicalDiggUrl: schema.diggClusters.canonicalDiggUrl,
+        title: schema.diggClusters.title,
+        summary: schema.diggClusters.diggSummary,
+        firstSeenAt: schema.diggClusters.firstSeenAt,
+        retrievedAt: schema.diggClusters.retrievedAt,
+        position: schema.diggClusters.position,
+        positionDelta: schema.diggClusters.positionDelta,
+        peakPosition: schema.diggClusters.peakPosition,
+        entryStatus: schema.diggClusters.entryStatus,
+        badges: schema.diggClusters.badges,
+        distinctAccountCount: schema.diggClusters.distinctAccountCount,
+        sourceUrls: schema.diggClusters.sourceUrls,
+        rawPayload: schema.diggClusters.rawPayload,
+        signalSlug: schema.signals.slug,
+        entityName: schema.entities.name,
+        matchBasis: schema.diggSignalLinks.matchBasis,
+        matchConfidence: schema.diggSignalLinks.matchConfidence,
+      })
+      .from(schema.diggClusters)
+      .leftJoin(
+        schema.diggSignalLinks,
+        eq(schema.diggSignalLinks.shortId, schema.diggClusters.shortId)
+      )
+      .leftJoin(
+        schema.signals,
+        and(
+          eq(schema.signals.id, schema.diggSignalLinks.signalId),
+          eq(schema.signals.reviewStatus, 'published')
+        )
+      )
+      .leftJoin(schema.entities, eq(schema.entities.id, schema.diggClusters.primaryEntityId))
+      .where(gte(schema.diggClusters.retrievedAt, since))
+      .orderBy(asc(schema.diggClusters.position), desc(schema.diggClusters.positionDelta))
+      .limit(160);
+  } catch {
+    return { attentionLeaders: [], emergingBeforeMainstream: [], attentionEvidenceGaps: [] };
+  }
+
+  const byShortId = new Map<string, DiggAttentionItem>();
+  for (const row of rows) {
+    const raw = jsonValue<Record<string, unknown>>(row.rawPayload, {});
+    const engagement = jsonValue<Record<string, unknown>>(raw['engagement_sources'], {});
+    const canonicalSourceCount = Math.max(
+      0,
+      Number(engagement['canonical_source_count'] ?? 0) || 0
+    );
+    const firstSeenMs = new Date(epochIso(row.firstSeenAt)).getTime();
+    const retrievedMs = new Date(epochIso(row.retrievedAt)).getTime();
+    const existing = byShortId.get(row.shortId);
+    const candidate: DiggAttentionItem = {
+      shortId: row.shortId,
+      canonicalDiggUrl: row.canonicalDiggUrl,
+      title: row.title,
+      summary: row.summary,
+      firstSeenAt: epochIso(row.firstSeenAt),
+      retrievedAt: epochIso(row.retrievedAt),
+      position: row.position,
+      positionDelta: row.positionDelta,
+      peakPosition: row.peakPosition,
+      entryStatus: row.entryStatus,
+      badges: jsonValue<unknown[]>(row.badges, []).filter(
+        (badge): badge is string => typeof badge === 'string'
+      ),
+      distinctAccountCount: row.distinctAccountCount,
+      attentionDurationHours: Math.max(
+        0,
+        Math.round(((retrievedMs - firstSeenMs) / 3_600_000) * 10) / 10
+      ),
+      canonicalSourceCount,
+      sourceUrls: jsonValue<unknown[]>(row.sourceUrls, []).filter(
+        (url): url is string => typeof url === 'string'
+      ),
+      signalSlug: row.signalSlug,
+      entityName: row.entityName,
+      matchBasis: row.signalSlug ? row.matchBasis : null,
+      matchConfidence: row.signalSlug ? row.matchConfidence : null,
+      attentionState: row.signalSlug ? 'matched_signal' : 'investigation_lead',
+      sourceClass: 'attention_aggregator',
+      evidenceTier: 'derived',
+      confidenceContribution: 'none',
+    };
+    if (!existing || (!existing.signalSlug && candidate.signalSlug))
+      byShortId.set(row.shortId, candidate);
+  }
+
+  const items = Array.from(byShortId.values());
+  const rank = (item: DiggAttentionItem) => item.position ?? 10_000;
+  const attentionLeaders = items
+    .filter((item) => item.signalSlug && (item.position != null || item.distinctAccountCount >= 3))
+    .sort((a, b) => rank(a) - rank(b) || (b.positionDelta ?? 0) - (a.positionDelta ?? 0))
+    .slice(0, DIGG_SECTION_LIMIT);
+  const emergingBeforeMainstream = items
+    .filter(
+      (item) =>
+        !item.signalSlug &&
+        (item.entryStatus === 'rising' ||
+          item.entryStatus === 'new' ||
+          item.badges.some((badge) => /rising|new|breakout/i.test(badge)) ||
+          (item.positionDelta ?? 0) > 0) &&
+        item.distinctAccountCount >= 2
+    )
+    .sort((a, b) => rank(a) - rank(b) || b.distinctAccountCount - a.distinctAccountCount)
+    .slice(0, DIGG_SECTION_LIMIT);
+
+  const attentionEvidenceGaps: DiggAttentionGapItem[] = [];
+  for (const item of items) {
+    const highAttention =
+      (item.position != null && item.position <= 20) || item.distinctAccountCount >= 3;
+    if (!item.signalSlug && highAttention) {
+      attentionEvidenceGaps.push({
+        id: `${item.shortId}:attention`,
+        gapType: 'attention_stronger_than_evidence',
+        title: item.title,
+        explanation:
+          'Public attention is material, but High Signal has not linked this cluster to independently supported evidence yet.',
+        signalSlug: null,
+        canonicalDiggUrl: item.canonicalDiggUrl,
+        position: item.position,
+        distinctAccountCount: item.distinctAccountCount,
+        canonicalSourceCount: item.canonicalSourceCount,
+        evidenceUrls: [],
+      });
+    }
+    if (item.distinctAccountCount >= 3 && item.canonicalSourceCount === 1) {
+      attentionEvidenceGaps.push({
+        id: `${item.shortId}:origin`,
+        gapType: 'single_origin_amplification',
+        title: item.title,
+        explanation:
+          'Several voices are amplifying this cluster, but Digg reports only one canonical source origin.',
+        signalSlug: item.signalSlug,
+        canonicalDiggUrl: item.canonicalDiggUrl,
+        position: item.position,
+        distinctAccountCount: item.distinctAccountCount,
+        canonicalSourceCount: 1,
+        evidenceUrls: [],
+      });
+    }
+    if (attentionEvidenceGaps.length >= DIGG_SECTION_LIMIT) break;
+  }
+
+  if (attentionEvidenceGaps.length < DIGG_SECTION_LIMIT) {
+    const evidenceAhead = await database
+      .select({
+        id: schema.signals.id,
+        slug: schema.signals.slug,
+        bodyMd: schema.signals.bodyMd,
+        entityName: schema.entities.name,
+        evidenceUrls: schema.signals.evidenceUrls,
+      })
+      .from(schema.signals)
+      .innerJoin(schema.entities, eq(schema.entities.id, schema.signals.primaryEntityId))
+      .leftJoin(schema.diggSignalLinks, eq(schema.diggSignalLinks.signalId, schema.signals.id))
+      .where(
+        and(
+          eq(schema.signals.reviewStatus, 'published'),
+          eq(schema.signals.confidence, 'high'),
+          gte(schema.signals.publishedAt, new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)),
+          isNull(schema.diggSignalLinks.shortId)
+        )
+      )
+      .orderBy(desc(schema.signals.publishedAt))
+      .limit(DIGG_SECTION_LIMIT - attentionEvidenceGaps.length);
+    for (const signal of evidenceAhead) {
+      const urls = jsonValue<unknown[]>(signal.evidenceUrls, []).filter(
+        (url): url is string => typeof url === 'string'
+      );
+      if (urls.length < 2) continue;
+      attentionEvidenceGaps.push({
+        id: `${signal.id}:evidence`,
+        gapType: 'evidence_stronger_than_attention',
+        title: headlineFromBody(signal.bodyMd, signal.entityName),
+        explanation:
+          'This high-confidence signal has independent evidence, but no corresponding Digg attention cluster was observed.',
+        signalSlug: signal.slug,
+        canonicalDiggUrl: null,
+        position: null,
+        distinctAccountCount: 0,
+        canonicalSourceCount: 0,
+        evidenceUrls: urls.slice(0, 2).map((url) => ({ url })),
+      });
+    }
+  }
+
+  return { attentionLeaders, emergingBeforeMainstream, attentionEvidenceGaps };
+}
 
 export async function buildStocks(
   database: BriefDatabase,

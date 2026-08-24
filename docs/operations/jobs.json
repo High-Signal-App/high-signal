@@ -57,6 +57,50 @@
       "acceptedExceptions": []
     },
     {
+      "id": "cron-digg",
+      "kind": "attention-ingestion",
+      "owner": "sarthak",
+      "trigger": {
+        "type": "schedule",
+        "cron": "*/30 * * * *",
+        "tz": "UTC"
+      },
+      "workflowFile": ".github/workflows/cron-digg.yml",
+      "runtime": "github-actions-ubuntu",
+      "command": "uv run python -m high_signal_ingest.digg",
+      "workingDirectory": "python/ingest",
+      "bounds": {
+        "timeoutMinutes": 10,
+        "concurrency": 1,
+        "retryMax": 0
+      },
+      "idempotency": {
+        "mechanism": "server-enforced 10-minute feed refresh guard + short_id current-record key + snapshot observation unique indexes",
+        "watermark": "digg_feed_state.last_retrieved_at per documented feed",
+        "deduplicationEvidence": "digg_clusters primary key short_id; digg_feed_snapshots_observation_idx; digg_cluster_snapshots_observation_idx"
+      },
+      "freshness": {
+        "windowHours": 1,
+        "evidenceSource": "digg_feed_state.last_retrieved_at"
+      },
+      "outputExpectation": {
+        "minClusters": 0,
+        "zeroOutputIsFailure": false
+      },
+      "failureDestination": {
+        "durableState": "prior digg_feed_state and snapshots remain readable; stale retrieval time is visible from /admin/digg/status",
+        "notification": "github-actions job failure email"
+      },
+      "evidence": {
+        "lifecycleTable": "digg_feed_state",
+        "snapshotTables": "digg_feed_snapshots, digg_cluster_snapshots",
+        "adminEndpoint": "/admin/digg/status, /admin/digg"
+      },
+      "acceptedExceptions": [
+        "Digg is derived attention only and cannot satisfy evidence or confidence gates"
+      ]
+    },
+    {
       "id": "cron-publish",
       "kind": "publish",
       "owner": "sarthak",

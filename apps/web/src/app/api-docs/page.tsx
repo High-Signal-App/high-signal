@@ -29,6 +29,12 @@ const ENDPOINTS: Endpoint[] = [
     description: 'Last 7 days of signals — designed for inbox readers.',
   },
   {
+    path: 'https://api.highsignal.app/data/daily',
+    format: 'JSON',
+    description:
+      'Complete UTC daily dump of published signals, linked evidence events, and the separate Digg attention overlay. Add ?date=YYYY-MM-DD for an archive day.',
+  },
+  {
     path: '/signals/random',
     format: '302 redirect',
     description: 'Bounces to a random published signal — share-link friendly.',

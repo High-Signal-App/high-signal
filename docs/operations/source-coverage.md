@@ -47,6 +47,7 @@ Generate daily draft signals from:
 - `cisa-kev` — known exploited vulnerabilities only; security-risk candidates for mapped infra/devtool entities, not a broad CVE feed.
 - `lobsters` — small technical weak-signal source; useful for developer/infrastructure adoption and risk discussion, not a broad social feed.
 - `techmeme` — meta-curation/corroboration source for mainstream tech/business stories; useful when a weak or primary event has crossed into broader attention.
+- `digg` — separate attention-overlay collector over Digg's five documented technology-cluster feeds. It stores rolling snapshots and can prioritize original-source investigation, but it is not an event-evidence source and cannot publish or raise confidence by itself.
 - `substack` — curated writer RSS weak-signal pool; useful for developer/startup narrative shifts, not auto-publish alone.
 - `packages` — curated npm/PyPI release and OSV advisory events tied to tracked developer tools and AI packages.
 - `jobs` — curated Greenhouse/Lever/Ashby job-board events as leading startup capital and product-focus indicators.

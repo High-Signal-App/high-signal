@@ -131,6 +131,51 @@ signalsRoute.get('/facets', async (c) => {
   });
 });
 
+signalsRoute.get('/:slug/evidence', async (c) => {
+  const slug = c.req.param('slug');
+  const database = db(c.env.DB);
+  const [row] = await database
+    .select()
+    .from(schema.signals)
+    .where(eq(schema.signals.slug, slug))
+    .limit(1);
+  if (
+    !row ||
+    row.reviewStatus !== 'published' ||
+    row.bodyMd.trimStart().startsWith('> _backfill_')
+  ) {
+    return c.json({ error: 'not_found' }, 404);
+  }
+  const signal = enrichSignal(row);
+  if (!signal.publishable) return c.json({ error: 'not_found' }, 404);
+
+  const evidenceEvents = await database
+    .select({
+      id: schema.evidence.id,
+      url: schema.evidence.url,
+      sourceType: schema.evidence.sourceType,
+      excerpt: schema.evidence.excerpt,
+      publishedAt: schema.evidence.publishedAt,
+    })
+    .from(schema.evidence)
+    .where(eq(schema.evidence.signalId, row.id))
+    .orderBy(desc(schema.evidence.publishedAt));
+
+  c.header('Cache-Control', 'public, max-age=60, s-maxage=300');
+  return c.json({
+    schemaVersion: '1',
+    signal: {
+      id: signal.id,
+      slug: signal.slug,
+      publishedAt: signal.publishedAt,
+      confidence: signal.confidence,
+      contentCategory: signal.contentCategory,
+    },
+    evidenceEventCount: evidenceEvents.length,
+    evidenceEvents,
+  });
+});
+
 signalsRoute.get('/:slug', async (c) => {
   const slug = c.req.param('slug');
   const [row] = await db(c.env.DB)

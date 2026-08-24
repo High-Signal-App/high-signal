@@ -771,3 +771,123 @@ export const d2cAgentVisibility = sqliteTable(
     index('d2c_agent_visibility_platform_idx').on(t.platform),
   ]
 );
+
+// ─── Digg attention overlay (migration 0021) ─────────────────────────────
+// Digg is a derived attention aggregator. These records may change discovery
+// and prominence, but they are never evidence and never change confidence.
+
+export const diggFeedState = sqliteTable('digg_feed_state', {
+  feedKind: text('feed_kind').primaryKey(),
+  feedUrl: text('feed_url').notNull(),
+  lastRetrievedAt: integer('last_retrieved_at', { mode: 'timestamp' }).notNull(),
+  lastGeneratedAt: integer('last_generated_at', { mode: 'timestamp' }),
+  lastRawPayloadHash: text('last_raw_payload_hash').notNull(),
+});
+
+export const diggFeedSnapshots = sqliteTable(
+  'digg_feed_snapshots',
+  {
+    id: text('id').primaryKey(),
+    feedKind: text('feed_kind').notNull(),
+    feedUrl: text('feed_url').notNull(),
+    generatedAt: integer('generated_at', { mode: 'timestamp' }),
+    retrievedAt: integer('retrieved_at', { mode: 'timestamp' }).notNull(),
+    rawPayloadHash: text('raw_payload_hash').notNull(),
+    rawPayload: text('raw_payload', { mode: 'json' }).notNull(),
+  },
+  (t) => [
+    uniqueIndex('digg_feed_snapshots_observation_idx').on(
+      t.feedKind,
+      t.retrievedAt,
+      t.rawPayloadHash
+    ),
+    index('digg_feed_snapshots_retrieved_idx').on(t.retrievedAt),
+  ]
+);
+
+export const diggClusters = sqliteTable(
+  'digg_clusters',
+  {
+    shortId: text('short_id').primaryKey(),
+    sourceId: text('source_id').notNull(),
+    canonicalDiggUrl: text('canonical_digg_url').notNull(),
+    title: text('title').notNull(),
+    diggSummary: text('digg_summary'),
+    createdAt: integer('created_at', { mode: 'timestamp' }),
+    firstSeenAt: integer('first_seen_at', { mode: 'timestamp' }).notNull(),
+    retrievedAt: integer('retrieved_at', { mode: 'timestamp' }).notNull(),
+    position: integer('position'),
+    positionDelta: integer('position_delta'),
+    peakPosition: integer('peak_position'),
+    entryStatus: text('entry_status'),
+    badges: text('badges', { mode: 'json' }).notNull().default('[]'),
+    sourcePosts: text('source_posts', { mode: 'json' }).notNull().default('[]'),
+    sourceUrls: text('source_urls', { mode: 'json' }).notNull().default('[]'),
+    contributingAccounts: text('contributing_accounts', { mode: 'json' }).notNull().default('[]'),
+    distinctAccountCount: integer('distinct_account_count').notNull().default(0),
+    primaryEntityId: text('primary_entity_id').references(() => entities.id),
+    sourceClass: text('source_class').notNull().default('attention_aggregator'),
+    evidenceTier: text('evidence_tier').notNull().default('derived'),
+    confidenceContribution: text('confidence_contribution').notNull().default('none'),
+    attentionContribution: text('attention_contribution').notNull().default('allowed'),
+    externalGeneratedAnalysis: text('external_generated_analysis', { mode: 'json' }),
+    rawPayloadHash: text('raw_payload_hash').notNull(),
+    rawPayload: text('raw_payload', { mode: 'json' }).notNull(),
+  },
+  (t) => [
+    index('digg_clusters_retrieved_idx').on(t.retrievedAt),
+    index('digg_clusters_position_idx').on(t.position),
+    index('digg_clusters_entity_idx').on(t.primaryEntityId),
+  ]
+);
+
+export const diggClusterSnapshots = sqliteTable(
+  'digg_cluster_snapshots',
+  {
+    id: text('id').primaryKey(),
+    shortId: text('short_id')
+      .notNull()
+      .references(() => diggClusters.shortId, { onDelete: 'cascade' }),
+    feedKind: text('feed_kind').notNull(),
+    generatedAt: integer('generated_at', { mode: 'timestamp' }),
+    retrievedAt: integer('retrieved_at', { mode: 'timestamp' }).notNull(),
+    position: integer('position'),
+    positionDelta: integer('position_delta'),
+    peakPosition: integer('peak_position'),
+    distinctAccountCount: integer('distinct_account_count').notNull().default(0),
+    attentionMetrics: text('attention_metrics', { mode: 'json' }).notNull().default('{}'),
+    rawPayloadHash: text('raw_payload_hash').notNull(),
+    rawPayload: text('raw_payload', { mode: 'json' }).notNull(),
+  },
+  (t) => [
+    uniqueIndex('digg_cluster_snapshots_observation_idx').on(
+      t.shortId,
+      t.feedKind,
+      t.retrievedAt,
+      t.rawPayloadHash
+    ),
+    index('digg_cluster_snapshots_short_retrieved_idx').on(t.shortId, t.retrievedAt),
+  ]
+);
+
+export const diggSignalLinks = sqliteTable(
+  'digg_signal_links',
+  {
+    shortId: text('short_id')
+      .notNull()
+      .references(() => diggClusters.shortId, { onDelete: 'cascade' }),
+    signalId: text('signal_id')
+      .notNull()
+      .references(() => signals.id, { onDelete: 'cascade' }),
+    entityId: text('entity_id').references(() => entities.id),
+    matchBasis: text('match_basis', { enum: ['evidence_url', 'entity'] }).notNull(),
+    matchConfidence: real('match_confidence').notNull(),
+    createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+    updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.shortId, t.signalId] }),
+    index('digg_signal_links_signal_idx').on(t.signalId),
+    index('digg_signal_links_entity_idx').on(t.entityId),
+  ]
+);

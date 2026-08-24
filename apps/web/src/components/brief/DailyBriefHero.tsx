@@ -27,7 +27,15 @@ export function DailyBriefHero({
   const generated = brief.generatedAt.slice(0, 16).replace('T', ' ');
   const date = editionDate ?? brief.generatedAt.slice(0, 10);
   const states = categoryStatesForSnapshot(brief);
-  const contents = [
+  const attentionCount =
+    (brief.attentionLeaders?.length ?? 0) +
+    (brief.emergingBeforeMainstream?.length ?? 0) +
+    (brief.attentionEvidenceGaps?.length ?? 0);
+  const hasAttentionData =
+    brief.attentionLeaders !== undefined &&
+    brief.emergingBeforeMainstream !== undefined &&
+    brief.attentionEvidenceGaps !== undefined;
+  const coreContents = [
     {
       href: '#markets-companies',
       label: 'Markets & companies',
@@ -47,6 +55,22 @@ export function DailyBriefHero({
       count: brief.trends.length,
     },
   ] as const;
+  const attentionContents = {
+    href: '#attention-layer',
+    label: 'Attention layer',
+    status:
+      attentionCount > 0
+        ? ('ready' as const)
+        : hasAttentionData
+          ? ('empty' as const)
+          : ('unavailable' as const),
+    count: attentionCount,
+  };
+  const hasCoreContent = brief.stocks.length + brief.ideas.length + brief.trends.length > 0;
+  const contents =
+    attentionCount > 0 && !hasCoreContent
+      ? [attentionContents, ...coreContents]
+      : [...coreContents, attentionContents];
 
   return (
     <header className="border-b border-[var(--color-line)] pb-7">
@@ -63,8 +87,9 @@ export function DailyBriefHero({
             What changed, why it matters, and what remains uncertain.
           </h1>
           <p className="mt-4 max-w-[70ch] text-sm leading-6 text-[var(--color-muted)]">
-            One evidence-first edition across markets, business opportunities, and behavior. Items
-            earn their place; empty categories stay empty, and every archived edition is permanent.
+            One evidence-first edition across markets, business opportunities, and behavior, plus a
+            separately labeled attention layer. Items earn their place; attention never substitutes
+            for evidence.
           </p>
         </div>
         <RegionPicker active={region} />
@@ -90,7 +115,7 @@ export function DailyBriefHero({
         ))}
       </nav>
       <p className="mt-1 font-mono text-[9px] uppercase tracking-[0.12em] text-[var(--color-muted)] sm:hidden">
-        swipe to see all three sections →
+        swipe to see all four sections →
       </p>
     </header>
   );

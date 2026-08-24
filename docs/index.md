@@ -35,6 +35,8 @@ For the Mentions extraction boundary, see
 
 ## Top-level entry points (repo root)
 
+Operational cache verification: [`operations/runbooks/cache.md`](operations/runbooks/cache.md).
+
 - [`agents.md`](https://github.com/High-Signal-App/high-signal/blob/main/agents.md) — concise agent bootloader: purpose, commands, constraints, doc navigation.
 - [`STATUS.md`](https://github.com/High-Signal-App/high-signal/blob/main/STATUS.md) — current objective, active work, blockers, next steps (short).
 - [`PROJECT_STATUS.md`](https://github.com/High-Signal-App/high-signal/blob/main/PROJECT_STATUS.md) — detailed, dated status ledger (authoritative for "what shipped").

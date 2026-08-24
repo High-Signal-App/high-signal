@@ -120,6 +120,7 @@ and JSON machinery is excluded.
 - https://highsignal.app/signals.json
 - https://highsignal.app/entities.json
 - https://highsignal.app/data/hit-rate.json
+- https://api.highsignal.app/data/daily
 `;
 
 function catalogForOrigin(origin) {
@@ -178,6 +179,13 @@ function catalogForOrigin(origin) {
         url: `${origin}/data/hit-rate.json`,
         kind: 'json',
         description: 'Public hit-rate ledger data.',
+      },
+      {
+        id: 'daily-dump-json',
+        url: 'https://api.highsignal.app/data/daily',
+        kind: 'json',
+        description:
+          'Complete UTC daily dump of published signals, linked evidence events, and the separately labeled Digg attention overlay.',
       },
     ],
     auth: {
@@ -261,6 +269,26 @@ const OPENAPI_MACHINE_SURFACES = [
     contentType: 'application/json',
     schemaType: 'object',
   },
+  {
+    path: '/data/daily',
+    tag: 'data',
+    summary: 'Complete daily signals, evidence, and attention dump',
+    description:
+      'One UTC day of published signals, every canonical evidence event linked to them, and the derived Digg attention sections. Digg never contributes evidence or confidence.',
+    responseDescription: 'Daily signals, evidence, and attention JSON',
+    contentType: 'application/json',
+    schemaType: 'object',
+    servers: [{ url: 'https://api.highsignal.app' }],
+    parameters: [
+      {
+        name: 'date',
+        in: 'query',
+        required: false,
+        description: 'UTC date in YYYY-MM-DD format; defaults to the current UTC date.',
+        schema: { type: 'string', format: 'date' },
+      },
+    ],
+  },
 ];
 
 const OPENAPI_PARAMETER_NAMES = new Map([['yyyy-mm', 'period']]);
@@ -301,6 +329,8 @@ function machinePathItem(surface) {
       tags: [surface.tag],
       summary: surface.summary,
       description: surface.description,
+      ...(surface.servers ? { servers: surface.servers } : {}),
+      ...(surface.parameters ? { parameters: surface.parameters } : {}),
       responses: {
         200: {
           description: surface.responseDescription,

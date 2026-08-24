@@ -6,6 +6,11 @@ const mocks = vi.hoisted(() => ({
   buildStocks: vi.fn(async () => []),
   buildIdeas: vi.fn(async () => []),
   buildTrends: vi.fn(async () => []),
+  buildDiggAttention: vi.fn(async () => ({
+    attentionLeaders: [],
+    emergingBeforeMainstream: [],
+    attentionEvidenceGaps: [],
+  })),
   buildPerception: vi.fn(async () => []),
   buildImprovements: vi.fn(async () => []),
   buildWatching: vi.fn(async () => []),
@@ -26,6 +31,7 @@ vi.mock('../routes/brief/query', async (importOriginal) => {
     buildStocks: mocks.buildStocks,
     buildIdeas: mocks.buildIdeas,
     buildTrends: mocks.buildTrends,
+    buildDiggAttention: mocks.buildDiggAttention,
     buildPerception: mocks.buildPerception,
     buildImprovements: mocks.buildImprovements,
     buildWatching: mocks.buildWatching,
@@ -81,6 +87,11 @@ describe('GET /daily', () => {
     mocks.buildStocks.mockResolvedValue([]);
     mocks.buildIdeas.mockResolvedValue([]);
     mocks.buildTrends.mockResolvedValue([]);
+    mocks.buildDiggAttention.mockResolvedValue({
+      attentionLeaders: [],
+      emergingBeforeMainstream: [],
+      attentionEvidenceGaps: [],
+    });
   });
 
   it('returns 404 when an archive date has no snapshot', async () => {
@@ -98,6 +109,11 @@ describe('GET /daily', () => {
     mocks.buildStocks.mockResolvedValue([{ ticker: 'NVDA' }] as never);
     mocks.buildIdeas.mockRejectedValue(new Error('ideas down'));
     mocks.buildTrends.mockResolvedValue([]);
+    mocks.buildDiggAttention.mockResolvedValue({
+      attentionLeaders: [{ shortId: 'digg-1' }],
+      emergingBeforeMainstream: [{ shortId: 'digg-2' }],
+      attentionEvidenceGaps: [{ id: 'digg-3' }],
+    } as never);
 
     const response = await briefRoute.request('http://test/daily?region=north-america', {}, env);
     expect(response.status).toBe(200);
@@ -106,12 +122,18 @@ describe('GET /daily', () => {
       hasBrand: boolean;
       stocks: unknown[];
       ideas: unknown[];
+      attentionLeaders: unknown[];
+      emergingBeforeMainstream: unknown[];
+      attentionEvidenceGaps: unknown[];
       categoryStates: Record<string, { status: string; reason: string | null }>;
     };
     expect(body.region).toBe('north-america');
     expect(body.hasBrand).toBe(false);
     expect(body.stocks).toEqual([{ ticker: 'NVDA' }]);
     expect(body.ideas).toEqual([]);
+    expect(body.attentionLeaders).toEqual([{ shortId: 'digg-1' }]);
+    expect(body.emergingBeforeMainstream).toEqual([{ shortId: 'digg-2' }]);
+    expect(body.attentionEvidenceGaps).toEqual([{ id: 'digg-3' }]);
     expect(body.categoryStates['stocks']).toMatchObject({ status: 'ready' });
     expect(body.categoryStates['ideas']).toMatchObject({
       status: 'unavailable',

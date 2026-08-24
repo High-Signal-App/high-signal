@@ -10,6 +10,8 @@ import {
   type BriefSnapshot,
   type BriefStockItem,
   type BriefTrendItem,
+  type DiggAttentionGapItem,
+  type DiggAttentionItem,
 } from '@high-signal/shared';
 
 function sourceHost(url: string) {
@@ -94,8 +96,8 @@ function SectionShell({
 }
 
 function directionTone(direction: BriefStockItem['direction']) {
-  if (direction === 'up') return 'text-emerald-300';
-  if (direction === 'down') return 'text-rose-300';
+  if (direction === 'up') return 'text-[var(--color-up)]';
+  if (direction === 'down') return 'text-[var(--color-down)]';
   return 'text-[var(--color-muted)]';
 }
 
@@ -130,7 +132,7 @@ function DirectHistory({ item }: { item: BriefStockItem }) {
       )}
       <Link
         href={'/track-record' as Route}
-        className="mt-3 inline-block font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--color-muted)] hover:text-[var(--color-accent)]"
+        className="mt-3 inline-flex min-h-11 items-center font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--color-muted)] hover:text-[var(--color-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-accent)]"
       >
         full ledger →
       </Link>
@@ -229,10 +231,10 @@ function StockItem({ item, editionDates }: { item: BriefStockItem; editionDates?
 }
 
 function verdictTone(verdict: NonNullable<BriefIdeaItem['opportunity']>['verdict']) {
-  if (verdict === 'enter') return 'text-emerald-300';
+  if (verdict === 'enter') return 'text-[var(--color-up)]';
   if (verdict === 'test') return 'text-[var(--color-accent)]';
-  if (verdict === 'watch') return 'text-amber-300';
-  return 'text-rose-300';
+  if (verdict === 'watch') return 'text-[var(--color-accent)]';
+  return 'text-[var(--color-down)]';
 }
 
 function IdeaItem({ item, editionDates }: { item: BriefIdeaItem; editionDates?: string[] }) {
@@ -309,13 +311,301 @@ function TrendItem({ item, editionDates }: { item: BriefTrendItem; editionDates?
           href={item.evidenceUrls[0].url}
           target="_blank"
           rel="noreferrer"
-          className="mt-5 inline-block border-t border-[var(--color-line)] pt-3 font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--color-muted)] hover:text-[var(--color-accent)]"
+          className="mt-5 inline-flex min-h-11 items-center border-t border-[var(--color-line)] pt-3 font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--color-muted)] hover:text-[var(--color-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-accent)]"
         >
           source · {item.evidenceUrls[0].source ?? sourceHost(item.evidenceUrls[0].url)} ↗
         </a>
       ) : null}
       <EditionProvenance dates={editionDates} />
     </article>
+  );
+}
+
+function rankMovement(delta: number | null) {
+  if (delta == null || delta === 0) return 'no rank movement';
+  return delta > 0 ? `↑ ${delta} places` : `↓ ${Math.abs(delta)} places`;
+}
+
+function AttentionItem({ item }: { item: DiggAttentionItem }) {
+  const title = (
+    <span className="block max-w-4xl text-xl font-medium leading-7 tracking-[-0.02em] text-[var(--color-fg)] group-hover:text-[var(--color-accent)]">
+      {item.title}
+    </span>
+  );
+
+  return (
+    <article className="border-b border-[var(--color-line)] py-6 last:border-b-0">
+      <div className="grid gap-5 md:grid-cols-[minmax(0,1fr)_220px]">
+        <div>
+          <div className="flex flex-wrap gap-x-3 gap-y-1 font-mono text-[11px] uppercase tracking-[0.1em] text-[var(--color-muted)]">
+            <span>
+              {item.attentionState === 'matched_signal' ? 'signal matched' : 'investigation lead'}
+            </span>
+            <span>{item.position == null ? 'unranked' : `rank ${item.position}`}</span>
+            <span>{rankMovement(item.positionDelta)}</span>
+            <span>{item.distinctAccountCount} distinct voices</span>
+          </div>
+          {item.signalSlug ? (
+            <Link
+              href={`/signals/${encodeURIComponent(item.signalSlug)}` as Route}
+              className="group mt-3 block focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-accent)]"
+            >
+              {title}
+            </Link>
+          ) : (
+            <a
+              href={item.canonicalDiggUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="group mt-3 block focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-accent)]"
+            >
+              {title}
+            </a>
+          )}
+          {item.summary ? (
+            <p className="mt-3 max-w-[70ch] text-sm leading-6 text-[var(--color-muted)]">
+              {item.summary}
+            </p>
+          ) : null}
+          <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 font-mono text-[11px] uppercase tracking-[0.1em] text-[var(--color-muted)]">
+            <a
+              href={item.canonicalDiggUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex min-h-11 items-center hover:text-[var(--color-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-accent)]"
+            >
+              Digg cluster ↗
+            </a>
+            {item.sourceUrls.slice(0, 2).map((url, index) => (
+              <a
+                key={url}
+                href={url}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex min-h-11 items-center hover:text-[var(--color-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-accent)]"
+              >
+                source post {index + 1} ↗
+              </a>
+            ))}
+          </div>
+        </div>
+        <dl className="grid grid-cols-2 gap-x-4 gap-y-3 border-t border-[var(--color-line)] pt-4 text-sm md:border-l md:border-t-0 md:pl-5 md:pt-0">
+          <div>
+            <dt className="font-mono text-[11px] uppercase tracking-[0.1em] text-[var(--color-muted)]">
+              Peak
+            </dt>
+            <dd className="mt-1 tabular-nums text-[var(--color-fg)]">
+              {item.peakPosition == null ? '—' : `#${item.peakPosition}`}
+            </dd>
+          </div>
+          <div>
+            <dt className="font-mono text-[11px] uppercase tracking-[0.1em] text-[var(--color-muted)]">
+              Time observed
+            </dt>
+            <dd className="mt-1 tabular-nums text-[var(--color-fg)]">
+              {item.attentionDurationHours}h
+            </dd>
+          </div>
+          <div>
+            <dt className="font-mono text-[11px] uppercase tracking-[0.1em] text-[var(--color-muted)]">
+              Source origins
+            </dt>
+            <dd className="mt-1 tabular-nums text-[var(--color-fg)]">
+              {item.canonicalSourceCount || 'unknown'}
+            </dd>
+          </div>
+          <div>
+            <dt className="font-mono text-[11px] uppercase tracking-[0.1em] text-[var(--color-muted)]">
+              Evidence confidence
+            </dt>
+            <dd className="mt-1 text-[var(--color-fg)]">Unchanged</dd>
+          </div>
+        </dl>
+      </div>
+    </article>
+  );
+}
+
+const GAP_LABELS: Record<DiggAttentionGapItem['gapType'], string> = {
+  attention_stronger_than_evidence: 'attention ahead of evidence',
+  evidence_stronger_than_attention: 'evidence ahead of attention',
+  single_origin_amplification: 'one-origin amplification',
+  framing_conflict: 'framing conflicts with evidence',
+};
+
+function AttentionGapItem({ item }: { item: DiggAttentionGapItem }) {
+  return (
+    <article className="border-b border-[var(--color-line)] py-5 last:border-b-0">
+      <div className="font-mono text-[11px] uppercase tracking-[0.1em] text-[var(--color-muted)]">
+        {GAP_LABELS[item.gapType]}
+      </div>
+      <h4 className="mt-2 max-w-4xl text-lg font-medium leading-7 text-[var(--color-fg)]">
+        {item.title}
+      </h4>
+      <p className="mt-2 max-w-[70ch] text-sm leading-6 text-[var(--color-muted)]">
+        {item.explanation}
+      </p>
+      <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 font-mono text-[11px] uppercase tracking-[0.1em] text-[var(--color-muted)]">
+        {item.signalSlug ? (
+          <Link
+            href={`/signals/${encodeURIComponent(item.signalSlug)}` as Route}
+            className="inline-flex min-h-11 items-center hover:text-[var(--color-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-accent)]"
+          >
+            High Signal evidence →
+          </Link>
+        ) : null}
+        {item.canonicalDiggUrl ? (
+          <a
+            href={item.canonicalDiggUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex min-h-11 items-center hover:text-[var(--color-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-accent)]"
+          >
+            Digg attention ↗
+          </a>
+        ) : null}
+        {item.evidenceUrls.slice(0, 2).map((citation) => (
+          <a
+            key={citation.url}
+            href={citation.url}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex min-h-11 items-center hover:text-[var(--color-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-accent)]"
+          >
+            evidence · {citation.source ?? sourceHost(citation.url)} ↗
+          </a>
+        ))}
+      </div>
+    </article>
+  );
+}
+
+function AttentionSubsection({
+  id,
+  title,
+  description,
+  count,
+  empty,
+  children,
+}: {
+  id: string;
+  title: string;
+  description: string;
+  count: number;
+  empty: string;
+  children: ReactNode;
+}) {
+  return (
+    <section id={id} className="scroll-mt-20 border-t border-[var(--color-line)] py-7">
+      <div className="grid gap-3 md:grid-cols-[220px_minmax(0,1fr)]">
+        <div>
+          <div className="font-mono text-[11px] uppercase tracking-[0.1em] text-[var(--color-muted)]">
+            {count} {count === 1 ? 'observation' : 'observations'}
+          </div>
+          <h3 className="mt-2 text-xl font-medium tracking-[-0.02em] text-[var(--color-fg)]">
+            {title}
+          </h3>
+        </div>
+        <p className="max-w-[70ch] text-sm leading-6 text-[var(--color-muted)]">{description}</p>
+      </div>
+      {count > 0 ? (
+        <div className="mt-5 border-t border-[var(--color-line)]">{children}</div>
+      ) : (
+        <p className="mt-5 border-t border-dashed border-[var(--color-line)] pt-4 text-sm leading-6 text-[var(--color-muted)]">
+          {empty}
+        </p>
+      )}
+    </section>
+  );
+}
+
+function AttentionLayer({ brief }: { brief: BriefSnapshot }) {
+  const available =
+    brief.attentionLeaders !== undefined &&
+    brief.emergingBeforeMainstream !== undefined &&
+    brief.attentionEvidenceGaps !== undefined;
+  const leaders = brief.attentionLeaders ?? [];
+  const emerging = brief.emergingBeforeMainstream ?? [];
+  const gaps = brief.attentionEvidenceGaps ?? [];
+  const count = leaders.length + emerging.length + gaps.length;
+
+  return (
+    <section
+      id="attention-layer"
+      className="scroll-mt-20 border-b border-[var(--color-line)] py-10"
+    >
+      <header className="grid gap-5 md:grid-cols-[minmax(0,1fr)_220px] md:items-end">
+        <div>
+          <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-accent)]">
+            {available ? 'Derived attention · not evidence' : 'Attention source unavailable'}
+          </div>
+          <h2 className="mt-2 text-3xl font-medium tracking-[-0.025em] text-[var(--color-fg)]">
+            Attention layer
+          </h2>
+          <p className="mt-3 max-w-[70ch] text-sm leading-6 text-[var(--color-muted)]">
+            {available
+              ? 'Digg shows what credible technology voices are noticing. High Signal keeps that attention separate from independent evidence, factual confidence, and predicted direction.'
+              : 'This edition predates the Digg attention dataset or the attention source could not be composed. No substitute observations were inserted.'}
+          </p>
+        </div>
+        <dl className="grid grid-cols-2 gap-4 border-t border-[var(--color-line)] pt-4 md:border-l md:border-t-0 md:pl-5 md:pt-0">
+          <div>
+            <dt className="font-mono text-[11px] uppercase tracking-[0.1em] text-[var(--color-muted)]">
+              Observations
+            </dt>
+            <dd className="mt-1 text-2xl font-medium tabular-nums text-[var(--color-fg)]">
+              {count}
+            </dd>
+          </div>
+          <div>
+            <dt className="font-mono text-[11px] uppercase tracking-[0.1em] text-[var(--color-muted)]">
+              Evidence confidence
+            </dt>
+            <dd className="mt-1 text-sm text-[var(--color-fg)]">Unchanged by attention</dd>
+          </div>
+        </dl>
+      </header>
+
+      {available ? (
+        <div className="mt-7">
+          <AttentionSubsection
+            id="attention-leaders"
+            title="Attention leaders"
+            description="Highest-ranked Digg clusters that already connect to a material High Signal entity or published signal."
+            count={leaders.length}
+            empty="No Digg cluster currently maps to a published High Signal item."
+          >
+            {leaders.map((item) => (
+              <AttentionItem key={item.shortId} item={item} />
+            ))}
+          </AttentionSubsection>
+
+          <AttentionSubsection
+            id="emerging-before-mainstream"
+            title="Emerging before mainstream"
+            description="Rising clusters that warrant original-source investigation. These are discovery leads, not factual claims."
+            count={emerging.length}
+            empty="No unmatched rising cluster cleared the investigation threshold."
+          >
+            {emerging.map((item) => (
+              <AttentionItem key={item.shortId} item={item} />
+            ))}
+          </AttentionSubsection>
+
+          <AttentionSubsection
+            id="attention-evidence-gaps"
+            title="Attention–evidence gaps"
+            description="Material mismatches between public attention, independent support, and source concentration."
+            count={gaps.length}
+            empty="No material mismatch between attention and evidence is visible in this edition."
+          >
+            {gaps.map((item) => (
+              <AttentionGapItem key={item.id} item={item} />
+            ))}
+          </AttentionSubsection>
+        </div>
+      ) : null}
+    </section>
   );
 }
 
@@ -331,9 +621,16 @@ export function BriefSections({
   itemEditionDates?: Record<string, string[]>;
 }) {
   const states = categoryStatesForSnapshot(brief);
+  const attentionCount =
+    (brief.attentionLeaders?.length ?? 0) +
+    (brief.emergingBeforeMainstream?.length ?? 0) +
+    (brief.attentionEvidenceGaps?.length ?? 0);
+  const hasCoreContent = brief.stocks.length + brief.ideas.length + brief.trends.length > 0;
+  const attentionFirst = attentionCount > 0 && !hasCoreContent;
 
   return (
     <>
+      {attentionFirst ? <AttentionLayer brief={brief} /> : null}
       {sections.includes('stocks') ? (
         <SectionShell
           id="markets-companies"
@@ -345,7 +642,7 @@ export function BriefSections({
           action={
             <Link
               href={'/signals' as Route}
-              className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-muted)] hover:text-[var(--color-accent)]"
+              className="inline-flex min-h-11 items-center font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-muted)] hover:text-[var(--color-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-accent)]"
             >
               all signals →
             </Link>
@@ -373,7 +670,7 @@ export function BriefSections({
           action={
             <Link
               href={'/opportunities' as Route}
-              className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-muted)] hover:text-[var(--color-accent)]"
+              className="inline-flex min-h-11 items-center font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-muted)] hover:text-[var(--color-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-accent)]"
             >
               opportunity research →
             </Link>
@@ -400,7 +697,7 @@ export function BriefSections({
           action={
             <Link
               href={'/communities' as Route}
-              className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-muted)] hover:text-[var(--color-accent)]"
+              className="inline-flex min-h-11 items-center font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-muted)] hover:text-[var(--color-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-accent)]"
             >
               community evidence →
             </Link>
@@ -415,6 +712,8 @@ export function BriefSections({
           ))}
         </SectionShell>
       ) : null}
+
+      {!attentionFirst ? <AttentionLayer brief={brief} /> : null}
     </>
   );
 }

@@ -1,0 +1,38 @@
+{
+  "$schema": "fleet.design-review.v1",
+  "version": 1,
+  "project": "high-signal",
+  "target": "Owned evidence and ticker pages",
+  "mode": "preserve",
+  "register": "product",
+  "context": {
+    "product": "PRODUCT.md",
+    "design": "DESIGN.md"
+  },
+  "direction": {
+    "references": [],
+    "probes": [],
+    "selected": "existing-design",
+    "approval": "not-required",
+    "before": "artifacts/design/before.png"
+  },
+  "evidence": {
+    "screenshots": [
+      { "width": 390, "path": "artifacts/design/after-owned-evidence-390.png" },
+      { "width": 768, "path": "artifacts/design/after-owned-evidence-768.png" },
+      { "width": 1440, "path": "artifacts/design/after-owned-evidence-1440.png" }
+    ],
+    "projectCheck": {
+      "command": "pnpm quality && pnpm --filter @high-signal/web build",
+      "status": "pass"
+    },
+    "critique": { "score": 32, "maximum": 40 },
+    "audit": { "score": 16, "maximum": 20 },
+    "unresolved": { "p0": 0, "p1": 0 },
+    "detector": { "posture": "advisory", "findings": [] }
+  },
+  "ownerFeedback": {
+    "decision": "delegated",
+    "note": "Owner delegated final review and merge judgment in the fleet-wide sync request. Preserve-mode review passed after independent critique and audit, with zero unresolved P0/P1 findings."
+  }
+}

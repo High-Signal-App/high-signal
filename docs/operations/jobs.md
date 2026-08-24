@@ -33,6 +33,7 @@ The daily cycle is sequenced so each stage consumes the previous stage's output:
 
 | Cadence | Workflow | Intent |
 | --- | --- | --- |
+| Every 30m | `cron-digg.yml` | Poll the five documented Digg technology feeds after checking `/admin/digg/status`; the API enforces a 10-minute minimum refresh interval, stores raw feed/cluster snapshots, and attaches attention-only overlays. Digg never enters evidence or confidence scoring. |
 | Every 4h | `cron-markets.yml` | Prediction-market polling (`--source markets`: Polymarket / Manifold / Kalshi → `market_quotes`). Probabilities only — never equity prices. Metaculus is a separate forecast source (`--source metaculus`) run by the daily `--source all` ingest, not this workflow. |
 
 ## Weekly

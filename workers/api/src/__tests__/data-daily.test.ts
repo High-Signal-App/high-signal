@@ -1,0 +1,45 @@
+import { describe, expect, it } from 'vitest';
+import app from '../index';
+import { dailyEvidenceEvents, resolveDailyDate } from '../routes/data';
+
+const fetcher = app as unknown as {
+  fetch(request: Request, env?: Record<string, unknown>): Promise<Response>;
+};
+
+describe('daily dump contract', () => {
+  it('defaults to the current UTC date and rejects malformed calendar dates', () => {
+    expect(resolveDailyDate(undefined, new Date('2026-08-24T23:59:59.000Z'))).toBe('2026-08-24');
+    expect(resolveDailyDate('2026-02-29')).toBeNull();
+    expect(resolveDailyDate('not-a-date')).toBeNull();
+  });
+
+  it('projects canonical evidence rows without raw event or article-body fields', () => {
+    const rows = [
+      {
+        id: 'evidence-1',
+        signalId: 'signal-1',
+        url: 'https://news.ycombinator.com/item?id=1',
+        sourceType: 'hackernews',
+        excerpt: 'A bounded excerpt.',
+        publishedAt: new Date('2026-08-24T06:00:00.000Z'),
+      },
+    ];
+    expect(dailyEvidenceEvents(rows, new Map([['signal-1', 'daily-signal']]))).toEqual([
+      {
+        ...rows[0],
+        signalSlug: 'daily-signal',
+      },
+    ]);
+  });
+
+  it('returns 400 for an invalid date before reading D1', async () => {
+    const response = await fetcher.fetch(new Request('http://test/data/daily?date=2026-99-99'), {
+      ENVIRONMENT: 'test',
+    });
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      error: 'invalid_date',
+      expected: 'YYYY-MM-DD',
+    });
+  });
+});

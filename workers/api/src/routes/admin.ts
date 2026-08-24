@@ -26,6 +26,7 @@ import {
 import type { CommunitySummary } from '@high-signal/shared';
 import { desc, eq as eqOp } from 'drizzle-orm';
 import { db, schema } from '../db';
+import { diggAdminRoute } from './admin-digg';
 
 type Env = {
   DB: D1Database;
@@ -46,6 +47,8 @@ adminRoute.use('*', async (c, next) => {
   if (auth !== `Bearer ${token}`) return c.json({ error: 'unauthorized' }, 401);
   await next();
 });
+
+adminRoute.route('/digg', diggAdminRoute);
 
 interface ScoreRunInput {
   signalId: string;

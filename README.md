@@ -109,7 +109,8 @@ Legend used in the notes:
 - [x] **Semantic Scholar Graph API** *(curated recent research-paper search; no-key public mode with optional API key for rate limits)* — `python/ingest/sources/semantic_scholar.py`
 
 ### Discourse
-- [x] **Hacker News** — `python/ingest/lab/ingest.py` (Firebase API + outbound-link extraction)
+- [x] **Hacker News** — `python/ingest/src/high_signal_ingest/sources/hackernews.py` (daily keyless Algolia source; title, points, comments, outbound link)
+- [ ] **Digg attention overlay** — local implementation in `python/ingest/src/high_signal_ingest/digg.py`; five documented feeds, 30-minute snapshots, evidence/confidence contribution fixed to none. Pending D1 migration and release.
 - [x] **Reddit** *(13 subs — hardware/semi-heavy + startup/dev/operator)* — `python/ingest/sources/reddit.py`
 - [x] **YouTube discovery + transcripts** *(15 hardware/macro/founder/operator channels; optional `YOUTUBE_API_KEY` enables official YouTube Data API discovery/view-count ranking for brand-awareness probes; transcript access remains best-effort and separate from official API coverage)* — `python/ingest/sources/youtube.py`, `scripts/youtube-brand-awareness-probe.py`
 - [x] **Bluesky AT Protocol** *(optional-auth search lane for real founder/researcher presence; full Relay firehose can replace it later if volume justifies it)* — `python/ingest/sources/bluesky.py`

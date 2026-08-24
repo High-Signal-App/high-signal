@@ -13,6 +13,8 @@
 
 Persisted in **Cloudflare D1** (events/signals/evidence) + git-versioned `signals/*.md`. Footprint is **KB/day of new signals, low-MB total** — the cost center is LLM tokens, not storage.
 
+The Digg attention overlay is the deliberate exception: because Digg exposes rolling windows without a historical archive, High Signal retains its documented feed payloads and per-cluster snapshots in dedicated `digg_*` tables. Those rows are derived attention metadata, never event evidence.
+
 ## History / retention
 
 **History depth** below = the default fetch window per run (how far back each daily run pulls). Wider one-off backfills pass a larger `--days`. Dedup is by `document_key`, so re-runs over the same window don't duplicate. No automatic D1 pruning today — events accumulate; the signal store is append-only by design.
@@ -82,5 +84,9 @@ Persisted in **Cloudflare D1** (events/signals/evidence) + git-versioned `signal
 **Role key:** *entity* = maps to a tracked company · *thematic* = topic/keyword (entity-less) · *corroboration* = official 2nd-source, mostly entity-less · *numeric* = time-series values.
 
 **Temporal key:** *recent* = only the latest events matter — stale after days · *historical* = full history has value — patents, filings, court cases · *series* = time-series — both recent prints and historical trends matter.
+
+## Derived attention overlays
+
+- **Digg technology clusters** — five documented public JSON/YAML feeds, polled every 30 minutes with a server-enforced 10-minute minimum refresh interval. Stored as normalized current clusters plus append-only snapshots. Classification: `source_class=attention_aggregator`, `evidence_tier=derived`, `confidence_contribution=none`, `attention_contribution=allowed`. Digg can change discovery and brief prominence but cannot satisfy cite-or-kill or raise confidence.
 
 View the actual available data per source with the **data directory**: `uv run python -m high_signal_ingest.data_directory` → writes `data-directory/INDEX.md` + one JSON file of recent samples per source.

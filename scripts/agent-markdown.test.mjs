@@ -341,6 +341,10 @@ assert.ok(catalog.templates.every((template) => template.eligibility));
 assert.ok(catalog.surfaces.every((surface) => surface.url && surface.md));
 assert.equal(catalog.markdown.negotiation, true);
 assert.match(catalog.auth.notes, /Review, admin, auth, personal, delivery/);
+assert.equal(
+  catalog.dataResources.find((resource) => resource.id === 'daily-dump-json')?.url,
+  'https://api.highsignal.app/data/daily'
+);
 
 const staticCatalogResponse = handleAgentEdge(markdownRequest('/api-ai.json'));
 assert.ok(staticCatalogResponse);
@@ -353,6 +357,8 @@ assert.equal(openapi.openapi, '3.1.0');
 assert.ok(openapi.paths['/signals/{slug}']);
 assert.ok(openapi.paths['/entities/{id}/{period}']);
 assert.equal(openapi.paths['/entities/{id}/{id}'], undefined);
+assert.deepEqual(openapi.paths['/data/daily'].get.servers, [{ url: 'https://api.highsignal.app' }]);
+assert.equal(openapi.paths['/data/daily'].get.parameters[0].name, 'date');
 assert.deepEqual(
   openapi.paths['/entities/{id}/{period}'].get.parameters.map((parameter) => parameter.name),
   ['id', 'period'],

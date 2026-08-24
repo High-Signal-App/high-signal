@@ -19,6 +19,7 @@ import { dataRoute } from './routes/data';
 import { d2cRoute } from './routes/d2c';
 import { companyUniverseRoute } from './routes/company-universe';
 import { learningRoute } from './routes/learning';
+import { handlePublicApiCache } from './public-cache';
 
 type Env = {
   DB: D1Database;
@@ -66,7 +67,14 @@ app.onError((err, c) => {
 });
 
 export default {
-  fetch: app.fetch,
+  async fetch(request: Request, env: Env, ctx: ExecutionContext) {
+    const cache =
+      typeof caches === 'undefined' ? null : (caches as CacheStorage & { default: Cache }).default;
+    return handlePublicApiCache(request, async () => app.fetch(request, env, ctx), {
+      cache,
+      waitUntil: (promise) => ctx.waitUntil(promise),
+    });
+  },
   async scheduled(_event: ScheduledEvent, env: Env, ctx: ExecutionContext) {
     // Brief precompute is the API Worker's only scheduled responsibility.
     // This populates daily_brief_snapshots so /brief/daily does 1 D1 lookup

@@ -1,6 +1,8 @@
 import { Hono } from 'hono';
-import { and, desc, eq, gte, like, lt, or, sql } from 'drizzle-orm';
+import { assessSignalQuality } from '@high-signal/shared';
+import { and, desc, eq, gte, inArray, like, lt, or, sql } from 'drizzle-orm';
 import { db, schema } from '../db';
+import { buildDiggAttention, tryGetPrecomputedSnapshot } from './brief/query';
 
 type Env = { DB: D1Database };
 
@@ -63,6 +65,116 @@ interface Sample {
   url: string;
   publishedAt: number;
 }
+
+export function resolveDailyDate(value: string | undefined, now = new Date()): string | null {
+  if (value === undefined) return now.toISOString().slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  const parsed = new Date(`${value}T00:00:00.000Z`);
+  if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== value) return null;
+  return value;
+}
+
+export function dailyEvidenceEvents(
+  rows: Array<typeof schema.evidence.$inferSelect>,
+  signalSlugs: ReadonlyMap<string, string>
+) {
+  return rows.map((row) => ({
+    id: row.id,
+    signalId: row.signalId,
+    signalSlug: signalSlugs.get(row.signalId) ?? null,
+    url: row.url,
+    sourceType: row.sourceType,
+    excerpt: row.excerpt,
+    publishedAt: row.publishedAt,
+  }));
+}
+
+/**
+ * GET /data/daily — complete public dump of one UTC day's published signals
+ * and the canonical evidence events linked to those signals.
+ */
+dataRoute.get('/daily', async (c) => {
+  const date = resolveDailyDate(c.req.query('date'));
+  if (!date) return c.json({ error: 'invalid_date', expected: 'YYYY-MM-DD' }, 400);
+
+  const range = dayRange(date)!;
+  const database = db(c.env.DB);
+  const rows = await database
+    .select()
+    .from(schema.signals)
+    .where(
+      and(
+        eq(schema.signals.reviewStatus, 'published'),
+        sql`${schema.signals.bodyMd} NOT LIKE '> _backfill_%'`,
+        gte(schema.signals.publishedAt, range.start),
+        lt(schema.signals.publishedAt, range.end)
+      )
+    )
+    .orderBy(desc(schema.signals.publishedAt));
+
+  const signals = rows
+    .map((signal) => {
+      const quality = assessSignalQuality({
+        signalType: signal.signalType,
+        primaryEntityId: signal.primaryEntityId,
+        confidence: signal.confidence,
+        evidenceUrls: (signal.evidenceUrls ?? []) as string[],
+        bodyMd: signal.bodyMd,
+      });
+      return {
+        ...signal,
+        contentCategory: quality.contentCategory,
+        qualityScore: quality.score,
+        qualityBand: quality.band,
+        publishable: quality.publishable,
+        sourceClasses: quality.sourceClasses,
+        independentSourceCount: quality.independentSourceCount,
+        qualityReasons: quality.reasons,
+      };
+    })
+    .filter((signal) => signal.publishable);
+
+  const signalIds = signals.map((signal) => signal.id);
+  const evidenceRows = signalIds.length
+    ? await database
+        .select()
+        .from(schema.evidence)
+        .where(inArray(schema.evidence.signalId, signalIds))
+        .orderBy(desc(schema.evidence.publishedAt))
+    : [];
+  const slugs = new Map(signals.map((signal) => [signal.id, signal.slug]));
+  const evidenceEvents = dailyEvidenceEvents(evidenceRows, slugs);
+  const isToday = date === new Date().toISOString().slice(0, 10);
+  const archivedBrief = isToday ? null : await tryGetPrecomputedSnapshot(database, date, 'global');
+  const attention = isToday
+    ? await buildDiggAttention(database)
+    : {
+        attentionLeaders: archivedBrief?.attentionLeaders ?? [],
+        emergingBeforeMainstream: archivedBrief?.emergingBeforeMainstream ?? [],
+        attentionEvidenceGaps: archivedBrief?.attentionEvidenceGaps ?? [],
+      };
+  const attentionObservationCount =
+    attention.attentionLeaders.length +
+    attention.emergingBeforeMainstream.length +
+    attention.attentionEvidenceGaps.length;
+
+  return c.json(
+    {
+      schemaVersion: '1',
+      generatedAt: new Date().toISOString(),
+      date,
+      signalCount: signals.length,
+      evidenceEventCount: evidenceEvents.length,
+      attentionObservationCount,
+      attentionAvailable: isToday || archivedBrief?.attentionLeaders !== undefined,
+      signals,
+      evidenceEvents,
+      attention,
+    },
+    200,
+    { 'Cache-Control': 'public, max-age=60, s-maxage=300' }
+  );
+});
 
 /**
  * GET /data/sources — live per-source data availability from the events store.

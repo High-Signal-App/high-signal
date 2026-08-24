@@ -35,6 +35,7 @@ import {
 import { db, schema } from '../../db';
 import { renderFromSeed, safeCategory } from './compose';
 import {
+  buildDiggAttention,
   buildIdeas,
   buildStocks,
   buildTrends,
@@ -102,10 +103,11 @@ async function composeDailyBrief(
   request: ReturnType<typeof parseDailyBriefRequest>
 ) {
   const countries = countriesForRegion(request.region);
-  const [stockResult, ideaResult, trendResult] = await Promise.all([
+  const [stockResult, ideaResult, trendResult, attention] = await Promise.all([
     safeCategory(() => buildStocks(database, countries), 'stocks'),
     safeCategory(() => buildIdeas(database, request.region, countries), 'ideas'),
     safeCategory(() => buildTrends(database, request.region, countries), 'trends'),
+    buildDiggAttention(database),
   ]);
 
   const brand = loadDailyBriefBrand(request);
@@ -118,6 +120,7 @@ async function composeDailyBrief(
     trends: trendResult.items,
     perception: brand.perception,
     improvements: brand.improvements,
+    ...attention,
     categoryStates: {
       stocks: stockResult.state,
       ideas: ideaResult.state,
@@ -194,10 +197,11 @@ export async function precomputeBriefSnapshots(env: { DB: D1Database }): Promise
     try {
       const countries = countriesForRegion(region);
 
-      const [stockResult, ideaResult, trendResult] = await Promise.all([
+      const [stockResult, ideaResult, trendResult, attention] = await Promise.all([
         safeCategory(() => buildStocks(database, countries), 'stocks'),
         safeCategory(() => buildIdeas(database, region, countries), 'ideas'),
         safeCategory(() => buildTrends(database, region, countries), 'trends'),
+        buildDiggAttention(database),
       ]);
       const stocks = stockResult.items;
       const ideas = ideaResult.items;
@@ -217,6 +221,7 @@ export async function precomputeBriefSnapshots(env: { DB: D1Database }): Promise
         trends,
         perception: [],
         improvements: [],
+        ...attention,
         categoryStates,
       };
 
@@ -262,7 +267,7 @@ export async function precomputeBriefSnapshots(env: { DB: D1Database }): Promise
         });
 
       console.log(
-        `[brief-precompute] ${region}: ${publishedSnapshot.stocks.length} stocks, ${publishedSnapshot.ideas.length} ideas, ${publishedSnapshot.trends.length} trends, ${pruned.withheld.length} withheld; gate=pass`
+        `[brief-precompute] ${region}: ${publishedSnapshot.stocks.length} stocks, ${publishedSnapshot.ideas.length} ideas, ${publishedSnapshot.trends.length} trends, ${publishedSnapshot.attentionLeaders?.length ?? 0} attention leaders, ${pruned.withheld.length} withheld; gate=pass`
       );
     } catch (err) {
       console.error(`[brief-precompute] ${region} failed:`, err);
