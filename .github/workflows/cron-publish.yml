@@ -19,7 +19,7 @@ on:
 jobs:
   auto-publish:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v6
@@ -50,7 +50,7 @@ jobs:
   # failed publish is exactly when the brief is most likely to be empty.
   verify-brief:
     needs: auto-publish
-    if: always() && github.event_name == 'schedule'
+    if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

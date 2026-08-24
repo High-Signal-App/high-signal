@@ -53,8 +53,14 @@ def wrangler_query(sql: str) -> list[dict]:
         capture_output=True, text=True, cwd=REPO,
     )
     if result.returncode != 0:
-        sys.stderr.write(f"wrangler error: {result.stderr}\n")
-        sys.exit(1)
+        detail = "\n".join(part.strip() for part in (result.stderr, result.stdout) if part.strip())
+        sys.stderr.write(f"wrangler D1 query failed:\n{detail or '(no Wrangler output)'}\n")
+        sys.stderr.write(
+            "GitHub Actions must provide CLOUDFLARE_ACCOUNT_ID and a "
+            "CLOUDFLARE_API_TOKEN scoped to that account with D1 Read "
+            "(D1 Edit is also valid and is required by the D2C sync).\n"
+        )
+        raise RuntimeError("remote D1 query unavailable")
     data = json.loads(result.stdout)
     return (data[0] if isinstance(data, list) else data)["results"]
 

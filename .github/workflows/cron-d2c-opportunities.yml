@@ -11,6 +11,8 @@ name: cron-d2c-opportunities
 #   - AI_API_KEY secret set (for the agent-visibility overlay; falls back to
 #     gap=1 "wide-open" entries when absent)
 #   - ADMIN_TOKEN + API_BASE secrets (already used by cron-ingest)
+#   - CLOUDFLARE_ACCOUNT_ID + CLOUDFLARE_API_TOKEN with Account:D1:Edit
+#     (a Workers deploy-only token is insufficient for these D1 writes)
 #
 # This workflow commits the bundled artifact to main but does not deploy it.
 # Dispatch deploy-web.yml when the accumulated web changes are ready to ship.

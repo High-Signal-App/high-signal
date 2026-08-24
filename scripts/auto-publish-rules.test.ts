@@ -21,6 +21,15 @@ import type { ClaimWithEvidence } from '@high-signal/shared';
 let failures = 0;
 let total = 0;
 
+const BRIEF_READY_BODY = `
+## What changed
+The company announced a material product and capacity expansion supported by current evidence.
+## Why it matters
+The expansion signals stronger demand and may change competitive positioning over the next year.
+## Uncertainty
+Execution risk remains because the timing depends on customer adoption and supply availability.
+`;
+
 function check(label: string, signal: JudgeableSignal, expected: Verdict, reasonContains?: string) {
   total++;
   const result = deterministicVerdict(signal);
@@ -195,6 +204,7 @@ check(
     publishable: true,
     independentSourceCount: 2,
     sourceClasses: ['market', 'news'],
+    bodyMd: BRIEF_READY_BODY,
   },
   'publish'
 );
@@ -207,6 +217,7 @@ check(
     publishable: true,
     independentSourceCount: 3,
     sourceClasses: ['ir', 'news'],
+    bodyMd: BRIEF_READY_BODY,
   },
   'publish',
   'independent source classes'
@@ -262,6 +273,18 @@ check(
   'kill',
   'neither pipeline blessing nor'
 );
+check(
+  'kill when corroborated prose is not ready for a brief',
+  {
+    evidenceUrls: ['https://reuters.com/a', 'https://ir.example.com/b'],
+    bodyMd: 'The company announced a new product.',
+    publishable: true,
+    independentSourceCount: 2,
+    sourceClasses: ['news', 'ir'],
+  },
+  'kill',
+  'not brief-ready'
+);
 
 console.log('\nauto-publish rubric — evidence-relevance (the Gemini Omni bug)');
 // Body cites The Verge only; the other 4 URLs are adjacent-news-stuffing.
@@ -295,7 +318,9 @@ check(
       'Google launched Gemini Omni ([The Verge](https://www.theverge.com/tech/936507/gemini-omni-hands-on-deepfake-ai-video)) ' +
       'with an official rollout post ([Google blog](https://blog.google/products/gemini/omni-launch-2026/)). ' +
       "Body discusses launch implications, competition with Microsoft, and demand for NVIDIA compute — clear directional claim about Google's AI position." +
-      'More body. More body. More body. More body. More body. More body. More body. More body.',
+      'However, execution risk remains because rollout timing may change. ' +
+      'More body. More body. More body. More body. More body. More body. More body. More body.' +
+      BRIEF_READY_BODY,
     publishable: true,
     independentSourceCount: 2,
     sourceClasses: ['news', 'blog'],
@@ -307,7 +332,7 @@ check(
   'skip relevance check when body is too short to evaluate',
   {
     evidenceUrls: ['https://a.com/foo', 'https://b.com/bar'],
-    bodyMd: 'Short body.', // < EVIDENCE_RELEVANCE_MIN_BODY_CHARS
+    bodyMd: BRIEF_READY_BODY, // < EVIDENCE_RELEVANCE_MIN_BODY_CHARS
     publishable: true,
     independentSourceCount: 2,
     sourceClasses: ['news', 'ir'],

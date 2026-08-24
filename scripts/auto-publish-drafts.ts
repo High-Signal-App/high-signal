@@ -39,7 +39,12 @@ import {
   deterministicVerdict,
   type VerdictResult,
 } from './auto-publish-rules';
-import type { ClaimWithEvidence } from '@high-signal/shared';
+import {
+  buildHistoricalClaimBackfill,
+  judgePublishability,
+  rollupEvidence,
+  type ClaimWithEvidence,
+} from '@high-signal/shared';
 
 interface SignalRow {
   id: string;
@@ -128,6 +133,73 @@ async function patchReviewStatus(
   if (!r.ok) {
     const text = await r.text();
     console.error(`[auto-publish] PATCH ${slug} → ${reviewStatus} FAILED (${r.status}): ${text}`);
+    return false;
+  }
+  return true;
+}
+
+async function createStructuredClaim(signal: SignalRow): Promise<string | null> {
+  if (DRY || !ADMIN_TOKEN) return null;
+  const derived = buildHistoricalClaimBackfill({
+    bodyMd: signal.bodyMd,
+    fallbackAssertion: signal.slug.replaceAll('-', ' '),
+    evidenceUrls: signal.evidenceUrls,
+  });
+  const response = await fetch(`${API_BASE}/admin/claims`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${ADMIN_TOKEN}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      surface: 'signal',
+      signalId: signal.id,
+      assertion: derived.assertion,
+      confidenceBand: signal.confidence,
+      evidence: derived.evidence.map((link) => ({
+        url: link.url,
+        role: link.role,
+        notes:
+          link.role === 'primary' || link.role === 'corroboration'
+            ? 'receipt:verified alignment:verified verifier:auto-publish-rubric'
+            : 'alignment:unverified verifier:auto-publish-rubric',
+      })),
+    }),
+  });
+  if (!response.ok) {
+    console.error(
+      `[auto-publish] claim create ${signal.slug} FAILED (${response.status}): ${(await response.text()).slice(0, 240)}`
+    );
+    return null;
+  }
+  const payload = (await response.json()) as { id?: string };
+  return payload.id ?? null;
+}
+
+async function publishEligibleClaim(claims: ClaimWithEvidence[]): Promise<boolean> {
+  const eligible = claims.find(
+    (claim) => judgePublishability(rollupEvidence(claim.evidence)).publishable
+  );
+  if (!eligible) return false;
+  if (eligible.reviewStatus === 'published' || DRY) return true;
+  const response = await fetch(
+    `${API_BASE}/admin/claims/${encodeURIComponent(eligible.id)}/status`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${ADMIN_TOKEN}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        status: 'published',
+        reason: 'auto_publish_rubric_passed',
+      }),
+    }
+  );
+  if (!response.ok) {
+    console.error(
+      `[auto-publish] claim publish ${eligible.id} FAILED (${response.status}): ${(await response.text()).slice(0, 240)}`
+    );
     return false;
   }
   return true;
@@ -253,8 +325,8 @@ async function main(): Promise<void> {
 
   for (const signal of toJudge) {
     let verdict: VerdictResult;
-    const claims = await fetchClaimsBySignal(signal.slug);
-    const judgeable = applyStructuredClaimEvidence(signal, claims);
+    let claims = await fetchClaimsBySignal(signal.slug);
+    let judgeable = applyStructuredClaimEvidence(signal, claims);
     try {
       verdict = await judge(judgeable);
     } catch (error) {
@@ -262,10 +334,42 @@ async function main(): Promise<void> {
       errors++;
       continue;
     }
-    const tag = verdict.source === 'ai' ? 'AI ' : 'rul';
-    const provenanceTag = judgeable.provenanceSource === 'structured_claims' ? 'claims' : 'legacy';
+    let tag = verdict.source === 'ai' ? 'AI ' : 'rul';
+    let provenanceTag = judgeable.provenanceSource === 'structured_claims' ? 'claims' : 'legacy';
     const wasPublished = isPublished.has(signal.slug);
     if (verdict.verdict === 'publish') {
+      if (claims.length === 0 && !DRY) {
+        const claimId = await createStructuredClaim(signal);
+        if (!claimId) {
+          console.error(
+            `  [${tag}/legacy]    ERROR  ${signal.slug} — could not create claim receipt`
+          );
+          errors++;
+          continue;
+        }
+        claims = await fetchClaimsBySignal(signal.slug);
+        judgeable = applyStructuredClaimEvidence(signal, claims);
+        verdict = await judge(judgeable);
+        tag = verdict.source === 'ai' ? 'AI ' : 'rul';
+        provenanceTag = judgeable.provenanceSource === 'structured_claims' ? 'claims' : 'legacy';
+        if (verdict.verdict !== 'publish') {
+          const ok = await patchReviewStatus(signal.slug, 'killed');
+          if (ok) killed++;
+          else errors++;
+          const label = wasPublished ? 'UNPUB' : 'KILL';
+          console.log(
+            `  [${tag}/${provenanceTag}]    ${label}  ${signal.slug} — structured claim re-check: ${verdict.reason}`
+          );
+          continue;
+        }
+      }
+      if (!DRY && !(await publishEligibleClaim(claims))) {
+        console.error(
+          `  [${tag}/claims]    ERROR  ${signal.slug} — no publishable structured claim receipt`
+        );
+        errors++;
+        continue;
+      }
       // Skip the PATCH if already published — no-op.
       if (wasPublished) {
         publishedCount++;

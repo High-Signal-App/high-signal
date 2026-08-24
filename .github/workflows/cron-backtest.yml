@@ -7,9 +7,9 @@ name: cron-backtest
 # the result to workers/api/src/lib/label-backtest.json. The commit is
 # included the next time deploy-api.yml is manually dispatched.
 #
-# Requires the CLOUDFLARE_API_TOKEN secret — the backtest queries D1 remote
-# via wrangler. If the token is missing or expired the script will
-# fail loudly at the wrangler step.
+# Requires CLOUDFLARE_ACCOUNT_ID plus a CLOUDFLARE_API_TOKEN scoped to that
+# account with D1 Read (the shared D1 Edit token used by the D2C sync is valid).
+# A Workers deploy-only token cannot query D1.
 
 on:
   schedule:

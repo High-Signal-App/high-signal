@@ -160,8 +160,11 @@ async function main() {
   console.log(`[d2c:sync] wrote ${TMP_SQL} (${sql.length} statements)`);
 
   const proc = spawn(
-    'npx',
+    'pnpm',
     [
+      '--filter',
+      '@high-signal/db',
+      'exec',
       'wrangler',
       'd1',
       'execute',
@@ -172,7 +175,18 @@ async function main() {
     ],
     { stdio: 'inherit', cwd: __root }
   );
-  proc.on('close', (code) => process.exit(code ?? 0));
+  proc.on('error', (error) => {
+    console.error(`[d2c:sync] failed to start pinned Wrangler: ${error.message}`);
+    process.exit(1);
+  });
+  proc.on('close', (code) => {
+    if (code) {
+      console.error(
+        '[d2c:sync] remote D1 write failed. CLOUDFLARE_API_TOKEN must target CLOUDFLARE_ACCOUNT_ID and include Account:D1:Edit.'
+      );
+    }
+    process.exit(code ?? 1);
+  });
 }
 
 main().catch((err) => {

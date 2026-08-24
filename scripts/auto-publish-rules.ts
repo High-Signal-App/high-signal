@@ -6,6 +6,7 @@
 
 import {
   PREDICTION_MARKET_DOMAINS,
+  extractBriefEditorialSummary,
   isUsableClaimEvidenceLink,
   isPredictionMarketOnly as isPredictionMarketOnlyUrls,
   judgePublishability,
@@ -218,6 +219,18 @@ export function deterministicVerdict(signal: JudgeableSignal): VerdictResult {
     return {
       verdict: 'kill',
       reason: `evidence-stuffing — body references only ${pct}% of declared evidence URLs`,
+      source: 'rule',
+    };
+  }
+
+  if (
+    signal.publishable === true &&
+    independent >= 2 &&
+    !extractBriefEditorialSummary(signal.bodyMd ?? '')
+  ) {
+    return {
+      verdict: 'kill',
+      reason: 'signal prose is not brief-ready (what changed, why it matters, and uncertainty)',
       source: 'rule',
     };
   }
