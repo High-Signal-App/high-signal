@@ -1,6 +1,6 @@
 # high-signal — PROJECT STATUS
 
-Last updated: 2026-08-22
+Last updated: 2026-08-24
 
 ## Why/What
 
@@ -39,6 +39,11 @@ Last updated: 2026-08-22
 - **SaaS Maker:** Personal command brief scripts sync tasks via `pnpm personal:brief sync-tasks --apply`.
 
 - Next.js web app and Cloudflare Worker API monorepo are in place.
+- Digg attention snapshots, Daily Brief overlays, the simplified daily/evidence
+  API, and guarded public API edge caching are live. Migration `0021` is applied;
+  the 30-minute collector has populated all five documented feeds; API and web
+  deployment smokes passed; cold-to-warm probes returned `API-MISS` then
+  `API-HIT` for both `/data/daily` and `/brief/daily`.
 - Operator admin session gates `/review`, `/backtest-workbench`, `/personal`, and community curation.
 - Primary nav follows the public reading path: Brief, Signals, Track record, and Sources. Explore and contextual links keep the wider set of lenses and operator surfaces discoverable. Removed dead `/discover` nav link (communities product is parked; link caused prod smoke 404).
 - Public/support pages exist: about, methodology, featured, API docs, privacy, terms, auth pages.
@@ -52,7 +57,7 @@ Last updated: 2026-08-22
 | --- | --- | --- |
 | Web | Next.js 16, Tailwind v4, OpenNext | Cloudflare Worker `high-signal-web` |
 | API | Hono, D1 binding | Cloudflare Worker `high-signal-api` |
-| DB | Drizzle + D1 (`packages/db`, migrations 0000–0019) | `high-signal-db` |
+| DB | Drizzle + D1 (`packages/db`, migrations 0000–0021) | `high-signal-db` |
 | Shared | `@high-signal/shared` types, scorers, composers | — |
 | Ingest | Python `uv`, edgartools, yfinance, GLiNER, etc. | GitHub Actions cron + optional Modal |
 | Lab (parked) | Postgres/pgvector, FastAPI (`python/lab`) | Local docker-compose only |
@@ -471,7 +476,7 @@ Python adapters under `python/ingest/src/high_signal_ingest/sources/` — all wi
 - **Crypto on-chain:** `crypto_onchain.py` — mempool.space, L2Beat, CoinMetrics, Etherscan, Token Unlocks (4 events). Series temporal. 3 of 5 sub-sources keyless.
 - **AI benchmarks:** `ai_benchmarks.py` — LMSYS Arena (keyless), Artificial Analysis, OpenRouter (1 event). Series temporal. LMSYS works keyless; other two need keys.
 - **Developer ecosystems:** `dev_ecosystems.py` — Papers with Code, GitLab, Docker Hub, dev.to, libraries.io, Replicate (90 events). 4 of 6 sub-sources keyless.
-- **Attention:** Wikipedia pageviews API `GET /attention/:article`; Wikidata enrichment `/enrich/ticker`.
+- **Attention:** Wikipedia pageviews API `GET /attention/:article`; Wikidata enrichment `/enrich/ticker`. The live Digg technology-cluster overlay under issue #130 polls five documented feeds every 30 minutes, preserves dedicated raw snapshots, associates attention with signals, and powers three Daily Brief sections. Its schema hard-codes derived attention with no evidence/confidence contribution.
 - **Security:** NVD CVE, CISA KEV.
 - **Temporal relevance classification (2026-06-28):** Each source tagged `recent` (29 sources — news, social, RSS, stale after days), `historical` (14 — patents, filings, court cases, full archive has value), or `series` (9 — macro, rates, benchmarks, on-chain, both recent prints and historical trends matter). Surfaced in the data directory UI with icons (● ▤ ∿) and contextual notes on source detail pages.
 
