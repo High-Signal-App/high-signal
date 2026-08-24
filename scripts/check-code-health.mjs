@@ -121,14 +121,10 @@ function checkDuplication() {
   const observed = JSON.parse(readFileSync(join(outputDirectory, 'jscpd-report.json'), 'utf8'))
     .statistics.total;
   // Debt: https://github.com/High-Signal-App/high-signal/issues/104
-  // Re-baselined 2026-08-22 after the per-user surface was removed (ADR-013)
-  // and the remaining password/Modal dispatch code was removed (ADR-014).
-  // Absolute duplication fell — 119 -> 110 clone groups, 1552 -> 1451 lines —
-  // but the ratio rose because ~12k lines of non-duplicated code went with it,
-  // shrinking the denominator. Ratchet all three to the new observed values.
-  // The latter cleanup did not add a clone or duplicated line; it only reduced
-  // the total scanned lines from 56,791 to 56,752.
-  const baseline = { clones: 110, duplicatedLines: 1451, percentage: 2.556738088525514 };
+  // Re-baselined 2026-08-24 after consolidating the two scheduled D1 sync
+  // launchers. Absolute duplication fell from 110 to 109 clone groups and
+  // from 1451 to 1433 duplicated lines. Ratchet all three observed values.
+  const baseline = { clones: 109, duplicatedLines: 1433, percentage: 2.4382773817018597 };
   console.log(
     `Duplication: ${observed.duplicatedLines}/${observed.lines} lines ` +
       `(${observed.percentage.toFixed(4)}%), ${observed.clones} groups across ` +

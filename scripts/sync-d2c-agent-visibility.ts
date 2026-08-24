@@ -8,12 +8,12 @@
  *   pnpm tsx scripts/sync-d2c-agent-visibility.ts --remote
  */
 
-import { spawn } from 'node:child_process';
 import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 import { escSql as esc } from './sync-signals.lib';
+import { runPinnedD1Execute } from './run-pinned-d1';
 import { D2C_NICHE_SEEDS, type D2CAgentVisibilityArtifact } from '@high-signal/shared';
 
 const __root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -60,7 +60,7 @@ function loadLatestArtifact(): D2CAgentVisibilityArtifact | null {
   }
 }
 
-function main() {
+async function main() {
   const artifact = loadLatestArtifact();
   if (!artifact) {
     console.log('[d2c:sync-av] no artifact found; nothing to sync');
@@ -109,35 +109,17 @@ function main() {
   writeFileSync(TMP_SQL, sql.join('\n') + '\n');
   console.log(`[d2c:sync-av] wrote ${TMP_SQL} (${sql.length} statements)`);
 
-  const proc = spawn(
-    'pnpm',
-    [
-      '--filter',
-      '@high-signal/db',
-      'exec',
-      'wrangler',
-      'd1',
-      'execute',
-      'high-signal-db',
+  process.exit(
+    await runPinnedD1Execute({
+      projectRoot: __root,
       flag,
-      `--file=${TMP_SQL}`,
-      // pnpm --filter runs Wrangler from packages/db, not the repository root.
-      '--config=../../workers/api/wrangler.toml',
-    ],
-    { stdio: 'inherit', cwd: __root }
+      sqlFile: TMP_SQL,
+      logPrefix: '[d2c:sync-av]',
+    })
   );
-  proc.on('error', (error) => {
-    console.error(`[d2c:sync-av] failed to start pinned Wrangler: ${error.message}`);
-    process.exit(1);
-  });
-  proc.on('close', (code) => {
-    if (code) {
-      console.error(
-        '[d2c:sync-av] remote D1 write failed. Review the Wrangler error above; authorization failures require CLOUDFLARE_API_TOKEN to target CLOUDFLARE_ACCOUNT_ID with Account:D1:Edit.'
-      );
-    }
-    process.exit(code ?? 1);
-  });
 }
 
-main();
+main().catch((error) => {
+  console.error(error);
+  process.exit(1);
+});
