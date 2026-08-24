@@ -44,7 +44,11 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data reports/personal apps/web/src/data/daily-source-refreshes.json apps/web/src/data/market-refreshes.json
+          # The report directory is intentionally ignored. Stage updates to
+          # already tracked evidence there without asking Git to add ignored
+          # generated reports, then add the two public snapshots explicitly.
+          git add -u -- data reports/personal
+          git add -- apps/web/src/data/daily-source-refreshes.json apps/web/src/data/market-refreshes.json
           if git diff --cached --quiet; then
             echo "No personal brief changes to commit."
           else
