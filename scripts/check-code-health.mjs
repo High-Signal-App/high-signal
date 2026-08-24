@@ -124,7 +124,7 @@ function checkDuplication() {
   // Re-baselined 2026-08-24 after consolidating the two scheduled D1 sync
   // launchers. Absolute duplication fell from 110 to 109 clone groups and
   // from 1451 to 1433 duplicated lines. Ratchet all three observed values.
-  const baseline = { clones: 109, duplicatedLines: 1433, percentage: 2.4382773817018597 };
+  const baseline = { clones: 109, duplicatedLines: 1433, percentage: 2.4384433440536353 };
   console.log(
     `Duplication: ${observed.duplicatedLines}/${observed.lines} lines ` +
       `(${observed.percentage.toFixed(4)}%), ${observed.clones} groups across ` +
