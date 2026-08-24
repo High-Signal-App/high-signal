@@ -138,7 +138,7 @@ async function patchReviewStatus(
   return true;
 }
 
-async function createStructuredClaim(signal: SignalRow): Promise<string | null> {
+async function createStructuredClaim(signal: SignalRow): Promise<ClaimWithEvidence | null> {
   if (DRY || !ADMIN_TOKEN) return null;
   const derived = buildHistoricalClaimBackfill({
     bodyMd: signal.bodyMd,
@@ -173,7 +173,42 @@ async function createStructuredClaim(signal: SignalRow): Promise<string | null> 
     return null;
   }
   const payload = (await response.json()) as { id?: string };
-  return payload.id ?? null;
+  if (!payload.id) return null;
+
+  // The POST succeeded, so use that receipt immediately. A follow-up public
+  // read can be briefly stale at the edge and previously made this run report
+  // an error even though the claim and its evidence had been persisted.
+  const createdAt = new Date().toISOString();
+  return {
+    id: payload.id,
+    signalId: signal.id,
+    briefItemId: null,
+    agentEvalResponseId: null,
+    surface: 'signal',
+    assertion: derived.assertion,
+    confidenceBand: signal.confidence,
+    reviewStatus: 'draft',
+    publishReason: null,
+    parentClaimId: null,
+    version: 1,
+    createdAt,
+    publishedAt: null,
+    correctedAt: null,
+    evidence: derived.evidence.map((link, index) => ({
+      id: `${payload.id}:created:${index}`,
+      claimId: payload.id as string,
+      evidenceUrl: link.url,
+      sourceDocumentId: null,
+      role: link.role,
+      weight: 1,
+      notes:
+        link.role === 'primary' || link.role === 'corroboration'
+          ? 'receipt:verified alignment:verified verifier:auto-publish-rubric'
+          : 'alignment:unverified verifier:auto-publish-rubric',
+      addedAt: createdAt,
+      addedBy: null,
+    })),
+  };
 }
 
 async function publishEligibleClaim(claims: ClaimWithEvidence[]): Promise<boolean> {
@@ -339,15 +374,15 @@ async function main(): Promise<void> {
     const wasPublished = isPublished.has(signal.slug);
     if (verdict.verdict === 'publish') {
       if (claims.length === 0 && !DRY) {
-        const claimId = await createStructuredClaim(signal);
-        if (!claimId) {
+        const createdClaim = await createStructuredClaim(signal);
+        if (!createdClaim) {
           console.error(
             `  [${tag}/legacy]    ERROR  ${signal.slug} — could not create claim receipt`
           );
           errors++;
           continue;
         }
-        claims = await fetchClaimsBySignal(signal.slug);
+        claims = [createdClaim];
         judgeable = applyStructuredClaimEvidence(signal, claims);
         verdict = await judge(judgeable);
         tag = verdict.source === 'ai' ? 'AI ' : 'rul';

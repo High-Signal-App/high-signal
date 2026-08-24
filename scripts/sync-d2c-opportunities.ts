@@ -171,7 +171,8 @@ async function main() {
       'high-signal-db',
       flag,
       `--file=${TMP_SQL}`,
-      '--config=workers/api/wrangler.toml',
+      // pnpm --filter runs Wrangler from packages/db, not the repository root.
+      '--config=../../workers/api/wrangler.toml',
     ],
     { stdio: 'inherit', cwd: __root }
   );
@@ -182,7 +183,7 @@ async function main() {
   proc.on('close', (code) => {
     if (code) {
       console.error(
-        '[d2c:sync] remote D1 write failed. CLOUDFLARE_API_TOKEN must target CLOUDFLARE_ACCOUNT_ID and include Account:D1:Edit.'
+        '[d2c:sync] remote D1 write failed. Review the Wrangler error above; authorization failures require CLOUDFLARE_API_TOKEN to target CLOUDFLARE_ACCOUNT_ID with Account:D1:Edit.'
       );
     }
     process.exit(code ?? 1);
