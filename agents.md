@@ -43,7 +43,7 @@ prior "umbrella + 5 sub-products" framing in `plans/0004-platform-consolidation.
 - **Auth**: none for readers — the product is fully public. Cloudflare Access gates the bounded operator paths, and `apps/web/src/lib/access.ts` verifies the Access JWT again at the Worker. The `/api/admin` proxy then injects `ADMIN_TOKEN` server-side so it never reaches the browser. ADR-014 is the migration plan that supersedes the abandoned Access decision in ADR-007 and amends ADR-013's password gate.
 - **Testing**: Vitest (TS), pytest (Python), Playwright (e2e).
 - **Deploy**: Cloudflare Workers for web (`high-signal-web` via OpenNext) and API (`high-signal-api`). No Vercel.
-- **Podcasts sub-product**: claim index of public statements lives in sibling repo `on-record` (High Signal Podcasts), intended domain `podcasts.highsignal.app`. Separate layout; not a Daily Brief section.
+- **Podcasts sub-product**: claim index of public statements lives in sibling repo `on-record` (High Signal Podcasts), live at `podcasts.highsignal.app`. Separate layout; not a Daily Brief section.
 - **Package manager**: pnpm workspace + uv (Python).
 
 SaaS Maker package reuse/drop decisions: [`docs/architecture/saas-maker-integrations.md`](docs/architecture/saas-maker-integrations.md).
