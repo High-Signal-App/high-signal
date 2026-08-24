@@ -119,52 +119,51 @@ def resolve_source_url(value: object, client: httpx.Client) -> str | None:
         return canonical
 
 
-def normalize_cluster(
-    cluster: dict[str, Any],
-    retrieved_at: str,
-    *,
-    url_resolver: Callable[[object], str | None] = canonicalize_url,
-) -> dict[str, Any] | None:
-    short_id = str(cluster.get("short_id") or "").strip()
-    source_id = str(cluster.get("id") or "").strip()
-    title = str(cluster.get("title") or "").strip()
-    if not short_id or not source_id or not title:
-        return None
+def _representative_posts(cluster: dict[str, Any]) -> list[dict[str, Any]]:
+    return [item for item in cluster.get("representative_sources", []) if isinstance(item, dict)]
 
-    posts = [item for item in cluster.get("representative_sources", []) if isinstance(item, dict)]
-    source_urls = []
+
+def _source_urls(
+    posts: list[dict[str, Any]], url_resolver: Callable[[object], str | None]
+) -> list[str]:
+    urls: list[str] = []
     for post in posts:
         url = url_resolver(post.get("url"))
-        if url and url not in source_urls:
-            source_urls.append(url)
+        if url and url not in urls:
+            urls.append(url)
+    return urls
 
+
+def _contributing_accounts(
+    cluster: dict[str, Any], posts: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
     accounts: list[dict[str, Any]] = []
     seen_accounts: set[str] = set()
     for touch in cluster.get("ai1000_touches", []):
         if not isinstance(touch, dict):
             continue
         username = str(touch.get("username") or "").strip().lower()
-        if not username or username in seen_accounts:
-            continue
-        seen_accounts.add(username)
-        accounts.append(touch)
+        if username and username not in seen_accounts:
+            seen_accounts.add(username)
+            accounts.append(touch)
     for post in posts:
         username = str(post.get("author_username") or "").strip().lower()
-        if not username or username in seen_accounts:
-            continue
-        seen_accounts.add(username)
-        accounts.append({"username": username, "source": "representative_source"})
+        if username and username not in seen_accounts:
+            seen_accounts.add(username)
+            accounts.append({"username": username, "source": "representative_source"})
+    return accounts
 
+
+def _voice_count(cluster: dict[str, Any], account_count: int) -> int:
     conversation = cluster.get("conversation_shape")
     voice_count = (
         _as_int(conversation.get("voice_count")) if isinstance(conversation, dict) else None
     )
-    canonical_digg_url = canonicalize_url(cluster.get("url"))
-    if not canonical_digg_url:
-        canonical_digg_url = f"https://digg.com/tech/{short_id}"
+    return voice_count if voice_count is not None else account_count
 
-    summary = str(cluster.get("tldr") or "").strip() or None
-    metrics = {
+
+def _attention_metrics(cluster: dict[str, Any]) -> dict[str, Any]:
+    return {
         key: cluster.get(key)
         for key in (
             "engagement_totals",
@@ -179,6 +178,28 @@ def normalize_cluster(
         )
         if key in cluster
     }
+
+
+def normalize_cluster(
+    cluster: dict[str, Any],
+    retrieved_at: str,
+    *,
+    url_resolver: Callable[[object], str | None] = canonicalize_url,
+) -> dict[str, Any] | None:
+    short_id = str(cluster.get("short_id") or "").strip()
+    source_id = str(cluster.get("id") or "").strip()
+    title = str(cluster.get("title") or "").strip()
+    if not short_id or not source_id or not title:
+        return None
+
+    posts = _representative_posts(cluster)
+    source_urls = _source_urls(posts, url_resolver)
+    accounts = _contributing_accounts(cluster, posts)
+    canonical_digg_url = canonicalize_url(cluster.get("url"))
+    if not canonical_digg_url:
+        canonical_digg_url = f"https://digg.com/tech/{short_id}"
+
+    summary = str(cluster.get("tldr") or "").strip() or None
     return {
         "sourceId": source_id,
         "shortId": short_id,
@@ -195,8 +216,8 @@ def normalize_cluster(
         "sourcePosts": posts,
         "sourceUrls": source_urls,
         "contributingAccounts": accounts,
-        "distinctAccountCount": voice_count if voice_count is not None else len(accounts),
-        "attentionMetrics": metrics,
+        "distinctAccountCount": _voice_count(cluster, len(accounts)),
+        "attentionMetrics": _attention_metrics(cluster),
         "sourceClass": "attention_aggregator",
         "evidenceTier": "derived",
         "confidenceContribution": "none",

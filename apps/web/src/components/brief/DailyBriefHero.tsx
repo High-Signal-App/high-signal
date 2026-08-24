@@ -15,27 +15,20 @@ function stateLabel(status: BriefCategoryStatus, count: number) {
   return 'no qualifying items';
 }
 
-export function DailyBriefHero({
-  brief,
-  region,
-  editionDate,
-}: {
-  brief: BriefSnapshot;
-  region: Region;
-  editionDate?: string;
-}) {
-  const generated = brief.generatedAt.slice(0, 16).replace('T', ' ');
-  const date = editionDate ?? brief.generatedAt.slice(0, 10);
+interface BriefContent {
+  href: string;
+  label: string;
+  status: BriefCategoryStatus;
+  count: number;
+}
+
+function briefContents(brief: BriefSnapshot): BriefContent[] {
   const states = categoryStatesForSnapshot(brief);
   const attentionCount =
     (brief.attentionLeaders?.length ?? 0) +
     (brief.emergingBeforeMainstream?.length ?? 0) +
     (brief.attentionEvidenceGaps?.length ?? 0);
-  const hasAttentionData =
-    brief.attentionLeaders !== undefined &&
-    brief.emergingBeforeMainstream !== undefined &&
-    brief.attentionEvidenceGaps !== undefined;
-  const coreContents = [
+  const coreContents: BriefContent[] = [
     {
       href: '#markets-companies',
       label: 'Markets & companies',
@@ -54,23 +47,35 @@ export function DailyBriefHero({
       status: states.trends.status,
       count: brief.trends.length,
     },
-  ] as const;
-  const attentionContents = {
+  ];
+  const hasAttentionData =
+    brief.attentionLeaders !== undefined &&
+    brief.emergingBeforeMainstream !== undefined &&
+    brief.attentionEvidenceGaps !== undefined;
+  const attentionContents: BriefContent = {
     href: '#attention-layer',
     label: 'Attention layer',
-    status:
-      attentionCount > 0
-        ? ('ready' as const)
-        : hasAttentionData
-          ? ('empty' as const)
-          : ('unavailable' as const),
+    status: attentionCount > 0 ? 'ready' : hasAttentionData ? 'empty' : 'unavailable',
     count: attentionCount,
   };
   const hasCoreContent = brief.stocks.length + brief.ideas.length + brief.trends.length > 0;
-  const contents =
-    attentionCount > 0 && !hasCoreContent
-      ? [attentionContents, ...coreContents]
-      : [...coreContents, attentionContents];
+  return attentionCount > 0 && !hasCoreContent
+    ? [attentionContents, ...coreContents]
+    : [...coreContents, attentionContents];
+}
+
+export function DailyBriefHero({
+  brief,
+  region,
+  editionDate,
+}: {
+  brief: BriefSnapshot;
+  region: Region;
+  editionDate?: string;
+}) {
+  const generated = brief.generatedAt.slice(0, 16).replace('T', ' ');
+  const date = editionDate ?? brief.generatedAt.slice(0, 10);
+  const contents = briefContents(brief);
 
   return (
     <header className="border-b border-[var(--color-line)] pb-7">

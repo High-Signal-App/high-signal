@@ -63,6 +63,18 @@ interface FeedStateRow {
   last_retrieved_at: number;
 }
 
+interface DiggSignalLink {
+  signalId: string;
+  entityId: string | null;
+  basis: string;
+  confidence: number;
+}
+
+type DiggClusterLinkInput = Map<
+  string,
+  { cluster: DiggClusterInput; entityId: string | null; sourceUrls: string[] }
+>;
+
 export const diggAdminRoute = new Hono<{ Bindings: Env }>();
 
 export function positionUpdate(
@@ -409,14 +421,7 @@ async function loadEntityPatterns(d1: D1Database) {
   return buildPatterns(rows.results ?? []);
 }
 
-async function linkSignals(
-  d1: D1Database,
-  clusters: Map<
-    string,
-    { cluster: DiggClusterInput; entityId: string | null; sourceUrls: string[] }
-  >,
-  now: number
-) {
+function sourceUrlOwners(clusters: DiggClusterLinkInput) {
   const urlOwners = new Map<string, string[]>();
   for (const [shortId, value] of clusters) {
     for (const url of value.sourceUrls) {
@@ -425,11 +430,14 @@ async function linkSignals(
       urlOwners.set(url, owners);
     }
   }
+  return urlOwners;
+}
 
-  const linkCandidates = new Map<
-    string,
-    { signalId: string; entityId: string | null; basis: string; confidence: number }
-  >();
+async function addEvidenceUrlLinks(
+  d1: D1Database,
+  urlOwners: Map<string, string[]>,
+  linkCandidates: Map<string, DiggSignalLink>
+) {
   const urls = Array.from(urlOwners.keys());
   for (let i = 0; i < urls.length; i += 80) {
     const chunk = urls.slice(i, i + 80);
@@ -453,7 +461,14 @@ async function linkSignals(
       }
     }
   }
+}
 
+async function addEntityLinks(
+  d1: D1Database,
+  clusters: DiggClusterLinkInput,
+  linkCandidates: Map<string, DiggSignalLink>,
+  now: number
+) {
   const entityIds = Array.from(
     new Set(
       Array.from(clusters.values()).flatMap((value) => (value.entityId ? [value.entityId] : []))
@@ -488,8 +503,14 @@ async function linkSignals(
       }
     }
   }
+}
 
-  const statements = Array.from(linkCandidates.entries()).map(([key, link]) => {
+function signalLinkStatements(
+  d1: D1Database,
+  linkCandidates: Map<string, DiggSignalLink>,
+  now: number
+) {
+  return Array.from(linkCandidates.entries()).map(([key, link]) => {
     const shortId = key.slice(0, key.lastIndexOf(':'));
     return d1
       .prepare(
@@ -505,6 +526,13 @@ async function linkSignals(
       )
       .bind(shortId, link.signalId, link.entityId, link.basis, link.confidence, now, now);
   });
+}
+
+async function linkSignals(d1: D1Database, clusters: DiggClusterLinkInput, now: number) {
+  const linkCandidates = new Map<string, DiggSignalLink>();
+  await addEvidenceUrlLinks(d1, sourceUrlOwners(clusters), linkCandidates);
+  await addEntityLinks(d1, clusters, linkCandidates, now);
+  const statements = signalLinkStatements(d1, linkCandidates, now);
   await runBatches(d1, statements);
   return statements.length;
 }

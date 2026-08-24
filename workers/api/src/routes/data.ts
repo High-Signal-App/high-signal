@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
-import { assessSignalQuality } from '@high-signal/shared';
 import { and, desc, eq, gte, inArray, like, lt, or, sql } from 'drizzle-orm';
 import { db, schema } from '../db';
+import { enrichSignal } from '../lib/signal-quality';
 import { buildDiggAttention, tryGetPrecomputedSnapshot } from './brief/query';
 
 type Env = { DB: D1Database };
@@ -112,27 +112,7 @@ dataRoute.get('/daily', async (c) => {
     )
     .orderBy(desc(schema.signals.publishedAt));
 
-  const signals = rows
-    .map((signal) => {
-      const quality = assessSignalQuality({
-        signalType: signal.signalType,
-        primaryEntityId: signal.primaryEntityId,
-        confidence: signal.confidence,
-        evidenceUrls: (signal.evidenceUrls ?? []) as string[],
-        bodyMd: signal.bodyMd,
-      });
-      return {
-        ...signal,
-        contentCategory: quality.contentCategory,
-        qualityScore: quality.score,
-        qualityBand: quality.band,
-        publishable: quality.publishable,
-        sourceClasses: quality.sourceClasses,
-        independentSourceCount: quality.independentSourceCount,
-        qualityReasons: quality.reasons,
-      };
-    })
-    .filter((signal) => signal.publishable);
+  const signals = rows.map(enrichSignal).filter((signal) => signal.publishable);
 
   const signalIds = signals.map((signal) => signal.id);
   const evidenceRows = signalIds.length

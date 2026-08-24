@@ -1,7 +1,8 @@
 import { Hono } from 'hono';
 import { and, desc, eq, gte, lt, sql, type SQL } from 'drizzle-orm';
-import { assessSignalQuality, type SignalContentCategory } from '@high-signal/shared';
+import { type SignalContentCategory } from '@high-signal/shared';
 import { db, schema } from '../db';
+import { enrichSignal } from '../lib/signal-quality';
 
 type Env = { DB: D1Database };
 
@@ -23,26 +24,6 @@ function parseDateRange(c: { req: { query: (key: string) => string | undefined }
   return {
     start: start && Number.isFinite(start.getTime()) ? start : null,
     end: end && Number.isFinite(end.getTime()) ? end : null,
-  };
-}
-
-function enrichSignal<T extends typeof schema.signals.$inferSelect>(signal: T) {
-  const quality = assessSignalQuality({
-    signalType: signal.signalType,
-    primaryEntityId: signal.primaryEntityId,
-    confidence: signal.confidence,
-    evidenceUrls: (signal.evidenceUrls ?? []) as string[],
-    bodyMd: signal.bodyMd,
-  });
-  return {
-    ...signal,
-    contentCategory: quality.contentCategory,
-    qualityScore: quality.score,
-    qualityBand: quality.band,
-    publishable: quality.publishable,
-    sourceClasses: quality.sourceClasses,
-    independentSourceCount: quality.independentSourceCount,
-    qualityReasons: quality.reasons,
   };
 }
 
