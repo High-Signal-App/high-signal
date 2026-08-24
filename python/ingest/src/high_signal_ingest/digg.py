@@ -73,7 +73,7 @@ def parse_feed(text: str, feed_url: str) -> dict[str, Any]:
         value = yaml.safe_load(text)
     if not isinstance(value, dict) or not isinstance(value.get("clusters"), list):
         raise ValueError(f"unexpected Digg payload for {feed_url}")
-    return value
+    return json.loads(json.dumps(value, default=str))
 
 
 def _as_int(value: object) -> int | None:

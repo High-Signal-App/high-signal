@@ -59,9 +59,13 @@ def test_parse_and_normalize_cluster_preserves_attention_without_evidence_credit
 
 def test_documented_json_and_yaml_shapes_parse() -> None:
     json_payload = digg.parse_feed(json.dumps({"clusters": [CLUSTER]}), "feed.json")
-    yaml_payload = digg.parse_feed("clusters:\n  - short_id: abc\n", "feed.yaml")
+    yaml_payload = digg.parse_feed(
+        "metadata:\n  generated_at: 2026-08-24T12:05:00Z\nclusters:\n  - short_id: abc\n",
+        "feed.yaml",
+    )
     assert len(json_payload["clusters"]) == 1
     assert yaml_payload["clusters"][0]["short_id"] == "abc"
+    assert yaml_payload["metadata"]["generated_at"] == "2026-08-24 12:05:00+00:00"
 
 
 def test_rising_feed_membership_sets_entry_status() -> None:
