@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import csv
 import json
-import subprocess
+import os
 import sys
 import time
 from collections import defaultdict
@@ -31,8 +31,10 @@ import httpx
 
 REPO = Path(__file__).resolve().parents[1]
 
-BACKTEST_DAYS = 14            # how many days to evaluate
-DATA_WINDOW_DAYS = 21          # how much history to pull (covers backtest + attention's 14-day window)
+BACKTEST_DAYS = 14  # how many days to evaluate
+DATA_WINDOW_DAYS = (
+    21  # how much history to pull (covers backtest + attention's 14-day window)
+)
 WIKI_UA = "high-signal-backtest/0.1 (contact: sarthak@vaultwealth.com)"
 MIN_SOURCES = 3
 ATTENTION_BREAKOUT_DELTA_PCT = 15.0
@@ -42,34 +44,38 @@ ATTENTION_FLAT_BAND_PCT = 5.0
 # ─── data pulls ───────────────────────────────────────────────────────────
 
 
-def wrangler_query(sql: str) -> list[dict]:
-    """Run a SQL query against the remote D1 via wrangler. Returns rows."""
-    result = subprocess.run(
-        [
-            "pnpm", "--filter", "@high-signal/db", "exec",
-            "wrangler", "d1", "execute", "high-signal-db",
-            "--remote", "--json", "--command", sql,
-        ],
-        capture_output=True, text=True, cwd=REPO,
+def fetch_backtest_data(days: int) -> tuple[list[dict], list[dict]]:
+    """Read the bounded dataset through High Signal's authenticated API."""
+    api_base = os.environ.get("API_BASE", "https://api.highsignal.app").rstrip("/")
+    admin_token = os.environ.get("ADMIN_TOKEN")
+    if not admin_token:
+        raise RuntimeError("ADMIN_TOKEN is required for backtest data access")
+    response = httpx.get(
+        f"{api_base}/admin/scheduled-data/backtest",
+        params={"days": days},
+        headers={"Authorization": f"Bearer {admin_token}"},
+        timeout=30.0,
     )
-    if result.returncode != 0:
-        detail = "\n".join(part.strip() for part in (result.stderr, result.stdout) if part.strip())
-        sys.stderr.write(f"wrangler D1 query failed:\n{detail or '(no Wrangler output)'}\n")
-        sys.stderr.write(
-            "GitHub Actions must provide CLOUDFLARE_ACCOUNT_ID and a "
-            "CLOUDFLARE_API_TOKEN scoped to that account with D1 Read "
-            "(D1 Edit is also valid and is required by the D2C sync).\n"
-        )
-        raise RuntimeError("remote D1 query unavailable")
-    data = json.loads(result.stdout)
-    return (data[0] if isinstance(data, list) else data)["results"]
+    if response.status_code != 200:
+        raise RuntimeError(f"backtest data API returned HTTP {response.status_code}")
+    payload = response.json()
+    events = payload.get("events")
+    signals = payload.get("signals")
+    if not isinstance(events, list) or not isinstance(signals, list):
+        raise RuntimeError("backtest data API returned an invalid payload")
+    return events, signals
 
 
-def fetch_attention_series(article: str, days: int = DATA_WINDOW_DAYS) -> list[tuple[str, int]]:
+def fetch_attention_series(
+    article: str, days: int = DATA_WINDOW_DAYS
+) -> list[tuple[str, int]]:
     """Pull Wikipedia daily pageviews for the article. Returns [(YYYY-MM-DD, views), …]."""
     end = datetime.now(timezone.utc)
     start = end - timedelta(days=days)
-    fmt = lambda d: d.strftime("%Y%m%d")
+
+    def fmt(value: datetime) -> str:
+        return value.strftime("%Y%m%d")
+
     url = (
         f"https://wikimedia.org/api/rest_v1/metrics/pageviews/per-article/"
         f"en.wikipedia/all-access/all-agents/{httpx.QueryParams({'a': article})['a']}/daily/"
@@ -118,7 +124,8 @@ def trend_for_series(
         return None
     delta = (recent_avg - prior_avg) / prior_avg * 100
     direction = (
-        "flat" if abs(delta) < ATTENTION_FLAT_BAND_PCT
+        "flat"
+        if abs(delta) < ATTENTION_FLAT_BAND_PCT
         else ("up" if delta > 0 else "down")
     )
     return (delta, direction)
@@ -142,25 +149,23 @@ def label_for(
 
 
 def main() -> int:
-    print(f"backtest window: last {BACKTEST_DAYS} days  (data pull: {DATA_WINDOW_DAYS}d)", file=sys.stderr)
+    print(
+        f"backtest window: last {BACKTEST_DAYS} days  (data pull: {DATA_WINDOW_DAYS}d)",
+        file=sys.stderr,
+    )
 
-    print("[1/4] pulling events + signals from D1…", file=sys.stderr)
-    events = wrangler_query(
-        f"SELECT primary_entity_id, source, published_at "
-        f"FROM events "
-        f"WHERE primary_entity_id IS NOT NULL "
-        f"  AND published_at >= unixepoch() - {DATA_WINDOW_DAYS}*86400"
-    )
-    signals = wrangler_query(
-        f"SELECT primary_entity_id, published_at, review_status, signal_type "
-        f"FROM signals "
-        f"WHERE published_at >= unixepoch() - {DATA_WINDOW_DAYS}*86400"
-    )
+    print("[1/4] pulling events + signals from the High Signal API…", file=sys.stderr)
+    events, signals = fetch_backtest_data(DATA_WINDOW_DAYS)
     entities_seed = json.loads(
         (REPO / "workers/api/src/lib/seed-entities.json").read_text()
     )
-    wiki_by_id = {e["id"]: wiki_article_from_url(e.get("wiki_url")) for e in entities_seed}
-    print(f"  events={len(events):,}  signals={len(signals)}  entities_with_wiki={sum(1 for v in wiki_by_id.values() if v)}", file=sys.stderr)
+    wiki_by_id = {
+        e["id"]: wiki_article_from_url(e.get("wiki_url")) for e in entities_seed
+    }
+    print(
+        f"  events={len(events):,}  signals={len(signals)}  entities_with_wiki={sum(1 for v in wiki_by_id.values() if v)}",
+        file=sys.stderr,
+    )
 
     # Group events by (entity_id, day) → set of sources
     print("[2/4] reshaping events by (entity, day)…", file=sys.stderr)
@@ -197,7 +202,9 @@ def main() -> int:
         if len(sources) >= MIN_SOURCES:
             candidates.add(eid)
 
-    print(f"  {len(candidates)} candidate entities for attention fetch", file=sys.stderr)
+    print(
+        f"  {len(candidates)} candidate entities for attention fetch", file=sys.stderr
+    )
 
     # Fetch attention series per candidate entity (one Wikipedia call each)
     print("[3/4] fetching Wikipedia attention for candidates…", file=sys.stderr)
@@ -210,9 +217,11 @@ def main() -> int:
         if series:
             attention_by_entity[eid] = dict(series)
         if (i + 1) % 25 == 0:
-            print(f"    {i+1}/{len(candidates)}…", file=sys.stderr)
+            print(f"    {i + 1}/{len(candidates)}…", file=sys.stderr)
         time.sleep(0.05)  # be polite to Wikimedia
-    print(f"  attention fetched for {len(attention_by_entity)} entities", file=sys.stderr)
+    print(
+        f"  attention fetched for {len(attention_by_entity)} entities", file=sys.stderr
+    )
 
     # Backtest loop
     print(f"[4/4] backtesting last {BACKTEST_DAYS} days…", file=sys.stderr)
@@ -223,7 +232,9 @@ def main() -> int:
         window_start_ts = cutoff_ts - 24 * 3600
 
         for eid, evs in events_by_entity.items():
-            sources_in_window = {s for ts, s in evs if window_start_ts <= ts <= cutoff_ts}
+            sources_in_window = {
+                s for ts, s in evs if window_start_ts <= ts <= cutoff_ts
+            }
             if len(sources_in_window) < MIN_SOURCES:
                 continue
 
@@ -240,15 +251,17 @@ def main() -> int:
                 cutoff_ts < s_ts <= cutoff_ts + 24 * 3600 for s_ts in signal_dates
             )
 
-            rows.append({
-                "day": cutoff.strftime("%Y-%m-%d"),
-                "entity": eid,
-                "source_count": len(sources_in_window),
-                "trend_delta_pct": f"{trend[0]:.1f}" if trend else "",
-                "trend_dir": trend[1] if trend else "",
-                "label": label or "",
-                "next_24h_signal": int(next_24h_signal),
-            })
+            rows.append(
+                {
+                    "day": cutoff.strftime("%Y-%m-%d"),
+                    "entity": eid,
+                    "source_count": len(sources_in_window),
+                    "trend_delta_pct": f"{trend[0]:.1f}" if trend else "",
+                    "trend_dir": trend[1] if trend else "",
+                    "label": label or "",
+                    "next_24h_signal": int(next_24h_signal),
+                }
+            )
 
     # Write CSV
     out_path = Path("/tmp/backtest_convergence.csv")
@@ -261,8 +274,16 @@ def main() -> int:
     print(f"\n=== {len(rows)} (entity, day) observations ===\n")
 
     def summarize(label_filter: Optional[str], desc: str) -> None:
-        matching = [r for r in rows if (r["label"] == label_filter) if label_filter is not None] if label_filter is not None else \
-                   [r for r in rows if r["label"] == ""]
+        matching = (
+            [
+                r
+                for r in rows
+                if (r["label"] == label_filter)
+                if label_filter is not None
+            ]
+            if label_filter is not None
+            else [r for r in rows if r["label"] == ""]
+        )
         # Special case: None means "no label" (empty string)
         if label_filter is None:
             matching = [r for r in rows if r["label"] == ""]
@@ -273,7 +294,7 @@ def main() -> int:
         n = len(matching)
         hits = sum(r["next_24h_signal"] for r in matching)
         rate = hits / n if n else 0
-        print(f"  {desc:<26} n={n:<5} hit={hits:<5} rate={rate*100:.1f}%")
+        print(f"  {desc:<26} n={n:<5} hit={hits:<5} rate={rate * 100:.1f}%")
 
     summarize("breakout", "label=breakout")
     summarize("divergence", "label=divergence")

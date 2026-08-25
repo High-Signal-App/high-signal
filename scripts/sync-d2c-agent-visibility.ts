@@ -14,6 +14,7 @@ import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 import { escSql as esc } from './sync-signals.lib';
 import { runPinnedD1Execute } from './run-pinned-d1';
+import { postAdminJson } from './admin-api';
 import { D2C_NICHE_SEEDS, type D2CAgentVisibilityArtifact } from '@high-signal/shared';
 
 const __root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -21,6 +22,7 @@ const ARTIFACT_DIR = resolve(__root, 'data/d2c-agent-visibility');
 const TMP_DIR = resolve(__root, '.tmp');
 const TMP_SQL = resolve(TMP_DIR, 'd2c-agent-visibility-sync.sql');
 const flag = process.argv.includes('--remote') ? '--remote' : '--local';
+const apiSync = process.argv.includes('--api');
 
 function nicheId(slug: string): string {
   return createHash('sha256').update(`d2c-niche:${slug}`).digest('hex').slice(0, 16);
@@ -78,6 +80,30 @@ async function main() {
   }
 
   const sql: string[] = [];
+  const niches = D2C_NICHE_SEEDS.map((seed) => ({
+    id: idBySlug.get(seed.slug)!,
+    slug: seed.slug,
+    name: seed.name,
+    category: seed.category,
+    region: seed.region,
+    status: 'active',
+    createdAt: runMs,
+    updatedAt: runMs,
+  }));
+  const entries: Array<{
+    id: string;
+    nicheId: string;
+    platform: string;
+    model: string;
+    promptText: string;
+    responseText: string;
+    recommendedBrands: string[];
+    citedUrls: string[];
+    brandMentioned: boolean;
+    gapScore: number;
+    runDate: number;
+    createdAt: number;
+  }> = [];
   // 1. Ensure all 20 niche rows exist (the sync-d2c-opportunities script
   //    also does this, but we can't assume it ran first).
   for (const seed of D2C_NICHE_SEEDS) {
@@ -95,6 +121,20 @@ async function main() {
     const nid = idBySlug.get(entry.nicheSlug);
     if (!nid) continue; // unknown niche slug — skip
     const id = entryId(nid, entry.platform, runMs);
+    entries.push({
+      id,
+      nicheId: nid,
+      platform: entry.platform,
+      model: entry.model,
+      promptText: entry.promptText,
+      responseText: entry.responseText,
+      recommendedBrands: entry.recommendedBrands,
+      citedUrls: entry.citedUrls,
+      brandMentioned: entry.brandMentioned,
+      gapScore: entry.gapScore,
+      runDate: runMs,
+      createdAt: runMs,
+    });
     sql.push(
       `INSERT OR REPLACE INTO d2c_agent_visibility ` +
         `(id, niche_id, platform, model, prompt_text, response_text, recommended_brands, cited_urls, brand_mentioned, gap_score, run_date, created_at) ` +
@@ -108,6 +148,15 @@ async function main() {
   mkdirSync(TMP_DIR, { recursive: true });
   writeFileSync(TMP_SQL, sql.join('\n') + '\n');
   console.log(`[d2c:sync-av] wrote ${TMP_SQL} (${sql.length} statements)`);
+
+  if (apiSync) {
+    await postAdminJson(
+      '/admin/scheduled-data/d2c-agent-visibility',
+      { niches, runDate: runMs, entries },
+      '[d2c:sync-av]'
+    );
+    return;
+  }
 
   process.exit(
     await runPinnedD1Execute({

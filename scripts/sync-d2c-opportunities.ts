@@ -23,6 +23,7 @@ import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 import { escSql as esc } from './sync-signals.lib';
 import { runPinnedD1Execute } from './run-pinned-d1';
+import { postAdminJson } from './admin-api';
 import {
   buildSnapshotRecord,
   D2C_NICHE_SEEDS,
@@ -37,6 +38,7 @@ const AV_ARTIFACT_DIR = resolve(__root, 'data/d2c-agent-visibility');
 const TMP_DIR = resolve(__root, '.tmp');
 const TMP_SQL = resolve(TMP_DIR, 'd2c-opportunities-sync.sql');
 const flag = process.argv.includes('--remote') ? '--remote' : '--local';
+const apiSync = process.argv.includes('--api');
 
 // Node fs impl for `loadLatestD2CArtifact`.
 const fsImpl = {
@@ -102,6 +104,34 @@ async function main() {
   console.log(`[d2c:sync] artifact ${snapshotDate}; ${artifact.niches.length} niches`);
 
   const sql: string[] = [];
+  const niches = D2C_NICHE_SEEDS.map((seed) => ({
+    id: nicheId(seed.slug),
+    slug: seed.slug,
+    name: seed.name,
+    category: seed.category,
+    region: seed.region,
+    status: 'active',
+    createdAt: snapshotMs,
+    updatedAt: snapshotMs,
+  }));
+  const snapshots: Array<{
+    id: string;
+    nicheId: string;
+    snapshotDate: number;
+    opportunityScore: number;
+    demandScore: number | null;
+    competitionScore: number | null;
+    pricingScore: number | null;
+    adSaturationScore: number | null;
+    agentVisibilityScore: number | null;
+    sourceDiversity: number;
+    verdict: string;
+    confidence: string;
+    evidenceJson: D2CEvidenceItem[];
+    freshnessDate: string;
+    notes: string | null;
+    createdAt: number;
+  }> = [];
   // 1. Upsert all 20 niche rows (stable, slug-keyed). Even niches with no
   //    evidence in this artifact get a row so the renderer can list them.
   for (const seed of D2C_NICHE_SEEDS) {
@@ -141,6 +171,24 @@ async function main() {
     const record = buildSnapshotRecord(seed, mergedEvidenceObj, snapshotDate, avGap);
     const snapId = snapshotId(id, snapshotDate);
     const evidenceJson = JSON.stringify(mergedEvidence);
+    snapshots.push({
+      id: snapId,
+      nicheId: id,
+      snapshotDate: snapshotMs,
+      opportunityScore: record.opportunityScore,
+      demandScore: record.demandScore,
+      competitionScore: record.competitionScore,
+      pricingScore: record.pricingScore,
+      adSaturationScore: record.adSaturationScore,
+      agentVisibilityScore: record.agentVisibilityScore,
+      sourceDiversity: record.sourceDiversity,
+      verdict: record.verdict,
+      confidence: record.confidence,
+      evidenceJson: mergedEvidence,
+      freshnessDate: record.freshnessDate,
+      notes: evidence?.notes ?? null,
+      createdAt: snapshotMs,
+    });
     sql.push(
       `INSERT OR REPLACE INTO d2c_niche_snapshots ` +
         `(id, niche_id, snapshot_date, opportunity_score, demand_score, competition_score, pricing_score, ad_saturation_score, agent_visibility_score, source_diversity, verdict, confidence, evidence_json, freshness_date, notes, created_at) ` +
@@ -158,6 +206,11 @@ async function main() {
   mkdirSync(TMP_DIR, { recursive: true });
   writeFileSync(TMP_SQL, sql.join('\n') + '\n');
   console.log(`[d2c:sync] wrote ${TMP_SQL} (${sql.length} statements)`);
+
+  if (apiSync) {
+    await postAdminJson('/admin/scheduled-data/d2c-snapshots', { niches, snapshots }, '[d2c:sync]');
+    return;
+  }
 
   process.exit(
     await runPinnedD1Execute({

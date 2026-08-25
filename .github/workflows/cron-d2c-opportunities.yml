@@ -11,8 +11,8 @@ name: cron-d2c-opportunities
 #   - AI_API_KEY secret set (for the agent-visibility overlay; falls back to
 #     gap=1 "wide-open" entries when absent)
 #   - ADMIN_TOKEN + API_BASE secrets (already used by cron-ingest)
-#   - CLOUDFLARE_ACCOUNT_ID + CLOUDFLARE_API_TOKEN with Account:D1:Edit
-#     (a Workers deploy-only token is insufficient for these D1 writes)
+#   - ADMIN_TOKEN + API_BASE. D1 writes go through the High Signal API, so the
+#     workflow does not hold a Cloudflare account token.
 #
 # This workflow commits the bundled artifact to main but does not deploy it.
 # Dispatch deploy-web.yml when the accumulated web changes are ready to ship.
@@ -90,17 +90,17 @@ jobs:
       - name: bundle artifact into shared package
         run: pnpm d2c:bundle
 
-      - name: sync snapshots to D1 (remote)
+      - name: sync snapshots through High Signal API
         env:
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: pnpm d2c:sync:remote
+          API_BASE: ${{ secrets.API_BASE || 'https://api.highsignal.app' }}
+          ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
+        run: pnpm d2c:sync:api
 
-      - name: sync agent-visibility to D1 (remote)
+      - name: sync agent-visibility through High Signal API
         env:
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: pnpm d2c:sync-av:remote
+          API_BASE: ${{ secrets.API_BASE || 'https://api.highsignal.app' }}
+          ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
+        run: pnpm d2c:sync-av:api
 
       # ── Commit the bundled artifact for the next manual web deploy ──────
       - name: commit refreshed artifact

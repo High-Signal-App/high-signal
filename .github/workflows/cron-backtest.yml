@@ -7,9 +7,8 @@ name: cron-backtest
 # the result to workers/api/src/lib/label-backtest.json. The commit is
 # included the next time deploy-api.yml is manually dispatched.
 #
-# Requires CLOUDFLARE_ACCOUNT_ID plus a CLOUDFLARE_API_TOKEN scoped to that
-# account with D1 Read (the shared D1 Edit token used by the D2C sync is valid).
-# A Workers deploy-only token cannot query D1.
+# Reads its bounded input through the operator-authenticated High Signal API.
+# No direct Cloudflare account or D1 credential is required.
 
 on:
   schedule:
@@ -24,8 +23,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      API_BASE: ${{ secrets.API_BASE || 'https://api.highsignal.app' }}
+      ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -38,13 +37,6 @@ jobs:
       - name: uv sync
         working-directory: python/ingest
         run: uv sync
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version: "22"
-      - uses: pnpm/action-setup@v6
-      - name: pnpm install
-        run: pnpm install --frozen-lockfile
 
       - name: regenerate label backtest
         run: uv run --project python/ingest python scripts/backtest-convergence-labels.py
