@@ -67,6 +67,8 @@ description: Authoritative sources, reconstruction paths, migration guards, and 
 
 - Migrations live in `packages/db/migrations/`; `meta/` tracks applied state.
 - Remote apply is a manual operator step: `pnpm db:migrate:remote`.
+- The production ledger is current through `0023_claim_semantics.sql` as of
+  2026-08-25.
 - No migration is auto-applied by Foundry or any cron. The coverage audit reports
   pending migrations (files in `migrations/` not in `meta/`) as a blocker for
   any job that depends on the new table.

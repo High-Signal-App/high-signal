@@ -44,15 +44,17 @@ Last updated: 2026-08-25
   the 30-minute collector has populated all five documented feeds; API and web
   deployment smokes passed; cold-to-warm probes returned `API-MISS` then
   `API-HIT` for both `/data/daily` and `/brief/daily`.
-- Reliability hardening for issue #133 is implemented locally and awaiting
-  migration/release: the IST pipeline is 08:00 ingest → 09:00 publish → 09:30
+- Reliability hardening for issue #133 is released: the IST pipeline is 08:00
+  ingest → 09:00 publish → 09:30
   freshness validation → 10:00 delivery; material Digg crossings trigger
   immediate original-source verification with latency receipts; one shared
   `publishability()` gate rejects future dates, prediction-only evidence,
   contradictions, impossible directions, and same-event direction conflicts;
   claim corroboration records normalized tuples and evidentiary origins; and
   observed events are stored separately from direct, supply-chain, and business
-  inference fields. Migrations `0022` and `0023` are not yet applied.
+  inference fields. Migrations `0022` and `0023` are applied; API and web are
+  deployed from `f57a008` at 100% traffic. Production cache probes confirmed an
+  API cold `MISS` followed by `HIT`, and a warm web `HIT`.
 - Operator admin session gates `/review`, `/backtest-workbench`, `/personal`, and community curation.
 - Primary nav follows the public reading path: Brief, Signals, Track record, and Sources. Explore and contextual links keep the wider set of lenses and operator surfaces discoverable. Removed dead `/discover` nav link (communities product is parked; link caused prod smoke 404).
 - Public/support pages exist: about, methodology, featured, API docs, privacy, terms, auth pages.
@@ -66,7 +68,7 @@ Last updated: 2026-08-25
 | --- | --- | --- |
 | Web | Next.js 16, Tailwind v4, OpenNext | Cloudflare Worker `high-signal-web` |
 | API | Hono, D1 binding | Cloudflare Worker `high-signal-api` |
-| DB | Drizzle + D1 (`packages/db`, migrations 0000–0023; 0022–0023 pending release) | `high-signal-db` |
+| DB | Drizzle + D1 (`packages/db`, migrations 0000–0023; remote ledger current) | `high-signal-db` |
 | Shared | `@high-signal/shared` types, scorers, composers | — |
 | Ingest | Python `uv`, edgartools, yfinance, GLiNER, etc. | GitHub Actions cron + optional Modal |
 | Lab (parked) | Postgres/pgvector, FastAPI (`python/lab`) | Local docker-compose only |
@@ -110,7 +112,7 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 ## Timeline
 
 - **2026-08-25 — Daily freshness, Digg verification, and publication semantics
-  hardened locally (pending migration/release):** moved the operator-day
+  released:** moved the operator-day
   sequence to 08:00/09:00/09:30/10:00 IST and added a public validator for the
   IST edition date plus a two-hour evidence ceiling. Digg rank ≤20, velocity ≥5,
   or three contributors now creates a durable verification request; the same
@@ -121,8 +123,9 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
   tuples plus semantic alignment and originating-evidence IDs, so syndicated
   repeats can share one origin. Signal records now separate observed event,
   direct impact, supply-chain impact, business inference, strength, and the URLs
-  supporting that inference. Local migrations are `0022` and `0023`; neither is
-  applied to production yet.
+  supporting that inference. Migrations `0022` and `0023` are applied to
+  production; API and web release workflows and deployment smokes passed from
+  `f57a008`, and direct Worker status shows that version at 100% traffic.
 
 - **2026-08-23 — Corroboration was decided by an independent-publisher
   test:** `buildHistoricalClaimBackfill` promotes the first later evidence link
