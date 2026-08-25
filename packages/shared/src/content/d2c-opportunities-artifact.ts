@@ -16,7 +16,7 @@
 import type { D2COpportunityArtifact } from "./d2c-opportunities";
 
 export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
-  "generatedAt": "2026-08-25T21:19:17.600890+00:00",
+  "generatedAt": "2026-08-25T21:30:14.421070+00:00",
   "region": "IN",
   "niches": [
     {
@@ -88,38 +88,38 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
           "url": "https://www.amazon.in/dp/B0B573QW21",
           "source": "amazon:in",
           "snippet": "WishCare Hair Growth Serum For Scalp | 94% Saw New Hair Growth | Redensyl &amp; Rosemary Oil | 100% Saw Hairfall Reduction | In-Vivo Tested | For Men &amp; Women | 30ml — ₹688 — 4.2 out of 5 — 11,811 ratings",
-          "observedAt": "2026-08-25T21:18:18.312120+00:00"
+          "observedAt": "2026-08-25T21:29:14.969770+00:00"
         },
         {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B0CX1VB52B",
           "source": "amazon:in",
           "snippet": "Brillare 10% Rosemary Hair Oil for Hair Growth with 10% Olive Oil &amp; 5% Castor oil | Reduces Hair Fall | Strengthens Hair | Visible Results in 4 Weeks. — ₹282 — 4.4 out of 5 — 2,263 ratings",
-          "observedAt": "2026-08-25T21:18:18.312688+00:00"
+          "observedAt": "2026-08-25T21:29:14.970344+00:00"
         },
         {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B0CH8RMM21",
           "source": "amazon:in",
           "snippet": "4.0 out of 5 stars — ₹259 — 4.0 out of 5 — 2,368 ratings",
-          "observedAt": "2026-08-25T21:18:18.313187+00:00"
+          "observedAt": "2026-08-25T21:29:14.970848+00:00"
         },
         {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B0DK6W7RPS",
           "source": "amazon:in",
           "snippet": "Top Reviewed for Effectiveness — ₹359 — 4.1 out of 5 — 1,707 ratings",
-          "observedAt": "2026-08-25T21:18:18.318128+00:00"
+          "observedAt": "2026-08-25T21:29:14.976361+00:00"
         },
         {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B0DH8DFZXX",
           "source": "amazon:in",
           "snippet": "DERMATOUCH Rosemary hair Spary For Hair Growth | Advance 2% Actives Rosemary, Redensyl, Anagain + Procapil Spray Mist for Fall Control, Stimulates Hair Growth, Adds Shine, Strengthens | 50ml — ₹99 — 4.1 out of 5 — 421 ratings",
-          "observedAt": "2026-08-25T21:18:18.318616+00:00"
+          "observedAt": "2026-08-25T21:29:14.976845+00:00"
         }
       ],
-      "freshnessDate": "2026-08-25T21:18:18.318786+00:00",
+      "freshnessDate": "2026-08-25T21:29:14.976984+00:00",
       "notes": "diversity=0.29; community=8 search=0 product=5 ad-library=0 launch=0"
     },
     {
@@ -135,38 +135,38 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
           "url": "https://www.amazon.in/dp/B0BRKY585M",
           "source": "amazon:in",
           "snippet": "Sensitive Pro Face Wash with Tucuma Butter &amp; Apple Extract | Gentle Fragrance-Free Cleanser | Soothes Redness, Hydrates &amp; Repairs Sensitive Skin | 100 ml — ₹335 — 4.1 out of 5 — 287 ratings",
-          "observedAt": "2026-08-25T21:18:25.201160+00:00"
+          "observedAt": "2026-08-25T21:29:41.621112+00:00"
         },
         {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B0CBQ16Z1Y",
           "source": "amazon:in",
           "snippet": "Madagascar Centella Tone Brightening Capsule Ampoule | Calming Moisturizing Brightening | Sensitive Skin, 30ml — ₹799 — 4.2 out of 5 — 10,610 ratings",
-          "observedAt": "2026-08-25T21:18:25.201669+00:00"
+          "observedAt": "2026-08-25T21:29:41.621606+00:00"
         },
         {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B01CCGW4OE",
           "source": "amazon:in",
           "snippet": "Gentle Skin Hydrating Face Wash 118ml, Paraben Free, Sulphate-Free Gentle Skin Hydrating Cleanser with Niacinamide, Vitamin B5 for Dry to Normal, Sensitive Skin — ₹368 — 4.3 out of 5 — 74,139 ratings",
-          "observedAt": "2026-08-25T21:18:25.202203+00:00"
+          "observedAt": "2026-08-25T21:29:41.622135+00:00"
         },
         {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B0FMR7XH7W",
           "source": "amazon:in",
           "snippet": "Gentle Exfoliating SA Lotion 29ml | Lightweight Daily Moisturizer with Salicylic Acid, Mandelic Acid &amp; Gluconolactone | 48 Hr Hydration &amp; Gentle Exfoliation | For Sensitive Skin — ₹99 — 4.2 out of 5 — 656 ratings",
-          "observedAt": "2026-08-25T21:18:25.206054+00:00"
+          "observedAt": "2026-08-25T21:29:41.625968+00:00"
         },
         {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B0FMR7GHFF",
           "source": "amazon:in",
           "snippet": "Gentle Exfoliating SA Cleanser 29ml | Daily Foaming Face Wash with Salicylic Acid, Mandelic Acid &amp; Gluconolactone | Smooth, Even Skin | For Sensitive &amp; Acne-Prone Skin — ₹99 — 4.2 out of 5 — 1,134 ratings",
-          "observedAt": "2026-08-25T21:18:25.206601+00:00"
+          "observedAt": "2026-08-25T21:29:41.626556+00:00"
         }
       ],
-      "freshnessDate": "2026-08-25T21:18:25.206764+00:00",
+      "freshnessDate": "2026-08-25T21:29:41.626685+00:00",
       "notes": "diversity=0.14; community=0 search=0 product=5 ad-library=0 launch=0"
     },
     {
@@ -182,38 +182,38 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
           "url": "https://www.amazon.in/dp/B0DQJ46TYL",
           "source": "amazon:in",
           "snippet": "4.0 out of 5 stars — ₹425 — 4.0 out of 5 — 1,486 ratings",
-          "observedAt": "2026-08-25T21:18:11.708168+00:00"
+          "observedAt": "2026-08-25T21:29:08.281161+00:00"
         },
         {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B0HB5BX7JF",
           "source": "amazon:in",
           "snippet": "22 Stage Shower Head and Tap Filter for Bathroom Hard Water Softner SF-22 Pro | Water Softener | Reduces hair fall, Protects Skin | Remove Chlorine and Harmful Chemicals (black) — ₹580 — 5.0 out of 5 — 16 ratings",
-          "observedAt": "2026-08-25T21:18:11.708661+00:00"
+          "observedAt": "2026-08-25T21:29:08.281649+00:00"
         },
         {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B0GZGMGYYL",
           "source": "amazon:in",
           "snippet": "4.6 out of 5 stars — ₹999 — 4.6 out of 5 — 28,549 ratings",
-          "observedAt": "2026-08-25T21:18:11.709134+00:00"
+          "observedAt": "2026-08-25T21:29:08.282113+00:00"
         },
         {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B0GKFY7T1G",
           "source": "amazon:in",
           "snippet": "Parisar Instant Water Softener for Home &amp; Bath 300ml (Pack of 1)| Hard Water Softener Liquid | pH Balanced Formula | For Softer Skin &amp; Smoother Hair — ₹279 — 3.9 out of 5 — 87 ratings",
-          "observedAt": "2026-08-25T21:18:11.712691+00:00"
+          "observedAt": "2026-08-25T21:29:08.285602+00:00"
         },
         {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B0CPVDNX1J",
           "source": "amazon:in",
           "snippet": "Shower Filter, 20 Stage Shower Head Filter for Hard Water with 2 Cartridges, High Output Shower Water Filter to Remove Chlorine, Fluoride and Other Impurities, Improves Skin Condition, Protects Hair — ₹619 — 4.3 out of 5 — 1,704 ratings",
-          "observedAt": "2026-08-25T21:18:11.713155+00:00"
+          "observedAt": "2026-08-25T21:29:08.286052+00:00"
         }
       ],
-      "freshnessDate": "2026-08-25T21:18:11.713305+00:00",
+      "freshnessDate": "2026-08-25T21:29:08.286179+00:00",
       "notes": "diversity=0.14; community=0 search=0 product=5 ad-library=0 launch=0"
     },
     {
@@ -229,86 +229,93 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
           "url": "https://www.amazon.in/dp/B075VPTZGC",
           "source": "amazon:in",
           "snippet": "Beardo Godfather Beard Wash for men, 100ml | Aromatic, Woody Scent | Purifying &amp; Hydrating Beard and Skin Cleaner with Avocado Oil, Argan Oil | Beard Shampoo for Clean &amp; Healthy Beard — ₹250 — 4.2 out of 5 — 2,405 ratings",
-          "observedAt": "2026-08-25T21:18:51.347851+00:00"
+          "observedAt": "2026-08-25T21:29:48.296760+00:00"
         },
         {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B08W8G1J4R",
           "source": "amazon:in",
           "snippet": "Man Matters 1% Salicylic Acid Oil Control Face &amp; Beard Wash For Men| Fights Acne, &amp; Beard Dandruff| 1% Glycolic Acid | Reduces Excess Oil and Exfoliates Skin Gently | 120 ml — ₹229 — 3.8 out of 5 — 871 ratings",
-          "observedAt": "2026-08-25T21:18:51.348347+00:00"
+          "observedAt": "2026-08-25T21:29:48.297237+00:00"
         },
         {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B09QWTJR3K",
           "source": "amazon:in",
           "snippet": "Beardo Dandruff Control Sulphate Free Shampoo for men 200 ml | Anti Dandruff | Sulphate and Paraben Free | Climbazole, Menthol &amp; Biotin for Dandruff Control &amp; Itchy Scalp — ₹138 — 3.9 out of 5 — 854 ratings",
-          "observedAt": "2026-08-25T21:18:51.348829+00:00"
+          "observedAt": "2026-08-25T21:29:48.297708+00:00"
         },
         {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B0GMW6CW7R",
           "source": "amazon:in",
           "snippet": "Anti Dandruff Shampoo — ₹207 — 4.5 out of 5 — 139 ratings",
-          "observedAt": "2026-08-25T21:18:51.351555+00:00"
+          "observedAt": "2026-08-25T21:29:48.300394+00:00"
         },
         {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B07MW961QN",
           "source": "amazon:in",
           "snippet": "Dapr. Beard Butter (100 grams) |Hydrating and Nourishing with Shea Butter, Bourbon Oil, Orange Bitters &amp; Hemp Seed oil for Softer &amp; Smoother Beard| — ₹649 — 4.2 out of 5 — 1,388 ratings",
-          "observedAt": "2026-08-25T21:18:51.352037+00:00"
+          "observedAt": "2026-08-25T21:29:48.300865+00:00"
         }
       ],
-      "freshnessDate": "2026-08-25T21:18:51.352190+00:00",
+      "freshnessDate": "2026-08-25T21:29:48.300992+00:00",
       "notes": "diversity=0.14; community=0 search=0 product=5 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "post-gym-mens-skin-wipes",
-      "demandScore": null,
+      "demandScore": 0.30000000000000004,
       "competitionScore": 0.5,
       "pricingScore": 0.6,
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [
         {
+          "sourceClass": "community",
+          "url": "https://reddit.com/r/indianfitness/comments/1vy42jw/looking_for_a_good_gym_perfume_under_900/",
+          "source": "reddit:IndianFitness",
+          "snippet": "Looking for a good gym perfume (under 900/-) — What perfumes do you guys recommend for the gym? I **sweat a lot during workouts**, so I'm looking for something **fresh, clean, and long-lasting**, but…",
+          "observedAt": "2026-08-25T16:05:44+00:00"
+        },
+        {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B0FVXX6393",
           "source": "amazon:in",
           "snippet": "Women’s Front Zip Sports Bra with Removable Pads, High-Impact Support Active Top with Breathable Stretch Material, Secure Easy-Zip Design for Gym, Yoga, Running, Training — ₹389 — 4.2 out of 5 — 9 ratings",
-          "observedAt": "2026-08-25T21:17:32.841772+00:00"
+          "observedAt": "2026-08-25T21:28:31.699602+00:00"
         },
         {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B0GNCKC8FC",
           "source": "amazon:in",
           "snippet": "4.9 out of 5 stars — ₹399 — 4.9 out of 5 — 21 ratings",
-          "observedAt": "2026-08-25T21:17:32.842193+00:00"
+          "observedAt": "2026-08-25T21:28:31.699999+00:00"
         },
         {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B0H7BH8PTN",
           "source": "amazon:in",
           "snippet": "4.0 out of 5 stars — ₹299 — 4.0 out of 5 — 13 ratings",
-          "observedAt": "2026-08-25T21:17:32.842871+00:00"
+          "observedAt": "2026-08-25T21:28:31.700647+00:00"
         },
         {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B0G2YR65VV",
           "source": "amazon:in",
           "snippet": "Price, product page — ₹275",
-          "observedAt": "2026-08-25T21:17:32.846746+00:00"
+          "observedAt": "2026-08-25T21:28:31.704378+00:00"
         },
         {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B0GNCKY3ZJ",
           "source": "amazon:in",
           "snippet": "4.9 out of 5 stars — ₹399 — 4.9 out of 5 — 21 ratings",
-          "observedAt": "2026-08-25T21:17:32.847251+00:00"
+          "observedAt": "2026-08-25T21:28:31.704863+00:00"
         }
       ],
-      "freshnessDate": "2026-08-25T21:17:32.847424+00:00",
-      "notes": "diversity=0.14; community=0 search=0 product=5 ad-library=0 launch=0"
+      "freshnessDate": "2026-08-25T21:28:31.705091+00:00",
+      "notes": "diversity=0.29; community=1 search=0 product=5 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "delivery-rider-phone-accessories",
@@ -323,38 +330,38 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
           "url": "https://www.amazon.in/dp/B0CMJ4Y5GK",
           "source": "amazon:in",
           "snippet": "Sounce Mobile Phone Chest Strap Mount GoPro Chest Harness Holder for VLOG/POV Compatible with All Cell Phones and GoPro Hero 9, 8, 7, 6, 5,OSMO Action, AKASO and Other Action Camera — ₹279 — 3.7 out of 5 — 2,870 ratings",
-          "observedAt": "2026-08-25T21:17:46.006629+00:00"
+          "observedAt": "2026-08-25T21:28:48.772342+00:00"
         },
         {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B08W1KX225",
           "source": "amazon:in",
           "snippet": "TECHONTO® 360° Degree Cell Phone Holder with Adjustable Clamp Phone Tripod Mount Adapter Compatible with Smartphones &amp; All Types of Tripods – Black — ₹199 — 4.2 out of 5 — 7,867 ratings",
-          "observedAt": "2026-08-25T21:17:46.007277+00:00"
+          "observedAt": "2026-08-25T21:28:48.772983+00:00"
         },
         {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B0CJXS969K",
           "source": "amazon:in",
           "snippet": "Sounce Mobile Stand Holder Metal Built - Cell Phone Stand Perfect for Video Table Online Class Home Bed Flexible Charging Hand Bike Movie Office Gift Desktop Heavy Duty Lazy Mount Multi Angle Clamp — ₹188 — 3.6 out of 5 — 2,517 ratings",
-          "observedAt": "2026-08-25T21:17:46.007798+00:00"
+          "observedAt": "2026-08-25T21:28:48.773518+00:00"
         },
         {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B0H65FXD9Z",
           "source": "amazon:in",
           "snippet": "2026 Upgraded Vacuum Ultra Suction Magnetic Phone Holder, 98LBS Strongest Suction &amp; 2600gf Magnetic for Magsafe Car Mount, 360° Adjustable Foldable Holders for Your Car - — ₹197 — 2.5 out of 5 — 105 ratings",
-          "observedAt": "2026-08-25T21:17:46.011435+00:00"
+          "observedAt": "2026-08-25T21:28:48.777109+00:00"
         },
         {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B0CL4YL615",
           "source": "amazon:in",
           "snippet": "INEFABLE Tripod Mount Adapter 360-Degree Cell Phone Holder with Adjustable Clamp Phone for Smartphones &amp; All Types of Tripods with 1/4 Screw - Black - Pack of 1 — ₹149 — 4.2 out of 5 — 158 ratings",
-          "observedAt": "2026-08-25T21:17:46.011968+00:00"
+          "observedAt": "2026-08-25T21:28:48.777636+00:00"
         }
       ],
-      "freshnessDate": "2026-08-25T21:17:46.012141+00:00",
+      "freshnessDate": "2026-08-25T21:28:48.777769+00:00",
       "notes": "diversity=0.14; community=0 search=0 product=5 ad-library=0 launch=0"
     },
     {
@@ -384,133 +391,61 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
           "url": "https://www.amazon.in/dp/B0CMJ4Y5GK",
           "source": "amazon:in",
           "snippet": "Sounce Mobile Phone Chest Strap Mount GoPro Chest Harness Holder for VLOG/POV Compatible with All Cell Phones and GoPro Hero 9, 8, 7, 6, 5,OSMO Action, AKASO and Other Action Camera — ₹279 — 3.7 out of 5 — 2,870 ratings",
-          "observedAt": "2026-08-25T21:17:58.894148+00:00"
+          "observedAt": "2026-08-25T21:28:55.153812+00:00"
         },
         {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B08W1KX225",
           "source": "amazon:in",
           "snippet": "TECHONTO® 360° Degree Cell Phone Holder with Adjustable Clamp Phone Tripod Mount Adapter Compatible with Smartphones &amp; All Types of Tripods – Black — ₹199 — 4.2 out of 5 — 7,867 ratings",
-          "observedAt": "2026-08-25T21:17:58.894847+00:00"
+          "observedAt": "2026-08-25T21:28:55.154464+00:00"
         },
         {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B0CJXS969K",
           "source": "amazon:in",
           "snippet": "Sounce Mobile Stand Holder Metal Built - Cell Phone Stand Perfect for Video Table Online Class Home Bed Flexible Charging Hand Bike Movie Office Gift Desktop Heavy Duty Lazy Mount Multi Angle Clamp — ₹188 — 3.6 out of 5 — 2,517 ratings",
-          "observedAt": "2026-08-25T21:17:58.895399+00:00"
+          "observedAt": "2026-08-25T21:28:55.154995+00:00"
         },
         {
           "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0H65FXD9Z",
+          "url": "https://www.amazon.in/dp/B0BVVS5GHD",
           "source": "amazon:in",
-          "snippet": "2026 Upgraded Vacuum Ultra Suction Magnetic Phone Holder, 98LBS Strongest Suction &amp; 2600gf Magnetic for Magsafe Car Mount, 360° Adjustable Foldable Holders for Your Car - — ₹197 — 2.5 out of 5 — 105 ratings",
-          "observedAt": "2026-08-25T21:17:58.899496+00:00"
+          "snippet": "Bike Mobile Holder | Handlebar Mobile Phone Mount Holder with 360 Rotation for Motorcycle-Bike-Scooter-Bicycle-Cycle Ideal for Maps and GPS Navigation (Metal Handlebar) — ₹279 — 4.3 out of 5 — 7 ratings",
+          "observedAt": "2026-08-25T21:28:55.155902+00:00"
         },
         {
           "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0CL4YL615",
+          "url": "https://www.amazon.in/dp/B0GFDPBP5X",
           "source": "amazon:in",
-          "snippet": "INEFABLE Tripod Mount Adapter 360-Degree Cell Phone Holder with Adjustable Clamp Phone for Smartphones &amp; All Types of Tripods with 1/4 Screw - Black - Pack of 1 — ₹149 — 4.2 out of 5 — 158 ratings",
-          "observedAt": "2026-08-25T21:17:58.900058+00:00"
+          "snippet": "Magnetic Phone Holder for Car, Gym, Train, Desk – N52 Strong Magnet Universal Mount Stand Compatible with iPhone, Samsung, Huawei, Xiaomi – Aluminum Alloy, 270° Rotation — ₹1,759 — 4.5 out of 5 — 5 ratings",
+          "observedAt": "2026-08-25T21:28:55.156463+00:00"
         }
       ],
-      "freshnessDate": "2026-08-25T21:17:58.900215+00:00",
+      "freshnessDate": "2026-08-25T21:28:55.156604+00:00",
       "notes": "diversity=0.29; community=2 search=0 product=5 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "office-chai-healthy-snacks",
       "demandScore": null,
-      "competitionScore": 0.5,
-      "pricingScore": 0.6,
+      "competitionScore": null,
+      "pricingScore": null,
       "adSaturationScore": null,
       "agentVisibilityScore": null,
-      "evidence": [
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0FBGHFCZ3",
-          "source": "amazon:in",
-          "snippet": "3.7 out of 5 stars — ₹430 — 3.7 out of 5 — 9 ratings",
-          "observedAt": "2026-08-25T21:17:26.172973+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0FBGD2GK6",
-          "source": "amazon:in",
-          "snippet": "4.4 out of 5 stars — ₹380 — 4.4 out of 5 — 8 ratings",
-          "observedAt": "2026-08-25T21:17:26.173515+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B002DN0R96",
-          "source": "amazon:in",
-          "snippet": "Haldiram&#x27;s Namkeen - Chai Puri, 200/215 Gram — ₹65 — 3.9 out of 5 — 1,194 ratings",
-          "observedAt": "2026-08-25T21:17:26.173987+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0BZZ47RHL",
-          "source": "amazon:in",
-          "snippet": "The Healthy Binge Try Them All Snacks Combo - Baked Millet Chips, No Palm Oil, Protein Rich, Healthy Snacks for Kids and Adults | Chips Combo ( Pack of 7 ) — ₹295 — 4.1 out of 5 — 625 ratings",
-          "observedAt": "2026-08-25T21:17:26.174792+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0H6JP3B61",
-          "source": "amazon:in",
-          "snippet": "Kravio Desi Tadka Millet Mix - 2x150g | Healthy, Baked, No Palm Oil Namkeen | No maida | Source of dietary fibre | Wholesome multigrain goodness with a crispy crunch — ₹340 — 5.0 out of 5 — 1 ratings",
-          "observedAt": "2026-08-25T21:17:26.175390+00:00"
-        }
-      ],
-      "freshnessDate": "2026-08-25T21:17:26.175550+00:00",
-      "notes": "diversity=0.14; community=0 search=0 product=5 ad-library=0 launch=0"
+      "evidence": [],
+      "freshnessDate": "2026-08-25T21:28:15.069645+00:00",
+      "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "diabetic-friendly-travel-snacks",
       "demandScore": null,
-      "competitionScore": 0.5,
-      "pricingScore": 0.9,
+      "competitionScore": null,
+      "pricingScore": null,
       "adSaturationScore": null,
       "agentVisibilityScore": null,
-      "evidence": [
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0GHFLLLPP",
-          "source": "amazon:in",
-          "snippet": "Healthy Diabetic Friendly Moong Dal Snacks – Baked, Not Fried | High Protein &amp; Fiber | No Preservatives [Herit Indica] 200g — ₹249 — 3.7 out of 5 — 20 ratings",
-          "observedAt": "2026-08-25T21:17:19.745661+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0D4DYRMVT",
-          "source": "amazon:in",
-          "snippet": "Midbreak No Added Sugar Jowar Millet &amp; Dry Fruit Cookies 200g (Pack of 1) |Gluten-Free Biscuits | High Fiber Diabetic-Friendly Healthy Snack — ₹225 — 4.2 out of 5 — 451 ratings",
-          "observedAt": "2026-08-25T21:17:19.746214+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0CFB78BFM",
-          "source": "amazon:in",
-          "snippet": "PrettyNutty Healthy Nutmix 500g, Dried Almonds, Black Raisins, Cashewnuts, Cranberries, Black Dates &amp; Many More. (Pack of Jar) — ₹324 — 3.7 out of 5 — 13,745 ratings",
-          "observedAt": "2026-08-25T21:17:19.746751+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0CK2H2W9X",
-          "source": "amazon:in",
-          "snippet": "Unibic Sugar Free Oats Cookies I 202.5/225 Gm I Low GI No Maida I Cashew Biscuits I Sugar-Free Snack I Healthy Cookies (weight may vary) — ₹145 — 4.1 out of 5 — 1,550 ratings",
-          "observedAt": "2026-08-25T21:17:19.749249+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0BRBCX24Q",
-          "source": "amazon:in",
-          "snippet": "Healthy Treat Diabetic Friendly Healthy Snacks Pack | Roasted Soyabean, Roasted Chana Jor, Roasted Green Moong, Roasted High Energy Trail mix | Roasted Healthy Snacks Pack — ₹329 — 4.2 out of 5 — 31 ratings",
-          "observedAt": "2026-08-25T21:17:19.749735+00:00"
-        }
-      ],
-      "freshnessDate": "2026-08-25T21:17:19.749905+00:00",
-      "notes": "diversity=0.14; community=0 search=0 product=5 ad-library=0 launch=0"
+      "evidence": [],
+      "freshnessDate": "2026-08-25T21:28:09.913570+00:00",
+      "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "high-protein-regional-snacks",
@@ -525,38 +460,38 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
           "url": "https://www.amazon.in/dp/B0G59MC2XP",
           "source": "amazon:in",
           "snippet": "Urban Platter Roasted Salted Edamame, 150g (46% Protein, 14% Fiber, Lightly Salted Young Green Soybeans, Highest Plant Protein Supersnack) — ₹195 — 4.3 out of 5 — 551 ratings",
-          "observedAt": "2026-08-25T21:19:04.485672+00:00"
+          "observedAt": "2026-08-25T21:29:54.707633+00:00"
         },
         {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B0FQ2RRXMR",
           "source": "amazon:in",
           "snippet": "WellNuts &amp; Co. Pan-Roasted Protein Salad Mix (450g) | Non-Fried Healthy Snack | High Protein &amp; Fiber Rich Diet Mix | Zero Cholesterol &amp; Vegan — ₹342 — 4.2 out of 5 — 52 ratings",
-          "observedAt": "2026-08-25T21:19:04.486199+00:00"
+          "observedAt": "2026-08-25T21:29:54.708165+00:00"
         },
         {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B0FTT4ZFJS",
           "source": "amazon:in",
           "snippet": "Superyou Assorted Protein Wafer Mini Bars (Pack Of 10)| 5g Protein | Made with Atta &amp; Jowar | No Added Sugar | Yeast Fermented | Energy Bars | 100% Vegetarian |No Palm Oil | 200g — ₹275 — 4.1 out of 5 — 144 ratings",
-          "observedAt": "2026-08-25T21:19:04.486708+00:00"
+          "observedAt": "2026-08-25T21:29:54.708691+00:00"
         },
         {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B0DX1Z7V1V",
           "source": "amazon:in",
           "snippet": "4.3 out of 5 stars — ₹389 — 4.3 out of 5 — 574 ratings",
-          "observedAt": "2026-08-25T21:19:04.490513+00:00"
+          "observedAt": "2026-08-25T21:29:54.712654+00:00"
         },
         {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B0DKJ6MDWM",
           "source": "amazon:in",
           "snippet": "RiteBite Max Protein Assorted Cookies with 10g Protein, 4g Fiber | No Maida, GMO Free, No Preservatives | 7 Grain Breakfast Cookies, 55g (Pack of 6) — ₹307 — 4.2 out of 5 — 175 ratings",
-          "observedAt": "2026-08-25T21:19:04.491012+00:00"
+          "observedAt": "2026-08-25T21:29:54.713175+00:00"
         }
       ],
-      "freshnessDate": "2026-08-25T21:19:04.491152+00:00",
+      "freshnessDate": "2026-08-25T21:29:54.713302+00:00",
       "notes": "diversity=0.14; community=0 search=0 product=5 ad-library=0 launch=0"
     },
     {
@@ -586,86 +521,50 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
           "url": "https://www.amazon.in/dp/B08WJHN7GR",
           "source": "amazon:in",
           "snippet": "Kore PVC 20 Kg Home Gym Set with One 3 Ft Curl Rod and One Pair Dumbbell Rods, Multicolour — ₹1,149 — 3.7 out of 5 — 2,026 ratings",
-          "observedAt": "2026-08-25T21:18:05.156068+00:00"
+          "observedAt": "2026-08-25T21:29:01.680025+00:00"
         },
         {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B089DF1PXS",
           "source": "amazon:in",
           "snippet": "Kore PVC 16 Kg Home Gym Set With One 3 Ft Curl And One Pair Dumbbell Rods With Gym Accessories, Black — ₹1,349 — 3.5 out of 5 — 11,827 ratings",
-          "observedAt": "2026-08-25T21:18:05.156578+00:00"
+          "observedAt": "2026-08-25T21:29:01.680531+00:00"
         },
         {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B0DKJZX382",
           "source": "amazon:in",
           "snippet": "PulGos 15-in-1 Pushup Board for Men &amp; Women | Foldable Gym Equipment for Home Workout | 𝐌𝐮𝐥𝐭𝐢- 𝐅𝐮𝐧𝐜𝐭𝐢𝐨𝐧 Push Up Stand for Chest, Triceps, Shoulders &amp; Back | Portable Home Gym Training Kit — ₹299 — 3.8 out of 5 — 1,383 ratings",
-          "observedAt": "2026-08-25T21:18:05.157133+00:00"
+          "observedAt": "2026-08-25T21:29:01.681101+00:00"
         },
         {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B0DF6BBPWW",
           "source": "amazon:in",
           "snippet": "Lifeline Multi Home Gym Leg Press Machine HG 008 with Preacher Curl &amp; Ab Crunch 72 Kg Weight Stack, Home Gym Equipment Strength Training Workout Gym Exercise Machine, Free Home Installation — ₹27,999 — 4.4 out of 5 — 134 ratings",
-          "observedAt": "2026-08-25T21:18:05.161332+00:00"
+          "observedAt": "2026-08-25T21:29:01.685303+00:00"
         },
         {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B09F37RYYL",
           "source": "amazon:in",
           "snippet": "Lifeline Fitness Multi Home Gym Multiple Muscle Workout Exercise Machine Chest Biceps Shoulder Back Triceps Legs for Men at Home, 72kg Weight Stack,Made in India, HG-002 Free Installation Assistance — ₹16,899 — 4.4 out of 5 — 276 ratings",
-          "observedAt": "2026-08-25T21:18:05.161908+00:00"
+          "observedAt": "2026-08-25T21:29:01.685882+00:00"
         }
       ],
-      "freshnessDate": "2026-08-25T21:18:05.162081+00:00",
+      "freshnessDate": "2026-08-25T21:29:01.686019+00:00",
       "notes": "diversity=0.29; community=2 search=0 product=5 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "womens-gym-shorts-fit",
       "demandScore": null,
-      "competitionScore": 0.5,
-      "pricingScore": 0.9,
+      "competitionScore": null,
+      "pricingScore": null,
       "adSaturationScore": null,
       "agentVisibilityScore": null,
-      "evidence": [
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0H1R3XQ1R",
-          "source": "amazon:in",
-          "snippet": "Sports Men’s Running Shorts | Lightweight Quick-Dry Gym &amp; Sports Shorts for Running, Training, Workout &amp; Outdoor Activities — ₹190 — 3.7 out of 5 — 18 ratings",
-          "observedAt": "2026-08-25T21:17:52.800271+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0D4J11GPQ",
-          "source": "amazon:in",
-          "snippet": "2 in 1 Active Dual Shorts with Inner Tights Layer | Men&#x27;s Double Layer Short for Running, Gym &amp; Sports — ₹499 — 3.9 out of 5 — 3,004 ratings",
-          "observedAt": "2026-08-25T21:17:52.801157+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0H8NZNZ5M",
-          "source": "amazon:in",
-          "snippet": "Men&#x27;s Black Sports Shorts | Baggy Gym Shorts for Workout, Training, Running &amp; Fitness | Comfortable Basic Athletic Casual Shorts-M — ₹260 — 5.0 out of 5 — 3 ratings",
-          "observedAt": "2026-08-25T21:17:52.803931+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0DY3Z85LD",
-          "source": "amazon:in",
-          "snippet": "Men’s Shorts with Quick Dry Tech | Athletic Anti-Wicking Lightweight Shorts for Sports, Running &amp; Gym — ₹419 — 3.5 out of 5 — 912 ratings",
-          "observedAt": "2026-08-25T21:17:52.807371+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0F4LQBZB4",
-          "source": "amazon:in",
-          "snippet": "Polyester Shorts for Men - Quick Dry Lightweight with Zipper Pockets - Gym, Running, Jogging, Training Half Pants for Basketball, Swimming, Badminton, Cycling, Football, Outdoor &amp; Home Wear — ₹299 — 4.0 out of 5 — 1,439 ratings",
-          "observedAt": "2026-08-25T21:17:52.808398+00:00"
-        }
-      ],
-      "freshnessDate": "2026-08-25T21:17:52.808593+00:00",
-      "notes": "diversity=0.14; community=0 search=0 product=5 ad-library=0 launch=0"
+      "evidence": [],
+      "freshnessDate": "2026-08-25T21:27:34.450981+00:00",
+      "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "baby-lotions-transparent-ingredients",
@@ -680,38 +579,38 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
           "url": "https://www.amazon.in/dp/B0G1MWWPTF",
           "source": "amazon:in",
           "snippet": "Himalaya Gentle Baby Lotion 400ml with Almond oil, Olive oil, Country Mallow | No.1 Doctor-Prescribed Brand |pH 5.5 formulation | Nourishes and moisturizes your baby&#x27;s skin | Safe for Newborns — ₹293 — 4.4 out of 5 — 73,999 ratings",
-          "observedAt": "2026-08-25T21:19:17.595315+00:00"
+          "observedAt": "2026-08-25T21:30:14.417875+00:00"
         },
         {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B0FGJXZ4H5",
           "source": "amazon:in",
           "snippet": "LuvLap Baby Lotion with Milk Protein - 700ml, Suitable for Baby’s Delicate Skin, 24 Hour Protection for Sensitive Skin, Shea Butter and VIT E, Paraben Free, Sweet Almond Oil, Dermatologically Tested — ₹198 — 4.3 out of 5 — 933 ratings",
-          "observedAt": "2026-08-25T21:19:17.595866+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0GHXSSGGQ",
-          "source": "amazon:in",
-          "snippet": "Himalaya Gentle Baby Lotion 700ml | with Almond oil, Olive oil, Country Mallow | No.1 Doctor-Prescribed Brand |pH 5.5 formulation | Nourishes and moisturizes your baby&#x27;s skin | Safe for Newborns — ₹455 — 4.4 out of 5 — 73,999 ratings",
-          "observedAt": "2026-08-25T21:19:17.596342+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B07TWXLK1P",
-          "source": "amazon:in",
-          "snippet": "Cetaphil Baby Daily Lotion, Suitable for baby’s delicate skin, Shea Butter and Vit E, Dermatologist Tested and Pediatrician Recommended, 400 ml — ₹805 — 4.5 out of 5 — 17,802 ratings",
-          "observedAt": "2026-08-25T21:19:17.599865+00:00"
+          "observedAt": "2026-08-25T21:30:14.418424+00:00"
         },
         {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B0CV5Y8ZWR",
           "source": "amazon:in",
           "snippet": "Himalaya Baby Lotion with Pure Cow Ghee 400ml| For Sensitive Skin| pH 5.5 — ₹376 — 4.4 out of 5 — 73,999 ratings",
-          "observedAt": "2026-08-25T21:19:17.600344+00:00"
+          "observedAt": "2026-08-25T21:30:14.418888+00:00"
+        },
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B0774TQRBZ",
+          "source": "amazon:in",
+          "snippet": "Mamaearth Daily Moisturizing Natural Baby Lotion (400 ml) — ₹349 — 4.2 out of 5 — 28,386 ratings",
+          "observedAt": "2026-08-25T21:30:14.420021+00:00"
+        },
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B07TWXLK1P",
+          "source": "amazon:in",
+          "snippet": "Cetaphil Baby Daily Lotion, Suitable for baby’s delicate skin, Shea Butter and Vit E, Dermatologist Tested and Pediatrician Recommended, 400 ml — ₹805 — 4.5 out of 5 — 17,802 ratings",
+          "observedAt": "2026-08-25T21:30:14.420610+00:00"
         }
       ],
-      "freshnessDate": "2026-08-25T21:19:17.600499+00:00",
+      "freshnessDate": "2026-08-25T21:30:14.420740+00:00",
       "notes": "diversity=0.14; community=0 search=0 product=5 ad-library=0 launch=0"
     },
     {
@@ -727,38 +626,38 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
           "url": "https://www.amazon.in/dp/B00YXTNFJC",
           "source": "amazon:in",
           "snippet": "Auravedic Kumkumadi Oil For Face 100 Ml, Kumkumadi Tailam Face Oil For Glowing Skin, Dark Spot Corrector Face Serum — ₹396 — 3.9 out of 5 — 15,631 ratings",
-          "observedAt": "2026-08-25T21:18:31.687781+00:00"
+          "observedAt": "2026-08-25T21:29:27.994434+00:00"
         },
         {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B0CYCG3S81",
           "source": "amazon:in",
           "snippet": "Shesha Ayurveda Red Sandalwood Skin Brightening &amp; Night Repair Cream For Men &amp; Women – For Natural, Anti-Aging, Hydrating, And Radiant Skin, Natural, Ayurvedic — ₹567 — 4.0 out of 5 — 911 ratings",
-          "observedAt": "2026-08-25T21:18:31.688261+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0FBWSK4HP",
-          "source": "amazon:in",
-          "snippet": "4.1 out of 5 stars — ₹199 — 4.1 out of 5 — 483 ratings",
-          "observedAt": "2026-08-25T21:18:31.688797+00:00"
+          "observedAt": "2026-08-25T21:29:27.994903+00:00"
         },
         {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B0DWTDDXXP",
           "source": "amazon:in",
           "snippet": "Mamash Beetroot &amp; Sandalwood 2-in-1 Face Pack &amp; Scrub | Ready-to-Use De-Tan Clay Mask with Neem, Licorice &amp; Multani Mitti | Brightening &amp; Deep Cleansing Ayurvedic Skincare | 50g — ₹549 — 4.2 out of 5 — 61 ratings",
-          "observedAt": "2026-08-25T21:18:31.692462+00:00"
+          "observedAt": "2026-08-25T21:29:27.995441+00:00"
+        },
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B0FBWSK4HP",
+          "source": "amazon:in",
+          "snippet": "4.1 out of 5 stars — ₹199 — 4.1 out of 5 — 483 ratings",
+          "observedAt": "2026-08-25T21:29:27.999093+00:00"
         },
         {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B07VYKBH5T",
           "source": "amazon:in",
           "snippet": "Baidyanath Asli Ayurved Bhringrajasava 450 ml |Multi-Benefit Ayurvedic Formula | Ayurvedic Ingredients Bhringraj Asav for Hair Growth, Liver, Cough Relief and Blood Purification — ₹120 — 4.2 out of 5 — 8,042 ratings",
-          "observedAt": "2026-08-25T21:18:31.692962+00:00"
+          "observedAt": "2026-08-25T21:29:27.999599+00:00"
         }
       ],
-      "freshnessDate": "2026-08-25T21:18:31.693139+00:00",
+      "freshnessDate": "2026-08-25T21:29:27.999735+00:00",
       "notes": "diversity=0.14; community=0 search=0 product=5 ad-library=0 launch=0"
     },
     {
@@ -774,42 +673,53 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
           "url": "https://www.amazon.in/dp/B07YY9N6TY",
           "source": "amazon:in",
           "snippet": "Mortein 45ml x 6 (Buy 4 Get 2 Free) Fits All Machines | SmartPlus Mosquito Repellent Refill | Mosquito Repellent &amp; Killer | 100% Protection from Dengue Mosquitoes, Pack of 6 — ₹316 — 4.0 out of 5 — 39,848 ratings",
-          "observedAt": "2026-08-25T21:19:11.079723+00:00"
+          "observedAt": "2026-08-25T21:30:07.644721+00:00"
         },
         {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B0C86RTS5X",
           "source": "amazon:in",
           "snippet": "Good Knight Flash Liquid Vaporiser | Pack Of 4 (45ml Each) | Lavender Fragrance | 2x Faster Than Before | Mosquito Repellent Refill | India s Most Powerful Liquid Vaporizer — ₹266 — 4.3 out of 5 — 13,210 ratings",
-          "observedAt": "2026-08-25T21:19:11.080411+00:00"
+          "observedAt": "2026-08-25T21:30:07.645423+00:00"
         },
         {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B07FPKP85K",
           "source": "amazon:in",
           "snippet": "Godrej aer Matic Automatic Room Fresheners Refill Pack | Fresh Lush Green | 2000 Sprays Guaranteed | Lasts up to 60 days (210ml) — ₹243 — 4.2 out of 5 — 8,790 ratings",
-          "observedAt": "2026-08-25T21:19:11.080899+00:00"
+          "observedAt": "2026-08-25T21:30:07.645915+00:00"
         },
         {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B0G48HZ2GL",
           "source": "amazon:in",
           "snippet": "Good Knight Flash Liquid Vaporiser | Pack of 6 (45ml Each) | Lavender Fragrance | 2x Faster Than Before | Mosquito Repellent Refill | India s Most Powerful Liquid Vaporizer — ₹390 — 4.3 out of 5 — 607 ratings",
-          "observedAt": "2026-08-25T21:19:11.084830+00:00"
+          "observedAt": "2026-08-25T21:30:07.650063+00:00"
         },
         {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B0H2HSNYVL",
           "source": "amazon:in",
           "snippet": "Eveready Ultima Mosquito Repellent Refill, Fits All Machines, Advanced Japanese Formula, 100% Protection from Dengue, Chikungunya &amp; Malaria, Pack of 2 — ₹119 — 4.3 out of 5 — 63 ratings",
-          "observedAt": "2026-08-25T21:19:11.085301+00:00"
+          "observedAt": "2026-08-25T21:30:07.650568+00:00"
         }
       ],
-      "freshnessDate": "2026-08-25T21:19:11.085436+00:00",
+      "freshnessDate": "2026-08-25T21:30:07.650694+00:00",
       "notes": "diversity=0.14; community=0 search=0 product=5 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "pet-health-supplements",
+      "demandScore": null,
+      "competitionScore": null,
+      "pricingScore": null,
+      "adSaturationScore": null,
+      "agentVisibilityScore": null,
+      "evidence": [],
+      "freshnessDate": "2026-08-25T21:28:25.161639+00:00",
+      "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
+    },
+    {
+      "nicheSlug": "oral-care-sub-niches",
       "demandScore": null,
       "competitionScore": 0.5,
       "pricingScore": 0.6,
@@ -818,95 +728,48 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "evidence": [
         {
           "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B01IEXX58S",
+          "url": "https://www.amazon.in/dp/B0D1RDPBSJ",
           "source": "amazon:in",
-          "snippet": "Drools Dog Supplement Tablets 200g (50 Pieces) | Skin &amp; Coat Support | For Dogs — ₹239 — 4.2 out of 5 — 6,406 ratings",
-          "observedAt": "2026-08-25T21:17:39.444854+00:00"
+          "snippet": "Ayurvedic, Neem — ₹334 — 3.9 out of 5 — 208 ratings",
+          "observedAt": "2026-08-25T21:29:34.629435+00:00"
         },
         {
           "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0FFT8NK8P",
+          "url": "https://www.amazon.in/dp/B01F3E7KOG",
           "source": "amazon:in",
-          "snippet": "3.9 out of 5 stars — ₹999 — 3.9 out of 5 — 179 ratings",
-          "observedAt": "2026-08-25T21:17:39.445359+00:00"
+          "snippet": "Toothpaste Whitening | White Teeth and Daily Sensitivity Protection Tooth Paste Pack of 1 - 70gm | Dentist Recommended | Fresh Breath, Fight Tooth Decay, Healthy Gums — ₹135 — 4.4 out of 5 — 2,272 ratings",
+          "observedAt": "2026-08-25T21:29:34.630179+00:00"
         },
         {
           "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B01IEXX362",
+          "url": "https://www.amazon.in/dp/B0B7S539BD",
           "source": "amazon:in",
-          "snippet": "Drools Absolute Dog Supplement Tablets 400g, 110 Pieces Jar | Calcium Flavour | Promotes Better Joint Health | Healthy Skeletal System | Highly Palatable | Maintaining Strong Bones and Teeth — ₹425 — 4.3 out of 5 — 6,375 ratings",
-          "observedAt": "2026-08-25T21:17:39.445894+00:00"
+          "snippet": "Starter Coconut Oil Pulling Mouthwash with Peppermint Oil, 237 ml | With Toothbrush &amp; Tongue Scraper|Fluoride, Alcohol Free Mouthwash|Fresh Breath, Healthy Gum|For Oil Pulling Beginner — ₹999 — 4.5 out of 5 — 18,070 ratings",
+          "observedAt": "2026-08-25T21:29:34.631457+00:00"
         },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0G356KQFH",
-          "source": "amazon:in",
-          "snippet": "Wild-Caught Alaskan Salmon Oil for Dogs | Omega 3, 6 &amp; 9 | Reduces Shedding, Hair Fall &amp; Itchy Skin | Supports Joints, Heart, Brain &amp; Immunity | Vet-Recommended | 200 ml — ₹1,059 — 4.4 out of 5 — 3 ratings",
-          "observedAt": "2026-08-25T21:17:39.450690+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B01IEXX5M4",
-          "source": "amazon:in",
-          "snippet": "Drools Absolute Dog Supplement Tablets 400g, 110 Pieces Jar | Vitamin Flavour | Supports Growth | Maintains Healthy Body Condition | Speedy Recovery from Disease — ₹473 — 4.4 out of 5 — 2,680 ratings",
-          "observedAt": "2026-08-25T21:17:39.451119+00:00"
-        }
-      ],
-      "freshnessDate": "2026-08-25T21:17:39.451302+00:00",
-      "notes": "diversity=0.14; community=0 search=0 product=5 ad-library=0 launch=0"
-    },
-    {
-      "nicheSlug": "oral-care-sub-niches",
-      "demandScore": null,
-      "competitionScore": 0.5,
-      "pricingScore": 0.9,
-      "adSaturationScore": null,
-      "agentVisibilityScore": null,
-      "evidence": [
         {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B09S18RQLD",
           "source": "amazon:in",
           "snippet": "Gum Care Toothpaste For Complete Oral Care | Prevents From Dry Mouth, Gum Diseases| India&#x27;s First Toothpaste With Carrymax Technology| Made In India| Mint Flavour Pack Of 3 — ₹350 — 4.2 out of 5 — 1,229 ratings",
-          "observedAt": "2026-08-25T21:18:44.852355+00:00"
+          "observedAt": "2026-08-25T21:29:34.632050+00:00"
         },
         {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B0CLDFLX9G",
           "source": "amazon:in",
           "snippet": "3.9 out of 5 stars — ₹176 — 3.9 out of 5 — 208 ratings",
-          "observedAt": "2026-08-25T21:18:44.852953+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0CQ4JQZFF",
-          "source": "amazon:in",
-          "snippet": "Salt. Oral Care Saffron Dawn Day Toothpaste | Natural Saffron &amp; Mint Flavor | With Calendula Officinalis Extract &amp; Aloe Leaf | Soothes Gums, Protects Enamel | Anti-Bacterial Formula | 100g — ₹226 — 4.2 out of 5 — 112 ratings",
-          "observedAt": "2026-08-25T21:18:44.858391+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B09JLNL36K",
-          "source": "amazon:in",
-          "snippet": "Toothpaste Expert Gum Care | Daily Fluoride, Gum Protection Tooth Paste Combo Pack 150gm (75gm x 2) | For Redness, Swelling and Bleeding Gums, Freshness, Reduces Plaque — ₹207 — 4.2 out of 5 — 5,562 ratings",
-          "observedAt": "2026-08-25T21:18:44.858836+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0C3WDNCNN",
-          "source": "amazon:in",
-          "snippet": "Happy Smile Gum Paint Herbal for Bleeding Gums, Bad Breath, Toothache, Strong Teeth, Sensitivity &amp; Gum Pain Relief with Laung Oil (Clove), Pudina Satva | Protect Daily Gum Problems Naturally — ₹267 — 4.1 out of 5 — 307 ratings",
-          "observedAt": "2026-08-25T21:18:44.859450+00:00"
+          "observedAt": "2026-08-25T21:29:34.632631+00:00"
         }
       ],
-      "freshnessDate": "2026-08-25T21:18:44.859624+00:00",
+      "freshnessDate": "2026-08-25T21:29:34.632766+00:00",
       "notes": "diversity=0.14; community=0 search=0 product=5 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "sleep-stress-support-products",
       "demandScore": 0.4,
-      "competitionScore": 0.5,
-      "pricingScore": 0.6,
+      "competitionScore": null,
+      "pricingScore": null,
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [
@@ -923,45 +786,10 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
           "source": "reddit:sleep",
           "snippet": "I’m 16 and can’t sleep — Around a month ago I didn’t sleep for a whole night. Now, it is an every other day thing for me. I don’t know if it is anxiety but now when I go to bed, I am nervous in the c…",
           "observedAt": "2026-08-25T14:26:31+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0CXQ8VKJV",
-          "source": "amazon:in",
-          "snippet": "Available with a Prime membership",
-          "observedAt": "2026-08-25T21:17:13.396090+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0H5MBNXVB",
-          "source": "amazon:in",
-          "snippet": "Sleep Strips Mouth Tape for Sleeping, 30 Pcs | Anti-Snoring, Nose Breathing, Hypoallergenic Adhesive, For Kids &amp; Adults — ₹149 — 4.8 out of 5 — 48 ratings",
-          "observedAt": "2026-08-25T21:17:13.396570+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0B1QFT58V",
-          "source": "amazon:in",
-          "snippet": "The Plant Fix Plix Melatonin Tablet Deep Sleep Oral Dissolving Mini Mints Effervescent Supporting Restful Sleep | Non Habit Forming | Melatonin And Jatamansi Extracts (5Mg) | Pack Of 1, 30 Mints — ₹340 — 3.7 out of 5 — 1,256 ratings",
-          "observedAt": "2026-08-25T21:17:13.397072+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0CB64MTFY",
-          "source": "amazon:in",
-          "snippet": "Nutrabud Melatonin Sleep Gummies 3mg For Men, Women | No Added Sugar | Fall Asleep Fast &amp; Restful Deep Sleep | Blackcurrant Flavor Veg Gummy Supplement (60 Count (Pack of 1)) — ₹349 — 4.2 out of 5 — 784 ratings",
-          "observedAt": "2026-08-25T21:17:13.399991+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B087ZQQ2X5",
-          "source": "amazon:in",
-          "snippet": "4.3 out of 5 stars — ₹119 — 4.3 out of 5 — 50 ratings",
-          "observedAt": "2026-08-25T21:17:13.400470+00:00"
         }
       ],
-      "freshnessDate": "2026-08-25T21:17:13.400718+00:00",
-      "notes": "diversity=0.29; community=2 search=0 product=5 ad-library=0 launch=0"
+      "freshnessDate": "2026-08-25T21:28:20.113555+00:00",
+      "notes": "diversity=0.14; community=2 search=0 product=0 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "intimate-hygiene",
@@ -976,38 +804,38 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
           "url": "https://www.amazon.in/dp/B00S6KDGNE",
           "source": "amazon:in",
           "snippet": "VWash Plus Expert Intimate Hygiene|| With Tea Tree Oil|| Liquid Wash Prevents Dryness|| Itchiness And Irritation|| Balances PH|| Paraben Free|| 200 ml — ₹287 — 4.4 out of 5 — 21,563 ratings",
-          "observedAt": "2026-08-25T21:18:38.306577+00:00"
+          "observedAt": "2026-08-25T21:29:21.510707+00:00"
         },
         {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B08GP3FMTV",
           "source": "amazon:in",
           "snippet": "Namyaa Intimate Wash with Haldi Chandan, Prevents Dryness, Itchiness and Irritation | pH Balanced | Prevents Bad smell, 100ml — ₹199 — 4.1 out of 5 — 3,744 ratings",
-          "observedAt": "2026-08-25T21:18:38.307170+00:00"
+          "observedAt": "2026-08-25T21:29:21.511272+00:00"
         },
         {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B07CN2D6JF",
           "source": "amazon:in",
           "snippet": "Pee Safe Intimate Wash For Women 105ml Natural Ayurvedic | Paraben-Free | Lemongrass Fragrance and 100% Alcohol-Free, pH Balanced, Sulfate-Free — ₹149 — 4.4 out of 5 — 8,101 ratings",
-          "observedAt": "2026-08-25T21:18:38.307687+00:00"
+          "observedAt": "2026-08-25T21:29:21.511745+00:00"
         },
         {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B08LJ37N3H",
           "source": "amazon:in",
           "snippet": "VWash Plus Expert Intimate Hygiene|| 350 ml — ₹409 — 4.4 out of 5 — 4,578 ratings",
-          "observedAt": "2026-08-25T21:18:38.311433+00:00"
+          "observedAt": "2026-08-25T21:29:21.515186+00:00"
         },
         {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B07XQPMNLJ",
           "source": "amazon:in",
           "snippet": "Pee Safe Natural Intimate Wash for Men | Tea Tree Essential Oil | Ayurvedic | Men Genital Wash | Mens Ball wash | Men&#x27;s Intimate wash 100ml — ₹299 — 4.2 out of 5 — 8,517 ratings",
-          "observedAt": "2026-08-25T21:18:38.312000+00:00"
+          "observedAt": "2026-08-25T21:29:21.515724+00:00"
         }
       ],
-      "freshnessDate": "2026-08-25T21:18:38.312150+00:00",
+      "freshnessDate": "2026-08-25T21:29:21.515856+00:00",
       "notes": "diversity=0.14; community=0 search=0 product=5 ad-library=0 launch=0"
     },
     {
@@ -1023,38 +851,38 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
           "url": "https://www.amazon.in/dp/B0FFMM73RX",
           "source": "amazon:in",
           "snippet": "3.9 out of 5 stars — ₹260 — 3.9 out of 5 — 9 ratings",
-          "observedAt": "2026-08-25T21:18:57.981315+00:00"
+          "observedAt": "2026-08-25T21:30:01.103537+00:00"
         },
         {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B000T43KG8",
           "source": "amazon:in",
           "snippet": "Lee Kum Kee Hoisin Sauce, 240 Gm — ₹296 — 4.3 out of 5 — 985 ratings",
-          "observedAt": "2026-08-25T21:18:57.981831+00:00"
+          "observedAt": "2026-08-25T21:30:01.104033+00:00"
         },
         {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B0GWT53VWQ",
           "source": "amazon:in",
           "snippet": "Honey Chilli Oil — ₹340",
-          "observedAt": "2026-08-25T21:18:57.982350+00:00"
+          "observedAt": "2026-08-25T21:30:01.104555+00:00"
         },
         {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B07PMKJDNL",
           "source": "amazon:in",
           "snippet": "urban platter Worcestershire Sauce, 200Gram [Tasty &amp; Delicious] — ₹216 — 4.3 out of 5 — 344 ratings",
-          "observedAt": "2026-08-25T21:18:57.984004+00:00"
+          "observedAt": "2026-08-25T21:30:01.106151+00:00"
         },
         {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B07PHS7FWK",
           "source": "amazon:in",
           "snippet": "Lee Kum Kee Hoisin Sauce, 8.47 oz ? 240 g — ₹309 — 4.4 out of 5 — 270 ratings",
-          "observedAt": "2026-08-25T21:18:57.984528+00:00"
+          "observedAt": "2026-08-25T21:30:01.106658+00:00"
         }
       ],
-      "freshnessDate": "2026-08-25T21:18:57.984679+00:00",
+      "freshnessDate": "2026-08-25T21:30:01.106792+00:00",
       "notes": "diversity=0.14; community=0 search=0 product=5 ad-library=0 launch=0"
     }
   ]
