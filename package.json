@@ -51,6 +51,7 @@
     "signals:auto-publish:local": "tsx scripts/auto-publish-drafts.ts --local",
     "signals:auto-publish:dry": "tsx scripts/auto-publish-drafts.ts --remote --dry",
     "signals:auto-publish:reapply": "tsx scripts/auto-publish-drafts.ts --remote --reapply",
+    "signals:auto-publish:retry-killed-today": "tsx scripts/auto-publish-drafts.ts --remote --retry-killed-today",
     "signals:auto-publish:test": "tsx scripts/auto-publish-rules.test.ts",
     "claim-provenance:test": "tsx scripts/claim-provenance.test.ts",
     "evidence-ranking:test": "tsx scripts/evidence-ranking.test.ts",

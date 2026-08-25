@@ -11,8 +11,10 @@
 import {
   applyStructuredClaimEvidence,
   deterministicVerdict,
+  dateKeyInTimeZone,
   evidenceCoverage,
   isPredictionMarketOnly,
+  parseAiVerdictResponse,
   type JudgeableSignal,
   type Verdict,
 } from './auto-publish-rules';
@@ -399,6 +401,43 @@ checkBool(
   }),
   false
 );
+
+console.log('\nAI verdict response parsing');
+checkBool(
+  'parses fenced uppercase verdict',
+  parseAiVerdictResponse({
+    choices: [
+      {
+        message: {
+          content: '```json\n{"verdict":"PUBLISH","reason":"corroborated"}\n```',
+        },
+      },
+    ],
+  })?.verdict === 'publish',
+  true
+);
+checkBool(
+  'parses content blocks and decision alias',
+  parseAiVerdictResponse({
+    choices: [{ message: { content: [{ type: 'text', text: '{"decision":"kill"}' }] } }],
+  })?.verdict === 'kill',
+  true
+);
+checkBool(
+  'parses legacy completion text surrounded by prose',
+  parseAiVerdictResponse({ choices: [{ text: 'Result: {"action":"hold"} done.' }] })?.verdict ===
+    'hold',
+  true
+);
+checkBool('rejects malformed AI response', parseAiVerdictResponse({ choices: [] }) === null, true);
+
+console.log('\nIST date filtering');
+checkBool(
+  'maps UTC evening into next IST date',
+  dateKeyInTimeZone('2026-08-24T20:00:00.000Z') === '2026-08-25',
+  true
+);
+checkBool('rejects invalid dates', dateKeyInTimeZone('not-a-date') === null, true);
 
 console.log(`\nauto-publish-rules.test.ts: ${total - failures}/${total} passed`);
 if (failures > 0) {

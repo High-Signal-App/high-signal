@@ -38,7 +38,9 @@
 
 import {
   applyStructuredClaimEvidence,
+  dateKeyInTimeZone,
   deterministicVerdict,
+  parseAiVerdictResponse,
   type VerdictResult,
 } from './auto-publish-rules';
 import {
@@ -77,6 +79,8 @@ const LOCAL = !REMOTE;
  * fail the rubric. One-time cleanup mode for after a rule change.
  */
 const REAPPLY_PUBLISHED = args.has('--reapply');
+/** Re-judge only killed rows whose signal date is today in IST. */
+const RETRY_KILLED_TODAY = args.has('--retry-killed-today');
 
 const API_BASE =
   process.env['API_BASE'] ?? (LOCAL ? 'http://127.0.0.1:8787' : 'https://api.highsignal.app');
@@ -90,7 +94,9 @@ const MAX_BODY_CHARS = 2400;
 const MAX_AI_RESPONSE_TOKENS = 800;
 const RATE_LIMIT_MS = 250; // gentle pacing between AI calls
 
-async function fetchSignalsByStatus(status: 'draft' | 'published'): Promise<SignalRow[]> {
+async function fetchSignalsByStatus(
+  status: 'draft' | 'published' | 'killed'
+): Promise<SignalRow[]> {
   const url = ADMIN_TOKEN
     ? `${API_BASE}/admin/signals-review?status=${status}`
     : `${API_BASE}/signals?status=${status}&limit=200`;
@@ -400,25 +406,12 @@ async function aiVerdict(signal: SignalRow): Promise<VerdictResult | null> {
       );
       return null;
     }
-    const data = (await response.json()) as {
-      choices?: Array<{ message?: { content?: string } }>;
-    };
-    const raw = (data.choices?.[0]?.message?.content ?? '').trim();
-    if (!raw) return null;
-    const trimmed = raw
-      .replace(/^```json\s*/i, '')
-      .replace(/```$/i, '')
-      .trim();
-    const parsed = JSON.parse(trimmed) as VerdictResult;
-    if (parsed.verdict === 'publish' || parsed.verdict === 'kill' || parsed.verdict === 'hold') {
-      return {
-        verdict: parsed.verdict,
-        reason: parsed.reason ?? '(no reason)',
-        source: 'ai',
-        claimTuple: parsed.claimTuple,
-        evidenceAssessments: parsed.evidenceAssessments,
-      };
-    }
+    const data = (await response.json()) as unknown;
+    const parsed = parseAiVerdictResponse(data);
+    if (parsed) return parsed;
+    const keys =
+      data && typeof data === 'object' ? Object.keys(data).slice(0, 8).join(',') : 'none';
+    console.warn(`[auto-publish] AI response could not be parsed for ${signal.slug}; keys=${keys}`);
     return null;
   } catch (error) {
     console.warn(`[auto-publish] AI exception on ${signal.slug}:`, error);
@@ -443,15 +436,24 @@ async function judge(signal: SignalRow): Promise<VerdictResult> {
 
 async function main(): Promise<void> {
   console.log(
-    `[auto-publish] target=${API_BASE} dry=${DRY} ai=${AI_API_KEY ? 'yes' : 'no'} reapply=${REAPPLY_PUBLISHED}`
+    `[auto-publish] target=${API_BASE} dry=${DRY} ai=${AI_API_KEY ? 'yes' : 'no'} reapply=${REAPPLY_PUBLISHED} retryKilledToday=${RETRY_KILLED_TODAY}`
   );
   const drafts = await fetchSignalsByStatus('draft');
   const published = await fetchSignalsByStatus('published');
-  const toJudge = REAPPLY_PUBLISHED ? [...drafts, ...published] : drafts;
-  const conflicts = oppositeDirectionConflictIds([...drafts, ...published]);
+  const killed = RETRY_KILLED_TODAY ? await fetchSignalsByStatus('killed') : [];
+  const todayIst = dateKeyInTimeZone(new Date());
+  const killedToday = killed.filter(
+    (signal) => todayIst && dateKeyInTimeZone(signal.publishedAt) === todayIst
+  );
+  const toJudge = REAPPLY_PUBLISHED
+    ? [...drafts, ...published]
+    : RETRY_KILLED_TODAY
+      ? [...drafts, ...killedToday]
+      : drafts;
+  const conflicts = oppositeDirectionConflictIds([...drafts, ...published, ...killedToday]);
   for (const signal of toJudge) signal.oppositeDirectionConflict = conflicts.has(signal.id);
   console.log(
-    `[auto-publish] judging ${drafts.length} drafts${REAPPLY_PUBLISHED ? ` + ${published.length} already-published (reapply)` : ''}`
+    `[auto-publish] judging ${drafts.length} drafts${REAPPLY_PUBLISHED ? ` + ${published.length} already-published (reapply)` : ''}${RETRY_KILLED_TODAY ? ` + ${killedToday.length} killed today in IST (retry)` : ''}`
   );
   if (toJudge.length === 0) return;
   const isPublished = new Set(published.map((s) => s.slug));

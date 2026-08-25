@@ -35,6 +35,95 @@ export interface VerdictResult {
   }>;
 }
 
+type AiContentBlock = { text?: unknown };
+
+function contentText(value: unknown): string {
+  if (typeof value === 'string') return value;
+  if (!Array.isArray(value)) return '';
+  return value
+    .map((item) =>
+      item && typeof item === 'object' && typeof (item as AiContentBlock).text === 'string'
+        ? (item as AiContentBlock).text
+        : ''
+    )
+    .join('')
+    .trim();
+}
+
+function jsonObjectText(value: string): string {
+  const unfenced = value
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/```\s*$/i, '')
+    .trim();
+  const start = unfenced.indexOf('{');
+  const end = unfenced.lastIndexOf('}');
+  return start >= 0 && end > start ? unfenced.slice(start, end + 1) : unfenced;
+}
+
+function normalizedVerdict(value: unknown): Verdict | null {
+  const decision = String(value).toLowerCase();
+  const allowed: Verdict[] = ['publish', 'kill', 'hold'];
+  return allowed.includes(decision as Verdict) ? (decision as Verdict) : null;
+}
+
+/**
+ * Parse a verdict from an OpenAI-compatible completion. A few free-tier
+ * providers return uppercase decisions, text content blocks, or a legacy
+ * `choices[0].text` field, so normalize those presentation differences while
+ * keeping the publish receipt itself strict.
+ */
+export function parseAiVerdictResponse(payload: unknown): VerdictResult | null {
+  if (!payload || typeof payload !== 'object') return null;
+  const record = payload as Record<string, unknown>;
+  const choices = Array.isArray(record.choices) ? record.choices : [];
+  const first = choices[0] as Record<string, unknown> | undefined;
+  const message =
+    first?.message && typeof first.message === 'object'
+      ? (first.message as Record<string, unknown>)
+      : undefined;
+  const raw =
+    contentText(message?.content) ||
+    contentText(first?.text) ||
+    contentText(record.output_text) ||
+    contentText(record.output);
+  if (!raw) return null;
+
+  try {
+    const parsed = JSON.parse(jsonObjectText(raw)) as Record<string, unknown>;
+    const decision = normalizedVerdict(parsed.verdict ?? parsed.decision ?? parsed.action);
+    if (!decision) return null;
+    return {
+      verdict: decision,
+      reason: typeof parsed.reason === 'string' ? parsed.reason : '(no reason)',
+      source: 'ai',
+      claimTuple: parsed.claimTuple as VerdictResult['claimTuple'],
+      evidenceAssessments: parsed.evidenceAssessments as VerdictResult['evidenceAssessments'],
+    };
+  } catch {
+    return null;
+  }
+}
+
+export function dateKeyInTimeZone(
+  value: string | number | Date,
+  timeZone = 'Asia/Kolkata'
+): string | null {
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return null;
+  const parts = new Intl.DateTimeFormat('en', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date);
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((item) => item.type === type)?.value;
+  const year = part('year');
+  const month = part('month');
+  const day = part('day');
+  return year && month && day ? `${year}-${month}-${day}` : null;
+}
+
 export interface JudgeableSignal {
   evidenceUrls: string[];
   publishable?: boolean;

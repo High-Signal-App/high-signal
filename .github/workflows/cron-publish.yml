@@ -15,6 +15,10 @@ on:
         description: also re-judge already-published rows (one-time cleanup after rule change)
         type: boolean
         default: false
+      retry_killed_today:
+        description: re-judge only rows killed today in IST
+        type: boolean
+        default: false
 
 jobs:
   auto-publish:
@@ -41,6 +45,8 @@ jobs:
             pnpm signals:auto-publish:dry
           elif [ "${{ inputs.reapply }}" = "true" ]; then
             pnpm signals:auto-publish:reapply
+          elif [ "${{ inputs.retry_killed_today }}" = "true" ]; then
+            pnpm signals:auto-publish:retry-killed-today
           else
             pnpm signals:auto-publish:remote
           fi
