@@ -29,6 +29,11 @@ touches the events store. It uses one minute of browser freshness and one hour
 of shared-cache freshness. Representative samples are opt-in with `?samples=`;
 the Data page does not request them.
 
+The public `/data` directory and source-detail HTML use one minute of browser
+freshness and five minutes of shared-cache freshness. This outer Worker policy
+must stay aligned with the pages' five-minute Next.js revalidation interval;
+the generic 24-hour HTML policy is too stale for source-health status.
+
 The Cache API prevents repeated D1 queries and upstream fetches after the first
 request in a Cloudflare data center. It is data-center local and does not stop
 the Worker itself from being invoked. Cloudflare's front-of-Worker caching can

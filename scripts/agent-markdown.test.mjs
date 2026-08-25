@@ -29,7 +29,7 @@ assert.ok(
 );
 assert.equal(
   PUBLIC_DYNAMIC_ROUTE_TEMPLATES.length,
-  8,
+  9,
   'dynamic route templates must be deliberate'
 );
 
@@ -54,6 +54,7 @@ for (const route of PUBLIC_STATIC_ROUTES) {
 }
 
 const allowedDynamic = [
+  ['/data/nvd.md', '/data/nvd'],
   ['/brief/2026-07-30.md', '/brief/2026-07-30'],
   ['/markets/NVDA.md', '/markets/NVDA'],
   ['/signals/market-shift.md', '/signals/market-shift'],

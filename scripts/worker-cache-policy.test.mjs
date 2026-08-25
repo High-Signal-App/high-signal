@@ -22,6 +22,8 @@ for (const path of [
   '/entities/openai',
   '/entities/openai/2026-08',
   '/markets/NVDA',
+  '/data',
+  '/data/nvd',
   '/case-studies/page/2',
   '/case-studies/search',
   '/history',
@@ -83,6 +85,8 @@ assert.equal(cacheControlForRequest(request('/')), 'public, max-age=60, s-maxage
 assert.equal(clientCacheControlForRequest(request('/')), 'private, no-cache');
 assert.equal(cacheControlForRequest(request('/about')), 'public, max-age=300, s-maxage=86400');
 assert.equal(cacheControlForRequest(request('/markets/NVDA')), 'public, max-age=60, s-maxage=3600');
+assert.equal(cacheControlForRequest(request('/data')), 'public, max-age=60, s-maxage=300');
+assert.equal(cacheControlForRequest(request('/data/nvd')), 'public, max-age=60, s-maxage=300');
 assert.equal(cacheControlForRequest(rsc), 'public, max-age=0, s-maxage=3600');
 assert.equal(cacheControlForRequest(request('/sitemap.xml')), 'public, max-age=300, s-maxage=3600');
 assert.equal(

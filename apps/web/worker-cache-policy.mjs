@@ -2,6 +2,7 @@ import { isPublicHtmlPath, normalizePublicPath } from './public-route-registry.m
 
 const HTML_CACHE_CONTROL = 'public, max-age=300, s-maxage=86400';
 const FRESH_HTML_CACHE_CONTROL = 'public, max-age=60, s-maxage=3600';
+const DATA_HTML_CACHE_CONTROL = 'public, max-age=60, s-maxage=300';
 const ROOT_EDGE_CACHE_CONTROL = 'public, max-age=60, s-maxage=300';
 const ROOT_CLIENT_CACHE_CONTROL = 'private, no-cache';
 const RSC_CACHE_CONTROL = 'public, max-age=0, s-maxage=3600';
@@ -70,6 +71,7 @@ export function cacheControlForRequest(request) {
   const dataCacheControl = PUBLIC_DATA_CACHE_CONTROL.get(pathname);
   if (dataCacheControl) return dataCacheControl;
   if (pathname === '/') return ROOT_EDGE_CACHE_CONTROL;
+  if (pathname === '/data' || pathname.startsWith('/data/')) return DATA_HTML_CACHE_CONTROL;
   if (
     pathname === '/brief/archive' ||
     pathname === '/signals' ||

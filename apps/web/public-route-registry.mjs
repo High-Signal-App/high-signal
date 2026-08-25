@@ -291,6 +291,13 @@ export const PUBLIC_STATIC_ROUTES = [
 
 export const PUBLIC_DYNAMIC_ROUTE_TEMPLATES = [
   {
+    id: 'data-source',
+    html: '/data/{source}',
+    markdown: '/data/{source}.md',
+    description: 'Stored observations and run status for one source family.',
+    pattern: /^\/data\/[a-z0-9-]+$/,
+  },
+  {
     id: 'brief-date',
     html: '/brief/{date}',
     markdown: '/brief/{date}.md',
