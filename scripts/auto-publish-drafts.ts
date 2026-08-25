@@ -440,9 +440,9 @@ async function main(): Promise<void> {
   );
   const drafts = await fetchSignalsByStatus('draft');
   const published = await fetchSignalsByStatus('published');
-  const killed = RETRY_KILLED_TODAY ? await fetchSignalsByStatus('killed') : [];
+  const killedRows = RETRY_KILLED_TODAY ? await fetchSignalsByStatus('killed') : [];
   const todayIst = dateKeyInTimeZone(new Date());
-  const killedToday = killed.filter(
+  const killedToday = killedRows.filter(
     (signal) => todayIst && dateKeyInTimeZone(signal.publishedAt) === todayIst
   );
   const toJudge = REAPPLY_PUBLISHED

@@ -15,6 +15,16 @@ interface PublicationContext {
   requireSemanticOrigins?: boolean;
 }
 
+const D1_IN_QUERY_CHUNK_SIZE = 90;
+
+function chunks<T>(values: T[]): T[][] {
+  const result: T[][] = [];
+  for (let index = 0; index < values.length; index += D1_IN_QUERY_CHUNK_SIZE) {
+    result.push(values.slice(index, index + D1_IN_QUERY_CHUNK_SIZE));
+  }
+  return result;
+}
+
 export function serializeClaimEvidenceLink(
   link: typeof schema.claimEvidenceLinks.$inferSelect
 ): ClaimEvidenceLink {
@@ -78,22 +88,30 @@ export async function enrichPublishedSignals<T extends typeof schema.signals.$in
   const signalIds = signals.map((signal) => signal.id);
   if (signalIds.length === 0) return [];
   const database = db(d1);
-  const claims = await database
-    .select()
-    .from(schema.claimRecords)
-    .where(
-      and(
-        inArray(schema.claimRecords.signalId, signalIds),
-        eq(schema.claimRecords.reviewStatus, 'published')
-      )
+  const claims: Array<typeof schema.claimRecords.$inferSelect> = [];
+  for (const signalIdChunk of chunks(signalIds)) {
+    claims.push(
+      ...(await database
+        .select()
+        .from(schema.claimRecords)
+        .where(
+          and(
+            inArray(schema.claimRecords.signalId, signalIdChunk),
+            eq(schema.claimRecords.reviewStatus, 'published')
+          )
+        ))
     );
+  }
   const claimIds = claims.map((claim) => claim.id);
-  const links = claimIds.length
-    ? await database
+  const links: Array<typeof schema.claimEvidenceLinks.$inferSelect> = [];
+  for (const claimIdChunk of chunks(claimIds)) {
+    links.push(
+      ...(await database
         .select()
         .from(schema.claimEvidenceLinks)
-        .where(inArray(schema.claimEvidenceLinks.claimId, claimIds))
-    : [];
+        .where(inArray(schema.claimEvidenceLinks.claimId, claimIdChunk)))
+    );
+  }
   const linksByClaim = new Map<string, ClaimEvidenceLink[]>();
   for (const link of links) {
     const list = linksByClaim.get(link.claimId) ?? [];
