@@ -26,3 +26,16 @@ jobs:
         run: |
           curl --fail --silent --show-error --location --max-time 30 https://highsignal.app/ >/dev/null
           curl --fail --silent --show-error --location --max-time 30 https://highsignal.app/daily.json >/dev/null
+          curl --fail --silent --show-error --location --max-time 30 \
+            "https://highsignal.app/daily/sources.json?probe=$GITHUB_SHA" \
+            | node -e '
+                let raw = "";
+                process.stdin.on("data", (chunk) => { raw += chunk; });
+                process.stdin.on("end", () => {
+                  const payload = JSON.parse(raw);
+                  const status = payload.automationStatus;
+                  if (!status || status.configuredSources < 1 || status.observedSnapshots < 1) {
+                    throw new Error("daily source history is missing from the deployed asset bundle");
+                  }
+                });
+              '

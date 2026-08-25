@@ -65,7 +65,8 @@ Last updated: 2026-08-25
   primary Sources navigation opens the data-source audit rather than the signal
   taxonomy. The 2026-08-25 operator-source refresh attempted all 69 configured
   sources and recorded 37 accepted plus 32 explicit no-fresh-item rejections in
-  web data commit `204f16f`.
+  web data commit `204f16f`. The web build now copies the JSONL history into the
+  Worker's asset bundle, and the deploy smoke fails if that history is missing.
 - Operator admin session gates `/review`, `/backtest-workbench`, `/personal`, and community curation.
 - Primary nav follows the public reading path: Brief, Signals, Track record, and Sources. Explore and contextual links keep the wider set of lenses and operator surfaces discoverable. Removed dead `/discover` nav link (communities product is parked; link caused prod smoke 404).
 - Public/support pages exist: about, methodology, featured, API docs, privacy, terms, auth pages.

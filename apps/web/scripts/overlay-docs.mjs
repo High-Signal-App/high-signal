@@ -5,13 +5,19 @@
 // landing-astro overlay pattern. The canonical docs source is repo docs/;
 // docs-site/ is the Blume presentation project.
 import { execSync } from 'node:child_process';
-import { cpSync, rmSync, mkdirSync, existsSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { copyFileSync, cpSync, rmSync, mkdirSync, existsSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
 
 const scriptDir = import.meta.dirname; // apps/web/scripts
 const repoRoot = resolve(scriptDir, '../../..'); // high-signal/
 const docsSite = resolve(repoRoot, 'docs-site');
 const assetsDocs = resolve(scriptDir, '..', '.open-next/assets/docs');
+const sourceRefreshes = resolve(repoRoot, 'data/product-flow-refresh.jsonl');
+const sourceRefreshAsset = resolve(
+  scriptDir,
+  '..',
+  '.open-next/assets/_private/daily-source-refreshes.jsonl'
+);
 
 if (!existsSync(docsSite)) {
   console.error(`overlay-docs: docs-site not found at ${docsSite}`);
@@ -31,3 +37,7 @@ rmSync(assetsDocs, { recursive: true, force: true });
 mkdirSync(assetsDocs, { recursive: true });
 cpSync(built, assetsDocs, { recursive: true });
 console.log(`overlay-docs: copied Blume docs -> ${assetsDocs}`);
+
+mkdirSync(dirname(sourceRefreshAsset), { recursive: true });
+copyFileSync(sourceRefreshes, sourceRefreshAsset);
+console.log(`overlay-data: copied daily source history -> ${sourceRefreshAsset}`);
