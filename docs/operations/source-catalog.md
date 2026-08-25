@@ -5,15 +5,18 @@
 
 ## Storage model
 
-**We extract info and keep the link** — we do *not* store raw payloads (HTML / PDF / JSON / full article or opinion text) that are one query away from the source. Each event persists only:
+Every event keeps source metadata, a link, and a deduplication key. Content depth varies by adapter:
 
 - `source`, `source_url` (**the link**), `published_at`
-- a short `title` + an extracted `content` summary (hard cap **20 KB**, typically <2 KB)
+- `title` plus adapter-specific `content`; most adapters cap it at 20 KB
 - `raw_hash` / `document_key` for idempotent dedup, `primary_entity_id` when matched
+- structured `raw_json` for selected APIs and documents
 
-Persisted in **Cloudflare D1** (events/signals/evidence) + git-versioned `signals/*.md`. Footprint is **KB/day of new signals, low-MB total** — the cost center is LLM tokens, not storage.
+Generic news, SCMP, and broader China-news RSS currently fetch linked article pages and may keep up to 30 KB of extracted text. YouTube may keep up to 30 KB of transcript, EDGAR filings up to 50 KB, and review adapters may keep review text. These are not metadata-only integrations.
 
-The Digg attention overlay is the deliberate exception: because Digg exposes rolling windows without a historical archive, High Signal retains its documented feed payloads and per-cluster snapshots in dedicated `digg_*` tables. Those rows are derived attention metadata, never event evidence.
+Persisted records live in **Cloudflare D1** (events/signals/evidence/source documents) plus git-versioned `signals/*.md`. The source audit records the access, retention, and terms risks that this compact catalog cannot express.
+
+Digg is a deliberate rolling-feed exception: because Digg exposes rolling windows without a historical archive, High Signal retains its documented feed payloads and per-cluster snapshots in dedicated `digg_*` tables. Those rows are derived attention metadata, never event evidence.
 
 ## History / retention
 
@@ -78,7 +81,7 @@ The Digg attention overlay is the deliberate exception: because Digg exposes rol
 | `stackexchange` | Stack Overflow | technology | keyless |  | 30d | thematic | historical | question, tags, score |
 | `substack` | Substack RSS | technology | keyless |  | 7d | thematic | recent | post title, summary |
 | `techmeme` | Techmeme | technology | keyless |  | 3d | thematic | recent | headline |
-| `vc-portfolios` | YC, Antler, a16z, and Techstars official directories | startups | keyless | yes | 30d | thematic | historical | company name, description, cohort/program, first-party evidence, inferred competitors |
+| `vc-portfolios` | YC, Antler, a16z, and Techstars official directories | startups | keyless | ⚖️ | 30d | thematic | historical | company name, description, cohort/program, first-party evidence, inferred competitors |
 | `youtube` | YouTube discovery + transcripts | technology | optional-key:YOUTUBE_API_KEY |  | 7d | thematic | recent | video title, view count, channel, transcript snippet when available |
 
 **Role key:** *entity* = maps to a tracked company · *thematic* = topic/keyword (entity-less) · *corroboration* = official 2nd-source, mostly entity-less · *numeric* = time-series values.
@@ -90,3 +93,4 @@ The Digg attention overlay is the deliberate exception: because Digg exposes rol
 - **Digg technology clusters** — five documented public JSON/YAML feeds, polled every 30 minutes with a server-enforced 10-minute minimum refresh interval. Stored as normalized current clusters plus append-only snapshots. Classification: `source_class=attention_aggregator`, `evidence_tier=derived`, `confidence_contribution=none`, `attention_contribution=allowed`. Digg can change discovery and brief prominence but cannot satisfy cite-or-kill or raise confidence.
 
 View the actual available data per source with the **data directory**: `uv run python -m high_signal_ingest.data_directory` → writes `data-directory/INDEX.md` + one JSON file of recent samples per source.
+

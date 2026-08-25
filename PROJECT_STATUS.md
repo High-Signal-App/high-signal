@@ -44,7 +44,7 @@ Last updated: 2026-08-25
   the 30-minute collector has populated all five documented feeds; API and web
   deployment smokes passed; cold-to-warm probes returned `API-MISS` then
   `API-HIT` for both `/data/daily` and `/brief/daily`.
-- Reliability hardening for issue #133 is released: the IST pipeline is 08:00
+- Reliability hardening for issue #133 is deployed: the IST pipeline is 08:00
   ingest → 09:00 publish → 09:30
   freshness validation → 10:00 delivery; material Digg crossings trigger
   immediate original-source verification with latency receipts; one shared
@@ -53,8 +53,19 @@ Last updated: 2026-08-25
   claim corroboration records normalized tuples and evidentiary origins; and
   observed events are stored separately from direct, supply-chain, and business
   inference fields. Migrations `0022` and `0023` are applied; API and web are
-  deployed from `f57a008` at 100% traffic. Production cache probes confirmed an
-  API cold `MISS` followed by `HIT`, and a warm web `HIT`.
+  deployed from `c228760` at 100% traffic. Production cache probes confirmed an
+  API cold `MISS` followed by `HIT`, and a web cold `MISS` followed by `HIT`.
+  The same release fixed the public `/signals` query's D1 parameter overflow;
+  it now returns HTTP 200. The 2026-08-25 retry correctly killed all 42 weak or
+  unsupported candidates, leaving the current brief empty, and the 09:30
+  freshness validator failed because the daily dump contained no timestamped
+  material evidence. Issue #133 therefore remains open: the safety gates work,
+  but the end-to-end freshness acceptance criterion has not been met.
+- Newspaper mode now produces a visible typography change on mobile, and the
+  primary Sources navigation opens the data-source audit rather than the signal
+  taxonomy. The 2026-08-25 operator-source refresh attempted all 69 configured
+  sources and recorded 37 accepted plus 32 explicit no-fresh-item rejections in
+  web data commit `204f16f`.
 - Operator admin session gates `/review`, `/backtest-workbench`, `/personal`, and community curation.
 - Primary nav follows the public reading path: Brief, Signals, Track record, and Sources. Explore and contextual links keep the wider set of lenses and operator surfaces discoverable. Removed dead `/discover` nav link (communities product is parked; link caused prod smoke 404).
 - Public/support pages exist: about, methodology, featured, API docs, privacy, terms, auth pages.
@@ -125,7 +136,12 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
   direct impact, supply-chain impact, business inference, strength, and the URLs
   supporting that inference. Migrations `0022` and `0023` are applied to
   production; API and web release workflows and deployment smokes passed from
-  `f57a008`, and direct Worker status shows that version at 100% traffic.
+  `c228760`, and direct Worker status showed that version at 100% traffic. A
+  targeted same-day retry evaluated 42 candidates and published none: the
+  candidates were prediction-only, single-origin, conflated, irrelevant, or
+  otherwise below the shared gate. The freshness validator then failed because
+  the daily dump had no qualifying timestamped evidence, so issue #133 remains
+  open even though the release machinery and fail-closed behavior are working.
 
 - **2026-08-23 — Corroboration was decided by an independent-publisher
   test:** `buildHistoricalClaimBackfill` promotes the first later evidence link

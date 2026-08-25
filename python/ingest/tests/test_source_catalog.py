@@ -25,7 +25,7 @@ def test_catalog_has_no_phantom_sources() -> None:
 def test_to_markdown_renders_table() -> None:
     md = source_catalog.to_markdown()
     assert "# Data-source catalog" in md
-    assert "extract info and keep the link" in md
+    assert "Content depth varies by adapter" in md
     for entry in source_catalog.CATALOG:
         assert f"`{entry.id}`" in md
 

@@ -6,13 +6,13 @@ Both the human-readable catalog (`docs/operations/source-catalog.md`, regenerate
 ``to_markdown``) and the data-directory generator (`data_directory.py`) read
 from this list, so they never drift from the pipeline.
 
-Storage model (applies to every source):
-  We **extract info and keep the link** — we do NOT store raw payloads
-  (HTML/PDF/JSON/full article or opinion text) that are one query away from the
-  source. Each event persists: ``source``, ``source_url`` (the link),
-  ``published_at``, a short ``title``, an extracted ``content`` summary (hard
-  cap 20 KB, typically <2 KB), ``raw_hash``/``document_key`` for dedup, and
-  ``primary_entity_id`` when one is matched. Re-running is idempotent.
+Storage model:
+  Every event keeps source metadata, a link, and a deduplication key. Content
+  depth varies by adapter: many sources keep only metadata or an excerpt, but
+  generic news/SCMP/China RSS, YouTube, reviews, filings, and several structured
+  APIs may retain long extracted text or a structured raw payload. The catalog's
+  ``keeps`` column is therefore a field summary, not a guarantee that only those
+  fields are persisted. Re-running is idempotent.
 """
 
 from __future__ import annotations
@@ -685,19 +685,24 @@ def to_markdown() -> str:
         "",
         "## Storage model",
         "",
-        "**We extract info and keep the link** — we do *not* store raw payloads "
-        "(HTML / PDF / JSON / full article or opinion text) that are one query away "
-        "from the source. Each event persists only:",
+        "Every event keeps source metadata, a link, and a deduplication key. "
+        "Content depth varies by adapter:",
         "",
         "- `source`, `source_url` (**the link**), `published_at`",
-        "- a short `title` + an extracted `content` summary (hard cap **20 KB**, typically <2 KB)",
+        "- `title` plus adapter-specific `content`; most adapters cap it at 20 KB",
         "- `raw_hash` / `document_key` for idempotent dedup, `primary_entity_id` when matched",
+        "- structured `raw_json` for selected APIs and documents",
         "",
-        "Persisted in **Cloudflare D1** (events/signals/evidence) + git-versioned "
-        "`signals/*.md`. Footprint is **KB/day of new signals, low-MB total** — the "
-        "cost center is LLM tokens, not storage.",
+        "Generic news, SCMP, and broader China-news RSS currently fetch linked "
+        "article pages and may keep up to 30 KB of extracted text. YouTube may keep "
+        "up to 30 KB of transcript, EDGAR filings up to 50 KB, and review adapters "
+        "may keep review text. These are not metadata-only integrations.",
         "",
-        "The Digg attention overlay is the deliberate exception: because Digg exposes "
+        "Persisted records live in **Cloudflare D1** (events/signals/evidence/source "
+        "documents) plus git-versioned `signals/*.md`. The source audit records the "
+        "access, retention, and terms risks that this compact catalog cannot express.",
+        "",
+        "Digg is a deliberate rolling-feed exception: because Digg exposes "
         "rolling windows without a historical archive, High Signal retains its documented "
         "feed payloads and per-cluster snapshots in dedicated `digg_*` tables. Those rows "
         "are derived attention metadata, never event evidence.",

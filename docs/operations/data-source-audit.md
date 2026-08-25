@@ -1,7 +1,7 @@
 # Data Source Audit
 
 Status: working audit
-Updated: 2026-06-02
+Updated: 2026-08-25
 
 This audit separates four states that were previously easy to mix together:
 
@@ -13,6 +13,74 @@ This audit separates four states that were previously easy to mix together:
 High Signal should stay the insight product. Source-specific fetching, replay,
 dedupe, and rich raw payload storage should move toward the data substrate
 boundary in `docs/architecture/data-service-boundary.md`.
+
+## 2026-08-25 Access, Retention, and Yield Audit
+
+The product has three source inventories with different jobs:
+
+- The Python ingestion catalog has 55 source families: 36 keyless, 6 free-key,
+  12 optional-key, and 1 parked. They produce evidence, context, entities, or
+  numeric series for the shared publication pipeline.
+- The public Sources directory has 69 operator-curated Reddit, Hacker News,
+  GitHub-issue, and RSS searches. The 2026-08-25 refresh attempted all 69:
+  37 were accepted and 32 were explicitly rejected for having no fresh usable
+  items.
+- Digg is a separate derived attention overlay. It discovers and ranks stories;
+  it is never independent evidence and is not a GitHub or X data API. GitHub
+  remains a direct source; Digg contributor accounts are attention metadata.
+
+### What is actually retained
+
+The previous catalog claim that High Signal always kept only short summaries
+was inaccurate. Current adapters fall into four practical retention classes:
+
+| Retention class | Examples | Current behavior |
+| --- | --- | --- |
+| Metadata / excerpt | Hacker News, Techmeme, Product Hunt, many numeric feeds | Keeps the source URL, title, timestamp, identifiers, and bounded metadata or excerpt. |
+| Extracted page text | Generic news RSS, SCMP, TechNode, Pandaily, CGTN | Fetches each linked page by default and may retain up to 30 KB of extracted article text. |
+| Long first-party or user text | EDGAR, YouTube, App Store and Play Store reviews, GitHub issues | May retain up to 50 KB of filing text, 30 KB of transcript, or 20 KB of review/issue text. |
+| Structured raw payload | SEC XBRL, government contracts, package registries, Podcast Index, Digg snapshots | Stores selected source JSON or feed snapshots for replay, provenance, or rolling-history reconstruction. |
+
+SCMP does not scrape `https://www.scmp.com/news/china` directly. It reads the
+SCMP China technology and China economy RSS feeds with a three-day window, then
+currently fetches each linked story body. The broader `china-news` adapter does
+the same for TechNode, Pandaily, CGTN China, and CGTN Business.
+
+Cloudflare caching protects repeated reads of High Signal's public web and API
+surfaces. It does not reduce upstream ingestion fetches. Upstream cost control
+must happen in the ingestion layer through metadata-first polling, URL-level
+deduplication, conditional requests, and cached primary-source verification.
+
+### Access and terms findings
+
+- GitHub public requests can run without a token, but the unauthenticated limit
+  is much lower than authenticated use. Operational status should distinguish
+  `keyless-capable` from `token-recommended`.
+- NewsAPI's free developer plan is not a production license and does not provide
+  full article content. Treat the production adapter as paid/restricted unless
+  a qualifying plan is active; RSS fallback is a different access path.
+- The Guardian developer key is for non-commercial use. Commercial data mining,
+  sentiment analysis, or AI-derived products require commercial access.
+- Reddit public JSON is not equivalent to unrestricted reuse. Commercial or
+  excess-rate use requires separate approval, and user content should remain a
+  weak-signal excerpt/link rather than republished source text.
+- YouTube transcript retrieval uses an unofficial transcript library; the
+  official Data API key only covers discovery and metadata. Treat transcripts
+  as a restricted, failure-prone adapter and never as primary evidence.
+- App-review text should be minimized in retained/public output. Ratings,
+  recurring complaint labels, counts, and links are safer product inputs than
+  full review republication.
+
+### Recommendation
+
+Keep the source breadth, but make default ingestion metadata-first. Fetch and
+cache an original page only after a candidate crosses the materiality gate or
+is needed for independent verification. Add `access_basis`, `content_depth`,
+`evidence_role`, `fetch_cadence`, `retention`, `terms_risk`, and live-yield
+fields to the generated catalog. Disable NewsAPI in production unless a paid
+license is confirmed, and explicitly classify Guardian, Reddit, unofficial
+YouTube transcripts, and review scrapers as restricted inputs. Do not weaken
+publication gates to compensate for low daily yield.
 
 ## Source-Centric View
 
