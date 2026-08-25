@@ -21,16 +21,15 @@ describe('Digg attention normalization', () => {
   });
 
   it('requests primary-source verification at rank, velocity, or voice thresholds', () => {
-    expect(verificationReasons({ position: 18, positionDelta: 1, distinctAccountCount: 1 })).toEqual([
-      'rank<=20',
-    ]);
-    expect(verificationReasons({ position: 40, positionDelta: 6, distinctAccountCount: 4 })).toEqual([
-      'velocity>=5',
-      'contributors>=3',
-    ]);
-    expect(verificationReasons({ position: 40, positionDelta: 1, distinctAccountCount: 2 })).toEqual(
-      []
-    );
+    expect(
+      verificationReasons({ position: 18, positionDelta: 1, distinctAccountCount: 1 })
+    ).toEqual(['rank<=20']);
+    expect(
+      verificationReasons({ position: 40, positionDelta: 6, distinctAccountCount: 4 })
+    ).toEqual(['velocity>=5', 'contributors>=3']);
+    expect(
+      verificationReasons({ position: 40, positionDelta: 1, distinctAccountCount: 2 })
+    ).toEqual([]);
   });
 
   it('calculates verification latency median', () => {
