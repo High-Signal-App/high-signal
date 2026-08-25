@@ -149,22 +149,22 @@ describe('region rollups', () => {
 });
 
 describe('brief stock ranking', () => {
-  it('prefers up over down over neutral', () => {
+  it('prefers independently verified origins over direction', () => {
     const ranked = rankStocks([
-      { direction: 'neutral', confidence: 'high' },
-      { direction: 'down', confidence: 'high' },
-      { direction: 'up', confidence: 'low' },
+      { direction: 'up', confidence: 'high', verifiedOriginCount: 2 },
+      { direction: 'neutral', confidence: 'low', verifiedOriginCount: 4 },
+      { direction: 'down', confidence: 'high', verifiedOriginCount: 3 },
     ]);
-    expect(ranked.map((r) => r.direction)).toEqual(['up', 'down', 'neutral']);
+    expect(ranked.map((r) => r.verifiedOriginCount)).toEqual([4, 3, 2]);
   });
 
-  it('within the same direction, prefers high → medium → low confidence', () => {
+  it('uses quality then confidence when proof strength ties', () => {
     const ranked = rankStocks([
-      { direction: 'up', confidence: 'low' },
-      { direction: 'up', confidence: 'high' },
-      { direction: 'up', confidence: 'medium' },
+      { direction: 'up', confidence: 'high', verifiedOriginCount: 2, qualityScore: 70 },
+      { direction: 'neutral', confidence: 'low', verifiedOriginCount: 2, qualityScore: 90 },
+      { direction: 'down', confidence: 'medium', verifiedOriginCount: 2, qualityScore: 80 },
     ]);
-    expect(ranked.map((r) => r.confidence)).toEqual(['high', 'medium', 'low']);
+    expect(ranked.map((r) => r.qualityScore)).toEqual([90, 80, 70]);
   });
 
   it('does not mutate the input array', () => {
@@ -358,6 +358,7 @@ The project could still face permitting, financing, and climate-policy risk.
           primaryCount: 1,
           corroborationCount: 1,
           contradictionCount: 0,
+          independentOriginCount: 2,
           evidenceUrls: ['https://primary.example/report', 'https://corroboration.example/report'],
         },
       },

@@ -4,6 +4,10 @@
  * pulling in fs/spawn side effects.
  */
 
+import { canonicalSourceUrl } from '@high-signal/shared';
+
+export { canonicalSourceUrl };
+
 export interface Front {
   slug: string;
   signal_type: string;
@@ -25,6 +29,16 @@ export interface Front {
   business_inference?: string | null;
   inference_strength?: 'none' | 'weak' | 'moderate' | 'strong';
   inference_evidence_urls?: string[];
+  claim_assertion?: string | null;
+  claim_event?: string | null;
+  claim_amount?: string | null;
+  claim_date?: string | null;
+  claim_direction?: 'up' | 'down' | 'neutral' | null;
+  proof_source_document_keys?: string[];
+  proof_originating_evidence_ids?: string[];
+  proof_semantic_alignments?: Array<'unverified' | 'verified' | 'rejected'>;
+  proof_roles?: Array<'primary' | 'corroboration' | 'contradiction' | 'context'>;
+  proof_supports?: string[];
 }
 
 const REQUIRED_FRONT_KEYS = [

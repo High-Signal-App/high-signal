@@ -33,8 +33,12 @@ def test_canonical_url_strips_tracking_keeps_id() -> None:
 
 def test_merges_on_shared_external_url() -> None:
     # HN keeps the article URL in content; a news item links it directly.
-    hn = _ev("hackernews", "Show HN: NVIDIA thing", "https://news.ycombinator.com/item?id=1",
-             content="Link: https://acme.com/nvidia-news")
+    hn = _ev(
+        "hackernews",
+        "Show HN: NVIDIA thing",
+        "https://news.ycombinator.com/item?id=1",
+        content="Link: https://acme.com/nvidia-news",
+    )
     news = _ev("news", "NVIDIA announces new chip", "https://acme.com/nvidia-news/")
     stories = dedupe.dedupe([hn, news])
     assert len(stories) == 1
@@ -83,3 +87,27 @@ def test_dedupe_exact_keeps_events_without_url() -> None:
     a = _ev("reddit", "discussion", "")
     b = _ev("reddit", "another", "")
     assert len(dedupe.dedupe_exact([a, b])) == 2
+
+
+def test_story_counts_distinct_origins_not_feed_hosts() -> None:
+    hn = _ev(
+        "hackernews",
+        "NVIDIA launches new accelerator platform",
+        "https://news.ycombinator.com/item?id=1",
+        content="Link: https://origin.example/announcement",
+    )
+    repeat = _ev(
+        "techmeme",
+        "NVIDIA launches new accelerator platform today",
+        "https://techmeme.com/story/1",
+        content="Link: https://origin.example/announcement?utm_source=repeat",
+    )
+    independent = _ev(
+        "news",
+        "NVIDIA launches new accelerator platform for customers",
+        "https://independent.example/report",
+    )
+
+    [story] = dedupe.dedupe([hn, repeat, independent])
+    assert story.distinct_sources == 3
+    assert story.distinct_origins == 2

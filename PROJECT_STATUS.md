@@ -1,6 +1,6 @@
 # high-signal — PROJECT STATUS
 
-Last updated: 2026-08-25
+Last updated: 2026-08-26
 
 ## Why/What
 
@@ -138,6 +138,18 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 **Deploy workflows:** `.github/workflows/deploy-web.yml`, `deploy-api.yml`. (The former standalone annotation worker was decommissioned; annotation runs in-process via `annotateLightweightNlp`.)
 
 ## Timeline
+
+- **2026-08-26 — Proof-bearing signal generation completed in source:** entity
+  buckets are now split into deterministic stories before generation, and
+  single-origin stories remain retained as events without becoming drafts.
+  Generated claims carry normalized event/amount/date fields plus per-citation
+  document keys, semantic alignment, origin IDs, roles, and supported claim
+  fields through Markdown, local D1 sync, and the admin sync API. The claim
+  ledger only credits an origin as verified when its retained source document
+  resolves and the citation is aligned primary/corroboration evidence; brief
+  ranking now prefers verified independent origins and quality over direction.
+  This is source-complete and tested, but not manually deployed in this pass;
+  issue #133 still requires live freshness acceptance before closure.
 
 - **2026-08-26 — Scheduled-data credential boundary released:** the convergence
   backtest and D2C snapshot jobs now use bounded, operator-authenticated API

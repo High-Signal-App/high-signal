@@ -175,6 +175,7 @@ console.log('\nselectBriefClaimProvenance');
   const summary = selectBriefClaimProvenance([claim]);
   checkEq('summary selects evidence-backed claim', summary?.claimId, 'c-summary');
   checkEq('summary reports evidence count', summary?.evidenceCount, 2);
+  checkEq('summary reports independent origins', summary?.independentOriginCount, 2);
   checkEq('empty claim list has no summary', selectBriefClaimProvenance([]), null);
 }
 

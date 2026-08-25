@@ -8,6 +8,7 @@ import { Hono } from 'hono';
 import { and, eq, inArray } from 'drizzle-orm';
 import {
   buildHistoricalClaimBackfill,
+  canonicalSourceUrl,
   canTransition,
   judgePublishability,
   normalizeClaimTuple,
@@ -17,6 +18,7 @@ import {
   type ClaimSurface,
   type ClaimReviewStatus,
 } from '@high-signal/shared';
+export { canonicalSourceUrl } from '@high-signal/shared';
 import { buildPatterns, matchEntity, type GazetteerEntity } from '../lib/gazetteer';
 import { sha16 } from '../lib/ids';
 import { generateCommunityDigest } from '../lib/community-research';
@@ -102,6 +104,13 @@ interface SignalUpsert {
     sourceType?: string | null;
     excerpt?: string | null;
     publishedAt?: string | null;
+    sourceDocumentKey?: string | null;
+    originatingEvidenceId?: string | null;
+    semanticAlignment?: 'unverified' | 'verified' | 'rejected';
+    role?: ClaimEvidenceRole;
+    supports?: Array<
+      'observed_event' | 'direct_entity_impact' | 'supply_chain_impact' | 'business_inference'
+    >;
   }>;
   spilloverEntityIds?: string[];
   reviewStatus?: 'draft' | 'published' | 'corrected' | 'killed';
@@ -113,13 +122,23 @@ interface SignalUpsert {
   businessInference?: string | null;
   inferenceStrength?: 'none' | 'weak' | 'moderate' | 'strong' | null;
   inferenceEvidenceUrls?: string[];
+  claim?: {
+    assertion: string;
+    event: string;
+    amount?: string | number | null;
+    date: string;
+    direction: 'up' | 'down' | 'neutral';
+  };
 }
+
+type SignalEvidenceUpsert = NonNullable<SignalUpsert['evidence']>[number];
 
 adminRoute.post('/sync', async (c) => {
   const body = (await c.req.json()) as { signals?: SignalUpsert[] };
   const sigs = body.signals ?? [];
   let upserts = 0;
   let createdEntities = 0;
+  let proofUpserts = 0;
   for (const s of sigs) {
     const id = await sha16(s.slug);
 
@@ -213,9 +232,13 @@ adminRoute.post('/sync', async (c) => {
               : null,
         });
     }
+    if (s.claim) {
+      await persistExtractedClaim(c.env.DB, id, s);
+      proofUpserts++;
+    }
     upserts++;
   }
-  return c.json({ upserts, createdEntities });
+  return c.json({ upserts, createdEntities, proofUpserts });
 });
 
 adminRoute.get('/signals-review', async (c) => {
@@ -257,6 +280,158 @@ async function ensureEntities(d1: D1Database, ids: (string | null | undefined)[]
     if (r.length > 0) created++;
   }
   return created;
+}
+
+async function resolveSourceDocumentId(
+  d1: D1Database,
+  item: SignalEvidenceUpsert | undefined,
+  url: string
+): Promise<string | null> {
+  const where = item?.sourceDocumentKey
+    ? eq(schema.sourceDocuments.documentKey, item.sourceDocumentKey)
+    : eq(schema.sourceDocuments.canonicalUrl, canonicalSourceUrl(url));
+  const [sourceDocument] = await db(d1)
+    .select({ id: schema.sourceDocuments.id })
+    .from(schema.sourceDocuments)
+    .where(where)
+    .limit(1);
+  return sourceDocument?.id ?? null;
+}
+
+async function persistExtractedEvidenceLink(
+  d1: D1Database,
+  claimId: string,
+  url: string,
+  item: SignalEvidenceUpsert | undefined,
+  now: Date
+) {
+  const sourceDocumentId = await resolveSourceDocumentId(d1, item, url);
+  const rawOrigin = item?.originatingEvidenceId?.trim() || null;
+  const verified =
+    item?.semanticAlignment === 'verified' &&
+    !!sourceDocumentId &&
+    !!rawOrigin &&
+    (item.role === 'primary' || item.role === 'corroboration');
+  const alignment =
+    item?.semanticAlignment === 'rejected' ? 'rejected' : verified ? 'verified' : 'unverified';
+  const originId = rawOrigin ? await sha16(`origin:${claimId}:${rawOrigin.toLowerCase()}`) : null;
+  const role = item?.role ?? 'context';
+  const linkId = await sha16(`link:${claimId}:${canonicalSourceUrl(url)}`);
+  const notes = [
+    `verifier:signal-extractor`,
+    `alignment:${alignment}`,
+    item?.supports?.length ? `supports:${item.supports.join(',')}` : null,
+  ]
+    .filter(Boolean)
+    .join(' ');
+  await db(d1)
+    .insert(schema.claimEvidenceLinks)
+    .values({
+      id: linkId,
+      claimId,
+      evidenceUrl: url,
+      sourceDocumentId,
+      originatingEvidenceId: originId,
+      semanticAlignment: alignment,
+      role,
+      weight: 1,
+      notes,
+      addedAt: now,
+      addedBy: 'signal-extractor',
+    })
+    .onConflictDoUpdate({
+      target: schema.claimEvidenceLinks.id,
+      set: {
+        sourceDocumentId,
+        originatingEvidenceId: originId,
+        semanticAlignment: alignment,
+        role,
+        notes,
+      },
+    });
+  await db(d1)
+    .insert(schema.claimTimelineEvents)
+    .values({
+      id: await sha16(`tl:${claimId}:add:${linkId}`),
+      claimId,
+      kind: 'evidence_added',
+      payload: { linkId, url, role, source: 'signal-extractor' },
+      actor: 'signal-extractor',
+      createdAt: now,
+    })
+    .onConflictDoNothing({ target: schema.claimTimelineEvents.id });
+}
+
+async function persistExtractedClaim(d1: D1Database, signalId: string, signal: SignalUpsert) {
+  if (!signal.claim) return;
+  const tuple = normalizeClaimTuple({
+    entity: signal.primaryEntityId,
+    event: signal.claim.event,
+    amount: signal.claim.amount ?? null,
+    date: signal.claim.date,
+    direction: signal.claim.direction,
+  });
+  const claimId = await sha16(`claim:signal-extractor:${signalId}:${tuple.key}`);
+  const now = new Date();
+  const assertion = signal.claim.assertion.trim().slice(0, 500) || signal.slug.replaceAll('-', ' ');
+
+  await db(d1)
+    .insert(schema.claimRecords)
+    .values({
+      id: claimId,
+      signalId,
+      surface: 'signal',
+      assertion,
+      confidenceBand: signal.confidence,
+      reviewStatus: 'draft',
+      version: 1,
+      createdAt: now,
+      claimEntityId: tuple.entity,
+      claimEvent: tuple.event,
+      claimAmount: tuple.amount,
+      claimDate: tuple.date,
+      claimDirection: tuple.direction,
+      claimTupleKey: tuple.key,
+    })
+    .onConflictDoUpdate({
+      target: schema.claimRecords.id,
+      set: {
+        assertion,
+        confidenceBand: signal.confidence,
+        claimEntityId: tuple.entity,
+        claimEvent: tuple.event,
+        claimAmount: tuple.amount,
+        claimDate: tuple.date,
+        claimDirection: tuple.direction,
+        claimTupleKey: tuple.key,
+      },
+    });
+
+  await db(d1)
+    .insert(schema.claimTimelineEvents)
+    .values({
+      id: await sha16(`tl:${claimId}:created`),
+      claimId,
+      kind: 'created',
+      payload: { source: 'signal-extractor', signalSlug: signal.slug },
+      actor: 'signal-extractor',
+      createdAt: now,
+    })
+    .onConflictDoNothing({ target: schema.claimTimelineEvents.id });
+
+  await persistExtractedEvidenceLinks(d1, signal, claimId, now);
+}
+
+async function persistExtractedEvidenceLinks(
+  d1: D1Database,
+  signal: SignalUpsert,
+  claimId: string,
+  now: Date
+) {
+  const evidenceByUrl = new Map((signal.evidence ?? []).map((item) => [item.url, item]));
+  for (const url of signal.evidenceUrls) {
+    await persistExtractedEvidenceLink(d1, claimId, url, evidenceByUrl.get(url), now);
+  }
 }
 
 adminRoute.patch('/signals/:slug', async (c) => {
@@ -476,24 +651,6 @@ export function normalizeSourceDocument(e: EventInput) {
       fetchRunId: e.fetchRunId ?? null,
     },
   };
-}
-
-export function canonicalSourceUrl(value: string) {
-  if (!value) return value;
-  if (value.startsWith('/')) return value.trim();
-  try {
-    const url = new URL(value);
-    url.hash = '';
-    for (const key of Array.from(url.searchParams.keys())) {
-      if (/^utm_|^ref$|^fbclid$|^gclid$|^mc_cid$|^mc_eid$/i.test(key)) {
-        url.searchParams.delete(key);
-      }
-    }
-    url.hostname = url.hostname.replace(/^www\./, '');
-    return url.toString().replace(/\/$/, '');
-  } catch {
-    return value.trim();
-  }
 }
 
 export function sourceDocumentKey(source: string, canonicalUrl: string) {

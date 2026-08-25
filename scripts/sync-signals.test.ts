@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 import assert from 'node:assert/strict';
-import { escSql, parseFrontmatter, parseTinyYaml } from './sync-signals.lib';
+import { canonicalSourceUrl, escSql, parseFrontmatter, parseTinyYaml } from './sync-signals.lib';
 
 const VALID = `---
 slug: nvda-h100
@@ -22,6 +22,19 @@ evidence_source_types:
 spillover_entity_ids: [ASML, AMAT]
 supersedes: null
 review_status: draft
+claim_assertion: NVIDIA expanded capacity
+claim_event: capacity expansion
+claim_date: '2026-05-01'
+claim_direction: up
+proof_originating_evidence_ids:
+  - announcement-1
+  - filing-2
+proof_semantic_alignments:
+  - verified
+  - verified
+proof_roles:
+  - primary
+  - corroboration
 ---
 
 body text`;
@@ -37,6 +50,8 @@ assert.deepEqual(parsed.front.evidence_quotes, [
 assert.deepEqual(parsed.front.evidence_source_types, ['news', 'official']);
 assert.deepEqual(parsed.front.spillover_entity_ids, ['ASML', 'AMAT']);
 assert.equal(parsed.front.supersedes, null);
+assert.equal(parsed.front.claim_event, 'capacity expansion');
+assert.deepEqual(parsed.front.proof_roles, ['primary', 'corroboration']);
 assert.equal(parsed.body, 'body text');
 
 // parseTinyYaml inline list edge: spaces around commas, empty elements.
@@ -54,6 +69,11 @@ assert.equal(parseTinyYaml(`title: "it's fine"`).title, "it's fine");
 assert.equal(escSql("Sam's tools"), "'Sam''s tools'");
 assert.equal(escSql(null), 'NULL');
 assert.equal(escSql(undefined), 'NULL');
+
+assert.equal(
+  canonicalSourceUrl('https://www.example.com/a/?utm_source=x&keep=1#section'),
+  'https://example.com/a/?keep=1'
+);
 
 // Missing frontmatter delimiters throws a clear error.
 assert.throws(() => parseFrontmatter('no front\nmatter here'), /missing frontmatter/);

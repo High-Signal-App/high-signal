@@ -45,14 +45,28 @@ export const HIT_RATE_FAMILY_MIN = 5;
 export interface RankableRow {
   direction: 'up' | 'down' | 'neutral';
   confidence: 'low' | 'medium' | 'high';
+  verifiedOriginCount?: number;
+  qualityScore?: number;
+  publishedAt?: string | number | Date;
 }
 export function rankStocks<T extends RankableRow>(rows: T[]): T[] {
-  const dirWeight = (d: string) => (d === 'up' ? 0 : d === 'down' ? 1 : 2);
   const confWeight = (c: string) => (c === 'high' ? 0 : c === 'medium' ? 1 : 2);
+  const dirWeight = (d: string) => (d === 'up' ? 0 : d === 'down' ? 1 : 2);
+  const time = (value: RankableRow['publishedAt']) => {
+    if (value == null) return 0;
+    const parsed = value instanceof Date ? value.getTime() : new Date(value).getTime();
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
   return rows.slice().sort((a, b) => {
-    const direction = dirWeight(a.direction) - dirWeight(b.direction);
-    if (direction !== 0) return direction;
-    return confWeight(a.confidence) - confWeight(b.confidence);
+    const origins = (b.verifiedOriginCount ?? 0) - (a.verifiedOriginCount ?? 0);
+    if (origins !== 0) return origins;
+    const quality = (b.qualityScore ?? 0) - (a.qualityScore ?? 0);
+    if (quality !== 0) return quality;
+    const confidence = confWeight(a.confidence) - confWeight(b.confidence);
+    if (confidence !== 0) return confidence;
+    const freshness = time(b.publishedAt) - time(a.publishedAt);
+    if (freshness !== 0) return freshness;
+    return dirWeight(a.direction) - dirWeight(b.direction);
   });
 }
 

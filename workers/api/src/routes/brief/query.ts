@@ -5,6 +5,7 @@
 import { and, asc, desc, eq, inArray, gte, isNull, lte, sql } from 'drizzle-orm';
 import {
   briefFeedDefinition,
+  assessSignalQuality,
   buildBriefEditionReceipt,
   composeBriefFeedEdition,
   extractBriefEditorialSummary,
@@ -357,12 +358,22 @@ export async function buildStocks(
     signalTypes
   );
 
-  // Prefer up/down over neutral and high-confidence first within a type.
+  // Rank proof strength first. Direction is presentation metadata, not quality.
   const ranked = rankStocks(
     rows.map((r) => ({
       ...r,
       direction: r.direction as 'up' | 'down' | 'neutral',
       confidence: r.confidence as 'low' | 'medium' | 'high',
+      verifiedOriginCount: provenanceBySignal.get(r.signalId)?.independentOriginCount ?? 0,
+      qualityScore: assessSignalQuality({
+        signalType: r.signalType,
+        primaryEntityId: r.entityId,
+        confidence: r.confidence as 'low' | 'medium' | 'high',
+        evidenceUrls: (Array.isArray(r.evidenceList) ? r.evidenceList : []).map(String),
+        bodyMd: r.bodyMd,
+        direction: r.direction,
+        publishedAt: r.publishedAt,
+      }).score,
     }))
   );
 

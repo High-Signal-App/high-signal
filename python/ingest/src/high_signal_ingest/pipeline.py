@@ -78,7 +78,7 @@ from .sources import (
     youtube,
 )
 from .types import Event
-from .dedupe import dedupe_exact
+from .dedupe import dedupe, dedupe_exact
 from .utils import event_text
 from .generator import fallback_candidate, generate, generate_batch, thematic_candidate
 from .writer import emit
@@ -609,20 +609,6 @@ def _spillover_candidates(primary: str) -> list[str]:
     return spillover_ids(primary, hops=2, limit=12)
 
 
-def _ranked_entity_groups(by_entity: dict[str, list[Event]]) -> list[tuple[str, list[Event]]]:
-    """Prioritize clusters with independent URLs and multiple source families."""
-
-    return sorted(
-        by_entity.items(),
-        key=lambda item: (
-            len({e.source.split(":")[0] for e in item[1]}),
-            len({e.source_url for e in item[1] if e.source_url}),
-            len(item[1]),
-        ),
-        reverse=True,
-    )
-
-
 def _cluster_limit() -> int:
     return _int_env("SIGNAL_CLUSTER_LIMIT", DEFAULT_SIGNAL_CLUSTER_LIMIT)
 
@@ -633,89 +619,56 @@ def _small_cluster_threshold() -> int:
 
 def _pre_group_clusters(
     by_entity: dict[str, list[Event]],
-) -> tuple[list[tuple[str, list[Event]]], list[list[tuple[str, list[Event]]]]]:
-    """Split entity clusters into large (separate LLM call) and small (batched).
+) -> tuple[list[tuple[str, list[Event]]], list[list[tuple[str, list[Event]]]], int]:
+    """Build proof-bearing story clusters, then split large and batched calls.
 
-    Uses the spillover graph to merge graph-connected small clusters into
-    groups — e.g. NVDA + TSMC + ASML (supply chain) become one batched call
-    instead of three. Unrelated small clusters are batched together up to
-    ``MAX_BATCH_ENTITIES`` per batch.
+    Entity buckets are only the first partition. Within each entity, the
+    existing deterministic story deduper separates unrelated developments.
+    Clusters with fewer than two candidate origins remain stored as source
+    events but do not become signal drafts.
 
-    Returns ``(large_clusters, small_batches)`` where:
+    Returns ``(large_clusters, small_batches, skipped_events)`` where:
     - ``large_clusters`` = list of ``(entity_id, events)`` — one LLM call each
     - ``small_batches`` = list of batches, each a list of ``(entity_id, events)``
     """
+    proof_clusters: list[tuple[str, list[Event], int, int]] = []
+    skipped = 0
+    for entity_id, evs in by_entity.items():
+        for story in dedupe(evs):
+            if story.distinct_origins < 2:
+                skipped += len(story.members)
+                continue
+            proof_clusters.append(
+                (entity_id, story.members, story.distinct_sources, story.distinct_origins)
+            )
+    proof_clusters.sort(key=lambda item: (item[2], item[3], len(item[1])), reverse=True)
+    ranked = [(entity_id, evs) for entity_id, evs, _, _ in proof_clusters[: _cluster_limit()]]
+
     threshold = _small_cluster_threshold()
-    ranked = _ranked_entity_groups(by_entity)[: _cluster_limit()]
-
     large: list[tuple[str, list[Event]]] = []
-    small: dict[str, list[Event]] = {}
-
+    small: list[tuple[str, list[Event]]] = []
     for entity_id, evs in ranked:
         if len(evs) > threshold:
             large.append((entity_id, evs))
         else:
-            small[entity_id] = evs
+            small.append((entity_id, evs))
 
     if not small:
-        return large, []
+        return large, [], skipped
 
-    # Build a subgraph induced by the day's small-cluster entities, then find
-    # connected components — entities in the same component are graph-related
-    # (supplier/customer/peer) and can share one LLM call for cross-entity context.
-    import networkx as nx
-
-    from .graph import _graph
-
-    g = _graph()
-    sub = g.subgraph(small.keys()).copy()
-    # Also add undirected edges so peer/competitor relationships connect components
-    components = list(nx.connected_components(sub.to_undirected()))
-
-    # Sort components by total event count (largest first) so the most
-    # consequential batch goes first.
-    components.sort(
-        key=lambda comp: sum(len(small[eid]) for eid in comp if eid in small),
-        reverse=True,
-    )
-
-    batches: list[list[tuple[str, list[Event]]]] = []
-    current_batch: list[tuple[str, list[Event]]] = []
-
-    for comp in components:
-        comp_entities = [(eid, small[eid]) for eid in comp if eid in small]
-        if not comp_entities:
-            continue
-
-        # If adding this component would exceed the batch cap, flush current batch
-        if current_batch and len(current_batch) + len(comp_entities) > MAX_BATCH_ENTITIES:
-            batches.append(current_batch)
-            current_batch = []
-
-        # If the component itself exceeds the cap, split it (rare — means a huge
-        # connected subgraph; just take the top entities by event count)
-        if len(comp_entities) > MAX_BATCH_ENTITIES:
-            comp_entities.sort(key=lambda x: len(x[1]), reverse=True)
-            while comp_entities:
-                if current_batch and len(current_batch) >= MAX_BATCH_ENTITIES:
-                    batches.append(current_batch)
-                    current_batch = []
-                room = MAX_BATCH_ENTITIES - len(current_batch)
-                current_batch.extend(comp_entities[:room])
-                comp_entities = comp_entities[room:]
-        else:
-            current_batch.extend(comp_entities)
-
-    if current_batch:
-        batches.append(current_batch)
+    batches = [
+        small[index : index + MAX_BATCH_ENTITIES]
+        for index in range(0, len(small), MAX_BATCH_ENTITIES)
+    ]
 
     _log.info(
-        "pre-group: %d large clusters (separate calls), %d small clusters in %d batches",
+        "pre-group: %d proof-bearing large stories, %d small stories in %d batches; %d unproven events retained",
         len(large),
         len(small),
         len(batches),
+        skipped,
     )
-    return large, batches
+    return large, batches, skipped
 
 
 def _event_entity(ev: Event) -> str | None:
@@ -734,20 +687,25 @@ def _event_entity(ev: Event) -> str | None:
 
 
 def cluster_and_generate(events: list[Event]) -> list[str]:
-    """Cluster events by primary entity, then call LLM to generate signals."""
+    """Generate only from proof-bearing stories within each entity bucket."""
     by_entity: dict[str, list[Event]] = defaultdict(list)
     for ev in events:
         eid = _event_entity(ev)
         if eid:
             by_entity[eid].append(ev)
 
+    large, batches, _ = _pre_group_clusters(by_entity)
+    proof_clusters = [*large, *(cluster for batch in batches for cluster in batch)]
     written: list[str] = []
-    for entity_id, evs in _ranked_entity_groups(by_entity)[: _cluster_limit()]:
+    fallback_clusters: list[tuple[str, list[Event]]] = []
+    for entity_id, evs in proof_clusters:
         cand = generate(entity_id, evs, _spillover_candidates(entity_id))
         if cand:
             written.append(emit(cand))
+        else:
+            fallback_clusters.append((entity_id, evs))
     if not written:
-        written.extend(_emit_fallback_drafts(by_entity))
+        written.extend(_emit_fallback_drafts(fallback_clusters))
     return written
 
 
@@ -791,11 +749,11 @@ def _emit_thematic_drafts(events: list[Event]) -> list[str]:
     return written
 
 
-def _emit_fallback_drafts(by_entity: dict[str, list[Event]]) -> list[str]:
-    """Emit a small fallback batch when model generation yields nothing."""
+def _emit_fallback_drafts(clusters: list[tuple[str, list[Event]]]) -> list[str]:
+    """Emit bounded review-only fallbacks from already proof-bearing stories."""
     written: list[str] = []
     ranked = sorted(
-        by_entity.items(),
+        clusters,
         key=lambda item: (len({e.source_url for e in item[1] if e.source_url}), len(item[1])),
         reverse=True,
     )
@@ -890,12 +848,12 @@ def run(source: Source, days: int, *, generate_signals: bool = True) -> dict:
         }
 
     written: list[str] = []
-    low_cluster = 0
-    fallback_by_entity: dict[str, list[Event]] = {}
+    fallback_clusters: list[tuple[str, list[Event]]] = []
 
-    # Pre-group clusters: large clusters get their own LLM call; small clusters
-    # are merged by spillover-graph connected components into batched calls.
-    large_clusters, small_batches = _pre_group_clusters(by_entity)
+    # Separate entity buckets into individual stories. Only stories with two
+    # candidate origins reach generation; small stories share an LLM request
+    # without being merged into one claim.
+    large_clusters, small_batches, low_cluster = _pre_group_clusters(by_entity)
 
     # Large clusters: one LLM call each (high-quality, lots of evidence)
     for entity_id, evs in large_clusters:
@@ -905,14 +863,14 @@ def run(source: Source, days: int, *, generate_signals: bool = True) -> dict:
             errors += 1
             if error_sample is None:
                 error_sample = f"generate {entity_id}: {exc}"[:300]
-            fallback_by_entity[entity_id] = evs
+            fallback_clusters.append((entity_id, evs))
             continue
         if cand:
             written.append(emit(cand))
         else:
-            fallback_by_entity[entity_id] = evs
+            fallback_clusters.append((entity_id, evs))
 
-    # Small clusters: batched by graph-connected components (one LLM call per batch)
+    # Small stories: several independent candidates per LLM request.
     for batch in small_batches:
         clusters_with_spillover = [
             (entity_id, evs, _spillover_candidates(entity_id)) for entity_id, evs in batch
@@ -926,19 +884,20 @@ def run(source: Source, days: int, *, generate_signals: bool = True) -> dict:
                     f"generate_batch {[e for e, _, _ in clusters_with_spillover]}: {exc}"[:300]
                 )
             for entity_id, evs in batch:
-                fallback_by_entity[entity_id] = evs
+                fallback_clusters.append((entity_id, evs))
             continue
-        # Map candidates back; entities with no candidate go to fallback
-        emitted_ids = set()
+        # Map candidates back by story id; repeated entity ids remain distinct.
+        emitted_cluster_ids = set()
         for cand in cands:
             written.append(emit(cand))
-            emitted_ids.add(cand.primary_entity_id)
-        for entity_id, evs in batch:
-            if entity_id not in emitted_ids:
-                fallback_by_entity[entity_id] = evs
+            if cand.source_cluster_id:
+                emitted_cluster_ids.add(cand.source_cluster_id)
+        for index, (entity_id, evs) in enumerate(batch):
+            if f"story-{index + 1}" not in emitted_cluster_ids:
+                fallback_clusters.append((entity_id, evs))
 
-    if not written and fallback_by_entity:
-        fallback_written = _emit_fallback_drafts(fallback_by_entity)
+    if not written and fallback_clusters:
+        fallback_written = _emit_fallback_drafts(fallback_clusters)
         written.extend(fallback_written)
 
     # Thematic signals from entity-less events (additive; never touches the

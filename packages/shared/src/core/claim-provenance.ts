@@ -185,6 +185,7 @@ export interface BriefClaimProvenance {
   primaryCount: number;
   corroborationCount: number;
   contradictionCount: number;
+  independentOriginCount: number;
   evidenceUrls: string[];
 }
 
@@ -216,6 +217,7 @@ export function selectBriefClaimProvenance(
       primaryCount: rollup.primary,
       corroborationCount: rollup.corroboration,
       contradictionCount: rollup.contradiction,
+      independentOriginCount: rollup.supportingOrigins.length,
       evidenceUrls,
     };
   }

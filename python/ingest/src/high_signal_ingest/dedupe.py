@@ -181,6 +181,16 @@ class Story:
         return len({source_family(e.source) for e in self.members})
 
     @property
+    def distinct_origins(self) -> int:
+        """Candidate proof origins after canonical/external-link resolution.
+
+        This is deliberately only a discovery count. Final publication still
+        requires semantic alignment and originating-evidence verification in
+        the structured claim ledger.
+        """
+        return len({external_url(e) for e in self.members if external_url(e)})
+
+    @property
     def sources(self) -> list[str]:
         return sorted({source_family(e.source) for e in self.members})
 

@@ -50,14 +50,25 @@ def _quote_excerpt(value: str | None, max_words: int = 36) -> str | None:
     return out
 
 
-def write_signal(candidate: SignalCandidate, root: Path | None = None) -> Path:
-    root = root or _default_signals_root()
-    day = candidate.published_at.strftime("%Y-%m-%d")
-    dir_ = root / day
-    dir_.mkdir(parents=True, exist_ok=True)
-    fp = dir_ / f"{candidate.slug}.md"
+def _proof_frontmatter(candidate: SignalCandidate) -> dict[str, object]:
+    """Flatten proof receipts into arrays parallel to ``evidence_urls``."""
+    return {
+        "proof_source_document_keys": [
+            evidence.source_document_key or "" for evidence in candidate.evidence
+        ],
+        "proof_originating_evidence_ids": [
+            evidence.originating_evidence_id or "" for evidence in candidate.evidence
+        ],
+        "proof_semantic_alignments": [
+            evidence.semantic_alignment for evidence in candidate.evidence
+        ],
+        "proof_roles": [evidence.role for evidence in candidate.evidence],
+        "proof_supports": [",".join(evidence.supports) for evidence in candidate.evidence],
+    }
 
-    front = {
+
+def _frontmatter(candidate: SignalCandidate, day: str) -> dict[str, object]:
+    front: dict[str, object] = {
         "slug": candidate.slug,
         "signal_type": candidate.signal_type,
         "primary_entity": candidate.primary_entity_id,
@@ -75,6 +86,12 @@ def write_signal(candidate: SignalCandidate, root: Path | None = None) -> Path:
         "business_inference": candidate.business_inference,
         "inference_strength": candidate.inference_strength,
         "inference_evidence_urls": candidate.inference_evidence_urls,
+        "claim_assertion": candidate.observed_event or candidate.claim_event or candidate.slug,
+        "claim_event": candidate.claim_event or candidate.signal_type,
+        "claim_amount": candidate.claim_amount,
+        "claim_date": candidate.claim_date or day,
+        "claim_direction": candidate.direction,
+        **_proof_frontmatter(candidate),
     }
     evidence_quotes = [_quote_excerpt(e.excerpt) or "" for e in candidate.evidence]
     evidence_source_types = [e.source_type for e in candidate.evidence]
@@ -92,6 +109,16 @@ def write_signal(candidate: SignalCandidate, root: Path | None = None) -> Path:
     front["quality_score"] = quality.score
     front["quality_band"] = quality.band
     front["quality_reasons"] = quality.reasons
+    return front
+
+
+def write_signal(candidate: SignalCandidate, root: Path | None = None) -> Path:
+    root = root or _default_signals_root()
+    day = candidate.published_at.strftime("%Y-%m-%d")
+    dir_ = root / day
+    dir_.mkdir(parents=True, exist_ok=True)
+    fp = dir_ / f"{candidate.slug}.md"
+    front = _frontmatter(candidate, day)
     body = candidate.body_md.strip()
     fp.write_text(
         f"---\n{yaml.safe_dump(front, sort_keys=False).strip()}\n---\n\n{body}\n",
@@ -137,6 +164,11 @@ def push_signal(candidate: SignalCandidate) -> dict:
                         "sourceType": e.source_type,
                         "excerpt": _quote_excerpt(e.excerpt),
                         "publishedAt": e.published_at.isoformat() if e.published_at else None,
+                        "sourceDocumentKey": e.source_document_key,
+                        "originatingEvidenceId": e.originating_evidence_id,
+                        "semanticAlignment": e.semantic_alignment,
+                        "role": e.role,
+                        "supports": e.supports,
                     }
                     for e in candidate.evidence
                 ],
@@ -150,6 +182,15 @@ def push_signal(candidate: SignalCandidate) -> dict:
                 "businessInference": candidate.business_inference,
                 "inferenceStrength": candidate.inference_strength,
                 "inferenceEvidenceUrls": candidate.inference_evidence_urls,
+                "claim": {
+                    "assertion": candidate.observed_event
+                    or candidate.claim_event
+                    or candidate.slug,
+                    "event": candidate.claim_event or candidate.signal_type,
+                    "amount": candidate.claim_amount,
+                    "date": candidate.claim_date or candidate.published_at.date().isoformat(),
+                    "direction": candidate.direction,
+                },
             }
         ]
     }

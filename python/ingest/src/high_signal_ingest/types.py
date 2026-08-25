@@ -66,6 +66,18 @@ class EvidenceItem(BaseModel):
     source_type: str
     excerpt: Optional[str] = None
     published_at: Optional[datetime] = None
+    source_document_key: Optional[str] = None
+    originating_evidence_id: Optional[str] = None
+    semantic_alignment: Literal["unverified", "verified", "rejected"] = "unverified"
+    role: Literal["primary", "corroboration", "contradiction", "context"] = "context"
+    supports: list[
+        Literal[
+            "observed_event",
+            "direct_entity_impact",
+            "supply_chain_impact",
+            "business_inference",
+        ]
+    ] = Field(default_factory=list)
 
 
 class SignalCandidate(BaseModel):
@@ -88,3 +100,7 @@ class SignalCandidate(BaseModel):
     business_inference: Optional[str] = None
     inference_strength: Literal["none", "weak", "moderate", "strong"] = "none"
     inference_evidence_urls: list[str] = Field(default_factory=list)
+    claim_event: Optional[str] = None
+    claim_amount: Optional[str] = None
+    claim_date: Optional[str] = None
+    source_cluster_id: Optional[str] = None

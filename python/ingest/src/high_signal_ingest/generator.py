@@ -54,12 +54,23 @@ Output STRICT JSON (no commentary):
   "predicted_window_days": <int 5-90>,
   "spillover_entity_ids": ["TSMC","ASML",...],
   "headline": "<<= 90 chars>",
+  "claim_event": "<concise normalized event, not analysis>",
+  "claim_amount": "<material amount or null>",
+  "claim_date": "<YYYY-MM-DD date of the event>",
   "observed_event": "<source-grounded fact only>",
   "direct_entity_impact": "<direct impact or null>",
   "supply_chain_impact": "<supplier/customer impact or null>",
   "business_inference": "<interpretation or null>",
   "inference_strength": "none|weak|moderate|strong",
   "inference_evidence_urls": ["<only URLs supporting the inference>"],
+  "proofs": [
+    {
+      "url": "<supplied URL>",
+      "aligned": true|false,
+      "originating_evidence_id": "<same stable id when publishers repeat one origin>",
+      "supports": ["observed_event|direct_entity_impact|supply_chain_impact|business_inference"]
+    }
+  ],
   "body_md": "<150-400 words with ## What changed, ## Why it matters, ## Uncertainty, and ## What the sources said sections; cite each used source by URL>"
 }
 
@@ -78,6 +89,10 @@ Rules:
   event; pricing pressure is a business inference and needs its own cited URLs.
   If no evidence specifically supports an inference, set business_inference to
   null, inference_strength to none, and inference_evidence_urls to [].
+- Return one proof assessment for every cited URL. A different hostname is not
+  automatically independent: use the same originating_evidence_id when several
+  publishers repeat one filing, announcement, interview, study, or wire report.
+  Mark aligned false when a URL is context rather than support for this claim.
 - Include 2-4 short source quotations or near-verbatim snippets in a section
   called "What the sources said". Keep each quote under 35 words and tie it to
   the source URL. If a source does not provide useful quotable text, summarize
@@ -282,11 +297,14 @@ def fallback_candidate(
                 source_type=e.source.split(":")[0],
                 excerpt=(e.content or "")[:300] if e.content else None,
                 published_at=e.published_at,
+                source_document_key=(e.source_document.document_key if e.source_document else None),
             )
             for e in evs
         ],
         spillover_entity_ids=spillover_candidates[:5],
         body_md=body_md,
+        claim_event=signal_type,
+        claim_date=max(e.published_at for e in evs).date().isoformat(),
     )
 
 
@@ -342,11 +360,14 @@ def thematic_candidate(
                 source_type=e.source.split(":")[0],
                 excerpt=(e.content or "")[:300] if e.content else None,
                 published_at=e.published_at,
+                source_document_key=(e.source_document.document_key if e.source_document else None),
             )
             for e in evs
         ],
         spillover_entity_ids=[],
         body_md=body_md,
+        claim_event=signal_type,
+        claim_date=max(e.published_at for e in evs).date().isoformat(),
     )
 
 
@@ -489,6 +510,71 @@ def _events_cited_in_body(body_md: str, events: Iterable[Event]) -> list[Event]:
     return [event for event in events if event.source_url and event.source_url in body_md]
 
 
+def _claim_date(value: object, events: list[Event]) -> str:
+    fallback = max(
+        (event.published_at for event in events),
+        default=datetime.now(timezone.utc),
+    ).date()
+    if value is None:
+        return fallback.isoformat()
+    try:
+        return datetime.fromisoformat(str(value).replace("Z", "+00:00")).date().isoformat()
+    except ValueError:
+        return fallback.isoformat()
+
+
+_PROOF_SUPPORT_FIELDS = {
+    "observed_event",
+    "direct_entity_impact",
+    "supply_chain_impact",
+    "business_inference",
+}
+
+
+def _proof_evidence(output: dict, cited_events: list[Event]) -> list[EvidenceItem]:
+    """Build proof-bearing evidence from model assessments and retained docs.
+
+    Unassessed links stay context/unverified, so malformed or older model output
+    can still create a draft but can never gain proof credit accidentally.
+    """
+    raw_assessments = output.get("proofs", [])
+    assessments = {
+        str(item.get("url")): item
+        for item in raw_assessments
+        if isinstance(item, dict) and item.get("url")
+    }
+    seen_origins: set[str] = set()
+    proof_items: list[EvidenceItem] = []
+    for event in cited_events:
+        assessment = assessments.get(event.source_url, {})
+        aligned = assessment.get("aligned") is True
+        origin = str(assessment.get("originating_evidence_id") or "").strip()[:500]
+        verified = aligned and bool(origin)
+        role = "context"
+        if verified and origin not in seen_origins:
+            role = "primary" if not seen_origins else "corroboration"
+            seen_origins.add(origin)
+        supports = [
+            field for field in assessment.get("supports", []) if field in _PROOF_SUPPORT_FIELDS
+        ]
+        proof_items.append(
+            EvidenceItem(
+                url=event.source_url,
+                source_type=event.source.split(":")[0],
+                excerpt=(event.content or "")[:300] if event.content else None,
+                published_at=event.published_at,
+                source_document_key=(
+                    event.source_document.document_key if event.source_document else None
+                ),
+                originating_evidence_id=origin or None,
+                semantic_alignment="verified" if verified else "unverified",
+                role=role,
+                supports=supports,
+            )
+        )
+    return proof_items
+
+
 def generate(
     primary_entity_id: str,
     events: Iterable[Event],
@@ -553,15 +639,7 @@ def generate(
         confidence=out["confidence"],
         predicted_window_days=int(out.get("predicted_window_days", 20)),
         published_at=datetime.now(timezone.utc),
-        evidence=[
-            EvidenceItem(
-                url=e.source_url,
-                source_type=e.source.split(":")[0],
-                excerpt=(e.content or "")[:300] if e.content else None,
-                published_at=e.published_at,
-            )
-            for e in cited_events
-        ],
+        evidence=_proof_evidence(out, cited_events),
         spillover_entity_ids=[
             s for s in out.get("spillover_entity_ids", []) if s in spillover_candidates
         ],
@@ -572,6 +650,9 @@ def generate(
         business_inference=business_inference,
         inference_strength=inference_strength,
         inference_evidence_urls=inference_urls,
+        claim_event=str(out.get("claim_event") or out.get("observed_event") or signal_type),
+        claim_amount=(str(out["claim_amount"]) if out.get("claim_amount") is not None else None),
+        claim_date=_claim_date(out.get("claim_date"), cited_events),
     )
     _record(True, slug, "ok")
     return cand
@@ -590,6 +671,7 @@ omit entities with no actionable signal).
 Output STRICT JSON array (no commentary):
 [
   {
+    "cluster_id": "<the supplied cluster id>",
     "entity_id": "<the primary entity>",
     "publish": true|false,
     "signal_type": "<prefer one of: __SIGNAL_TYPES__; or create a concise snake_case type>",
@@ -598,12 +680,16 @@ Output STRICT JSON array (no commentary):
     "predicted_window_days": <int 5-90>,
     "spillover_entity_ids": ["TSMC","ASML",...],
     "headline": "<<= 90 chars>",
+    "claim_event": "<concise normalized event, not analysis>",
+    "claim_amount": "<material amount or null>",
+    "claim_date": "<YYYY-MM-DD date of the event>",
     "observed_event": "<source-grounded fact only>",
     "direct_entity_impact": "<direct impact or null>",
     "supply_chain_impact": "<supplier/customer impact or null>",
     "business_inference": "<interpretation or null>",
     "inference_strength": "none|weak|moderate|strong",
     "inference_evidence_urls": ["<only URLs supporting the inference>"],
+    "proofs": [{"url":"<supplied URL>","aligned":true|false,"originating_evidence_id":"<stable origin id>","supports":["observed_event"]}],
     "body_md": "<150-400 words with ## What changed, ## Why it matters, ## Uncertainty, and ## What the sources said sections; cite each used source by URL>"
   },
   ...
@@ -623,6 +709,9 @@ Rules (same as single-entity, applied per entity):
 - Keep observed facts separate from direct impact, supply-chain impact, and
   business inference. Every business inference must name only the supplied URLs
   that support that specific conclusion; otherwise omit it and use strength none.
+- Return a proof assessment for every cited URL. Repeated publishers of the
+  same original filing, announcement, interview, study, or wire report must use
+  the same originating_evidence_id and therefore count as one proof origin.
 - Include 2-4 short source quotations or near-verbatim snippets in a section
   called "What the sources said". Keep each quote under 35 words and tie it to
   the source URL. If a source does not provide useful quotable text, summarize
@@ -657,6 +746,71 @@ def _batch_prompt() -> str:
 BATCH_PROMPT_VERSION = "v2-batch"
 
 
+def _candidate_from_batch_item(
+    item: dict,
+    cluster_events: dict[str, list[Event]],
+    cluster_entities: dict[str, str],
+    cluster_spillovers: dict[str, list[str]],
+) -> SignalCandidate | None:
+    cluster_id = str(item.get("cluster_id") or "")
+    entity_id = cluster_entities.get(cluster_id, "")
+    if not entity_id:
+        requested_entity = str(item.get("entity_id") or "")
+        matching_clusters = [
+            key for key, value in cluster_entities.items() if value == requested_entity
+        ]
+        if len(matching_clusters) == 1:
+            cluster_id = matching_clusters[0]
+            entity_id = requested_entity
+    evs = cluster_events.get(cluster_id, [])
+    spillovers = cluster_spillovers.get(cluster_id, [])
+    if not evs:
+        return None
+    signal_type = _signal_type_id(item.get("signal_type"))
+    headline = item.get("headline", "signal")
+    body_md = item.get("body_md", "")
+    cited_events = _events_cited_in_body(body_md, evs)
+    inference_urls = [
+        url
+        for url in item.get("inference_evidence_urls", [])
+        if url in {event.source_url for event in cited_events}
+    ]
+    business_inference = item.get("business_inference") or None
+    inference_strength = item.get("inference_strength", "none")
+    if not business_inference or not inference_urls:
+        business_inference = None
+        inference_strength = "none"
+        inference_urls = []
+    elif inference_strength not in {"weak", "moderate", "strong"}:
+        inference_strength = "weak"
+    return SignalCandidate(
+        slug=f"{entity_id.lower()}-{_slugify(headline)}",
+        signal_type=signal_type,
+        primary_entity_id=entity_id,
+        direction=item["direction"],
+        confidence=item["confidence"],
+        predicted_window_days=int(item.get("predicted_window_days", 20)),
+        published_at=datetime.now(timezone.utc),
+        evidence=_proof_evidence(item, cited_events),
+        spillover_entity_ids=[
+            spillover
+            for spillover in item.get("spillover_entity_ids", [])
+            if spillover in spillovers
+        ],
+        body_md=body_md,
+        observed_event=str(item.get("observed_event") or headline),
+        direct_entity_impact=item.get("direct_entity_impact") or None,
+        supply_chain_impact=item.get("supply_chain_impact") or None,
+        business_inference=business_inference,
+        inference_strength=inference_strength,
+        inference_evidence_urls=inference_urls,
+        claim_event=str(item.get("claim_event") or item.get("observed_event") or signal_type),
+        claim_amount=(str(item["claim_amount"]) if item.get("claim_amount") is not None else None),
+        claim_date=_claim_date(item.get("claim_date"), cited_events),
+        source_cluster_id=cluster_id,
+    )
+
+
 def generate_batch(
     clusters: list[tuple[str, list[Event], list[str]]],
 ) -> list[SignalCandidate]:
@@ -672,14 +826,17 @@ def generate_batch(
 
     # Build the batched user message
     entity_blocks: list[str] = []
-    entity_events: dict[str, list[Event]] = {}
-    entity_spillovers: dict[str, list[str]] = {}
+    cluster_events: dict[str, list[Event]] = {}
+    cluster_entities: dict[str, str] = {}
+    cluster_spillovers: dict[str, list[str]] = {}
     for idx, (entity_id, raw_evs, spillovers) in enumerate(clusters):
+        cluster_id = f"story-{idx + 1}"
         evs = _relevant_events(entity_id, list(raw_evs), spillovers)
         if not evs:
             continue
-        entity_events[entity_id] = evs
-        entity_spillovers[entity_id] = spillovers
+        cluster_events[cluster_id] = evs
+        cluster_entities[cluster_id] = entity_id
+        cluster_spillovers[cluster_id] = spillovers
         blob = "\n".join(
             f"  - [{e.source}] {e.published_at.isoformat()} | {e.title or ''}\n"
             f"    URL: {e.source_url}\n"
@@ -687,7 +844,7 @@ def generate_batch(
             for e in evs
         )
         entity_blocks.append(
-            f"=== ENTITY {idx + 1}: {entity_id} ===\n"
+            f"=== CLUSTER {cluster_id} / ENTITY {entity_id} ===\n"
             f"SPILLOVER CANDIDATES: {', '.join(spillovers)}\n"
             f"EVENTS ({len(evs)}):\n{blob}"
         )
@@ -733,58 +890,14 @@ def generate_batch(
     for item in items:
         if not isinstance(item, dict) or not item.get("publish"):
             continue
-        entity_id = item.get("entity_id", "")
-        evs = entity_events.get(entity_id, [])
-        spillovers = entity_spillovers.get(entity_id, [])
-        if not evs:
-            continue
-        signal_type = _signal_type_id(item.get("signal_type"))
-        headline = item.get("headline", "signal")
-        slug = f"{entity_id.lower()}-{_slugify(headline)}"
-        body_md = item.get("body_md", "")
-        cited_events = _events_cited_in_body(body_md, evs)
-        inference_urls = [
-            url
-            for url in item.get("inference_evidence_urls", [])
-            if url in {event.source_url for event in cited_events}
-        ]
-        business_inference = item.get("business_inference") or None
-        inference_strength = item.get("inference_strength", "none")
-        if not business_inference or not inference_urls:
-            business_inference = None
-            inference_strength = "none"
-            inference_urls = []
-        elif inference_strength not in {"weak", "moderate", "strong"}:
-            inference_strength = "weak"
-        cand = SignalCandidate(
-            slug=slug,
-            signal_type=signal_type,
-            primary_entity_id=entity_id,
-            direction=item["direction"],
-            confidence=item["confidence"],
-            predicted_window_days=int(item.get("predicted_window_days", 20)),
-            published_at=datetime.now(timezone.utc),
-            evidence=[
-                EvidenceItem(
-                    url=e.source_url,
-                    source_type=e.source.split(":")[0],
-                    excerpt=(e.content or "")[:300] if e.content else None,
-                    published_at=e.published_at,
-                )
-                for e in cited_events
-            ],
-            spillover_entity_ids=[
-                s for s in item.get("spillover_entity_ids", []) if s in spillovers
-            ],
-            body_md=body_md,
-            observed_event=str(item.get("observed_event") or headline),
-            direct_entity_impact=item.get("direct_entity_impact") or None,
-            supply_chain_impact=item.get("supply_chain_impact") or None,
-            business_inference=business_inference,
-            inference_strength=inference_strength,
-            inference_evidence_urls=inference_urls,
+        candidate = _candidate_from_batch_item(
+            item,
+            cluster_events,
+            cluster_entities,
+            cluster_spillovers,
         )
-        candidates.append(cand)
+        if candidate:
+            candidates.append(candidate)
 
     _record(True, None, f"ok:{len(candidates)}/{len(clusters)}")
     return candidates
