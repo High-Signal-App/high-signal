@@ -26,6 +26,8 @@
  *                 and falls back to a deterministic rubric (≥ 2 independent
  *                 source classes → publish, else kill).
  *   AI_MODEL      default deepseek-chat
+ *   AI_PROJECT_ID project tag required by the free-ai gateway; defaults to
+ *                 high-signal and is harmless for other OpenAI-compatible APIs
  *   API_BASE      default https://api.highsignal.app
  *   ADMIN_TOKEN   required when not --dry
  *
@@ -82,6 +84,7 @@ const ADMIN_TOKEN = process.env['ADMIN_TOKEN'] ?? '';
 const AI_BASE_URL = process.env['AI_BASE_URL'] ?? 'https://api.deepseek.com/v1';
 const AI_API_KEY = process.env['AI_API_KEY'] ?? '';
 const AI_MODEL = process.env['AI_MODEL'] ?? 'deepseek-chat';
+const AI_PROJECT_ID = process.env['AI_PROJECT_ID'] ?? 'high-signal';
 
 const MAX_BODY_CHARS = 2400;
 const RATE_LIMIT_MS = 250; // gentle pacing between AI calls
@@ -377,6 +380,7 @@ async function aiVerdict(signal: SignalRow): Promise<VerdictResult | null> {
       },
       body: JSON.stringify({
         model: AI_MODEL,
+        project_id: AI_PROJECT_ID,
         temperature: 0.1,
         max_tokens: 200,
         stream: false,

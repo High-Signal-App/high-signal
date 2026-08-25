@@ -35,6 +35,7 @@ jobs:
           AI_BASE_URL: ${{ secrets.AI_BASE_URL || 'https://api.deepseek.com/v1' }}
           AI_API_KEY: ${{ secrets.AI_API_KEY }}
           AI_MODEL: ${{ secrets.AI_MODEL || 'deepseek-chat' }}
+          AI_PROJECT_ID: high-signal
         run: |
           if [ "${{ inputs.dry }}" = "true" ]; then
             pnpm signals:auto-publish:dry
