@@ -64,10 +64,17 @@ def test_generator_accepts_dynamic_signal_type(monkeypatch) -> None:
                 "predicted_window_days": 20,
                 "spillover_entity_ids": [],
                 "headline": "NVIDIA capex signal",
-                "body_md": "Body",
+                "body_md": "Body cites https://example.com/a.",
             },
-            {"model": "test", "prompt_version": "0", "reason": None, "raw_response": None,
-             "latency_ms": 0, "tokens_in": 0, "tokens_out": 0},
+            {
+                "model": "test",
+                "prompt_version": "0",
+                "reason": None,
+                "raw_response": None,
+                "latency_ms": 0,
+                "tokens_in": 0,
+                "tokens_out": 0,
+            },
         ),
     )
 
@@ -75,3 +82,48 @@ def test_generator_accepts_dynamic_signal_type(monkeypatch) -> None:
 
     assert cand is not None
     assert cand.signal_type == "credit_facility_update"
+    assert [e.url for e in cand.evidence] == ["https://example.com/a"]
+
+
+def test_generator_drops_uncited_cluster_events(monkeypatch) -> None:
+    monkeypatch.setattr(
+        generator,
+        "_ai_complete",
+        lambda *_args, **_kwargs: (
+            {
+                "publish": True,
+                "signal_type": "design_win",
+                "direction": "up",
+                "confidence": "medium",
+                "predicted_window_days": 60,
+                "spillover_entity_ids": [],
+                "headline": "NVIDIA design win",
+                "body_md": "The supported claim cites https://example.com/a.",
+            },
+            {
+                "model": "test",
+                "prompt_version": "0",
+                "reason": None,
+                "raw_response": None,
+                "latency_ms": 0,
+                "tokens_in": 0,
+                "tokens_out": 0,
+            },
+        ),
+    )
+
+    cand = generator.generate(
+        "NVDA",
+        [_event("https://example.com/a"), _event("https://example.com/adjacent")],
+        [],
+    )
+
+    assert cand is not None
+    assert [e.url for e in cand.evidence] == ["https://example.com/a"]
+
+
+def test_generation_prompt_requires_brief_editorial_sections() -> None:
+    prompt = generator._prompt()
+    assert "## What changed" in prompt
+    assert "## Why it matters" in prompt
+    assert "## Uncertainty" in prompt

@@ -60,7 +60,7 @@ Output STRICT JSON (no commentary):
   "business_inference": "<interpretation or null>",
   "inference_strength": "none|weak|moderate|strong",
   "inference_evidence_urls": ["<only URLs supporting the inference>"],
-  "body_md": "<150-400 word evidence walkthrough citing each source by URL, with a short 'What the sources said' quote section>"
+  "body_md": "<150-400 words with ## What changed, ## Why it matters, ## Uncertainty, and ## What the sources said sections; cite each used source by URL>"
 }
 
 Rules:
@@ -70,6 +70,10 @@ Rules:
   aligned items instead of publish=false.
 - Cite every supplied source used in body_md as inline links. Medium/high
   confidence drafts need ≥ 2 distinct sources; low confidence drafts may use 1.
+- body_md must contain `## What changed`, `## Why it matters`, and
+  `## Uncertainty`, each followed by at least one complete, source-grounded
+  sentence. The uncertainty must name a concrete caveat, competing explanation,
+  or missing evidence rather than generic boilerplate.
 - Keep observation and interpretation separate. An app complaint is an observed
   event; pricing pressure is a business inference and needs its own cited URLs.
   If no evidence specifically supports an inference, set business_inference to
@@ -474,6 +478,17 @@ def _normalize_business_inference(
     return business_inference, inference_strength, inference_urls
 
 
+def _events_cited_in_body(body_md: str, events: Iterable[Event]) -> list[Event]:
+    """Keep only evidence the generated signal actually cites.
+
+    The model may receive a broad entity cluster but use only the URLs relevant
+    to its final claim. Persisting every input URL makes adjacent stories look
+    like corroboration, so uncited inputs must remain discovery context rather
+    than signal evidence.
+    """
+    return [event for event in events if event.source_url and event.source_url in body_md]
+
+
 def generate(
     primary_entity_id: str,
     events: Iterable[Event],
@@ -525,7 +540,11 @@ def generate(
 
     headline = out.get("headline", "signal")
     slug = f"{primary_entity_id.lower()}-{_slugify(headline)}"
-    business_inference, inference_strength, inference_urls = _normalize_business_inference(out, evs)
+    body_md = out.get("body_md", "")
+    cited_events = _events_cited_in_body(body_md, evs)
+    business_inference, inference_strength, inference_urls = _normalize_business_inference(
+        out, cited_events
+    )
     cand = SignalCandidate(
         slug=slug,
         signal_type=signal_type,
@@ -541,12 +560,12 @@ def generate(
                 excerpt=(e.content or "")[:300] if e.content else None,
                 published_at=e.published_at,
             )
-            for e in evs
+            for e in cited_events
         ],
         spillover_entity_ids=[
             s for s in out.get("spillover_entity_ids", []) if s in spillover_candidates
         ],
-        body_md=out.get("body_md", ""),
+        body_md=body_md,
         observed_event=str(out.get("observed_event") or headline),
         direct_entity_impact=out.get("direct_entity_impact") or None,
         supply_chain_impact=out.get("supply_chain_impact") or None,
@@ -585,7 +604,7 @@ Output STRICT JSON array (no commentary):
     "business_inference": "<interpretation or null>",
     "inference_strength": "none|weak|moderate|strong",
     "inference_evidence_urls": ["<only URLs supporting the inference>"],
-    "body_md": "<150-400 word evidence walkthrough citing each source by URL, with a short 'What the sources said' quote section>"
+    "body_md": "<150-400 words with ## What changed, ## Why it matters, ## Uncertainty, and ## What the sources said sections; cite each used source by URL>"
   },
   ...
 ]
@@ -597,6 +616,10 @@ Rules (same as single-entity, applied per entity):
   aligned items instead of publish=false.
 - Cite every supplied source used in body_md as inline links. Medium/high
   confidence drafts need ≥ 2 distinct sources; low confidence drafts may use 1.
+- For every returned entity, structure body_md with `## What changed`,
+  `## Why it matters`, and `## Uncertainty`. Put a complete source-grounded
+  sentence under each heading and make the last section identify a real caveat,
+  alternative explanation, or evidentiary gap.
 - Keep observed facts separate from direct impact, supply-chain impact, and
   business inference. Every business inference must name only the supplied URLs
   that support that specific conclusion; otherwise omit it and use strength none.
@@ -718,10 +741,12 @@ def generate_batch(
         signal_type = _signal_type_id(item.get("signal_type"))
         headline = item.get("headline", "signal")
         slug = f"{entity_id.lower()}-{_slugify(headline)}"
+        body_md = item.get("body_md", "")
+        cited_events = _events_cited_in_body(body_md, evs)
         inference_urls = [
             url
             for url in item.get("inference_evidence_urls", [])
-            if url in {event.source_url for event in evs}
+            if url in {event.source_url for event in cited_events}
         ]
         business_inference = item.get("business_inference") or None
         inference_strength = item.get("inference_strength", "none")
@@ -746,12 +771,12 @@ def generate_batch(
                     excerpt=(e.content or "")[:300] if e.content else None,
                     published_at=e.published_at,
                 )
-                for e in evs
+                for e in cited_events
             ],
             spillover_entity_ids=[
                 s for s in item.get("spillover_entity_ids", []) if s in spillovers
             ],
-            body_md=item.get("body_md", ""),
+            body_md=body_md,
             observed_event=str(item.get("observed_event") or headline),
             direct_entity_impact=item.get("direct_entity_impact") or None,
             supply_chain_impact=item.get("supply_chain_impact") or None,
