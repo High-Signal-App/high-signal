@@ -87,6 +87,7 @@ const AI_MODEL = process.env['AI_MODEL'] ?? 'deepseek-chat';
 const AI_PROJECT_ID = process.env['AI_PROJECT_ID'] ?? 'high-signal';
 
 const MAX_BODY_CHARS = 2400;
+const MAX_AI_RESPONSE_TOKENS = 800;
 const RATE_LIMIT_MS = 250; // gentle pacing between AI calls
 
 async function fetchSignalsByStatus(status: 'draft' | 'published'): Promise<SignalRow[]> {
@@ -382,7 +383,9 @@ async function aiVerdict(signal: SignalRow): Promise<VerdictResult | null> {
         model: AI_MODEL,
         project_id: AI_PROJECT_ID,
         temperature: 0.1,
-        max_tokens: 200,
+        // A publish verdict includes a claim tuple plus one assessment per URL;
+        // 200 tokens truncated otherwise-valid JSON in production.
+        max_tokens: MAX_AI_RESPONSE_TOKENS,
         stream: false,
         response_format: { type: 'json_object' },
         messages: [
