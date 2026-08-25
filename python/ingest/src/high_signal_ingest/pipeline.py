@@ -267,19 +267,25 @@ def _with_backoff(
 
 
 def _fetch_tasks(source: Source, days: int) -> list[tuple[str, str, Callable[[], list[Event]]]]:
+    grouped = source_catalog.PIPELINE_SOURCE_GROUPS.get(source)
+    if grouped is None:
+        return _fetch_single_source_tasks(source, days)
+
+    tasks: list[tuple[str, str, Callable[[], list[Event]]]] = []
+    for source_id in sorted(grouped):
+        tasks.extend(_fetch_single_source_tasks(cast(Source, source_id), days))
+    return tasks
+
+
+def _fetch_single_source_tasks(
+    source: Source, days: int
+) -> list[tuple[str, str, Callable[[], list[Event]]]]:
     """Build ``(name, host_key, callable)`` descriptors for the selected sources.
 
     Each callable encapsulates the per-source window/cap logic so the executor
     can run them concurrently. Existing env caps (e.g. ``EDGAR_TICKER_LIMIT``)
     are honoured here exactly as before.
     """
-    grouped = source_catalog.PIPELINE_SOURCE_GROUPS.get(source)
-    if grouped is not None:
-        tasks: list[tuple[str, str, Callable[[], list[Event]]]] = []
-        for source_id in sorted(grouped):
-            tasks.extend(_fetch_tasks(cast(Source, source_id), days))
-        return tasks
-
     tasks = []
 
     def add(name: str, host: str, fn: Callable[[], list[Event]]) -> None:

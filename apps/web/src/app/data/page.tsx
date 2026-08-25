@@ -79,6 +79,161 @@ function isoDay(unixSec: number, fallback: string): string {
   return new Date(unixSec * 1000).toISOString().slice(0, 10);
 }
 
+function runStatusFor(
+  source: CatalogEntry,
+  live: DataSourceLive | undefined
+): DataSourceLive['runStatus'] {
+  if (live?.runStatus) return live.runStatus;
+  if (source.cadence === 'manual') return 'manual';
+  if (source.cadence === 'parked') return 'parked';
+  if (source.cadence === 'on_demand') return 'on_demand';
+  return 'unknown';
+}
+
+function runLabelFor(status: DataSourceLive['runStatus']): string {
+  const labels: Record<DataSourceLive['runStatus'], string> = {
+    success_with_data: 'last run produced data',
+    success_empty: 'last run: no new rows',
+    failed: 'last run failed',
+    manual: 'manual',
+    on_demand: 'on demand',
+    parked: 'parked',
+    unknown: 'run status unknown',
+  };
+  return labels[status];
+}
+
+function SourceSummary({
+  source,
+  live,
+  count,
+  day,
+  runStatus,
+}: {
+  source: CatalogEntry;
+  live: DataSourceLive | undefined;
+  count: number;
+  day: string;
+  runStatus: DataSourceLive['runStatus'];
+}) {
+  const statusLabel = `${source.cadence.replace('_', ' ')} · ${runLabelFor(runStatus)}`;
+  const latestObservedAt = live?.latestObservedAt ?? live?.lastAt ?? 0;
+  const observationLabel =
+    count === 0 ? 'no stored rows' : latestObservedAt ? day : `${live?.futureCount ?? 0} future`;
+  return (
+    <>
+      <code className="w-32 shrink-0 truncate font-mono text-sm text-zinc-100 sm:w-40">
+        {source.id}
+      </code>
+      <span className="hidden w-48 shrink-0 truncate text-xs text-[var(--color-muted)] sm:block">
+        {source.provider}
+      </span>
+      <span
+        className={`shrink-0 rounded border px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.12em] ${accessTone(source.access)}`}
+        title={source.accessBasis}
+      >
+        {accessLabel(source.access)}
+      </span>
+      {source.official && (
+        <span
+          className="shrink-0 font-mono text-[9px] text-[var(--color-muted)]"
+          title="counts toward the cite-or-kill official-source bar"
+        >
+          ⚖️
+        </span>
+      )}
+      <span
+        className="shrink-0 font-mono text-[10px] text-[var(--color-muted)]"
+        title={TEMPORAL_META[source.temporal]?.title}
+      >
+        {TEMPORAL_META[source.temporal]?.icon}
+      </span>
+      <span
+        className={`ml-auto hidden shrink-0 font-mono text-[10px] sm:block ${runStatus === 'failed' ? 'text-rose-400' : 'text-zinc-500'}`}
+        title={statusLabel}
+      >
+        {statusLabel}
+      </span>
+      <span
+        className={`ml-auto w-14 shrink-0 text-right font-mono text-sm tabular-nums sm:ml-0 sm:w-16 ${count > 0 ? 'text-[var(--color-accent)]' : 'text-[var(--color-muted)]'}`}
+      >
+        {count.toLocaleString()}
+      </span>
+      <span className="hidden w-24 shrink-0 text-right font-mono text-[10px] tabular-nums text-[var(--color-muted)] md:block">
+        {observationLabel}
+      </span>
+    </>
+  );
+}
+
+function SourceRow({
+  source,
+  live,
+  today,
+}: {
+  source: CatalogEntry;
+  live?: DataSourceLive;
+  today: string;
+}) {
+  const count = live?.count ?? 0;
+  const latestObservedAt = live?.latestObservedAt ?? live?.lastAt ?? 0;
+  const day = isoDay(latestObservedAt, today);
+  const href = latestObservedAt
+    ? (`/data/${encodeURIComponent(source.id)}?date=${day}` as Route)
+    : (`/data/${encodeURIComponent(source.id)}?all=1` as Route);
+  const summary = (
+    <SourceSummary
+      source={source}
+      live={live}
+      count={count}
+      day={day}
+      runStatus={runStatusFor(source, live)}
+    />
+  );
+  return (
+    <div className="group py-2">
+      {count > 0 ? (
+        <Link
+          href={href}
+          className="-mx-1 flex items-center gap-3 rounded-sm px-1 py-1 transition-colors hover:bg-zinc-950 hover:text-zinc-100"
+        >
+          {summary}
+        </Link>
+      ) : (
+        <div className="-mx-1 flex items-center gap-3 px-1 py-1">{summary}</div>
+      )}
+    </div>
+  );
+}
+
+function SourceGroup({
+  role,
+  sources,
+  live,
+  today,
+}: {
+  role: (typeof ROLE_ORDER)[number];
+  sources: CatalogEntry[];
+  live: Record<string, DataSourceLive>;
+  today: string;
+}) {
+  const rows = sources.filter((source) => source.role === role);
+  if (rows.length === 0) return null;
+  return (
+    <section className="mb-10">
+      <div className="mb-3 flex items-baseline gap-3 border-b border-zinc-800 pb-2">
+        <h2 className="font-mono text-xs uppercase tracking-[0.18em] text-zinc-300">{role}</h2>
+        <span className="text-xs text-[var(--color-muted)]">{ROLE_BLURB[role]}</span>
+      </div>
+      <div className="divide-y divide-zinc-900">
+        {rows.map((source) => (
+          <SourceRow key={source.id} source={source} live={live[source.id]} today={today} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export default async function DataPage() {
   const sources = catalog.sources as CatalogEntry[];
   const today = new Date().toISOString().slice(0, 10);
@@ -360,113 +515,9 @@ export default async function DataPage() {
           ))}
       </section>
 
-      {ROLE_ORDER.map((role) => {
-        const rows = sources.filter((s) => s.role === role);
-        if (rows.length === 0) return null;
-        return (
-          <section key={role} className="mb-10">
-            <div className="mb-3 flex items-baseline gap-3 border-b border-zinc-800 pb-2">
-              <h2 className="font-mono text-xs uppercase tracking-[0.18em] text-zinc-300">
-                {role}
-              </h2>
-              <span className="text-xs text-[var(--color-muted)]">{ROLE_BLURB[role]}</span>
-            </div>
-            <div className="divide-y divide-zinc-900">
-              {rows.map((s) => {
-                const l = live[s.id];
-                const count = l?.count ?? 0;
-                const latestObservedAt = l?.latestObservedAt ?? l?.lastAt ?? 0;
-                const day = isoDay(latestObservedAt, today);
-                const href = latestObservedAt
-                  ? (`/data/${encodeURIComponent(s.id)}?date=${day}` as Route)
-                  : (`/data/${encodeURIComponent(s.id)}?all=1` as Route);
-                const runStatus =
-                  l?.runStatus ??
-                  (s.cadence === 'manual' || s.cadence === 'parked' || s.cadence === 'on_demand'
-                    ? s.cadence
-                    : 'unknown');
-                const runLabel =
-                  runStatus === 'success_with_data'
-                    ? 'last run produced data'
-                    : runStatus === 'success_empty'
-                      ? 'last run: no new rows'
-                      : runStatus === 'failed'
-                        ? 'last run failed'
-                        : runStatus === 'manual'
-                          ? 'manual'
-                          : runStatus === 'on_demand'
-                            ? 'on demand'
-                            : runStatus === 'parked'
-                              ? 'parked'
-                              : 'run status unknown';
-                const statusLabel = `${s.cadence.replace('_', ' ')} · ${runLabel}`;
-                const sourceSummary = (
-                  <>
-                    <code className="w-32 shrink-0 truncate font-mono text-sm text-zinc-100 sm:w-40">
-                      {s.id}
-                    </code>
-                    <span className="hidden w-48 shrink-0 truncate text-xs text-[var(--color-muted)] sm:block">
-                      {s.provider}
-                    </span>
-                    <span
-                      className={`shrink-0 rounded border px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.12em] ${accessTone(s.access)}`}
-                      title={s.accessBasis}
-                    >
-                      {accessLabel(s.access)}
-                    </span>
-                    {s.official && (
-                      <span
-                        className="shrink-0 font-mono text-[9px] text-[var(--color-muted)]"
-                        title="counts toward the cite-or-kill official-source bar"
-                      >
-                        ⚖️
-                      </span>
-                    )}
-                    <span
-                      className="shrink-0 font-mono text-[10px] text-[var(--color-muted)]"
-                      title={TEMPORAL_META[s.temporal]?.title}
-                    >
-                      {TEMPORAL_META[s.temporal]?.icon}
-                    </span>
-                    <span
-                      className={`ml-auto hidden shrink-0 font-mono text-[10px] sm:block ${runStatus === 'failed' ? 'text-rose-400' : 'text-zinc-500'}`}
-                      title={statusLabel}
-                    >
-                      {statusLabel}
-                    </span>
-                    <span
-                      className={`ml-auto w-14 shrink-0 text-right font-mono text-sm tabular-nums sm:ml-0 sm:w-16 ${count > 0 ? 'text-[var(--color-accent)]' : 'text-[var(--color-muted)]'}`}
-                    >
-                      {count.toLocaleString()}
-                    </span>
-                    <span className="hidden w-24 shrink-0 text-right font-mono text-[10px] tabular-nums text-[var(--color-muted)] md:block">
-                      {count > 0
-                        ? latestObservedAt
-                          ? day
-                          : `${l?.futureCount ?? 0} future`
-                        : 'no stored rows'}
-                    </span>
-                  </>
-                );
-                return (
-                  <div key={s.id} className="group py-2">
-                    {count > 0 ? (
-                      <Link
-                        href={href}
-                        className="-mx-1 flex items-center gap-3 rounded-sm px-1 py-1 transition-colors hover:bg-zinc-950 hover:text-zinc-100"
-                      >
-                        {sourceSummary}
-                      </Link>
-                    ) : (
-                      <div className="-mx-1 flex items-center gap-3 px-1 py-1">{sourceSummary}</div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-        );
-      })}
+      {ROLE_ORDER.map((role) => (
+        <SourceGroup key={role} role={role} sources={sources} live={live} today={today} />
+      ))}
 
       <footer className="mt-12 border-t border-zinc-800 pt-4 font-mono text-[11px] text-[var(--color-muted)]">
         <p className="mb-1">

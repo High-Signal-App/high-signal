@@ -185,7 +185,9 @@ def events_from_matters(
         agenda = _parse_datetime(matter.get("MatterAgendaDate"))
         # Legistar occasionally returns future intro/agenda dates. They are
         # effective scheduling metadata, not evidence publication timestamps.
-        published = next((value for value in (intro, agenda) if value and value <= observed_at), None)
+        published = next(
+            (value for value in (intro, agenda) if value and value <= observed_at), None
+        )
         if published is None or published < since:
             continue
         title = str(matter.get("MatterTitle") or matter.get("MatterName") or "").strip()

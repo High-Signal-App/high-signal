@@ -34,7 +34,9 @@ def test_events_from_matters_keeps_relevant_development_item() -> None:
     assert len(events) == 1
     ev = events[0]
     assert ev.source == "legistar:phoenix"
-    assert ev.source_url == "https://phoenix.legistar.com/LegislationDetail.aspx?ID=123&GUID=ABCD-EF"
+    assert (
+        ev.source_url == "https://phoenix.legistar.com/LegislationDetail.aspx?ID=123&GUID=ABCD-EF"
+    )
     assert "Phoenix AZ — City Council" in ev.title
     assert "data center" in (ev.content or "").lower()
 

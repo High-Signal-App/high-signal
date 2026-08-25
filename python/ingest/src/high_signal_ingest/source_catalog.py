@@ -84,9 +84,7 @@ WEEKLY_SOURCES = frozenset(
     }
 )
 MONTHLY_SOURCES = frozenset({"bls", "eia", "global-macro"})
-ON_DEMAND_SOURCES = frozenset(
-    {"gdelt", "semantic-scholar", "stackexchange", "substack", "youtube"}
-)
+ON_DEMAND_SOURCES = frozenset({"gdelt", "semantic-scholar", "stackexchange", "substack", "youtube"})
 MANUAL_SOURCES = frozenset({"companies-house", "wikidata"})
 PARKED_SOURCES = frozenset(
     {
