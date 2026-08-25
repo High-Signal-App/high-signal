@@ -29,6 +29,7 @@ import {
   type SignalFamily,
 } from '@high-signal/shared';
 import { db, schema } from '../../db';
+import { serializeClaimEvidenceLink } from '../../lib/signal-quality';
 import {
   COMMUNITY_DIGEST_LOOKBACK_DAYS,
   IDEAS_LIMIT,
@@ -433,19 +434,7 @@ async function loadBriefProvenanceBySignalId(
   const linksByClaim = new Map<string, ClaimEvidenceLink[]>();
   for (const link of linkRows) {
     const links = linksByClaim.get(link.claimId) ?? [];
-    links.push({
-      id: link.id,
-      claimId: link.claimId,
-      evidenceUrl: link.evidenceUrl,
-      sourceDocumentId: link.sourceDocumentId ?? null,
-      originatingEvidenceId: link.originatingEvidenceId ?? null,
-      semanticAlignment: link.semanticAlignment,
-      role: link.role,
-      weight: link.weight,
-      notes: link.notes ?? null,
-      addedAt: link.addedAt.toISOString(),
-      addedBy: link.addedBy ?? null,
-    });
+    links.push(serializeClaimEvidenceLink(link));
     linksByClaim.set(link.claimId, links);
   }
   const claimsBySignal = new Map<string, ClaimWithEvidence[]>();

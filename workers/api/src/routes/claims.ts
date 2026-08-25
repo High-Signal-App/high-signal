@@ -17,28 +17,36 @@ type Env = { DB: D1Database };
 
 export const claimsRoute = new Hono<{ Bindings: Env }>();
 
+function optionalValue<T>(value: T | null | undefined): T | null {
+  return value ?? null;
+}
+
+function optionalIso(value: Date | null | undefined): string | null {
+  return value ? value.toISOString() : null;
+}
+
 function toClaim(row: typeof schema.claimRecords.$inferSelect): ClaimRecord {
   return {
     id: row.id,
-    signalId: row.signalId ?? null,
-    briefItemId: row.briefItemId ?? null,
-    agentEvalResponseId: row.agentEvalResponseId ?? null,
+    signalId: optionalValue(row.signalId),
+    briefItemId: optionalValue(row.briefItemId),
+    agentEvalResponseId: optionalValue(row.agentEvalResponseId),
     surface: row.surface,
     assertion: row.assertion,
     confidenceBand: row.confidenceBand,
     reviewStatus: row.reviewStatus,
-    publishReason: row.publishReason ?? null,
-    parentClaimId: row.parentClaimId ?? null,
+    publishReason: optionalValue(row.publishReason),
+    parentClaimId: optionalValue(row.parentClaimId),
     version: row.version,
     createdAt: row.createdAt.toISOString(),
-    publishedAt: row.publishedAt ? row.publishedAt.toISOString() : null,
-    correctedAt: row.correctedAt ? row.correctedAt.toISOString() : null,
-    claimEntityId: row.claimEntityId ?? null,
-    claimEvent: row.claimEvent ?? null,
-    claimAmount: row.claimAmount ?? null,
-    claimDate: row.claimDate ?? null,
-    claimDirection: row.claimDirection ?? null,
-    claimTupleKey: row.claimTupleKey ?? null,
+    publishedAt: optionalIso(row.publishedAt),
+    correctedAt: optionalIso(row.correctedAt),
+    claimEntityId: optionalValue(row.claimEntityId),
+    claimEvent: optionalValue(row.claimEvent),
+    claimAmount: optionalValue(row.claimAmount),
+    claimDate: optionalValue(row.claimDate),
+    claimDirection: optionalValue(row.claimDirection),
+    claimTupleKey: optionalValue(row.claimTupleKey),
   };
 }
 

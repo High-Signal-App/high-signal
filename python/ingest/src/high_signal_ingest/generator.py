@@ -458,6 +458,22 @@ def _ai_complete(prompt: str, content: str) -> tuple[dict | None, dict]:
             return None, meta
 
 
+def _normalize_business_inference(
+    output: dict, events: list[Event]
+) -> tuple[str | None, str, list[str]]:
+    allowed_urls = {event.source_url for event in events}
+    inference_urls = [
+        url for url in output.get("inference_evidence_urls", []) if url in allowed_urls
+    ]
+    business_inference = output.get("business_inference") or None
+    inference_strength = output.get("inference_strength", "none")
+    if not business_inference or not inference_urls:
+        return None, "none", []
+    if inference_strength not in {"weak", "moderate", "strong"}:
+        inference_strength = "weak"
+    return business_inference, inference_strength, inference_urls
+
+
 def generate(
     primary_entity_id: str,
     events: Iterable[Event],
@@ -509,19 +525,7 @@ def generate(
 
     headline = out.get("headline", "signal")
     slug = f"{primary_entity_id.lower()}-{_slugify(headline)}"
-    inference_urls = [
-        url
-        for url in out.get("inference_evidence_urls", [])
-        if url in {event.source_url for event in evs}
-    ]
-    business_inference = out.get("business_inference") or None
-    inference_strength = out.get("inference_strength", "none")
-    if not business_inference or not inference_urls:
-        business_inference = None
-        inference_strength = "none"
-        inference_urls = []
-    elif inference_strength not in {"weak", "moderate", "strong"}:
-        inference_strength = "weak"
+    business_inference, inference_strength, inference_urls = _normalize_business_inference(out, evs)
     cand = SignalCandidate(
         slug=slug,
         signal_type=signal_type,

@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { and, desc, eq, gte, inArray, lt, sql, type SQL } from 'drizzle-orm';
+import { and, desc, eq, gte, lt, sql, type SQL } from 'drizzle-orm';
 import { type SignalContentCategory } from '@high-signal/shared';
 import { db, schema } from '../db';
 import { enrichPublishedSignals, enrichSignal, enrichSignals } from '../lib/signal-quality';

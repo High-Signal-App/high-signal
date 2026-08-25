@@ -363,6 +363,67 @@ function isExplicitMarketProbability(signal: SignalLike, sourceClasses: SourceCl
   );
 }
 
+function baseSignalQualityScore(
+  signal: SignalLike,
+  evidenceCount: number,
+  domainCount: number,
+  sourceClassCount: number,
+  official: boolean,
+  explicitMarketProbability: boolean
+) {
+  let score = Math.min(evidenceCount, 3) * 18 + Math.min(domainCount, 3) * 16;
+  if (official) score += 20;
+  if (sourceClassCount >= 2) score += 12;
+  if (signal.bodyMd.trim().length >= 280) score += 8;
+  if (signal.confidence === 'high') score += 14;
+  if (signal.confidence === 'medium') score += 10;
+  if (signal.confidence === 'low') score += 5;
+  if (explicitMarketProbability) score += 8;
+  return score;
+}
+
+function qualityPenalties(input: {
+  score: number;
+  fallback: boolean;
+  evidenceCount: number;
+  official: boolean;
+  explicitMarketProbability: boolean;
+  marketOnly: boolean;
+  confidence: SignalLike['confidence'];
+  domainCount: number;
+  reasons: string[];
+}) {
+  let { score } = input;
+  if (input.fallback) {
+    score -= 50;
+    input.reasons.push('fallback_or_backfill');
+  }
+  if (input.evidenceCount === 0) {
+    score -= 50;
+    input.reasons.push('missing_evidence');
+  }
+  if (input.evidenceCount === 1 && !input.official && !input.explicitMarketProbability) {
+    score -= 25;
+    input.reasons.push('single_non_official_source');
+  }
+  if (input.marketOnly && !input.explicitMarketProbability) {
+    score -= 35;
+    input.reasons.push('market_only_without_probability_frame');
+  }
+  if (input.confidence !== 'low' && input.domainCount < 2 && !input.official) {
+    score -= 25;
+    input.reasons.push('medium_high_without_independent_sources');
+  }
+  return Math.max(0, Math.min(100, Math.round(score)));
+}
+
+function signalQualityBand(score: number, publishable: boolean): SignalQualityBand {
+  if (score >= 85) return 'strong';
+  if (publishable) return 'usable';
+  if (score >= 45) return 'watch';
+  return 'draft';
+}
+
 export function assessSignalQuality(signal: SignalLike): SignalQuality {
   const evidenceUrls = Array.from(new Set(signal.evidenceUrls.filter(Boolean)));
   const domains = new Set(evidenceUrls.map(sourceDomain));
@@ -374,39 +435,24 @@ export function assessSignalQuality(signal: SignalLike): SignalQuality {
   const fallback = isFallbackOrBackfill(signal.bodyMd);
   const explicitMarketProbability = isExplicitMarketProbability(signal, sourceClasses);
 
-  let score = 0;
-  score += Math.min(evidenceUrls.length, 3) * 18;
-  score += Math.min(domains.size, 3) * 16;
-  if (official) score += 20;
-  if (sourceClasses.length >= 2) score += 12;
-  if (signal.bodyMd.trim().length >= 280) score += 8;
-  if (signal.confidence === 'high') score += 14;
-  if (signal.confidence === 'medium') score += 10;
-  if (signal.confidence === 'low') score += 5;
-  if (explicitMarketProbability) score += 8;
-
-  if (fallback) {
-    score -= 50;
-    reasons.push('fallback_or_backfill');
-  }
-  if (evidenceUrls.length === 0) {
-    score -= 50;
-    reasons.push('missing_evidence');
-  }
-  if (evidenceUrls.length === 1 && !official && !explicitMarketProbability) {
-    score -= 25;
-    reasons.push('single_non_official_source');
-  }
-  if (marketOnly && !explicitMarketProbability) {
-    score -= 35;
-    reasons.push('market_only_without_probability_frame');
-  }
-  if (signal.confidence !== 'low' && domains.size < 2 && !official) {
-    score -= 25;
-    reasons.push('medium_high_without_independent_sources');
-  }
-
-  score = Math.max(0, Math.min(100, Math.round(score)));
+  const score = qualityPenalties({
+    score: baseSignalQualityScore(
+      signal,
+      evidenceUrls.length,
+      domains.size,
+      sourceClasses.length,
+      official,
+      explicitMarketProbability
+    ),
+    fallback,
+    evidenceCount: evidenceUrls.length,
+    official,
+    explicitMarketProbability,
+    marketOnly,
+    confidence: signal.confidence,
+    domainCount: domains.size,
+    reasons,
+  });
   const qualityEligible = !fallback && score >= 65;
   const { publishable, reason: publishabilityReason } = publishability({
     evidenceUrls,
@@ -418,10 +464,7 @@ export function assessSignalQuality(signal: SignalLike): SignalQuality {
     semanticOrigins: signal.semanticOrigins,
     requireSemanticOrigins: signal.requireSemanticOrigins,
   });
-  let band: SignalQualityBand = 'draft';
-  if (score >= 85) band = 'strong';
-  else if (publishable) band = 'usable';
-  else if (score >= 45) band = 'watch';
+  const band = signalQualityBand(score, publishable);
 
   if (publishable) reasons.push('passes_publish_gate');
   else if (!reasons.includes(publishabilityReason)) reasons.push(publishabilityReason);

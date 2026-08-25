@@ -76,7 +76,7 @@ type DiggClusterLinkInput = Map<
   { cluster: DiggClusterInput; entityId: string | null; sourceUrls: string[] }
 >;
 
-export const DIGG_VERIFICATION_THRESHOLDS = {
+const DIGG_VERIFICATION_THRESHOLDS = {
   maxRank: 20,
   minPositiveVelocity: 5,
   minDistinctAccounts: 3,
@@ -428,6 +428,7 @@ diggAdminRoute.post('/', async (c) => {
         source_urls: JSON.stringify(sourceUrls),
         contributing_accounts: JSON.stringify(accounts),
         primary_entity_id: entityId,
+        verification_status: prior?.verification_status ?? null,
       });
       normalizedByShortId.set(cluster.shortId, { cluster, entityId, sourceUrls });
       const reasons = verificationReasons({

@@ -15,6 +15,24 @@ interface PublicationContext {
   requireSemanticOrigins?: boolean;
 }
 
+export function serializeClaimEvidenceLink(
+  link: typeof schema.claimEvidenceLinks.$inferSelect
+): ClaimEvidenceLink {
+  return {
+    id: link.id,
+    claimId: link.claimId,
+    evidenceUrl: link.evidenceUrl,
+    sourceDocumentId: link.sourceDocumentId ?? null,
+    originatingEvidenceId: link.originatingEvidenceId ?? null,
+    semanticAlignment: link.semanticAlignment,
+    role: link.role,
+    weight: link.weight,
+    notes: link.notes ?? null,
+    addedAt: link.addedAt.toISOString(),
+    addedBy: link.addedBy ?? null,
+  };
+}
+
 export function enrichSignal<T extends typeof schema.signals.$inferSelect>(
   signal: T,
   context: PublicationContext = {}
@@ -79,19 +97,7 @@ export async function enrichPublishedSignals<T extends typeof schema.signals.$in
   const linksByClaim = new Map<string, ClaimEvidenceLink[]>();
   for (const link of links) {
     const list = linksByClaim.get(link.claimId) ?? [];
-    list.push({
-      id: link.id,
-      claimId: link.claimId,
-      evidenceUrl: link.evidenceUrl,
-      sourceDocumentId: link.sourceDocumentId ?? null,
-      originatingEvidenceId: link.originatingEvidenceId ?? null,
-      semanticAlignment: link.semanticAlignment,
-      role: link.role,
-      weight: link.weight,
-      notes: link.notes ?? null,
-      addedAt: link.addedAt.toISOString(),
-      addedBy: link.addedBy ?? null,
-    });
+    list.push(serializeClaimEvidenceLink(link));
     linksByClaim.set(link.claimId, list);
   }
   const contexts = new Map<

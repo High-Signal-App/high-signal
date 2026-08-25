@@ -144,40 +144,115 @@ async function patchReviewStatus(
   return true;
 }
 
+type EvidenceAssessment = NonNullable<VerdictResult['evidenceAssessments']>[number];
+type StructuredEvidence = {
+  url: string;
+  role: 'primary' | 'corroboration' | 'context';
+  assessment?: EvidenceAssessment;
+};
+
+function buildStructuredEvidence(signal: SignalRow, verdict: VerdictResult): StructuredEvidence[] {
+  const assessments = new Map(verdict.evidenceAssessments?.map((item) => [item.url, item]) ?? []);
+  let primaryOrigin: string | null = null;
+  return signal.evidenceUrls.map((url) => {
+    const assessment = assessments.get(url);
+    if (!assessment?.aligned || !assessment.originatingEvidenceId) {
+      return { url, role: 'context', assessment };
+    }
+    if (!primaryOrigin) {
+      primaryOrigin = assessment.originatingEvidenceId;
+      return { url, role: 'primary', assessment };
+    }
+    const role = assessment.originatingEvidenceId === primaryOrigin ? 'context' : 'corroboration';
+    return { url, role, assessment };
+  });
+}
+
+function distinctAlignedOrigins(evidence: StructuredEvidence[]): number {
+  return new Set(
+    evidence
+      .filter((link) => link.assessment?.aligned)
+      .map((link) => link.assessment?.originatingEvidenceId)
+      .filter(Boolean)
+  ).size;
+}
+
+function structuredEvidenceNotes(role: StructuredEvidence['role']): string {
+  return role === 'primary' || role === 'corroboration'
+    ? 'receipt:verified alignment:verified verifier:auto-publish-semantic-judge'
+    : 'alignment:rejected verifier:auto-publish-semantic-judge';
+}
+
+function signalAssertion(signal: SignalRow): string {
+  for (const line of signal.bodyMd.split('\n')) {
+    const assertion = line.replace(/^#+\s*/, '').trim();
+    if (assertion) return assertion;
+  }
+  return signal.slug.replaceAll('-', ' ');
+}
+
+function createdClaimReceipt(input: {
+  id: string;
+  signal: SignalRow;
+  verdict: VerdictResult;
+  assertion: string;
+  evidence: StructuredEvidence[];
+}): ClaimWithEvidence {
+  const { id, signal, verdict, assertion, evidence } = input;
+  const tuple = verdict.claimTuple!;
+  const createdAt = new Date().toISOString();
+  return {
+    id,
+    signalId: signal.id,
+    briefItemId: null,
+    agentEvalResponseId: null,
+    surface: 'signal',
+    assertion,
+    confidenceBand: signal.confidence,
+    reviewStatus: 'draft',
+    publishReason: null,
+    parentClaimId: null,
+    version: 1,
+    createdAt,
+    publishedAt: null,
+    correctedAt: null,
+    claimEntityId: tuple.entity,
+    claimEvent: tuple.event,
+    claimAmount: tuple.amount,
+    claimDate: tuple.date,
+    claimDirection: tuple.direction,
+    claimTupleKey: [
+      tuple.entity,
+      tuple.event,
+      tuple.amount ?? '',
+      tuple.date,
+      tuple.direction,
+    ].join('|'),
+    evidence: evidence.map((link, index) => ({
+      id: `${id}:created:${index}`,
+      claimId: id,
+      evidenceUrl: link.url,
+      sourceDocumentId: null,
+      originatingEvidenceId: link.assessment?.originatingEvidenceId ?? null,
+      semanticAlignment: link.assessment?.aligned ? 'verified' : 'rejected',
+      role: link.role,
+      weight: 1,
+      notes: structuredEvidenceNotes(link.role),
+      addedAt: createdAt,
+      addedBy: null,
+    })),
+  };
+}
+
 async function createStructuredClaim(
   signal: SignalRow,
   verdict: VerdictResult
 ): Promise<ClaimWithEvidence | null> {
   if (DRY || !ADMIN_TOKEN) return null;
   if (verdict.source !== 'ai' || !verdict.evidenceAssessments || !verdict.claimTuple) return null;
-  const assessments = new Map(verdict.evidenceAssessments.map((item) => [item.url, item]));
-  const distinctOrigins = new Set(
-    verdict.evidenceAssessments
-      .filter((item) => item.aligned)
-      .map((item) => item.originatingEvidenceId)
-      .filter(Boolean)
-  );
-  if (distinctOrigins.size < 2) return null;
-  const assertion =
-    signal.bodyMd
-      .split('\n')
-      .map((line) => line.replace(/^#+\s*/, '').trim())
-      .find(Boolean) ?? signal.slug.replaceAll('-', ' ');
-  let primaryOrigin: string | null = null;
-  const evidence = signal.evidenceUrls.map((url) => {
-    const assessment = assessments.get(url);
-    if (!assessment?.aligned || !assessment.originatingEvidenceId) {
-      return { url, role: 'context' as const, assessment };
-    }
-    if (!primaryOrigin) {
-      primaryOrigin = assessment.originatingEvidenceId;
-      return { url, role: 'primary' as const, assessment };
-    }
-    if (assessment.originatingEvidenceId !== primaryOrigin) {
-      return { url, role: 'corroboration' as const, assessment };
-    }
-    return { url, role: 'context' as const, assessment };
-  });
+  const evidence = buildStructuredEvidence(signal, verdict);
+  if (distinctAlignedOrigins(evidence) < 2) return null;
+  const assertion = signalAssertion(signal);
   const response = await fetch(`${API_BASE}/admin/claims`, {
     method: 'POST',
     headers: {
@@ -195,10 +270,7 @@ async function createStructuredClaim(
         role: link.role,
         originatingEvidenceId: link.assessment?.originatingEvidenceId,
         semanticAlignment: link.assessment?.aligned ? 'verified' : 'rejected',
-        notes:
-          link.role === 'primary' || link.role === 'corroboration'
-            ? 'receipt:verified alignment:verified verifier:auto-publish-semantic-judge'
-            : 'alignment:rejected verifier:auto-publish-semantic-judge',
+        notes: structuredEvidenceNotes(link.role),
       })),
     }),
   });
@@ -214,51 +286,7 @@ async function createStructuredClaim(
   // The POST succeeded, so use that receipt immediately. A follow-up public
   // read can be briefly stale at the edge and previously made this run report
   // an error even though the claim and its evidence had been persisted.
-  const createdAt = new Date().toISOString();
-  return {
-    id: payload.id,
-    signalId: signal.id,
-    briefItemId: null,
-    agentEvalResponseId: null,
-    surface: 'signal',
-    assertion,
-    confidenceBand: signal.confidence,
-    reviewStatus: 'draft',
-    publishReason: null,
-    parentClaimId: null,
-    version: 1,
-    createdAt,
-    publishedAt: null,
-    correctedAt: null,
-    claimEntityId: verdict.claimTuple.entity,
-    claimEvent: verdict.claimTuple.event,
-    claimAmount: verdict.claimTuple.amount,
-    claimDate: verdict.claimTuple.date,
-    claimDirection: verdict.claimTuple.direction,
-    claimTupleKey: [
-      verdict.claimTuple.entity,
-      verdict.claimTuple.event,
-      verdict.claimTuple.amount ?? '',
-      verdict.claimTuple.date,
-      verdict.claimTuple.direction,
-    ].join('|'),
-    evidence: evidence.map((link, index) => ({
-      id: `${payload.id}:created:${index}`,
-      claimId: payload.id as string,
-      evidenceUrl: link.url,
-      sourceDocumentId: null,
-      originatingEvidenceId: link.assessment?.originatingEvidenceId ?? null,
-      semanticAlignment: link.assessment?.aligned ? 'verified' : 'rejected',
-      role: link.role,
-      weight: 1,
-      notes:
-        link.role === 'primary' || link.role === 'corroboration'
-          ? 'receipt:verified alignment:verified verifier:auto-publish-semantic-judge'
-          : 'alignment:rejected verifier:auto-publish-semantic-judge',
-      addedAt: createdAt,
-      addedBy: null,
-    })),
-  };
+  return createdClaimReceipt({ id: payload.id, signal, verdict, assertion, evidence });
 }
 
 async function publishEligibleClaim(claims: ClaimWithEvidence[]): Promise<boolean> {
