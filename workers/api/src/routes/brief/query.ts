@@ -10,6 +10,7 @@ import {
   extractBriefEditorialSummary,
   familyForSignalType,
   normalizeCommunitySummary,
+  oppositeDirectionConflictIds,
   rankEvidenceUrls,
   selectBriefClaimProvenance,
   type BriefFeedEdition,
@@ -325,10 +326,21 @@ export async function buildStocks(
   // Defend the public brief from legacy rows that predate cite-or-kill: require
   // two unique citations and never surface prediction-market-only evidence.
   // Overfetch above absorbs the drop.
-  const rows = allRows.filter((row) =>
-    isBriefStockEvidenceEligible(
-      (Array.isArray(row.evidenceList) ? row.evidenceList : []).map(String)
-    )
+  const conflicts = oppositeDirectionConflictIds(
+    allRows.map((row) => ({
+      id: row.signalId,
+      primaryEntityId: row.entityId,
+      signalType: row.signalType,
+      direction: row.direction,
+      publishedAt: row.publishedAt,
+    }))
+  );
+  const rows = allRows.filter(
+    (row) =>
+      !conflicts.has(row.signalId) &&
+      isBriefStockEvidenceEligible(
+        (Array.isArray(row.evidenceList) ? row.evidenceList : []).map(String)
+      )
   );
 
   const provenanceBySignal = await loadBriefProvenanceBySignalId(
@@ -426,6 +438,8 @@ async function loadBriefProvenanceBySignalId(
       claimId: link.claimId,
       evidenceUrl: link.evidenceUrl,
       sourceDocumentId: link.sourceDocumentId ?? null,
+      originatingEvidenceId: link.originatingEvidenceId ?? null,
+      semanticAlignment: link.semanticAlignment,
       role: link.role,
       weight: link.weight,
       notes: link.notes ?? null,
@@ -453,6 +467,12 @@ async function loadBriefProvenanceBySignalId(
       createdAt: claim.createdAt.toISOString(),
       publishedAt: claim.publishedAt?.toISOString() ?? null,
       correctedAt: claim.correctedAt?.toISOString() ?? null,
+      claimEntityId: claim.claimEntityId ?? null,
+      claimEvent: claim.claimEvent ?? null,
+      claimAmount: claim.claimAmount ?? null,
+      claimDate: claim.claimDate ?? null,
+      claimDirection: claim.claimDirection ?? null,
+      claimTupleKey: claim.claimTupleKey ?? null,
       evidence: linksByClaim.get(claim.id) ?? [],
     });
     claimsBySignal.set(claim.signalId, claims);

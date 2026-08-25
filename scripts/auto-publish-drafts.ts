@@ -40,8 +40,8 @@ import {
   type VerdictResult,
 } from './auto-publish-rules';
 import {
-  buildHistoricalClaimBackfill,
   judgePublishability,
+  oppositeDirectionConflictIds,
   rollupEvidence,
   type ClaimWithEvidence,
 } from '@high-signal/shared';
@@ -63,6 +63,7 @@ interface SignalRow {
   sourceClasses?: string[];
   independentSourceCount?: number;
   qualityReasons?: string[];
+  oppositeDirectionConflict?: boolean;
 }
 
 const args = new Set(process.argv.slice(2));
@@ -86,8 +87,13 @@ const MAX_BODY_CHARS = 2400;
 const RATE_LIMIT_MS = 250; // gentle pacing between AI calls
 
 async function fetchSignalsByStatus(status: 'draft' | 'published'): Promise<SignalRow[]> {
-  const url = `${API_BASE}/signals?status=${status}&limit=500`;
-  const r = await fetch(url, { cache: 'no-store' } as RequestInit);
+  const url = ADMIN_TOKEN
+    ? `${API_BASE}/admin/signals-review?status=${status}`
+    : `${API_BASE}/signals?status=${status}&limit=200`;
+  const r = await fetch(url, {
+    cache: 'no-store',
+    headers: ADMIN_TOKEN ? { Authorization: `Bearer ${ADMIN_TOKEN}` } : undefined,
+  } as RequestInit);
   if (!r.ok) {
     throw new Error(`${status} fetch ${r.status} from ${url}`);
   }
@@ -138,12 +144,39 @@ async function patchReviewStatus(
   return true;
 }
 
-async function createStructuredClaim(signal: SignalRow): Promise<ClaimWithEvidence | null> {
+async function createStructuredClaim(
+  signal: SignalRow,
+  verdict: VerdictResult
+): Promise<ClaimWithEvidence | null> {
   if (DRY || !ADMIN_TOKEN) return null;
-  const derived = buildHistoricalClaimBackfill({
-    bodyMd: signal.bodyMd,
-    fallbackAssertion: signal.slug.replaceAll('-', ' '),
-    evidenceUrls: signal.evidenceUrls,
+  if (verdict.source !== 'ai' || !verdict.evidenceAssessments || !verdict.claimTuple) return null;
+  const assessments = new Map(verdict.evidenceAssessments.map((item) => [item.url, item]));
+  const distinctOrigins = new Set(
+    verdict.evidenceAssessments
+      .filter((item) => item.aligned)
+      .map((item) => item.originatingEvidenceId)
+      .filter(Boolean)
+  );
+  if (distinctOrigins.size < 2) return null;
+  const assertion =
+    signal.bodyMd
+      .split('\n')
+      .map((line) => line.replace(/^#+\s*/, '').trim())
+      .find(Boolean) ?? signal.slug.replaceAll('-', ' ');
+  let primaryOrigin: string | null = null;
+  const evidence = signal.evidenceUrls.map((url) => {
+    const assessment = assessments.get(url);
+    if (!assessment?.aligned || !assessment.originatingEvidenceId) {
+      return { url, role: 'context' as const, assessment };
+    }
+    if (!primaryOrigin) {
+      primaryOrigin = assessment.originatingEvidenceId;
+      return { url, role: 'primary' as const, assessment };
+    }
+    if (assessment.originatingEvidenceId !== primaryOrigin) {
+      return { url, role: 'corroboration' as const, assessment };
+    }
+    return { url, role: 'context' as const, assessment };
   });
   const response = await fetch(`${API_BASE}/admin/claims`, {
     method: 'POST',
@@ -154,15 +187,18 @@ async function createStructuredClaim(signal: SignalRow): Promise<ClaimWithEviden
     body: JSON.stringify({
       surface: 'signal',
       signalId: signal.id,
-      assertion: derived.assertion,
+      assertion,
       confidenceBand: signal.confidence,
-      evidence: derived.evidence.map((link) => ({
+      claimTuple: verdict.claimTuple,
+      evidence: evidence.map((link) => ({
         url: link.url,
         role: link.role,
+        originatingEvidenceId: link.assessment?.originatingEvidenceId,
+        semanticAlignment: link.assessment?.aligned ? 'verified' : 'rejected',
         notes:
           link.role === 'primary' || link.role === 'corroboration'
-            ? 'receipt:verified alignment:verified verifier:auto-publish-rubric'
-            : 'alignment:unverified verifier:auto-publish-rubric',
+            ? 'receipt:verified alignment:verified verifier:auto-publish-semantic-judge'
+            : 'alignment:rejected verifier:auto-publish-semantic-judge',
       })),
     }),
   });
@@ -185,7 +221,7 @@ async function createStructuredClaim(signal: SignalRow): Promise<ClaimWithEviden
     briefItemId: null,
     agentEvalResponseId: null,
     surface: 'signal',
-    assertion: derived.assertion,
+    assertion,
     confidenceBand: signal.confidence,
     reviewStatus: 'draft',
     publishReason: null,
@@ -194,17 +230,31 @@ async function createStructuredClaim(signal: SignalRow): Promise<ClaimWithEviden
     createdAt,
     publishedAt: null,
     correctedAt: null,
-    evidence: derived.evidence.map((link, index) => ({
+    claimEntityId: verdict.claimTuple.entity,
+    claimEvent: verdict.claimTuple.event,
+    claimAmount: verdict.claimTuple.amount,
+    claimDate: verdict.claimTuple.date,
+    claimDirection: verdict.claimTuple.direction,
+    claimTupleKey: [
+      verdict.claimTuple.entity,
+      verdict.claimTuple.event,
+      verdict.claimTuple.amount ?? '',
+      verdict.claimTuple.date,
+      verdict.claimTuple.direction,
+    ].join('|'),
+    evidence: evidence.map((link, index) => ({
       id: `${payload.id}:created:${index}`,
       claimId: payload.id as string,
       evidenceUrl: link.url,
       sourceDocumentId: null,
+      originatingEvidenceId: link.assessment?.originatingEvidenceId ?? null,
+      semanticAlignment: link.assessment?.aligned ? 'verified' : 'rejected',
       role: link.role,
       weight: 1,
       notes:
         link.role === 'primary' || link.role === 'corroboration'
-          ? 'receipt:verified alignment:verified verifier:auto-publish-rubric'
-          : 'alignment:unverified verifier:auto-publish-rubric',
+          ? 'receipt:verified alignment:verified verifier:auto-publish-semantic-judge'
+          : 'alignment:rejected verifier:auto-publish-semantic-judge',
       addedAt: createdAt,
       addedBy: null,
     })),
@@ -240,6 +290,10 @@ async function publishEligibleClaim(claims: ClaimWithEvidence[]): Promise<boolea
   return true;
 }
 
+function hasPublishableClaim(claims: ClaimWithEvidence[]): boolean {
+  return claims.some((claim) => judgePublishability(rollupEvidence(claim.evidence)).publishable);
+}
+
 // Pure helpers live in ./auto-publish-rules.ts so they're testable without
 // the script's side-effects. SignalRow's surface is a superset of
 // JudgeableSignal so we can pass it straight through to deterministicVerdict.
@@ -263,7 +317,13 @@ links) are KILL. Don't count noise as corroboration.
 6. Bias toward decision. Only HOLD when the evidence genuinely splits — never \
 as a comfortable middle ground.
 
-Return strict JSON: {"verdict":"publish"|"kill"|"hold","reason":"<one short sentence>"}.`;
+When and only when verdict is publish, also return:
+- claimTuple: {entity,event,amount,date,direction}
+- evidenceAssessments: one row per evidence URL with {url,aligned,originatingEvidenceId}
+Use the SAME originatingEvidenceId when several publishers repeat one original report.
+Different hosts are not independent unless their originating evidence differs.
+
+Return strict JSON.`;
 
 async function aiVerdict(signal: SignalRow): Promise<VerdictResult | null> {
   if (!AI_API_KEY || DRY) return null;
@@ -314,9 +374,15 @@ async function aiVerdict(signal: SignalRow): Promise<VerdictResult | null> {
       .replace(/^```json\s*/i, '')
       .replace(/```$/i, '')
       .trim();
-    const parsed = JSON.parse(trimmed) as { verdict?: string; reason?: string };
+    const parsed = JSON.parse(trimmed) as VerdictResult;
     if (parsed.verdict === 'publish' || parsed.verdict === 'kill' || parsed.verdict === 'hold') {
-      return { verdict: parsed.verdict, reason: parsed.reason ?? '(no reason)', source: 'ai' };
+      return {
+        verdict: parsed.verdict,
+        reason: parsed.reason ?? '(no reason)',
+        source: 'ai',
+        claimTuple: parsed.claimTuple,
+        evidenceAssessments: parsed.evidenceAssessments,
+      };
     }
     return null;
   } catch (error) {
@@ -345,8 +411,10 @@ async function main(): Promise<void> {
     `[auto-publish] target=${API_BASE} dry=${DRY} ai=${AI_API_KEY ? 'yes' : 'no'} reapply=${REAPPLY_PUBLISHED}`
   );
   const drafts = await fetchSignalsByStatus('draft');
-  const published = REAPPLY_PUBLISHED ? await fetchSignalsByStatus('published') : [];
-  const toJudge = [...drafts, ...published];
+  const published = await fetchSignalsByStatus('published');
+  const toJudge = REAPPLY_PUBLISHED ? [...drafts, ...published] : drafts;
+  const conflicts = oppositeDirectionConflictIds([...drafts, ...published]);
+  for (const signal of toJudge) signal.oppositeDirectionConflict = conflicts.has(signal.id);
   console.log(
     `[auto-publish] judging ${drafts.length} drafts${REAPPLY_PUBLISHED ? ` + ${published.length} already-published (reapply)` : ''}`
   );
@@ -361,7 +429,9 @@ async function main(): Promise<void> {
   for (const signal of toJudge) {
     let verdict: VerdictResult;
     let claims = await fetchClaimsBySignal(signal.slug);
-    let judgeable = applyStructuredClaimEvidence(signal, claims);
+    let judgeable = hasPublishableClaim(claims)
+      ? applyStructuredClaimEvidence(signal, claims)
+      : { ...signal, provenanceSource: 'legacy_signal' as const };
     try {
       verdict = await judge(judgeable);
     } catch (error) {
@@ -373,8 +443,8 @@ async function main(): Promise<void> {
     let provenanceTag = judgeable.provenanceSource === 'structured_claims' ? 'claims' : 'legacy';
     const wasPublished = isPublished.has(signal.slug);
     if (verdict.verdict === 'publish') {
-      if (claims.length === 0 && !DRY) {
-        const createdClaim = await createStructuredClaim(signal);
+      if (!hasPublishableClaim(claims) && !DRY) {
+        const createdClaim = await createStructuredClaim(signal, verdict);
         if (!createdClaim) {
           console.error(
             `  [${tag}/legacy]    ERROR  ${signal.slug} — could not create claim receipt`
@@ -382,7 +452,7 @@ async function main(): Promise<void> {
           errors++;
           continue;
         }
-        claims = [createdClaim];
+        claims = [createdClaim, ...claims];
         judgeable = applyStructuredClaimEvidence(signal, claims);
         verdict = await judge(judgeable);
         tag = verdict.source === 'ai' ? 'AI ' : 'rul';

@@ -9,7 +9,7 @@ import {
   d2cBriefItems,
   familyForSignalType,
   findSeedProduct,
-  isPredictionMarketOnly,
+  publishability,
   SEED_PRODUCTS,
   type BriefCategoryState,
   type BriefIdeaItem,
@@ -59,7 +59,7 @@ export function rankStocks<T extends RankableRow>(rows: T[]): T[] {
 /** Read-time defense for legacy published signals that predate cite-or-kill. */
 export function isBriefStockEvidenceEligible(urls: readonly string[]): boolean {
   const unique = Array.from(new Set(urls.map((url) => url.trim()).filter(isPublicSourceLink)));
-  return unique.length >= 2 && !isPredictionMarketOnly(unique);
+  return publishability({ evidenceUrls: unique, qualityEligible: unique.length >= 2 }).publishable;
 }
 
 /** Community brief inputs must carry a safe public source thread. */

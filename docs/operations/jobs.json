@@ -17,7 +17,7 @@
       "owner": "sarthak",
       "trigger": {
         "type": "schedule",
-        "cron": "0 6 * * *",
+        "cron": "30 2 * * *",
         "tz": "UTC"
       },
       "workflowFile": ".github/workflows/cron-ingest.yml",
@@ -106,7 +106,7 @@
       "owner": "sarthak",
       "trigger": {
         "type": "schedule",
-        "cron": "0 7 * * *",
+        "cron": "30 3 * * *",
         "tz": "UTC"
       },
       "workflowFile": ".github/workflows/cron-publish.yml",
@@ -144,12 +144,53 @@
       ]
     },
     {
+      "id": "cron-validate-brief",
+      "kind": "validation",
+      "owner": "sarthak",
+      "trigger": {
+        "type": "schedule",
+        "cron": "0 4 * * *",
+        "tz": "UTC"
+      },
+      "workflowFile": ".github/workflows/cron-validate-brief.yml",
+      "runtime": "github-actions-ubuntu",
+      "command": "node scripts/verify-daily-brief.mjs",
+      "workingDirectory": ".",
+      "bounds": {
+        "timeoutMinutes": 5,
+        "concurrency": 1,
+        "retryMax": 0
+      },
+      "idempotency": {
+        "mechanism": "read-only public API validation",
+        "watermark": "brief generatedAt plus newest evidence publishedAt",
+        "deduplicationEvidence": "scripts/verify-daily-brief.test.mjs"
+      },
+      "freshness": {
+        "windowHours": 2,
+        "evidenceSource": "/data/daily evidenceEvents.publishedAt"
+      },
+      "outputExpectation": {
+        "minPublishedBriefs": 1,
+        "zeroOutputIsFailure": true
+      },
+      "failureDestination": {
+        "durableState": "GitHub Actions run log",
+        "notification": "github-actions job failure email"
+      },
+      "evidence": {
+        "publicEndpoint": "/brief/daily and /data/daily",
+        "validator": "scripts/verify-daily-brief.mjs"
+      },
+      "acceptedExceptions": []
+    },
+    {
       "id": "personal-brief",
       "kind": "operator-brief",
       "owner": "sarthak",
       "trigger": {
         "type": "schedule",
-        "cron": "30 7 * * *",
+        "cron": "30 4 * * *",
         "tz": "UTC"
       },
       "workflowFile": ".github/workflows/personal-brief.yml",

@@ -184,7 +184,7 @@ export type DailySourceQualityAudit = {
 
 export type DailyAutomationStatus = {
   workflow: 'personal-brief';
-  schedule: 'daily 07:30 UTC';
+  schedule: 'daily 10:00 IST';
   sourcePath: 'data/product-flow-refresh.jsonl';
   bundledPath: '_private/daily-source-refreshes.jsonl';
   deployPath: 'personal-brief commit -> deploy-web';
@@ -639,7 +639,7 @@ export function buildDailyAutomationStatus(
     : null;
   return {
     workflow: 'personal-brief',
-    schedule: 'daily 07:30 UTC',
+    schedule: 'daily 10:00 IST',
     sourcePath: 'data/product-flow-refresh.jsonl',
     bundledPath: '_private/daily-source-refreshes.jsonl',
     deployPath: 'personal-brief commit -> deploy-web',

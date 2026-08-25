@@ -82,3 +82,9 @@ class SignalCandidate(BaseModel):
     spillover_entity_ids: list[str] = Field(default_factory=list)
     body_md: str
     supersedes_signal_id: Optional[str] = None
+    observed_event: Optional[str] = None
+    direct_entity_impact: Optional[str] = None
+    supply_chain_impact: Optional[str] = None
+    business_inference: Optional[str] = None
+    inference_strength: Literal["none", "weak", "moderate", "strong"] = "none"
+    inference_evidence_urls: list[str] = Field(default_factory=list)

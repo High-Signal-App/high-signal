@@ -78,9 +78,15 @@ function run() {
     }
     written += 1;
     const publishedAt = Math.floor(new Date(f.published_at).getTime() / 1000);
+    const inferenceEvidenceUrls = (f.inference_evidence_urls ?? []).filter((url) =>
+      f.evidence_urls.includes(url)
+    );
+    const businessInference =
+      f.business_inference && inferenceEvidenceUrls.length > 0 ? f.business_inference : null;
+    const reviewStatus = f.review_status === 'corrected' ? 'corrected' : 'draft';
 
     sql.push(
-      `INSERT OR REPLACE INTO signals (id,slug,signal_type,primary_entity_id,direction,confidence,predicted_window_days,published_at,evidence_urls,spillover_entity_ids,review_status,supersedes_signal_id,body_md) VALUES (${esc(id)},${esc(f.slug)},${esc(f.signal_type)},${esc(f.primary_entity)},${esc(f.direction)},${esc(f.confidence)},${f.predicted_window_days},${publishedAt},${esc(JSON.stringify(f.evidence_urls))},${esc(JSON.stringify(f.spillover_entity_ids ?? []))},${esc(f.review_status)},${esc(f.supersedes ?? null)},${esc(body)});`
+      `INSERT OR REPLACE INTO signals (id,slug,signal_type,primary_entity_id,direction,confidence,predicted_window_days,published_at,evidence_urls,spillover_entity_ids,review_status,supersedes_signal_id,body_md,observed_event,direct_entity_impact,supply_chain_impact,business_inference,inference_strength,inference_evidence_urls) VALUES (${esc(id)},${esc(f.slug)},${esc(f.signal_type)},${esc(f.primary_entity)},${esc(f.direction)},${esc(f.confidence)},${f.predicted_window_days},${publishedAt},${esc(JSON.stringify(f.evidence_urls))},${esc(JSON.stringify(f.spillover_entity_ids ?? []))},${esc(reviewStatus)},${esc(f.supersedes ?? null)},${esc(body)},${esc(f.observed_event)},${esc(f.direct_entity_impact)},${esc(f.supply_chain_impact)},${esc(businessInference)},${esc(businessInference ? (f.inference_strength ?? 'weak') : 'none')},${esc(JSON.stringify(inferenceEvidenceUrls))});`
     );
     sql.push(`DELETE FROM evidence WHERE signal_id = ${esc(id)};`);
     for (const [index, url] of f.evidence_urls.entries()) {

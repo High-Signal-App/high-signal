@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { canonicalAttentionUrl, positionUpdate } from '../routes/admin-digg';
+import {
+  canonicalAttentionUrl,
+  positionUpdate,
+  median,
+  verificationReasons,
+} from '../routes/admin-digg';
 
 describe('Digg attention normalization', () => {
   it('calculates positive velocity when a cluster rises', () => {
@@ -13,5 +18,24 @@ describe('Digg attention normalization', () => {
       canonicalAttentionUrl('https://www.example.com/story/?utm_source=digg&ref=home&id=7#top')
     ).toBe('https://example.com/story?id=7');
     expect(canonicalAttentionUrl('javascript:alert(1)')).toBeNull();
+  });
+
+  it('requests primary-source verification at rank, velocity, or voice thresholds', () => {
+    expect(verificationReasons({ position: 18, positionDelta: 1, distinctAccountCount: 1 })).toEqual([
+      'rank<=20',
+    ]);
+    expect(verificationReasons({ position: 40, positionDelta: 6, distinctAccountCount: 4 })).toEqual([
+      'velocity>=5',
+      'contributors>=3',
+    ]);
+    expect(verificationReasons({ position: 40, positionDelta: 1, distinctAccountCount: 2 })).toEqual(
+      []
+    );
+  });
+
+  it('calculates verification latency median', () => {
+    expect(median([30, 90, 45])).toBe(45);
+    expect(median([30, 90])).toBe(60);
+    expect(median([])).toBeNull();
   });
 });

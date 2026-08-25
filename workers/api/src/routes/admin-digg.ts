@@ -56,6 +56,7 @@ interface ExistingCluster {
   source_urls: string;
   contributing_accounts: string;
   primary_entity_id: string | null;
+  verification_status: string | null;
 }
 
 interface FeedStateRow {
@@ -74,6 +75,39 @@ type DiggClusterLinkInput = Map<
   string,
   { cluster: DiggClusterInput; entityId: string | null; sourceUrls: string[] }
 >;
+
+export const DIGG_VERIFICATION_THRESHOLDS = {
+  maxRank: 20,
+  minPositiveVelocity: 5,
+  minDistinctAccounts: 3,
+} as const;
+
+export function verificationReasons(input: {
+  position?: number | null;
+  positionDelta?: number | null;
+  distinctAccountCount?: number | null;
+}): string[] {
+  const reasons: string[] = [];
+  if (input.position != null && input.position <= DIGG_VERIFICATION_THRESHOLDS.maxRank)
+    reasons.push(`rank<=${DIGG_VERIFICATION_THRESHOLDS.maxRank}`);
+  if (
+    input.positionDelta != null &&
+    input.positionDelta >= DIGG_VERIFICATION_THRESHOLDS.minPositiveVelocity
+  )
+    reasons.push(`velocity>=${DIGG_VERIFICATION_THRESHOLDS.minPositiveVelocity}`);
+  if ((input.distinctAccountCount ?? 0) >= DIGG_VERIFICATION_THRESHOLDS.minDistinctAccounts)
+    reasons.push(`contributors>=${DIGG_VERIFICATION_THRESHOLDS.minDistinctAccounts}`);
+  return reasons;
+}
+
+export function median(values: number[]): number | null {
+  const sorted = values.filter(Number.isFinite).sort((a, b) => a - b);
+  if (sorted.length === 0) return null;
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 1
+    ? (sorted[middle] ?? null)
+    : ((sorted[middle - 1] ?? 0) + (sorted[middle] ?? 0)) / 2;
+}
 
 export const diggAdminRoute = new Hono<{ Bindings: Env }>();
 
@@ -168,6 +202,7 @@ async function feedStates(d1: D1Database): Promise<Map<string, number>> {
 diggAdminRoute.get('/status', async (c) => {
   const now = Math.floor(Date.now() / 1000);
   const states = await feedStates(c.env.DB);
+  const verification = await verificationMetrics(c.env.DB);
   return c.json({
     minimumRefreshSeconds: MIN_REFRESH_SECONDS,
     feeds: Object.entries(FEEDS).map(([feedKind, feedUrl]) => {
@@ -182,8 +217,45 @@ diggAdminRoute.get('/status', async (c) => {
         isDue: dueAt == null || dueAt <= now,
       };
     }),
+    verification,
   });
 });
+
+async function verificationMetrics(d1: D1Database) {
+  try {
+    const rows = await d1
+      .prepare(
+        `SELECT verification_status, first_seen_at, verified_at
+         FROM digg_clusters
+         WHERE verification_status IS NOT NULL
+         ORDER BY verification_requested_at DESC LIMIT 500`
+      )
+      .all<{
+        verification_status: string;
+        first_seen_at: number;
+        verified_at: number | null;
+      }>();
+    const values = rows.results ?? [];
+    const latencies = values.flatMap((row) =>
+      row.verification_status === 'verified_candidate' && row.verified_at != null
+        ? [(row.verified_at - row.first_seen_at) / 60]
+        : []
+    );
+    return {
+      pending: values.filter((row) => row.verification_status === 'requested').length,
+      verifiedCandidates: latencies.length,
+      medianFirstSeenToVerifiedMinutes: median(latencies),
+      targetMinutes: 90,
+    };
+  } catch {
+    return {
+      pending: 0,
+      verifiedCandidates: 0,
+      medianFirstSeenToVerifiedMinutes: null,
+      targetMinutes: 90,
+    };
+  }
+}
 
 diggAdminRoute.post('/', async (c) => {
   const body = (await c.req.json()) as { feeds?: DiggFeedInput[] };
@@ -215,6 +287,18 @@ diggAdminRoute.post('/', async (c) => {
   const normalizedByShortId = new Map<
     string,
     { cluster: DiggClusterInput; entityId: string | null; sourceUrls: string[] }
+  >();
+  const verificationCandidates = new Map<
+    string,
+    {
+      shortId: string;
+      title: string;
+      summary: string | null;
+      entityId: string | null;
+      sourceUrls: string[];
+      firstSeenAt: string;
+      reasons: string[];
+    }
   >();
   let snapshots = 0;
 
@@ -346,6 +430,25 @@ diggAdminRoute.post('/', async (c) => {
         primary_entity_id: entityId,
       });
       normalizedByShortId.set(cluster.shortId, { cluster, entityId, sourceUrls });
+      const reasons = verificationReasons({
+        position: rank.position,
+        positionDelta: rank.delta,
+        distinctAccountCount: Math.max(
+          0,
+          Math.floor(cluster.distinctAccountCount ?? accounts.length)
+        ),
+      });
+      if (!prior?.verification_status && reasons.length > 0) {
+        verificationCandidates.set(cluster.shortId, {
+          shortId: cluster.shortId,
+          title: cluster.title,
+          summary: cluster.diggSummary ?? null,
+          entityId,
+          sourceUrls,
+          firstSeenAt: new Date(firstSeenAt * 1000).toISOString(),
+          reasons,
+        });
+      }
     }
 
     clusterStatements.push(
@@ -364,11 +467,31 @@ diggAdminRoute.post('/', async (c) => {
 
   await runBatches(c.env.DB, clusterStatements);
   const links = await linkSignals(c.env.DB, normalizedByShortId, now);
+  const linkedShortIds = await existingSignalLinks(
+    c.env.DB,
+    Array.from(verificationCandidates.keys())
+  );
+  const newVerificationRequests = Array.from(verificationCandidates.values()).filter(
+    (candidate) => !linkedShortIds.has(candidate.shortId)
+  );
+  await runBatches(
+    c.env.DB,
+    newVerificationRequests.map((candidate) =>
+      c.env.DB.prepare(
+        `UPDATE digg_clusters
+           SET verification_status='requested', verification_reason=?,
+               verification_requested_at=?, verification_error=NULL
+           WHERE short_id=? AND verification_status IS NULL`
+      ).bind(candidate.reasons.join(','), now, candidate.shortId)
+    )
+  );
+  const verificationRequests = await pendingVerificationRequests(c.env.DB);
   return c.json({
     feeds: acceptedFeeds.length,
     clusters: normalizedByShortId.size,
     snapshots,
     signalLinks: links,
+    verificationRequests,
     classification: {
       sourceClass: 'attention_aggregator',
       evidenceTier: 'derived',
@@ -376,6 +499,48 @@ diggAdminRoute.post('/', async (c) => {
       attentionContribution: 'allowed',
     },
   });
+});
+
+diggAdminRoute.post('/verification-results', async (c) => {
+  const body = (await c.req.json()) as {
+    results?: Array<{
+      shortId?: string;
+      status?: 'running' | 'verified_candidate' | 'insufficient_evidence' | 'failed';
+      candidateSlug?: string | null;
+      error?: string | null;
+    }>;
+  };
+  const allowed = new Set(['running', 'verified_candidate', 'insufficient_evidence', 'failed']);
+  const now = Math.floor(Date.now() / 1000);
+  const results = (body.results ?? []).filter(
+    (result) => result.shortId && result.status && allowed.has(result.status)
+  );
+  await runBatches(
+    c.env.DB,
+    results.map((result) =>
+      c.env.DB.prepare(
+        `UPDATE digg_clusters SET
+             verification_status=?,
+             verification_started_at=CASE WHEN ?='running' THEN COALESCE(verification_started_at, ?) ELSE verification_started_at END,
+             verified_at=CASE WHEN ?='verified_candidate' THEN ? ELSE verified_at END,
+             verification_candidate_slug=COALESCE(?, verification_candidate_slug),
+             verification_error=?,
+             verification_attempts=verification_attempts + CASE WHEN ?='running' THEN 1 ELSE 0 END
+           WHERE short_id=?`
+      ).bind(
+        result.status,
+        result.status,
+        now,
+        result.status,
+        now,
+        result.candidateSlug ?? null,
+        result.error?.slice(0, 500) ?? null,
+        result.status,
+        result.shortId
+      )
+    )
+  );
+  return c.json({ updated: results.length });
 });
 
 function validCluster(cluster: DiggClusterInput) {
@@ -404,7 +569,7 @@ async function existingClusters(d1: D1Database, shortIds: string[]) {
     const rows = await d1
       .prepare(
         `SELECT short_id, first_seen_at, position, peak_position, source_urls,
-                contributing_accounts, primary_entity_id
+                contributing_accounts, primary_entity_id, verification_status
          FROM digg_clusters WHERE short_id IN (${chunk.map(() => '?').join(',')})`
       )
       .bind(...chunk)
@@ -412,6 +577,56 @@ async function existingClusters(d1: D1Database, shortIds: string[]) {
     for (const row of rows.results ?? []) result.set(row.short_id, row);
   }
   return result;
+}
+
+async function existingSignalLinks(d1: D1Database, shortIds: string[]) {
+  const linked = new Set<string>();
+  for (let i = 0; i < shortIds.length; i += 80) {
+    const chunk = shortIds.slice(i, i + 80);
+    if (chunk.length === 0) continue;
+    const rows = await d1
+      .prepare(
+        `SELECT DISTINCT short_id FROM digg_signal_links
+         WHERE short_id IN (${chunk.map(() => '?').join(',')})`
+      )
+      .bind(...chunk)
+      .all<{ short_id: string }>();
+    for (const row of rows.results ?? []) linked.add(row.short_id);
+  }
+  return linked;
+}
+
+async function pendingVerificationRequests(d1: D1Database) {
+  const rows = await d1
+    .prepare(
+      `SELECT short_id, title, digg_summary, primary_entity_id, source_urls,
+              first_seen_at, verification_reason
+       FROM digg_clusters
+       WHERE verification_status IN ('requested', 'insufficient_evidence', 'failed')
+         AND verification_attempts < 3
+       ORDER BY verification_requested_at ASC
+       LIMIT 3`
+    )
+    .all<{
+      short_id: string;
+      title: string;
+      digg_summary: string | null;
+      primary_entity_id: string | null;
+      source_urls: string;
+      first_seen_at: number;
+      verification_reason: string | null;
+    }>();
+  return (rows.results ?? []).map((row) => ({
+    shortId: row.short_id,
+    title: row.title,
+    summary: row.digg_summary,
+    entityId: row.primary_entity_id,
+    sourceUrls: jsonArray(row.source_urls).filter(
+      (value): value is string => typeof value === 'string'
+    ),
+    firstSeenAt: new Date(row.first_seen_at * 1000).toISOString(),
+    reasons: (row.verification_reason ?? '').split(',').filter(Boolean),
+  }));
 }
 
 async function loadEntityPatterns(d1: D1Database) {

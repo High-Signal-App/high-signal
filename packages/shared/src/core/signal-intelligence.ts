@@ -1,3 +1,5 @@
+import { publishability } from './publishability';
+
 export type SignalContentCategory =
   | 'ai-infra'
   | 'market-pulse'
@@ -28,6 +30,12 @@ export interface SignalLike {
   confidence: 'low' | 'medium' | 'high';
   evidenceUrls: string[];
   bodyMd: string;
+  direction?: 'up' | 'down' | 'neutral' | string | null;
+  publishedAt?: string | number | Date | null;
+  oppositeDirectionConflict?: boolean;
+  unresolvedContradictions?: number;
+  semanticOrigins?: string[];
+  requireSemanticOrigins?: boolean;
 }
 
 export interface SignalQuality {
@@ -399,13 +407,24 @@ export function assessSignalQuality(signal: SignalLike): SignalQuality {
   }
 
   score = Math.max(0, Math.min(100, Math.round(score)));
-  const publishable = !fallback && (score >= 65 || (explicitMarketProbability && score >= 45));
+  const qualityEligible = !fallback && score >= 65;
+  const { publishable, reason: publishabilityReason } = publishability({
+    evidenceUrls,
+    direction: signal.direction,
+    publishedAt: signal.publishedAt,
+    qualityEligible,
+    oppositeDirectionConflict: signal.oppositeDirectionConflict,
+    unresolvedContradictions: signal.unresolvedContradictions,
+    semanticOrigins: signal.semanticOrigins,
+    requireSemanticOrigins: signal.requireSemanticOrigins,
+  });
   let band: SignalQualityBand = 'draft';
   if (score >= 85) band = 'strong';
   else if (publishable) band = 'usable';
   else if (score >= 45) band = 'watch';
 
   if (publishable) reasons.push('passes_publish_gate');
+  else if (!reasons.includes(publishabilityReason)) reasons.push(publishabilityReason);
 
   return {
     score,

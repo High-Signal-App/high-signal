@@ -1,6 +1,6 @@
 # high-signal — PROJECT STATUS
 
-Last updated: 2026-08-24
+Last updated: 2026-08-25
 
 ## Why/What
 
@@ -44,6 +44,15 @@ Last updated: 2026-08-24
   the 30-minute collector has populated all five documented feeds; API and web
   deployment smokes passed; cold-to-warm probes returned `API-MISS` then
   `API-HIT` for both `/data/daily` and `/brief/daily`.
+- Reliability hardening for issue #133 is implemented locally and awaiting
+  migration/release: the IST pipeline is 08:00 ingest → 09:00 publish → 09:30
+  freshness validation → 10:00 delivery; material Digg crossings trigger
+  immediate original-source verification with latency receipts; one shared
+  `publishability()` gate rejects future dates, prediction-only evidence,
+  contradictions, impossible directions, and same-event direction conflicts;
+  claim corroboration records normalized tuples and evidentiary origins; and
+  observed events are stored separately from direct, supply-chain, and business
+  inference fields. Migrations `0022` and `0023` are not yet applied.
 - Operator admin session gates `/review`, `/backtest-workbench`, `/personal`, and community curation.
 - Primary nav follows the public reading path: Brief, Signals, Track record, and Sources. Explore and contextual links keep the wider set of lenses and operator surfaces discoverable. Removed dead `/discover` nav link (communities product is parked; link caused prod smoke 404).
 - Public/support pages exist: about, methodology, featured, API docs, privacy, terms, auth pages.
@@ -57,7 +66,7 @@ Last updated: 2026-08-24
 | --- | --- | --- |
 | Web | Next.js 16, Tailwind v4, OpenNext | Cloudflare Worker `high-signal-web` |
 | API | Hono, D1 binding | Cloudflare Worker `high-signal-api` |
-| DB | Drizzle + D1 (`packages/db`, migrations 0000–0021) | `high-signal-db` |
+| DB | Drizzle + D1 (`packages/db`, migrations 0000–0023; 0022–0023 pending release) | `high-signal-db` |
 | Shared | `@high-signal/shared` types, scorers, composers | — |
 | Ingest | Python `uv`, edgartools, yfinance, GLiNER, etc. | GitHub Actions cron + optional Modal |
 | Lab (parked) | Postgres/pgvector, FastAPI (`python/lab`) | Local docker-compose only |
@@ -72,7 +81,7 @@ python/ingest     Daily source adapters → events/entities → signal candidate
 python/lab        Local Postgres substrate (plan 0007, parked)
 signals/          Append-only markdown signal cards
 scripts/          D1 seed, sync, snapshots, auto-publish, test harnesses
-.github/workflows cron-ingest, cron-score, cron-markets, cron-equities, cron-backtest, cron-publish, personal-brief
+.github/workflows cron-ingest, cron-score, cron-markets, cron-equities, cron-backtest, cron-publish, cron-validate-brief, personal-brief
 ```
 
 **Data ownership:** D1 is canonical for signals, evidence, entities, mentions, agent-eval, markets, delivery, watchlists, cited URLs. Git markdown under `signals/` is human-readable source synced into D1. JSON bundles (`equities-snapshot`, `price-context`, `market-refreshes`, `known-tickers`) are derived artifacts from `data/equities-snapshot.jsonl` — not independent market-data sources. Prediction markets (`market_quotes`) are separate from equity prices.
@@ -100,7 +109,22 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 
 ## Timeline
 
-- **2026-08-23 — Corroboration is now decided by an independent-publisher
+- **2026-08-25 — Daily freshness, Digg verification, and publication semantics
+  hardened locally (pending migration/release):** moved the operator-day
+  sequence to 08:00/09:00/09:30/10:00 IST and added a public validator for the
+  IST edition date plus a two-hour evidence ceiling. Digg rank ≤20, velocity ≥5,
+  or three contributors now creates a durable verification request; the same
+  collector run searches for semantically matching original publisher pages,
+  retains the documents, and emits only an evidence-gated draft. A shared
+  `publishability()` policy now backs signal APIs, the Daily Brief, admin
+  publishing, and auto-publish. Claims carry entity/event/amount/date/direction
+  tuples plus semantic alignment and originating-evidence IDs, so syndicated
+  repeats can share one origin. Signal records now separate observed event,
+  direct impact, supply-chain impact, business inference, strength, and the URLs
+  supporting that inference. Local migrations are `0022` and `0023`; neither is
+  applied to production yet.
+
+- **2026-08-23 — Corroboration was decided by an independent-publisher
   test:** `buildHistoricalClaimBackfill` promotes the first later evidence link
   to `corroboration` when it clears `isIndependentCorroboration` — a different
   publisher host from the primary, HTTP(S), and not one of the four
@@ -115,6 +139,8 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
   `corroborationCount >= 1`, so no backfilled claim could publish. The gate
   itself is unchanged. `POST /admin/claims/backfill` still has to be run per
   signal against the 3,038-row signal table to populate `claim_records`.
+  **Superseded 2026-08-25:** host diversity no longer promotes corroboration;
+  semantic alignment and distinct originating-evidence IDs are mandatory.
 
 - **2026-08-22 — Twelve-day silent brief outage diagnosed; publish gate now
   withholds items, not editions:** the global edition published nothing from
@@ -127,7 +153,7 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
   section-level failures (fixture content, unavailable category) stay fatal, and
   a category emptied by pruning records `items_withheld_by_publish_gate` so
   "withheld" stays distinguishable from "found nothing". Rejections log at
-  `console.error`, and `scripts/verify-daily-brief.mjs` fails `cron-publish`
+  `console.error`, and `scripts/verify-daily-brief.mjs` fails `cron-validate-brief`
   when a reader would get an empty brief. **Still empty in production:**
   `claim_records` and `claim_evidence_links` hold 0 rows against 3,038 signals,
   so every stock item is dropped for want of provenance. `POST

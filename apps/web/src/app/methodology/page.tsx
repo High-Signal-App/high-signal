@@ -27,7 +27,7 @@ export const metadata: Metadata = {
 const STEPS = [
   {
     name: 'Ingest from the source',
-    text: 'Pipelines pull from SEC filings, IR pages, news, Hacker News, Reddit, GitHub, YouTube transcripts, prediction markets, and government feeds. Daily at 06:00 UTC via GitHub Actions. No web scraping of paywalled content.',
+    text: 'Pipelines pull from SEC filings, IR pages, news, Hacker News, Reddit, GitHub, YouTube transcripts, prediction markets, and government feeds. Daily at 08:00 IST via GitHub Actions. No web scraping of paywalled content.',
   },
   {
     name: 'Score and tag each candidate',
@@ -35,7 +35,7 @@ const STEPS = [
   },
   {
     name: 'Auto-judge — publish, kill, or escalate',
-    text: 'A deterministic rubric runs at 07:00 UTC. A structured claim needs one aligned primary source and independent aligned corroboration on the same assertion. Context does not count, contradiction blocks, and unusable receipts fail closed. Prediction-market-only drafts KILL. Ambiguous alignment may escalate to the configured AI judge; unavailable judging still fails closed.',
+    text: 'A mandatory publishability gate runs at 09:00 IST. A structured claim needs one aligned primary source and independently originating aligned corroboration on the same normalized claim tuple. Context does not count, contradiction blocks, and unusable receipts fail closed. Prediction-market-only and future-dated drafts KILL. Ambiguous alignment may escalate to the configured AI judge; unavailable judging still fails closed.',
   },
   {
     name: 'Score against subsequent market moves',

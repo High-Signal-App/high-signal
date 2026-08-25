@@ -5,3 +5,4 @@ export * from './signal-intelligence';
 export * from './claim-provenance';
 export * from './brief-feeds';
 export * from './feed-data-coverage';
+export * from './publishability';

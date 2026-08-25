@@ -86,7 +86,7 @@ decision attached.
 
 Default cadence:
 
-- Daily 06:00 UTC: `pipeline --source all --days 1`
+- Daily 02:30 UTC / 08:00 IST: `pipeline --source all --days 1`
 - Every 4h: `pipeline --source markets`
 - Daily 22:30 UTC: score matured signals
 - Manual backfill: `gdelt,edgar` first, then widen only after review quality is stable

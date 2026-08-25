@@ -1,8 +1,8 @@
 import { Hono } from 'hono';
-import { and, desc, eq, gte, lt, sql, type SQL } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray, lt, sql, type SQL } from 'drizzle-orm';
 import { type SignalContentCategory } from '@high-signal/shared';
 import { db, schema } from '../db';
-import { enrichSignal } from '../lib/signal-quality';
+import { enrichPublishedSignals, enrichSignal, enrichSignals } from '../lib/signal-quality';
 
 type Env = { DB: D1Database };
 
@@ -36,7 +36,6 @@ signalsRoute.get('/', async (c) => {
   const entity = c.req.query('entity');
   const category = c.req.query('category') as SignalContentCategory | undefined;
   const minQuality = Number(c.req.query('minQuality') ?? 0);
-  const includeWeak = c.req.query('includeWeak') === '1';
   const { start, end } = parseDateRange(c);
 
   const conditions: SQL[] = [
@@ -57,10 +56,11 @@ signalsRoute.get('/', async (c) => {
     .from(schema.signals)
     .where(and(...conditions))
     .orderBy(desc(schema.signals.publishedAt))
-    .limit(category || minQuality ? Math.max(limit, 200) : limit);
-  const enriched = rows
-    .map(enrichSignal)
-    .filter((signal) => status !== 'published' || includeWeak || signal.publishable)
+    .limit(status === 'published' ? 500 : category || minQuality ? Math.max(limit, 200) : limit);
+  const enrichedRows =
+    status === 'published' ? await enrichPublishedSignals(c.env.DB, rows) : enrichSignals(rows);
+  const enriched = enrichedRows
+    .filter((signal) => status !== 'published' || signal.publishable)
     .filter((signal) => !category || signal.contentCategory === category)
     .filter((signal) => !minQuality || signal.qualityScore >= minQuality)
     .slice(0, limit);
@@ -89,7 +89,8 @@ signalsRoute.get('/facets', async (c) => {
     .limit(500);
   const categoryCounts = new Map<string, number>();
   const sourceClassCounts = new Map<string, number>();
-  for (const signal of recentRows.map(enrichSignal).filter((signal) => signal.publishable)) {
+  const enrichedRecent = await enrichPublishedSignals(c.env.DB, recentRows);
+  for (const signal of enrichedRecent.filter((signal) => signal.publishable)) {
     categoryCounts.set(
       signal.contentCategory,
       (categoryCounts.get(signal.contentCategory) ?? 0) + 1
@@ -127,7 +128,20 @@ signalsRoute.get('/:slug/evidence', async (c) => {
   ) {
     return c.json({ error: 'not_found' }, 404);
   }
-  const signal = enrichSignal(row);
+  const peerRows = await database
+    .select()
+    .from(schema.signals)
+    .where(
+      and(
+        eq(schema.signals.primaryEntityId, row.primaryEntityId),
+        eq(schema.signals.reviewStatus, 'published'),
+        notBackfill()
+      )
+    );
+  const signal =
+    (await enrichPublishedSignals(c.env.DB, peerRows)).find(
+      (candidate) => candidate.id === row.id
+    ) ?? enrichSignal(row);
   if (!signal.publishable) return c.json({ error: 'not_found' }, 404);
 
   const evidenceEvents = await database
@@ -168,12 +182,21 @@ signalsRoute.get('/:slug', async (c) => {
   if (row.reviewStatus === 'published' && row.bodyMd.trimStart().startsWith('> _backfill_')) {
     return c.json({ error: 'not_found' }, 404);
   }
-  const enrichedRow = enrichSignal(row);
-  if (
-    row.reviewStatus === 'published' &&
-    !enrichedRow.publishable &&
-    c.req.query('includeWeak') !== '1'
-  ) {
+  const peerRows = await db(c.env.DB)
+    .select()
+    .from(schema.signals)
+    .where(
+      and(
+        eq(schema.signals.primaryEntityId, row.primaryEntityId),
+        eq(schema.signals.reviewStatus, 'published'),
+        notBackfill()
+      )
+    );
+  const enrichedRow =
+    (await enrichPublishedSignals(c.env.DB, peerRows)).find(
+      (candidate) => candidate.id === row.id
+    ) ?? enrichSignal(row);
+  if (row.reviewStatus === 'published' && !enrichedRow.publishable) {
     return c.json({ error: 'not_found' }, 404);
   }
   const evid = await db(c.env.DB)
@@ -192,7 +215,14 @@ signalsRoute.get('/by-entity/:entityId', async (c) => {
   const rows = await db(c.env.DB)
     .select()
     .from(schema.signals)
-    .where(and(eq(schema.signals.primaryEntityId, entityId), notBackfill()))
+    .where(
+      and(
+        eq(schema.signals.primaryEntityId, entityId),
+        eq(schema.signals.reviewStatus, 'published'),
+        notBackfill()
+      )
+    )
     .orderBy(desc(schema.signals.publishedAt));
-  return c.json({ signals: rows.map(enrichSignal).filter((signal) => signal.publishable) });
+  const enriched = await enrichPublishedSignals(c.env.DB, rows);
+  return c.json({ signals: enriched.filter((signal) => signal.publishable) });
 });

@@ -10,6 +10,7 @@ import {
   isUsableClaimEvidenceLink,
   isPredictionMarketOnly as isPredictionMarketOnlyUrls,
   judgePublishability,
+  publishability,
   rollupEvidence,
   type ClaimWithEvidence,
 } from '@high-signal/shared';
@@ -20,6 +21,18 @@ export interface VerdictResult {
   verdict: Verdict;
   reason: string;
   source: 'ai' | 'rule';
+  claimTuple?: {
+    entity: string;
+    event: string;
+    amount: string | null;
+    date: string;
+    direction: 'up' | 'down' | 'neutral';
+  };
+  evidenceAssessments?: Array<{
+    url: string;
+    aligned: boolean;
+    originatingEvidenceId: string;
+  }>;
 }
 
 export interface JudgeableSignal {
@@ -34,6 +47,10 @@ export interface JudgeableSignal {
    * sometimes attaches adjacent news by proximity rather than relevance).
    */
   bodyMd?: string;
+  direction?: string | null;
+  publishedAt?: string | number | Date | null;
+  oppositeDirectionConflict?: boolean;
+  provenanceSource?: ProvenanceSource;
 }
 
 export type ProvenanceSource = 'structured_claims' | 'legacy_signal';
@@ -167,6 +184,15 @@ export function deterministicVerdict(signal: JudgeableSignal): VerdictResult {
   const independent = signal.independentSourceCount ?? 0;
   const reasons = signal.qualityReasons ?? [];
   const classes = signal.sourceClasses ?? [];
+  const mandatory = publishability({
+    evidenceUrls: signal.evidenceUrls ?? [],
+    direction: signal.direction,
+    publishedAt: signal.publishedAt,
+    oppositeDirectionConflict: signal.oppositeDirectionConflict,
+  });
+  if (!mandatory.publishable) {
+    return { verdict: 'kill', reason: mandatory.reason, source: 'rule' };
+  }
 
   if (reasons.includes('structured_contradiction')) {
     return {
@@ -231,6 +257,14 @@ export function deterministicVerdict(signal: JudgeableSignal): VerdictResult {
     return {
       verdict: 'kill',
       reason: 'signal prose is not brief-ready (what changed, why it matters, and uncertainty)',
+      source: 'rule',
+    };
+  }
+
+  if (signal.provenanceSource === 'legacy_signal' && signal.publishable === true) {
+    return {
+      verdict: 'hold',
+      reason: 'semantic corroboration and origin tracing required',
       source: 'rule',
     };
   }

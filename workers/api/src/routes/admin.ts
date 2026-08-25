@@ -5,11 +5,13 @@
  * CI / local sync-signals.ts POSTs frontmatter+body to /admin/sync to keep D1 in step with the git-versioned signals/ tree.
  */
 import { Hono } from 'hono';
-import { eq } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import {
   buildHistoricalClaimBackfill,
   canTransition,
   judgePublishability,
+  normalizeClaimTuple,
+  publishability,
   rollupEvidence,
   type ClaimEvidenceRole,
   type ClaimSurface,
@@ -27,6 +29,7 @@ import type { CommunitySummary } from '@high-signal/shared';
 import { desc, eq as eqOp } from 'drizzle-orm';
 import { db, schema } from '../db';
 import { diggAdminRoute } from './admin-digg';
+import { enrichSignals } from '../lib/signal-quality';
 
 type Env = {
   DB: D1Database;
@@ -102,6 +105,12 @@ interface SignalUpsert {
   reviewStatus?: 'draft' | 'published' | 'corrected' | 'killed';
   supersedesSignalId?: string | null;
   bodyMd: string;
+  observedEvent?: string | null;
+  directEntityImpact?: string | null;
+  supplyChainImpact?: string | null;
+  businessInference?: string | null;
+  inferenceStrength?: 'none' | 'weak' | 'moderate' | 'strong' | null;
+  inferenceEvidenceUrls?: string[];
 }
 
 adminRoute.post('/sync', async (c) => {
@@ -122,8 +131,15 @@ adminRoute.post('/sync', async (c) => {
 
     // Auto-publish normal ingest, but preserve explicit drafts for fallback
     // candidates that need review before entering the public feed.
-    const reviewStatus =
-      s.reviewStatus === 'draft' || s.reviewStatus === 'corrected' ? s.reviewStatus : 'published';
+    // Sync creates candidates; the only path into published state is the
+    // shared publishability gate in PATCH /admin/signals/:slug.
+    const reviewStatus = s.reviewStatus === 'corrected' ? 'corrected' : 'draft';
+    const inferenceEvidenceUrls = Array.from(
+      new Set((s.inferenceEvidenceUrls ?? []).filter((url) => s.evidenceUrls.includes(url)))
+    );
+    const businessInference =
+      s.businessInference && inferenceEvidenceUrls.length > 0 ? s.businessInference : null;
+    const inferenceStrength = businessInference ? (s.inferenceStrength ?? 'weak') : 'none';
 
     try {
       await db(c.env.DB)
@@ -142,6 +158,12 @@ adminRoute.post('/sync', async (c) => {
           reviewStatus,
           supersedesSignalId: s.supersedesSignalId ?? null,
           bodyMd: s.bodyMd,
+          observedEvent: s.observedEvent ?? null,
+          directEntityImpact: s.directEntityImpact ?? null,
+          supplyChainImpact: s.supplyChainImpact ?? null,
+          businessInference,
+          inferenceStrength,
+          inferenceEvidenceUrls,
         })
         .onConflictDoUpdate({
           target: schema.signals.slug,
@@ -156,6 +178,12 @@ adminRoute.post('/sync', async (c) => {
             reviewStatus,
             supersedesSignalId: s.supersedesSignalId ?? null,
             bodyMd: s.bodyMd,
+            observedEvent: s.observedEvent ?? null,
+            directEntityImpact: s.directEntityImpact ?? null,
+            supplyChainImpact: s.supplyChainImpact ?? null,
+            businessInference,
+            inferenceStrength,
+            inferenceEvidenceUrls,
           },
         });
     } catch (err) {
@@ -186,6 +214,22 @@ adminRoute.post('/sync', async (c) => {
     upserts++;
   }
   return c.json({ upserts, createdEntities });
+});
+
+adminRoute.get('/signals-review', async (c) => {
+  const status = c.req.query('status') ?? 'draft';
+  if (!['draft', 'published', 'corrected', 'killed'].includes(status)) {
+    return c.json({ error: 'invalid_status' }, 400);
+  }
+  const rows = await db(c.env.DB)
+    .select()
+    .from(schema.signals)
+    .where(
+      eq(schema.signals.reviewStatus, status as 'draft' | 'published' | 'corrected' | 'killed')
+    )
+    .orderBy(desc(schema.signals.publishedAt))
+    .limit(500);
+  return c.json({ signals: enrichSignals(rows) });
 });
 
 async function ensureEntities(d1: D1Database, ids: (string | null | undefined)[]): Promise<number> {
@@ -224,6 +268,83 @@ adminRoute.patch('/signals/:slug', async (c) => {
   if ('supersedesSignalId' in body) updates['supersedesSignalId'] = body.supersedesSignalId;
   if (Object.keys(updates).length === 0) {
     return c.json({ error: 'no_updates' }, 400);
+  }
+  if (body.reviewStatus === 'published') {
+    const [signal] = await db(c.env.DB)
+      .select()
+      .from(schema.signals)
+      .where(eq(schema.signals.slug, slug))
+      .limit(1);
+    if (!signal) return c.json({ error: 'not_found' }, 404);
+    const peers = await db(c.env.DB)
+      .select()
+      .from(schema.signals)
+      .where(
+        and(
+          eq(schema.signals.primaryEntityId, signal.primaryEntityId),
+          inArray(schema.signals.reviewStatus, ['draft', 'published'])
+        )
+      );
+    const enriched = enrichSignals(peers).find((candidate) => candidate.id === signal.id);
+    if (!enriched?.publishable) {
+      return c.json(
+        {
+          error: 'publishability_failed',
+          reason: enriched?.qualityReasons.at(-1) ?? 'quality_gate_failed',
+        },
+        409
+      );
+    }
+    const claims = await db(c.env.DB)
+      .select({ id: schema.claimRecords.id, reviewStatus: schema.claimRecords.reviewStatus })
+      .from(schema.claimRecords)
+      .where(eq(schema.claimRecords.signalId, signal.id));
+    const claimIds = claims
+      .filter((claim) => claim.reviewStatus === 'published')
+      .map((claim) => claim.id);
+    const links = claimIds.length
+      ? await db(c.env.DB)
+          .select()
+          .from(schema.claimEvidenceLinks)
+          .where(inArray(schema.claimEvidenceLinks.claimId, claimIds))
+      : [];
+    const claimVerdicts = claimIds.map((claimId) =>
+      judgePublishability(
+        rollupEvidence(
+          links
+            .filter((link) => link.claimId === claimId)
+            .map((link) => ({
+              id: link.id,
+              claimId: link.claimId,
+              evidenceUrl: link.evidenceUrl,
+              sourceDocumentId: link.sourceDocumentId ?? null,
+              originatingEvidenceId: link.originatingEvidenceId ?? null,
+              semanticAlignment: link.semanticAlignment,
+              role: link.role,
+              weight: link.weight,
+              notes: link.notes ?? null,
+              addedAt: link.addedAt.toISOString(),
+              addedBy: link.addedBy ?? null,
+            }))
+        )
+      )
+    );
+    const claimVerdict =
+      claimVerdicts.find((verdict) => verdict.publishable) ??
+      claimVerdicts[0] ??
+      ({ publishable: false, reason: 'no_structured_claim' } as const);
+    const mandatory = publishability({
+      evidenceUrls: signal.evidenceUrls as string[],
+      direction: signal.direction,
+      publishedAt: signal.publishedAt,
+      unresolvedContradictions: claimVerdict.publishable ? 0 : 1,
+    });
+    if (!claimVerdict.publishable || !mandatory.publishable) {
+      return c.json(
+        { error: 'publishability_failed', reason: claimVerdict.reason || mandatory.reason },
+        409
+      );
+    }
   }
   const result = await db(c.env.DB)
     .update(schema.signals)
@@ -616,11 +737,20 @@ interface CreateClaimInput {
   briefItemId?: string;
   agentEvalResponseId?: string;
   confidenceBand?: 'low' | 'medium' | 'high';
+  claimTuple?: {
+    entity: string;
+    event: string;
+    amount?: string | number | null;
+    date: string;
+    direction: 'up' | 'down' | 'neutral';
+  };
   evidence?: Array<{
     url: string;
     role: ClaimEvidenceRole;
     notes?: string;
     sourceDocumentId?: string;
+    originatingEvidenceId?: string;
+    semanticAlignment?: 'unverified' | 'verified' | 'rejected';
   }>;
 }
 
@@ -666,6 +796,22 @@ adminRoute.post('/claims', async (c) => {
   );
   const now = new Date();
   const actor = actorFromHeaders(c);
+  const [signal] = signalId
+    ? await db(c.env.DB)
+        .select()
+        .from(schema.signals)
+        .where(eq(schema.signals.id, signalId))
+        .limit(1)
+    : [];
+  const tuple = normalizeClaimTuple(
+    body.claimTuple ?? {
+      entity: signal?.primaryEntityId ?? 'unscoped',
+      event: signal?.signalType ?? body.surface,
+      amount: null,
+      date: signal?.publishedAt ?? now,
+      direction: signal?.direction ?? 'neutral',
+    }
+  );
 
   await db(c.env.DB)
     .insert(schema.claimRecords)
@@ -681,6 +827,12 @@ adminRoute.post('/claims', async (c) => {
       parentClaimId: null,
       version: 1,
       createdAt: now,
+      claimEntityId: tuple.entity,
+      claimEvent: tuple.event,
+      claimAmount: tuple.amount,
+      claimDate: tuple.date,
+      claimDirection: tuple.direction,
+      claimTupleKey: tuple.key,
     });
 
   await db(c.env.DB)
@@ -704,6 +856,8 @@ adminRoute.post('/claims', async (c) => {
         claimId: id,
         evidenceUrl: link.url,
         sourceDocumentId: link.sourceDocumentId ?? null,
+        originatingEvidenceId: link.originatingEvidenceId ?? link.sourceDocumentId ?? null,
+        semanticAlignment: link.semanticAlignment ?? 'unverified',
         role: link.role,
         weight: 1,
         notes: link.notes ?? null,
@@ -757,6 +911,13 @@ adminRoute.post('/claims/backfill', async (c) => {
   const actor = actorFromHeaders(c);
   const claimId = await sha16(`claim:backfill:${signal.id}`);
   const isPublished = signal.reviewStatus === 'published';
+  const tuple = normalizeClaimTuple({
+    entity: signal.primaryEntityId,
+    event: signal.signalType,
+    amount: null,
+    date: signal.publishedAt,
+    direction: signal.direction,
+  });
 
   await db(c.env.DB)
     .insert(schema.claimRecords)
@@ -771,6 +932,12 @@ adminRoute.post('/claims/backfill', async (c) => {
       version: 1,
       createdAt: now,
       publishedAt: isPublished ? signal.publishedAt : null,
+      claimEntityId: tuple.entity,
+      claimEvent: tuple.event,
+      claimAmount: tuple.amount,
+      claimDate: tuple.date,
+      claimDirection: tuple.direction,
+      claimTupleKey: tuple.key,
     })
     .onConflictDoNothing({ target: schema.claimRecords.id });
 
@@ -832,6 +999,8 @@ adminRoute.post('/claims/:id/evidence', async (c) => {
     role: ClaimEvidenceRole;
     notes?: string;
     sourceDocumentId?: string;
+    originatingEvidenceId?: string;
+    semanticAlignment?: 'unverified' | 'verified' | 'rejected';
   };
   if (!body.url || !body.role) {
     return c.json({ error: 'missing_url_or_role' }, 400);
@@ -855,6 +1024,8 @@ adminRoute.post('/claims/:id/evidence', async (c) => {
       claimId,
       evidenceUrl: body.url,
       sourceDocumentId: body.sourceDocumentId ?? null,
+      originatingEvidenceId: body.originatingEvidenceId ?? body.sourceDocumentId ?? null,
+      semanticAlignment: body.semanticAlignment ?? 'unverified',
       role: body.role,
       weight: 1,
       notes: body.notes ?? null,
@@ -934,6 +1105,8 @@ adminRoute.post('/claims/:id/status', async (c) => {
         claimId: l.claimId,
         evidenceUrl: l.evidenceUrl,
         sourceDocumentId: l.sourceDocumentId ?? null,
+        originatingEvidenceId: l.originatingEvidenceId ?? null,
+        semanticAlignment: l.semanticAlignment,
         role: l.role,
         weight: l.weight,
         notes: l.notes ?? null,

@@ -19,6 +19,12 @@ export interface Front {
   spillover_entity_ids?: string[];
   supersedes?: string | null;
   review_status: 'draft' | 'published' | 'corrected' | 'killed';
+  observed_event?: string | null;
+  direct_entity_impact?: string | null;
+  supply_chain_impact?: string | null;
+  business_inference?: string | null;
+  inference_strength?: 'none' | 'weak' | 'moderate' | 'strong';
+  inference_evidence_urls?: string[];
 }
 
 const REQUIRED_FRONT_KEYS = [

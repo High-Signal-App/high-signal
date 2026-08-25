@@ -309,7 +309,40 @@ def poll(api_base: str, token: str, *, now: datetime | None = None) -> dict[str,
         )
         response.raise_for_status()
         body = response.json()
-        return body if isinstance(body, dict) else {"feeds": len(feeds)}
+        if not isinstance(body, dict):
+            return {"feeds": len(feeds)}
+
+        verification_requests = body.get("verificationRequests", [])
+        if isinstance(verification_requests, list) and verification_requests:
+            from .digg_verify import verify_requests
+
+            running = [
+                {"shortId": request.get("shortId"), "status": "running"}
+                for request in verification_requests[:3]
+                if isinstance(request, dict) and request.get("shortId")
+            ]
+            if running:
+                client.post(
+                    f"{api_base.rstrip('/')}/admin/digg/verification-results",
+                    headers={
+                        "Authorization": f"Bearer {token}",
+                        "Content-Type": "application/json",
+                    },
+                    json={"results": running},
+                ).raise_for_status()
+            results = verify_requests(
+                [request for request in verification_requests if isinstance(request, dict)], client
+            )
+            client.post(
+                f"{api_base.rstrip('/')}/admin/digg/verification-results",
+                headers={
+                    "Authorization": f"Bearer {token}",
+                    "Content-Type": "application/json",
+                },
+                json={"results": results},
+            ).raise_for_status()
+            body["verificationResults"] = results
+        return body
 
 
 def main() -> None:

@@ -22,6 +22,8 @@
  *   BRIEF_REGIONS=global,south-asia node scripts/verify-daily-brief.mjs
  */
 
+import { calendarDate, validateBriefFreshness } from './verify-daily-brief-lib.mjs';
+
 const API = process.env.HIGH_SIGNAL_API ?? 'https://api.highsignal.app';
 const REGIONS = (process.env.BRIEF_REGIONS ?? 'global')
   .split(',')
@@ -29,8 +31,9 @@ const REGIONS = (process.env.BRIEF_REGIONS ?? 'global')
   .filter(Boolean);
 
 /** A region is healthy when the edition resolves and carries at least one item. */
-async function checkRegion(region) {
-  const url = `${API}/brief/daily?region=${encodeURIComponent(region)}`;
+async function checkRegion(region, dailyDump, now) {
+  const expectedDate = calendarDate(now);
+  const url = `${API}/brief/daily?region=${encodeURIComponent(region)}&date=${expectedDate}`;
   const res = await fetch(url);
 
   if (res.status === 404) {
@@ -64,24 +67,39 @@ async function checkRegion(region) {
     );
   }
 
-  return { counts, total, withheld };
+  const freshness = validateBriefFreshness(brief, dailyDump, now);
+  return { counts, total, withheld, freshness };
 }
 
 let failures = 0;
+const now = new Date();
+const expectedDate = calendarDate(now);
+let dailyDump = null;
+
+try {
+  const response = await fetch(`${API}/data/daily?date=${expectedDate}`);
+  if (!response.ok) throw new Error(`status ${response.status}`);
+  dailyDump = await response.json();
+} catch (err) {
+  failures++;
+  process.stdout.write(`✗ daily dump ... ${err instanceof Error ? err.message : String(err)}\n`);
+}
 
 for (const region of REGIONS) {
   process.stdout.write(`→ ${region} ... `);
   try {
-    const { counts, total, withheld } = await checkRegion(region);
+    if (!dailyDump) throw new Error('daily dump unavailable');
+    const { counts, total, withheld, freshness } = await checkRegion(region, dailyDump, now);
     const suffix = withheld.length > 0 ? ` (withheld: ${withheld.join(', ')})` : '';
-    process.stdout.write(`✓ ${total} items ${JSON.stringify(counts)}${suffix}\n`);
+    const ageMinutes = Math.max(0, Math.round(freshness.ageMs / 60_000));
+    process.stdout.write(
+      `✓ ${total} items ${JSON.stringify(counts)}; newest evidence ${ageMinutes}m old${suffix}\n`
+    );
   } catch (err) {
     failures++;
     process.stdout.write(`✗ ${err instanceof Error ? err.message : String(err)}\n`);
   }
 }
 
-console.log(
-  `\n${failures === 0 ? '✓' : '✗'} ${REGIONS.length - failures}/${REGIONS.length} region(s) publishing`
-);
+console.log(`\n${failures === 0 ? '✓' : '✗'} validation ${failures === 0 ? 'passed' : 'failed'}`);
 process.exit(failures);

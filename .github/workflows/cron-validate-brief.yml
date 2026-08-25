@@ -1,0 +1,21 @@
+name: cron-validate-brief
+
+on:
+  schedule:
+    - cron: "0 4 * * *" # daily 04:00 UTC / 09:30 IST
+  workflow_dispatch:
+
+jobs:
+  validate-brief:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+      - name: verify current IST brief and evidence freshness
+        env:
+          HIGH_SIGNAL_API: ${{ secrets.API_BASE || 'https://api.highsignal.app' }}
+          BRIEF_REGIONS: global
+        run: node scripts/verify-daily-brief.mjs

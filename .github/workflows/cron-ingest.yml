@@ -2,7 +2,7 @@ name: cron-ingest
 
 on:
   schedule:
-    - cron: "0 6 * * *"  # daily 06:00 UTC
+    - cron: "30 2 * * *"  # daily 02:30 UTC / 08:00 IST
   workflow_dispatch:
     inputs:
       source:

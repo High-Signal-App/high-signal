@@ -3,6 +3,7 @@
 // editor, the /signals provenance tab, and the auto-publish judge.
 
 import { isPredictionMarketOnly, sourceDomain } from './signal-intelligence';
+import { publishability } from './publishability';
 
 export type ClaimSurface = 'signal' | 'brief' | 'agent_eval';
 
@@ -22,6 +23,8 @@ export interface ClaimEvidenceLink {
   claimId: string;
   evidenceUrl: string;
   sourceDocumentId: string | null;
+  originatingEvidenceId?: string | null;
+  semanticAlignment?: 'unverified' | 'verified' | 'rejected';
   role: ClaimEvidenceRole;
   weight: number;
   notes: string | null;
@@ -53,6 +56,47 @@ export interface ClaimRecord {
   createdAt: string;
   publishedAt: string | null;
   correctedAt: string | null;
+  claimEntityId?: string | null;
+  claimEvent?: string | null;
+  claimAmount?: string | null;
+  claimDate?: string | null;
+  claimDirection?: 'up' | 'down' | 'neutral' | null;
+  claimTupleKey?: string | null;
+}
+
+export interface NormalizedClaimTuple {
+  entity: string;
+  event: string;
+  amount: string | null;
+  date: string;
+  direction: 'up' | 'down' | 'neutral';
+  key: string;
+}
+
+export function normalizeClaimTuple(input: {
+  entity: string;
+  event: string;
+  amount?: string | number | null;
+  date: string | Date;
+  direction: 'up' | 'down' | 'neutral';
+}): NormalizedClaimTuple {
+  const clean = (value: string) => value.trim().toLowerCase().replace(/\s+/g, ' ');
+  const date = new Date(input.date);
+  if (!input.entity.trim() || !input.event.trim() || !Number.isFinite(date.getTime())) {
+    throw new Error('invalid_claim_tuple');
+  }
+  const amount = input.amount == null ? null : clean(String(input.amount));
+  const tuple = {
+    entity: clean(input.entity),
+    event: clean(input.event),
+    amount,
+    date: date.toISOString().slice(0, 10),
+    direction: input.direction,
+  };
+  return {
+    ...tuple,
+    key: [tuple.entity, tuple.event, amount ?? '', tuple.date, tuple.direction].join('|'),
+  };
 }
 
 export interface ClaimWithEvidence extends ClaimRecord {
@@ -72,20 +116,16 @@ export interface HistoricalClaimBackfill {
 }
 
 /**
- * Decide whether a second source corroborates the primary strongly enough to
- * carry a published claim.
+ * Mechanical publisher-diversity helper retained for discovery and audits.
  *
- * This is a deliberately narrow, mechanical test: a *different publisher*.
- * Same registrable-ish host as the primary is not corroboration, it is the same
+ * This is deliberately not a publication decision: a *different publisher*
+ * alone is insufficient. Same registrable-ish host as the primary is not
+ * corroboration, it is the same
  * outlet twice; a prediction market is crowd opinion, which the auto-publish
  * rubric already kills; a non-HTTP(S) link is not a citation at all.
  *
- * What it does NOT claim is semantic agreement — nobody has read both sources
- * and confirmed they assert the same thing. It claims source independence,
- * which is checkable, and it is why promoted links record
- * `independent_publisher` rather than an editorial judgement. Upgrading to
- * semantic corroboration needs a judge that reads the text; until then this is
- * the honest ceiling, and an operator can still demote a link by hand.
+ * does not prove semantic agreement or a distinct evidentiary origin. Current
+ * publishability therefore never grants corroboration credit from this helper.
  *
  * Before this existed the backfill assigned `primary` + `context` only, while
  * the brief's per-item gate required `corroborationCount >= 1` — so no
@@ -125,20 +165,13 @@ export function buildHistoricalClaimBackfill(input: {
     500
   );
   const urls = Array.from(new Set(input.evidenceUrls.map((url) => url.trim()).filter(Boolean)));
-  const [primaryUrl] = urls;
-  // URL order proves nothing on its own, so only the first link is primary.
-  // Later links are promoted to corroboration only when they clear the
-  // independent-publisher test; everything else stays context, exactly as
-  // before. Promotion is mechanical and auditable, never inferred from order.
-  let corroborated = false;
+  // URL order and host diversity prove neither semantic agreement nor origin
+  // independence. Historical links remain context until a verifier records
+  // both the normalized claim tuple and originating evidence.
   return {
     assertion,
     evidence: urls.map((url, index) => {
       if (index === 0) return { url, role: 'primary' as const };
-      if (!corroborated && isIndependentCorroboration(primaryUrl, url)) {
-        corroborated = true;
-        return { url, role: 'corroboration' as const };
-      }
       return { url, role: 'context' as const };
     }),
   };
@@ -203,6 +236,8 @@ export interface EvidenceRollup {
   distinctUrls: number;
   hosts: string[];
   supportingHosts: string[];
+  supportingOrigins: string[];
+  supportingUrls: string[];
   unusableSupporting: number;
 }
 
@@ -224,13 +259,16 @@ export function isUsableClaimEvidenceLink(link: ClaimEvidenceLink): boolean {
   // operator-verified links compatible without pretending URL order proves
   // semantic alignment.
   const retainedReceipt = Boolean(link.sourceDocumentId) || /\breceipt:verified\b/i.test(notes);
-  const aligned = /\balignment:verified\b/i.test(notes);
-  return retainedReceipt && aligned;
+  const aligned = link.semanticAlignment === 'verified' || /\balignment:verified\b/i.test(notes);
+  const hasOrigin = Boolean(link.originatingEvidenceId ?? link.sourceDocumentId);
+  return retainedReceipt && aligned && hasOrigin;
 }
 
 export function rollupEvidence(links: ClaimEvidenceLink[]): EvidenceRollup {
   const hosts = new Set<string>();
   const supportingHosts = new Set<string>();
+  const supportingOrigins = new Set<string>();
+  const supportingUrls = new Set<string>();
   const urls = new Set<string>();
   let primary = 0;
   let corroboration = 0;
@@ -257,6 +295,9 @@ export function rollupEvidence(links: ClaimEvidenceLink[]): EvidenceRollup {
     else context++;
     if (usable && host && (l.role === 'primary' || l.role === 'corroboration')) {
       supportingHosts.add(host);
+      supportingUrls.add(l.evidenceUrl);
+      const origin = l.originatingEvidenceId ?? l.sourceDocumentId;
+      if (origin) supportingOrigins.add(origin);
     }
   }
   return {
@@ -268,6 +309,8 @@ export function rollupEvidence(links: ClaimEvidenceLink[]): EvidenceRollup {
     distinctUrls: urls.size,
     hosts: Array.from(hosts),
     supportingHosts: Array.from(supportingHosts),
+    supportingOrigins: Array.from(supportingOrigins),
+    supportingUrls: Array.from(supportingUrls),
     unusableSupporting,
   };
 }
@@ -294,12 +337,18 @@ export function judgePublishability(rollup: EvidenceRollup): PublishabilityVerdi
   if (rollup.corroboration < 1) {
     return { publishable: false, reason: 'thin_corroboration' };
   }
-  if (rollup.supportingHosts.length < 2) {
-    return { publishable: false, reason: 'support_not_independent' };
-  }
   if (rollup.unusableSupporting > 0) {
     return { publishable: false, reason: 'unusable_supporting_evidence' };
   }
+  if (rollup.supportingHosts.length < 2) {
+    return { publishable: false, reason: 'support_not_independent' };
+  }
+  const mandatory = publishability({
+    evidenceUrls: rollup.supportingUrls,
+    unresolvedContradictions: rollup.contradiction,
+    semanticOrigins: rollup.supportingOrigins,
+  });
+  if (!mandatory.publishable) return mandatory;
   return { publishable: true, reason: 'primary_plus_corroboration' };
 }
 

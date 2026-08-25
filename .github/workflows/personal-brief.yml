@@ -2,7 +2,7 @@ name: personal-brief
 
 on:
   schedule:
-    - cron: "30 7 * * *" # daily 07:30 UTC, after source ingest cron
+    - cron: "30 4 * * *" # daily 04:30 UTC / 10:00 IST, after validation
   workflow_dispatch:
 
 permissions:

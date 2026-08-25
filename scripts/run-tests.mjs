@@ -34,6 +34,7 @@ const TSX_SUITES = [
   ['daily-source-audit', 'scripts/daily-source-audit.test.ts'],
   ['market-snapshot', 'scripts/market-snapshot.test.ts'],
   ['claim-provenance', 'scripts/claim-provenance.test.ts'],
+  ['publishability', 'scripts/publishability.test.ts'],
   ['evidence-ranking', 'scripts/evidence-ranking.test.ts'],
 ];
 
@@ -49,6 +50,7 @@ const NODE_SUITES = [
   ['idempotency-guards', 'scripts/idempotency-guards.test.mjs'],
   ['worker-cache-policy', 'scripts/worker-cache-policy.test.mjs'],
   ['worker-routing', 'scripts/worker-routing.test.mjs'],
+  ['verify-daily-brief', 'scripts/verify-daily-brief.test.mjs'],
   ['public-corpus', 'scripts/public-corpus-policy.test.mjs'],
   ['public-corpus-receipt', 'scripts/public-corpus-receipt.test.mjs'],
 ];

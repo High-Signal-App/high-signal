@@ -33,6 +33,12 @@ function toClaim(row: typeof schema.claimRecords.$inferSelect): ClaimRecord {
     createdAt: row.createdAt.toISOString(),
     publishedAt: row.publishedAt ? row.publishedAt.toISOString() : null,
     correctedAt: row.correctedAt ? row.correctedAt.toISOString() : null,
+    claimEntityId: row.claimEntityId ?? null,
+    claimEvent: row.claimEvent ?? null,
+    claimAmount: row.claimAmount ?? null,
+    claimDate: row.claimDate ?? null,
+    claimDirection: row.claimDirection ?? null,
+    claimTupleKey: row.claimTupleKey ?? null,
   };
 }
 
@@ -42,6 +48,8 @@ function toEvidence(row: typeof schema.claimEvidenceLinks.$inferSelect): ClaimEv
     claimId: row.claimId,
     evidenceUrl: row.evidenceUrl,
     sourceDocumentId: row.sourceDocumentId ?? null,
+    originatingEvidenceId: row.originatingEvidenceId ?? null,
+    semanticAlignment: row.semanticAlignment,
     role: row.role,
     weight: row.weight,
     notes: row.notes ?? null,

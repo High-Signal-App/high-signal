@@ -66,7 +66,7 @@ flowchart TD
     D1 --> API --> WEB
 ```
 
-Cron ordering (06:00 ingest → 07:00 publish → later scoring) is authoritative in
+Cron ordering (08:00 IST ingest → 09:00 publish → 09:30 validation → 10:00 delivery) is authoritative in
 `.github/workflows/*.yml` and documented in [`../operations/jobs.md`](../operations/jobs.md).
 
 ## Stage by stage
@@ -163,7 +163,7 @@ reconciles them.
 ### 6. Auto-publish — the two-tier judge
 
 There is **no daily human gate**. `cron-publish.yml` runs
-`scripts/auto-publish-drafts.ts` (07:00 UTC, one hour after ingest) with a
+`scripts/auto-publish-drafts.ts` (03:30 UTC / 09:00 IST, one hour after ingest) with a
 two-tier judge (ADR-008):
 
 1. **Deterministic rubric** (`scripts/auto-publish-rules.ts`, unit-tested):

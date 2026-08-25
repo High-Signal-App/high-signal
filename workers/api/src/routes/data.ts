@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { and, desc, eq, gte, inArray, like, lt, or, sql } from 'drizzle-orm';
 import { db, schema } from '../db';
-import { enrichSignal } from '../lib/signal-quality';
+import { enrichPublishedSignals } from '../lib/signal-quality';
 import { buildDiggAttention, tryGetPrecomputedSnapshot } from './brief/query';
 
 type Env = { DB: D1Database };
@@ -112,7 +112,9 @@ dataRoute.get('/daily', async (c) => {
     )
     .orderBy(desc(schema.signals.publishedAt));
 
-  const signals = rows.map(enrichSignal).filter((signal) => signal.publishable);
+  const signals = (await enrichPublishedSignals(c.env.DB, rows)).filter(
+    (signal) => signal.publishable
+  );
 
   const signalIds = signals.map((signal) => signal.id);
   const evidenceRows = signalIds.length

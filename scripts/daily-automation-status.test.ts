@@ -14,7 +14,7 @@ const status = buildDailyAutomationStatus(
 const [latestAcceptedDate] = acceptedRefreshDates(bundledRefreshes as ProductFlowRefreshRecord[]);
 
 assert.equal(status.workflow, 'personal-brief');
-assert.equal(status.schedule, 'daily 07:30 UTC');
+assert.equal(status.schedule, 'daily 10:00 IST');
 assert.equal(status.freshnessStatus, 'fresh');
 assert.equal(status.latestAcceptedDate, latestAcceptedDate);
 assert.ok(status.configuredSources >= 69);

@@ -16,16 +16,17 @@ description: Reference for the GitHub Actions cron jobs and deploy workflows tha
 > and `scripts/foundry-evidence.mjs`. Every recurring path MUST appear there.
 > Data durability and provenance live in [`data-durability.md`](data-durability.md).
 
-## Daily pipeline order (UTC)
+## Daily pipeline order (IST; cron remains UTC)
 
 The daily cycle is sequenced so each stage consumes the previous stage's output:
 
-| Time (UTC) | Workflow | Intent |
+| Time (IST / UTC) | Workflow | Intent |
 | --- | --- | --- |
-| 06:00 | `cron-ingest.yml` | Daily `--source all --days 1` ingest run → events → draft signals into `signals/YYYY-MM-DD/`. |
-| 07:00 | `cron-publish.yml` | Two-tier auto-publish judge (deterministic rules → AI on HOLD). Clears the draft queue without a human gate. 1h after ingest, 30min before personal-brief. |
-| 07:30 | `personal-brief.yml` | Operator personal command brief refresh + SaaS Maker task sync. Runs after ingest so it sees the day's signals. |
-| 09:00 | `cron-backtest.yml` | Replay convergence labels → next-24h hit-rates → `workers/api/src/lib/label-backtest.json`. Well clear of `cron-equities` (21:30 UTC). The commit ships with the next manual API deploy. |
+| 08:00 / 02:30 | `cron-ingest.yml` | Daily `--source all --days 1` ingest run → events → draft signals. |
+| 09:00 / 03:30 | `cron-publish.yml` | Mandatory shared publishability gate plus semantic/origin-aware claim judge. |
+| 09:30 / 04:00 | `cron-validate-brief.yml` | Assert the edition is dated today in IST and its newest material evidence is under two hours old. |
+| 10:00 / 04:30 | `personal-brief.yml` | Deliver the operator personal command brief after public validation. |
+| 14:30 / 09:00 | `cron-backtest.yml` | Replay convergence labels → next-24h hit-rates → `workers/api/src/lib/label-backtest.json`. Well clear of `cron-equities` (21:30 UTC). The commit ships with the next manual API deploy. |
 | 21:30 (Mon–Fri) | `cron-equities.yml` | The **only** scheduled public stock-price ingress. yfinance EOD after US close → `data/equities-snapshot.jsonl` + derived bundles. The commit ships with the next manual web deploy. |
 | 22:30 | `cron-score.yml` | Daily scoring for matured signal windows (after US market close). |
 
@@ -33,7 +34,7 @@ The daily cycle is sequenced so each stage consumes the previous stage's output:
 
 | Cadence | Workflow | Intent |
 | --- | --- | --- |
-| Every 30m | `cron-digg.yml` | Poll the five documented Digg technology feeds after checking `/admin/digg/status`; the API enforces a 10-minute minimum refresh interval, stores raw feed/cluster snapshots, and attaches attention-only overlays. Digg never enters evidence or confidence scoring. |
+| Every 30m | `cron-digg.yml` | Poll five documented Digg feeds; material rank, velocity, or contributor crossings immediately trigger bounded original-source verification. Durable request/completion timestamps measure first-seen → candidate latency. Digg never enters evidence or confidence scoring. |
 | Every 4h | `cron-markets.yml` | Prediction-market polling (`--source markets`: Polymarket / Manifold / Kalshi → `market_quotes`). Probabilities only — never equity prices. Metaculus is a separate forecast source (`--source metaculus`) run by the daily `--source all` ingest, not this workflow. |
 
 ## Weekly

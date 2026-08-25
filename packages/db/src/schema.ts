@@ -131,6 +131,16 @@ export const signals = sqliteTable(
       .default('draft'),
     supersedesSignalId: text('supersedes_signal_id'),
     bodyMd: text('body_md').notNull(),
+    observedEvent: text('observed_event'),
+    directEntityImpact: text('direct_entity_impact'),
+    supplyChainImpact: text('supply_chain_impact'),
+    businessInference: text('business_inference'),
+    inferenceStrength: text('inference_strength', {
+      enum: ['none', 'weak', 'moderate', 'strong'],
+    }),
+    inferenceEvidenceUrls: text('inference_evidence_urls', { mode: 'json' })
+      .notNull()
+      .default('[]'),
   },
   (t) => [
     uniqueIndex('signals_slug_idx').on(t.slug),
@@ -530,11 +540,18 @@ export const claimRecords = sqliteTable(
       .$defaultFn(() => new Date()),
     publishedAt: integer('published_at', { mode: 'timestamp' }),
     correctedAt: integer('corrected_at', { mode: 'timestamp' }),
+    claimEntityId: text('claim_entity_id'),
+    claimEvent: text('claim_event'),
+    claimAmount: text('claim_amount'),
+    claimDate: text('claim_date'),
+    claimDirection: text('claim_direction', { enum: ['up', 'down', 'neutral'] }),
+    claimTupleKey: text('claim_tuple_key'),
   },
   (t) => [
     index('claim_records_signal_idx').on(t.signalId),
     index('claim_records_parent_idx').on(t.parentClaimId),
     index('claim_records_surface_status_idx').on(t.surface, t.reviewStatus),
+    index('claim_records_tuple_idx').on(t.claimTupleKey),
   ]
 );
 
@@ -547,6 +564,12 @@ export const claimEvidenceLinks = sqliteTable(
       .references(() => claimRecords.id),
     evidenceUrl: text('evidence_url').notNull(),
     sourceDocumentId: text('source_document_id'),
+    originatingEvidenceId: text('originating_evidence_id'),
+    semanticAlignment: text('semantic_alignment', {
+      enum: ['unverified', 'verified', 'rejected'],
+    })
+      .notNull()
+      .default('unverified'),
     role: text('role', {
       enum: ['primary', 'corroboration', 'contradiction', 'context'],
     }).notNull(),
@@ -561,6 +584,7 @@ export const claimEvidenceLinks = sqliteTable(
     index('claim_evidence_claim_idx').on(t.claimId),
     index('claim_evidence_url_idx').on(t.evidenceUrl),
     index('claim_evidence_doc_idx').on(t.sourceDocumentId),
+    index('claim_evidence_origin_idx').on(t.originatingEvidenceId),
   ]
 );
 
@@ -831,6 +855,16 @@ export const diggClusters = sqliteTable(
     confidenceContribution: text('confidence_contribution').notNull().default('none'),
     attentionContribution: text('attention_contribution').notNull().default('allowed'),
     externalGeneratedAnalysis: text('external_generated_analysis', { mode: 'json' }),
+    verificationStatus: text('verification_status', {
+      enum: ['requested', 'running', 'verified_candidate', 'insufficient_evidence', 'failed'],
+    }),
+    verificationReason: text('verification_reason'),
+    verificationRequestedAt: integer('verification_requested_at', { mode: 'timestamp' }),
+    verificationStartedAt: integer('verification_started_at', { mode: 'timestamp' }),
+    verifiedAt: integer('verified_at', { mode: 'timestamp' }),
+    verificationCandidateSlug: text('verification_candidate_slug'),
+    verificationError: text('verification_error'),
+    verificationAttempts: integer('verification_attempts').notNull().default(0),
     rawPayloadHash: text('raw_payload_hash').notNull(),
     rawPayload: text('raw_payload', { mode: 'json' }).notNull(),
   },
@@ -838,6 +872,10 @@ export const diggClusters = sqliteTable(
     index('digg_clusters_retrieved_idx').on(t.retrievedAt),
     index('digg_clusters_position_idx').on(t.position),
     index('digg_clusters_entity_idx').on(t.primaryEntityId),
+    index('digg_clusters_verification_status_idx').on(
+      t.verificationStatus,
+      t.verificationRequestedAt
+    ),
   ]
 );
 

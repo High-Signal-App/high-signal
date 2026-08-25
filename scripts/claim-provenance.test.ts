@@ -11,6 +11,7 @@
 
 import {
   buildHistoricalClaimBackfill,
+  normalizeClaimTuple,
   isIndependentCorroboration,
   canTransition,
   judgePublishability,
@@ -32,6 +33,8 @@ function link(
     claimId: 'c-1',
     evidenceUrl: url,
     sourceDocumentId: `source-${role}-${total}`,
+    originatingEvidenceId: `origin-${role}-${total}`,
+    semanticAlignment: 'verified',
     role,
     weight: 1,
     notes: 'alignment:verified',
@@ -63,9 +66,25 @@ console.log('historical backfill derivation');
   checkEq('backfill deduplicates urls', backfill.evidence.length, 2);
   checkEq('first evidence is primary', backfill.evidence[0]?.role, 'primary');
   checkEq(
-    'a different publisher is promoted to corroboration',
+    'a different publisher remains context until semantic verification',
     backfill.evidence[1]?.role,
-    'corroboration'
+    'context'
+  );
+}
+
+{
+  const tuple = normalizeClaimTuple({
+    entity: ' NVIDIA ',
+    event: ' Capacity Expansion ',
+    amount: '$5B',
+    date: '2026-08-25T03:00:00Z',
+    direction: 'up',
+  });
+  checkEq('claim tuple normalizes entity', tuple.entity, 'nvidia');
+  checkEq(
+    'claim tuple key includes entity event amount date direction',
+    tuple.key,
+    'nvidia|capacity expansion|$5b|2026-08-25|up'
   );
 }
 {
@@ -92,7 +111,7 @@ console.log('historical backfill derivation');
     fallbackAssertion: 'fallback',
     evidenceUrls: ['https://a.example/one', 'https://b.example/two', 'https://c.example/three'],
   });
-  checkEq('only the first independent link is promoted', many.evidence[1]?.role, 'corroboration');
+  checkEq('independent links still await semantic verification', many.evidence[1]?.role, 'context');
   checkEq('further independent links stay context', many.evidence[2]?.role, 'context');
 
   // A non-citation cannot corroborate anything.
@@ -201,6 +220,14 @@ console.log('\njudgePublishability — cite-or-kill at link level');
   checkEq('independent primary + corroboration passes', verdict.publishable, true);
 }
 {
+  const primary = link('primary', 'https://primary.example/source');
+  const repeated = link('corroboration', 'https://repeater.example/source');
+  repeated.originatingEvidenceId = primary.originatingEvidenceId;
+  const verdict = judgePublishability(rollupEvidence([primary, repeated]));
+  checkEq('two publishers repeating one origin fail', verdict.publishable, false);
+  checkEq('single-origin reason', verdict.reason, 'single_evidentiary_origin');
+}
+{
   const verdict = judgePublishability(
     rollupEvidence([
       link('primary', 'https://primary.example/source'),
@@ -241,6 +268,7 @@ console.log('\njudgePublishability — cite-or-kill at link level');
 {
   const unverified = link('corroboration', 'https://corroboration.example/source');
   unverified.notes = null;
+  unverified.semanticAlignment = 'unverified';
   const verdict = judgePublishability(
     rollupEvidence([link('primary', 'https://primary.example/source'), unverified])
   );

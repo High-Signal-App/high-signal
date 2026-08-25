@@ -54,6 +54,12 @@ Output STRICT JSON (no commentary):
   "predicted_window_days": <int 5-90>,
   "spillover_entity_ids": ["TSMC","ASML",...],
   "headline": "<<= 90 chars>",
+  "observed_event": "<source-grounded fact only>",
+  "direct_entity_impact": "<direct impact or null>",
+  "supply_chain_impact": "<supplier/customer impact or null>",
+  "business_inference": "<interpretation or null>",
+  "inference_strength": "none|weak|moderate|strong",
+  "inference_evidence_urls": ["<only URLs supporting the inference>"],
   "body_md": "<150-400 word evidence walkthrough citing each source by URL, with a short 'What the sources said' quote section>"
 }
 
@@ -64,6 +70,10 @@ Rules:
   aligned items instead of publish=false.
 - Cite every supplied source used in body_md as inline links. Medium/high
   confidence drafts need ≥ 2 distinct sources; low confidence drafts may use 1.
+- Keep observation and interpretation separate. An app complaint is an observed
+  event; pricing pressure is a business inference and needs its own cited URLs.
+  If no evidence specifically supports an inference, set business_inference to
+  null, inference_strength to none, and inference_evidence_urls to [].
 - Include 2-4 short source quotations or near-verbatim snippets in a section
   called "What the sources said". Keep each quote under 35 words and tie it to
   the source URL. If a source does not provide useful quotable text, summarize
@@ -499,6 +509,19 @@ def generate(
 
     headline = out.get("headline", "signal")
     slug = f"{primary_entity_id.lower()}-{_slugify(headline)}"
+    inference_urls = [
+        url
+        for url in out.get("inference_evidence_urls", [])
+        if url in {event.source_url for event in evs}
+    ]
+    business_inference = out.get("business_inference") or None
+    inference_strength = out.get("inference_strength", "none")
+    if not business_inference or not inference_urls:
+        business_inference = None
+        inference_strength = "none"
+        inference_urls = []
+    elif inference_strength not in {"weak", "moderate", "strong"}:
+        inference_strength = "weak"
     cand = SignalCandidate(
         slug=slug,
         signal_type=signal_type,
@@ -520,6 +543,12 @@ def generate(
             s for s in out.get("spillover_entity_ids", []) if s in spillover_candidates
         ],
         body_md=out.get("body_md", ""),
+        observed_event=str(out.get("observed_event") or headline),
+        direct_entity_impact=out.get("direct_entity_impact") or None,
+        supply_chain_impact=out.get("supply_chain_impact") or None,
+        business_inference=business_inference,
+        inference_strength=inference_strength,
+        inference_evidence_urls=inference_urls,
     )
     _record(True, slug, "ok")
     return cand
@@ -546,6 +575,12 @@ Output STRICT JSON array (no commentary):
     "predicted_window_days": <int 5-90>,
     "spillover_entity_ids": ["TSMC","ASML",...],
     "headline": "<<= 90 chars>",
+    "observed_event": "<source-grounded fact only>",
+    "direct_entity_impact": "<direct impact or null>",
+    "supply_chain_impact": "<supplier/customer impact or null>",
+    "business_inference": "<interpretation or null>",
+    "inference_strength": "none|weak|moderate|strong",
+    "inference_evidence_urls": ["<only URLs supporting the inference>"],
     "body_md": "<150-400 word evidence walkthrough citing each source by URL, with a short 'What the sources said' quote section>"
   },
   ...
@@ -558,6 +593,9 @@ Rules (same as single-entity, applied per entity):
   aligned items instead of publish=false.
 - Cite every supplied source used in body_md as inline links. Medium/high
   confidence drafts need ≥ 2 distinct sources; low confidence drafts may use 1.
+- Keep observed facts separate from direct impact, supply-chain impact, and
+  business inference. Every business inference must name only the supplied URLs
+  that support that specific conclusion; otherwise omit it and use strength none.
 - Include 2-4 short source quotations or near-verbatim snippets in a section
   called "What the sources said". Keep each quote under 35 words and tie it to
   the source URL. If a source does not provide useful quotable text, summarize
@@ -676,6 +714,19 @@ def generate_batch(
         signal_type = _signal_type_id(item.get("signal_type"))
         headline = item.get("headline", "signal")
         slug = f"{entity_id.lower()}-{_slugify(headline)}"
+        inference_urls = [
+            url
+            for url in item.get("inference_evidence_urls", [])
+            if url in {event.source_url for event in evs}
+        ]
+        business_inference = item.get("business_inference") or None
+        inference_strength = item.get("inference_strength", "none")
+        if not business_inference or not inference_urls:
+            business_inference = None
+            inference_strength = "none"
+            inference_urls = []
+        elif inference_strength not in {"weak", "moderate", "strong"}:
+            inference_strength = "weak"
         cand = SignalCandidate(
             slug=slug,
             signal_type=signal_type,
@@ -697,6 +748,12 @@ def generate_batch(
                 s for s in item.get("spillover_entity_ids", []) if s in spillovers
             ],
             body_md=item.get("body_md", ""),
+            observed_event=str(item.get("observed_event") or headline),
+            direct_entity_impact=item.get("direct_entity_impact") or None,
+            supply_chain_impact=item.get("supply_chain_impact") or None,
+            business_inference=business_inference,
+            inference_strength=inference_strength,
+            inference_evidence_urls=inference_urls,
         )
         candidates.append(cand)
 

@@ -23,8 +23,8 @@ LOGGER = logging.getLogger(__name__)
 
 
 def _review_status(candidate: SignalCandidate) -> str:
-    """Only evidence-ready candidates enter the public feed."""
-    return "published" if assess_signal_quality(candidate).publishable else "draft"
+    """Every candidate enters the one shared auto-publish gate as a draft."""
+    return "draft"
 
 
 def _default_signals_root() -> Path:
@@ -69,6 +69,12 @@ def write_signal(candidate: SignalCandidate, root: Path | None = None) -> Path:
         "spillover_entity_ids": candidate.spillover_entity_ids,
         "supersedes": candidate.supersedes_signal_id,
         "review_status": _review_status(candidate),
+        "observed_event": candidate.observed_event,
+        "direct_entity_impact": candidate.direct_entity_impact,
+        "supply_chain_impact": candidate.supply_chain_impact,
+        "business_inference": candidate.business_inference,
+        "inference_strength": candidate.inference_strength,
+        "inference_evidence_urls": candidate.inference_evidence_urls,
     }
     evidence_quotes = [_quote_excerpt(e.excerpt) or "" for e in candidate.evidence]
     evidence_source_types = [e.source_type for e in candidate.evidence]
@@ -138,6 +144,12 @@ def push_signal(candidate: SignalCandidate) -> dict:
                 "reviewStatus": _review_status(candidate),
                 "supersedesSignalId": candidate.supersedes_signal_id,
                 "bodyMd": candidate.body_md,
+                "observedEvent": candidate.observed_event,
+                "directEntityImpact": candidate.direct_entity_impact,
+                "supplyChainImpact": candidate.supply_chain_impact,
+                "businessInference": candidate.business_inference,
+                "inferenceStrength": candidate.inference_strength,
+                "inferenceEvidenceUrls": candidate.inference_evidence_urls,
             }
         ]
     }
