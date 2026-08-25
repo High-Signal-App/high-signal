@@ -24,6 +24,21 @@ const TMP_SQL = resolve(TMP_DIR, 'd2c-agent-visibility-sync.sql');
 const flag = process.argv.includes('--remote') ? '--remote' : '--local';
 const apiSync = process.argv.includes('--api');
 
+interface AgentVisibilityInput {
+  id: string;
+  nicheId: string;
+  platform: string;
+  model: string;
+  promptText: string;
+  responseText: string;
+  recommendedBrands: string[];
+  citedUrls: string[];
+  brandMentioned: boolean;
+  gapScore: number;
+  runDate: number;
+  createdAt: number;
+}
+
 function nicheId(slug: string): string {
   return createHash('sha256').update(`d2c-niche:${slug}`).digest('hex').slice(0, 16);
 }
@@ -39,6 +54,27 @@ function isoDateToEpochMs(iso: string): number {
   const ms = Date.parse(iso);
   if (Number.isNaN(ms)) throw new Error(`unparseable ISO date: ${iso}`);
   return ms;
+}
+
+function buildEntry(
+  entry: D2CAgentVisibilityArtifact['entries'][number],
+  niche: string,
+  runMs: number
+): AgentVisibilityInput {
+  return {
+    id: entryId(niche, entry.platform, runMs),
+    nicheId: niche,
+    platform: entry.platform,
+    model: entry.model,
+    promptText: entry.promptText,
+    responseText: entry.responseText,
+    recommendedBrands: entry.recommendedBrands,
+    citedUrls: entry.citedUrls,
+    brandMentioned: entry.brandMentioned,
+    gapScore: entry.gapScore,
+    runDate: runMs,
+    createdAt: runMs,
+  };
 }
 
 function loadLatestArtifact(): D2CAgentVisibilityArtifact | null {
@@ -90,20 +126,7 @@ async function main() {
     createdAt: runMs,
     updatedAt: runMs,
   }));
-  const entries: Array<{
-    id: string;
-    nicheId: string;
-    platform: string;
-    model: string;
-    promptText: string;
-    responseText: string;
-    recommendedBrands: string[];
-    citedUrls: string[];
-    brandMentioned: boolean;
-    gapScore: number;
-    runDate: number;
-    createdAt: number;
-  }> = [];
+  const entries: AgentVisibilityInput[] = [];
   // 1. Ensure all 20 niche rows exist (the sync-d2c-opportunities script
   //    also does this, but we can't assume it ran first).
   for (const seed of D2C_NICHE_SEEDS) {
@@ -120,25 +143,12 @@ async function main() {
   for (const entry of artifact.entries) {
     const nid = idBySlug.get(entry.nicheSlug);
     if (!nid) continue; // unknown niche slug — skip
-    const id = entryId(nid, entry.platform, runMs);
-    entries.push({
-      id,
-      nicheId: nid,
-      platform: entry.platform,
-      model: entry.model,
-      promptText: entry.promptText,
-      responseText: entry.responseText,
-      recommendedBrands: entry.recommendedBrands,
-      citedUrls: entry.citedUrls,
-      brandMentioned: entry.brandMentioned,
-      gapScore: entry.gapScore,
-      runDate: runMs,
-      createdAt: runMs,
-    });
+    const input = buildEntry(entry, nid, runMs);
+    entries.push(input);
     sql.push(
       `INSERT OR REPLACE INTO d2c_agent_visibility ` +
         `(id, niche_id, platform, model, prompt_text, response_text, recommended_brands, cited_urls, brand_mentioned, gap_score, run_date, created_at) ` +
-        `VALUES (${esc(id)}, ${esc(nid)}, ${esc(entry.platform)}, ${esc(entry.model)}, ` +
+        `VALUES (${esc(input.id)}, ${esc(nid)}, ${esc(entry.platform)}, ${esc(entry.model)}, ` +
         `${esc(entry.promptText)}, ${esc(entry.responseText)}, ` +
         `${esc(JSON.stringify(entry.recommendedBrands))}, ${esc(JSON.stringify(entry.citedUrls))}, ` +
         `${entry.brandMentioned ? 1 : 0}, ${entry.gapScore}, ${runMs}, ${runMs});`
