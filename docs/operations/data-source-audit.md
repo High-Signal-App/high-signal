@@ -6,7 +6,9 @@ Updated: 2026-08-25
 This audit separates four states that were previously easy to mix together:
 
 - **Connected** — scheduled or app-facing today, with local/prod evidence that it runs.
-- **Wired** — adapter exists and is reachable from `pipeline --source all`, but live yield still depends on source health, credentials, or review quality.
+- **Wired** — adapter exists and is reachable through its explicit source id or
+  cadence selector, but live yield still depends on source health, credentials,
+  or review quality.
 - **Explicit / manual** — adapter exists but is intentionally not part of the daily `all` run.
 - **Planned / external** — source should feed High Signal through another product or future data substrate, not necessarily through a new High Signal adapter.
 
@@ -19,8 +21,10 @@ boundary in `docs/architecture/data-service-boundary.md`.
 The product has three source inventories with different jobs:
 
 - The Python ingestion catalog has 55 source families: 36 keyless, 6 free-key,
-  12 optional-key, and 1 parked. They produce evidence, context, entities, or
-  numeric series for the shared publication pipeline.
+  12 optional-key, and 1 credential-marked parked path. They produce evidence,
+  context, entities, or numeric series for the shared publication pipeline.
+  Operational cadence is explicit: 21 Daily Brief, 3 context, 14 weekly, 3
+  monthly, 5 on-demand, 2 manual enrichment, and 7 parked sources.
 - The public Sources directory has 69 operator-curated Reddit, Hacker News,
   GitHub-issue, and RSS searches. The 2026-08-25 refresh attempted all 69:
   37 were accepted and 32 were explicitly rejected for having no fresh usable
@@ -75,12 +79,13 @@ deduplication, conditional requests, and cached primary-source verification.
 
 Keep the source breadth, but make default ingestion metadata-first. Fetch and
 cache an original page only after a candidate crosses the materiality gate or
-is needed for independent verification. Add `access_basis`, `content_depth`,
-`evidence_role`, `fetch_cadence`, `retention`, `terms_risk`, and live-yield
-fields to the generated catalog. Disable NewsAPI in production unless a paid
-license is confirmed, and explicitly classify Guardian, Reddit, unofficial
-YouTube transcripts, and review scrapers as restricted inputs. Do not weaken
-publication gates to compensate for low daily yield.
+is needed for independent verification. The generated catalog now carries
+access basis, content depth, fetch cadence, retention, terms risk, and evidence
+role, while the public status contract separates stored rows from adapter run
+outcomes. Disable NewsAPI in production unless a paid license is confirmed, and
+keep Guardian, Reddit, unofficial YouTube transcripts, and review scrapers
+classified as restricted inputs. Do not weaken publication gates to compensate
+for low daily yield.
 
 ## Source-Centric View
 
@@ -141,7 +146,8 @@ daily-brief insights. Pipeline jobs are only the mechanism that runs them.
 
 | Pipeline | Status | Plain name | What it contains | How we use it |
 | --- | --- | --- | --- | --- |
-| Python ingest, `cron-ingest` | Connected | Daily source fetcher | `pipeline --source all --days 1` over the wired source families below | Creates raw events, clusters by entity, drafts signal markdown, pushes ingest audit rows |
+| Python ingest, `cron-ingest` | Connected | Daily source fetcher | `pipeline --source all --days 1` over the bounded 21-source Daily Brief core | Creates raw events, clusters by entity, drafts signal markdown, pushes ingest audit rows |
+| Source cadence ingest | Scheduled | Context / weekly / monthly collection | Fetch-only daily context plus named `weekly` and `monthly` selectors | Preserves slower or calibration data without making all adapters daily candidates |
 | Prediction markets, `cron-markets` | Connected | Forecast poller | Manifold / Polymarket / Kalshi probability events and quotes | Context and calibration only; prediction-market-only evidence is killed |
 | Equities daily snapshot, `cron-equities` | Connected | Stock/market price snapshot | Equity / ETF / index / crypto end-of-day closes through the yfinance snapshot path | Single stock-price ingress; builds market and price context bundles |
 | Operator/product brief, `personal-brief` | Connected | Internal daily recommendation report | Reddit, HN, GitHub issues, RSS source refreshes plus market context | Operator-facing product/build recommendations and source-quality audit |

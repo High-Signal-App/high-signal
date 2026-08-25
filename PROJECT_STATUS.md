@@ -22,7 +22,7 @@ Last updated: 2026-08-25
 - **Deploy:** Cloudflare Workers — `high-signal-web`, `high-signal-api`, D1 `high-signal-db`; annotation runs in-process.
 - **Email:** Cloudflare `send_email` binding (`SEND_EMAIL`) for brief delivery (plan 0009).
 - **AI:** OpenAI-compatible endpoint via `AI_BASE_URL`, `AI_API_KEY`, `AI_MODEL`, `HIGH_SIGNAL_AI_API_KEY`.
-- **Ingest sources:** SEC EDGAR, HKEX, yfinance, Polymarket/Manifold/Kalshi/Metaculus, GDELT, RSS, Guardian, FRED, Semantic Scholar, Bluesky, Podcast Index, NVD, CISA KEV, the official YC/Antler/a16z/Techstars directories, and 50+ other adapters (see ingest pipeline). 55 catalog sources, 43 with live data in D1 (180K+ events).
+- **Ingest sources:** SEC EDGAR, HKEX, yfinance, Polymarket/Manifold/Kalshi/Metaculus, GDELT, RSS, Guardian, FRED, Semantic Scholar, Bluesky, Podcast Index, NVD, CISA KEV, and other adapters (see ingest pipeline). The generated catalog contains 55 source families; current stored-row and adapter-run status comes from `/data/sources` rather than a hard-coded snapshot here.
 - **Optional source keys:** Guardian, SAM, Companies House, Metaculus, Bluesky, Podcast Index, FRED, Semantic Scholar, Etherscan, Token Unlocks, Artificial Analysis, OpenRouter, Libraries.io, Replicate.
 - **Active source keys (set in GitHub Secrets):** `EIA_API_KEY`, `OPENSTATES_API_KEY`, `FDA_API_KEY`, `CONGRESS_API_KEY`, `FEC_API_KEY`, `BEA_API_KEY`, `CENSUS_API_KEY`, `LDA_API_KEY`, `USDA_NASS_API_KEY`, `REGULATIONS_GOV_API_KEY` — all via a single api.data.gov key (registered autonomously via AgentMail + Playwright).
 - **Manual backfill escape hatch:** `python/ingest/modal_app.py` via `modal run`;
@@ -67,6 +67,22 @@ Last updated: 2026-08-25
   sources and recorded 37 accepted plus 32 explicit no-fresh-item rejections in
   web data commit `204f16f`. The web build now copies the JSONL history into the
   Worker's asset bundle, and the deploy smoke fails if that history is missing.
+- Data-directory reliability work for issue #134 and source-cadence work for
+  issue #135 shipped in the 2026-08-25 source-layer release. The generated
+  55-family catalog now distinguishes 21 Daily Brief sources, 3 context, 14
+  weekly, 3 monthly, 5 on-demand, 2 manual, and 7 parked adapters;
+  `vc-portfolios` is no longer advertised as a working adapter while its
+  implementation is an empty placeholder. The daily `--source all` selector is
+  bounded to the 21-source core, with separate context/weekly/monthly schedules.
+  `/data/sources` separates stored history, ingestion time, non-future observed
+  time, future-effective rows, and per-adapter run outcome; direct source pages
+  resolve to the latest stored source day. Representative samples are opt-in,
+  and the catalog summary uses a one-hour shared-cache TTL. Isolated D1 smoke
+  checks proved 55-family completeness, future-date separation, exact-day data,
+  invalid-date rejection, and `API-MISS` → `API-HIT` caching.
+  The same cadence pass fixed NVD's rejected timestamp format, ECB/FRED CSV
+  newline handling, and future-effective Legistar/OpenStates dates before those
+  sources move to weekly collection.
 - Operator admin session gates `/review`, `/backtest-workbench`, `/personal`, and community curation.
 - Primary nav follows the public reading path: Brief, Signals, Track record, and Sources. Explore and contextual links keep the wider set of lenses and operator surfaces discoverable. Removed dead `/discover` nav link (communities product is parked; link caused prod smoke 404).
 - Public/support pages exist: about, methodology, featured, API docs, privacy, terms, auth pages.

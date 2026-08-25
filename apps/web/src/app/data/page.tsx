@@ -6,9 +6,9 @@ import { TrackRecordDatasetJsonLd } from '@/components/seo/structured-data';
 import { SITE_URL } from '@/lib/site';
 import catalog from '@/lib/source-catalog.json';
 
-export const revalidate = 86400;
+export const revalidate = 300;
 
-const DATA_CACHE_SECONDS = 86400;
+const DATA_CACHE_SECONDS = 300;
 
 const readDataSources = unstable_cache(() => api.dataSources(), ['data-sources'], {
   revalidate: DATA_CACHE_SECONDS,
@@ -31,14 +31,20 @@ interface CatalogEntry {
   role: string;
   keeps: string;
   temporal: 'recent' | 'historical' | 'series';
+  cadence: 'daily' | 'context' | 'weekly' | 'monthly' | 'on_demand' | 'manual' | 'parked';
+  expectedRunCadenceHours: number | null;
+  accessBasis: string;
+  contentDepth: string;
+  retention: string;
+  termsRisk: string;
 }
 
 const ROLE_ORDER = ['entity', 'corroboration', 'thematic', 'numeric'] as const;
 const ROLE_BLURB: Record<string, string> = {
-  entity: 'Maps to a tracked company — can become a standalone signal.',
-  corroboration: 'Official source, mostly entity-less — strengthens other signals.',
-  thematic: 'Topic / keyword (entity-less) — feeds a domain thematically.',
-  numeric: 'Time-series values — macro / energy context.',
+  entity: 'Observations typically resolve to a tracked company or organization.',
+  corroboration: 'First-party or official records used to verify reported events.',
+  thematic: 'Topic and keyword observations that may not resolve to one entity.',
+  numeric: 'Structured series used for macro, market, and energy context.',
 };
 
 const TEMPORAL_META = {
@@ -80,10 +86,12 @@ export default async function DataPage() {
   let live: Record<string, DataSourceLive> = {};
   let available = false;
   let liveTotal = 0;
+  let sourceStatusGeneratedAt: string | null = null;
   try {
     const res = await readDataSources();
     available = res.available;
     liveTotal = res.total;
+    sourceStatusGeneratedAt = res.generatedAt;
     live = Object.fromEntries(res.sources.map((s) => [s.id, s]));
   } catch {
     /* worker/D1 unavailable — render the catalog without live counts */
@@ -104,13 +112,16 @@ export default async function DataPage() {
   const liveCount2 = cohorts.live.reduce((sum, b) => sum + b.total, 0);
   const backfillCount = cohorts.backfill.reduce((sum, b) => sum + b.total, 0);
 
-  const liveCount = sources.filter((s) => (live[s.id]?.count ?? 0) > 0).length;
-  const temporalCounts = {
-    recent: sources.filter((s) => s.temporal === 'recent').length,
-    historical: sources.filter((s) => s.temporal === 'historical').length,
-    series: sources.filter((s) => s.temporal === 'series').length,
+  const storedSourceCount = sources.filter((s) => (live[s.id]?.count ?? 0) > 0).length;
+  const cadenceCounts = {
+    daily: sources.filter((s) => s.cadence === 'daily').length,
+    context: sources.filter((s) => s.cadence === 'context').length,
+    weekly: sources.filter((s) => s.cadence === 'weekly').length,
+    monthly: sources.filter((s) => s.cadence === 'monthly').length,
+    onDemand: sources.filter((s) => s.cadence === 'on_demand').length,
+    manual: sources.filter((s) => s.cadence === 'manual').length,
+    parked: sources.filter((s) => s.cadence === 'parked').length,
   };
-
   return (
     <main className="mx-auto max-w-5xl px-6 py-12">
       {ledgerAvailable && (
@@ -125,33 +136,53 @@ export default async function DataPage() {
           {ledgerAvailable ? ` · ${liveCount2 + backfillCount} scored predictions` : ''}
         </h1>
         <p className="mt-3 max-w-2xl text-sm leading-relaxed text-zinc-400">
-          Every public source High Signal curates into the daily brief. We{' '}
-          <span className="text-zinc-200">extract the info and keep the link</span> — never the raw
-          payload that&apos;s one query away. Duplicate stories across sources are collapsed,
-          keeping the distinct-source count as corroboration.
+          The configured source-family inventory behind High Signal. Stored records always keep
+          provenance and a canonical link; depending on the adapter, D1 may also retain bounded
+          article text, filings, transcripts, reviews, or selected structured payloads. Another
+          publisher becomes corroboration only after semantic agreement and independent-origin
+          checks—not from a hostname count alone.
         </p>
         <div className="mt-5 flex flex-wrap gap-x-8 gap-y-2 font-mono text-xs tabular-nums text-zinc-400">
           <span>
             <span className="text-zinc-100">{sources.length}</span> sources
           </span>
           <span>
-            <span className="text-[var(--color-accent)]">{liveCount}</span> with data now
+            <span className="text-[var(--color-accent)]">{storedSourceCount}</span> with stored
+            history
           </span>
           {available && (
             <span>
               <span className="text-zinc-100">{liveTotal.toLocaleString()}</span> events in store
             </span>
           )}
-          <span title={TEMPORAL_META.recent.title}>
-            <span className="text-zinc-100">{temporalCounts.recent}</span> live
+          <span title="Included in the scheduled daily all-source ingestion run">
+            <span className="text-zinc-100">{cadenceCounts.daily}</span> scheduled daily
           </span>
-          <span title={TEMPORAL_META.historical.title}>
-            <span className="text-zinc-100">{temporalCounts.historical}</span> archive
+          <span title="Refreshed separately for ranking and calibration, not direct evidence">
+            <span className="text-zinc-100">{cadenceCounts.context}</span> context
           </span>
-          <span title={TEMPORAL_META.series.title}>
-            <span className="text-zinc-100">{temporalCounts.series}</span> series
+          <span title="Collected once per week">
+            <span className="text-zinc-100">{cadenceCounts.weekly}</span> weekly
+          </span>
+          <span title="Collected once per month">
+            <span className="text-zinc-100">{cadenceCounts.monthly}</span> monthly
+          </span>
+          <span title="Fetched only during explicit investigation">
+            <span className="text-zinc-100">{cadenceCounts.onDemand}</span> on demand
+          </span>
+          <span title="Run explicitly for enrichment or backfill">
+            <span className="text-zinc-100">{cadenceCounts.manual}</span> manual
+          </span>
+          <span title="Excluded from scheduled ingestion">
+            <span className="text-zinc-100">{cadenceCounts.parked}</span> parked
           </span>
         </div>
+        {sourceStatusGeneratedAt && (
+          <p className="mt-2 font-mono text-[10px] text-[var(--color-muted)]">
+            Source status generated {new Date(sourceStatusGeneratedAt).toISOString()} · stored rows
+            are inventory, not proof that an adapter is currently healthy.
+          </p>
+        )}
         {!available && (
           <p className="mt-3 font-mono text-[11px] text-amber-400/80">
             Live counts unavailable (events store not reachable) — showing the catalog. Regenerate
@@ -344,8 +375,31 @@ export default async function DataPage() {
               {rows.map((s) => {
                 const l = live[s.id];
                 const count = l?.count ?? 0;
-                const day = isoDay(l?.lastAt ?? 0, today);
-                const href = `/data/${encodeURIComponent(s.id)}?date=${day}` as Route;
+                const latestObservedAt = l?.latestObservedAt ?? l?.lastAt ?? 0;
+                const day = isoDay(latestObservedAt, today);
+                const href = latestObservedAt
+                  ? (`/data/${encodeURIComponent(s.id)}?date=${day}` as Route)
+                  : (`/data/${encodeURIComponent(s.id)}?all=1` as Route);
+                const runStatus =
+                  l?.runStatus ??
+                  (s.cadence === 'manual' || s.cadence === 'parked' || s.cadence === 'on_demand'
+                    ? s.cadence
+                    : 'unknown');
+                const runLabel =
+                  runStatus === 'success_with_data'
+                    ? 'last run produced data'
+                    : runStatus === 'success_empty'
+                      ? 'last run: no new rows'
+                      : runStatus === 'failed'
+                        ? 'last run failed'
+                        : runStatus === 'manual'
+                          ? 'manual'
+                          : runStatus === 'on_demand'
+                            ? 'on demand'
+                            : runStatus === 'parked'
+                              ? 'parked'
+                              : 'run status unknown';
+                const statusLabel = `${s.cadence.replace('_', ' ')} · ${runLabel}`;
                 const sourceSummary = (
                   <>
                     <code className="w-32 shrink-0 truncate font-mono text-sm text-zinc-100 sm:w-40">
@@ -356,6 +410,7 @@ export default async function DataPage() {
                     </span>
                     <span
                       className={`shrink-0 rounded border px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.12em] ${accessTone(s.access)}`}
+                      title={s.accessBasis}
                     >
                       {accessLabel(s.access)}
                     </span>
@@ -373,16 +428,23 @@ export default async function DataPage() {
                     >
                       {TEMPORAL_META[s.temporal]?.icon}
                     </span>
-                    <span className="ml-auto hidden shrink-0 font-mono text-xs tabular-nums text-zinc-400 sm:block">
-                      {s.windowDays}d hist
+                    <span
+                      className={`ml-auto hidden shrink-0 font-mono text-[10px] sm:block ${runStatus === 'failed' ? 'text-rose-400' : 'text-zinc-500'}`}
+                      title={statusLabel}
+                    >
+                      {statusLabel}
                     </span>
                     <span
                       className={`ml-auto w-14 shrink-0 text-right font-mono text-sm tabular-nums sm:ml-0 sm:w-16 ${count > 0 ? 'text-[var(--color-accent)]' : 'text-[var(--color-muted)]'}`}
                     >
-                      {count > 0 ? count.toLocaleString() : '—'}
+                      {count.toLocaleString()}
                     </span>
                     <span className="hidden w-24 shrink-0 text-right font-mono text-[10px] tabular-nums text-[var(--color-muted)] md:block">
-                      {count > 0 ? day : 'no data'}
+                      {count > 0
+                        ? latestObservedAt
+                          ? day
+                          : `${l?.futureCount ?? 0} future`
+                        : 'no stored rows'}
                     </span>
                   </>
                 );
@@ -413,8 +475,8 @@ export default async function DataPage() {
           <span className="text-zinc-400">∿</span> series (time-series, both recent + historical).
         </p>
         <p>
-          Full metadata + storage model: <code>docs/source-catalog.md</code>. Grouping &amp; dedupe:{' '}
-          <code>grouping.py</code>, <code>dedupe.py</code>. Catalog is generated from{' '}
+          Full metadata + storage model: <code>docs/operations/source-catalog.md</code>. Source
+          audit: <code>docs/operations/data-source-audit.md</code>. Catalog is generated from{' '}
           <code>source_catalog.py</code>.
         </p>
       </footer>

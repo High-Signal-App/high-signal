@@ -54,3 +54,9 @@ def test_pipeline_fetch_includes_nvd(monkeypatch) -> None:
 
     assert pipeline.fetch("nvd", days=1) == []
     assert calls == [14]
+
+
+def test_nvd_timestamp_uses_api_accepted_utc_format() -> None:
+    value = datetime(2026, 8, 25, 12, 34, 56, tzinfo=timezone.utc)
+
+    assert nvd._nvd_timestamp(value) == "2026-08-25T12:34:56.000Z"

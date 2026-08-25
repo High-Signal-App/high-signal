@@ -258,13 +258,34 @@ function qs(o: SignalFilters): string {
 export interface DataSourceLive {
   id: string;
   count: number;
+  /** Compatibility alias for latestObservedAt. */
   lastAt: number;
+  latestObservedAt: number;
+  lastIngestedAt: number;
+  futureCount: number;
+  lastRunAt: number;
+  lastRunFinishedAt: number;
+  lastRunEventsFetched: number;
+  lastRunErrors: number;
+  runStatus:
+    | 'parked'
+    | 'manual'
+    | 'on_demand'
+    | 'unknown'
+    | 'failed'
+    | 'success_empty'
+    | 'success_with_data';
+  cadence: 'daily' | 'context' | 'weekly' | 'monthly' | 'on_demand' | 'manual' | 'parked';
   samples: Array<{ title: string | null; url: string; publishedAt: number }>;
 }
 export interface DataSourcesResponse {
+  schemaVersion: string;
+  generatedAt: string;
   sources: DataSourceLive[];
   total: number;
   available: boolean;
+  samplesAvailable: boolean;
+  uncataloguedSources: string[];
 }
 export interface DataSourceEvent {
   title: string | null;
@@ -278,6 +299,9 @@ export interface DataSourceEventsResponse {
   id: string;
   date?: string;
   total: number;
+  latestObservedAt: number;
+  lastIngestedAt: number;
+  futureCount: number;
   events: DataSourceEvent[];
   hasMore: boolean;
   available: boolean;

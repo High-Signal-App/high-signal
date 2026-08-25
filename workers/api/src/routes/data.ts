@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { and, desc, eq, gte, inArray, like, lt, or, sql } from 'drizzle-orm';
 import { db, schema } from '../db';
 import { enrichPublishedSignals } from '../lib/signal-quality';
+import sourceCatalog from '../lib/source-catalog.json';
 import { buildDiggAttention, tryGetPrecomputedSnapshot } from './brief/query';
 
 type Env = { DB: D1Database };
@@ -54,7 +55,7 @@ function sourceMatch(id: string) {
 function dayRange(date: string | undefined) {
   if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
   const start = new Date(`${date}T00:00:00.000Z`);
-  if (Number.isNaN(start.getTime())) return null;
+  if (Number.isNaN(start.getTime()) || start.toISOString().slice(0, 10) !== date) return null;
   const end = new Date(start);
   end.setUTCDate(end.getUTCDate() + 1);
   return { start, end };
@@ -64,6 +65,41 @@ interface Sample {
   title: string | null;
   url: string;
   publishedAt: number;
+}
+
+interface CatalogSource {
+  id: string;
+  cadence: 'daily' | 'context' | 'weekly' | 'monthly' | 'on_demand' | 'manual' | 'parked';
+  expectedRunCadenceHours: number | null;
+}
+
+interface SourceRun {
+  source: string;
+  startedAt: Date;
+  finishedAt: Date | null;
+  eventsFetched: number | null;
+  errors: number | null;
+}
+
+const CATALOG_SOURCES = sourceCatalog.sources as CatalogSource[];
+
+export function sourceRunStatus(
+  cadence: CatalogSource['cadence'],
+  run: SourceRun | undefined
+):
+  | 'parked'
+  | 'manual'
+  | 'on_demand'
+  | 'unknown'
+  | 'failed'
+  | 'success_empty'
+  | 'success_with_data' {
+  if (cadence === 'parked') return 'parked';
+  if (cadence === 'manual') return 'manual';
+  if (cadence === 'on_demand' && !run) return 'on_demand';
+  if (!run) return 'unknown';
+  if ((run.errors ?? 0) > 0) return 'failed';
+  return (run.eventsFetched ?? 0) > 0 ? 'success_with_data' : 'success_empty';
 }
 
 export function resolveDailyDate(value: string | undefined, now = new Date()): string | null {
@@ -159,47 +195,139 @@ dataRoute.get('/daily', async (c) => {
 });
 
 /**
- * GET /data/sources — live per-source data availability from the events store.
- * Powers the data-explore page: counts + most-recent samples per source family,
- * merged client-side with the static source catalog (storage/history/role).
+ * GET /data/sources — catalog-complete stored-data and adapter-run status.
+ * Representative samples are opt-in (`?samples=1..10`) to keep the default
+ * public directory read cost bounded.
  */
 dataRoute.get('/sources', async (c) => {
-  const limit = Math.min(Number(c.req.query('samples') ?? 4), 10);
+  const requestedSamples = Number(c.req.query('samples') ?? 0);
+  const limit = Math.min(Math.max(Number.isFinite(requestedSamples) ? requestedSamples : 0, 0), 10);
   const database = db(c.env.DB);
+  const generatedAt = new Date().toISOString();
 
-  // Aggregate counts + last-seen per source (grouped in SQL).
-  let rows: { source: string; n: number; last: number }[] = [];
+  // Aggregate stored rows, observation time, and ingestion time separately.
+  // `published_at` may be a future effective/due date, so it cannot by itself
+  // prove that a source is fresh or determine the latest browsable source day.
+  let rows: {
+    source: string;
+    n: number;
+    lastObserved: number | null;
+    lastIngested: number | null;
+    futureCount: number;
+  }[] = [];
   try {
     rows = (await database
       .select({
         source: schema.events.source,
         n: sql<number>`count(*)`,
-        last: sql<number>`max(${schema.events.publishedAt})`,
+        lastObserved: sql<
+          number | null
+        >`max(case when ${schema.events.publishedAt} <= unixepoch() then ${schema.events.publishedAt} end)`,
+        lastIngested: sql<number | null>`max(${schema.events.ingestedAt})`,
+        futureCount: sql<number>`sum(case when ${schema.events.publishedAt} > unixepoch() then 1 else 0 end)`,
       })
       .from(schema.events)
-      .groupBy(schema.events.source)) as { source: string; n: number; last: number }[];
+      .groupBy(schema.events.source)) as typeof rows;
   } catch {
-    return c.json({ sources: [], total: 0, available: false });
+    return c.json(
+      {
+        schemaVersion: '2',
+        generatedAt,
+        sources: CATALOG_SOURCES.map((source) => ({
+          id: source.id,
+          count: 0,
+          lastAt: 0,
+          latestObservedAt: 0,
+          lastIngestedAt: 0,
+          futureCount: 0,
+          lastRunAt: 0,
+          lastRunFinishedAt: 0,
+          lastRunEventsFetched: 0,
+          lastRunErrors: 0,
+          runStatus: sourceRunStatus(source.cadence, undefined),
+          cadence: source.cadence,
+          samples: [],
+        })),
+        total: 0,
+        available: false,
+        samplesAvailable: false,
+        uncataloguedSources: [],
+      },
+      200,
+      { 'Cache-Control': 'public, max-age=60, s-maxage=3600' }
+    );
   }
 
-  // Pull a recent slice once and bucket samples by family (cheaper than N queries).
-  const recent = await database
-    .select({
-      source: schema.events.source,
-      title: schema.events.title,
-      url: schema.events.sourceUrl,
-      publishedAt: schema.events.publishedAt,
-    })
-    .from(schema.events)
-    .orderBy(desc(schema.events.publishedAt))
-    .limit(1200);
+  // Rank within each raw source before normalizing to a family. This prevents
+  // high-volume feeds such as markets/GDELT from crowding every other family
+  // out of the representative sample set.
+  let recent: Array<{ source: string; title: string | null; url: string; publishedAt: number }> =
+    [];
+  let samplesAvailable = true;
+  if (limit > 0) {
+    try {
+      const result = await c.env.DB.prepare(
+        `WITH ranked AS (
+           SELECT source, title, source_url AS url, published_at AS publishedAt,
+                  row_number() OVER (
+                    PARTITION BY source
+                    ORDER BY CASE WHEN published_at <= unixepoch() THEN 0 ELSE 1 END,
+                             published_at DESC
+                  ) AS source_rank
+           FROM events
+         )
+         SELECT source, title, url, publishedAt
+         FROM ranked
+         WHERE source_rank <= ?
+         ORDER BY publishedAt DESC`
+      )
+        .bind(limit)
+        .all();
+      recent = (result.results ?? []) as typeof recent;
+    } catch {
+      samplesAvailable = false;
+    }
+  }
 
-  const counts = new Map<string, { count: number; lastAt: number }>();
+  let runRows: SourceRun[] = [];
+  try {
+    runRows = await database
+      .select({
+        source: schema.ingestRuns.source,
+        startedAt: schema.ingestRuns.startedAt,
+        finishedAt: schema.ingestRuns.finishedAt,
+        eventsFetched: schema.ingestRuns.eventsFetched,
+        errors: schema.ingestRuns.errors,
+      })
+      .from(schema.ingestRuns)
+      .where(
+        inArray(
+          schema.ingestRuns.source,
+          CATALOG_SOURCES.map((source) => source.id)
+        )
+      )
+      .orderBy(desc(schema.ingestRuns.startedAt))
+      .limit(1000);
+  } catch {
+    // Event inventory remains useful when run receipts are temporarily absent.
+  }
+
+  const counts = new Map<
+    string,
+    { count: number; latestObservedAt: number; lastIngestedAt: number; futureCount: number }
+  >();
   for (const r of rows) {
     const fam = family(r.source);
-    const cur = counts.get(fam) ?? { count: 0, lastAt: 0 };
+    const cur = counts.get(fam) ?? {
+      count: 0,
+      latestObservedAt: 0,
+      lastIngestedAt: 0,
+      futureCount: 0,
+    };
     cur.count += Number(r.n) || 0;
-    cur.lastAt = Math.max(cur.lastAt, Number(r.last) || 0);
+    cur.latestObservedAt = Math.max(cur.latestObservedAt, Number(r.lastObserved) || 0);
+    cur.lastIngestedAt = Math.max(cur.lastIngestedAt, Number(r.lastIngested) || 0);
+    cur.futureCount += Number(r.futureCount) || 0;
     counts.set(fam, cur);
   }
 
@@ -211,29 +339,57 @@ dataRoute.get('/sources', async (c) => {
       arr.push({
         title: r.title,
         url: r.url,
-        publishedAt:
-          r.publishedAt instanceof Date
-            ? Math.floor(r.publishedAt.getTime() / 1000)
-            : Number(r.publishedAt),
+        publishedAt: Number(r.publishedAt),
       });
       samples.set(fam, arr);
     }
   }
 
-  const sources = [...counts.entries()]
-    .map(([id, v]) => ({
-      id,
-      count: v.count,
-      lastAt: v.lastAt,
-      samples: samples.get(id) ?? [],
-    }))
-    .sort((a, b) => b.count - a.count);
+  const latestRun = new Map<string, SourceRun>();
+  for (const run of runRows) {
+    if (!latestRun.has(run.source)) latestRun.set(run.source, run);
+  }
 
-  return c.json({
-    sources,
-    total: sources.reduce((s, x) => s + x.count, 0),
-    available: true,
+  const catalogIds = new Set(CATALOG_SOURCES.map((source) => source.id));
+  const sources = CATALOG_SOURCES.map((source) => {
+    const stored = counts.get(source.id) ?? {
+      count: 0,
+      latestObservedAt: 0,
+      lastIngestedAt: 0,
+      futureCount: 0,
+    };
+    const run = latestRun.get(source.id);
+    return {
+      id: source.id,
+      count: stored.count,
+      // `lastAt` remains as a compatibility alias for existing clients.
+      lastAt: stored.latestObservedAt,
+      latestObservedAt: stored.latestObservedAt,
+      lastIngestedAt: stored.lastIngestedAt,
+      futureCount: stored.futureCount,
+      lastRunAt: run ? Math.floor(run.startedAt.getTime() / 1000) : 0,
+      lastRunFinishedAt: run?.finishedAt ? Math.floor(run.finishedAt.getTime() / 1000) : 0,
+      lastRunEventsFetched: run?.eventsFetched ?? 0,
+      lastRunErrors: run?.errors ?? 0,
+      runStatus: sourceRunStatus(source.cadence, run),
+      cadence: source.cadence,
+      samples: samples.get(source.id) ?? [],
+    };
   });
+
+  return c.json(
+    {
+      schemaVersion: '2',
+      generatedAt,
+      sources,
+      total: [...counts.values()].reduce((sum, source) => sum + source.count, 0),
+      available: true,
+      samplesAvailable,
+      uncataloguedSources: [...counts.keys()].filter((id) => !catalogIds.has(id)).sort(),
+    },
+    200,
+    { 'Cache-Control': 'public, max-age=60, s-maxage=3600' }
+  );
 });
 
 /**
@@ -243,9 +399,14 @@ dataRoute.get('/sources', async (c) => {
  */
 dataRoute.get('/sources/:id', async (c) => {
   const id = c.req.param('id');
-  const limit = Math.min(Math.max(Number(c.req.query('limit') ?? 50), 1), 200);
-  const offset = Math.max(Number(c.req.query('offset') ?? 0), 0);
+  const requestedLimit = Number(c.req.query('limit') ?? 50);
+  const requestedOffset = Number(c.req.query('offset') ?? 0);
+  const limit = Math.min(Math.max(Number.isFinite(requestedLimit) ? requestedLimit : 50, 1), 200);
+  const offset = Math.max(Number.isFinite(requestedOffset) ? requestedOffset : 0, 0);
   const date = c.req.query('date');
+  if (date !== undefined && dayRange(date) === null) {
+    return c.json({ error: 'invalid_date', expected: 'YYYY-MM-DD' }, 400);
+  }
   const database = db(c.env.DB);
   const match = sourceMatch(id);
   const range = dayRange(date);
@@ -258,17 +419,33 @@ dataRoute.get('/sources/:id', async (c) => {
     : match;
 
   let total = 0;
+  let latestObservedAt = 0;
+  let lastIngestedAt = 0;
+  let futureCount = 0;
   try {
     const [row] = await database
-      .select({ n: sql<number>`count(*)` })
+      .select({
+        n: sql<number>`count(*)`,
+        latestObservedAt: sql<
+          number | null
+        >`max(case when ${schema.events.publishedAt} <= unixepoch() then ${schema.events.publishedAt} end)`,
+        lastIngestedAt: sql<number | null>`max(${schema.events.ingestedAt})`,
+        futureCount: sql<number>`sum(case when ${schema.events.publishedAt} > unixepoch() then 1 else 0 end)`,
+      })
       .from(schema.events)
       .where(where);
     total = Number(row?.n ?? 0);
+    latestObservedAt = Number(row?.latestObservedAt ?? 0);
+    lastIngestedAt = Number(row?.lastIngestedAt ?? 0);
+    futureCount = Number(row?.futureCount ?? 0);
   } catch {
     return c.json({
       id,
       date: range ? date : undefined,
       total: 0,
+      latestObservedAt: 0,
+      lastIngestedAt: 0,
+      futureCount: 0,
       events: [],
       hasMore: false,
       available: false,
@@ -306,6 +483,9 @@ dataRoute.get('/sources/:id', async (c) => {
     id,
     date: range ? date : undefined,
     total,
+    latestObservedAt,
+    lastIngestedAt,
+    futureCount,
     events,
     hasMore: offset + events.length < total,
     available: true,

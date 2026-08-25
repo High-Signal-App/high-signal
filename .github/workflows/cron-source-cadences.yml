@@ -1,0 +1,79 @@
+name: cron-source-cadences
+
+on:
+  schedule:
+    - cron: "0 1 * * *"    # daily context at 06:30 IST, before the 08:00 Daily Brief ingest
+    - cron: "0 0 * * 0"    # weekly sources on Sunday at 05:30 IST
+    - cron: "30 0 1 * *"   # monthly series on day 1 at 06:00 IST
+  workflow_dispatch:
+    inputs:
+      group:
+        description: source cadence group to run
+        type: choice
+        required: true
+        default: context
+        options:
+          - context
+          - weekly
+          - monthly
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: python/ingest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: astral-sh/setup-uv@v8.1.0
+      - uses: actions/setup-python@v6
+        with: { python-version: "3.11" }
+      - run: uv sync
+      - name: source availability diagnostic
+        env:
+          ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
+          API_BASE: ${{ secrets.API_BASE }}
+          SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT || 'high-signal sarthakagrawal927@gmail.com' }}
+        run: uv run python -m high_signal_ingest.source_diagnose --require-persistence --require-sec-identity
+      - name: ingest cadence group
+        env:
+          SOURCE_GROUP: ${{ inputs.group || github.event.schedule }}
+          ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
+          API_BASE: ${{ secrets.API_BASE }}
+          AI_BASE_URL: ${{ secrets.AI_BASE_URL || 'https://api.deepseek.com' }}
+          AI_API_KEY: ${{ secrets.AI_API_KEY }}
+          AI_MODEL: ${{ secrets.AI_MODEL || 'deepseek-v4-flash' }}
+          AI_PROJECT_ID: high-signal
+          SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT || 'high-signal sarthakagrawal927@gmail.com' }}
+          SAM_API_KEY: ${{ secrets.SAM_API_KEY }}
+          REGULATIONS_GOV_API_KEY: ${{ secrets.REGULATIONS_GOV_API_KEY }}
+          OPENSTATES_API_KEY: ${{ secrets.OPENSTATES_API_KEY }}
+          EIA_API_KEY: ${{ secrets.EIA_API_KEY }}
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+          BEA_API_KEY: ${{ secrets.BEA_API_KEY }}
+          CENSUS_API_KEY: ${{ secrets.CENSUS_API_KEY }}
+          CONGRESS_API_KEY: ${{ secrets.CONGRESS_API_KEY }}
+          FEC_API_KEY: ${{ secrets.FEC_API_KEY }}
+          LDA_API_KEY: ${{ secrets.LDA_API_KEY }}
+          FDA_API_KEY: ${{ secrets.FDA_API_KEY }}
+          USDA_NASS_API_KEY: ${{ secrets.USDA_NASS_API_KEY }}
+          ETHERSCAN_API_KEY: ${{ secrets.ETHERSCAN_API_KEY }}
+          TOKEN_UNLOCKS_API_KEY: ${{ secrets.TOKEN_UNLOCKS_API_KEY }}
+        run: |
+          case "$SOURCE_GROUP" in
+            context|"0 1 * * *")
+              uv run python -m high_signal_ingest.pipeline --source macro-rates --days 30 --fetch-only
+              uv run python -m high_signal_ingest.pipeline --source crypto-onchain --days 1 --fetch-only
+              ;;
+            weekly|"0 0 * * 0")
+              uv run python -m high_signal_ingest.pipeline --source weekly --days 14
+              ;;
+            monthly|"30 0 1 * *")
+              uv run python -m high_signal_ingest.pipeline --source monthly --days 120
+              ;;
+            *)
+              echo "Unsupported source cadence group: $SOURCE_GROUP" >&2
+              exit 2
+              ;;
+          esac

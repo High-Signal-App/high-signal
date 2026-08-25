@@ -196,3 +196,10 @@ def push_ingest_run(
             "notes": notes,
         },
     )
+
+
+def push_ingest_runs(runs: list[dict[str, Any]]) -> bool:
+    """Persist per-adapter receipts in one request for an `all` run."""
+    if not runs:
+        return True
+    return _post("/admin/ingest-runs/bulk", {"runs": runs})

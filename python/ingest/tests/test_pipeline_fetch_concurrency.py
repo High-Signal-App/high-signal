@@ -12,12 +12,10 @@ import threading
 import time
 from datetime import datetime, timezone
 
-import pytest
-
 from high_signal_ingest import pipeline
 from high_signal_ingest.types import Event
 
-# Every adapter module referenced by `_fetch_tasks` for source="all".
+# Every adapter module referenced by any pipeline source group.
 ADAPTERS = [
     "edgar",
     "news",
@@ -29,6 +27,8 @@ ADAPTERS = [
     "huggingface",
     "youtube",
     "bluesky",
+    "china_news",
+    "scmp",
     "gdelt",
     "hkex",
     "cisa_kev",
@@ -39,7 +39,6 @@ ADAPTERS = [
     "jobs",
     "nvd",
     "guardian",
-    "patents",
     "gov_contracts",
     "semantic_scholar",
     "regulations",
@@ -47,6 +46,27 @@ ADAPTERS = [
     "podcast_index",
     "macro_rates",
     "sec_xbrl",
+    "legistar",
+    "courtlistener",
+    "openstates",
+    "hackernews",
+    "stackexchange",
+    "eia",
+    "producthunt",
+    "coingecko",
+    "google_trends",
+    "appstore",
+    "defillama",
+    "bls",
+    "appstore_reviews",
+    "playstore_reviews",
+    "us_gov_rss",
+    "us_gov_api",
+    "india_gov",
+    "global_macro",
+    "crypto_onchain",
+    "ai_benchmarks",
+    "dev_ecosystems",
 ]
 
 
@@ -67,7 +87,9 @@ def _stub_all(monkeypatch) -> None:
     """Make every adapter return a single event with no network access."""
     for name in ADAPTERS:
         mod = getattr(pipeline, name)
-        monkeypatch.setattr(mod, "fetch_all", lambda *_a, _n=name, **_k: [_event(_n)], raising=False)
+        monkeypatch.setattr(
+            mod, "fetch_all", lambda *_a, _n=name, **_k: [_event(_n)], raising=False
+        )
         # edgar / sec_xbrl use distinct entry points.
         if name == "edgar":
             monkeypatch.setattr(mod, "fetch_recent", lambda *_a, **_k: [_event("edgar")])
@@ -110,12 +132,41 @@ def test_fetch_collects_failures_without_raising(monkeypatch) -> None:
     assert any(f.startswith("reddit:") and "429" in f for f in failures)
 
 
-def test_per_host_gate_serialises_same_host(monkeypatch) -> None:
-    """edgar + sec-xbrl share the sec.gov host gate, so they never overlap."""
+def test_fetch_records_one_receipt_per_scheduled_adapter(monkeypatch) -> None:
     _stub_all(monkeypatch)
-    monkeypatch.setattr(pipeline, "load_entities", lambda: [])
+    receipts: list[pipeline.FetchReceipt] = []
 
-    active = {"edgar": False, "sec_xbrl": False}
+    pipeline.fetch("all", days=1, failures=[], receipts=receipts)
+
+    names = {receipt.source for receipt in receipts}
+    assert names == {name for name, _host, _fn in pipeline._fetch_tasks("all", 1)}
+    assert "vc-portfolios" not in names
+    assert all(receipt.finished_at >= receipt.started_at for receipt in receipts)
+
+
+def test_failed_adapter_receipt_is_distinct_from_successful_empty(monkeypatch) -> None:
+    _stub_all(monkeypatch)
+
+    def boom(*_a, **_k):
+        raise RuntimeError("429 rate limited")
+
+    monkeypatch.setattr(pipeline.reddit, "fetch_all", boom)
+    monkeypatch.setattr(pipeline.techmeme, "fetch_all", lambda *_a, **_k: [])
+    monkeypatch.setenv("FETCH_RETRIES", "1")
+    receipts: list[pipeline.FetchReceipt] = []
+
+    pipeline.fetch("all", days=1, failures=[], receipts=receipts)
+
+    by_source = {receipt.source: receipt for receipt in receipts}
+    assert by_source["reddit"].errors == 1
+    assert by_source["reddit"].events_fetched == 0
+    assert by_source["techmeme"].errors == 0
+    assert by_source["techmeme"].events_fetched == 0
+
+
+def test_per_host_gate_serialises_same_host() -> None:
+    """Two tasks for the same provider never overlap."""
+    active = {"first": False, "second": False}
     overlap_seen = {"v": False}
     lock = threading.Lock()
 
@@ -123,7 +174,7 @@ def test_per_host_gate_serialises_same_host(monkeypatch) -> None:
         def fn(*_a, **_k):
             with lock:
                 active[name] = True
-                if active["edgar"] and active["sec_xbrl"]:
+                if active["first"] and active["second"]:
                     overlap_seen["v"] = True
             time.sleep(0.02)
             with lock:
@@ -132,18 +183,29 @@ def test_per_host_gate_serialises_same_host(monkeypatch) -> None:
 
         return fn
 
-    monkeypatch.setattr(pipeline.edgar, "fetch_recent", make("edgar"))
-    monkeypatch.setattr(pipeline.edgar, "fetch_expanded", make("edgar"))
-    monkeypatch.setattr(pipeline.sec_xbrl, "fetch_all", make("sec_xbrl"))
-    # Force edgar to actually emit by giving it a public ticker.
-    monkeypatch.setattr(
-        pipeline,
-        "load_entities",
-        lambda: [type("E", (), {"ticker": "NVDA", "type": "public"})()],
-    )
-
-    pipeline.fetch("all", days=1, failures=[])
+    gate = pipeline._HostGate(per_host=1)
+    first = threading.Thread(target=lambda: gate.run("sec.gov", make("first")))
+    second = threading.Thread(target=lambda: gate.run("sec.gov", make("second")))
+    first.start()
+    second.start()
+    first.join()
+    second.join()
     assert overlap_seen["v"] is False
+
+
+def test_group_selectors_match_catalog_membership() -> None:
+    assert {name for name, _host, _fn in pipeline._fetch_tasks("all", 1)} == set(
+        pipeline.source_catalog.DAILY_SOURCES
+    )
+    assert {name for name, _host, _fn in pipeline._fetch_tasks("context", 1)} == set(
+        pipeline.source_catalog.CONTEXT_SOURCES
+    )
+    assert {name for name, _host, _fn in pipeline._fetch_tasks("weekly", 14)} == set(
+        pipeline.source_catalog.WEEKLY_SOURCES
+    )
+    assert {name for name, _host, _fn in pipeline._fetch_tasks("monthly", 120)} == set(
+        pipeline.source_catalog.MONTHLY_SOURCES
+    )
 
 
 def test_respects_edgar_ticker_limit(monkeypatch) -> None:
@@ -172,3 +234,28 @@ def test_single_source_selection_runs_only_that_source(monkeypatch) -> None:
     events = pipeline.fetch("lobsters", days=3, failures=failures)
     assert [e.source for e in events] == ["lobsters:test"]
     assert failures == []
+
+
+def test_fetch_only_persists_events_without_generating_candidates(monkeypatch) -> None:
+    event = _event("crypto-onchain")
+    monkeypatch.setattr(pipeline, "fetch", lambda *_a, **_k: [event])
+    monkeypatch.setattr(pipeline.audit, "new_run_id", lambda: "run-1")
+    monkeypatch.setattr(pipeline.audit, "push_events", lambda events, _run_id: len(events))
+    recorded: list[dict] = []
+    monkeypatch.setattr(
+        pipeline.audit,
+        "push_ingest_run",
+        lambda **kwargs: recorded.append(kwargs),
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "generate",
+        lambda *_a, **_k: (_ for _ in ()).throw(AssertionError("generation must be skipped")),
+    )
+
+    result = pipeline.run("crypto-onchain", 1, generate_signals=False)
+
+    assert result["events"] == 1
+    assert result["signals_drafted"] == 0
+    assert result["paths"] == []
+    assert recorded[0]["notes"] == "fetch_run_id=run-1;mode=fetch_only"

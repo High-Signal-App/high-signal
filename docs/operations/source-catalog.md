@@ -25,64 +25,65 @@ Digg is a deliberate rolling-feed exception: because Digg exposes rolling window
 ## Sources
 
 **55 sources.** Access: `keyless` = no auth; `free-key` = free registration (skipped without the env var, ingest stays green); `optional-key` = works degraded/empty without it. ⚖️ = counts toward the cite-or-kill official-source bar. **Temporal:** `recent` = only latest events matter; `historical` = full archive has value; `series` = time-series where both recent prints and historical trends matter.
+**Cadence:** `daily` = included in the bounded `pipeline --source all` Daily Brief candidate run; `context` = separately refreshed calibration data; `weekly` / `monthly` = slower scheduled collection; `on_demand` / `manual` = explicit use only; `parked` = excluded from scheduled ingestion. Cadence describes execution policy, not whether an adapter produced rows.
 
-| Source | Provider | Domain | Access | ⚖️ | History | Role | Temporal | Extracted fields kept |
-|---|---|---|---|:--:|--:|---|---|---|
-| `courtlistener` | CourtListener (litigation) | finance | keyless | ⚖️ | 30d | corroboration | historical | case name, court, nature of suit |
-| `gov-contracts` | SAM / SBIR / USAspending | startups | optional-key:SAM_API_KEY | ⚖️ | 30d | corroboration | historical | award/solicitation title, agency |
-| `legistar` | Legistar/Granicus (municipal) | finance | keyless | ⚖️ | 30d | corroboration | historical | matter title, body, file no. |
-| `openstates` | OpenStates (state bills) | finance | free-key:OPENSTATES_API_KEY | ⚖️ | 30d | corroboration | historical | bill id, title, latest action |
-| `regulations` | Regulations.gov | finance | free-key:REGULATIONS_GOV_API_KEY | ⚖️ | 30d | corroboration | historical | docket, comment window |
-| `us-gov-rss` | SEC litigation / FTC / DOJ / CFTC / GAO / Nasdaq halts | finance | keyless | ⚖️ | 7d | corroboration | historical | release title, agency, halt symbol |
-| `companies-house` | UK Companies House | startups | free-key:COMPANIES_HOUSE_API_KEY | ⚖️ | 1d | entity | historical | filing type, company |
-| `edgar` | SEC EDGAR | finance | keyless | ⚖️ | 1d | entity | historical | form type, filing date, items |
-| `github` | GitHub API | technology | keyless |  | 7d | entity | recent | repo, release, stars delta |
-| `hkex` | HKEXnews | finance | keyless | ⚖️ | 3d | entity | historical | filing title, issuer |
-| `huggingface` | Hugging Face Hub | technology | keyless |  | 7d | entity | recent | model/dataset, downloads |
-| `india-gov` | SEBI / RBI / MOSPI / BSE / NSE / AMFI / NPCI / data.gov.in | finance | optional-key:DATA_GOV_IN_API_KEY | ⚖️ | 3d | entity | series | circular, filing, CPI/IIP, NAV, UPI volume |
-| `ir` | Investor-relations pages | finance | keyless | ⚖️ | 1d | entity | recent | headline, IR url |
-| `jobs` | Greenhouse/Lever/Ashby | startups | keyless |  | 14d | entity | recent | role, company, location |
-| `news` | NewsAPI + RSS | technology | free-key:NEWSAPI_KEY |  | 1d | entity | recent | headline, source, snippet |
-| `patents` | USPTO PatentsView (legacy probe; parked) | technology | parked:USPTO_ODP_API_KEY |  | 365d | entity | historical | patent title, assignee |
-| `sec-xbrl` | SEC XBRL frames | finance | keyless | ⚖️ | 120d | entity | series | fundamental metric + value |
-| `wikidata` | Wikidata | technology | keyless |  | 1d | entity | recent | entity enrichment fields |
-| `bls` | BLS economic data | finance | optional-key:BLS_API_KEY | ⚖️ | 120d | numeric | series | CPI / unemployment / payrolls latest print |
-| `crypto-onchain` | mempool.space / L2Beat / CoinMetrics / Etherscan / Token Unlocks | finance | optional-key:ETHERSCAN_API_KEY,TOKEN_UNLOCKS_API_KEY |  | 1d | numeric | series | fees, TVL+stage, active addresses, gas, unlock schedule |
-| `eia` | EIA energy | finance | free-key:EIA_API_KEY | ⚖️ | 120d | numeric | series | state, period, electricity price |
-| `global-macro` | IMF / World Bank / BIS / UN Comtrade | finance | keyless | ⚖️ | 30d | numeric | series | GDP, CPI, trade, exchange rate, policy rate |
-| `macro-rates` | ECB FX + FRED | finance | optional-key:FRED_API_KEY |  | 30d | numeric | series | series id, observation value |
-| `us-gov-api` | CFTC COT / Treasury / BEA / Census / Congress / FEC / LDA / CFPB / FDA / NIH / NSF / USGS / NOAA / USDA | finance | optional-key:BEA_API_KEY,CENSUS_API_KEY,CONGRESS_API_KEY,FEC_API_KEY,LDA_API_KEY,FDA_API_KEY,USDA_NASS_API_KEY | ⚖️ | 30d | numeric | series | indicator, value, period; bills, votes, grants, complaints |
-| `ai-benchmarks` | LMSYS Arena / Artificial Analysis / OpenRouter | technology | optional-key:ARTIFICIAL_ANALYSIS_API_KEY,OPENROUTER_API_KEY |  | 1d | thematic | series | model name, ELO, intelligence index, token usage rank |
-| `appstore` | Apple App Store charts | startups | keyless |  | 1d | thematic | recent | app name, developer, chart rank |
-| `appstore-reviews` | App Store reviews (iTunes RSS) | startups | keyless |  | 14d | thematic | recent | review rating, title, text |
-| `bluesky` | Bluesky | technology | optional-key:BLUESKY_* |  | 7d | thematic | recent | post text, author |
-| `china-news` | TechNode / Pandaily / CGTN | technology / startups / finance | keyless |  | 3d | thematic | recent | China tech/startup/business headline, link |
-| `cisa-kev` | CISA KEV | technology | keyless | ⚖️ | 7d | thematic | recent | CVE id, vendor, due date |
-| `coingecko` | CoinGecko | finance | keyless |  | 1d | thematic | recent | trending coin / 24h mover, rank, price |
-| `defillama` | DeFiLlama | finance | keyless |  | 1d | thematic | recent | protocol TVL + 1d move, category |
-| `dev-ecosystems` | Papers with Code / GitLab / Docker Hub / dev.to / libraries.io / Replicate | technology | optional-key:LIBRARIES_IO_API_KEY,REPLICATE_API_TOKEN |  | 7d | thematic | recent | paper, repo, image, article, package, model |
-| `gdelt` | GDELT | finance | keyless |  | 1d | thematic | recent | event, tone, mentions |
-| `github-archive` | GH Archive | technology | keyless |  | 1d | thematic | recent | event type, repo |
-| `google-trends` | Google Trends (RSS) | startups | keyless |  | 2d | thematic | recent | trending search term, approx traffic |
-| `gov` | Federal Register + agency RSS | finance | keyless | ⚖️ | 3d | thematic | historical | rule/notice title, agency |
-| `guardian` | The Guardian | technology | free-key:GUARDIAN_API_KEY |  | 7d | thematic | recent | headline, section |
-| `hackernews` | HN (Algolia) | technology | keyless |  | 7d | thematic | recent | title, points, comments, link |
-| `lobsters` | Lobste.rs | technology | keyless |  | 3d | thematic | recent | story title, tags |
-| `markets` | Polymarket/Manifold/Kalshi | finance | keyless |  | 30d | thematic | recent | question, probability (quote) |
-| `metaculus` | Metaculus | finance | optional-key:METACULUS_TOKEN |  | 30d | thematic | recent | question, community forecast |
-| `nvd` | NVD (CVE) | technology | keyless |  | 14d | thematic | historical | CVE id, CVSS, summary |
-| `packages` | npm / PyPI / Rust / Java / Ruby / PHP + OSV | technology | keyless |  | 7d | thematic | recent | package, version, advisory |
-| `playstore-reviews` | Google Play reviews | startups | keyless |  | 14d | thematic | recent | review rating, text |
-| `podcast-index` | Podcast Index | technology | optional-key:PODCAST_INDEX_* |  | 14d | thematic | recent | episode title, summary |
-| `producthunt` | Product Hunt (RSS) | startups | keyless |  | 7d | thematic | recent | product name, tagline, link |
-| `reddit` | Reddit | startups | keyless |  | 1d | thematic | recent | post title, subreddit, score |
-| `scmp` | South China Morning Post | technology / finance | keyless |  | 3d | thematic | recent | China tech/economy headline, link |
-| `semantic-scholar` | Semantic Scholar | technology | keyless |  | 30d | thematic | historical | paper title, abstract snippet |
-| `stackexchange` | Stack Overflow | technology | keyless |  | 30d | thematic | historical | question, tags, score |
-| `substack` | Substack RSS | technology | keyless |  | 7d | thematic | recent | post title, summary |
-| `techmeme` | Techmeme | technology | keyless |  | 3d | thematic | recent | headline |
-| `vc-portfolios` | YC, Antler, a16z, and Techstars official directories | startups | keyless | ⚖️ | 30d | thematic | historical | company name, description, cohort/program, first-party evidence, inferred competitors |
-| `youtube` | YouTube discovery + transcripts | technology | optional-key:YOUTUBE_API_KEY |  | 7d | thematic | recent | video title, view count, channel, transcript snippet when available |
+| Source | Provider | Domain | Access | Cadence | ⚖️ | History | Role | Temporal | Content depth | Retention | Terms risk | Extracted fields kept |
+|---|---|---|---|---|:--:|--:|---|---|---|---|---|---|
+| `courtlistener` | CourtListener (litigation) | finance | keyless | daily | ⚖️ | 30d | corroboration | historical | metadata or bounded excerpt | D1 event history with canonical source link and deduplication metadata. | not-reviewed | case name, court, nature of suit |
+| `gov-contracts` | SAM / SBIR / USAspending | startups | optional-key:SAM_API_KEY | weekly | ⚖️ | 30d | corroboration | historical | metadata plus selected structured payload | D1 event history; source document retained when the adapter emits one. | not-reviewed | award/solicitation title, agency |
+| `legistar` | Legistar/Granicus (municipal) | finance | keyless | weekly | ⚖️ | 30d | corroboration | historical | metadata or bounded excerpt | D1 event history with canonical source link and deduplication metadata. | not-reviewed | matter title, body, file no. |
+| `openstates` | OpenStates (state bills) | finance | free-key:OPENSTATES_API_KEY | weekly | ⚖️ | 30d | corroboration | historical | metadata or bounded excerpt | D1 event history with canonical source link and deduplication metadata. | not-reviewed | bill id, title, latest action |
+| `regulations` | Regulations.gov | finance | free-key:REGULATIONS_GOV_API_KEY | weekly | ⚖️ | 30d | corroboration | historical | metadata or bounded excerpt | D1 event history with canonical source link and deduplication metadata. | not-reviewed | docket, comment window |
+| `us-gov-rss` | SEC litigation / FTC / DOJ / CFTC / GAO / Nasdaq halts | finance | keyless | daily | ⚖️ | 7d | corroboration | historical | metadata or bounded excerpt | D1 event history with canonical source link and deduplication metadata. | not-reviewed | release title, agency, halt symbol |
+| `companies-house` | UK Companies House | startups | free-key:COMPANIES_HOUSE_API_KEY | manual | ⚖️ | 1d | entity | historical | metadata or bounded excerpt | D1 event history with canonical source link and deduplication metadata. | not-reviewed | filing type, company |
+| `edgar` | SEC EDGAR | finance | keyless | daily | ⚖️ | 1d | entity | historical | bounded filing text (up to 50 KB) | D1 event history; source document retained when the adapter emits one. | not-reviewed | form type, filing date, items |
+| `github` | GitHub API | technology | keyless | daily |  | 7d | entity | recent | metadata or bounded excerpt | D1 event history with canonical source link and deduplication metadata. | not-reviewed | repo, release, stars delta |
+| `hkex` | HKEXnews | finance | keyless | daily | ⚖️ | 3d | entity | historical | metadata or bounded excerpt | D1 event history with canonical source link and deduplication metadata. | not-reviewed | filing title, issuer |
+| `huggingface` | Hugging Face Hub | technology | keyless | daily |  | 7d | entity | recent | metadata or bounded excerpt | D1 event history with canonical source link and deduplication metadata. | not-reviewed | model/dataset, downloads |
+| `india-gov` | SEBI / RBI / MOSPI / BSE / NSE / AMFI / NPCI / data.gov.in | finance | optional-key:DATA_GOV_IN_API_KEY | daily | ⚖️ | 3d | entity | series | metadata or bounded excerpt | D1 event history with canonical source link and deduplication metadata. | not-reviewed | circular, filing, CPI/IIP, NAV, UPI volume |
+| `ir` | Investor-relations pages | finance | keyless | daily | ⚖️ | 1d | entity | recent | metadata or bounded excerpt | D1 event history with canonical source link and deduplication metadata. | not-reviewed | headline, IR url |
+| `jobs` | Greenhouse/Lever/Ashby | startups | keyless | daily |  | 14d | entity | recent | metadata or bounded excerpt | D1 event history with canonical source link and deduplication metadata. | not-reviewed | role, company, location |
+| `news` | NewsAPI + RSS | technology | free-key:NEWSAPI_KEY | daily |  | 1d | entity | recent | metadata plus linked-page text when fetched (up to 30 KB) | D1 event history; source document retained when the adapter emits one. | restricted | headline, source, snippet |
+| `patents` | USPTO PatentsView (legacy probe; parked) | technology | parked:USPTO_ODP_API_KEY | parked |  | 365d | entity | historical | metadata or bounded excerpt | D1 event history with canonical source link and deduplication metadata. | credential-gated | patent title, assignee |
+| `sec-xbrl` | SEC XBRL frames | finance | keyless | weekly | ⚖️ | 120d | entity | series | structured payload | D1 event history; source document retained when the adapter emits one. | not-reviewed | fundamental metric + value |
+| `wikidata` | Wikidata | technology | keyless | manual |  | 1d | entity | recent | metadata or bounded excerpt | D1 event history with canonical source link and deduplication metadata. | not-reviewed | entity enrichment fields |
+| `bls` | BLS economic data | finance | optional-key:BLS_API_KEY | monthly | ⚖️ | 120d | numeric | series | metadata or bounded excerpt | D1 event history with canonical source link and deduplication metadata. | not-reviewed | CPI / unemployment / payrolls latest print |
+| `crypto-onchain` | mempool.space / L2Beat / CoinMetrics / Etherscan / Token Unlocks | finance | optional-key:ETHERSCAN_API_KEY,TOKEN_UNLOCKS_API_KEY | context |  | 1d | numeric | series | metadata or bounded excerpt | D1 event history with canonical source link and deduplication metadata. | not-reviewed | fees, TVL+stage, active addresses, gas, unlock schedule |
+| `eia` | EIA energy | finance | free-key:EIA_API_KEY | monthly | ⚖️ | 120d | numeric | series | metadata or bounded excerpt | D1 event history with canonical source link and deduplication metadata. | not-reviewed | state, period, electricity price |
+| `global-macro` | IMF / World Bank / BIS / UN Comtrade | finance | keyless | monthly | ⚖️ | 30d | numeric | series | metadata or bounded excerpt | D1 event history with canonical source link and deduplication metadata. | not-reviewed | GDP, CPI, trade, exchange rate, policy rate |
+| `macro-rates` | ECB FX + FRED | finance | optional-key:FRED_API_KEY | context |  | 30d | numeric | series | metadata or bounded excerpt | D1 event history with canonical source link and deduplication metadata. | not-reviewed | series id, observation value |
+| `us-gov-api` | CFTC COT / Treasury / BEA / Census / Congress / FEC / LDA / CFPB / FDA / NIH / NSF / USGS / NOAA / USDA | finance | optional-key:BEA_API_KEY,CENSUS_API_KEY,CONGRESS_API_KEY,FEC_API_KEY,LDA_API_KEY,FDA_API_KEY,USDA_NASS_API_KEY | weekly | ⚖️ | 30d | numeric | series | metadata or bounded excerpt | D1 event history with canonical source link and deduplication metadata. | not-reviewed | indicator, value, period; bills, votes, grants, complaints |
+| `ai-benchmarks` | LMSYS Arena / Artificial Analysis / OpenRouter | technology | optional-key:ARTIFICIAL_ANALYSIS_API_KEY,OPENROUTER_API_KEY | daily |  | 1d | thematic | series | metadata or bounded excerpt | D1 event history with canonical source link and deduplication metadata. | not-reviewed | model name, ELO, intelligence index, token usage rank |
+| `appstore` | Apple App Store charts | startups | keyless | weekly |  | 1d | thematic | recent | metadata or bounded excerpt | D1 event history with canonical source link and deduplication metadata. | not-reviewed | app name, developer, chart rank |
+| `appstore-reviews` | App Store reviews (iTunes RSS) | startups | keyless | weekly |  | 14d | thematic | recent | bounded user review text (up to 20 KB) | D1 event history; source document retained when the adapter emits one. | user-content | review rating, title, text |
+| `bluesky` | Bluesky | technology | optional-key:BLUESKY_* | parked |  | 7d | thematic | recent | metadata or bounded excerpt | D1 event history with canonical source link and deduplication metadata. | not-reviewed | post text, author |
+| `china-news` | TechNode / Pandaily / CGTN | technology / startups / finance | keyless | daily |  | 3d | thematic | recent | RSS metadata plus linked-page text when fetched (up to 30 KB) | D1 event history; source document retained when the adapter emits one. | not-reviewed | China tech/startup/business headline, link |
+| `cisa-kev` | CISA KEV | technology | keyless | daily | ⚖️ | 7d | thematic | recent | metadata or bounded excerpt | D1 event history with canonical source link and deduplication metadata. | not-reviewed | CVE id, vendor, due date |
+| `coingecko` | CoinGecko | finance | keyless | weekly |  | 1d | thematic | recent | metadata or bounded excerpt | D1 event history with canonical source link and deduplication metadata. | not-reviewed | trending coin / 24h mover, rank, price |
+| `defillama` | DeFiLlama | finance | keyless | weekly |  | 1d | thematic | recent | metadata or bounded excerpt | D1 event history with canonical source link and deduplication metadata. | not-reviewed | protocol TVL + 1d move, category |
+| `dev-ecosystems` | Papers with Code / GitLab / Docker Hub / dev.to / libraries.io / Replicate | technology | optional-key:LIBRARIES_IO_API_KEY,REPLICATE_API_TOKEN | daily |  | 7d | thematic | recent | metadata or bounded excerpt | D1 event history with canonical source link and deduplication metadata. | not-reviewed | paper, repo, image, article, package, model |
+| `gdelt` | GDELT | finance | keyless | on_demand |  | 1d | thematic | recent | metadata or bounded excerpt | D1 event history with canonical source link and deduplication metadata. | not-reviewed | event, tone, mentions |
+| `github-archive` | GH Archive | technology | keyless | parked |  | 1d | thematic | recent | metadata or bounded excerpt | D1 event history with canonical source link and deduplication metadata. | not-reviewed | event type, repo |
+| `google-trends` | Google Trends (RSS) | startups | keyless | weekly |  | 2d | thematic | recent | metadata or bounded excerpt | D1 event history with canonical source link and deduplication metadata. | not-reviewed | trending search term, approx traffic |
+| `gov` | Federal Register + agency RSS | finance | keyless | daily | ⚖️ | 3d | thematic | historical | metadata or bounded excerpt | D1 event history with canonical source link and deduplication metadata. | not-reviewed | rule/notice title, agency |
+| `guardian` | The Guardian | technology | free-key:GUARDIAN_API_KEY | parked |  | 7d | thematic | recent | metadata or bounded excerpt | D1 event history with canonical source link and deduplication metadata. | restricted | headline, section |
+| `hackernews` | HN (Algolia) | technology | keyless | daily |  | 7d | thematic | recent | metadata or bounded excerpt | D1 event history with canonical source link and deduplication metadata. | not-reviewed | title, points, comments, link |
+| `lobsters` | Lobste.rs | technology | keyless | weekly |  | 3d | thematic | recent | metadata or bounded excerpt | D1 event history with canonical source link and deduplication metadata. | not-reviewed | story title, tags |
+| `markets` | Polymarket/Manifold/Kalshi | finance | keyless | context |  | 30d | thematic | recent | metadata or bounded excerpt | D1 event history with canonical source link and deduplication metadata. | not-reviewed | question, probability (quote) |
+| `metaculus` | Metaculus | finance | optional-key:METACULUS_TOKEN | parked |  | 30d | thematic | recent | metadata or bounded excerpt | D1 event history with canonical source link and deduplication metadata. | not-reviewed | question, community forecast |
+| `nvd` | NVD (CVE) | technology | keyless | weekly |  | 14d | thematic | historical | metadata or bounded excerpt | D1 event history with canonical source link and deduplication metadata. | not-reviewed | CVE id, CVSS, summary |
+| `packages` | npm / PyPI / Rust / Java / Ruby / PHP + OSV | technology | keyless | daily |  | 7d | thematic | recent | metadata plus selected structured payload | D1 event history; source document retained when the adapter emits one. | not-reviewed | package, version, advisory |
+| `playstore-reviews` | Google Play reviews | startups | keyless | weekly |  | 14d | thematic | recent | bounded user review text (up to 20 KB) | D1 event history; source document retained when the adapter emits one. | user-content | review rating, text |
+| `podcast-index` | Podcast Index | technology | optional-key:PODCAST_INDEX_* | parked |  | 14d | thematic | recent | metadata plus selected structured payload | D1 event history; source document retained when the adapter emits one. | not-reviewed | episode title, summary |
+| `producthunt` | Product Hunt (RSS) | startups | keyless | daily |  | 7d | thematic | recent | metadata or bounded excerpt | D1 event history with canonical source link and deduplication metadata. | not-reviewed | product name, tagline, link |
+| `reddit` | Reddit | startups | keyless | daily |  | 1d | thematic | recent | metadata or bounded excerpt | D1 event history with canonical source link and deduplication metadata. | restricted | post title, subreddit, score |
+| `scmp` | South China Morning Post | technology / finance | keyless | daily |  | 3d | thematic | recent | RSS metadata plus linked-page text when fetched (up to 30 KB) | D1 event history; source document retained when the adapter emits one. | not-reviewed | China tech/economy headline, link |
+| `semantic-scholar` | Semantic Scholar | technology | keyless | on_demand |  | 30d | thematic | historical | metadata or bounded excerpt | D1 event history with canonical source link and deduplication metadata. | not-reviewed | paper title, abstract snippet |
+| `stackexchange` | Stack Overflow | technology | keyless | on_demand |  | 30d | thematic | historical | metadata or bounded excerpt | D1 event history with canonical source link and deduplication metadata. | not-reviewed | question, tags, score |
+| `substack` | Substack RSS | technology | keyless | on_demand |  | 7d | thematic | recent | metadata or bounded excerpt | D1 event history with canonical source link and deduplication metadata. | not-reviewed | post title, summary |
+| `techmeme` | Techmeme | technology | keyless | daily |  | 3d | thematic | recent | metadata or bounded excerpt | D1 event history with canonical source link and deduplication metadata. | not-reviewed | headline |
+| `vc-portfolios` | YC, Antler, a16z, and Techstars official directories (parked placeholder) | startups | keyless | parked | ⚖️ | 30d | thematic | historical | metadata or bounded excerpt | D1 event history with canonical source link and deduplication metadata. | not-reviewed | company name, description, cohort/program, first-party evidence, inferred competitors |
+| `youtube` | YouTube discovery + transcripts | technology | optional-key:YOUTUBE_API_KEY | on_demand |  | 7d | thematic | recent | metadata plus transcript when available (up to 30 KB) | D1 event history; source document retained when the adapter emits one. | unofficial-transcript | video title, view count, channel, transcript snippet when available |
 
 **Role key:** *entity* = maps to a tracked company · *thematic* = topic/keyword (entity-less) · *corroboration* = official 2nd-source, mostly entity-less · *numeric* = time-series values.
 

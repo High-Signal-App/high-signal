@@ -35,6 +35,27 @@ def test_fetch_all_skips_without_api_key(monkeypatch) -> None:
     assert openstates.fetch_all(api_key=None) == []
 
 
+def test_events_from_response_rejects_future_action_dates() -> None:
+    payload = {
+        "results": [
+            {
+                "identifier": "HB 9999",
+                "title": "Future-dated data center bill",
+                "latest_action_date": "2028-07-01",
+                "openstates_url": "https://openstates.org/va/bills/2028/HB9999/",
+            }
+        ]
+    }
+
+    events = openstates.events_from_response(
+        StateQuery("Virginia", "data center"),
+        payload,
+        datetime(2026, 5, 1, tzinfo=timezone.utc),
+        observed_at=datetime(2026, 8, 25, tzinfo=timezone.utc),
+    )
+    assert events == []
+
+
 def test_pipeline_fetch_includes_openstates(monkeypatch) -> None:
     calls: list[int] = []
 

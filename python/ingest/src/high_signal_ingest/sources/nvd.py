@@ -122,7 +122,9 @@ def events_from_response(
 
 
 def _nvd_timestamp(value: datetime) -> str:
-    return value.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000%z")
+    # NVD rejects RFC-822-style offsets such as +0000. Its CVE API accepts the
+    # documented UTC ISO-8601 form with a trailing Z.
+    return value.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z")
 
 
 def fetch_all(days: int = 14, keywords: list[NvdKeyword] | None = None) -> list[Event]:

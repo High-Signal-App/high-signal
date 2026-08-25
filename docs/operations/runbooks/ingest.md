@@ -22,7 +22,10 @@ Launch policy lives in `docs/operations/source-coverage.md`.
 
 Current production cadence:
 
-- `cron-ingest.yml`: daily market signal draft run over `all` sources.
+- `cron-ingest.yml`: daily market signal draft run over the bounded 21-source
+  `all` group.
+- `cron-source-cadences.yml`: daily fetch-only context plus weekly and monthly
+  source groups.
 - `cron-markets.yml`: prediction-market resource polling every 4 hours.
 - `cron-score.yml`: daily scoring for matured signal windows.
 - `backfill.yml`: manual historical replay, usually `gdelt,edgar`.
@@ -46,6 +49,11 @@ cd python/ingest && uv run python -m high_signal_ingest.source_diagnose \
 `API_BASE` + `ADMIN_TOKEN` are the persistence pair. Without them, source fetches
 can succeed while `events`, `ingest_runs`, `/data`, and quote history stay
 unchanged.
+
+For grouped selectors (`all`, `weekly`, `monthly`, or `context`), `ingest_runs`
+contains both the aggregate row and per-adapter receipts linked by the `notes`
+parent-run marker. This distinguishes an adapter that ran with zero yield from
+one that failed or was not scheduled.
 
 ```bash
 # Recent ingest activity, by source (last 7 days)

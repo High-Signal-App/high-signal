@@ -39,6 +39,179 @@ class CatalogEntry:
     temporal: str = "recent"  # recent / historical / series
 
 
+DAILY_SOURCES = frozenset(
+    {
+        "ai-benchmarks",
+        "china-news",
+        "cisa-kev",
+        "courtlistener",
+        "dev-ecosystems",
+        "edgar",
+        "github",
+        "gov",
+        "hackernews",
+        "hkex",
+        "huggingface",
+        "india-gov",
+        "ir",
+        "jobs",
+        "news",
+        "packages",
+        "producthunt",
+        "reddit",
+        "scmp",
+        "techmeme",
+        "us-gov-rss",
+    }
+)
+CONTEXT_SOURCES = frozenset({"crypto-onchain", "macro-rates", "markets"})
+WEEKLY_SOURCES = frozenset(
+    {
+        "appstore",
+        "appstore-reviews",
+        "coingecko",
+        "defillama",
+        "google-trends",
+        "gov-contracts",
+        "legistar",
+        "lobsters",
+        "nvd",
+        "openstates",
+        "playstore-reviews",
+        "regulations",
+        "sec-xbrl",
+        "us-gov-api",
+    }
+)
+MONTHLY_SOURCES = frozenset({"bls", "eia", "global-macro"})
+ON_DEMAND_SOURCES = frozenset(
+    {"gdelt", "semantic-scholar", "stackexchange", "substack", "youtube"}
+)
+MANUAL_SOURCES = frozenset({"companies-house", "wikidata"})
+PARKED_SOURCES = frozenset(
+    {
+        "bluesky",
+        "github-archive",
+        "guardian",
+        "metaculus",
+        "patents",
+        "podcast-index",
+        "vc-portfolios",
+    }
+)
+
+SOURCE_CADENCE_GROUPS = {
+    "daily": DAILY_SOURCES,
+    "context": CONTEXT_SOURCES,
+    "weekly": WEEKLY_SOURCES,
+    "monthly": MONTHLY_SOURCES,
+    "on_demand": ON_DEMAND_SOURCES,
+    "manual": MANUAL_SOURCES,
+    "parked": PARKED_SOURCES,
+}
+
+# Named pipeline selectors. `all` intentionally means the bounded Daily Brief
+# candidate set, not every adapter that happens to exist in the repository.
+PIPELINE_SOURCE_GROUPS = {
+    "all": DAILY_SOURCES,
+    "context": CONTEXT_SOURCES,
+    "weekly": WEEKLY_SOURCES,
+    "monthly": MONTHLY_SOURCES,
+}
+
+_ACCESS_BASIS_OVERRIDES = {
+    "github": "Public API; token recommended for production rate limits.",
+    "github-archive": "Public archive; parked because transfer cost is high relative to unique yield.",
+    "news": "Public RSS plus NewsAPI; NewsAPI production use requires an eligible paid plan.",
+    "guardian": "Parked; developer access is non-commercial and derived commercial use requires a licence.",
+    "reddit": "Public endpoints; reuse and sustained commercial access are terms-restricted.",
+    "youtube": "Public discovery metadata; transcript retrieval uses an unofficial interface.",
+    "appstore-reviews": "Public review feed; retained and displayed user text must be minimized.",
+    "playstore-reviews": "Public review pages; retained and displayed user text must be minimized.",
+    "bluesky": "Parked; authenticated social search is not unique enough to justify scheduled collection.",
+    "metaculus": "Parked; authenticated forecast context overlaps the scheduled prediction-market lane.",
+    "podcast-index": "Parked; authenticated episode metadata alone is not sufficient evidence.",
+    "patents": "Replacement USPTO ODP API requires an account, MFA, profile, and API key.",
+    "vc-portfolios": "Parked placeholder; no source fetch is implemented.",
+}
+
+_CONTENT_DEPTH_OVERRIDES = {
+    "edgar": "bounded filing text (up to 50 KB)",
+    "news": "metadata plus linked-page text when fetched (up to 30 KB)",
+    "scmp": "RSS metadata plus linked-page text when fetched (up to 30 KB)",
+    "china-news": "RSS metadata plus linked-page text when fetched (up to 30 KB)",
+    "youtube": "metadata plus transcript when available (up to 30 KB)",
+    "appstore-reviews": "bounded user review text (up to 20 KB)",
+    "playstore-reviews": "bounded user review text (up to 20 KB)",
+    "packages": "metadata plus selected structured payload",
+    "sec-xbrl": "structured payload",
+    "gov-contracts": "metadata plus selected structured payload",
+    "podcast-index": "metadata plus selected structured payload",
+}
+
+_TERMS_RISK_OVERRIDES = {
+    "guardian": "restricted",
+    "news": "restricted",
+    "reddit": "restricted",
+    "youtube": "unofficial-transcript",
+    "appstore-reviews": "user-content",
+    "playstore-reviews": "user-content",
+    "patents": "credential-gated",
+}
+
+
+def _cadence(entry: CatalogEntry) -> str:
+    for cadence, source_ids in SOURCE_CADENCE_GROUPS.items():
+        if entry.id in source_ids:
+            return cadence
+    raise ValueError(f"source {entry.id!r} has no operational cadence")
+
+
+def expected_run_cadence_hours(entry: CatalogEntry) -> int | None:
+    cadence = _cadence(entry)
+    if entry.id == "markets":
+        return 4
+    if cadence in {"daily", "context"}:
+        return 24
+    if cadence == "weekly":
+        return 24 * 7
+    if cadence == "monthly":
+        return 24 * 30
+    return None
+
+
+def source_ids_for_selector(selector: str) -> frozenset[str]:
+    grouped = PIPELINE_SOURCE_GROUPS.get(selector)
+    if grouped is not None:
+        return grouped
+    return frozenset({selector})
+
+
+def _access_basis(entry: CatalogEntry) -> str:
+    override = _ACCESS_BASIS_OVERRIDES.get(entry.id)
+    if override:
+        return override
+    if entry.access == "keyless":
+        return "Public endpoint; no project credential required."
+    if entry.access.startswith("free-key:"):
+        return "Free registration key required; adapter yields nothing when absent."
+    if entry.access.startswith("optional-key:"):
+        return "Optional credential enables this adapter or additional depth."
+    if entry.access.startswith("parked:"):
+        return "Credential-gated and excluded from scheduled ingestion."
+    return "Access basis not yet reviewed."
+
+
+def _content_depth(entry: CatalogEntry) -> str:
+    return _CONTENT_DEPTH_OVERRIDES.get(entry.id, "metadata or bounded excerpt")
+
+
+def _retention(entry: CatalogEntry) -> str:
+    if entry.id in _CONTENT_DEPTH_OVERRIDES:
+        return "D1 event history; source document retained when the adapter emits one."
+    return "D1 event history with canonical source link and deduplication metadata."
+
+
 CATALOG: list[CatalogEntry] = [
     # --- Capital & filings -------------------------------------------------
     CatalogEntry(
@@ -211,7 +384,7 @@ CATALOG: list[CatalogEntry] = [
     ),
     CatalogEntry(
         "vc-portfolios",
-        "YC, Antler, a16z, and Techstars official directories",
+        "YC, Antler, a16z, and Techstars official directories (parked placeholder)",
         "startups",
         "keyless",
         True,
@@ -723,16 +896,22 @@ def to_markdown() -> str:
         "cite-or-kill official-source bar. **Temporal:** `recent` = only latest "
         "events matter; `historical` = full archive has value; `series` = "
         "time-series where both recent prints and historical trends matter.",
+        "**Cadence:** `daily` = included in the bounded `pipeline --source all` Daily Brief "
+        "candidate run; `context` = separately refreshed calibration data; `weekly` / "
+        "`monthly` = slower scheduled collection; `on_demand` / `manual` = explicit use only; "
+        "`parked` = excluded from scheduled ingestion. Cadence describes execution policy, "
+        "not whether an adapter produced rows.",
         "",
-        "| Source | Provider | Domain | Access | ⚖️ | History | Role | Temporal | Extracted fields kept |",
-        "|---|---|---|---|:--:|--:|---|---|---|",
+        "| Source | Provider | Domain | Access | Cadence | ⚖️ | History | Role | Temporal | Content depth | Retention | Terms risk | Extracted fields kept |",
+        "|---|---|---|---|---|:--:|--:|---|---|---|---|---|---|",
     ]
     for e in sorted(CATALOG, key=lambda x: (x.role, x.id)):
         official = "⚖️" if e.official else ""
         role = f"{e.role}"
         lines.append(
-            f"| `{e.id}` | {e.provider} | {e.domains} | {e.access} | {official} "
-            f"| {e.window_days}d | {role} | {e.temporal} | {e.keeps} |"
+            f"| `{e.id}` | {e.provider} | {e.domains} | {e.access} | {_cadence(e)} | {official} "
+            f"| {e.window_days}d | {role} | {e.temporal} | {_content_depth(e)} "
+            f"| {_retention(e)} | {_TERMS_RISK_OVERRIDES.get(e.id, 'not-reviewed')} | {e.keeps} |"
         )
     lines += [
         "",
@@ -770,6 +949,12 @@ def to_dicts() -> list[dict[str, object]]:
             "role": e.role,
             "keeps": e.keeps,
             "temporal": e.temporal,
+            "cadence": _cadence(e),
+            "expectedRunCadenceHours": expected_run_cadence_hours(e),
+            "accessBasis": _access_basis(e),
+            "contentDepth": _content_depth(e),
+            "retention": _retention(e),
+            "termsRisk": _TERMS_RISK_OVERRIDES.get(e.id, "not-reviewed"),
         }
         for e in sorted(CATALOG, key=lambda x: (x.role, x.id))
     ]

@@ -104,4 +104,21 @@ describe('public API edge cache', () => {
     expect(response.headers.get('x-edge-cache')).toBeNull();
     expect(cache.put).not.toHaveBeenCalled();
   });
+
+  it('preserves a route-specific public shared-cache TTL', async () => {
+    const cache = memoryCache();
+    const response = await handlePublicApiCache(
+      new Request('https://api.highsignal.app/data/sources'),
+      async () =>
+        Response.json(
+          { sources: [] },
+          { headers: { 'cache-control': 'public, max-age=60, s-maxage=3600' } }
+        ),
+      { cache }
+    );
+
+    expect(response.headers.get('cache-control')).toBe('public, max-age=60, s-maxage=3600');
+    expect(response.headers.get('x-edge-cache')).toBe('API-MISS');
+    expect(cache.put).toHaveBeenCalledTimes(1);
+  });
 });

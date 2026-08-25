@@ -35,6 +35,17 @@ def test_fred_events_from_csv() -> None:
     assert events[0].title == "FRED DGS10: 4.25"
 
 
+def test_fred_events_accepts_bare_carriage_return_csv() -> None:
+    events = macro_rates.fred_events_from_csv(
+        "DGS3MO",
+        "date,value\r2026-05-31,4.10\r",
+        datetime(2026, 5, 1, tzinfo=timezone.utc),
+    )
+
+    assert len(events) == 1
+    assert events[0].title == "FRED DGS3MO: 4.10"
+
+
 def test_pipeline_fetch_includes_macro_rates(monkeypatch) -> None:
     calls: list[int] = []
 

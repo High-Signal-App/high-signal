@@ -58,8 +58,13 @@ QUERIES: tuple[StateQuery, ...] = (
 
 
 def events_from_response(
-    query: StateQuery, payload: dict[str, Any], since: datetime
+    query: StateQuery,
+    payload: dict[str, Any],
+    since: datetime,
+    *,
+    observed_at: datetime | None = None,
 ) -> list[Event]:
+    observed_at = observed_at or datetime.now(timezone.utc)
     rows = payload.get("results") if isinstance(payload.get("results"), list) else []
     out: list[Event] = []
     for row in rows:
@@ -69,7 +74,14 @@ def events_from_response(
         title = str(row.get("title") or "").strip()
         url = str(row.get("openstates_url") or "").strip()
         action = parse_iso_datetime(str(row.get("latest_action_date") or ""))
-        if not identifier or not title or url == "" or action is None or action < since:
+        if (
+            not identifier
+            or not title
+            or url == ""
+            or action is None
+            or action < since
+            or action > observed_at
+        ):
             continue
         juris = ""
         if isinstance(row.get("jurisdiction"), dict):

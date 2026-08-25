@@ -65,7 +65,10 @@ def ecb_events_from_xml(xml_text: str) -> list[Event]:
 
 def fred_events_from_csv(series_id: str, csv_text: str, since: datetime) -> list[Event]:
     out: list[Event] = []
-    reader = csv.DictReader(StringIO(csv_text))
+    # FRED may return CRLF or bare-CR CSV depending on the edge path. Passing
+    # newline="" lets the csv module normalize those records without raising
+    # "new-line character seen in unquoted field".
+    reader = csv.DictReader(StringIO(csv_text, newline=""))
     for row in reader:
         value = str(row.get("value") or "").strip()
         date_value = str(row.get("date") or "").strip()

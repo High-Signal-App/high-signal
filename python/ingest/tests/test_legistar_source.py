@@ -73,6 +73,21 @@ def test_events_from_matters_honours_since_window() -> None:
     assert events == []
 
 
+def test_events_from_matters_rejects_future_effective_dates() -> None:
+    future = _matter(
+        MatterIntroDate="2028-01-01T00:00:00",
+        MatterAgendaDate="2028-02-01T00:00:00",
+    )
+    events = legistar.events_from_matters(
+        "sanjose",
+        "San Jose CA",
+        [future],
+        datetime(2026, 6, 1, tzinfo=timezone.utc),
+        observed_at=datetime(2026, 8, 25, tzinfo=timezone.utc),
+    )
+    assert events == []
+
+
 def test_clients_from_env_override(monkeypatch) -> None:
     monkeypatch.setenv("LEGISTAR_CLIENTS", "foo:Foo City, bar")
     assert legistar._clients_from_env() == [("foo", "Foo City"), ("bar", "bar")]

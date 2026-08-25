@@ -552,7 +552,7 @@ interface IngestRunInput {
 
 adminRoute.post('/ingest-runs', async (c) => {
   const body = (await c.req.json()) as IngestRunInput;
-  const id = await sha16(`run:${body.source}:${body.startedAt}:${Math.random()}`);
+  const id = await sha16(`run:${body.source}:${body.startedAt}:${crypto.randomUUID()}`);
   await db(c.env.DB)
     .insert(schema.ingestRuns)
     .values({
@@ -570,6 +570,52 @@ adminRoute.post('/ingest-runs', async (c) => {
       notes: body.notes ?? null,
     });
   return c.json({ id });
+});
+
+adminRoute.post('/ingest-runs/bulk', async (c) => {
+  const body = (await c.req.json()) as { runs?: IngestRunInput[] };
+  const runs = body.runs ?? [];
+  if (!Array.isArray(runs)) return c.json({ error: 'bad_payload' }, 400);
+  if (runs.length === 0) return c.json({ inserted: 0 });
+  if (runs.length > 100) return c.json({ error: 'too_many_runs', max: 100 }, 400);
+  if (
+    runs.some(
+      (run) =>
+        !run.source ||
+        !run.startedAt ||
+        Number.isNaN(new Date(run.startedAt).getTime()) ||
+        (run.finishedAt !== undefined && Number.isNaN(new Date(run.finishedAt).getTime()))
+    )
+  ) {
+    return c.json({ error: 'bad_payload' }, 400);
+  }
+
+  const values = await Promise.all(
+    runs.map(async (run) => ({
+      id: await sha16(`run:${run.source}:${run.startedAt}:${crypto.randomUUID()}`),
+      source: run.source,
+      startedAt: new Date(run.startedAt),
+      finishedAt: run.finishedAt ? new Date(run.finishedAt) : null,
+      days: run.days ?? null,
+      eventsFetched: run.eventsFetched ?? 0,
+      eventsDroppedNoEntity: run.eventsDroppedNoEntity ?? 0,
+      eventsDroppedLowCluster: run.eventsDroppedLowCluster ?? 0,
+      signalsDrafted: run.signalsDrafted ?? 0,
+      errors: run.errors ?? 0,
+      errorSample: run.errorSample ?? null,
+      notes: run.notes ?? null,
+    }))
+  );
+
+  // Twelve bound columns per row; eight rows keeps each D1 statement below
+  // the conservative 100-parameter ceiling.
+  const rowsPerInsert = 8;
+  for (let offset = 0; offset < values.length; offset += rowsPerInsert) {
+    await db(c.env.DB)
+      .insert(schema.ingestRuns)
+      .values(values.slice(offset, offset + rowsPerInsert));
+  }
+  return c.json({ inserted: values.length });
 });
 
 interface QuoteInput {

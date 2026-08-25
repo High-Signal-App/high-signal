@@ -30,7 +30,9 @@ Every generated insight should answer:
 
 This is the launch-ready insight product.
 
-Generate daily draft signals from:
+Retain the following launch adapters. The generated source catalog owns their
+execution cadence; only its 21-source `daily` group participates in the Daily
+Brief candidate run:
 
 - `news` — RSS plus article extraction from seeded AI-infra / semiconductor sources.
 - `edgar` — 8-K daily; 10-Q and 10-K on wider windows.
@@ -39,9 +41,11 @@ Generate daily draft signals from:
 - `gdelt` — broad news backstop and historical replay source.
 - `reddit` — public community weak signals.
 - `github` — releases and repo activity for AI infrastructure projects.
-- `github-archive` — bounded public hourly GitHub Archive reader over already tracked repos.
+- `github-archive` — parked public archive reader; transfer cost and low unique
+  yield do not justify scheduling it alongside direct GitHub releases.
 - `youtube` — selected-channel transcripts plus optional YouTube Data API discovery/view-count ranking for brand-awareness probes; third-party transcript access remains best-effort.
-- `bluesky` — optional-auth AT Protocol search lane; weak-signal social context only.
+- `bluesky` — parked optional-auth social lane; current discovery coverage is
+  redundant with HN, Reddit, Techmeme, and Digg.
 - `hkex` — HK-listed AI and semiconductor announcements.
 - `markets` — prediction-market quotes; these are resources for context and scoring, not primary signal cards.
 - `cisa-kev` — known exploited vulnerabilities only; security-risk candidates for mapped infra/devtool entities, not a broad CVE feed.
@@ -52,21 +56,29 @@ Generate daily draft signals from:
 - `packages` — curated npm/PyPI release and OSV advisory events tied to tracked developer tools and AI packages.
 - `jobs` — curated Greenhouse/Lever/Ashby job-board events as leading startup capital and product-focus indicators.
 - `huggingface` — public Hub model/dataset activity; useful for ecosystem adoption and model-distribution drift.
-- `nvd` — curated NVD CVE queries for tracked security/devtool products; lower priority than CISA KEV unless corroborated.
-- `guardian` — optional-key mainstream news corroboration lane; skipped when `GUARDIAN_API_KEY` is absent.
+- `nvd` — weekly curated CVE queries for tracked security/devtool products;
+  lower priority than CISA KEV unless corroborated.
+- `guardian` — parked mainstream-news lane because licensing is restricted and
+  its coverage duplicates the curated news path.
 - `patents` — parked legacy compatibility probe. The PatentsView endpoint now
   redirects to USPTO ODP, whose current access requires a USPTO account, MFA,
   completed ODP profile, and API key. It is excluded from daily and default
   backfill runs; reopen only when expected patent yield justifies that overhead.
-- `gov-contracts` — SBIR public awards plus optional-key SAM.gov opportunity search for federal demand signals.
+- `gov-contracts` — weekly SBIR public awards plus optional-key SAM.gov
+  opportunity search for federal demand signals.
 - `wikidata` — explicit enrichment/audit source, not included in the daily `--source all` signal run; improves mapping and candidate promotion, not public signal volume.
-- `semantic-scholar` — curated recent research-paper search; useful for technical trend corroboration and early research weak signals.
-- `regulations` — optional-key Regulations.gov document search for dockets and comment windows after a Federal Register notice.
+- `semantic-scholar` — on-demand research-paper search for technical trend
+  corroboration after a candidate exists.
+- `regulations` — weekly Regulations.gov document search for dockets and comment
+  windows after a Federal Register notice.
 - `companies-house` — explicit UK company enrichment source, not included in the daily `--source all` signal run.
-- `metaculus` — optional-auth forecast context; never primary evidence and subject to Metaculus terms before broader/commercial use.
-- `podcast-index` — optional-auth podcast metadata lane; transcription is downstream, not daily fetching.
-- `macro-rates` — ECB FX and optional-key FRED risk-free-rate context; explicitly not an equity-price source.
-- `sec-xbrl` — SEC companyfacts fundamentals for tracked public tickers; market-cap joins must use the equities snapshot source of truth.
+- `metaculus` — parked forecast context; the scheduled markets lane already
+  covers prediction context and neither can be primary evidence.
+- `podcast-index` — parked metadata-only lane; transcription remains downstream.
+- `macro-rates` — fetch-only daily ECB/FRED context, explicitly not an
+  equity-price source or signal candidate.
+- `sec-xbrl` — weekly SEC companyfacts fundamentals for tracked public tickers;
+  market-cap joins must use the equities snapshot source of truth.
 
 ### Source Role Policy
 
@@ -86,8 +98,13 @@ decision attached.
 
 Default cadence:
 
-- Daily 02:30 UTC / 08:00 IST: `pipeline --source all --days 1`
+- Daily 02:30 UTC / 08:00 IST: `pipeline --source all --days 1` over the
+  21-source Daily Brief core.
+- Daily 01:00 UTC: fetch-only `macro-rates` and `crypto-onchain` context.
 - Every 4h: `pipeline --source markets`
+- Weekly Sunday 00:00 UTC: `pipeline --source weekly --days 14`.
+- Monthly day 1 at 00:30 UTC: `pipeline --source monthly --days 120`.
+- Investigation-only sources run explicitly; parked sources are unscheduled.
 - Daily 22:30 UTC: score matured signals
 - Manual backfill: `gdelt,edgar` first, then widen only after review quality is stable
 

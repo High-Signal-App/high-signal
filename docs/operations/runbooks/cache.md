@@ -23,6 +23,12 @@ The default public API contract is one minute of browser freshness and five
 minutes of shared-cache freshness. Routes with an explicit public
 `Cache-Control` header retain their route-specific TTL.
 
+`GET /data/sources` is a deliberate exception: its catalog and stored-row
+summary changes on ingestion cadence, not reader cadence, and the aggregation
+touches the events store. It uses one minute of browser freshness and one hour
+of shared-cache freshness. Representative samples are opt-in with `?samples=`;
+the Data page does not request them.
+
 The Cache API prevents repeated D1 queries and upstream fetches after the first
 request in a Cloudflare data center. It is data-center local and does not stop
 the Worker itself from being invoked. Cloudflare's front-of-Worker caching can

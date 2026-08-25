@@ -57,6 +57,99 @@
       "acceptedExceptions": []
     },
     {
+      "id": "cron-source-context",
+      "kind": "context-ingestion",
+      "owner": "sarthak",
+      "trigger": {
+        "type": "schedule",
+        "cron": "0 1 * * *",
+        "tz": "UTC"
+      },
+      "workflowFile": ".github/workflows/cron-source-cadences.yml",
+      "runtime": "github-actions-ubuntu",
+      "command": "pipeline --source macro-rates --days 30 --fetch-only; pipeline --source crypto-onchain --days 1 --fetch-only",
+      "workingDirectory": "python/ingest",
+      "bounds": { "timeoutMinutes": 45, "concurrency": 1, "retryMax": 0 },
+      "idempotency": {
+        "mechanism": "events.raw_hash unique index; context runs use fetch-only mode",
+        "watermark": "ingest_runs.started_at per source",
+        "deduplicationEvidence": "packages/db/src/schema.ts events_raw_hash_idx"
+      },
+      "freshness": {
+        "windowHours": 30,
+        "evidenceSource": "ingest_runs.started_at for macro-rates and crypto-onchain"
+      },
+      "outputExpectation": { "minEventsFetched": 0, "zeroOutputIsFailure": false },
+      "failureDestination": {
+        "durableState": "ingest_runs row with errors>0 + error_sample",
+        "notification": "github-actions job failure email"
+      },
+      "evidence": { "lifecycleTable": "ingest_runs", "rawEventTable": "events" },
+      "acceptedExceptions": ["Context refreshes cannot draft signals"]
+    },
+    {
+      "id": "cron-source-weekly",
+      "kind": "ingestion",
+      "owner": "sarthak",
+      "trigger": {
+        "type": "schedule",
+        "cron": "0 0 * * 0",
+        "tz": "UTC"
+      },
+      "workflowFile": ".github/workflows/cron-source-cadences.yml",
+      "runtime": "github-actions-ubuntu",
+      "command": "uv run python -m high_signal_ingest.pipeline --source weekly --days 14",
+      "workingDirectory": "python/ingest",
+      "bounds": { "timeoutMinutes": 45, "concurrency": 1, "retryMax": 0 },
+      "idempotency": {
+        "mechanism": "events.raw_hash unique index with overlapping 14-day lookback",
+        "watermark": "ingest_runs.started_at per weekly source",
+        "deduplicationEvidence": "packages/db/src/schema.ts events_raw_hash_idx"
+      },
+      "freshness": {
+        "windowHours": 192,
+        "evidenceSource": "ingest_runs.started_at for weekly source receipts"
+      },
+      "outputExpectation": { "minEventsFetched": 0, "minSignalsDrafted": 0, "zeroOutputIsFailure": false },
+      "failureDestination": {
+        "durableState": "per-adapter ingest_runs rows with errors and samples",
+        "notification": "github-actions job failure email"
+      },
+      "evidence": { "lifecycleTable": "ingest_runs", "rawEventTable": "events", "llmAuditTable": "llm_runs" },
+      "acceptedExceptions": ["Sparse upstreams may complete successfully with zero observations"]
+    },
+    {
+      "id": "cron-source-monthly",
+      "kind": "ingestion",
+      "owner": "sarthak",
+      "trigger": {
+        "type": "schedule",
+        "cron": "30 0 1 * *",
+        "tz": "UTC"
+      },
+      "workflowFile": ".github/workflows/cron-source-cadences.yml",
+      "runtime": "github-actions-ubuntu",
+      "command": "uv run python -m high_signal_ingest.pipeline --source monthly --days 120",
+      "workingDirectory": "python/ingest",
+      "bounds": { "timeoutMinutes": 45, "concurrency": 1, "retryMax": 0 },
+      "idempotency": {
+        "mechanism": "events.raw_hash unique index with overlapping 120-day lookback",
+        "watermark": "ingest_runs.started_at per monthly source",
+        "deduplicationEvidence": "packages/db/src/schema.ts events_raw_hash_idx"
+      },
+      "freshness": {
+        "windowHours": 840,
+        "evidenceSource": "ingest_runs.started_at for monthly source receipts"
+      },
+      "outputExpectation": { "minEventsFetched": 0, "minSignalsDrafted": 0, "zeroOutputIsFailure": false },
+      "failureDestination": {
+        "durableState": "per-adapter ingest_runs rows with errors and samples",
+        "notification": "github-actions job failure email"
+      },
+      "evidence": { "lifecycleTable": "ingest_runs", "rawEventTable": "events", "llmAuditTable": "llm_runs" },
+      "acceptedExceptions": ["Monthly and annual series retain source observation dates"]
+    },
+    {
       "id": "cron-digg",
       "kind": "attention-ingestion",
       "owner": "sarthak",

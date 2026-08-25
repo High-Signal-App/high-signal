@@ -12,11 +12,12 @@ import threading
 import time
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Callable, Literal
+from typing import Callable, Literal, cast
 from urllib.parse import urlsplit
 
-from . import audit
+from . import audit, source_catalog
 from .extract.entities import primary_entity
 from .graph import spillover_ids
 from .seed import load_entities
@@ -139,7 +140,21 @@ Source = Literal[
     "ai-benchmarks",
     "dev-ecosystems",
     "all",
+    "context",
+    "weekly",
+    "monthly",
 ]
+
+
+@dataclass(frozen=True)
+class FetchReceipt:
+    source: str
+    started_at: datetime
+    finished_at: datetime
+    events_fetched: int
+    errors: int
+    error_sample: str | None = None
+
 
 FALLBACK_DRAFT_LIMIT = 3
 DEFAULT_DAILY_EDGAR_TICKER_LIMIT = 25
@@ -258,7 +273,14 @@ def _fetch_tasks(source: Source, days: int) -> list[tuple[str, str, Callable[[],
     can run them concurrently. Existing env caps (e.g. ``EDGAR_TICKER_LIMIT``)
     are honoured here exactly as before.
     """
-    tasks: list[tuple[str, str, Callable[[], list[Event]]]] = []
+    grouped = source_catalog.PIPELINE_SOURCE_GROUPS.get(source)
+    if grouped is not None:
+        tasks: list[tuple[str, str, Callable[[], list[Event]]]] = []
+        for source_id in sorted(grouped):
+            tasks.extend(_fetch_tasks(cast(Source, source_id), days))
+        return tasks
+
+    tasks = []
 
     def add(name: str, host: str, fn: Callable[[], list[Event]]) -> None:
         tasks.append((name, _host_key(host), fn))
@@ -447,7 +469,9 @@ def _fetch_tasks(source: Source, days: int) -> list[tuple[str, str, Callable[[],
             "https://www.producthunt.com",
             lambda: producthunt.fetch_all(days=max(days, 7)),
         )
-    if source in {"vc-portfolios", "all"}:
+    # Parked placeholder: keep the explicit source id for compatibility, but do
+    # not advertise a no-op task as a successful daily adapter.
+    if source == "vc-portfolios":
         add("vc-portfolios", "https://www.ycombinator.com/companies", lambda: [])
     if source in {"coingecko", "all"}:
         add("coingecko", "https://api.coingecko.com", lambda: coingecko.fetch_all(days=days))
@@ -503,7 +527,12 @@ def _fetch_tasks(source: Source, days: int) -> list[tuple[str, str, Callable[[],
     return tasks
 
 
-def fetch(source: Source, days: int, failures: list[str] | None = None) -> list[Event]:
+def fetch(
+    source: Source,
+    days: int,
+    failures: list[str] | None = None,
+    receipts: list[FetchReceipt] | None = None,
+) -> list[Event]:
     """Fetch all selected sources concurrently with bounded, per-host-capped I/O.
 
     Adapters are independent network jobs (most sync, a few async-wrapped); we
@@ -531,16 +560,39 @@ def fetch(source: Source, days: int, failures: list[str] | None = None) -> list[
     gate = _HostGate(per_host)
     out: list[Event] = []
 
-    def _run(name: str, host: str, fn: Callable[[], list[Event]]) -> list[Event]:
-        return gate.run(
+    def _run(
+        name: str, host: str, fn: Callable[[], list[Event]]
+    ) -> tuple[list[Event], FetchReceipt, list[str]]:
+        started_at = datetime.now(timezone.utc)
+        local_failures: list[str] = []
+        events = gate.run(
             host,
-            lambda: _with_backoff(name, fn, retries=retries, base=base, cap=cap, failures=sink),
+            lambda: _with_backoff(
+                name,
+                fn,
+                retries=retries,
+                base=base,
+                cap=cap,
+                failures=local_failures,
+            ),
         )
+        receipt = FetchReceipt(
+            source=name,
+            started_at=started_at,
+            finished_at=datetime.now(timezone.utc),
+            events_fetched=len(events),
+            errors=len(local_failures),
+            error_sample=local_failures[0][:300] if local_failures else None,
+        )
+        return events, receipt, local_failures
 
     with ThreadPoolExecutor(max_workers=concurrency, thread_name_prefix="ingest-fetch") as pool:
         futures = {pool.submit(_run, name, host, fn): name for name, host, fn in tasks}
         for future in as_completed(futures):
-            events = future.result()  # _with_backoff swallows exceptions -> [] on failure
+            events, receipt, local_failures = future.result()
+            sink.extend(local_failures)
+            if receipts is not None:
+                receipts.append(receipt)
             if events:
                 out.extend(events)
     return out
@@ -748,15 +800,16 @@ def _emit_fallback_drafts(by_entity: dict[str, list[Event]]) -> list[str]:
     return written
 
 
-def run(source: Source, days: int) -> dict:
+def run(source: Source, days: int, *, generate_signals: bool = True) -> dict:
     started_at = datetime.now(timezone.utc)
     fetch_run_id = audit.new_run_id()
     errors = 0
     error_sample: str | None = None
 
     fetch_failures: list[str] = []
+    fetch_receipts: list[FetchReceipt] = []
     try:
-        events = fetch(source, days, failures=fetch_failures)
+        events = fetch(source, days, failures=fetch_failures, receipts=fetch_receipts)
     except Exception as exc:
         events = []
         errors += 1
@@ -768,6 +821,26 @@ def run(source: Source, days: int) -> dict:
 
     # Persist raw events for replay/debug regardless of downstream outcome
     events_pushed = audit.push_events(events, fetch_run_id)
+
+    # A grouped receipt cannot distinguish a successful empty adapter from one
+    # that failed. Persist one bounded receipt per adapter so the public data
+    # directory can report that distinction honestly.
+    if source in source_catalog.PIPELINE_SOURCE_GROUPS:
+        audit.push_ingest_runs(
+            [
+                {
+                    "source": receipt.source,
+                    "startedAt": receipt.started_at.isoformat(),
+                    "finishedAt": receipt.finished_at.isoformat(),
+                    "days": days,
+                    "eventsFetched": receipt.events_fetched,
+                    "errors": receipt.errors,
+                    "errorSample": receipt.error_sample,
+                    "notes": f"parent_run:{fetch_run_id}",
+                }
+                for receipt in fetch_receipts
+            ]
+        )
 
     # Collapse exact duplicates (same canonical URL re-reported across feeds /
     # queries) before clustering — keeps distinct-URL events so a signal's
@@ -784,6 +857,31 @@ def run(source: Source, days: int) -> dict:
         else:
             no_entity_events.append(ev)
     no_entity = len(no_entity_events)
+
+    if not generate_signals:
+        audit.push_ingest_run(
+            source=source,
+            started_at=started_at,
+            days=days,
+            events_fetched=len(events),
+            events_dropped_no_entity=no_entity,
+            events_dropped_low_cluster=0,
+            signals_drafted=0,
+            errors=errors,
+            error_sample=error_sample,
+            notes=f"fetch_run_id={fetch_run_id};mode=fetch_only",
+        )
+        return {
+            "fetch_run_id": fetch_run_id,
+            "events": len(events),
+            "events_pushed": events_pushed,
+            "duplicates_collapsed": duplicates_collapsed,
+            "events_no_entity": no_entity,
+            "events_low_cluster": 0,
+            "signals_drafted": 0,
+            "errors": errors,
+            "paths": [],
+        }
 
     written: list[str] = []
     low_cluster = 0
@@ -873,73 +971,24 @@ def main() -> None:
     p.add_argument(
         "--source",
         choices=[
-            "edgar",
-            "news",
-            "reddit",
-            "ir",
-            "github",
-            "github-archive",
-            "youtube",
-            "bluesky",
-            "gov",
-            "gdelt",
-            "hkex",
-            "markets",
-            "cisa-kev",
-            "china-news",
-            "lobsters",
-            "substack",
-            "techmeme",
-            "packages",
-            "jobs",
-            "huggingface",
-            "nvd",
-            "guardian",
-            "patents",
-            "gov-contracts",
-            "wikidata",
-            "semantic-scholar",
-            "regulations",
-            "companies-house",
-            "metaculus",
-            "podcast-index",
-            "macro-rates",
-            "sec-xbrl",
-            "scmp",
-            "legistar",
-            "courtlistener",
-            "openstates",
-            "hackernews",
-            "stackexchange",
-            "eia",
-            "producthunt",
-            "vc-portfolios",
-            "coingecko",
-            "google-trends",
-            "appstore",
-            "defillama",
-            "bls",
-            "appstore-reviews",
-            "playstore-reviews",
-            "us-gov-rss",
-            "us-gov-api",
-            "india-gov",
-            "global-macro",
-            "crypto-onchain",
-            "ai-benchmarks",
-            "dev-ecosystems",
-            "all",
+            *sorted(source_catalog.by_id()),
+            *sorted(source_catalog.PIPELINE_SOURCE_GROUPS),
         ],
         default="all",
     )
     p.add_argument("--days", type=int, default=1)
+    p.add_argument(
+        "--fetch-only",
+        action="store_true",
+        help="Persist source events and receipts without drafting signal candidates.",
+    )
     p.add_argument(
         "--json",
         action="store_true",
         help="Emit the run summary as a single JSON line (machine-readable).",
     )
     args = p.parse_args()
-    out = run(args.source, args.days)
+    out = run(args.source, args.days, generate_signals=not args.fetch_only)
     if args.json:
         print(json.dumps(out, default=str))
     else:

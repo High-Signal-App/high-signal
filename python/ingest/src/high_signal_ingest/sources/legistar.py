@@ -165,7 +165,15 @@ def _is_relevant(matter: dict) -> bool:
     return _RELEVANT_RE.search(text) is not None
 
 
-def events_from_matters(code: str, name: str, matters: list[dict], since: datetime) -> list[Event]:
+def events_from_matters(
+    code: str,
+    name: str,
+    matters: list[dict],
+    since: datetime,
+    *,
+    observed_at: datetime | None = None,
+) -> list[Event]:
+    observed_at = observed_at or datetime.now(timezone.utc)
     out: list[Event] = []
     for matter in matters:
         if not isinstance(matter, dict) or not _is_relevant(matter):
@@ -175,7 +183,9 @@ def events_from_matters(code: str, name: str, matters: list[dict], since: dateti
             continue
         intro = _parse_datetime(matter.get("MatterIntroDate"))
         agenda = _parse_datetime(matter.get("MatterAgendaDate"))
-        published = intro or agenda
+        # Legistar occasionally returns future intro/agenda dates. They are
+        # effective scheduling metadata, not evidence publication timestamps.
+        published = next((value for value in (intro, agenda) if value and value <= observed_at), None)
         if published is None or published < since:
             continue
         title = str(matter.get("MatterTitle") or matter.get("MatterName") or "").strip()
