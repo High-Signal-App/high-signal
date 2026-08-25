@@ -23,6 +23,7 @@ const TMP_DIR = resolve(__root, '.tmp');
 const TMP_SQL = resolve(TMP_DIR, 'd2c-agent-visibility-sync.sql');
 const flag = process.argv.includes('--remote') ? '--remote' : '--local';
 const apiSync = process.argv.includes('--api');
+const MAX_VALID_EPOCH_SECONDS = 4_102_444_800; // 2100-01-01T00:00:00Z
 
 interface AgentVisibilityInput {
   id: string;
@@ -43,26 +44,26 @@ function nicheId(slug: string): string {
   return createHash('sha256').update(`d2c-niche:${slug}`).digest('hex').slice(0, 16);
 }
 
-function entryId(nicheId: string, platform: string, runMs: number): string {
+function entryId(nicheId: string, platform: string, runEpoch: number): string {
   return createHash('sha256')
-    .update(`d2c-av:${nicheId}:${platform}:${runMs}`)
+    .update(`d2c-av:${nicheId}:${platform}:${runEpoch}`)
     .digest('hex')
     .slice(0, 16);
 }
 
-function isoDateToEpochMs(iso: string): number {
+function isoDateToEpochSeconds(iso: string): number {
   const ms = Date.parse(iso);
   if (Number.isNaN(ms)) throw new Error(`unparseable ISO date: ${iso}`);
-  return ms;
+  return Math.floor(ms / 1000);
 }
 
 function buildEntry(
   entry: D2CAgentVisibilityArtifact['entries'][number],
   niche: string,
-  runMs: number
+  runEpoch: number
 ): AgentVisibilityInput {
   return {
-    id: entryId(niche, entry.platform, runMs),
+    id: entryId(niche, entry.platform, runEpoch),
     nicheId: niche,
     platform: entry.platform,
     model: entry.model,
@@ -72,8 +73,8 @@ function buildEntry(
     citedUrls: entry.citedUrls,
     brandMentioned: entry.brandMentioned,
     gapScore: entry.gapScore,
-    runDate: runMs,
-    createdAt: runMs,
+    runDate: runEpoch,
+    createdAt: runEpoch,
   };
 }
 
@@ -104,7 +105,7 @@ async function main() {
     console.log('[d2c:sync-av] no artifact found; nothing to sync');
     process.exit(0);
   }
-  const runMs = isoDateToEpochMs(artifact.generatedAt);
+  const runEpoch = isoDateToEpochSeconds(artifact.generatedAt);
   console.log(
     `[d2c:sync-av] artifact ${artifact.generatedAt.slice(0, 10)}; ${artifact.entries.length} entries`
   );
@@ -115,7 +116,9 @@ async function main() {
     idBySlug.set(seed.slug, nicheId(seed.slug));
   }
 
-  const sql: string[] = [];
+  const sql: string[] = [
+    `DELETE FROM d2c_agent_visibility WHERE run_date > ${MAX_VALID_EPOCH_SECONDS};`,
+  ];
   const niches = D2C_NICHE_SEEDS.map((seed) => ({
     id: idBySlug.get(seed.slug)!,
     slug: seed.slug,
@@ -123,8 +126,8 @@ async function main() {
     category: seed.category,
     region: seed.region,
     status: 'active',
-    createdAt: runMs,
-    updatedAt: runMs,
+    createdAt: runEpoch,
+    updatedAt: runEpoch,
   }));
   const entries: AgentVisibilityInput[] = [];
   // 1. Ensure all 20 niche rows exist (the sync-d2c-opportunities script
@@ -133,17 +136,17 @@ async function main() {
     const id = idBySlug.get(seed.slug)!;
     sql.push(
       `INSERT INTO d2c_niches (id, slug, name, category, region, status, created_at, updated_at) ` +
-        `VALUES (${esc(id)}, ${esc(seed.slug)}, ${esc(seed.name)}, ${esc(seed.category)}, ${esc(seed.region)}, 'active', ${runMs}, ${runMs}) ` +
+        `VALUES (${esc(id)}, ${esc(seed.slug)}, ${esc(seed.name)}, ${esc(seed.category)}, ${esc(seed.region)}, 'active', ${runEpoch}, ${runEpoch}) ` +
         `ON CONFLICT(id) DO UPDATE SET name=excluded.name, category=excluded.category, updated_at=excluded.updated_at;`
     );
   }
   // 2. Delete prior entries for this run_date (idempotent re-run).
-  sql.push(`DELETE FROM d2c_agent_visibility WHERE run_date = ${runMs};`);
+  sql.push(`DELETE FROM d2c_agent_visibility WHERE run_date = ${runEpoch};`);
   // 3. Insert one row per entry.
   for (const entry of artifact.entries) {
     const nid = idBySlug.get(entry.nicheSlug);
     if (!nid) continue; // unknown niche slug — skip
-    const input = buildEntry(entry, nid, runMs);
+    const input = buildEntry(entry, nid, runEpoch);
     entries.push(input);
     sql.push(
       `INSERT OR REPLACE INTO d2c_agent_visibility ` +
@@ -151,7 +154,7 @@ async function main() {
         `VALUES (${esc(input.id)}, ${esc(nid)}, ${esc(entry.platform)}, ${esc(entry.model)}, ` +
         `${esc(entry.promptText)}, ${esc(entry.responseText)}, ` +
         `${esc(JSON.stringify(entry.recommendedBrands))}, ${esc(JSON.stringify(entry.citedUrls))}, ` +
-        `${entry.brandMentioned ? 1 : 0}, ${entry.gapScore}, ${runMs}, ${runMs});`
+        `${entry.brandMentioned ? 1 : 0}, ${entry.gapScore}, ${runEpoch}, ${runEpoch});`
     );
   }
 
@@ -162,7 +165,7 @@ async function main() {
   if (apiSync) {
     await postAdminJson(
       '/admin/scheduled-data/d2c-agent-visibility',
-      { niches, runDate: runMs, entries },
+      { niches, runDate: runEpoch, entries },
       '[d2c:sync-av]'
     );
     return;

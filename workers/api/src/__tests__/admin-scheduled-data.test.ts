@@ -141,8 +141,9 @@ describe('admin scheduled data routes', () => {
     );
     expect(response.status).toBe(200);
     expect(database.batch).toHaveBeenCalledTimes(1);
-    expect(database.statements).toHaveLength(2);
-    expect(database.statements[1]?.sql).toContain('ON CONFLICT(niche_id, snapshot_date)');
+    expect(database.statements).toHaveLength(3);
+    expect(database.statements[0]?.sql).toContain('snapshot_date > ?');
+    expect(database.statements[2]?.sql).toContain('ON CONFLICT(niche_id, snapshot_date)');
   });
 
   it('replaces one agent-visibility run in the same batch as its entries', async () => {
@@ -176,7 +177,36 @@ describe('admin scheduled data routes', () => {
     );
     expect(response.status).toBe(200);
     expect(database.batch).toHaveBeenCalledTimes(1);
-    expect(database.statements).toHaveLength(2);
-    expect(database.statements[0]?.sql).toContain('DELETE FROM d2c_agent_visibility');
+    expect(database.statements).toHaveLength(3);
+    expect(database.statements[0]?.sql).toContain('run_date > ?');
+    expect(database.statements[1]?.sql).toContain('run_date = ?');
+  });
+
+  it('rejects millisecond timestamps before they can corrupt Drizzle dates', async () => {
+    const database = mockDb();
+    const response = await fetcher.fetch(
+      new Request('http://t/admin/scheduled-data/d2c-snapshots', {
+        method: 'POST',
+        headers: authorizedHeaders,
+        body: JSON.stringify({
+          niches: [
+            {
+              id: 'n1',
+              slug: 'pet-care',
+              name: 'Pet care',
+              category: 'pets',
+              region: 'south-asia',
+              status: 'active',
+              createdAt: 1_787_692_554_687,
+              updatedAt: 1_787_692_554_687,
+            },
+          ],
+          snapshots: [],
+        }),
+      }),
+      env(database)
+    );
+    expect(response.status).toBe(400);
+    expect(database.batch).not.toHaveBeenCalled();
   });
 });

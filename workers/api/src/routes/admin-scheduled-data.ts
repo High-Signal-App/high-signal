@@ -5,6 +5,7 @@ type Env = { DB: D1Database };
 const MAX_REQUEST_BYTES = 2_000_000;
 const MAX_BACKTEST_EVENTS = 25_000;
 const MAX_BACKTEST_SIGNALS = 5_000;
+const MAX_VALID_EPOCH_SECONDS = 4_102_444_800; // 2100-01-01T00:00:00Z
 
 interface D2CNicheInput {
   id: string;
@@ -63,6 +64,12 @@ function isNumber(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value);
 }
 
+function isEpochSeconds(value: unknown): value is number {
+  return (
+    isNumber(value) && Number.isInteger(value) && value >= 0 && value <= MAX_VALID_EPOCH_SECONDS
+  );
+}
+
 function isNullableNumber(value: unknown): value is number | null {
   return value === null || isNumber(value);
 }
@@ -83,8 +90,8 @@ function isNiche(value: unknown): value is D2CNicheInput {
     isString(category) &&
     isString(region) &&
     status === 'active' &&
-    isNumber(createdAt) &&
-    isNumber(updatedAt)
+    isEpochSeconds(createdAt) &&
+    isEpochSeconds(updatedAt)
   );
 }
 
@@ -111,7 +118,7 @@ function isSnapshot(value: unknown): value is D2CSnapshotInput {
   return (
     isString(id) &&
     isString(nicheId) &&
-    isNumber(snapshotDate) &&
+    isEpochSeconds(snapshotDate) &&
     isNumber(opportunityScore) &&
     isNullableNumber(demandScore) &&
     isNullableNumber(competitionScore) &&
@@ -125,7 +132,7 @@ function isSnapshot(value: unknown): value is D2CSnapshotInput {
     evidenceJson.length <= 500 &&
     isString(freshnessDate) &&
     (notes === null || typeof notes === 'string') &&
-    isNumber(createdAt)
+    isEpochSeconds(createdAt)
   );
 }
 
@@ -156,8 +163,8 @@ function isAgentVisibility(value: unknown): value is D2CAgentVisibilityInput {
     isStringArray(citedUrls) &&
     typeof brandMentioned === 'boolean' &&
     isNumber(gapScore) &&
-    isNumber(runDate) &&
-    isNumber(createdAt)
+    isEpochSeconds(runDate) &&
+    isEpochSeconds(createdAt)
   );
 }
 
@@ -256,7 +263,12 @@ scheduledDataAdminRoute.post('/d2c-snapshots', async (c) => {
     return c.json({ error: 'invalid_d2c_snapshot_payload' }, 400);
   }
 
-  const statements = niches.map((niche) => nicheStatement(c.env.DB, niche));
+  const statements = [
+    c.env.DB.prepare('DELETE FROM d2c_niche_snapshots WHERE snapshot_date > ?').bind(
+      MAX_VALID_EPOCH_SECONDS
+    ),
+    ...niches.map((niche) => nicheStatement(c.env.DB, niche)),
+  ];
   for (const snapshot of snapshots) {
     statements.push(
       c.env.DB.prepare(
@@ -317,7 +329,7 @@ scheduledDataAdminRoute.post('/d2c-agent-visibility', async (c) => {
   if (
     !Array.isArray(niches) ||
     !Array.isArray(entries) ||
-    !isNumber(runDate) ||
+    !isEpochSeconds(runDate) ||
     niches.length > 20 ||
     entries.length > 100 ||
     !niches.every(isNiche) ||
@@ -327,7 +339,12 @@ scheduledDataAdminRoute.post('/d2c-agent-visibility', async (c) => {
     return c.json({ error: 'invalid_d2c_agent_visibility_payload' }, 400);
   }
 
-  const statements = niches.map((niche) => nicheStatement(c.env.DB, niche));
+  const statements = [
+    c.env.DB.prepare('DELETE FROM d2c_agent_visibility WHERE run_date > ?').bind(
+      MAX_VALID_EPOCH_SECONDS
+    ),
+    ...niches.map((niche) => nicheStatement(c.env.DB, niche)),
+  ];
   statements.push(
     c.env.DB.prepare('DELETE FROM d2c_agent_visibility WHERE run_date = ?').bind(runDate)
   );

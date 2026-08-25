@@ -139,12 +139,14 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 
 ## Timeline
 
-- **2026-08-26 — Scheduled-data credential boundary prepared:** the convergence
-  backtest and D2C snapshot jobs now have bounded, operator-authenticated API
-  routes instead of direct Cloudflare account/D1 access. The source, workflow,
-  and regression-test changes are complete and locally green; merge/cutover is
-  sequenced after the manual API deployment so scheduled jobs never target
-  routes that are not live yet.
+- **2026-08-26 — Scheduled-data credential boundary released:** the convergence
+  backtest and D2C snapshot jobs now use bounded, operator-authenticated API
+  routes instead of direct Cloudflare account/D1 access. Manual runs
+  `32900065496` and `32900065523` completed end-to-end; D2C persisted 20 niches
+  and 20 agent-visibility entries without a Cloudflare account token. Live-read
+  verification then exposed legacy millisecond values in Drizzle timestamp
+  columns; sync now writes epoch seconds, rejects millisecond input, and removes
+  only impossible post-2100 legacy rows before idempotent replacement.
 
 - **2026-08-25 — Daily freshness, Digg verification, and publication semantics
   released:** moved the operator-day

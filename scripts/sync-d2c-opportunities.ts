@@ -39,6 +39,7 @@ const TMP_DIR = resolve(__root, '.tmp');
 const TMP_SQL = resolve(TMP_DIR, 'd2c-opportunities-sync.sql');
 const flag = process.argv.includes('--remote') ? '--remote' : '--local';
 const apiSync = process.argv.includes('--api');
+const MAX_VALID_EPOCH_SECONDS = 4_102_444_800; // 2100-01-01T00:00:00Z
 
 // Node fs impl for `loadLatestD2CArtifact`.
 const fsImpl = {
@@ -54,12 +55,12 @@ function snapshotId(nicheId: string, date: string): string {
   return createHash('sha256').update(`d2c-snap:${nicheId}:${date}`).digest('hex').slice(0, 16);
 }
 
-function isoDateToEpochMs(iso: string): number {
+function isoDateToEpochSeconds(iso: string): number {
   const ms = Date.parse(iso);
   if (Number.isNaN(ms)) {
     throw new Error(`unparseable ISO date: ${iso}`);
   }
-  return ms;
+  return Math.floor(ms / 1000);
 }
 
 async function main() {
@@ -100,10 +101,12 @@ async function main() {
     console.log('[d2c:sync] no agent-visibility overlay; using seed defaults');
   }
   const snapshotDate = artifact.generatedAt.slice(0, 10);
-  const snapshotMs = isoDateToEpochMs(artifact.generatedAt);
+  const snapshotEpoch = isoDateToEpochSeconds(artifact.generatedAt);
   console.log(`[d2c:sync] artifact ${snapshotDate}; ${artifact.niches.length} niches`);
 
-  const sql: string[] = [];
+  const sql: string[] = [
+    `DELETE FROM d2c_niche_snapshots WHERE snapshot_date > ${MAX_VALID_EPOCH_SECONDS};`,
+  ];
   const niches = D2C_NICHE_SEEDS.map((seed) => ({
     id: nicheId(seed.slug),
     slug: seed.slug,
@@ -111,8 +114,8 @@ async function main() {
     category: seed.category,
     region: seed.region,
     status: 'active',
-    createdAt: snapshotMs,
-    updatedAt: snapshotMs,
+    createdAt: snapshotEpoch,
+    updatedAt: snapshotEpoch,
   }));
   const snapshots: Array<{
     id: string;
@@ -138,7 +141,7 @@ async function main() {
     const id = nicheId(seed.slug);
     sql.push(
       `INSERT INTO d2c_niches (id, slug, name, category, region, status, created_at, updated_at) ` +
-        `VALUES (${esc(id)}, ${esc(seed.slug)}, ${esc(seed.name)}, ${esc(seed.category)}, ${esc(seed.region)}, 'active', ${snapshotMs}, ${snapshotMs}) ` +
+        `VALUES (${esc(id)}, ${esc(seed.slug)}, ${esc(seed.name)}, ${esc(seed.category)}, ${esc(seed.region)}, 'active', ${snapshotEpoch}, ${snapshotEpoch}) ` +
         `ON CONFLICT(id) DO UPDATE SET name=excluded.name, category=excluded.category, updated_at=excluded.updated_at;`
     );
   }
@@ -174,7 +177,7 @@ async function main() {
     snapshots.push({
       id: snapId,
       nicheId: id,
-      snapshotDate: snapshotMs,
+      snapshotDate: snapshotEpoch,
       opportunityScore: record.opportunityScore,
       demandScore: record.demandScore,
       competitionScore: record.competitionScore,
@@ -187,19 +190,19 @@ async function main() {
       evidenceJson: mergedEvidence,
       freshnessDate: record.freshnessDate,
       notes: evidence?.notes ?? null,
-      createdAt: snapshotMs,
+      createdAt: snapshotEpoch,
     });
     sql.push(
       `INSERT OR REPLACE INTO d2c_niche_snapshots ` +
         `(id, niche_id, snapshot_date, opportunity_score, demand_score, competition_score, pricing_score, ad_saturation_score, agent_visibility_score, source_diversity, verdict, confidence, evidence_json, freshness_date, notes, created_at) ` +
-        `VALUES (${esc(snapId)}, ${esc(id)}, ${snapshotMs}, ${record.opportunityScore}, ` +
+        `VALUES (${esc(snapId)}, ${esc(id)}, ${snapshotEpoch}, ${record.opportunityScore}, ` +
         `${record.demandScore == null ? 'NULL' : record.demandScore}, ` +
         `${record.competitionScore == null ? 'NULL' : record.competitionScore}, ` +
         `${record.pricingScore == null ? 'NULL' : record.pricingScore}, ` +
         `${record.adSaturationScore == null ? 'NULL' : record.adSaturationScore}, ` +
         `${record.agentVisibilityScore == null ? 'NULL' : record.agentVisibilityScore}, ` +
         `${record.sourceDiversity}, ${esc(record.verdict)}, ${esc(record.confidence)}, ` +
-        `${esc(evidenceJson)}, ${esc(record.freshnessDate)}, ${esc(evidence?.notes ?? null)}, ${snapshotMs});`
+        `${esc(evidenceJson)}, ${esc(record.freshnessDate)}, ${esc(evidence?.notes ?? null)}, ${snapshotEpoch});`
     );
   }
 
