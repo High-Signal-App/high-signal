@@ -148,8 +148,8 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
   ledger only credits an origin as verified when its retained source document
   resolves and the citation is aligned primary/corroboration evidence; brief
   ranking now prefers verified independent origins and quality over direction.
-  This is source-complete and tested, but not manually deployed in this pass;
-  issue #133 still requires live freshness acceptance before closure.
+  Release and live acceptance receipts are tracked in issue #138; issue #133
+  still requires live freshness acceptance before closure.
 
 - **2026-08-26 — Scheduled-data credential boundary released:** the convergence
   backtest and D2C snapshot jobs now use bounded, operator-authenticated API
