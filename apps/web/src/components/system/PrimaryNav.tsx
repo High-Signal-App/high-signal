@@ -35,17 +35,9 @@ const PRIMARY_ITEMS: NavItem[] = [
       path.startsWith('/backtest-workbench'),
   },
   {
-    href: '/data',
+    href: '/daily/sources',
     label: 'sources',
-    match: (path) =>
-      path.startsWith('/data') ||
-      path.startsWith('/daily/sources') ||
-      path.startsWith('/entities') ||
-      path.startsWith('/convergence') ||
-      path.startsWith('/markets') ||
-      path.startsWith('/equities') ||
-      path.startsWith('/communities') ||
-      path.startsWith('/unmapped'),
+    match: (path) => path.startsWith('/daily/sources'),
   },
 ];
 
