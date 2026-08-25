@@ -7,6 +7,7 @@ const ROOT_EDGE_CACHE_CONTROL = 'public, max-age=60, s-maxage=300';
 const ROOT_CLIENT_CACHE_CONTROL = 'private, no-cache';
 const RSC_CACHE_CONTROL = 'public, max-age=0, s-maxage=3600';
 const ROOT_CACHE_SCHEMA = 'daily-brief-v2';
+const DATA_CACHE_SCHEMA = 'source-data-v2';
 
 // Public pages that intentionally do not advertise an AI-crawler Markdown
 // representation. They still benefit from the same anonymous HTML/RSC cache.
@@ -58,9 +59,13 @@ export function isCacheableDocumentRequest(request) {
 
 export function cacheKeyForRequest(request) {
   const url = new URL(request.url);
-  if (normalizePublicPath(url.pathname) !== '/' || isRscRequest(request)) return request;
+  if (isRscRequest(request)) return request;
 
-  url.searchParams.set('__hs_cache_schema', ROOT_CACHE_SCHEMA);
+  const pathname = normalizePublicPath(url.pathname);
+  if (pathname === '/') url.searchParams.set('__hs_cache_schema', ROOT_CACHE_SCHEMA);
+  else if (pathname === '/data' || pathname.startsWith('/data/')) {
+    url.searchParams.set('__hs_cache_schema', DATA_CACHE_SCHEMA);
+  } else return request;
   return new Request(url, request);
 }
 

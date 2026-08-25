@@ -79,6 +79,10 @@ assert.equal(
 
 const rootKey = cacheKeyForRequest(request('/'));
 assert.equal(new URL(rootKey.url).searchParams.get('__hs_cache_schema'), 'daily-brief-v2');
+const dataKey = cacheKeyForRequest(request('/data'));
+assert.equal(new URL(dataKey.url).searchParams.get('__hs_cache_schema'), 'source-data-v2');
+const dataSourceKey = cacheKeyForRequest(request('/data/nvd'));
+assert.equal(new URL(dataSourceKey.url).searchParams.get('__hs_cache_schema'), 'source-data-v2');
 assert.equal(cacheKeyForRequest(request('/about')).url, 'https://highsignal.app/about');
 
 assert.equal(cacheControlForRequest(request('/')), 'public, max-age=60, s-maxage=300');
