@@ -37,6 +37,28 @@
     outline-offset: 2px;
   }
 
+  /* Newspaper remains a meaningful presentation mode on narrow screens.
+     The grid enhancement starts at tablet width, but the editorial type and
+     lead-story hierarchy must change immediately when the toggle is pressed. */
+  html[data-reading-view="newspaper"] .brief-edition .brief-feed-item-title {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 1.75rem;
+    line-height: 1.08;
+    letter-spacing: -0.035em;
+  }
+
+  html[data-reading-view="newspaper"] .brief-edition .brief-feed-item:first-of-type {
+    padding-block: 2rem;
+  }
+
+  html[data-reading-view="newspaper"]
+    .brief-edition
+    .brief-feed-item:first-of-type
+    .brief-feed-item-title {
+    font-size: clamp(2.25rem, 10vw, 3.25rem);
+    line-height: 1;
+  }
+
   @media (min-width: 768px) {
     html[data-reading-view="newspaper"] .brief-edition .brief-feed-items {
       display: grid;
