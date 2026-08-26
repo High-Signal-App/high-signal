@@ -72,6 +72,10 @@ agent catalog's canonical daily-dump resource, and the intentional 404s for
 removed products. The API deploy smoke verifies health plus the daily
 signals/evidence dump and composed Daily Brief contracts.
 
+Before either deploy is dispatched, the exact `main` SHA must have a successful
+push-triggered CI run. A manual CI dispatch is useful diagnostics but does not
+replace that release gate.
+
 ## Operator prerequisites
 
 The cron jobs read secrets from GitHub Actions secrets. The persistence pair
