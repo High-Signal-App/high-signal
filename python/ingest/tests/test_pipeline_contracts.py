@@ -46,6 +46,8 @@ def test_cluster_retains_single_origin_without_generating_signal(monkeypatch) ->
 def test_cluster_emits_fallback_when_generation_is_empty(monkeypatch) -> None:
     emitted: list[SignalCandidate] = []
 
+    monkeypatch.delenv("AI_API_KEY", raising=False)
+    monkeypatch.delenv("HF_TOKEN", raising=False)
     monkeypatch.setattr(pipeline, "generate", lambda *_args, **_kwargs: None)
     monkeypatch.setattr(pipeline, "emit", lambda c: emitted.append(c) or f"draft:{c.slug}")
 
@@ -59,6 +61,25 @@ def test_cluster_emits_fallback_when_generation_is_empty(monkeypatch) -> None:
     assert paths == ["draft:nvda-nvidia-lead-times-changed"]
     assert emitted[0].confidence == "medium"
     assert emitted[0].evidence[0].url == "https://example.com/a"
+
+
+def test_cluster_does_not_emit_fallback_after_ai_rejection(monkeypatch) -> None:
+    monkeypatch.setenv("AI_API_KEY", "configured")
+    monkeypatch.setattr(pipeline, "generate", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(
+        pipeline,
+        "_emit_fallback_drafts",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("fallback emitted")),
+    )
+
+    paths = pipeline.cluster_and_generate(
+        [
+            _event("https://example.com/a", source="news:one"),
+            _event("https://another.example/b", source="news:two"),
+        ]
+    )
+
+    assert paths == []
 
 
 def test_cluster_separates_unrelated_stories_for_same_entity(monkeypatch) -> None:

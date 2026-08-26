@@ -704,7 +704,7 @@ def cluster_and_generate(events: list[Event]) -> list[str]:
             written.append(emit(cand))
         else:
             fallback_clusters.append((entity_id, evs))
-    if not written:
+    if not written and _fallback_drafts_enabled():
         written.extend(_emit_fallback_drafts(fallback_clusters))
     return written
 
@@ -762,6 +762,15 @@ def _emit_fallback_drafts(clusters: list[tuple[str, list[Event]]]) -> list[str]:
         if cand:
             written.append(emit(cand))
     return written
+
+
+def _fallback_drafts_enabled() -> bool:
+    """Use deterministic review drafts only when no AI reviewer is configured.
+
+    With AI available, a model rejection or provider failure must retain the
+    source events without manufacturing a lower-quality signal candidate.
+    """
+    return not bool(os.environ.get("AI_API_KEY") or os.environ.get("HF_TOKEN"))
 
 
 def run(source: Source, days: int, *, generate_signals: bool = True) -> dict:
@@ -896,7 +905,7 @@ def run(source: Source, days: int, *, generate_signals: bool = True) -> dict:
             if f"story-{index + 1}" not in emitted_cluster_ids:
                 fallback_clusters.append((entity_id, evs))
 
-    if not written and fallback_clusters:
+    if not written and fallback_clusters and _fallback_drafts_enabled():
         fallback_written = _emit_fallback_drafts(fallback_clusters)
         written.extend(fallback_written)
 

@@ -156,7 +156,10 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
   mode and a batch prompt that asked for an array under a JSON-object contract.
   Batch output now uses a `signals` object and gateway JSON-validation failures
   receive one bounded retry without response-format enforcement before the
-  existing deterministic fallback and publication gates take over.
+  publication gates take over. When an AI reviewer is configured, a model
+  rejection or exhausted provider call now retains the underlying events but
+  cannot manufacture a generic fallback signal; deterministic fallback drafts
+  remain available only for explicitly keyless/local review runs.
   Release and live acceptance receipts are tracked in issue #138; issue #133
   still requires live freshness acceptance before closure.
 
