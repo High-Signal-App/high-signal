@@ -138,7 +138,7 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 
 ## Timeline
 
-- **2026-08-26 — Public product cleanup implemented in source (release pending):**
+- **2026-08-26 — Public product cleanup released:**
   Company Universe remains first-class. Explore and the footer now follow the
   core Brief → Signals/proofs → Sources → Company Universe → Track Record path.
   Standalone Ideas, Opportunities, Teardowns, Featured, Personal Brief, Daily
@@ -146,9 +146,10 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
   Agent Eval, Domains, and Lab web routes were removed. Community curation
   remains an operator input, supported opportunities remain inside the Daily
   Brief, signal RSS remains public, and Review remains footer-only behind
-  Cloudflare Access. Production is unchanged pending release.
+  Cloudflare Access. API and web deployment smokes passed, and both Cloudflare
+  Workers serve the release at 100% traffic.
 
-- **2026-08-26 — Public reading hierarchy implemented in source (release pending):** the homepage now
+- **2026-08-26 — Public reading hierarchy released:** the homepage now
   exposes Today and Yesterday directly; older Daily Briefs live in the
   chronological Signals surface rather than a separate archive. Older brief
   and signal-proof pages require a server-validated Turnstile check and a
