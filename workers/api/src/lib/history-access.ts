@@ -1,7 +1,4 @@
-import {
-  HISTORY_ACCESS_ACTION,
-  HISTORY_ACCESS_TTL_SECONDS,
-} from '@high-signal/shared';
+import { HISTORY_ACCESS_ACTION, HISTORY_ACCESS_TTL_SECONDS } from '@high-signal/shared';
 
 const encoder = new TextEncoder();
 const GRANT_PREFIX = 'high-signal-history-v1';
@@ -32,13 +29,9 @@ function decodeBase64Url(value: string): Uint8Array | null {
 }
 
 async function signingKey(secret: string) {
-  const keyMaterial = await crypto.subtle.importKey(
-    'raw',
-    encoder.encode(secret),
-    'HKDF',
-    false,
-    ['deriveKey']
-  );
+  const keyMaterial = await crypto.subtle.importKey('raw', encoder.encode(secret), 'HKDF', false, [
+    'deriveKey',
+  ]);
   return crypto.subtle.deriveKey(
     { name: 'HKDF', hash: 'SHA-256', salt: GRANT_SALT, info: GRANT_INFO },
     keyMaterial,

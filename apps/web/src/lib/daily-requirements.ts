@@ -56,7 +56,7 @@ export type DailyRequirementFleetTarget = {
   defaultAction: string;
 };
 
-export const DAILY_REQUIREMENT_GATE = {
+const DAILY_REQUIREMENT_GATE = {
   minScore: 50,
   minSourceCount: 3,
   minRepeatedSignalCount: 3,

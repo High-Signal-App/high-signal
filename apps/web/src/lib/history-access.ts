@@ -17,7 +17,3 @@ export async function verifiedHistoryGrant(): Promise<string | null> {
     return null;
   }
 }
-
-export async function hasHistoryAccess(): Promise<boolean> {
-  return (await verifiedHistoryGrant()) !== null;
-}

@@ -86,7 +86,7 @@ function checkComplexity() {
   };
   // Debt: https://github.com/High-Signal-App/high-signal/issues/104
   // Ratcheted 2026-08-22 (ADR-013 removals).
-  const baseline = { violations: 108, maxCcn: 56, maxLength: 398, maxParams: 11 };
+  const baseline = { violations: 92, maxCcn: 56, maxLength: 398, maxParams: 11 };
   console.log(
     `Complexity: ${observed.functions} functions, ${observed.nloc} NLOC, ` +
       `${observed.violations} violations; max CCN ${observed.maxCcn}, ` +
@@ -124,7 +124,7 @@ function checkDuplication() {
   // Re-baselined 2026-08-24 after consolidating the two scheduled D1 sync
   // launchers. Absolute duplication fell from 110 to 109 clone groups and
   // from 1451 to 1433 duplicated lines. Ratchet all three observed values.
-  const baseline = { clones: 109, duplicatedLines: 1433, percentage: 2.4384433440536353 };
+  const baseline = { clones: 100, duplicatedLines: 1296, percentage: 2.1661735947450236 };
   console.log(
     `Duplication: ${observed.duplicatedLines}/${observed.lines} lines ` +
       `(${observed.percentage.toFixed(4)}%), ${observed.clones} groups across ` +
@@ -196,7 +196,7 @@ function checkDependencies() {
     );
   }
   // Debt: https://github.com/High-Signal-App/high-signal/issues/104
-  const baseline = { critical: 0, high: 39, productionCritical: 0, productionHigh: 17 };
+  const baseline = { critical: 0, high: 38, productionCritical: 0, productionHigh: 16 };
   console.log(
     `Dependencies: ${observed.critical} critical, ${observed.high} high total; ` +
       `${observed.productionCritical} critical, ${observed.productionHigh} high in production.`
@@ -282,7 +282,7 @@ function checkUnused() {
   );
   // Debt: https://github.com/High-Signal-App/high-signal/issues/104
   // Ratcheted 2026-08-22 (ADR-013 removals).
-  const baseline = { exports: 27, types: 29 };
+  const baseline = { exports: 26, types: 24 };
   console.log(
     `Unused: 0 high-confidence findings; ${observed.exports} exports, ${observed.types} types.`
   );

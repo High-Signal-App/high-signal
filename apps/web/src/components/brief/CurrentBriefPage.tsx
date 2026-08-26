@@ -3,6 +3,7 @@ import type { Route } from 'next';
 import { BriefSections } from '@/components/brief/BriefSections';
 import { DailyBriefHero } from '@/components/brief/DailyBriefHero';
 import { EditionCoverageReceipt } from '@/components/brief/EditionCoverageReceipt';
+import { ReadingLayoutToggle } from '@/components/brief/ReadingLayoutToggle';
 import { ShareBar } from '@/components/molecules/ShareBar';
 import { HomeJsonLd } from '@/components/seo/structured-data';
 import { PageShell } from '@/components/system/HighSignalUI';
@@ -144,13 +145,16 @@ export async function CurrentBriefPage({
 
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[var(--color-line)] py-4">
         <ShareBar url={canonicalUrl} title="High Signal Daily Brief" />
-        <div className="flex gap-4 font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-muted)]">
-          <Link href={'/signals' as Route} className="hover:text-[var(--color-accent)]">
-            signals
-          </Link>
-          <Link href={'/methodology' as Route} className="hover:text-[var(--color-accent)]">
-            methodology
-          </Link>
+        <div className="flex flex-wrap items-center gap-4">
+          <ReadingLayoutToggle />
+          <div className="flex gap-4 font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-muted)]">
+            <Link href={'/signals' as Route} className="hover:text-[var(--color-accent)]">
+              signals
+            </Link>
+            <Link href={'/methodology' as Route} className="hover:text-[var(--color-accent)]">
+              methodology
+            </Link>
+          </div>
         </div>
       </div>
 

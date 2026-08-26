@@ -72,7 +72,10 @@ describe('history access route', () => {
   });
 
   it('fails closed when Turnstile rejects the challenge', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => Response.json({ success: false })));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => Response.json({ success: false }))
+    );
     const response = await app.request(
       'http://test/history/access',
       {

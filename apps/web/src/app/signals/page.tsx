@@ -2,6 +2,7 @@ import type { Metadata, Route } from 'next';
 import Link from 'next/link';
 import { HistoryGate } from '@/components/history/HistoryGate';
 import { SignalCard } from '@/components/molecules/SignalCard';
+import { SoftwareApplicationJsonLd } from '@/components/seo/structured-data';
 import { PageShell } from '@/components/system/HighSignalUI';
 import { api, type SignalRow } from '@/lib/api';
 import { verifiedHistoryGrant } from '@/lib/history-access';
@@ -106,6 +107,7 @@ export default async function SignalsPage({
 
   return (
     <PageShell max="max-w-5xl">
+      <SoftwareApplicationJsonLd />
       <header className="border-b border-[var(--color-line)] pb-7">
         <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--color-accent)]">
           chronological record

@@ -17,10 +17,7 @@ export const signalsRoute = new Hono<{ Bindings: Env }>();
 const notBackfill = () => sql`${schema.signals.bodyMd} NOT LIKE '> _backfill_%'`;
 
 async function canReadHistory(c: Context<{ Bindings: Env }>) {
-  return verifyHistoryGrant(
-    bearerGrant(c.req.header('authorization')),
-    c.env.TURNSTILE_SECRET
-  );
+  return verifyHistoryGrant(bearerGrant(c.req.header('authorization')), c.env.TURNSTILE_SECRET);
 }
 
 function isProtectedSignal(value: number | string | Date) {

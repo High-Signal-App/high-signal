@@ -23,58 +23,6 @@ const SOURCE_REFRESH_ASSET_URL = 'https://assets.local/_private/daily-source-ref
 
 type SourceType = 'reddit' | 'hacker-news' | 'github-issues' | 'rss';
 
-export const DAILY_INTELLIGENCE_LAYER = {
-  version: 'daily-intelligence-v1',
-  sourceGate: 'latest snapshot with >=2 sources, repeated signals, and non-high generic risk',
-  broadReadAnnotation: {
-    method: 'semantic-rules-v2',
-    llm: false,
-    model: 'none',
-    fields: [
-      'contentCategory',
-      'intent',
-      'sentiment',
-      'urgency',
-      'signalLayer',
-      'domains',
-      'painScore',
-      'buyerIntentScore',
-      'actionabilityScore',
-      'productRequirement',
-      'audience',
-      'requirementType',
-      'decisionStage',
-      'opportunityScore',
-      'qualityGate',
-      'qualityScore',
-      'annotation.classifierVersion',
-      'annotation.method',
-      'annotation.model',
-      'annotation.intentScore',
-      'annotation.intentConfidence',
-      'annotation.sentimentScore',
-      'annotation.sentimentPolarity',
-      'annotation.evidenceDensity',
-      'annotation.signalStrength',
-    ],
-  },
-  batchEscalation: {
-    method: 'python-semantic-nlp',
-    llm: false,
-    optionalHuggingFace: true,
-    enabledByDefault: false,
-  },
-  edgeAnnotationService: {
-    // The remote `high-signal-annotation` worker was decommissioned; it only
-    // duplicated the local classifier. Annotation now runs local-only.
-    env: null,
-    method: 'semantic-rules-v2',
-    llm: false,
-    enabledByDefault: false,
-    fallback: 'local semantic-rules-v2 annotation',
-  },
-} as const;
-
 type SourceRegistry = {
   sources: Array<{
     id: string;
@@ -120,30 +68,9 @@ export type DailyBroadInsight = {
   observedAt: string;
 };
 
-export type DailySourceCoverage = {
-  configuredSources: number;
-  acceptedSnapshots: number;
-  underlyingItems: number;
-  latestRefreshDate: string | null;
-  configuredByType: Array<{ k: SourceType; n: number }>;
-  acceptedByType: Array<{ k: SourceType; n: number }>;
-};
-
 export type DailyAnnotationOptions = AnnotationClientOptions;
 
-export type DailyAnnotationRuntime = {
-  activePath: 'cloudflare-service-binding' | 'public-http-endpoint' | 'local-typescript-fallback';
-  serviceBindingConfigured: boolean;
-  endpointConfigured: boolean;
-  method: 'semantic-rules-v2';
-  llm: false;
-  model: 'none';
-  huggingFaceBatchAvailable: boolean;
-  huggingFaceEnabledByDefault: false;
-  fallback: 'local semantic-rules-v2 annotation';
-};
-
-export type SourceQualityStatus = 'accepted' | 'rejected' | 'missing';
+type SourceQualityStatus = 'accepted' | 'rejected' | 'missing';
 export type SourceHealthStatus = 'fresh' | 'stale' | 'blocked' | 'low-yield' | 'duplicate-heavy';
 
 export type SourceQualityRow = {
@@ -786,59 +713,9 @@ export async function buildDailyBroadInsightsWithAnnotations(
   );
 }
 
-export async function annotateDailyTexts(texts: string[], options: DailyAnnotationOptions = {}) {
-  return annotateTexts(texts, await resolveDailyAnnotationOptions(options));
-}
-
-// The remote `high-signal-annotation` worker was decommissioned — its logic
-// only duplicated the local `annotateLightweightNlp` classifier. Daily
-// annotation now always runs locally; these options are kept as no-ops so the
-// public API surface (and `DailyAnnotationOptions` consumers) stay stable.
-export function defaultDailyAnnotationOptions(): DailyAnnotationOptions {
-  return {};
-}
-
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function resolveDailyAnnotationOptions(
   _options: DailyAnnotationOptions
 ): Promise<DailyAnnotationOptions> {
   return {};
-}
-
-export async function dailyAnnotationRuntime(): Promise<DailyAnnotationRuntime> {
-  return {
-    activePath: 'local-typescript-fallback',
-    serviceBindingConfigured: false,
-    endpointConfigured: false,
-    method: 'semantic-rules-v2',
-    llm: false,
-    model: 'none',
-    huggingFaceBatchAvailable: true,
-    huggingFaceEnabledByDefault: false,
-    fallback: 'local semantic-rules-v2 annotation',
-  };
-}
-
-export function buildDailySourceCoverage(
-  records: ProductFlowRefreshRecord[],
-  date?: string
-): DailySourceCoverage {
-  const registry = sourceRegistry as SourceRegistry;
-  const accepted = date
-    ? acceptedRefreshRecordsForDate(records, date)
-    : acceptedRefreshRecords(records);
-  const latestRefreshDate =
-    accepted
-      .map((record) => record.digest.snapshotDate)
-      .sort()
-      .at(-1)
-      ?.slice(0, 10) ?? null;
-  return {
-    configuredSources: registry.sources.length,
-    acceptedSnapshots: accepted.length,
-    underlyingItems: accepted.reduce((sum, record) => sum + record.digest.sourceCount, 0),
-    latestRefreshDate,
-    configuredByType: countBy(registry.sources.map((source) => source.type)),
-    acceptedByType: countBy(accepted.map((record) => record.source)),
-  };
 }
