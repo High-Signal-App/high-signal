@@ -159,6 +159,57 @@ def test_generator_drops_uncited_cluster_events(monkeypatch) -> None:
     assert [e.url for e in cand.evidence] == ["https://example.com/a"]
 
 
+def test_generator_preserves_valid_structured_proof_when_body_omits_url(monkeypatch) -> None:
+    url = "https://example.com/a"
+    monkeypatch.setattr(
+        generator,
+        "_ai_complete",
+        lambda *_args, **_kwargs: (
+            {
+                "publish": True,
+                "signal_type": "design_win",
+                "direction": "up",
+                "confidence": "medium",
+                "predicted_window_days": 60,
+                "spillover_entity_ids": [],
+                "headline": "NVIDIA design win",
+                "proofs": [
+                    {
+                        "url": url,
+                        "aligned": True,
+                        "originating_evidence_id": "announcement-1",
+                        "supports": ["observed_event"],
+                    },
+                    {
+                        "url": "https://hallucinated.example/not-supplied",
+                        "aligned": True,
+                        "originating_evidence_id": "not-supplied",
+                        "supports": ["observed_event"],
+                    },
+                ],
+                "body_md": "The company announced a supported design win.",
+            },
+            {
+                "model": "test",
+                "prompt_version": "0",
+                "reason": None,
+                "raw_response": None,
+                "latency_ms": 0,
+                "tokens_in": 0,
+                "tokens_out": 0,
+            },
+        ),
+    )
+
+    candidate = generator.generate("NVDA", [_event(url)], [])
+
+    assert candidate is not None
+    assert [item.url for item in candidate.evidence] == [url]
+    assert candidate.evidence[0].semantic_alignment == "verified"
+    assert candidate.evidence[0].originating_evidence_id == "announcement-1"
+    assert candidate.body_md.endswith(f"## Proofs\n- <{url}>\n")
+
+
 def test_generator_records_distinct_verified_proof_origins(monkeypatch) -> None:
     urls = ["https://one.example/a", "https://two.example/b", "https://three.example/c"]
     monkeypatch.setattr(
@@ -283,6 +334,51 @@ def test_batch_generation_keeps_two_stories_for_the_same_entity_distinct(monkeyp
         [urls[0]],
         [urls[1]],
     ]
+
+
+def test_batch_generation_preserves_structured_proof_when_body_omits_url(monkeypatch) -> None:
+    url = "https://one.example/a"
+    monkeypatch.setattr(
+        generator,
+        "_ai_complete",
+        lambda *_args, **_kwargs: (
+            [
+                {
+                    "cluster_id": "story-1",
+                    "entity_id": "NVDA",
+                    "publish": True,
+                    "signal_type": "capacity_change",
+                    "direction": "up",
+                    "confidence": "medium",
+                    "headline": "Capacity changed",
+                    "proofs": [
+                        {
+                            "url": url,
+                            "aligned": True,
+                            "originating_evidence_id": "filing-1",
+                            "supports": ["observed_event"],
+                        }
+                    ],
+                    "body_md": "NVIDIA expanded capacity.",
+                }
+            ],
+            {
+                "model": "test",
+                "prompt_version": "0",
+                "reason": None,
+                "raw_response": None,
+                "latency_ms": 0,
+                "tokens_in": 0,
+                "tokens_out": 0,
+            },
+        ),
+    )
+
+    candidates = generator.generate_batch([("NVDA", [_event(url)], [])])
+
+    assert len(candidates) == 1
+    assert [item.url for item in candidates[0].evidence] == [url]
+    assert candidates[0].body_md.endswith(f"## Proofs\n- <{url}>\n")
 
 
 def test_generation_prompt_requires_brief_editorial_sections() -> None:

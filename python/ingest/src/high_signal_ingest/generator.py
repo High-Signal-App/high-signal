@@ -499,15 +499,40 @@ def _normalize_business_inference(
     return business_inference, inference_strength, inference_urls
 
 
-def _events_cited_in_body(body_md: str, events: Iterable[Event]) -> list[Event]:
-    """Keep only evidence the generated signal actually cites.
+def _events_selected_as_evidence(
+    output: dict, body_md: str, events: Iterable[Event]
+) -> list[Event]:
+    """Retain supplied URLs cited in prose or positively assessed as proofs.
 
-    The model may receive a broad entity cluster but use only the URLs relevant
-    to its final claim. Persisting every input URL makes adjacent stories look
-    like corroboration, so uncited inputs must remain discovery context rather
-    than signal evidence.
+    Structured proof output is safer than trusting the model to repeat long URLs
+    verbatim in Markdown: every proof URL must still exactly match a supplied
+    event, and unaligned proof assessments remain discovery context only.
     """
-    return [event for event in events if event.source_url and event.source_url in body_md]
+    event_list = list(events)
+    allowed_urls = {event.source_url for event in event_list if event.source_url}
+    proof_urls = {
+        str(item.get("url"))
+        for item in output.get("proofs", [])
+        if isinstance(item, dict)
+        and item.get("aligned") is True
+        and str(item.get("url")) in allowed_urls
+    }
+    return [
+        event
+        for event in event_list
+        if event.source_url and (event.source_url in body_md or event.source_url in proof_urls)
+    ]
+
+
+def _append_missing_proof_links(body_md: str, events: Iterable[Event]) -> str:
+    """Make every retained proof visible even when model prose omits its URL."""
+    missing_urls = [
+        event.source_url for event in events if event.source_url and event.source_url not in body_md
+    ]
+    if not missing_urls:
+        return body_md
+    links = "\n".join(f"- <{url}>" for url in missing_urls)
+    return f"{body_md.rstrip()}\n\n## Proofs\n{links}\n"
 
 
 def _claim_date(value: object, events: list[Event]) -> str:
@@ -627,7 +652,8 @@ def generate(
     headline = out.get("headline", "signal")
     slug = f"{primary_entity_id.lower()}-{_slugify(headline)}"
     body_md = out.get("body_md", "")
-    cited_events = _events_cited_in_body(body_md, evs)
+    cited_events = _events_selected_as_evidence(out, body_md, evs)
+    body_md = _append_missing_proof_links(body_md, cited_events)
     business_inference, inference_strength, inference_urls = _normalize_business_inference(
         out, cited_events
     )
@@ -769,7 +795,8 @@ def _candidate_from_batch_item(
     signal_type = _signal_type_id(item.get("signal_type"))
     headline = item.get("headline", "signal")
     body_md = item.get("body_md", "")
-    cited_events = _events_cited_in_body(body_md, evs)
+    cited_events = _events_selected_as_evidence(item, body_md, evs)
+    body_md = _append_missing_proof_links(body_md, cited_events)
     inference_urls = [
         url
         for url in item.get("inference_evidence_urls", [])

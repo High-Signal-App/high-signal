@@ -148,6 +148,10 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
   ledger only credits an origin as verified when its retained source document
   resolves and the citation is aligned primary/corroboration evidence; brief
   ranking now prefers verified independent origins and quality over direction.
+  The first live replay exposed structured proofs being lost when model prose
+  omitted their long URLs. Generation now retains only positively aligned proof
+  URLs that exactly match supplied events and renders any missing links in a
+  deterministic Proofs section; hallucinated or unaligned URLs remain excluded.
   Release and live acceptance receipts are tracked in issue #138; issue #133
   still requires live freshness acceptance before closure.
 
