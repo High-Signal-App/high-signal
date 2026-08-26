@@ -67,6 +67,11 @@ former standalone annotation worker was decommissioned — annotation now runs
 in-process via `annotateLightweightNlp` (see `packages/shared/src/nlp/`), so
 there is no `workers/annotation` and no `deploy-annotation.yml`.
 
+The web deploy smoke verifies Brief, Signals, Sources, Company Universe, the
+agent catalog's canonical daily-dump resource, and the intentional 404s for
+removed products. The API deploy smoke verifies health plus the daily
+signals/evidence dump and composed Daily Brief contracts.
+
 ## Operator prerequisites
 
 The cron jobs read secrets from GitHub Actions secrets. The persistence pair
