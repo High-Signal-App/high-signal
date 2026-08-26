@@ -1,27 +1,27 @@
 {
-  "generatedAt": "2026-08-25T21:16:43.385977+00:00",
+  "generatedAt": "2026-08-26T09:29:14.267521+00:00",
   "backtestDays": 14,
   "labels": {
     "breakout": {
-      "n": 3,
+      "n": 1,
       "hits": 0,
       "rate": 0.0,
       "lift": null
     },
     "divergence": {
-      "n": 12,
+      "n": 8,
       "hits": 0,
       "rate": 0.0,
       "lift": null
     }
   },
   "unlabeled": {
-    "n": 39,
+    "n": 38,
     "hits": 0,
     "rate": 0.0
   },
   "baseline": {
-    "n": 54,
+    "n": 47,
     "hits": 0,
     "rate": 0.0
   }
