@@ -30,18 +30,8 @@ export default function TermsPage() {
 
       <h2 className="mt-8 text-base font-semibold text-white">Public surfaces</h2>
       <p className="mt-2 text-sm leading-7">
-        <Link href="/signals" className="underline">
-          /signals
-        </Link>
-        ,{' '}
-        <Link href="/signals/today" className="underline">
-          /signals/today
-        </Link>
-        ,{' '}
-        <Link href="/digest" className="underline">
-          /digest
-        </Link>
-        , and their RSS / JSON feeds are free to consume and embed. Be polite about rate.
+        The Daily Brief, signals, sources, Company Universe, Track Record, and their documented RSS
+        or JSON interfaces are free to consume and embed. Be polite about rate.
       </p>
 
       <h2 className="mt-8 text-base font-semibold text-white">No retroactive edits</h2>

@@ -4,11 +4,11 @@ Last updated: 2026-08-26
 
 ## Why/What
 
-**Thesis:** One product — a synthesized **Daily Brief** from many noisy public sources across technology, startups, and finance. Global by default; region is a free filter. The public edition has three evidence-qualified categories: (1) markets and companies, (2) business opportunities, and (3) behavior and culture. The same accepted daily records also power four bounded daily/weekly/monthly feed views; `/` remains the non-personalized default. Owner-specific perception and improvement intelligence remains in authenticated delivery plus the dedicated Mentions and Agent Eval surfaces. Free; no billing.
+**Thesis:** One product — a synthesized **Daily Brief** from many noisy public sources across technology, startups, and finance. Global by default; region is a free filter. The public edition has three evidence-qualified categories: (1) markets and companies, (2) business opportunities, and (3) behavior and culture. `/` is the non-personalized default; Signals, Sources, Company Universe, and Track Record provide the proof and research path. Free; no billing.
 
-**In scope:** Daily Brief (`/` `/brief`), cadenced public feeds (`/feeds/*`), Signals feed, Evidence, Track Record, source ingest pipeline, Markets lens, Communities input, Mentions, Agent Eval, Domains (drank companion), Convergence, Unmapped gazetteer, Equities snapshot, operator review/admin, plans 0008–0012 scaffolds.
+**In scope:** Daily Brief (`/` `/brief`), chronological Signals and proof pages, Sources, Company Universe, Track Record, source ingest pipeline, Markets context, Communities input, Entities, Sectors, Convergence, Unmapped gazetteer, and operator review/admin.
 
-**Out / parked:** Lab as product infrastructure, personal/operator cockpit as headline product, standalone equities terminal, standalone communities product, broad source expansion without quality gates, paid tiers, per-platform Mentions fan-out, Knowledgebase integration/dependency. High Signal's current evidence is already queryable through its Git signal store and D1 APIs; revisit only for a concrete retrieval use case those stores cannot serve.
+**Out / parked:** standalone Ideas, Opportunities, Teardowns, Featured, Personal Brief, weekly digest and cadenced publication pages; Agent Eval and Domains public surfaces; Lab UI; standalone equities, communities, and connected-brand products; broad source expansion without quality gates; paid tiers; Knowledgebase integration/dependency. High Signal's current evidence is already queryable through its Git signal store and D1 APIs; revisit only for a concrete retrieval use case those stores cannot serve.
 
 ## Dependencies
 
@@ -31,7 +31,7 @@ Last updated: 2026-08-26
 
 ### Internal fleet
 
-- **drank:** Web authority companion — `/domains` lens; data via public GitHub JSON + `pnpm drank:sync`.
+- **drank:** Parked Web Authority data adapter via public GitHub JSON + `pnpm drank:sync`; no public High Signal surface.
 - **starboard / researchPapers:** Cross-repo ingest adapters referenced from README pipeline list.
 - **Fleet AI visibility package:** High Signal consumes the reviewed
   `@saas-maker/ai-visibility` packed artifact while retaining ownership of its
@@ -83,11 +83,10 @@ Last updated: 2026-08-26
   The same cadence pass fixed NVD's rejected timestamp format, ECB/FRED CSV
   newline handling, and future-effective Legistar/OpenStates dates before those
   sources move to weekly collection.
-- Operator admin session gates `/review`, `/backtest-workbench`, `/personal`, and community curation.
-- Primary nav follows the public reading path: Brief, Signals, Track record, and Sources. Explore and contextual links keep the wider set of lenses and operator surfaces discoverable. Removed dead `/discover` nav link (communities product is parked; link caused prod smoke 404).
-- Public/support pages exist: about, methodology, featured, API docs, privacy, terms, auth pages.
-- `/explore` ships a canonical sitemap of every reachable surface (brief, signals + evidence, entities, lenses, ideas/opportunities/teardowns, equities, operator/admin, docs), with `new | operator | admin | parked` flags. The site footer now groups links into Product / Lenses / Operator / Legal so nothing built becomes invisible from the homepage.
-- Plan 0008/0009/0010/0011 surfaces are reachable from primary nav and the footer: `/watchlist/entities` (nav lenses), `/settings/delivery` (nav ops + footer), `/mentions/[brandId]` (linked from each row in `/mentions`), `/agent-eval/[auditId]/attributes` (linked from each audit panel in `/agent-eval`), `/admin/delivery` (linked from `/explore` under operator/admin). Plan 0012 adds an `intent` tab under `/mentions/[brandId]`.
+- Operator admin session gates `/review`, `/backtest-workbench`, and community curation.
+- Primary nav follows the public reading path: Brief, Signals, Sources, and Track Record. `/explore` lists only the core product, supporting research indexes, and trust/docs surfaces.
+- Public/support pages include About, Methodology, Editorial Policy, API docs, Privacy, and Terms.
+- The footer groups Product / Research / Operator / Legal. Review is the only operator surface linked publicly and remains protected by Cloudflare Access.
 - Removed `@saas-maker/ops`, `@saas-maker/ai`, `@saas-maker/analytics-sdk`, and shared eslint/tsconfig npm deps (2026-06-20). Workers use local `ai-client.ts`; root lint uses Biome.
 
 ### Stack & commands
@@ -138,6 +137,28 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 **Deploy workflows:** `.github/workflows/deploy-web.yml`, `deploy-api.yml`. (The former standalone annotation worker was decommissioned; annotation runs in-process via `annotateLightweightNlp`.)
 
 ## Timeline
+
+- **2026-08-26 — Public product cleanup implemented in source (release pending):**
+  Company Universe remains first-class. Explore and the footer now follow the
+  core Brief → Signals/proofs → Sources → Company Universe → Track Record path.
+  Standalone Ideas, Opportunities, Teardowns, Featured, Personal Brief, Daily
+  cockpit/history/tasks/source diagnostics, weekly digest, cadenced publication,
+  Agent Eval, Domains, and Lab web routes were removed. Community curation
+  remains an operator input, supported opportunities remain inside the Daily
+  Brief, signal RSS remains public, and Review remains footer-only behind
+  Cloudflare Access. Production is unchanged pending release.
+
+- **2026-08-26 — Public reading hierarchy implemented in source (release pending):** the homepage now
+  exposes Today and Yesterday directly; older Daily Briefs live in the
+  chronological Signals surface rather than a separate archive. Older brief
+  and signal-proof pages require a server-validated Turnstile check and a
+  12-hour HTTP-only grant, while public signal APIs default to the same bounded
+  two-day window. Brief signals continue to open canonical proof pages, which
+  now surface observed event, direct impact, supply-chain impact, business
+  inference, inference strength, claim roles, and source data when present.
+  `/data` is now the Sources directory only, with every configured family and
+  its latest retained rows; hit-rate remains under Track Record. Primary
+  navigation is Brief, Signals, Sources, and Track Record.
 
 - **2026-08-26 — Proof-bearing signal generation completed in source:** entity
   buckets are now split into deterministic stories before generation, and
@@ -415,17 +436,16 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 
 | Product surface | Route / entry | Role |
 | --- | --- | --- |
-| Daily Brief + cadenced feeds | `/`, `/brief`, `/feeds/*` | Primary homepage with three public categories plus deterministic daily/weekly/monthly feed views |
+| Daily Brief | `/`, `/brief` | Today and yesterday across three evidence-qualified categories |
+| Signals & proofs | `/signals`, `/signals/[slug]` | Chronological record and detailed source-backed proof pages |
+| Sources | `/data`, `/data/[source]` | Source inventory, cadence, health, and latest retained data |
+| Company Universe | `/case-studies` | Source-backed company directory and profiles |
+| Track Record | `/track-record` | Public ledger of matured directional calls |
 | Intelligence guides | `/daily-intelligence-brief`, `/startup-intelligence-platform`, `/market-intelligence-for-founders`, `/technology-trend-intelligence` | Evidence-led public explanations for core search intents |
-| Signals & evidence | `/signals`, `/evidence`, `/track-record` | Feed, provenance, hit-rate history |
-| Markets lens | `/markets` | Prediction-market quotes (not equity prices) |
-| Communities input | `/communities` | Tracked-subreddit digests → brief sections 2–3 |
-| Mentions | `/mentions` | Brand visibility, prompts, competitor reports |
-| Agent Eval | `/agent-eval` | 8-area evidence scorer + reel briefs |
-| Domains (drank) | `/domains` | DR leaderboard + nominations |
+| Markets context | `/markets` | Prediction-market context (not equity prices) feeding the brief |
+| Communities input | operator-only | Tracked-subreddit digests → brief sections 2–3 |
 | Convergence | `/convergence` | Multi-source entity aggregation + market overlay |
 | Unmapped gazetteer | `/unmapped` | Ticker/bare-entity candidates for enrichment |
-| Equities snapshot | `/equities` | Sortable table from snapshot pipeline (not a terminal) |
 | Operator / admin | `/review`, `/admin/*` | Review queue, ingest hooks, delivery admin |
 | Legal & docs | `/about`, `/methodology`, `/methodology/data-parity`, `/privacy`, `/terms`, `/api-docs` | Public trust and data-parity surfaces |
 
@@ -433,11 +453,11 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 
 ### Product shell & navigation
 
-- Primary nav + `/explore` sitemap: brief, signals, evidence, lenses (markets, watchlist, mentions, agent eval, domains), operator surfaces, legal.
-- Footer grouped Product / Lenses / Operator / Legal.
-- Default `/` is the signals home feed. Primary navigation is grouped into `data`, `signals`, `history`, and `evals`; `/brief` remains the source-linked daily brief.
-- Public pages: `/about`, `/methodology`, `/featured`, `/api-docs`, `/privacy`, `/terms`, `/sign-in`, `/sign-up`.
-- Agent-readable public corpus: 35 static surfaces plus dated briefs, signals,
+- Primary nav is Brief, Signals, Sources, and Track Record.
+- `/explore` contains only the core product, research indexes, and trust/docs surfaces.
+- Footer is grouped Product / Research / Operator / Legal; Review is footer-only and Access-protected.
+- Public pages: `/about`, `/methodology`, `/editorial-policy`, `/api-docs`, `/privacy`, `/terms`.
+- Agent-readable public corpus: 28 static surfaces plus dated briefs, signals,
   signal taxonomies, entities, entity-month archives, case studies, and
   company-universe pagination share the same server-rendered source as HTML;
   private/operator and non-HTML routes are excluded by tested route rules.
@@ -447,8 +467,6 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 - Four public intelligence guides use one typed content registry and reusable
   renderer, with visible evidence receipts, breadcrumbs, contextual product
   links, page-matched JSON-LD, canonical metadata, and Markdown parity.
-- `/agent-eval/seo` distinguishes technical search/agent readiness from actual
-  audience awareness while preserving the live audit and fix-first results.
 - Region picker and seed product pickers on brief; no sign-in anywhere.
 - SEO JSON-LD tests (`pnpm seo:test`).
 
@@ -461,14 +479,14 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 - Worker `GET /brief/daily?region=&owner=` composes from D1 with seed fallback.
 - Worker `GET /learning/daily` publishes a compact versioned learning feed derived from public brief sections only.
 - Section 02 ideas now render Opportunity Brief context: verdict, confidence, target user/problem, evidence mix, why-now, risk, next validation step, and prior hit-rate where present.
-- Digest surfaces: `/digest` (RSS/Atom), `/daily`, `/daily/history`, `/daily/sources`, `/daily/tasks`.
+- Today and yesterday are selected on the homepage; earlier records live under Signals. Signal RSS/Atom and the complete daily JSON API remain available.
 - Convergence callout above composer pulls multi-source entity hits + prediction-market drift.
 
 ### Signals, evidence, track record
 
 - D1 tables: `signals`, `evidence`, `score_runs`, `entities`, `relationships`, `events`, `source_documents`.
 - Git-versioned markdown store; `pnpm signals:sync:*` scripts.
-- Public routes: `/signals`, `/signals/[slug]`, `/signals/today`, `/signals/types`, `/signals/types/[type]`, `/embed/[slug]`.
+- Public routes: `/signals`, `/signals/[slug]`, `/signals/types`, `/signals/types/[type]`, `/embed/[slug]`.
 - `/signals` supports Global / US / China / India scopes plus company/idea focus lists. Signed-out users get a default watchlist for immediate testing; signed-in users can replace it with configured mention brands.
 - `/signals/[slug]` shows confidence score, confidence band, source-class reasons, quotes/excerpts, and source-day links back into `/data/:source?date=YYYY-MM-DD` when the evidence maps to the catalog.
 - Worker: `GET /signals`, `/signals/facets`, `/signals/:slug`, `/signals/by-entity/:entityId`.
@@ -588,15 +606,12 @@ Python adapters under `python/ingest/src/high_signal_ingest/sources/` — all wi
 ### Lenses & intelligence helpers
 
 - **Markets:** `/markets`, `/markets/history`; prediction-market quotes with auto-publish guardrails; worker `/markets/*`.
-- **Communities:** Tracked-subreddit CRUD, digest generation (LLM or deterministic); feeds brief sections 2–3; `/communities`, `/communities/[subreddit]/[period]`; worker `/products/communities/*`.
-- **Mentions:** `/mentions`; brand configs, prompts, checks, monitors, competitor report; real LLM fail-closed without `HIGH_SIGNAL_AI_API_KEY`; badge widget.
-- **Agent Eval:** `/agent-eval`, `/agent-eval/sample`, `/agent-eval/seo`; 8-area evidence scorer + reel briefs; deterministic fallback without AI key.
-- **Domains:** `/domains` — DR leaderboard + nominations from drank companion via `pnpm drank:sync`.
+- **Communities:** Tracked-subreddit CRUD and digest generation remain operator-only inputs feeding brief sections 2–3; worker `/products/communities/*` remains for composition.
 - **Convergence:** `/convergence`; `GET /convergence?hours=&min_sources=` — multi-source entity aggregation + market overlay.
 - **Unmapped:** `/unmapped`; `GET /unmapped?hours=` — ticker/bare-entity candidates with one-click CSV row via `/enrich/ticker`.
-- **Entities & graph:** `/entities`, `/entities/[id]`, `/entities/[id]/[period]`, `/sectors`, `/opportunities`, `/ideas`, `/personal` (operator, parked as headline).
-- **Equities:** `/equities` sortable table from snapshot pipeline.
-- **Lab:** `/lab` UI exists; substrate local-only (plan 0007 partial — docker Postgres, HN ingest, scorer, FastAPI feed).
+- **Entities & graph:** `/entities`, `/entities/[id]`, `/entities/[id]/[period]`, `/sectors`.
+- **Company Universe:** `/case-studies` and company detail/pagination routes from official directory evidence.
+- **Parked internals:** Mentions, Agent Eval, Domains/drank, equities UI, and the Lab substrate may retain code or data adapters but have no public product route.
 
 ### Operator, automation & CI
 

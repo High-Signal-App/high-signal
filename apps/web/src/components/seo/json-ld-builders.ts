@@ -78,21 +78,6 @@ export function buildIntelligenceGuideJsonLd(opts: {
   return [article];
 }
 
-export function buildSeoGeoAuditJsonLd(): JsonLdBlock {
-  return {
-    '@context': 'https://schema.org',
-    '@type': 'WebApplication',
-    name: 'High Signal AI visibility and search-readiness audit',
-    description:
-      'Audit canonical metadata, social metadata, structured data, robots, sitemap, feeds, and agent-readable surfaces without confusing technical readiness with observed mentions or citations.',
-    url: `${SITE_URL}/agent-eval/seo`,
-    applicationCategory: 'DeveloperApplication',
-    operatingSystem: 'Web Browser',
-    offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
-    publisher: { '@id': `${SITE_URL}/#organization` },
-  };
-}
-
 export function buildOrganizationJsonLd(): JsonLdBlock[] {
   return [
     {

@@ -28,7 +28,6 @@ const TSX_SUITES = [
   ['requirements', 'scripts/daily-requirements.test.ts'],
   ['daily-range', 'scripts/daily-range.test.ts'],
   ['source-registry', 'scripts/source-registry.test.ts'],
-  ['brief-feeds', 'scripts/brief-feeds.test.ts'],
   ['feed-data-parity', 'scripts/feed-data-parity.test.ts'],
   ['daily-automation', 'scripts/daily-automation-status.test.ts'],
   ['daily-source-audit', 'scripts/daily-source-audit.test.ts'],

@@ -1,8 +1,7 @@
 import type { Metadata, Route } from 'next';
 import { unstable_cache } from 'next/cache';
 import Link from 'next/link';
-import { api, type DataSourceLive, type TrackBucket } from '@/lib/api';
-import { TrackRecordDatasetJsonLd } from '@/components/seo/structured-data';
+import { api, type DataSourceLive } from '@/lib/api';
 import { SITE_URL } from '@/lib/site';
 import catalog from '@/lib/source-catalog.json';
 
@@ -15,9 +14,9 @@ const readDataSources = unstable_cache(() => api.dataSources(), ['data-sources']
 });
 
 export const metadata: Metadata = {
-  title: 'Data — sources + hit-rate ledger',
+  title: 'Sources',
   description:
-    'Every public source High Signal ingests, plus the public hit-rate ledger: downloadable JSON and CSV of every published market signal scored against subsequent moves.',
+    'Every public data source High Signal ingests, with its cadence, freshness, latest run state, stored volume, and latest collected data.',
   alternates: { canonical: `${SITE_URL}/data` },
 };
 
@@ -252,21 +251,6 @@ export default async function DataPage() {
     /* worker/D1 unavailable — render the catalog without live counts */
   }
 
-  // Hit-rate ledger data for the public dataset section.
-  let ledgerAvailable = true;
-  let cohorts: { live: TrackBucket[]; backfill: TrackBucket[]; all: TrackBucket[] } = {
-    live: [],
-    backfill: [],
-    all: [],
-  };
-  try {
-    cohorts = await api.trackRecordCohorts();
-  } catch {
-    ledgerAvailable = false;
-  }
-  const liveCount2 = cohorts.live.reduce((sum, b) => sum + b.total, 0);
-  const backfillCount = cohorts.backfill.reduce((sum, b) => sum + b.total, 0);
-
   const storedSourceCount = sources.filter((s) => (live[s.id]?.count ?? 0) > 0).length;
   const cadenceCounts = {
     daily: sources.filter((s) => s.cadence === 'daily').length,
@@ -279,16 +263,12 @@ export default async function DataPage() {
   };
   return (
     <main className="mx-auto max-w-5xl px-6 py-12">
-      {ledgerAvailable && (
-        <TrackRecordDatasetJsonLd liveCount={liveCount2} backfillCount={backfillCount} />
-      )}
       <header className="mb-10">
         <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[var(--color-muted)]">
-          Data directory + hit-rate ledger
+          source directory
         </p>
         <h1 className="mt-2 text-2xl font-semibold tracking-tight text-zinc-100">
           {sources.length} data sources
-          {ledgerAvailable ? ` · ${liveCount2 + backfillCount} scored predictions` : ''}
         </h1>
         <p className="mt-3 max-w-2xl text-sm leading-relaxed text-zinc-400">
           The configured source-family inventory behind High Signal. Stored records always keep
@@ -345,175 +325,6 @@ export default async function DataPage() {
           </p>
         )}
       </header>
-
-      {/* Hit-rate ledger — the citable dataset */}
-      <section
-        className="mb-12 border border-zinc-800 bg-zinc-950/40 p-5"
-        aria-labelledby="hitrate-dataset-heading"
-      >
-        <div className="flex flex-wrap items-baseline justify-between gap-3 border-b border-zinc-800 pb-3">
-          <div>
-            <h2
-              id="hitrate-dataset-heading"
-              className="font-mono text-xs uppercase tracking-[0.18em] text-[var(--color-accent)]"
-            >
-              public hit-rate ledger — downloadable dataset
-            </h2>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-400">
-              Every published market signal scored against subsequent moves. Hit-rate excludes
-              pushes. Live = forward predictions made before the scoring window closed; Backfill =
-              historical replay calibration. The dataset is the competitive moat — competitors
-              cannot copy it without rebuilding the history from scratch.
-            </p>
-          </div>
-        </div>
-
-        {!ledgerAvailable && (
-          <p
-            className="mt-4 border border-[var(--color-line)] p-5 text-sm text-[var(--color-muted)]"
-            role="status"
-          >
-            The hit-rate service is temporarily unavailable. This is not a zero-result dataset;
-            retry this page or its downloads later.
-          </p>
-        )}
-
-        {ledgerAvailable && (
-          <div className="mt-4 grid gap-px border border-zinc-800 bg-zinc-800 sm:grid-cols-3">
-            <div className="bg-zinc-950/50 p-4">
-              <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
-                live predictions
-              </div>
-              <div className="nums mt-2 text-2xl font-medium text-zinc-100">{liveCount2}</div>
-              <div className="mt-1 font-mono text-[10px] text-[var(--color-muted)]">
-                forward calls
-              </div>
-            </div>
-            <div className="bg-zinc-950/50 p-4">
-              <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
-                backfill calibration
-              </div>
-              <div className="nums mt-2 text-2xl font-medium text-zinc-400">{backfillCount}</div>
-              <div className="mt-1 font-mono text-[10px] text-[var(--color-muted)]">
-                historical replay
-              </div>
-            </div>
-            <div className="bg-zinc-950/50 p-4">
-              <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
-                signal types (live)
-              </div>
-              <div className="nums mt-2 text-2xl font-medium text-zinc-100">
-                {cohorts.live.length}
-              </div>
-              <div className="mt-1 font-mono text-[10px] text-[var(--color-muted)]">
-                distinct types scored
-              </div>
-            </div>
-          </div>
-        )}
-
-        {ledgerAvailable &&
-          cohorts.live.reduce((total, bucket) => total + bucket.hit + bucket.miss, 0) < 10 && (
-            <p className="mt-4 max-w-2xl text-sm leading-6 text-[var(--color-muted)]">
-              Small sample: fewer than 10 live predictions have directional outcomes. Treat the
-              current hit-rate as calibration evidence, not proof of predictive quality.
-            </p>
-          )}
-
-        <div className="mt-5">
-          <h3 className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
-            download
-          </h3>
-          <div className="mt-3 flex flex-wrap gap-3">
-            <a
-              href="/data/hit-rate.json"
-              className="border border-[var(--color-accent)]/60 bg-cyan-400/5 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.16em] text-[var(--color-accent)] hover:border-[var(--color-accent)]"
-            >
-              ↓ hit-rate.json
-            </a>
-            <a
-              href="/data/hit-rate.csv"
-              className="border border-zinc-800 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.16em] text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
-            >
-              ↓ hit-rate.csv
-            </a>
-            <Link
-              href="/track-record"
-              className="border border-zinc-800 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.16em] text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
-            >
-              view interactive ledger →
-            </Link>
-            <Link
-              href="/data/hit-rate"
-              className="border border-zinc-800 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.16em] text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
-            >
-              human-readable hit-rate page →
-            </Link>
-            <Link
-              href="/data/source-accuracy"
-              className="border border-zinc-800 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.16em] text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
-            >
-              source accuracy →
-            </Link>
-          </div>
-          <p className="mt-3 font-mono text-[10px] text-[var(--color-muted)]">
-            License: CC-BY-4.0. Cite as &ldquo;High Signal Public Hit-Rate Ledger&rdquo; with the
-            download date. Schema: signal_type, cohort, hit, miss, push, pending, total, hit_rate.
-          </p>
-        </div>
-
-        {ledgerAvailable &&
-          (cohorts.live.length > 0 ? (
-            <div className="mt-5">
-              <h3 className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
-                live predictions by signal type
-              </h3>
-              <div className="mt-3 max-w-full overflow-x-auto">
-                <table className="w-full min-w-[560px] text-sm">
-                  <thead className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
-                    <tr>
-                      <th className="border-b border-zinc-800 py-2 text-left">type</th>
-                      <th className="border-b border-zinc-800 py-2 text-right">n</th>
-                      <th className="border-b border-zinc-800 py-2 text-right">hit</th>
-                      <th className="border-b border-zinc-800 py-2 text-right">miss</th>
-                      <th className="border-b border-zinc-800 py-2 text-right">push</th>
-                      <th className="border-b border-zinc-800 py-2 text-right">hit-rate</th>
-                    </tr>
-                  </thead>
-                  <tbody className="nums">
-                    {cohorts.live
-                      .slice()
-                      .sort((a, b) => b.total - a.total)
-                      .map((b) => (
-                        <tr key={b.signalType}>
-                          <td className="border-b border-zinc-900 py-1.5 font-mono text-xs">
-                            {b.signalType.replaceAll('_', ' ')}
-                          </td>
-                          <td className="border-b border-zinc-900 py-1.5 text-right">{b.total}</td>
-                          <td className="border-b border-zinc-900 py-1.5 text-right text-emerald-400">
-                            {b.hit}
-                          </td>
-                          <td className="border-b border-zinc-900 py-1.5 text-right text-rose-400">
-                            {b.miss}
-                          </td>
-                          <td className="border-b border-zinc-900 py-1.5 text-right text-[var(--color-muted)]">
-                            {b.push}
-                          </td>
-                          <td className="border-b border-zinc-900 py-1.5 text-right">
-                            {b.hitRate != null ? `${(b.hitRate * 100).toFixed(0)}%` : '—'}
-                          </td>
-                        </tr>
-                      ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          ) : (
-            <p className="mt-5 border border-dashed border-zinc-800 p-4 text-center font-mono text-[11px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
-              no scored predictions yet — the ledger populates as signals mature
-            </p>
-          ))}
-      </section>
 
       {ROLE_ORDER.map((role) => (
         <SourceGroup key={role} role={role} sources={sources} live={live} today={today} />

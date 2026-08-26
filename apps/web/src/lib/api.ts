@@ -1,12 +1,5 @@
 // Default to deployed prod API. Override at build time with NEXT_PUBLIC_API_BASE for local dev.
-import type {
-  BriefSnapshot,
-  BriefFeedEdition,
-  BriefFeedCadence,
-  BriefFeedSlug,
-  CommunityDigestSnapshot,
-  Region,
-} from '@high-signal/shared';
+import type { BriefSnapshot, CommunityDigestSnapshot, Region } from '@high-signal/shared';
 import type { SignalContentCategory, SignalQualityBand, SourceClass } from '@high-signal/shared';
 import type {
   ClaimRecord as ClaimRecordJson,
@@ -23,13 +16,7 @@ export type {
 } from '@high-signal/shared';
 
 export type {
-  AgentEvaluationAudit,
-  AgentEvaluationAuditDetail,
-  AgentEvaluationCompetitor,
   BriefSnapshot,
-  BriefFeedEdition,
-  BriefFeedCadence,
-  BriefFeedSlug,
   CommunityDigestSnapshot,
   Region,
   TrackedCommunity,
@@ -69,8 +56,22 @@ export async function fetchApiResponse(path: string, init?: RequestInit): Promis
 
 export async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
   const r = await fetchApiResponse(path, init);
-  if (!r.ok) throw new Error(`api ${path} ${r.status}`);
+  if (!r.ok) throw new ApiError(path, r.status);
   return r.json() as Promise<T>;
+}
+
+export class ApiError extends Error {
+  constructor(
+    public readonly path: string,
+    public readonly status: number
+  ) {
+    super(`api ${path} ${status}`);
+    this.name = 'ApiError';
+  }
+}
+
+function historyRequest(grant?: string | null): RequestInit | undefined {
+  return grant ? { headers: { Authorization: `Bearer ${grant}` }, cache: 'no-store' } : undefined;
 }
 
 export type Direction = 'up' | 'down' | 'neutral';
@@ -90,6 +91,12 @@ export interface SignalRow {
   spilloverEntityIds: string[];
   reviewStatus: 'draft' | 'published' | 'corrected' | 'killed';
   bodyMd: string;
+  observedEvent?: string | null;
+  directEntityImpact?: string | null;
+  supplyChainImpact?: string | null;
+  businessInference?: string | null;
+  inferenceStrength?: 'none' | 'weak' | 'moderate' | 'strong' | null;
+  inferenceEvidenceUrls?: string[];
   contentCategory?: SignalContentCategory;
   qualityScore?: number;
   qualityBand?: SignalQualityBand;
@@ -343,7 +350,8 @@ export interface IntentOpportunity {
 }
 
 export const api = {
-  signals: (f: SignalFilters = {}) => fetchJson<{ signals: SignalRow[] }>(`/signals${qs(f)}`),
+  signals: (f: SignalFilters = {}, historyGrant?: string | null) =>
+    fetchJson<{ signals: SignalRow[] }>(`/signals${qs(f)}`, historyRequest(historyGrant)),
   dataSources: () => fetchJson<DataSourcesResponse>('/data/sources'),
   dataSourceEvents: (id: string, opts: { limit?: number; offset?: number; date?: string } = {}) => {
     const p = new URLSearchParams();
@@ -356,7 +364,7 @@ export const api = {
     );
   },
   facets: () => fetchJson<Facets>('/signals/facets'),
-  signal: (slug: string) =>
+  signal: (slug: string, historyGrant?: string | null) =>
     fetchJson<{
       signal: SignalRow;
       evidence: Array<{
@@ -372,8 +380,8 @@ export const api = {
         windowDays: number;
         forwardReturn: number | null;
       }>;
-    }>(`/signals/${slug}`),
-  claimsBySignal: (slug: string) =>
+    }>(`/signals/${slug}`, historyRequest(historyGrant)),
+  claimsBySignal: (slug: string, historyGrant?: string | null) =>
     fetchJson<{
       claims: Array<
         ClaimRecordJson & {
@@ -381,7 +389,7 @@ export const api = {
           rollup: ClaimRollupJson;
         }
       >;
-    }>(`/claims/by-signal/${slug}`),
+    }>(`/claims/by-signal/${slug}`, historyRequest(historyGrant)),
   claim: (id: string) =>
     fetchJson<{
       claim: ClaimRecordJson & {
@@ -536,7 +544,6 @@ export const api = {
         }>;
       }>;
     }>(`/unmapped?hours=${hours}&top=${top}`),
-  digestWeekly: () => fetchJson<{ since: string; signals: SignalRow[] }>('/digest/weekly'),
   redditCommunity: (subreddit: string) =>
     fetchJson<{ community: RedditCommunity }>(
       `/communities/reddit/${encodeURIComponent(subreddit)}`
@@ -553,31 +560,21 @@ export const api = {
     fetchJson<{ digests: CommunityDigestSnapshot[] }>(
       `/products/communities/${encodeURIComponent(subreddit)}/${period}/digests`
     ),
-  seoAudit: (url: string) =>
-    fetchJson<SeoAuditReport>(`/products/agent-eval/seo-audit?${new URLSearchParams({ url })}`),
-  brief: (params: { region?: Region; productId?: string; date?: string } = {}) => {
+  brief: (
+    params: { region?: Region; productId?: string; date?: string } = {},
+    historyGrant?: string | null
+  ) => {
     const search = new URLSearchParams();
     if (params.region) search.set('region', params.region);
     if (params.productId) search.set('product', params.productId);
     if (params.date) search.set('date', params.date);
     const suffix = search.toString();
-    return fetchJson<BriefSnapshot>(`/brief/daily${suffix ? `?${suffix}` : ''}`);
+    return fetchJson<BriefSnapshot>(
+      `/brief/daily${suffix ? `?${suffix}` : ''}`,
+      historyRequest(historyGrant)
+    );
   },
-  briefFeed: (params: {
-    feed: BriefFeedSlug;
-    cadence: BriefFeedCadence | string;
-    period?: string;
-    region?: Region;
-  }) => {
-    const path = `/brief/feeds/${encodeURIComponent(params.feed)}/${encodeURIComponent(params.cadence)}${
-      params.period ? `/${encodeURIComponent(params.period)}` : ''
-    }`;
-    const search = new URLSearchParams();
-    if (params.region) search.set('region', params.region);
-    const suffix = search.toString();
-    return fetchJson<BriefFeedEdition>(`${path}${suffix ? `?${suffix}` : ''}`);
-  },
-  briefDates: () =>
+  briefDates: (historyGrant?: string | null) =>
     fetchJson<{
       dates: Array<{
         date: string;
@@ -586,68 +583,5 @@ export const api = {
         publicItemCount: number;
         citedItemCount: number;
       }>;
-    }>('/brief/dates'),
-  labFeed: async (
-    params: { query?: string; source?: string; limit?: number; byCluster?: boolean } = {}
-  ) => {
-    const base = process.env['LAB_API_URL'] ?? process.env['NEXT_PUBLIC_LAB_API_URL'];
-    if (!base) throw new Error('lab_not_configured');
-    const search = new URLSearchParams();
-    if (params.query) search.set('q', params.query);
-    if (params.source) search.set('source', params.source);
-    if (params.limit) search.set('limit', String(params.limit));
-    if (params.byCluster) search.set('by_cluster', 'true');
-    const suffix = search.toString();
-    const r = await fetch(`${base.replace(/\/$/, '')}/feed${suffix ? `?${suffix}` : ''}`, {
-      cache: 'no-store',
-    });
-    if (!r.ok) throw new Error(`lab ${r.status}`);
-    return (await r.json()) as LabFeedResult;
-  },
+    }>('/brief/dates', historyRequest(historyGrant)),
 };
-
-export interface SeoCheckResult {
-  key: string;
-  title: string;
-  axis: 'seo' | 'geo' | 'both';
-  status: 'strong' | 'clear' | 'weak' | 'missing';
-  notes: string;
-  recommendation: string;
-}
-
-export interface SeoAuditReport {
-  url: string;
-  fetchedAt: string;
-  finalUrl: string;
-  status: number | null;
-  score: number;
-  seoScore: number;
-  geoScore: number;
-  band: 'strong' | 'clear' | 'weak' | 'missing';
-  checks: SeoCheckResult[];
-  evidenceUrls: string[];
-  error: string | null;
-}
-
-export interface LabFeedItem {
-  id: string;
-  source: string;
-  title: string;
-  url: string;
-  summary: string | null;
-  publishedAt: string | null;
-  score: number;
-  clusterId?: string | null;
-}
-
-export interface LabFeedStats {
-  documents: number;
-  sources: number;
-  embeddings: number;
-  lastIngestAt: string | null;
-}
-
-export interface LabFeedResult {
-  items: LabFeedItem[];
-  stats: LabFeedStats;
-}

@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   // canonical de-indexes the corpus), so a route without this ships none.
   alternates: { canonical: `${SITE_URL}/privacy` },
   title: 'Privacy',
-  description: 'What High Signal stores about visitors and signed-in users.',
+  description: 'What High Signal stores about public readers and its bounded operator session.',
 };
 
 export default function PrivacyPage() {
@@ -24,26 +24,14 @@ export default function PrivacyPage() {
 
       <h2 className="mt-8 text-base font-semibold text-white">Public surfaces</h2>
       <p className="mt-2 text-sm leading-7">
-        <Link className="underline" href="/signals">
-          /signals
-        </Link>
-        ,{' '}
-        <Link className="underline" href="/signals/today">
-          /signals/today
-        </Link>
-        ,{' '}
-        <Link className="underline" href="/digest">
-          /digest
-        </Link>
-        , and their RSS feeds are public and require no sign-in. We don&apos;t track which signals
-        you read.
+        The Daily Brief, signals, sources, Company Universe, Track Record, and signal feeds are
+        public and require no account. We do not maintain reader profiles or watchlists.
       </p>
 
-      <h2 className="mt-8 text-base font-semibold text-white">Signed-in users</h2>
+      <h2 className="mt-8 text-base font-semibold text-white">Operator access</h2>
       <ul className="mt-2 list-disc space-y-1 pl-5 text-sm marker:text-zinc-600">
-        <li>Auth is handled by Cloudflare Access via a Google identity provider.</li>
-        <li>We store the email, name, and watchlist entries you create.</li>
-        <li>No third-party analytics ride along.</li>
+        <li>Cloudflare Access protects the private review and publishing tools.</li>
+        <li>That bounded operator session is not a reader account or personalization layer.</li>
       </ul>
 
       <h2 className="mt-8 text-base font-semibold text-white">What we don&apos;t do</h2>

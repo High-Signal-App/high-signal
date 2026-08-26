@@ -3,7 +3,6 @@ import { cors } from 'hono/cors';
 import { signalsRoute } from './routes/signals';
 import { entitiesRoute } from './routes/entities';
 import { trackRecordRoute } from './routes/track-record';
-import { digestRoute } from './routes/digest';
 import { adminRoute } from './routes/admin';
 import { sectorsRoute } from './routes/sectors';
 import { marketsRoute } from './routes/markets';
@@ -19,6 +18,7 @@ import { dataRoute } from './routes/data';
 import { d2cRoute } from './routes/d2c';
 import { companyUniverseRoute } from './routes/company-universe';
 import { learningRoute } from './routes/learning';
+import { historyRoute } from './routes/history';
 import { handlePublicApiCache } from './public-cache';
 
 type Env = {
@@ -26,6 +26,8 @@ type Env = {
   ENVIRONMENT: string;
   ADMIN_TOKEN?: string;
   API_BASE?: string;
+  TURNSTILE_HOSTNAMES?: string;
+  TURNSTILE_SECRET?: string;
 };
 
 const app = new Hono<{ Bindings: Env }>();
@@ -44,7 +46,6 @@ app.get('/health', (c) => c.json({ ok: true, ts: Date.now() }));
 app.route('/signals', signalsRoute);
 app.route('/entities', entitiesRoute);
 app.route('/track-record', trackRecordRoute);
-app.route('/digest', digestRoute);
 app.route('/admin', adminRoute);
 app.route('/sectors', sectorsRoute);
 app.route('/markets', marketsRoute);
@@ -60,6 +61,7 @@ app.route('/data', dataRoute);
 app.route('/d2c', d2cRoute);
 app.route('/company-universe', companyUniverseRoute);
 app.route('/learning', learningRoute);
+app.route('/history', historyRoute);
 
 app.onError((err, c) => {
   console.error(`[error] ${c.req.method} ${c.req.path}:`, err.message, err.stack);

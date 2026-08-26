@@ -26,12 +26,8 @@ for (const path of [
   '/data/nvd',
   '/case-studies/page/2',
   '/case-studies/search',
-  '/history',
   '/mentions',
-  '/signals/today',
-  '/feeds/brief/weekly',
   '/sitemap.xml',
-  '/daily/range.json',
 ]) {
   assert.equal(isCacheableDocumentRequest(request(path)), true, `${path} must be edge-cacheable`);
 }
@@ -59,11 +55,6 @@ const rsc = request('/signals/a-published-signal?_rsc=route-state', {
 });
 assert.equal(isRscRequest(rsc), true);
 assert.equal(isCacheableDocumentRequest(rsc), true, 'canonical anonymous RSC must be cacheable');
-assert.equal(
-  isCacheableDocumentRequest(request('/signals/today?_rsc=route-state', { headers: { RSC: '1' } })),
-  true,
-  'public HTML-only RSC routes must be cacheable'
-);
 assert.equal(
   isCacheableDocumentRequest(
     request('/signals/a-published-signal?_rsc=route-state&preview=1', { headers: { RSC: '1' } })
@@ -93,10 +84,6 @@ assert.equal(cacheControlForRequest(request('/data')), 'public, max-age=60, s-ma
 assert.equal(cacheControlForRequest(request('/data/nvd')), 'public, max-age=60, s-maxage=300');
 assert.equal(cacheControlForRequest(rsc), 'public, max-age=0, s-maxage=3600');
 assert.equal(cacheControlForRequest(request('/sitemap.xml')), 'public, max-age=300, s-maxage=3600');
-assert.equal(
-  cacheControlForRequest(request('/daily/range.json')),
-  'public, max-age=60, s-maxage=300'
-);
 
 assert.equal(
   isCacheableDocumentResponse(
@@ -116,13 +103,6 @@ assert.equal(
   isCacheableDocumentResponse(
     request('/sitemap.xml'),
     new Response('<urlset />', { headers: { 'Content-Type': 'application/xml' } })
-  ),
-  true
-);
-assert.equal(
-  isCacheableDocumentResponse(
-    request('/daily/range.json'),
-    new Response('{}', { headers: { 'Content-Type': 'application/json' } })
   ),
   true
 );

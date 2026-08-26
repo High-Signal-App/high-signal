@@ -1,0 +1,63 @@
+{
+  "$schema": "fleet.design-review.v1",
+  "version": 1,
+  "project": "high-signal",
+  "target": "Daily Brief Digg attention sections",
+  "mode": "preserve",
+  "register": "product",
+  "context": {
+    "product": "PRODUCT.md",
+    "design": "DESIGN.md"
+  },
+  "direction": {
+    "references": [],
+    "probes": [],
+    "selected": "existing-design",
+    "approval": "not-required",
+    "before": "artifacts/design/before-digg-attention-1440.png"
+  },
+  "evidence": {
+    "screenshots": [
+      {
+        "width": 390,
+        "path": "artifacts/design/after-digg-attention-390.png"
+      },
+      {
+        "width": 768,
+        "path": "artifacts/design/after-digg-attention-768.png"
+      },
+      {
+        "width": 1440,
+        "path": "artifacts/design/after-digg-attention-1440.png"
+      }
+    ],
+    "projectCheck": {
+      "command": "20 focused API tests; 24/24 repo suites; web/api/shared/db typechecks; Biome; docs; Python Digg tests; source registry; automation; agent markdown; Ruff; Wrangler dry-run",
+      "status": "pass"
+    },
+    "critique": {
+      "score": 34,
+      "maximum": 40
+    },
+    "audit": {
+      "score": 16,
+      "maximum": 20
+    },
+    "unresolved": {
+      "p0": 0,
+      "p1": 0
+    },
+    "detector": {
+      "posture": "advisory",
+      "findings": [
+        "The scoped detector ran exactly once and returned no implementation-integrity findings.",
+        "The audit found undersized source actions, inconsistent focus treatment, token drift, and missing attention availability semantics; the scoped findings were fixed before handoff.",
+        "The final independent critique scored 34/40 with zero unresolved P0 or P1 findings."
+      ]
+    }
+  },
+  "ownerFeedback": {
+    "decision": "keep",
+    "note": "Owner approved the reviewed direction by requesting the completed Digg, daily API, caching, and UI work be released."
+  }
+}

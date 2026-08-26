@@ -15,7 +15,6 @@ const mocks = vi.hoisted(() => ({
   buildImprovements: vi.fn(async () => []),
   buildWatching: vi.fn(async () => []),
   buildIntentBriefItems: vi.fn(async () => []),
-  loadBriefFeedEdition: vi.fn(),
 }));
 
 vi.mock('../../db', () => ({
@@ -36,11 +35,11 @@ vi.mock('../routes/brief/query', async (importOriginal) => {
     buildImprovements: mocks.buildImprovements,
     buildWatching: mocks.buildWatching,
     buildIntentBriefItems: mocks.buildIntentBriefItems,
-    loadBriefFeedEdition: mocks.loadBriefFeedEdition,
   };
 });
 
 import { briefRoute, parseDailyBriefRequest, safeCategory } from '../routes/brief';
+import { createHistoryGrant } from '../lib/history-access';
 
 const env = { DB: {} as D1Database };
 
@@ -94,15 +93,31 @@ describe('GET /daily', () => {
     });
   });
 
-  it('returns 404 when an archive date has no snapshot', async () => {
+  it('requires verification before reading an older archive date', async () => {
     const response = await briefRoute.request('http://test/daily?date=2020-01-01', {}, env);
+    expect(response.status).toBe(403);
+    expect(response.headers.get('cache-control')).toBe('private, no-store');
+    await expect(response.json()).resolves.toEqual({
+      error: 'history_verification_required',
+    });
+    expect(mocks.buildStocks).not.toHaveBeenCalled();
+  });
+
+  it('returns 404 after a verified older date has no snapshot', async () => {
+    const secret = 'test-history-secret';
+    const { grant } = await createHistoryGrant(secret);
+    const response = await briefRoute.request(
+      'http://test/daily?date=2020-01-01',
+      { headers: { Authorization: `Bearer ${grant}` } },
+      { ...env, TURNSTILE_SECRET: secret }
+    );
     expect(response.status).toBe(404);
+    expect(response.headers.get('cache-control')).toBe('private, no-store');
     await expect(response.json()).resolves.toEqual({
       error: 'no_brief_for_date',
       date: '2020-01-01',
       region: 'global',
     });
-    expect(mocks.buildStocks).not.toHaveBeenCalled();
   });
 
   it('composes live public sections when the cache misses', async () => {

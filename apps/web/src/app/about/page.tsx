@@ -53,19 +53,9 @@ export default function AboutPage() {
             — full feed, filterable by direction, confidence, and entity.
           </li>
           <li>
-            <Link className="text-[var(--color-accent)] hover:underline" href="/digest">
-              /digest
-            </Link>{' '}
-            — last 7 days of signals, designed to be email-shaped.
-          </li>
-          <li>
             RSS:{' '}
             <Link className="text-[var(--color-accent)] hover:underline" href="/signals/rss">
               /signals/rss
-            </Link>{' '}
-            ·{' '}
-            <Link className="text-[var(--color-accent)] hover:underline" href="/digest/rss">
-              /digest/rss
             </Link>
           </li>
           <li>
@@ -75,14 +65,14 @@ export default function AboutPage() {
             </Link>
           </li>
           <li>
-            Case studies:{' '}
+            Company universe:{' '}
             <Link
               className="text-[var(--color-accent)] hover:underline"
               href={'/case-studies' as Route}
             >
               /case-studies
             </Link>{' '}
-            — source-constrained product intelligence examples.
+            — source-backed company profiles from official directories.
           </li>
         </ul>
       </section>

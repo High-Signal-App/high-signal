@@ -2,20 +2,15 @@
  * Daily brief D1 queries: public sections, personal sections, snapshots, feeds.
  */
 
-import { and, asc, desc, eq, inArray, gte, isNull, lte, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, gte, isNull, sql } from 'drizzle-orm';
 import {
-  briefFeedDefinition,
   assessSignalQuality,
-  buildBriefEditionReceipt,
-  composeBriefFeedEdition,
   extractBriefEditorialSummary,
   familyForSignalType,
   normalizeCommunitySummary,
   oppositeDirectionConflictIds,
   rankEvidenceUrls,
   selectBriefClaimProvenance,
-  type BriefFeedEdition,
-  type BriefFeedPeriod,
   type BriefAttentionSections,
   type DiggAttentionGapItem,
   type DiggAttentionItem,
@@ -753,65 +748,4 @@ export async function tryGetPrecomputedSnapshot(
     // Table might not exist yet (pre-migration) — silently fall back.
     return null;
   }
-}
-
-interface BriefFeedSnapshotRow {
-  date: string;
-  briefJson: string;
-  computedAt: string;
-}
-
-/**
- * Read only the accepted daily records needed by one bounded feed period.
- * Malformed or legacy snapshots that do not satisfy the current edition gate
- * remain available at their original daily URL but are not republished into a
- * new period rollup.
- */
-export async function loadBriefFeedEdition(
-  database: BriefDatabase,
-  input: {
-    feed: ReturnType<typeof briefFeedDefinition>;
-    requestedCadence: string | null;
-    cadence: BriefFeedEdition['cadence'];
-    cadenceFellBack: boolean;
-    period: BriefFeedPeriod;
-    region: Region;
-  }
-): Promise<BriefFeedEdition> {
-  let rows: BriefFeedSnapshotRow[] = [];
-  try {
-    rows = await database
-      .select({
-        date: schema.dailyBriefSnapshots.date,
-        briefJson: schema.dailyBriefSnapshots.briefJson,
-        computedAt: schema.dailyBriefSnapshots.computedAt,
-      })
-      .from(schema.dailyBriefSnapshots)
-      .where(
-        and(
-          eq(schema.dailyBriefSnapshots.region, input.region),
-          gte(schema.dailyBriefSnapshots.date, input.period.startsOn),
-          lte(schema.dailyBriefSnapshots.date, input.period.endsOn)
-        )
-      )
-      .orderBy(asc(schema.dailyBriefSnapshots.date))
-      .limit(31);
-  } catch {
-    rows = [];
-  }
-
-  const accepted = rows.flatMap((row) => {
-    try {
-      const snapshot = JSON.parse(row.briefJson) as BriefSnapshot;
-      return buildBriefEditionReceipt(snapshot).publishable ? [{ date: row.date, snapshot }] : [];
-    } catch {
-      return [];
-    }
-  });
-
-  return composeBriefFeedEdition({
-    ...input,
-    rows: accepted,
-    generatedAt: rows.at(-1)?.computedAt,
-  });
 }

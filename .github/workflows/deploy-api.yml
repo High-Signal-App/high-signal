@@ -20,4 +20,20 @@ jobs:
           workingDirectory: workers/api
           command: deploy --tag ${{ github.sha }}
       - name: Smoke production API
-        run: curl --fail --silent --show-error --location --max-time 30 https://api.highsignal.app/health >/dev/null
+        run: |
+          curl --fail --silent --show-error --location --max-time 30 \
+            https://api.highsignal.app/health >/dev/null
+          curl --fail --silent --show-error --location --max-time 30 \
+            "https://api.highsignal.app/data/daily?probe=$GITHUB_SHA" \
+            | node -e '
+                let raw = "";
+                process.stdin.on("data", (chunk) => { raw += chunk; });
+                process.stdin.on("end", () => {
+                  const payload = JSON.parse(raw);
+                  if (!payload.date || !Array.isArray(payload.signals) || !Array.isArray(payload.evidenceEvents)) {
+                    throw new Error("daily dump contract is incomplete");
+                  }
+                });
+              '
+          curl --fail --silent --show-error --location --max-time 30 \
+            "https://api.highsignal.app/brief/daily?probe=$GITHUB_SHA" >/dev/null

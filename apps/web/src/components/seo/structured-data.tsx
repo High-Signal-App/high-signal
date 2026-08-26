@@ -9,7 +9,6 @@ import {
   buildOrganizationJsonLd,
   buildSignalArticleJsonLd,
   buildSignalTypeTaxonomyJsonLd,
-  buildSeoGeoAuditJsonLd,
   buildSoftwareApplicationJsonLd,
   buildTrackRecordDatasetJsonLd,
 } from '@/components/seo/json-ld-builders';
@@ -76,10 +75,6 @@ export function IntelligenceGuideJsonLd({
       })}
     />
   );
-}
-
-export function SeoGeoAuditJsonLd(): React.JSX.Element {
-  return <LdJson data={buildSeoGeoAuditJsonLd()} />;
 }
 
 export function TrackRecordDatasetJsonLd(props: {

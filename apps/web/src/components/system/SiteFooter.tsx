@@ -11,18 +11,16 @@ interface FooterLink {
 const PRODUCT: FooterLink[] = [
   { href: '/', label: 'Brief' },
   { href: '/signals', label: 'Signals' },
+  { href: '/data', label: 'Sources' },
+  { href: '/case-studies', label: 'Company Universe' },
   { href: '/track-record', label: 'Track record' },
-  { href: '/data/hit-rate', label: 'Hit-rate data' },
-  { href: '/changelog', label: 'Changelog' },
 ];
 
-const LENSES: FooterLink[] = [
+const RESEARCH: FooterLink[] = [
   { href: '/markets', label: 'Markets' },
-  { href: '/markets/history', label: 'Market history' },
-  { href: '/agent-eval', label: 'Agent Eval' },
-  { href: '/domains', label: 'Domains' },
-  { href: '/communities', label: 'Communities' },
-  { href: '/lab', label: 'Lab' },
+  { href: '/entities', label: 'Entities' },
+  { href: '/sectors', label: 'Sectors' },
+  { href: '/convergence', label: 'Convergence' },
 ];
 
 const OPERATOR: FooterLink[] = [
@@ -56,7 +54,7 @@ export function SiteFooter() {
       <div className="mx-auto max-w-5xl px-6 py-10">
         <div className="grid grid-cols-2 gap-8 sm:grid-cols-4">
           <FooterColumn title="Product" links={PRODUCT} />
-          <FooterColumn title="Lenses" links={LENSES} />
+          <FooterColumn title="Research" links={RESEARCH} />
           <FooterColumn title="Operator" links={OPERATOR} />
           <FooterColumn title="Legal" links={LEGAL} />
         </div>
@@ -83,9 +81,6 @@ export function SiteFooter() {
             </a>
             <a href={`${SITE_URL}/signals/rss`} className="hover:text-[var(--color-fg)]">
               Signals RSS
-            </a>
-            <a href={`${SITE_URL}/digest/rss`} className="hover:text-[var(--color-fg)]">
-              Digest RSS
             </a>
           </nav>
         </div>

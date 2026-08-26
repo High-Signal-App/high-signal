@@ -19,7 +19,6 @@
   },
   "dependencies": {
     "@high-signal/shared": "workspace:*",
-    "@saas-maker/feedback": "^0.2.1",
     "jose": "6.2.10",
     "lucide-react": "1.11.0",
     "next": "16.2.12",

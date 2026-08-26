@@ -40,8 +40,7 @@ const BULK_AI_CRAWLER_USER_AGENTS = [
 const INDEX_MARKDOWN = `# High Signal
 
 High Signal turns noisy public evidence into one daily synthesized brief across
-technology, startups, markets, buyer intent, brand perception, and product
-opportunities.
+technology, startups, and finance.
 
 ## Evidence contract
 
@@ -63,8 +62,6 @@ opportunities.
 - [Methodology](https://highsignal.app/methodology)
 - [Company universe](https://highsignal.app/case-studies)
 - [Markets](https://highsignal.app/markets)
-- [Mentions and AI visibility](https://highsignal.app/mentions)
-- [Agent Eval](https://highsignal.app/agent-eval)
 - [Changelog](https://highsignal.app/changelog)
 
 ## Machine surfaces
@@ -101,22 +98,20 @@ const LLMS_FULL_MARKDOWN = `${INDEX_MARKDOWN}
 
 ## Dynamic public corpora
 
-- Dated Daily Brief archives
+- Dated Daily Brief records
 - Published signal detail pages
 - Entity and entity-month archives
 - Signal-type taxonomies
 - Qualified company-universe profiles
 
 These Markdown responses are rendered from the same server-side product output
-as the human page. Private review, admin, authentication, personal, delivery,
-and JSON machinery is excluded.
+as the human page. Private review, admin, delivery, and JSON machinery is
+excluded.
 
 ## Data resources
 
 - https://highsignal.app/signals/rss
 - https://highsignal.app/signals/atom
-- https://highsignal.app/digest/rss
-- https://highsignal.app/digest/atom
 - https://highsignal.app/signals.json
 - https://highsignal.app/entities.json
 - https://highsignal.app/data/hit-rate.json
@@ -169,12 +164,6 @@ function catalogForOrigin(origin) {
         description: 'Published signal feed.',
       },
       {
-        id: 'digest-rss',
-        url: `${origin}/digest/rss`,
-        kind: 'rss',
-        description: 'Public digest feed.',
-      },
-      {
         id: 'hit-rate-json',
         url: `${origin}/data/hit-rate.json`,
         kind: 'json',
@@ -191,7 +180,7 @@ function catalogForOrigin(origin) {
     auth: {
       public: true,
       notes:
-        'Only public reader surfaces are cataloged. Review, admin, auth, personal, delivery, and private feeds are excluded.',
+        'Only public reader surfaces are cataloged. Review, admin, delivery, and private machinery are excluded.',
     },
   };
 }

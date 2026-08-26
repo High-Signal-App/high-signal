@@ -84,7 +84,7 @@ const FAQ = [
   {
     question: 'Why no signup wall?',
     answer:
-      'The Daily Brief is a public, shareable record. Its three categories render identically for anonymous and signed-in visitors, the region picker is free, and no rotating product spotlight or public personalization changes the edition. Connected-brand work stays in Mentions and Agent Eval.',
+      'The Daily Brief is a public, shareable record. Its three categories are the same for every reader, the region picker is free, and no account, rotating product spotlight, or personalization changes the edition. Cloudflare Access protects only operator review and publishing tools.',
   },
   {
     question: 'Where do the published signals live?',

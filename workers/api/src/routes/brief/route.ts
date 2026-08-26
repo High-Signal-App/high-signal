@@ -17,14 +17,11 @@
 import { Hono, type Context } from 'hono';
 import { desc, sql } from 'drizzle-orm';
 import {
-  briefFeedDefinition,
   buildBriefEditionReceipt,
   countriesForRegion,
-  isBriefFeedSlug,
+  isProtectedHistoryDay,
   isRegion,
   pruneUnpublishableBriefItems,
-  resolveBriefFeedPeriod,
-  resolveFeedCadence,
   summarizeBriefDiscovery,
   type BriefCategoryStates,
   type BriefImprovementItem,
@@ -39,11 +36,11 @@ import {
   buildIdeas,
   buildStocks,
   buildTrends,
-  loadBriefFeedEdition,
   tryGetPrecomputedSnapshot,
 } from './query';
+import { bearerGrant, verifyHistoryGrant } from '../../lib/history-access';
 
-type Env = { DB: D1Database; BRIEF_CACHE?: KVNamespace };
+type Env = { DB: D1Database; BRIEF_CACHE?: KVNamespace; TURNSTILE_SECRET?: string };
 
 // Precomputed snapshot regions — the cron precomputes these so the API
 // does a single D1 lookup instead of 5-14 sequential queries.
@@ -61,6 +58,17 @@ briefRoute.get('/daily', async (c) => handleDailyBriefRequest(c));
 
 async function handleDailyBriefRequest(c: Context<{ Bindings: Env }>) {
   const request = parseDailyBriefRequest(c);
+  const protectedHistory = Boolean(
+    request.archiveDate && isProtectedHistoryDay(request.archiveDate)
+  );
+  if (
+    protectedHistory &&
+    !(await verifyHistoryGrant(bearerGrant(c.req.header('authorization')), c.env.TURNSTILE_SECRET))
+  ) {
+    c.header('Cache-Control', 'private, no-store');
+    return c.json({ error: 'history_verification_required' }, 403);
+  }
+  if (protectedHistory) c.header('Cache-Control', 'private, no-store');
   const database = db(c.env.DB);
 
   const cached = await cachedDailyBrief(database, request);
@@ -151,36 +159,6 @@ function loadDailyBriefBrand(request: ReturnType<typeof parseDailyBriefRequest>)
 
   return { perception, improvements, hasBrand };
 }
-
-async function handleBriefFeedRequest(c: Context<{ Bindings: Env }>) {
-  const feedParam = c.req.param('feed')?.trim() ?? '';
-  if (!isBriefFeedSlug(feedParam)) return c.json({ error: 'unknown_brief_feed' }, 404);
-
-  const feed = briefFeedDefinition(feedParam);
-  const requestedCadence = c.req.param('cadence')?.toLowerCase().trim() || null;
-  const { cadence, fellBack } = resolveFeedCadence(feed, requestedCadence);
-  const rawRegion = c.req.query('region')?.toLowerCase().trim() ?? 'global';
-  const region: Region = isRegion(rawRegion) ? rawRegion : 'global';
-  // A period key belongs to the requested cadence. If that cadence is not
-  // supported, resolve to the current edition at the feed's default cadence.
-  const periodParam = fellBack ? undefined : c.req.param('period')?.trim();
-  const period = resolveBriefFeedPeriod(cadence, periodParam);
-  if (!period) return c.json({ error: 'invalid_brief_feed_period', cadence }, 400);
-
-  const edition = await loadBriefFeedEdition(db(c.env.DB), {
-    feed,
-    requestedCadence,
-    cadence,
-    cadenceFellBack: fellBack,
-    period,
-    region,
-  });
-  c.header('Cache-Control', 'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400');
-  return c.json(edition);
-}
-
-briefRoute.get('/feeds/:feed/:cadence', handleBriefFeedRequest);
-briefRoute.get('/feeds/:feed/:cadence/:period', handleBriefFeedRequest);
 
 /**
  * Precompute brief snapshots for all configured regions. Called by the
@@ -284,6 +262,11 @@ export async function precomputeBriefSnapshots(env: { DB: D1Database }): Promise
 briefRoute.get('/dates', async (c) => {
   const database = db(c.env.DB);
   try {
+    const historyGranted = await verifyHistoryGrant(
+      bearerGrant(c.req.header('authorization')),
+      c.env.TURNSTILE_SECRET
+    );
+    if (historyGranted) c.header('Cache-Control', 'private, no-store');
     const rows = await database
       .select({
         date: schema.dailyBriefSnapshots.date,
@@ -299,22 +282,24 @@ briefRoute.get('/dates', async (c) => {
       .limit(500);
 
     return c.json({
-      dates: rows.map((r) => {
-        let discovery = { publicItemCount: 0, citedItemCount: 0 };
-        if (r.globalBriefJson) {
-          try {
-            discovery = summarizeBriefDiscovery(JSON.parse(r.globalBriefJson) as BriefSnapshot);
-          } catch {
-            // A malformed snapshot is not safe to advertise for discovery.
+      dates: rows
+        .filter((row) => historyGranted || !isProtectedHistoryDay(row.date))
+        .map((r) => {
+          let discovery = { publicItemCount: 0, citedItemCount: 0 };
+          if (r.globalBriefJson) {
+            try {
+              discovery = summarizeBriefDiscovery(JSON.parse(r.globalBriefJson) as BriefSnapshot);
+            } catch {
+              // A malformed snapshot is not safe to advertise for discovery.
+            }
           }
-        }
-        return {
-          date: r.date,
-          regionCount: r.regionCount,
-          computedAt: r.computedAt,
-          ...discovery,
-        };
-      }),
+          return {
+            date: r.date,
+            regionCount: r.regionCount,
+            computedAt: r.computedAt,
+            ...discovery,
+          };
+        }),
     });
   } catch {
     // Table might not exist yet (pre-migration) — return empty list.

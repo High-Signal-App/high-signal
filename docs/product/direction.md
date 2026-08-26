@@ -16,7 +16,8 @@ which of these are active vs parked.
 
 - **Brand**: High Signal.
 - **Core product**: one public **Daily Brief** per day, generated end-of-day
-  from the helpers below. The current edition is the homepage for every visitor.
+  from the helpers below. The homepage exposes today's and yesterday's editions;
+  earlier dated records live under Signals after a Turnstile human check.
 - **Codename**: `high-signal` (rebrand TBD post-traction).
 
 ## Knowledge domains (three, no more)
@@ -48,46 +49,49 @@ clears the same editorial and evidence gates; no category is filled with seed or
 synthetic fallback content. `ready`, `empty`, and `unavailable` are explicit
 states, and an unavailable category prevents a new dated snapshot.
 
-### Cadenced public feeds
+Today and yesterday remain anonymous and cacheable. There is no separate Brief
+archive product: `/signals` is the chronological record, `/brief/archive`
+redirects there, and briefs or signal proof pages older than yesterday require
+one Turnstile check that grants 12 hours of human browsing. This is bot friction,
+not an account, identity, payment, or personalization boundary.
 
-`/` remains the non-personalized current Daily Brief. A subordinate publication
-switcher exposes four bounded feeds: The Brief and Markets & Companies at
-daily, weekly, and monthly cadences; Opportunity Radar and Behavior & Culture at
-weekly and monthly cadences. Weekly editions use UTC Monday-through-Sunday
-periods and monthly editions use UTC calendar months. Both are deterministic,
-de-duplicated rollups of accepted daily snapshots and retain links to every
-contributing immutable daily edition. Missing periods stay unavailable rather
-than being rebuilt from live data.
+### Presentation and history
 
 Brief and Newspaper are presentation choices over the same edition content and
 item order. The anonymous preference is stored only in the browser; it never
-changes the feed request, canonical URL, metadata, cache identity, or root
-default.
+changes the request, canonical URL, metadata, cache identity, or root default.
+There are no separate weekly digest, weekly/monthly publication, Featured,
+Personal Brief, Ideas, Opportunities, or Teardowns products. Supported business
+opportunities remain an evidence-qualified section inside the Daily Brief.
 
-## Product-specific intelligence stays in dedicated helpers
+## No reader personalization
 
-The public web edition is intentionally non-personalized. Mention intelligence
-and agent-evaluation gaps remain available in Mentions and Agent Eval, and may
-remain in backward-compatible authenticated delivery payloads, but they do not
-become public Daily Brief categories or rotating product spotlights.
+The public web edition is intentionally non-personalized. There are no reader
+accounts, connected-brand brief sections, personal briefs, or rotating product
+spotlights. Cloudflare Access protects only bounded operator review and
+publishing paths.
 
 ## Region
 
 Free filter on every section. Default = global. Visitors can switch region and
 the public brief recomputes from that region's entities and retained sources.
 
-## Helpers / lenses (engine room, not destinations)
+## Inputs and research indexes
 
 - **Markets lens** feeds Markets & companies. The AI-infra / semiconductors signal pipeline
   + public hit-rate ledger remain the proof-of-quality.
-- **Communities lens** feeds Business opportunities and Behavior & culture — pain, demand, narrative,
-  lifestyle drift.
-- **Mentions lens** remains a dedicated connected-brand helper.
-- **Agent Eval lens** remains a dedicated product-evidence helper.
-- **Lab substrate** (plan `0007`) is the local-first ingestion + index layer
-  underneath all of them.
-- Surfaced under `/lenses/*` so the word "products" in the UI stays unambiguously
-  about the user's brand, not about our intelligence surfaces.
+- **Communities input** feeds Business opportunities and Behavior & culture — pain, demand,
+  narrative, and lifestyle drift. Curation remains operator-only.
+- **Entities, sectors, convergence, and market context** remain supporting
+  research indexes rather than standalone products.
+- **Lab substrate** (plan `0007`) remains parked local infrastructure with no
+  public UI.
+
+## Company Universe
+
+The source-backed Company Universe remains a first-class public research
+surface. It preserves provenance from official accelerator and investor
+directories and links company context back to current signals.
 
 ## Sources
 
@@ -104,6 +108,11 @@ not matched source volume, language breadth, latency, proprietary models, or
 licensed archives. Premium broker research, expert calls, licensed private-
 company data, dependable restricted-social firehoses, and real-time global
 earnings media remain explicit gaps.
+
+The public Sources directory lists every configured source family with cadence,
+freshness, last-run state, stored volume, and the latest retained data. Source
+accuracy and the hit-rate ledger remain Track Record concerns rather than being
+mixed into the source inventory.
 
 ## Hard rules baked in
 

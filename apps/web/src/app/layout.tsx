@@ -2,7 +2,6 @@ import type { Metadata } from 'next';
 import Script from 'next/script';
 import './globals.css';
 import { AnalyticsProvider } from '@/components/posthog-provider';
-import { SaaSMakerFeedback } from '@/components/saasmaker-feedback';
 import { VitalsReporter } from '@/components/VitalsReporter';
 import { PrimaryNav } from '@/components/system/PrimaryNav';
 import { SiteFooter } from '@/components/system/SiteFooter';
@@ -43,7 +42,7 @@ export const metadata: Metadata = {
     'hit-rate',
     'evidence-first',
     'market intelligence',
-    'agent evaluation',
+    'source provenance',
   ],
   // Do NOT set a site-wide canonical here — Next inherits it onto every
   // page and de-indexes the corpus. Homepage / deep pages set self-canonicals.
@@ -51,11 +50,9 @@ export const metadata: Metadata = {
     types: {
       'application/rss+xml': [
         { url: `${SITE_URL}/signals/rss`, title: 'High Signal — published signals' },
-        { url: `${SITE_URL}/digest/rss`, title: 'High Signal — weekly digest' },
       ],
       'application/atom+xml': [
         { url: `${SITE_URL}/signals/atom`, title: 'High Signal — published signals (atom)' },
-        { url: `${SITE_URL}/digest/atom`, title: 'High Signal — weekly digest (atom)' },
       ],
     },
   },
@@ -103,7 +100,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <div aria-hidden="true" className="h-14" />
       {children}
       <SiteFooter />
-      <SaaSMakerFeedback />
       <VitalsReporter />
     </AnalyticsProvider>
   );
@@ -134,7 +130,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {`(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/y39u4kk9oq";y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window,document,"clarity","script","y39u4kk9oq");window.clarity("set","project_id","high-signal");`}
         </Script>
         <script src="https://sassmaker.com/project-strip.js" data-project="high-signal" defer />
-        <script src="https://sassmaker.com/ai-chat-footer.js" data-name="High Signal" defer />
       </body>
     </html>
   );

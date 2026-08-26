@@ -23,6 +23,4 @@ export {
   type BucketCounts,
 } from './compose';
 
-export { loadBriefFeedEdition } from './query';
-
 export { briefRoute, parseDailyBriefRequest, precomputeBriefSnapshots } from './route';

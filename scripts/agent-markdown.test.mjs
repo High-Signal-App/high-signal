@@ -22,7 +22,7 @@ import {
 const markdownRequest = (path, headers = {}) =>
   new Request(`https://highsignal.app${path}`, { headers });
 
-assert.equal(PUBLIC_STATIC_ROUTES.length, 40, 'static public route count must be deliberate');
+assert.equal(PUBLIC_STATIC_ROUTES.length, 28, 'static public route count must be deliberate');
 assert.ok(
   !PUBLIC_STATIC_ROUTES.some((route) => route.path === '/brief'),
   'the /brief compatibility redirect must not compete with the canonical root in the agent catalog'
@@ -341,7 +341,7 @@ assert.equal(catalog.templates.length, PUBLIC_DYNAMIC_ROUTE_TEMPLATES.length);
 assert.ok(catalog.templates.every((template) => template.eligibility));
 assert.ok(catalog.surfaces.every((surface) => surface.url && surface.md));
 assert.equal(catalog.markdown.negotiation, true);
-assert.match(catalog.auth.notes, /Review, admin, auth, personal, delivery/);
+assert.match(catalog.auth.notes, /Review, admin, delivery/);
 assert.equal(
   catalog.dataResources.find((resource) => resource.id === 'daily-dump-json')?.url,
   'https://api.highsignal.app/data/daily'

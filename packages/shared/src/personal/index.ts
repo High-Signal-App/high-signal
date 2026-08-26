@@ -1,3 +1,2 @@
-// Personal operator-intelligence subsystem (private brief / usefulness / teardowns).
+// Personal operator-intelligence subsystem retained for internal CLI workflows.
 export * from './personal-usefulness';
-export * from './approved-task-teardowns';

@@ -11,17 +11,14 @@ import {
 } from '@/components/system/HighSignalUI';
 import { api, type CommunityDigestSnapshot, type TrackedCommunity } from '@/lib/api';
 import { redditSourceLink } from '@high-signal/shared';
-import { hasAdminSession } from '@/lib/admin-guard';
+import { hasAdminSession, requireAdminSession } from '@/lib/admin-guard';
 import { adminWorkerJson } from '@/lib/admin-worker';
 import { revalidatePath } from 'next/cache';
 
-import { SITE_URL } from '@/lib/site';
 export const dynamic = 'force-dynamic';
 export const metadata = {
-  // Self-canonical: the root layout deliberately sets none (a site-wide
-  // canonical de-indexes the corpus), so a route without this ships none.
-  alternates: { canonical: `${SITE_URL}/communities` },
   title: 'Community Intelligence',
+  robots: { index: false, follow: false },
 };
 
 // The tracked-community registry is operator curation, not user data: it
@@ -82,8 +79,7 @@ export default async function CommunitiesPage({
 }: {
   searchParams?: Promise<{ subreddit?: string; q?: string }>;
 }) {
-  // Fully public — every visitor sees the discover feed and ad-hoc lookup. The
-  // tracked-community registry below renders only for the operator.
+  await requireAdminSession();
   const isAdmin = await hasAdminSession();
   const params = (await searchParams) ?? {};
   const subreddit = (params.subreddit ?? 'LocalLLaMA').replace(/^r\//i, '').trim();

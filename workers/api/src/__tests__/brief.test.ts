@@ -41,7 +41,6 @@ import {
   resolveHitRate,
   safe,
   seedToBrief,
-  briefRoute,
   type BucketCounts,
 } from '../routes/brief';
 
@@ -61,52 +60,6 @@ const intentFixture = (overrides: Partial<BriefIntentItem> = {}): BriefIntentIte
   evidenceTaskId: null,
   foundAt: '2026-07-12T10:00:00.000Z',
   ...overrides,
-});
-
-describe('cadenced brief feed route', () => {
-  const env = { DB: {} as D1Database };
-
-  it('rejects an unknown feed before touching storage', async () => {
-    const response = await briefRoute.request('http://test/feeds/not-a-feed/daily', {}, env);
-    expect(response.status).toBe(404);
-    await expect(response.json()).resolves.toEqual({ error: 'unknown_brief_feed' });
-  });
-
-  it('rejects an invalid period key', async () => {
-    const response = await briefRoute.request(
-      'http://test/feeds/markets-companies/weekly/2026-W99',
-      {},
-      env
-    );
-    expect(response.status).toBe(400);
-    await expect(response.json()).resolves.toEqual({
-      error: 'invalid_brief_feed_period',
-      cadence: 'weekly',
-    });
-  });
-
-  it('falls an unsupported daily opportunity request back to the current weekly edition', async () => {
-    const response = await briefRoute.request(
-      'http://test/feeds/opportunity-radar/daily?region=global',
-      {},
-      env
-    );
-    expect(response.status).toBe(200);
-    expect(response.headers.get('cache-control')).toContain('s-maxage=3600');
-    const body = (await response.json()) as {
-      feed: string;
-      cadence: string;
-      cadenceFellBack: boolean;
-      snapshot: BriefSnapshot;
-      coverage: { configuredClasses: string[]; contributingClasses: string[] };
-    };
-    expect(body.feed).toBe('opportunity-radar');
-    expect(body.cadence).toBe('weekly');
-    expect(body.cadenceFellBack).toBe(true);
-    expect(body.snapshot.categoryStates?.ideas.status).toBe('unavailable');
-    expect(body.coverage.configuredClasses).toContain('community');
-    expect(body.coverage.contributingClasses).toEqual([]);
-  });
 });
 
 describe('region rollups', () => {

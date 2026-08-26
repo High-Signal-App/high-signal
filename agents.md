@@ -20,12 +20,12 @@ and blocked work in GitHub Issues.
 
 **High Signal is one product: a daily synthesized brief.** It aggregates noisy
 public sources (Reddit, news, Hacker News, YouTube transcripts, SEC filings,
-GitHub, IR pages, etc.), curates and cleans them, and emits an end-of-day
-message answering five questions for the operator. Everything else — Markets,
-Communities, Agent Eval, Lab — is an **intelligence helper** feeding that
-brief, not a standalone product. There are no user accounts: everything
-readable is public, and the only gate is a single operator session that
-controls publishing.
+GitHub, IR pages, etc.), curates and cleans them, and publishes only claims that
+clear the evidence gates. The reader-facing product is the Brief, Signals and
+proof pages, Sources, Company Universe, and Track Record. Markets, communities,
+and other adapters are inputs or research indexes, not separate products. There
+are no reader accounts or personalization; Cloudflare Access protects only the
+bounded operator review and publishing paths.
 
 Locked product direction (brand, sections, pricing, lenses, hard rules, UI
 direction, out-of-scope): [`docs/product/direction.md`](docs/product/direction.md).
@@ -79,7 +79,7 @@ Cron job intent + ordering: [`docs/operations/jobs.md`](docs/operations/jobs.md)
 - **Public hit-rate ledger from day 1** — the moat.
 - **Auto-publish, no human gate** — daily `cron-publish.yml` runs `scripts/auto-publish-drafts.ts` at 07:00 UTC. Two-tier judge: deterministic rubric (`scripts/auto-publish-rules.ts`, unit-tested) → AI judge on HOLD only → HOLD biases to KILL without AI. PUBLISH → `review_status='published'`; KILL → `review_status='killed'` (reversible via `/review`). Full rules in [`docs/architecture/decisions.md`](docs/architecture/decisions.md) ADR-008.
 - **World change → product opportunity** — major changes and repeated app complaints become concrete product ideas.
-- **Human attention + agent evaluation** — short-form content earns consideration; structured evidence earns recommendation.
+- **Attention is not evidence** — short-form and aggregator activity can raise investigation priority, but only structured evidence can support publication.
 
 Architecture decisions (ADRs): [`docs/architecture/decisions.md`](docs/architecture/decisions.md).
 Codebase structure / domain ownership map: [`docs/architecture/codebase-structure.md`](docs/architecture/codebase-structure.md).

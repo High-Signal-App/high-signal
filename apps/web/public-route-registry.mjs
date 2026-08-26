@@ -8,13 +8,6 @@ export const PUBLIC_STATIC_ROUTES = [
     priority: 1,
   },
   {
-    path: '/brief/archive',
-    title: 'Brief archive',
-    description: 'Permanent dated Daily Brief snapshots.',
-    changeFrequency: 'daily',
-    priority: 0.85,
-  },
-  {
     path: '/daily-intelligence-brief',
     title: 'Daily intelligence brief',
     description:
@@ -69,39 +62,11 @@ export const PUBLIC_STATIC_ROUTES = [
     priority: 0.9,
   },
   {
-    path: '/digest',
-    title: 'Digest',
-    description: 'The current public weekly digest.',
-    changeFrequency: 'weekly',
-    priority: 0.8,
-  },
-  {
     path: '/markets',
     title: 'Markets',
     description: 'Market intelligence and cited probability context.',
     changeFrequency: 'daily',
     priority: 0.8,
-  },
-  {
-    path: '/communities',
-    title: 'Communities',
-    description: 'Community evidence feeding the Daily Brief.',
-    changeFrequency: 'daily',
-    priority: 0.75,
-  },
-  {
-    path: '/agent-eval',
-    title: 'Agent Eval',
-    description: 'Evidence-based agent-readiness evaluations.',
-    changeFrequency: 'weekly',
-    priority: 0.7,
-  },
-  {
-    path: '/lab',
-    title: 'Lab',
-    description: 'Experimental intelligence helper surface.',
-    changeFrequency: 'daily',
-    priority: 0.65,
   },
   {
     path: '/entities',
@@ -116,20 +81,6 @@ export const PUBLIC_STATIC_ROUTES = [
     description: 'Sector-level signal aggregation and hit rates.',
     changeFrequency: 'weekly',
     priority: 0.6,
-  },
-  {
-    path: '/opportunities',
-    title: 'Opportunities',
-    description: 'Evidence-backed product and market opportunities.',
-    changeFrequency: 'weekly',
-    priority: 0.6,
-  },
-  {
-    path: '/ideas',
-    title: 'Ideas',
-    description: 'Business ideas derived from public changes and complaints.',
-    changeFrequency: 'weekly',
-    priority: 0.55,
   },
   {
     path: '/methodology',
@@ -183,39 +134,11 @@ export const PUBLIC_STATIC_ROUTES = [
     priority: 0.75,
   },
   {
-    path: '/agent-eval/seo',
-    title: 'SEO and GEO audit',
-    description: 'Technical SEO and agent-readiness audit surface.',
-    changeFrequency: 'monthly',
-    priority: 0.7,
-  },
-  {
-    path: '/agent-eval/sample',
-    title: 'Agent Eval sample',
-    description: 'A public sample agent evaluation.',
-    changeFrequency: 'monthly',
-    priority: 0.65,
-  },
-  {
     path: '/case-studies',
     title: 'Company universe',
     description: 'Evidence-backed company and product case studies.',
     changeFrequency: 'weekly',
     priority: 0.85,
-  },
-  {
-    path: '/teardowns',
-    title: 'Teardowns',
-    description: 'Product teardowns grounded in public evidence.',
-    changeFrequency: 'weekly',
-    priority: 0.8,
-  },
-  {
-    path: '/domains',
-    title: 'Domains',
-    description: 'Domain authority evidence from DRank.',
-    changeFrequency: 'weekly',
-    priority: 0.75,
   },
   {
     path: '/explore',
@@ -244,13 +167,6 @@ export const PUBLIC_STATIC_ROUTES = [
     description: 'Ticker-first index of every tracked public company.',
     changeFrequency: 'weekly',
     priority: 0.6,
-  },
-  {
-    path: '/featured',
-    title: 'Featured',
-    description: 'Curated high-confidence public evidence.',
-    changeFrequency: 'weekly',
-    priority: 0.7,
   },
   {
     path: '/api-docs',

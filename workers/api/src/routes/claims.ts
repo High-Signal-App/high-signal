@@ -10,10 +10,13 @@ import {
   type ClaimRecord,
   type ClaimEvidenceLink,
   type ClaimTimelineEvent,
+  isProtectedHistoryDay,
+  istDayFromTimestamp,
 } from '@high-signal/shared';
 import { db, schema } from '../db';
+import { bearerGrant, verifyHistoryGrant } from '../lib/history-access';
 
-type Env = { DB: D1Database };
+type Env = { DB: D1Database; TURNSTILE_SECRET?: string };
 
 export const claimsRoute = new Hono<{ Bindings: Env }>();
 
@@ -111,11 +114,21 @@ claimsRoute.get('/:id', async (c) => {
 claimsRoute.get('/by-signal/:slug', async (c) => {
   const slug = c.req.param('slug');
   const [signal] = await db(c.env.DB)
-    .select({ id: schema.signals.id })
+    .select({ id: schema.signals.id, publishedAt: schema.signals.publishedAt })
     .from(schema.signals)
     .where(eq(schema.signals.slug, slug))
     .limit(1);
   if (!signal) return c.json({ claims: [] });
+  const publishedDay = istDayFromTimestamp(signal.publishedAt);
+  const protectedHistory = !publishedDay || isProtectedHistoryDay(publishedDay);
+  if (protectedHistory) {
+    const historyGranted = await verifyHistoryGrant(
+      bearerGrant(c.req.header('authorization')),
+      c.env.TURNSTILE_SECRET
+    );
+    c.header('Cache-Control', 'private, no-store');
+    if (!historyGranted) return c.json({ error: 'history_verification_required' }, 403);
+  }
   const rows = await db(c.env.DB)
     .select()
     .from(schema.claimRecords)

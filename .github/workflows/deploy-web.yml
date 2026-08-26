@@ -24,18 +24,25 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       - name: Smoke production web
         run: |
-          curl --fail --silent --show-error --location --max-time 30 https://highsignal.app/ >/dev/null
-          curl --fail --silent --show-error --location --max-time 30 https://highsignal.app/daily.json >/dev/null
+          for path in / /signals /data /case-studies; do
+            curl --fail --silent --show-error --location --max-time 30 \
+              "https://highsignal.app${path}?probe=$GITHUB_SHA" >/dev/null
+          done
           curl --fail --silent --show-error --location --max-time 30 \
-            "https://highsignal.app/daily/sources.json?probe=$GITHUB_SHA" \
+            "https://highsignal.app/api/ai?probe=$GITHUB_SHA" \
             | node -e '
                 let raw = "";
                 process.stdin.on("data", (chunk) => { raw += chunk; });
                 process.stdin.on("end", () => {
                   const payload = JSON.parse(raw);
-                  const status = payload.automationStatus;
-                  if (!status || status.configuredSources < 1 || status.observedSnapshots < 1) {
-                    throw new Error("daily source history is missing from the deployed asset bundle");
+                  const resources = payload.dataResources ?? [];
+                  if (!resources.some((resource) => resource.id === "daily-dump-json")) {
+                    throw new Error("agent catalog is missing the canonical daily dump");
                   }
                 });
               '
+          for path in /ideas /opportunities /teardowns /digest /agent-eval /domains /lab; do
+            code="$(curl --silent --output /dev/null --write-out "%{http_code}" --max-time 30 \
+              "https://highsignal.app${path}?probe=$GITHUB_SHA")"
+            test "$code" = "404"
+          done

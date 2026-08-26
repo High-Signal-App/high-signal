@@ -11,17 +11,9 @@ const DATA_CACHE_SCHEMA = 'source-data-v2';
 
 // Public pages that intentionally do not advertise an AI-crawler Markdown
 // representation. They still benefit from the same anonymous HTML/RSC cache.
-const PUBLIC_HTML_ONLY_PATHS = new Set([
-  '/case-studies/search',
-  '/history',
-  '/mentions',
-  '/signals/today',
-]);
+const PUBLIC_HTML_ONLY_PATHS = new Set(['/case-studies/search', '/mentions']);
 
-const PUBLIC_DATA_CACHE_CONTROL = new Map([
-  ['/sitemap.xml', 'public, max-age=300, s-maxage=3600'],
-  ['/daily/range.json', 'public, max-age=60, s-maxage=300'],
-]);
+const PUBLIC_DATA_CACHE_CONTROL = new Map([['/sitemap.xml', 'public, max-age=300, s-maxage=3600']]);
 
 // A request carrying Cloudflare Access's operator-session cookie must never be
 // served from, or written to, the shared edge cache.
@@ -80,10 +72,8 @@ export function cacheControlForRequest(request) {
   if (
     pathname === '/brief/archive' ||
     pathname === '/signals' ||
-    pathname === '/signals/today' ||
     pathname === '/entities' ||
     pathname === '/markets' ||
-    pathname.startsWith('/feeds/') ||
     pathname.startsWith('/entities/') ||
     pathname.startsWith('/markets/')
   ) {
@@ -103,7 +93,6 @@ export function isCacheableDocumentResponse(request, response) {
   const pathname = normalizePublicPath(new URL(request.url).pathname);
   const contentType = (response.headers.get('content-type') ?? '').toLowerCase();
   if (pathname === '/sitemap.xml') return contentType.includes('xml');
-  if (pathname === '/daily/range.json') return contentType.includes('json');
   return isRscRequest(request)
     ? contentType.includes('text/x-component')
     : contentType.includes('text/html');
@@ -114,11 +103,7 @@ export function edgeCacheStatus(request, result) {
 }
 
 function isPublicCachePath(pathname) {
-  return (
-    isPublicDocumentPath(pathname) ||
-    pathname.startsWith('/feeds/') ||
-    PUBLIC_DATA_CACHE_CONTROL.has(pathname)
-  );
+  return isPublicDocumentPath(pathname) || PUBLIC_DATA_CACHE_CONTROL.has(pathname);
 }
 
 function isPublicDocumentPath(pathname) {

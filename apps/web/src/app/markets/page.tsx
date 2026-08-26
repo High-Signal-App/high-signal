@@ -226,11 +226,6 @@ export default async function MarketsPage({
       <RouteList
         items={[
           {
-            href: '/personal',
-            title: 'planning brief',
-            sub: 'market context converted into product decisions',
-          },
-          {
             href: '/markets/history',
             title: 'market history',
             sub: 'date archive for stock context snapshots',
@@ -240,7 +235,7 @@ export default async function MarketsPage({
             title: 'tickers',
             sub: 'company pages by ticker symbol',
           },
-          { href: '/daily', title: 'daily read', sub: 'fresh source reads and product work' },
+          { href: '/', title: 'daily brief', sub: 'current evidence-qualified edition' },
           { href: '/signals', title: 'signals', sub: 'published market and company signals' },
           { href: '/entities', title: 'entities', sub: 'company and sector graph' },
         ]}

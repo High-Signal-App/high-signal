@@ -3,7 +3,6 @@ import type { Route } from 'next';
 import type { ReactNode } from 'react';
 import {
   categoryStatesForSnapshot,
-  briefFeedItemKey,
   type BriefCategoryState,
   type BriefIdeaItem,
   type BriefPublicSectionKey,
@@ -140,25 +139,7 @@ function DirectHistory({ item }: { item: BriefStockItem }) {
   );
 }
 
-function EditionProvenance({ dates }: { dates?: string[] }) {
-  if (!dates?.length) return null;
-  return (
-    <span className="brief-edition-provenance flex flex-wrap items-center gap-x-2">
-      <span>editions</span>
-      {dates.map((date) => (
-        <Link
-          key={date}
-          href={`/brief/${date}` as Route}
-          className="hover:text-[var(--color-accent)]"
-        >
-          {date}
-        </Link>
-      ))}
-    </span>
-  );
-}
-
-function StockItem({ item, editionDates }: { item: BriefStockItem; editionDates?: string[] }) {
+function StockItem({ item }: { item: BriefStockItem }) {
   return (
     <article className="brief-feed-item grid gap-6 border-b border-[var(--color-line)] py-7 last:border-b-0 md:grid-cols-[minmax(0,1fr)_190px]">
       <div>
@@ -222,7 +203,6 @@ function StockItem({ item, editionDates }: { item: BriefStockItem; editionDates?
               claim v{item.provenance.version} · {item.provenance.evidenceCount} supporting
             </Link>
           ) : null}
-          <EditionProvenance dates={editionDates} />
         </div>
       </div>
       <DirectHistory item={item} />
@@ -237,7 +217,7 @@ function verdictTone(verdict: NonNullable<BriefIdeaItem['opportunity']>['verdict
   return 'text-[var(--color-down)]';
 }
 
-function IdeaItem({ item, editionDates }: { item: BriefIdeaItem; editionDates?: string[] }) {
+function IdeaItem({ item }: { item: BriefIdeaItem }) {
   return (
     <article className="brief-feed-item border-b border-[var(--color-line)] py-7 last:border-b-0">
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_190px]">
@@ -283,13 +263,12 @@ function IdeaItem({ item, editionDates }: { item: BriefIdeaItem; editionDates?: 
             evidence · {citation.source ?? sourceHost(citation.url)} ↗
           </a>
         ))}
-        <EditionProvenance dates={editionDates} />
       </div>
     </article>
   );
 }
 
-function TrendItem({ item, editionDates }: { item: BriefTrendItem; editionDates?: string[] }) {
+function TrendItem({ item }: { item: BriefTrendItem }) {
   return (
     <article className="brief-feed-item border-b border-[var(--color-line)] py-7 last:border-b-0">
       <div className="font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--color-muted)]">
@@ -316,7 +295,6 @@ function TrendItem({ item, editionDates }: { item: BriefTrendItem; editionDates?
           source · {item.evidenceUrls[0].source ?? sourceHost(item.evidenceUrls[0].url)} ↗
         </a>
       ) : null}
-      <EditionProvenance dates={editionDates} />
     </article>
   );
 }
@@ -613,12 +591,10 @@ export function BriefSections({
   brief,
   marketContext,
   sections = ['stocks', 'ideas', 'trends'],
-  itemEditionDates = {},
 }: {
   brief: BriefSnapshot;
   marketContext?: ReactNode;
   sections?: BriefPublicSectionKey[];
-  itemEditionDates?: Record<string, string[]>;
 }) {
   const states = categoryStatesForSnapshot(brief);
   const attentionCount =
@@ -650,11 +626,7 @@ export function BriefSections({
         >
           {marketContext}
           {brief.stocks.map((item) => (
-            <StockItem
-              key={`${item.signalSlug}-${item.entityId}`}
-              item={item}
-              editionDates={itemEditionDates[briefFeedItemKey('stocks', item)]}
-            />
+            <StockItem key={`${item.signalSlug}-${item.entityId}`} item={item} />
           ))}
         </SectionShell>
       ) : null}
@@ -667,20 +639,11 @@ export function BriefSections({
           state={states.ideas}
           count={brief.ideas.length}
           empty="No business opportunity cleared the editorial and evidence gates for this edition."
-          action={
-            <Link
-              href={'/opportunities' as Route}
-              className="inline-flex min-h-11 items-center font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-muted)] hover:text-[var(--color-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-accent)]"
-            >
-              opportunity research →
-            </Link>
-          }
         >
           {brief.ideas.map((item) => (
             <IdeaItem
               key={`${item.surfacedAt}-${item.subreddit ?? 'opportunity'}-${item.title}`}
               item={item}
-              editionDates={itemEditionDates[briefFeedItemKey('ideas', item)]}
             />
           ))}
         </SectionShell>
@@ -694,21 +657,9 @@ export function BriefSections({
           state={states.trends}
           count={brief.trends.length}
           empty="No behavior or culture shift cleared the editorial and evidence gates for this edition."
-          action={
-            <Link
-              href={'/communities' as Route}
-              className="inline-flex min-h-11 items-center font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-muted)] hover:text-[var(--color-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-accent)]"
-            >
-              community evidence →
-            </Link>
-          }
         >
           {brief.trends.map((item) => (
-            <TrendItem
-              key={`${item.surfacedAt}-${item.subreddit}-${item.title}`}
-              item={item}
-              editionDates={itemEditionDates[briefFeedItemKey('trends', item)]}
-            />
+            <TrendItem key={`${item.surfacedAt}-${item.subreddit}-${item.title}`} item={item} />
           ))}
         </SectionShell>
       ) : null}

@@ -1,14 +1,32 @@
-import { Hono } from 'hono';
+import { Hono, type Context } from 'hono';
 import { and, desc, eq, gte, lt, sql, type SQL } from 'drizzle-orm';
-import { type SignalContentCategory } from '@high-signal/shared';
+import {
+  isProtectedHistoryDay,
+  istDayFromTimestamp,
+  recentHistoryStart,
+  type SignalContentCategory,
+} from '@high-signal/shared';
 import { db, schema } from '../db';
 import { enrichPublishedSignals, enrichSignal, enrichSignals } from '../lib/signal-quality';
+import { bearerGrant, verifyHistoryGrant } from '../lib/history-access';
 
-type Env = { DB: D1Database };
+type Env = { DB: D1Database; TURNSTILE_SECRET?: string };
 
 export const signalsRoute = new Hono<{ Bindings: Env }>();
 
 const notBackfill = () => sql`${schema.signals.bodyMd} NOT LIKE '> _backfill_%'`;
+
+async function canReadHistory(c: Context<{ Bindings: Env }>) {
+  return verifyHistoryGrant(
+    bearerGrant(c.req.header('authorization')),
+    c.env.TURNSTILE_SECRET
+  );
+}
+
+function isProtectedSignal(value: number | string | Date) {
+  const day = istDayFromTimestamp(value);
+  return day ? isProtectedHistoryDay(day) : true;
+}
 
 function parseDateRange(c: { req: { query: (key: string) => string | undefined } }) {
   const date = c.req.query('date');
@@ -37,6 +55,13 @@ signalsRoute.get('/', async (c) => {
   const category = c.req.query('category') as SignalContentCategory | undefined;
   const minQuality = Number(c.req.query('minQuality') ?? 0);
   const { start, end } = parseDateRange(c);
+  const historyGranted = await canReadHistory(c);
+  if (historyGranted) c.header('Cache-Control', 'private, no-store');
+  const recentStart = recentHistoryStart();
+  if (!historyGranted && ((start && start < recentStart) || (end && end <= recentStart))) {
+    c.header('Cache-Control', 'private, no-store');
+    return c.json({ error: 'history_verification_required' }, 403);
+  }
 
   const conditions: SQL[] = [
     eq(schema.signals.reviewStatus, status as 'draft' | 'published' | 'corrected' | 'killed'),
@@ -48,6 +73,7 @@ signalsRoute.get('/', async (c) => {
   if (confidence)
     conditions.push(eq(schema.signals.confidence, confidence as 'low' | 'medium' | 'high'));
   if (entity) conditions.push(eq(schema.signals.primaryEntityId, entity));
+  if (!historyGranted) conditions.push(gte(schema.signals.publishedAt, recentStart));
   if (start) conditions.push(gte(schema.signals.publishedAt, start));
   if (end) conditions.push(lt(schema.signals.publishedAt, end));
 
@@ -128,6 +154,11 @@ signalsRoute.get('/:slug/evidence', async (c) => {
   ) {
     return c.json({ error: 'not_found' }, 404);
   }
+  if (isProtectedSignal(row.publishedAt)) {
+    const historyGranted = await canReadHistory(c);
+    c.header('Cache-Control', 'private, no-store');
+    if (!historyGranted) return c.json({ error: 'history_verification_required' }, 403);
+  }
   const peerRows = await database
     .select()
     .from(schema.signals)
@@ -156,7 +187,9 @@ signalsRoute.get('/:slug/evidence', async (c) => {
     .where(eq(schema.evidence.signalId, row.id))
     .orderBy(desc(schema.evidence.publishedAt));
 
-  c.header('Cache-Control', 'public, max-age=60, s-maxage=300');
+  if (!isProtectedSignal(row.publishedAt)) {
+    c.header('Cache-Control', 'public, max-age=60, s-maxage=300');
+  }
   return c.json({
     schemaVersion: '1',
     signal: {
@@ -181,6 +214,11 @@ signalsRoute.get('/:slug', async (c) => {
   if (!row) return c.json({ error: 'not_found' }, 404);
   if (row.reviewStatus === 'published' && row.bodyMd.trimStart().startsWith('> _backfill_')) {
     return c.json({ error: 'not_found' }, 404);
+  }
+  if (isProtectedSignal(row.publishedAt)) {
+    const historyGranted = await canReadHistory(c);
+    c.header('Cache-Control', 'private, no-store');
+    if (!historyGranted) return c.json({ error: 'history_verification_required' }, 403);
   }
   const peerRows = await db(c.env.DB)
     .select()
@@ -212,16 +250,18 @@ signalsRoute.get('/:slug', async (c) => {
 
 signalsRoute.get('/by-entity/:entityId', async (c) => {
   const entityId = c.req.param('entityId');
+  const historyGranted = await canReadHistory(c);
+  if (historyGranted) c.header('Cache-Control', 'private, no-store');
+  const conditions: SQL[] = [
+    eq(schema.signals.primaryEntityId, entityId),
+    eq(schema.signals.reviewStatus, 'published'),
+    notBackfill(),
+  ];
+  if (!historyGranted) conditions.push(gte(schema.signals.publishedAt, recentHistoryStart()));
   const rows = await db(c.env.DB)
     .select()
     .from(schema.signals)
-    .where(
-      and(
-        eq(schema.signals.primaryEntityId, entityId),
-        eq(schema.signals.reviewStatus, 'published'),
-        notBackfill()
-      )
-    )
+    .where(and(...conditions))
     .orderBy(desc(schema.signals.publishedAt));
   const enriched = await enrichPublishedSignals(c.env.DB, rows);
   return c.json({ signals: enriched.filter((signal) => signal.publishable) });

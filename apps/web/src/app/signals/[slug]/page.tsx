@@ -1,6 +1,6 @@
 import type { Metadata, Route } from 'next';
 import { notFound } from 'next/navigation';
-import { api } from '@/lib/api';
+import { ApiError, api } from '@/lib/api';
 import { isBackfillSignal, signalHeadline, signalSummary } from '@/lib/signal-format';
 import { pricedInContext, pricedInTone } from '@/lib/price-context';
 import { DirectionPill } from '@/components/atoms/DirectionPill';
@@ -8,9 +8,12 @@ import { ConfidenceBadge } from '@/components/atoms/ConfidenceBadge';
 import { MarkdownView } from '@/components/system/MarkdownView';
 import { SignalArticleJsonLd } from '@/components/seo/structured-data';
 import { ShareBar } from '@/components/molecules/ShareBar';
+import { HistoryGate } from '@/components/history/HistoryGate';
 import catalog from '@/lib/source-catalog.json';
 import { SITE_URL } from '@/lib/site';
 import { evaluateSignal, robotsForVerdict } from '../../../../public-corpus-policy.mjs';
+import { verifiedHistoryGrant } from '@/lib/history-access';
+import { isProtectedHistoryDay, istDayFromTimestamp } from '@high-signal/shared';
 
 export const dynamic = 'force-dynamic';
 
@@ -122,10 +125,24 @@ export async function generateMetadata({
 // Public per agents.md: individual signals are part of the public web channel.
 export default async function SignalDetail({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
+  const historyGrant = await verifiedHistoryGrant();
   let data: Awaited<ReturnType<typeof api.signal>>;
   try {
-    data = await api.signal(slug);
-  } catch {
+    data = await api.signal(slug, historyGrant);
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 403) {
+      return (
+        <main className="mx-auto max-w-4xl px-6 py-16">
+          <a
+            href="/signals"
+            className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--color-muted)] hover:text-[var(--color-fg)]"
+          >
+            ← signals
+          </a>
+          <HistoryGate title="Verify to inspect this signal and its proof" />
+        </main>
+      );
+    }
     return notFound();
   }
   const { signal, evidence, scores } = data;
@@ -134,9 +151,23 @@ export default async function SignalDetail({ params }: { params: Promise<{ slug:
   // Drafts, killed, and corrected rows 404 — they live in /review for
   // operators with admin access.
   if (signal.reviewStatus !== 'published') return notFound();
+  const publishedDay = istDayFromTimestamp(signal.publishedAt);
+  if (publishedDay && isProtectedHistoryDay(publishedDay) && !historyGrant) {
+    return (
+      <main className="mx-auto max-w-4xl px-6 py-16">
+        <a
+          href="/signals"
+          className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--color-muted)] hover:text-[var(--color-fg)]"
+        >
+          ← signals
+        </a>
+        <HistoryGate title="Verify to inspect this signal and its proof" />
+      </main>
+    );
+  }
   let claims: Awaited<ReturnType<typeof api.claimsBySignal>>['claims'] = [];
   try {
-    const c = await api.claimsBySignal(slug);
+    const c = await api.claimsBySignal(slug, historyGrant);
     claims = c.claims;
   } catch {
     // Claims surface is additive; a fetch failure should not 404 the signal.
@@ -303,6 +334,68 @@ export default async function SignalDetail({ params }: { params: Promise<{ slug:
         </section>
       ) : null}
 
+      {signal.observedEvent ||
+      signal.directEntityImpact ||
+      signal.supplyChainImpact ||
+      signal.businessInference ? (
+        <section className="mt-10 border-y border-zinc-800 py-6" aria-labelledby="signal-reasoning">
+          <h2
+            id="signal-reasoning"
+            className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--color-muted)]"
+          >
+            why this became a signal
+          </h2>
+          <dl className="mt-5 grid gap-6 sm:grid-cols-2">
+            {signal.observedEvent ? (
+              <div>
+                <dt className="text-sm font-medium text-zinc-100">Observed event</dt>
+                <dd className="mt-2 text-sm leading-6 text-zinc-400">{signal.observedEvent}</dd>
+              </div>
+            ) : null}
+            {signal.directEntityImpact ? (
+              <div>
+                <dt className="text-sm font-medium text-zinc-100">Direct impact</dt>
+                <dd className="mt-2 text-sm leading-6 text-zinc-400">
+                  {signal.directEntityImpact}
+                </dd>
+              </div>
+            ) : null}
+            {signal.supplyChainImpact ? (
+              <div>
+                <dt className="text-sm font-medium text-zinc-100">Supply-chain impact</dt>
+                <dd className="mt-2 text-sm leading-6 text-zinc-400">{signal.supplyChainImpact}</dd>
+              </div>
+            ) : null}
+            {signal.businessInference ? (
+              <div>
+                <dt className="flex flex-wrap items-center gap-2 text-sm font-medium text-zinc-100">
+                  Business inference
+                  <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--color-muted)]">
+                    {signal.inferenceStrength ?? 'weak'}
+                  </span>
+                </dt>
+                <dd className="mt-2 text-sm leading-6 text-zinc-400">{signal.businessInference}</dd>
+                {signal.inferenceEvidenceUrls && signal.inferenceEvidenceUrls.length > 0 ? (
+                  <dd className="mt-3 flex flex-wrap gap-3 font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--color-muted)]">
+                    {signal.inferenceEvidenceUrls.map((url) => (
+                      <a
+                        key={url}
+                        href={url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="hover:text-[var(--color-accent)]"
+                      >
+                        inference proof · {hostLabel(url)} ↗
+                      </a>
+                    ))}
+                  </dd>
+                ) : null}
+              </div>
+            ) : null}
+          </dl>
+        </section>
+      ) : null}
+
       {bodyMarkdown ? (
         <section id="provenance" className="mt-12 scroll-mt-24 border-t border-zinc-800 pt-6">
           <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--color-muted)]">
@@ -317,7 +410,7 @@ export default async function SignalDetail({ params }: { params: Promise<{ slug:
       {claims.length > 0 && (
         <section className="mt-12 border-t border-zinc-800 pt-6">
           <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--color-muted)]">
-            provenance
+            claim proofs
           </h2>
           <ul className="mt-4 space-y-3">
             {claims
@@ -382,7 +475,7 @@ export default async function SignalDetail({ params }: { params: Promise<{ slug:
 
       <section className="mt-12 border-t border-zinc-800 pt-6">
         <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--color-muted)]">
-          source data used
+          source data used as proof
         </h2>
         <ul className="mt-4 space-y-3">
           {evidence.map((e) => {

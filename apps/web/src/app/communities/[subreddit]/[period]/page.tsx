@@ -7,6 +7,7 @@ import {
   SectionHeader,
 } from '@/components/system/HighSignalUI';
 import { MarkdownView } from '@/components/system/MarkdownView';
+import { requireAdminSession } from '@/lib/admin-guard';
 import { api, type CommunityDigestSnapshot } from '@/lib/api';
 import { redditSourceLink } from '@high-signal/shared';
 
@@ -20,7 +21,10 @@ export async function generateMetadata({
   params: Promise<{ subreddit: string; period: string }>;
 }) {
   const { subreddit, period } = await params;
-  return { title: `r/${subreddit} ${period} archive` };
+  return {
+    title: `r/${subreddit} ${period} archive`,
+    robots: { index: false, follow: false },
+  };
 }
 
 export default async function CommunityArchivePage({
@@ -28,6 +32,7 @@ export default async function CommunityArchivePage({
 }: {
   params: Promise<{ subreddit: string; period: string }>;
 }) {
+  await requireAdminSession();
   const { subreddit, period: rawPeriod } = await params;
   const period = periods.includes(rawPeriod as (typeof periods)[number])
     ? (rawPeriod as 'day' | 'week' | 'month')

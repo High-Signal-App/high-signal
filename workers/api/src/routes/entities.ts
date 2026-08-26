@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
-import { eq, or, desc } from 'drizzle-orm';
+import { and, desc, eq, gte, or, sql } from 'drizzle-orm';
+import { recentHistoryStart } from '@high-signal/shared';
 import { db, schema } from '../db';
 
 type Env = { DB: D1Database };
@@ -30,7 +31,14 @@ entitiesRoute.get('/:id', async (c) => {
   const signals = await db(c.env.DB)
     .select()
     .from(schema.signals)
-    .where(eq(schema.signals.primaryEntityId, id))
+    .where(
+      and(
+        eq(schema.signals.primaryEntityId, id),
+        eq(schema.signals.reviewStatus, 'published'),
+        sql`${schema.signals.bodyMd} NOT LIKE '> _backfill_%'`,
+        gte(schema.signals.publishedAt, recentHistoryStart())
+      )
+    )
     .orderBy(desc(schema.signals.publishedAt))
     .limit(20);
 

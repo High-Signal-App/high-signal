@@ -5,17 +5,11 @@
 
 > Current scope and day-to-day status live in [`PROJECT_STATUS.md`](./PROJECT_STATUS.md) (authoritative). This README is setup, architecture, and pipeline reference.
 
-High Signal is **one product**: a synthesized **Daily Brief** assembled from many noisy public sources. It covers three knowledge domains — **technology, startups, finance** — globally by default and filtered to any region a user picks.
+High Signal is **one product**: a synthesized **Daily Brief** assembled from noisy public sources across **technology, startups, and finance**. The public edition contains three evidence-qualified sections: markets and companies, business opportunities, and behavior and culture.
 
-The brief has five sections. The first three are public; the last two appear once the user connects a brand.
+Readers start with today or yesterday, open each signal to inspect its proof, and use Sources, Company Universe, and Track Record for context. Older records live in the chronological Signals surface behind a Turnstile human check. There are no reader accounts or personalized editions.
 
-1. **Stocks watching for a boom** — hit-rate inline on every claim.
-2. **Business ideas to build** — surfaced from community demand.
-3. **New lifestyle trends** — community + cultural drift.
-4. **How the market perceives your products** — mention intelligence.
-5. **Ideas to improve your products** — agent-readiness gaps.
-
-Everything else in the repo (Markets, Communities, Mentions, Agent Eval, Lab) is a **lens** — an intelligence helper that feeds the brief. They remain explorable as deep views but are no longer the product's headline.
+Markets, Communities, Entities, Sectors, and Convergence are supporting inputs or research indexes. They are not separate products. Agent Eval, Domains, and Lab no longer have public High Signal surfaces.
 
 Pricing: free. No paid tier, no billing. Region is a free filter.
 
@@ -23,11 +17,10 @@ Pricing: free. No paid tier, no billing. Region is a free filter.
 - Ingests SEC filings, IR pages, AI-infra news/blogs, Reddit, GitHub, government feeds, YouTube transcripts, HKEX announcements, GDELT, and prediction markets
 - Extracts source observations (`Event` / D1 `events`) + entities + relationships;
   reviewed actionable conclusions live in `signals`
-- Turns world-level changes and repeated app complaints into product opportunities under `/opportunities`
-- Maps those opportunities onto the personal product graph under `/personal`
-- Drafts daily signal candidates across low / medium / high confidence bands
+- Turns supported world-level changes and repeated community demand into Daily Brief opportunities
+- Drafts daily signal candidates across low / medium / high confidence bands, each with cited proof
 - Predicts direction + 2nd-order spillover via supplier/customer/peer graph
-- Publishes reviewed signal cards + weekly digest
+- Publishes reviewed signal cards and one Daily Brief
 - Auto-backtests every signal — public hit-rate ledger updated continuously
 
 ## Why the first market wedge still matters
@@ -53,7 +46,7 @@ For day-to-day stack and conventions, read `agents.md` (canonical).
 
 ## Integrations & companion tools
 
-- **drank** (Web Authority / Domain Signals): A companion tool and data source for tracking high-signal websites via Ahrefs Domain Rating. The live leaderboard and community nominations are surfaced at `/domains` in this app. Full interactive predictions and personal tracking live at the standalone [drank app](https://drank-sand.vercel.app). Data is shared via public GitHub-backed JSON.
+- **drank** (Web Authority / Domain Signals): a parked data adapter consumed from public GitHub-backed JSON. It has no public High Signal route.
 
 ## Data pipelines
 
@@ -299,11 +292,8 @@ Python surfaces also run their native checks in separate CI jobs.
 - Commercial handoff: `docs/product/handoff.md`
 - Consolidation plan: `plans/0004-platform-consolidation.md`
 - Plan: `plans/0001-research-artifact-first.md`
-- Agent Evaluation plan: `plans/0006-agent-evaluation-attention-layer.md`
 - Lab substrate plan: `plans/0007-highsignal-lab-substrate.md`
 - Lab bring-up: `python/lab/README.md`
-- Product opportunity radar: `/opportunities`
-- Personal command brief: `/personal`
 - Research: `research/market-and-oss.md`
 - Stack + conventions: `agents.md`
 - Seed corpus: `python/ingest/src/high_signal_ingest/seed/`

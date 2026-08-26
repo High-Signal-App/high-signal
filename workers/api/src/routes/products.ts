@@ -1,5 +1,5 @@
 /**
- * Public community lens + stateless SEO audit.
+ * Community evidence consumed by the Daily Brief.
  *
  * This file used to host Mentions, Agent Eval history, and a per-owner product
  * dashboard. Those were removed when High Signal went fully public — see the
@@ -13,7 +13,6 @@
 import { Hono } from 'hono';
 import { and, desc, eq } from 'drizzle-orm';
 import { db, schema } from '../db';
-import { runSeoAudit } from '../lib/seo-audit';
 import {
   clampedLimit,
   isRedditPeriod,
@@ -23,16 +22,6 @@ import {
 type Env = { DB: D1Database };
 
 export const productsRoute = new Hono<{ Bindings: Env }>();
-
-productsRoute.get('/agent-eval/seo-audit', async (c) => {
-  const url = c.req.query('url')?.trim();
-  if (!url) return c.json({ error: 'missing_url' }, 400);
-  if (!/^https?:\/\//i.test(url)) return c.json({ error: 'invalid_url' }, 400);
-  const report = await runSeoAudit(url);
-  return c.json(report, 200, {
-    'Cache-Control': 'public, max-age=600, s-maxage=600',
-  });
-});
 
 productsRoute.get('/communities/:subreddit/:period/digests', async (c) => {
   const subreddit = c.req.param('subreddit');

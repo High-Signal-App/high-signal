@@ -1,7 +1,6 @@
 /**
- * Minimal RSS 2.0 builder. Public-feed surfaces in agents.md (per-signal
- * + weekly digest) consume this. Keep dependency-free so it stays cheap
- * at the worker edge.
+ * Minimal RSS 2.0 builder for the public chronological signal feed. Keep it
+ * dependency-free so it stays cheap at the worker edge.
  */
 
 function escapeXml(s: string): string {

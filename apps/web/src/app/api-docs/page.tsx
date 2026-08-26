@@ -7,8 +7,7 @@ export const metadata: Metadata = {
   // canonical de-indexes the corpus), so a route without this ships none.
   alternates: { canonical: `${SITE_URL}/api-docs` },
   title: 'API & feeds',
-  description:
-    'Public endpoints — RSS feeds, signal redirects, sitemap. Build dashboards on top, subscribe via your reader.',
+  description: 'The small public High Signal interface: daily data, signal feeds, and discovery.',
 };
 
 interface Endpoint {
@@ -22,11 +21,6 @@ const ENDPOINTS: Endpoint[] = [
     path: '/signals/rss',
     format: 'RSS 2.0',
     description: 'Every published signal as an ongoing feed.',
-  },
-  {
-    path: '/digest/rss',
-    format: 'RSS 2.0',
-    description: 'Last 7 days of signals — designed for inbox readers.',
   },
   {
     path: 'https://api.highsignal.app/data/daily',
@@ -62,8 +56,8 @@ export default function ApiDocsPage() {
       </Link>
       <h1 className="mt-3 text-3xl font-medium tracking-tight text-white">API & feeds</h1>
       <p className="mt-3 text-sm text-zinc-400">
-        High Signal is built to be consumable, not just visited. Subscribe via RSS, embed snippets
-        in your own dashboard, or bounce visitors through the public redirects.
+        Read the complete daily dataset as JSON, or subscribe to the chronological signal feed. The
+        same published evidence powers the website and machine interfaces.
       </p>
 
       <table className="mt-10 w-full text-sm">

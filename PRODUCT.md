@@ -10,16 +10,14 @@ web
 
 High Signal serves founders, operators, researchers, and other readers who need
 to identify meaningful changes across technology, startups, and finance without
-clearing another undifferentiated feed. Connected-brand users additionally use
-mention and agent-readiness evidence to understand their own products.
+clearing another undifferentiated feed.
 
 ## Product Purpose
 
 High Signal turns noisy public evidence into one Daily Brief. The public brief
-answers three recurring questions about market opportunities, business ideas,
-and behavior shifts. Connecting a brand adds market-perception and
-agent-readiness sections. Success means the reader can move from a concise
-claim to its sources, confidence, history, and measured outcome.
+separates observed market and company changes, supported business opportunities,
+and behavior shifts. Success means the reader can move from a concise claim to
+its sources, confidence, history, and measured outcome.
 
 ## Positioning
 
@@ -30,10 +28,11 @@ record matters more than aggregation volume.
 
 ## Operating Context
 
-Readers start from the current brief, then follow signals into dated archives,
-entities, sectors, company profiles, source evidence, methodology, and the
-track-record ledger. Public pages work without signup. Region is a free filter.
-Connected-brand workflows add Mentions and Agent Eval evidence.
+Readers start from today or yesterday's brief, then follow signals into proof
+pages, sources, entities, Company Universe profiles, and the track-record
+ledger. Earlier records sit in the chronological Signals surface. Public pages
+work without signup; older history uses a Turnstile check rather than an
+account. Region is a free filter.
 
 ## Capabilities and Constraints
 
@@ -46,6 +45,8 @@ Connected-brand workflows add Mentions and Agent Eval evidence.
 - Confidence is expressed as low, medium, or high. Missing evidence never
   becomes a positive claim.
 - Everything is free for now. There is no paid tier or billing gate.
+- There are no reader accounts, personalization, featured rotations, or
+  standalone idea-scoring tools.
 
 ## Brand Commitments
 

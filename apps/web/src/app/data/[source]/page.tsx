@@ -57,7 +57,7 @@ export async function generateMetadata({
   const { source } = await params;
   const e = entryFor(source);
   return {
-    title: `${source} — data`,
+    title: `${source} — source data`,
     description: e
       ? `Ingested events from ${e.provider} (${source}).`
       : `Ingested events from ${source}.`,
@@ -139,7 +139,7 @@ export default async function DataSourcePage({
         href="/data"
         className="font-mono text-[11px] text-zinc-500 underline-offset-2 hover:text-[var(--color-accent)] hover:underline"
       >
-        ← data directory
+        ← sources
       </Link>
 
       <header className="mt-4 mb-8 border-b border-zinc-800 pb-5">

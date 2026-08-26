@@ -3,7 +3,6 @@ import type { Route } from 'next';
 import { BriefSections } from '@/components/brief/BriefSections';
 import { DailyBriefHero } from '@/components/brief/DailyBriefHero';
 import { EditionCoverageReceipt } from '@/components/brief/EditionCoverageReceipt';
-import { PublicationSwitcher } from '@/components/brief/PublicationSwitcher';
 import { ShareBar } from '@/components/molecules/ShareBar';
 import { HomeJsonLd } from '@/components/seo/structured-data';
 import { PageShell } from '@/components/system/HighSignalUI';
@@ -12,6 +11,7 @@ import { SITE_URL } from '@/lib/site';
 import {
   briefFeedDefinition,
   coverageReceiptForSnapshot,
+  istDay,
   isRegion,
   type Region,
 } from '@high-signal/shared';
@@ -78,35 +78,75 @@ function ConvergenceContext({
 export async function CurrentBriefPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ region?: string }>;
+  searchParams?: Promise<{ region?: string; day?: string }>;
 }) {
   const params = (await searchParams) ?? {};
   const rawRegion = (params.region ?? 'global').toLowerCase().trim();
   const region: Region = isRegion(rawRegion) ? rawRegion : 'global';
+  const selectedDay = params.day === 'yesterday' ? 'yesterday' : 'today';
+  const editionDate = istDay(new Date(), selectedDay === 'yesterday' ? -1 : 0);
 
   let brief: BriefSnapshot = { ...EMPTY_BRIEF, region };
   let convergence: Awaited<ReturnType<typeof api.convergence>> | null = null;
   const [briefResult, convergenceResult] = await Promise.allSettled([
-    api.brief({ region }),
+    api.brief({ region, date: selectedDay === 'yesterday' ? editionDate : undefined }),
     api.convergence(24, 3),
   ]);
   if (briefResult.status === 'fulfilled') brief = briefResult.value;
   if (convergenceResult.status === 'fulfilled') convergence = convergenceResult.value;
 
-  const canonicalUrl = `${SITE_URL}${region === 'global' ? '' : `?region=${region}`}`;
+  const canonicalParams = new URLSearchParams();
+  if (region !== 'global') canonicalParams.set('region', region);
+  if (selectedDay === 'yesterday') canonicalParams.set('day', 'yesterday');
+  const canonicalQuery = canonicalParams.toString();
+  const canonicalUrl = `${SITE_URL}${canonicalQuery ? `?${canonicalQuery}` : ''}`;
   const coverage = coverageReceiptForSnapshot(briefFeedDefinition('brief'), brief);
 
   return (
     <PageShell>
       <HomeJsonLd />
-      <PublicationSwitcher feed="brief" cadence="daily" region={region} />
-      <DailyBriefHero brief={brief} region={region} />
+      <nav
+        aria-label="Daily Brief date"
+        className="mb-6 flex flex-wrap items-center gap-x-5 gap-y-2 border-b border-[var(--color-line)] pb-4 font-mono text-[10px] uppercase tracking-[0.16em]"
+      >
+        <Link
+          href={(region === 'global' ? '/' : `/?region=${region}`) as Route}
+          aria-current={selectedDay === 'today' ? 'page' : undefined}
+          className={
+            selectedDay === 'today'
+              ? 'text-[var(--color-accent)]'
+              : 'text-[var(--color-muted)] hover:text-[var(--color-fg)]'
+          }
+        >
+          Today
+        </Link>
+        <Link
+          href={
+            `/?${new URLSearchParams({ ...(region === 'global' ? {} : { region }), day: 'yesterday' }).toString()}` as Route
+          }
+          aria-current={selectedDay === 'yesterday' ? 'page' : undefined}
+          className={
+            selectedDay === 'yesterday'
+              ? 'text-[var(--color-accent)]'
+              : 'text-[var(--color-muted)] hover:text-[var(--color-fg)]'
+          }
+        >
+          Yesterday
+        </Link>
+        <Link
+          href={'/signals' as Route}
+          className="ml-auto text-[var(--color-muted)] hover:text-[var(--color-fg)]"
+        >
+          Earlier signals →
+        </Link>
+      </nav>
+      <DailyBriefHero brief={brief} region={region} editionDate={editionDate} />
 
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[var(--color-line)] py-4">
         <ShareBar url={canonicalUrl} title="High Signal Daily Brief" />
         <div className="flex gap-4 font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-muted)]">
-          <Link href={'/brief/archive' as Route} className="hover:text-[var(--color-accent)]">
-            archive
+          <Link href={'/signals' as Route} className="hover:text-[var(--color-accent)]">
+            signals
           </Link>
           <Link href={'/methodology' as Route} className="hover:text-[var(--color-accent)]">
             methodology

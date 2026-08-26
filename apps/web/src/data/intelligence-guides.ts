@@ -84,9 +84,9 @@ export const INTELLIGENCE_GUIDES: Record<IntelligenceGuideKey, IntelligenceGuide
         verifiedAt: '2026-08-05',
       },
       {
-        href: '/brief/archive',
-        label: 'Dated brief archive',
-        detail: 'Permanent daily snapshots preserve what readers could see at the time.',
+        href: '/signals',
+        label: 'Dated signal record',
+        detail: 'Daily snapshots preserve what readers could see at the time.',
         verifiedAt: '2026-08-05',
       },
       {
@@ -119,9 +119,9 @@ export const INTELLIGENCE_GUIDES: Record<IntelligenceGuideKey, IntelligenceGuide
         description: 'Check matured calls and sample size.',
       },
       {
-        href: '/brief/archive',
-        title: 'Brief archive',
-        description: 'Return to a permanent dated brief.',
+        href: '/signals',
+        title: 'Signal history',
+        description: 'Return to a dated brief through the chronological record.',
       },
     ],
     cta: {
@@ -296,9 +296,9 @@ export const INTELLIGENCE_GUIDES: Record<IntelligenceGuideKey, IntelligenceGuide
         description: 'Connect company context to changing evidence.',
       },
       {
-        href: '/opportunities',
-        title: 'Opportunities',
-        description: 'Inspect source-backed product hypotheses.',
+        href: '/track-record',
+        title: 'Track record',
+        description: 'Check how matured signals performed.',
       },
       {
         href: '/data',
@@ -309,7 +309,7 @@ export const INTELLIGENCE_GUIDES: Record<IntelligenceGuideKey, IntelligenceGuide
     cta: {
       href: '/case-studies',
       title: 'Explore the qualified company universe',
-      description: 'Then follow its evidence into current signals and opportunities.',
+      description: 'Then follow its evidence into current signals and their proofs.',
     },
   },
   'market-intelligence-for-founders': {
@@ -342,21 +342,15 @@ export const INTELLIGENCE_GUIDES: Record<IntelligenceGuideKey, IntelligenceGuide
         ],
       },
       {
-        title: '4. Translate evidence into an opportunity',
+        title: '4. Separate observation from opportunity',
         paragraphs: [
-          'The opportunities and ideas surfaces connect public changes, complaints, and demand evidence to possible products. Treat these as hypotheses. Inspect the target user, problem, evidence mix, why-now argument, risk, and next validation step before acting. A strong opportunity still needs customer conversations and primary research.',
+          'Business opportunities appear inside the Daily Brief only when the underlying observation clears the same evidence gates. Treat the suggested product or business implication as an inference: open the signal, inspect its proofs, and do primary customer research before acting.',
         ],
       },
       {
-        title: '5. Connect your own product when useful',
+        title: '5. Return to the record',
         paragraphs: [
-          'The public brief works without signup. Connecting a brand adds two product-specific sections: market perception of that product and agent-readiness gaps that may suggest improvements. These sections depend on connected-brand evidence; they should not be confused with the public market feed.',
-        ],
-      },
-      {
-        title: '6. Return to the record',
-        paragraphs: [
-          "Use dated brief archives and the public track record to check what changed and whether earlier directional calls matured into hits, misses, or pushes. When the sample is small, High Signal says so. This makes the workflow measurable over time instead of allowing today's narrative to overwrite yesterday's prediction.",
+          "Use the chronological signal record and public track record to check what changed and whether earlier directional calls matured into hits, misses, or pushes. When the sample is small, High Signal says so. This makes the workflow measurable over time instead of allowing today's narrative to overwrite yesterday's prediction.",
         ],
       },
     ],
@@ -375,11 +369,10 @@ export const INTELLIGENCE_GUIDES: Record<IntelligenceGuideKey, IntelligenceGuide
         verifiedAt: '2026-08-05',
       },
       {
-        href: '/opportunities',
-        label: 'Opportunity briefs',
-        detail:
-          'Hypotheses expose target user, problem, evidence mix, why now, risk, and next validation step.',
-        verifiedAt: '2026-08-05',
+        href: '/signals',
+        label: 'Proof-bearing signals',
+        detail: 'Observed events, impacts, inferences, and supporting evidence stay distinct.',
+        verifiedAt: '2026-08-26',
       },
     ],
     related: [
@@ -470,8 +463,8 @@ export const INTELLIGENCE_GUIDES: Record<IntelligenceGuideKey, IntelligenceGuide
         verifiedAt: '2026-08-05',
       },
       {
-        href: '/brief/archive',
-        label: '38 dated briefs',
+        href: '/signals',
+        label: 'Dated briefs',
         detail: 'Retained snapshots preserve required sections and citations.',
         verifiedAt: '2026-08-05',
       },
