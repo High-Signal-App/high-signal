@@ -341,10 +341,20 @@ assert.equal(catalog.templates.length, PUBLIC_DYNAMIC_ROUTE_TEMPLATES.length);
 assert.ok(catalog.templates.every((template) => template.eligibility));
 assert.ok(catalog.surfaces.every((surface) => surface.url && surface.md));
 assert.equal(catalog.markdown.negotiation, true);
+assert.deepEqual(catalog.mcp, {
+  url: 'https://api.highsignal.app/mcp',
+  transport: 'streamable-http',
+  auth: 'none',
+  tools: ['get_daily_brief', 'get_signal', 'get_daily_dump'],
+});
 assert.match(catalog.auth.notes, /Review, admin, delivery/);
 assert.equal(
   catalog.dataResources.find((resource) => resource.id === 'daily-dump-json')?.url,
   'https://api.highsignal.app/data/daily'
+);
+assert.equal(
+  catalog.dataResources.find((resource) => resource.id === 'high-signal-mcp')?.url,
+  'https://api.highsignal.app/mcp'
 );
 
 const staticCatalogResponse = handleAgentEdge(markdownRequest('/api-ai.json'));

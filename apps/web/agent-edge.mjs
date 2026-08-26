@@ -116,6 +116,7 @@ excluded.
 - https://highsignal.app/entities.json
 - https://highsignal.app/data/hit-rate.json
 - https://api.highsignal.app/data/daily
+- https://api.highsignal.app/mcp (Streamable HTTP MCP)
 `;
 
 function catalogForOrigin(origin) {
@@ -137,13 +138,19 @@ function catalogForOrigin(origin) {
 
   return {
     name: PRODUCT.name,
-    version: '2',
+    version: '3',
     url: origin,
     llms: `${origin}/llms.txt`,
     llmsFull: `${origin}/llms-full.txt`,
     openapi: `${origin}/openapi.json`,
     sitemap: `${origin}/sitemap.xml`,
     robots: `${origin}/robots.txt`,
+    mcp: {
+      url: 'https://api.highsignal.app/mcp',
+      transport: 'streamable-http',
+      auth: 'none',
+      tools: ['get_daily_brief', 'get_signal', 'get_daily_dump'],
+    },
     markdown: {
       suffix: '.md',
       negotiation: true,
@@ -175,6 +182,13 @@ function catalogForOrigin(origin) {
         kind: 'json',
         description:
           'Complete UTC daily dump of published signals, linked evidence events, and the separately labeled Digg attention overlay.',
+      },
+      {
+        id: 'high-signal-mcp',
+        url: 'https://api.highsignal.app/mcp',
+        kind: 'mcp',
+        description:
+          'Public read-only Streamable HTTP MCP server for the Daily Brief, signal proofs, and complete daily dump.',
       },
     ],
     auth: {

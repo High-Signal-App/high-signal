@@ -37,3 +37,21 @@ jobs:
               '
           curl --fail --silent --show-error --location --max-time 30 \
             "https://api.highsignal.app/brief/daily?probe=$GITHUB_SHA" >/dev/null
+          curl --fail --silent --show-error --max-time 30 \
+            --header "Accept: application/json, text/event-stream" \
+            --header "Content-Type: application/json" \
+            --data '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}' \
+            https://api.highsignal.app/mcp \
+            | node -e '
+                let raw = "";
+                process.stdin.on("data", (chunk) => { raw += chunk; });
+                process.stdin.on("end", () => {
+                  const dataLine = raw.split(/\r?\n/).find((line) => line.startsWith("data: "));
+                  const payload = JSON.parse(dataLine ? dataLine.slice(6) : raw);
+                  const names = (payload.result?.tools ?? []).map((tool) => tool.name);
+                  const expected = ["get_daily_brief", "get_signal", "get_daily_dump"];
+                  if (JSON.stringify(names) !== JSON.stringify(expected)) {
+                    throw new Error(`MCP tool contract mismatch: ${JSON.stringify(names)}`);
+                  }
+                });
+              '

@@ -303,6 +303,17 @@ Python surfaces also run their native checks in separate CI jobs.
 - Data ownership boundary: `docs/architecture/data-service-boundary.md`
 - Seeding guide: `docs/development/seeding.md`
 
+## Machine access
+
+- Remote MCP: `https://api.highsignal.app/mcp` (public, read-only, Streamable HTTP)
+- Daily JSON: `https://api.highsignal.app/data/daily`
+- Agent catalog: `https://highsignal.app/api/ai`
+- OpenAPI: `https://highsignal.app/openapi.json`
+
+The MCP contract is intentionally limited to `get_daily_brief`, `get_signal`,
+and `get_daily_dump`. These tools reuse the same cached public API reads and
+Today/Yesterday history boundary as the website.
+
 ## Deploy
 - Web → Cloudflare Workers via OpenNext (`.github/workflows/deploy-web.yml`)
 - API → Cloudflare Workers (`.github/workflows/deploy-api.yml`)

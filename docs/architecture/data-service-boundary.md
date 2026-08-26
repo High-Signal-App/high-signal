@@ -1,7 +1,7 @@
 # Data Service Boundary
 
 Status: phase 1 started
-Updated: 2026-07-31
+Updated: 2026-08-26
 
 High Signal should remain the insight product, not the long-term data warehouse.
 The current source adapters are useful and should stay working, but they are an
@@ -83,6 +83,20 @@ There is no `normalized_events` table or type today. That name is reserved for
 a future actionable-event model only if a concrete use case requires one. It
 must not be used as an alias for the current `events` table. Adding it would be
 a separately specified schema and migration change.
+
+## Agent Access Boundary
+
+The public REST API, OpenAPI document, JSON feeds, Markdown alternates, and MCP
+server are interfaces over the same High Signal product data. They do not own a
+second copy of signals or evidence.
+
+`POST https://api.highsignal.app/mcp` uses stateless Streamable HTTP and exposes
+only three read tools: `get_daily_brief`, `get_signal`, and `get_daily_dump`.
+Those tools call the existing public Hono routes in-process through the same
+Cloudflare Cache API wrapper. Publication gates, Today/Yesterday access, and
+Turnstile-protected history therefore remain identical across web, REST, and
+MCP. Tool schemas stay backward-compatible; data can improve behind them
+without requiring agents to install a new connector definition.
 
 ## Migration Path
 

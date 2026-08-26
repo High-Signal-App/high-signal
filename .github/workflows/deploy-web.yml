@@ -39,6 +39,11 @@ jobs:
                   if (!resources.some((resource) => resource.id === "daily-dump-json")) {
                     throw new Error("agent catalog is missing the canonical daily dump");
                   }
+                  const expectedTools = ["get_daily_brief", "get_signal", "get_daily_dump"];
+                  if (payload.mcp?.url !== "https://api.highsignal.app/mcp" ||
+                      JSON.stringify(payload.mcp?.tools) !== JSON.stringify(expectedTools)) {
+                    throw new Error("agent catalog is missing the stable MCP contract");
+                  }
                 });
               '
           for path in /ideas /opportunities /teardowns /digest /agent-eval /domains /lab; do

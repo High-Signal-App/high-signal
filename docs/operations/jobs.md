@@ -68,9 +68,10 @@ in-process via `annotateLightweightNlp` (see `packages/shared/src/nlp/`), so
 there is no `workers/annotation` and no `deploy-annotation.yml`.
 
 The web deploy smoke verifies Brief, Signals, Sources, Company Universe, the
-agent catalog's canonical daily-dump resource, and the intentional 404s for
-removed products. The API deploy smoke verifies health plus the daily
-signals/evidence dump and composed Daily Brief contracts.
+agent catalog's canonical daily-dump and MCP resources, and the intentional
+404s for removed products. The API deploy smoke verifies health, the daily
+signals/evidence dump, the composed Daily Brief, and the exact three-tool MCP
+contract.
 
 Before either deploy is dispatched, the exact `main` SHA must have a successful
 push-triggered CI run. A manual CI dispatch is useful diagnostics but does not

@@ -7,7 +7,8 @@ export const metadata: Metadata = {
   // canonical de-indexes the corpus), so a route without this ships none.
   alternates: { canonical: `${SITE_URL}/api-docs` },
   title: 'API & feeds',
-  description: 'The small public High Signal interface: daily data, signal feeds, and discovery.',
+  description:
+    'The small public High Signal interface: MCP tools, daily data, signal feeds, and discovery.',
 };
 
 interface Endpoint {
@@ -17,6 +18,12 @@ interface Endpoint {
 }
 
 const ENDPOINTS: Endpoint[] = [
+  {
+    path: 'https://api.highsignal.app/mcp',
+    format: 'MCP · Streamable HTTP',
+    description:
+      'Three stable read-only tools: today/yesterday brief, signal proofs, and the complete daily dump.',
+  },
   {
     path: '/signals/rss',
     format: 'RSS 2.0',
@@ -56,8 +63,8 @@ export default function ApiDocsPage() {
       </Link>
       <h1 className="mt-3 text-3xl font-medium tracking-tight text-white">API & feeds</h1>
       <p className="mt-3 text-sm text-zinc-400">
-        Read the complete daily dataset as JSON, or subscribe to the chronological signal feed. The
-        same published evidence powers the website and machine interfaces.
+        Connect an MCP client once, read the complete daily dataset as JSON, or subscribe to the
+        chronological signal feed. The same published evidence powers every interface.
       </p>
 
       <table className="mt-10 w-full text-sm">

@@ -138,6 +138,14 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 
 ## Timeline
 
+- **2026-08-26 — Public MCP released:** the API
+  Worker now has a stateless Streamable HTTP endpoint at `/mcp` with exactly
+  three stable read-only tools: Daily Brief for Today/Yesterday, one signal with
+  complete proofs, and the canonical daily dump. Tool reads reuse the existing
+  in-process Hono routes and Cloudflare Cache API, preserve the public history
+  boundary, and include schema/freshness metadata. No Durable Object, database
+  migration, authentication, user state, or second data path was added.
+
 - **2026-08-26 — Public product cleanup released:**
   Company Universe remains first-class. Explore and the footer now follow the
   core Brief → Signals/proofs → Sources → Company Universe → Track Record path.
