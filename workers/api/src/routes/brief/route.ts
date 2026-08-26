@@ -167,14 +167,14 @@ function loadDailyBriefBrand(request: ReturnType<typeof parseDailyBriefRequest>)
  * trends) are computed once and stored as JSON. The API then does a
  * single D1 lookup instead of 5-14 sequential queries.
  */
-export interface BriefPrecomputeRegionResult {
+interface BriefPrecomputeRegionResult {
   region: Region;
   status: 'published' | 'rejected' | 'failed';
   counts?: { stocks: number; ideas: number; trends: number };
   issues?: Array<{ section: string; item: number | null; reason: string }>;
 }
 
-export interface BriefPrecomputeResult {
+interface BriefPrecomputeResult {
   date: string;
   globalPublished: boolean;
   regions: BriefPrecomputeRegionResult[];
