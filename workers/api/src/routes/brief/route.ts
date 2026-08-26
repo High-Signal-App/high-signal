@@ -180,105 +180,88 @@ interface BriefPrecomputeResult {
   regions: BriefPrecomputeRegionResult[];
 }
 
+async function precomputeBriefRegion(
+  database: ReturnType<typeof db>,
+  region: Region,
+  today: string,
+  nowIso: string
+): Promise<BriefPrecomputeRegionResult> {
+  try {
+    const countries = countriesForRegion(region);
+    const [stockResult, ideaResult, trendResult, attention] = await Promise.all([
+      safeCategory(() => buildStocks(database, countries), 'stocks'),
+      safeCategory(() => buildIdeas(database, region, countries), 'ideas'),
+      safeCategory(() => buildTrends(database, region, countries), 'trends'),
+      buildDiggAttention(database),
+    ]);
+    const snapshot: BriefSnapshot = {
+      generatedAt: nowIso,
+      region,
+      hasBrand: false,
+      stocks: stockResult.items,
+      ideas: ideaResult.items,
+      trends: trendResult.items,
+      perception: [],
+      improvements: [],
+      ...attention,
+      categoryStates: {
+        stocks: stockResult.state,
+        ideas: ideaResult.state,
+        trends: trendResult.state,
+      } satisfies BriefCategoryStates,
+    };
+    const pruned = pruneUnpublishableBriefItems(snapshot);
+    const publishedSnapshot = pruned.snapshot;
+    if (pruned.withheld.length > 0) {
+      console.error(
+        `[brief-precompute] ${region} withheld ${pruned.withheld.length} item(s) on ${today}`,
+        JSON.stringify(pruned.withheld)
+      );
+    }
+
+    const receipt = buildBriefEditionReceipt(publishedSnapshot);
+    if (!receipt.publishable) {
+      console.error(
+        `[brief-precompute] ${region} REJECTED on ${today} — no snapshot written`,
+        JSON.stringify({ counts: receipt.counts, issues: receipt.issues })
+      );
+      return { region, status: 'rejected', counts: receipt.counts, issues: receipt.issues };
+    }
+
+    await database
+      .insert(schema.dailyBriefSnapshots)
+      .values({
+        date: today,
+        region,
+        briefJson: JSON.stringify(publishedSnapshot),
+        computedAt: nowIso,
+      })
+      .onConflictDoUpdate({
+        target: [schema.dailyBriefSnapshots.date, schema.dailyBriefSnapshots.region],
+        set: { briefJson: JSON.stringify(publishedSnapshot), computedAt: nowIso },
+      });
+    console.log(
+      `[brief-precompute] ${region}: ${publishedSnapshot.stocks.length} stocks, ${publishedSnapshot.ideas.length} ideas, ${publishedSnapshot.trends.length} trends, ${publishedSnapshot.attentionLeaders?.length ?? 0} attention leaders, ${pruned.withheld.length} withheld; gate=pass`
+    );
+    return { region, status: 'published', counts: receipt.counts };
+  } catch (err) {
+    console.error(`[brief-precompute] ${region} failed:`, err);
+    return { region, status: 'failed' };
+  }
+}
+
 export async function precomputeBriefSnapshots(env: {
   DB: D1Database;
 }): Promise<BriefPrecomputeResult> {
   const database = db(env.DB);
-  const today = istDay();
+  const date = istDay();
   const nowIso = new Date().toISOString();
   const regions: BriefPrecomputeRegionResult[] = [];
-
   for (const region of PRECOMPUTED_REGIONS) {
-    try {
-      const countries = countriesForRegion(region);
-
-      const [stockResult, ideaResult, trendResult, attention] = await Promise.all([
-        safeCategory(() => buildStocks(database, countries), 'stocks'),
-        safeCategory(() => buildIdeas(database, region, countries), 'ideas'),
-        safeCategory(() => buildTrends(database, region, countries), 'trends'),
-        buildDiggAttention(database),
-      ]);
-      const stocks = stockResult.items;
-      const ideas = ideaResult.items;
-      const trends = trendResult.items;
-      const categoryStates: BriefCategoryStates = {
-        stocks: stockResult.state,
-        ideas: ideaResult.state,
-        trends: trendResult.state,
-      };
-
-      const snapshot: BriefSnapshot = {
-        generatedAt: nowIso,
-        region,
-        hasBrand: false,
-        stocks,
-        ideas,
-        trends,
-        perception: [],
-        improvements: [],
-        ...attention,
-        categoryStates,
-      };
-
-      // Withhold the items that fail a per-item gate rather than letting them
-      // reject the whole edition. Every gate still applies at full strength;
-      // section-level failures (fixture content, unavailable category) remain
-      // fatal below, so this still fails closed.
-      const pruned = pruneUnpublishableBriefItems(snapshot);
-      const publishedSnapshot = pruned.snapshot;
-      if (pruned.withheld.length > 0) {
-        console.error(
-          `[brief-precompute] ${region} withheld ${pruned.withheld.length} item(s) on ${today}`,
-          JSON.stringify(pruned.withheld)
-        );
-      }
-
-      const receipt = buildBriefEditionReceipt(publishedSnapshot);
-      if (!receipt.publishable) {
-        // Loud on purpose. This path wrote no snapshot for twelve consecutive
-        // days at console.warn and nobody saw it; the reader just saw an empty
-        // brief. scripts/verify-daily-brief.mjs now fails CI on the same state.
-        console.error(
-          `[brief-precompute] ${region} REJECTED on ${today} — no snapshot written`,
-          JSON.stringify({ counts: receipt.counts, issues: receipt.issues })
-        );
-        regions.push({
-          region,
-          status: 'rejected',
-          counts: receipt.counts,
-          issues: receipt.issues,
-        });
-        continue;
-      }
-
-      await database
-        .insert(schema.dailyBriefSnapshots)
-        .values({
-          date: today,
-          region,
-          briefJson: JSON.stringify(publishedSnapshot),
-          computedAt: nowIso,
-        })
-        .onConflictDoUpdate({
-          target: [schema.dailyBriefSnapshots.date, schema.dailyBriefSnapshots.region],
-          set: {
-            briefJson: JSON.stringify(publishedSnapshot),
-            computedAt: nowIso,
-          },
-        });
-
-      console.log(
-        `[brief-precompute] ${region}: ${publishedSnapshot.stocks.length} stocks, ${publishedSnapshot.ideas.length} ideas, ${publishedSnapshot.trends.length} trends, ${publishedSnapshot.attentionLeaders?.length ?? 0} attention leaders, ${pruned.withheld.length} withheld; gate=pass`
-      );
-      regions.push({ region, status: 'published', counts: receipt.counts });
-    } catch (err) {
-      console.error(`[brief-precompute] ${region} failed:`, err);
-      regions.push({ region, status: 'failed' });
-    }
+    regions.push(await precomputeBriefRegion(database, region, date, nowIso));
   }
-
   return {
-    date: today,
+    date,
     globalPublished: regions.some(
       (result) => result.region === 'global' && result.status === 'published'
     ),
