@@ -11,7 +11,7 @@ const result = validateBriefFreshness(
   { generatedAt: '2026-08-25T03:30:00.000Z' },
   {
     date: '2026-08-25',
-    evidenceEvents: [{ publishedAt: '2026-08-25T02:30:00.000Z' }],
+    latestEvidenceInputAt: '2026-08-25T02:30:00.000Z',
   },
   now
 );
@@ -21,7 +21,7 @@ assert.throws(
   () =>
     validateBriefFreshness(
       { generatedAt: '2026-08-24T03:30:00.000Z' },
-      { date: '2026-08-25', evidenceEvents: [{ publishedAt: now.toISOString() }] },
+      { date: '2026-08-25', latestEvidenceInputAt: now.toISOString() },
       now
     ),
   /brief date/
@@ -30,7 +30,7 @@ assert.throws(
   () =>
     validateBriefFreshness(
       { generatedAt: '2026-08-25T03:30:00.000Z' },
-      { date: '2026-08-25', evidenceEvents: [{ publishedAt: '2026-08-25T01:59:59.000Z' }] },
+      { date: '2026-08-25', latestEvidenceInputAt: '2026-08-25T01:59:59.000Z' },
       now
     ),
   /limit 2h/
@@ -39,7 +39,7 @@ assert.throws(
   () =>
     validateBriefFreshness(
       { generatedAt: '2026-08-25T03:30:00.000Z' },
-      { date: '2026-08-25', evidenceEvents: [{ publishedAt: '2026-08-25T04:06:00.000Z' }] },
+      { date: '2026-08-25', latestEvidenceInputAt: '2026-08-25T04:06:00.000Z' },
       now
     ),
   /future-dated/

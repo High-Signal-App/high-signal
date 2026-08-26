@@ -107,6 +107,29 @@ def test_cluster_does_not_emit_ai_candidate_without_verified_origins(monkeypatch
     assert pipeline.cluster_and_generate(events) == []
 
 
+def test_publishable_proofs_require_independent_providers() -> None:
+    candidate = generator.fallback_candidate(
+        "NVDA",
+        [
+            _event("https://job-boards.example/jobs/one", source="jobs:one"),
+            _event("https://job-boards.example/jobs/two", source="jobs:two"),
+        ],
+        [],
+    )
+    assert candidate is not None
+    candidate.evidence[0].semantic_alignment = "verified"
+    candidate.evidence[0].role = "primary"
+    candidate.evidence[0].originating_evidence_id = "job-one"
+    candidate.evidence[1].semantic_alignment = "verified"
+    candidate.evidence[1].role = "corroboration"
+    candidate.evidence[1].originating_evidence_id = "job-two"
+
+    assert pipeline._has_publishable_proofs(candidate) is False
+
+    candidate.evidence[1].url = "https://independent.example/report"
+    assert pipeline._has_publishable_proofs(candidate) is True
+
+
 def test_cluster_separates_unrelated_stories_for_same_entity(monkeypatch) -> None:
     calls: list[list[str]] = []
 

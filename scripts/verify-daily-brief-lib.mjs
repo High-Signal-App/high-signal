@@ -36,15 +36,10 @@ export function validateBriefFreshness(brief, dailyDump, now = new Date()) {
     );
   }
 
-  const evidenceTimes = Array.isArray(dailyDump?.evidenceEvents)
-    ? dailyDump.evidenceEvents
-        .map((event) => timestampMs(event?.publishedAt))
-        .filter(Number.isFinite)
-    : [];
-  if (evidenceTimes.length === 0) {
-    throw new Error('daily dump contains no timestamped material evidence');
+  const newestEvidenceAt = timestampMs(dailyDump?.latestEvidenceInputAt);
+  if (!Number.isFinite(newestEvidenceAt)) {
+    throw new Error('daily dump contains no timestamped evidence input');
   }
-  const newestEvidenceAt = Math.max(...evidenceTimes);
   const ageMs = now.getTime() - newestEvidenceAt;
   if (ageMs < -5 * 60 * 1000) {
     throw new Error('newest material evidence is future-dated');

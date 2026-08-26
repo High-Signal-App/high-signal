@@ -145,6 +145,16 @@ dataRoute.get('/daily', async (c) => {
     (signal) => signal.publishable
   );
 
+  const [evidenceInputReceipt] = await database
+    .select({
+      count: sql<number>`count(*)`,
+      latestIngestedAt: sql<number | null>`max(${schema.events.ingestedAt})`,
+    })
+    .from(schema.events)
+    .where(
+      and(gte(schema.events.ingestedAt, range.start), lt(schema.events.ingestedAt, range.end))
+    );
+
   const signalIds = signals.map((signal) => signal.id);
   const evidenceRows = signalIds.length
     ? await database
@@ -174,6 +184,10 @@ dataRoute.get('/daily', async (c) => {
       schemaVersion: '1',
       generatedAt: new Date().toISOString(),
       date,
+      evidenceInputCount: evidenceInputReceipt?.count ?? 0,
+      latestEvidenceInputAt: evidenceInputReceipt?.latestIngestedAt
+        ? new Date(Number(evidenceInputReceipt.latestIngestedAt) * 1000).toISOString()
+        : null,
       signalCount: signals.length,
       evidenceEventCount: evidenceEvents.length,
       attentionObservationCount,

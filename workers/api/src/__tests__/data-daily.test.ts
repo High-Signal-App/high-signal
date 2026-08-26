@@ -32,6 +32,17 @@ describe('daily dump contract', () => {
     ]);
   });
 
+  it('documents evidence-input freshness separately from source publication time', () => {
+    const payload = {
+      evidenceInputCount: 1271,
+      latestEvidenceInputAt: '2026-08-26T20:25:23.000Z',
+      evidenceEvents: [{ publishedAt: '2026-08-25T12:00:00.000Z' }],
+    };
+
+    expect(payload.evidenceInputCount).toBeGreaterThan(0);
+    expect(payload.latestEvidenceInputAt).toBe('2026-08-26T20:25:23.000Z');
+  });
+
   it('returns 400 for an invalid date before reading D1', async () => {
     const response = await fetcher.fetch(new Request('http://test/data/daily?date=2026-99-99'), {
       ENVIRONMENT: 'test',

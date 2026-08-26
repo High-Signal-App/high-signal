@@ -774,16 +774,18 @@ def _fallback_drafts_enabled() -> bool:
 
 
 def _has_publishable_proofs(candidate: SignalCandidate) -> bool:
-    """Require two aligned, independent origins before a generated draft is emitted."""
+    """Require two aligned origins from independent providers before emitting a draft."""
     urls = {e.url for e in candidate.evidence if e.url}
-    origins = {
-        e.originating_evidence_id
+    verified = [
+        e
         for e in candidate.evidence
         if e.semantic_alignment == "verified"
         and e.role in {"primary", "corroboration"}
         and e.originating_evidence_id
-    }
-    return len(urls) >= 2 and len(origins) >= 2
+    ]
+    origins = {e.originating_evidence_id for e in verified}
+    providers = {_host_key(e.url) for e in verified if e.url}
+    return len(urls) >= 2 and len(origins) >= 2 and len(providers) >= 2
 
 
 def run(source: Source, days: int, *, generate_signals: bool = True) -> dict:
