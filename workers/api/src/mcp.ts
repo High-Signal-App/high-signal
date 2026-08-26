@@ -137,8 +137,8 @@ function createHighSignalMcpServer(dependencies: HighSignalMcpDependencies) {
     },
     async ({ day }) => {
       const now = dependencies.now?.() ?? new Date();
-      const date = dateInIst(now, day === 'yesterday' ? -1 : 0);
-      const read = await dependencies.readPublicJson(`/brief/daily?date=${date}`);
+      const path = day === 'today' ? '/brief/daily' : `/brief/daily?date=${dateInIst(now, -1)}`;
+      const read = await dependencies.readPublicJson(path);
       if (read.status !== 200) return errorResult('get_daily_brief', read, now);
       return successResult('get_daily_brief', read.body, { brief: read.cacheStatus }, now);
     }

@@ -55,3 +55,19 @@ jobs:
                   }
                 });
               '
+          curl --fail --silent --show-error --max-time 30 \
+            --header "Accept: application/json, text/event-stream" \
+            --header "Content-Type: application/json" \
+            --data '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"get_daily_brief","arguments":{"day":"today"}}}' \
+            https://api.highsignal.app/mcp \
+            | node -e '
+                let raw = "";
+                process.stdin.on("data", (chunk) => { raw += chunk; });
+                process.stdin.on("end", () => {
+                  const dataLine = raw.split(/\r?\n/).find((line) => line.startsWith("data: "));
+                  const payload = JSON.parse(dataLine ? dataLine.slice(6) : raw);
+                  if (payload.result?.isError || !payload.result?.structuredContent?.data) {
+                    throw new Error(`MCP today brief failed: ${raw}`);
+                  }
+                });
+              '

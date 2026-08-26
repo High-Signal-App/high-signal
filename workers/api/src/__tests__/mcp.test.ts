@@ -122,7 +122,7 @@ describe('High Signal MCP', () => {
       arguments: { day: 'yesterday' },
     });
 
-    expect(readPublicJson).toHaveBeenNthCalledWith(1, '/brief/daily?date=2026-08-27');
+    expect(readPublicJson).toHaveBeenNthCalledWith(1, '/brief/daily');
     expect(readPublicJson).toHaveBeenNthCalledWith(2, '/brief/daily?date=2026-08-26');
     expect(structuredContent(today.body)).toMatchObject({
       schemaVersion: '1',
