@@ -7,11 +7,9 @@ terminal 4xx. All network is mocked via httpx.MockTransport — no real calls.
 from __future__ import annotations
 
 import json
-import os
 from unittest.mock import patch
 
 import httpx
-import pytest
 
 from high_signal_ingest import generator
 
@@ -25,7 +23,9 @@ def _make_response(status: int, body: dict | str | None = None) -> httpx.Respons
     return httpx.Response(status_code=status, content=content.encode())
 
 
-def _run_with_transport(transport: httpx.MockTransport, monkeypatch) -> tuple[dict | None, dict]:
+def _run_with_transport(
+    transport: httpx.MockTransport, monkeypatch
+) -> tuple[dict | list | None, dict]:
     """Patch httpx.post to use the mock transport and run _ai_complete."""
     monkeypatch.setenv("AI_API_KEY", "test-key")
     monkeypatch.setenv("AI_BASE_URL", "https://test-gateway.example/v1")
@@ -118,6 +118,32 @@ def test_ai_complete_4xx_is_terminal_no_retry(monkeypatch) -> None:
     assert calls["n"] == 1
     assert meta["attempts"] == 1
     assert meta["failure_class"] == "client_error"
+
+
+def test_ai_complete_retries_json_validation_failure_without_json_mode(monkeypatch) -> None:
+    calls: list[dict] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        payload = json.loads(request.content)
+        calls.append(payload)
+        if len(calls) == 1:
+            return _make_response(
+                400,
+                {"error": {"message": "All providers failed: 400 Failed to validate JSON."}},
+            )
+        return _make_response(
+            200,
+            {"choices": [{"message": {"content": '```json\n{"publish": true}\n```'}}]},
+        )
+
+    out, meta = _run_with_transport(httpx.MockTransport(handler), monkeypatch)
+
+    assert out == {"publish": True}
+    assert len(calls) == 2
+    assert calls[0]["response_format"] == {"type": "json_object"}
+    assert "response_format" not in calls[1]
+    assert meta["attempts"] == 2
+    assert meta["failure_class"] is None
 
 
 def test_ai_complete_timeout_retries_then_succeeds(monkeypatch) -> None:

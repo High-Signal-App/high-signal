@@ -386,3 +386,10 @@ def test_generation_prompt_requires_brief_editorial_sections() -> None:
     assert "## What changed" in prompt
     assert "## Why it matters" in prompt
     assert "## Uncertainty" in prompt
+
+
+def test_batch_prompt_matches_json_object_response_contract() -> None:
+    prompt = generator._batch_prompt()
+    assert '"signals": [' in prompt
+    assert "Return a JSON object" in prompt
+    assert "Return a JSON ARRAY" not in prompt

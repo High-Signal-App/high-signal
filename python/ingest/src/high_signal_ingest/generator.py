@@ -394,7 +394,20 @@ _AI_BACKOFF_CAP = float(os.environ.get("AI_BACKOFF_CAP", "8.0"))
 _AI_TIMEOUT = float(os.environ.get("AI_TIMEOUT", "60.0"))
 
 
-def _ai_complete(prompt: str, content: str) -> tuple[dict | None, dict]:
+def _parse_json_message(message: str) -> dict | list:
+    """Parse strict JSON, tolerating a single Markdown code fence."""
+    stripped = message.strip()
+    if stripped.startswith("```"):
+        lines = stripped.splitlines()
+        if len(lines) >= 3 and lines[-1].strip() == "```":
+            stripped = "\n".join(lines[1:-1]).strip()
+    parsed = json.loads(stripped)
+    if not isinstance(parsed, (dict, list)):
+        raise ValueError("AI response JSON must be an object or array")
+    return parsed
+
+
+def _ai_complete(prompt: str, content: str) -> tuple[dict | list | None, dict]:
     """Call OpenAI-compatible endpoint. Returns (parsed_json, audit_meta).
 
     `audit_meta` is always populated (model + reason + latency + raw response
@@ -429,23 +442,26 @@ def _ai_complete(prompt: str, content: str) -> tuple[dict | None, dict]:
         return None, meta
     started = time.monotonic()
     attempt = 0
+    use_json_mode = True
     while True:
         attempt += 1
         meta["attempts"] = attempt
         try:
+            request_json = {
+                "model": model,
+                "project_id": project_id,
+                "messages": [
+                    {"role": "system", "content": prompt},
+                    {"role": "user", "content": content},
+                ],
+                "temperature": 0.1,
+            }
+            if use_json_mode:
+                request_json["response_format"] = {"type": "json_object"}
             r = httpx.post(
                 f"{base.rstrip('/')}/chat/completions",
                 headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
-                json={
-                    "model": model,
-                    "project_id": project_id,
-                    "messages": [
-                        {"role": "system", "content": prompt},
-                        {"role": "user", "content": content},
-                    ],
-                    "temperature": 0.1,
-                    "response_format": {"type": "json_object"},
-                },
+                json=request_json,
                 timeout=_AI_TIMEOUT,
             )
             meta["latency_ms"] = int((time.monotonic() - started) * 1000)
@@ -454,6 +470,15 @@ def _ai_complete(prompt: str, content: str) -> tuple[dict | None, dict]:
                 meta["failure_class"] = cls
                 meta["reason"] = f"http_{r.status_code}"
                 meta["raw_response"] = r.text[:2000]
+                compatibility_retry = (
+                    r.status_code == 400
+                    and use_json_mode
+                    and attempt < _AI_RETRIES
+                    and ("Failed to validate JSON" in r.text or "All providers failed" in r.text)
+                )
+                if compatibility_retry:
+                    use_json_mode = False
+                    continue
                 if _is_retryable(cls) and attempt < _AI_RETRIES:
                     sleep_for = min(_AI_BACKOFF_CAP, _AI_BACKOFF_BASE * (2 ** (attempt - 1)))
                     sleep_for = random.uniform(0, sleep_for)  # full jitter
@@ -467,7 +492,7 @@ def _ai_complete(prompt: str, content: str) -> tuple[dict | None, dict]:
             meta["tokens_in"] = usage.get("prompt_tokens")
             meta["tokens_out"] = usage.get("completion_tokens")
             msg = body["choices"][0]["message"]["content"]
-            return json.loads(msg), meta
+            return _parse_json_message(msg), meta
         except Exception as exc:
             meta["latency_ms"] = int((time.monotonic() - started) * 1000)
             meta["failure_class"] = "exception"
@@ -644,6 +669,9 @@ def generate(
     if not out:
         _record(False, None, meta.get("reason") or "no_response")
         return None
+    if not isinstance(out, dict):
+        _record(False, None, "unexpected_response_shape")
+        return None
     if not out.get("publish"):
         _record(False, None, "publish_false")
         return None
@@ -691,12 +719,13 @@ AI-infra / semiconductor market intelligence.
 
 You will receive events for MULTIPLE entities in one batch. Your job is to decide
 for EACH entity whether there is an actionable, collection-aligned signal draft.
-Return a JSON ARRAY of signal objects (one per entity that warrants a signal;
-omit entities with no actionable signal).
+Return a JSON object whose `signals` array contains one object per entity that
+warrants a signal; omit entities with no actionable signal.
 
-Output STRICT JSON array (no commentary):
-[
-  {
+Output one STRICT JSON object (no commentary):
+{
+  "signals": [
+    {
     "cluster_id": "<the supplied cluster id>",
     "entity_id": "<the primary entity>",
     "publish": true|false,
@@ -717,9 +746,10 @@ Output STRICT JSON array (no commentary):
     "inference_evidence_urls": ["<only URLs supporting the inference>"],
     "proofs": [{"url":"<supplied URL>","aligned":true|false,"originating_evidence_id":"<stable origin id>","supports":["observed_event"]}],
     "body_md": "<150-400 words with ## What changed, ## Why it matters, ## Uncertainty, and ## What the sources said sections; cite each used source by URL>"
-  },
-  ...
-]
+    },
+    ...
+  ]
+}
 
 Rules (same as single-entity, applied per entity):
 - "publish": true only when the event is aligned with the active collection and

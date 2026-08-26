@@ -152,6 +152,11 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
   omitted their long URLs. Generation now retains only positively aligned proof
   URLs that exactly match supplied events and renders any missing links in a
   deterministic Proofs section; hallucinated or unaligned URLs remain excluded.
+  The same replay exposed the free-AI gateway rejecting model output in JSON
+  mode and a batch prompt that asked for an array under a JSON-object contract.
+  Batch output now uses a `signals` object and gateway JSON-validation failures
+  receive one bounded retry without response-format enforcement before the
+  existing deterministic fallback and publication gates take over.
   Release and live acceptance receipts are tracked in issue #138; issue #133
   still requires live freshness acceptance before closure.
 
