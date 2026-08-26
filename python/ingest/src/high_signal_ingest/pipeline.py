@@ -77,7 +77,7 @@ from .sources import (
     wikidata,
     youtube,
 )
-from .types import Event
+from .types import Event, SignalCandidate
 from .dedupe import dedupe, dedupe_exact
 from .utils import event_text
 from .generator import fallback_candidate, generate, generate_batch, thematic_candidate
