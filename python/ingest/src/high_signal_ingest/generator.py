@@ -401,7 +401,16 @@ def _parse_json_message(message: str) -> dict | list:
         lines = stripped.splitlines()
         if len(lines) >= 3 and lines[-1].strip() == "```":
             stripped = "\n".join(lines[1:-1]).strip()
-    parsed = json.loads(stripped)
+    try:
+        parsed = json.loads(stripped)
+    except json.JSONDecodeError as exc:
+        # Small free-tier models occasionally place a literal newline or tab
+        # inside a JSON string. Python can safely recover that otherwise valid
+        # payload with strict=False; truncated or structurally invalid output
+        # still raises and remains rejected.
+        if "Invalid control character" not in str(exc):
+            raise
+        parsed = json.loads(stripped, strict=False)
     if not isinstance(parsed, (dict, list)):
         raise ValueError("AI response JSON must be an object or array")
     return parsed

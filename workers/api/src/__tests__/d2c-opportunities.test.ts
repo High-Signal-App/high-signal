@@ -364,14 +364,14 @@ describe('india d2c opportunity pipeline (plan 0013)', () => {
       expect(d2cBriefItems('south-asia', 20, null)).toHaveLength(20);
     });
 
-    it("uses the artifact's generatedAt as surfacedAt when present", () => {
+    it('does not turn an empty artifact into uncited briefs', () => {
       const artifact: D2COpportunityArtifact = {
         generatedAt: '2026-07-05T08:00:00.000Z',
         region: 'IN',
         niches: [],
       };
       const items = d2cBriefItems('south-asia', 1, artifact);
-      expect(items[0]?.surfacedAt).toBe('2026-07-05T08:00:00.000Z');
+      expect(items).toEqual([]);
     });
   });
 
@@ -428,6 +428,7 @@ describe('india d2c opportunity pipeline (plan 0013)', () => {
         expect(item.region).toBe('south-asia');
         expect(item.opportunity).toBeDefined();
         expect(item.title).toMatch(/^India D2C: /);
+        expect(item.evidenceUrls.length).toBeGreaterThan(0);
       }
     });
 
@@ -435,6 +436,7 @@ describe('india d2c opportunity pipeline (plan 0013)', () => {
       const items = d2cBriefItemsForRegion('global');
       expect(items).toHaveLength(1);
       expect(items[0]?.source).toBe('opportunity');
+      expect(items[0]?.evidenceUrls.length).toBeGreaterThan(0);
     });
 
     it('non-India regions get no India D2C briefs', () => {

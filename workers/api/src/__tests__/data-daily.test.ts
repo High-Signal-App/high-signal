@@ -7,8 +7,8 @@ const fetcher = app as unknown as {
 };
 
 describe('daily dump contract', () => {
-  it('defaults to the current UTC date and rejects malformed calendar dates', () => {
-    expect(resolveDailyDate(undefined, new Date('2026-08-24T23:59:59.000Z'))).toBe('2026-08-24');
+  it('defaults to the current IST date and rejects malformed calendar dates', () => {
+    expect(resolveDailyDate(undefined, new Date('2026-08-24T20:00:00.000Z'))).toBe('2026-08-25');
     expect(resolveDailyDate('2026-02-29')).toBeNull();
     expect(resolveDailyDate('not-a-date')).toBeNull();
   });

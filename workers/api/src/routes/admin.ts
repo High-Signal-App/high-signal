@@ -32,6 +32,7 @@ import { desc, eq as eqOp } from 'drizzle-orm';
 import { db, schema } from '../db';
 import { diggAdminRoute } from './admin-digg';
 import { scheduledDataAdminRoute } from './admin-scheduled-data';
+import { precomputeBriefSnapshots } from './brief';
 import { enrichSignals, serializeClaimEvidenceLink } from '../lib/signal-quality';
 
 type Env = {
@@ -56,6 +57,12 @@ adminRoute.use('*', async (c, next) => {
 
 adminRoute.route('/digg', diggAdminRoute);
 adminRoute.route('/scheduled-data', scheduledDataAdminRoute);
+
+/** Rebuild the reader-facing brief immediately after the publication gate. */
+adminRoute.post('/brief/precompute', async (c) => {
+  const result = await precomputeBriefSnapshots(c.env);
+  return c.json(result, result.globalPublished ? 200 : 409);
+});
 
 interface ScoreRunInput {
   signalId: string;

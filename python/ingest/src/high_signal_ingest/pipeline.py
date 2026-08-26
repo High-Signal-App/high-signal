@@ -700,7 +700,7 @@ def cluster_and_generate(events: list[Event]) -> list[str]:
     fallback_clusters: list[tuple[str, list[Event]]] = []
     for entity_id, evs in proof_clusters:
         cand = generate(entity_id, evs, _spillover_candidates(entity_id))
-        if cand:
+        if cand and _has_publishable_proofs(cand):
             written.append(emit(cand))
         else:
             fallback_clusters.append((entity_id, evs))
@@ -771,6 +771,19 @@ def _fallback_drafts_enabled() -> bool:
     source events without manufacturing a lower-quality signal candidate.
     """
     return not bool(os.environ.get("AI_API_KEY") or os.environ.get("HF_TOKEN"))
+
+
+def _has_publishable_proofs(candidate: SignalCandidate) -> bool:
+    """Require two aligned, independent origins before a generated draft is emitted."""
+    urls = {e.url for e in candidate.evidence if e.url}
+    origins = {
+        e.originating_evidence_id
+        for e in candidate.evidence
+        if e.semantic_alignment == "verified"
+        and e.role in {"primary", "corroboration"}
+        and e.originating_evidence_id
+    }
+    return len(urls) >= 2 and len(origins) >= 2
 
 
 def run(source: Source, days: int, *, generate_signals: bool = True) -> dict:
@@ -874,7 +887,7 @@ def run(source: Source, days: int, *, generate_signals: bool = True) -> dict:
                 error_sample = f"generate {entity_id}: {exc}"[:300]
             fallback_clusters.append((entity_id, evs))
             continue
-        if cand:
+        if cand and _has_publishable_proofs(cand):
             written.append(emit(cand))
         else:
             fallback_clusters.append((entity_id, evs))
@@ -898,6 +911,8 @@ def run(source: Source, days: int, *, generate_signals: bool = True) -> dict:
         # Map candidates back by story id; repeated entity ids remain distinct.
         emitted_cluster_ids = set()
         for cand in cands:
+            if not _has_publishable_proofs(cand):
+                continue
             written.append(emit(cand))
             if cand.source_cluster_id:
                 emitted_cluster_ids.add(cand.source_cluster_id)

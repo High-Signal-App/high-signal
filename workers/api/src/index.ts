@@ -20,9 +20,13 @@ export default {
     // This populates daily_brief_snapshots so /brief/daily does 1 D1 lookup
     // instead of 5-14 sequential queries.
     ctx.waitUntil(
-      precomputeBriefSnapshots(env).catch((err) =>
-        console.error('[cron] brief precompute failed:', err)
-      )
+      precomputeBriefSnapshots(env)
+        .then((result) => {
+          if (!result.globalPublished) {
+            console.error('[cron] global brief precompute did not publish', result);
+          }
+        })
+        .catch((err) => console.error('[cron] brief precompute failed:', err))
     );
   },
 };

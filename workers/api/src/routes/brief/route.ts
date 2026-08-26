@@ -21,6 +21,7 @@ import {
   countriesForRegion,
   isProtectedHistoryDay,
   isRegion,
+  istDay,
   pruneUnpublishableBriefItems,
   summarizeBriefDiscovery,
   type BriefCategoryStates,
@@ -92,7 +93,7 @@ async function cachedDailyBrief(
   database: ReturnType<typeof db>,
   request: ReturnType<typeof parseDailyBriefRequest>
 ) {
-  const lookupDate = request.archiveDate ?? new Date().toISOString().slice(0, 10);
+  const lookupDate = request.archiveDate ?? istDay();
   const snapshot = await tryGetPrecomputedSnapshot(database, lookupDate, request.region);
   if (snapshot && (request.archiveDate || buildBriefEditionReceipt(snapshot).publishable)) {
     return { body: snapshot, status: 200 as const };
@@ -166,10 +167,26 @@ function loadDailyBriefBrand(request: ReturnType<typeof parseDailyBriefRequest>)
  * trends) are computed once and stored as JSON. The API then does a
  * single D1 lookup instead of 5-14 sequential queries.
  */
-export async function precomputeBriefSnapshots(env: { DB: D1Database }): Promise<void> {
+export interface BriefPrecomputeRegionResult {
+  region: Region;
+  status: 'published' | 'rejected' | 'failed';
+  counts?: { stocks: number; ideas: number; trends: number };
+  issues?: Array<{ section: string; item: number | null; reason: string }>;
+}
+
+export interface BriefPrecomputeResult {
+  date: string;
+  globalPublished: boolean;
+  regions: BriefPrecomputeRegionResult[];
+}
+
+export async function precomputeBriefSnapshots(env: {
+  DB: D1Database;
+}): Promise<BriefPrecomputeResult> {
   const database = db(env.DB);
-  const today = new Date().toISOString().slice(0, 10);
+  const today = istDay();
   const nowIso = new Date().toISOString();
+  const regions: BriefPrecomputeRegionResult[] = [];
 
   for (const region of PRECOMPUTED_REGIONS) {
     try {
@@ -225,6 +242,12 @@ export async function precomputeBriefSnapshots(env: { DB: D1Database }): Promise
           `[brief-precompute] ${region} REJECTED on ${today} — no snapshot written`,
           JSON.stringify({ counts: receipt.counts, issues: receipt.issues })
         );
+        regions.push({
+          region,
+          status: 'rejected',
+          counts: receipt.counts,
+          issues: receipt.issues,
+        });
         continue;
       }
 
@@ -247,10 +270,20 @@ export async function precomputeBriefSnapshots(env: { DB: D1Database }): Promise
       console.log(
         `[brief-precompute] ${region}: ${publishedSnapshot.stocks.length} stocks, ${publishedSnapshot.ideas.length} ideas, ${publishedSnapshot.trends.length} trends, ${publishedSnapshot.attentionLeaders?.length ?? 0} attention leaders, ${pruned.withheld.length} withheld; gate=pass`
       );
+      regions.push({ region, status: 'published', counts: receipt.counts });
     } catch (err) {
       console.error(`[brief-precompute] ${region} failed:`, err);
+      regions.push({ region, status: 'failed' });
     }
   }
+
+  return {
+    date: today,
+    globalPublished: regions.some(
+      (result) => result.region === 'global' && result.status === 'published'
+    ),
+    regions,
+  };
 }
 
 /**

@@ -925,13 +925,20 @@ export function d2cBriefItems(
 ): BriefIdeaItem[] {
   if (region !== 'south-asia' && region !== 'global') return [];
   if (D2C_NICHE_SEEDS.length === 0) return [];
-  let pool = D2C_NICHE_SEEDS;
+  // A bundled artifact is public evidence, not a license to surface every
+  // seed. Restrict rotation to niches that actually collected a citation so
+  // an evidence-empty niche cannot silence the whole global edition.
+  let pool = artifact
+    ? D2C_NICHE_SEEDS.filter(
+        (seed) => (findEvidenceForNiche(artifact, seed.slug)?.evidence.length ?? 0) > 0
+      )
+    : D2C_NICHE_SEEDS;
+  if (pool.length === 0) return [];
   if (region === 'global') {
     // Rotate one niche per day so the global brief shows variety without
     // flooding section 02 with India-only items.
-    const idx =
-      ((rotateFor % D2C_NICHE_SEEDS.length) + D2C_NICHE_SEEDS.length) % D2C_NICHE_SEEDS.length;
-    pool = [D2C_NICHE_SEEDS[idx]!];
+    const idx = ((rotateFor % pool.length) + pool.length) % pool.length;
+    pool = [pool[idx]!];
   }
   const surfacedAt = artifact?.generatedAt ?? new Date().toISOString();
   return pool.slice(0, limit).map((seed) => {

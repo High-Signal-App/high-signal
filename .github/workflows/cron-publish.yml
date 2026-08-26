@@ -50,3 +50,15 @@ jobs:
           else
             pnpm signals:auto-publish:remote
           fi
+      - name: rebuild current daily brief
+        if: ${{ inputs.dry != true }}
+        env:
+          API_BASE: ${{ secrets.API_BASE || 'https://api.highsignal.app' }}
+          ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
+        run: node scripts/precompute-daily-brief.mjs
+      - name: verify reader-facing brief and evidence freshness
+        if: ${{ inputs.dry != true }}
+        env:
+          HIGH_SIGNAL_API: ${{ secrets.API_BASE || 'https://api.highsignal.app' }}
+          BRIEF_REGIONS: global
+        run: node scripts/verify-daily-brief.mjs

@@ -169,6 +169,17 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
   its latest retained rows; hit-rate remains under Track Record. Primary
   navigation is Brief, Signals, Sources, and Track Record.
 
+- **2026-08-27 — Daily publication reliability hardened in source:** daily
+  dates and dump windows now share the IST operator-day boundary; global D2C
+  rotation excludes niches without collected citations; recoverable literal
+  control characters in free-model JSON no longer discard structured proofs;
+  and the ingest path refuses to emit a generated draft without two aligned,
+  independently identified origins. `cron-publish` now requests an
+  authenticated brief rebuild immediately after judging and runs the same
+  public non-empty/freshness check as the 09:30 validator, so a green publish
+  run proves the reader-facing edition instead of merely proving that the
+  draft queue was processed. Live acceptance remains tracked in issue #131.
+
 - **2026-08-26 — Proof-bearing signal generation completed in source:** entity
   buckets are now split into deterministic stories before generation, and
   single-origin stories remain retained as events without becoming drafts.

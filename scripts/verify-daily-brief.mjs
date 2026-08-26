@@ -33,7 +33,7 @@ const REGIONS = (process.env.BRIEF_REGIONS ?? 'global')
 /** A region is healthy when the edition resolves and carries at least one item. */
 async function checkRegion(region, dailyDump, now) {
   const expectedDate = calendarDate(now);
-  const url = `${API}/brief/daily?region=${encodeURIComponent(region)}&date=${expectedDate}`;
+  const url = `${API}/brief/daily?region=${encodeURIComponent(region)}&date=${expectedDate}&validation=${now.getTime()}`;
   const res = await fetch(url);
 
   if (res.status === 404) {
@@ -77,7 +77,9 @@ const expectedDate = calendarDate(now);
 let dailyDump = null;
 
 try {
-  const response = await fetch(`${API}/data/daily?date=${expectedDate}`);
+  const response = await fetch(
+    `${API}/data/daily?date=${expectedDate}&validation=${now.getTime()}`
+  );
   if (!response.ok) throw new Error(`status ${response.status}`);
   dailyDump = await response.json();
 } catch (err) {

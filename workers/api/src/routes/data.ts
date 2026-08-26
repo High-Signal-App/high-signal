@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { and, desc, eq, gte, inArray, like, lt, or, sql } from 'drizzle-orm';
+import { istDay, istDayRange } from '@high-signal/shared';
 import { db, schema } from '../db';
 import { enrichPublishedSignals } from '../lib/signal-quality';
 import sourceCatalog from '../lib/source-catalog.json';
@@ -53,12 +54,7 @@ function sourceMatch(id: string) {
 }
 
 function dayRange(date: string | undefined) {
-  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
-  const start = new Date(`${date}T00:00:00.000Z`);
-  if (Number.isNaN(start.getTime()) || start.toISOString().slice(0, 10) !== date) return null;
-  const end = new Date(start);
-  end.setUTCDate(end.getUTCDate() + 1);
-  return { start, end };
+  return date ? istDayRange(date) : null;
 }
 
 interface Sample {
@@ -103,11 +99,8 @@ export function sourceRunStatus(
 }
 
 export function resolveDailyDate(value: string | undefined, now = new Date()): string | null {
-  if (value === undefined) return now.toISOString().slice(0, 10);
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
-  const parsed = new Date(`${value}T00:00:00.000Z`);
-  if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== value) return null;
-  return value;
+  if (value === undefined) return istDay(now);
+  return istDayRange(value) ? value : null;
 }
 
 export function dailyEvidenceEvents(
@@ -126,7 +119,7 @@ export function dailyEvidenceEvents(
 }
 
 /**
- * GET /data/daily — complete public dump of one UTC day's published signals
+ * GET /data/daily — complete public dump of one IST day's published signals
  * and the canonical evidence events linked to those signals.
  */
 dataRoute.get('/daily', async (c) => {
@@ -162,7 +155,7 @@ dataRoute.get('/daily', async (c) => {
     : [];
   const slugs = new Map(signals.map((signal) => [signal.id, signal.slug]));
   const evidenceEvents = dailyEvidenceEvents(evidenceRows, slugs);
-  const isToday = date === new Date().toISOString().slice(0, 10);
+  const isToday = date === istDay();
   const archivedBrief = isToday ? null : await tryGetPrecomputedSnapshot(database, date, 'global');
   const attention = isToday
     ? await buildDiggAttention(database)

@@ -28,6 +28,12 @@ def _event(
     )
 
 
+def test_json_parser_recovers_literal_control_characters_only() -> None:
+    assert generator._parse_json_message('{"body_md":"line one\nline two"}') == {
+        "body_md": "line one\nline two"
+    }
+
+
 def test_cluster_retains_single_origin_without_generating_signal(monkeypatch) -> None:
     calls = 0
 
@@ -80,6 +86,25 @@ def test_cluster_does_not_emit_fallback_after_ai_rejection(monkeypatch) -> None:
     )
 
     assert paths == []
+
+
+def test_cluster_does_not_emit_ai_candidate_without_verified_origins(monkeypatch) -> None:
+    events = [
+        _event("https://example.com/a", source="news:one"),
+        _event("https://another.example/b", source="news:two"),
+    ]
+    candidate = generator.fallback_candidate("NVDA", events, [])
+    assert candidate is not None
+
+    monkeypatch.setenv("AI_API_KEY", "configured")
+    monkeypatch.setattr(pipeline, "generate", lambda *_args, **_kwargs: candidate)
+    monkeypatch.setattr(
+        pipeline,
+        "emit",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("candidate emitted")),
+    )
+
+    assert pipeline.cluster_and_generate(events) == []
 
 
 def test_cluster_separates_unrelated_stories_for_same_entity(monkeypatch) -> None:
