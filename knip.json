@@ -68,7 +68,12 @@
       ]
     },
     "workers/api": {
-      "entry": ["src/index.ts", "test/stubs/cloudflare-email.ts", "vitest.config.ts"],
+      "entry": [
+        "src/index.ts",
+        "test/stubs/cloudflare-email.ts",
+        "test/stubs/cloudflare-workers.ts",
+        "vitest.config.ts"
+      ],
       "project": ["src/**/*.ts", "test/**/*.ts", "vitest.config.ts"],
       "ignoreDependencies": ["cloudflare", "wrangler"],
       "ignoreBinaries": ["wrangler"]
