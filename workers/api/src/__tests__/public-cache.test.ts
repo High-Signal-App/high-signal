@@ -1,9 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import {
-  handlePublicApiCache,
-  isPublicCacheRequest,
-  publicApiCachePolicy,
-} from '../public-cache';
+import { handlePublicApiCache, isPublicCacheRequest, publicApiCachePolicy } from '../public-cache';
 
 function memoryCache() {
   const entries = new Map<string, Response>();
@@ -33,9 +29,7 @@ describe('public API edge cache', () => {
     expect(isPublicCacheRequest(new Request('https://api.highsignal.app/admin/audit'))).toBe(false);
     expect(isPublicCacheRequest(new Request('https://api.highsignal.app/health'))).toBe(false);
     expect(
-      isPublicCacheRequest(
-        new Request('https://api.highsignal.app/signals', { method: 'POST' })
-      )
+      isPublicCacheRequest(new Request('https://api.highsignal.app/signals', { method: 'POST' }))
     ).toBe(false);
   });
 

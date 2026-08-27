@@ -16,10 +16,7 @@ import {
 
 const request = (path, init = {}) => new Request(`https://highsignal.app${path}`, init);
 
-const apiWrangler = readFileSync(
-  new URL('../workers/api/wrangler.toml', import.meta.url),
-  'utf8'
-);
+const apiWrangler = readFileSync(new URL('../workers/api/wrangler.toml', import.meta.url), 'utf8');
 assert.match(apiWrangler, /\[cache\]\s+enabled = false/);
 assert.match(apiWrangler, /\[exports\.PublicApi\.cache\]\s+enabled = true/);
 
