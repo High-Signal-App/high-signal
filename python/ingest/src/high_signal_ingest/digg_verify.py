@@ -3,13 +3,15 @@
 Digg supplies the discovery title only. This module searches GDELT for matching
 original articles, retrieves those publisher URLs, and hands only the retrieved
 documents to the normal candidate generator. Digg/X pages are never scraped and
-never become evidence.
+never become evidence. GDELT discovery is retried within the same verification
+attempt because its public endpoint can be slow or transiently unavailable.
 """
 
 from __future__ import annotations
 
 import hashlib
 import re
+import time
 from datetime import datetime, timezone
 from typing import Any
 from urllib.parse import urlsplit
@@ -23,6 +25,8 @@ from .utils import event_hash
 
 
 GDELT_DOC_API = "https://api.gdeltproject.org/api/v2/doc/doc"
+GDELT_MAX_ATTEMPTS = 2
+GDELT_TIMEOUT_SECONDS = 75.0
 MAX_REQUESTS_PER_POLL = 3
 MAX_ARTICLES_PER_REQUEST = 4
 SOCIAL_OR_ATTENTION_HOSTS = {"digg.com", "x.com", "twitter.com"}
@@ -62,8 +66,14 @@ def title_alignment(discovery_title: str, candidate_title: str) -> float:
 
 
 def discovery_query(title: str) -> str:
-    tokens = sorted(title_tokens(title))[:10]
-    return " ".join(tokens)
+    tokens: list[str] = []
+    for token in re.findall(r"[a-z0-9]+", title.lower()):
+        if len(token) < 3 or token in STOP_WORDS or token in tokens:
+            continue
+        tokens.append(token)
+    # GDELT combines bare keywords restrictively. A short query provides recall;
+    # the stricter full-title alignment below is the relevance gate.
+    return " ".join(tokens[:3])
 
 
 def _allowed_original_url(value: object) -> str | None:
@@ -81,6 +91,43 @@ def _allowed_original_url(value: object) -> str | None:
     return value
 
 
+def _search_gdelt(title: str, client: httpx.Client) -> dict[str, Any]:
+    last_error: Exception | None = None
+    for _attempt in range(GDELT_MAX_ATTEMPTS):
+        try:
+            response = client.get(
+                GDELT_DOC_API,
+                params={
+                    "query": discovery_query(title),
+                    "mode": "artlist",
+                    "maxrecords": 10,
+                    "format": "json",
+                    # Threshold crossings may originate in rolling Digg feeds
+                    # after the underlying story is already more than one day old.
+                    "timespan": "3d",
+                },
+                headers={"Connection": "close"},
+                timeout=GDELT_TIMEOUT_SECONDS,
+            )
+            if response.status_code == 429 and _attempt + 1 < GDELT_MAX_ATTEMPTS:
+                # GDELT explicitly rate-limits its shared search clusters.
+                # A bounded pause avoids turning one threshold crossing into a burst.
+                retry_after = response.headers.get("Retry-After", "15")
+                try:
+                    delay = min(max(float(retry_after), 1.0), 30.0)
+                except ValueError:
+                    delay = 15.0
+                time.sleep(delay)
+                continue
+            response.raise_for_status()
+            payload = response.json()
+            return payload if isinstance(payload, dict) else {}
+        except (httpx.HTTPError, ValueError) as exc:
+            last_error = exc
+    assert last_error is not None
+    raise last_error
+
+
 def discover_articles(request: dict[str, Any], client: httpx.Client) -> list[dict[str, Any]]:
     candidates: list[dict[str, Any]] = []
     for url in request.get("sourceUrls", []):
@@ -88,18 +135,15 @@ def discover_articles(request: dict[str, Any], client: httpx.Client) -> list[dic
         if allowed:
             candidates.append({"url": allowed, "title": request.get("title", "")})
 
-    response = client.get(
-        GDELT_DOC_API,
-        params={
-            "query": discovery_query(str(request.get("title") or "")),
-            "mode": "artlist",
-            "maxrecords": 20,
-            "format": "json",
-            "timespan": "1d",
-        },
-    )
-    response.raise_for_status()
-    payload = response.json()
+    try:
+        payload = _search_gdelt(str(request.get("title") or ""), client)
+    except (httpx.HTTPError, ValueError):
+        # Direct original URLs remain useful even if discovery is temporarily
+        # unavailable. With no originals, propagate the outage so it can retry
+        # on the next poll instead of being mislabeled as weak evidence.
+        if not candidates:
+            raise
+        payload = {}
     for article in payload.get("articles", []) if isinstance(payload, dict) else []:
         if not isinstance(article, dict):
             continue
