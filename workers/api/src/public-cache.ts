@@ -9,7 +9,7 @@ type PublicApiCacheOptions = {
 };
 
 export function isPublicCacheRequest(request: Request) {
-  if (request.method !== 'GET') return false;
+  if (request.method !== 'GET' && request.method !== 'HEAD') return false;
   if (request.headers.has('authorization') || request.headers.has('cookie')) return false;
 
   const path = new URL(request.url).pathname;
@@ -42,6 +42,19 @@ function privateResponse(response: Response) {
   });
 }
 
+function cacheableResponse(response: Response, head = false) {
+  if (response.status !== 200 || response.headers.has('set-cookie')) return null;
+  const headers = new Headers(response.headers);
+  const responsePolicy = headers.get('cache-control')?.toLowerCase() ?? '';
+  if (responsePolicy.includes('private') || responsePolicy.includes('no-store')) return null;
+  if (!headers.has('cache-control')) headers.set('Cache-Control', PUBLIC_CACHE_CONTROL);
+  return new Response(head ? null : response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
 /**
  * Cache anonymous successful API reads in Cloudflare's data-center-local cache.
  * This avoids repeating D1 and upstream work while keeping admin, authenticated,
@@ -52,30 +65,24 @@ export async function handlePublicApiCache(
   next: () => Promise<Response>,
   options: PublicApiCacheOptions = {}
 ) {
-  if (!isPublicCacheRequest(request) || !options.cache) {
+  if (!isPublicCacheRequest(request)) {
     return privateResponse(await next());
   }
+
+  if (request.method === 'HEAD') {
+    const response = await next();
+    return cacheableResponse(response, true) ?? privateResponse(response);
+  }
+
+  if (!options.cache) return privateResponse(await next());
 
   const key = cacheKey(request);
   const cached = await options.cache.match(key);
   if (cached) return withCacheStatus(cached, 'HIT');
 
   const response = await next();
-  if (response.status !== 200 || response.headers.has('set-cookie')) {
-    return privateResponse(response);
-  }
-
-  const headers = new Headers(response.headers);
-  const responsePolicy = headers.get('cache-control')?.toLowerCase() ?? '';
-  if (responsePolicy.includes('private') || responsePolicy.includes('no-store')) {
-    return response;
-  }
-  if (!headers.has('cache-control')) headers.set('Cache-Control', PUBLIC_CACHE_CONTROL);
-  const cacheable = new Response(response.body, {
-    status: response.status,
-    statusText: response.statusText,
-    headers,
-  });
+  const cacheable = cacheableResponse(response);
+  if (!cacheable) return privateResponse(response);
   const write = Promise.resolve(options.cache.put(key, cacheable.clone())).catch((error) => {
     console.error('[cache] public API write failed', error);
   });

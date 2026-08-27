@@ -16,6 +16,11 @@ describe('public API edge cache', () => {
     expect(isPublicCacheRequest(new Request('https://api.highsignal.app/brief/daily'))).toBe(true);
     expect(
       isPublicCacheRequest(
+        new Request('https://api.highsignal.app/brief/daily', { method: 'HEAD' })
+      )
+    ).toBe(true);
+    expect(
+      isPublicCacheRequest(
         new Request('https://api.highsignal.app/brief/daily', { headers: { cookie: 'x=1' } })
       )
     ).toBe(false);
@@ -31,6 +36,21 @@ describe('public API edge cache', () => {
     expect(
       isPublicCacheRequest(new Request('https://api.highsignal.app/signals', { method: 'POST' }))
     ).toBe(false);
+  });
+
+  it('makes a safe HEAD response front-cacheable without storing it as a GET body', async () => {
+    const cache = memoryCache();
+    const response = await handlePublicApiCache(
+      new Request('https://api.highsignal.app/data/sources', { method: 'HEAD' }),
+      async () => Response.json({ shouldNotLeakIntoBody: true }),
+      { cache }
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('cache-control')).toBe(publicApiCachePolicy.public);
+    await expect(response.text()).resolves.toBe('');
+    expect(cache.match).not.toHaveBeenCalled();
+    expect(cache.put).not.toHaveBeenCalled();
   });
 
   it('serves a repeated anonymous GET without calling the route again', async () => {

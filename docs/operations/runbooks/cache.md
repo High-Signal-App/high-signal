@@ -9,7 +9,7 @@ High Signal has guarded Cloudflare cache layers:
 
 - `high-signal-web` uses `caches.default` for anonymous HTML, RSC, and agent
   representations in `apps/web/worker.mjs`.
-- `high-signal-api` routes safe anonymous `GET` requests through a cached
+- `high-signal-api` routes safe anonymous `GET` and `HEAD` requests through a cached
   `PublicApi` entrypoint before Worker execution. The default entrypoint remains
   an uncached gateway so private request variants cannot hit public cache entries.
 - The API also retains its `caches.default` layer for successful anonymous
