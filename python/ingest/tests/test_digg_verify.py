@@ -45,10 +45,12 @@ def test_attention_and_social_urls_are_never_original_evidence() -> None:
 
 def test_gdelt_discovery_retries_and_uses_three_day_window() -> None:
     attempts = 0
+    schemes: list[str] = []
 
     def handler(request: httpx.Request) -> httpx.Response:
         nonlocal attempts
         attempts += 1
+        schemes.append(request.url.scheme)
         assert request.url.params["timespan"] == "3d"
         assert request.headers["Connection"] == "close"
         if attempts == 1:
@@ -70,6 +72,7 @@ def test_gdelt_discovery_retries_and_uses_three_day_window() -> None:
         articles = discover_articles(request, client)
 
     assert attempts == 2
+    assert schemes == ["https", "http"]
     assert [article["url"] for article in articles] == [
         "https://reuters.com/technology/anthropic-safety"
     ]

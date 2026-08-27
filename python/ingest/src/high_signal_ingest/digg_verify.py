@@ -25,6 +25,7 @@ from .utils import event_hash
 
 
 GDELT_DOC_API = "https://api.gdeltproject.org/api/v2/doc/doc"
+GDELT_DOC_API_FALLBACK = "http://api.gdeltproject.org/api/v2/doc/doc"
 GDELT_MAX_ATTEMPTS = 2
 GDELT_TIMEOUT_SECONDS = 75.0
 MAX_REQUESTS_PER_POLL = 3
@@ -94,10 +95,14 @@ def _allowed_original_url(value: object) -> str | None:
 
 def _search_gdelt(title: str, client: httpx.Client) -> dict[str, Any]:
     last_error: Exception | None = None
-    for _attempt in range(GDELT_MAX_ATTEMPTS):
+    for attempt in range(GDELT_MAX_ATTEMPTS):
         try:
+            # GDELT documents both protocols for DOC 2.0. HTTP is used only as
+            # a discovery fallback after HTTPS transport failure; its output is
+            # never evidence, and every candidate publisher page is retrieved
+            # and evaluated independently below.
             response = client.get(
-                GDELT_DOC_API,
+                GDELT_DOC_API if attempt == 0 else GDELT_DOC_API_FALLBACK,
                 params={
                     "query": discovery_query(title),
                     "mode": "artlist",
@@ -110,7 +115,7 @@ def _search_gdelt(title: str, client: httpx.Client) -> dict[str, Any]:
                 headers={"Accept": "application/json", "Connection": "close"},
                 timeout=GDELT_TIMEOUT_SECONDS,
             )
-            if response.status_code == 429 and _attempt + 1 < GDELT_MAX_ATTEMPTS:
+            if response.status_code == 429 and attempt + 1 < GDELT_MAX_ATTEMPTS:
                 # GDELT explicitly rate-limits its shared search clusters.
                 # A bounded pause avoids turning one threshold crossing into a burst.
                 retry_after = response.headers.get("Retry-After", "15")
