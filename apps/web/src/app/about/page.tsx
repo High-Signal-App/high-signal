@@ -23,9 +23,15 @@ export default function AboutPage() {
       </Link>
       <h1 className="mt-3 text-3xl font-medium tracking-tight text-white">About</h1>
       <p className="mt-4 text-sm leading-6 text-zinc-400">
-        High Signal extracts actionable signals from noisy public and semi-public information
-        streams — SEC filings, news, IR pages, community chatter, GitHub releases — and predicts
-        second-order impact through entity graphs.
+        High Signal turns noisy public evidence across technology, startups, and finance into one
+        free Daily Brief. Its three public sections cover markets and companies, business
+        opportunities, and behavior and culture; supporting research makes every claim and result
+        inspectable.
+      </p>
+
+      <p className="mt-4 text-sm leading-6 text-zinc-400">
+        There are no reader accounts, paid tiers, or personalized editions. A section stays empty
+        when the available evidence does not clear the publication bar.
       </p>
 
       <section className="mt-10 space-y-3 text-sm leading-6">

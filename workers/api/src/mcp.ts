@@ -2,6 +2,7 @@ import {
   createMcpHandler,
   type CreateMcpHandlerOptions,
   hostHeaderValidationResponse,
+  LATEST_PROTOCOL_VERSION,
   McpServer,
 } from '@modelcontextprotocol/server';
 import { z } from 'zod';
@@ -21,6 +22,27 @@ const MCP_ALLOWED_ORIGIN_HOSTNAMES = new Set([
   'localhost',
   '127.0.0.1',
 ]);
+
+export const HIGH_SIGNAL_MCP_SERVER_CARD = {
+  $schema: 'https://static.modelcontextprotocol.io/schemas/v1/server-card.schema.json',
+  name: 'app.highsignal/daily-brief',
+  title: 'High Signal',
+  description: 'Read the evidence-qualified Daily Brief and inspect public signal proofs.',
+  version: MCP_SERVER_VERSION,
+  websiteUrl: 'https://highsignal.app/api-docs',
+  repository: {
+    url: 'https://github.com/High-Signal-App/high-signal',
+    source: 'github',
+    subfolder: 'workers/api',
+  },
+  remotes: [
+    {
+      type: 'streamable-http',
+      url: 'https://api.highsignal.app/mcp',
+      supportedProtocolVersions: [LATEST_PROTOCOL_VERSION],
+    },
+  ],
+} as const;
 
 const toolAnnotations = {
   readOnlyHint: true,
@@ -326,4 +348,22 @@ export async function handleHighSignalMcpRequest(
     readPublicJson,
   });
   return handler(request, env, ctx);
+}
+
+export function handleHighSignalMcpCardRequest(request: Request) {
+  if (request.method !== 'GET' && request.method !== 'HEAD') {
+    return new Response('Method not allowed.', {
+      status: 405,
+      headers: { Allow: 'GET, HEAD' },
+    });
+  }
+  const body =
+    request.method === 'HEAD' ? null : `${JSON.stringify(HIGH_SIGNAL_MCP_SERVER_CARD)}\n`;
+  return new Response(body, {
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Cache-Control': 'public, max-age=300, s-maxage=86400',
+      'Content-Type': 'application/mcp-server-card+json; charset=utf-8',
+    },
+  });
 }

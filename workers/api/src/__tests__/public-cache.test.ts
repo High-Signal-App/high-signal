@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
-import { handlePublicApiCache, publicApiCachePolicy } from '../public-cache';
+import {
+  handlePublicApiCache,
+  isPublicCacheRequest,
+  publicApiCachePolicy,
+} from '../public-cache';
 
 function memoryCache() {
   const entries = new Map<string, Response>();
@@ -12,6 +16,29 @@ function memoryCache() {
 }
 
 describe('public API edge cache', () => {
+  it('routes only safe anonymous GETs into the front-of-Worker cache', () => {
+    expect(isPublicCacheRequest(new Request('https://api.highsignal.app/brief/daily'))).toBe(true);
+    expect(
+      isPublicCacheRequest(
+        new Request('https://api.highsignal.app/brief/daily', { headers: { cookie: 'x=1' } })
+      )
+    ).toBe(false);
+    expect(
+      isPublicCacheRequest(
+        new Request('https://api.highsignal.app/brief/daily', {
+          headers: { authorization: 'Bearer redacted' },
+        })
+      )
+    ).toBe(false);
+    expect(isPublicCacheRequest(new Request('https://api.highsignal.app/admin/audit'))).toBe(false);
+    expect(isPublicCacheRequest(new Request('https://api.highsignal.app/health'))).toBe(false);
+    expect(
+      isPublicCacheRequest(
+        new Request('https://api.highsignal.app/signals', { method: 'POST' })
+      )
+    ).toBe(false);
+  });
+
   it('serves a repeated anonymous GET without calling the route again', async () => {
     const cache = memoryCache();
     const next = vi.fn(async () => Response.json({ generatedAt: '2026-08-24T00:00:00Z' }));

@@ -1,0 +1,10 @@
+{
+  "specVersion": "1.0",
+  "entries": [
+    {
+      "identifier": "urn:air:highsignal.app:mcp:daily-brief",
+      "type": "application/mcp-server-card+json",
+      "url": "https://api.highsignal.app/mcp/server-card"
+    }
+  ]
+}

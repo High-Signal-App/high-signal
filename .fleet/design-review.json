@@ -2,7 +2,8 @@
   "$schema": "fleet.design-review.v1",
   "version": 1,
   "project": "high-signal",
-  "target": "Brief, signals, sources, Company Universe, Explore, and public navigation",
+  "target": "Homepage daily signals and proof path",
+  "surfaceMode": "persuade",
   "mode": "preserve",
   "register": "product",
   "context": {
@@ -14,33 +15,46 @@
     "probes": [],
     "selected": "existing-design",
     "approval": "not-required",
-    "before": "artifacts/design/before-explore-cleanup-1440.png"
+    "before": "artifacts/design/before-homepage-signal-simplification-1440.png",
+    "contract": {
+      "purpose": "Help a reader scan today's independently supported signals and open the proof.",
+      "purposeSource": "PRODUCT.md and docs/product/direction.md",
+      "canonicalPurpose": "High Signal turns noisy public evidence into a concise daily set of independently supported signals with click-through proof.",
+      "purposeAlignment": "match",
+      "driftNote": "",
+      "audience": "Founders, operators, and researchers filtering noisy public information.",
+      "job": "See whether any verified signal shipped today or yesterday, then open its proof page.",
+      "thesis": "One calm signal ledger; input feeds stay backstage.",
+      "system": "Preserve the existing Evidence Terminal typography, rules, spacing, and restrained cyan accent.",
+      "signature": "The claim-to-proof path: headline, change, consequence, uncertainty, and citations.",
+      "risk": "A quiet day can look sparse; that is accepted because cite-or-kill matters more than feed fullness."
+    }
   },
   "evidence": {
     "screenshots": [
       {
         "width": 390,
-        "path": "artifacts/design/after-explore-cleanup-390.png"
+        "path": "artifacts/design/after-homepage-signals-390.png"
       },
       {
         "width": 768,
-        "path": "artifacts/design/after-explore-cleanup-768.png"
+        "path": "artifacts/design/after-homepage-signals-768.png"
       },
       {
         "width": 1440,
-        "path": "artifacts/design/after-explore-cleanup-1440.png"
+        "path": "artifacts/design/after-homepage-signals-1440.png"
       }
     ],
     "projectCheck": {
-      "command": "pnpm build && pnpm typecheck && pnpm test && pnpm lint && pnpm docs:check && git diff --check",
+      "command": "web typecheck + web lint + web production build + 26-suite test runner + git diff --check",
       "status": "pass"
     },
     "critique": {
-      "score": 33,
+      "score": 35,
       "maximum": 40
     },
     "audit": {
-      "score": 18,
+      "score": 20,
       "maximum": 20
     },
     "unresolved": {
@@ -50,14 +64,36 @@
     "detector": {
       "posture": "advisory",
       "findings": [
-        "The scoped detector ran exactly once and returned no implementation-integrity findings.",
-        "The responsive audit found one undersized backlink target; it was fixed before handoff.",
-        "The final audit scored 18/20 with zero unresolved P0 or P1 findings."
+        "The scoped detector ran exactly once and returned zero findings.",
+        "The responsive audit found one undersized date-link target; it was fixed and reverified at 44 pixels.",
+        "The final browser check found no Digg or attention content, no overflow, and no page errors."
       ]
+    },
+    "comprehension": {
+      "status": "pass",
+      "reviewer": "independent design critique",
+      "answers": {
+        "product": "A daily ledger of independently supported technology, startup, and finance signals.",
+        "audience": "Founders, operators, and researchers filtering noisy public information.",
+        "value": "Fewer claims, each worth inspecting.",
+        "mechanism": "Cite-or-kill publication with independent corroboration.",
+        "proof": "Each signal exposes change, consequence, uncertainty, citations, and history.",
+        "nextAction": "Open a signal; if the edition is empty, inspect the alternate day or earlier signals."
+      },
+      "purposeScore": {
+        "product": 23,
+        "audience": 14,
+        "value": 14,
+        "mechanism": 14,
+        "proof": 14,
+        "nextAction": 14,
+        "total": 93
+      },
+      "mismatches": []
     }
   },
   "ownerFeedback": {
     "decision": "delegated",
-    "note": "Owner approved the cleanup scope, retained Company Universe, and delegated final UI judgment."
+    "note": "The owner set the signal-only, no-Digg landing hierarchy and delegated implementation details."
   }
 }

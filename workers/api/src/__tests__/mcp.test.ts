@@ -4,6 +4,7 @@ import worker from '../index';
 import {
   createCachedPublicJsonReader,
   createHighSignalMcpHandler,
+  HIGH_SIGNAL_MCP_SERVER_CARD,
   type HighSignalMcpDependencies,
 } from '../mcp';
 
@@ -68,6 +69,35 @@ function structuredContent(body: Record<string, unknown>) {
 }
 
 describe('High Signal MCP', () => {
+  it('routes safe anonymous GETs through the cached public entrypoint', async () => {
+    const publicFetch = vi.fn(async () => Response.json({ cached: true }));
+    const response = await worker.fetch(
+      new Request('https://api.highsignal.app/data/daily'),
+      { DB: {} as D1Database, ENVIRONMENT: 'test' },
+      {
+        ...executionContext,
+        exports: { PublicApi: { fetch: publicFetch } },
+      } as unknown as ExecutionContext
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ cached: true });
+    expect(publicFetch).toHaveBeenCalledOnce();
+  });
+
+  it('publishes a cacheable, anonymous MCP Server Card', async () => {
+    const response = await worker.fetch(
+      new Request('https://api.highsignal.app/mcp/server-card'),
+      { DB: {} as D1Database, ENVIRONMENT: 'test' },
+      executionContext
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('content-type')).toContain('application/mcp-server-card+json');
+    expect(response.headers.get('access-control-allow-origin')).toBe('*');
+    expect(await response.json()).toEqual(HIGH_SIGNAL_MCP_SERVER_CARD);
+  });
+
   it('routes the public Worker endpoint to the MCP handler', async () => {
     const response = await worker.fetch(
       mcpRequest('tools/list'),

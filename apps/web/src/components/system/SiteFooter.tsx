@@ -50,6 +50,11 @@ export function SiteFooter() {
             See the ledger →
           </a>
         </p>
+        <p className="mt-3 max-w-3xl text-xs leading-5 text-[var(--color-muted)]">
+          A free, public Daily Brief across technology, startups, and finance. No reader account,
+          paid tier, or personalization; when evidence does not clear the bar, a section stays
+          empty.
+        </p>
       </div>
       <div className="mx-auto max-w-5xl px-6 py-10">
         <div className="grid grid-cols-2 gap-8 sm:grid-cols-4">

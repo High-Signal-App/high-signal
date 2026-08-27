@@ -4,6 +4,7 @@ import openNext from './.open-next/worker.js';
 import { guardPublicRequest } from './abuse-guard.mjs';
 import { withTiming } from './timing.mjs';
 import {
+  agentDiscoveryLinkHeader,
   handleAgentEdge,
   handleCachedCrawlerMarkdown,
   handleCachedRenderedMarkdown,
@@ -82,6 +83,7 @@ function postProcessResponse(request, url, response) {
     isPublicHtmlPath(normalizedPath)
   ) {
     const headers = new Headers(response.headers);
+    headers.set('Link', agentDiscoveryLinkHeader(url.origin, normalizedPath));
     const existingVary = headers.get('Vary');
     if (existingVary) {
       if (!existingVary.toLowerCase().includes('accept')) {
@@ -163,6 +165,7 @@ const worker = {
     const normalizedPath = normalizePublicPath(url.pathname);
     const contentType = headers.get('content-type') ?? '';
     if (contentType.includes('text/html') && isPublicHtmlPath(normalizedPath)) {
+      headers.set('Link', agentDiscoveryLinkHeader(url.origin, normalizedPath));
       const existingVary = headers.get('Vary');
       if (existingVary) {
         if (!existingVary.toLowerCase().includes('accept')) {

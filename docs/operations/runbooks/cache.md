@@ -5,11 +5,14 @@ description: Verify that anonymous High Signal reads reuse Cloudflare cache with
 
 # Public edge-cache verification
 
-High Signal has two guarded Cloudflare cache layers:
+High Signal has guarded Cloudflare cache layers:
 
 - `high-signal-web` uses `caches.default` for anonymous HTML, RSC, and agent
   representations in `apps/web/worker.mjs`.
-- `high-signal-api` uses `caches.default` for successful anonymous `GET`
+- `high-signal-api` routes safe anonymous `GET` requests through a cached
+  `PublicApi` entrypoint before Worker execution. The default entrypoint remains
+  an uncached gateway so private request variants cannot hit public cache entries.
+- The API also retains its `caches.default` layer for successful anonymous
   responses in `workers/api/src/public-cache.ts`.
 
 Both layers bypass authenticated or cookie-bearing requests. The API also
@@ -35,10 +38,10 @@ must stay aligned with the pages' five-minute Next.js revalidation interval;
 the generic 24-hour HTML policy is too stale for source-health status.
 
 The Cache API prevents repeated D1 queries and upstream fetches after the first
-request in a Cloudflare data center. It is data-center local and does not stop
-the Worker itself from being invoked. Cloudflare's front-of-Worker caching can
-also avoid Worker execution, but enabling it changes the deployed Worker
-configuration and must be handled as a separately approved release change.
+request in a Cloudflare data center. The cached `PublicApi` entrypoint adds the
+front-of-Worker layer, so a `CF-Cache-Status: HIT` response does not invoke the
+application Worker. Cookie-bearing, authorized, admin, health, mutation, error,
+and `Set-Cookie` responses stay outside that layer.
 
 ## Local checks
 
@@ -62,12 +65,15 @@ curl -sS -D - -o /dev/null 'https://api.highsignal.app/data/daily?date=2026-08-2
 curl -sS -D - -o /dev/null 'https://api.highsignal.app/data/daily?date=2026-08-24'
 ```
 
-Expected API receipt:
+Expected API receipt after the front-of-Worker cache is released:
 
-1. First successful request: `x-edge-cache: API-MISS`.
-2. Second identical request: `x-edge-cache: API-HIT`.
+1. First successful request: `CF-Cache-Status: MISS` and an application cache
+   receipt (`x-edge-cache: API-MISS` or `API-HIT`).
+2. Second identical request: `CF-Cache-Status: HIT` with an `Age` header. The
+   application receipt may still say `API-MISS` because that first response is
+   what the outer cache stored.
 3. Both: an explicit public `Cache-Control` header.
-4. A changed query parameter: a new `API-MISS`.
+4. A changed query parameter: a new front-cache miss.
 5. `/health`, `/admin/*`, a request with `Authorization` or `Cookie`, and any
    non-200 response: no shared-cache status and `private, no-store` unless the
    route already defines a stricter private policy.

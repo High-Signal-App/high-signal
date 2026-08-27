@@ -1,12 +1,25 @@
 name = "high-signal-api"
 main = "src/index.ts"
 compatibility_date = "2026-04-01"
+compatibility_flags = ["enable_ctx_exports"]
 workers_dev = false
 preview_urls = false
 
 routes = [
   { pattern = "api.highsignal.app", custom_domain = true },
 ]
+
+# The public entrypoint is cached before Worker execution. The default gateway
+# remains uncached so it can reject cookies, authorization, admin paths,
+# mutations, health checks, and other private variants before cache lookup.
+[cache]
+enabled = false
+
+[exports.PublicApi]
+type = "worker"
+
+[exports.PublicApi.cache]
+enabled = true
 
 [observability]
 enabled = true

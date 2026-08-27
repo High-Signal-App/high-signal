@@ -33,3 +33,5 @@ Allow: /index.md
 Allow: /api/ai
 Allow: /llms-full.txt
 Allow: /openapi.json
+Allow: /.well-known/
+Agentmap: https://highsignal.app/.well-known/ard.json

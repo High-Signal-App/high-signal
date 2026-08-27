@@ -1,0 +1,32 @@
+{
+  "entries": [
+    {
+      "@context": "https://agenticresourcediscovery.org/context/v1",
+      "identifier": "urn:air:highsignal.app:mcp:daily-brief",
+      "displayName": "High Signal public MCP",
+      "type": "application/mcp-server-card+json",
+      "url": "https://api.highsignal.app/mcp/server-card",
+      "description": "Read today's or yesterday's Daily Brief and inspect public signal evidence through MCP.",
+      "capabilities": ["DailyBrief", "SignalEvidence", "DailyDump"],
+      "representativeQueries": [
+        "summarize today's evidence-qualified technology and startup signals",
+        "show the evidence and claims behind this High Signal record",
+        "retrieve yesterday's public High Signal daily dump"
+      ]
+    },
+    {
+      "@context": "https://agenticresourcediscovery.org/context/v1",
+      "identifier": "urn:air:highsignal.app:skill:daily-brief",
+      "displayName": "High Signal Daily Brief skill",
+      "type": "application/ai-skill+md",
+      "url": "https://highsignal.app/.well-known/agent-skills/high-signal-daily-brief/SKILL.md",
+      "description": "Instructions for using High Signal's free public brief and read-only machine surfaces accurately.",
+      "capabilities": ["DailyBrief", "EvidenceSummary", "TrackRecord"],
+      "representativeQueries": [
+        "give me today's High Signal brief with citations",
+        "check a High Signal market call against its public track record",
+        "explain what High Signal covers and when an agent should use it"
+      ]
+    }
+  ]
+}

@@ -8,7 +8,7 @@ type PublicApiCacheOptions = {
   waitUntil?: (promise: Promise<unknown>) => void;
 };
 
-function isPublicCacheRequest(request: Request) {
+export function isPublicCacheRequest(request: Request) {
   if (request.method !== 'GET') return false;
   if (request.headers.has('authorization') || request.headers.has('cookie')) return false;
 

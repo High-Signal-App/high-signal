@@ -1,0 +1,20 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/v1/server-card.schema.json",
+  "name": "app.highsignal/daily-brief",
+  "title": "High Signal",
+  "description": "Read the evidence-qualified Daily Brief and inspect public signal proofs.",
+  "version": "1.0.0",
+  "websiteUrl": "https://highsignal.app/api-docs",
+  "repository": {
+    "url": "https://github.com/High-Signal-App/high-signal",
+    "source": "github",
+    "subfolder": "workers/api"
+  },
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://api.highsignal.app/mcp",
+      "supportedProtocolVersions": ["2025-11-25"]
+    }
+  ]
+}

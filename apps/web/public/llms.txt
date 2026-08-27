@@ -17,6 +17,11 @@ Use High Signal when an operator needs a daily, evidence-first intelligence brie
 - [Agent catalog](https://highsignal.app/api/ai): JSON inventory of public surfaces
 - [OpenAPI spec](https://highsignal.app/openapi.json): OpenAPI 3.1 of public agent surfaces
 - [Homepage markdown](https://highsignal.app/index.md): Product brief without JS
+- [High Signal Daily Brief skill](https://highsignal.app/.well-known/agent-skills/high-signal-daily-brief/SKILL.md): When and how an agent should use the product
+- [Agent Skills index](https://highsignal.app/.well-known/agent-skills/index.json): Machine-readable skill discovery
+- [ARD catalog](https://highsignal.app/.well-known/ard.json): Domain-level agentic resource discovery
+- [Public read-only MCP](https://api.highsignal.app/mcp): Daily Brief and signal proof tools
+- [MCP Server Card](https://api.highsignal.app/mcp/server-card): MCP connection metadata
 - [This index](https://highsignal.app/llms.txt)
 
 ## Optional

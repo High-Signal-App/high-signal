@@ -24,6 +24,11 @@ Operators and investors who want a high-signal daily read instead of raw feed no
 - https://highsignal.app/llms.txt
 - https://highsignal.app/api/ai
 - https://highsignal.app/index.md
+- https://highsignal.app/.well-known/agent-skills/index.json
+- https://highsignal.app/.well-known/agent-skills/high-signal-daily-brief/SKILL.md
+- https://highsignal.app/.well-known/ard.json
+- https://api.highsignal.app/mcp
+- https://api.highsignal.app/mcp/server-card
 - RSS: https://highsignal.app/signals/rss
 
 ## Product links

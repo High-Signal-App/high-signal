@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 
 import {
   cacheControlForRequest,
@@ -14,6 +15,13 @@ import {
 } from '../apps/web/worker-cache-policy.mjs';
 
 const request = (path, init = {}) => new Request(`https://highsignal.app${path}`, init);
+
+const apiWrangler = readFileSync(
+  new URL('../workers/api/wrangler.toml', import.meta.url),
+  'utf8'
+);
+assert.match(apiWrangler, /\[cache\]\s+enabled = false/);
+assert.match(apiWrangler, /\[exports\.PublicApi\.cache\]\s+enabled = true/);
 
 for (const path of [
   '/',

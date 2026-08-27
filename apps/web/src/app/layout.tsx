@@ -118,7 +118,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           type="application/ld+json"
           // biome-ignore lint/security/noDangerouslySetInnerHtml: fleet-generated JSON-LD
           dangerouslySetInnerHTML={{
-            __html: `{"@context":"https://schema.org","@graph":[{"@type":"Person","@id":"https://sarthakagrawal.dev/#person","name":"Sarthak Agrawal","jobTitle":"AI Infrastructure & Product Engineer","url":"https://sarthakagrawal.dev","image":"https://avatars.githubusercontent.com/u/43884471?v=4","sameAs":["https://sarthakagrawal.dev","https://www.linkedin.com/in/sarthakagrawal927","https://github.com/sarthakagrawal927","https://x.com/sarthakcodes","https://huggingface.co/sarthakagrawal927"],"knowsAbout":["AI infrastructure","Local-first software","Post-training language models","AI code review","Cloudflare Workers","TypeScript","Rust"],"affiliation":{"@type":"Organization","@id":"https://sassmaker.com/#app","name":"SaaS Maker","url":"https://sassmaker.com"}},{"@type":"WebSite","@id":"https://highsignal.app/#app","name":"High Signal","alternateName":["HighSignal","highsignal.app"],"url":"https://highsignal.app","description":"Daily synthesized brief on technology, startups, and finance — five sections with inline hit-rates, no signup required.","publisher":{"@id":"https://sarthakagrawal.dev/#person"},"sameAs":["https://github.com/High-Signal-App/high-signal"]}]}`,
+            __html: `{"@context":"https://schema.org","@graph":[{"@type":"Person","@id":"https://sarthakagrawal.dev/#person","name":"Sarthak Agrawal","jobTitle":"AI Infrastructure & Product Engineer","url":"https://sarthakagrawal.dev","image":"https://avatars.githubusercontent.com/u/43884471?v=4","sameAs":["https://sarthakagrawal.dev","https://www.linkedin.com/in/sarthakagrawal927","https://github.com/sarthakagrawal927","https://x.com/sarthakcodes","https://huggingface.co/sarthakagrawal927"],"knowsAbout":["AI infrastructure","Local-first software","Post-training language models","AI code review","Cloudflare Workers","TypeScript","Rust"],"affiliation":{"@type":"Organization","@id":"https://sassmaker.com/#app","name":"SaaS Maker","url":"https://sassmaker.com"}},{"@type":"WebSite","@id":"https://highsignal.app/#app","name":"High Signal","alternateName":["HighSignal","highsignal.app"],"url":"https://highsignal.app","description":"Free public Daily Brief on technology, startups, and finance, organized into three evidence-qualified sections with cited sources and a public hit-rate ledger.","publisher":{"@id":"https://sarthakagrawal.dev/#person"},"sameAs":["https://github.com/High-Signal-App/high-signal"]}]}`,
           }}
         />
         {/* fleet-jsonld:end */}
@@ -126,10 +126,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-dvh font-sans antialiased">
         {app}
         {/* Microsoft Clarity — session replay + heatmaps (additive; PostHog stays) */}
-        <Script id="microsoft-clarity" strategy="afterInteractive">
+        <Script id="microsoft-clarity" strategy="lazyOnload">
           {`(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/y39u4kk9oq";y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window,document,"clarity","script","y39u4kk9oq");window.clarity("set","project_id","high-signal");`}
         </Script>
-        <script src="https://sassmaker.com/project-strip.js" data-project="high-signal" defer />
+        <Script
+          src="https://sassmaker.com/project-strip.js"
+          data-project="high-signal"
+          strategy="lazyOnload"
+        />
+        <Script
+          src="https://sassmaker.com/ai-chat-footer.js"
+          data-name="High Signal"
+          strategy="lazyOnload"
+        />
       </body>
     </html>
   );

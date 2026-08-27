@@ -9,6 +9,9 @@ export default defineConfig({
       // `cloudflare:email` is a workerd-only virtual module; stub it so suites
       // that transitively import the email/delivery route can load under node.
       'cloudflare:email': resolve(__dirname, 'test/stubs/cloudflare-email.ts'),
+      // Named Worker entrypoints are workerd-only; the API tests exercise the
+      // gateway behavior under Node with the same constructor surface.
+      'cloudflare:workers': resolve(__dirname, 'test/stubs/cloudflare-workers.ts'),
     },
     coverage: {
       provider: 'v8',

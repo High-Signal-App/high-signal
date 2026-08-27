@@ -1,6 +1,6 @@
 # high-signal — PROJECT STATUS
 
-Last updated: 2026-08-26
+Last updated: 2026-08-27
 
 ## Why/What
 
@@ -137,6 +137,18 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 **Deploy workflows:** `.github/workflows/deploy-web.yml`, `deploy-api.yml`. (The former standalone annotation worker was decommissioned; annotation runs in-process via `annotateLightweightNlp`.)
 
 ## Timeline
+
+- **2026-08-27 — Signal-only homepage and cost-safe agent delivery released:**
+  the homepage now renders only evidence-qualified Today or Yesterday signals,
+  with every card opening its proof page. Digg remains an internal attention
+  and source-discovery input; its cluster feed, summaries, and attention-gap
+  sections are no longer rendered as reader-facing signals. Agent discovery
+  now publishes a stable MCP Server Card, Agent Skills and ARD manifests while
+  preserving the three-tool read-only MCP contract. Anonymous API GETs enter a
+  cached `PublicApi` entrypoint before Worker execution, while the uncached
+  default gateway excludes cookies, authorization, admin, health, mutations,
+  errors, and `Set-Cookie` responses. The Cloudflare zone now respects origin
+  cache headers instead of overriding the API's one-minute browser TTL.
 
 - **2026-08-26 — Public MCP released:** the API
   Worker now has a stateless Streamable HTTP endpoint at `/mcp` with exactly

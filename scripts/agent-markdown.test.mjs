@@ -1,9 +1,11 @@
 #!/usr/bin/env node
 
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 
 import {
+  agentDiscoveryLinkHeader,
   handleAgentEdge,
   handleCachedCrawlerMarkdown,
   handleCachedRenderedMarkdown,
@@ -21,6 +23,10 @@ import {
 
 const markdownRequest = (path, headers = {}) =>
   new Request(`https://highsignal.app${path}`, { headers });
+
+const discoveryLinks = agentDiscoveryLinkHeader('https://highsignal.app', '/markets');
+assert.match(discoveryLinks, /<\/markets\.md>; rel="alternate"; type="text\/markdown"/);
+assert.match(discoveryLinks, /<\/\.well-known\/ard\.json>; rel="ard"/);
 
 assert.equal(PUBLIC_STATIC_ROUTES.length, 28, 'static public route count must be deliberate');
 assert.ok(
@@ -343,10 +349,33 @@ assert.ok(catalog.surfaces.every((surface) => surface.url && surface.md));
 assert.equal(catalog.markdown.negotiation, true);
 assert.deepEqual(catalog.mcp, {
   url: 'https://api.highsignal.app/mcp',
+  serverCard: 'https://api.highsignal.app/mcp/server-card',
   transport: 'streamable-http',
   auth: 'none',
   tools: ['get_daily_brief', 'get_signal', 'get_daily_dump'],
 });
+assert.equal(
+  catalog.agentSkills.dailyBrief,
+  'https://highsignal.app/.well-known/agent-skills/high-signal-daily-brief/SKILL.md'
+);
+assert.equal(catalog.ard, 'https://highsignal.app/.well-known/ard.json');
+
+const agentModeResponse = handleAgentEdge(markdownRequest('/?mode=agent'));
+assert.ok(agentModeResponse);
+assert.equal(agentModeResponse.headers.get('content-location'), '/api/ai');
+assert.deepEqual(await agentModeResponse.json(), catalog);
+
+const skillPath = 'apps/web/public/.well-known/agent-skills/high-signal-daily-brief/SKILL.md';
+const skillIndex = JSON.parse(
+  readFileSync('apps/web/public/.well-known/agent-skills/index.json', 'utf8')
+);
+const skillDigest = `sha256:${createHash('sha256').update(readFileSync(skillPath)).digest('hex')}`;
+assert.equal(
+  skillIndex.skills[0].digest,
+  skillDigest,
+  'published skill digest must match SKILL.md'
+);
+assert.match(readFileSync(skillPath, 'utf8'), /The service is free and requires no reader account/);
 assert.match(catalog.auth.notes, /Review, admin, delivery/);
 assert.equal(
   catalog.dataResources.find((resource) => resource.id === 'daily-dump-json')?.url,

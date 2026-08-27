@@ -89,6 +89,23 @@ const LLMS_MARKDOWN = `# High Signal
 - [Methodology](https://highsignal.app/methodology)
 - [Agent catalog](https://highsignal.app/api/ai)
 
+## When to use High Signal
+
+Use High Signal when an operator wants a concise daily read across technology,
+startups, and finance where every published signal has at least two cited
+sources and matured calls feed a public hit-rate ledger. Use the public MCP for
+today's or yesterday's structured brief and signal proofs. Do not use High
+Signal as a real-time price feed, personalized news service, or investment
+adviser; the separately labeled attention layer is context, not evidence.
+
+## Agent skill and MCP
+
+- [High Signal Daily Brief skill](https://highsignal.app/.well-known/agent-skills/high-signal-daily-brief/SKILL.md)
+- [Agent Skills index](https://highsignal.app/.well-known/agent-skills/index.json)
+- [ARD catalog](https://highsignal.app/.well-known/ard.json)
+- [Public read-only MCP](https://api.highsignal.app/mcp)
+- [MCP Server Card](https://api.highsignal.app/mcp/server-card)
+
 Every index-eligible public HTML route has a Markdown alternate. Large dynamic
 corpora use the templates declared by the agent catalog and the same eligibility
 policy as the canonical sitemap.
@@ -147,6 +164,7 @@ function catalogForOrigin(origin) {
     robots: `${origin}/robots.txt`,
     mcp: {
       url: 'https://api.highsignal.app/mcp',
+      serverCard: 'https://api.highsignal.app/mcp/server-card',
       transport: 'streamable-http',
       auth: 'none',
       tools: ['get_daily_brief', 'get_signal', 'get_daily_dump'],
@@ -155,6 +173,11 @@ function catalogForOrigin(origin) {
       suffix: '.md',
       negotiation: true,
     },
+    agentSkills: {
+      index: `${origin}/.well-known/agent-skills/index.json`,
+      dailyBrief: `${origin}/.well-known/agent-skills/high-signal-daily-brief/SKILL.md`,
+    },
+    ard: `${origin}/.well-known/ard.json`,
     surfaces: staticSurfaces,
     templates,
     dataResources: [
@@ -389,6 +412,13 @@ export function handleAgentEdge(request) {
   const url = new URL(request.url);
   const path = normalizePublicPath(url.pathname);
 
+  if (path === '/' && url.searchParams.get('mode') === 'agent') {
+    return json(request, catalogForOrigin(url.origin), {
+      'Content-Location': '/api/ai',
+      Vary: 'Accept',
+    });
+  }
+
   if (path === '/llms.txt') {
     return text(request, LLMS_MARKDOWN, 'text/plain; charset=utf-8');
   }
@@ -413,6 +443,18 @@ export function handleAgentEdge(request) {
   }
 
   return null;
+}
+
+export function agentDiscoveryLinkHeader(origin, publicPath) {
+  const markdownPath = publicPath === '/' ? '/index.md' : `${publicPath}.md`;
+  return [
+    `<${markdownPath}>; rel="alternate"; type="text/markdown"`,
+    '</sitemap.xml>; rel="sitemap"; type="application/xml"',
+    '</openapi.json>; rel="service-desc"; type="application/vnd.oai.openapi+json"',
+    '</api/ai>; rel="service-desc"; type="application/json"',
+    '</.well-known/ard.json>; rel="ard"; type="application/json"',
+    `<${origin}/.well-known/agent-skills/index.json>; rel="describedby"; type="application/json"`,
+  ].join(', ');
 }
 
 export function resolvePublicMarkdownTarget(request) {
@@ -746,13 +788,14 @@ function text(request, body, type, extra = {}) {
   });
 }
 
-function json(request, data) {
+function json(request, data, extra = {}) {
   return new Response(request.method === 'HEAD' ? null : `${JSON.stringify(data, null, 2)}\n`, {
     status: 200,
     headers: {
       'Content-Type': 'application/json; charset=utf-8',
       'Cache-Control': AGENT_CACHE_CONTROL,
       ...RATE_LIMIT_HEADERS,
+      ...extra,
     },
   });
 }

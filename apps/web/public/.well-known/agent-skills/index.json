@@ -1,0 +1,12 @@
+{
+  "$schema": "https://schemas.agentskills.io/discovery/0.2.0/schema.json",
+  "skills": [
+    {
+      "name": "high-signal-daily-brief",
+      "type": "skill-md",
+      "description": "Use High Signal to read a free evidence-qualified daily brief across technology, startups, and finance or inspect a published signal and its proof.",
+      "url": "/.well-known/agent-skills/high-signal-daily-brief/SKILL.md",
+      "digest": "sha256:603539de3d8096f57d44e7429bf42fc8e086b7f3ecc23392a12eb7d2ac9c5401"
+    }
+  ]
+}

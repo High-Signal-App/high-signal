@@ -32,6 +32,7 @@ export default function robots(): MetadataRoute.Robots {
           '/api-docs',
           '/embed',
           '/llms.txt',
+          '/.well-known/',
         ],
         disallow: [
           '/review',

@@ -1,16 +1,28 @@
 {
   "name": "High Signal",
-  "version": "1",
+  "version": "3",
   "url": "https://highsignal.app",
   "llms": "https://highsignal.app/llms.txt",
   "llmsFull": "https://highsignal.app/llms-full.txt",
   "openapi": "https://highsignal.app/openapi.json",
   "sitemap": "https://highsignal.app/sitemap.xml",
   "robots": "https://highsignal.app/robots.txt",
+  "mcp": {
+    "url": "https://api.highsignal.app/mcp",
+    "serverCard": "https://api.highsignal.app/mcp/server-card",
+    "transport": "streamable-http",
+    "auth": "none",
+    "tools": ["get_daily_brief", "get_signal", "get_daily_dump"]
+  },
   "markdown": {
     "suffix": ".md",
     "negotiation": true
   },
+  "agentSkills": {
+    "index": "https://highsignal.app/.well-known/agent-skills/index.json",
+    "dailyBrief": "https://highsignal.app/.well-known/agent-skills/high-signal-daily-brief/SKILL.md"
+  },
+  "ard": "https://highsignal.app/.well-known/ard.json",
   "surfaces": [
     {
       "id": "home",
@@ -43,6 +55,6 @@
   ],
   "auth": {
     "public": true,
-    "notes": "Auth-walled app routes are not agent-indexed unless listed here."
+    "notes": "The reader product is free and public with no account. Cloudflare Access protects only bounded operator routes, which are not agent-indexed."
   }
 }
