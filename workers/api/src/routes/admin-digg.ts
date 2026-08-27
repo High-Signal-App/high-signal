@@ -82,6 +82,31 @@ const DIGG_VERIFICATION_THRESHOLDS = {
   minDistinctAccounts: 3,
 } as const;
 
+const EVIDENCE_SEARCH_STOP_WORDS = new Set([
+  'about',
+  'after',
+  'from',
+  'into',
+  'may',
+  'team',
+  'that',
+  'the',
+  'this',
+  'with',
+]);
+
+export function evidenceSearchTokens(title: string): string[] {
+  const tokens: string[] = [];
+  for (const raw of title.toLowerCase().match(/[a-z0-9]+/g) ?? []) {
+    if (raw.length < 4 || EVIDENCE_SEARCH_STOP_WORDS.has(raw)) continue;
+    const variants = raw.endsWith('ai') && raw.length > 6 ? [raw.slice(0, -2), raw] : [raw];
+    for (const token of variants) {
+      if (!tokens.includes(token)) tokens.push(token);
+    }
+  }
+  return tokens.slice(0, 8);
+}
+
 export function verificationReasons(input: {
   position?: number | null;
   positionDelta?: number | null;
@@ -617,16 +642,51 @@ async function pendingVerificationRequests(d1: D1Database) {
       first_seen_at: number;
       verification_reason: string | null;
     }>();
+  return Promise.all(
+    (rows.results ?? []).map(async (row) => ({
+      shortId: row.short_id,
+      title: row.title,
+      summary: row.digg_summary,
+      entityId: row.primary_entity_id,
+      sourceUrls: jsonArray(row.source_urls).filter(
+        (value): value is string => typeof value === 'string'
+      ),
+      retainedEvidence: await retainedEvidenceCandidates(d1, row.title, row.first_seen_at),
+      firstSeenAt: new Date(row.first_seen_at * 1000).toISOString(),
+      reasons: (row.verification_reason ?? '').split(',').filter(Boolean),
+    }))
+  );
+}
+
+async function retainedEvidenceCandidates(d1: D1Database, title: string, firstSeenAt: number) {
+  const tokens = evidenceSearchTokens(title);
+  if (tokens.length === 0) return [];
+  const earliest = firstSeenAt - 3 * 24 * 60 * 60;
+  const rows = await d1
+    .prepare(
+      `SELECT source_url, title, content, published_at, source
+       FROM events
+       WHERE published_at >= ? AND published_at <= unixepoch()
+         AND length(content) >= 500
+         AND source NOT LIKE 'digg%'
+         AND (${tokens.map(() => 'lower(title) LIKE ?').join(' OR ')})
+       ORDER BY published_at DESC
+       LIMIT 50`
+    )
+    .bind(earliest, ...tokens.map((token) => `%${token}%`))
+    .all<{
+      source_url: string;
+      title: string;
+      content: string;
+      published_at: number;
+      source: string;
+    }>();
   return (rows.results ?? []).map((row) => ({
-    shortId: row.short_id,
+    url: row.source_url,
     title: row.title,
-    summary: row.digg_summary,
-    entityId: row.primary_entity_id,
-    sourceUrls: jsonArray(row.source_urls).filter(
-      (value): value is string => typeof value === 'string'
-    ),
-    firstSeenAt: new Date(row.first_seen_at * 1000).toISOString(),
-    reasons: (row.verification_reason ?? '').split(',').filter(Boolean),
+    retainedContent: row.content,
+    seendate: new Date(row.published_at * 1000).toISOString(),
+    retainedSource: row.source,
   }));
 }
 

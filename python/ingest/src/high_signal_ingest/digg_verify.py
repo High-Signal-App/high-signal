@@ -52,11 +52,18 @@ STOP_WORDS = {
 
 
 def title_tokens(value: str) -> set[str]:
-    return {
-        token
-        for token in re.findall(r"[a-z0-9]+", value.lower())
-        if len(token) >= 3 and token not in STOP_WORDS
-    }
+    tokens: set[str] = set()
+    for token in re.findall(r"[a-z0-9]+", value.lower()):
+        if len(token) < 3 or token in STOP_WORDS:
+            continue
+        if token.endswith("ai") and len(token) > 6:
+            token = token[:-2]
+        if token.endswith("ed") and len(token) > 5:
+            token = token[:-2]
+        elif token.endswith("s") and len(token) > 4:
+            token = token[:-1]
+        tokens.add(token)
+    return tokens
 
 
 def title_alignment(discovery_title: str, candidate_title: str) -> float:
@@ -136,6 +143,13 @@ def _search_gdelt(title: str, client: httpx.Client) -> dict[str, Any]:
 
 def discover_articles(request: dict[str, Any], client: httpx.Client) -> list[dict[str, Any]]:
     candidates: list[dict[str, Any]] = []
+    for retained in request.get("retainedEvidence", []):
+        if not isinstance(retained, dict):
+            continue
+        allowed = _allowed_original_url(retained.get("url"))
+        title = str(retained.get("title") or "")
+        if allowed and title_alignment(str(request.get("title") or ""), title) >= 0.35:
+            candidates.append({**retained, "url": allowed, "title": title})
     for url in request.get("sourceUrls", []):
         allowed = _allowed_original_url(url)
         if allowed:
@@ -184,18 +198,24 @@ def retrieve_events(
     events: list[Event] = []
     for article in articles:
         url = str(article["url"])
-        try:
-            # The feed client asks Digg for JSON/YAML. Publisher retrieval must
-            # override that inherited Accept header or some sites return an
-            # unusable representation (or reject the request outright).
-            response = client.get(url, headers={"Accept": ARTICLE_ACCEPT})
-            response.raise_for_status()
-        except httpx.HTTPError:
-            continue
-        text = _extract_article_text(response.text)
+        retained_content = article.get("retainedContent")
+        response: httpx.Response | None = None
+        if isinstance(retained_content, str) and len(retained_content) >= 500:
+            text = retained_content[:30_000]
+            canonical = url
+        else:
+            try:
+                # The feed client asks Digg for JSON/YAML. Publisher retrieval must
+                # override that inherited Accept header or some sites return an
+                # unusable representation (or reject the request outright).
+                response = client.get(url, headers={"Accept": ARTICLE_ACCEPT})
+                response.raise_for_status()
+            except httpx.HTTPError:
+                continue
+            text = _extract_article_text(response.text)
+            canonical = str(response.url)
         if len(text) < 500:
             continue
-        canonical = str(response.url)
         host = (urlsplit(canonical).hostname or "unknown").lower().removeprefix("www.")
         published_at = _published_at(article.get("seendate"), fetched_at)
         raw_hash = hashlib.sha256(text.encode()).hexdigest()

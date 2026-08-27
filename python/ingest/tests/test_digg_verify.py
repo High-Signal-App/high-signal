@@ -140,3 +140,32 @@ def test_publisher_retrieval_overrides_feed_accept_header() -> None:
 
     assert len(events) == 1
     assert events[0].source == "news:digg-verification:reuters.com"
+
+
+def test_retained_evidence_is_reused_without_refetching() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.host == "api.gdeltproject.org":
+            return httpx.Response(200, json={"articles": []})
+        raise AssertionError(f"unexpected network request: {request.url}")
+
+    content = " ".join(["Keenable builds web search infrastructure for AI agents."] * 100)
+    request = {
+        "shortId": "keenable",
+        "title": "Conviction Backs KeenableAI AI Search Team",
+        "sourceUrls": [],
+        "retainedEvidence": [
+            {
+                "url": "https://techcrunch.com/keenable",
+                "title": "Accel-backed Keenable is indexing the web for AI agents",
+                "retainedContent": content,
+                "seendate": "2026-08-25T12:00:00+00:00",
+            }
+        ],
+    }
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        articles = discover_articles(request, client)
+        events = retrieve_events(request, articles, client)
+
+    assert len(articles) == 1
+    assert len(events) == 1
+    assert events[0].source_url == "https://techcrunch.com/keenable"

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   canonicalAttentionUrl,
+  evidenceSearchTokens,
   positionUpdate,
   median,
   verificationReasons,
@@ -36,5 +37,15 @@ describe('Digg attention normalization', () => {
     expect(median([30, 90, 45])).toBe(45);
     expect(median([30, 90])).toBe(60);
     expect(median([])).toBeNull();
+  });
+
+  it('builds bounded retained-evidence search tokens with company-name variants', () => {
+    expect(evidenceSearchTokens('Conviction Backs KeenableAI AI Search Team')).toEqual([
+      'conviction',
+      'backs',
+      'keenable',
+      'keenableai',
+      'search',
+    ]);
   });
 });
