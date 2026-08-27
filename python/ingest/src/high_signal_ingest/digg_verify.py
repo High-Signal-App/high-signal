@@ -30,6 +30,7 @@ GDELT_TIMEOUT_SECONDS = 75.0
 MAX_REQUESTS_PER_POLL = 3
 MAX_ARTICLES_PER_REQUEST = 4
 SOCIAL_OR_ATTENTION_HOSTS = {"digg.com", "x.com", "twitter.com"}
+ARTICLE_ACCEPT = "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
 STOP_WORDS = {
     "a",
     "an",
@@ -106,7 +107,7 @@ def _search_gdelt(title: str, client: httpx.Client) -> dict[str, Any]:
                     # after the underlying story is already more than one day old.
                     "timespan": "3d",
                 },
-                headers={"Connection": "close"},
+                headers={"Accept": "application/json", "Connection": "close"},
                 timeout=GDELT_TIMEOUT_SECONDS,
             )
             if response.status_code == 429 and _attempt + 1 < GDELT_MAX_ATTEMPTS:
@@ -179,7 +180,10 @@ def retrieve_events(
     for article in articles:
         url = str(article["url"])
         try:
-            response = client.get(url)
+            # The feed client asks Digg for JSON/YAML. Publisher retrieval must
+            # override that inherited Accept header or some sites return an
+            # unusable representation (or reject the request outright).
+            response = client.get(url, headers={"Accept": ARTICLE_ACCEPT})
             response.raise_for_status()
         except httpx.HTTPError:
             continue
@@ -224,19 +228,27 @@ def verify_request(request: dict[str, Any], client: httpx.Client) -> dict[str, A
     try:
         articles = discover_articles(request, client)
         events = retrieve_events(request, articles, client)
+        diagnostics = {
+            "discoveredArticleCount": len(articles),
+            "retrievedEvidenceCount": len(events),
+            "retrievedHosts": sorted(
+                {(urlsplit(event.source_url).hostname or "unknown").lower() for event in events}
+            ),
+        }
         if len({urlsplit(event.source_url).hostname for event in events}) < 2:
-            return {"shortId": short_id, "status": "insufficient_evidence"}
+            return {"shortId": short_id, "status": "insufficient_evidence", **diagnostics}
         audit.push_events(events, f"digg-{short_id}"[:16])
         from .pipeline import cluster_and_generate
 
         paths = cluster_and_generate(events)
         if not paths:
-            return {"shortId": short_id, "status": "insufficient_evidence"}
+            return {"shortId": short_id, "status": "insufficient_evidence", **diagnostics}
         candidate_slug = paths[0].removeprefix("pushed:").rsplit("/", 1)[-1].removesuffix(".md")
         return {
             "shortId": short_id,
             "status": "verified_candidate",
             "candidateSlug": candidate_slug,
+            **diagnostics,
         }
     except Exception as exc:  # noqa: BLE001 - isolate one attention discovery
         return {"shortId": short_id, "status": "failed", "error": str(exc)[:500]}

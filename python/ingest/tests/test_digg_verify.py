@@ -7,6 +7,7 @@ from high_signal_ingest.digg_verify import (
     _allowed_original_url,
     discovery_query,
     discover_articles,
+    retrieve_events,
     title_alignment,
 )
 
@@ -113,3 +114,26 @@ def test_gdelt_rate_limit_uses_bounded_retry_after(monkeypatch) -> None:
 
     assert attempts == 2
     assert delays == [2.0]
+
+
+def test_publisher_retrieval_overrides_feed_accept_header() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.headers["Accept"].startswith("text/html")
+        article = " ".join(["Anthropic launched a documented safety evaluation."] * 120)
+        return httpx.Response(200, text=f"<html><article><p>{article}</p></article></html>")
+
+    request = {"shortId": "abc", "title": "Anthropic launches safety evaluation"}
+    articles = [
+        {
+            "url": "https://reuters.com/technology/anthropic-safety",
+            "title": "Anthropic launches safety evaluation",
+        }
+    ]
+    with httpx.Client(
+        transport=httpx.MockTransport(handler),
+        headers={"Accept": "application/json, application/yaml, text/yaml"},
+    ) as client:
+        events = retrieve_events(request, articles, client)
+
+    assert len(events) == 1
+    assert events[0].source == "news:digg-verification:reuters.com"
