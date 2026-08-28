@@ -24,6 +24,17 @@ const SOURCE_QUERY_ALIASES: Record<string, string[]> = {
   regulations: ['regulations', 'regulations-gov'],
 };
 
+const NON_MATERIAL_EVIDENCE_FAMILIES = new Set([
+  'gdelt',
+  'google-trends',
+  'hackernews',
+  'lobsters',
+  'markets',
+  'producthunt',
+  'reddit',
+  'techmeme',
+]);
+
 // Collapse `legistar:phoenix` / `macro-rates:fred:dgs10` to the catalog family.
 function family(source: string): string {
   if (source.startsWith('edgar_')) return 'edgar';
@@ -32,6 +43,28 @@ function family(source: string): string {
   if (source.startsWith('scmp:') || source.startsWith('news:scmp-')) return 'scmp';
   const first = (source || 'unknown').split(':', 1)[0]!;
   return SOURCE_FAMILY_ALIASES[first] ?? first;
+}
+
+export function isMaterialEvidenceInputSource(source: string): boolean {
+  // Digg retrieval is a discovery pool. It becomes evidence only after the
+  // semantic/origin gates create a verified candidate, so rejected retrievals
+  // must not make the Daily Brief freshness receipt look current.
+  if (source.startsWith('news:digg-verification:')) return false;
+  return !NON_MATERIAL_EVIDENCE_FAMILIES.has(family(source));
+}
+
+export function materialEvidenceInputReceipt(
+  rows: Array<{ source: string; count: number; latestIngestedAt: number | null }>
+) {
+  return rows
+    .filter((row) => isMaterialEvidenceInputSource(row.source))
+    .reduce(
+      (receipt, row) => ({
+        count: receipt.count + (Number(row.count) || 0),
+        latestIngestedAt: Math.max(receipt.latestIngestedAt, Number(row.latestIngestedAt) || 0),
+      }),
+      { count: 0, latestIngestedAt: 0 }
+    );
 }
 
 function sourceMatch(id: string) {
@@ -145,15 +178,16 @@ dataRoute.get('/daily', async (c) => {
     (signal) => signal.publishable
   );
 
-  const [evidenceInputReceipt] = await database
+  const evidenceInputRows = await database
     .select({
+      source: schema.events.source,
       count: sql<number>`count(*)`,
       latestIngestedAt: sql<number | null>`max(${schema.events.ingestedAt})`,
     })
     .from(schema.events)
-    .where(
-      and(gte(schema.events.ingestedAt, range.start), lt(schema.events.ingestedAt, range.end))
-    );
+    .where(and(gte(schema.events.ingestedAt, range.start), lt(schema.events.ingestedAt, range.end)))
+    .groupBy(schema.events.source);
+  const evidenceInputReceipt = materialEvidenceInputReceipt(evidenceInputRows);
 
   const signalIds = signals.map((signal) => signal.id);
   const evidenceRows = signalIds.length
@@ -184,9 +218,9 @@ dataRoute.get('/daily', async (c) => {
       schemaVersion: '1',
       generatedAt: new Date().toISOString(),
       date,
-      evidenceInputCount: evidenceInputReceipt?.count ?? 0,
-      latestEvidenceInputAt: evidenceInputReceipt?.latestIngestedAt
-        ? new Date(Number(evidenceInputReceipt.latestIngestedAt) * 1000).toISOString()
+      evidenceInputCount: evidenceInputReceipt.count,
+      latestEvidenceInputAt: evidenceInputReceipt.latestIngestedAt
+        ? new Date(evidenceInputReceipt.latestIngestedAt * 1000).toISOString()
         : null,
       signalCount: signals.length,
       evidenceEventCount: evidenceEvents.length,

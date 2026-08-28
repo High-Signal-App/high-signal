@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import app from '../index';
-import { dailyEvidenceEvents, resolveDailyDate } from '../routes/data';
+import {
+  dailyEvidenceEvents,
+  isMaterialEvidenceInputSource,
+  materialEvidenceInputReceipt,
+  resolveDailyDate,
+} from '../routes/data';
 
 const fetcher = app as unknown as {
   fetch(request: Request, env?: Record<string, unknown>): Promise<Response>;
@@ -41,6 +46,30 @@ describe('daily dump contract', () => {
 
     expect(payload.evidenceInputCount).toBeGreaterThan(0);
     expect(payload.latestEvidenceInputAt).toBe('2026-08-26T20:25:23.000Z');
+  });
+
+  it('excludes attention, prediction, and rejected Digg discovery inputs from freshness', () => {
+    expect(isMaterialEvidenceInputSource('news:axios')).toBe(true);
+    expect(isMaterialEvidenceInputSource('ir:MSFT')).toBe(true);
+    expect(isMaterialEvidenceInputSource('news:digg-verification:bloomberg.com')).toBe(false);
+    expect(isMaterialEvidenceInputSource('market:manifold')).toBe(false);
+    expect(isMaterialEvidenceInputSource('reddit:technology')).toBe(false);
+    expect(isMaterialEvidenceInputSource('hackernews')).toBe(false);
+    expect(isMaterialEvidenceInputSource('techmeme')).toBe(false);
+
+    expect(
+      materialEvidenceInputReceipt([
+        { source: 'news:axios', count: 3, latestIngestedAt: 100 },
+        { source: 'ir:MSFT', count: 2, latestIngestedAt: 90 },
+        {
+          source: 'news:digg-verification:bloomberg.com',
+          count: 1,
+          latestIngestedAt: 300,
+        },
+        { source: 'market:manifold', count: 100, latestIngestedAt: 250 },
+        { source: 'reddit:technology', count: 50, latestIngestedAt: 200 },
+      ])
+    ).toEqual({ count: 5, latestIngestedAt: 100 });
   });
 
   it('returns 400 for an invalid date before reading D1', async () => {
