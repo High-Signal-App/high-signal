@@ -200,13 +200,14 @@
       "kind": "source-archive",
       "owner": "sarthak",
       "trigger": {
-        "type": "schedule",
+        "type": "worker-dispatch",
         "cron": "17 0 * * *",
-        "tz": "UTC"
+        "tz": "UTC",
+        "schedulerJob": "worker-cron-brief-precompute"
       },
       "workflowFile": ".github/workflows/cron-reddit-archive.yml",
       "runtime": "github-actions-ubuntu; optional labelled self-hosted macOS ARM64 runner on manual dispatch",
-      "command": "node scripts/reddit-daily-archive.mjs --cohort all --scheduled",
+      "command": "node scripts/reddit-daily-archive.mjs --cohort all --window-end <scheduled-slot>",
       "workingDirectory": ".",
       "bounds": {
         "timeoutMinutes": 300,

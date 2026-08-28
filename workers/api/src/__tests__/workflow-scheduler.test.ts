@@ -26,7 +26,18 @@ function mockDb(options: { duplicate?: boolean } = {}) {
 }
 
 describe('Cloudflare workflow scheduler', () => {
-  it('maps half-hour slots to Digg plus the exact daily stage', () => {
+  it('maps exact archive and half-hour slots to their daily stages', () => {
+    expect(workflowsDueAt(new Date('2026-08-29T00:17:00Z'))).toEqual([
+      {
+        workflow: 'cron-reddit-archive.yml',
+        purpose: 'reddit-archive',
+        inputs: {
+          cohort: 'all',
+          runner: 'github-hosted',
+          window_end: '2026-08-29T00:17:00.000Z',
+        },
+      },
+    ]);
     expect(workflowsDueAt(new Date('2026-08-29T02:30:00Z'))).toEqual([
       { workflow: 'cron-digg.yml', purpose: 'digg' },
       { workflow: 'cron-ingest.yml', purpose: 'ingest' },
@@ -44,6 +55,34 @@ describe('Cloudflare workflow scheduler', () => {
       purpose: 'deliver',
     });
     expect(workflowsDueAt(new Date('2026-08-29T04:17:00Z'))).toEqual([]);
+  });
+
+  it('dispatches the canonical archive with its exact window boundary', async () => {
+    const db = mockDb();
+    const fetcher = vi.fn(async () => new Response(null, { status: 204 }));
+
+    const results = await dispatchDueWorkflows(
+      { DB: db as unknown as D1Database, GITHUB_WORKFLOW_TOKEN: 'test-token' },
+      new Date('2026-08-29T00:17:00Z'),
+      { fetch: fetcher, attemptedAt: new Date('2026-08-29T00:17:01Z') }
+    );
+
+    expect(results).toMatchObject([
+      { workflow: 'cron-reddit-archive.yml', purpose: 'reddit-archive', status: 'dispatched' },
+    ]);
+    const calls = fetcher.mock.calls as unknown as Array<[string, RequestInit]>;
+    expect(calls[0]?.[0]).toContain('/workflows/cron-reddit-archive.yml/dispatches');
+    expect(calls[0]?.[1]).toMatchObject({
+      method: 'POST',
+      body: JSON.stringify({
+        ref: 'main',
+        inputs: {
+          cohort: 'all',
+          runner: 'github-hosted',
+          window_end: '2026-08-29T00:17:00.000Z',
+        },
+      }),
+    });
   });
 
   it('fails closed without reading D1 when the token is absent', async () => {

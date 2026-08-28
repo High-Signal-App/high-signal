@@ -344,11 +344,16 @@ test('a partial archive resumes only unfinished communities on the same persiste
   assert.equal((await verifyArchive(outputDir)).status, 'healthy');
 });
 
-test('workflow schedules the complete curated roster and supports the side-machine runner', async () => {
+test('workflow exposes canonical dispatch and supports the side-machine runner', async () => {
   const workflow = await readFile('.github/workflows/cron-reddit-archive.yml', 'utf8');
-  assert.match(workflow, /cron: ['"]17 0 \* \* \*['"]/);
+  const scheduler = await readFile('workers/api/src/lib/workflow-scheduler.ts', 'utf8');
+  const wrangler = await readFile('workers/api/wrangler.toml', 'utf8');
+  assert.doesNotMatch(workflow, /\bschedule:/);
+  assert.match(workflow, /workflow_dispatch:/);
+  assert.match(scheduler, /cron-reddit-archive\.yml/);
+  assert.match(scheduler, /window_end/);
+  assert.match(wrangler, /17 0 \* \* \*/);
   assert.match(workflow, /inputs\.cohort/);
-  assert.match(workflow, /cohort="all"/);
   assert.match(workflow, /self-hosted/);
   assert.match(workflow, /ARM64/);
   assert.match(workflow, /high-signal/);

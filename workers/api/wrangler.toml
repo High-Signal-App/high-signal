@@ -33,9 +33,9 @@ ENVIRONMENT = "production"
 TURNSTILE_HOSTNAMES = "highsignal.app,www.highsignal.app"
 
 # Cron triggers — brief precompute runs every 30 min to keep snapshots fresh.
-# Daily ingest + scoring also run via GitHub Actions workflows.
+# The exact 00:17 trigger dispatches the canonical Reddit archive before ingest.
 [triggers]
-crons = ["*/30 * * * *"]
+crons = ["*/30 * * * *", "17 0 * * *"]
 
 [[d1_databases]]
 binding = "DB"

@@ -81,6 +81,12 @@ Last updated: 2026-08-28
   current rank-one a16z cluster as insufficient evidence, so issue #133 still
   needs tomorrow's full scheduled daily chain and a genuine sub-90-minute Digg
   verified-candidate sample.
+- The canonical Reddit archive now uses the same fail-closed scheduler control
+  plane: an exact Worker `00:17 UTC` trigger dispatches
+  `cron-reddit-archive.yml` with the fixed 24-hour window boundary and full
+  GitHub-hosted cohort. Its native GitHub schedule is absent, so delayed provider
+  cron delivery cannot create a late or duplicate archive before the 08:00 IST
+  ingest.
 - Digg verification queueing now gives never-attempted threshold crossings
   priority over retries, reserves one of six half-hour slots to drain the oldest
   untouched request, recovers `running` work abandoned for 45 minutes, reports

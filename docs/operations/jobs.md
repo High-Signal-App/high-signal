@@ -18,9 +18,10 @@ description: Reference for the GitHub Actions cron jobs and deploy workflows tha
 
 ## Daily pipeline order (IST; cron remains UTC)
 
-The API Worker's Cloudflare `*/30` cron is the authoritative scheduler for the
-five timing-critical workflows. It dispatches GitHub Actions through their
-`workflow_dispatch` entry points using a repository-scoped Actions-write token.
+The API Worker's Cloudflare `*/30` and exact `00:17 UTC` crons are the
+authoritative scheduler for the six timing-critical workflows. It dispatches
+GitHub Actions through their `workflow_dispatch` entry points using a
+repository-scoped Actions-write token.
 Migration `0024` stores one lease per workflow/time slot, so a retried Worker
 event cannot create duplicate runs. The matching native GitHub `schedule`
 entries are intentionally absent; restoring them would create a dual scheduler.

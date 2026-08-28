@@ -5,7 +5,8 @@ const GITHUB_API_VERSION = '2022-11-28';
 
 export type ScheduledWorkflow = {
   workflow: string;
-  purpose: 'digg' | 'ingest' | 'publish' | 'validate' | 'deliver';
+  purpose: 'reddit-archive' | 'digg' | 'ingest' | 'publish' | 'validate' | 'deliver';
+  inputs?: Record<string, string>;
 };
 
 const DAILY_WORKFLOWS = new Map<string, ScheduledWorkflow>([
@@ -27,6 +28,19 @@ function utcSlot(date: Date): string {
 
 export function workflowsDueAt(scheduledAt: Date): ScheduledWorkflow[] {
   const minute = scheduledAt.getUTCMinutes();
+  if (scheduledAt.getUTCHours() === 0 && minute === 17) {
+    return [
+      {
+        workflow: 'cron-reddit-archive.yml',
+        purpose: 'reddit-archive',
+        inputs: {
+          cohort: 'all',
+          runner: 'github-hosted',
+          window_end: scheduledAt.toISOString(),
+        },
+      },
+    ];
+  }
   if (minute !== 0 && minute !== 30) return [];
 
   const due: ScheduledWorkflow[] = [{ workflow: 'cron-digg.yml', purpose: 'digg' }];
@@ -120,7 +134,10 @@ export async function dispatchDueWorkflows(
             'User-Agent': 'high-signal-scheduler',
             'X-GitHub-Api-Version': GITHUB_API_VERSION,
           },
-          body: JSON.stringify({ ref: 'main' }),
+          body: JSON.stringify({
+            ref: 'main',
+            ...(item.inputs ? { inputs: item.inputs } : {}),
+          }),
         }
       );
       if (response.status !== 204) {

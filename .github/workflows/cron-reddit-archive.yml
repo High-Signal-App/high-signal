@@ -1,8 +1,6 @@
 name: cron-reddit-archive
 
 on:
-  schedule:
-    - cron: '17 0 * * *' # daily 00:17 UTC / 05:47 IST; exact prior 24h
   workflow_dispatch:
     inputs:
       cohort:
@@ -96,13 +94,8 @@ jobs:
         shell: bash
         run: |
           cohort="$MANUAL_COHORT"
-          scheduled_flag=""
           resume_flag=""
           window_args=()
-          if [[ "$GITHUB_EVENT_NAME" == "schedule" ]]; then
-            cohort="all"
-            scheduled_flag="--scheduled"
-          fi
           if [[ -n "$RESUME_RUN_ID" ]]; then
             resume_flag="--resume"
             MANUAL_WINDOW_END=$(node -p "JSON.parse(require('fs').readFileSync('artifacts/reddit-archive/manifest.json')).windowEnd")
@@ -113,7 +106,6 @@ jobs:
           node scripts/reddit-daily-archive.mjs \
             --cohort "$cohort" \
             --output-dir artifacts/reddit-archive \
-            $scheduled_flag \
             $resume_flag \
             "${window_args[@]}"
 
