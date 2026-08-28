@@ -18,6 +18,15 @@ description: Reference for the GitHub Actions cron jobs and deploy workflows tha
 
 ## Daily pipeline order (IST; cron remains UTC)
 
+GitHub Actions remains the active scheduler until the fail-closed Cloudflare
+dispatcher is explicitly activated. The API Worker's existing `*/30` cron now
+contains a repository-owned dispatcher for the five timing-critical workflows,
+but it returns `disabled` without `GITHUB_WORKFLOW_TOKEN`. Migration `0024`
+stores one dispatch lease per workflow/time slot. Activation requires applying
+that migration, provisioning a repository-scoped Actions-write token, deploying
+the API Worker, and removing the matching native GitHub `schedule` entries in
+the same release window so there is never a permanent dual scheduler.
+
 The daily cycle is sequenced so each stage consumes the previous stage's output:
 
 | Time (IST / UTC) | Workflow | Intent |
@@ -36,7 +45,7 @@ The daily cycle is sequenced so each stage consumes the previous stage's output:
 
 | Cadence | Workflow | Intent |
 | --- | --- | --- |
-| Every 30m | `cron-digg.yml` | Poll five documented Digg feeds; material rank, velocity, or contributor crossings immediately trigger bounded original-source verification. Durable request/completion timestamps measure first-seen → candidate latency. Digg never enters evidence or confidence scoring. |
+| Every 30m | `cron-digg.yml` | Poll five documented Digg feeds; material rank, velocity, or contributor crossings immediately trigger bounded original-source verification. Durable request/completion timestamps measure first-seen → candidate latency. Digg never enters evidence or confidence scoring. The inactive Cloudflare dispatcher is the planned reliable trigger after the activation sequence above. |
 | Every 4h | `cron-markets.yml` | Prediction-market polling (`--source markets`: Polymarket / Manifold / Kalshi → `market_quotes`). Probabilities only—never equity prices or direct evidence. Metaculus is parked. |
 
 ## Weekly

@@ -26,6 +26,7 @@ export type Env = {
   ADMIN_TOKEN?: string;
   API_BASE?: string;
   BRIEF_CACHE?: KVNamespace;
+  GITHUB_WORKFLOW_TOKEN?: string;
   TURNSTILE_HOSTNAMES?: string;
   TURNSTILE_SECRET?: string;
 };

@@ -2,6 +2,7 @@ import { WorkerEntrypoint } from 'cloudflare:workers';
 import { app, type Env } from './app';
 import { handleHighSignalMcpCardRequest, handleHighSignalMcpRequest } from './mcp';
 import { handlePublicApiCache, isPublicCacheRequest } from './public-cache';
+import { dispatchDueWorkflows } from './lib/workflow-scheduler';
 import { precomputeBriefSnapshots } from './routes/brief';
 
 async function handleApiRequest(request: Request, env: Env, ctx: ExecutionContext) {
@@ -33,10 +34,10 @@ export default {
     }
     return handleApiRequest(request, env, ctx);
   },
-  async scheduled(_event: ScheduledEvent, env: Env, ctx: ExecutionContext) {
-    // Brief precompute is the API Worker's only scheduled responsibility.
-    // This populates daily_brief_snapshots so /brief/daily does 1 D1 lookup
-    // instead of 5-14 sequential queries.
+  async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext) {
+    // Keep the public brief warm and use Cloudflare's reliable half-hour clock
+    // as the control plane for GitHub-hosted ingestion. Dispatching remains
+    // fail-closed until the repository-scoped token is explicitly provisioned.
     ctx.waitUntil(
       precomputeBriefSnapshots(env)
         .then((result) => {
@@ -45,6 +46,16 @@ export default {
           }
         })
         .catch((err) => console.error('[cron] brief precompute failed:', err))
+    );
+    ctx.waitUntil(
+      dispatchDueWorkflows(env, new Date(event.scheduledTime))
+        .then((results) => {
+          for (const result of results) {
+            if (result.status === 'failed')
+              console.error('[cron] workflow dispatch failed', result);
+          }
+        })
+        .catch((err) => console.error('[cron] workflow scheduler failed:', err))
     );
   },
 };

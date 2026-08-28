@@ -122,7 +122,7 @@ function checkDuplication() {
     .statistics.total;
   // Debt: https://github.com/High-Signal-App/high-signal/issues/104
   // Re-baselined 2026-08-28 after the deterministic ingest-coverage pass.
-  const baseline = { clones: 100, duplicatedLines: 1291, percentage: 2.0743621055337744 };
+  const baseline = { clones: 100, duplicatedLines: 1291, percentage: 2.0685456089471406 };
   console.log(
     `Duplication: ${observed.duplicatedLines}/${observed.lines} lines ` +
       `(${observed.percentage.toFixed(4)}%), ${observed.clones} groups across ` +

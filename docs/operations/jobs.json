@@ -622,7 +622,7 @@
     },
     {
       "id": "worker-cron-brief-precompute",
-      "kind": "precompute",
+      "kind": "precompute-and-dispatch",
       "owner": "sarthak",
       "trigger": {
         "type": "worker-cron",
@@ -631,7 +631,7 @@
       },
       "workflowFile": "workers/api/wrangler.toml [triggers]",
       "runtime": "cloudflare-worker",
-      "command": "precomputeBriefSnapshots (workers/api/src/index.ts scheduled handler)",
+      "command": "precomputeBriefSnapshots + fail-closed dispatchDueWorkflows (workers/api/src/index.ts scheduled handler)",
       "workingDirectory": "workers/api",
       "bounds": {
         "timeoutMinutes": 0,
@@ -640,9 +640,9 @@
         "cpuMsLimit": 30000
       },
       "idempotency": {
-        "mechanism": "daily_brief_snapshots upsert by (date)",
-        "watermark": "daily_brief_snapshots.date",
-        "deduplicationEvidence": "packages/db/migrations/0013_brief_snapshots.sql"
+        "mechanism": "daily_brief_snapshots upsert by (date); workflow_dispatches primary key by workflow + UTC slot",
+        "watermark": "daily_brief_snapshots.date; workflow_dispatches.slot_at",
+        "deduplicationEvidence": "packages/db/migrations/0013_brief_snapshots.sql; packages/db/migrations/0024_workflow_dispatches.sql"
       },
       "freshness": {
         "windowHours": 1,
@@ -653,14 +653,16 @@
         "zeroOutputIsFailure": false
       },
       "failureDestination": {
-        "durableState": "console.error in Worker logs; stale daily_brief_snapshots",
+        "durableState": "console.error in Worker logs; stale daily_brief_snapshots; workflow_dispatches status/error",
         "notification": "cloudflare observability (head_sampling_rate 0.1)"
       },
       "evidence": {
-        "lifecycleTable": "daily_brief_snapshots",
+        "lifecycleTable": "daily_brief_snapshots, workflow_dispatches",
         "observability": "workers/api/wrangler.toml [observability]"
       },
-      "acceptedExceptions": []
+      "acceptedExceptions": [
+        "GitHub workflow dispatch is fail-closed until GITHUB_WORKFLOW_TOKEN is explicitly provisioned; native GitHub schedules remain active until the coordinated activation release"
+      ]
     },
     {
       "id": "deploy-web",

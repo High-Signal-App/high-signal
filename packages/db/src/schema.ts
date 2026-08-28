@@ -258,6 +258,28 @@ export const ingestRuns = sqliteTable(
   ]
 );
 
+export const workflowDispatches = sqliteTable(
+  'workflow_dispatches',
+  {
+    id: text('id').primaryKey(),
+    workflow: text('workflow').notNull(),
+    purpose: text('purpose', {
+      enum: ['digg', 'ingest', 'publish', 'validate', 'deliver'],
+    }).notNull(),
+    slotAt: integer('slot_at', { mode: 'timestamp' }).notNull(),
+    status: text('status', { enum: ['claimed', 'dispatched', 'failed'] }).notNull(),
+    attempts: integer('attempts').notNull().default(1),
+    createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+    lastAttemptAt: integer('last_attempt_at', { mode: 'timestamp' }).notNull(),
+    dispatchedAt: integer('dispatched_at', { mode: 'timestamp' }),
+    error: text('error'),
+  },
+  (t) => [
+    index('workflow_dispatches_slot_idx').on(t.slotAt),
+    index('workflow_dispatches_status_idx').on(t.status),
+  ]
+);
+
 // ─── Community lens ───────────────────────────────────────────────────────
 // Operator curation, not user data despite the owner_id column: this registry
 // decides which subreddits get digested, and the public Daily Brief's
