@@ -58,9 +58,13 @@ Last updated: 2026-08-28
   The same release fixed the public `/signals` query's D1 parameter overflow;
   it now returns HTTP 200. The 2026-08-25 retry correctly killed all 42 weak or
   unsupported candidates, leaving the current brief empty, and the 09:30
-  freshness validator failed because the daily dump contained no timestamped
-  material evidence. Issue #133 therefore remains open: the safety gates work,
-  but the end-to-end freshness acceptance criterion has not been met.
+  freshness validator initially failed because the daily dump contained no
+  timestamped material evidence. On 2026-08-28, a fresh full ingest produced a
+  story-pure Anthropic/Pentagon candidate with verified CNBC primary proof and
+  distinct verified Axios corroboration. Auto-publish released it, and the
+  current-IST validator passed with evidence five minutes old. Issue #133 now
+  remains open only for a genuine Digg first-seen-to-verified sample below 90
+  minutes; issue #138 is closed from this positive-path receipt.
 - Newspaper mode now produces a visible typography change on mobile, and the
   primary Sources navigation opens the data-source audit rather than the signal
   taxonomy. The 2026-08-25 operator-source refresh attempted all 69 configured
@@ -148,7 +152,21 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
   path cannot turn a deterministic review fallback into a verified candidate.
   A live audit caught and killed one draft that paired an unrelated CNBC story
   with its Reddit repost; the hardened rerun withheld all three tested clusters
-  as insufficient evidence and created no replacement draft.
+  as insufficient evidence and created no replacement draft. Scheduled Digg
+  verification now has the configured proof-judge credentials and balances
+  fresh requests with the active feed leader instead of stale historical rank
+  leaders. API release `c708b07` passed CI, deployment smoke, and a live run
+  that selected the current Microduck rank leader and correctly withheld it for
+  insufficient independent evidence.
+
+- **2026-08-28 — Proof-first extraction cleared production acceptance:** a
+  one-day full ingest fetched 1,268 events, collapsed 99 exact duplicates, and
+  persisted one idempotent Anthropic/Pentagon candidate. Its normalized claim
+  ledger has a verified CNBC primary origin and a distinct verified Axios
+  corroborating origin, with no unusable support. The shared gate published the
+  signal, the public daily dump exposes one signal plus two evidence events,
+  the proof page resolves, and the current-IST validation passed with newest
+  material evidence five minutes old. Issue #138 is closed.
 
 - **2026-08-27 — Signal-only homepage and cost-safe agent delivery released:**
   the homepage now renders only evidence-qualified Today or Yesterday signals,
