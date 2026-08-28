@@ -24,6 +24,7 @@ description: Authoritative sources, reconstruction paths, migration guards, and 
 | `python/lab` Postgres | Local docker-compose only (parked, plan 0007) | Yes — re-ingest from D1 + python adapters | D1 + python/ingest | Not production. Not backed up. |
 | GitHub Actions secrets | GitHub (repo settings) | Yes — re-sync from Infisical | Infisical `High Signal` / `prod` | `API_BASE`, `ADMIN_TOKEN`, AI credentials, `CLOUDFLARE_API_TOKEN`, and source API keys. Values are never stored in git. |
 | Cloudflare Worker revisions | Cloudflare dashboard | Yes — re-deploy from git main | git main + `deploy-web.yml` / `deploy-api.yml` | Previous revision stays live on deploy failure. |
+| R2 `high-signal-reddit-archive` | Cloudflare R2 Standard | **No** — forward archive; missed Reddit windows cannot be reconstructed reliably | `cron-reddit-archive.yml` | Daily `posts.jsonl.zst`, `comments.jsonl.zst`, and `manifest.json` under `reddit/v1/date=YYYY-MM-DD/`. Object hashes and per-subreddit completeness live in the manifest; GitHub retains each run artifact for seven days as a short recovery window. |
 | Operator access values (`CF_ACCESS_AUD`, `CF_ACCESS_TEAM_DOMAIN`, `ADMIN_TOKEN`) | Infisical → Cloudflare/GitHub secret syncs | No — operator-managed | Infisical | Access policy revokes browser sessions; `ADMIN_TOKEN` rotation must reach both Workers, GitHub Actions, and retained Modal backfills. See `runbooks/cf-access.md`. |
 
 ## D1 table durability map
@@ -62,6 +63,9 @@ description: Authoritative sources, reconstruction paths, migration guards, and 
 - **Git is the source of truth** for `signals/`, `data/equities-snapshot.jsonl`, `data/product-flow-refresh.jsonl`, `apps/web/src/data/*.json`, `workers/api/src/lib/label-backtest.json`. Cloning the repo reconstructs these.
 - **D1 audit tables** (`ingest_runs`, `llm_runs`, `score_runs`) are not reconstructable. They are the debug window. Acceptable loss: 30 days. Operator may export periodically.
 - **User state** (`delivery_*`, `watchlists_*`) is not reconstructable. Operator must back up D1 before any destructive action.
+- **Reddit daily archives are not reconstructable.** R2 is canonical after the
+  seven-day GitHub artifact recovery window; failed or partial daily manifests
+  remain explicit evidence gaps rather than being backfilled or fabricated.
 
 ## Migration guards
 

@@ -194,6 +194,51 @@
       ]
     },
     {
+      "id": "cron-reddit-archive",
+      "kind": "source-archive",
+      "owner": "sarthak",
+      "trigger": {
+        "type": "schedule",
+        "cron": "17 0 * * *",
+        "tz": "UTC"
+      },
+      "workflowFile": ".github/workflows/cron-reddit-archive.yml",
+      "runtime": "github-actions-ubuntu; optional labelled self-hosted macOS ARM64 runner on manual dispatch",
+      "command": "node scripts/reddit-daily-archive.mjs --cohort 200 --scheduled",
+      "workingDirectory": ".",
+      "bounds": {
+        "timeoutMinutes": 300,
+        "concurrency": 1,
+        "retryMax": 3
+      },
+      "idempotency": {
+        "mechanism": "stable 00:17 UTC window boundary + Reddit IDs + deterministic R2 date keys",
+        "watermark": "manifest.windowStart/windowEnd per reddit/v1/date=YYYY-MM-DD",
+        "deduplicationEvidence": "scripts/reddit-daily-archive.test.mjs; R2 manifest file hashes"
+      },
+      "freshness": {
+        "windowHours": 26,
+        "evidenceSource": "R2 reddit/v1/date=YYYY-MM-DD/manifest.json windowEnd"
+      },
+      "outputExpectation": {
+        "configuredCommunities": 200,
+        "minPosts": 0,
+        "zeroOutputIsFailure": false
+      },
+      "failureDestination": {
+        "durableState": "partial or failed per-subreddit results in R2 manifest plus seven-day GitHub Actions artifact",
+        "notification": "github-actions job failure email"
+      },
+      "evidence": {
+        "lifecycleArtifact": "artifacts/reddit-archive/manifest.json",
+        "objectStore": "R2 high-signal-reddit-archive/reddit/v1/date=YYYY-MM-DD/"
+      },
+      "acceptedExceptions": [
+        "Forward-only archive: historical Reddit gaps cannot be reconstructed reliably",
+        "Self-hosted execution requires an online runner with self-hosted, macOS, ARM64, high-signal labels"
+      ]
+    },
+    {
       "id": "cron-publish",
       "kind": "publish",
       "owner": "sarthak",

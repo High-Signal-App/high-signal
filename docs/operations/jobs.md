@@ -22,6 +22,7 @@ The daily cycle is sequenced so each stage consumes the previous stage's output:
 
 | Time (IST / UTC) | Workflow | Intent |
 | --- | --- | --- |
+| 05:47 / 00:17 | `cron-reddit-archive.yml` | Capture one exact prior-24-hour window from all 200 curated subreddits, preserve returned post/comment trees as compact Zstd-22 JSONL packs in private R2, and write a completeness manifest. Manual dispatch can run the 10-community canary on GitHub-hosted infrastructure or the labelled personal side machine. |
 | 06:30 / 01:00 | `cron-source-cadences.yml` | Fetch-only macro-rate and crypto on-chain context; no signal drafting. |
 | 08:00 / 02:30 | `cron-ingest.yml` | Bounded 21-source `--source all --days 1` ingest run → events → draft signals. |
 | 09:00 / 03:30 | `cron-publish.yml` | Mandatory shared publishability gate plus semantic/origin-aware claim judge; then authenticated brief rebuild and reader-facing freshness verification. The workflow cannot stay green with an empty public edition. |
@@ -91,6 +92,12 @@ Cloudflare account-level database credential.
 Source-specific keys are listed in
 [`source-catalog.md`](source-catalog.md) (the `Access` column) and in
 `../../PROJECT_STATUS.md` ("Active source keys").
+
+The Reddit archive additionally requires `REDDIT_CLIENT_ID`,
+`REDDIT_CLIENT_SECRET`, `CLOUDFLARE_API_TOKEN`, and
+`CLOUDFLARE_ACCOUNT_ID`. Scheduled runs use `ubuntu-latest`. A manual dispatch
+may select `side-machine`, which requires an online GitHub Actions runner with
+the cumulative labels `self-hosted`, `macOS`, `ARM64`, and `high-signal`.
 
 Each grouped source run writes one aggregate receipt plus one receipt per
 adapter. A per-adapter row with `events_fetched=0, errors=0` means the adapter
