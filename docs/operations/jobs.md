@@ -94,10 +94,14 @@ Source-specific keys are listed in
 `../../PROJECT_STATUS.md` ("Active source keys").
 
 The Reddit archive additionally requires `REDDIT_CLIENT_ID`,
-`REDDIT_CLIENT_SECRET`, `CLOUDFLARE_API_TOKEN`, and
-`CLOUDFLARE_ACCOUNT_ID`. Scheduled runs use `ubuntu-latest`. A manual dispatch
-may select `side-machine`, which requires an online GitHub Actions runner with
-the cumulative labels `self-hosted`, `macOS`, `ARM64`, and `high-signal`.
+`REDDIT_CLIENT_SECRET`, `CLOUDFLARE_ACCOUNT_ID`, and an account-level token with
+R2 Storage Edit permission. Prefer the dedicated `CLOUDFLARE_R2_API_TOKEN`;
+the workflow falls back to `CLOUDFLARE_API_TOKEN` for compatibility. R2 access
+is checked before Reddit collection so a storage-auth failure cannot consume a
+full 200-community API run. Scheduled runs use `ubuntu-latest`. A manual
+dispatch may select `side-machine`, which requires an online GitHub Actions
+runner with the cumulative labels `self-hosted`, `macOS`, `ARM64`, and
+`high-signal`.
 
 Each grouped source run writes one aggregate receipt plus one receipt per
 adapter. A per-adapter row with `events_fetched=0, errors=0` means the adapter
