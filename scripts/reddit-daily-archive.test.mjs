@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { mkdtemp, readFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import test from 'node:test';
 import {
   COMMENT_FIELDS,
@@ -12,7 +14,8 @@ import {
   flattenCommentThings,
   postRow,
 } from './reddit-archive-lib.mjs';
-import { eventRow, resolveWindow } from './reddit-daily-archive.mjs';
+import { eventRow, resolveWindow, runArchive } from './reddit-daily-archive.mjs';
+import { redactArchive, verifyArchive } from './reddit-archive-maintenance.mjs';
 
 test('post rows follow the versioned compact schema', () => {
   const row = postRow(
@@ -245,6 +248,102 @@ test('scheduled windows use the stable 00:17 UTC boundary', () => {
   assert.equal(result.windowStart.toISOString(), '2026-08-27T00:17:00.000Z');
 });
 
+test('a partial archive resumes only unfinished communities on the same persisted watermark', async () => {
+  const outputDir = await mkdtemp(join(tmpdir(), 'high-signal-reddit-resume-'));
+  const windowEnd = new Date('2026-08-28T00:17:00.000Z');
+  const windowStart = new Date(windowEnd.getTime() - 86_400_000);
+  const firstCalls = [];
+  const firstClient = {
+    metrics: { requests: 3, retries: 0, waitedMs: 0, remaining: 99 },
+    async getJson(path) {
+      firstCalls.push(path);
+      if (path.includes('/r/two/')) throw new Error('temporary_failure');
+      const subreddit = path.includes('/r/three/') ? 'three' : 'one';
+      return {
+        data: {
+          after: null,
+          children: [
+            {
+              data: {
+                id: `post-${subreddit}`,
+                subreddit,
+                title: subreddit,
+                permalink: `/r/${subreddit}/comments/post-${subreddit}/example/`,
+                created_utc: windowEnd.getTime() / 1000 - 60,
+                score: 20,
+                num_comments: 0,
+              },
+            },
+          ],
+        },
+      };
+    },
+  };
+  const partial = await runArchive({
+    communities: ['one', 'two', 'three'],
+    outputDir,
+    windowStart,
+    windowEnd,
+    client: firstClient,
+  });
+  assert.equal(partial.manifest.status, 'partial');
+
+  const resumedCalls = [];
+  const resumedClient = {
+    metrics: { requests: 1, retries: 0, waitedMs: 0, remaining: 98 },
+    async getJson(path) {
+      resumedCalls.push(path);
+      return {
+        data: {
+          after: null,
+          children: [
+            {
+              data: {
+                id: 'post-two',
+                subreddit: 'two',
+                title: 'Two',
+                permalink: '/r/two/comments/post-two/two/',
+                created_utc: windowEnd.getTime() / 1000 - 120,
+                score: 20,
+                num_comments: 0,
+              },
+            },
+          ],
+        },
+      };
+    },
+  };
+  const complete = await runArchive({
+    communities: ['one', 'two', 'three'],
+    outputDir,
+    windowStart,
+    windowEnd,
+    client: resumedClient,
+    resume: true,
+  });
+  assert.equal(complete.manifest.status, 'complete');
+  assert.deepEqual(resumedCalls, ['/r/two/new']);
+  assert.equal(complete.manifest.postCount, 3);
+  assert.equal(complete.manifest.resume.attempt, 2);
+  assert.equal(complete.manifest.resume.reusedCommunities, 2);
+  assert.equal(complete.manifest.requestMetrics.requests, 4);
+  assert.equal(complete.manifest.codec.frameIndex.object, 'subreddits.index.json');
+  assert.match(complete.manifest.codec.frameIndex.sha256, /^[a-f0-9]{64}$/);
+  assert.equal((await verifyArchive(outputDir)).status, 'healthy');
+
+  const redacted = await redactArchive(outputDir, {
+    postIds: new Set(['post-two']),
+    commentIds: new Set(),
+    reasonCode: 'reddit_user_deletion',
+  });
+  assert.equal(redacted.redactedPosts, 1);
+  assert.equal(redacted.removedEvents, 1);
+  const manifest = JSON.parse(await readFile(join(outputDir, 'manifest.json'), 'utf8'));
+  assert.equal(manifest.eventCount, 2);
+  assert.equal(manifest.redactions.at(-1).postIdHashes.length, 1);
+  assert.equal((await verifyArchive(outputDir)).status, 'healthy');
+});
+
 test('workflow schedules the complete curated roster and supports the side-machine runner', async () => {
   const workflow = await readFile('.github/workflows/cron-reddit-archive.yml', 'utf8');
   assert.match(workflow, /cron: ['"]17 0 \* \* \*['"]/);
@@ -259,6 +358,13 @@ test('workflow schedules the complete curated roster and supports the side-machi
   assert.match(workflow, /r2 object put/);
   assert.match(workflow, /reddit\/v2\/latest\.json/);
   assert.match(workflow, /events\.jsonl\.zst/);
+  assert.match(workflow, /resume_run_id/);
+  assert.match(workflow, /reddit-archive-verify\.mjs/);
+
+  const redactionWorkflow = await readFile('.github/workflows/reddit-archive-redact.yml', 'utf8');
+  assert.match(redactionWorkflow, /confirmation/);
+  assert.match(redactionWorkflow, /REDDIT_REDACT_POST_IDS/);
+  assert.match(redactionWorkflow, /reddit-archive-redact\.mjs/);
 
   const ingestWorkflow = await readFile('.github/workflows/cron-ingest.yml', 'utf8');
   assert.match(ingestWorkflow, /Fetch canonical Reddit event export/);

@@ -160,6 +160,20 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
   independent Infisical-backed consumer read also retrieved the shared
   `latest.json` pointer using the dedicated least-privilege R2 token.
 
+- **2026-08-28 — Reddit archive recovery and removal controls completed:** the
+  collector now persists a stable half-open window watermark, global stable-ID
+  deduplication totals, decoded per-community line/byte ranges, and resumable
+  Actions artifacts. A recovery run reuses complete communities and recollects
+  only partial/failed ones on the original window. The operator-only redaction
+  workflow rewrites explicitly named posts/comments, removes affected derived
+  events, rebuilds hashes/indexes and conditionally advances the current
+  pointer. The independent verifier reconciled the live 99-community partition:
+  2,605 unique posts, 31,569 unique retained comments and 1,140 unique events;
+  a no-fetch recovery reused all 99 communities and preserved those counts.
+  Reddit Insights independently hash-verified the live event object, imported
+  all 1,140 events across 82 represented communities, and generated a
+  source-linked `r/technology` sample render without copying the raw archive.
+
 - **2026-08-28 — Daily Reddit R2 archive canary verified end to end:** the
   scheduled archive workflow was qualified at 00:17 UTC (05:47 IST) against the
   then-planned 200-community roster. A live 10-community GitHub-hosted canary

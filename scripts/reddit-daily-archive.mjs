@@ -3,7 +3,7 @@
 import { createHash } from 'node:crypto';
 import { once } from 'node:events';
 import { createReadStream, createWriteStream } from 'node:fs';
-import { mkdir, readFile, stat, writeFile } from 'node:fs/promises';
+import { access, mkdir, readFile, stat, writeFile } from 'node:fs/promises';
 import { execFile } from 'node:child_process';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -32,13 +32,14 @@ const DEFAULT_OUTPUT = resolve(ROOT, 'artifacts/reddit-archive');
 const USER_AGENT = 'high-signal-reddit-archive/1.0 (daily public-data archive)';
 
 function parseArgs(argv) {
-  const options = { cohort: 'all', outputDir: DEFAULT_OUTPUT, scheduled: false };
+  const options = { cohort: 'all', outputDir: DEFAULT_OUTPUT, scheduled: false, resume: false };
   for (let index = 0; index < argv.length; index += 1) {
     const argument = argv[index];
     if (argument === '--cohort') options.cohort = argv[++index];
     else if (argument === '--output-dir') options.outputDir = resolve(argv[++index]);
     else if (argument === '--window-end') options.windowEnd = new Date(argv[++index]);
     else if (argument === '--scheduled') options.scheduled = true;
+    else if (argument === '--resume') options.resume = true;
     else if (argument === '--help') options.help = true;
     else throw new Error(`unknown_argument:${argument}`);
   }
@@ -71,7 +72,9 @@ async function loadCommunities(cohort) {
 }
 
 async function writeJsonLine(stream, row) {
-  if (!stream.write(`${JSON.stringify(row)}\n`)) await once(stream, 'drain');
+  const line = `${JSON.stringify(row)}\n`;
+  if (!stream.write(line)) await once(stream, 'drain');
+  return Buffer.byteLength(line);
 }
 
 async function closeStream(stream) {
@@ -89,6 +92,12 @@ async function compressZstd(inputPath, outputPath) {
   return Date.now() - startedAt;
 }
 
+async function decompressZstd(inputPath, outputPath) {
+  await execFileAsync('zstd', ['-d', '-q', '-f', inputPath, '-o', outputPath], {
+    maxBuffer: 1024 * 1024,
+  });
+}
+
 async function sha256(path) {
   const hash = createHash('sha256');
   const stream = createReadStream(path);
@@ -103,7 +112,7 @@ async function fileReceipt(path, compressionMs) {
     name: path.split('/').at(-1),
     bytes: info.size,
     sha256: await sha256(path),
-    compressionMs,
+    ...(compressionMs === undefined ? {} : { compressionMs }),
   };
 }
 
@@ -150,7 +159,17 @@ export function eventRow(post, subreddit, archiveDate, retrievedAt) {
   };
 }
 
-function createManifest({ communities, windowStart, windowEnd, results, totals, client, files }) {
+function createManifest({
+  communities,
+  windowStart,
+  windowEnd,
+  results,
+  totals,
+  client,
+  files,
+  indexReceipt,
+  resumeState,
+}) {
   const partial = results.filter((result) => result.status === 'partial').length;
   const failed = results.filter((result) => result.status === 'failed').length;
   return {
@@ -168,8 +187,44 @@ function createManifest({ communities, windowStart, windowEnd, results, totals, 
     commentsSeen: totals.commentsSeen,
     commentsDropped: totals.commentsDropped,
     eventCount: totals.events,
-    requestMetrics: client.metrics,
-    codec: { name: 'zstd', level: 22, longDistanceWindowLog: 27, dictionary: null },
+    watermark: {
+      id: createHash('sha256')
+        .update(
+          `${windowStart.toISOString()}\n${windowEnd.toISOString()}\n${communities.join('\n')}`
+        )
+        .digest('hex'),
+      boundary: '[windowStart, windowEnd)',
+      persistedIn: 'manifest.json',
+    },
+    deduplication: {
+      key: 'stable Reddit ID',
+      duplicatePosts: totals.duplicatePosts,
+      duplicateComments: totals.duplicateComments,
+    },
+    resume: {
+      attempt: (resumeState?.priorAttempt || 0) + 1,
+      reusedCommunities: resumeState?.reusedCommunities || 0,
+      recollectedCommunities: communities.length - (resumeState?.reusedCommunities || 0),
+      priorGeneratedAt: resumeState?.priorGeneratedAt || null,
+    },
+    requestMetrics: {
+      requests: (resumeState?.priorRequestMetrics?.requests || 0) + client.metrics.requests,
+      retries: (resumeState?.priorRequestMetrics?.retries || 0) + client.metrics.retries,
+      waitedMs: (resumeState?.priorRequestMetrics?.waitedMs || 0) + client.metrics.waitedMs,
+      remaining: client.metrics.remaining,
+    },
+    codec: {
+      name: 'zstd',
+      level: 22,
+      longDistanceWindowLog: 27,
+      dictionary: null,
+      frameIndex: {
+        object: indexReceipt.name,
+        rangeUnit: 'decoded JSONL lines and bytes',
+        bytes: indexReceipt.bytes,
+        sha256: indexReceipt.sha256,
+      },
+    },
     retentionPolicy: {
       posts: 'all posts returned inside the exact window from curated communities',
       comments: 'score threshold plus submitter, moderator, sticky and ancestor context',
@@ -216,6 +271,14 @@ function initialCommunityResult(subreddit, totals) {
     postStartLine: totals.posts,
     commentStartLine: totals.comments,
     eventStartLine: totals.events,
+    postStartByte: totals.postBytes,
+    commentStartByte: totals.commentBytes,
+    eventStartByte: totals.eventBytes,
+    postBytes: 0,
+    commentBytes: 0,
+    eventBytes: 0,
+    duplicatePosts: 0,
+    duplicateComments: 0,
     listingPages: 0,
     cutoffReached: false,
     listingCapped: false,
@@ -225,15 +288,30 @@ function initialCommunityResult(subreddit, totals) {
 }
 
 async function collectPost(context, post) {
-  const { archiveDate, client, streams, subreddit, result, totals } = context;
+  const { archiveDate, client, seenCommentIds, seenPostIds, streams, subreddit, result, totals } =
+    context;
+  const postId = String(post?.id || '');
+  if (!postId || seenPostIds.has(postId)) {
+    result.duplicatePosts += 1;
+    totals.duplicatePosts += 1;
+    return;
+  }
+  seenPostIds.add(postId);
   const retrievedAt = new Date().toISOString();
-  await writeJsonLine(streams.posts, postRow(post, subreddit, retrievedAt));
+  const postBytes = await writeJsonLine(streams.posts, postRow(post, subreddit, retrievedAt));
   result.posts += 1;
   totals.posts += 1;
+  result.postBytes += postBytes;
+  totals.postBytes += postBytes;
   if (postQualifiesForEvent(post)) {
-    await writeJsonLine(streams.events, eventRow(post, subreddit, archiveDate, retrievedAt));
+    const eventBytes = await writeJsonLine(
+      streams.events,
+      eventRow(post, subreddit, archiveDate, retrievedAt)
+    );
     result.events += 1;
     totals.events += 1;
+    result.eventBytes += eventBytes;
+    totals.eventBytes += eventBytes;
   }
   if (Number(post.num_comments || 0) <= 0) return;
 
@@ -244,9 +322,18 @@ async function collectPost(context, post) {
       subreddit,
       retrievedAt,
       onComment: async (row) => {
-        await writeJsonLine(streams.comments, row);
+        const commentId = String(row[COMMENT_FIELDS.indexOf('id')] || '');
+        if (!commentId || seenCommentIds.has(commentId)) {
+          result.duplicateComments += 1;
+          totals.duplicateComments += 1;
+          return;
+        }
+        seenCommentIds.add(commentId);
+        const commentBytes = await writeJsonLine(streams.comments, row);
         result.comments += 1;
         totals.comments += 1;
+        result.commentBytes += commentBytes;
+        totals.commentBytes += commentBytes;
       },
     });
     result.commentsSeen += commentResult.seen;
@@ -269,9 +356,27 @@ async function collectPost(context, post) {
 }
 
 async function collectCommunity(context, subreddit) {
-  const { archiveDate, client, streams, totals, windowStart, windowEnd } = context;
+  const {
+    archiveDate,
+    client,
+    seenCommentIds,
+    seenPostIds,
+    streams,
+    totals,
+    windowStart,
+    windowEnd,
+  } = context;
   const result = initialCommunityResult(subreddit, totals);
-  const postContext = { archiveDate, client, streams, subreddit, result, totals };
+  const postContext = {
+    archiveDate,
+    client,
+    seenCommentIds,
+    seenPostIds,
+    streams,
+    subreddit,
+    result,
+    totals,
+  };
 
   try {
     const listing = await collectListing({
@@ -312,9 +417,132 @@ function createSubredditIndex(results, archiveDate) {
           posts: { startLine: result.postStartLine, count: result.posts },
           comments: { startLine: result.commentStartLine, count: result.comments },
           events: { startLine: result.eventStartLine, count: result.events },
+          decodedRanges: {
+            posts: { startByte: result.postStartByte, bytes: result.postBytes },
+            comments: { startByte: result.commentStartByte, bytes: result.commentBytes },
+            events: { startByte: result.eventStartByte, bytes: result.eventBytes },
+          },
         },
       ])
     ),
+    access: {
+      unit: 'decoded JSONL line and byte ranges',
+      compressedStreams: 'single cross-community zstd frame',
+    },
+  };
+}
+
+function jsonLines(text) {
+  return text
+    .split('\n')
+    .filter(Boolean)
+    .map((line) => JSON.parse(line));
+}
+
+function rowsForResult(rows, result, kind) {
+  const singular = kind === 'comments' ? 'comment' : kind.slice(0, -1);
+  const start = Number(result[`${singular}StartLine`] || 0);
+  const count = Number(result[kind === 'comments' ? 'comments' : kind] || 0);
+  if (start < 0 || count < 0 || start + count > rows.length) {
+    throw new Error(`resume_range_invalid:${result.subreddit}:${kind}`);
+  }
+  return rows.slice(start, start + count);
+}
+
+async function prepareResume({ communities, paths, windowStart, windowEnd }) {
+  try {
+    await access(paths.manifestPath);
+  } catch {
+    return null;
+  }
+  const manifest = JSON.parse(await readFile(paths.manifestPath, 'utf8'));
+  if (
+    manifest.windowStart !== windowStart.toISOString() ||
+    manifest.windowEnd !== windowEnd.toISOString()
+  ) {
+    throw new Error('resume_window_mismatch');
+  }
+  const resultNames = (manifest.results || []).map((result) => result.subreddit);
+  if (resultNames.some((name) => !communities.includes(name)))
+    throw new Error('resume_roster_mismatch');
+  await Promise.all([
+    decompressZstd(paths.postsCompressedPath, paths.postsPath),
+    decompressZstd(paths.commentsCompressedPath, paths.commentsPath),
+    decompressZstd(paths.eventsCompressedPath, paths.eventsPath),
+  ]);
+  const [postRows, commentRows, eventRows] = await Promise.all([
+    readFile(paths.postsPath, 'utf8').then(jsonLines),
+    readFile(paths.commentsPath, 'utf8').then(jsonLines),
+    readFile(paths.eventsPath, 'utf8').then(jsonLines),
+  ]);
+  const keptResults = [];
+  const kept = { posts: [], comments: [], events: [] };
+  const totals = {
+    posts: 0,
+    comments: 0,
+    commentsSeen: 0,
+    commentsDropped: 0,
+    events: 0,
+    postBytes: 0,
+    commentBytes: 0,
+    eventBytes: 0,
+    duplicatePosts: Number(manifest.deduplication?.duplicatePosts || 0),
+    duplicateComments: Number(manifest.deduplication?.duplicateComments || 0),
+  };
+  for (const previous of manifest.results || []) {
+    if (previous.status !== 'complete') continue;
+    const result = { ...previous };
+    const communityPosts = rowsForResult(postRows, previous, 'posts');
+    const communityComments = rowsForResult(commentRows, previous, 'comments');
+    const communityEvents = rowsForResult(eventRows, previous, 'events');
+    result.postStartLine = totals.posts;
+    result.commentStartLine = totals.comments;
+    result.eventStartLine = totals.events;
+    result.postStartByte = totals.postBytes;
+    result.commentStartByte = totals.commentBytes;
+    result.eventStartByte = totals.eventBytes;
+    result.postBytes = Buffer.byteLength(
+      communityPosts.map((row) => JSON.stringify(row)).join('\n') +
+        (communityPosts.length ? '\n' : '')
+    );
+    result.commentBytes = Buffer.byteLength(
+      communityComments.map((row) => JSON.stringify(row)).join('\n') +
+        (communityComments.length ? '\n' : '')
+    );
+    result.eventBytes = Buffer.byteLength(
+      communityEvents.map((row) => JSON.stringify(row)).join('\n') +
+        (communityEvents.length ? '\n' : '')
+    );
+    kept.posts.push(...communityPosts);
+    kept.comments.push(...communityComments);
+    kept.events.push(...communityEvents);
+    totals.posts += result.posts;
+    totals.comments += result.comments;
+    totals.commentsSeen += result.commentsSeen;
+    totals.commentsDropped += result.commentsDropped;
+    totals.events += result.events;
+    totals.postBytes += result.postBytes;
+    totals.commentBytes += result.commentBytes;
+    totals.eventBytes += result.eventBytes;
+    keptResults.push(result);
+  }
+  await Promise.all(
+    Object.entries(kept).map(([kind, rows]) =>
+      writeFile(
+        paths[`${kind}Path`],
+        rows.map((row) => JSON.stringify(row)).join('\n') + (rows.length ? '\n' : '')
+      )
+    )
+  );
+  return {
+    keptResults,
+    totals,
+    seenPostIds: new Set(kept.posts.map((row) => String(row[POST_FIELDS.indexOf('id')]))),
+    seenCommentIds: new Set(kept.comments.map((row) => String(row[COMMENT_FIELDS.indexOf('id')]))),
+    priorAttempt: Number(manifest.resume?.attempt || 1),
+    priorGeneratedAt: manifest.generatedAt,
+    priorRequestMetrics: manifest.requestMetrics,
+    reusedCommunities: keptResults.length,
   };
 }
 
@@ -350,6 +578,7 @@ async function finalizeArchive(context) {
     totals,
     windowStart,
     windowEnd,
+    resumeState,
   } = context;
   await Promise.all([
     closeStream(streams.posts),
@@ -366,6 +595,9 @@ async function finalizeArchive(context) {
     fileReceipt(paths.commentsCompressedPath, compressionTimes[1]),
     fileReceipt(paths.eventsCompressedPath, compressionTimes[2]),
   ]);
+  const subredditIndex = createSubredditIndex(results, archiveDate);
+  await writeFile(paths.indexPath, `${JSON.stringify(subredditIndex, null, 2)}\n`);
+  const indexReceipt = await fileReceipt(paths.indexPath);
   const manifest = createManifest({
     communities,
     windowStart,
@@ -374,11 +606,11 @@ async function finalizeArchive(context) {
     totals,
     client,
     files,
+    indexReceipt,
+    resumeState,
   });
-  const subredditIndex = createSubredditIndex(results, archiveDate);
   const latest = createLatestPointer(manifest, archiveDate, files);
   await writeFile(paths.manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
-  await writeFile(paths.indexPath, `${JSON.stringify(subredditIndex, null, 2)}\n`);
   await writeFile(paths.latestPath, `${JSON.stringify(latest, null, 2)}\n`);
   console.log(
     JSON.stringify({ event: 'reddit_archive_complete', ...manifest, results: undefined })
@@ -386,21 +618,45 @@ async function finalizeArchive(context) {
   return { manifest, ...paths };
 }
 
-export async function runArchive({ communities, outputDir, windowStart, windowEnd, client }) {
+export async function runArchive({
+  communities,
+  outputDir,
+  windowStart,
+  windowEnd,
+  client,
+  resume = false,
+}) {
   await mkdir(outputDir, { recursive: true });
   const paths = archivePaths(outputDir);
+  const resumeState = resume
+    ? await prepareResume({ communities, paths, windowStart, windowEnd })
+    : null;
   const streams = {
-    posts: createWriteStream(paths.postsPath),
-    comments: createWriteStream(paths.commentsPath),
-    events: createWriteStream(paths.eventsPath),
+    posts: createWriteStream(paths.postsPath, { flags: resumeState ? 'a' : 'w' }),
+    comments: createWriteStream(paths.commentsPath, { flags: resumeState ? 'a' : 'w' }),
+    events: createWriteStream(paths.eventsPath, { flags: resumeState ? 'a' : 'w' }),
   };
-  const totals = { posts: 0, comments: 0, commentsSeen: 0, commentsDropped: 0, events: 0 };
+  const totals = resumeState?.totals || {
+    posts: 0,
+    comments: 0,
+    commentsSeen: 0,
+    commentsDropped: 0,
+    events: 0,
+    postBytes: 0,
+    commentBytes: 0,
+    eventBytes: 0,
+    duplicatePosts: 0,
+    duplicateComments: 0,
+  };
   const context = {
     archiveDate: windowEnd.toISOString().slice(0, 10),
     client,
     communities,
     paths,
-    results: [],
+    results: resumeState?.keptResults || [],
+    resumeState,
+    seenPostIds: resumeState?.seenPostIds || new Set(),
+    seenCommentIds: resumeState?.seenCommentIds || new Set(),
     streams,
     totals,
     windowStart,
@@ -408,8 +664,19 @@ export async function runArchive({ communities, outputDir, windowStart, windowEn
   };
 
   for (const subreddit of communities) {
+    if (
+      context.results.some(
+        (result) => result.subreddit === subreddit && result.status === 'complete'
+      )
+    ) {
+      console.log(JSON.stringify({ event: 'reddit_subreddit_reused', subreddit }));
+      continue;
+    }
     context.results.push(await collectCommunity(context, subreddit));
   }
+  context.results.sort(
+    (left, right) => communities.indexOf(left.subreddit) - communities.indexOf(right.subreddit)
+  );
   return finalizeArchive(context);
 }
 
@@ -417,7 +684,7 @@ async function main() {
   const options = parseArgs(process.argv.slice(2));
   if (options.help) {
     console.log(
-      'Usage: node scripts/reddit-daily-archive.mjs [--cohort 10|all] [--output-dir PATH] [--window-end ISO] [--scheduled]'
+      'Usage: node scripts/reddit-daily-archive.mjs [--cohort 10|all] [--output-dir PATH] [--window-end ISO] [--scheduled] [--resume]'
     );
     return;
   }
@@ -434,6 +701,7 @@ async function main() {
     windowStart,
     windowEnd,
     client,
+    resume: options.resume,
   });
   if (receipt.manifest.status !== 'complete') process.exitCode = 2;
 }

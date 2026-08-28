@@ -19,9 +19,18 @@ on:
           - github-hosted
           - side-machine
         default: github-hosted
+      resume_run_id:
+        description: Failed or partial workflow run ID whose artifact should be resumed
+        type: string
+        required: false
+      window_end:
+        description: Optional exact ISO window end for a deterministic manual run
+        type: string
+        required: false
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: cron-reddit-archive
@@ -62,6 +71,19 @@ jobs:
             npx --yes wrangler@4.120.0 r2 bucket create high-signal-reddit-archive
           fi
 
+      - name: Restore prior partial archive
+        if: github.event_name == 'workflow_dispatch' && inputs.resume_run_id != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RESUME_RUN_ID: ${{ inputs.resume_run_id }}
+        shell: bash
+        run: |
+          mkdir -p artifacts/reddit-archive
+          gh run download "$RESUME_RUN_ID" \
+            --name "reddit-archive-$RESUME_RUN_ID" \
+            --dir artifacts/reddit-archive
+          node scripts/reddit-archive-verify.mjs artifacts/reddit-archive
+
       - name: Collect exact 24-hour Reddit archive
         id: collect
         env:
@@ -69,18 +91,31 @@ jobs:
           REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}
           REDDIT_USER_AGENT: high-signal-reddit-archive/1.0
           MANUAL_COHORT: ${{ inputs.cohort || 'all' }}
+          MANUAL_WINDOW_END: ${{ inputs.window_end || '' }}
+          RESUME_RUN_ID: ${{ inputs.resume_run_id || '' }}
         shell: bash
         run: |
           cohort="$MANUAL_COHORT"
           scheduled_flag=""
+          resume_flag=""
+          window_args=()
           if [[ "$GITHUB_EVENT_NAME" == "schedule" ]]; then
             cohort="all"
             scheduled_flag="--scheduled"
           fi
+          if [[ -n "$RESUME_RUN_ID" ]]; then
+            resume_flag="--resume"
+            MANUAL_WINDOW_END=$(node -p "JSON.parse(require('fs').readFileSync('artifacts/reddit-archive/manifest.json')).windowEnd")
+          fi
+          if [[ -n "$MANUAL_WINDOW_END" ]]; then
+            window_args=(--window-end "$MANUAL_WINDOW_END")
+          fi
           node scripts/reddit-daily-archive.mjs \
             --cohort "$cohort" \
             --output-dir artifacts/reddit-archive \
-            $scheduled_flag
+            $scheduled_flag \
+            $resume_flag \
+            "${window_args[@]}"
 
       - name: Upload archive and manifest to R2
         if: always() && hashFiles('artifacts/reddit-archive/manifest.json') != ''
@@ -132,6 +167,7 @@ jobs:
             --remote
           cmp artifacts/reddit-archive/manifest.json "$remote_manifest"
           cmp artifacts/reddit-archive/events.jsonl.zst "$remote_events"
+          node scripts/reddit-archive-verify.mjs artifacts/reddit-archive
 
       - name: Publish and verify latest complete consumer pointer
         if: success()

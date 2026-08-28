@@ -45,6 +45,8 @@
     "d2c:sync-av:api": "tsx scripts/sync-d2c-agent-visibility.ts --api",
     "reddit:archive": "node scripts/reddit-daily-archive.mjs",
     "reddit:archive:test": "node --test scripts/reddit-daily-archive.test.mjs",
+    "reddit:archive:verify": "node scripts/reddit-archive-verify.mjs",
+    "reddit:archive:redact": "node scripts/reddit-archive-redact.mjs",
     "signals:sync:local": "tsx scripts/sync-signals.ts --local",
     "signals:sync:remote": "tsx scripts/sync-signals.ts --remote",
     "sync:month:local": "pnpm signals:sync:local && pnpm daily:snapshot && pnpm market:snapshot",

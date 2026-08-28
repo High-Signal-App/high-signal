@@ -69,14 +69,33 @@ the archive path is not set.
   it does not silently fall back to another production scrape.
 - GitHub Actions retains the complete run artifact for seven days. R2 is the
   authoritative forward archive after that window.
-- Resume by rerunning the full-roster workflow for the current collection
-  window. Do not fabricate or claim historical completeness for missed data.
+- Manual recovery accepts the failed/partial Actions `resume_run_id`. It restores
+  that run's artifact, verifies it, reuses every complete community range and
+  recollects only partial or failed communities against the persisted exact
+  window. The resulting manifest records the stable watermark, attempt count,
+  reused communities and stable-ID deduplication totals.
+- `pnpm reddit:archive:verify -- <partition-directory>` independently checks
+  compressed bytes and hashes, decoded counts, duplicate stable IDs, every
+  subreddit line range, the latest pointer, gaps, API requests and archive size.
+  The archive workflow runs this reconciliation before publishing the pointer.
+- Do not fabricate or claim historical completeness for missed data.
 
 ## Removal requests
 
 Reddit/user deletion, protected-status or legal removal requests are the only
-normal reason to rewrite a daily partition. Identify every affected stable
-post/comment ID, rebuild the relevant streams with redacted bodies, update the
-manifest hashes and derived event export, and then republish `latest.json` only
-if the changed partition is still the latest complete day. Record the operator
-action in issue #142 before and after execution.
+normal reason to rewrite a daily partition. Run the operator-only
+`reddit-archive-redact` workflow with an exact archive date, stable post/comment
+IDs, an allowed reason code and the `REDACT` confirmation. It redacts bodies and
+authors, removes affected post events from the derived export, rebuilds hashes
+and indexes, reconciles the result, verifies every remote object byte for byte,
+and republishes `latest.json` only when the changed partition is the current
+complete day. Manifests retain hashed target IDs and counts, not the supplied
+identifiers. Record the operator action in an issue before and after execution.
+
+## Reddit Insights receipt
+
+Reddit Insights reads the same `events.jsonl.zst` and `latest.json` objects with
+its least-privilege R2 credential. Its `import:high-signal` command materializes
+disposable gzip display corpora under `artifacts/`; `--render <subreddit>`
+generates a source-linked HTML sample without starting another collector or
+persisting a second raw archive.
