@@ -144,6 +144,17 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 
 ## Timeline
 
+- **2026-08-28 — Daily Reddit R2 archive canary verified end to end:** the
+  scheduled archive workflow is active at 00:17 UTC (05:47 IST) for the full
+  curated 200-community roster. A live 10-community GitHub-hosted canary
+  completed all communities with 497 posts and 11,720 comments in 455 API
+  requests, with zero retries, unresolved comment continuations, or partial
+  communities. Zstandard level 22 compressed the post and comment streams to
+  1,223,089 bytes. GitHub Actions uploaded both streams and the manifest to the
+  private `high-signal-reddit-archive` R2 bucket, downloaded the remote manifest,
+  and passed a byte-for-byte comparison. The first scheduled 200-community run
+  remains the activation receipt before issue #142 can close.
+
 - **2026-08-28 — Digg verification now fails closed on semantic mismatch:**
   threshold crossings are queued newest-first with rank, velocity, and distinct
   voices as tie-breakers, then matched against retained High Signal evidence
