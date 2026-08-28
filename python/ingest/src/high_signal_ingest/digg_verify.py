@@ -30,7 +30,18 @@ GDELT_MAX_ATTEMPTS = 2
 GDELT_TIMEOUT_SECONDS = 75.0
 MAX_REQUESTS_PER_POLL = 3
 MAX_ARTICLES_PER_REQUEST = 4
-SOCIAL_OR_ATTENTION_HOSTS = {"digg.com", "x.com", "twitter.com"}
+SOCIAL_OR_ATTENTION_HOSTS = {
+    "digg.com",
+    "facebook.com",
+    "hn.algolia.com",
+    "instagram.com",
+    "news.ycombinator.com",
+    "old.reddit.com",
+    "reddit.com",
+    "threads.net",
+    "twitter.com",
+    "x.com",
+}
 ARTICLE_ACCEPT = "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
 STOP_WORDS = {
     "a",
@@ -173,7 +184,10 @@ def _gdelt_candidates(request: dict[str, Any], payload: dict[str, Any]) -> list[
             continue
         url = _allowed_original_url(article.get("url"))
         title = str(article.get("title") or "")
-        if not url or title_alignment(str(request.get("title") or ""), title) < 0.45:
+        # GDELT is broad discovery, not evidence. Require strong title agreement
+        # before spending a publisher fetch; entity-name overlap alone (for
+        # example, "OpenAI" plus "threat") is not the same underlying claim.
+        if not url or title_alignment(str(request.get("title") or ""), title) < 0.60:
             continue
         candidates.append({**article, "url": url, "title": title})
     return candidates
@@ -233,7 +247,9 @@ def retrieve_events(
             except httpx.HTTPError:
                 continue
             text = _extract_article_text(response.text)
-            canonical = str(response.url)
+            canonical = _allowed_original_url(str(response.url)) or ""
+            if not canonical:
+                continue
         if len(text) < 500:
             continue
         host = (urlsplit(canonical).hostname or "unknown").lower().removeprefix("www.")
@@ -285,7 +301,10 @@ def verify_request(request: dict[str, Any], client: httpx.Client) -> dict[str, A
         audit.push_events(events, f"digg-{short_id}"[:16])
         from .pipeline import cluster_and_generate
 
-        paths = cluster_and_generate(events)
+        # A deterministic fallback is a review aid, not proof that the original
+        # claim passed semantic-origin publication gates. Digg verification must
+        # never label that fallback as a verified candidate.
+        paths = cluster_and_generate(events, allow_fallback=False)
         if not paths:
             return {"shortId": short_id, "status": "insufficient_evidence", **diagnostics}
         candidate_slug = paths[0].removeprefix("pushed:").rsplit("/", 1)[-1].removesuffix(".md")

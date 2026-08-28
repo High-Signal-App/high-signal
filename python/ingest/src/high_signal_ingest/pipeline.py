@@ -686,8 +686,13 @@ def _event_entity(ev: Event) -> str | None:
     return primary_entity((ev.content or "")[:lead], title=ev.title)
 
 
-def cluster_and_generate(events: list[Event]) -> list[str]:
-    """Generate only from proof-bearing stories within each entity bucket."""
+def cluster_and_generate(events: list[Event], *, allow_fallback: bool = True) -> list[str]:
+    """Generate only from proof-bearing stories within each entity bucket.
+
+    ``allow_fallback=False`` is used by attention-triggered verification, where
+    a review-only deterministic draft must not be mistaken for a claim that
+    cleared semantic-origin proof gates.
+    """
     by_entity: dict[str, list[Event]] = defaultdict(list)
     for ev in events:
         eid = _event_entity(ev)
@@ -704,7 +709,7 @@ def cluster_and_generate(events: list[Event]) -> list[str]:
             written.append(emit(cand))
         else:
             fallback_clusters.append((entity_id, evs))
-    if not written and _fallback_drafts_enabled():
+    if allow_fallback and not written and _fallback_drafts_enabled():
         written.extend(_emit_fallback_drafts(fallback_clusters))
     return written
 

@@ -40,7 +40,36 @@ def test_discovery_query_is_short_and_preserves_title_order() -> None:
 def test_attention_and_social_urls_are_never_original_evidence() -> None:
     assert _allowed_original_url("https://digg.com/tech/abc") is None
     assert _allowed_original_url("https://x.com/user/status/1") is None
+    assert _allowed_original_url("https://www.reddit.com/r/hardware/comments/abc") is None
+    assert _allowed_original_url("https://news.ycombinator.com/item?id=1") is None
     assert _allowed_original_url("https://reuters.com/technology/story") is not None
+
+
+def test_gdelt_rejects_entity_overlap_without_claim_alignment() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "articles": [
+                    {
+                        "url": "https://cnbc.com/openai-chip",
+                        "title": "OpenAI chip brings new threat to Nvidia margins",
+                    },
+                    {
+                        "url": "https://reuters.com/openai-anthropic-cyber",
+                        "title": "OpenAI and Anthropic warn of AI cyber threats",
+                    },
+                ]
+            },
+        )
+
+    request = {"title": "OpenAI and Anthropic Warn of AI Cyber Threats", "sourceUrls": []}
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        articles = discover_articles(request, client)
+
+    assert [article["url"] for article in articles] == [
+        "https://reuters.com/openai-anthropic-cyber"
+    ]
 
 
 def test_gdelt_discovery_retries_and_uses_three_day_window() -> None:
