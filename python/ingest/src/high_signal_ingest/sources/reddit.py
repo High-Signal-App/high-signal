@@ -76,6 +76,62 @@ def _parse_archive_datetime(value: str) -> datetime:
     return parsed.astimezone(timezone.utc) if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
 
 
+def _archive_attention_qualifies(attention: dict, min_score: int) -> bool:
+    score = int(attention.get("score") or 0)
+    comment_count = int(attention.get("commentCount") or 0)
+    return score >= min_score or comment_count >= ARCHIVE_MIN_COMMENTS
+
+
+def _archive_row_to_event(row: dict, line_number: int, min_score: int) -> Event | None:
+    if row.get("schemaVersion") != 1:
+        raise ValueError(f"unsupported_reddit_event_schema:{line_number}")
+    attention = row.get("attention") or {}
+    if not _archive_attention_qualifies(attention, min_score):
+        return None
+
+    source_url = str(row.get("sourceUrl") or "")
+    source = str(row.get("source") or "")
+    if not source_url or not source.startswith("reddit:"):
+        raise ValueError(f"invalid_reddit_event:{line_number}")
+
+    archive = row.get("archive") or {}
+    published_at = _parse_archive_datetime(str(row["publishedAt"]))
+    retrieved_at = _parse_archive_datetime(str(row["retrievedAt"]))
+    raw_hash = str(row.get("rawHash") or event_hash("reddit", source, source_url))
+    post_id = str(archive.get("postId") or row.get("id") or raw_hash[:16])
+    return Event(
+        id=str(row.get("id") or raw_hash[:16]),
+        source=source,
+        source_url=source_url,
+        published_at=published_at,
+        title=str(row.get("title") or "") or None,
+        content=str(row.get("content") or "") or None,
+        primary_entity_id=None,
+        raw_hash=raw_hash,
+        source_document=SourceDocument(
+            canonical_url=source_url,
+            document_key=f"reddit:{post_id}",
+            fetched_at=retrieved_at,
+            published_at=published_at,
+            raw_hash=raw_hash,
+            raw_json={
+                "sourceClass": row.get("sourceClass"),
+                "evidenceTier": row.get("evidenceTier"),
+                "confidenceContribution": row.get("confidenceContribution"),
+                "attentionContribution": row.get("attentionContribution"),
+                "attention": attention,
+                "archive": archive,
+            },
+            parsed_fields={
+                "source_class": "attention_aggregator",
+                "evidence_tier": "derived",
+                "confidence_contribution": "none",
+                "attention_contribution": "allowed",
+            },
+        ),
+    )
+
+
 def load_archive_events(
     path: str | Path,
     *,
@@ -94,56 +150,9 @@ def load_archive_events(
             if not line.strip():
                 continue
             row = json.loads(line)
-            if row.get("schemaVersion") != 1:
-                raise ValueError(f"unsupported_reddit_event_schema:{line_number}")
-            published_at = _parse_archive_datetime(str(row["publishedAt"]))
-            attention = row.get("attention") or {}
-            if (
-                int(attention.get("score") or 0) < min_score
-                and int(attention.get("commentCount") or 0) < ARCHIVE_MIN_COMMENTS
-            ):
-                continue
-            source_url = str(row.get("sourceUrl") or "")
-            source = str(row.get("source") or "")
-            if not source_url or not source.startswith("reddit:"):
-                raise ValueError(f"invalid_reddit_event:{line_number}")
-            archive = row.get("archive") or {}
-            retrieved_at = _parse_archive_datetime(str(row["retrievedAt"]))
-            raw_hash = str(row.get("rawHash") or event_hash("reddit", source, source_url))
-            post_id = str(archive.get("postId") or row.get("id") or raw_hash[:16])
-            events.append(
-                Event(
-                    id=str(row.get("id") or raw_hash[:16]),
-                    source=source,
-                    source_url=source_url,
-                    published_at=published_at,
-                    title=str(row.get("title") or "") or None,
-                    content=str(row.get("content") or "") or None,
-                    primary_entity_id=None,
-                    raw_hash=raw_hash,
-                    source_document=SourceDocument(
-                        canonical_url=source_url,
-                        document_key=f"reddit:{post_id}",
-                        fetched_at=retrieved_at,
-                        published_at=published_at,
-                        raw_hash=raw_hash,
-                        raw_json={
-                            "sourceClass": row.get("sourceClass"),
-                            "evidenceTier": row.get("evidenceTier"),
-                            "confidenceContribution": row.get("confidenceContribution"),
-                            "attentionContribution": row.get("attentionContribution"),
-                            "attention": attention,
-                            "archive": archive,
-                        },
-                        parsed_fields={
-                            "source_class": "attention_aggregator",
-                            "evidence_tier": "derived",
-                            "confidence_contribution": "none",
-                            "attention_contribution": "allowed",
-                        },
-                    ),
-                )
-            )
+            event = _archive_row_to_event(row, line_number, min_score)
+            if event is not None:
+                events.append(event)
     return events
 
 

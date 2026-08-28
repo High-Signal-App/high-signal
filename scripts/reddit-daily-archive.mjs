@@ -187,129 +187,116 @@ function createManifest({ communities, windowStart, windowEnd, results, totals, 
   };
 }
 
-export async function runArchive({ communities, outputDir, windowStart, windowEnd, client }) {
-  await mkdir(outputDir, { recursive: true });
+function archivePaths(outputDir) {
   const postsPath = resolve(outputDir, 'posts.jsonl');
   const commentsPath = resolve(outputDir, 'comments.jsonl');
   const eventsPath = resolve(outputDir, 'events.jsonl');
-  const postsCompressedPath = `${postsPath}.zst`;
-  const commentsCompressedPath = `${commentsPath}.zst`;
-  const eventsCompressedPath = `${eventsPath}.zst`;
-  const manifestPath = resolve(outputDir, 'manifest.json');
-  const indexPath = resolve(outputDir, 'subreddits.index.json');
-  const latestPath = resolve(outputDir, 'latest.json');
-  const postsStream = createWriteStream(postsPath);
-  const commentsStream = createWriteStream(commentsPath);
-  const eventsStream = createWriteStream(eventsPath);
-  const results = [];
-  const totals = { posts: 0, comments: 0, commentsSeen: 0, commentsDropped: 0, events: 0 };
-  const archiveDate = windowEnd.toISOString().slice(0, 10);
+  return {
+    postsPath,
+    commentsPath,
+    eventsPath,
+    postsCompressedPath: `${postsPath}.zst`,
+    commentsCompressedPath: `${commentsPath}.zst`,
+    eventsCompressedPath: `${eventsPath}.zst`,
+    manifestPath: resolve(outputDir, 'manifest.json'),
+    indexPath: resolve(outputDir, 'subreddits.index.json'),
+    latestPath: resolve(outputDir, 'latest.json'),
+  };
+}
 
-  for (const subreddit of communities) {
-    const result = {
+function initialCommunityResult(subreddit, totals) {
+  return {
+    subreddit,
+    status: 'complete',
+    posts: 0,
+    comments: 0,
+    commentsSeen: 0,
+    commentsDropped: 0,
+    events: 0,
+    postStartLine: totals.posts,
+    commentStartLine: totals.comments,
+    eventStartLine: totals.events,
+    listingPages: 0,
+    cutoffReached: false,
+    listingCapped: false,
+    commentFailures: 0,
+    unresolvedMore: 0,
+  };
+}
+
+async function collectPost(context, post) {
+  const { archiveDate, client, streams, subreddit, result, totals } = context;
+  const retrievedAt = new Date().toISOString();
+  await writeJsonLine(streams.posts, postRow(post, subreddit, retrievedAt));
+  result.posts += 1;
+  totals.posts += 1;
+  if (postQualifiesForEvent(post)) {
+    await writeJsonLine(streams.events, eventRow(post, subreddit, archiveDate, retrievedAt));
+    result.events += 1;
+    totals.events += 1;
+  }
+  if (Number(post.num_comments || 0) <= 0) return;
+
+  try {
+    const commentResult = await collectComments({
+      client,
+      postId: post.id,
       subreddit,
-      status: 'complete',
-      posts: 0,
-      comments: 0,
-      commentsSeen: 0,
-      commentsDropped: 0,
-      events: 0,
-      postStartLine: totals.posts,
-      commentStartLine: totals.comments,
-      eventStartLine: totals.events,
-      listingPages: 0,
-      cutoffReached: false,
-      listingCapped: false,
-      commentFailures: 0,
-      unresolvedMore: 0,
-    };
-
-    try {
-      const listing = await collectListing({
-        client,
+      retrievedAt,
+      onComment: async (row) => {
+        await writeJsonLine(streams.comments, row);
+        result.comments += 1;
+        totals.comments += 1;
+      },
+    });
+    result.commentsSeen += commentResult.seen;
+    totals.commentsSeen += commentResult.seen;
+    result.commentsDropped += commentResult.filtered;
+    totals.commentsDropped += commentResult.filtered;
+    result.unresolvedMore += commentResult.unresolvedMore;
+  } catch (error) {
+    result.commentFailures += 1;
+    result.status = 'partial';
+    console.error(
+      JSON.stringify({
+        event: 'reddit_comment_failure',
         subreddit,
-        windowStart,
-        windowEnd,
-        onPost: async (post) => {
-          const retrievedAt = new Date().toISOString();
-          await writeJsonLine(postsStream, postRow(post, subreddit, retrievedAt));
-          result.posts += 1;
-          totals.posts += 1;
-          if (postQualifiesForEvent(post)) {
-            await writeJsonLine(eventsStream, eventRow(post, subreddit, archiveDate, retrievedAt));
-            result.events += 1;
-            totals.events += 1;
-          }
-          if (Number(post.num_comments || 0) <= 0) return;
+        postId: post.id,
+        error: error instanceof Error ? error.message : 'unknown_error',
+      })
+    );
+  }
+}
 
-          try {
-            const commentResult = await collectComments({
-              client,
-              postId: post.id,
-              subreddit,
-              retrievedAt,
-              onComment: async (row) => {
-                await writeJsonLine(commentsStream, row);
-                result.comments += 1;
-                totals.comments += 1;
-              },
-            });
-            result.commentsSeen += commentResult.seen;
-            totals.commentsSeen += commentResult.seen;
-            result.commentsDropped += commentResult.filtered;
-            totals.commentsDropped += commentResult.filtered;
-            result.unresolvedMore += commentResult.unresolvedMore;
-          } catch (error) {
-            result.commentFailures += 1;
-            result.status = 'partial';
-            console.error(
-              JSON.stringify({
-                event: 'reddit_comment_failure',
-                subreddit,
-                postId: post.id,
-                error: error instanceof Error ? error.message : 'unknown_error',
-              })
-            );
-          }
-        },
-      });
-      result.listingPages = listing.pages;
-      result.cutoffReached = listing.cutoffReached;
-      result.listingCapped = listing.listingCapped;
-      if (listing.listingCapped || result.unresolvedMore > 0) result.status = 'partial';
-    } catch (error) {
-      result.status = 'failed';
-      result.error = error instanceof Error ? error.message : 'unknown_error';
-      result.permanent = Boolean(error?.permanent);
-    }
+async function collectCommunity(context, subreddit) {
+  const { archiveDate, client, streams, totals, windowStart, windowEnd } = context;
+  const result = initialCommunityResult(subreddit, totals);
+  const postContext = { archiveDate, client, streams, subreddit, result, totals };
 
-    results.push(result);
-    console.log(JSON.stringify({ event: 'reddit_subreddit_complete', ...result }));
+  try {
+    const listing = await collectListing({
+      client,
+      subreddit,
+      windowStart,
+      windowEnd,
+      onPost: (post) => collectPost(postContext, post),
+    });
+    result.listingPages = listing.pages;
+    result.cutoffReached = listing.cutoffReached;
+    result.listingCapped = listing.listingCapped;
+    if (listing.listingCapped || result.unresolvedMore > 0) result.status = 'partial';
+  } catch (error) {
+    result.status = 'failed';
+    result.error = error instanceof Error ? error.message : 'unknown_error';
+    result.permanent = Boolean(error?.permanent);
   }
 
-  await Promise.all([
-    closeStream(postsStream),
-    closeStream(commentsStream),
-    closeStream(eventsStream),
-  ]);
-  const postsCompressionMs = await compressZstd(postsPath, postsCompressedPath);
-  const commentsCompressionMs = await compressZstd(commentsPath, commentsCompressedPath);
-  const eventsCompressionMs = await compressZstd(eventsPath, eventsCompressedPath);
-  const files = await Promise.all([
-    fileReceipt(postsCompressedPath, postsCompressionMs),
-    fileReceipt(commentsCompressedPath, commentsCompressionMs),
-    fileReceipt(eventsCompressedPath, eventsCompressionMs),
-  ]);
-  const manifest = createManifest({
-    communities,
-    windowStart,
-    windowEnd,
-    results,
-    totals,
-    client,
-    files,
-  });
-  const subredditIndex = {
+  console.log(JSON.stringify({ event: 'reddit_subreddit_complete', ...result }));
+  return result;
+}
+
+function createSubredditIndex(results, archiveDate) {
+  return {
     schema: `high-signal.reddit-subreddit-index.v${ARCHIVE_SCHEMA_VERSION}`,
     archiveDate,
     streams: {
@@ -329,8 +316,11 @@ export async function runArchive({ communities, outputDir, windowStart, windowEn
       ])
     ),
   };
+}
+
+function createLatestPointer(manifest, archiveDate, files) {
   const eventsFile = files.find((file) => file.name === 'events.jsonl.zst');
-  const latest = {
+  return {
     schema: 'high-signal.reddit-latest.v1',
     archiveSchemaVersion: ARCHIVE_SCHEMA_VERSION,
     archiveDate,
@@ -347,21 +337,80 @@ export async function runArchive({ communities, outputDir, windowStart, windowEn
     eventsSha256: eventsFile.sha256,
     eventsBytes: eventsFile.bytes,
   };
-  await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
-  await writeFile(indexPath, `${JSON.stringify(subredditIndex, null, 2)}\n`);
-  await writeFile(latestPath, `${JSON.stringify(latest, null, 2)}\n`);
+}
+
+async function finalizeArchive(context) {
+  const {
+    archiveDate,
+    client,
+    communities,
+    paths,
+    results,
+    streams,
+    totals,
+    windowStart,
+    windowEnd,
+  } = context;
+  await Promise.all([
+    closeStream(streams.posts),
+    closeStream(streams.comments),
+    closeStream(streams.events),
+  ]);
+  const compressionTimes = await Promise.all([
+    compressZstd(paths.postsPath, paths.postsCompressedPath),
+    compressZstd(paths.commentsPath, paths.commentsCompressedPath),
+    compressZstd(paths.eventsPath, paths.eventsCompressedPath),
+  ]);
+  const files = await Promise.all([
+    fileReceipt(paths.postsCompressedPath, compressionTimes[0]),
+    fileReceipt(paths.commentsCompressedPath, compressionTimes[1]),
+    fileReceipt(paths.eventsCompressedPath, compressionTimes[2]),
+  ]);
+  const manifest = createManifest({
+    communities,
+    windowStart,
+    windowEnd,
+    results,
+    totals,
+    client,
+    files,
+  });
+  const subredditIndex = createSubredditIndex(results, archiveDate);
+  const latest = createLatestPointer(manifest, archiveDate, files);
+  await writeFile(paths.manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+  await writeFile(paths.indexPath, `${JSON.stringify(subredditIndex, null, 2)}\n`);
+  await writeFile(paths.latestPath, `${JSON.stringify(latest, null, 2)}\n`);
   console.log(
     JSON.stringify({ event: 'reddit_archive_complete', ...manifest, results: undefined })
   );
-  return {
-    manifest,
-    manifestPath,
-    indexPath,
-    latestPath,
-    postsCompressedPath,
-    commentsCompressedPath,
-    eventsCompressedPath,
+  return { manifest, ...paths };
+}
+
+export async function runArchive({ communities, outputDir, windowStart, windowEnd, client }) {
+  await mkdir(outputDir, { recursive: true });
+  const paths = archivePaths(outputDir);
+  const streams = {
+    posts: createWriteStream(paths.postsPath),
+    comments: createWriteStream(paths.commentsPath),
+    events: createWriteStream(paths.eventsPath),
   };
+  const totals = { posts: 0, comments: 0, commentsSeen: 0, commentsDropped: 0, events: 0 };
+  const context = {
+    archiveDate: windowEnd.toISOString().slice(0, 10),
+    client,
+    communities,
+    paths,
+    results: [],
+    streams,
+    totals,
+    windowStart,
+    windowEnd,
+  };
+
+  for (const subreddit of communities) {
+    context.results.push(await collectCommunity(context, subreddit));
+  }
+  return finalizeArchive(context);
 }
 
 async function main() {
