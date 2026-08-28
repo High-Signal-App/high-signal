@@ -634,7 +634,10 @@ async function existingSignalLinks(d1: D1Database, shortIds: string[]) {
 async function pendingVerificationRequests(d1: D1Database) {
   const rows = await d1
     .prepare(
-      `WITH eligible AS (
+      `WITH feed_clock AS (
+         SELECT COALESCE(MAX(retrieved_at), 0) AS latest_retrieved_at
+         FROM digg_feed_snapshots
+       ), eligible AS (
          SELECT short_id, title, digg_summary, primary_entity_id, source_urls,
                 first_seen_at, verification_reason,
                 ROW_NUMBER() OVER (
@@ -645,13 +648,17 @@ async function pendingVerificationRequests(d1: D1Database) {
                            distinct_account_count DESC
                 ) AS fresh_priority,
                 ROW_NUMBER() OVER (
-                  ORDER BY CASE WHEN position IS NULL THEN 1 ELSE 0 END,
+                  ORDER BY CASE
+                             WHEN retrieved_at >= feed_clock.latest_retrieved_at - 600 THEN 0
+                             ELSE 1
+                           END,
+                           CASE WHEN position IS NULL THEN 1 ELSE 0 END,
                            position ASC,
                            ABS(COALESCE(position_delta, 0)) DESC,
                            distinct_account_count DESC,
                            verification_requested_at DESC
                 ) AS attention_priority
-         FROM digg_clusters
+         FROM digg_clusters CROSS JOIN feed_clock
          WHERE verification_status IN ('requested', 'insufficient_evidence', 'failed')
            AND verification_attempts < 3
        )
