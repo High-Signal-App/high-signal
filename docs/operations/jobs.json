@@ -6,7 +6,7 @@
   "owner": "sarthak",
   "generatedFrom": "docs/operations/jobs.md + .github/workflows/*.yml + packages/db/src/schema.ts",
   "notes": [
-    "Schedules are authoritative in .github/workflows/*.yml; this file is the automation-readiness registry.",
+    "Cloudflare Worker cron and remaining GitHub schedule entries are authoritative; this file is the automation-readiness registry.",
     "Every recurring path MUST appear here. The coverage audit (scripts/automation-coverage.mjs) validates this against the workflow files and D1 schema.",
     "No secrets, raw payloads, prompts, or private content are persisted in this file or its derived reports."
   ],
@@ -16,9 +16,10 @@
       "kind": "ingestion",
       "owner": "sarthak",
       "trigger": {
-        "type": "schedule",
+        "type": "worker-dispatch",
         "cron": "30 2 * * *",
-        "tz": "UTC"
+        "tz": "UTC",
+        "schedulerJob": "worker-cron-brief-precompute"
       },
       "workflowFile": ".github/workflows/cron-ingest.yml",
       "runtime": "github-actions-ubuntu",
@@ -154,9 +155,10 @@
       "kind": "attention-ingestion",
       "owner": "sarthak",
       "trigger": {
-        "type": "schedule",
+        "type": "worker-dispatch",
         "cron": "*/30 * * * *",
-        "tz": "UTC"
+        "tz": "UTC",
+        "schedulerJob": "worker-cron-brief-precompute"
       },
       "workflowFile": ".github/workflows/cron-digg.yml",
       "runtime": "github-actions-ubuntu",
@@ -243,9 +245,10 @@
       "kind": "publish",
       "owner": "sarthak",
       "trigger": {
-        "type": "schedule",
+        "type": "worker-dispatch",
         "cron": "30 3 * * *",
-        "tz": "UTC"
+        "tz": "UTC",
+        "schedulerJob": "worker-cron-brief-precompute"
       },
       "workflowFile": ".github/workflows/cron-publish.yml",
       "runtime": "github-actions-ubuntu",
@@ -286,9 +289,10 @@
       "kind": "validation",
       "owner": "sarthak",
       "trigger": {
-        "type": "schedule",
+        "type": "worker-dispatch",
         "cron": "0 4 * * *",
-        "tz": "UTC"
+        "tz": "UTC",
+        "schedulerJob": "worker-cron-brief-precompute"
       },
       "workflowFile": ".github/workflows/cron-validate-brief.yml",
       "runtime": "github-actions-ubuntu",
@@ -327,9 +331,10 @@
       "kind": "operator-brief",
       "owner": "sarthak",
       "trigger": {
-        "type": "schedule",
+        "type": "worker-dispatch",
         "cron": "30 4 * * *",
-        "tz": "UTC"
+        "tz": "UTC",
+        "schedulerJob": "worker-cron-brief-precompute"
       },
       "workflowFile": ".github/workflows/personal-brief.yml",
       "runtime": "github-actions-ubuntu",
@@ -661,7 +666,7 @@
         "observability": "workers/api/wrangler.toml [observability]"
       },
       "acceptedExceptions": [
-        "GitHub workflow dispatch is fail-closed until GITHUB_WORKFLOW_TOKEN is explicitly provisioned; native GitHub schedules remain active until the coordinated activation release"
+        "GitHub workflow dispatch fails closed if GITHUB_WORKFLOW_TOKEN is absent or rejected; D1 preserves the failed slot for bounded retry and diagnosis"
       ]
     },
     {

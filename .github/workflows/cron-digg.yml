@@ -1,8 +1,7 @@
 name: cron-digg
 
 on:
-  schedule:
-    - cron: "*/30 * * * *"
+  # Scheduled by the API Worker's Cloudflare cron dispatcher.
   workflow_dispatch:
 
 concurrency:

@@ -5,11 +5,11 @@ description: Reference for the GitHub Actions cron jobs and deploy workflows tha
 
 # Scheduled Jobs & Workflows
 
-> **Schedules are authoritative in code.** The exact cron expressions live in
+> **Schedules are authoritative in code.** Cloudflare-dispatched timings live
+> in `workers/api/src/lib/workflow-scheduler.ts` and the Worker cadence lives in
+> `workers/api/wrangler.toml`; remaining native GitHub crons live in
 > `.github/workflows/*.yml`. This page documents the *intent, ordering, and
-> dependencies* so the daily pipeline is legible without re-deriving it from
-> YAML. If anything here disagrees with the workflow files, the workflow files
-> win — fix this page.
+> dependencies*. If it disagrees with code, fix this page.
 >
 > **Machine-readable inventory:** [`jobs.json`](jobs.json) is the
 > automation-readiness registry consumed by `scripts/automation-coverage.mjs`
@@ -18,14 +18,14 @@ description: Reference for the GitHub Actions cron jobs and deploy workflows tha
 
 ## Daily pipeline order (IST; cron remains UTC)
 
-GitHub Actions remains the active scheduler until the fail-closed Cloudflare
-dispatcher is explicitly activated. The API Worker's existing `*/30` cron now
-contains a repository-owned dispatcher for the five timing-critical workflows,
-but it returns `disabled` without `GITHUB_WORKFLOW_TOKEN`. Migration `0024`
-stores one dispatch lease per workflow/time slot. Activation requires applying
-that migration, provisioning a repository-scoped Actions-write token, deploying
-the API Worker, and removing the matching native GitHub `schedule` entries in
-the same release window so there is never a permanent dual scheduler.
+The API Worker's Cloudflare `*/30` cron is the authoritative scheduler for the
+five timing-critical workflows. It dispatches GitHub Actions through their
+`workflow_dispatch` entry points using a repository-scoped Actions-write token.
+Migration `0024` stores one lease per workflow/time slot, so a retried Worker
+event cannot create duplicate runs. The matching native GitHub `schedule`
+entries are intentionally absent; restoring them would create a dual scheduler.
+`GITHUB_WORKFLOW_TOKEN` is mirrored from High Signal's `prod` Infisical project
+to the API Worker and expires on 2027-08-28; rotate both copies before then.
 
 The daily cycle is sequenced so each stage consumes the previous stage's output:
 
@@ -45,7 +45,7 @@ The daily cycle is sequenced so each stage consumes the previous stage's output:
 
 | Cadence | Workflow | Intent |
 | --- | --- | --- |
-| Every 30m | `cron-digg.yml` | Poll five documented Digg feeds; material rank, velocity, or contributor crossings immediately trigger bounded original-source verification. Durable request/completion timestamps measure first-seen → candidate latency. Digg never enters evidence or confidence scoring. The inactive Cloudflare dispatcher is the planned reliable trigger after the activation sequence above. |
+| Every 30m | `cron-digg.yml` | Poll five documented Digg feeds; material rank, velocity, or contributor crossings immediately trigger bounded original-source verification. Durable request/completion timestamps measure first-seen → candidate latency. Digg never enters evidence or confidence scoring. Cloudflare dispatches the GitHub workflow and D1 records each slot. |
 | Every 4h | `cron-markets.yml` | Prediction-market polling (`--source markets`: Polymarket / Manifold / Kalshi → `market_quotes`). Probabilities only—never equity prices or direct evidence. Metaculus is parked. |
 
 ## Weekly

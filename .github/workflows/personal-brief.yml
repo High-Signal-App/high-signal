@@ -1,8 +1,7 @@
 name: personal-brief
 
 on:
-  schedule:
-    - cron: "30 4 * * *" # daily 04:30 UTC / 10:00 IST, after validation
+  # Scheduled by the API Worker's Cloudflare cron dispatcher.
   workflow_dispatch:
 
 permissions:

@@ -1,8 +1,7 @@
 name: cron-ingest
 
 on:
-  schedule:
-    - cron: "30 2 * * *"  # daily 02:30 UTC / 08:00 IST
+  # Scheduled by the API Worker's Cloudflare cron dispatcher.
   workflow_dispatch:
     inputs:
       source:

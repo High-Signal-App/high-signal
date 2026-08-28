@@ -1,8 +1,7 @@
 name: cron-validate-brief
 
 on:
-  schedule:
-    - cron: "0 4 * * *" # daily 04:00 UTC / 09:30 IST
+  # Scheduled by the API Worker's Cloudflare cron dispatcher.
   workflow_dispatch:
 
 jobs:

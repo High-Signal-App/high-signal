@@ -142,6 +142,41 @@ async function evaluateJob(job, ctx) {
       }
     }
   }
+  // Cloudflare-dispatched GitHub workflows must stay dispatch-only. A native
+  // schedule here would silently restore the dual-scheduler failure mode.
+  if (job.trigger?.type === 'worker-dispatch') {
+    if (!job.trigger.schedulerJob || !ctx.jobIds.has(job.trigger.schedulerJob)) {
+      findings.push({
+        severity: 'blocking',
+        contract: 'worker-dispatch-scheduler',
+        message: `job ${job.id} must reference a registered schedulerJob`,
+      });
+    }
+    if (!job.workflowFile?.match(/\.ya?ml$/)) {
+      findings.push({
+        severity: 'blocking',
+        contract: 'worker-dispatch-workflow',
+        message: `job ${job.id} must reference a GitHub workflow`,
+      });
+    } else {
+      const workflow = await readWorkflow(join(ROOT, job.workflowFile));
+      const meta = parseWorkflowMeta(workflow);
+      if (!meta?.hasWorkflowDispatch) {
+        findings.push({
+          severity: 'blocking',
+          contract: 'worker-dispatch-entrypoint',
+          message: `${job.workflowFile} must expose workflow_dispatch`,
+        });
+      }
+      if (meta?.hasSchedule) {
+        findings.push({
+          severity: 'blocking',
+          contract: 'single-scheduler',
+          message: `${job.workflowFile} must not also expose a native schedule`,
+        });
+      }
+    }
+  }
   // 2. lifecycle evidence table exists in schema (if declared).
   // The lifecycleTable field may list multiple tables, optionally with
   // parenthetical column hints, e.g. "signals (review_status, published_at)"
@@ -464,7 +499,12 @@ async function main() {
   const workflows = await listWorkflows();
   const schemaTables = await parseSchemaTables();
   const durabilityTables = await parseDurabilityTables();
-  const ctx = { workflows, schemaTables, durabilityTables };
+  const ctx = {
+    workflows,
+    schemaTables,
+    durabilityTables,
+    jobIds: new Set(jobsJson.jobs.map((job) => job.id)),
+  };
 
   const jobResults = [];
   for (const job of jobsJson.jobs) jobResults.push(await evaluateJob(job, ctx));

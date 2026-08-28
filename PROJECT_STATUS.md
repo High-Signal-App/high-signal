@@ -67,13 +67,14 @@ Last updated: 2026-08-28
   arrive at 08:00 IST. Issue #133 therefore remains open for an on-time
   scheduled sequence and a genuine Digg first-seen-to-verified sample below 90
   minutes; issue #138 is closed from this positive-path receipt.
-- A fail-closed Cloudflare workflow dispatcher is repository-ready for issue
-  #133's scheduler reliability gap. The existing Worker half-hour cron maps the
-  Digg poll and 08:00/09:00/09:30/10:00 IST stages to their GitHub workflows,
-  while pending migration `0024` provides idempotent workflow/time-slot leases
-  and bounded retries. It remains inactive without `GITHUB_WORKFLOW_TOKEN`;
-  native GitHub schedules stay authoritative until the migration, secret,
-  Worker deploy, and schedule cutover can be performed together.
+- The fail-closed Cloudflare workflow dispatcher now owns issue #133's
+  timing-critical schedules. The Worker half-hour cron maps the Digg poll and
+  08:00/09:00/09:30/10:00 IST stages to GitHub `workflow_dispatch`; migration
+  `0024` provides idempotent workflow/time-slot leases and bounded retries.
+  Production migration `0024` is applied and the repository-scoped dispatch
+  credential is mirrored from High Signal's `prod` Infisical project to the API
+  Worker (rotation due 2027-08-28). The five matching native GitHub schedules
+  were removed to prevent dual runs.
 - Ingest coverage is again deterministic and above the 55% CI floor. Fixture-
   driven contract tests exercise all 14 US government API adapters and all
   three AI benchmark adapters without upstream requests; the full ingest suite
