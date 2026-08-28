@@ -316,13 +316,13 @@ export function SignalFeed({
   return (
     <section id="signals" className="scroll-mt-20 py-8">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--color-line)] pb-4">
-        <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-muted)]">
+        <h2 className="font-mono text-[10px] font-normal uppercase tracking-[0.14em] text-[var(--color-muted)]">
           {state.status === 'ready'
             ? `${count} verified ${count === 1 ? 'signal' : 'signals'}`
             : state.status === 'unavailable'
               ? 'Signal source unavailable'
               : `No verified signals ${editionDay}`}
-        </div>
+        </h2>
         {state.status === 'ready' && count > 0 ? (
           <Link
             href={'/signals' as Route}

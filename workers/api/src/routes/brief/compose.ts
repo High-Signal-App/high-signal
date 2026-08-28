@@ -148,7 +148,10 @@ export function resolveHitRate(
 
 /** Extract a one-line headline from a signal's body markdown, falling back to entity name. */
 export function headlineFromBody(bodyMd: string, fallback: string): string {
-  const firstLine = (bodyMd ?? '').split('\n').find((line) => line.trim());
+  const firstLine = (bodyMd ?? '').split('\n').find((line) => {
+    const text = line.replace(/^#+\s*/, '').trim();
+    return text && !/^(what changed|why it matters|uncertainty|risks?)[:?]?$/i.test(text);
+  });
   if (!firstLine) return fallback;
   return (
     firstLine

@@ -86,7 +86,7 @@ export function DailyBriefHero({
           </h1>
           <p className="mt-4 max-w-[70ch] text-sm leading-6 text-[var(--color-muted)]">
             {signalOnly
-              ? 'Only independently supported claims appear here. Open any signal to inspect what changed, why it matters, the uncertainty, and every proof.'
+              ? 'High Signal turns public evidence across technology, startups, and finance into one concise Daily Brief for founders and operators. A claim ships only with an aligned primary source and independent corroboration. Open any signal to see what changed, why it matters, what remains uncertain, and the proof.'
               : 'One evidence-first edition across technology, startups, and finance, organized into three public sections: markets and companies, business opportunities, and behavior and culture.'}
           </p>
         </div>

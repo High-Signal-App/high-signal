@@ -8,23 +8,22 @@ interface VitalMetric {
   navigationType: string;
 }
 
-function sendToAnalytics(metric: VitalMetric) {
+function captureInPostHog(metric: VitalMetric): boolean {
   const posthog = (window as any).posthog;
-  if (posthog && typeof posthog.capture === 'function') {
-    posthog.capture('web_vital', {
-      name: metric.name,
-      value: Math.round(metric.value),
-      rating: metric.rating,
-      id: metric.id,
-      navigation_type: metric.navigationType,
-    });
-  } else {
-    const body = JSON.stringify({
-      project: process.env['NEXT_PUBLIC_PROJECT_SLUG'] ?? 'high-signal',
-      ...metric,
-    });
-    navigator.sendBeacon('https://vitals.fleet.workers.dev/collect', body);
-  }
+  if (!posthog || typeof posthog.capture !== 'function') return false;
+  posthog.capture('web_vital', {
+    name: metric.name,
+    value: Math.round(metric.value),
+    rating: metric.rating,
+    id: metric.id,
+    navigation_type: metric.navigationType,
+  });
+  return true;
+}
+
+function sendToAnalytics(metric: VitalMetric) {
+  if (captureInPostHog(metric)) return;
+  window.setTimeout(() => captureInPostHog(metric), 3000);
 }
 
 export function initVitals() {

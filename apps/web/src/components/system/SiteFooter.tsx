@@ -66,25 +66,34 @@ export function SiteFooter() {
         <div className="mt-10 flex flex-wrap items-center justify-between gap-4 border-t border-[var(--color-line)] pt-6 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
           <span>© {year} High Signal</span>
           <nav className="flex flex-wrap items-center gap-x-5 gap-y-2">
-            <a href="https://sarthakagrawal.dev" className="hover:text-[var(--color-fg)]">
+            <a
+              href="https://sarthakagrawal.dev"
+              className="inline-flex min-h-11 items-center hover:text-[var(--color-fg)]"
+            >
               Sarthak
             </a>
-            <a href="https://sassmaker.com" className="hover:text-[var(--color-fg)]">
+            <a
+              href="https://sassmaker.com"
+              className="inline-flex min-h-11 items-center hover:text-[var(--color-fg)]"
+            >
               Foundry
             </a>
             <a
               href="https://github.com/High-Signal-App/high-signal/issues"
-              className="hover:text-[var(--color-fg)]"
+              className="inline-flex min-h-11 items-center hover:text-[var(--color-fg)]"
             >
               Roadmap
             </a>
             <a
               href="https://github.com/High-Signal-App/high-signal"
-              className="hover:text-[var(--color-fg)]"
+              className="inline-flex min-h-11 items-center hover:text-[var(--color-fg)]"
             >
               Source
             </a>
-            <a href={`${SITE_URL}/signals/rss`} className="hover:text-[var(--color-fg)]">
+            <a
+              href={`${SITE_URL}/signals/rss`}
+              className="inline-flex min-h-11 items-center hover:text-[var(--color-fg)]"
+            >
               Signals RSS
             </a>
           </nav>
@@ -100,13 +109,13 @@ function FooterColumn({ title, links }: { title: string; links: FooterLink[] }) 
       <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--color-muted)]">
         {title}
       </div>
-      <ul className="mt-3 space-y-1.5 text-xs">
+      <ul className="mt-2 text-xs">
         {links.map((link) => (
           <li key={link.href}>
             <Link
               href={link.href as Route}
               prefetch={false}
-              className="text-[var(--color-fg)] hover:text-[var(--color-accent)]"
+              className="inline-flex min-h-11 items-center text-[var(--color-fg)] hover:text-[var(--color-accent)]"
             >
               {link.label}
             </Link>

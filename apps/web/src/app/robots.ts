@@ -2,6 +2,52 @@ import type { MetadataRoute } from 'next';
 
 import { SITE_URL } from '@/lib/site';
 
+const PUBLIC_ALLOW = [
+  '/',
+  '/brief',
+  '/signals',
+  '/data',
+  '/case-studies',
+  '/markets',
+  '/markets/history',
+  '/entities',
+  '/sectors',
+  '/track-record',
+  '/about',
+  '/privacy',
+  '/terms',
+  '/api-docs',
+  '/embed',
+  '/llms.txt',
+  '/llms-full.txt',
+  '/index.md',
+  '/api/ai',
+  '/openapi.json',
+  '/.well-known/',
+];
+
+const PRIVATE_DISALLOW = [
+  '/review',
+  '/admin',
+  '/communities',
+  '/personal',
+  '/api/',
+  '/backtest-workbench',
+  '/data/',
+  '/*.json',
+];
+
+const AI_CRAWLERS = [
+  'GPTBot',
+  'ClaudeBot',
+  'anthropic-ai',
+  'Google-Extended',
+  'PerplexityBot',
+  'CCBot',
+  'Amazonbot',
+  'Bytespider',
+];
+
 /**
  * Crawler policy.
  *
@@ -15,35 +61,13 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       {
         userAgent: '*',
-        allow: [
-          '/',
-          '/brief',
-          '/signals',
-          '/data',
-          '/case-studies',
-          '/markets',
-          '/markets/history',
-          '/entities',
-          '/sectors',
-          '/track-record',
-          '/about',
-          '/privacy',
-          '/terms',
-          '/api-docs',
-          '/embed',
-          '/llms.txt',
-          '/.well-known/',
-        ],
-        disallow: [
-          '/review',
-          '/admin',
-          '/communities',
-          '/personal',
-          '/api/',
-          '/backtest-workbench',
-          '/data/',
-          '/*.json',
-        ],
+        allow: PUBLIC_ALLOW,
+        disallow: PRIVATE_DISALLOW,
+      },
+      {
+        userAgent: AI_CRAWLERS,
+        allow: PUBLIC_ALLOW,
+        disallow: PRIVATE_DISALLOW,
       },
     ],
     sitemap: `${SITE_URL}/sitemap.xml`,

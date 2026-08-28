@@ -328,9 +328,14 @@ export function extractBriefEditorialSummary(bodyMd: string): BriefEditorialSumm
   let heading: string | null = null;
   for (const rawLine of lines) {
     const line = rawLine.trim();
-    const match = line.match(/^#{1,6}\s+(what changed|why it matters|uncertainty|risk(?:s)?)/i);
-    if (match) {
-      heading = match[1].toLowerCase();
+    const headingMatch = line.match(/^#{1,6}\s+(.+)$/);
+    if (headingMatch) {
+      const label = headingMatch[1].trim().toLowerCase();
+      if (/^what changed\b/.test(label)) heading = 'what changed';
+      else if (/^why it matters\b/.test(label)) heading = 'why it matters';
+      else if (/^uncertainty\b/.test(label)) heading = 'uncertainty';
+      else if (/^risks?\b/.test(label)) heading = label.startsWith('risks') ? 'risks' : 'risk';
+      else heading = null;
       continue;
     }
     if (heading && line && !line.startsWith('#')) {
@@ -357,8 +362,11 @@ export function extractBriefEditorialSummary(bodyMd: string): BriefEditorialSumm
 
   const sentences = sentenceList(bodyMd);
   const whatChanged = sentences[0];
-  const uncertainty = sentences.find((sentence) =>
-    /\b(risks?|uncertain|depends|could reverse|could fail|may not|however|but)\b/i.test(sentence)
+  const uncertainty = sentences.find(
+    (sentence, index) =>
+      index > 0 &&
+      sentence !== whatChanged &&
+      /\b(risks?|uncertain|depends|could reverse|could fail|may not|however|but)\b/i.test(sentence)
   );
   const whyItMatters = sentences.find(
     (sentence, index) =>

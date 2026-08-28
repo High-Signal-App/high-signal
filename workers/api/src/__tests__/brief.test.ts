@@ -237,6 +237,15 @@ describe('brief headline extraction', () => {
     const result = headlineFromBody(long, 'fallback');
     expect(result.length).toBeLessThanOrEqual(180);
   });
+
+  it('skips generic editorial section labels', () => {
+    expect(
+      headlineFromBody(
+        '## What changed\nA federal judge vacated the supply-chain designation.',
+        'Anthropic'
+      )
+    ).toBe('A federal judge vacated the supply-chain designation.');
+  });
 });
 
 describe('brief editorial quality', () => {
@@ -263,6 +272,31 @@ The project could still face permitting, financing, and climate-policy risk.
       whatChanged: 'Amazon announced a new data center.',
       whyItMatters: 'The expansion signals more infrastructure demand.',
       uncertainty: 'Risks include permitting delays.',
+    });
+    expect(
+      extractBriefEditorialSummary(
+        'A judge removed a supply-chain risk designation. The ruling signals renewed enterprise access. However, an appeal could reverse the order.'
+      )
+    ).toEqual({
+      whatChanged: 'A judge removed a supply-chain risk designation.',
+      whyItMatters: 'The ruling signals renewed enterprise access.',
+      uncertainty: 'However, an appeal could reverse the order.',
+    });
+    expect(
+      extractBriefEditorialSummary(`
+## What changed
+A court removed the designation.
+## Why it matters
+The ruling signals renewed enterprise access.
+## Uncertainty and watchpoints
+An appeal could reverse the order.
+## Evidence
+Primary and corroborating reports are attached.
+`)
+    ).toEqual({
+      whatChanged: 'A court removed the designation.',
+      whyItMatters: 'The ruling signals renewed enterprise access.',
+      uncertainty: 'An appeal could reverse the order.',
     });
     expect(extractBriefEditorialSummary('Amazon announced a new data center.')).toBeNull();
     expect(isCompleteBriefText('A complete editorial sentence with grounded detail.')).toBe(true);
