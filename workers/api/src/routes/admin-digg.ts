@@ -94,10 +94,19 @@ const EVIDENCE_SEARCH_STOP_WORDS = new Set([
   'this',
   'with',
 ]);
+function tokenizableTitle(value: string) {
+  let normalized = '';
+  for (const char of value.toLowerCase()) {
+    const isLetter = char >= 'a' && char <= 'z';
+    const isNumber = char >= '0' && char <= '9';
+    normalized += isLetter || isNumber ? char : ' ';
+  }
+  return normalized;
+}
 
 export function evidenceSearchTokens(title: string): string[] {
   const tokens: string[] = [];
-  for (const raw of title.toLowerCase().match(/[a-z0-9]+/g) ?? []) {
+  for (const raw of tokenizableTitle(title).split(' ')) {
     if (raw.length < 4 || EVIDENCE_SEARCH_STOP_WORDS.has(raw)) continue;
     const variants = raw.endsWith('ai') && raw.length > 6 ? [raw.slice(0, -2), raw] : [raw];
     for (const token of variants) {

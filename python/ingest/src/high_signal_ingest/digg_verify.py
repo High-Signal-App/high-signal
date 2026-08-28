@@ -141,7 +141,7 @@ def _search_gdelt(title: str, client: httpx.Client) -> dict[str, Any]:
     raise last_error
 
 
-def discover_articles(request: dict[str, Any], client: httpx.Client) -> list[dict[str, Any]]:
+def _retained_candidates(request: dict[str, Any]) -> list[dict[str, Any]]:
     candidates: list[dict[str, Any]] = []
     for retained in request.get("retainedEvidence", []):
         if not isinstance(retained, dict):
@@ -150,21 +150,25 @@ def discover_articles(request: dict[str, Any], client: httpx.Client) -> list[dic
         title = str(retained.get("title") or "")
         if allowed and title_alignment(str(request.get("title") or ""), title) >= 0.35:
             candidates.append({**retained, "url": allowed, "title": title})
+    return candidates
+
+
+def _direct_candidates(request: dict[str, Any]) -> list[dict[str, Any]]:
+    candidates: list[dict[str, Any]] = []
     for url in request.get("sourceUrls", []):
         allowed = _allowed_original_url(url)
         if allowed:
             candidates.append({"url": allowed, "title": request.get("title", "")})
+    return candidates
 
+
+def _gdelt_candidates(request: dict[str, Any], payload: dict[str, Any]) -> list[dict[str, Any]]:
+    candidates: list[dict[str, Any]] = []
     try:
-        payload = _search_gdelt(str(request.get("title") or ""), client)
-    except (httpx.HTTPError, ValueError):
-        # Direct original URLs remain useful even if discovery is temporarily
-        # unavailable. With no originals, propagate the outage so it can retry
-        # on the next poll instead of being mislabeled as weak evidence.
-        if not candidates:
-            raise
-        payload = {}
-    for article in payload.get("articles", []) if isinstance(payload, dict) else []:
+        articles = payload.get("articles", [])
+    except AttributeError:
+        return []
+    for article in articles if isinstance(articles, list) else []:
         if not isinstance(article, dict):
             continue
         url = _allowed_original_url(article.get("url"))
@@ -172,13 +176,29 @@ def discover_articles(request: dict[str, Any], client: httpx.Client) -> list[dic
         if not url or title_alignment(str(request.get("title") or ""), title) < 0.45:
             continue
         candidates.append({**article, "url": url, "title": title})
+    return candidates
 
+
+def _deduplicate_hosts(candidates: list[dict[str, Any]]) -> list[dict[str, Any]]:
     by_host: dict[str, dict[str, Any]] = {}
     for article in candidates:
         host = (urlsplit(article["url"]).hostname or "").lower().removeprefix("www.")
         if host and host not in by_host:
             by_host[host] = article
     return list(by_host.values())[:MAX_ARTICLES_PER_REQUEST]
+
+
+def discover_articles(request: dict[str, Any], client: httpx.Client) -> list[dict[str, Any]]:
+    candidates = [*_retained_candidates(request), *_direct_candidates(request)]
+    try:
+        payload = _search_gdelt(str(request.get("title") or ""), client)
+    except (httpx.HTTPError, ValueError):
+        # Direct or retained originals remain useful even if discovery is
+        # unavailable. With none, propagate the outage for a later retry.
+        if not candidates:
+            raise
+        payload = {}
+    return _deduplicate_hosts([*candidates, *_gdelt_candidates(request, payload)])
 
 
 def _published_at(value: object, fallback: datetime) -> datetime:
