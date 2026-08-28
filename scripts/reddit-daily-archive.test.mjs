@@ -360,6 +360,7 @@ test('workflow schedules the complete curated roster and supports the side-machi
   assert.match(workflow, /events\.jsonl\.zst/);
   assert.match(workflow, /resume_run_id/);
   assert.match(workflow, /reddit-archive-verify\.mjs/);
+  assert.match(workflow, /reddit\/v2\/canary\/run=\$GITHUB_RUN_ID/);
 
   const redactionWorkflow = await readFile('.github/workflows/reddit-archive-redact.yml', 'utf8');
   assert.match(redactionWorkflow, /confirmation/);

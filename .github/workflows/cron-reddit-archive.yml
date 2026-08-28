@@ -125,7 +125,13 @@ jobs:
         shell: bash
         run: |
           archive_date=$(node -p "JSON.parse(require('fs').readFileSync('artifacts/reddit-archive/manifest.json')).windowEnd.slice(0,10)")
-          prefix="high-signal-reddit-archive/reddit/v2/date=$archive_date"
+          requested=$(node -p "JSON.parse(require('fs').readFileSync('artifacts/reddit-archive/manifest.json')).requestedCommunities")
+          configured=$(node -p "JSON.parse(require('fs').readFileSync('python/ingest/src/high_signal_ingest/seed/reddit_communities.json')).communityCount")
+          object_prefix="reddit/v2/date=$archive_date"
+          if [[ "$requested" != "$configured" ]]; then
+            object_prefix="reddit/v2/canary/run=$GITHUB_RUN_ID/date=$archive_date"
+          fi
+          prefix="high-signal-reddit-archive/$object_prefix"
           npx --yes wrangler@4.120.0 r2 object put "$prefix/posts.jsonl.zst" \
             --file artifacts/reddit-archive/posts.jsonl.zst \
             --remote \
@@ -155,14 +161,20 @@ jobs:
         shell: bash
         run: |
           archive_date=$(node -p "JSON.parse(require('fs').readFileSync('artifacts/reddit-archive/manifest.json')).windowEnd.slice(0,10)")
+          requested=$(node -p "JSON.parse(require('fs').readFileSync('artifacts/reddit-archive/manifest.json')).requestedCommunities")
+          configured=$(node -p "JSON.parse(require('fs').readFileSync('python/ingest/src/high_signal_ingest/seed/reddit_communities.json')).communityCount")
+          object_prefix="reddit/v2/date=$archive_date"
+          if [[ "$requested" != "$configured" ]]; then
+            object_prefix="reddit/v2/canary/run=$GITHUB_RUN_ID/date=$archive_date"
+          fi
           remote_manifest="$RUNNER_TEMP/reddit-archive-manifest.json"
           remote_events="$RUNNER_TEMP/reddit-archive-events.jsonl.zst"
           npx --yes wrangler@4.120.0 r2 object get \
-            "high-signal-reddit-archive/reddit/v2/date=$archive_date/manifest.json" \
+            "high-signal-reddit-archive/$object_prefix/manifest.json" \
             --file "$remote_manifest" \
             --remote
           npx --yes wrangler@4.120.0 r2 object get \
-            "high-signal-reddit-archive/reddit/v2/date=$archive_date/events.jsonl.zst" \
+            "high-signal-reddit-archive/$object_prefix/events.jsonl.zst" \
             --file "$remote_events" \
             --remote
           cmp artifacts/reddit-archive/manifest.json "$remote_manifest"

@@ -24,6 +24,10 @@ reddit/v2/date=YYYY-MM-DD/subreddits.index.json
 reddit/v2/date=YYYY-MM-DD/manifest.json
 ```
 
+Manual cohort canaries use
+`reddit/v2/canary/run=<github-run-id>/date=YYYY-MM-DD/`; they can never overwrite
+a canonical full-roster date partition or move the shared latest pointer.
+
 `events.jsonl.zst` is the cross-product interface. It contains bounded Reddit
 post events with attention metrics and R2 provenance. It is classified as
 derived attention: it can prioritize investigation, but cannot add factual

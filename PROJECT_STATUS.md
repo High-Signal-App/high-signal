@@ -170,6 +170,8 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
   pointer. The independent verifier reconciled the live 99-community partition:
   2,605 unique posts, 31,569 unique retained comments and 1,140 unique events;
   a no-fetch recovery reused all 99 communities and preserved those counts.
+  Manual cohort canaries now write to a run-specific R2 prefix, so they cannot
+  overwrite a canonical full-roster date partition beneath the latest pointer.
   Reddit Insights independently hash-verified the live event object, imported
   all 1,140 events across 82 represented communities, and generated a
   source-linked `r/technology` sample render without copying the raw archive.
