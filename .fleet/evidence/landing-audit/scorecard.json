@@ -1,0 +1,85 @@
+{
+  "$schema": "fleet.landing-audit.scorecard.v1",
+  "project": "high-signal",
+  "priority": "P2",
+  "candidate": "https://highsignal.app/",
+  "productionChanged": true,
+  "checkedAt": "2026-08-28",
+  "purpose": {
+    "score": 98,
+    "minimum": 85,
+    "p0": 0,
+    "p1": 0,
+    "note": "The first viewport now explains that High Signal is one concise Daily Brief for founders and operators, names technology, startups, and finance, states the primary-plus-corroboration gate, shows a live proof shape, and gives direct current, yesterday, and historical reading paths."
+  },
+  "design": {
+    "score": 95,
+    "minimum": 88,
+    "p0": 0,
+    "p1": 0,
+    "note": "The existing Evidence Terminal is a strong product-specific system: restrained cyan, clear evidence hierarchy, no decorative dashboard furniture, and exact-width layouts with zero overflow. Footer navigation now meets touch-target requirements."
+  },
+  "seo": {
+    "score": 100,
+    "passed": 16,
+    "failed": 0,
+    "warnings": 2,
+    "warningsNote": "The valid application JSON-LD has no genuine review evidence, and localhost is intentionally absent from the production sitemap. No review or rating was invented.",
+    "note": "The candidate replaces a conflicting static robots file and non-standard Agentmap directive with one valid typed robots policy. Lighthouse SEO rises from the current production 92 to candidate 100."
+  },
+  "geo": {
+    "score": 100,
+    "productionTier": "S",
+    "productionScore": 100,
+    "note": "Production already passes llms.txt, /api/ai, homepage Markdown, AI crawler policy, sitemap, JSON-LD, and discovery-surface checks. The candidate preserves explicit access to llms-full.txt, index.md, /api/ai, openapi.json, and .well-known surfaces."
+  },
+  "performance": {
+    "score": 93,
+    "successfulCoverageRuns": 4,
+    "weightedLcpMs": 1340,
+    "weightedCls": 0,
+    "weightedTbtMs": 29,
+    "profiles": {
+      "mobileSlowScore": 77,
+      "mobileSlowLcpMs": 3350,
+      "mobileMidScore": 99,
+      "mobileMidLcpMs": 1780,
+      "mobileFastScore": 99,
+      "mobileFastLcpMs": 959,
+      "desktopScore": 94,
+      "desktopLcpMs": 592
+    },
+    "note": "The weighted production profile clears the good LCP gate with zero CLS. Slow-profile latency is mostly server TTFB. The candidate also removes requests to a retired vitals endpoint that returned 404; Ahrefs and CrUX were intentionally disabled."
+  },
+  "verification": {
+    "lighthouseCandidate": {
+      "performance": 99,
+      "accessibility": 100,
+      "seo": 100,
+      "agenticBrowsing": 100,
+      "bestPractices": 73,
+      "bestPracticesNote": "Remaining deductions are dominated by intentional third-party analytics cookies and source-map diagnostics rather than the landing content or interaction path."
+    },
+    "build": "Next.js production build passes and generates 342 static paths plus dynamic routes",
+    "typecheck": "web and API pass",
+    "lint": "web and all six changed source files pass Biome",
+    "tests": "Repository quality gate passes: 27 suites, 303 API tests, coverage, complexity, duplication, dependency, documentation, and production-build checks",
+    "functionalJourney": "Exact 390px, 768px, and 1440px journeys render the current verified signal with no overflow; current/yesterday, region, signal proof, source, track-record, footer, Ask AI, and project-strip paths are present.",
+    "contentIntegrity": "Production now uses the actual event as the signal headline, preserves distinct change, consequence, and uncertainty sections, and exposes one primary source plus independent corroboration. The headline truncates on a word boundary and no Digg summary is republished as signal evidence.",
+    "footer": {
+      "askAi": "pass",
+      "projectStrip": "pass",
+      "touchTargets": "all footer navigation links measure 44 pixels in the exact-width browser check"
+    },
+    "responsiveScreenshots": [
+      "../../../artifacts/design/landing-audit-390.png",
+      "../../../artifacts/design/landing-audit-768.png",
+      "../../../artifacts/design/landing-audit-1440.png"
+    ]
+  },
+  "limitations": [
+    "The scheduled 09:30 IST freshness acceptance remains intentionally pending until the next full 08:00 ingest and 09:00 publication chain runs with genuinely material evidence.",
+    "A genuine Digg threshold crossing has not yet produced a verified candidate; the verifier continues to fail closed when independent original evidence is insufficient or semantically mismatched.",
+    "Third-party analytics remain an intentional Best Practices tradeoff and were not removed during this P2 hold-state landing pass."
+  ]
+}

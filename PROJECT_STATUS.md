@@ -169,6 +169,30 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 
 ## Timeline
 
+- **2026-08-28 — Reader-facing Daily Brief simplification released and verified:**
+  the homepage now leads with Today and Yesterday, one compact verified-signal
+  ledger, real event headlines, separate change/consequence/uncertainty fields,
+  primary and corroborating source links, direct proof/history navigation, and
+  a concise Daily Brief explanation. The shared parser now recognizes editorial
+  heading variants without leaking unrelated sections, headlines truncate on a
+  word boundary, footer targets clear the mobile touch-size gate, and the
+  retired vitals endpoint no longer receives fallback requests. A single typed
+  robots policy preserves public and AI discovery while disallowing bounded
+  operator paths. Current-main CI, API/web deployments, public 390/768/1440
+  captures, proof navigation, and Cloudflare MISS-to-HIT cache checks passed.
+
+- **2026-08-28 — Daily freshness receipt hardened against attention-only inputs:**
+  the public daily dump now computes `evidenceInputCount` and
+  `latestEvidenceInputAt` only from material evidence providers. Reddit, Hacker
+  News, Techmeme, markets, GDELT, Product Hunt, Lobsters, Google Trends, and
+  rejected `news:digg-verification:*` retrievals cannot make the reader-facing
+  freshness gate pass. A live off-cycle audit caught the prior false green:
+  production now reports 14:44 UTC as the newest material input rather than an
+  unrelated rejected Digg retrieval at 18:07 UTC, and the validator correctly
+  fails once that evidence is over two hours old. The next scheduled 08:00 →
+  09:00 → 09:30 → 10:00 IST chain remains the acceptance run tracked in issue
+  #133.
+
 - **2026-08-28 — Canonical Reddit archive activated for High Signal and sibling products:**
   release `68a9b4c` reduced the reviewed roster to 99 communities, removed the
   remaining consumer-PC community, and made one private R2 collection the

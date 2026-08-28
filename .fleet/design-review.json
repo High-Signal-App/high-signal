@@ -13,13 +13,13 @@
   "direction": {
     "references": [],
     "probes": [],
-    "selected": "existing-design",
+    "selected": "evidence-terminal-brief",
     "approval": "not-required",
     "before": "artifacts/design/before-homepage-signal-simplification-1440.png",
     "contract": {
       "purpose": "Help a reader scan today's independently supported signals and open the proof.",
       "purposeSource": "PRODUCT.md and docs/product/direction.md",
-      "canonicalPurpose": "High Signal turns noisy public evidence into a concise daily set of independently supported signals with click-through proof.",
+      "canonicalPurpose": "High Signal turns public evidence across technology, startups, and finance into one concise Daily Brief whose claims have independent support and click-through proof.",
       "purposeAlignment": "match",
       "driftNote": "",
       "audience": "Founders, operators, and researchers filtering noisy public information.",
@@ -34,23 +34,23 @@
     "screenshots": [
       {
         "width": 390,
-        "path": "artifacts/design/after-homepage-signals-390.png"
+        "path": "artifacts/design/landing-audit-390.png"
       },
       {
         "width": 768,
-        "path": "artifacts/design/after-homepage-signals-768.png"
+        "path": "artifacts/design/landing-audit-768.png"
       },
       {
         "width": 1440,
-        "path": "artifacts/design/after-homepage-signals-1440.png"
+        "path": "artifacts/design/landing-audit-1440.png"
       }
     ],
     "projectCheck": {
-      "command": "web typecheck + web lint + web production build + 26-suite test runner + git diff --check",
+      "command": "web and API typecheck + web and targeted Biome checks + web production build + API brief suite + git diff --check",
       "status": "pass"
     },
     "critique": {
-      "score": 35,
+      "score": 38,
       "maximum": 40
     },
     "audit": {
@@ -64,32 +64,47 @@
     "detector": {
       "posture": "advisory",
       "findings": [
-        "The scoped detector ran exactly once and returned zero findings.",
-        "The responsive audit found one undersized date-link target; it was fixed and reverified at 44 pixels.",
-        "The final browser check found no Digg or attention content, no overflow, and no page errors."
+        "Exact 390px, 768px, and 1440px browser captures have no horizontal overflow and preserve the evidence-ledger hierarchy.",
+        "Ten compact footer links failed touch-target checks; all footer navigation now clears 44 pixels and candidate accessibility is 100.",
+        "The invalid Agentmap robots directive and conflicting static robots file were replaced by one typed policy that keeps public and AI discovery surfaces crawlable while operator paths remain disallowed."
       ]
     },
     "comprehension": {
       "status": "pass",
-      "reviewer": "independent design critique",
+      "reviewer": "canonical purpose contract, live product data, and fresh exact-width browser review",
       "answers": {
-        "product": "A daily ledger of independently supported technology, startup, and finance signals.",
-        "audience": "Founders, operators, and researchers filtering noisy public information.",
-        "value": "Fewer claims, each worth inspecting.",
-        "mechanism": "Cite-or-kill publication with independent corroboration.",
-        "proof": "Each signal exposes change, consequence, uncertainty, citations, and history.",
-        "nextAction": "Open a signal; if the edition is empty, inspect the alternate day or earlier signals."
+        "product": "A concise Daily Brief built from public evidence across technology, startups, and finance.",
+        "audience": "Founders and operators who need decision-relevant changes without reading every feed.",
+        "value": "Fewer claims, each worth inspecting and easy to verify.",
+        "mechanism": "A claim ships only with an aligned primary source and independent corroboration.",
+        "proof": "The live first viewport exposes the current verified signal, its change, consequence, uncertainty, two sources, and direct-history state.",
+        "nextAction": "Open the current signal, switch to yesterday, or browse the chronological signal record."
       },
       "purposeScore": {
-        "product": 23,
-        "audience": 14,
-        "value": 14,
-        "mechanism": 14,
+        "product": 25,
+        "audience": 15,
+        "value": 15,
+        "mechanism": 15,
         "proof": 14,
         "nextAction": 14,
-        "total": 93
+        "total": 98
       },
       "mismatches": []
+    },
+    "performance": {
+      "weightedLcpMs": 1340,
+      "cls": 0,
+      "tbtMs": 29
+    },
+    "visualQuality": {
+      "priority": "P2",
+      "score": 95,
+      "minimum": 88
+    },
+    "accessibility": {
+      "lighthouseMobile": 100,
+      "contrastFailures": 0,
+      "note": "Footer navigation now exposes 44-pixel touch targets; candidate accessibility and target-size audits pass."
     }
   },
   "ownerFeedback": {
