@@ -62,8 +62,10 @@ Last updated: 2026-08-28
   timestamped material evidence. On 2026-08-28, a fresh full ingest produced a
   story-pure Anthropic/Pentagon candidate with verified CNBC primary proof and
   distinct verified Axios corroboration. Auto-publish released it, and the
-  current-IST validator passed with evidence five minutes old. Issue #133 now
-  remains open only for a genuine Digg first-seen-to-verified sample below 90
+  current-IST validator passed with evidence five minutes old. That acceptance
+  sequence was manually dispatched because GitHub's scheduled ingest did not
+  arrive at 08:00 IST. Issue #133 therefore remains open for an on-time
+  scheduled sequence and a genuine Digg first-seen-to-verified sample below 90
   minutes; issue #138 is closed from this positive-path receipt.
 - Newspaper mode now produces a visible typography change on mobile, and the
   primary Sources navigation opens the data-source audit rather than the signal
