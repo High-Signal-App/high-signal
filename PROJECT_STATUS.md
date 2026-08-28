@@ -156,7 +156,9 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
   retries, and 1,140 qualified attention events. All compressed data streams
   totalled 5,381,724 bytes. Current-main CI passed, and a production Reddit-only
   ingest downloaded and hash-verified that exact export, persisted all 1,140
-  events, produced zero Reddit-only signals, and finished with zero errors.
+  events, produced zero Reddit-only signals, and finished with zero errors. An
+  independent Infisical-backed consumer read also retrieved the shared
+  `latest.json` pointer using the dedicated least-privilege R2 token.
 
 - **2026-08-28 — Daily Reddit R2 archive canary verified end to end:** the
   scheduled archive workflow was qualified at 00:17 UTC (05:47 IST) against the

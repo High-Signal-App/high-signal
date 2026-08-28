@@ -34,6 +34,12 @@ Consumers use their own least-privilege R2 credential, retrieve `latest.json`,
 download the named event object, verify `eventsSha256`, then decompress with
 Zstandard. Do not copy credentials into source code or logs.
 
+The shared Infisical secret is named `CLOUDFLARE_R2_API_TOKEN`. Wrangler reads
+`CLOUDFLARE_API_TOKEN`, so consumer jobs must map the dedicated value for the
+single command (`CLOUDFLARE_API_TOKEN="$CLOUDFLARE_R2_API_TOKEN"`) rather than
+falling back to the broader legacy token. Each sibling product should inject
+that mapping at runtime; it should not duplicate the credential in its repo.
+
 ## Retention policy
 
 - All returned in-window posts from the curated communities are retained.
