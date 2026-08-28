@@ -639,7 +639,11 @@ async function pendingVerificationRequests(d1: D1Database) {
        FROM digg_clusters
        WHERE verification_status IN ('requested', 'insufficient_evidence', 'failed')
          AND verification_attempts < 3
-       ORDER BY verification_requested_at ASC
+       ORDER BY verification_requested_at DESC,
+                CASE WHEN position IS NULL THEN 1 ELSE 0 END,
+                position ASC,
+                ABS(COALESCE(position_delta, 0)) DESC,
+                distinct_account_count DESC
        LIMIT 3`
     )
     .all<{
