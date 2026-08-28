@@ -53,18 +53,37 @@ export function isMaterialEvidenceInputSource(source: string): boolean {
   return !NON_MATERIAL_EVIDENCE_FAMILIES.has(family(source));
 }
 
-export function materialEvidenceInputReceipt(
-  rows: Array<{ source: string; count: number; latestIngestedAt: number | null }>
+interface EvidenceInputAggregate {
+  source: string;
+  count: number;
+  latestIngestedAt: number | null;
+}
+
+export function materialEvidenceInputReceipt(rows: EvidenceInputAggregate[]) {
+  let count = 0;
+  let latestIngestedAt = 0;
+  for (const row of rows) {
+    if (!isMaterialEvidenceInputSource(row.source)) continue;
+    count += Number(row.count) || 0;
+    latestIngestedAt = Math.max(latestIngestedAt, Number(row.latestIngestedAt) || 0);
+  }
+  return { count, latestIngestedAt };
+}
+
+async function loadMaterialEvidenceInputReceipt(
+  database: ReturnType<typeof db>,
+  range: { start: Date; end: Date }
 ) {
-  return rows
-    .filter((row) => isMaterialEvidenceInputSource(row.source))
-    .reduce(
-      (receipt, row) => ({
-        count: receipt.count + (Number(row.count) || 0),
-        latestIngestedAt: Math.max(receipt.latestIngestedAt, Number(row.latestIngestedAt) || 0),
-      }),
-      { count: 0, latestIngestedAt: 0 }
-    );
+  const rows = await database
+    .select({
+      source: schema.events.source,
+      count: sql<number>`count(*)`,
+      latestIngestedAt: sql<number | null>`max(${schema.events.ingestedAt})`,
+    })
+    .from(schema.events)
+    .where(and(gte(schema.events.ingestedAt, range.start), lt(schema.events.ingestedAt, range.end)))
+    .groupBy(schema.events.source);
+  return materialEvidenceInputReceipt(rows);
 }
 
 function sourceMatch(id: string) {
@@ -178,16 +197,7 @@ dataRoute.get('/daily', async (c) => {
     (signal) => signal.publishable
   );
 
-  const evidenceInputRows = await database
-    .select({
-      source: schema.events.source,
-      count: sql<number>`count(*)`,
-      latestIngestedAt: sql<number | null>`max(${schema.events.ingestedAt})`,
-    })
-    .from(schema.events)
-    .where(and(gte(schema.events.ingestedAt, range.start), lt(schema.events.ingestedAt, range.end)))
-    .groupBy(schema.events.source);
-  const evidenceInputReceipt = materialEvidenceInputReceipt(evidenceInputRows);
+  const evidenceInputReceipt = await loadMaterialEvidenceInputReceipt(database, range);
 
   const signalIds = signals.map((signal) => signal.id);
   const evidenceRows = signalIds.length
