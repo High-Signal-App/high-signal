@@ -1,6 +1,6 @@
 # high-signal — PROJECT STATUS
 
-Last updated: 2026-08-27
+Last updated: 2026-08-28
 
 ## Why/What
 
@@ -137,6 +137,18 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 **Deploy workflows:** `.github/workflows/deploy-web.yml`, `deploy-api.yml`. (The former standalone annotation worker was decommissioned; annotation runs in-process via `annotateLightweightNlp`.)
 
 ## Timeline
+
+- **2026-08-28 — Digg verification now fails closed on semantic mismatch:**
+  threshold crossings are queued newest-first with rank, velocity, and distinct
+  voices as tie-breakers, then matched against retained High Signal evidence
+  before bounded GDELT discovery. Publisher retrieval uses HTML negotiation and
+  transport retries, but GDELT, Digg, Reddit, Hacker News, and other social or
+  attention hosts never count as proof. Broad discovery matches now require
+  strong title agreement, redirected social URLs are rejected, and the Digg
+  path cannot turn a deterministic review fallback into a verified candidate.
+  A live audit caught and killed one draft that paired an unrelated CNBC story
+  with its Reddit repost; the hardened rerun withheld all three tested clusters
+  as insufficient evidence and created no replacement draft.
 
 - **2026-08-27 — Signal-only homepage and cost-safe agent delivery released:**
   the homepage now renders only evidence-qualified Today or Yesterday signals,
