@@ -74,7 +74,13 @@ Last updated: 2026-08-28
   Production migration `0024` is applied and the repository-scoped dispatch
   credential is mirrored from High Signal's `prod` Infisical project to the API
   Worker (rotation due 2027-08-28). The five matching native GitHub schedules
-  were removed to prevent dual runs.
+  were removed to prevent dual runs. The first production slot acquired one D1
+  lease at 15:30:46 UTC, dispatched GitHub one second later, and started the
+  exact-SHA Digg workflow another second later; run `33185496156` passed with
+  one attempt, no error, and zero duplicate slots. It correctly withheld the
+  current rank-one a16z cluster as insufficient evidence, so issue #133 still
+  needs tomorrow's full scheduled daily chain and a genuine sub-90-minute Digg
+  verified-candidate sample.
 - Ingest coverage is again deterministic and above the 55% CI floor. Fixture-
   driven contract tests exercise all 14 US government API adapters and all
   three AI benchmark adapters without upstream requests; the full ingest suite
