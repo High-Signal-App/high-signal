@@ -159,17 +159,18 @@ export function eventRow(post, subreddit, archiveDate, retrievedAt) {
   };
 }
 
-function createManifest({
-  communities,
-  windowStart,
-  windowEnd,
-  results,
-  totals,
-  client,
-  files,
-  indexReceipt,
-  resumeState,
-}) {
+function createManifest(context) {
+  const {
+    communities,
+    windowStart,
+    windowEnd,
+    results,
+    totals,
+    client,
+    files,
+    indexReceipt,
+    resumeState,
+  } = context;
   const partial = results.filter((result) => result.status === 'partial').length;
   const failed = results.filter((result) => result.status === 'failed').length;
   return {
