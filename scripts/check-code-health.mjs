@@ -121,10 +121,8 @@ function checkDuplication() {
   const observed = JSON.parse(readFileSync(join(outputDirectory, 'jscpd-report.json'), 'utf8'))
     .statistics.total;
   // Debt: https://github.com/High-Signal-App/high-signal/issues/104
-  // Re-baselined 2026-08-24 after consolidating the two scheduled D1 sync
-  // launchers. Absolute duplication fell from 110 to 109 clone groups and
-  // from 1451 to 1433 duplicated lines. Ratchet all three observed values.
-  const baseline = { clones: 100, duplicatedLines: 1296, percentage: 2.1661735947450236 };
+  // Re-baselined 2026-08-28 after the deterministic ingest-coverage pass.
+  const baseline = { clones: 100, duplicatedLines: 1291, percentage: 2.0743621055337744 };
   console.log(
     `Duplication: ${observed.duplicatedLines}/${observed.lines} lines ` +
       `(${observed.percentage.toFixed(4)}%), ${observed.clones} groups across ` +
@@ -196,7 +194,7 @@ function checkDependencies() {
     );
   }
   // Debt: https://github.com/High-Signal-App/high-signal/issues/104
-  const baseline = { critical: 0, high: 38, productionCritical: 0, productionHigh: 16 };
+  const baseline = { critical: 0, high: 38, productionCritical: 0, productionHigh: 15 };
   console.log(
     `Dependencies: ${observed.critical} critical, ${observed.high} high total; ` +
       `${observed.productionCritical} critical, ${observed.productionHigh} high in production.`
@@ -281,8 +279,8 @@ function checkUnused() {
     { exports: 0, types: 0 }
   );
   // Debt: https://github.com/High-Signal-App/high-signal/issues/104
-  // Ratcheted 2026-08-22 (ADR-013 removals).
-  const baseline = { exports: 26, types: 24 };
+  // Ratcheted 2026-08-28 after the deterministic ingest-coverage pass.
+  const baseline = { exports: 20, types: 23 };
   console.log(
     `Unused: 0 high-confidence findings; ${observed.exports} exports, ${observed.types} types.`
   );

@@ -40,11 +40,8 @@ jobs:
       - run: uv run ruff check --select E4,E7,E9,F src
       - run: uv run vulture src --min-confidence 90
       - run: uv run python -m high_signal_ingest.preflight
-      # Debt: https://github.com/High-Signal-App/high-signal/issues/104
-      # The previous 55% baseline depended on the orchestration test making
-      # real requests to adapters it had failed to stub. Keep CI deterministic
-      # and raise this baseline again with mocked adapter tests under #104.
-      - run: uv run pytest -q --cov=high_signal_ingest --cov-branch --cov-fail-under=46
+      # Fixture-driven adapter tests keep this gate fully offline.
+      - run: uv run pytest -q --cov=high_signal_ingest --cov-branch --cov-fail-under=55
       - run: uv run pip-audit --local
 
   python-lab:

@@ -67,6 +67,11 @@ Last updated: 2026-08-28
   arrive at 08:00 IST. Issue #133 therefore remains open for an on-time
   scheduled sequence and a genuine Digg first-seen-to-verified sample below 90
   minutes; issue #138 is closed from this positive-path receipt.
+- Ingest coverage is again deterministic and above the 55% CI floor. Fixture-
+  driven contract tests exercise all 14 US government API adapters and all
+  three AI benchmark adapters without upstream requests; the full ingest suite
+  has 386 passing tests at 55.04% branch-aware coverage. The US government
+  multiplexer moved from 7% to 86% coverage and AI benchmarks from 12% to 85%.
 - Newspaper mode now produces a visible typography change on mobile, and the
   primary Sources navigation opens the data-source audit rather than the signal
   taxonomy. The 2026-08-25 operator-source refresh attempted all 69 configured
