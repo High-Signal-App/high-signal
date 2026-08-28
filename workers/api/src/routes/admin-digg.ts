@@ -634,16 +634,32 @@ async function existingSignalLinks(d1: D1Database, shortIds: string[]) {
 async function pendingVerificationRequests(d1: D1Database) {
   const rows = await d1
     .prepare(
-      `SELECT short_id, title, digg_summary, primary_entity_id, source_urls,
+      `WITH eligible AS (
+         SELECT short_id, title, digg_summary, primary_entity_id, source_urls,
+                first_seen_at, verification_reason,
+                ROW_NUMBER() OVER (
+                  ORDER BY verification_requested_at DESC,
+                           CASE WHEN position IS NULL THEN 1 ELSE 0 END,
+                           position ASC,
+                           ABS(COALESCE(position_delta, 0)) DESC,
+                           distinct_account_count DESC
+                ) AS fresh_priority,
+                ROW_NUMBER() OVER (
+                  ORDER BY CASE WHEN position IS NULL THEN 1 ELSE 0 END,
+                           position ASC,
+                           ABS(COALESCE(position_delta, 0)) DESC,
+                           distinct_account_count DESC,
+                           verification_requested_at DESC
+                ) AS attention_priority
+         FROM digg_clusters
+         WHERE verification_status IN ('requested', 'insufficient_evidence', 'failed')
+           AND verification_attempts < 3
+       )
+       SELECT short_id, title, digg_summary, primary_entity_id, source_urls,
               first_seen_at, verification_reason
-       FROM digg_clusters
-       WHERE verification_status IN ('requested', 'insufficient_evidence', 'failed')
-         AND verification_attempts < 3
-       ORDER BY verification_requested_at DESC,
-                CASE WHEN position IS NULL THEN 1 ELSE 0 END,
-                position ASC,
-                ABS(COALESCE(position_delta, 0)) DESC,
-                distinct_account_count DESC
+       FROM eligible
+       WHERE fresh_priority <= 3 OR attention_priority = 1
+       ORDER BY CASE WHEN attention_priority = 1 THEN 0 ELSE fresh_priority END
        LIMIT 3`
     )
     .all<{
