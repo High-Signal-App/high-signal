@@ -144,16 +144,30 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 
 ## Timeline
 
+- **2026-08-28 — Canonical Reddit archive activated for High Signal and sibling products:**
+  release `68a9b4c` reduced the reviewed roster to 99 communities, removed the
+  remaining consumer-PC community, and made one private R2 collection the
+  scheduled production source instead of running a second Reddit scrape in the
+  main ingest. The versioned v2 partition stores Zstd-22 posts, relevant comment
+  trees, a subreddit index, manifest, and a bounded `events.jsonl.zst` consumer
+  export; `reddit/v2/latest.json` advances only after a complete full-roster run
+  and byte-for-byte remote verification. The first full run completed 99/99
+  communities with 2,605 posts, 50,270 comments observed, 31,569 retained, zero
+  retries, and 1,140 qualified attention events. All compressed data streams
+  totalled 5,381,724 bytes. Current-main CI passed, and a production Reddit-only
+  ingest downloaded and hash-verified that exact export, persisted all 1,140
+  events, produced zero Reddit-only signals, and finished with zero errors.
+
 - **2026-08-28 — Daily Reddit R2 archive canary verified end to end:** the
-  scheduled archive workflow is active at 00:17 UTC (05:47 IST) for the full
-  curated 200-community roster. A live 10-community GitHub-hosted canary
+  scheduled archive workflow was qualified at 00:17 UTC (05:47 IST) against the
+  then-planned 200-community roster. A live 10-community GitHub-hosted canary
   completed all communities with 497 posts and 11,720 comments in 455 API
   requests, with zero retries, unresolved comment continuations, or partial
   communities. Zstandard level 22 compressed the post and comment streams to
   1,223,089 bytes. GitHub Actions uploaded both streams and the manifest to the
   private `high-signal-reddit-archive` R2 bucket, downloaded the remote manifest,
-  and passed a byte-for-byte comparison. The first scheduled 200-community run
-  remains the activation receipt before issue #142 can close.
+  and passed a byte-for-byte comparison. The later 99-community full-run receipt
+  above supersedes this rollout estimate.
 
 - **2026-08-28 — Digg verification now fails closed on semantic mismatch:**
   threshold crossings are queued newest-first with rank, velocity, and distinct
