@@ -198,3 +198,20 @@ def test_retained_evidence_is_reused_without_refetching() -> None:
     assert len(articles) == 1
     assert len(events) == 1
     assert events[0].source_url == "https://techcrunch.com/keenable"
+
+
+def test_verification_batch_is_bounded_to_six_requests(monkeypatch) -> None:
+    seen: list[str] = []
+
+    def fake_verify(request: dict[str, object], client: httpx.Client) -> dict[str, object]:
+        short_id = str(request["shortId"])
+        seen.append(short_id)
+        return {"shortId": short_id, "status": "insufficient_evidence"}
+
+    monkeypatch.setattr(digg_verify, "verify_request", fake_verify)
+    requests = [{"shortId": f"cluster-{index}"} for index in range(10)]
+    with httpx.Client() as client:
+        results = digg_verify.verify_requests(requests, client)
+
+    assert seen == [f"cluster-{index}" for index in range(6)]
+    assert len(results) == 6

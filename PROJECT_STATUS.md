@@ -81,6 +81,12 @@ Last updated: 2026-08-28
   current rank-one a16z cluster as insufficient evidence, so issue #133 still
   needs tomorrow's full scheduled daily chain and a genuine sub-90-minute Digg
   verified-candidate sample.
+- Digg verification queueing now gives never-attempted threshold crossings
+  priority over retries, reserves one of six half-hour slots to drain the oldest
+  untouched request, recovers `running` work abandoned for 45 minutes, reports
+  pending requests older than the 90-minute target, and omits retained article
+  bodies from GitHub Actions logs. These controls improve queue freshness and
+  observability without allowing Digg to contribute evidence or confidence.
 - Ingest coverage is again deterministic and above the 55% CI floor. Fixture-
   driven contract tests exercise all 14 US government API adapters and all
   three AI benchmark adapters without upstream requests; the full ingest suite

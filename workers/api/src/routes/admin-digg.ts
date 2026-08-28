@@ -82,6 +82,80 @@ const DIGG_VERIFICATION_THRESHOLDS = {
   minDistinctAccounts: 3,
 } as const;
 
+const MAX_VERIFICATION_REQUESTS_PER_POLL = 6;
+const FRESH_VERIFICATION_RESERVE = 5;
+const STALE_RUNNING_SECONDS = 45 * 60;
+
+export interface VerificationQueueRow {
+  short_id: string;
+  verification_status: 'requested' | 'running' | 'insufficient_evidence' | 'failed';
+  verification_attempts: number;
+  verification_requested_at: number;
+  verification_started_at: number | null;
+  retrieved_at: number;
+  latest_retrieved_at: number;
+  position: number | null;
+  position_delta: number | null;
+  distinct_account_count: number;
+}
+
+function attentionPriority(a: VerificationQueueRow, b: VerificationQueueRow) {
+  const currentCutoff = Math.max(a.latest_retrieved_at, b.latest_retrieved_at) - 600;
+  const aCurrent = a.retrieved_at >= currentCutoff ? 0 : 1;
+  const bCurrent = b.retrieved_at >= currentCutoff ? 0 : 1;
+  return (
+    aCurrent - bCurrent ||
+    (a.position ?? Number.MAX_SAFE_INTEGER) - (b.position ?? Number.MAX_SAFE_INTEGER) ||
+    Math.abs(b.position_delta ?? 0) - Math.abs(a.position_delta ?? 0) ||
+    b.distinct_account_count - a.distinct_account_count ||
+    b.verification_requested_at - a.verification_requested_at ||
+    a.short_id.localeCompare(b.short_id)
+  );
+}
+
+/**
+ * Keep threshold crossings immediate without allowing retries to starve
+ * discoveries that have never received one verification attempt. Five slots
+ * favour current attention; one slot drains the oldest untouched request.
+ */
+export function selectVerificationQueue<T extends VerificationQueueRow>(
+  rows: T[],
+  limit = MAX_VERIFICATION_REQUESTS_PER_POLL
+) {
+  if (limit <= 0) return [];
+  const selected: T[] = [];
+  const selectedIds = new Set<string>();
+  const add = (row: T | undefined) => {
+    if (!row || selectedIds.has(row.short_id) || selected.length >= limit) return;
+    selected.push(row);
+    selectedIds.add(row.short_id);
+  };
+
+  const untouched = rows.filter(
+    (row) => row.verification_status === 'requested' && row.verification_attempts === 0
+  );
+  const byAttention = [...untouched].sort(attentionPriority);
+  for (const row of byAttention.slice(0, Math.min(FRESH_VERIFICATION_RESERVE, limit))) {
+    add(row);
+  }
+  add(
+    [...untouched]
+      .filter((row) => !selectedIds.has(row.short_id))
+      .sort(
+        (a, b) =>
+          a.verification_requested_at - b.verification_requested_at ||
+          a.short_id.localeCompare(b.short_id)
+      )[0]
+  );
+  for (const row of byAttention) add(row);
+
+  const retries = rows
+    .filter((row) => !selectedIds.has(row.short_id))
+    .sort((a, b) => a.verification_attempts - b.verification_attempts || attentionPriority(a, b));
+  for (const row of retries) add(row);
+  return selected;
+}
+
 const EVIDENCE_SEARCH_STOP_WORDS = new Set([
   'about',
   'after',
@@ -259,7 +333,8 @@ async function verificationMetrics(d1: D1Database) {
   try {
     const rows = await d1
       .prepare(
-        `SELECT verification_status, first_seen_at, verified_at
+        `SELECT verification_status, first_seen_at, verified_at,
+                verification_requested_at, verification_started_at
          FROM digg_clusters
          WHERE verification_status IS NOT NULL
          ORDER BY verification_requested_at DESC LIMIT 500`
@@ -268,15 +343,26 @@ async function verificationMetrics(d1: D1Database) {
         verification_status: string;
         first_seen_at: number;
         verified_at: number | null;
+        verification_requested_at: number | null;
+        verification_started_at: number | null;
       }>();
     const values = rows.results ?? [];
+    const now = Math.floor(Date.now() / 1000);
     const latencies = values.flatMap((row) =>
       row.verification_status === 'verified_candidate' && row.verified_at != null
         ? [(row.verified_at - row.first_seen_at) / 60]
         : []
     );
     return {
-      pending: values.filter((row) => row.verification_status === 'requested').length,
+      pending: values.filter((row) => ['requested', 'running'].includes(row.verification_status))
+        .length,
+      running: values.filter((row) => row.verification_status === 'running').length,
+      pendingOlderThan90Minutes: values.filter(
+        (row) =>
+          ['requested', 'running'].includes(row.verification_status) &&
+          row.verification_requested_at != null &&
+          row.verification_requested_at <= now - 90 * 60
+      ).length,
       verifiedCandidates: latencies.length,
       medianFirstSeenToVerifiedMinutes: median(latencies),
       targetMinutes: 90,
@@ -284,6 +370,8 @@ async function verificationMetrics(d1: D1Database) {
   } catch {
     return {
       pending: 0,
+      running: 0,
+      pendingOlderThan90Minutes: 0,
       verifiedCandidates: 0,
       medianFirstSeenToVerifiedMinutes: null,
       targetMinutes: 90,
@@ -634,52 +722,37 @@ async function existingSignalLinks(d1: D1Database, shortIds: string[]) {
 async function pendingVerificationRequests(d1: D1Database) {
   const rows = await d1
     .prepare(
-      `WITH feed_clock AS (
-         SELECT COALESCE(MAX(retrieved_at), 0) AS latest_retrieved_at
-         FROM digg_feed_snapshots
-       ), eligible AS (
-         SELECT short_id, title, digg_summary, primary_entity_id, source_urls,
-                first_seen_at, verification_reason,
-                ROW_NUMBER() OVER (
-                  ORDER BY verification_requested_at DESC,
-                           CASE WHEN position IS NULL THEN 1 ELSE 0 END,
-                           position ASC,
-                           ABS(COALESCE(position_delta, 0)) DESC,
-                           distinct_account_count DESC
-                ) AS fresh_priority,
-                ROW_NUMBER() OVER (
-                  ORDER BY CASE
-                             WHEN retrieved_at >= feed_clock.latest_retrieved_at - 600 THEN 0
-                             ELSE 1
-                           END,
-                           CASE WHEN position IS NULL THEN 1 ELSE 0 END,
-                           position ASC,
-                           ABS(COALESCE(position_delta, 0)) DESC,
-                           distinct_account_count DESC,
-                           verification_requested_at DESC
-                ) AS attention_priority
-         FROM digg_clusters CROSS JOIN feed_clock
-         WHERE verification_status IN ('requested', 'insufficient_evidence', 'failed')
-           AND verification_attempts < 3
-       )
-       SELECT short_id, title, digg_summary, primary_entity_id, source_urls,
-              first_seen_at, verification_reason
-       FROM eligible
-       WHERE fresh_priority <= 3 OR attention_priority = 1
-       ORDER BY CASE WHEN attention_priority = 1 THEN 0 ELSE fresh_priority END
-       LIMIT 3`
+      `SELECT short_id, title, digg_summary, primary_entity_id, source_urls,
+              first_seen_at, verification_reason, verification_status,
+              verification_attempts, verification_requested_at,
+              verification_started_at, retrieved_at, position, position_delta,
+              distinct_account_count,
+              (SELECT COALESCE(MAX(retrieved_at), 0) FROM digg_feed_snapshots)
+                AS latest_retrieved_at
+       FROM digg_clusters
+       WHERE verification_attempts < 3
+         AND (
+           verification_status IN ('requested', 'insufficient_evidence', 'failed')
+           OR (
+             verification_status = 'running'
+             AND verification_started_at <= unixepoch() - ${STALE_RUNNING_SECONDS}
+           )
+         )
+       ORDER BY verification_requested_at DESC
+       LIMIT 200`
     )
-    .all<{
-      short_id: string;
-      title: string;
-      digg_summary: string | null;
-      primary_entity_id: string | null;
-      source_urls: string;
-      first_seen_at: number;
-      verification_reason: string | null;
-    }>();
+    .all<
+      VerificationQueueRow & {
+        title: string;
+        digg_summary: string | null;
+        primary_entity_id: string | null;
+        source_urls: string;
+        first_seen_at: number;
+        verification_reason: string | null;
+      }
+    >();
   return Promise.all(
-    (rows.results ?? []).map(async (row) => ({
+    selectVerificationQueue(rows.results ?? []).map(async (row) => ({
       shortId: row.short_id,
       title: row.title,
       summary: row.digg_summary,

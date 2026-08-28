@@ -28,7 +28,7 @@ GDELT_DOC_API = "https://api.gdeltproject.org/api/v2/doc/doc"
 GDELT_DOC_API_FALLBACK = "http://api.gdeltproject.org/api/v2/doc/doc"
 GDELT_MAX_ATTEMPTS = 2
 GDELT_TIMEOUT_SECONDS = 75.0
-MAX_REQUESTS_PER_POLL = 3
+MAX_REQUESTS_PER_POLL = 6
 MAX_ARTICLES_PER_REQUEST = 4
 SOCIAL_OR_ATTENTION_HOSTS = {
     "digg.com",

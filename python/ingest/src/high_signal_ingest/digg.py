@@ -314,11 +314,11 @@ def poll(api_base: str, token: str, *, now: datetime | None = None) -> dict[str,
 
         verification_requests = body.get("verificationRequests", [])
         if isinstance(verification_requests, list) and verification_requests:
-            from .digg_verify import verify_requests
+            from .digg_verify import MAX_REQUESTS_PER_POLL, verify_requests
 
             running = [
                 {"shortId": request.get("shortId"), "status": "running"}
-                for request in verification_requests[:3]
+                for request in verification_requests[:MAX_REQUESTS_PER_POLL]
                 if isinstance(request, dict) and request.get("shortId")
             ]
             if running:
@@ -342,6 +342,15 @@ def poll(api_base: str, token: str, *, now: datetime | None = None) -> dict[str,
                 json={"results": results},
             ).raise_for_status()
             body["verificationResults"] = results
+        if isinstance(verification_requests, list):
+            body["verificationRequests"] = [
+                {
+                    **{key: value for key, value in request.items() if key != "retainedEvidence"},
+                    "retainedEvidenceCount": len(request.get("retainedEvidence", [])),
+                }
+                for request in verification_requests
+                if isinstance(request, dict)
+            ]
         return body
 
 
