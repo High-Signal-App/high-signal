@@ -253,7 +253,7 @@ These are reachable from `python/ingest/src/high_signal_ingest/pipeline.py`.
 | `semantic-scholar` | Wired | Research weak signal / corroboration | Curated research-paper search via Semantic Scholar | Should eventually be fed by `researchPapers` as a producer |
 | `youtube` | Wired | Weak signal / expert commentary / brand-awareness discovery | Channel RSS plus transcripts from selected technical/market channels; optional YouTube Data API discovery/view-count ranking | Transcript availability varies; official API does not provide arbitrary third-party transcripts; should not publish alone |
 | `podcast-index` | Wired, optional-key | Long-form commentary metadata | Podcast episode metadata; transcription is downstream | Requires Podcast Index key/secret; raw payload hooks added |
-| `reddit` | Wired | Community weak signal | AI-infra and semiconductor subreddits in ingest pipeline | Separate from personal registry Reddit set |
+| `reddit` | Wired | Community attention signal | Shared 99-community private R2 daily archive; scheduled ingest reads its versioned derived event export | One OAuth collection is canonical; Reddit repetition never counts as proof |
 | `lobsters` | Wired | Developer weak signal | Public Lobsters RSS | Small technical discussion source |
 | `substack` | Wired | Narrative weak signal | Curated writer RSS feeds | Never auto-publish alone |
 | `techmeme` | Wired | Meta-corroboration | Techmeme RSS | Useful when weak events cross into broader attention |

@@ -22,7 +22,7 @@ The daily cycle is sequenced so each stage consumes the previous stage's output:
 
 | Time (IST / UTC) | Workflow | Intent |
 | --- | --- | --- |
-| 05:47 / 00:17 | `cron-reddit-archive.yml` | Capture one exact prior-24-hour window from all 200 curated subreddits, preserve returned post/comment trees as compact Zstd-22 JSONL packs in private R2, and write a completeness manifest. Manual dispatch can run the 10-community canary on GitHub-hosted infrastructure or the labelled personal side machine. |
+| 05:47 / 00:17 | `cron-reddit-archive.yml` | Capture one exact prior-24-hour window from the complete curated subreddit roster (currently 99), preserve posts plus relevance-filtered comment trees as compact Zstd-22 JSONL packs in private R2, and publish a compressed event export for High Signal and approved sibling consumers. Manual dispatch can run the 10-community canary on GitHub-hosted infrastructure or the labelled personal side machine. |
 | 06:30 / 01:00 | `cron-source-cadences.yml` | Fetch-only macro-rate and crypto on-chain context; no signal drafting. |
 | 08:00 / 02:30 | `cron-ingest.yml` | Bounded 21-source `--source all --days 1` ingest run → events → draft signals. |
 | 09:00 / 03:30 | `cron-publish.yml` | Mandatory shared publishability gate plus semantic/origin-aware claim judge; then authenticated brief rebuild and reader-facing freshness verification. The workflow cannot stay green with an empty public edition. |
@@ -98,7 +98,7 @@ The Reddit archive additionally requires `REDDIT_CLIENT_ID`,
 R2 Storage Edit permission. Prefer the dedicated `CLOUDFLARE_R2_API_TOKEN`;
 the workflow falls back to `CLOUDFLARE_API_TOKEN` for compatibility. R2 access
 is checked before Reddit collection so a storage-auth failure cannot consume a
-full 200-community API run. Scheduled runs use `ubuntu-latest`. A manual
+full-roster API run. Scheduled runs use `ubuntu-latest`. A manual
 dispatch may select `side-machine`, which requires an online GitHub Actions
 runner with the cumulative labels `self-hosted`, `macOS`, `ARM64`, and
 `high-signal`.

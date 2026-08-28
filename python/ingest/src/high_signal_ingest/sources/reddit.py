@@ -1,8 +1,12 @@
-"""Reddit adapter — uses OAuth (script-app flow) or RSS with rate-limiting.
+"""Reddit adapter — reads the canonical archive or fetches directly for diagnostics.
 
-Reddit tightened their public API in 2023: unauthenticated requests to
-``/r/{sub}/new.json`` now return 403 from most IPs. This adapter supports
-two modes:
+Scheduled High Signal ingestion sets ``REDDIT_ARCHIVE_EVENTS_PATH`` to the
+hash-verified derived export produced by ``cron-reddit-archive.yml``. That is
+the production path and prevents a second Reddit scrape.
+
+For local diagnostics and explicit ad-hoc use, this adapter supports two direct
+fallback modes. Reddit tightened its public API in 2023, so unauthenticated
+``/r/{sub}/new.json`` requests return 403 from most IPs:
 
 1. **OAuth (preferred)** — if ``REDDIT_CLIENT_ID`` + ``REDDIT_CLIENT_SECRET``
    are set, the adapter fetches a bearer token via the script-app flow
@@ -19,16 +23,18 @@ two modes:
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import os
 import time
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import Iterator
 
 import httpx
 import feedparser
 
-from ..types import Event
+from ..types import Event, SourceDocument
 from ..utils import event_hash
 
 
@@ -37,6 +43,7 @@ USER_AGENT = "linux:high-signal:0.1.0 (by /u/sarthak_research)"
 LOGGER = logging.getLogger(__name__)
 DEFAULT_CONCURRENCY = 4  # Lower for RSS to avoid 429s
 DEFAULT_MIN_SCORE = 10
+ARCHIVE_MIN_COMMENTS = 10
 RSS_DELAY = 6.0  # seconds between RSS requests — Reddit allows ~10/min
 
 # Global semaphore: limits concurrent Reddit requests to 1, so even when
@@ -60,9 +67,84 @@ DEFAULT_SUBS = [
     "SaaS",
     "indiehackers",
     "ExperiencedDevs",
-    "webdev",
     "devops",
 ]
+
+
+def _parse_archive_datetime(value: str) -> datetime:
+    parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    return parsed.astimezone(timezone.utc) if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+
+
+def load_archive_events(
+    path: str | Path,
+    *,
+    min_score: int = DEFAULT_MIN_SCORE,
+) -> list[Event]:
+    """Load the versioned R2-derived Reddit attention export.
+
+    Scheduled ingestion sets ``REDDIT_ARCHIVE_EVENTS_PATH`` after verifying the
+    compressed R2 object hash. Direct OAuth/RSS remains available only for local
+    diagnostics and explicit ad-hoc runs.
+    """
+    events: list[Event] = []
+    archive_path = Path(path)
+    with archive_path.open(encoding="utf-8") as handle:
+        for line_number, line in enumerate(handle, start=1):
+            if not line.strip():
+                continue
+            row = json.loads(line)
+            if row.get("schemaVersion") != 1:
+                raise ValueError(f"unsupported_reddit_event_schema:{line_number}")
+            published_at = _parse_archive_datetime(str(row["publishedAt"]))
+            attention = row.get("attention") or {}
+            if (
+                int(attention.get("score") or 0) < min_score
+                and int(attention.get("commentCount") or 0) < ARCHIVE_MIN_COMMENTS
+            ):
+                continue
+            source_url = str(row.get("sourceUrl") or "")
+            source = str(row.get("source") or "")
+            if not source_url or not source.startswith("reddit:"):
+                raise ValueError(f"invalid_reddit_event:{line_number}")
+            archive = row.get("archive") or {}
+            retrieved_at = _parse_archive_datetime(str(row["retrievedAt"]))
+            raw_hash = str(row.get("rawHash") or event_hash("reddit", source, source_url))
+            post_id = str(archive.get("postId") or row.get("id") or raw_hash[:16])
+            events.append(
+                Event(
+                    id=str(row.get("id") or raw_hash[:16]),
+                    source=source,
+                    source_url=source_url,
+                    published_at=published_at,
+                    title=str(row.get("title") or "") or None,
+                    content=str(row.get("content") or "") or None,
+                    primary_entity_id=None,
+                    raw_hash=raw_hash,
+                    source_document=SourceDocument(
+                        canonical_url=source_url,
+                        document_key=f"reddit:{post_id}",
+                        fetched_at=retrieved_at,
+                        published_at=published_at,
+                        raw_hash=raw_hash,
+                        raw_json={
+                            "sourceClass": row.get("sourceClass"),
+                            "evidenceTier": row.get("evidenceTier"),
+                            "confidenceContribution": row.get("confidenceContribution"),
+                            "attentionContribution": row.get("attentionContribution"),
+                            "attention": attention,
+                            "archive": archive,
+                        },
+                        parsed_fields={
+                            "source_class": "attention_aggregator",
+                            "evidence_tier": "derived",
+                            "confidence_contribution": "none",
+                            "attention_contribution": "allowed",
+                        },
+                    ),
+                )
+            )
+    return events
 
 
 async def _get_oauth_token(client: httpx.AsyncClient) -> str | None:
@@ -235,6 +317,12 @@ async def fetch_all_async(
     min_score: int = DEFAULT_MIN_SCORE,
 ) -> list[Event]:
     since = datetime.now(timezone.utc) - timedelta(days=days)
+    archive_path = os.environ.get("REDDIT_ARCHIVE_EVENTS_PATH")
+    if archive_path:
+        events = load_archive_events(archive_path, min_score=min_score)
+        LOGGER.info("reddit archive export loaded path=%s events=%d", archive_path, len(events))
+        return events
+
     timeout = httpx.Timeout(20.0, connect=10.0)
     limits = httpx.Limits(max_connections=DEFAULT_CONCURRENCY, max_keepalive_connections=4)
     headers = {"User-Agent": USER_AGENT}

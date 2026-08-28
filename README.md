@@ -104,7 +104,7 @@ Legend used in the notes:
 ### Discourse
 - [x] **Hacker News** — `python/ingest/src/high_signal_ingest/sources/hackernews.py` (daily keyless Algolia source; title, points, comments, outbound link)
 - [x] **Digg attention overlay** — `python/ingest/src/high_signal_ingest/digg.py`; five documented feeds, 30-minute snapshots, immediate original-source verification for material crossings, and evidence/confidence contribution fixed to none. Released with D1 migrations `0022`–`0023`.
-- [x] **Reddit** *(13 subs — hardware/semi-heavy + startup/dev/operator)* — `python/ingest/sources/reddit.py`
+- [x] **Reddit daily archive** *(99 curated technology, business, markets and national India communities)* — one OAuth collection writes Zstd-22 posts, relevant comment trees and a versioned event export to private R2; scheduled High Signal ingestion and approved sibling products consume that shared export rather than scraping again. Reddit is attention, not proof. `scripts/reddit-daily-archive.mjs`, `python/ingest/src/high_signal_ingest/sources/reddit.py`
 - [x] **YouTube discovery + transcripts** *(15 hardware/macro/founder/operator channels; optional `YOUTUBE_API_KEY` enables official YouTube Data API discovery/view-count ranking for brand-awareness probes; transcript access remains best-effort and separate from official API coverage)* — `python/ingest/sources/youtube.py`, `scripts/youtube-brand-awareness-probe.py`
 - [x] **Bluesky AT Protocol** *(optional-auth search lane for real founder/researcher presence; full Relay firehose can replace it later if volume justifies it)* — `python/ingest/sources/bluesky.py`
 - [x] **Lobste.rs** *(small technical RSS weak-signal source; curated alternative to broad social firehose)* — `python/ingest/sources/lobsters.py`

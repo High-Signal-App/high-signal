@@ -1,4 +1,10 @@
+import { createHash } from 'node:crypto';
 import { setTimeout as sleep } from 'node:timers/promises';
+
+export const ARCHIVE_SCHEMA_VERSION = 2;
+export const COMMENT_MIN_SCORE = 2;
+export const EVENT_MIN_SCORE = 10;
+export const EVENT_MIN_COMMENTS = 10;
 
 export const POST_FIELDS = [
   'id',
@@ -23,6 +29,8 @@ export const POST_FIELDS = [
   'removalState',
   'distinguished',
   'domain',
+  'retrievedAt',
+  'rawPayloadHash',
 ];
 
 export const COMMENT_FIELDS = [
@@ -40,6 +48,10 @@ export const COMMENT_FIELDS = [
   'stickied',
   'collapsed',
   'depth',
+  'isSubmitter',
+  'removalState',
+  'retrievedAt',
+  'rawPayloadHash',
 ];
 
 const PERMANENT_STATUSES = new Set([400, 401, 403, 404, 410, 451]);
@@ -60,7 +72,11 @@ function nullable(value) {
   return value === undefined ? null : value;
 }
 
-export function postRow(post, fallbackSubreddit) {
+function payloadHash(payload) {
+  return createHash('sha256').update(JSON.stringify(payload)).digest('hex');
+}
+
+export function postRow(post, fallbackSubreddit, retrievedAt = new Date().toISOString()) {
   return [
     String(post?.id || ''),
     String(post?.subreddit || fallbackSubreddit),
@@ -84,10 +100,12 @@ export function postRow(post, fallbackSubreddit) {
     nullable(post?.removed_by_category),
     nullable(post?.distinguished),
     nullable(post?.domain),
+    retrievedAt,
+    payloadHash(post),
   ];
 }
 
-export function commentRow(comment, subreddit, postId) {
+export function commentRow(comment, subreddit, postId, retrievedAt = new Date().toISOString()) {
   return [
     String(comment?.id || ''),
     String(comment?.link_id || `t3_${postId}`).replace(/^t3_/, ''),
@@ -103,17 +121,26 @@ export function commentRow(comment, subreddit, postId) {
     Boolean(comment?.stickied),
     Boolean(comment?.collapsed),
     nullable(comment?.depth),
+    Boolean(comment?.is_submitter),
+    nullable(comment?.removal_reason || comment?.removed_by_category),
+    retrievedAt,
+    payloadHash(comment),
   ];
 }
 
-export function flattenCommentThings(things, subreddit, postId) {
+export function flattenCommentThings(
+  things,
+  subreddit,
+  postId,
+  retrievedAt = new Date().toISOString()
+) {
   const comments = [];
   const moreIds = [];
 
   function visit(entries) {
     for (const thing of entries || []) {
       if (thing?.kind === 't1' && thing.data?.id) {
-        comments.push(commentRow(thing.data, subreddit, postId));
+        comments.push(commentRow(thing.data, subreddit, postId, retrievedAt));
         const replies = thing.data?.replies?.data?.children;
         if (Array.isArray(replies)) visit(replies);
       } else if (thing?.kind === 'more' && Array.isArray(thing.data?.children)) {
@@ -124,6 +151,45 @@ export function flattenCommentThings(things, subreddit, postId) {
 
   visit(things);
   return { comments, moreIds };
+}
+
+export function filterRelevantComments(rows, minScore = COMMENT_MIN_SCORE) {
+  const index = Object.fromEntries(COMMENT_FIELDS.map((field, position) => [field, position]));
+  const byId = new Map(rows.map((row) => [row[index.id], row]));
+  const retained = new Set();
+
+  for (const row of rows) {
+    if (
+      Number(row[index.score] || 0) >= minScore ||
+      row[index.isSubmitter] === true ||
+      row[index.stickied] === true ||
+      row[index.distinguished]
+    ) {
+      retained.add(row[index.id]);
+    }
+  }
+
+  // A useful nested reply is unreadable without the chain above it. Preserve
+  // those low-score ancestors as context without retaining unrelated branches.
+  for (const id of [...retained]) {
+    let row = byId.get(id);
+    while (row) {
+      const parentId = String(row[index.parentId] || '').replace(/^t1_/, '');
+      if (!parentId || parentId.startsWith('t3_') || !byId.has(parentId)) break;
+      retained.add(parentId);
+      row = byId.get(parentId);
+    }
+  }
+
+  return rows.filter((row) => retained.has(row[index.id]));
+}
+
+export function postQualifiesForEvent(post) {
+  if (post?.over_18 || post?.removed_by_category) return false;
+  return (
+    Number(post?.score || 0) >= EVENT_MIN_SCORE ||
+    Number(post?.num_comments || 0) >= EVENT_MIN_COMMENTS
+  );
 }
 
 function retryDelayMs(response, attempt) {
@@ -295,21 +361,28 @@ export async function collectListing({ client, subreddit, windowStart, windowEnd
   return { collected, pages, cutoffReached, listingCapped };
 }
 
-export async function collectComments({ client, postId, subreddit, onComment }) {
+export async function collectComments({
+  client,
+  postId,
+  subreddit,
+  onComment,
+  minScore = COMMENT_MIN_SCORE,
+  retrievedAt = new Date().toISOString(),
+}) {
   const seenComments = new Set();
   const requestedMore = new Set();
   const queuedMore = [];
+  const collectedRows = [];
   let unresolvedMore = 0;
   let emitted = 0;
 
   async function ingest(things) {
-    const flattened = flattenCommentThings(things, subreddit, postId);
+    const flattened = flattenCommentThings(things, subreddit, postId, retrievedAt);
     for (const row of flattened.comments) {
       const id = row[0];
       if (!id || seenComments.has(id)) continue;
       seenComments.add(id);
-      await onComment(row);
-      emitted += 1;
+      collectedRows.push(row);
     }
     for (const id of flattened.moreIds) {
       if (!seenComments.has(id)) queuedMore.push(id);
@@ -343,5 +416,16 @@ export async function collectComments({ client, postId, subreddit, onComment }) 
     }
   }
 
-  return { emitted, unresolvedMore };
+  const relevantRows = filterRelevantComments(collectedRows, minScore);
+  for (const row of relevantRows) {
+    await onComment(row);
+    emitted += 1;
+  }
+
+  return {
+    seen: collectedRows.length,
+    emitted,
+    filtered: collectedRows.length - emitted,
+    unresolvedMore,
+  };
 }

@@ -204,7 +204,7 @@
       },
       "workflowFile": ".github/workflows/cron-reddit-archive.yml",
       "runtime": "github-actions-ubuntu; optional labelled self-hosted macOS ARM64 runner on manual dispatch",
-      "command": "node scripts/reddit-daily-archive.mjs --cohort 200 --scheduled",
+      "command": "node scripts/reddit-daily-archive.mjs --cohort all --scheduled",
       "workingDirectory": ".",
       "bounds": {
         "timeoutMinutes": 300,
@@ -213,15 +213,15 @@
       },
       "idempotency": {
         "mechanism": "stable 00:17 UTC window boundary + Reddit IDs + deterministic R2 date keys",
-        "watermark": "manifest.windowStart/windowEnd per reddit/v1/date=YYYY-MM-DD",
+        "watermark": "manifest.windowStart/windowEnd per reddit/v2/date=YYYY-MM-DD",
         "deduplicationEvidence": "scripts/reddit-daily-archive.test.mjs; R2 manifest file hashes"
       },
       "freshness": {
         "windowHours": 26,
-        "evidenceSource": "R2 reddit/v1/date=YYYY-MM-DD/manifest.json windowEnd"
+        "evidenceSource": "R2 reddit/v2/date=YYYY-MM-DD/manifest.json windowEnd"
       },
       "outputExpectation": {
-        "configuredCommunities": 200,
+        "configuredCommunities": 99,
         "minPosts": 0,
         "zeroOutputIsFailure": false
       },
@@ -231,7 +231,7 @@
       },
       "evidence": {
         "lifecycleArtifact": "artifacts/reddit-archive/manifest.json",
-        "objectStore": "R2 high-signal-reddit-archive/reddit/v1/date=YYYY-MM-DD/"
+        "objectStore": "R2 high-signal-reddit-archive/reddit/v2/date=YYYY-MM-DD/"
       },
       "acceptedExceptions": [
         "Forward-only archive: historical Reddit gaps cannot be reconstructed reliably",

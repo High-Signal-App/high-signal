@@ -122,7 +122,7 @@ _ACCESS_BASIS_OVERRIDES = {
     "github-archive": "Public archive; parked because transfer cost is high relative to unique yield.",
     "news": "Public RSS plus NewsAPI; NewsAPI production use requires an eligible paid plan.",
     "guardian": "Parked; developer access is non-commercial and derived commercial use requires a licence.",
-    "reddit": "Public endpoints; reuse and sustained commercial access are terms-restricted.",
+    "reddit": "Reddit OAuth collection feeds one private R2 archive; scheduled High Signal ingestion consumes its verified derived export.",
     "youtube": "Public discovery metadata; transcript retrieval uses an unofficial interface.",
     "appstore-reviews": "Public review feed; retained and displayed user text must be minimized.",
     "playstore-reviews": "Public review pages; retained and displayed user text must be minimized.",
@@ -145,6 +145,7 @@ _CONTENT_DEPTH_OVERRIDES = {
     "sec-xbrl": "structured payload",
     "gov-contracts": "metadata plus selected structured payload",
     "podcast-index": "metadata plus selected structured payload",
+    "reddit": "private post archive, relevant comment trees, and bounded derived event metadata",
 }
 
 _TERMS_RISK_OVERRIDES = {
@@ -205,6 +206,8 @@ def _content_depth(entry: CatalogEntry) -> str:
 
 
 def _retention(entry: CatalogEntry) -> str:
+    if entry.id == "reddit":
+        return "Private R2 daily archive plus D1 event history from the shared derived export."
     if entry.id in _CONTENT_DEPTH_OVERRIDES:
         return "D1 event history; source document retained when the adapter emits one."
     return "D1 event history with canonical source link and deduplication metadata."
@@ -340,11 +343,11 @@ CATALOG: list[CatalogEntry] = [
         "reddit",
         "Reddit",
         "startups",
-        "keyless",
+        "free-key:REDDIT_CLIENT_ID,REDDIT_CLIENT_SECRET",
         False,
         1,
         "thematic",
-        "post title, subreddit, score",
+        "post title, body, subreddit, attention metrics, relevant comments, archive provenance",
         "recent",
     ),
     CatalogEntry(
@@ -878,6 +881,11 @@ def to_markdown() -> str:
         "feed payloads and per-cluster snapshots in dedicated `digg_*` tables. Those rows "
         "are derived attention metadata, never event evidence.",
         "",
+        "Reddit is collected once into a private, immutable daily R2 partition. "
+        "The scheduled pipeline and approved sibling products consume the same "
+        "hash-verified compressed event export; they do not scrape Reddit independently. "
+        "Reddit is attention metadata and cannot satisfy cite-or-kill.",
+        "",
         "## History / retention",
         "",
         "**History depth** below = the default fetch window per run (how far back "
@@ -925,6 +933,10 @@ def to_markdown() -> str:
         "`source_class=attention_aggregator`, `evidence_tier=derived`, "
         "`confidence_contribution=none`, `attention_contribution=allowed`. Digg can change "
         "discovery and brief prominence but cannot satisfy cite-or-kill or raise confidence.",
+        "- **Reddit daily archive** — one curated 99-community OAuth collection at "
+        "00:17 UTC. Private R2 stores compressed posts, relevance-filtered comment "
+        "trees, an index, manifest and versioned event export. High Signal reads the "
+        "same export before its 08:00 IST ingest; Reddit contributes attention only.",
         "",
         "View the actual available data per source with the **data directory**: "
         "`uv run python -m high_signal_ingest.data_directory` → writes "

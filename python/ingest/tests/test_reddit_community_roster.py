@@ -24,11 +24,53 @@ def test_reddit_community_roster_and_rollout_cohorts() -> None:
     phase50 = {community.casefold() for community in phase10 + phase50_additional}
 
     assert roster["schemaVersion"] == "1"
-    assert roster["communityCount"] == 200
-    assert len(communities) == 200
-    assert len(normalized) == 200
+    assert roster["communityCount"] == 99
+    assert len(communities) == 99
+    assert len(normalized) == 99
     assert len(phase10) == 10
     assert len(phase50_additional) == 40
     assert len(phase50) == 50
     assert phase50 <= normalized
     assert {community.casefold() for community in DEFAULT_SUBS} <= normalized
+
+    assert {
+        "india",
+        "developersindia",
+        "indianstartups",
+        "indiatech",
+        "indianworkplace",
+        "indiainvestments",
+        "indianstockmarket",
+        "indiatax",
+    } <= normalized
+    assert {
+        "bangalore",
+        "chennai",
+        "delhi",
+        "hyderabad",
+        "kolkata",
+        "mumbai",
+        "pune",
+        "kerala",
+        "tamilnadu",
+        "gurgaon",
+        "noida",
+        "jaipur",
+        "chandigarh",
+        "ahmedabad",
+        "carsindia",
+        "gadgetsindia",
+        "indiangaming",
+        "indianskincareaddicts",
+        "indianfashionaddicts",
+        "fitness_india",
+        "indiafood",
+        "india_cycling",
+        "indianbikes",
+        "indiasocial",
+        "askindia",
+        "indianstreetbets",
+        "indiapersonalfinance",
+        "legaladviceindia",
+        "buildapc",
+    }.isdisjoint(normalized)

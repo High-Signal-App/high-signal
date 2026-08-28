@@ -10,7 +10,7 @@ on:
         type: choice
         options:
           - '10'
-          - '200'
+          - all
         default: '10'
       runner:
         description: Execution machine
@@ -68,13 +68,13 @@ jobs:
           REDDIT_CLIENT_ID: ${{ secrets.REDDIT_CLIENT_ID }}
           REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}
           REDDIT_USER_AGENT: high-signal-reddit-archive/1.0
-          MANUAL_COHORT: ${{ inputs.cohort || '200' }}
+          MANUAL_COHORT: ${{ inputs.cohort || 'all' }}
         shell: bash
         run: |
           cohort="$MANUAL_COHORT"
           scheduled_flag=""
           if [[ "$GITHUB_EVENT_NAME" == "schedule" ]]; then
-            cohort="200"
+            cohort="all"
             scheduled_flag="--scheduled"
           fi
           node scripts/reddit-daily-archive.mjs \
@@ -90,7 +90,7 @@ jobs:
         shell: bash
         run: |
           archive_date=$(node -p "JSON.parse(require('fs').readFileSync('artifacts/reddit-archive/manifest.json')).windowEnd.slice(0,10)")
-          prefix="high-signal-reddit-archive/reddit/v1/date=$archive_date"
+          prefix="high-signal-reddit-archive/reddit/v2/date=$archive_date"
           npx --yes wrangler@4.120.0 r2 object put "$prefix/posts.jsonl.zst" \
             --file artifacts/reddit-archive/posts.jsonl.zst \
             --remote \
@@ -99,6 +99,14 @@ jobs:
             --file artifacts/reddit-archive/comments.jsonl.zst \
             --remote \
             --content-type application/zstd
+          npx --yes wrangler@4.120.0 r2 object put "$prefix/events.jsonl.zst" \
+            --file artifacts/reddit-archive/events.jsonl.zst \
+            --remote \
+            --content-type application/zstd
+          npx --yes wrangler@4.120.0 r2 object put "$prefix/subreddits.index.json" \
+            --file artifacts/reddit-archive/subreddits.index.json \
+            --remote \
+            --content-type application/json
           npx --yes wrangler@4.120.0 r2 object put "$prefix/manifest.json" \
             --file artifacts/reddit-archive/manifest.json \
             --remote \
@@ -113,11 +121,42 @@ jobs:
         run: |
           archive_date=$(node -p "JSON.parse(require('fs').readFileSync('artifacts/reddit-archive/manifest.json')).windowEnd.slice(0,10)")
           remote_manifest="$RUNNER_TEMP/reddit-archive-manifest.json"
+          remote_events="$RUNNER_TEMP/reddit-archive-events.jsonl.zst"
           npx --yes wrangler@4.120.0 r2 object get \
-            "high-signal-reddit-archive/reddit/v1/date=$archive_date/manifest.json" \
+            "high-signal-reddit-archive/reddit/v2/date=$archive_date/manifest.json" \
             --file "$remote_manifest" \
             --remote
+          npx --yes wrangler@4.120.0 r2 object get \
+            "high-signal-reddit-archive/reddit/v2/date=$archive_date/events.jsonl.zst" \
+            --file "$remote_events" \
+            --remote
           cmp artifacts/reddit-archive/manifest.json "$remote_manifest"
+          cmp artifacts/reddit-archive/events.jsonl.zst "$remote_events"
+
+      - name: Publish and verify latest complete consumer pointer
+        if: success()
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_R2_API_TOKEN || secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        shell: bash
+        run: |
+          status=$(node -p "JSON.parse(require('fs').readFileSync('artifacts/reddit-archive/manifest.json')).status")
+          requested=$(node -p "JSON.parse(require('fs').readFileSync('artifacts/reddit-archive/manifest.json')).requestedCommunities")
+          configured=$(node -p "JSON.parse(require('fs').readFileSync('python/ingest/src/high_signal_ingest/seed/reddit_communities.json')).communityCount")
+          if [[ "$status" != "complete" || "$requested" != "$configured" ]]; then
+            echo "Not moving latest pointer for a partial or cohort archive"
+            exit 0
+          fi
+          pointer="high-signal-reddit-archive/reddit/v2/latest.json"
+          remote_latest="$RUNNER_TEMP/reddit-archive-latest.json"
+          npx --yes wrangler@4.120.0 r2 object put "$pointer" \
+            --file artifacts/reddit-archive/latest.json \
+            --remote \
+            --content-type application/json
+          npx --yes wrangler@4.120.0 r2 object get "$pointer" \
+            --file "$remote_latest" \
+            --remote
+          cmp artifacts/reddit-archive/latest.json "$remote_latest"
 
       - name: Preserve canary artifacts in GitHub Actions
         if: always() && hashFiles('artifacts/reddit-archive/manifest.json') != ''
@@ -126,7 +165,7 @@ jobs:
           name: reddit-archive-${{ github.run_id }}
           path: |
             artifacts/reddit-archive/*.zst
-            artifacts/reddit-archive/manifest.json
+            artifacts/reddit-archive/*.json
           retention-days: 7
           if-no-files-found: error
 
@@ -141,7 +180,8 @@ jobs:
           console.log(`- Window: ${manifest.windowStart} → ${manifest.windowEnd}`);
           console.log(`- Communities: ${manifest.completedCommunities}/${manifest.requestedCommunities} complete`);
           console.log(`- Posts: ${manifest.postCount.toLocaleString()}`);
-          console.log(`- Comments: ${manifest.commentCount.toLocaleString()}`);
+          console.log(`- Comments retained: ${manifest.commentCount.toLocaleString()} / ${manifest.commentsSeen.toLocaleString()}`);
+          console.log(`- High Signal events: ${manifest.eventCount.toLocaleString()}`);
           console.log(`- API requests: ${manifest.requestMetrics.requests.toLocaleString()}`);
           console.log(`- Compressed bytes: ${manifest.files.reduce((sum, file) => sum + file.bytes, 0).toLocaleString()}`);
           NODE

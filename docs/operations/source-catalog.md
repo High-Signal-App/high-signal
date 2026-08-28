@@ -18,6 +18,8 @@ Persisted records live in **Cloudflare D1** (events/signals/evidence/source docu
 
 Digg is a deliberate rolling-feed exception: because Digg exposes rolling windows without a historical archive, High Signal retains its documented feed payloads and per-cluster snapshots in dedicated `digg_*` tables. Those rows are derived attention metadata, never event evidence.
 
+Reddit is collected once into a private, immutable daily R2 partition. The scheduled pipeline and approved sibling products consume the same hash-verified compressed event export; they do not scrape Reddit independently. Reddit is attention metadata and cannot satisfy cite-or-kill.
+
 ## History / retention
 
 **History depth** below = the default fetch window per run (how far back each daily run pulls). Wider one-off backfills pass a larger `--days`. Dedup is by `document_key`, so re-runs over the same window don't duplicate. No automatic D1 pruning today — events accumulate; the signal store is append-only by design.
@@ -76,7 +78,7 @@ Digg is a deliberate rolling-feed exception: because Digg exposes rolling window
 | `playstore-reviews` | Google Play reviews | startups | keyless | weekly |  | 14d | thematic | recent | bounded user review text (up to 20 KB) | D1 event history; source document retained when the adapter emits one. | user-content | review rating, text |
 | `podcast-index` | Podcast Index | technology | optional-key:PODCAST_INDEX_* | parked |  | 14d | thematic | recent | metadata plus selected structured payload | D1 event history; source document retained when the adapter emits one. | not-reviewed | episode title, summary |
 | `producthunt` | Product Hunt (RSS) | startups | keyless | daily |  | 7d | thematic | recent | metadata or bounded excerpt | D1 event history with canonical source link and deduplication metadata. | not-reviewed | product name, tagline, link |
-| `reddit` | Reddit | startups | keyless | daily |  | 1d | thematic | recent | metadata or bounded excerpt | D1 event history with canonical source link and deduplication metadata. | restricted | post title, subreddit, score |
+| `reddit` | Reddit | startups | free-key:REDDIT_CLIENT_ID,REDDIT_CLIENT_SECRET | daily |  | 1d | thematic | recent | private post archive, relevant comment trees, and bounded derived event metadata | Private R2 daily archive plus D1 event history from the shared derived export. | restricted | post title, body, subreddit, attention metrics, relevant comments, archive provenance |
 | `scmp` | South China Morning Post | technology / finance | keyless | daily |  | 3d | thematic | recent | RSS metadata plus linked-page text when fetched (up to 30 KB) | D1 event history; source document retained when the adapter emits one. | not-reviewed | China tech/economy headline, link |
 | `semantic-scholar` | Semantic Scholar | technology | keyless | on_demand |  | 30d | thematic | historical | metadata or bounded excerpt | D1 event history with canonical source link and deduplication metadata. | not-reviewed | paper title, abstract snippet |
 | `stackexchange` | Stack Overflow | technology | keyless | on_demand |  | 30d | thematic | historical | metadata or bounded excerpt | D1 event history with canonical source link and deduplication metadata. | not-reviewed | question, tags, score |
@@ -92,6 +94,7 @@ Digg is a deliberate rolling-feed exception: because Digg exposes rolling window
 ## Derived attention overlays
 
 - **Digg technology clusters** — five documented public JSON/YAML feeds, polled every 30 minutes with a server-enforced 10-minute minimum refresh interval. Stored as normalized current clusters plus append-only snapshots. Classification: `source_class=attention_aggregator`, `evidence_tier=derived`, `confidence_contribution=none`, `attention_contribution=allowed`. Digg can change discovery and brief prominence but cannot satisfy cite-or-kill or raise confidence.
+- **Reddit daily archive** — one curated 99-community OAuth collection at 00:17 UTC. Private R2 stores compressed posts, relevance-filtered comment trees, an index, manifest and versioned event export. High Signal reads the same export before its 08:00 IST ingest; Reddit contributes attention only.
 
 View the actual available data per source with the **data directory**: `uv run python -m high_signal_ingest.data_directory` → writes `data-directory/INDEX.md` + one JSON file of recent samples per source.
 

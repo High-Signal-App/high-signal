@@ -1,11 +1,48 @@
 from __future__ import annotations
 
+import json
 from datetime import datetime, timezone
+from pathlib import Path
 
 import httpx
 import pytest
 
 from high_signal_ingest.sources import reddit
+
+
+def test_load_archive_events_preserves_attention_provenance(tmp_path: Path) -> None:
+    path = tmp_path / "events.jsonl"
+    row = {
+        "schemaVersion": 1,
+        "id": "abc123",
+        "source": "reddit:technology",
+        "sourceUrl": "https://www.reddit.com/r/technology/comments/abc/example/",
+        "publishedAt": "2026-08-28T00:00:00.000Z",
+        "retrievedAt": "2026-08-28T00:18:00.000Z",
+        "title": "A material technology discussion",
+        "content": "Operators describe the change.",
+        "rawHash": "hash-abc",
+        "sourceClass": "attention_aggregator",
+        "evidenceTier": "derived",
+        "confidenceContribution": "none",
+        "attentionContribution": "allowed",
+        "attention": {"score": 4, "commentCount": 24, "upvoteRatio": 0.91},
+        "archive": {"schemaVersion": 2, "date": "2026-08-28", "postId": "abc"},
+    }
+    path.write_text(f"{json.dumps(row)}\n", encoding="utf-8")
+
+    events = reddit.load_archive_events(path)
+
+    assert len(events) == 1
+    assert events[0].source == "reddit:technology"
+    assert events[0].source_document is not None
+    assert events[0].source_document.document_key == "reddit:abc"
+    assert events[0].source_document.parsed_fields == {
+        "source_class": "attention_aggregator",
+        "evidence_tier": "derived",
+        "confidence_contribution": "none",
+        "attention_contribution": "allowed",
+    }
 
 
 @pytest.mark.asyncio

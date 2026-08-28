@@ -26,7 +26,49 @@ jobs:
       - uses: astral-sh/setup-uv@v8.1.0
       - uses: actions/setup-python@v6
         with: { python-version: "3.11" }
+      - uses: actions/setup-node@v6
+        with: { node-version: "22" }
       - run: uv sync
+      - name: Fetch canonical Reddit event export
+        if: ${{ (inputs.source || 'all') == 'all' || (inputs.source || 'all') == 'reddit' }}
+        working-directory: .
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_R2_API_TOKEN || secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        shell: bash
+        run: |
+          if ! command -v zstd >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y zstd
+          fi
+          mkdir -p artifacts/reddit-input
+          latest="artifacts/reddit-input/latest.json"
+          compressed="artifacts/reddit-input/events.jsonl.zst"
+          events="artifacts/reddit-input/events.jsonl"
+          npx --yes wrangler@4.120.0 r2 object get \
+            "high-signal-reddit-archive/reddit/v2/latest.json" \
+            --file "$latest" \
+            --remote
+          node - "$latest" <<'NODE'
+          const fs = require('fs');
+          const latest = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+          if (latest.status !== 'complete') throw new Error('reddit_archive_not_complete');
+          const ageMs = Date.now() - Date.parse(latest.windowEnd);
+          if (ageMs < 0 || ageMs > 8 * 60 * 60 * 1000) {
+            throw new Error(`reddit_archive_stale:${latest.windowEnd}`);
+          }
+          NODE
+          object=$(node -p "JSON.parse(require('fs').readFileSync('$latest')).objects.events")
+          expected_sha=$(node -p "JSON.parse(require('fs').readFileSync('$latest')).eventsSha256")
+          npx --yes wrangler@4.120.0 r2 object get \
+            "high-signal-reddit-archive/$object" \
+            --file "$compressed" \
+            --remote
+          actual_sha=$(sha256sum "$compressed" | cut -d' ' -f1)
+          test "$actual_sha" = "$expected_sha"
+          zstd -q -d -f "$compressed" -o "$events"
+          echo "REDDIT_ARCHIVE_EVENTS_PATH=$GITHUB_WORKSPACE/$events" >> "$GITHUB_ENV"
+          echo "REDDIT_ARCHIVE_LATEST_PATH=$GITHUB_WORKSPACE/$latest" >> "$GITHUB_ENV"
       - name: source availability diagnostic
         env:
           ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}

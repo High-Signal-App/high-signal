@@ -8,10 +8,11 @@ import {
   POST_FIELDS,
   collectComments,
   collectListing,
+  filterRelevantComments,
   flattenCommentThings,
   postRow,
 } from './reddit-archive-lib.mjs';
-import { resolveWindow } from './reddit-daily-archive.mjs';
+import { eventRow, resolveWindow } from './reddit-daily-archive.mjs';
 
 test('post rows follow the versioned compact schema', () => {
   const row = postRow(
@@ -59,6 +60,60 @@ test('nested comments and morechildren IDs are flattened without losing relation
   );
   assert.equal(flattened.comments[0].length, COMMENT_FIELDS.length);
   assert.deepEqual(flattened.moreIds, ['c3', 'c4']);
+});
+
+test('comment relevance keeps strong replies and their low-score ancestors', () => {
+  const flattened = flattenCommentThings(
+    [
+      {
+        kind: 't1',
+        data: {
+          id: 'parent',
+          parent_id: 't3_post',
+          body: 'context',
+          score: 0,
+          replies: {
+            data: {
+              children: [
+                {
+                  kind: 't1',
+                  data: { id: 'strong', parent_id: 't1_parent', body: 'useful', score: 8 },
+                },
+              ],
+            },
+          },
+        },
+      },
+      { kind: 't1', data: { id: 'noise', parent_id: 't3_post', body: 'noise', score: 0 } },
+    ],
+    'technology',
+    'post'
+  );
+  assert.deepEqual(
+    filterRelevantComments(flattened.comments).map((row) => row[0]),
+    ['parent', 'strong']
+  );
+});
+
+test('derived event rows preserve attention metadata without becoming evidence', () => {
+  const row = eventRow(
+    {
+      id: 'abc',
+      permalink: '/r/technology/comments/abc/example/',
+      title: 'Material discussion',
+      created_utc: 1_786_291_200,
+      score: 42,
+      num_comments: 18,
+    },
+    'technology',
+    '2026-08-28',
+    '2026-08-28T00:18:00.000Z'
+  );
+  assert.equal(row.source, 'reddit:technology');
+  assert.equal(row.sourceClass, 'attention_aggregator');
+  assert.equal(row.confidenceContribution, 'none');
+  assert.equal(row.attention.score, 42);
+  assert.match(row.archive.postObject, /^reddit\/v2\/date=2026-08-28\//);
 });
 
 test('listing pagination stops once the exact 24-hour cutoff is crossed', async () => {
@@ -150,7 +205,7 @@ test('comment collection resolves morechildren and deduplicates returned comment
         {
           data: {
             children: [
-              { kind: 't1', data: { id: 'c1', body: 'one' } },
+              { kind: 't1', data: { id: 'c1', body: 'one', score: 2 } },
               { kind: 'more', data: { children: ['c2'] } },
             ],
           },
@@ -163,7 +218,7 @@ test('comment collection resolves morechildren and deduplicates returned comment
           data: {
             things: [
               { kind: 't1', data: { id: 'c1', body: 'duplicate' } },
-              { kind: 't1', data: { id: 'c2', body: 'two' } },
+              { kind: 't1', data: { id: 'c2', body: 'two', score: 3 } },
             ],
           },
         },
@@ -181,7 +236,7 @@ test('comment collection resolves morechildren and deduplicates returned comment
     rows.map((row) => row[0]),
     ['c1', 'c2']
   );
-  assert.deepEqual(result, { emitted: 2, unresolvedMore: 0 });
+  assert.deepEqual(result, { seen: 2, emitted: 2, filtered: 0, unresolvedMore: 0 });
 });
 
 test('scheduled windows use the stable 00:17 UTC boundary', () => {
@@ -190,10 +245,11 @@ test('scheduled windows use the stable 00:17 UTC boundary', () => {
   assert.equal(result.windowStart.toISOString(), '2026-08-27T00:17:00.000Z');
 });
 
-test('workflow schedules all 200 and supports the side-machine runner', async () => {
+test('workflow schedules the complete curated roster and supports the side-machine runner', async () => {
   const workflow = await readFile('.github/workflows/cron-reddit-archive.yml', 'utf8');
   assert.match(workflow, /cron: ['"]17 0 \* \* \*['"]/);
   assert.match(workflow, /inputs\.cohort/);
+  assert.match(workflow, /cohort="all"/);
   assert.match(workflow, /self-hosted/);
   assert.match(workflow, /ARM64/);
   assert.match(workflow, /high-signal/);
@@ -201,4 +257,11 @@ test('workflow schedules all 200 and supports the side-machine runner', async ()
   assert.match(workflow, /CLOUDFLARE_API_TOKEN/);
   assert.match(workflow, /reddit-daily-archive\.mjs/);
   assert.match(workflow, /r2 object put/);
+  assert.match(workflow, /reddit\/v2\/latest\.json/);
+  assert.match(workflow, /events\.jsonl\.zst/);
+
+  const ingestWorkflow = await readFile('.github/workflows/cron-ingest.yml', 'utf8');
+  assert.match(ingestWorkflow, /Fetch canonical Reddit event export/);
+  assert.match(ingestWorkflow, /REDDIT_ARCHIVE_EVENTS_PATH/);
+  assert.match(ingestWorkflow, /reddit\/v2\/latest\.json/);
 });
