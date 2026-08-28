@@ -1,0 +1,44 @@
+name: cron-acceptance-monitor
+
+on:
+  # Non-critical follow-through monitor. Timing-critical product jobs remain
+  # Cloudflare-dispatched; a delayed monitor run is harmless.
+  schedule:
+    - cron: "15 5 * * *"
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
+  issues: write
+
+concurrency:
+  group: cron-acceptance-monitor
+  cancel-in-progress: false
+
+jobs:
+  issue-133:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+      - name: Check scheduled chain and Digg acceptance
+        id: acceptance
+        env:
+          GH_TOKEN: ${{ github.token }}
+          API_BASE: ${{ secrets.API_BASE || 'https://api.highsignal.app' }}
+          ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
+          ISSUE_COMMENT_PATH: ${{ runner.temp }}/issue-133-acceptance.md
+        run: node scripts/verify-issue-133-acceptance.mjs
+      - name: Close accepted issue
+        if: steps.acceptance.outputs.ready == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COMMENT_PATH: ${{ runner.temp }}/issue-133-acceptance.md
+        run: |
+          gh issue comment 133 --body-file "$COMMENT_PATH"
+          gh issue close 133 --reason completed
+          gh workflow disable cron-acceptance-monitor.yml

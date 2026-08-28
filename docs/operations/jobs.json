@@ -371,6 +371,49 @@
       "acceptedExceptions": []
     },
     {
+      "id": "cron-acceptance-monitor",
+      "kind": "acceptance-monitor",
+      "owner": "sarthak",
+      "trigger": {
+        "type": "schedule",
+        "cron": "15 5 * * *",
+        "tz": "UTC"
+      },
+      "workflowFile": ".github/workflows/cron-acceptance-monitor.yml",
+      "runtime": "github-actions-ubuntu",
+      "command": "node scripts/verify-issue-133-acceptance.mjs",
+      "workingDirectory": ".",
+      "bounds": {
+        "timeoutMinutes": 5,
+        "concurrency": 1,
+        "retryMax": 0
+      },
+      "idempotency": {
+        "mechanism": "issue state guard plus workflow self-disable after successful closure",
+        "watermark": "GitHub issue #133 state",
+        "deduplicationEvidence": "scripts/verify-issue-133-acceptance.test.mjs"
+      },
+      "freshness": {
+        "windowHours": 0,
+        "evidenceSource": "same-day GitHub Actions runs plus /admin/digg/status"
+      },
+      "outputExpectation": {
+        "minAcceptedGates": 0,
+        "zeroOutputIsFailure": false
+      },
+      "failureDestination": {
+        "durableState": "GitHub Actions run summary; issue #133 remains open",
+        "notification": "github-actions job failure email"
+      },
+      "evidence": {
+        "validator": "scripts/verify-issue-133-acceptance.mjs",
+        "adminEndpoint": "/admin/digg/status"
+      },
+      "acceptedExceptions": [
+        "Native GitHub schedule delay is acceptable because this monitor does not drive the product pipeline"
+      ]
+    },
+    {
       "id": "cron-backtest",
       "kind": "backtest",
       "owner": "sarthak",

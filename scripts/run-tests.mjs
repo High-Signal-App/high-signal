@@ -50,6 +50,7 @@ const NODE_SUITES = [
   ['worker-cache-policy', 'scripts/worker-cache-policy.test.mjs'],
   ['worker-routing', 'scripts/worker-routing.test.mjs'],
   ['verify-daily-brief', 'scripts/verify-daily-brief.test.mjs'],
+  ['issue-133-acceptance', 'scripts/verify-issue-133-acceptance.test.mjs'],
   ['public-corpus', 'scripts/public-corpus-policy.test.mjs'],
   ['public-corpus-receipt', 'scripts/public-corpus-receipt.test.mjs'],
   ['reddit-daily-archive', 'scripts/reddit-daily-archive.test.mjs'],

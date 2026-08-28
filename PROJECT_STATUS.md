@@ -1,6 +1,6 @@
 # high-signal — PROJECT STATUS
 
-Last updated: 2026-08-28
+Last updated: 2026-08-29
 
 ## Why/What
 
@@ -87,6 +87,14 @@ Last updated: 2026-08-28
   GitHub-hosted cohort. Its native GitHub schedule is absent, so delayed provider
   cron delivery cannot create a late or duplicate archive before the 08:00 IST
   ingest.
+- Issue #133's remaining live receipts are now owned by a self-retiring GitHub
+  acceptance monitor at 05:15 UTC / 10:45 IST. It requires the four
+  Cloudflare-dispatched morning workflows to start within ten minutes of their
+  intended slots and finish successfully, plus at least one genuine Digg
+  verified candidate with a median first-seen-to-verified latency below 90
+  minutes. Only then may it comment on and close #133; it disables itself after
+  closure. Missing or failed morning runs fail the monitor, while a legitimate
+  absence of qualifying Digg evidence remains a green pending state.
 - Digg verification queueing now gives never-attempted threshold crossings
   priority over retries, reserves one of six half-hour slots to drain the oldest
   untouched request, recovers `running` work abandoned for 45 minutes, reports
