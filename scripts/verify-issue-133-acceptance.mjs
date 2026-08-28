@@ -42,18 +42,6 @@ export function closestRun(runs, target, toleranceMs = RUN_START_TOLERANCE_MS) {
   );
 }
 
-export function diggAcceptance(verification) {
-  const verifiedCandidates = Number(verification?.verifiedCandidates ?? 0);
-  const rawMedian = verification?.medianFirstSeenToVerifiedMinutes;
-  const numericMedian = rawMedian == null ? Number.NaN : Number(rawMedian);
-  const medianMinutes = Number.isFinite(numericMedian) ? numericMedian : null;
-  return {
-    verifiedCandidates,
-    medianMinutes,
-    passed: verifiedCandidates > 0 && medianMinutes != null && medianMinutes < 90,
-  };
-}
-
 async function writeOutput(name, value) {
   const outputPath = process.env.GITHUB_OUTPUT;
   if (outputPath) await appendFile(outputPath, `${name}=${value}\n`);
@@ -62,6 +50,67 @@ async function writeOutput(name, value) {
 async function writeSummary(lines) {
   const summaryPath = process.env.GITHUB_STEP_SUMMARY;
   if (summaryPath) await appendFile(summaryPath, `${lines.join('\n')}\n`);
+}
+
+async function collectChain(repository, date, apiHeaders) {
+  const chain = [];
+  for (const required of REQUIRED_CHAIN) {
+    const target = expectedRunAt(date, required.utcTime);
+    const url =
+      `https://api.github.com/repos/${repository}/actions/workflows/` +
+      `${encodeURIComponent(required.workflow)}/runs?event=workflow_dispatch&created=${date}&per_page=50`;
+    const payload = await fetchJson(url, { headers: apiHeaders });
+    const run = closestRun(payload.workflow_runs ?? [], target);
+    chain.push({
+      ...required,
+      target: target.toISOString(),
+      runId: run?.id ?? null,
+      url: run?.html_url ?? null,
+      createdAt: run?.created_at ?? null,
+      conclusion: run?.conclusion ?? null,
+      passed: run?.status === 'completed' && run?.conclusion === 'success',
+    });
+  }
+  return chain;
+}
+
+function acceptanceSummary(date, chain, digg, ready) {
+  return [
+    `## Issue #${ISSUE_NUMBER} acceptance monitor`,
+    '',
+    `**UTC date checked:** ${date}`,
+    '',
+    '| Gate | Expected | Observed | Result |',
+    '| --- | --- | --- | --- |',
+    ...chain.map(
+      (item) =>
+        `| ${item.label} | ${item.target} | ${item.createdAt ?? 'no on-time run'} | ${item.passed ? 'pass' : (item.conclusion ?? 'missing')} |`
+    ),
+    `| Digg verified-candidate median | <90m with at least one candidate | ${digg.verifiedCandidates} candidate(s), ${digg.medianMinutes ?? 'n/a'}m median | ${digg.passed ? 'pass' : 'pending'} |`,
+    '',
+    ready
+      ? 'All acceptance gates passed. The workflow may close issue #133.'
+      : 'The issue remains open; no evidence or timing gate was weakened.',
+  ];
+}
+
+async function writeAcceptanceComment(chain, digg) {
+  const commentPath = process.env.ISSUE_COMMENT_PATH;
+  if (!commentPath) throw new Error('ISSUE_COMMENT_PATH is required when acceptance passes');
+  await writeFile(
+    commentPath,
+    [
+      'Automated production acceptance completed.',
+      '',
+      ...chain.map(
+        (item) =>
+          `- ${item.label}: [run ${item.runId}](${item.url}) started at ${item.createdAt} and passed.`
+      ),
+      `- Digg: ${digg.verifiedCandidates} verified candidate(s), median first-seen to verified ${digg.medianMinutes} minutes.`,
+      '',
+      'The current-day scheduled chain and genuine sub-90-minute Digg verification gate both passed. Closing #133.',
+    ].join('\n')
+  );
 }
 
 async function main() {
@@ -90,26 +139,8 @@ async function main() {
     return;
   }
 
-  const now = new Date();
-  const date = now.toISOString().slice(0, 10);
-  const chain = [];
-  for (const required of REQUIRED_CHAIN) {
-    const target = expectedRunAt(date, required.utcTime);
-    const url =
-      `https://api.github.com/repos/${repository}/actions/workflows/` +
-      `${encodeURIComponent(required.workflow)}/runs?event=workflow_dispatch&created=${date}&per_page=50`;
-    const payload = await fetchJson(url, { headers: apiHeaders });
-    const run = closestRun(payload.workflow_runs ?? [], target);
-    chain.push({
-      ...required,
-      target: target.toISOString(),
-      runId: run?.id ?? null,
-      url: run?.html_url ?? null,
-      createdAt: run?.created_at ?? null,
-      conclusion: run?.conclusion ?? null,
-      passed: run?.status === 'completed' && run?.conclusion === 'success',
-    });
-  }
+  const date = new Date().toISOString().slice(0, 10);
+  const chain = await collectChain(repository, date, apiHeaders);
 
   const diggStatus = await fetchJson(`${apiBase}/admin/digg/status`, {
     headers: { Authorization: `Bearer ${adminToken}` },
@@ -118,51 +149,30 @@ async function main() {
   const chainPassed = chain.every((item) => item.passed);
   const ready = chainPassed && digg.passed;
 
-  const lines = [
-    `## Issue #${ISSUE_NUMBER} acceptance monitor`,
-    '',
-    `**UTC date checked:** ${date}`,
-    '',
-    '| Gate | Expected | Observed | Result |',
-    '| --- | --- | --- | --- |',
-    ...chain.map(
-      (item) =>
-        `| ${item.label} | ${item.target} | ${item.createdAt ?? 'no on-time run'} | ${item.passed ? 'pass' : (item.conclusion ?? 'missing')} |`
-    ),
-    `| Digg verified-candidate median | <90m with at least one candidate | ${digg.verifiedCandidates} candidate(s), ${digg.medianMinutes ?? 'n/a'}m median | ${digg.passed ? 'pass' : 'pending'} |`,
-    '',
-    ready
-      ? 'All acceptance gates passed. The workflow may close issue #133.'
-      : 'The issue remains open; no evidence or timing gate was weakened.',
-  ];
-  await writeSummary(lines);
+  await writeSummary(acceptanceSummary(date, chain, digg, ready));
   await writeOutput('ready', String(ready));
   await writeOutput('already_closed', 'false');
 
-  if (ready) {
-    const commentPath = process.env.ISSUE_COMMENT_PATH;
-    if (!commentPath) throw new Error('ISSUE_COMMENT_PATH is required when acceptance passes');
-    await writeFile(
-      commentPath,
-      [
-        'Automated production acceptance completed.',
-        '',
-        ...chain.map(
-          (item) =>
-            `- ${item.label}: [run ${item.runId}](${item.url}) started at ${item.createdAt} and passed.`
-        ),
-        `- Digg: ${digg.verifiedCandidates} verified candidate(s), median first-seen to verified ${digg.medianMinutes} minutes.`,
-        '',
-        'The current-day scheduled chain and genuine sub-90-minute Digg verification gate both passed. Closing #133.',
-      ].join('\n')
-    );
-  }
+  if (ready) await writeAcceptanceComment(chain, digg);
 
   if (!chainPassed) {
     throw new Error(
       'one or more required scheduled workflow runs were missing, late, or unsuccessful'
     );
   }
+}
+
+export function diggAcceptance(verification) {
+  const metrics = verification || {};
+  const verifiedCandidates = Number(metrics.verifiedCandidates || 0);
+  const rawMedian = metrics.medianFirstSeenToVerifiedMinutes;
+  const numericMedian = rawMedian == null ? Number.NaN : Number(rawMedian);
+  const medianMinutes = Number.isFinite(numericMedian) ? numericMedian : null;
+  return {
+    verifiedCandidates,
+    medianMinutes,
+    passed: verifiedCandidates > 0 && medianMinutes != null && medianMinutes < 90,
+  };
 }
 
 const entrypoint = process.argv[1] ? pathToFileURL(process.argv[1]).href : null;
