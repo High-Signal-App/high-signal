@@ -102,6 +102,29 @@ async function fileReceipt(path, compressionMs) {
   };
 }
 
+function createManifest({ communities, windowStart, windowEnd, results, totals, client, files }) {
+  const partial = results.filter((result) => result.status === 'partial').length;
+  const failed = results.filter((result) => result.status === 'failed').length;
+  return {
+    schema: 'high-signal.reddit-daily-archive.v1',
+    generatedAt: new Date().toISOString(),
+    windowStart: windowStart.toISOString(),
+    windowEnd: windowEnd.toISOString(),
+    status: partial || failed ? 'partial' : 'complete',
+    requestedCommunities: communities.length,
+    completedCommunities: communities.length - partial - failed,
+    partialCommunities: partial,
+    failedCommunities: failed,
+    postCount: totals.posts,
+    commentCount: totals.comments,
+    requestMetrics: client.metrics,
+    codec: { name: 'zstd', level: 22, longDistanceWindowLog: 27, dictionary: null },
+    schemas: { posts: POST_FIELDS, comments: COMMENT_FIELDS },
+    files,
+    results,
+  };
+}
+
 export async function runArchive({ communities, outputDir, windowStart, windowEnd, client }) {
   await mkdir(outputDir, { recursive: true });
   const postsPath = resolve(outputDir, 'posts.jsonl');
@@ -112,8 +135,7 @@ export async function runArchive({ communities, outputDir, windowStart, windowEn
   const postsStream = createWriteStream(postsPath);
   const commentsStream = createWriteStream(commentsPath);
   const results = [];
-  let totalPosts = 0;
-  let totalComments = 0;
+  const totals = { posts: 0, comments: 0 };
 
   for (const subreddit of communities) {
     const result = {
@@ -137,7 +159,7 @@ export async function runArchive({ communities, outputDir, windowStart, windowEn
         onPost: async (post) => {
           await writeJsonLine(postsStream, postRow(post, subreddit));
           result.posts += 1;
-          totalPosts += 1;
+          totals.posts += 1;
           if (Number(post.num_comments || 0) <= 0) return;
 
           try {
@@ -148,7 +170,7 @@ export async function runArchive({ communities, outputDir, windowStart, windowEn
               onComment: async (row) => {
                 await writeJsonLine(commentsStream, row);
                 result.comments += 1;
-                totalComments += 1;
+                totals.comments += 1;
               },
             });
             result.unresolvedMore += commentResult.unresolvedMore;
@@ -181,39 +203,21 @@ export async function runArchive({ communities, outputDir, windowStart, windowEn
   }
 
   await Promise.all([closeStream(postsStream), closeStream(commentsStream)]);
-  // Zstd level 22 uses all available cores. Run the two packs serially so two
-  // compressors do not contend on a small GitHub-hosted or personal runner.
   const postsCompressionMs = await compressZstd(postsPath, postsCompressedPath);
   const commentsCompressionMs = await compressZstd(commentsPath, commentsCompressedPath);
   const files = await Promise.all([
     fileReceipt(postsCompressedPath, postsCompressionMs),
     fileReceipt(commentsCompressedPath, commentsCompressionMs),
   ]);
-  const partial = results.filter((result) => result.status === 'partial').length;
-  const failed = results.filter((result) => result.status === 'failed').length;
-  const manifest = {
-    schema: 'high-signal.reddit-daily-archive.v1',
-    generatedAt: new Date().toISOString(),
-    windowStart: windowStart.toISOString(),
-    windowEnd: windowEnd.toISOString(),
-    status: partial || failed ? 'partial' : 'complete',
-    requestedCommunities: communities.length,
-    completedCommunities: communities.length - partial - failed,
-    partialCommunities: partial,
-    failedCommunities: failed,
-    postCount: totalPosts,
-    commentCount: totalComments,
-    requestMetrics: client.metrics,
-    codec: {
-      name: 'zstd',
-      level: 22,
-      longDistanceWindowLog: 27,
-      dictionary: null,
-    },
-    schemas: { posts: POST_FIELDS, comments: COMMENT_FIELDS },
-    files,
+  const manifest = createManifest({
+    communities,
+    windowStart,
+    windowEnd,
     results,
-  };
+    totals,
+    client,
+    files,
+  });
   await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
   console.log(
     JSON.stringify({ event: 'reddit_archive_complete', ...manifest, results: undefined })
