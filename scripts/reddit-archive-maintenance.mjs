@@ -1,7 +1,5 @@
 import { execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { once } from 'node:events';
-import { createReadStream } from 'node:fs';
 import { readFile, stat, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { promisify } from 'node:util';
@@ -22,11 +20,9 @@ function lineText(rows) {
 }
 
 async function sha256(path) {
-  const hash = createHash('sha256');
-  const stream = createReadStream(path);
-  stream.on('data', (chunk) => hash.update(chunk));
-  await once(stream, 'end');
-  return hash.digest('hex');
+  return createHash('sha256')
+    .update(await readFile(path))
+    .digest('hex');
 }
 
 async function decompress(path, outputPath) {
