@@ -246,6 +246,17 @@ describe('brief headline extraction', () => {
       )
     ).toBe('A federal judge vacated the supply-chain designation.');
   });
+
+  it('truncates long headlines at a word boundary', () => {
+    const headline = headlineFromBody(
+      `## What changed\n${'A material regulatory development with independently verified consequences '.repeat(4)}`,
+      'Anthropic'
+    );
+
+    expect(headline.length).toBeLessThanOrEqual(161);
+    expect(headline).toMatch(/…$/);
+    expect(headline).not.toMatch(/ consequ…$/);
+  });
 });
 
 describe('brief editorial quality', () => {

@@ -153,12 +153,13 @@ export function headlineFromBody(bodyMd: string, fallback: string): string {
     return text && !/^(what changed|why it matters|uncertainty|risks?)[:?]?$/i.test(text);
   });
   if (!firstLine) return fallback;
-  return (
-    firstLine
-      .replace(/^#+\s*/, '')
-      .trim()
-      .slice(0, 180) || fallback
-  );
+  const headline = firstLine.replace(/^#+\s*/, '').trim();
+  if (!headline) return fallback;
+  if (headline.length <= 160) return headline;
+
+  const wordBoundary = headline.slice(0, 161).lastIndexOf(' ');
+  const cutoff = wordBoundary >= 120 ? wordBoundary : 160;
+  return `${headline.slice(0, cutoff).replace(/[,:;\-–—]+$/, '')}…`;
 }
 
 export function renderFromSeed(productId: string): {
