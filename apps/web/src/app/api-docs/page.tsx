@@ -33,7 +33,7 @@ const ENDPOINTS: Endpoint[] = [
     path: 'https://api.highsignal.app/data/daily',
     format: 'JSON',
     description:
-      'Complete UTC daily dump of published signals, linked evidence events, and the separate Digg attention overlay. Add ?date=YYYY-MM-DD for an archive day.',
+      'Complete UTC daily dump of published signals, linked evidence events, and the separate Digg attention overlay. `withheldCount` reports rows that were published but held back by the publishability gate, so signalCount 0 is distinguishable from a withheld day. Add ?date=YYYY-MM-DD for an archive day.',
   },
   {
     path: '/signals/random',

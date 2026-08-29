@@ -23,7 +23,7 @@ The product has three source inventories with different jobs:
 - The Python ingestion catalog has 55 source families: 36 keyless, 6 free-key,
   12 optional-key, and 1 credential-marked parked path. They produce evidence,
   context, entities, or numeric series for the shared publication pipeline.
-  Operational cadence is explicit: 21 Daily Brief, 3 context, 14 weekly, 3
+  Operational cadence is explicit: 28 Daily Brief, 3 context, 7 weekly, 3
   monthly, 5 on-demand, 2 manual enrichment, and 7 parked sources.
 - The public Sources directory has 69 operator-curated Reddit, Hacker News,
   GitHub-issue, and RSS searches. The 2026-08-25 refresh attempted all 69:
@@ -146,7 +146,7 @@ daily-brief insights. Pipeline jobs are only the mechanism that runs them.
 
 | Pipeline | Status | Plain name | What it contains | How we use it |
 | --- | --- | --- | --- | --- |
-| Python ingest, `cron-ingest` | Connected | Daily source fetcher | `pipeline --source all --days 1` over the bounded 21-source Daily Brief core | Creates raw events, clusters by entity, drafts signal markdown, pushes ingest audit rows |
+| Python ingest, `cron-ingest` | Connected | Daily source fetcher | `pipeline --source all --days 1` over the bounded 28-source Daily Brief core | Creates raw events, clusters by entity, drafts signal markdown, pushes ingest audit rows |
 | Source cadence ingest | Scheduled | Context / weekly / monthly collection | Fetch-only daily context plus named `weekly` and `monthly` selectors | Preserves slower or calibration data without making all adapters daily candidates |
 | Prediction markets, `cron-markets` | Connected | Forecast poller | Manifold / Polymarket / Kalshi probability events and quotes | Context and calibration only; prediction-market-only evidence is killed |
 | Equities daily snapshot, `cron-equities` | Connected | Stock/market price snapshot | Equity / ETF / index / crypto end-of-day closes through the yfinance snapshot path | Single stock-price ingress; builds market and price context bundles |

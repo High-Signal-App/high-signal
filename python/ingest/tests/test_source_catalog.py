@@ -64,9 +64,9 @@ def test_operational_metadata_is_complete_and_honest() -> None:
         "manual",
         "parked",
     }
-    assert sum(row["cadence"] == "daily" for row in rows.values()) == 21
+    assert sum(row["cadence"] == "daily" for row in rows.values()) == 28
     assert sum(row["cadence"] == "context" for row in rows.values()) == 3
-    assert sum(row["cadence"] == "weekly" for row in rows.values()) == 14
+    assert sum(row["cadence"] == "weekly" for row in rows.values()) == 7
     assert sum(row["cadence"] == "monthly" for row in rows.values()) == 3
     assert sum(row["cadence"] == "on_demand" for row in rows.values()) == 5
     assert sum(row["cadence"] == "manual" for row in rows.values()) == 2

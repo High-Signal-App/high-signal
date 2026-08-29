@@ -778,8 +778,36 @@ def _fallback_drafts_enabled() -> bool:
     return not bool(os.environ.get("AI_API_KEY") or os.environ.get("HF_TOKEN"))
 
 
-def _has_publishable_proofs(candidate: SignalCandidate) -> bool:
-    """Require two aligned origins from independent providers before emitting a draft."""
+@dataclass(frozen=True)
+class ProofVerdict:
+    """Why one generated candidate did or did not clear the proof gate."""
+
+    ok: bool
+    reason: str
+    distinct_urls: int
+    distinct_origins: int
+    distinct_providers: int
+    authoritative_only: bool
+
+
+def _authoritative_source_types() -> frozenset[str]:
+    """Catalog sources that carry the cite-or-kill official-source bar."""
+    return frozenset(entry.id for entry in source_catalog.CATALOG if entry.official)
+
+
+def _proof_verdict(candidate: SignalCandidate) -> ProofVerdict:
+    """Require two aligned, independently originated proofs before emitting a draft.
+
+    Distinct evidentiary origin stays necessary: syndicated copies of one
+    originating report share an ``originating_evidence_id`` and still count
+    once. Distinct registrable host is necessary only for non-authoritative
+    (news-family) providers, where one host usually means one newsroom. An
+    authoritative primary-document provider publishes independent records from
+    a single host by design -- two separate SEC filings both live on sec.gov --
+    so a shared host there is reported in the receipt, never a rejection.
+    Hostname difference alone remains insufficient for corroboration; it is
+    simply no longer required.
+    """
     urls = {e.url for e in candidate.evidence if e.url}
     verified = [
         e
@@ -790,7 +818,69 @@ def _has_publishable_proofs(candidate: SignalCandidate) -> bool:
     ]
     origins = {e.originating_evidence_id for e in verified}
     providers = {_host_key(e.url) for e in verified if e.url}
-    return len(urls) >= 2 and len(origins) >= 2 and len(providers) >= 2
+    authoritative = _authoritative_source_types()
+    official_only = bool(verified) and all(e.source_type in authoritative for e in verified)
+    counts = (len(urls), len(origins), len(providers), official_only)
+    if len(urls) < 2:
+        return ProofVerdict(False, "thin_evidence_urls", *counts)
+    if len(origins) < 2:
+        return ProofVerdict(False, "single_evidentiary_origin", *counts)
+    if len(providers) < 2 and not official_only:
+        return ProofVerdict(False, "single_provider", *counts)
+    return ProofVerdict(True, "proofs_verified", *counts)
+
+
+def _has_publishable_proofs(candidate: SignalCandidate) -> bool:
+    """Boolean face of :func:`_proof_verdict` for call sites that only branch."""
+    return _proof_verdict(candidate).ok
+
+
+PROOF_TALLY_KEYS = (
+    "candidates_generated",
+    "candidates_rejected_no_proof",
+    "candidates_rejected_thin_evidence_urls",
+    "candidates_rejected_single_evidentiary_origin",
+    "candidates_rejected_single_provider",
+    "candidates_admitted_single_provider_authoritative",
+)
+
+
+def new_proof_tally() -> dict[str, int]:
+    """Zeroed counters so a receipt always reports every rejection reason."""
+    return dict.fromkeys(PROOF_TALLY_KEYS, 0)
+
+
+def record_proof(candidate: SignalCandidate, tally: dict[str, int]) -> bool:
+    """Score one candidate against the proof gate and count the outcome."""
+    verdict = _proof_verdict(candidate)
+    tally["candidates_generated"] += 1
+    if not verdict.ok:
+        tally["candidates_rejected_no_proof"] += 1
+        tally[f"candidates_rejected_{verdict.reason}"] += 1
+        return False
+    if verdict.distinct_providers < 2:
+        tally["candidates_admitted_single_provider_authoritative"] += 1
+    return True
+
+
+def zero_draft_alert(result: dict) -> str | None:
+    """A GitHub-annotated line when a run fetched events yet drafted nothing.
+
+    A zero-draft day is otherwise indistinguishable from a healthy one: the
+    exit code is 0 and ``errors`` is 0. Emitting an annotation makes the
+    drought visible in the workflow run without failing the scheduled chain.
+    """
+    if result.get("signals_drafted", 0) > 0 or result.get("events", 0) <= 0:
+        return None
+    return (
+        "::warning title=zero signal drafts::"
+        f"{result.get('events', 0)} events produced 0 drafts "
+        f"(generated={result.get('candidates_generated', 0)}, "
+        f"rejected_no_proof={result.get('candidates_rejected_no_proof', 0)}, "
+        f"low_cluster={result.get('events_low_cluster', 0)}, "
+        f"no_entity={result.get('events_no_entity', 0)}, "
+        f"errors={result.get('errors', 0)})"
+    )
 
 
 def run(source: Source, days: int, *, generate_signals: bool = True) -> dict:
@@ -872,12 +962,14 @@ def run(source: Source, days: int, *, generate_signals: bool = True) -> dict:
             "events_no_entity": no_entity,
             "events_low_cluster": 0,
             "signals_drafted": 0,
+            **new_proof_tally(),
             "errors": errors,
             "paths": [],
         }
 
     written: list[str] = []
     fallback_clusters: list[tuple[str, list[Event]]] = []
+    proof_tally = new_proof_tally()
 
     # Separate entity buckets into individual stories. Only stories with two
     # candidate origins reach generation; small stories share an LLM request
@@ -894,7 +986,7 @@ def run(source: Source, days: int, *, generate_signals: bool = True) -> dict:
                 error_sample = f"generate {entity_id}: {exc}"[:300]
             fallback_clusters.append((entity_id, evs))
             continue
-        if cand and _has_publishable_proofs(cand):
+        if cand and record_proof(cand, proof_tally):
             written.append(emit(cand))
         else:
             fallback_clusters.append((entity_id, evs))
@@ -918,7 +1010,7 @@ def run(source: Source, days: int, *, generate_signals: bool = True) -> dict:
         # Map candidates back by story id; repeated entity ids remain distinct.
         emitted_cluster_ids = set()
         for cand in cands:
-            if not _has_publishable_proofs(cand):
+            if not record_proof(cand, proof_tally):
                 continue
             written.append(emit(cand))
             if cand.source_cluster_id:
@@ -946,7 +1038,9 @@ def run(source: Source, days: int, *, generate_signals: bool = True) -> dict:
         signals_drafted=len(written),
         errors=errors,
         error_sample=error_sample,
-        notes=f"fetch_run_id={fetch_run_id}",
+        notes=";".join(
+            [f"fetch_run_id={fetch_run_id}", *(f"{k}={v}" for k, v in proof_tally.items())]
+        ),
     )
 
     return {
@@ -957,6 +1051,7 @@ def run(source: Source, days: int, *, generate_signals: bool = True) -> dict:
         "events_no_entity": no_entity,
         "events_low_cluster": low_cluster,
         "signals_drafted": len(written),
+        **proof_tally,
         "errors": errors,
         "paths": written,
     }
@@ -989,6 +1084,9 @@ def main() -> None:
         print(json.dumps(out, default=str))
     else:
         print(out)
+    alert = zero_draft_alert(out)
+    if alert:
+        print(alert, file=sys.stderr)
     # Non-zero exit when no events landed AND nothing was drafted, so a
     # silent-failure cron tick surfaces in Modal alerts without parsing logs.
     if out["events"] == 0 and out["signals_drafted"] == 0 and out["errors"] > 0:

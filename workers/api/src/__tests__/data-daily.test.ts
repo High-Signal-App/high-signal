@@ -6,6 +6,7 @@ import {
   materialEvidenceInputReceipt,
   resolveDailyDate,
 } from '../routes/data';
+import { partitionPublishable } from '../lib/signal-quality';
 
 const fetcher = app as unknown as {
   fetch(request: Request, env?: Record<string, unknown>): Promise<Response>;
@@ -70,6 +71,32 @@ describe('daily dump contract', () => {
         { source: 'reddit:technology', count: 50, latestIngestedAt: 200 },
       ])
     ).toEqual({ count: 5, latestIngestedAt: 100 });
+  });
+
+  it('reports withheld rows so an empty day is distinguishable from a withheld one', () => {
+    const rows = [
+      { id: 'a', publishable: true },
+      { id: 'b', publishable: false },
+      { id: 'c', publishable: false },
+    ];
+    const { published, withheldCount } = partitionPublishable(rows);
+
+    // What is served is unchanged: withheld rows never enter the payload.
+    expect(published.map((signal) => signal.id)).toEqual(['a']);
+    expect(withheldCount).toBe(2);
+  });
+
+  it('separates "nothing published" from "everything withheld"', () => {
+    // 2026-08-15 in production: 4 rows published, all withheld, signalCount 0.
+    expect(partitionPublishable([])).toEqual({ published: [], withheldCount: 0 });
+    expect(
+      partitionPublishable([
+        { publishable: false },
+        { publishable: false },
+        { publishable: false },
+        { publishable: false },
+      ]).withheldCount
+    ).toBe(4);
   });
 
   it('returns 400 for an invalid date before reading D1', async () => {
