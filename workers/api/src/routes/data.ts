@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { and, desc, eq, gte, inArray, like, lt, or, sql } from 'drizzle-orm';
 import { istDay, istDayRange } from '@high-signal/shared';
 import { db, schema } from '../db';
-import { enrichPublishedSignals } from '../lib/signal-quality';
+import { enrichPublishedSignals, partitionPublishable } from '../lib/signal-quality';
 import sourceCatalog from '../lib/source-catalog.json';
 import { buildDiggAttention, tryGetPrecomputedSnapshot } from './brief/query';
 
@@ -193,8 +193,8 @@ dataRoute.get('/daily', async (c) => {
     )
     .orderBy(desc(schema.signals.publishedAt));
 
-  const signals = (await enrichPublishedSignals(c.env.DB, rows)).filter(
-    (signal) => signal.publishable
+  const { published: signals, withheldCount } = partitionPublishable(
+    await enrichPublishedSignals(c.env.DB, rows)
   );
 
   const evidenceInputReceipt = await loadMaterialEvidenceInputReceipt(database, range);
@@ -233,6 +233,7 @@ dataRoute.get('/daily', async (c) => {
         ? new Date(evidenceInputReceipt.latestIngestedAt * 1000).toISOString()
         : null,
       signalCount: signals.length,
+      withheldCount,
       evidenceEventCount: evidenceEvents.length,
       attentionObservationCount,
       attentionAvailable: isToday || archivedBrief?.attentionLeaders !== undefined,

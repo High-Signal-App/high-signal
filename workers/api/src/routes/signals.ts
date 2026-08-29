@@ -7,7 +7,12 @@ import {
   type SignalContentCategory,
 } from '@high-signal/shared';
 import { db, schema } from '../db';
-import { enrichPublishedSignals, enrichSignal, enrichSignals } from '../lib/signal-quality';
+import {
+  enrichPublishedSignals,
+  enrichSignal,
+  enrichSignals,
+  partitionPublishable,
+} from '../lib/signal-quality';
 import { bearerGrant, verifyHistoryGrant } from '../lib/history-access';
 
 type Env = { DB: D1Database; TURNSTILE_SECRET?: string };
@@ -82,12 +87,18 @@ signalsRoute.get('/', async (c) => {
     .limit(status === 'published' ? 500 : category || minQuality ? Math.max(limit, 200) : limit);
   const enrichedRows =
     status === 'published' ? await enrichPublishedSignals(c.env.DB, rows) : enrichSignals(rows);
-  const enriched = enrichedRows
-    .filter((signal) => status !== 'published' || signal.publishable)
+  // Drafts are never subject to the published-surface gate, so nothing is
+  // withheld there. Category/quality filters are the caller's own narrowing
+  // and are deliberately not counted as withholding.
+  const { published: publishableRows, withheldCount } =
+    status === 'published'
+      ? partitionPublishable(enrichedRows)
+      : { published: enrichedRows, withheldCount: 0 };
+  const enriched = publishableRows
     .filter((signal) => !category || signal.contentCategory === category)
     .filter((signal) => !minQuality || signal.qualityScore >= minQuality)
     .slice(0, limit);
-  return c.json({ signals: enriched });
+  return c.json({ signals: enriched, withheldCount });
 });
 
 signalsRoute.get('/facets', async (c) => {
@@ -112,8 +123,10 @@ signalsRoute.get('/facets', async (c) => {
     .limit(500);
   const categoryCounts = new Map<string, number>();
   const sourceClassCounts = new Map<string, number>();
-  const enrichedRecent = await enrichPublishedSignals(c.env.DB, recentRows);
-  for (const signal of enrichedRecent.filter((signal) => signal.publishable)) {
+  const { published: publishableRecent, withheldCount } = partitionPublishable(
+    await enrichPublishedSignals(c.env.DB, recentRows)
+  );
+  for (const signal of publishableRecent) {
     categoryCounts.set(
       signal.contentCategory,
       (categoryCounts.get(signal.contentCategory) ?? 0) + 1
@@ -133,6 +146,7 @@ signalsRoute.get('/facets', async (c) => {
     topEntities: entities.results ?? [],
     categories: toFacet(categoryCounts),
     sourceClasses: toFacet(sourceClassCounts),
+    withheldCount,
   });
 });
 
@@ -260,6 +274,8 @@ signalsRoute.get('/by-entity/:entityId', async (c) => {
     .from(schema.signals)
     .where(and(...conditions))
     .orderBy(desc(schema.signals.publishedAt));
-  const enriched = await enrichPublishedSignals(c.env.DB, rows);
-  return c.json({ signals: enriched.filter((signal) => signal.publishable) });
+  const { published, withheldCount } = partitionPublishable(
+    await enrichPublishedSignals(c.env.DB, rows)
+  );
+  return c.json({ signals: published, withheldCount });
 });

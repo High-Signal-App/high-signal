@@ -11,9 +11,9 @@ describe('data source directory contract', () => {
   it('ships the complete generated catalog with explicit cadence', () => {
     expect(sourceCatalog.count).toBe(55);
     expect(sourceCatalog.sources).toHaveLength(55);
-    expect(sourceCatalog.sources.filter((source) => source.cadence === 'daily')).toHaveLength(21);
+    expect(sourceCatalog.sources.filter((source) => source.cadence === 'daily')).toHaveLength(28);
     expect(sourceCatalog.sources.filter((source) => source.cadence === 'context')).toHaveLength(3);
-    expect(sourceCatalog.sources.filter((source) => source.cadence === 'weekly')).toHaveLength(14);
+    expect(sourceCatalog.sources.filter((source) => source.cadence === 'weekly')).toHaveLength(7);
     expect(sourceCatalog.sources.filter((source) => source.cadence === 'monthly')).toHaveLength(3);
     expect(sourceCatalog.sources.filter((source) => source.cadence === 'on_demand')).toHaveLength(
       5

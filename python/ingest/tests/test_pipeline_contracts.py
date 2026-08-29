@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 from high_signal_ingest import generator, pipeline
-from high_signal_ingest.types import Event, SignalCandidate, SourceDocument
+from high_signal_ingest.types import EvidenceItem, Event, SignalCandidate, SourceDocument
 
 
 def _event(
@@ -149,6 +149,186 @@ def test_publishable_proofs_require_independent_providers() -> None:
 
     candidate.evidence[1].url = "https://independent.example/report"
     assert pipeline._has_publishable_proofs(candidate) is True
+
+
+def _proof(
+    url: str,
+    *,
+    source_type: str,
+    origin: str | None,
+    alignment: str = "verified",
+    role: str = "primary",
+) -> EvidenceItem:
+    return EvidenceItem(
+        url=url,
+        source_type=source_type,
+        originating_evidence_id=origin,
+        semantic_alignment=alignment,
+        role=role,
+    )
+
+
+def _candidate(evidence: list[EvidenceItem]) -> SignalCandidate:
+    return SignalCandidate(
+        slug="nvda-proof-gate",
+        signal_type="filing",
+        primary_entity_id="NVDA",
+        direction="up",
+        confidence="medium",
+        predicted_window_days=30,
+        published_at=datetime(2026, 8, 29, tzinfo=timezone.utc),
+        evidence=evidence,
+        body_md="body",
+    )
+
+
+def test_two_authoritative_origins_on_one_host_are_corroboration() -> None:
+    """Two independent SEC filings both live on sec.gov and must not be rejected."""
+    candidate = _candidate(
+        [
+            _proof(
+                "https://www.sec.gov/Archives/edgar/data/1045810/8-k.htm",
+                source_type="edgar",
+                origin="edgar-8k",
+            ),
+            _proof(
+                "https://data.sec.gov/api/xbrl/frames/Revenues.json",
+                source_type="sec-xbrl",
+                origin="xbrl-frame",
+                role="corroboration",
+            ),
+        ]
+    )
+    verdict = pipeline._proof_verdict(candidate)
+    assert verdict.distinct_providers == 1
+    assert verdict.authoritative_only is True
+    assert verdict.reason == "proofs_verified"
+    assert pipeline._has_publishable_proofs(candidate) is True
+
+
+def test_single_origin_still_fails_on_authoritative_sources() -> None:
+    candidate = _candidate(
+        [
+            _proof(
+                "https://www.sec.gov/Archives/edgar/data/1045810/8-k.htm",
+                source_type="edgar",
+                origin="edgar-8k",
+            ),
+            _proof(
+                "https://www.sec.gov/Archives/edgar/data/1045810/8-k-exhibit.htm",
+                source_type="edgar",
+                origin="edgar-8k",
+                role="corroboration",
+            ),
+        ]
+    )
+    assert pipeline._proof_verdict(candidate).reason == "single_evidentiary_origin"
+    assert pipeline._has_publishable_proofs(candidate) is False
+
+
+def test_one_verified_proof_plus_context_still_fails() -> None:
+    candidate = _candidate(
+        [
+            _proof(
+                "https://www.sec.gov/Archives/edgar/data/1045810/8-k.htm",
+                source_type="edgar",
+                origin="edgar-8k",
+            ),
+            _proof(
+                "https://blog.example/commentary",
+                source_type="news",
+                origin="commentary",
+                role="context",
+            ),
+        ]
+    )
+    assert pipeline._proof_verdict(candidate).reason == "single_evidentiary_origin"
+    assert pipeline._has_publishable_proofs(candidate) is False
+
+
+def test_unverified_proofs_still_fail() -> None:
+    candidate = _candidate(
+        [
+            _proof(
+                "https://www.sec.gov/Archives/edgar/data/1045810/8-k.htm",
+                source_type="edgar",
+                origin="edgar-8k",
+                alignment="unverified",
+            ),
+            _proof(
+                "https://data.sec.gov/api/xbrl/frames/Revenues.json",
+                source_type="sec-xbrl",
+                origin="xbrl-frame",
+                alignment="unverified",
+                role="corroboration",
+            ),
+        ]
+    )
+    assert pipeline._proof_verdict(candidate).reason == "single_evidentiary_origin"
+    assert pipeline._has_publishable_proofs(candidate) is False
+
+
+def test_news_family_still_requires_distinct_hosts() -> None:
+    """Demoting the host clause is scoped to authoritative providers only."""
+    candidate = _candidate(
+        [
+            _proof("https://news.example/one", source_type="news", origin="story-one"),
+            _proof(
+                "https://news.example/two",
+                source_type="news",
+                origin="story-two",
+                role="corroboration",
+            ),
+        ]
+    )
+    assert pipeline._proof_verdict(candidate).reason == "single_provider"
+    assert pipeline._has_publishable_proofs(candidate) is False
+
+
+def test_proof_tally_counts_generation_and_rejection_reasons() -> None:
+    tally = pipeline.new_proof_tally()
+    assert set(tally) == set(pipeline.PROOF_TALLY_KEYS)
+    assert all(value == 0 for value in tally.values())
+
+    passing = _candidate(
+        [
+            _proof("https://www.sec.gov/a", source_type="edgar", origin="one"),
+            _proof("https://data.sec.gov/b", source_type="sec-xbrl", origin="two"),
+        ]
+    )
+    rejected = _candidate(
+        [
+            _proof("https://news.example/one", source_type="news", origin="same"),
+            _proof("https://news.example/two", source_type="news", origin="same"),
+        ]
+    )
+    assert pipeline.record_proof(passing, tally) is True
+    assert pipeline.record_proof(rejected, tally) is False
+
+    assert tally["candidates_generated"] == 2
+    assert tally["candidates_rejected_no_proof"] == 1
+    assert tally["candidates_rejected_single_evidentiary_origin"] == 1
+    assert tally["candidates_admitted_single_provider_authoritative"] == 1
+
+
+def test_zero_draft_alert_fires_only_on_a_silent_drought() -> None:
+    alert = pipeline.zero_draft_alert(
+        {
+            "events": 2274,
+            "signals_drafted": 0,
+            "errors": 0,
+            "candidates_generated": 40,
+            "candidates_rejected_no_proof": 40,
+            "events_low_cluster": 523,
+            "events_no_entity": 1587,
+        }
+    )
+    assert alert is not None
+    assert alert.startswith("::warning title=zero signal drafts::")
+    assert "rejected_no_proof=40" in alert
+
+    assert pipeline.zero_draft_alert({"events": 2274, "signals_drafted": 3}) is None
+    assert pipeline.zero_draft_alert({"events": 0, "signals_drafted": 0}) is None
 
 
 def test_cluster_separates_unrelated_stories_for_same_entity(monkeypatch) -> None:

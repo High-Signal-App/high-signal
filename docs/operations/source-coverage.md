@@ -31,7 +31,7 @@ Every generated insight should answer:
 This is the launch-ready insight product.
 
 Retain the following launch adapters. The generated source catalog owns their
-execution cadence; only its 21-source `daily` group participates in the Daily
+execution cadence; only its 28-source `daily` group participates in the Daily
 Brief candidate run:
 
 - `news` — RSS plus article extraction from seeded AI-infra / semiconductor sources.
@@ -56,7 +56,7 @@ Brief candidate run:
 - `packages` — curated npm/PyPI release and OSV advisory events tied to tracked developer tools and AI packages.
 - `jobs` — curated Greenhouse/Lever/Ashby job-board events as leading startup capital and product-focus indicators.
 - `huggingface` — public Hub model/dataset activity; useful for ecosystem adoption and model-distribution drift.
-- `nvd` — weekly curated CVE queries for tracked security/devtool products;
+- `nvd` — daily curated CVE queries for tracked security/devtool products;
   lower priority than CISA KEV unless corroborated.
 - `guardian` — parked mainstream-news lane because licensing is restricted and
   its coverage duplicates the curated news path.
@@ -64,12 +64,12 @@ Brief candidate run:
   redirects to USPTO ODP, whose current access requires a USPTO account, MFA,
   completed ODP profile, and API key. It is excluded from daily and default
   backfill runs; reopen only when expected patent yield justifies that overhead.
-- `gov-contracts` — weekly SBIR public awards plus optional-key SAM.gov
+- `gov-contracts` — daily SBIR public awards plus optional-key SAM.gov
   opportunity search for federal demand signals.
 - `wikidata` — explicit enrichment/audit source, not included in the daily `--source all` signal run; improves mapping and candidate promotion, not public signal volume.
 - `semantic-scholar` — on-demand research-paper search for technical trend
   corroboration after a candidate exists.
-- `regulations` — weekly Regulations.gov document search for dockets and comment
+- `regulations` — daily Regulations.gov document search for dockets and comment
   windows after a Federal Register notice.
 - `companies-house` — explicit UK company enrichment source, not included in the daily `--source all` signal run.
 - `metaculus` — parked forecast context; the scheduled markets lane already
@@ -77,7 +77,7 @@ Brief candidate run:
 - `podcast-index` — parked metadata-only lane; transcription remains downstream.
 - `macro-rates` — fetch-only daily ECB/FRED context, explicitly not an
   equity-price source or signal candidate.
-- `sec-xbrl` — weekly SEC companyfacts fundamentals for tracked public tickers;
+- `sec-xbrl` — daily SEC companyfacts fundamentals for tracked public tickers;
   market-cap joins must use the equities snapshot source of truth.
 
 ### Source Role Policy
@@ -99,10 +99,14 @@ decision attached.
 Default cadence:
 
 - Daily 02:30 UTC / 08:00 IST: `pipeline --source all --days 1` over the
-  21-source Daily Brief core.
+  28-source Daily Brief core. The authoritative primary-document adapters
+  (`legistar`, `regulations`, `openstates`, `gov-contracts`, `sec-xbrl`, `nvd`,
+  `us-gov-api`) are part of that core: they are the corroboration backbone the
+  proof gate needs, and a weekly cadence starved it.
 - Daily 01:00 UTC: fetch-only `macro-rates` and `crypto-onchain` context.
 - Every 4h: `pipeline --source markets`
-- Weekly Sunday 00:00 UTC: `pipeline --source weekly --days 14`.
+- Weekly Sunday 00:00 UTC: `pipeline --source weekly --days 14` over the
+  7 store/market-aggregate adapters that genuinely move on a weekly scale.
 - Monthly day 1 at 00:30 UTC: `pipeline --source monthly --days 120`.
 - Investigation-only sources run explicitly; parked sources are unscheduled.
 - Daily 22:30 UTC: score matured signals

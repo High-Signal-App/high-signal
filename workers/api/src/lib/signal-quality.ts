@@ -72,6 +72,20 @@ export function enrichSignal<T extends typeof schema.signals.$inferSelect>(
   };
 }
 
+/**
+ * Split enriched rows into what is served and how many were withheld.
+ *
+ * A count of served rows alone cannot distinguish "nothing was published" from
+ * "rows were published and then withheld by the publishability gate". Every
+ * public surface that drops unpublishable rows reports `withheldCount` so a
+ * consumer can tell an empty day from a fully withheld one. Nothing about what
+ * is served changes: withheld rows stay out of the payload.
+ */
+export function partitionPublishable<T extends { publishable: boolean }>(signals: readonly T[]) {
+  const published = signals.filter((signal) => signal.publishable);
+  return { published, withheldCount: signals.length - published.length };
+}
+
 export function enrichSignals<T extends typeof schema.signals.$inferSelect>(signals: T[]) {
   const conflicts = oppositeDirectionConflictIds(signals);
   return signals.map((signal) =>

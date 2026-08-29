@@ -34,7 +34,7 @@ The daily cycle is sequenced so each stage consumes the previous stage's output:
 | --- | --- | --- |
 | 05:47 / 00:17 | `cron-reddit-archive.yml` | Capture one exact prior-24-hour window from the complete curated subreddit roster (currently 99), preserve posts plus relevance-filtered comment trees as compact Zstd-22 JSONL packs in private R2, and publish a compressed event export for High Signal and approved sibling consumers. Manual dispatch can run the 10-community canary on GitHub-hosted infrastructure or the labelled personal side machine. |
 | 06:30 / 01:00 | `cron-source-cadences.yml` | Fetch-only macro-rate and crypto on-chain context; no signal drafting. |
-| 08:00 / 02:30 | `cron-ingest.yml` | Bounded 21-source `--source all --days 1` ingest run → events → draft signals. |
+| 08:00 / 02:30 | `cron-ingest.yml` | Bounded 28-source `--source all --days 1` ingest run → events → draft signals. |
 | 09:00 / 03:30 | `cron-publish.yml` | Mandatory shared publishability gate plus semantic/origin-aware claim judge; then authenticated brief rebuild and reader-facing freshness verification. The workflow cannot stay green with an empty public edition. |
 | 09:30 / 04:00 | `cron-validate-brief.yml` | Assert the edition is dated today in IST and its newest material evidence is under two hours old. |
 | 10:00 / 04:30 | `personal-brief.yml` | Deliver the operator personal command brief after public validation. |
@@ -54,7 +54,7 @@ The daily cycle is sequenced so each stage consumes the previous stage's output:
 
 | Day (UTC) | Workflow | Intent |
 | --- | --- | --- |
-| Sun 00:00 | `cron-source-cadences.yml` | Run the 14-source weekly group with a 14-day recovery window. |
+| Sun 00:00 | `cron-source-cadences.yml` | Run the 7-source weekly group with a 14-day recovery window. |
 | Mon 07:00 | `cron-d2c-opportunities.yml` | India D2C opportunity pipeline (plan 0013): collect community evidence → agent-visibility overlay → persist through the operator API → commit bundled artifact. |
 | Mon 09:00 | `weekly.yml` | Quality check: runs `lint`, `typecheck`, `test`, `build` if the scripts exist. |
 

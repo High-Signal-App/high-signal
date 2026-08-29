@@ -49,22 +49,32 @@ DAILY_SOURCES = frozenset(
         "edgar",
         "github",
         "gov",
+        "gov-contracts",
         "hackernews",
         "hkex",
         "huggingface",
         "india-gov",
         "ir",
         "jobs",
+        "legistar",
         "news",
+        "nvd",
+        "openstates",
         "packages",
         "producthunt",
         "reddit",
+        "regulations",
         "scmp",
+        "sec-xbrl",
         "techmeme",
+        "us-gov-api",
         "us-gov-rss",
     }
 )
 CONTEXT_SOURCES = frozenset({"crypto-onchain", "macro-rates", "markets"})
+# Authoritative primary-document sources (legistar, regulations, openstates,
+# gov-contracts, sec-xbrl, nvd, us-gov-api) are deliberately NOT here: they are
+# the corroboration backbone of the daily funnel and a weekly cadence starved it.
 WEEKLY_SOURCES = frozenset(
     {
         "appstore",
@@ -72,15 +82,8 @@ WEEKLY_SOURCES = frozenset(
         "coingecko",
         "defillama",
         "google-trends",
-        "gov-contracts",
-        "legistar",
         "lobsters",
-        "nvd",
-        "openstates",
         "playstore-reviews",
-        "regulations",
-        "sec-xbrl",
-        "us-gov-api",
     }
 )
 MONTHLY_SOURCES = frozenset({"bls", "eia", "global-macro"})

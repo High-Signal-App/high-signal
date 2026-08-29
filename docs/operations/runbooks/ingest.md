@@ -22,13 +22,33 @@ Launch policy lives in `docs/operations/source-coverage.md`.
 
 Current production cadence:
 
-- `cron-ingest.yml`: daily market signal draft run over the bounded 21-source
+- `cron-ingest.yml`: daily market signal draft run over the bounded 28-source
   `all` group.
 - `cron-source-cadences.yml`: daily fetch-only context plus weekly and monthly
   source groups.
 - `cron-markets.yml`: prediction-market resource polling every 4 hours.
 - `cron-score.yml`: daily scoring for matured signal windows.
 - `backfill.yml`: manual historical replay, usually `gdelt,edgar`.
+
+## Diagnosing a zero-draft day
+
+A zero-draft run exits 0 with `errors: 0`, so it looks like a healthy tick. Two
+things now make the drought readable without opening the LLM logs:
+
+- The run receipt (returned by `pipeline`, and stored in the `ingest_runs.notes`
+  column) carries `candidates_generated`, `candidates_rejected_no_proof`, and a
+  per-clause breakdown: `candidates_rejected_thin_evidence_urls`,
+  `candidates_rejected_single_evidentiary_origin`,
+  `candidates_rejected_single_provider`. `candidates_generated: 0` means the
+  model was never asked or never answered; a high
+  `candidates_rejected_single_evidentiary_origin` means the model returned
+  candidates whose proofs were never marked aligned against distinct origins.
+- `candidates_admitted_single_provider_authoritative` counts drafts that cleared
+  the gate on two authoritative primary documents sharing one host (two SEC
+  filings on `sec.gov`). It is an observation, not a failure.
+- `pipeline` prints a `::warning title=zero signal drafts::` annotation on
+  stderr when a run fetched events yet drafted nothing, so the GitHub run page
+  shows the drought instead of a silent green tick.
 
 Low-confidence drafts are expected. Single-source or weak-source events should
 enter the review queue as `low` confidence instead of disappearing. Medium/high
