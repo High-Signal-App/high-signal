@@ -293,6 +293,7 @@ briefRoute.get('/dates', async (c) => {
         >`max(case when ${schema.dailyBriefSnapshots.region} = 'global' then ${schema.dailyBriefSnapshots.briefJson} end)`,
       })
       .from(schema.dailyBriefSnapshots)
+      // d1-scan: reviewed-unbounded issue=#145 reason=one row per day-region with a 500-date response ceiling
       .groupBy(schema.dailyBriefSnapshots.date)
       .orderBy(desc(schema.dailyBriefSnapshots.date))
       .limit(500);

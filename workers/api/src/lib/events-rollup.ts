@@ -12,16 +12,12 @@
  *
  * Refresh policy:
  *
- *  - A rebuild is a full recompute. There is no incremental merge, so the
- *    rollup can never drift away from `events`.
- *  - A tick that would recompute the identical answer is skipped. That is
- *    decided from two O(1)-ish probes: the table's `max(ingested_at)` (an
- *    index max) and whether any row's `published_at` crossed "now" since the
- *    last rebuild (a bounded range scan of the maturation window). If neither
- *    changed, every per-source aggregate is provably unchanged.
- *  - A rebuild is forced anyway once `ROLLUP_MAX_AGE_SECONDS` has passed, so
- *    an out-of-band `DELETE FROM events` (the documented ingest escape hatch)
- *    self-heals instead of leaving the rollup wrong indefinitely.
+ *  - Bootstrap performs one covering-index scan to seed existing data.
+ *  - Later ticks merge only rows after a stable `(ingested_at, id)` cursor.
+ *  - Future-dated rows that became observable are adjusted with a bounded
+ *    `published_at` range scan.
+ *  - Out-of-band deletes require an explicit repair; a recurring full rebuild
+ *    would recreate the D1 cost problem this rollup exists to remove.
  *
  * Staleness bound: served counts are at most one cron interval old (30 min),
  * the same bound the brief precompute already accepts.
@@ -34,16 +30,14 @@ import { schema } from '../db';
 /** The state table holds exactly one row, pinned to this id. */
 const EVENTS_ROLLUP_STATE_ID = 1;
 
-/** Force a rebuild at least this often even when nothing looks changed. */
-export const ROLLUP_MAX_AGE_SECONDS = 6 * 60 * 60;
-
 export interface EventsRollupState {
   maxIngestedAt: number;
+  maxIngestedId: string;
   rebuiltAt: number;
   refreshedAt: number;
 }
 
-type RollupRefreshReason = 'bootstrap' | 'new_events' | 'matured_events' | 'max_age' | 'unchanged';
+type RollupRefreshReason = 'bootstrap' | 'new_events' | 'matured_events' | 'unchanged';
 
 export interface RollupRefreshResult {
   rebuilt: boolean;
@@ -57,6 +51,7 @@ export async function readEventsRollupState(database: DB): Promise<EventsRollupS
   const [row] = await database
     .select({
       maxIngestedAt: schema.eventsRollupState.maxIngestedAt,
+      maxIngestedId: schema.eventsRollupState.maxIngestedId,
       rebuiltAt: schema.eventsRollupState.rebuiltAt,
       refreshedAt: schema.eventsRollupState.refreshedAt,
     })
@@ -77,11 +72,21 @@ export async function eventsRollupIsReady(database: DB): Promise<boolean> {
   }
 }
 
-async function readMaxIngestedAt(database: DB): Promise<number> {
-  const [row] = await database
-    .select({ maxIngestedAt: sql<number | null>`max(${schema.events.ingestedAt})` })
-    .from(schema.events);
-  return Number(row?.maxIngestedAt ?? 0);
+interface IngestCursor {
+  ingestedAt: number;
+  id: string;
+}
+
+async function readLatestIngestCursor(database: DB): Promise<IngestCursor> {
+  const [row] = await database.all<{ ingestedAt: number; id: string }>(sql`
+    SELECT ingested_at AS ingestedAt, id
+    FROM events INDEXED BY events_ingested_at_idx
+    ORDER BY ingested_at DESC, id DESC
+    LIMIT 1`);
+  return {
+    ingestedAt: Number(row?.ingestedAt ?? 0),
+    id: row?.id ?? '',
+  };
 }
 
 /**
@@ -99,12 +104,15 @@ async function countMaturedSince(database: DB, since: number, now: number): Prom
 
 function decideReason(
   state: EventsRollupState | null,
-  maxIngestedAt: number,
-  now: number
+  cursor: IngestCursor
 ): RollupRefreshReason | 'check_matured' {
-  if (!state || state.rebuiltAt <= 0) return 'bootstrap';
-  if (maxIngestedAt !== state.maxIngestedAt) return 'new_events';
-  if (now - state.rebuiltAt >= ROLLUP_MAX_AGE_SECONDS) return 'max_age';
+  if (!state || state.rebuiltAt <= 0 || !state.maxIngestedId) return 'bootstrap';
+  if (
+    cursor.ingestedAt !== state.maxIngestedAt ||
+    cursor.id !== state.maxIngestedId
+  ) {
+    return 'new_events';
+  }
   return 'check_matured';
 }
 
@@ -121,9 +129,9 @@ export async function refreshEventsSourceRollup(
 ): Promise<RollupRefreshResult> {
   const observedAt = Math.floor(now.getTime() / 1000);
   const state = await readEventsRollupState(database);
-  const maxIngestedAt = await readMaxIngestedAt(database);
+  const cursor = await readLatestIngestCursor(database);
 
-  let reason = decideReason(state, maxIngestedAt, observedAt);
+  let reason = decideReason(state, cursor);
   if (reason === 'check_matured') {
     const matured = await countMaturedSince(database, state?.rebuiltAt ?? 0, observedAt);
     reason = matured > 0 ? 'matured_events' : 'unchanged';
@@ -138,10 +146,47 @@ export async function refreshEventsSourceRollup(
     return { rebuilt: false, reason, sources: 0, observedAt };
   }
 
-  // One D1 batch is one transaction, so readers never observe a half-built
-  // rollup: the delete, the recompute, and the control row land together.
+  if (reason === 'bootstrap') {
+    // One D1 batch is one transaction, so readers never observe a half-built
+    // rollup. This is the only full-table aggregation and runs once after the
+    // migration (or during an explicit repair), never on the recurring cron.
+    const results = await env.DB.batch([
+      env.DB.prepare('DELETE FROM events_source_rollup'),
+      env.DB.prepare(
+        `INSERT INTO events_source_rollup
+         (source, event_count, latest_observed_at, last_ingested_at, future_count, refreshed_at)
+       SELECT source,
+              count(*),
+              max(case when published_at <= ?1 then published_at end),
+              max(ingested_at),
+              sum(case when published_at > ?1 then 1 else 0 end),
+              ?1
+       FROM events
+       -- d1-scan: reviewed-unbounded issue=#145 reason=one-time rollup bootstrap or explicit repair only
+       GROUP BY source`
+      ).bind(observedAt),
+      env.DB.prepare(
+        `INSERT INTO events_rollup_state
+           (id, max_ingested_at, max_ingested_id, rebuilt_at, refreshed_at)
+       VALUES (${EVENTS_ROLLUP_STATE_ID}, ?1, ?2, ?3, ?3)
+       ON CONFLICT(id) DO UPDATE SET
+         max_ingested_at = excluded.max_ingested_at,
+         max_ingested_id = excluded.max_ingested_id,
+         rebuilt_at = excluded.rebuilt_at,
+         refreshed_at = excluded.refreshed_at`
+      ).bind(cursor.ingestedAt, cursor.id, observedAt),
+    ]);
+    const written = results[1]?.meta?.rows_written;
+    return {
+      rebuilt: true,
+      reason,
+      sources: typeof written === 'number' ? written : 0,
+      observedAt,
+    };
+  }
+
+  const previous = state as EventsRollupState;
   const results = await env.DB.batch([
-    env.DB.prepare('DELETE FROM events_source_rollup'),
     env.DB.prepare(
       `INSERT INTO events_source_rollup
          (source, event_count, latest_observed_at, last_ingested_at, future_count, refreshed_at)
@@ -151,24 +196,59 @@ export async function refreshEventsSourceRollup(
               max(ingested_at),
               sum(case when published_at > ?1 then 1 else 0 end),
               ?1
-       FROM events
-       GROUP BY source`
-    ).bind(observedAt),
-    env.DB.prepare(
-      `INSERT INTO events_rollup_state (id, max_ingested_at, rebuilt_at, refreshed_at)
-       VALUES (${EVENTS_ROLLUP_STATE_ID}, ?1, ?2, ?2)
-       ON CONFLICT(id) DO UPDATE SET
-         max_ingested_at = excluded.max_ingested_at,
-         rebuilt_at = excluded.rebuilt_at,
+       FROM events INDEXED BY events_ingested_at_idx
+       WHERE ingested_at > ?2 OR (ingested_at = ?2 AND id > ?3)
+       GROUP BY source
+       ON CONFLICT(source) DO UPDATE SET
+         event_count = events_source_rollup.event_count + excluded.event_count,
+         latest_observed_at = CASE
+           WHEN events_source_rollup.latest_observed_at IS NULL THEN excluded.latest_observed_at
+           WHEN excluded.latest_observed_at IS NULL THEN events_source_rollup.latest_observed_at
+           ELSE max(events_source_rollup.latest_observed_at, excluded.latest_observed_at)
+         END,
+         last_ingested_at = max(events_source_rollup.last_ingested_at, excluded.last_ingested_at),
+         future_count = events_source_rollup.future_count + excluded.future_count,
          refreshed_at = excluded.refreshed_at`
-    ).bind(maxIngestedAt, observedAt),
+    ).bind(observedAt, previous.maxIngestedAt, previous.maxIngestedId),
+    env.DB.prepare(
+      `INSERT INTO events_source_rollup
+         (source, event_count, latest_observed_at, last_ingested_at, future_count, refreshed_at)
+       SELECT source, 0, max(published_at), max(ingested_at), -count(*), ?1
+       FROM events
+       WHERE published_at > ?2 AND published_at <= ?1
+         AND (ingested_at < ?3 OR (ingested_at = ?3 AND id <= ?4))
+       GROUP BY source
+       ON CONFLICT(source) DO UPDATE SET
+         latest_observed_at = CASE
+           WHEN events_source_rollup.latest_observed_at IS NULL THEN excluded.latest_observed_at
+           ELSE max(events_source_rollup.latest_observed_at, excluded.latest_observed_at)
+         END,
+         future_count = max(0, events_source_rollup.future_count + excluded.future_count),
+         refreshed_at = excluded.refreshed_at`
+    ).bind(
+      observedAt,
+      previous.rebuiltAt,
+      previous.maxIngestedAt,
+      previous.maxIngestedId
+    ),
+    env.DB.prepare(
+      `UPDATE events_rollup_state
+       SET max_ingested_at = ?1,
+           max_ingested_id = ?2,
+           rebuilt_at = ?3,
+           refreshed_at = ?3
+       WHERE id = ${EVENTS_ROLLUP_STATE_ID}`
+    ).bind(cursor.ingestedAt, cursor.id, observedAt),
   ]);
 
-  const written = results[1]?.meta?.rows_written;
+  const touched = results.slice(0, 2).reduce((sum, result) => {
+    const rows = result?.meta?.rows_written;
+    return sum + (typeof rows === 'number' ? rows : 0);
+  }, 0);
   return {
     rebuilt: true,
     reason,
-    sources: typeof written === 'number' ? written : 0,
+    sources: touched,
     observedAt,
   };
 }

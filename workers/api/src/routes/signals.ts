@@ -14,6 +14,7 @@ import {
   partitionPublishable,
 } from '../lib/signal-quality';
 import { bearerGrant, verifyHistoryGrant } from '../lib/history-access';
+import { buildSignalFacets } from '../lib/signal-facets';
 
 type Env = { DB: D1Database; TURNSTILE_SECRET?: string };
 
@@ -102,50 +103,18 @@ signalsRoute.get('/', async (c) => {
 });
 
 signalsRoute.get('/facets', async (c) => {
-  // Aggregate counts for filter chips
-  const types = (await c.env.DB.prepare(
-    `SELECT signal_type as k, count(*) as n FROM signals WHERE review_status='published' AND body_md NOT LIKE '> _backfill_%' GROUP BY signal_type ORDER BY n DESC`
-  ).all()) as { results: Array<{ k: string; n: number }> };
-  const dirs = (await c.env.DB.prepare(
-    `SELECT direction as k, count(*) as n FROM signals WHERE review_status='published' AND body_md NOT LIKE '> _backfill_%' GROUP BY direction`
-  ).all()) as { results: Array<{ k: string; n: number }> };
-  const confs = (await c.env.DB.prepare(
-    `SELECT confidence as k, count(*) as n FROM signals WHERE review_status='published' AND body_md NOT LIKE '> _backfill_%' GROUP BY confidence`
-  ).all()) as { results: Array<{ k: string; n: number }> };
-  const entities = (await c.env.DB.prepare(
-    `SELECT primary_entity_id as k, count(*) as n FROM signals WHERE review_status='published' AND body_md NOT LIKE '> _backfill_%' GROUP BY primary_entity_id ORDER BY n DESC LIMIT 20`
-  ).all()) as { results: Array<{ k: string; n: number }> };
   const recentRows = await db(c.env.DB)
     .select()
     .from(schema.signals)
     .where(and(eq(schema.signals.reviewStatus, 'published'), notBackfill()))
     .orderBy(desc(schema.signals.publishedAt))
     .limit(500);
-  const categoryCounts = new Map<string, number>();
-  const sourceClassCounts = new Map<string, number>();
   const { published: publishableRecent, withheldCount } = partitionPublishable(
     await enrichPublishedSignals(c.env.DB, recentRows)
   );
-  for (const signal of publishableRecent) {
-    categoryCounts.set(
-      signal.contentCategory,
-      (categoryCounts.get(signal.contentCategory) ?? 0) + 1
-    );
-    for (const sourceClass of signal.sourceClasses) {
-      sourceClassCounts.set(sourceClass, (sourceClassCounts.get(sourceClass) ?? 0) + 1);
-    }
-  }
-  const toFacet = (counts: Map<string, number>) =>
-    Array.from(counts.entries())
-      .map(([k, n]) => ({ k, n }))
-      .sort((a, b) => b.n - a.n || a.k.localeCompare(b.k));
+  const facets = buildSignalFacets(publishableRecent);
   return c.json({
-    types: types.results ?? [],
-    directions: dirs.results ?? [],
-    confidences: confs.results ?? [],
-    topEntities: entities.results ?? [],
-    categories: toFacet(categoryCounts),
-    sourceClasses: toFacet(sourceClassCounts),
+    ...facets,
     withheldCount,
   });
 });

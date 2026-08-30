@@ -114,7 +114,7 @@ export const events = sqliteTable(
     index('events_fetch_run_idx').on(t.fetchRunId),
     // Migration 0025. `(ingested_at, source)` bounds the Daily Brief's
     // material-evidence receipt to one day instead of scanning the table.
-    index('events_ingested_at_idx').on(t.ingestedAt, t.source),
+    index('events_ingested_at_idx').on(t.ingestedAt, t.id, t.source, t.publishedAt),
     // Migration 0025. Covering index for the per-source rollup rebuild.
     index('events_source_rollup_idx').on(t.source, t.publishedAt, t.ingestedAt),
   ]
@@ -145,6 +145,7 @@ export const eventsSourceRollup = sqliteTable('events_source_rollup', {
 export const eventsRollupState = sqliteTable('events_rollup_state', {
   id: integer('id').primaryKey(),
   maxIngestedAt: integer('max_ingested_at').notNull().default(0),
+  maxIngestedId: text('max_ingested_id').notNull().default(''),
   rebuiltAt: integer('rebuilt_at').notNull().default(0),
   refreshedAt: integer('refreshed_at').notNull().default(0),
 });

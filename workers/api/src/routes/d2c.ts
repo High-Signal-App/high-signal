@@ -35,7 +35,7 @@ import {
   type D2CEvidenceItem,
 } from '@high-signal/shared';
 import { db, schema } from '../db';
-import { FREE_AI_DEFAULT_ENDPOINT, fetchChatCompletion } from '../lib/ai-client';
+import { generateChatCompletion } from '../lib/ai-client';
 
 type Env = {
   DB: D1Database;
@@ -448,8 +448,14 @@ d2cRoute.post('/agent-visibility/run', async (c) => {
       503
     );
   }
-  const model = c.env.HIGH_SIGNAL_AI_MODEL || 'auto';
-  const endpointUrl = c.env.HIGH_SIGNAL_AI_ENDPOINT_URL || FREE_AI_DEFAULT_ENDPOINT;
+  const model = c.env.HIGH_SIGNAL_AI_MODEL;
+  const endpointUrl = c.env.HIGH_SIGNAL_AI_ENDPOINT_URL;
+  if (!model || !endpointUrl) {
+    return c.json(
+      { error: 'AI endpoint not configured. Set HIGH_SIGNAL_AI_ENDPOINT_URL and HIGH_SIGNAL_AI_MODEL.' },
+      503
+    );
+  }
   let limit = 20;
   try {
     const body = await c.req.json<{ limit?: number }>();
@@ -468,22 +474,12 @@ d2cRoute.post('/agent-visibility/run', async (c) => {
     const userPrompt = buildAgentVisibilityPrompt(seed);
     let responseText = '';
     try {
-      const aiRes = await fetchChatCompletion({
+      responseText = await generateChatCompletion({
         config: { endpointUrl, apiKey, model },
         messages: [{ role: 'user', content: userPrompt }],
         systemPrompt,
         maxTokens: 600,
-        stream: false,
-        headers: { 'X-Gateway-Project-Id': 'high-signal' },
       });
-      if (aiRes.ok) {
-        const data = (await aiRes.json()) as {
-          choices?: Array<{ message?: { content?: string } }>;
-        };
-        responseText = data.choices?.[0]?.message?.content ?? '';
-      } else {
-        console.warn(`[d2c:av-run] AI call failed for ${seed.slug}: ${aiRes.status}`);
-      }
     } catch (error) {
       console.warn(`[d2c:av-run] AI call threw for ${seed.slug}:`, (error as Error).message);
     }
@@ -491,7 +487,7 @@ d2cRoute.post('/agent-visibility/run', async (c) => {
     const urls = extractCitedUrls(responseText);
     entries.push({
       nicheSlug: seed.slug,
-      platform: 'free-ai-gateway',
+      platform: 'direct-free-provider',
       model,
       promptText: userPrompt,
       responseText,

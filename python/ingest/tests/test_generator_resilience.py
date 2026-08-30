@@ -29,6 +29,7 @@ def _run_with_transport(
     """Patch httpx.post to use the mock transport and run _ai_complete."""
     monkeypatch.setenv("AI_API_KEY", "test-key")
     monkeypatch.setenv("AI_BASE_URL", "https://test-gateway.example/v1")
+    monkeypatch.setenv("AI_MODEL", "test-model")
     monkeypatch.setenv("AI_RETRIES", "2")
     monkeypatch.setenv("AI_BACKOFF_BASE", "0.01")
     monkeypatch.setenv("AI_BACKOFF_CAP", "0.05")

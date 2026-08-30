@@ -9,7 +9,7 @@ generalised beyond Reddit.
 Scoring is deterministic (no RAG, no LLM call) — keyword relevance + buying /
 pain intent (reused from `analysis.lightweight_nlp`) + recency.
 
-Optional **reply drafts** (`draft_reply`) use the OpenAI-compatible AI gateway
+Optional **reply drafts** (`draft_reply`) use an explicitly configured OpenAI-compatible endpoint
 to suggest a genuinely-helpful reply the *operator* can review and post — these
 are suggestions, not auto-posts (High Signal is intelligence, not an
 auto-engagement bot). Returns ``None`` without an API key. SEO-ranking detection
@@ -128,22 +128,22 @@ def run(keywords: list[str], source: str, days: int, min_score: int) -> list[Opp
 
 
 def _complete_text(system: str, user: str) -> str | None:
-    """Lean OpenAI-compatible text completion (same gateway as the generator).
+    """Lean OpenAI-compatible text completion (same endpoint as the generator).
 
     Returns ``None`` when no key is configured or the call fails — callers
     degrade gracefully (no reply draft rather than a crash).
     """
-    base = os.environ.get("AI_BASE_URL", "https://ai-gateway.sassmaker.com/v1")
+    base = os.environ.get("AI_BASE_URL")
     key = os.environ.get("AI_API_KEY") or os.environ.get("HF_TOKEN")
-    if not base or not key:
+    model = os.environ.get("AI_MODEL")
+    if not base or not key or not model:
         return None
     try:
         r = httpx.post(
             f"{base.rstrip('/')}/chat/completions",
             headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
             json={
-                "model": os.environ.get("AI_MODEL", "auto"),
-                "project_id": os.environ.get("AI_PROJECT_ID", "high-signal"),
+                "model": model,
                 "messages": [
                     {"role": "system", "content": system},
                     {"role": "user", "content": user},

@@ -9,7 +9,7 @@ import { enrichPublishedSignals, partitionPublishable } from '../lib/signal-qual
 import sourceCatalog from '../lib/source-catalog.json';
 import { buildDiggAttention, tryGetPrecomputedSnapshot } from './brief/query';
 
-type Env = { DB: D1Database };
+type Env = { DB: D1Database; BRIEF_CACHE?: KVNamespace };
 
 export const dataRoute = new Hono<{ Bindings: Env }>();
 
@@ -142,6 +142,7 @@ function loadSourceAggregatesLive(database: DB) {
       futureCount: sql<number>`sum(case when ${schema.events.publishedAt} > unixepoch() then 1 else 0 end)`,
     })
     .from(schema.events)
+    // d1-scan: reviewed-unbounded issue=#145 reason=emergency fallback only when the cron-maintained rollup is unavailable
     .groupBy(schema.events.source) as Promise<SourceAggregateRow[]>;
 }
 
@@ -329,6 +330,11 @@ interface SourceRun {
 }
 
 const CATALOG_SOURCES = sourceCatalog.sources as CatalogSource[];
+const SOURCE_STATUS_CACHE_TTL_SECONDS = 6 * 60 * 60;
+
+export function sourceStatusCacheKey(sampleLimit: number) {
+  return `data:sources:v2:samples:${sampleLimit}`;
+}
 
 export function sourceRunStatus(
   cadence: CatalogSource['cadence'],
@@ -453,6 +459,17 @@ dataRoute.get('/daily', async (c) => {
 dataRoute.get('/sources', async (c) => {
   const requestedSamples = Number(c.req.query('samples') ?? 0);
   const limit = Math.min(Math.max(Number.isFinite(requestedSamples) ? requestedSamples : 0, 0), 10);
+  const cacheKey = sourceStatusCacheKey(limit);
+  if (c.env.BRIEF_CACHE) {
+    try {
+      const cached = await c.env.BRIEF_CACHE.get(cacheKey, 'json');
+      if (cached) {
+        return c.json(cached, 200, { 'Cache-Control': 'public, max-age=60, s-maxage=3600' });
+      }
+    } catch (error) {
+      console.error('[data/sources] shared cache read failed', error);
+    }
+  }
   const database = db(c.env.DB);
   const generatedAt = new Date().toISOString();
 
@@ -613,19 +630,25 @@ dataRoute.get('/sources', async (c) => {
     };
   });
 
-  return c.json(
-    {
-      schemaVersion: '2',
-      generatedAt,
-      sources,
-      total: [...counts.values()].reduce((sum, source) => sum + source.count, 0),
-      available: true,
-      samplesAvailable,
-      uncataloguedSources: [...counts.keys()].filter((id) => !catalogIds.has(id)).sort(),
-    },
-    200,
-    { 'Cache-Control': 'public, max-age=60, s-maxage=3600' }
-  );
+  const payload = {
+    schemaVersion: '2',
+    generatedAt,
+    sources,
+    total: [...counts.values()].reduce((sum, source) => sum + source.count, 0),
+    available: true,
+    samplesAvailable,
+    uncataloguedSources: [...counts.keys()].filter((id) => !catalogIds.has(id)).sort(),
+  };
+  if (c.env.BRIEF_CACHE) {
+    try {
+      await c.env.BRIEF_CACHE.put(cacheKey, JSON.stringify(payload), {
+        expirationTtl: SOURCE_STATUS_CACHE_TTL_SECONDS,
+      });
+    } catch (error) {
+      console.error('[data/sources] shared cache write failed', error);
+    }
+  }
+  return c.json(payload, 200, { 'Cache-Control': 'public, max-age=60, s-maxage=3600' });
 });
 
 /**

@@ -6,7 +6,6 @@ import {
   eventsRollupIsReady,
   readEventsRollupState,
   refreshEventsSourceRollup,
-  ROLLUP_MAX_AGE_SECONDS,
 } from '../lib/events-rollup';
 
 // Anchored to the wall clock: the live aggregates this change replaces split
@@ -169,7 +168,17 @@ describe('events index coverage', () => {
   });
 
   it('answers the rollup freshness probe without scanning events', async () => {
-    expect(await plan('select max(ingested_at) from events')).toContain('events_ingested_at_idx');
+    const detail = await plan(
+      'select ingested_at, id from events indexed by events_ingested_at_idx order by ingested_at desc, id desc limit 1'
+    );
+    expect(detail).toContain('events_ingested_at_idx');
+  });
+
+  it('bounds incremental rollup reads to the ingest cursor', async () => {
+    const detail = await plan(
+      "select source, count(*) from events indexed by events_ingested_at_idx where ingested_at > 1 or (ingested_at = 1 and id > 'cursor') group by source"
+    );
+    expect(detail).toContain('events_ingested_at_idx');
   });
 });
 
@@ -205,6 +214,27 @@ describe('rollup refresh policy', () => {
     expect(detail['latestObservedAt']).toBe(NOW + 60);
   });
 
+  it('does not miss a row added at the cursor timestamp', async () => {
+    await refreshEventsSourceRollup(env(), db(d1.binding), new Date(NOW * 1000));
+    const state = await readEventsRollupState(db(d1.binding));
+    expect(state?.maxIngestedId).toBeTruthy();
+
+    d1.exec(
+      `INSERT INTO events
+         (id, source, source_url, published_at, title, content, primary_entity_id, raw_hash, ingested_at)
+       VALUES ('zz-after-cursor', 'hackernews', 'https://example.test/after-cursor', ${NOW - 30},
+               'late tie', NULL, NULL, 'h-after-cursor', ${state?.maxIngestedAt ?? 0})`
+    );
+
+    const result = await refreshEventsSourceRollup(
+      env(),
+      db(d1.binding),
+      new Date((NOW + 1800) * 1000)
+    );
+    expect(result.reason).toBe('new_events');
+    expect((await sourceDetail('hackernews'))['total']).toBe(2);
+  });
+
   it('rebuilds when a future-dated row matures, with no new ingest', async () => {
     await refreshEventsSourceRollup(env(), db(d1.binding), new Date(NOW * 1000));
     expect((await sourceDetail('us-gov-api'))['futureCount']).toBe(1);
@@ -220,25 +250,17 @@ describe('rollup refresh policy', () => {
     expect(detail['latestObservedAt']).toBe(NOW + 3600);
   });
 
-  it('force-rebuilds once the rollup passes its maximum age', async () => {
+  it('does not turn out-of-band deletes into a recurring full-table rebuild', async () => {
     await refreshEventsSourceRollup(env(), db(d1.binding), new Date(NOW * 1000));
-    // Out-of-band surgery on events cannot move max(ingested_at).
-    // Not the newest row, so `max(ingested_at)` cannot reveal the deletion.
-    d1.exec("DELETE FROM events WHERE source = 'scmp:tech'");
+    d1.exec("DELETE FROM events WHERE source IN ('scmp:tech', 'us-gov-api')");
 
-    const stillFresh = await refreshEventsSourceRollup(
+    const result = await refreshEventsSourceRollup(
       env(),
       db(d1.binding),
-      new Date((NOW + 60) * 1000)
+      new Date((NOW + 24 * 60 * 60) * 1000)
     );
-    expect(stillFresh.reason).toBe('unchanged');
-
-    const aged = await refreshEventsSourceRollup(
-      env(),
-      db(d1.binding),
-      new Date((NOW + ROLLUP_MAX_AGE_SECONDS) * 1000)
-    );
-    expect(aged.reason).toBe('max_age');
-    expect((await sourceDetail('scmp'))['total']).toBe(0);
+    expect(result.reason).toBe('unchanged');
+    // Explicit repair is required for unsupported out-of-band deletes.
+    expect((await sourceDetail('scmp'))['total']).toBe(1);
   });
 });

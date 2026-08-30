@@ -27,6 +27,7 @@ async def test_complete_async_429_retries_then_succeeds(monkeypatch) -> None:
     """A 429 on the first attempt is retried and succeeds on the second."""
     monkeypatch.setenv("AI_API_KEY", "test-key")
     monkeypatch.setenv("AI_BASE_URL", "https://test.example/v1")
+    monkeypatch.setenv("AI_MODEL", "test-model")
     monkeypatch.setenv("D2C_AV_RETRIES", "2")
     monkeypatch.setenv("D2C_AV_BACKOFF_BASE", "0.01")
     monkeypatch.setenv("D2C_AV_BACKOFF_CAP", "0.05")
@@ -51,6 +52,7 @@ async def test_complete_async_repeated_5xx_exhausts_retries(monkeypatch) -> None
     """Repeated 5xx exhausts the retry budget and returns None (no infinite loop)."""
     monkeypatch.setenv("AI_API_KEY", "test-key")
     monkeypatch.setenv("AI_BASE_URL", "https://test.example/v1")
+    monkeypatch.setenv("AI_MODEL", "test-model")
     monkeypatch.setenv("D2C_AV_RETRIES", "2")
     monkeypatch.setenv("D2C_AV_BACKOFF_BASE", "0.01")
     monkeypatch.setenv("D2C_AV_BACKOFF_CAP", "0.05")
@@ -72,6 +74,7 @@ async def test_complete_async_4xx_is_terminal(monkeypatch) -> None:
     """A 400 (non-429) is terminal — no retry."""
     monkeypatch.setenv("AI_API_KEY", "test-key")
     monkeypatch.setenv("AI_BASE_URL", "https://test.example/v1")
+    monkeypatch.setenv("AI_MODEL", "test-model")
     monkeypatch.setenv("D2C_AV_RETRIES", "2")
     monkeypatch.setenv("D2C_AV_BACKOFF_BASE", "0.01")
     calls = {"n": 0}
@@ -92,6 +95,7 @@ async def test_complete_async_timeout_retries(monkeypatch) -> None:
     """A timeout on the first attempt is retried (network blip)."""
     monkeypatch.setenv("AI_API_KEY", "test-key")
     monkeypatch.setenv("AI_BASE_URL", "https://test.example/v1")
+    monkeypatch.setenv("AI_MODEL", "test-model")
     monkeypatch.setenv("D2C_AV_RETRIES", "2")
     monkeypatch.setenv("D2C_AV_BACKOFF_BASE", "0.01")
     monkeypatch.setenv("D2C_AV_BACKOFF_CAP", "0.05")
@@ -120,6 +124,7 @@ async def test_run_uses_bounded_concurrency(monkeypatch, tmp_path) -> None:
     """
     monkeypatch.setenv("AI_API_KEY", "test-key")
     monkeypatch.setenv("AI_BASE_URL", "https://test.example/v1")
+    monkeypatch.setenv("AI_MODEL", "test-model")
     monkeypatch.setenv("D2C_AV_CONCURRENCY", "4")
 
     in_flight = {"current": 0, "max": 0}
