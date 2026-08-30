@@ -875,7 +875,8 @@ def zero_draft_alert(result: dict) -> str | None:
     return (
         "::warning title=zero signal drafts::"
         f"{result.get('events', 0)} events produced 0 drafts "
-        f"(generated={result.get('candidates_generated', 0)}, "
+        f"(clusters={result.get('clusters_reaching_generation', 0)}, "
+        f"generated={result.get('candidates_generated', 0)}, "
         f"rejected_no_proof={result.get('candidates_rejected_no_proof', 0)}, "
         f"low_cluster={result.get('events_low_cluster', 0)}, "
         f"no_entity={result.get('events_no_entity', 0)}, "
@@ -961,6 +962,7 @@ def run(source: Source, days: int, *, generate_signals: bool = True) -> dict:
             "duplicates_collapsed": duplicates_collapsed,
             "events_no_entity": no_entity,
             "events_low_cluster": 0,
+            "clusters_reaching_generation": 0,
             "signals_drafted": 0,
             **new_proof_tally(),
             "errors": errors,
@@ -975,6 +977,12 @@ def run(source: Source, days: int, *, generate_signals: bool = True) -> dict:
     # candidate origins reach generation; small stories share an LLM request
     # without being merged into one claim.
     large_clusters, small_batches, low_cluster = _pre_group_clusters(by_entity)
+    # How many proof-bearing stories were actually handed to the generator.
+    # Without this the receipt cannot distinguish "clustering produced nothing
+    # to write about" from "the generator declined almost everything it saw":
+    # `candidates_generated: 2` reads identically whether generation received 2
+    # clusters or 40. Counted here, before any generator call.
+    clusters_reaching_generation = len(large_clusters) + sum(len(batch) for batch in small_batches)
 
     # Large clusters: one LLM call each (high-quality, lots of evidence)
     for entity_id, evs in large_clusters:
@@ -1039,7 +1047,11 @@ def run(source: Source, days: int, *, generate_signals: bool = True) -> dict:
         errors=errors,
         error_sample=error_sample,
         notes=";".join(
-            [f"fetch_run_id={fetch_run_id}", *(f"{k}={v}" for k, v in proof_tally.items())]
+            [
+                f"fetch_run_id={fetch_run_id}",
+                f"clusters_reaching_generation={clusters_reaching_generation}",
+                *(f"{k}={v}" for k, v in proof_tally.items()),
+            ]
         ),
     )
 
@@ -1050,6 +1062,7 @@ def run(source: Source, days: int, *, generate_signals: bool = True) -> dict:
         "duplicates_collapsed": duplicates_collapsed,
         "events_no_entity": no_entity,
         "events_low_cluster": low_cluster,
+        "clusters_reaching_generation": clusters_reaching_generation,
         "signals_drafted": len(written),
         **proof_tally,
         "errors": errors,

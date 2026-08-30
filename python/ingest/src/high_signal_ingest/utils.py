@@ -66,8 +66,20 @@ def parse_published_datetime(value: str) -> datetime | None:
 
 def source_family(source: str) -> str:
     """Collapse a source id to its family: ``legistar:phoenix`` → ``legistar``,
-    ``macro-rates:fred:dgs10`` → ``macro-rates``."""
-    return (source or "unknown").split(":", 1)[0]
+    ``macro-rates:fred:dgs10`` → ``macro-rates``.
+
+    The EDGAR adapter is the one source that separates its family from its
+    variant with ``_`` rather than ``:`` (``edgar_8k``, ``edgar_10q``,
+    ``edgar_d``). The API's `family()` in `workers/api/src/routes/data.ts`
+    already special-cases that prefix; this mirrors it so the Python analysis
+    layer agrees. Without it `edgar_8k` and `edgar_10q` read as two *independent*
+    sources for the same filer, which over-counts `Story.distinct_sources`, and
+    `dedupe._SOURCE_RANK["edgar"]` never applies to a filing.
+    """
+    normalized = source or "unknown"
+    if normalized.startswith("edgar_"):
+        return "edgar"
+    return normalized.split(":", 1)[0]
 
 
 def event_text(ev: Event, max_content_chars: int = 600) -> str:

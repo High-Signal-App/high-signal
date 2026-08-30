@@ -46,6 +46,15 @@ things now make the drought readable without opening the LLM logs:
 - `candidates_admitted_single_provider_authoritative` counts drafts that cleared
   the gate on two authoritative primary documents sharing one host (two SEC
   filings on `sec.gov`). It is an observation, not a failure.
+- `clusters_reaching_generation` counts the proof-bearing stories actually
+  handed to the generator, before any model call. Read it *with*
+  `candidates_generated`: `clusters_reaching_generation: 0` means clustering had
+  nothing to write about (look upstream at `events_no_entity` /
+  `events_low_cluster`), while a high cluster count with a near-zero
+  `candidates_generated` means the model saw plenty and declined it — usually
+  because the surviving clusters are machine-generated churn (nightly build
+  tags, model-upload batches, near-identical job requisitions) rather than
+  reportable developments.
 - `pipeline` prints a `::warning title=zero signal drafts::` annotation on
   stderr when a run fetched events yet drafted nothing, so the GitHub run page
   shows the drought instead of a silent green tick.

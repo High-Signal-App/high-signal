@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 
 from high_signal_ingest import dedupe
 from high_signal_ingest.types import Event
+from high_signal_ingest.utils import source_family
 
 
 def _ev(source: str, title: str, url: str, content: str = "", day: int = 20) -> Event:
@@ -111,3 +112,39 @@ def test_story_counts_distinct_origins_not_feed_hosts() -> None:
     [story] = dedupe.dedupe([hn, repeat, independent])
     assert story.distinct_sources == 3
     assert story.distinct_origins == 2
+
+
+def test_source_family_collapses_edgar_underscore_variants() -> None:
+    """EDGAR is the one adapter separating family from variant with `_`.
+
+    `workers/api/src/routes/data.ts` already special-cases the prefix; the
+    Python analysis layer must agree, otherwise `edgar_8k` and `edgar_10q` read
+    as two *independent* sources for the same filer (over-counting
+    `Story.distinct_sources`) and `_SOURCE_RANK["edgar"]` never applies.
+    """
+    assert source_family("edgar_8k") == "edgar"
+    assert source_family("edgar_10q") == "edgar"
+    assert source_family("edgar_d") == "edgar"
+    # The `:` convention every other adapter uses is untouched.
+    assert source_family("legistar:phoenix") == "legistar"
+    assert source_family("macro-rates:fred:dgs10") == "macro-rates"
+    assert source_family("sec-xbrl:nvda") == "sec-xbrl"
+    # Not a false prefix match.
+    assert source_family("edgartools") == "edgartools"
+
+
+def test_two_edgar_forms_are_one_source_not_two() -> None:
+    """Corroboration counting must not treat 8-K and 10-Q as independent."""
+    a = _ev("edgar_8k", "NVDA 8-K: 2.02", "https://sec.gov/a")
+    b = _ev("edgar_10q", "NVDA 10-Q", "https://sec.gov/b")
+    story = dedupe.Story(representative=a, members=[a, b])
+    assert story.distinct_sources == 1
+    assert story.sources == ["edgar"]
+
+
+def test_edgar_filing_outranks_a_news_rewrite() -> None:
+    filing = _ev("edgar_8k", "NVDA 8-K: 2.02", "https://sec.gov/a")
+    rewrite = _ev("gdelt", "NVDA 8-K: 2.02", "https://sec.gov/a")
+    out = dedupe.dedupe_exact([rewrite, filing])
+    assert len(out) == 1
+    assert out[0].source == "edgar_8k"

@@ -109,18 +109,23 @@ def npm_events_from_metadata(
         meta = versions.get(version) if isinstance(versions.get(version), dict) else {}
         description = str(meta.get("description") or payload.get("description") or "").strip()
         raw_hash = event_hash("npm", package.name, str(version), str(published_raw))
+        # Per-version registry permalink. The package homepage is the same
+        # string for every release, so using it as `source_url` made the
+        # write-path `dedupe_exact` collapse a whole release history into one
+        # event (see tests/test_source_url_distinctness.py).
+        release_url = f"https://www.npmjs.com/package/{package.name}/v/{version}"
         out.append(
             Event(
                 id=raw_hash[:16],
                 source=f"package:npm:{package.name}",
-                source_url=evidence_url,
+                source_url=release_url,
                 published_at=published,
                 title=f"npm release: {package.name} {version}",
                 content=description[:20_000] or None,
                 primary_entity_id=package.entity_id,
                 raw_hash=raw_hash,
                 source_document=SourceDocument(
-                    canonical_url=evidence_url,
+                    canonical_url=release_url,
                     published_at=published,
                     raw_hash=raw_hash,
                     raw_json=meta,
@@ -128,6 +133,7 @@ def npm_events_from_metadata(
                         "ecosystem": package.ecosystem,
                         "package": package.name,
                         "version": version,
+                        "homepage": evidence_url,
                     },
                 ),
             )
@@ -160,18 +166,21 @@ def pypi_events_from_metadata(
         if published < since:
             continue
         raw_hash = event_hash("pypi", package.name, str(version), published.isoformat())
+        # Per-version project permalink — see the npm branch above for why the
+        # shared project URL cannot be the record identifier.
+        release_url = f"https://pypi.org/project/{package.name}/{version}/"
         out.append(
             Event(
                 id=raw_hash[:16],
                 source=f"package:pypi:{package.name}",
-                source_url=source_url,
+                source_url=release_url,
                 published_at=published,
                 title=f"PyPI release: {package.name} {version}",
                 content=description[:20_000] or None,
                 primary_entity_id=package.entity_id,
                 raw_hash=raw_hash,
                 source_document=SourceDocument(
-                    canonical_url=source_url,
+                    canonical_url=release_url,
                     published_at=published,
                     raw_hash=raw_hash,
                     raw_json={"info": info, "files": files},
@@ -179,6 +188,7 @@ def pypi_events_from_metadata(
                         "ecosystem": package.ecosystem,
                         "package": package.name,
                         "version": version,
+                        "homepage": source_url,
                     },
                 ),
             )
@@ -215,18 +225,20 @@ def crates_events_from_metadata(
         if isinstance(downloads, int):
             content_parts.append(f"downloads={downloads}")
         raw_hash = event_hash("crates-io", package.name, num, published.isoformat())
+        # Per-version crate permalink — see the npm branch above.
+        release_url = f"https://crates.io/crates/{package.name}/{num}"
         out.append(
             Event(
                 id=raw_hash[:16],
                 source=f"packages:crates-io:{package.name}",
-                source_url=evidence_url,
+                source_url=release_url,
                 published_at=published,
                 title=f"crates.io release: {package.name} {num}",
                 content=" | ".join(p for p in content_parts if p)[:20_000] or None,
                 primary_entity_id=package.entity_id,
                 raw_hash=raw_hash,
                 source_document=SourceDocument(
-                    canonical_url=evidence_url,
+                    canonical_url=release_url,
                     published_at=published,
                     raw_hash=raw_hash,
                     raw_json=version,
@@ -234,6 +246,7 @@ def crates_events_from_metadata(
                         "ecosystem": package.ecosystem,
                         "package": package.name,
                         "version": num,
+                        "homepage": evidence_url,
                     },
                 ),
             )
