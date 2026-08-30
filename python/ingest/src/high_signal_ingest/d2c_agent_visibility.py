@@ -7,7 +7,7 @@ recommended + cited, and writes a dated JSON artifact under
 ``d2c_agent_visibility``; the renderer derives the "agent answer gap" for
 each Opportunity Brief from the most recent run.
 
-Reuses the same OpenAI-compatible gateway as ``opportunities.py`` and
+Reuses the same explicitly configured OpenAI-compatible endpoint as ``opportunities.py`` and
 ``generator.py``. No impuls8 data; no paid sources.
 
 Run::
@@ -38,16 +38,14 @@ from high_signal_ingest.d2c_opportunities import NICHES, NicheQuery
 LOGGER = logging.getLogger("d2c_agent_visibility")
 
 # ---------------------------------------------------------------------------
-# AI gateway (same pattern as opportunities._complete_text)
+# Direct AI endpoint (same pattern as opportunities._complete_text)
 # ---------------------------------------------------------------------------
 
-_DEFAULT_BASE = "https://ai-gateway.sassmaker.com/v1"
-
 # Bounded concurrency cap for the 20-niche fan-out. Without this, asyncio.gather
-# fires all 20 requests at once against the same gateway. 4 keeps us well under
-# the gateway's per-project quota while still finishing a full run in ~5 calls.
+# fires all 20 requests at once against the same provider. 4 keeps the run
+# courteous to free-tier limits while still finishing in bounded batches.
 _AV_CONCURRENCY = int(os.environ.get("D2C_AV_CONCURRENCY", "4"))
-# Bounded retry for transient gateway failures (429/5xx/timeout). Reuses the
+# Bounded retry for transient provider failures (429/5xx/timeout). Reuses the
 # full-jitter discipline from pipeline._with_backoff.
 _AV_RETRIES = int(os.environ.get("D2C_AV_RETRIES", "2"))
 _AV_BACKOFF_BASE = float(os.environ.get("D2C_AV_BACKOFF_BASE", "1.0"))
@@ -71,9 +69,10 @@ def _is_retryable(cls: str) -> bool:
 
 def _complete(system: str, user: str, client: httpx.AsyncClient | None = None) -> str | None:
     """Synchronous completion helper for tests (no async). Returns None without a key."""
-    base = os.environ.get("AI_BASE_URL", _DEFAULT_BASE)
+    base = os.environ.get("AI_BASE_URL")
     key = os.environ.get("AI_API_KEY") or os.environ.get("HF_TOKEN")
-    if not base or not key:
+    model = os.environ.get("AI_MODEL")
+    if not base or not key or not model:
         return None
     try:
         r = httpx.post(
@@ -83,8 +82,7 @@ def _complete(system: str, user: str, client: httpx.AsyncClient | None = None) -
                 "Content-Type": "application/json",
             },
             json={
-                "model": os.environ.get("AI_MODEL", "auto"),
-                "project_id": os.environ.get("AI_PROJECT_ID", "high-signal"),
+                "model": model,
                 "messages": [
                     {"role": "system", "content": system},
                     {"role": "user", "content": user},
@@ -109,9 +107,10 @@ async def _complete_async(
     Retries 429/5xx/timeout with full-jitter backoff (bounded by
     ``_AV_RETRIES``); 4xx (non-429) and parse errors are terminal.
     """
-    base = os.environ.get("AI_BASE_URL", _DEFAULT_BASE)
+    base = os.environ.get("AI_BASE_URL")
     key = os.environ.get("AI_API_KEY") or os.environ.get("HF_TOKEN")
-    if not base or not key:
+    model = os.environ.get("AI_MODEL")
+    if not base or not key or not model:
         return None
     c = client or httpx.AsyncClient(timeout=_AV_TIMEOUT)
     try:
@@ -126,8 +125,7 @@ async def _complete_async(
                         "Content-Type": "application/json",
                     },
                     json={
-                        "model": os.environ.get("AI_MODEL", "auto"),
-                        "project_id": os.environ.get("AI_PROJECT_ID", "high-signal"),
+                        "model": model,
                         "messages": [
                             {"role": "system", "content": system},
                             {"role": "user", "content": user},
@@ -317,8 +315,8 @@ async def run_niche(niche: NicheQuery, client: httpx.AsyncClient | None = None) 
         # (the renderer labels it "not yet measured" via the freshness date).
         return VisibilityEntry(
             nicheSlug=niche.slug,
-            platform="free-ai-gateway",
-            model=os.environ.get("AI_MODEL", "auto"),
+            platform="direct-free-provider",
+            model=os.environ.get("AI_MODEL", "unconfigured"),
             promptText=prompt,
             responseText="",
             recommendedBrands=[],
@@ -331,8 +329,8 @@ async def run_niche(niche: NicheQuery, client: httpx.AsyncClient | None = None) 
     urls = extract_cited_urls(response)
     return VisibilityEntry(
         nicheSlug=niche.slug,
-        platform="free-ai-gateway",
-        model=os.environ.get("AI_MODEL", "auto"),
+        platform="direct-free-provider",
+        model=os.environ.get("AI_MODEL", "unconfigured"),
         promptText=prompt,
         responseText=response,
         recommendedBrands=brands,
@@ -345,8 +343,8 @@ async def run_niche(niche: NicheQuery, client: httpx.AsyncClient | None = None) 
 
 async def run(limit: int = 20, out_dir: Path = Path("data/d2c-agent-visibility")) -> Path:
     niches = NICHES[:limit]
-    # Bounded fan-out: a Semaphore caps concurrent gateway calls so the 20
-    # niches cannot amplify into 20 simultaneous requests (gateway quota /
+    # Bounded fan-out: a Semaphore caps concurrent provider calls so the 20
+    # niches cannot amplify into 20 simultaneous requests (free-tier quota /
     # subrequest budget). Replaces the prior unbounded asyncio.gather.
     sem = asyncio.Semaphore(_AV_CONCURRENCY)
 

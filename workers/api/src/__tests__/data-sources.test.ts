@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import sourceCatalog from '../lib/source-catalog.json';
-import { sourceRunStatus } from '../routes/data';
+import { sourceRunStatus, sourceStatusCacheKey } from '../routes/data';
 import app from '../index';
 
 const fetcher = app as unknown as {
@@ -37,6 +37,29 @@ describe('data source directory contract', () => {
     expect(sourceRunStatus('manual', undefined)).toBe('manual');
     expect(sourceRunStatus('on_demand', undefined)).toBe('on_demand');
     expect(sourceRunStatus('parked', undefined)).toBe('parked');
+  });
+
+  it('serves the shared source-status snapshot without touching D1', async () => {
+    const snapshot = {
+      schemaVersion: '2',
+      generatedAt: '2026-08-30T00:00:00.000Z',
+      sources: [],
+      total: 0,
+      available: true,
+      samplesAvailable: true,
+      uncataloguedSources: [],
+    };
+    const get = vi.fn(async (key: string) =>
+      key === sourceStatusCacheKey(0) ? snapshot : null
+    );
+    const response = await fetcher.fetch(new Request('http://test/data/sources'), {
+      ENVIRONMENT: 'test',
+      BRIEF_CACHE: { get },
+    });
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual(snapshot);
+    expect(get).toHaveBeenCalledWith(sourceStatusCacheKey(0), 'json');
   });
 
   it('rejects an impossible source-day before querying D1', async () => {

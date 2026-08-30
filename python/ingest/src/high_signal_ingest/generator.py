@@ -425,12 +425,10 @@ def _ai_complete(prompt: str, content: str) -> tuple[dict | list | None, dict]:
     (non-429) and parse errors are terminal. ``attempts`` and
     ``failure_class`` are recorded for telemetry.
     """
-    # Default to user's free-ai-gateway (OpenAI-compatible router across CF
-    # Workers AI / HF Router / Groq / etc., open-auth, project-scoped quotas).
-    base = os.environ.get("AI_BASE_URL", "https://ai-gateway.sassmaker.com/v1")
+    # The operator selects a project-owned free-provider/local endpoint.
+    base = os.environ.get("AI_BASE_URL")
     key = os.environ.get("AI_API_KEY") or os.environ.get("HF_TOKEN")
-    model = os.environ.get("AI_MODEL", "auto")
-    project_id = os.environ.get("AI_PROJECT_ID", "high-signal")
+    model = os.environ.get("AI_MODEL")
     meta: dict = {
         "model": model,
         "prompt_version": PROMPT_VERSION,
@@ -443,11 +441,14 @@ def _ai_complete(prompt: str, content: str) -> tuple[dict | list | None, dict]:
         "attempts": 0,
         "failure_class": None,
     }
+    if not key:
+        meta["reason"] = "no_api_key"
+        return None, meta
     if not base:
         meta["reason"] = "no_base_url"
         return None, meta
-    if not key:
-        meta["reason"] = "no_api_key"
+    if not model:
+        meta["reason"] = "no_model"
         return None, meta
     started = time.monotonic()
     attempt = 0
@@ -458,7 +459,6 @@ def _ai_complete(prompt: str, content: str) -> tuple[dict | list | None, dict]:
         try:
             request_json = {
                 "model": model,
-                "project_id": project_id,
                 "messages": [
                     {"role": "system", "content": prompt},
                     {"role": "user", "content": content},

@@ -498,6 +498,7 @@ async function loadHitRateStats(
     })
     .from(schema.scoreRuns)
     .innerJoin(schema.signals, eq(schema.signals.id, schema.scoreRuns.signalId))
+    // d1-scan: reviewed-unbounded issue=#145 reason=all-time scored ledger is required and remains low-volume
     .groupBy(schema.signals.signalType, schema.scoreRuns.outcome);
 
   const byType = new Map<string, BucketCounts>();

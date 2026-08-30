@@ -1,4 +1,4 @@
-import { fetchChatCompletion, FREE_AI_DEFAULT_ENDPOINT } from './ai-client';
+import { generateChatCompletion } from './ai-client';
 import type { AIConfig } from './ai-client';
 import { normalizeCommunitySummary } from '@high-signal/shared';
 import type { CommunitySummary } from '@high-signal/shared';
@@ -92,22 +92,23 @@ async function summarizePosts(input: {
     })),
   });
 
-  const response = await fetchChatCompletion({
-    config: aiConfig,
-    stream: false,
-    maxTokens: 900,
-    messages: [
-      {
-        role: 'system',
-        content:
-          'Return compact JSON with key_trend, notable_discussions, and key_action. Each point needs title, desc, and sourceId as [postId] or [postId, commentId]. No markdown.',
-      },
-      { role: 'user', content: `${input.prompt}\n\n${payload}` },
-    ],
-  });
-  if (!response.ok) return fallbackSummary(input);
-  const data = (await response.json()) as { choices?: Array<{ message?: { content?: string } }> };
-  const text = data.choices?.[0]?.message?.content ?? '';
+  let text: string;
+  try {
+    text = await generateChatCompletion({
+      config: aiConfig,
+      maxTokens: 900,
+      messages: [
+        {
+          role: 'system',
+          content:
+            'Return compact JSON with key_trend, notable_discussions, and key_action. Each point needs title, desc, and sourceId as [postId] or [postId, commentId]. No markdown.',
+        },
+        { role: 'user', content: `${input.prompt}\n\n${payload}` },
+      ],
+    });
+  } catch {
+    return fallbackSummary(input);
+  }
   const structured = parseSummary(text) ?? fallbackSummary(input).summary;
   const summary = normalizeCommunitySummary(structured);
   return {
@@ -214,11 +215,13 @@ function parseSummary(text: string) {
 
 function resolveEndpointConfig(env: Env): AIConfig | null {
   const apiKey = env.HIGH_SIGNAL_AI_API_KEY || env.OPENAI_API_KEY;
-  if (!apiKey) return null;
+  const endpointUrl = env.HIGH_SIGNAL_AI_ENDPOINT_URL;
+  const model = env.HIGH_SIGNAL_AI_MODEL;
+  if (!apiKey || !endpointUrl || !model) return null;
   return {
-    endpointUrl: env.HIGH_SIGNAL_AI_ENDPOINT_URL || FREE_AI_DEFAULT_ENDPOINT,
+    endpointUrl,
     apiKey,
-    model: env.HIGH_SIGNAL_AI_MODEL || 'auto',
+    model,
   };
 }
 

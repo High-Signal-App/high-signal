@@ -103,6 +103,8 @@ export const events = sqliteTable(
   (t) => [
     uniqueIndex('events_raw_hash_idx').on(t.rawHash),
     index('events_published_idx').on(t.publishedAt),
+    index('events_source_published_idx').on(t.source, t.publishedAt),
+    index('events_ingested_source_idx').on(t.ingestedAt, t.source),
     index('events_primary_entity_idx').on(t.primaryEntityId),
     index('events_source_document_idx').on(t.sourceDocumentId),
     index('events_fetch_run_idx').on(t.fetchRunId),
