@@ -35,10 +35,11 @@ import {
   type D2CEvidenceItem,
 } from '@high-signal/shared';
 import { db, schema } from '../db';
-import { generateChatCompletion } from '../lib/ai-client';
+import { DEFAULT_WORKERS_AI_MODEL, generateChatCompletion } from '../lib/ai-client';
 
 type Env = {
   DB: D1Database;
+  AI?: Ai;
   HIGH_SIGNAL_AI_API_KEY?: string;
   OPENAI_API_KEY?: string;
   HIGH_SIGNAL_AI_ENDPOINT_URL?: string;
@@ -442,19 +443,12 @@ d2cRoute.post('/agent-visibility/run', async (c) => {
     return c.json({ error: 'unauthorized' }, 401);
   }
   const apiKey = c.env.HIGH_SIGNAL_AI_API_KEY || c.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    return c.json(
-      { error: 'AI endpoint not configured. Set HIGH_SIGNAL_AI_API_KEY or OPENAI_API_KEY.' },
-      503
-    );
-  }
-  const model = c.env.HIGH_SIGNAL_AI_MODEL;
+  const model = c.env.HIGH_SIGNAL_AI_MODEL || (c.env.AI ? DEFAULT_WORKERS_AI_MODEL : undefined);
   const endpointUrl = c.env.HIGH_SIGNAL_AI_ENDPOINT_URL;
-  if (!model || !endpointUrl) {
+  if (!model || (!c.env.AI && (!apiKey || !endpointUrl))) {
     return c.json(
       {
-        error:
-          'AI endpoint not configured. Set HIGH_SIGNAL_AI_ENDPOINT_URL and HIGH_SIGNAL_AI_MODEL.',
+        error: 'AI endpoint not configured. Add the AI binding or set endpoint, key, and model.',
       },
       503
     );
@@ -478,7 +472,7 @@ d2cRoute.post('/agent-visibility/run', async (c) => {
     let responseText = '';
     try {
       responseText = await generateChatCompletion({
-        config: { endpointUrl, apiKey, model },
+        config: c.env.AI ? { binding: c.env.AI, model } : { endpointUrl, apiKey, model },
         messages: [{ role: 'user', content: userPrompt }],
         systemPrompt,
         maxTokens: 600,
@@ -490,7 +484,7 @@ d2cRoute.post('/agent-visibility/run', async (c) => {
     const urls = extractCitedUrls(responseText);
     entries.push({
       nicheSlug: seed.slug,
-      platform: 'direct-free-provider',
+      platform: c.env.AI ? 'workers-ai' : 'direct-free-provider',
       model,
       promptText: userPrompt,
       responseText,

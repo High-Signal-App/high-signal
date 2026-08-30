@@ -1,4 +1,4 @@
-import { generateChatCompletion } from './ai-client';
+import { DEFAULT_WORKERS_AI_MODEL, generateChatCompletion } from './ai-client';
 import type { AIConfig } from './ai-client';
 import { normalizeCommunitySummary } from '@high-signal/shared';
 import type { CommunitySummary } from '@high-signal/shared';
@@ -6,6 +6,7 @@ import type { DB } from '../db';
 import { schema } from '../db';
 
 type Env = {
+  AI?: Ai;
   HIGH_SIGNAL_AI_ENDPOINT_URL?: string;
   HIGH_SIGNAL_AI_API_KEY?: string;
   HIGH_SIGNAL_AI_MODEL?: string;
@@ -214,6 +215,9 @@ function parseSummary(text: string) {
 }
 
 function resolveEndpointConfig(env: Env): AIConfig | null {
+  if (env.AI) {
+    return { binding: env.AI, model: env.HIGH_SIGNAL_AI_MODEL || DEFAULT_WORKERS_AI_MODEL };
+  }
   const apiKey = env.HIGH_SIGNAL_AI_API_KEY || env.OPENAI_API_KEY;
   const endpointUrl = env.HIGH_SIGNAL_AI_ENDPOINT_URL;
   const model = env.HIGH_SIGNAL_AI_MODEL;
