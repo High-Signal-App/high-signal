@@ -27,10 +27,24 @@ minutes of shared-cache freshness. Routes with an explicit public
 `Cache-Control` header retain their route-specific TTL.
 
 `GET /data/sources` is a deliberate exception: its catalog and stored-row
-summary changes on ingestion cadence, not reader cadence, and the aggregation
-touches the events store. It uses one minute of browser freshness and one hour
-of shared-cache freshness. Representative samples are opt-in with `?samples=`;
-the Data page does not request them.
+summary changes on ingestion cadence, not reader cadence. It uses one minute of
+browser freshness and one hour of shared-cache freshness. Representative
+samples are opt-in with `?samples=`; the Data page does not request them.
+
+Cache is not the only cost boundary. `GET /data/sources` and
+`GET /data/sources/:id` no longer aggregate the whole `events` table on a cache
+miss: they read the per-source rollup that the `*/30` cron maintains
+(`workers/api/src/lib/events-rollup.ts`, migration 0025). Stored-row counts,
+observed watermarks, and future-dated counts are therefore **at most 30 minutes
+behind `events`**. A `?date=` drill-in still queries `events` directly, because
+the rollup carries no per-day breakdown. If the rollup table is empty — a fresh
+database, or before the first cron tick after a deploy — both routes fall back
+to the live aggregate and answer identically, just more expensively.
+
+The cron skips the rebuild whenever it would produce the identical answer, and
+forces one every six hours regardless, so an out-of-band `DELETE FROM events`
+(the ingest runbook's escape hatch) self-heals within six hours rather than
+leaving the rollup permanently wrong.
 
 The public `/data` directory and source-detail HTML use one minute of browser
 freshness and five minutes of shared-cache freshness. This outer Worker policy

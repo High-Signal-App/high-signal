@@ -1,7 +1,9 @@
 import { WorkerEntrypoint } from 'cloudflare:workers';
 import { app, type Env } from './app';
+import { db } from './db';
 import { handleHighSignalMcpCardRequest, handleHighSignalMcpRequest } from './mcp';
 import { handlePublicApiCache, isPublicCacheRequest } from './public-cache';
+import { refreshEventsSourceRollup } from './lib/events-rollup';
 import { dispatchDueWorkflows } from './lib/workflow-scheduler';
 import { precomputeBriefSnapshots } from './routes/brief';
 
@@ -46,6 +48,17 @@ export default {
           }
         })
         .catch((err) => console.error('[cron] brief precompute failed:', err))
+    );
+    // Keeps `/data/sources` and `/data/sources/:id` off the whole-table
+    // aggregate they used to recompute per cache miss. The rebuild is skipped
+    // whenever it would produce the identical answer, so a quiet half hour
+    // costs two bounded probes rather than a 440k-row scan.
+    ctx.waitUntil(
+      refreshEventsSourceRollup(env, db(env.DB), new Date(event.scheduledTime))
+        .then((result) => {
+          if (result.rebuilt) console.log('[cron] events rollup rebuilt', result);
+        })
+        .catch((err) => console.error('[cron] events rollup refresh failed:', err))
     );
     ctx.waitUntil(
       dispatchDueWorkflows(env, new Date(event.scheduledTime))

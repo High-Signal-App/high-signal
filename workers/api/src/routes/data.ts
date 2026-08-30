@@ -1,7 +1,9 @@
 import { Hono } from 'hono';
-import { and, desc, eq, gte, inArray, like, lt, or, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray, like, lt, or, type SQL, sql } from 'drizzle-orm';
+import type { SQLiteColumn } from 'drizzle-orm/sqlite-core';
 import { istDay, istDayRange } from '@high-signal/shared';
-import { db, schema } from '../db';
+import { db, type DB, schema } from '../db';
+import { eventsRollupIsReady } from '../lib/events-rollup';
 import { enrichPublishedSignals, partitionPublishable } from '../lib/signal-quality';
 import sourceCatalog from '../lib/source-catalog.json';
 import { buildDiggAttention, tryGetPrecomputedSnapshot } from './brief/query';
@@ -86,27 +88,129 @@ async function loadMaterialEvidenceInputReceipt(
   return materialEvidenceInputReceipt(rows);
 }
 
-function sourceMatch(id: string) {
+/**
+ * Matches one catalog family against a raw `source` value.
+ *
+ * The column is a parameter so the identical predicate can run against
+ * `events.source` or against the rollup's copy of the same raw values. Keeping
+ * one definition is what makes the rollup-backed answer provably the same
+ * answer as the live aggregate rather than a re-derivation of it.
+ */
+function sourceMatch(id: string, column: SQLiteColumn = schema.events.source) {
   if (id === 'china-news') {
-    return or(
-      like(schema.events.source, 'china-news:%'),
-      like(schema.events.source, 'news:china-news-%')
-    );
+    return or(like(column, 'china-news:%'), like(column, 'news:china-news-%'));
   }
   if (id === 'scmp') {
-    return or(like(schema.events.source, 'scmp:%'), like(schema.events.source, 'news:scmp-%'));
+    return or(like(column, 'scmp:%'), like(column, 'news:scmp-%'));
   }
   const aliases = SOURCE_QUERY_ALIASES[id] ?? [id];
   const conditions = aliases.flatMap((alias) => [
-    eq(schema.events.source, alias),
-    like(schema.events.source, `${alias}:%`),
-    sql`${schema.events.source} GLOB ${`${alias}_*`}`,
+    eq(column, alias),
+    like(column, `${alias}:%`),
+    sql`${column} GLOB ${`${alias}_*`}`,
   ]);
   return or(...conditions);
 }
 
 function dayRange(date: string | undefined) {
   return date ? istDayRange(date) : null;
+}
+
+interface SourceAggregateRow {
+  source: string;
+  n: number;
+  lastObserved: number | null;
+  lastIngested: number | null;
+  futureCount: number;
+}
+
+/**
+ * Whole-table per-source aggregate. This is the original `/data/sources`
+ * query, kept verbatim as the fallback for a database where migration 0025's
+ * rollup has not been populated yet.
+ */
+function loadSourceAggregatesLive(database: DB) {
+  return database
+    .select({
+      source: schema.events.source,
+      n: sql<number>`count(*)`,
+      lastObserved: sql<
+        number | null
+      >`max(case when ${schema.events.publishedAt} <= unixepoch() then ${schema.events.publishedAt} end)`,
+      lastIngested: sql<number | null>`max(${schema.events.ingestedAt})`,
+      futureCount: sql<number>`sum(case when ${schema.events.publishedAt} > unixepoch() then 1 else 0 end)`,
+    })
+    .from(schema.events)
+    .groupBy(schema.events.source) as Promise<SourceAggregateRow[]>;
+}
+
+/** The same numbers, read from the rollup the cron materializes. */
+function loadSourceAggregatesFromRollup(database: DB) {
+  return database
+    .select({
+      source: schema.eventsSourceRollup.source,
+      n: schema.eventsSourceRollup.eventCount,
+      lastObserved: schema.eventsSourceRollup.latestObservedAt,
+      lastIngested: schema.eventsSourceRollup.lastIngestedAt,
+      futureCount: schema.eventsSourceRollup.futureCount,
+    })
+    .from(schema.eventsSourceRollup) as Promise<SourceAggregateRow[]>;
+}
+
+/**
+ * Prefers the rollup and falls back to the live aggregate. An empty rollup
+ * means "never refreshed" or "no events at all"; both are answered correctly
+ * by running the live query, so no readiness probe is needed here.
+ */
+async function loadSourceAggregates(database: DB): Promise<SourceAggregateRow[]> {
+  try {
+    const rollup = await loadSourceAggregatesFromRollup(database);
+    if (rollup.length > 0) return rollup;
+  } catch (error) {
+    console.error('[data/sources] rollup unavailable, using live aggregate', error);
+  }
+  return loadSourceAggregatesLive(database);
+}
+
+interface SourceTotals {
+  n: number;
+  latestObservedAt: number | null;
+  lastIngestedAt: number | null;
+  futureCount: number | null;
+}
+
+/** One family's stored-row totals, computed over `events`. */
+async function readSourceTotalsLive(database: DB, where: SQL | undefined) {
+  const [row] = await database
+    .select({
+      n: sql<number>`count(*)`,
+      latestObservedAt: sql<
+        number | null
+      >`max(case when ${schema.events.publishedAt} <= unixepoch() then ${schema.events.publishedAt} end)`,
+      lastIngestedAt: sql<number | null>`max(${schema.events.ingestedAt})`,
+      futureCount: sql<number>`sum(case when ${schema.events.publishedAt} > unixepoch() then 1 else 0 end)`,
+    })
+    .from(schema.events)
+    .where(where);
+  return row as SourceTotals | undefined;
+}
+
+/**
+ * The same totals folded out of the rollup. `sourceMatch` is reused verbatim
+ * against the rollup's copy of the raw `source` values, so family membership
+ * is decided by exactly the same predicate as the live query.
+ */
+async function readSourceTotalsFromRollup(database: DB, id: string) {
+  const [row] = await database
+    .select({
+      n: sql<number>`coalesce(sum(${schema.eventsSourceRollup.eventCount}), 0)`,
+      latestObservedAt: sql<number | null>`max(${schema.eventsSourceRollup.latestObservedAt})`,
+      lastIngestedAt: sql<number | null>`max(${schema.eventsSourceRollup.lastIngestedAt})`,
+      futureCount: sql<number>`coalesce(sum(${schema.eventsSourceRollup.futureCount}), 0)`,
+    })
+    .from(schema.eventsSourceRollup)
+    .where(sourceMatch(id, schema.eventsSourceRollup.source));
+  return row as SourceTotals | undefined;
 }
 
 interface Sample {
@@ -260,26 +364,11 @@ dataRoute.get('/sources', async (c) => {
   // Aggregate stored rows, observation time, and ingestion time separately.
   // `published_at` may be a future effective/due date, so it cannot by itself
   // prove that a source is fresh or determine the latest browsable source day.
-  let rows: {
-    source: string;
-    n: number;
-    lastObserved: number | null;
-    lastIngested: number | null;
-    futureCount: number;
-  }[] = [];
+  // Served from the cron-maintained rollup, so these counts are at most one
+  // cron interval (30 minutes) behind `events`.
+  let rows: SourceAggregateRow[] = [];
   try {
-    rows = (await database
-      .select({
-        source: schema.events.source,
-        n: sql<number>`count(*)`,
-        lastObserved: sql<
-          number | null
-        >`max(case when ${schema.events.publishedAt} <= unixepoch() then ${schema.events.publishedAt} end)`,
-        lastIngested: sql<number | null>`max(${schema.events.ingestedAt})`,
-        futureCount: sql<number>`sum(case when ${schema.events.publishedAt} > unixepoch() then 1 else 0 end)`,
-      })
-      .from(schema.events)
-      .groupBy(schema.events.source)) as typeof rows;
+    rows = await loadSourceAggregates(database);
   } catch {
     return c.json(
       {
@@ -475,17 +564,13 @@ dataRoute.get('/sources/:id', async (c) => {
   let lastIngestedAt = 0;
   let futureCount = 0;
   try {
-    const [row] = await database
-      .select({
-        n: sql<number>`count(*)`,
-        latestObservedAt: sql<
-          number | null
-        >`max(case when ${schema.events.publishedAt} <= unixepoch() then ${schema.events.publishedAt} end)`,
-        lastIngestedAt: sql<number | null>`max(${schema.events.ingestedAt})`,
-        futureCount: sql<number>`sum(case when ${schema.events.publishedAt} > unixepoch() then 1 else 0 end)`,
-      })
-      .from(schema.events)
-      .where(where);
+    // Unfiltered totals come from the cron-maintained rollup (at most 30
+    // minutes behind); a `?date=` request still asks `events` directly,
+    // because the rollup carries no per-day breakdown.
+    const row =
+      range === null && (await eventsRollupIsReady(database))
+        ? await readSourceTotalsFromRollup(database, id)
+        : await readSourceTotalsLive(database, where);
     total = Number(row?.n ?? 0);
     latestObservedAt = Number(row?.latestObservedAt ?? 0);
     lastIngestedAt = Number(row?.lastIngestedAt ?? 0);

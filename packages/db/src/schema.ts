@@ -106,8 +106,42 @@ export const events = sqliteTable(
     index('events_primary_entity_idx').on(t.primaryEntityId),
     index('events_source_document_idx').on(t.sourceDocumentId),
     index('events_fetch_run_idx').on(t.fetchRunId),
+    // Migration 0025. `(ingested_at, source)` bounds the Daily Brief's
+    // material-evidence receipt to one day instead of scanning the table.
+    index('events_ingested_at_idx').on(t.ingestedAt, t.source),
+    // Migration 0025. Covering index for the per-source rollup rebuild.
+    index('events_source_rollup_idx').on(t.source, t.publishedAt, t.ingestedAt),
   ]
 );
+
+// ─── Events source rollup (migration 0025) ────────────────────────────────
+// Materialized per-source aggregate of `events`, refreshed by the */30 cron.
+// `GET /data/sources` and `GET /data/sources/:id` read this instead of
+// recomputing a whole-table aggregate on every cache miss.
+//
+// Timestamps stay raw unix seconds rather than drizzle `timestamp` mode: they
+// are produced by SQL `max()`/`sum()` over the aggregate and consumed as
+// numbers by the public payload, exactly as the aggregates they replace were.
+
+export const eventsSourceRollup = sqliteTable('events_source_rollup', {
+  source: text('source').primaryKey(),
+  eventCount: integer('event_count').notNull().default(0),
+  // NULL when a source has no non-future row, matching the `max(case when
+  // published_at <= unixepoch() ...)` aggregate this replaces.
+  latestObservedAt: integer('latest_observed_at'),
+  lastIngestedAt: integer('last_ingested_at'),
+  futureCount: integer('future_count').notNull().default(0),
+  refreshedAt: integer('refreshed_at').notNull(),
+});
+
+// Single-row control record (`id` is pinned to 1) describing what the rollup
+// currently reflects, so a cron tick can skip a rebuild that would be a no-op.
+export const eventsRollupState = sqliteTable('events_rollup_state', {
+  id: integer('id').primaryKey(),
+  maxIngestedAt: integer('max_ingested_at').notNull().default(0),
+  rebuiltAt: integer('rebuilt_at').notNull().default(0),
+  refreshedAt: integer('refreshed_at').notNull().default(0),
+});
 
 export const signals = sqliteTable(
   'signals',
