@@ -94,6 +94,24 @@ def _job_relevant(*parts: object) -> bool:
     return any(term in text for term in RELEVANT_TERMS)
 
 
+def _posting_url(hosted: object, board_url: str, posting_base: str, job_id: str) -> str:
+    """Per-posting URL, never the bare board URL.
+
+    Every board API is supposed to hand back a hosted posting link, but when it
+    is absent the old fallback was the board landing page — identical for every
+    posting on that board. The write-path `dedupe_exact` keys on canonical URL,
+    so a whole board's postings collapsed into a single event (89 of 200 sampled
+    `jobs` rows in production shared one Ashby board URL). Fall back to the
+    board's canonical per-posting path instead, and only use the bare board URL
+    when the payload carries no id at all.
+    """
+    hosted_url = str(hosted or "").strip()
+    if hosted_url:
+        return hosted_url
+    posting_id = job_id.strip()
+    return f"{posting_base}/{posting_id}" if posting_id else board_url
+
+
 def greenhouse_events_from_payload(
     target: JobBoardTarget, payload: dict[str, Any], since: datetime
 ) -> list[Event]:
@@ -116,8 +134,11 @@ def greenhouse_events_from_payload(
             Event(
                 id=raw_hash[:16],
                 source=f"jobs:greenhouse:{target.slug}",
-                source_url=str(
-                    job.get("absolute_url") or f"https://boards.greenhouse.io/{target.slug}"
+                source_url=_posting_url(
+                    job.get("absolute_url"),
+                    f"https://boards.greenhouse.io/{target.slug}",
+                    f"https://boards.greenhouse.io/{target.slug}/jobs",
+                    job_id,
                 ),
                 published_at=published,
                 title=f"{target.company_name} hiring: {title}",
@@ -163,7 +184,12 @@ def lever_events_from_payload(
             Event(
                 id=raw_hash[:16],
                 source=f"jobs:lever:{target.slug}",
-                source_url=str(job.get("hostedUrl") or f"https://jobs.lever.co/{target.slug}"),
+                source_url=_posting_url(
+                    job.get("hostedUrl"),
+                    f"https://jobs.lever.co/{target.slug}",
+                    f"https://jobs.lever.co/{target.slug}",
+                    str(job.get("id") or ""),
+                ),
                 published_at=published,
                 title=f"{target.company_name} hiring: {title}",
                 content=content or None,
@@ -199,8 +225,11 @@ def ashby_events_from_payload(
             Event(
                 id=raw_hash[:16],
                 source=f"jobs:ashby:{target.slug}",
-                source_url=str(
-                    job.get("externalLink") or f"https://jobs.ashbyhq.com/{target.slug}"
+                source_url=_posting_url(
+                    job.get("externalLink"),
+                    f"https://jobs.ashbyhq.com/{target.slug}",
+                    f"https://jobs.ashbyhq.com/{target.slug}",
+                    str(job.get("id") or ""),
                 ),
                 published_at=published,
                 title=f"{target.company_name} hiring: {title}",

@@ -663,3 +663,58 @@ def test_batch_prompt_matches_json_object_response_contract() -> None:
     assert '"signals": [' in prompt
     assert "Return a JSON object" in prompt
     assert "Return a JSON ARRAY" not in prompt
+
+
+def test_zero_draft_alert_reports_clusters_reaching_generation() -> None:
+    """`candidates_generated: 2` reads the same whether generation saw 2
+    clusters or 40. The receipt has to say which."""
+    alert = pipeline.zero_draft_alert(
+        {
+            "events": 3560,
+            "signals_drafted": 0,
+            "errors": 1,
+            "clusters_reaching_generation": 37,
+            "candidates_generated": 2,
+            "candidates_rejected_no_proof": 2,
+            "events_low_cluster": 479,
+            "events_no_entity": 2065,
+        }
+    )
+    assert alert is not None
+    assert "clusters=37" in alert
+    assert "generated=2" in alert
+
+
+def test_run_receipt_reports_clusters_reaching_generation(monkeypatch) -> None:
+    """The counter is sourced from `_pre_group_clusters`, before generation."""
+    monkeypatch.setattr(pipeline, "fetch", lambda *_a, **_k: [])
+    monkeypatch.setattr(pipeline.audit, "push_events", lambda *_a, **_k: 0)
+    monkeypatch.setattr(pipeline.audit, "push_ingest_run", lambda **_k: None)
+    monkeypatch.setattr(pipeline.audit, "push_ingest_runs", lambda *_a, **_k: None)
+
+    seen: list[tuple[str, list]] = []
+
+    def fake_pre_group(_by_entity):
+        clusters = [("NVDA", []), ("AMD", [])]
+        return [clusters[0]], [[clusters[1]]], 17
+
+    monkeypatch.setattr(pipeline, "_pre_group_clusters", fake_pre_group)
+    monkeypatch.setattr(pipeline, "generate", lambda *_a, **_k: seen.append(("large", [])) or None)
+    monkeypatch.setattr(pipeline, "generate_batch", lambda *_a, **_k: [])
+    monkeypatch.setattr(pipeline, "_emit_fallback_drafts", lambda *_a, **_k: [])
+    monkeypatch.setattr(pipeline, "_emit_thematic_drafts", lambda *_a, **_k: [])
+
+    out = pipeline.run("all", 1)
+    assert out["clusters_reaching_generation"] == 2
+    assert out["events_low_cluster"] == 17
+    assert out["candidates_generated"] == 0
+
+
+def test_fetch_only_receipt_carries_the_cluster_counter(monkeypatch) -> None:
+    monkeypatch.setattr(pipeline, "fetch", lambda *_a, **_k: [])
+    monkeypatch.setattr(pipeline.audit, "push_events", lambda *_a, **_k: 0)
+    monkeypatch.setattr(pipeline.audit, "push_ingest_run", lambda **_k: None)
+    monkeypatch.setattr(pipeline.audit, "push_ingest_runs", lambda *_a, **_k: None)
+
+    out = pipeline.run("all", 1, generate_signals=False)
+    assert out["clusters_reaching_generation"] == 0

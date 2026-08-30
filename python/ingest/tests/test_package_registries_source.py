@@ -28,7 +28,12 @@ def test_npm_events_from_metadata() -> None:
     assert len(events) == 1
     assert events[0].source == "package:npm:nx"
     assert events[0].primary_entity_id == "NX"
-    assert events[0].source_url == "https://nx.dev"
+    # Per-release permalink, not the shared package homepage — the homepage is
+    # identical for every version and collapsed release histories in
+    # `dedupe_exact` (see tests/test_source_url_distinctness.py).
+    assert events[0].source_url == "https://www.npmjs.com/package/nx/v/21.0.0"
+    assert events[0].source_document is not None
+    assert events[0].source_document.parsed_fields["homepage"] == "https://nx.dev"
 
 
 def test_pypi_events_from_metadata() -> None:

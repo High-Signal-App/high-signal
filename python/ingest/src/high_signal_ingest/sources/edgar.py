@@ -73,7 +73,15 @@ def form_d_events_from_search(query: str, payload: dict[str, Any], since: dateti
         filed_at = _parse_date(str(source.get("file_date") or ""))
         accession = str(source.get("adsh") or "").strip()
         ciks = source.get("ciks") if isinstance(source.get("ciks"), list) else []
-        if form != "D" or filed_at is None or filed_at < since or not accession or not ciks:
+        # `file_date` is day-granular — compare dates, not datetimes (see
+        # `fetch_filings` for the window-truncation this avoids).
+        if (
+            form != "D"
+            or filed_at is None
+            or filed_at.date() < since.date()
+            or not accession
+            or not ciks
+        ):
             continue
         display_names = [
             str(name).strip()
@@ -141,6 +149,17 @@ def fetch_filings(
 
     _ensure_identity()
 
+    # EDGAR reports `filing_date` at day granularity, so a filing is stamped at
+    # midnight UTC of the day it was filed. Comparing that against a
+    # time-of-day-precise cutoff (`now - days`) silently truncated the window:
+    # at the 02:30 UTC cron tick, `days=1` gave `since = yesterday 02:30`, which
+    # excludes every filing dated yesterday (00:00 < 02:30) *and* every filing
+    # dated today (00:00 < 02:30). Daily EDGAR could therefore never return a
+    # single filing — which is exactly what production shows (zero `edgar`
+    # events ever persisted, `runStatus: success_empty`, zero errors).
+    # Compare dates against dates so `days` means what it says.
+    since_date = since.date()
+
     for ticker in tickers:
         try:
             co = Company(ticker)
@@ -158,7 +177,7 @@ def fetch_filings(
                         filed_at = filed_at.replace(tzinfo=timezone.utc)
                 except Exception:
                     continue
-                if filed_at < since:
+                if filed_at.date() < since_date:
                     continue
                 url = getattr(filing, "filing_url", None) or getattr(filing, "url", "")
                 title = f"{ticker} {form}: {getattr(filing, 'items', '')}".strip()

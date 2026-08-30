@@ -535,6 +535,26 @@ def _fetch_usgs_earthquakes(days: int) -> list[Event]:
 NOAA_URL = "https://api.weather.gov/alerts/active"
 
 
+def _noaa_alert_url(web: object, alert_id: str) -> str:
+    """Per-alert permalink, never the bare weather.gov landing page.
+
+    NWS alert features rarely carry `properties.web`, so every alert used to
+    fall back to `https://www.weather.gov/`. The write-path `dedupe_exact` keys
+    on canonical URL, which collapsed an entire active-alert set into one event
+    (1,053 of 1,600 sampled `us-gov-api` rows in production shared that single
+    URL). `properties.id` is the alert's own api.weather.gov URI, so use it.
+    """
+    web_url = str(web or "").strip()
+    if web_url:
+        return web_url
+    identifier = alert_id.strip()
+    if not identifier:
+        return "https://www.weather.gov/"
+    if identifier.startswith(("http://", "https://")):
+        return identifier
+    return f"https://api.weather.gov/alerts/{identifier}"
+
+
 def _fetch_noaa_weather(days: int) -> list[Event]:
     """Active NOAA weather alerts (only currently active ones are returned)."""
     out: list[Event] = []
@@ -580,7 +600,7 @@ def _fetch_noaa_weather(days: int) -> list[Event]:
             Event(
                 id=raw_hash[:16],
                 source="us-gov-api:noaa-weather",
-                source_url=str(props.get("web") or "https://www.weather.gov/"),
+                source_url=_noaa_alert_url(props.get("web"), alert_id),
                 published_at=published,
                 title=title,
                 content=content,
