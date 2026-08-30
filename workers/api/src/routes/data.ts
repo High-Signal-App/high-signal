@@ -3,7 +3,8 @@ import { and, desc, eq, gte, inArray, like, lt, or, type SQL, sql } from 'drizzl
 import type { SQLiteColumn } from 'drizzle-orm/sqlite-core';
 import { istDay, istDayRange } from '@high-signal/shared';
 import { db, type DB, schema } from '../db';
-import { eventsRollupIsReady } from '../lib/events-rollup';
+import { encodeKeysetCursor, decodeKeysetCursor, type KeysetCursor } from '../lib/cursor';
+import { eventsRollupIsReady, readEventsRollupState } from '../lib/events-rollup';
 import { enrichPublishedSignals, partitionPublishable } from '../lib/signal-quality';
 import sourceCatalog from '../lib/source-catalog.json';
 import { buildDiggAttention, tryGetPrecomputedSnapshot } from './brief/query';
@@ -177,6 +178,12 @@ interface SourceTotals {
   latestObservedAt: number | null;
   lastIngestedAt: number | null;
   futureCount: number | null;
+  /**
+   * How many raw `source` values the family spans, when the rollup answered.
+   * Free — it falls out of the same aggregate — and it is what lets the
+   * listing skip resolving a family it is not going to seek on.
+   */
+  sourceCount?: number;
 }
 
 /** One family's stored-row totals, computed over `events`. */
@@ -207,10 +214,98 @@ async function readSourceTotalsFromRollup(database: DB, id: string) {
       latestObservedAt: sql<number | null>`max(${schema.eventsSourceRollup.latestObservedAt})`,
       lastIngestedAt: sql<number | null>`max(${schema.eventsSourceRollup.lastIngestedAt})`,
       futureCount: sql<number>`coalesce(sum(${schema.eventsSourceRollup.futureCount}), 0)`,
+      sourceCount: sql<number>`count(*)`,
     })
     .from(schema.eventsSourceRollup)
     .where(sourceMatch(id, schema.eventsSourceRollup.source));
   return row as SourceTotals | undefined;
+}
+
+// ─── Paginating the per-source event listing ──────────────────────────────
+//
+// `sourceMatch` cannot use an index on `source`, and that is not fixable in
+// place. Its three arms are three different operator classes — `=`, `LIKE`,
+// `GLOB` — OR'd together, and SQLite's OR-to-index optimization needs *every*
+// arm to be index-usable. `=` and `GLOB` are (GLOB is case-sensitive, so a
+// literal prefix becomes a range constraint); `LIKE` is not, because it is
+// case-insensitive by default and a BINARY index cannot answer it. Rewriting
+// the `LIKE` arm as `GLOB` would make the whole predicate index-usable, but it
+// would also make family matching case-sensitive — a change to which rows a
+// public endpoint returns, and a break in the live/rollup equivalence
+// migration 0025 relies on. So the predicate stays exactly as it is.
+//
+// What is fixable is not needing it as the access path. The rollup already
+// materializes every raw `source` value, so a family can be resolved to a
+// concrete list of them and the listing can then seek on `source` instead of
+// walking the whole table in `published_at` order looking for matches.
+
+/**
+ * Rows the seek plan will materialize and sort before the time-ordered scan
+ * becomes the cheaper option.
+ *
+ * The two plans cost roughly:
+ *
+ *     seek ≈ familyRows                             (index seek, then sort)
+ *     scan ≈ tableRows / familyRows × pageSize      (walk newest-first,
+ *                                                    discarding non-matches)
+ *
+ * which cross at `familyRows ≈ sqrt(tableRows × pageSize)`. At production's
+ * 440,246 rows and a 50-row page that is ~4,700. Rounded to 5,000 — the two
+ * curves cross shallowly, so the exact value barely matters.
+ */
+const SEEK_PLAN_MAX_ROWS = 5000;
+
+/**
+ * Resolves one catalog family to the raw `source` values it covers, or `null`
+ * when the rollup cannot answer and the caller must fall back to scanning.
+ *
+ * Two arms, because the rollup is up to one cron interval behind:
+ *
+ *  - the rollup itself, which is one row per raw `source` value (~97 rows in
+ *    production);
+ *  - every `source` seen since the rollup's own ingest watermark, so a source
+ *    value that first appeared *after* the last rebuild is still found. That
+ *    arm is pinned to `events_ingested_at_idx` with `INDEXED BY`: left to
+ *    itself SQLite reads `SELECT DISTINCT source` and picks the source-leading
+ *    index, which scans the whole table. Pinning it also means a dropped index
+ *    fails loudly instead of silently costing 440k row reads.
+ *
+ * Both arms filter with the same `sourceMatch`, so membership is decided by
+ * one definition rather than a re-derivation of it — the same discipline
+ * migration 0025 established between the live aggregate and the rollup.
+ */
+async function resolveFamilySources(database: DB, id: string): Promise<string[] | null> {
+  try {
+    const state = await readEventsRollupState(database);
+    if (!state || state.rebuiltAt <= 0) return null;
+    const rollupRows = await database
+      .select({ source: schema.eventsSourceRollup.source })
+      .from(schema.eventsSourceRollup)
+      .where(sourceMatch(id, schema.eventsSourceRollup.source));
+    const recentRows = await database.all<{ source: string }>(sql`
+      SELECT DISTINCT source FROM events INDEXED BY events_ingested_at_idx
+      WHERE ${schema.events.ingestedAt} >= ${state.maxIngestedAt} AND ${sourceMatch(id)}`);
+    return [...new Set([...rollupRows, ...recentRows].map((row) => row.source))];
+  } catch (error) {
+    console.error('[data/sources/:id] source resolution unavailable, scanning', error);
+    return null;
+  }
+}
+
+/**
+ * `WHERE` fragment for "strictly after this cursor" under
+ * `ORDER BY published_at DESC, id DESC`.
+ *
+ * The `id` comparison is the whole point: without it the boundary between two
+ * pages falls inside a `published_at` tie block whose internal order is
+ * undefined, and rows are silently dropped or repeated.
+ */
+function keysetAfter(cursor: KeysetCursor): SQL | undefined {
+  const at = new Date(cursor.publishedAt * 1000);
+  return or(
+    lt(schema.events.publishedAt, at),
+    and(eq(schema.events.publishedAt, at), lt(schema.events.id, cursor.id))
+  );
 }
 
 interface Sample {
@@ -537,44 +632,67 @@ dataRoute.get('/sources', async (c) => {
  * GET /data/sources/:id — paginated raw events for one source family, newest
  * first. Powers the /data/[source] drill-in ("click on data to view it").
  * Matches the family and any `family:variant` sub-source (e.g. legistar:phoenix).
+ *
+ * Pagination is keyset-first: `?cursor=` walks a total order over
+ * `(published_at, id)`. `?offset=` still works unchanged for existing callers,
+ * but it is the weaker mode — it re-walks everything it skips, and its window
+ * is only well defined because the `ORDER BY` now carries the `id` tiebreaker.
+ *
+ * Filters (`date`, `source`) are applied in SQL, never to a broad result set
+ * in JS.
  */
 dataRoute.get('/sources/:id', async (c) => {
   const id = c.req.param('id');
   const requestedLimit = Number(c.req.query('limit') ?? 50);
   const requestedOffset = Number(c.req.query('offset') ?? 0);
   const limit = Math.min(Math.max(Number.isFinite(requestedLimit) ? requestedLimit : 50, 1), 200);
-  const offset = Math.max(Number.isFinite(requestedOffset) ? requestedOffset : 0, 0);
   const date = c.req.query('date');
   if (date !== undefined && dayRange(date) === null) {
     return c.json({ error: 'invalid_date', expected: 'YYYY-MM-DD' }, 400);
   }
+  const rawCursor = c.req.query('cursor');
+  const cursor = rawCursor === undefined ? null : decodeKeysetCursor(rawCursor);
+  if (rawCursor !== undefined && cursor === null) {
+    return c.json({ error: 'invalid_cursor', expected: 'a cursor from a previous response' }, 400);
+  }
+  // A cursor already encodes the position, so `offset` is ignored alongside it
+  // rather than compounding with it.
+  const offset = cursor ? 0 : Math.max(Number.isFinite(requestedOffset) ? requestedOffset : 0, 0);
+  // Narrows to one raw `source` value inside the family. An equality on an
+  // indexed column, so it is a seek rather than a filter over a wide scan.
+  const sourceFilter = c.req.query('source');
+
   const database = db(c.env.DB);
   const match = sourceMatch(id);
   const range = dayRange(date);
-  const where = range
-    ? and(
-        match,
-        gte(schema.events.publishedAt, range.start),
-        lt(schema.events.publishedAt, range.end)
-      )
-    : match;
+  const filters = [
+    ...(range
+      ? [gte(schema.events.publishedAt, range.start), lt(schema.events.publishedAt, range.end)]
+      : []),
+    ...(sourceFilter ? [eq(schema.events.source, sourceFilter)] : []),
+  ];
+  // Totals describe the filtered set, so `?source=`/`?date=` narrow them too.
+  const where = filters.length ? and(match, ...filters) : match;
 
   let total = 0;
   let latestObservedAt = 0;
   let lastIngestedAt = 0;
   let futureCount = 0;
+  let sourceCount: number | null = null;
   try {
     // Unfiltered totals come from the cron-maintained rollup (at most 30
-    // minutes behind); a `?date=` request still asks `events` directly,
-    // because the rollup carries no per-day breakdown.
+    // minutes behind); a `?date=` or `?source=` request still asks `events`
+    // directly, because the rollup carries no per-day breakdown and a
+    // single-source total is already an index seek.
     const row =
-      range === null && (await eventsRollupIsReady(database))
+      filters.length === 0 && (await eventsRollupIsReady(database))
         ? await readSourceTotalsFromRollup(database, id)
         : await readSourceTotalsLive(database, where);
     total = Number(row?.n ?? 0);
     latestObservedAt = Number(row?.latestObservedAt ?? 0);
     lastIngestedAt = Number(row?.lastIngestedAt ?? 0);
     futureCount = Number(row?.futureCount ?? 0);
+    sourceCount = row?.sourceCount === undefined ? null : Number(row.sourceCount);
   } catch {
     return c.json({
       id,
@@ -585,12 +703,46 @@ dataRoute.get('/sources/:id', async (c) => {
       futureCount: 0,
       events: [],
       hasMore: false,
+      nextCursor: null,
       available: false,
     });
   }
 
+  // Plan choice. `?source=` is already a `source = ?` equality, so SQLite can
+  // seek on `events_source_rollup_idx` without any help. Otherwise the family
+  // is worth resolving to concrete source values only when seeking would beat
+  // walking `published_at` — see SEEK_PLAN_MAX_ROWS.
+  //
+  // A family that is both large and spread across several source values can be
+  // ruled out before resolving anything: the rollup's own `count(*)` already
+  // said how many source values it spans, so the probe is skipped rather than
+  // run and discarded.
+  let candidates: string[] | null = null;
+  const worthResolving =
+    !sourceFilter && (total <= SEEK_PLAN_MAX_ROWS || sourceCount === null || sourceCount === 1);
+  if (worthResolving) {
+    const resolved = await resolveFamilySources(database, id);
+    // One candidate is always worth seeking: SQLite walks the index already
+    // ordered by `published_at` and needs only an incremental sort for `id`.
+    if (resolved && (resolved.length === 1 || total <= SEEK_PLAN_MAX_ROWS)) {
+      candidates = resolved;
+    }
+  }
+  const access =
+    candidates === null
+      ? where
+      : candidates.length === 0
+        ? // The family covers no source at all; `1 = 0` keeps the shape without
+          // an `IN ()` that SQLite would reject.
+          sql`1 = 0`
+        : and(inArray(schema.events.source, candidates), ...filters);
+
+  const cursorFilter = cursor ? keysetAfter(cursor) : undefined;
+  // One extra row decides `hasMore` exactly, instead of inferring it from a
+  // `total` the rollup may have computed up to 30 minutes ago.
   const rows = await database
     .select({
+      id: schema.events.id,
       title: schema.events.title,
       content: schema.events.content,
       url: schema.events.sourceUrl,
@@ -599,12 +751,16 @@ dataRoute.get('/sources/:id', async (c) => {
       publishedAt: schema.events.publishedAt,
     })
     .from(schema.events)
-    .where(where)
-    .orderBy(desc(schema.events.publishedAt))
-    .limit(limit)
+    .where(cursorFilter ? and(access, cursorFilter) : access)
+    // `id` is the unique tiebreaker. Without it a `LIMIT` over `published_at`
+    // alone is not a well-defined window and pages overlap inside tie blocks.
+    .orderBy(desc(schema.events.publishedAt), desc(schema.events.id))
+    .limit(limit + 1)
     .offset(offset);
 
-  const events = rows.map((r) => ({
+  const hasMore = rows.length > limit;
+  const page = hasMore ? rows.slice(0, limit) : rows;
+  const events = page.map((r) => ({
     title: r.title,
     content: r.content,
     url: r.url,
@@ -616,6 +772,7 @@ dataRoute.get('/sources/:id', async (c) => {
         : Number(r.publishedAt),
   }));
 
+  const last = page.at(-1);
   return c.json({
     id,
     date: range ? date : undefined,
@@ -624,7 +781,17 @@ dataRoute.get('/sources/:id', async (c) => {
     lastIngestedAt,
     futureCount,
     events,
-    hasMore: offset + events.length < total,
+    hasMore,
+    nextCursor:
+      hasMore && last
+        ? encodeKeysetCursor({
+            publishedAt:
+              last.publishedAt instanceof Date
+                ? Math.floor(last.publishedAt.getTime() / 1000)
+                : Number(last.publishedAt),
+            id: last.id,
+          })
+        : null,
     available: true,
   });
 });

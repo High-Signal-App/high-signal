@@ -311,6 +311,13 @@ export interface DataSourceEventsResponse {
   futureCount: number;
   events: DataSourceEvent[];
   hasMore: boolean;
+  /**
+   * Opaque keyset cursor for the next page, or null on the last page. Prefer
+   * this over `offset`: it pages over a total order on `(publishedAt, id)`,
+   * where `offset` re-walks everything it skips and relies on the caller not
+   * assuming a stable arrangement inside `publishedAt` ties.
+   */
+  nextCursor: string | null;
   available: boolean;
 }
 
@@ -353,10 +360,16 @@ export const api = {
   signals: (f: SignalFilters = {}, historyGrant?: string | null) =>
     fetchJson<{ signals: SignalRow[] }>(`/signals${qs(f)}`, historyRequest(historyGrant)),
   dataSources: () => fetchJson<DataSourcesResponse>('/data/sources'),
-  dataSourceEvents: (id: string, opts: { limit?: number; offset?: number; date?: string } = {}) => {
+  dataSourceEvents: (
+    id: string,
+    opts: { limit?: number; offset?: number; cursor?: string; source?: string; date?: string } = {}
+  ) => {
     const p = new URLSearchParams();
     if (opts.limit != null) p.set('limit', String(opts.limit));
-    if (opts.offset != null) p.set('offset', String(opts.offset));
+    // `cursor` supersedes `offset`; the worker ignores `offset` alongside it.
+    if (opts.cursor) p.set('cursor', opts.cursor);
+    else if (opts.offset != null) p.set('offset', String(opts.offset));
+    if (opts.source) p.set('source', opts.source);
     if (opts.date) p.set('date', opts.date);
     const q = p.toString();
     return fetchJson<DataSourceEventsResponse>(
