@@ -49,9 +49,7 @@ describe('data source directory contract', () => {
       samplesAvailable: true,
       uncataloguedSources: [],
     };
-    const get = vi.fn(async (key: string) =>
-      key === sourceStatusCacheKey(0) ? snapshot : null
-    );
+    const get = vi.fn(async (key: string) => (key === sourceStatusCacheKey(0) ? snapshot : null));
     const response = await fetcher.fetch(new Request('http://test/data/sources'), {
       ENVIRONMENT: 'test',
       BRIEF_CACHE: { get },

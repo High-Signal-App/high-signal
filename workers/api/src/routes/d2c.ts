@@ -452,7 +452,10 @@ d2cRoute.post('/agent-visibility/run', async (c) => {
   const endpointUrl = c.env.HIGH_SIGNAL_AI_ENDPOINT_URL;
   if (!model || !endpointUrl) {
     return c.json(
-      { error: 'AI endpoint not configured. Set HIGH_SIGNAL_AI_ENDPOINT_URL and HIGH_SIGNAL_AI_MODEL.' },
+      {
+        error:
+          'AI endpoint not configured. Set HIGH_SIGNAL_AI_ENDPOINT_URL and HIGH_SIGNAL_AI_MODEL.',
+      },
       503
     );
   }

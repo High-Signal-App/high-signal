@@ -107,10 +107,7 @@ function decideReason(
   cursor: IngestCursor
 ): RollupRefreshReason | 'check_matured' {
   if (!state || state.rebuiltAt <= 0 || !state.maxIngestedId) return 'bootstrap';
-  if (
-    cursor.ingestedAt !== state.maxIngestedAt ||
-    cursor.id !== state.maxIngestedId
-  ) {
+  if (cursor.ingestedAt !== state.maxIngestedAt || cursor.id !== state.maxIngestedId) {
     return 'new_events';
   }
   return 'check_matured';
@@ -225,12 +222,7 @@ export async function refreshEventsSourceRollup(
          END,
          future_count = max(0, events_source_rollup.future_count + excluded.future_count),
          refreshed_at = excluded.refreshed_at`
-    ).bind(
-      observedAt,
-      previous.rebuiltAt,
-      previous.maxIngestedAt,
-      previous.maxIngestedId
-    ),
+    ).bind(observedAt, previous.rebuiltAt, previous.maxIngestedAt, previous.maxIngestedId),
     env.DB.prepare(
       `UPDATE events_rollup_state
        SET max_ingested_at = ?1,

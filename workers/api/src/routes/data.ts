@@ -131,19 +131,21 @@ interface SourceAggregateRow {
  * rollup has not been populated yet.
  */
 function loadSourceAggregatesLive(database: DB) {
-  return database
-    .select({
-      source: schema.events.source,
-      n: sql<number>`count(*)`,
-      lastObserved: sql<
-        number | null
-      >`max(case when ${schema.events.publishedAt} <= unixepoch() then ${schema.events.publishedAt} end)`,
-      lastIngested: sql<number | null>`max(${schema.events.ingestedAt})`,
-      futureCount: sql<number>`sum(case when ${schema.events.publishedAt} > unixepoch() then 1 else 0 end)`,
-    })
-    .from(schema.events)
-    // d1-scan: reviewed-unbounded issue=#145 reason=emergency fallback only when the cron-maintained rollup is unavailable
-    .groupBy(schema.events.source) as Promise<SourceAggregateRow[]>;
+  return (
+    database
+      .select({
+        source: schema.events.source,
+        n: sql<number>`count(*)`,
+        lastObserved: sql<
+          number | null
+        >`max(case when ${schema.events.publishedAt} <= unixepoch() then ${schema.events.publishedAt} end)`,
+        lastIngested: sql<number | null>`max(${schema.events.ingestedAt})`,
+        futureCount: sql<number>`sum(case when ${schema.events.publishedAt} > unixepoch() then 1 else 0 end)`,
+      })
+      .from(schema.events)
+      // d1-scan: reviewed-unbounded issue=#145 reason=emergency fallback only when the cron-maintained rollup is unavailable
+      .groupBy(schema.events.source) as Promise<SourceAggregateRow[]>
+  );
 }
 
 /** The same numbers, read from the rollup the cron materializes. */
