@@ -5,12 +5,12 @@ compatibility_flags = ["enable_ctx_exports"]
 workers_dev = false
 preview_urls = false
 
-[ai]
-binding = "AI"
-
 routes = [
   { pattern = "api.highsignal.app", custom_domain = true },
 ]
+
+[ai]
+binding = "AI"
 
 # The public entrypoint is cached before Worker execution. The default gateway
 # remains uncached so it can reject cookies, authorization, admin paths,
