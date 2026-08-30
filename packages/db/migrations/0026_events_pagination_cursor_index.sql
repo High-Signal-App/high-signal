@@ -1,0 +1,26 @@
+-- Replaces `events_published_idx (published_at)` with the wider
+-- `(published_at, id)` so the public event listing can paginate over a total
+-- order instead of an ambiguous one.
+--
+-- `GET /data/sources/:id` orders by `published_at DESC` and pages with
+-- `LIMIT`/`OFFSET`. `published_at` is not unique — ingest writes in batches and
+-- the whole batch shares one value, so in production the newest 200 `markets`
+-- rows all carry the same `published_at` and tie blocks of 200-400 rows are
+-- normal. A `LIMIT` over that is not a well-defined window: the order inside a
+-- tie block is undefined, so a page boundary that lands inside one can repeat
+-- or drop rows. The fix is to sort by `(published_at, id)` and carry both in
+-- the cursor, which needs an index on both to avoid sorting the whole match.
+--
+-- This is a replacement, not an addition. `(published_at)` is a strict prefix
+-- of `(published_at, id)`, so every query the old index served — the rollup's
+-- maturation probe, the convergence first-seen lookups, any `published_at`
+-- range — is served identically by the new one. Keeping both would be pure
+-- write amplification for no read benefit.
+--
+-- Verified on a 440,246-row local replica: the two `published_at`-only plans
+-- are byte-identical before and after (same COVERING INDEX search, same 2,212
+-- row visits), while the listing's `ORDER BY published_at DESC, id DESC` keeps
+-- using the index instead of falling back to a temp B-tree sort.
+CREATE INDEX `events_published_id_idx` ON `events` (`published_at`, `id`);
+--> statement-breakpoint
+DROP INDEX `events_published_idx`;

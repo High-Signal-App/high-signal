@@ -102,7 +102,13 @@ export const events = sqliteTable(
   },
   (t) => [
     uniqueIndex('events_raw_hash_idx').on(t.rawHash),
-    index('events_published_idx').on(t.publishedAt),
+    // Migration 0026 widened `events_published_idx (published_at)` to
+    // `(published_at, id)` and dropped the narrower one. `published_at` is not
+    // unique — ingest writes whole batches under one value — so the public
+    // event listing needs `id` in both the ORDER BY and the index to page over
+    // a total order. Every `published_at`-only query is served identically by
+    // the leading column.
+    index('events_published_id_idx').on(t.publishedAt, t.id),
     index('events_primary_entity_idx').on(t.primaryEntityId),
     index('events_source_document_idx').on(t.sourceDocumentId),
     index('events_fetch_run_idx').on(t.fetchRunId),

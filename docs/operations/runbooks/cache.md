@@ -46,6 +46,34 @@ forces one every six hours regardless, so an out-of-band `DELETE FROM events`
 (the ingest runbook's escape hatch) self-heals within six hours rather than
 leaving the rollup permanently wrong.
 
+### Paging the source drill-in
+
+`GET /data/sources/:id` pages over a **total order on `(published_at, id)`**.
+`published_at` alone is not unique — ingest writes a whole batch under one value,
+and in production the newest 200 `markets` rows share a single one — so a `LIMIT`
+over it is not a well-defined window and page boundaries inside a tie block can
+repeat or drop rows. `?cursor=` is the supported way to walk the listing;
+`?offset=` still works but re-reads everything it skips, and its cost grows with
+depth while a cursor's does not.
+
+The route picks one of two access paths, because `sourceMatch` can never use an
+index on `source` (its `LIKE` arm is case-insensitive, so no BINARY index answers
+it, and SQLite's OR-to-index optimization needs every arm to be usable):
+
+- **seek** — resolve the family to concrete raw `source` values from the rollup,
+  then seek `events_source_rollup_idx`. Chosen for families under
+  `SEEK_PLAN_MAX_ROWS` rows, and for any family that spans a single source value.
+- **scan** — walk `events_published_id_idx` newest-first and filter. Chosen for
+  large families spread over many source values, where matches are dense enough
+  that the first page is found within a few hundred rows.
+
+Resolution reads the rollup **and** every source seen since the rollup's ingest
+watermark, so a source value that first appeared after the last rebuild is still
+found — the listing gains no staleness even though the totals beside it are up to
+30 minutes old. That second query is pinned with `INDEXED BY
+events_ingested_at_idx`; without the pin SQLite picks the source-leading index
+and scans the table.
+
 The public `/data` directory and source-detail HTML use one minute of browser
 freshness and five minutes of shared-cache freshness. This outer Worker policy
 must stay aligned with the pages' five-minute Next.js revalidation interval;
