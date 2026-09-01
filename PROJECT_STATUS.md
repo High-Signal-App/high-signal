@@ -183,6 +183,12 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 
 ## Timeline
 
+- **2026-09-01 — Dedicated Clarity project wired locally:** Replaced the
+  retired shared analytics project with High Signal's own project in both the
+  Next application shell and the overlaid Astro landing. PostHog remains
+  unchanged. Source audit verification passes; production deployment is
+  pending the normal release gate.
+
 - **2026-08-28 — Reader-facing Daily Brief simplification released and verified:**
   the homepage now leads with Today and Yesterday, one compact verified-signal
   ledger, real event headlines, separate change/consequence/uncertainty fields,
