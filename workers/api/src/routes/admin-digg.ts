@@ -1,6 +1,23 @@
 import { Hono } from 'hono';
+import {
+  attentionVerificationMetrics,
+  bestPosition,
+  canonicalAttentionUrl,
+  epoch,
+  evidenceSearchTokens,
+  jsonArray,
+  median,
+  parseVerificationResults,
+  positionUpdate,
+  recentPublishedSignals,
+  recordVerificationResults,
+  retainedEvidenceCandidates,
+  runD1Batches as runBatches,
+} from '../lib/attention-admin';
 import { buildPatterns, matchEntity, type GazetteerEntity } from '../lib/gazetteer';
 import { sha16 } from '../lib/ids';
+
+export { canonicalAttentionUrl, evidenceSearchTokens, median, positionUpdate };
 
 type Env = { DB: D1Database };
 
@@ -156,40 +173,6 @@ export function selectVerificationQueue<T extends VerificationQueueRow>(
   return selected;
 }
 
-const EVIDENCE_SEARCH_STOP_WORDS = new Set([
-  'about',
-  'after',
-  'from',
-  'into',
-  'may',
-  'team',
-  'that',
-  'the',
-  'this',
-  'with',
-]);
-function tokenizableTitle(value: string) {
-  let normalized = '';
-  for (const char of value.toLowerCase()) {
-    const isLetter = char >= 'a' && char <= 'z';
-    const isNumber = char >= '0' && char <= '9';
-    normalized += isLetter || isNumber ? char : ' ';
-  }
-  return normalized;
-}
-
-export function evidenceSearchTokens(title: string): string[] {
-  const tokens: string[] = [];
-  for (const raw of tokenizableTitle(title).split(' ')) {
-    if (raw.length < 4 || EVIDENCE_SEARCH_STOP_WORDS.has(raw)) continue;
-    const variants = raw.endsWith('ai') && raw.length > 6 ? [raw.slice(0, -2), raw] : [raw];
-    for (const token of variants) {
-      if (!tokens.includes(token)) tokens.push(token);
-    }
-  }
-  return tokens.slice(0, 8);
-}
-
 export function verificationReasons(input: {
   position?: number | null;
   positionDelta?: number | null;
@@ -208,61 +191,7 @@ export function verificationReasons(input: {
   return reasons;
 }
 
-export function median(values: number[]): number | null {
-  const sorted = values.filter(Number.isFinite).sort((a, b) => a - b);
-  if (sorted.length === 0) return null;
-  const middle = Math.floor(sorted.length / 2);
-  return sorted.length % 2 === 1
-    ? (sorted[middle] ?? null)
-    : ((sorted[middle - 1] ?? 0) + (sorted[middle] ?? 0)) / 2;
-}
-
 export const diggAdminRoute = new Hono<{ Bindings: Env }>();
-
-export function positionUpdate(
-  previous: number | null | undefined,
-  incoming: number | null | undefined
-) {
-  if (incoming == null) return { position: previous ?? null, delta: null };
-  return {
-    position: incoming,
-    delta: previous == null ? null : previous - incoming,
-  };
-}
-
-export function canonicalAttentionUrl(value: string): string | null {
-  try {
-    const url = new URL(value);
-    if (url.protocol !== 'https:' && url.protocol !== 'http:') return null;
-    url.hash = '';
-    url.hostname = url.hostname.replace(/^www\./, '').toLowerCase();
-    url.pathname = url.pathname.replace(/\/$/, '') || '/';
-    for (const key of Array.from(url.searchParams.keys())) {
-      if (/^utm_|^ref$|^source$|^fbclid$|^gclid$|^mc_cid$|^mc_eid$/i.test(key)) {
-        url.searchParams.delete(key);
-      }
-    }
-    return url.toString().replace(/\/$/, '');
-  } catch {
-    return null;
-  }
-}
-
-function epoch(value: string | null | undefined): number | null {
-  if (!value) return null;
-  const ms = Date.parse(value);
-  return Number.isFinite(ms) ? Math.floor(ms / 1000) : null;
-}
-
-function jsonArray(value: string | null | undefined): unknown[] {
-  if (!value) return [];
-  try {
-    const parsed = JSON.parse(value);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
 
 function unionUrls(previous: string | null | undefined, incoming: string[] | undefined) {
   const values = [...jsonArray(previous), ...(incoming ?? [])];
@@ -310,7 +239,7 @@ async function feedStates(d1: D1Database): Promise<Map<string, number>> {
 diggAdminRoute.get('/status', async (c) => {
   const now = Math.floor(Date.now() / 1000);
   const states = await feedStates(c.env.DB);
-  const verification = await verificationMetrics(c.env.DB);
+  const verification = await attentionVerificationMetrics(c.env.DB, 'digg_clusters');
   return c.json({
     minimumRefreshSeconds: MIN_REFRESH_SECONDS,
     feeds: Object.entries(FEEDS).map(([feedKind, feedUrl]) => {
@@ -328,56 +257,6 @@ diggAdminRoute.get('/status', async (c) => {
     verification,
   });
 });
-
-async function verificationMetrics(d1: D1Database) {
-  try {
-    const rows = await d1
-      .prepare(
-        `SELECT verification_status, first_seen_at, verified_at,
-                verification_requested_at, verification_started_at
-         FROM digg_clusters
-         WHERE verification_status IS NOT NULL
-         ORDER BY verification_requested_at DESC LIMIT 500`
-      )
-      .all<{
-        verification_status: string;
-        first_seen_at: number;
-        verified_at: number | null;
-        verification_requested_at: number | null;
-        verification_started_at: number | null;
-      }>();
-    const values = rows.results ?? [];
-    const now = Math.floor(Date.now() / 1000);
-    const latencies = values.flatMap((row) =>
-      row.verification_status === 'verified_candidate' && row.verified_at != null
-        ? [(row.verified_at - row.first_seen_at) / 60]
-        : []
-    );
-    return {
-      pending: values.filter((row) => ['requested', 'running'].includes(row.verification_status))
-        .length,
-      running: values.filter((row) => row.verification_status === 'running').length,
-      pendingOlderThan90Minutes: values.filter(
-        (row) =>
-          ['requested', 'running'].includes(row.verification_status) &&
-          row.verification_requested_at != null &&
-          row.verification_requested_at <= now - 90 * 60
-      ).length,
-      verifiedCandidates: latencies.length,
-      medianFirstSeenToVerifiedMinutes: median(latencies),
-      targetMinutes: 90,
-    };
-  } catch {
-    return {
-      pending: 0,
-      running: 0,
-      pendingOlderThan90Minutes: 0,
-      verifiedCandidates: 0,
-      medianFirstSeenToVerifiedMinutes: null,
-      targetMinutes: 90,
-    };
-  }
-}
 
 diggAdminRoute.post('/', async (c) => {
   const body = (await c.req.json()) as { feeds?: DiggFeedInput[] };
@@ -625,44 +504,8 @@ diggAdminRoute.post('/', async (c) => {
 });
 
 diggAdminRoute.post('/verification-results', async (c) => {
-  const body = (await c.req.json()) as {
-    results?: Array<{
-      shortId?: string;
-      status?: 'running' | 'verified_candidate' | 'insufficient_evidence' | 'failed';
-      candidateSlug?: string | null;
-      error?: string | null;
-    }>;
-  };
-  const allowed = new Set(['running', 'verified_candidate', 'insufficient_evidence', 'failed']);
-  const now = Math.floor(Date.now() / 1000);
-  const results = (body.results ?? []).filter(
-    (result) => result.shortId && result.status && allowed.has(result.status)
-  );
-  await runBatches(
-    c.env.DB,
-    results.map((result) =>
-      c.env.DB.prepare(
-        `UPDATE digg_clusters SET
-             verification_status=?,
-             verification_started_at=CASE WHEN ?='running' THEN COALESCE(verification_started_at, ?) ELSE verification_started_at END,
-             verified_at=CASE WHEN ?='verified_candidate' THEN ? ELSE verified_at END,
-             verification_candidate_slug=COALESCE(?, verification_candidate_slug),
-             verification_error=?,
-             verification_attempts=verification_attempts + CASE WHEN ?='running' THEN 1 ELSE 0 END
-           WHERE short_id=?`
-      ).bind(
-        result.status,
-        result.status,
-        now,
-        result.status,
-        now,
-        result.candidateSlug ?? null,
-        result.error?.slice(0, 500) ?? null,
-        result.status,
-        result.shortId
-      )
-    )
-  );
+  const results = parseVerificationResults(await c.req.json());
+  await recordVerificationResults(c.env.DB, 'digg_clusters', 'short_id', results);
   return c.json({ updated: results.length });
 });
 
@@ -677,11 +520,6 @@ function validCluster(cluster: DiggClusterInput) {
       cluster.rawPayloadHash &&
       cluster.rawPayload
   );
-}
-
-function bestPosition(...values: Array<number | null | undefined>) {
-  const valid = values.filter((value): value is number => Number.isInteger(value) && value! > 0);
-  return valid.length > 0 ? Math.min(...valid) : null;
 }
 
 async function existingClusters(d1: D1Database, shortIds: string[]) {
@@ -760,43 +598,13 @@ async function pendingVerificationRequests(d1: D1Database) {
       sourceUrls: jsonArray(row.source_urls).filter(
         (value): value is string => typeof value === 'string'
       ),
-      retainedEvidence: await retainedEvidenceCandidates(d1, row.title, row.first_seen_at),
+      retainedEvidence: await retainedEvidenceCandidates(d1, row.title, row.first_seen_at, [
+        'digg%',
+      ]),
       firstSeenAt: new Date(row.first_seen_at * 1000).toISOString(),
       reasons: (row.verification_reason ?? '').split(',').filter(Boolean),
     }))
   );
-}
-
-async function retainedEvidenceCandidates(d1: D1Database, title: string, firstSeenAt: number) {
-  const tokens = evidenceSearchTokens(title);
-  if (tokens.length === 0) return [];
-  const earliest = firstSeenAt - 3 * 24 * 60 * 60;
-  const rows = await d1
-    .prepare(
-      `SELECT source_url, title, content, published_at, source
-       FROM events
-       WHERE published_at >= ? AND published_at <= unixepoch()
-         AND length(content) >= 500
-         AND source NOT LIKE 'digg%'
-         AND (${tokens.map(() => 'lower(title) LIKE ?').join(' OR ')})
-       ORDER BY published_at DESC
-       LIMIT 50`
-    )
-    .bind(earliest, ...tokens.map((token) => `%${token}%`))
-    .all<{
-      source_url: string;
-      title: string;
-      content: string;
-      published_at: number;
-      source: string;
-    }>();
-  return (rows.results ?? []).map((row) => ({
-    url: row.source_url,
-    title: row.title,
-    retainedContent: row.content,
-    seendate: new Date(row.published_at * 1000).toISOString(),
-    retainedSource: row.source,
-  }));
 }
 
 async function loadEntityPatterns(d1: D1Database) {
@@ -860,17 +668,9 @@ async function addEntityLinks(
     )
   );
   if (entityIds.length > 0) {
-    const rows = await d1
-      .prepare(
-        `SELECT id, primary_entity_id FROM signals
-         WHERE review_status = 'published' AND published_at >= ?
-           AND primary_entity_id IN (${entityIds.map(() => '?').join(',')})
-         ORDER BY published_at DESC`
-      )
-      .bind(now - 7 * 24 * 60 * 60, ...entityIds)
-      .all<{ id: string; primary_entity_id: string }>();
+    const rows = await recentPublishedSignals(d1, entityIds, now);
     const perEntity = new Map<string, number>();
-    for (const row of rows.results ?? []) {
+    for (const row of rows) {
       const used = perEntity.get(row.primary_entity_id) ?? 0;
       if (used >= 3) continue;
       perEntity.set(row.primary_entity_id, used + 1);
@@ -920,11 +720,4 @@ async function linkSignals(d1: D1Database, clusters: DiggClusterLinkInput, now: 
   const statements = signalLinkStatements(d1, linkCandidates, now);
   await runBatches(d1, statements);
   return statements.length;
-}
-
-async function runBatches(d1: D1Database, statements: D1PreparedStatement[]) {
-  for (let i = 0; i < statements.length; i += 50) {
-    const chunk = statements.slice(i, i + 50);
-    if (chunk.length > 0) await d1.batch(chunk);
-  }
 }

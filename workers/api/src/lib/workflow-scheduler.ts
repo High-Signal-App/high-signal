@@ -5,7 +5,7 @@ const GITHUB_API_VERSION = '2022-11-28';
 
 export type ScheduledWorkflow = {
   workflow: string;
-  purpose: 'reddit-archive' | 'digg' | 'ingest' | 'publish' | 'validate' | 'deliver';
+  purpose: 'reddit-archive' | 'digg' | 'mts' | 'ingest' | 'publish' | 'validate' | 'deliver';
   inputs?: Record<string, string>;
 };
 
@@ -43,7 +43,10 @@ export function workflowsDueAt(scheduledAt: Date): ScheduledWorkflow[] {
   }
   if (minute !== 0 && minute !== 30) return [];
 
-  const due: ScheduledWorkflow[] = [{ workflow: 'cron-digg.yml', purpose: 'digg' }];
+  const due: ScheduledWorkflow[] = [
+    { workflow: 'cron-digg.yml', purpose: 'digg' },
+    { workflow: 'cron-mts.yml', purpose: 'mts' },
+  ];
   const time = `${String(scheduledAt.getUTCHours()).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
   const daily = DAILY_WORKFLOWS.get(time);
   if (daily) due.push(daily);

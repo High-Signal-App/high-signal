@@ -32,6 +32,9 @@ The product has three source inventories with different jobs:
 - Digg is a separate derived attention overlay. It discovers and ranks stories;
   it is never independent evidence and is not a GitHub or X data API. GitHub
   remains a direct source; Digg contributor accounts are attention metadata.
+- MTS Situations is a peer derived attention overlay. High Signal stores only
+  compact ranks, entities/topics, source URLs and verification receipts—not MTS
+  descriptions, post text, avatars or a raw feed mirror.
 
 ### What is actually retained
 
@@ -97,6 +100,7 @@ daily-brief insights. Pipeline jobs are only the mechanism that runs them.
 | Reddit | Connected | Public community discussions and complaints | Demand discovery, pain clusters, lifestyle drift, buyer/workflow friction. Weak signal unless repeated or corroborated. |
 | Hacker News | Connected | Startup/developer discussion and launch reaction | Technical narrative shifts, founder/dev objections, early adoption debate, "why now" context. Weak signal unless corroborated. |
 | Digg technology clusters | Connected | Documented ranked, rolling, today, and rising cluster feeds | Derived early-attention and narrative-velocity overlay. Material crossings trigger original-source verification; Digg never counts as independent evidence or raises confidence. |
+| MTS Situations | Connected | Documented public technology-situation ranking API | Derived attention and source discovery. Compact rank/reference snapshots trigger independent original-source verification; MTS never counts as proof or raises confidence. |
 | GitHub issues | Connected | Public issue threads from developer/tooling repos | Concrete workflow failures, missing features, setup pain, provenance/citation bugs. Strong input to complaint-to-spec predictions. |
 | RSS feeds | Connected | Official blogs, changelogs, developer blogs, selected news/search feeds | Product launches, changelog deltas, official announcements, news corroboration. Often useful as primary or corroborating evidence depending on publisher. |
 | Equity / ETF / index / crypto prices | Connected | End-of-day market snapshot through the single yfinance-based snapshot path | Market regime, sector pressure, "watch" context, stock boom candidates. Never duplicate this with another price fetcher. |

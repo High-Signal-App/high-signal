@@ -7,16 +7,17 @@ evidence or confidence pipeline by accident.
 
 from __future__ import annotations
 
-import argparse
 import hashlib
 import json
-import os
 from datetime import datetime, timezone
 from typing import Any, Callable
 from urllib.parse import parse_qsl, urlencode, urljoin, urlsplit, urlunsplit
 
 import httpx
 import yaml
+
+from .attention_cli import run_attention_collector
+from .attention_verify import process_verification_requests
 
 
 USER_AGENT = "high-signal/0.1 digg-attention"
@@ -312,56 +313,18 @@ def poll(api_base: str, token: str, *, now: datetime | None = None) -> dict[str,
         if not isinstance(body, dict):
             return {"feeds": len(feeds)}
 
-        verification_requests = body.get("verificationRequests", [])
-        if isinstance(verification_requests, list) and verification_requests:
-            from .digg_verify import MAX_REQUESTS_PER_POLL, verify_requests
-
-            running = [
-                {"shortId": request.get("shortId"), "status": "running"}
-                for request in verification_requests[:MAX_REQUESTS_PER_POLL]
-                if isinstance(request, dict) and request.get("shortId")
-            ]
-            if running:
-                client.post(
-                    f"{api_base.rstrip('/')}/admin/digg/verification-results",
-                    headers={
-                        "Authorization": f"Bearer {token}",
-                        "Content-Type": "application/json",
-                    },
-                    json={"results": running},
-                ).raise_for_status()
-            results = verify_requests(
-                [request for request in verification_requests if isinstance(request, dict)], client
-            )
-            client.post(
-                f"{api_base.rstrip('/')}/admin/digg/verification-results",
-                headers={
-                    "Authorization": f"Bearer {token}",
-                    "Content-Type": "application/json",
-                },
-                json={"results": results},
-            ).raise_for_status()
-            body["verificationResults"] = results
-        if isinstance(verification_requests, list):
-            body["verificationRequests"] = [
-                {
-                    **{key: value for key, value in request.items() if key != "retainedEvidence"},
-                    "retainedEvidenceCount": len(request.get("retainedEvidence", [])),
-                }
-                for request in verification_requests
-                if isinstance(request, dict)
-            ]
-        return body
+        return process_verification_requests(
+            body,
+            client,
+            api_base=api_base,
+            token=token,
+            route="digg",
+            attention_source="digg",
+        )
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Poll documented Digg attention feeds")
-    parser.add_argument("--api-base", default=os.environ.get("API_BASE"))
-    parser.add_argument("--admin-token", default=os.environ.get("ADMIN_TOKEN"))
-    args = parser.parse_args()
-    if not args.api_base or not args.admin_token:
-        parser.error("API_BASE and ADMIN_TOKEN are required")
-    print(json.dumps(poll(args.api_base, args.admin_token), sort_keys=True))
+    run_attention_collector("Poll documented Digg attention feeds", poll)
 
 
 if __name__ == "__main__":

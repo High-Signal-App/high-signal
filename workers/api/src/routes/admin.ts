@@ -31,6 +31,7 @@ import type { CommunitySummary } from '@high-signal/shared';
 import { desc, eq as eqOp } from 'drizzle-orm';
 import { db, schema } from '../db';
 import { diggAdminRoute } from './admin-digg';
+import { mtsAdminRoute } from './admin-mts';
 import { scheduledDataAdminRoute } from './admin-scheduled-data';
 import { precomputeBriefSnapshots } from './brief';
 import { enrichSignals, serializeClaimEvidenceLink } from '../lib/signal-quality';
@@ -56,6 +57,7 @@ adminRoute.use('*', async (c, next) => {
 });
 
 adminRoute.route('/digg', diggAdminRoute);
+adminRoute.route('/mts', mtsAdminRoute);
 adminRoute.route('/scheduled-data', scheduledDataAdminRoute);
 
 /** Rebuild the reader-facing brief immediately after the publication gate. */

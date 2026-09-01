@@ -124,7 +124,8 @@
   },
   "pnpm": {
     "overrides": {
-      "@cloudflare/workers-types": "4.20260425.1"
+      "@cloudflare/workers-types": "4.20260425.1",
+      "browserslist": "4.28.7"
     }
   }
 }

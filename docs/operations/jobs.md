@@ -19,7 +19,7 @@ description: Reference for the GitHub Actions cron jobs and deploy workflows tha
 ## Daily pipeline order (IST; cron remains UTC)
 
 The API Worker's Cloudflare `*/30` and exact `00:17 UTC` crons are the
-authoritative scheduler for the six timing-critical workflows. It dispatches
+authoritative scheduler for the seven timing-critical workflows. It dispatches
 GitHub Actions through their `workflow_dispatch` entry points using a
 repository-scoped Actions-write token.
 Migration `0024` stores one lease per workflow/time slot, so a retried Worker
@@ -48,6 +48,7 @@ The daily cycle is sequenced so each stage consumes the previous stage's output:
 | Cadence | Workflow | Intent |
 | --- | --- | --- |
 | Every 30m | `cron-digg.yml` | Poll five documented Digg feeds; material rank, velocity, or contributor crossings immediately trigger bounded original-source verification. Durable request/completion timestamps measure first-seen → candidate latency. Digg never enters evidence or confidence scoring. Cloudflare dispatches the GitHub workflow and D1 records each slot. |
+| Every 30m | `cron-mts.yml` | Poll the documented public MTS Situations API; retain compact rank/reference history and immediately verify material rank, velocity, or source-breadth crossings against original publisher pages. MTS descriptions and post text are not mirrored, and MTS never enters evidence or confidence scoring. |
 | Every 4h | `cron-markets.yml` | Prediction-market polling (`--source markets`: Polymarket / Manifold / Kalshi → `market_quotes`). Probabilities only—never equity prices or direct evidence. Metaculus is parked. |
 
 ## Weekly

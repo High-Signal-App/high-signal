@@ -1,4 +1,4 @@
-import { Hono } from 'hono';
+import { Hono, type Context } from 'hono';
 import { and, desc, eq, gte, inArray, like, lt, or, type SQL, sql } from 'drizzle-orm';
 import type { SQLiteColumn } from 'drizzle-orm/sqlite-core';
 import { istDay, istDayRange } from '@high-signal/shared';
@@ -52,7 +52,8 @@ export function isMaterialEvidenceInputSource(source: string): boolean {
   // Digg retrieval is a discovery pool. It becomes evidence only after the
   // semantic/origin gates create a verified candidate, so rejected retrievals
   // must not make the Daily Brief freshness receipt look current.
-  if (source.startsWith('news:digg-verification:')) return false;
+  if (source.startsWith('news:digg-verification:') || source.startsWith('news:mts-verification:'))
+    return false;
   return !NON_MATERIAL_EVIDENCE_FAMILIES.has(family(source));
 }
 
@@ -632,10 +633,11 @@ dataRoute.get('/sources', async (c) => {
     };
   });
 
+  const attentionSources = await loadAttentionSourceStatus(c.env.DB, limit);
   const payload = {
     schemaVersion: '2',
     generatedAt,
-    sources,
+    sources: [...sources, ...attentionSources],
     total: [...counts.values()].reduce((sum, source) => sum + source.count, 0),
     available: true,
     samplesAvailable,
@@ -672,7 +674,8 @@ dataRoute.get('/sources/:id', async (c) => {
   const requestedOffset = Number(c.req.query('offset') ?? 0);
   const limit = Math.min(Math.max(Number.isFinite(requestedLimit) ? requestedLimit : 50, 1), 200);
   const date = c.req.query('date');
-  if (date !== undefined && dayRange(date) === null) {
+  const range = dayRange(date);
+  if (date !== undefined && range === null) {
     return c.json({ error: 'invalid_date', expected: 'YYYY-MM-DD' }, 400);
   }
   const rawCursor = c.req.query('cursor');
@@ -687,9 +690,16 @@ dataRoute.get('/sources/:id', async (c) => {
   // indexed column, so it is a seek rather than a filter over a wide scan.
   const sourceFilter = c.req.query('source');
 
+  if (id === 'digg' || id === 'mts') {
+    return attentionSourceEvents(c, id, {
+      limit,
+      offset,
+      date: range ? date : undefined,
+    });
+  }
+
   const database = db(c.env.DB);
   const match = sourceMatch(id);
-  const range = dayRange(date);
   const filters = [
     ...(range
       ? [gte(schema.events.publishedAt, range.start), lt(schema.events.publishedAt, range.end)]
@@ -820,3 +830,179 @@ dataRoute.get('/sources/:id', async (c) => {
     available: true,
   });
 });
+
+async function loadAttentionSourceStatus(d1: D1Database, sampleLimit: number) {
+  const output: Array<{
+    id: 'digg' | 'mts';
+    count: number;
+    lastAt: number;
+    latestObservedAt: number;
+    lastIngestedAt: number;
+    futureCount: number;
+    lastRunAt: number;
+    lastRunFinishedAt: number;
+    lastRunEventsFetched: number;
+    lastRunErrors: number;
+    runStatus: 'unknown' | 'success_empty' | 'success_with_data';
+    cadence: 'half_hourly';
+    samples: Sample[];
+  }> = [];
+  const definitions = [
+    {
+      id: 'digg' as const,
+      table: 'digg_clusters',
+      idColumn: 'short_id',
+      titleColumn: 'title',
+      urlColumn: 'canonical_digg_url',
+    },
+    {
+      id: 'mts' as const,
+      table: 'mts_situations',
+      idColumn: 'situation_id',
+      titleColumn: 'title',
+      urlColumn: 'canonical_mts_url',
+    },
+  ];
+  for (const definition of definitions) {
+    try {
+      const aggregate = await d1
+        .prepare(
+          `SELECT COUNT(*) n, COALESCE(MAX(first_seen_at), 0) latest_observed_at,
+                  COALESCE(MAX(retrieved_at), 0) last_ingested_at
+           FROM ${definition.table}`
+        )
+        .first<{ n: number; latest_observed_at: number; last_ingested_at: number }>();
+      const samples =
+        sampleLimit > 0
+          ? await d1
+              .prepare(
+                `SELECT ${definition.titleColumn} title, ${definition.urlColumn} url,
+                        first_seen_at publishedAt
+                 FROM ${definition.table}
+                 ORDER BY first_seen_at DESC, ${definition.idColumn} DESC LIMIT ?`
+              )
+              .bind(sampleLimit)
+              .all<Sample>()
+          : { results: [] };
+      const count = Number(aggregate?.n ?? 0);
+      const latestObservedAt = Number(aggregate?.latest_observed_at ?? 0);
+      const lastIngestedAt = Number(aggregate?.last_ingested_at ?? 0);
+      output.push({
+        id: definition.id,
+        count,
+        lastAt: latestObservedAt,
+        latestObservedAt,
+        lastIngestedAt,
+        futureCount: 0,
+        lastRunAt: lastIngestedAt,
+        lastRunFinishedAt: lastIngestedAt,
+        lastRunEventsFetched: count,
+        lastRunErrors: 0,
+        runStatus: count > 0 ? 'success_with_data' : 'success_empty',
+        cadence: 'half_hourly',
+        samples: samples.results ?? [],
+      });
+    } catch {
+      output.push({
+        id: definition.id,
+        count: 0,
+        lastAt: 0,
+        latestObservedAt: 0,
+        lastIngestedAt: 0,
+        futureCount: 0,
+        lastRunAt: 0,
+        lastRunFinishedAt: 0,
+        lastRunEventsFetched: 0,
+        lastRunErrors: 0,
+        runStatus: 'unknown',
+        cadence: 'half_hourly',
+        samples: [],
+      });
+    }
+  }
+  return output;
+}
+
+async function attentionSourceEvents(
+  c: Context<{ Bindings: Env }>,
+  id: 'digg' | 'mts',
+  options: { limit: number; offset: number; date?: string }
+) {
+  const definition =
+    id === 'digg'
+      ? {
+          table: 'digg_clusters',
+          idColumn: 'short_id',
+          titleColumn: 'title',
+          urlColumn: 'canonical_digg_url',
+        }
+      : {
+          table: 'mts_situations',
+          idColumn: 'situation_id',
+          titleColumn: 'title',
+          urlColumn: 'canonical_mts_url',
+        };
+  const dateFilter = options.date
+    ? `WHERE first_seen_at >= unixepoch(?) AND first_seen_at < unixepoch(?, '+1 day')`
+    : '';
+  const dateBindings = options.date ? [options.date, options.date] : [];
+  try {
+    const aggregate = await c.env.DB.prepare(
+      `SELECT COUNT(*) n, COALESCE(MAX(first_seen_at), 0) latest_observed_at,
+              COALESCE(MAX(retrieved_at), 0) last_ingested_at
+       FROM ${definition.table} ${dateFilter}`
+    )
+      .bind(...dateBindings)
+      .first<{ n: number; latest_observed_at: number; last_ingested_at: number }>();
+    const rows = await c.env.DB.prepare(
+      `SELECT ${definition.idColumn} id, ${definition.titleColumn} title,
+              ${definition.urlColumn} url, primary_entity_id entity,
+              first_seen_at published_at
+       FROM ${definition.table} ${dateFilter}
+       ORDER BY first_seen_at DESC, ${definition.idColumn} DESC LIMIT ? OFFSET ?`
+    )
+      .bind(...dateBindings, options.limit + 1, options.offset)
+      .all<{
+        id: string;
+        title: string;
+        url: string;
+        entity: string | null;
+        published_at: number;
+      }>();
+    const page = rows.results ?? [];
+    const hasMore = page.length > options.limit;
+    const visible = hasMore ? page.slice(0, options.limit) : page;
+    return c.json({
+      id,
+      date: options.date,
+      total: Number(aggregate?.n ?? 0),
+      latestObservedAt: Number(aggregate?.latest_observed_at ?? 0),
+      lastIngestedAt: Number(aggregate?.last_ingested_at ?? 0),
+      futureCount: 0,
+      events: visible.map((row) => ({
+        title: row.title,
+        content: null,
+        url: row.url,
+        source: id,
+        entity: row.entity,
+        publishedAt: Number(row.published_at),
+      })),
+      hasMore,
+      nextCursor: null,
+      available: true,
+    });
+  } catch {
+    return c.json({
+      id,
+      date: options.date,
+      total: 0,
+      latestObservedAt: 0,
+      lastIngestedAt: 0,
+      futureCount: 0,
+      events: [],
+      hasMore: false,
+      nextCursor: null,
+      available: false,
+    });
+  }
+}

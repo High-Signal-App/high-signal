@@ -196,6 +196,52 @@
       ]
     },
     {
+      "id": "cron-mts",
+      "kind": "attention-ingestion",
+      "owner": "sarthak",
+      "trigger": {
+        "type": "worker-dispatch",
+        "cron": "*/30 * * * *",
+        "tz": "UTC",
+        "schedulerJob": "worker-cron-brief-precompute"
+      },
+      "workflowFile": ".github/workflows/cron-mts.yml",
+      "runtime": "github-actions-ubuntu",
+      "command": "uv run python -m high_signal_ingest.mts",
+      "workingDirectory": "python/ingest",
+      "bounds": {
+        "timeoutMinutes": 25,
+        "concurrency": 1,
+        "retryMax": 0
+      },
+      "idempotency": {
+        "mechanism": "server-enforced refresh guard + situation_id current-record key + snapshot observation unique indexes",
+        "watermark": "mts_feed_state.last_retrieved_at",
+        "deduplicationEvidence": "mts_situations primary key situation_id; mts_feed_snapshots_observation_idx; mts_situation_snapshots_observation_idx"
+      },
+      "freshness": {
+        "windowHours": 1,
+        "evidenceSource": "mts_feed_state.last_retrieved_at"
+      },
+      "outputExpectation": {
+        "minSituations": 0,
+        "zeroOutputIsFailure": false
+      },
+      "failureDestination": {
+        "durableState": "prior mts_feed_state and snapshots remain readable; stale retrieval time is visible from /admin/mts/status",
+        "notification": "github-actions job failure email"
+      },
+      "evidence": {
+        "lifecycleTable": "mts_feed_state",
+        "snapshotTables": "mts_feed_snapshots, mts_situation_snapshots",
+        "adminEndpoint": "/admin/mts/status, /admin/mts"
+      },
+      "acceptedExceptions": [
+        "MTS is derived attention only and cannot satisfy evidence or confidence gates",
+        "Descriptions, post text, avatars and raw feed payloads are not retained"
+      ]
+    },
+    {
       "id": "cron-reddit-archive",
       "kind": "source-archive",
       "owner": "sarthak",

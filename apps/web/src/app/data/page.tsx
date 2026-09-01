@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { api, type DataSourceLive } from '@/lib/api';
 import { SITE_URL } from '@/lib/site';
 import catalog from '@/lib/source-catalog.json';
+import { ATTENTION_SOURCE_CATALOG } from '@/lib/attention-sources';
 
 export const revalidate = 300;
 
@@ -30,7 +31,15 @@ interface CatalogEntry {
   role: string;
   keeps: string;
   temporal: 'recent' | 'historical' | 'series';
-  cadence: 'daily' | 'context' | 'weekly' | 'monthly' | 'on_demand' | 'manual' | 'parked';
+  cadence:
+    | 'half_hourly'
+    | 'daily'
+    | 'context'
+    | 'weekly'
+    | 'monthly'
+    | 'on_demand'
+    | 'manual'
+    | 'parked';
   expectedRunCadenceHours: number | null;
   accessBasis: string;
   contentDepth: string;
@@ -38,8 +47,9 @@ interface CatalogEntry {
   termsRisk: string;
 }
 
-const ROLE_ORDER = ['entity', 'corroboration', 'thematic', 'numeric'] as const;
+const ROLE_ORDER = ['attention', 'entity', 'corroboration', 'thematic', 'numeric'] as const;
 const ROLE_BLURB: Record<string, string> = {
+  attention: 'Ranks what people are noticing; triggers investigation but never counts as proof.',
   entity: 'Observations typically resolve to a tracked company or organization.',
   corroboration: 'First-party or official records used to verify reported events.',
   thematic: 'Topic and keyword observations that may not resolve to one entity.',
@@ -234,7 +244,10 @@ function SourceGroup({
 }
 
 export default async function DataPage() {
-  const sources = catalog.sources as CatalogEntry[];
+  const sources = [
+    ...ATTENTION_SOURCE_CATALOG,
+    ...(catalog.sources as CatalogEntry[]),
+  ] as CatalogEntry[];
   const today = new Date().toISOString().slice(0, 10);
 
   let live: Record<string, DataSourceLive> = {};
@@ -253,6 +266,7 @@ export default async function DataPage() {
 
   const storedSourceCount = sources.filter((s) => (live[s.id]?.count ?? 0) > 0).length;
   const cadenceCounts = {
+    halfHourly: sources.filter((s) => s.cadence === 'half_hourly').length,
     daily: sources.filter((s) => s.cadence === 'daily').length,
     context: sources.filter((s) => s.cadence === 'context').length,
     weekly: sources.filter((s) => s.cadence === 'weekly').length,
@@ -292,6 +306,9 @@ export default async function DataPage() {
           )}
           <span title="Included in the scheduled daily all-source ingestion run">
             <span className="text-zinc-100">{cadenceCounts.daily}</span> scheduled daily
+          </span>
+          <span title="Derived attention feeds polled every 30 minutes">
+            <span className="text-zinc-100">{cadenceCounts.halfHourly}</span> every 30 min
           </span>
           <span title="Refreshed separately for ranking and calibration, not direct evidence">
             <span className="text-zinc-100">{cadenceCounts.context}</span> context

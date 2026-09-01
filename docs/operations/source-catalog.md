@@ -16,7 +16,7 @@ Generic news, SCMP, and broader China-news RSS currently fetch linked article pa
 
 Persisted records live in **Cloudflare D1** (events/signals/evidence/source documents) plus git-versioned `signals/*.md`. The source audit records the access, retention, and terms risks that this compact catalog cannot express.
 
-Digg is a deliberate rolling-feed exception: because Digg exposes rolling windows without a historical archive, High Signal retains its documented feed payloads and per-cluster snapshots in dedicated `digg_*` tables. Those rows are derived attention metadata, never event evidence.
+Digg and MTS Situations are deliberate attention-layer exceptions. High Signal retains Digg's documented rolling feed payloads and cluster snapshots, while MTS retention is limited to rank, entity/topic and source-reference metadata. Both use dedicated tables and neither can become event evidence by itself.
 
 Reddit is collected once into a private, immutable daily R2 partition. The scheduled pipeline and approved sibling products consume the same hash-verified compressed event export; they do not scrape Reddit independently. Reddit is attention metadata and cannot satisfy cite-or-kill.
 
@@ -94,6 +94,7 @@ Reddit is collected once into a private, immutable daily R2 partition. The sched
 ## Derived attention overlays
 
 - **Digg technology clusters** — five documented public JSON/YAML feeds, polled every 30 minutes with a server-enforced 10-minute minimum refresh interval. Stored as normalized current clusters plus append-only snapshots. Classification: `source_class=attention_aggregator`, `evidence_tier=derived`, `confidence_contribution=none`, `attention_contribution=allowed`. Digg can change discovery and brief prominence but cannot satisfy cite-or-kill or raise confidence.
+- **MTS Situations** — the documented public Situations API, polled every 30 minutes. Stored as compact current situations plus append-only rank snapshots; descriptions, post text, avatars and raw payloads are not mirrored. Classification matches Digg: `source_class=attention_aggregator`, `evidence_tier=derived`, `confidence_contribution=none`, `attention_contribution=allowed`. Original publisher pages must independently clear the normal proof gates.
 - **Reddit daily archive** — one curated 99-community OAuth collection at 00:17 UTC. Private R2 stores compressed posts, relevance-filtered comment trees, an index, manifest and versioned event export. High Signal reads the same export before its 08:00 IST ingest; Reddit contributes attention only.
 
 View the actual available data per source with the **data directory**: `uv run python -m high_signal_ingest.data_directory` → writes `data-directory/INDEX.md` + one JSON file of recent samples per source.

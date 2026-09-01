@@ -49,10 +49,11 @@ describe('daily dump contract', () => {
     expect(payload.latestEvidenceInputAt).toBe('2026-08-26T20:25:23.000Z');
   });
 
-  it('excludes attention, prediction, and rejected Digg discovery inputs from freshness', () => {
+  it('excludes attention, prediction, and rejected discovery inputs from freshness', () => {
     expect(isMaterialEvidenceInputSource('news:axios')).toBe(true);
     expect(isMaterialEvidenceInputSource('ir:MSFT')).toBe(true);
     expect(isMaterialEvidenceInputSource('news:digg-verification:bloomberg.com')).toBe(false);
+    expect(isMaterialEvidenceInputSource('news:mts-verification:reuters.com')).toBe(false);
     expect(isMaterialEvidenceInputSource('market:manifold')).toBe(false);
     expect(isMaterialEvidenceInputSource('reddit:technology')).toBe(false);
     expect(isMaterialEvidenceInputSource('hackernews')).toBe(false);
@@ -66,6 +67,11 @@ describe('daily dump contract', () => {
           source: 'news:digg-verification:bloomberg.com',
           count: 1,
           latestIngestedAt: 300,
+        },
+        {
+          source: 'news:mts-verification:reuters.com',
+          count: 8,
+          latestIngestedAt: 250,
         },
         { source: 'market:manifold', count: 100, latestIngestedAt: 250 },
         { source: 'reddit:technology', count: 50, latestIngestedAt: 200 },

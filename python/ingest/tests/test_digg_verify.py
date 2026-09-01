@@ -42,6 +42,8 @@ def test_attention_and_social_urls_are_never_original_evidence() -> None:
     assert _allowed_original_url("https://x.com/user/status/1") is None
     assert _allowed_original_url("https://www.reddit.com/r/hardware/comments/abc") is None
     assert _allowed_original_url("https://news.ycombinator.com/item?id=1") is None
+    assert _allowed_original_url("https://www.mts.now/situations") is None
+    assert _allowed_original_url("https://api.mts.now/situations") is None
     assert _allowed_original_url("https://reuters.com/technology/story") is not None
 
 
@@ -169,6 +171,31 @@ def test_publisher_retrieval_overrides_feed_accept_header() -> None:
 
     assert len(events) == 1
     assert events[0].source == "news:digg-verification:reuters.com"
+
+
+def test_mts_discovery_uses_the_same_original_source_gate() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        article = " ".join(["OpenAI launched documented infrastructure changes."] * 120)
+        return httpx.Response(200, text=f"<html><article><p>{article}</p></article></html>")
+
+    request = {
+        "shortId": "situation-1",
+        "attentionSource": "mts",
+        "title": "OpenAI launches infrastructure change",
+    }
+    articles = [
+        {
+            "url": "https://reuters.com/technology/openai-infrastructure",
+            "title": "OpenAI launches infrastructure change",
+        }
+    ]
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        events = retrieve_events(request, articles, client)
+
+    assert len(events) == 1
+    assert events[0].source == "news:mts-verification:reuters.com"
+    assert events[0].source_document is not None
+    assert events[0].source_document.parsed_fields["attentionSource"] == "mts"
 
 
 def test_retained_evidence_is_reused_without_refetching() -> None:

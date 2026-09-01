@@ -1,10 +1,11 @@
-"""Targeted, bounded verification for material Digg discoveries.
+"""Targeted, bounded verification for material attention discoveries.
 
-Digg supplies the discovery title only. This module searches GDELT for matching
-original articles, retrieves those publisher URLs, and hands only the retrieved
-documents to the normal candidate generator. Digg/X pages are never scraped and
-never become evidence. GDELT discovery is retried within the same verification
-attempt because its public endpoint can be slow or transiently unavailable.
+The attention source supplies the discovery title only. This module searches
+GDELT for matching original articles, retrieves those publisher URLs, and hands
+only the retrieved documents to the normal candidate generator. Aggregator and
+social pages are never scraped and never become evidence. GDELT discovery is
+retried within the same verification attempt because its public endpoint can be
+slow or transiently unavailable.
 """
 
 from __future__ import annotations
@@ -38,6 +39,7 @@ SOCIAL_OR_ATTENTION_HOSTS = {
     "news.ycombinator.com",
     "old.reddit.com",
     "reddit.com",
+    "mts.now",
     "threads.net",
     "twitter.com",
     "x.com",
@@ -106,7 +108,9 @@ def _allowed_original_url(value: object) -> str | None:
     host = (parsed.hostname or "").lower().removeprefix("www.")
     if parsed.scheme not in {"http", "https"} or not host:
         return None
-    if host in SOCIAL_OR_ATTENTION_HOSTS:
+    if any(
+        host == blocked or host.endswith(f".{blocked}") for blocked in SOCIAL_OR_ATTENTION_HOSTS
+    ):
         return None
     return value
 
@@ -229,6 +233,10 @@ def retrieve_events(
     request: dict[str, Any], articles: list[dict[str, Any]], client: httpx.Client
 ) -> list[Event]:
     fetched_at = datetime.now(timezone.utc)
+    attention_source = str(request.get("attentionSource") or "digg").strip().lower()
+    if attention_source not in {"digg", "mts"}:
+        attention_source = "unknown"
+    source_id = str(request.get("shortId") or "")
     events: list[Event] = []
     for article in articles:
         url = str(article["url"])
@@ -257,8 +265,8 @@ def retrieve_events(
         raw_hash = hashlib.sha256(text.encode()).hexdigest()
         events.append(
             Event(
-                id=event_hash(f"digg-verification:{host}", canonical)[:16],
-                source=f"news:digg-verification:{host}",
+                id=event_hash(f"{attention_source}-verification:{host}", canonical)[:16],
+                source=f"news:{attention_source}-verification:{host}",
                 source_url=canonical,
                 published_at=published_at,
                 title=str(article.get("title") or request.get("title") or ""),
@@ -272,8 +280,9 @@ def retrieve_events(
                     raw_hash=raw_hash,
                     raw_text=text[:30_000],
                     parsed_fields={
-                        "discoveredBy": "digg_attention_threshold",
-                        "diggShortId": request.get("shortId"),
+                        "discoveredBy": f"{attention_source}_attention_threshold",
+                        "attentionSource": attention_source,
+                        "attentionSourceId": source_id,
                         "alignment": title_alignment(
                             str(request.get("title") or ""), str(article.get("title") or "")
                         ),
@@ -286,6 +295,7 @@ def retrieve_events(
 
 def verify_request(request: dict[str, Any], client: httpx.Client) -> dict[str, Any]:
     short_id = str(request.get("shortId") or "")
+    attention_source = str(request.get("attentionSource") or "digg").strip().lower()
     try:
         articles = discover_articles(request, client)
         events = retrieve_events(request, articles, client)
@@ -298,7 +308,7 @@ def verify_request(request: dict[str, Any], client: httpx.Client) -> dict[str, A
         }
         if len({urlsplit(event.source_url).hostname for event in events}) < 2:
             return {"shortId": short_id, "status": "insufficient_evidence", **diagnostics}
-        audit.push_events(events, f"digg-{short_id}"[:16])
+        audit.push_events(events, f"{attention_source}-{short_id}"[:16])
         from .pipeline import cluster_and_generate
 
         # A deterministic fallback is a review aid, not proof that the original

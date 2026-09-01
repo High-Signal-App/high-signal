@@ -40,17 +40,18 @@ describe('Cloudflare workflow scheduler', () => {
     ]);
     expect(workflowsDueAt(new Date('2026-08-29T02:30:00Z'))).toEqual([
       { workflow: 'cron-digg.yml', purpose: 'digg' },
+      { workflow: 'cron-mts.yml', purpose: 'mts' },
       { workflow: 'cron-ingest.yml', purpose: 'ingest' },
     ]);
-    expect(workflowsDueAt(new Date('2026-08-29T03:30:00Z'))[1]).toEqual({
+    expect(workflowsDueAt(new Date('2026-08-29T03:30:00Z'))[2]).toEqual({
       workflow: 'cron-publish.yml',
       purpose: 'publish',
     });
-    expect(workflowsDueAt(new Date('2026-08-29T04:00:00Z'))[1]).toEqual({
+    expect(workflowsDueAt(new Date('2026-08-29T04:00:00Z'))[2]).toEqual({
       workflow: 'cron-validate-brief.yml',
       purpose: 'validate',
     });
-    expect(workflowsDueAt(new Date('2026-08-29T04:30:00Z'))[1]).toEqual({
+    expect(workflowsDueAt(new Date('2026-08-29T04:30:00Z'))[2]).toEqual({
       workflow: 'personal-brief.yml',
       purpose: 'deliver',
     });
@@ -93,7 +94,7 @@ describe('Cloudflare workflow scheduler', () => {
       new Date('2026-08-29T02:30:00Z')
     );
 
-    expect(results.map((result) => result.status)).toEqual(['disabled', 'disabled']);
+    expect(results.map((result) => result.status)).toEqual(['disabled', 'disabled', 'disabled']);
     expect(db.prepare).not.toHaveBeenCalled();
   });
 
@@ -107,15 +108,20 @@ describe('Cloudflare workflow scheduler', () => {
       { fetch: fetcher, attemptedAt: new Date('2026-08-29T02:30:01Z') }
     );
 
-    expect(results.map((result) => result.status)).toEqual(['dispatched', 'dispatched']);
-    expect(fetcher).toHaveBeenCalledTimes(2);
+    expect(results.map((result) => result.status)).toEqual([
+      'dispatched',
+      'dispatched',
+      'dispatched',
+    ]);
+    expect(fetcher).toHaveBeenCalledTimes(3);
     const calls = fetcher.mock.calls as unknown as Array<[string, RequestInit]>;
-    expect(calls[1]?.[0]).toContain('/workflows/cron-ingest.yml/dispatches');
-    expect(calls[1]?.[1]).toMatchObject({
+    expect(calls[1]?.[0]).toContain('/workflows/cron-mts.yml/dispatches');
+    expect(calls[2]?.[0]).toContain('/workflows/cron-ingest.yml/dispatches');
+    expect(calls[2]?.[1]).toMatchObject({
       method: 'POST',
       body: JSON.stringify({ ref: 'main' }),
     });
-    expect(db.statements.filter((statement) => statement.sql.startsWith('UPDATE'))).toHaveLength(2);
+    expect(db.statements.filter((statement) => statement.sql.startsWith('UPDATE'))).toHaveLength(3);
   });
 
   it('does not call GitHub when the D1 slot lease already exists', async () => {
@@ -128,7 +134,10 @@ describe('Cloudflare workflow scheduler', () => {
       { fetch: fetcher }
     );
 
-    expect(results).toMatchObject([{ workflow: 'cron-digg.yml', status: 'duplicate' }]);
+    expect(results).toMatchObject([
+      { workflow: 'cron-digg.yml', status: 'duplicate' },
+      { workflow: 'cron-mts.yml', status: 'duplicate' },
+    ]);
     expect(fetcher).not.toHaveBeenCalled();
   });
 
@@ -142,7 +151,10 @@ describe('Cloudflare workflow scheduler', () => {
       { fetch: fetcher }
     );
 
-    expect(results).toMatchObject([{ status: 'failed', statusCode: 403 }]);
+    expect(results).toMatchObject([
+      { status: 'failed', statusCode: 403 },
+      { status: 'failed', statusCode: 403 },
+    ]);
     expect(db.statements.at(-1)?.values).toContain('github_dispatch_403');
     expect(JSON.stringify(db.statements)).not.toContain('test-token');
   });

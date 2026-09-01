@@ -149,8 +149,13 @@ export type DiggAttentionGapType =
  * A derived attention observation. It is deliberately separate from
  * BriefCitation and carries an explicit no-confidence contribution contract.
  */
+/** Legacy type name retained for snapshot/API compatibility across attention providers. */
 export interface DiggAttentionItem {
   shortId: string;
+  /** Attention provider. Optional only on snapshots written before MTS support. */
+  attentionSource?: 'digg' | 'mts';
+  /** Provider landing/item URL; canonicalDiggUrl remains for snapshot compatibility. */
+  canonicalSourceUrl?: string;
   canonicalDiggUrl: string;
   title: string;
   summary: string | null;
@@ -177,11 +182,13 @@ export interface DiggAttentionItem {
 
 export interface DiggAttentionGapItem {
   id: string;
+  attentionSource?: 'digg' | 'mts';
   gapType: DiggAttentionGapType;
   title: string;
   explanation: string;
   signalSlug: string | null;
   canonicalDiggUrl: string | null;
+  canonicalSourceUrl?: string | null;
   position: number | null;
   distinctAccountCount: number;
   canonicalSourceCount: number;

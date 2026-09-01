@@ -3,6 +3,7 @@ import { unstable_cache } from 'next/cache';
 import Link from 'next/link';
 import { api, type DataSourceEventsResponse, type DataSourceLive } from '@/lib/api';
 import catalog from '@/lib/source-catalog.json';
+import { ATTENTION_SOURCE_CATALOG } from '@/lib/attention-sources';
 
 export const revalidate = 300;
 
@@ -34,7 +35,15 @@ interface CatalogEntry {
   role: string;
   keeps: string;
   temporal: 'recent' | 'historical' | 'series';
-  cadence: 'daily' | 'context' | 'weekly' | 'monthly' | 'on_demand' | 'manual' | 'parked';
+  cadence:
+    | 'half_hourly'
+    | 'daily'
+    | 'context'
+    | 'weekly'
+    | 'monthly'
+    | 'on_demand'
+    | 'manual'
+    | 'parked';
   accessBasis: string;
   contentDepth: string;
   retention: string;
@@ -42,11 +51,15 @@ interface CatalogEntry {
 }
 
 function entryFor(source: string): CatalogEntry | undefined {
-  return (catalog.sources as CatalogEntry[]).find((s) => s.id === source);
+  return ([...ATTENTION_SOURCE_CATALOG, ...catalog.sources] as CatalogEntry[]).find(
+    (item) => item.id === source
+  );
 }
 
 export function generateStaticParams() {
-  return (catalog.sources as CatalogEntry[]).map((source) => ({ source: source.id }));
+  return [...ATTENTION_SOURCE_CATALOG, ...(catalog.sources as CatalogEntry[])].map((source) => ({
+    source: source.id,
+  }));
 }
 
 export async function generateMetadata({

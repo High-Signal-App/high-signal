@@ -62,6 +62,7 @@ function epochIso(value: Date | number | string | null): string {
   return new Date(value ?? 0).toISOString();
 }
 
+/** Legacy export name; composes every derived attention provider, including MTS. */
 export async function buildDiggAttention(
   database: BriefDatabase,
   now = new Date()
@@ -139,9 +140,11 @@ export async function buildDiggAttention(
     );
     const firstSeenMs = new Date(epochIso(row.firstSeenAt)).getTime();
     const retrievedMs = new Date(epochIso(row.retrievedAt)).getTime();
-    const existing = byShortId.get(row.shortId);
+    const existing = byShortId.get(`digg:${row.shortId}`);
     const candidate: DiggAttentionItem = {
       shortId: row.shortId,
+      attentionSource: 'digg',
+      canonicalSourceUrl: row.canonicalDiggUrl,
       canonicalDiggUrl: row.canonicalDiggUrl,
       title: row.title,
       summary: row.summary,
@@ -173,7 +176,90 @@ export async function buildDiggAttention(
       confidenceContribution: 'none',
     };
     if (!existing || (!existing.signalSlug && candidate.signalSlug))
-      byShortId.set(row.shortId, candidate);
+      byShortId.set(`digg:${row.shortId}`, candidate);
+  }
+
+  try {
+    const mtsRows = await database
+      .select({
+        shortId: schema.mtsSituations.situationId,
+        canonicalSourceUrl: schema.mtsSituations.canonicalMtsUrl,
+        title: schema.mtsSituations.title,
+        firstSeenAt: schema.mtsSituations.firstSeenAt,
+        retrievedAt: schema.mtsSituations.retrievedAt,
+        position: schema.mtsSituations.position,
+        positionDelta: schema.mtsSituations.positionDelta,
+        peakPosition: schema.mtsSituations.peakPosition,
+        lifecycle: schema.mtsSituations.lifecycle,
+        criticality: schema.mtsSituations.criticality,
+        distinctSourceCount: schema.mtsSituations.distinctSourceCount,
+        sourceReferences: schema.mtsSituations.sourceReferences,
+        signalSlug: schema.signals.slug,
+        entityName: schema.entities.name,
+        matchBasis: schema.mtsSignalLinks.matchBasis,
+        matchConfidence: schema.mtsSignalLinks.matchConfidence,
+      })
+      .from(schema.mtsSituations)
+      .leftJoin(
+        schema.mtsSignalLinks,
+        eq(schema.mtsSignalLinks.situationId, schema.mtsSituations.situationId)
+      )
+      .leftJoin(
+        schema.signals,
+        and(
+          eq(schema.signals.id, schema.mtsSignalLinks.signalId),
+          eq(schema.signals.reviewStatus, 'published')
+        )
+      )
+      .leftJoin(schema.entities, eq(schema.entities.id, schema.mtsSituations.primaryEntityId))
+      .where(gte(schema.mtsSituations.retrievedAt, since))
+      .orderBy(asc(schema.mtsSituations.position), desc(schema.mtsSituations.positionDelta))
+      .limit(160);
+    for (const row of mtsRows) {
+      const firstSeenMs = new Date(epochIso(row.firstSeenAt)).getTime();
+      const retrievedMs = new Date(epochIso(row.retrievedAt)).getTime();
+      const sourceUrls = jsonValue<unknown[]>(row.sourceReferences, []).flatMap((reference) => {
+        if (!reference || typeof reference !== 'object') return [];
+        const url = (reference as Record<string, unknown>)['url'];
+        return typeof url === 'string' ? [url] : [];
+      });
+      const key = `mts:${row.shortId}`;
+      const existing = byShortId.get(key);
+      const candidate: DiggAttentionItem = {
+        shortId: row.shortId,
+        attentionSource: 'mts',
+        canonicalSourceUrl: row.canonicalSourceUrl,
+        canonicalDiggUrl: row.canonicalSourceUrl,
+        title: row.title,
+        summary: null,
+        firstSeenAt: epochIso(row.firstSeenAt),
+        retrievedAt: epochIso(row.retrievedAt),
+        position: row.position,
+        positionDelta: row.positionDelta,
+        peakPosition: row.peakPosition,
+        entryStatus: row.lifecycle,
+        badges: row.criticality ? [row.criticality] : [],
+        distinctAccountCount: row.distinctSourceCount,
+        attentionDurationHours: Math.max(
+          0,
+          Math.round(((retrievedMs - firstSeenMs) / 3_600_000) * 10) / 10
+        ),
+        canonicalSourceCount: row.distinctSourceCount,
+        sourceUrls,
+        signalSlug: row.signalSlug,
+        entityName: row.entityName,
+        matchBasis: row.signalSlug ? row.matchBasis : null,
+        matchConfidence: row.signalSlug ? row.matchConfidence : null,
+        attentionState: row.signalSlug ? 'matched_signal' : 'investigation_lead',
+        sourceClass: 'attention_aggregator',
+        evidenceTier: 'derived',
+        confidenceContribution: 'none',
+      };
+      if (!existing || (!existing.signalSlug && candidate.signalSlug))
+        byShortId.set(key, candidate);
+    }
+  } catch {
+    // Migration 0028 may not yet exist during a rolling API/database release.
   }
 
   const items = Array.from(byShortId.values());
@@ -201,13 +287,15 @@ export async function buildDiggAttention(
       (item.position != null && item.position <= 20) || item.distinctAccountCount >= 3;
     if (!item.signalSlug && highAttention) {
       attentionEvidenceGaps.push({
-        id: `${item.shortId}:attention`,
+        id: `${item.attentionSource ?? 'digg'}:${item.shortId}:attention`,
+        attentionSource: item.attentionSource,
         gapType: 'attention_stronger_than_evidence',
         title: item.title,
         explanation:
           'Public attention is material, but High Signal has not linked this cluster to independently supported evidence yet.',
         signalSlug: null,
         canonicalDiggUrl: item.canonicalDiggUrl,
+        canonicalSourceUrl: item.canonicalSourceUrl ?? item.canonicalDiggUrl,
         position: item.position,
         distinctAccountCount: item.distinctAccountCount,
         canonicalSourceCount: item.canonicalSourceCount,
@@ -216,13 +304,15 @@ export async function buildDiggAttention(
     }
     if (item.distinctAccountCount >= 3 && item.canonicalSourceCount === 1) {
       attentionEvidenceGaps.push({
-        id: `${item.shortId}:origin`,
+        id: `${item.attentionSource ?? 'digg'}:${item.shortId}:origin`,
+        attentionSource: item.attentionSource,
         gapType: 'single_origin_amplification',
         title: item.title,
         explanation:
-          'Several voices are amplifying this cluster, but Digg reports only one canonical source origin.',
+          'Several voices are amplifying this cluster, but the attention provider reports only one canonical source origin.',
         signalSlug: item.signalSlug,
         canonicalDiggUrl: item.canonicalDiggUrl,
+        canonicalSourceUrl: item.canonicalSourceUrl ?? item.canonicalDiggUrl,
         position: item.position,
         distinctAccountCount: item.distinctAccountCount,
         canonicalSourceCount: 1,
@@ -244,12 +334,14 @@ export async function buildDiggAttention(
       .from(schema.signals)
       .innerJoin(schema.entities, eq(schema.entities.id, schema.signals.primaryEntityId))
       .leftJoin(schema.diggSignalLinks, eq(schema.diggSignalLinks.signalId, schema.signals.id))
+      .leftJoin(schema.mtsSignalLinks, eq(schema.mtsSignalLinks.signalId, schema.signals.id))
       .where(
         and(
           eq(schema.signals.reviewStatus, 'published'),
           eq(schema.signals.confidence, 'high'),
           gte(schema.signals.publishedAt, new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)),
-          isNull(schema.diggSignalLinks.shortId)
+          isNull(schema.diggSignalLinks.shortId),
+          isNull(schema.mtsSignalLinks.situationId)
         )
       )
       .orderBy(desc(schema.signals.publishedAt))
@@ -264,9 +356,10 @@ export async function buildDiggAttention(
         gapType: 'evidence_stronger_than_attention',
         title: headlineFromBody(signal.bodyMd, signal.entityName),
         explanation:
-          'This high-confidence signal has independent evidence, but no corresponding Digg attention cluster was observed.',
+          'This high-confidence signal has independent evidence, but no corresponding attention cluster was observed.',
         signalSlug: signal.slug,
         canonicalDiggUrl: null,
+        canonicalSourceUrl: null,
         position: null,
         distinctAccountCount: 0,
         canonicalSourceCount: 0,

@@ -282,7 +282,15 @@ export interface DataSourceLive {
     | 'failed'
     | 'success_empty'
     | 'success_with_data';
-  cadence: 'daily' | 'context' | 'weekly' | 'monthly' | 'on_demand' | 'manual' | 'parked';
+  cadence:
+    | 'half_hourly'
+    | 'daily'
+    | 'context'
+    | 'weekly'
+    | 'monthly'
+    | 'on_demand'
+    | 'manual'
+    | 'parked';
   samples: Array<{ title: string | null; url: string; publishedAt: number }>;
 }
 export interface DataSourcesResponse {

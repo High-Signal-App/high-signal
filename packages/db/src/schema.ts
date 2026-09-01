@@ -8,6 +8,17 @@ import {
   uniqueIndex,
 } from 'drizzle-orm/sqlite-core';
 
+function mutableTimestamps() {
+  return {
+    createdAt: integer('created_at', { mode: 'timestamp' })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    updatedAt: integer('updated_at', { mode: 'timestamp' })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  };
+}
+
 export const entities = sqliteTable(
   'entities',
   {
@@ -18,12 +29,7 @@ export const entities = sqliteTable(
     country: text('country'),
     sector: text('sector'),
     metadata: text('metadata', { mode: 'json' }),
-    createdAt: integer('created_at', { mode: 'timestamp' })
-      .notNull()
-      .$defaultFn(() => new Date()),
-    updatedAt: integer('updated_at', { mode: 'timestamp' })
-      .notNull()
-      .$defaultFn(() => new Date()),
+    ...mutableTimestamps(),
   },
   (t) => [index('entities_ticker_idx').on(t.ticker), index('entities_sector_idx').on(t.sector)]
 );
@@ -338,12 +344,7 @@ export const trackedCommunities = sqliteTable(
       .notNull()
       .default('week'),
     isPublic: integer('is_public', { mode: 'boolean' }).notNull().default(false),
-    createdAt: integer('created_at', { mode: 'timestamp' })
-      .notNull()
-      .$defaultFn(() => new Date()),
-    updatedAt: integer('updated_at', { mode: 'timestamp' })
-      .notNull()
-      .$defaultFn(() => new Date()),
+    ...mutableTimestamps(),
   },
   (t) => [
     index('tracked_communities_owner_idx').on(t.ownerId),
@@ -400,12 +401,7 @@ export const tickers = sqliteTable(
     wikidataId: text('wikidata_id'),
     cik: text('cik'),
     isin: text('isin'),
-    createdAt: integer('created_at', { mode: 'timestamp' })
-      .notNull()
-      .$defaultFn(() => new Date()),
-    updatedAt: integer('updated_at', { mode: 'timestamp' })
-      .notNull()
-      .$defaultFn(() => new Date()),
+    ...mutableTimestamps(),
   },
   (t) => [
     index('tickers_exchange_idx').on(t.exchange),
@@ -784,12 +780,7 @@ export const d2cNiches = sqliteTable(
     category: text('category').notNull(),
     region: text('region').notNull().default('south-asia'),
     status: text('status').notNull().default('active'),
-    createdAt: integer('created_at', { mode: 'timestamp' })
-      .notNull()
-      .$defaultFn(() => new Date()),
-    updatedAt: integer('updated_at', { mode: 'timestamp' })
-      .notNull()
-      .$defaultFn(() => new Date()),
+    ...mutableTimestamps(),
   },
   (t) => [
     uniqueIndex('d2c_niches_slug_idx').on(t.slug),
@@ -863,6 +854,51 @@ export const d2cAgentVisibility = sqliteTable(
 // Digg is a derived attention aggregator. These records may change discovery
 // and prominence, but they are never evidence and never change confidence.
 
+function attentionClassificationColumns() {
+  return {
+    sourceClass: text('source_class').notNull().default('attention_aggregator'),
+    evidenceTier: text('evidence_tier').notNull().default('derived'),
+    confidenceContribution: text('confidence_contribution').notNull().default('none'),
+    attentionContribution: text('attention_contribution').notNull().default('allowed'),
+  };
+}
+
+function attentionVerificationColumns() {
+  return {
+    verificationStatus: text('verification_status', {
+      enum: ['requested', 'running', 'verified_candidate', 'insufficient_evidence', 'failed'],
+    }),
+    verificationReason: text('verification_reason'),
+    verificationRequestedAt: integer('verification_requested_at', { mode: 'timestamp' }),
+    verificationStartedAt: integer('verification_started_at', { mode: 'timestamp' }),
+    verifiedAt: integer('verified_at', { mode: 'timestamp' }),
+    verificationCandidateSlug: text('verification_candidate_slug'),
+    verificationError: text('verification_error'),
+    verificationAttempts: integer('verification_attempts').notNull().default(0),
+  };
+}
+
+function signalIdColumnReference() {
+  return signals.id;
+}
+
+function entityIdColumnReference() {
+  return entities.id;
+}
+
+function attentionSignalLinkColumns() {
+  return {
+    signalId: text('signal_id')
+      .notNull()
+      .references(signalIdColumnReference, { onDelete: 'cascade' }),
+    entityId: text('entity_id').references(entityIdColumnReference),
+    matchBasis: text('match_basis', { enum: ['evidence_url', 'entity'] }).notNull(),
+    matchConfidence: real('match_confidence').notNull(),
+    createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+    updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
+  };
+}
+
 export const diggFeedState = sqliteTable('digg_feed_state', {
   feedKind: text('feed_kind').primaryKey(),
   feedUrl: text('feed_url').notNull(),
@@ -913,21 +949,9 @@ export const diggClusters = sqliteTable(
     contributingAccounts: text('contributing_accounts', { mode: 'json' }).notNull().default('[]'),
     distinctAccountCount: integer('distinct_account_count').notNull().default(0),
     primaryEntityId: text('primary_entity_id').references(() => entities.id),
-    sourceClass: text('source_class').notNull().default('attention_aggregator'),
-    evidenceTier: text('evidence_tier').notNull().default('derived'),
-    confidenceContribution: text('confidence_contribution').notNull().default('none'),
-    attentionContribution: text('attention_contribution').notNull().default('allowed'),
+    ...attentionClassificationColumns(),
     externalGeneratedAnalysis: text('external_generated_analysis', { mode: 'json' }),
-    verificationStatus: text('verification_status', {
-      enum: ['requested', 'running', 'verified_candidate', 'insufficient_evidence', 'failed'],
-    }),
-    verificationReason: text('verification_reason'),
-    verificationRequestedAt: integer('verification_requested_at', { mode: 'timestamp' }),
-    verificationStartedAt: integer('verification_started_at', { mode: 'timestamp' }),
-    verifiedAt: integer('verified_at', { mode: 'timestamp' }),
-    verificationCandidateSlug: text('verification_candidate_slug'),
-    verificationError: text('verification_error'),
-    verificationAttempts: integer('verification_attempts').notNull().default(0),
+    ...attentionVerificationColumns(),
     rawPayloadHash: text('raw_payload_hash').notNull(),
     rawPayload: text('raw_payload', { mode: 'json' }).notNull(),
   },
@@ -977,18 +1001,122 @@ export const diggSignalLinks = sqliteTable(
     shortId: text('short_id')
       .notNull()
       .references(() => diggClusters.shortId, { onDelete: 'cascade' }),
-    signalId: text('signal_id')
-      .notNull()
-      .references(() => signals.id, { onDelete: 'cascade' }),
-    entityId: text('entity_id').references(() => entities.id),
-    matchBasis: text('match_basis', { enum: ['evidence_url', 'entity'] }).notNull(),
-    matchConfidence: real('match_confidence').notNull(),
-    createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
-    updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
+    ...attentionSignalLinkColumns(),
   },
   (t) => [
     primaryKey({ columns: [t.shortId, t.signalId] }),
     index('digg_signal_links_signal_idx').on(t.signalId),
     index('digg_signal_links_entity_idx').on(t.entityId),
+  ]
+);
+
+// ─── MTS Situations attention overlay (migration 0028) ──────────────────
+// MTS is a derived discovery/ranking source. Only compact reference metadata
+// is retained; descriptions, post text, avatars and raw feed payloads are not.
+
+export const mtsFeedState = sqliteTable('mts_feed_state', {
+  feedKey: text('feed_key').primaryKey(),
+  feedUrl: text('feed_url').notNull(),
+  lastRetrievedAt: integer('last_retrieved_at', { mode: 'timestamp' }).notNull(),
+  lastPayloadHash: text('last_payload_hash').notNull(),
+  itemCount: integer('item_count').notNull().default(0),
+});
+
+export const mtsFeedSnapshots = sqliteTable(
+  'mts_feed_snapshots',
+  {
+    id: text('id').primaryKey(),
+    feedKey: text('feed_key').notNull(),
+    feedUrl: text('feed_url').notNull(),
+    retrievedAt: integer('retrieved_at', { mode: 'timestamp' }).notNull(),
+    payloadHash: text('payload_hash').notNull(),
+    itemCount: integer('item_count').notNull().default(0),
+  },
+  (t) => [
+    uniqueIndex('mts_feed_snapshots_observation_idx').on(t.feedKey, t.retrievedAt, t.payloadHash),
+    index('mts_feed_snapshots_retrieved_idx').on(t.retrievedAt),
+  ]
+);
+
+export const mtsSituations = sqliteTable(
+  'mts_situations',
+  {
+    situationId: text('situation_id').primaryKey(),
+    canonicalMtsUrl: text('canonical_mts_url').notNull(),
+    title: text('title').notNull(),
+    createdAt: integer('created_at', { mode: 'timestamp' }),
+    updatedAt: integer('updated_at', { mode: 'timestamp' }),
+    firstSeenAt: integer('first_seen_at', { mode: 'timestamp' }).notNull(),
+    retrievedAt: integer('retrieved_at', { mode: 'timestamp' }).notNull(),
+    position: integer('position'),
+    positionDelta: integer('position_delta'),
+    peakPosition: integer('peak_position'),
+    rankScore: real('rank_score'),
+    criticality: text('criticality'),
+    lifecycle: text('lifecycle'),
+    eventType: text('event_type'),
+    genre: text('genre'),
+    confirmationInferred: integer('confirmation_inferred', { mode: 'boolean' })
+      .notNull()
+      .default(false),
+    entities: text('entities', { mode: 'json' }).notNull().default('[]'),
+    topics: text('topics', { mode: 'json' }).notNull().default('[]'),
+    sourceReferences: text('source_references', { mode: 'json' }).notNull().default('[]'),
+    distinctSourceCount: integer('distinct_source_count').notNull().default(0),
+    attentionMetrics: text('attention_metrics', { mode: 'json' }).notNull().default('{}'),
+    primaryEntityId: text('primary_entity_id').references(() => entities.id),
+    ...attentionClassificationColumns(),
+    ...attentionVerificationColumns(),
+    payloadHash: text('payload_hash').notNull(),
+  },
+  (t) => [
+    index('mts_situations_retrieved_idx').on(t.retrievedAt),
+    index('mts_situations_position_idx').on(t.position),
+    index('mts_situations_entity_idx').on(t.primaryEntityId),
+    index('mts_situations_verification_status_idx').on(
+      t.verificationStatus,
+      t.verificationRequestedAt
+    ),
+  ]
+);
+
+export const mtsSituationSnapshots = sqliteTable(
+  'mts_situation_snapshots',
+  {
+    id: text('id').primaryKey(),
+    situationId: text('situation_id')
+      .notNull()
+      .references(() => mtsSituations.situationId, { onDelete: 'cascade' }),
+    retrievedAt: integer('retrieved_at', { mode: 'timestamp' }).notNull(),
+    position: integer('position'),
+    positionDelta: integer('position_delta'),
+    peakPosition: integer('peak_position'),
+    rankScore: real('rank_score'),
+    distinctSourceCount: integer('distinct_source_count').notNull().default(0),
+    attentionMetrics: text('attention_metrics', { mode: 'json' }).notNull().default('{}'),
+    payloadHash: text('payload_hash').notNull(),
+  },
+  (t) => [
+    uniqueIndex('mts_situation_snapshots_observation_idx').on(
+      t.situationId,
+      t.retrievedAt,
+      t.payloadHash
+    ),
+    index('mts_situation_snapshots_situation_retrieved_idx').on(t.situationId, t.retrievedAt),
+  ]
+);
+
+export const mtsSignalLinks = sqliteTable(
+  'mts_signal_links',
+  {
+    situationId: text('situation_id')
+      .notNull()
+      .references(() => mtsSituations.situationId, { onDelete: 'cascade' }),
+    ...attentionSignalLinkColumns(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.situationId, t.signalId] }),
+    index('mts_signal_links_signal_idx').on(t.signalId),
+    index('mts_signal_links_entity_idx').on(t.entityId),
   ]
 );
