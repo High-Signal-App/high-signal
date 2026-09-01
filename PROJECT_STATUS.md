@@ -1,6 +1,6 @@
 # high-signal — PROJECT STATUS
 
-Last updated: 2026-08-29
+Last updated: 2026-09-02
 
 ## Why/What
 
@@ -44,6 +44,15 @@ Last updated: 2026-08-29
   the 30-minute collector has populated all five documented feeds; API and web
   deployment smokes passed; cold-to-warm probes returned `API-MISS` then
   `API-HIT` for both `/data/daily` and `/brief/daily`.
+- MTS Situations is live as a second derived-attention source. Migration `0028`
+  is applied, the API and web Workers run release `359b1e3` at 100% traffic, and
+  the first collector stored 50 compact situations plus 50 snapshots and linked
+  three to existing signals. All six immediate investigations were correctly
+  withheld for insufficient independent evidence. Public source output contains
+  titles and links but no retained MTS descriptions or post text; production
+  probes returned Cloudflare `MISS` then `HIT` for `/data/sources` and
+  `/data/daily`. The Cloudflare dispatcher includes `cron-mts.yml` in every
+  half-hour slot alongside Digg.
 - Reliability hardening for issue #133 is deployed: the IST pipeline is 08:00
   ingest → 09:00 publish → 09:30
   freshness validation → 10:00 delivery; material Digg crossings trigger
@@ -140,7 +149,7 @@ Last updated: 2026-08-29
 | --- | --- | --- |
 | Web | Next.js 16, Tailwind v4, OpenNext | Cloudflare Worker `high-signal-web` |
 | API | Hono, D1 binding | Cloudflare Worker `high-signal-api` |
-| DB | Drizzle + D1 (`packages/db`, migrations 0000–0023; remote ledger current) | `high-signal-db` |
+| DB | Drizzle + D1 (`packages/db`, migrations 0000–0028; remote ledger current) | `high-signal-db` |
 | Shared | `@high-signal/shared` types, scorers, composers | — |
 | Ingest | Python `uv`, edgartools, yfinance, GLiNER, etc. | GitHub Actions cron + optional Modal |
 | Lab (parked) | Postgres/pgvector, FastAPI (`python/lab`) | Local docker-compose only |
@@ -183,11 +192,19 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 
 ## Timeline
 
-- **2026-09-01 — Dedicated Clarity project wired locally:** Replaced the
+- **2026-09-02 — MTS Situations attention connector released:** Added compact
+  half-hourly MTS snapshots, URL/entity matching, original-source verification,
+  Daily Brief attention overlays, Sources visibility, and shared attention
+  ingestion utilities without allowing MTS to contribute evidence or
+  confidence. The first production run completed successfully with 50
+  situations, three existing-signal links, and six evidence-gated withholds;
+  API/web deployment, 100% Worker traffic, and cache probes passed.
+
+- **2026-09-01 — Dedicated Clarity project released:** Replaced the
   retired shared analytics project with High Signal's own project in both the
   Next application shell and the overlaid Astro landing. PostHog remains
-  unchanged. Source audit verification passes; production deployment is
-  pending the normal release gate.
+  unchanged. Source audit verification and the production web smoke passed in
+  the MTS release.
 
 - **2026-08-28 — Reader-facing Daily Brief simplification released and verified:**
   the homepage now leads with Today and Yesterday, one compact verified-signal
