@@ -416,6 +416,23 @@ def _parse_json_message(message: str) -> dict | list:
     return parsed
 
 
+def _completion_request(
+    prompt: str, content: str, model: str, project_id: str, *, use_json_mode: bool
+) -> dict:
+    payload = {
+        "model": model,
+        "project_id": project_id,
+        "messages": [
+            {"role": "system", "content": prompt},
+            {"role": "user", "content": content},
+        ],
+        "temperature": 0.1,
+    }
+    if use_json_mode:
+        payload["response_format"] = {"type": "json_object"}
+    return payload
+
+
 def _ai_complete(prompt: str, content: str) -> tuple[dict | list | None, dict]:
     """Call OpenAI-compatible endpoint. Returns (parsed_json, audit_meta).
 
@@ -458,19 +475,10 @@ def _ai_complete(prompt: str, content: str) -> tuple[dict | list | None, dict]:
         attempt += 1
         meta["attempts"] = attempt
         try:
-            request_json = {
-                "model": model,
-                # The project-owned free-ai gateway requires this accounting
-                # tag. Keep it in the body to match the TypeScript judge.
-                "project_id": project_id,
-                "messages": [
-                    {"role": "system", "content": prompt},
-                    {"role": "user", "content": content},
-                ],
-                "temperature": 0.1,
-            }
-            if use_json_mode:
-                request_json["response_format"] = {"type": "json_object"}
+            # project_id is required by the project-owned free-ai gateway.
+            request_json = _completion_request(
+                prompt, content, model, project_id, use_json_mode=use_json_mode
+            )
             r = httpx.post(
                 f"{base.rstrip('/')}/chat/completions",
                 headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
