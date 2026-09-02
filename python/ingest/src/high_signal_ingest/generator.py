@@ -392,6 +392,8 @@ _AI_RETRIES = int(os.environ.get("AI_RETRIES", "2"))
 _AI_BACKOFF_BASE = float(os.environ.get("AI_BACKOFF_BASE", "1.0"))
 _AI_BACKOFF_CAP = float(os.environ.get("AI_BACKOFF_CAP", "8.0"))
 _AI_TIMEOUT = float(os.environ.get("AI_TIMEOUT", "60.0"))
+_AI_USER_CONTENT_LIMIT = 14_000
+_AI_MAX_COMPLETION_TOKENS = 2_000
 
 
 def _parse_json_message(message: str) -> dict | list:
@@ -424,9 +426,10 @@ def _completion_request(
         "project_id": project_id,
         "messages": [
             {"role": "system", "content": prompt},
-            {"role": "user", "content": content},
+            {"role": "user", "content": content[:_AI_USER_CONTENT_LIMIT]},
         ],
         "temperature": 0.1,
+        "max_tokens": _AI_MAX_COMPLETION_TOKENS,
     }
     if use_json_mode:
         payload["response_format"] = {"type": "json_object"}

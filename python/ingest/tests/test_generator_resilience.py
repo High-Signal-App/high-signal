@@ -203,13 +203,17 @@ def test_ai_complete_no_key_returns_none(monkeypatch) -> None:
     assert meta["attempts"] == 0
 
 
-def test_ai_complete_oversized_input_is_truncated(monkeypatch) -> None:
-    """The request_user field in meta is capped at 8000 chars (telemetry bound)."""
+def test_ai_complete_oversized_input_is_bounded(monkeypatch) -> None:
+    """Large clusters stay within the free gateway's request budget."""
     big = "x" * 100_000
     monkeypatch.setenv("AI_API_KEY", "test-key")
     monkeypatch.setenv("AI_BASE_URL", "https://test-gateway.example/v1")
-    # We don't need a real call — just check the meta truncation before the call.
-    with patch("httpx.post", side_effect=httpx.ConnectError("no network")):
+    monkeypatch.setenv("AI_MODEL", "test-model")
+    with patch("httpx.post", side_effect=httpx.ConnectError("no network")) as post:
         out, meta = generator._ai_complete("s", big)
+
     assert out is None
     assert len(meta["request_user"]) == 8000
+    request = post.call_args.kwargs["json"]
+    assert len(request["messages"][1]["content"]) == generator._AI_USER_CONTENT_LIMIT
+    assert request["max_tokens"] == generator._AI_MAX_COMPLETION_TOKENS
