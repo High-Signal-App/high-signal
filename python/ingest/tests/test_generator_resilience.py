@@ -10,6 +10,7 @@ import json
 from unittest.mock import patch
 
 import httpx
+import pytest
 
 from high_signal_ingest import generator
 
@@ -67,6 +68,33 @@ def test_ai_complete_success_first_try(monkeypatch) -> None:
     assert meta["attempts"] == 1
     assert meta["failure_class"] is None
     assert meta["tokens_in"] == 10
+
+
+def test_ai_complete_sends_required_project_id(monkeypatch) -> None:
+    """The shared gateway rejects otherwise valid calls without project_id."""
+    seen: list[dict] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(json.loads(request.content))
+        return _make_response(
+            200,
+            {"choices": [{"message": {"content": json.dumps({"publish": False})}}]},
+        )
+
+    monkeypatch.setenv("AI_PROJECT_ID", "high-signal-ingest")
+    out, _meta = _run_with_transport(httpx.MockTransport(handler), monkeypatch)
+
+    assert out == {"publish": False}
+    assert seen[0]["project_id"] == "high-signal-ingest"
+
+
+def test_provider_failure_is_not_treated_as_a_model_decline() -> None:
+    with pytest.raises(generator.SignalGenerationUnavailable, match="http_400"):
+        generator._raise_for_provider_failure(
+            {"reason": "http_400", "failure_class": "client_error"}
+        )
+
+    generator._raise_for_provider_failure({"reason": "publish_false", "failure_class": None})
 
 
 def test_ai_complete_429_retries_then_succeeds(monkeypatch) -> None:

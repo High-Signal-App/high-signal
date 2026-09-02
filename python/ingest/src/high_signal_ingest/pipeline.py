@@ -884,6 +884,24 @@ def zero_draft_alert(result: dict) -> str | None:
     )
 
 
+def generation_outage_alert(result: dict) -> str | None:
+    """Fail visibly when every configured AI generation request failed.
+
+    A thematic fallback can still produce a draft, so ``signals_drafted`` is
+    not a reliable health check for the entity signal extractor itself.
+    """
+    requests = result.get("generation_requests", 0)
+    failures = result.get("generation_request_failures", 0)
+    if requests <= 0 or failures < requests:
+        return None
+    return (
+        "::error title=signal generation unavailable::"
+        f"all {requests} AI generation request(s) failed "
+        f"(clusters={result.get('clusters_reaching_generation', 0)}, "
+        f"generated={result.get('candidates_generated', 0)})"
+    )
+
+
 def run(source: Source, days: int, *, generate_signals: bool = True) -> dict:
     started_at = datetime.now(timezone.utc)
     fetch_run_id = audit.new_run_id()
@@ -963,6 +981,8 @@ def run(source: Source, days: int, *, generate_signals: bool = True) -> dict:
             "events_no_entity": no_entity,
             "events_low_cluster": 0,
             "clusters_reaching_generation": 0,
+            "generation_requests": 0,
+            "generation_request_failures": 0,
             "signals_drafted": 0,
             **new_proof_tally(),
             "errors": errors,
@@ -972,6 +992,8 @@ def run(source: Source, days: int, *, generate_signals: bool = True) -> dict:
     written: list[str] = []
     fallback_clusters: list[tuple[str, list[Event]]] = []
     proof_tally = new_proof_tally()
+    generation_requests = 0
+    generation_request_failures = 0
 
     # Separate entity buckets into individual stories. Only stories with two
     # candidate origins reach generation; small stories share an LLM request
@@ -986,10 +1008,12 @@ def run(source: Source, days: int, *, generate_signals: bool = True) -> dict:
 
     # Large clusters: one LLM call each (high-quality, lots of evidence)
     for entity_id, evs in large_clusters:
+        generation_requests += 1
         try:
             cand = generate(entity_id, evs, _spillover_candidates(entity_id))
         except Exception as exc:
             errors += 1
+            generation_request_failures += 1
             if error_sample is None:
                 error_sample = f"generate {entity_id}: {exc}"[:300]
             fallback_clusters.append((entity_id, evs))
@@ -1004,10 +1028,12 @@ def run(source: Source, days: int, *, generate_signals: bool = True) -> dict:
         clusters_with_spillover = [
             (entity_id, evs, _spillover_candidates(entity_id)) for entity_id, evs in batch
         ]
+        generation_requests += 1
         try:
             cands = generate_batch(clusters_with_spillover)
         except Exception as exc:
             errors += 1
+            generation_request_failures += 1
             if error_sample is None:
                 error_sample = (
                     f"generate_batch {[e for e, _, _ in clusters_with_spillover]}: {exc}"[:300]
@@ -1050,6 +1076,8 @@ def run(source: Source, days: int, *, generate_signals: bool = True) -> dict:
             [
                 f"fetch_run_id={fetch_run_id}",
                 f"clusters_reaching_generation={clusters_reaching_generation}",
+                f"generation_requests={generation_requests}",
+                f"generation_request_failures={generation_request_failures}",
                 *(f"{k}={v}" for k, v in proof_tally.items()),
             ]
         ),
@@ -1063,6 +1091,8 @@ def run(source: Source, days: int, *, generate_signals: bool = True) -> dict:
         "events_no_entity": no_entity,
         "events_low_cluster": low_cluster,
         "clusters_reaching_generation": clusters_reaching_generation,
+        "generation_requests": generation_requests,
+        "generation_request_failures": generation_request_failures,
         "signals_drafted": len(written),
         **proof_tally,
         "errors": errors,
@@ -1100,6 +1130,10 @@ def main() -> None:
     alert = zero_draft_alert(out)
     if alert:
         print(alert, file=sys.stderr)
+    outage = generation_outage_alert(out)
+    if outage:
+        print(outage, file=sys.stderr)
+        sys.exit(3)
     # Non-zero exit when no events landed AND nothing was drafted, so a
     # silent-failure cron tick surfaces in Modal alerts without parsing logs.
     if out["events"] == 0 and out["signals_drafted"] == 0 and out["errors"] > 0:

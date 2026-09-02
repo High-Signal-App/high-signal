@@ -30,11 +30,20 @@ export function HistoryGate({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ turnstileToken: token }),
       });
-      if (!response.ok) throw new Error('verification_failed');
+      if (!response.ok) {
+        throw new Error(
+          response.status >= 500
+            ? 'History access is temporarily unavailable. Please try again.'
+            : 'The human check was not accepted. Please try again.'
+        );
+      }
       router.refresh();
-    } catch {
-      setError('Verification did not complete. Please try again.');
-      setResetSignal((value) => value + 1);
+    } catch (reason) {
+      setError(
+        reason instanceof Error
+          ? reason.message
+          : 'Verification did not complete. Please try again.'
+      );
     } finally {
       setPending(false);
     }
@@ -64,9 +73,21 @@ export function HistoryGate({
         {pending ? 'verifying…' : 'one check · 12 hours of access'}
       </p>
       {error ? (
-        <p className="mt-3 text-sm text-red-300" role="alert">
-          {error}
-        </p>
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <p className="text-sm text-red-300" role="alert">
+            {error}
+          </p>
+          <button
+            type="button"
+            className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-accent)] hover:underline"
+            onClick={() => {
+              setError('');
+              setResetSignal((value) => value + 1);
+            }}
+          >
+            try again →
+          </button>
+        </div>
       ) : null}
     </section>
   );

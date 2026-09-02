@@ -429,6 +429,7 @@ def _ai_complete(prompt: str, content: str) -> tuple[dict | list | None, dict]:
     base = os.environ.get("AI_BASE_URL")
     key = os.environ.get("AI_API_KEY") or os.environ.get("HF_TOKEN")
     model = os.environ.get("AI_MODEL")
+    project_id = os.environ.get("AI_PROJECT_ID", "high-signal")
     meta: dict = {
         "model": model,
         "prompt_version": PROMPT_VERSION,
@@ -459,6 +460,9 @@ def _ai_complete(prompt: str, content: str) -> tuple[dict | list | None, dict]:
         try:
             request_json = {
                 "model": model,
+                # The project-owned free-ai gateway requires this accounting
+                # tag. Keep it in the body to match the TypeScript judge.
+                "project_id": project_id,
                 "messages": [
                     {"role": "system", "content": prompt},
                     {"role": "user", "content": content},
@@ -515,6 +519,21 @@ def _ai_complete(prompt: str, content: str) -> tuple[dict | list | None, dict]:
                 time.sleep(sleep_for)
                 continue
             return None, meta
+
+
+class SignalGenerationUnavailable(RuntimeError):
+    """The configured AI provider could not serve a generation request."""
+
+
+def _raise_for_provider_failure(meta: dict) -> None:
+    """Distinguish provider outages from an intentional model decline.
+
+    The pipeline may legitimately receive ``publish: false``. HTTP, network,
+    and parse failures are different: swallowing them makes an empty signal
+    day look healthy, so surface those failures to the pipeline receipt.
+    """
+    if meta.get("failure_class"):
+        raise SignalGenerationUnavailable(str(meta.get("reason") or "provider_failure"))
 
 
 def _normalize_business_inference(
@@ -677,6 +696,7 @@ def generate(
 
     if not out:
         _record(False, None, meta.get("reason") or "no_response")
+        _raise_for_provider_failure(meta)
         return None
     if not isinstance(out, dict):
         _record(False, None, "unexpected_response_shape")
@@ -944,6 +964,7 @@ def generate_batch(
 
     if not out:
         _record(False, None, meta.get("reason") or "no_response")
+        _raise_for_provider_failure(meta)
         return []
 
     # Model returns a JSON array; _ai_complete parses to dict, so re-parse if needed

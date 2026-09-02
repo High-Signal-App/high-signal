@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import { HISTORY_ACCESS_COOKIE, HISTORY_ACCESS_TTL_SECONDS } from '@high-signal/shared';
-import { fetchApiResponse } from '@/lib/api';
+
+const API_BASE = process.env['NEXT_PUBLIC_API_BASE'] ?? 'https://api.highsignal.app';
 
 export async function POST(request: Request) {
   const body = (await request.json().catch(() => ({}))) as { turnstileToken?: unknown };
@@ -20,17 +21,25 @@ export async function POST(request: Request) {
 
   let upstream: Response;
   try {
-    upstream = await fetchApiResponse('/history/access', {
+    // A Turnstile token is single-use. Send it straight to the public API
+    // endpoint instead of the service-binding path, which can reject a POST
+    // before the API Worker receives it and cannot safely be retried.
+    upstream = await fetch(`${API_BASE.replace(/\/$/, '')}/history/access`, {
       method: 'POST',
       headers: upstreamHeaders,
       body: JSON.stringify({ turnstileToken: body.turnstileToken }),
       cache: 'no-store',
     });
   } catch {
+    console.error('[history-access] verification API unavailable');
     return NextResponse.json({ error: 'verification_unavailable' }, { status: 503 });
   }
   if (!upstream.ok) {
-    return NextResponse.json({ error: 'verification_failed' }, { status: 403 });
+    const unavailable = upstream.status >= 500;
+    return NextResponse.json(
+      { error: unavailable ? 'verification_unavailable' : 'verification_failed' },
+      { status: unavailable ? 503 : 403 }
+    );
   }
 
   const access = (await upstream.json()) as { grant?: unknown; expiresAt?: unknown };

@@ -685,6 +685,36 @@ def test_zero_draft_alert_reports_clusters_reaching_generation() -> None:
     assert "generated=2" in alert
 
 
+def test_generation_outage_alert_ignores_thematic_fallback_drafts() -> None:
+    alert = pipeline.generation_outage_alert(
+        {
+            "signals_drafted": 1,
+            "clusters_reaching_generation": 36,
+            "generation_requests": 13,
+            "generation_request_failures": 13,
+            "candidates_generated": 0,
+        }
+    )
+
+    assert alert is not None
+    assert "all 13 AI generation request(s) failed" in alert
+
+
+def test_generation_outage_alert_allows_declines_and_partial_recovery() -> None:
+    assert (
+        pipeline.generation_outage_alert(
+            {"generation_requests": 5, "generation_request_failures": 4}
+        )
+        is None
+    )
+    assert (
+        pipeline.generation_outage_alert(
+            {"generation_requests": 5, "generation_request_failures": 0}
+        )
+        is None
+    )
+
+
 def test_run_receipt_reports_clusters_reaching_generation(monkeypatch) -> None:
     """The counter is sourced from `_pre_group_clusters`, before generation."""
     monkeypatch.setattr(pipeline, "fetch", lambda *_a, **_k: [])
@@ -706,6 +736,8 @@ def test_run_receipt_reports_clusters_reaching_generation(monkeypatch) -> None:
 
     out = pipeline.run("all", 1)
     assert out["clusters_reaching_generation"] == 2
+    assert out["generation_requests"] == 2
+    assert out["generation_request_failures"] == 0
     assert out["events_low_cluster"] == 17
     assert out["candidates_generated"] == 0
 
