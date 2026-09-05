@@ -392,9 +392,7 @@ describe('High Signal MCP', () => {
       arguments: { source_id: 'hackernews', limit: 50, cursor: 'abc123' },
     });
 
-    expect(readPublicJson).toHaveBeenCalledWith(
-      '/data/sources/hackernews?limit=50&cursor=abc123'
-    );
+    expect(readPublicJson).toHaveBeenCalledWith('/data/sources/hackernews?limit=50&cursor=abc123');
     expect(structuredContent(body)).toMatchObject({
       tool: 'browse_source',
       snapshotId: 'hs-2026-08-27',
@@ -406,7 +404,9 @@ describe('High Signal MCP', () => {
     const readPublicJson = vi.fn(async () => ({
       status: 200,
       body: {
-        buckets: [{ signalType: 'new_product_launch', count: 20, matured: 10, hits: 6, hitRate: 0.6 }],
+        buckets: [
+          { signalType: 'new_product_launch', count: 20, matured: 10, hits: 6, hitRate: 0.6 },
+        ],
         summary: { total: 100, matured: 50, pending: 50 },
       },
       cacheStatus: 'API-HIT',
