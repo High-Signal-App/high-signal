@@ -111,10 +111,15 @@ describe('High Signal MCP', () => {
       'get_daily_brief',
       'get_signal',
       'get_daily_dump',
+      'get_source_coverage',
+      'search_signals',
+      'browse_source',
+      'get_track_record',
+      'get_entity',
     ]);
   });
 
-  it('exposes exactly three stable read-only tools', async () => {
+  it('exposes eight stable read-only tools', async () => {
     const readPublicJson = vi.fn();
     const { response, body } = await rpc({ readPublicJson }, 'tools/list');
 
@@ -124,6 +129,11 @@ describe('High Signal MCP', () => {
       'get_daily_brief',
       'get_signal',
       'get_daily_dump',
+      'get_source_coverage',
+      'search_signals',
+      'browse_source',
+      'get_track_record',
+      'get_entity',
     ]);
     expect(
       tools.every((tool) => (tool['annotations'] as Record<string, unknown>)['readOnlyHint'])
@@ -133,11 +143,20 @@ describe('High Signal MCP', () => {
   });
 
   it('uses IST for today and yesterday without changing the tool contract', async () => {
-    const readPublicJson = vi.fn(async (path: string) => ({
-      status: 200,
-      body: { generatedAt: '2026-08-26T20:00:00.000Z', path },
-      cacheStatus: 'API-HIT',
-    }));
+    const readPublicJson = vi.fn(async (path: string) => {
+      if (path.startsWith('/data/sources')) {
+        return {
+          status: 200,
+          body: { sources: [{ id: 'hackernews', runStatus: 'success_with_data' }], total: 1 },
+          cacheStatus: 'API-HIT',
+        };
+      }
+      return {
+        status: 200,
+        body: { generatedAt: '2026-08-26T20:00:00.000Z', path },
+        cacheStatus: 'API-HIT',
+      };
+    });
     const dependencies = {
       readPublicJson,
       now: () => new Date('2026-08-26T20:00:00.000Z'),
@@ -152,12 +171,15 @@ describe('High Signal MCP', () => {
       arguments: { day: 'yesterday' },
     });
 
-    expect(readPublicJson).toHaveBeenNthCalledWith(1, '/brief/daily');
-    expect(readPublicJson).toHaveBeenNthCalledWith(2, '/brief/daily?date=2026-08-26');
+    expect(readPublicJson).toHaveBeenCalledWith('/brief/daily');
+    expect(readPublicJson).toHaveBeenCalledWith('/brief/daily?date=2026-08-26');
+    expect(readPublicJson).toHaveBeenCalledWith('/data/sources?samples=0');
     expect(structuredContent(today.body)).toMatchObject({
-      schemaVersion: '1',
+      schemaVersion: '2',
       dataUpdatedAt: '2026-08-26T20:00:00.000Z',
       tool: 'get_daily_brief',
+      snapshotId: 'hs-2026-08-27',
+      reportingWindow: { date: '2026-08-27', timeZone: 'Asia/Kolkata' },
     });
     expect(result(yesterday.body)['isError']).not.toBe(true);
   });
@@ -186,10 +208,11 @@ describe('High Signal MCP', () => {
 
     expect(readPublicJson).toHaveBeenCalledWith('/data/daily?date=2026-08-27');
     expect(structuredContent(body)).toMatchObject({
-      schemaVersion: '1',
+      schemaVersion: '2',
       tool: 'get_daily_dump',
       cache: { dailyDump: 'API-MISS' },
       data: { signals: [], evidenceEvents: [], attention: {} },
+      snapshotId: 'hs-2026-08-27',
     });
   });
 
@@ -211,7 +234,7 @@ describe('High Signal MCP', () => {
     expect(readPublicJson).not.toHaveBeenCalled();
   });
 
-  it('combines signal detail, evidence events, and claims into one proof result', async () => {
+  it('combines signal detail, evidence events, claims, and related signals into one proof result', async () => {
     const readPublicJson = vi.fn(async (path: string) => {
       if (path.endsWith('/evidence')) {
         return { status: 200, body: { evidenceEvents: [{ id: 'e-1' }] }, cacheStatus: 'API-HIT' };
@@ -219,9 +242,25 @@ describe('High Signal MCP', () => {
       if (path.startsWith('/claims/')) {
         return { status: 200, body: { claims: [{ id: 'c-1' }] }, cacheStatus: 'API-HIT' };
       }
+      if (path.startsWith('/signals/by-entity/')) {
+        return {
+          status: 200,
+          body: {
+            signals: [
+              { slug: 'proof-bearing-signal', id: 's-1' },
+              { slug: 'related-signal', id: 's-2' },
+            ],
+          },
+          cacheStatus: 'API-HIT',
+        };
+      }
       return {
         status: 200,
-        body: { signal: { slug: 'proof-bearing-signal' }, evidence: [], scores: [] },
+        body: {
+          signal: { slug: 'proof-bearing-signal', primaryEntityId: 'OPENAI' },
+          evidence: [],
+          scores: [],
+        },
         cacheStatus: 'API-MISS',
       };
     });
@@ -231,15 +270,17 @@ describe('High Signal MCP', () => {
       arguments: { signal_id: 'proof-bearing-signal' },
     });
 
-    expect(readPublicJson).toHaveBeenCalledTimes(3);
+    expect(readPublicJson).toHaveBeenCalledTimes(4);
+    expect(readPublicJson).toHaveBeenCalledWith('/signals/by-entity/OPENAI');
     expect(structuredContent(body)).toMatchObject({
       tool: 'get_signal',
       data: {
-        signal: { slug: 'proof-bearing-signal' },
+        signal: { slug: 'proof-bearing-signal', primaryEntityId: 'OPENAI' },
         proofs: {
           evidence: { evidenceEvents: [{ id: 'e-1' }] },
           claims: { claims: [{ id: 'c-1' }] },
         },
+        relatedSignals: [{ slug: 'related-signal', id: 's-2' }],
       },
     });
   });
@@ -264,6 +305,162 @@ describe('High Signal MCP', () => {
       },
     });
     expect(readPublicJson).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns source coverage with a coverage summary and snapshot metadata', async () => {
+    const readPublicJson = vi.fn(async () => ({
+      status: 200,
+      body: {
+        sources: [
+          { id: 'hackernews', runStatus: 'success_with_data' },
+          { id: 'edgar', runStatus: 'success_with_data' },
+          { id: 'patents', runStatus: 'parked' },
+          { id: 'bluesky', runStatus: 'parked' },
+          { id: 'guardian', runStatus: 'parked' },
+        ],
+        total: 100,
+        available: true,
+      },
+      cacheStatus: 'API-HIT',
+    }));
+    const dependencies = {
+      readPublicJson,
+      now: () => new Date('2026-08-26T20:00:00.000Z'),
+    };
+
+    const { body } = await rpc(dependencies, 'tools/call', {
+      name: 'get_source_coverage',
+      arguments: { samples: 3 },
+    });
+
+    expect(readPublicJson).toHaveBeenCalledWith('/data/sources?samples=3');
+    expect(structuredContent(body)).toMatchObject({
+      tool: 'get_source_coverage',
+      snapshotId: 'hs-2026-08-27',
+      data: {
+        coverageSummary: { configured: 5, healthy: 2, disabled: 3 },
+      },
+    });
+  });
+
+  it('searches signals with entity, type, and confidence filters', async () => {
+    const readPublicJson = vi.fn(async () => ({
+      status: 200,
+      body: { signals: [{ slug: 'test-signal', id: 's-1' }], withheldCount: 0 },
+      cacheStatus: 'API-MISS',
+    }));
+    const dependencies = {
+      readPublicJson,
+      now: () => new Date('2026-08-26T20:00:00.000Z'),
+    };
+
+    const { body } = await rpc(dependencies, 'tools/call', {
+      name: 'search_signals',
+      arguments: { entity: 'OPENAI', type: 'new_product_launch', confidence: 'high', limit: 10 },
+    });
+
+    expect(readPublicJson).toHaveBeenCalledWith(
+      '/signals?status=published&limit=10&entity=OPENAI&type=new_product_launch&confidence=high'
+    );
+    expect(structuredContent(body)).toMatchObject({
+      tool: 'search_signals',
+      snapshotId: 'hs-2026-08-27',
+      data: { signals: [{ slug: 'test-signal', id: 's-1' }] },
+    });
+  });
+
+  it('browses source events with cursor pagination', async () => {
+    const readPublicJson = vi.fn(async () => ({
+      status: 200,
+      body: {
+        id: 'hackernews',
+        total: 500,
+        events: [{ title: 'Show HN: Foo', url: 'https://news.ycombinator.com/item?id=1' }],
+        hasMore: true,
+        nextCursor: 'abc123',
+        available: true,
+      },
+      cacheStatus: 'API-HIT',
+    }));
+    const dependencies = {
+      readPublicJson,
+      now: () => new Date('2026-08-26T20:00:00.000Z'),
+    };
+
+    const { body } = await rpc(dependencies, 'tools/call', {
+      name: 'browse_source',
+      arguments: { source_id: 'hackernews', limit: 50, cursor: 'abc123' },
+    });
+
+    expect(readPublicJson).toHaveBeenCalledWith(
+      '/data/sources/hackernews?limit=50&cursor=abc123'
+    );
+    expect(structuredContent(body)).toMatchObject({
+      tool: 'browse_source',
+      snapshotId: 'hs-2026-08-27',
+      data: { id: 'hackernews', total: 500, hasMore: true, nextCursor: 'abc123' },
+    });
+  });
+
+  it('returns the track record with cohort filter', async () => {
+    const readPublicJson = vi.fn(async () => ({
+      status: 200,
+      body: {
+        buckets: [{ signalType: 'new_product_launch', count: 20, matured: 10, hits: 6, hitRate: 0.6 }],
+        summary: { total: 100, matured: 50, pending: 50 },
+      },
+      cacheStatus: 'API-HIT',
+    }));
+    const dependencies = {
+      readPublicJson,
+      now: () => new Date('2026-08-26T20:00:00.000Z'),
+    };
+
+    const { body } = await rpc(dependencies, 'tools/call', {
+      name: 'get_track_record',
+      arguments: { cohort: 'live' },
+    });
+
+    expect(readPublicJson).toHaveBeenCalledWith('/track-record?cohort=live');
+    expect(structuredContent(body)).toMatchObject({
+      tool: 'get_track_record',
+      snapshotId: 'hs-2026-08-27',
+      data: {
+        buckets: [{ signalType: 'new_product_launch', hitRate: 0.6 }],
+      },
+    });
+  });
+
+  it('returns entity detail with relationships and signals', async () => {
+    const readPublicJson = vi.fn(async () => ({
+      status: 200,
+      body: {
+        entity: { id: 'OPENAI', name: 'OpenAI Inc.', type: 'private' },
+        relationships: [{ fromEntityId: 'MSFT', toEntityId: 'OPENAI', type: 'partner' }],
+        signals: [{ slug: 'openai-signal', id: 's-1' }],
+        marketQuotes: [],
+      },
+      cacheStatus: 'API-MISS',
+    }));
+    const dependencies = {
+      readPublicJson,
+      now: () => new Date('2026-08-26T20:00:00.000Z'),
+    };
+
+    const { body } = await rpc(dependencies, 'tools/call', {
+      name: 'get_entity',
+      arguments: { entity_id: 'OPENAI' },
+    });
+
+    expect(readPublicJson).toHaveBeenCalledWith('/entities/OPENAI');
+    expect(structuredContent(body)).toMatchObject({
+      tool: 'get_entity',
+      snapshotId: 'hs-2026-08-27',
+      data: {
+        entity: { id: 'OPENAI', name: 'OpenAI Inc.' },
+        relationships: [{ type: 'partner' }],
+      },
+    });
   });
 
   it('rejects unapproved browser origins while accepting origin-less clients', async () => {
@@ -305,7 +502,7 @@ describe('High Signal MCP', () => {
     expect(response.status).toBe(200);
     expect(result(body)).toMatchObject({
       protocolVersion: LATEST_PROTOCOL_VERSION,
-      serverInfo: { name: 'high-signal', version: '1.0.0', title: 'High Signal' },
+      serverInfo: { name: 'high-signal', version: '2.0.0', title: 'High Signal' },
       capabilities: { tools: {} },
     });
   });

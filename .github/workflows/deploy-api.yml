@@ -49,7 +49,7 @@ jobs:
                   const dataLine = raw.split(/\r?\n/).find((line) => line.startsWith("data: "));
                   const payload = JSON.parse(dataLine ? dataLine.slice(6) : raw);
                   const names = (payload.result?.tools ?? []).map((tool) => tool.name);
-                  const expected = ["get_daily_brief", "get_signal", "get_daily_dump"];
+                  const expected = ["get_daily_brief", "get_signal", "get_daily_dump", "get_source_coverage", "search_signals", "browse_source", "get_track_record", "get_entity"];
                   if (JSON.stringify(names) !== JSON.stringify(expected)) {
                     throw new Error(`MCP tool contract mismatch: ${JSON.stringify(names)}`);
                   }

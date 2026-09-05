@@ -352,7 +352,16 @@ assert.deepEqual(catalog.mcp, {
   serverCard: 'https://api.highsignal.app/mcp/server-card',
   transport: 'streamable-http',
   auth: 'none',
-  tools: ['get_daily_brief', 'get_signal', 'get_daily_dump'],
+  tools: [
+    'get_daily_brief',
+    'get_signal',
+    'get_daily_dump',
+    'get_source_coverage',
+    'search_signals',
+    'browse_source',
+    'get_track_record',
+    'get_entity',
+  ],
 });
 assert.equal(
   catalog.agentSkills.dailyBrief,

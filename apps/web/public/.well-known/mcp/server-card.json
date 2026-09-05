@@ -2,8 +2,8 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/v1/server-card.schema.json",
   "name": "app.highsignal/daily-brief",
   "title": "High Signal",
-  "description": "Read the evidence-qualified Daily Brief and inspect public signal proofs.",
-  "version": "1.0.0",
+  "description": "Read the evidence-qualified Daily Brief, search published signals, browse source data, inspect signal proofs, and review the public track record.",
+  "version": "2.0.0",
   "websiteUrl": "https://highsignal.app/api-docs",
   "repository": {
     "url": "https://github.com/High-Signal-App/high-signal",

@@ -91,12 +91,16 @@ server are interfaces over the same High Signal product data. They do not own a
 second copy of signals or evidence.
 
 `POST https://api.highsignal.app/mcp` uses stateless Streamable HTTP and exposes
-only three read tools: `get_daily_brief`, `get_signal`, and `get_daily_dump`.
-Those tools call the existing public Hono routes in-process through the same
-Cloudflare Cache API wrapper. Publication gates, Today/Yesterday access, and
-Turnstile-protected history therefore remain identical across web, REST, and
-MCP. Tool schemas stay backward-compatible; data can improve behind them
-without requiring agents to install a new connector definition.
+eight read tools: `get_daily_brief`, `get_signal`, `get_daily_dump`,
+`get_source_coverage`, `search_signals`, `browse_source`, `get_track_record`,
+and `get_entity`. Those tools call the existing public Hono routes in-process
+through the same Cloudflare Cache API wrapper. Publication gates,
+Today/Yesterday access, and Turnstile-protected history therefore remain
+identical across web, REST, and MCP. Tool schemas stay backward-compatible;
+data can improve behind them without requiring agents to install a new
+connector definition. Every tool response includes a `snapshotId` and
+`reportingWindow` so agents can reconcile brief, exports, proofs, and MCP
+responses against the same snapshot.
 
 ## Migration Path
 
