@@ -92,7 +92,12 @@ function snapshotId(date: string) {
 }
 
 function reportingWindow(date: string) {
-  return { date, timeZone: IST_TIME_ZONE, start: `${date}T00:00:00+05:30`, end: `${date}T23:59:59+05:30` };
+  return {
+    date,
+    timeZone: IST_TIME_ZONE,
+    start: `${date}T00:00:00+05:30`,
+    end: `${date}T23:59:59+05:30`,
+  };
 }
 
 /**
@@ -101,7 +106,15 @@ function reportingWindow(date: string) {
  */
 function sourceCoverageSummary(sources: unknown) {
   if (!Array.isArray(sources)) return null;
-  const buckets = { configured: 0, healthy: 0, stale: 0, empty: 0, disabled: 0, failed: 0, unknown: 0 };
+  const buckets = {
+    configured: 0,
+    healthy: 0,
+    stale: 0,
+    empty: 0,
+    disabled: 0,
+    failed: 0,
+    unknown: 0,
+  };
   for (const src of sources) {
     if (!isRecord(src)) continue;
     buckets.configured++;
@@ -162,7 +175,12 @@ function successResult(
     schemaVersion: MCP_SCHEMA_VERSION,
     dataUpdatedAt: dataUpdatedAt(data, now),
     tool,
-    ...(snapshot ? { snapshotId: snapshot.snapshotId, ...(snapshot.reportingWindow ? { reportingWindow: snapshot.reportingWindow } : {}) } : {}),
+    ...(snapshot
+      ? {
+          snapshotId: snapshot.snapshotId,
+          ...(snapshot.reportingWindow ? { reportingWindow: snapshot.reportingWindow } : {}),
+        }
+      : {}),
     cache,
     data,
   });
@@ -198,11 +216,12 @@ function createHighSignalMcpServer(dependencies: HighSignalMcpDependencies) {
         dependencies.readPublicJson('/data/sources?samples=0'),
       ]);
       if (brief.status !== 200) return errorResult('get_daily_brief', brief, now);
-      const coverage = sources.status === 200 ? sourceCoverageSummary(sources.body['sources']) : null;
+      const coverage =
+        sources.status === 200 ? sourceCoverageSummary(sources.body['sources']) : null;
       const data: Record<string, unknown> = {
         ...brief.body,
         sourceCoverage: coverage,
-        sourceTotal: isRecord(sources.body) ? sources.body['total'] ?? null : null,
+        sourceTotal: isRecord(sources.body) ? (sources.body['total'] ?? null) : null,
       };
       return successResult(
         'get_daily_brief',
@@ -239,27 +258,33 @@ function createHighSignalMcpServer(dependencies: HighSignalMcpDependencies) {
 
       const signalBody = isRecord(detail.body) ? detail.body : {};
       const signalRecord = isRecord(signalBody['signal']) ? signalBody['signal'] : signalBody;
-      const entityId = typeof signalRecord['primaryEntityId'] === 'string'
-        ? signalRecord['primaryEntityId']
-        : typeof signalRecord['entityId'] === 'string'
-          ? signalRecord['entityId']
-          : null;
+      const entityId =
+        typeof signalRecord['primaryEntityId'] === 'string'
+          ? signalRecord['primaryEntityId']
+          : typeof signalRecord['entityId'] === 'string'
+            ? signalRecord['entityId']
+            : null;
 
       const [evidence, claims, related] = await Promise.all([
         dependencies.readPublicJson(`/signals/${encodedSignalId}/evidence`),
         dependencies.readPublicJson(`/claims/by-signal/${encodedSignalId}`),
         entityId
           ? dependencies.readPublicJson(`/signals/by-entity/${encodeURIComponent(entityId)}`)
-          : Promise.resolve({ status: 200, body: { signals: [] }, cacheStatus: null } as PublicJsonRead),
+          : Promise.resolve({
+              status: 200,
+              body: { signals: [] },
+              cacheStatus: null,
+            } as PublicJsonRead),
       ]);
       if (evidence.status !== 200) return errorResult('get_signal', evidence, now);
       if (claims.status !== 200) return errorResult('get_signal', claims, now);
 
-      const relatedSignals = isRecord(related.body) && Array.isArray(related.body['signals'])
-        ? (related.body['signals'] as Array<Record<string, unknown>>).filter(
-            (s) => s['slug'] !== signalId
-          )
-        : [];
+      const relatedSignals =
+        isRecord(related.body) && Array.isArray(related.body['signals'])
+          ? (related.body['signals'] as Array<Record<string, unknown>>).filter(
+              (s) => s['slug'] !== signalId
+            )
+          : [];
 
       return successResult(
         'get_signal',
@@ -317,13 +342,10 @@ function createHighSignalMcpServer(dependencies: HighSignalMcpDependencies) {
       }
       const read = await dependencies.readPublicJson(`/data/daily?date=${resolvedDate}`);
       if (read.status !== 200) return errorResult('get_daily_dump', read, now);
-      return successResult(
-        'get_daily_dump',
-        read.body,
-        { dailyDump: read.cacheStatus },
-        now,
-        { snapshotId: snapshotId(resolvedDate), reportingWindow: reportingWindow(resolvedDate) }
-      );
+      return successResult('get_daily_dump', read.body, { dailyDump: read.cacheStatus }, now, {
+        snapshotId: snapshotId(resolvedDate),
+        reportingWindow: reportingWindow(resolvedDate),
+      });
     }
   );
 
@@ -354,13 +376,9 @@ function createHighSignalMcpServer(dependencies: HighSignalMcpDependencies) {
         ...read.body,
         coverageSummary: coverage,
       };
-      return successResult(
-        'get_source_coverage',
-        data,
-        { sources: read.cacheStatus },
-        now,
-        { snapshotId: snapshotId(istDate) }
-      );
+      return successResult('get_source_coverage', data, { sources: read.cacheStatus }, now, {
+        snapshotId: snapshotId(istDate),
+      });
     }
   );
 
@@ -371,10 +389,7 @@ function createHighSignalMcpServer(dependencies: HighSignalMcpDependencies) {
       description:
         'Search published High Signal records filtered by entity, signal type, direction, confidence, or date range. Returns bounded, paginated results with evidence counts and provenance.',
       inputSchema: z.object({
-        entity: z
-          .string()
-          .optional()
-          .describe('Entity ID (e.g. OPENAI, AMZN) to filter by.'),
+        entity: z.string().optional().describe('Entity ID (e.g. OPENAI, AMZN) to filter by.'),
         type: z
           .string()
           .optional()
@@ -392,14 +407,8 @@ function createHighSignalMcpServer(dependencies: HighSignalMcpDependencies) {
           .regex(/^\d{4}-\d{2}-\d{2}$/)
           .optional()
           .describe('Filter to signals published on this calendar date (YYYY-MM-DD).'),
-        from: z
-          .string()
-          .optional()
-          .describe('Start date for published_at range (ISO 8601).'),
-        to: z
-          .string()
-          .optional()
-          .describe('End date for published_at range (ISO 8601).'),
+        from: z.string().optional().describe('Start date for published_at range (ISO 8601).'),
+        to: z.string().optional().describe('End date for published_at range (ISO 8601).'),
         limit: z
           .number()
           .int()
@@ -425,13 +434,9 @@ function createHighSignalMcpServer(dependencies: HighSignalMcpDependencies) {
       const read = await dependencies.readPublicJson(`/signals?${query.toString()}`);
       if (read.status !== 200) return errorResult('search_signals', read, now);
       const istDate = dateInIst(now);
-      return successResult(
-        'search_signals',
-        read.body,
-        { signals: read.cacheStatus },
-        now,
-        { snapshotId: snapshotId(istDate) }
-      );
+      return successResult('search_signals', read.body, { signals: read.cacheStatus }, now, {
+        snapshotId: snapshotId(istDate),
+      });
     }
   );
 
@@ -473,16 +478,14 @@ function createHighSignalMcpServer(dependencies: HighSignalMcpDependencies) {
       if (params.date) query.set('date', params.date);
       if (params.cursor) query.set('cursor', params.cursor);
       const encodedId = encodeURIComponent(params.source_id);
-      const read = await dependencies.readPublicJson(`/data/sources/${encodedId}?${query.toString()}`);
+      const read = await dependencies.readPublicJson(
+        `/data/sources/${encodedId}?${query.toString()}`
+      );
       if (read.status !== 200) return errorResult('browse_source', read, now);
       const istDate = params.date ?? dateInIst(now);
-      return successResult(
-        'browse_source',
-        read.body,
-        { sourceEvents: read.cacheStatus },
-        now,
-        { snapshotId: snapshotId(istDate) }
-      );
+      return successResult('browse_source', read.body, { sourceEvents: read.cacheStatus }, now, {
+        snapshotId: snapshotId(istDate),
+      });
     }
   );
 
@@ -505,13 +508,9 @@ function createHighSignalMcpServer(dependencies: HighSignalMcpDependencies) {
       const read = await dependencies.readPublicJson(`/track-record?cohort=${cohort}`);
       if (read.status !== 200) return errorResult('get_track_record', read, now);
       const istDate = dateInIst(now);
-      return successResult(
-        'get_track_record',
-        read.body,
-        { trackRecord: read.cacheStatus },
-        now,
-        { snapshotId: snapshotId(istDate) }
-      );
+      return successResult('get_track_record', read.body, { trackRecord: read.cacheStatus }, now, {
+        snapshotId: snapshotId(istDate),
+      });
     }
   );
 
@@ -537,13 +536,9 @@ function createHighSignalMcpServer(dependencies: HighSignalMcpDependencies) {
       const read = await dependencies.readPublicJson(`/entities/${encodedId}`);
       if (read.status !== 200) return errorResult('get_entity', read, now);
       const istDate = dateInIst(now);
-      return successResult(
-        'get_entity',
-        read.body,
-        { entity: read.cacheStatus },
-        now,
-        { snapshotId: snapshotId(istDate) }
-      );
+      return successResult('get_entity', read.body, { entity: read.cacheStatus }, now, {
+        snapshotId: snapshotId(istDate),
+      });
     }
   );
 
