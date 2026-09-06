@@ -160,6 +160,60 @@ describe('GET /daily', () => {
     });
     expect(mocks.buildStocks).toHaveBeenCalled();
   });
+
+  it('marks a live-composed brief as pending with nextExpectedPublishAt', async () => {
+    mocks.buildStocks.mockResolvedValue([{ ticker: 'NVDA' }] as never);
+
+    const response = await briefRoute.request('http://test/daily', {}, env);
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as {
+      publishStatus: string;
+      nextExpectedPublishAt: string;
+    };
+    expect(body.publishStatus).toBe('pending');
+    expect(body.nextExpectedPublishAt).toBeTruthy();
+    // Should be an ISO timestamp at 03:30 UTC
+    expect(body.nextExpectedPublishAt).toMatch(/^20\d{2}-\d{2}-\d{2}T03:30:00/);
+  });
+
+  it('marks a precomputed snapshot as published', async () => {
+    mocks.tryGetPrecomputedSnapshot.mockResolvedValue({
+      generatedAt: '2026-09-06T03:31:00.000Z',
+      region: 'global',
+      hasBrand: false,
+      stocks: [
+        {
+          entityName: 'Test Corp',
+          whatChanged: 'Test Corp announced a new product launch today.',
+          whyItMatters: 'This expands their market reach significantly.',
+          uncertainty: 'No material uncertainty was identified.',
+          provenance: { primaryCount: 2, corroborationCount: 1, contradictionCount: 0 },
+          evidenceUrls: [
+            { url: 'https://example.com/1', label: 'Source 1' },
+            { url: 'https://example.com/2', label: 'Source 2' },
+          ],
+        },
+      ],
+      ideas: [],
+      trends: [],
+      perception: [],
+      improvements: [],
+      categoryStates: {
+        stocks: { status: 'ready', source: 'precomputed', reason: null },
+        ideas: { status: 'empty', source: 'precomputed', reason: 'no_qualifying_items' },
+        trends: { status: 'empty', source: 'precomputed', reason: 'no_qualifying_items' },
+      },
+    });
+
+    const response = await briefRoute.request('http://test/daily', {}, env);
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as {
+      publishStatus: string;
+      nextExpectedPublishAt?: string;
+    };
+    expect(body.publishStatus).toBe('published');
+    expect(body.nextExpectedPublishAt).toBeUndefined();
+  });
 });
 
 describe('safeCategory', () => {

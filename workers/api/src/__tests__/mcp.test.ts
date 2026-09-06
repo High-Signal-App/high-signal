@@ -184,6 +184,82 @@ describe('High Signal MCP', () => {
     expect(result(yesterday.body)['isError']).not.toBe(true);
   });
 
+  it('surfaces publishStatus and nextExpectedPublishAt from the brief API', async () => {
+    const readPublicJson = vi.fn(async (path: string) => {
+      if (path.startsWith('/data/sources')) {
+        return {
+          status: 200,
+          body: { sources: [], total: 0 },
+          cacheStatus: 'API-HIT',
+        };
+      }
+      // Simulate a pending brief (no precomputed snapshot yet)
+      return {
+        status: 200,
+        body: {
+          generatedAt: '2026-08-26T01:00:00.000Z',
+          publishStatus: 'pending',
+          nextExpectedPublishAt: '2026-08-26T03:30:00.000Z',
+          stocks: [],
+          ideas: [],
+          trends: [],
+        },
+        cacheStatus: 'API-MISS',
+      };
+    });
+    const dependencies = {
+      readPublicJson,
+      now: () => new Date('2026-08-26T01:00:00.000Z'),
+    };
+
+    const { body } = await rpc(dependencies, 'tools/call', {
+      name: 'get_daily_brief',
+      arguments: { day: 'today' },
+    });
+
+    const sc = structuredContent(body);
+    const data = sc['data'] as Record<string, unknown>;
+    expect(data['publishStatus']).toBe('pending');
+    expect(data['nextExpectedPublishAt']).toBe('2026-08-26T03:30:00.000Z');
+  });
+
+  it('surfaces publishStatus published when brief is from a precomputed snapshot', async () => {
+    const readPublicJson = vi.fn(async (path: string) => {
+      if (path.startsWith('/data/sources')) {
+        return {
+          status: 200,
+          body: { sources: [], total: 0 },
+          cacheStatus: 'API-HIT',
+        };
+      }
+      return {
+        status: 200,
+        body: {
+          generatedAt: '2026-08-26T04:00:00.000Z',
+          publishStatus: 'published',
+          stocks: [{ entityName: 'Test', headline: 'Test signal' }],
+          ideas: [],
+          trends: [],
+        },
+        cacheStatus: 'API-HIT',
+      };
+    });
+    const dependencies = {
+      readPublicJson,
+      now: () => new Date('2026-08-26T04:00:00.000Z'),
+    };
+
+    const { body } = await rpc(dependencies, 'tools/call', {
+      name: 'get_daily_brief',
+      arguments: { day: 'today' },
+    });
+
+    const sc = structuredContent(body);
+    const data = sc['data'] as Record<string, unknown>;
+    expect(data['publishStatus']).toBe('published');
+    expect(data['nextExpectedPublishAt']).toBeUndefined();
+  });
+
   it('returns the complete daily dump and defaults its date to the current IST day', async () => {
     const readPublicJson = vi.fn(async (path: string) => ({
       status: 200,

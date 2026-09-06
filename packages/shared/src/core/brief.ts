@@ -273,6 +273,18 @@ export interface BriefSnapshot {
   attentionEvidenceGaps?: DiggAttentionGapItem[];
   /** Explicit composition states on new snapshots; absent on historical records. */
   categoryStates?: BriefCategoryStates;
+  /**
+   * Whether this edition was served from a precomputed snapshot ('published')
+   * or composed live because no snapshot exists yet ('pending'). Absent on
+   * historical snapshots created before this field was introduced.
+   */
+  publishStatus?: 'published' | 'pending';
+  /**
+   * ISO timestamp for when the next scheduled publish is expected. Present
+   * when `publishStatus` is 'pending'. The publish cron runs at 03:30 UTC
+   * (09:00 IST) daily; this field points to the next occurrence.
+   */
+  nextExpectedPublishAt?: string;
 }
 
 export interface BriefEditionIssue {

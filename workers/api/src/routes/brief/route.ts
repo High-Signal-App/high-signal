@@ -43,6 +43,20 @@ import { bearerGrant, verifyHistoryGrant } from '../../lib/history-access';
 
 type Env = { DB: D1Database; BRIEF_CACHE?: KVNamespace; TURNSTILE_SECRET?: string };
 
+/**
+ * The publish cron runs at 03:30 UTC (09:00 IST) daily. When no precomputed
+ * snapshot exists for today yet, this returns the next occurrence so agents
+ * know when to retry instead of interpreting an empty/pending brief as a
+ * genuinely quiet day.
+ */
+function nextExpectedPublishAt(now = new Date()): string {
+  const next = new Date(now);
+  next.setUTCSeconds(0, 0);
+  next.setUTCHours(3, 30);
+  if (next <= now) next.setUTCDate(next.getUTCDate() + 1);
+  return next.toISOString();
+}
+
 // Precomputed snapshot regions — the cron precomputes these so the API
 // does a single D1 lookup instead of 5-14 sequential queries.
 const PRECOMPUTED_REGIONS: Region[] = [
@@ -73,9 +87,24 @@ async function handleDailyBriefRequest(c: Context<{ Bindings: Env }>) {
   const database = db(c.env.DB);
 
   const cached = await cachedDailyBrief(database, request);
-  if (cached) return c.json(cached.body, cached.status);
+  if (cached) {
+    if (cached.status === 200 && !request.archiveDate) {
+      const body = { ...cached.body, publishStatus: 'published' as const };
+      return c.json(body, cached.status);
+    }
+    return c.json(cached.body, cached.status);
+  }
 
   const snapshot = await composeDailyBrief(database, request);
+  // No precomputed snapshot for today — the publish cron hasn't run yet.
+  // Mark it pending so agents don't mistake stale content for today's edition.
+  if (!request.archiveDate) {
+    return c.json({
+      ...snapshot,
+      publishStatus: 'pending' as const,
+      nextExpectedPublishAt: nextExpectedPublishAt(),
+    });
+  }
   return c.json(snapshot);
 }
 
