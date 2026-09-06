@@ -454,3 +454,42 @@ secret consolidation remains an explicit Infisical operation.
 for no product value. Trust `Cf-Access-Authenticated-User-Email`: forgeable
 when Access is bypassed. Protect the entire site: breaks the public-product
 boundary. Share the Fleet Infisical project: violates independent operability.
+
+---
+
+## ADR-015 — The history unlock is the event App Health watches
+
+Date: 2026-09-06
+Status: active
+
+**Context.** High Signal has no accounts, so it has no `signup` — the event
+every other keyed Fleet app reports to App Health. Nothing about a real reader
+reached the Logs tab, and the one place a human deliberately identifies
+themselves as a reader (passing Turnstile to open the history archive) produced
+only a Worker log line nobody watches.
+
+**Decision.** Emit three application logs from `POST /api/history/access` using
+the App Health drop-in client (`apps/web/src/lib/ping.ts`):
+`history.unlocked` at info, `history.blocked` at warn when Turnstile
+verification is refused, and `history.unavailable` at error when the
+verification API is unreachable, returns 5xx, or hands back a malformed grant.
+
+**Rationale.** The unlock is the closest thing this product has to an
+activation: it costs the reader a challenge, so it separates people from
+scrapers. Splitting the failure modes by level matters more than the count —
+`blocked` is normal background noise, `unavailable` means the archive is shut
+to everyone and should page.
+
+**Privacy.** Logs carry `cf-ipcountry` only. The client IP is already forwarded
+to the verifier and is deliberately never logged; there is no identifier to log
+because there is no account.
+
+**Tradeoffs.** Sends run in `after()`, so a slow ingest never delays the
+unlock, but a log can be dropped if the isolate is torn down first. That is the
+right trade for telemetry. The client is a silent no-op until
+`APP_HEALTH_INGEST_KEY` is synced from Infisical, so this ships dark.
+
+**Alternatives rejected.** Log in the API Worker instead: it sees the Turnstile
+result but not whether the reader actually got a usable cookie. Log every
+history page view: that is PostHog's job and would bury the unlock. Await the
+ping: adds up to 3 s to a user-facing request for a telemetry write.
