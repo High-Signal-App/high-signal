@@ -105,7 +105,10 @@ for (const region of REGIONS) {
 }
 
 // The daily freshness gate also exercises the installed consumer contract.
-if (API.replace(/\/$/, '') === 'https://api.highsignal.app') {
+if (
+  process.env.GITHUB_ACTIONS === 'true' ||
+  API.replace(/\/$/, '') === 'https://api.highsignal.app'
+) {
   try {
     const consumer = await verifyMcpConsumer({ now });
     console.log(`✓ MCP consumer parity: ${JSON.stringify(consumer.editions)}`);
