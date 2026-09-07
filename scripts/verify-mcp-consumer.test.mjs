@@ -19,7 +19,7 @@ function fixture({
       categoryStates: { stocks: { status: unavailable ? 'unavailable' : 'ready' } },
     };
     if (url.pathname === '/brief/daily') return Response.json(brief);
-    if (url.pathname === '/signals')
+    if (url.pathname === '/signals' || url.pathname === '/data/daily')
       return Response.json({ signals: mismatch ? [] : [{ slug: date }] });
     const request = JSON.parse(init.body);
     if (request.method === 'tools/list')

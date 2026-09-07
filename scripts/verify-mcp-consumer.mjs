@@ -51,9 +51,10 @@ export async function verifyMcpConsumer({ fetchImpl = fetch, now = new Date() } 
   const receipts = [];
   const slugs = (items) => items.map((item) => item.signalSlug ?? item.slug).sort();
   for (const date of days) {
-    const [brief, feed] = await Promise.all([
+    const [brief, feed, dump] = await Promise.all([
       read(`${API}/brief/daily?date=${date}`),
       read(`${API}/signals?date=${date}&limit=200`),
+      read(`${API}/data/daily?date=${date}`),
     ]);
     assert.equal(brief.editionDate, date, 'brief edition date mismatch');
     assert.notEqual(
@@ -71,6 +72,12 @@ export async function verifyMcpConsumer({ fetchImpl = fetch, now = new Date() } 
       slugs(brief.stocks),
       slugs(feed.signals),
       `brief/feed membership mismatch: ${date}`
+    );
+    assert.ok(Array.isArray(dump.signals), 'daily dump signals missing');
+    assert.deepEqual(
+      slugs(dump.signals),
+      slugs(feed.signals),
+      `daily dump/feed membership mismatch: ${date}`
     );
     if (date === today) {
       const consumer = await call('get_daily_brief');
