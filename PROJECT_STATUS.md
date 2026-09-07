@@ -1,6 +1,6 @@
 # high-signal — PROJECT STATUS
 
-Last updated: 2026-09-02
+Last updated: 2026-09-07
 
 ## Why/What
 
@@ -38,6 +38,15 @@ Last updated: 2026-09-02
   providers, D1 data, auth, schedules, routes, Daily Brief, reports, and UI.
 - **SaaS Maker:** Personal command brief scripts sync tasks via `pnpm personal:brief sync-tasks --apply`.
 
+- The September 7 consumer repair is released: the public two-day Brief signal
+  section reads the published ledger by IST day, including signals published
+  after snapshot composition. Failed reads remain unavailable; JSON feed errors
+  return 503. The shared connector preserves all four installed method names.
+  Daily freshness validation now also checks Brief/feed/MCP membership and
+  installed-tool calls. Recovery ingest and publication/freshness validation
+  passed; the one new draft was rejected by the existing editorial gate.
+  See the [incident receipt](docs/operations/2026-09-07-publication-incident.md)
+  for deployment, validation, and the separate native-ingestion investigation.
 - Next.js web app and Cloudflare Worker API monorepo are in place.
 - Digg attention snapshots, Daily Brief overlays, the simplified daily/evidence
   API, and guarded public API edge caching are live. Migration `0021` is applied;
