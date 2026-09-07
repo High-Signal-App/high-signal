@@ -26,14 +26,12 @@ function markdownWithoutFirstHeading(markdown: string) {
 }
 
 function confidenceCopy(score: number | undefined, independentSources: number | undefined) {
-  if (typeof score !== 'number') return 'Confidence is based on cited evidence and source quality.';
-  const sources = independentSources ?? 0;
-  if (score >= 85)
-    return `Strong evidence: ${sources} independent source class${sources === 1 ? '' : 'es'} support this read.`;
-  if (score >= 65)
-    return `Usable evidence: enough corroboration to publish, with ${sources} independent source class${sources === 1 ? '' : 'es'}.`;
-  if (score >= 45) return 'Watch item: useful signal, but still thin or early.';
-  return 'Draft-grade evidence: keep this out of the public feed unless corroboration improves.';
+  const sources =
+    typeof independentSources === 'number'
+      ? `${independentSources} recorded source class${independentSources === 1 ? '' : 'es'}`
+      : 'an unreported number of source classes';
+  if (typeof score !== 'number') return `Automated quality score unavailable; ${sources}.`;
+  return `Automated quality score ${score}/100 across ${sources}. This is not a probability or a confidence rating. Read the confidence label and original evidence before relying on the claim.`;
 }
 
 function hostLabel(url: string) {
@@ -232,7 +230,8 @@ export default async function SignalDetail({ params }: { params: Promise<{ slug:
           </span>
           {typeof signal.qualityScore === 'number' && (
             <span>
-              confidence score <span className="nums text-zinc-300">{signal.qualityScore}</span>
+              automated quality score{' '}
+              <span className="nums text-zinc-300">{signal.qualityScore}</span>
             </span>
           )}
           {price.price ? (
@@ -251,7 +250,7 @@ export default async function SignalDetail({ params }: { params: Promise<{ slug:
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--color-muted)]">
-              confidence score
+              automated quality score
             </h2>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-300">
               {confidenceCopy(signal.qualityScore, signal.independentSourceCount)}

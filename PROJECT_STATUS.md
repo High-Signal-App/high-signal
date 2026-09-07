@@ -2,6 +2,8 @@
 
 Last updated: 2026-09-07
 
+Portfolio verification repair: signal details label `qualityScore` as an automated quality score, without turning it into “strong evidence” or a publication verdict. The independent editorial confidence label remains visible. Historical surge claims and sample/baseline calibration still require the evidence review in issue #133; this presentation correction does not qualify the corpus for sharing. Implementation is local until pushed/deployed.
+
 ## Why/What
 
 **Thesis:** One product — a synthesized **Daily Brief** from many noisy public sources across technology, startups, and finance. Global by default; region is a free filter. The public edition has three evidence-qualified categories: (1) markets and companies, (2) business opportunities, and (3) behavior and culture. `/` is the non-personalized default; Signals, Sources, Company Universe, and Track Record provide the proof and research path. Free; no billing.
