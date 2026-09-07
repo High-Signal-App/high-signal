@@ -436,6 +436,16 @@ def _completion_request(
     return payload
 
 
+def _classify_exception(exc: Exception) -> str:
+    if isinstance(exc, httpx.TimeoutException):
+        return "timeout"
+    if isinstance(exc, httpx.NetworkError):
+        return "network_error"
+    if isinstance(exc, (json.JSONDecodeError, ValueError)):
+        return "invalid_json"
+    return "invalid_response"
+
+
 def _ai_complete(prompt: str, content: str) -> tuple[dict | list | None, dict]:
     """Call OpenAI-compatible endpoint. Returns (parsed_json, audit_meta).
 
@@ -519,8 +529,10 @@ def _ai_complete(prompt: str, content: str) -> tuple[dict | list | None, dict]:
             return _parse_json_message(msg), meta
         except Exception as exc:
             meta["latency_ms"] = int((time.monotonic() - started) * 1000)
-            meta["failure_class"] = "exception"
-            meta["reason"] = f"exception:{exc}"[:200]
+            failure_class = _classify_exception(exc)
+            meta["failure_class"] = failure_class
+            # Exception messages may contain request URLs or credentials.
+            meta["reason"] = failure_class
             # Network/timeout blips are retryable; JSON parse errors are terminal.
             if attempt < _AI_RETRIES and isinstance(
                 exc, (httpx.TimeoutException, httpx.NetworkError)
@@ -535,6 +547,19 @@ def _ai_complete(prompt: str, content: str) -> tuple[dict | list | None, dict]:
 class SignalGenerationUnavailable(RuntimeError):
     """The configured AI provider could not serve a generation request."""
 
+    def __init__(self, reason: str, *, failure_class: str = "unknown") -> None:
+        super().__init__(reason)
+        allowed = {
+            "rate_limited",
+            "server_error",
+            "client_error",
+            "timeout",
+            "network_error",
+            "invalid_json",
+            "invalid_response",
+        }
+        self.failure_class = failure_class if failure_class in allowed else "unknown"
+
 
 def _raise_for_provider_failure(meta: dict) -> None:
     """Distinguish provider outages from an intentional model decline.
@@ -544,7 +569,13 @@ def _raise_for_provider_failure(meta: dict) -> None:
     day look healthy, so surface those failures to the pipeline receipt.
     """
     if meta.get("failure_class"):
-        raise SignalGenerationUnavailable(str(meta.get("reason") or "provider_failure"))
+        failure_class = str(meta["failure_class"])
+        reason = str(meta.get("reason") or "provider_failure")
+        safe_reason = reason if re.fullmatch(r"http_[1-5][0-9]{2}", reason) else failure_class
+        error = SignalGenerationUnavailable(safe_reason, failure_class=failure_class)
+        if error.failure_class == "unknown":
+            error.args = ("provider_failure",)
+        raise error
 
 
 def _normalize_business_inference(

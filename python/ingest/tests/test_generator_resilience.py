@@ -217,3 +217,37 @@ def test_ai_complete_oversized_input_is_bounded(monkeypatch) -> None:
     request = post.call_args.kwargs["json"]
     assert len(request["messages"][1]["content"]) == generator._AI_USER_CONTENT_LIMIT
     assert request["max_tokens"] == generator._AI_MAX_COMPLETION_TOKENS
+
+
+@pytest.mark.parametrize(
+    ("error", "expected_class"),
+    [
+        (httpx.ReadTimeout("https://private.invalid/?key=never-print"), "timeout"),
+        (httpx.ConnectError("Bearer never-print"), "network_error"),
+        (ValueError("provider payload never-print"), "invalid_json"),
+        (KeyError("private response never-print"), "invalid_response"),
+    ],
+)
+def test_failure_classes_are_useful_without_exception_details(monkeypatch, error, expected_class):
+    monkeypatch.setattr(generator, "_AI_RETRIES", 1)
+
+    def handler(_request):
+        raise error
+
+    out, meta = _run_with_transport(httpx.MockTransport(handler), monkeypatch)
+    assert out is None
+    assert meta["failure_class"] == expected_class
+    assert meta["reason"] == expected_class
+    with pytest.raises(generator.SignalGenerationUnavailable) as caught:
+        generator._raise_for_provider_failure(meta)
+    assert caught.value.failure_class == expected_class
+    assert "never-print" not in str(caught.value)
+
+
+def test_unknown_provider_failure_metadata_is_not_echoed():
+    with pytest.raises(generator.SignalGenerationUnavailable) as caught:
+        generator._raise_for_provider_failure(
+            {"failure_class": "private-token", "reason": "https://private.invalid/private-token"}
+        )
+    assert caught.value.failure_class == "unknown"
+    assert str(caught.value) == "provider_failure"

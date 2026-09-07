@@ -81,7 +81,13 @@ from .sources import (
 from .types import Event, SignalCandidate
 from .dedupe import dedupe, dedupe_exact
 from .utils import event_text
-from .generator import fallback_candidate, generate, generate_batch, thematic_candidate
+from .generator import (
+    SignalGenerationUnavailable,
+    fallback_candidate,
+    generate,
+    generate_batch,
+    thematic_candidate,
+)
 from .writer import emit
 
 Source = Literal[
@@ -899,7 +905,8 @@ def generation_outage_alert(result: dict) -> str | None:
         "::error title=signal generation unavailable::"
         f"all {requests} AI generation request(s) failed "
         f"(clusters={result.get('clusters_reaching_generation', 0)}, "
-        f"generated={result.get('candidates_generated', 0)})"
+        f"generated={result.get('candidates_generated', 0)}, "
+        f"failure_classes={result.get('generation_failure_classes', {})})"
     )
 
 
@@ -995,6 +1002,7 @@ def run(source: Source, days: int, *, generate_signals: bool = True) -> dict:
     proof_tally = new_proof_tally()
     generation_requests = 0
     generation_request_failures = 0
+    generation_failure_classes: dict[str, int] = defaultdict(int)
 
     # Separate entity buckets into individual stories. Only stories with two
     # candidate origins reach generation; small stories share an LLM request
@@ -1015,6 +1023,10 @@ def run(source: Source, days: int, *, generate_signals: bool = True) -> dict:
         except Exception as exc:
             errors += 1
             generation_request_failures += 1
+            failure_class = (
+                exc.failure_class if isinstance(exc, SignalGenerationUnavailable) else "unexpected"
+            )
+            generation_failure_classes[failure_class] += 1
             if error_sample is None:
                 error_sample = f"generate {entity_id}: {exc}"[:300]
             fallback_clusters.append((entity_id, evs))
@@ -1035,6 +1047,10 @@ def run(source: Source, days: int, *, generate_signals: bool = True) -> dict:
         except Exception as exc:
             errors += 1
             generation_request_failures += 1
+            failure_class = (
+                exc.failure_class if isinstance(exc, SignalGenerationUnavailable) else "unexpected"
+            )
+            generation_failure_classes[failure_class] += 1
             if error_sample is None:
                 error_sample = (
                     f"generate_batch {[e for e, _, _ in clusters_with_spillover]}: {exc}"[:300]
@@ -1079,6 +1095,7 @@ def run(source: Source, days: int, *, generate_signals: bool = True) -> dict:
                 f"clusters_reaching_generation={clusters_reaching_generation}",
                 f"generation_requests={generation_requests}",
                 f"generation_request_failures={generation_request_failures}",
+                f"generation_failure_classes={dict(generation_failure_classes)}",
                 *(f"{k}={v}" for k, v in proof_tally.items()),
             ]
         ),
@@ -1094,6 +1111,7 @@ def run(source: Source, days: int, *, generate_signals: bool = True) -> dict:
         "clusters_reaching_generation": clusters_reaching_generation,
         "generation_requests": generation_requests,
         "generation_request_failures": generation_request_failures,
+        "generation_failure_classes": dict(generation_failure_classes),
         "signals_drafted": len(written),
         **proof_tally,
         "errors": errors,

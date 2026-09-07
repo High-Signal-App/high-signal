@@ -144,10 +144,14 @@ Legend used in the notes:
 
 **Naming convention**: ingest sources live under `python/ingest/src/high_signal_ingest/sources/`; sources that produce a web surface own a route under `apps/web/src/app/`; cron workflows live in `.github/workflows/cron-*.yml`. Each new pipeline gets a row in this list — keep it the canonical status board.
 
-## Roadmap — next up (priority order)
+## Historical roadmap suggestions
 
-Pending work, in the order it's expected to ship. Items move into the
-sections above (with their pipeline / route / cron) as they land.
+These retained suggestions are not a current delivery order or completed work.
+The locked [product direction](docs/product/direction.md) controls scope;
+current scheduled-chain, Digg, freshness and publication acceptance remains in
+[issue #133](https://github.com/High-Signal-App/high-signal/issues/133).
+Source expansion, credentials and threshold changes require their own evidence
+and owner scope; they were not performed during the September 7 audit.
 
 1. **Review the source-quality report after the next full ingest** — `pnpm source:quality -- --json` measures fetched events, mapped entities, duplicate-ish source families, and unmapped samples for Reddit / YouTube / Bluesky / CISA KEV / Lobste.rs / Techmeme / Substack / package registries / jobs / GitHub Archive / Hugging Face / NVD / Guardian / patents / government contracts / Wikidata / Semantic Scholar / Regulations.gov / Companies House / Metaculus / Podcast Index / macro rates / SEC XBRL without writing signals.
 2. **Promote candidates from `/unmapped` to seed** — keep walking recurring high-signal entities into `ai_infra_entities.csv` so they get mapped on the next ingest. The first security/devtool batch is in: Palo Alto Networks, Trend Micro, Drupal, Langflow, Nx, TanStack, and LiteSpeed.
@@ -155,7 +159,7 @@ sections above (with their pipeline / route / cron) as they land.
 4. **Expand curated lists inside wired adapters** — job-board slugs, Substack feeds, npm/PyPI packages, Bluesky searches, Podcast Index feeds, and Form D private-company queries are adapter configuration now; scale those lists before adding another broad firehose.
 5. **Provision optional source credentials** — set only the sources you want live: `GUARDIAN_API_KEY`, `SAM_API_KEY`, `REGULATIONS_GOV_API_KEY`, `COMPANIES_HOUSE_API_KEY`, `METACULUS_TOKEN`, `BLUESKY_IDENTIFIER` / `BLUESKY_APP_PASSWORD`, `PODCAST_INDEX_KEY` / `PODCAST_INDEX_SECRET`, `FRED_API_KEY`, `SEMANTIC_SCHOLAR_API_KEY`.
 
-## Will discuss: Signal Studio and playgrounds
+## Parked discussion: Signal Studio and playgrounds
 **Signal Studio** is the recommended first playground: a visual content lab that turns High Signal findings into polished marketing assets. It should feel like a futuristic marketing command center, not a boring dashboard. It can be playground-quality visually while still producing assets useful for selling High Signal.
 
 Inputs:
@@ -324,13 +328,13 @@ Today/Yesterday history boundary as the website.
 Codename `high-signal` collides with High Signal Labs / High Signal HQ. Final brand TBD post-traction.
 
 <!-- ACTIVE-AI-TASK-LOG:START -->
-## Active AI Task Log
+## Historical AI Task Log
 
-This section is maintained by the SaaS Maker Active-AI product/design loop so future agents do not reopen duplicate UI tasks.
+These historical task receipts are context, not a current acceptance checklist.
 
 - Business lane: Core/status context
 - Rule: do not create another broad "improve the UI" task unless the acceptance criteria differ materially from the tasks listed here.
-- Source of truth for task status: SaaS Maker task board. README entries are durable context only.
+- Current work is tracked in this repository’s GitHub Issues; the SaaS Maker task board is retired.
 
 - No current Active-AI product/design task from the 2026-05-25/26 loop. Treat this as watch/status unless new evidence appears.
 <!-- ACTIVE-AI-TASK-LOG:END -->
@@ -345,3 +349,27 @@ These are unresolved requirements retained at the owner’s request. They are no
 Verify current daily coverage, original sources including Digg, and publishability; remove evidence-strength claims unsupported by the underlying samples.
 
 Original requirements and discussion: [#133](https://github.com/High-Signal-App/high-signal/issues/133).
+
+## Market cron failure — 2026-09-07
+
+[Run 34101952108](https://github.com/High-Signal-App/high-signal/actions/runs/34101952108)
+persisted 391 source events, then failed its sole AI generation request across
+four clusters. The existing outage guard returned exit code 3; this was not a
+market-ingestion failure or a native abort. The historical log does not expose
+the provider failure category, so its root cause remains unverified.
+
+The pipeline now reports bounded generation failure categories in its summary,
+audit notes and outage annotation: timeout, network, HTTP client/server/rate
+limit, invalid JSON/response, or unknown/unexpected. Arbitrary exception text
+and provider URLs are excluded from these categories. Tests retain exit code 3
+for a total outage and allow intentional model declines or partial recovery.
+No retry limits, generation/publication rules, provider config or cron schedules
+changed. The cron was not rerun and no production writes or paid calls ran.
+
+Local fixture verification: `uv run --project python/ingest --no-sync pytest
+python/ingest/tests/test_generator_resilience.py
+python/ingest/tests/test_pipeline_contracts.py
+python/ingest/tests/test_markets_kalshi.py -q` (58 tests).
+The sole open issue remains [#133](https://github.com/High-Signal-App/high-signal/issues/133),
+including provider recovery evidence, scheduled-chain/Digg latency acceptance,
+and claim/baseline calibration. No open issue was closed; no PR was open.

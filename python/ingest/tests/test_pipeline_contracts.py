@@ -750,3 +750,33 @@ def test_fetch_only_receipt_carries_the_cluster_counter(monkeypatch) -> None:
 
     out = pipeline.run("all", 1, generate_signals=False)
     assert out["clusters_reaching_generation"] == 0
+
+
+def test_pipeline_failure_receipt_is_safe_and_still_fails_the_cli(monkeypatch, capfd):
+    import pytest
+
+    monkeypatch.setattr(pipeline, "fetch", lambda *_a, **_k: [])
+    monkeypatch.setattr(pipeline.audit, "push_events", lambda *_a, **_k: 0)
+    monkeypatch.setattr(pipeline.audit, "push_ingest_run", lambda **_k: None)
+    monkeypatch.setattr(pipeline.audit, "push_ingest_runs", lambda *_a, **_k: None)
+    monkeypatch.setattr(
+        pipeline, "_pre_group_clusters", lambda _groups: ([("NVDA", [])], [[("AMD", [])]], 0)
+    )
+    monkeypatch.setattr(pipeline, "_emit_fallback_drafts", lambda *_a, **_k: [])
+    monkeypatch.setattr(pipeline, "_emit_thematic_drafts", lambda *_a, **_k: [])
+
+    def fail(*_a, **_k):
+        raise generator.SignalGenerationUnavailable("timeout", failure_class="timeout")
+
+    monkeypatch.setattr(pipeline, "generate", fail)
+    monkeypatch.setattr(pipeline, "generate_batch", fail)
+    out = pipeline.run("markets", 1)
+    assert out["generation_failure_classes"] == {"timeout": 2}
+    assert out["generation_request_failures"] == 2
+    assert "timeout" in pipeline.generation_outage_alert(out)
+    monkeypatch.setattr(pipeline, "run", lambda *_a, **_k: out)
+    monkeypatch.setattr(pipeline.sys, "argv", ["pipeline", "--source", "markets", "--json"])
+    with pytest.raises(SystemExit) as caught:
+        pipeline.main()
+    assert caught.value.code == 3
+    assert '"generation_failure_classes": {"timeout": 2}' in capfd.readouterr().out
