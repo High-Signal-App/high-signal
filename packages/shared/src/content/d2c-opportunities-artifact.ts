@@ -16,76 +16,55 @@
 import type { D2COpportunityArtifact } from "./d2c-opportunities";
 
 export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
-  "generatedAt": "2026-08-31T14:44:33.775829+00:00",
+  "generatedAt": "2026-09-07T13:15:08.351268+00:00",
   "region": "IN",
   "niches": [
     {
       "nicheSlug": "hair-growth-scalp-support",
-      "demandScore": 0.5,
-      "competitionScore": 0.5,
-      "pricingScore": 0.9,
+      "demandScore": 0.7,
+      "competitionScore": null,
+      "pricingScore": null,
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [
         {
           "sourceClass": "community",
-          "url": "https://reddit.com/r/tressless/comments/1w3e80t/almost_1_year_on_finasteride_but_my_hair_seems_to/",
+          "url": "https://reddit.com/r/tressless/comments/1w9k4l1/australia_gp_says_cannot_prescribe_finasteride/",
           "source": "reddit:tressless",
-          "snippet": "Almost 1 year on finasteride, but my hair seems to be getting much thinner lately — Hey guys, I started taking 1mg finasteride daily on September 15 last year, so I’m coming up on a year now. I was d…",
-          "observedAt": "2026-08-31T13:43:12+00:00"
+          "snippet": "Australia GP says cannot prescribe finasteride — Tasmania, Australia went to GP, he said it was male pattern baldness but can only prescribe topical minoxidil and referred me to a specialist to get o…",
+          "observedAt": "2026-09-07T06:23:13+00:00"
         },
         {
           "sourceClass": "community",
-          "url": "https://reddit.com/r/tressless/comments/1w38kmj/6_meses_oral_05_mg_dutasteride_3_mg_minoxidil/",
+          "url": "https://reddit.com/r/tressless/comments/1w995oh/05_dutasteride_oral_minox_25mg_every_day/",
           "source": "reddit:tressless",
-          "snippet": "6 meses, ORAL: 0.5 mg dutasteride + 3 mg Minoxidil — Llevo 6 meses y estoy empezando a ver avances, tengo 26 años y empecé con alopecia acelerada por estrés a los 22. (Nos os fijéis en grandes cambio…",
-          "observedAt": "2026-08-31T09:22:22+00:00"
+          "snippet": "0.5 dutasteride + oral minox 2.5mg every day — Hello everyone. I started my treatment a year ago with 5% minoxidil and 0.02% finasteride in topical form, but it produced absolutely no results over 7–…",
+          "observedAt": "2026-09-06T21:42:12+00:00"
         },
         {
           "sourceClass": "community",
-          "url": "https://reddit.com/r/tressless/comments/1w37nyh/msm_and_topical_minoxidil_absorption_anyone_using/",
+          "url": "https://reddit.com/r/tressless/comments/1w993i5/four_months_on_dutasterideminoxidil_oral/",
           "source": "reddit:tressless",
-          "snippet": "MSM and topical minoxidil absorption – anyone using it? — &amp;#x200B; In a recent interview with Dr. Zarev, I heard him mention the use of a supplement called MSM. According to him, taking 1 g per d…",
-          "observedAt": "2026-08-31T08:30:02+00:00"
+          "snippet": "Four months on dutasteride/minoxidil oral — I've been taking a combination capsule of dutasteride/minoxidil for the last four months and I feel like it's working. I'm 44 and had always thought I'd es…",
+          "observedAt": "2026-09-06T21:39:40+00:00"
         },
         {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0DK6W7RPS",
-          "source": "amazon:in",
-          "snippet": "Top Reviewed for Effectiveness — ₹359 — 4.0 out of 5 — 1,708 ratings",
-          "observedAt": "2026-08-31T14:43:22.729327+00:00"
+          "sourceClass": "community",
+          "url": "https://reddit.com/r/tressless/comments/1w97dxt/finasteride_5_years_and_my_expierience/",
+          "source": "reddit:tressless",
+          "snippet": "Finasteride - 5 years and my expierience — Context - I’m a 26 year old who has been on finasteride and minoxidil for 5 years. At 21 my hair was awful. It was super thin and I’d lost pigment. I starte…",
+          "observedAt": "2026-09-06T20:33:02+00:00"
         },
         {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0B573QW21",
-          "source": "amazon:in",
-          "snippet": "WishCare Hair Growth Serum For Scalp | 94% Saw New Hair Growth | Redensyl &amp; Rosemary Oil | 100% Saw Hairfall Reduction | In-Vivo Tested | For Men &amp; Women | 30ml — ₹688 — 4.2 out of 5 — 11,666 ratings",
-          "observedAt": "2026-08-31T14:43:22.729811+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0CX1VB52B",
-          "source": "amazon:in",
-          "snippet": "Brillare 10% Rosemary Hair Oil for Hair Growth with 10% Olive Oil &amp; 5% Castor oil | Reduces Hair Fall | Strengthens Hair | Visible Results in 4 Weeks. — ₹283 — 4.4 out of 5 — 2,300 ratings",
-          "observedAt": "2026-08-31T14:43:22.730240+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0CH8RMM21",
-          "source": "amazon:in",
-          "snippet": "Pilgrim Rosemary Anti-Hairfall Shampoo with Multi-Protein Serum - 200ml | Triple Oil Nourishing Boosters to Reduce Dryness, Breakage-Led Hair Fall, Strengthens Weak Hair, Controls Frizz, Adds Shine — ₹249 — 4.0 out of 5 — 2,333 ratings",
-          "observedAt": "2026-08-31T14:43:22.731538+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0G1CGVBT9",
-          "source": "amazon:in",
-          "snippet": "Top Reviewed for Effectiveness — ₹194 — 4.6 out of 5 — 215 ratings",
-          "observedAt": "2026-08-31T14:43:22.731946+00:00"
+          "sourceClass": "community",
+          "url": "https://reddit.com/r/tressless/comments/1w971yn/topical_minoxidil_causes_this_face_puffiness/",
+          "source": "reddit:tressless",
+          "snippet": "Topical Minoxidil causes this face puffiness? — 36M | 8 months topical Min -&gt; 1 month oral Min. I've been noticing this lately. It's hard to know if it's new due to lighting and different camera a…",
+          "observedAt": "2026-09-06T20:20:08+00:00"
         }
       ],
-      "freshnessDate": "2026-08-31T14:43:22.732086+00:00",
-      "notes": "diversity=0.29; community=3 search=0 product=5 ad-library=0 launch=0"
+      "freshnessDate": "2026-09-07T13:14:11.551336+00:00",
+      "notes": "diversity=0.14; community=5 search=0 product=0 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "lip-intimate-skincare-sensitive",
@@ -99,101 +78,59 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B01CCGW4OE",
           "source": "amazon:in",
-          "snippet": "Gentle Skin Hydrating Face Wash 118ml, Paraben Free, Sulphate-Free Gentle Skin Hydrating Cleanser with Niacinamide, Vitamin B5 for Dry to Normal, Sensitive Skin — ₹359 — 4.3 out of 5 — 72,257 ratings",
-          "observedAt": "2026-08-31T14:43:29.830313+00:00"
+          "snippet": "Gentle Skin Hydrating Face Wash 118ml, Paraben Free, Sulphate-Free Gentle Skin Hydrating Cleanser with Niacinamide, Vitamin B5 for Dry to Normal, Sensitive Skin — ₹355 — 4.3 out of 5 — 72,487 ratings",
+          "observedAt": "2026-09-07T13:14:06.418804+00:00"
         },
         {
           "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0BRKY585M",
+          "url": "https://www.amazon.in/dp/B0CD1RRT75",
           "source": "amazon:in",
-          "snippet": "Sensitive Pro Face Wash with Tucuma Butter &amp; Apple Extract | Gentle Fragrance-Free Cleanser | Soothes Redness, Hydrates &amp; Repairs Sensitive Skin | 100 ml — ₹335 — 4.1 out of 5 — 290 ratings",
-          "observedAt": "2026-08-31T14:43:29.830725+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0FMR7XH7W",
-          "source": "amazon:in",
-          "snippet": "Gentle Exfoliating SA Lotion 29ml | Lightweight Daily Moisturizer with Salicylic Acid, Mandelic Acid &amp; Gluconolactone | 48 Hr Hydration &amp; Gentle Exfoliation | For Sensitive Skin — ₹99 — 4.2 out of 5 — 687 ratings",
-          "observedAt": "2026-08-31T14:43:29.831117+00:00"
+          "snippet": "2% Niacinamide Gentle Skin Cleanser for Sensitive, Dry, Normal Skin - 125 ml Non-Irritant | 100% Soap-Free | Non-Oil Stripping | Gently Cleanses Makeup — ₹238 — 4.2 out of 5 — 2,629 ratings",
+          "observedAt": "2026-09-07T13:14:06.419165+00:00"
         },
         {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B0GSBCDNRB",
           "source": "amazon:in",
-          "snippet": "Gentle Skin Hydrating Face Wash 59ml, Paraben Free, Sulphate-Free Cleanser with Niacinamide, Vitamin B5 for Dry to Normal, Sensitive Skin — ₹199 — 4.3 out of 5 — 72,257 ratings",
-          "observedAt": "2026-08-31T14:43:29.833179+00:00"
+          "snippet": "Gentle Skin Hydrating Face Wash 59ml, Paraben Free, Sulphate-Free Cleanser with Niacinamide, Vitamin B5 for Dry to Normal, Sensitive Skin — ₹199 — 4.3 out of 5 — 72,487 ratings",
+          "observedAt": "2026-09-07T13:14:06.419490+00:00"
+        },
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B0BHTTSMZV",
+          "source": "amazon:in",
+          "snippet": "Nourishing Body Wash for Sensitive Skin, 24Hrs Moisture Lock, 1L — ₹291 — 4.2 out of 5 — 1,479 ratings",
+          "observedAt": "2026-09-07T13:14:06.421924+00:00"
         },
         {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B0FMR7GHFF",
           "source": "amazon:in",
-          "snippet": "Gentle Exfoliating SA Cleanser 29ml | Daily Foaming Face Wash with Salicylic Acid, Mandelic Acid &amp; Gluconolactone | Smooth, Even Skin | For Sensitive &amp; Acne-Prone Skin — ₹79 — 4.2 out of 5 — 1,210 ratings",
-          "observedAt": "2026-08-31T14:43:29.833671+00:00"
+          "snippet": "Gentle Exfoliating SA Cleanser 29ml | Daily Foaming Face Wash with Salicylic Acid, Mandelic Acid &amp; Gluconolactone | Smooth, Even Skin | For Sensitive &amp; Acne-Prone Skin — ₹79 — 4.2 out of 5 — 1,296 ratings",
+          "observedAt": "2026-09-07T13:14:06.422266+00:00"
         }
       ],
-      "freshnessDate": "2026-08-31T14:43:29.833807+00:00",
+      "freshnessDate": "2026-09-07T13:14:06.422405+00:00",
       "notes": "diversity=0.14; community=0 search=0 product=5 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "hard-water-hair-care",
-      "demandScore": 0.4,
-      "competitionScore": 0.5,
-      "pricingScore": 0.4,
+      "demandScore": 0.30000000000000004,
+      "competitionScore": null,
+      "pricingScore": null,
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [
         {
           "sourceClass": "community",
-          "url": "https://reddit.com/r/Bengaluru/comments/1w38aup/hard_water_scaling_removing_tips/",
-          "source": "reddit:bengaluru",
-          "snippet": "Hard water scaling removing tips? — Ellarigu Namaskara, Shifted two months back in 2bhk gated society from 1bhk standalone, bought new Mug and bucket just two month back. Super hard water causes calc…",
-          "observedAt": "2026-08-31T09:07:08+00:00"
-        },
-        {
-          "sourceClass": "community",
-          "url": "https://news.ycombinator.com/item?id=49491745",
+          "url": "https://news.ycombinator.com/item?id=49510632",
           "source": "hackernews",
-          "snippet": "Ask HN: How to break Claude Code addiction?",
-          "observedAt": "2026-08-29T17:43:13+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0DQJ46TYL",
-          "source": "amazon:in",
-          "snippet": "4.0 out of 5 stars — ₹425 — 4.0 out of 5 — 1,500 ratings",
-          "observedAt": "2026-08-31T14:43:36.762311+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0GZGMGYYL",
-          "source": "amazon:in",
-          "snippet": "4.6 out of 5 stars — ₹999 — 4.6 out of 5 — 28,580 ratings",
-          "observedAt": "2026-08-31T14:43:36.762716+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0GKFY7T1G",
-          "source": "amazon:in",
-          "snippet": "Parisar Instant Water Softener for Home &amp; Bath 300ml (Pack of 1)| Hard Water Softener Liquid | pH Balanced Formula | For Softer Skin &amp; Smoother Hair — ₹279 — 3.9 out of 5 — 91 ratings",
-          "observedAt": "2026-08-31T14:43:36.763092+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0FJXD9T9S",
-          "source": "amazon:in",
-          "snippet": "SPREAD 20-Stage Shower Filter &amp; Water Tap Filter for Hard Water | Water Softener for Bathroom,Strengthen Skin &amp; Hair,Reduce Hair Fall &amp; Skin Dryness — ₹999 — 4.4 out of 5 — 3 ratings",
-          "observedAt": "2026-08-31T14:43:36.764068+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0H71LG1VY",
-          "source": "amazon:in",
-          "snippet": "AquaLift Hard Water Filter for Tap | 20 Stage Shower Filter for Bathroom | Tap Filter for Hard Water with Extra Cartridge and 3 Brass Adapters — ₹1,804 — 5.0 out of 5 — 10 ratings",
-          "observedAt": "2026-08-31T14:43:36.764809+00:00"
+          "snippet": "Launch HN: Hebbian Robotics (YC S26) – Build scalable robotics data pipelines",
+          "observedAt": "2026-08-31T15:02:41+00:00"
         }
       ],
-      "freshnessDate": "2026-08-31T14:43:36.764945+00:00",
-      "notes": "diversity=0.29; community=1 search=1 product=5 ad-library=0 launch=0"
+      "freshnessDate": "2026-09-07T13:14:16.630114+00:00",
+      "notes": "diversity=0.14; community=0 search=1 product=0 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "beard-dandruff-beard-scalp",
@@ -207,73 +144,90 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B075VPTZGC",
           "source": "amazon:in",
-          "snippet": "Beardo Godfather Beard Wash for men, 100ml | Aromatic, Woody Scent | Purifying &amp; Hydrating Beard and Skin Cleaner with Avocado Oil, Argan Oil | Beard Shampoo for Clean &amp; Healthy Beard — ₹250 — 4.2 out of 5 — 2,403 ratings",
-          "observedAt": "2026-08-31T14:44:05.324503+00:00"
+          "snippet": "Beardo Godfather Beard Wash for men, 100ml | Aromatic, Woody Scent | Purifying &amp; Hydrating Beard and Skin Cleaner with Avocado Oil, Argan Oil | Beard Shampoo for Clean &amp; Healthy Beard — ₹245 — 4.2 out of 5 — 2,407 ratings",
+          "observedAt": "2026-09-07T13:14:41.823873+00:00"
         },
         {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B09QWTJR3K",
           "source": "amazon:in",
-          "snippet": "Beardo Dandruff Control Sulphate Free Shampoo for men 200 ml | Anti Dandruff | Sulphate and Paraben Free | Climbazole, Menthol &amp; Biotin for Dandruff Control &amp; Itchy Scalp — ₹138 — 3.9 out of 5 — 858 ratings",
-          "observedAt": "2026-08-31T14:44:05.324935+00:00"
+          "snippet": "Beardo Dandruff Control Sulphate Free Shampoo for men 200 ml | Anti Dandruff | Sulphate and Paraben Free | Climbazole, Menthol &amp; Biotin for Dandruff Control &amp; Itchy Scalp — ₹138 — 3.9 out of 5 — 864 ratings",
+          "observedAt": "2026-09-07T13:14:41.824198+00:00"
         },
         {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B08W8G1J4R",
           "source": "amazon:in",
-          "snippet": "Man Matters 1% Salicylic Acid Oil Control Face &amp; Beard Wash For Men| Fights Acne, &amp; Beard Dandruff| 1% Glycolic Acid | Reduces Excess Oil and Exfoliates Skin Gently | 120 ml — ₹284 — 3.8 out of 5 — 871 ratings",
-          "observedAt": "2026-08-31T14:44:05.325359+00:00"
+          "snippet": "Man Matters 1% Salicylic Acid Oil Control Face &amp; Beard Wash For Men| Fights Acne, &amp; Beard Dandruff| 1% Glycolic Acid | Reduces Excess Oil and Exfoliates Skin Gently | 120 ml — ₹284 — 3.8 out of 5 — 872 ratings",
+          "observedAt": "2026-09-07T13:14:41.824486+00:00"
+        },
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B0G4ZNZ8Y2",
+          "source": "amazon:in",
+          "snippet": "Ocean Men Beard Wash | Beard Anti-Dandruff Wash (100ml) — ₹169 — 5.0 out of 5 — 1 ratings",
+          "observedAt": "2026-09-07T13:14:41.827167+00:00"
         },
         {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B07MW961QN",
           "source": "amazon:in",
-          "snippet": "Dapr. Beard Butter (100 grams) |Hydrating and Nourishing with Shea Butter, Bourbon Oil, Orange Bitters &amp; Hemp Seed oil for Softer &amp; Smoother Beard| — ₹649 — 4.2 out of 5 — 1,397 ratings",
-          "observedAt": "2026-08-31T14:44:05.327623+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0GMW6CW7R",
-          "source": "amazon:in",
-          "snippet": "Anti Dandruff Shampoo — ₹207 — 4.5 out of 5 — 155 ratings",
-          "observedAt": "2026-08-31T14:44:05.328064+00:00"
+          "snippet": "Dapr. Beard Butter (100 grams) |Hydrating and Nourishing with Shea Butter, Bourbon Oil, Orange Bitters &amp; Hemp Seed oil for Softer &amp; Smoother Beard| — ₹649 — 4.2 out of 5 — 1,402 ratings",
+          "observedAt": "2026-09-07T13:14:41.827542+00:00"
         }
       ],
-      "freshnessDate": "2026-08-31T14:44:05.328215+00:00",
+      "freshnessDate": "2026-09-07T13:14:41.827672+00:00",
       "notes": "diversity=0.14; community=0 search=0 product=5 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "post-gym-mens-skin-wipes",
-      "demandScore": 0.30000000000000004,
-      "competitionScore": null,
-      "pricingScore": null,
+      "demandScore": null,
+      "competitionScore": 0.5,
+      "pricingScore": 0.6,
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [
         {
-          "sourceClass": "community",
-          "url": "https://reddit.com/r/Fitness/comments/1w2daqe/program_review_531_building_the_monolith_pics/",
-          "source": "reddit:fitness",
-          "snippet": "[Program Review] 5/3/1 Building the Monolith - Pics + Vitals — # Background 5/3/1 Building the Monolith is a six week program for building some size. The details of this program can be found on [Wend…",
-          "observedAt": "2026-08-30T09:50:23+00:00"
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B0GNCKC8FC",
+          "source": "amazon:in",
+          "snippet": "4.9 out of 5 stars — ₹369 — 4.9 out of 5 — 22 ratings",
+          "observedAt": "2026-09-07T13:13:38.643636+00:00"
+        },
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B08NTDK2PJ",
+          "source": "amazon:in",
+          "snippet": "Royal Mirage Sport Eau De Cologne | All-Day Freshness | Premium Luxury EDC | Floral &amp; Woody Notes | Post-Gym EDC| Energizing Scent | Unisex Perfume | 120 ml — ₹1,110 — 4.3 out of 5 — 94 ratings",
+          "observedAt": "2026-09-07T13:13:38.643946+00:00"
+        },
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B0CT35S6F3",
+          "source": "amazon:in",
+          "snippet": "UpUrFit Cryo Gel for Soreness &amp; Pain Relief (100g) | Instant Relief for Muscle Soreness, Swelling &amp; Pain, Menthol Cold Therapy for Tired Back, Shoulders, Arms, Legs &amp; Feet — ₹398 — 4.4 out of 5 — 196 ratings",
+          "observedAt": "2026-09-07T13:13:38.644264+00:00"
+        },
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B0H1RJL1NH",
+          "source": "amazon:in",
+          "snippet": "4.9 out of 5 stars — ₹650 — 4.9 out of 5 — 22 ratings",
+          "observedAt": "2026-09-07T13:13:38.644588+00:00"
+        },
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B0H7BH8PTN",
+          "source": "amazon:in",
+          "snippet": "4.2 out of 5 stars — ₹299 — 4.2 out of 5 — 17 ratings",
+          "observedAt": "2026-09-07T13:13:38.644976+00:00"
         }
       ],
-      "freshnessDate": "2026-08-31T14:41:25.847865+00:00",
-      "notes": "diversity=0.14; community=1 search=0 product=0 ad-library=0 launch=0"
+      "freshnessDate": "2026-09-07T13:13:38.645137+00:00",
+      "notes": "diversity=0.14; community=0 search=0 product=5 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "delivery-rider-phone-accessories",
-      "demandScore": null,
-      "competitionScore": null,
-      "pricingScore": null,
-      "adSaturationScore": null,
-      "agentVisibilityScore": null,
-      "evidence": [],
-      "freshnessDate": "2026-08-31T14:42:53.851231+00:00",
-      "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
-    },
-    {
-      "nicheSlug": "heat-resistant-phone-mounts",
       "demandScore": null,
       "competitionScore": 0.5,
       "pricingScore": 0.9,
@@ -284,87 +238,78 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B0CMJ4Y5GK",
           "source": "amazon:in",
-          "snippet": "Sounce Mobile Phone Chest Strap Mount GoPro Chest Harness Holder for VLOG/POV Compatible with All Cell Phones and GoPro Hero 9, 8, 7, 6, 5,OSMO Action, AKASO and Other Action Camera — ₹299 — 3.7 out of 5 — 2,890 ratings",
-          "observedAt": "2026-08-31T14:43:15.712930+00:00"
+          "snippet": "Sounce Mobile Phone Chest Strap Mount GoPro Chest Harness Holder for VLOG/POV Compatible with All Cell Phones and GoPro Hero 9, 8, 7, 6, 5,OSMO Action, AKASO and Other Action Camera — ₹299 — 3.6 out of 5 — 2,915 ratings",
+          "observedAt": "2026-09-07T13:13:31.996539+00:00"
         },
         {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B08W1KX225",
           "source": "amazon:in",
-          "snippet": "TECHONTO® 360° Degree Cell Phone Holder with Adjustable Clamp Phone Tripod Mount Adapter Compatible with Smartphones &amp; All Types of Tripods – Black — ₹195 — 4.2 out of 5 — 7,874 ratings",
-          "observedAt": "2026-08-31T14:43:15.713403+00:00"
+          "snippet": "TECHONTO® 360° Degree Cell Phone Holder with Adjustable Clamp Phone Tripod Mount Adapter Compatible with Smartphones &amp; All Types of Tripods – Black — ₹195 — 4.2 out of 5 — 7,888 ratings",
+          "observedAt": "2026-09-07T13:13:31.996966+00:00"
         },
         {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B0CL4YL615",
           "source": "amazon:in",
-          "snippet": "INEFABLE Tripod Mount Adapter 360-Degree Cell Phone Holder with Adjustable Clamp Phone for Smartphones &amp; All Types of Tripods with 1/4 Screw - Black - Pack of 1 — ₹149 — 4.2 out of 5 — 168 ratings",
-          "observedAt": "2026-08-31T14:43:15.713827+00:00"
+          "snippet": "INEFABLE Tripod Mount Adapter 360-Degree Cell Phone Holder with Adjustable Clamp Phone for Smartphones &amp; All Types of Tripods with 1/4 Screw - Black - Pack of 1 — ₹149 — 4.2 out of 5 — 178 ratings",
+          "observedAt": "2026-09-07T13:13:31.997300+00:00"
         },
         {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B0CJXS969K",
           "source": "amazon:in",
-          "snippet": "Sounce Mobile Stand Holder Metal Built - Cell Phone Stand Perfect for Video Table Online Class Home Bed Flexible Charging Hand Bike Movie Office Gift Desktop Heavy Duty Lazy Mount Multi Angle Clamp — ₹188 — 3.6 out of 5 — 2,531 ratings",
-          "observedAt": "2026-08-31T14:43:15.715115+00:00"
+          "snippet": "Sounce Mobile Stand Holder Metal Built - Cell Phone Stand Perfect for Video Table Online Class Home Bed Flexible Charging Hand Bike Movie Office Gift Desktop Heavy Duty Lazy Mount Multi Angle Clamp — ₹188 — 3.6 out of 5 — 2,553 ratings",
+          "observedAt": "2026-09-07T13:13:31.998344+00:00"
         },
         {
           "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0H65FXD9Z",
+          "url": "https://www.amazon.in/dp/B0CNYNX7LF",
           "source": "amazon:in",
-          "snippet": "2026 Upgraded Vacuum Ultra Suction Magnetic Phone Holder, 98LBS Strongest Suction &amp; 2600gf Magnetic for Magsafe Car Mount, 360° Adjustable Foldable Holders for Your Car - — ₹197 — 2.5 out of 5 — 117 ratings",
-          "observedAt": "2026-08-31T14:43:15.715495+00:00"
+          "snippet": "Portronics Mobike 4 Bike Phone Mount with 360° Rotational, Strong Hold for Bicycle, Motorcycle Compatible with 4.7 to 6.8 inch Devices(Black) — ₹229 — 4.1 out of 5 — 2,801 ratings",
+          "observedAt": "2026-09-07T13:13:31.998726+00:00"
         }
       ],
-      "freshnessDate": "2026-08-31T14:43:15.715646+00:00",
+      "freshnessDate": "2026-09-07T13:13:31.998870+00:00",
       "notes": "diversity=0.14; community=0 search=0 product=5 ad-library=0 launch=0"
     },
     {
-      "nicheSlug": "office-chai-healthy-snacks",
-      "demandScore": null,
-      "competitionScore": 0.5,
-      "pricingScore": 0.9,
+      "nicheSlug": "heat-resistant-phone-mounts",
+      "demandScore": 0.30000000000000004,
+      "competitionScore": null,
+      "pricingScore": null,
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [
         {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0FBGHFCZ3",
-          "source": "amazon:in",
-          "snippet": "3.8 out of 5 stars — ₹520 — 3.8 out of 5 — 10 ratings",
-          "observedAt": "2026-08-31T14:42:08.115500+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0FBGD2GK6",
-          "source": "amazon:in",
-          "snippet": "4.4 out of 5 stars — ₹390 — 4.4 out of 5 — 8 ratings",
-          "observedAt": "2026-08-31T14:42:08.115934+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B002DN0R96",
-          "source": "amazon:in",
-          "snippet": "Haldiram&#x27;s Namkeen - Chai Puri, 200/215 Gram — ₹65 — 3.9 out of 5 — 1,195 ratings",
-          "observedAt": "2026-08-31T14:42:08.116316+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0196I5YIE",
-          "source": "amazon:in",
-          "snippet": "Karachi Bakery Chai Biscuit, 400g — ₹160 — 3.8 out of 5 — 1,936 ratings",
-          "observedAt": "2026-08-31T14:42:08.117453+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0BC9JSX6V",
-          "source": "amazon:in",
-          "snippet": "Bhujialalji Khatta Meetha (pack of 1) 1kg | Namkeen Snacks Tasty &amp; Crunchy Tea-time Namkeen | All time favourite indian snacks/Namkeen | Ready to eat | Crsipy &amp; Light snacks. — ₹257 — 4.0 out of 5 — 753 ratings",
-          "observedAt": "2026-08-31T14:42:08.117823+00:00"
+          "sourceClass": "community",
+          "url": "https://reddit.com/r/Bengaluru/comments/1w9npid/at_31_degrees_and_warm_nights_summer_is_back_on/",
+          "source": "reddit:bengaluru",
+          "snippet": "At 31 degrees and warm nights, summer is back on the menu? — I blame that person from last week who said it was so cold these days when it wasn't even cold",
+          "observedAt": "2026-09-07T09:47:12+00:00"
         }
       ],
-      "freshnessDate": "2026-08-31T14:42:08.118026+00:00",
-      "notes": "diversity=0.14; community=0 search=0 product=5 ad-library=0 launch=0"
+      "freshnessDate": "2026-09-07T13:13:12.451841+00:00",
+      "notes": "diversity=0.14; community=1 search=0 product=0 ad-library=0 launch=0"
+    },
+    {
+      "nicheSlug": "office-chai-healthy-snacks",
+      "demandScore": 0.30000000000000004,
+      "competitionScore": null,
+      "pricingScore": null,
+      "adSaturationScore": null,
+      "agentVisibilityScore": null,
+      "evidence": [
+        {
+          "sourceClass": "community",
+          "url": "https://reddit.com/r/EatCheapAndHealthy/comments/1w6dlyv/crunchy_and_tasty_i_can_eat_healthy_but_my_brain/",
+          "source": "reddit:EatCheapAndHealthy",
+          "snippet": "Crunchy and tasty? I can eat healthy but my brain crave for fatty snacks — I used to eat apples or carrots, or right now I have almonds with me.. but lately I crave eating chips, Twisties.. salt snac…",
+          "observedAt": "2026-09-03T17:15:17+00:00"
+        }
+      ],
+      "freshnessDate": "2026-09-07T13:13:48.981115+00:00",
+      "notes": "diversity=0.14; community=1 search=0 product=0 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "diabetic-friendly-travel-snacks",
@@ -374,7 +319,7 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-08-31T14:42:48.783518+00:00",
+      "freshnessDate": "2026-09-07T13:13:59.176145+00:00",
       "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
@@ -389,119 +334,190 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B0G59MC2XP",
           "source": "amazon:in",
-          "snippet": "Urban Platter Roasted Salted Edamame, 150g (46% Protein, 14% Fiber, Lightly Salted Young Green Soybeans, Highest Plant Protein Supersnack) — ₹195 — 4.3 out of 5 — 565 ratings",
-          "observedAt": "2026-08-31T14:44:12.348624+00:00"
+          "snippet": "Urban Platter Roasted Salted Edamame, 150g (46% Protein, 14% Fiber, Lightly Salted Young Green Soybeans, Highest Plant Protein Supersnack) — ₹195 — 4.3 out of 5 — 537 ratings",
+          "observedAt": "2026-09-07T13:14:55.193852+00:00"
         },
         {
           "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0DKJ6MDWM",
+          "url": "https://www.amazon.in/dp/B0GQLGXGMC",
           "source": "amazon:in",
-          "snippet": "RiteBite Max Protein Assorted Cookies with 10g Protein, 4g Fiber | No Maida, GMO Free, No Preservatives | 7 Grain Breakfast Cookies, 55g (Pack of 6) — ₹256 — 4.2 out of 5 — 178 ratings",
-          "observedAt": "2026-08-31T14:44:12.349064+00:00"
+          "snippet": "Greenfinity Roasted Edamame 250g | High Protein Vegan Snack | Roasted Not Fried Soybeans | Healthy Crunchy Diet Snack for Gym, Weight Loss &amp; Office | Premium Plant Protein — ₹199 — 4.2 out of 5 — 390 ratings",
+          "observedAt": "2026-09-07T13:14:55.194179+00:00"
         },
         {
           "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0FQ2RRXMR",
+          "url": "https://www.amazon.in/dp/B0BV31H1B1",
           "source": "amazon:in",
-          "snippet": "WellNuts &amp; Co. Pan-Roasted Protein Salad Mix (450g) | Non-Fried Healthy Snack | High Protein &amp; Fiber Rich Diet Mix | Zero Cholesterol &amp; Vegan — ₹380 — 4.2 out of 5 — 56 ratings",
-          "observedAt": "2026-08-31T14:44:12.349490+00:00"
+          "snippet": "Taali Protein Puffs | Masala Puff, Roasted Snack, Corn &amp; Jowar, No Palm Oil, No Maida, Rich in Protein, 60g — ₹388 — 4.1 out of 5 — 209 ratings",
+          "observedAt": "2026-09-07T13:14:55.195179+00:00"
         },
         {
           "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0C6QPLKKN",
+          "url": "https://www.amazon.in/dp/B0GBVGJXQN",
           "source": "amazon:in",
-          "snippet": "Healthy Treat Roasted Solid Moong 300 gm (Pack of 2-150 gm each) | Spicy Masala Moong | Healthy Roasted Snacks | Protein Rich Snack | Roasted Oil-Free Namkeen | Gluten Free — ₹191 — 3.6 out of 5 — 328 ratings",
-          "observedAt": "2026-08-31T14:44:12.350745+00:00"
+          "snippet": "RiteBite Max Protein Peri Peri 5gm Protein Chips (32 g) — 2.8 out of 5 — 60 ratings",
+          "observedAt": "2026-09-07T13:14:55.195369+00:00"
         },
         {
           "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0F53F4H51",
+          "url": "https://www.amazon.in/dp/B0BV2ZCQ75",
           "source": "amazon:in",
-          "snippet": "Prolicious Healthy Protein Thin Chips| 10g Protein &amp; 5g Fibre Per Pack Per Pack Per Pack |Vegan Snack|No Maida |No Palm Oil| 50g| Garlic &amp; Herbs — ₹55 — 3.8 out of 5 — 57 ratings",
-          "observedAt": "2026-08-31T14:44:12.351116+00:00"
+          "snippet": "Taali Protein Puffs | Cheese Balls, Roasted Snack, Corn &amp; Jowar Puff, No Palm Oil, No Maida, 60g — 4.1 out of 5 — 153 ratings",
+          "observedAt": "2026-09-07T13:14:55.195570+00:00"
         }
       ],
-      "freshnessDate": "2026-08-31T14:44:12.351249+00:00",
+      "freshnessDate": "2026-09-07T13:14:55.195700+00:00",
       "notes": "diversity=0.14; community=0 search=0 product=5 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "affordable-home-gym-under-5000",
       "demandScore": 0.85,
-      "competitionScore": null,
-      "pricingScore": null,
+      "competitionScore": 0.5,
+      "pricingScore": 0.4,
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [
         {
           "sourceClass": "community",
-          "url": "https://reddit.com/r/homegym/comments/1w2qagx/new_addition_to_my_home_gym/",
+          "url": "https://reddit.com/r/homegym/comments/1w7zkyi/my_home_gym/",
           "source": "reddit:homegym",
-          "snippet": "New addition to my home gym",
-          "observedAt": "2026-08-30T19:06:11+00:00"
+          "snippet": "My home gym — I have had the Ritkeep PMAX 5600 for approximately a year and I love it. I use it all the time. My wife bought me the RAB3000 weight bench to go along with it and it is great. (I had be…",
+          "observedAt": "2026-09-05T12:34:55+00:00"
         },
         {
           "sourceClass": "community",
-          "url": "https://reddit.com/r/homegym/comments/1w21zmo/current_home_gym_progress/",
+          "url": "https://reddit.com/r/homegym/comments/1w7ebit/inexpensive_limited_space_home_gym/",
           "source": "reddit:homegym",
-          "snippet": "Current home gym progress",
-          "observedAt": "2026-08-29T23:55:13+00:00"
+          "snippet": "Inexpensive Limited Space Home Gym — ​Home gyms don't have to break the bank or take over your home. I put this entire setup together for under $300 total, and it lets me effectively work every major…",
+          "observedAt": "2026-09-04T19:31:14+00:00"
         },
         {
           "sourceClass": "community",
-          "url": "https://reddit.com/r/homegym/comments/1w1itet/added_3_new_pieces_to_the_home_gym/",
+          "url": "https://reddit.com/r/homegym/comments/1w73qk1/weekly_freetalk_and_questions_for_rhomegym_week/",
           "source": "reddit:homegym",
-          "snippet": "Added 3 new pieces to the home gym — Yesterday I bought a standing 220lb weight stack multiflight a 220 pound weight stack seated leg curl/leg extension and a super squat pro for $1750 in sacramento…",
-          "observedAt": "2026-08-29T10:19:19+00:00"
+          "snippet": "Weekly Free-Talk and Questions for r/HomeGym - week of September 04, 2026 — Welcome to The Garage: The Weekly Free-Talk discussion for [r/HomeGym](https://www.reddit.com/r/HomeGym/)! **What can be po…",
+          "observedAt": "2026-09-04T13:00:10+00:00"
         },
         {
           "sourceClass": "community",
-          "url": "https://reddit.com/r/homegym/comments/1w0zbku/my_home_gym_that_i_built_during_covid_in_2020/",
+          "url": "https://reddit.com/r/homegym/comments/1w6odb4/fringe_sport_gatling_seat_first_impressions/",
           "source": "reddit:homegym",
-          "snippet": "My home gym that I built during Covid in 2020 🦾 — My hometown of Ajmer, India had pretty relaxed guidelines/restrictions during the Covid years. So naturally, I decided to take advantage of it and la…",
-          "observedAt": "2026-08-28T18:53:29+00:00"
+          "snippet": "Fringe Sport Gatling Seat First Impressions — So I’m a sucker for a good sale and have been thinking about adding a seat to my Ares. I considered both the Rogue multipurpose lat seat and the Rep Pega…",
+          "observedAt": "2026-09-03T23:55:29+00:00"
         },
         {
           "sourceClass": "community",
-          "url": "https://reddit.com/r/homegym/comments/1w0yrfn/all_you_need/",
+          "url": "https://reddit.com/r/homegym/comments/1w6nx45/a_part_of_my_home_gym/",
           "source": "reddit:homegym",
-          "snippet": "All you need — Finishing the Home Gym right before Baby is Born.",
-          "observedAt": "2026-08-28T18:32:48+00:00"
+          "snippet": "A part of my home gym",
+          "observedAt": "2026-09-03T23:35:36+00:00"
         },
         {
           "sourceClass": "community",
-          "url": "https://reddit.com/r/homegym/comments/1w0pxhd/weekly_freetalk_and_questions_for_rhomegym_week/",
+          "url": "https://reddit.com/r/homegym/comments/1w5w9xz/my_first_home_gym/",
           "source": "reddit:homegym",
-          "snippet": "Weekly Free-Talk and Questions for r/HomeGym - week of August 28, 2026 — Welcome to The Garage: The Weekly Free-Talk discussion for [r/HomeGym](https://www.reddit.com/r/HomeGym/)! **What can be poste…",
-          "observedAt": "2026-08-28T13:00:09+00:00"
+          "snippet": "My first home gym — Hi everyone, I am a college student, I didn’t want to have to pay a monthly membership at a gym since I’m saving up for a car so I am making my own. The ottoman is my bench (for w…",
+          "observedAt": "2026-09-03T03:41:00+00:00"
         },
         {
           "sourceClass": "community",
-          "url": "https://reddit.com/r/homegym/comments/1w0jbeq/limited_space_home_gym/",
+          "url": "https://reddit.com/r/homegym/comments/1w5s5va/home_gym_setup_after_decades_of_consistent/",
           "source": "reddit:homegym",
-          "snippet": "Limited space Home gym — After a work out I love looking at my gym . It all started with a set of dumbbells.",
-          "observedAt": "2026-08-28T07:03:23+00:00"
+          "snippet": "Home gym setup after decades of consistent natural training. — The backstory here is that the house is a large Victorian home where every room has its own distinct theme—at one end we have a Johnny D…",
+          "observedAt": "2026-09-03T00:27:39+00:00"
         },
         {
           "sourceClass": "community",
-          "url": "https://reddit.com/r/homegym/comments/1w0i814/uk_crossfit_home_gym/",
+          "url": "https://reddit.com/r/homegym/comments/1w5820r/brokebudget_home_gym_setup/",
           "source": "reddit:homegym",
-          "snippet": "UK Crossfit Home Gym — Basement gym, training exclusively there after 6 years of training in crossfit boxes. Feedback / improvement suggestions more than welcome!",
-          "observedAt": "2026-08-28T05:59:54+00:00"
+          "snippet": "Broke/budget home gym setup — Total weight Total 4 plates of 2.5kg 4 plates of 2kg 4 plates of 1.5kg 4plates of 15lbs 2plates of 10lbs 2plates of 20lbs Around 170lbs",
+          "observedAt": "2026-09-02T11:48:17+00:00"
+        },
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B08WJHN7GR",
+          "source": "amazon:in",
+          "snippet": "Kore PVC 20 Kg Home Gym Set with One 3 Ft Curl Rod and One Pair Dumbbell Rods, Multicolour — ₹1,149 — 3.7 out of 5 — 2,037 ratings",
+          "observedAt": "2026-09-07T13:13:18.842365+00:00"
+        },
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B089DF1PXS",
+          "source": "amazon:in",
+          "snippet": "Kore PVC 16 Kg Home Gym Set With One 3 Ft Curl And One Pair Dumbbell Rods With Gym Accessories, Black — ₹1,349 — 3.5 out of 5 — 11,846 ratings",
+          "observedAt": "2026-09-07T13:13:18.842654+00:00"
+        },
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B0DKJZX382",
+          "source": "amazon:in",
+          "snippet": "TWINZFIT Premium Foldable Push-Up Board 15 in 1 with Color-Coded Muscle Targets – Portable Fitness Training System for Chest, Shoulders, Back, and Triceps – Home Gym Workout Equipment — ₹298 — 3.8 out of 5 — 1,492 ratings",
+          "observedAt": "2026-09-07T13:13:18.845331+00:00"
+        },
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B0CV84SLW4",
+          "source": "amazon:in",
+          "snippet": "Amazon Brand - Symactive PVC 3-in-1 Convertible Dumbbells Set — ₹1,349 — 4.0 out of 5 — 1,714 ratings",
+          "observedAt": "2026-09-07T13:13:18.845871+00:00"
+        },
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B0B87JD45W",
+          "source": "amazon:in",
+          "snippet": "BULLAR 16Kg Home Gym Set With 3 Feet Straight Rod and 2 Pieces Dumbbell Rods, Gym Combo &amp; Home Workout Equipments with PVC Weights Plates — ₹1,199 — 3.3 out of 5 — 948 ratings",
+          "observedAt": "2026-09-07T13:13:18.846169+00:00"
         }
       ],
-      "freshnessDate": "2026-08-31T14:42:58.937305+00:00",
-      "notes": "diversity=0.14; community=8 search=0 product=0 ad-library=0 launch=0"
+      "freshnessDate": "2026-09-07T13:13:18.846328+00:00",
+      "notes": "diversity=0.29; community=8 search=0 product=5 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "womens-gym-shorts-fit",
       "demandScore": null,
-      "competitionScore": null,
-      "pricingScore": null,
+      "competitionScore": 0.5,
+      "pricingScore": 0.9,
       "adSaturationScore": null,
       "agentVisibilityScore": null,
-      "evidence": [],
-      "freshnessDate": "2026-08-31T14:40:49.413529+00:00",
-      "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
+      "evidence": [
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B0H8NZNZ5M",
+          "source": "amazon:in",
+          "snippet": "Men&#x27;s Black Sports Shorts | Baggy Gym Shorts for Workout, Training, Running &amp; Fitness | Comfortable Basic Athletic Casual Shorts-M — ₹260 — 4.1 out of 5 — 6 ratings",
+          "observedAt": "2026-09-07T13:13:25.545368+00:00"
+        },
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B0D4J11GPQ",
+          "source": "amazon:in",
+          "snippet": "2 in 1 Active Dual Shorts with Inner Tights Layer | Men&#x27;s Double Layer Short for Running, Gym &amp; Sports — ₹499 — 3.9 out of 5 — 3,057 ratings",
+          "observedAt": "2026-09-07T13:13:25.545890+00:00"
+        },
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B0H5BR6H25",
+          "source": "amazon:in",
+          "snippet": "A.A Fashion Zone Men’s Casual Elastic Waist Drawstring Shorts with Side Pockets | Comfortable Summer Sports Lounge Gym Beach Shorts | 2 Pack Combo — ₹260 — 3.3 out of 5 — 16 ratings",
+          "observedAt": "2026-09-07T13:13:25.547022+00:00"
+        },
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B0H1R3XQ1R",
+          "source": "amazon:in",
+          "snippet": "Sports Men’s Running Shorts | Lightweight Quick-Dry Gym &amp; Sports Shorts for Running, Training, Workout &amp; Outdoor Activities — ₹190 — 3.7 out of 5 — 36 ratings",
+          "observedAt": "2026-09-07T13:13:25.550277+00:00"
+        },
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B0DY3Z85LD",
+          "source": "amazon:in",
+          "snippet": "Men’s Shorts with Quick Dry Tech | Athletic Anti-Wicking Lightweight Shorts for Sports, Running &amp; Gym — ₹419 — 3.6 out of 5 — 919 ratings",
+          "observedAt": "2026-09-07T13:13:25.550710+00:00"
+        }
+      ],
+      "freshnessDate": "2026-09-07T13:13:25.550856+00:00",
+      "notes": "diversity=0.14; community=0 search=0 product=5 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "baby-lotions-transparent-ingredients",
@@ -515,39 +531,39 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B0G1MWWPTF",
           "source": "amazon:in",
-          "snippet": "Himalaya Gentle Baby Lotion 400ml with Almond oil, Olive oil, Country Mallow | No.1 Doctor-Prescribed Brand |pH 5.5 formulation | Nourishes and moisturizes your baby&#x27;s skin | Safe for Newborns — ₹289 — 4.4 out of 5 — 73,602 ratings",
-          "observedAt": "2026-08-31T14:44:33.773453+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0GHXSSGGQ",
-          "source": "amazon:in",
-          "snippet": "Himalaya Gentle Baby Lotion 700ml | with Almond oil, Olive oil, Country Mallow | No.1 Doctor-Prescribed Brand |pH 5.5 formulation | Nourishes and moisturizes your baby&#x27;s skin | Safe for Newborns — ₹429 — 4.4 out of 5 — 73,602 ratings",
-          "observedAt": "2026-08-31T14:44:33.773845+00:00"
+          "snippet": "Himalaya Gentle Baby Lotion 400ml with Almond oil, Olive oil, Country Mallow | No.1 Doctor-Prescribed Brand |pH 5.5 formulation | Nourishes and moisturizes your baby&#x27;s skin | Safe for Newborns — ₹284 — 4.4 out of 5 — 73,598 ratings",
+          "observedAt": "2026-09-07T13:15:08.347153+00:00"
         },
         {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B0FGJXZ4H5",
           "source": "amazon:in",
-          "snippet": "LuvLap Baby Lotion with Milk Protein - 700ml, Suitable for Baby’s Delicate Skin, 24 Hour Protection for Sensitive Skin, Shea Butter and VIT E, Paraben Free, Sweet Almond Oil, Dermatologically Tested — ₹198 — 4.3 out of 5 — 955 ratings",
-          "observedAt": "2026-08-31T14:44:33.774234+00:00"
+          "snippet": "LuvLap Baby Lotion with Milk Protein - 700ml, Suitable for Baby’s Delicate Skin, 24 Hour Protection for Sensitive Skin, Shea Butter and VIT E, Paraben Free, Sweet Almond Oil, Dermatologically Tested — ₹198 — 4.3 out of 5 — 968 ratings",
+          "observedAt": "2026-09-07T13:15:08.347464+00:00"
         },
         {
           "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0F63TNKCG",
+          "url": "https://www.amazon.in/dp/B0GHXSSGGQ",
           "source": "amazon:in",
-          "snippet": "Pure Aura Rich Moisture Baby Lotion 200ml – Doctor Recommended Ayurvedic Baby Body Lotion for Newborns &amp; Kids | Chemical-Free Daily Care for Soft &amp; Sensitive Skin — ₹499 — 4.3 out of 5 — 249 ratings",
-          "observedAt": "2026-08-31T14:44:33.774919+00:00"
+          "snippet": "Himalaya Gentle Baby Lotion 700ml | with Almond oil, Olive oil, Country Mallow | No.1 Doctor-Prescribed Brand |pH 5.5 formulation | Nourishes and moisturizes your baby&#x27;s skin | Safe for Newborns — ₹429 — 4.4 out of 5 — 73,598 ratings",
+          "observedAt": "2026-09-07T13:15:08.347769+00:00"
         },
         {
           "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B097YVD1SV",
+          "url": "https://www.amazon.in/dp/B07FQYDYJC",
           "source": "amazon:in",
-          "snippet": "Mamaearth Milky Soft Body Lotion with Oats, Milk &amp; Calendula - 400 ml — ₹349 — 4.3 out of 5 — 4,874 ratings",
-          "observedAt": "2026-08-31T14:44:33.775358+00:00"
+          "snippet": "Himalaya Baby Lotion with Pure Cow Ghee 400ml| For Sensitive Skin| pH 5.5 | All day moisture|Pediatrician Evaluated| With soothing Aloe Vera| Safe for newborns|Dermatologically Tested| No Parabens — ₹475 — 4.4 out of 5 — 73,598 ratings",
+          "observedAt": "2026-09-07T13:15:08.350575+00:00"
+        },
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B07TWXLK1P",
+          "source": "amazon:in",
+          "snippet": "Cetaphil Baby Daily Lotion, Suitable for baby’s delicate skin, Shea Butter and Vit E, Dermatologist Tested and Pediatrician Recommended, 400 ml — ₹830 — 4.5 out of 5 — 17,948 ratings",
+          "observedAt": "2026-09-07T13:15:08.350828+00:00"
         }
       ],
-      "freshnessDate": "2026-08-31T14:44:33.775490+00:00",
+      "freshnessDate": "2026-09-07T13:15:08.350963+00:00",
       "notes": "diversity=0.14; community=0 search=0 product=5 ad-library=0 launch=0"
     },
     {
@@ -562,39 +578,39 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B00YXTNFJC",
           "source": "amazon:in",
-          "snippet": "Auravedic Kumkumadi Oil For Face 100 Ml, Kumkumadi Tailam Face Oil For Glowing Skin, Dark Spot Corrector Face Serum — ₹396 — 3.9 out of 5 — 15,652 ratings",
-          "observedAt": "2026-08-31T14:43:43.722785+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0CYCG3S81",
-          "source": "amazon:in",
-          "snippet": "Shesha Ayurveda Red Sandalwood Skin Brightening &amp; Night Repair Cream For Men &amp; Women – For Natural, Anti-Aging, Hydrating, And Radiant Skin, Natural, Ayurvedic — ₹649 — 4.0 out of 5 — 936 ratings",
-          "observedAt": "2026-08-31T14:43:43.723228+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0FBWSK4HP",
-          "source": "amazon:in",
-          "snippet": "4.1 out of 5 stars — ₹199 — 4.1 out of 5 — 654 ratings",
-          "observedAt": "2026-08-31T14:43:43.723694+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B07VYKBH5T",
-          "source": "amazon:in",
-          "snippet": "Baidyanath Asli Ayurved Bhringrajasava 450 ml |Multi-Benefit Ayurvedic Formula | Ayurvedic Ingredients Bhringraj Asav for Hair Growth, Liver, Cough Relief and Blood Purification — ₹120 — 4.2 out of 5 — 8,033 ratings",
-          "observedAt": "2026-08-31T14:43:43.726566+00:00"
+          "snippet": "Auravedic Kumkumadi Oil For Face 100 Ml, Kumkumadi Tailam Face Oil For Glowing Skin, Dark Spot Corrector Face Serum — ₹396 — 3.9 out of 5 — 15,698 ratings",
+          "observedAt": "2026-09-07T13:14:35.093747+00:00"
         },
         {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B0DWTDDXXP",
           "source": "amazon:in",
-          "snippet": "Mamash Beetroot &amp; Sandalwood 2-in-1 Face Pack &amp; Scrub | Ready-to-Use De-Tan Clay Mask with Neem, Licorice &amp; Multani Mitti | Brightening &amp; Deep Cleansing Ayurvedic Skincare | 50g — ₹620 — 4.0 out of 5 — 62 ratings",
-          "observedAt": "2026-08-31T14:43:43.726925+00:00"
+          "snippet": "Mamash Beetroot &amp; Sandalwood 2-in-1 Face Pack &amp; Scrub | Ready-to-Use De-Tan Clay Mask with Neem, Licorice &amp; Multani Mitti | Brightening &amp; Deep Cleansing Ayurvedic Skincare | 50g — ₹620 — 4.1 out of 5 — 63 ratings",
+          "observedAt": "2026-09-07T13:14:35.094121+00:00"
+        },
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B0FBWSK4HP",
+          "source": "amazon:in",
+          "snippet": "4.1 out of 5 stars — ₹185 — 4.1 out of 5 — 647 ratings",
+          "observedAt": "2026-09-07T13:14:35.094443+00:00"
+        },
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B0BH4CJMDD",
+          "source": "amazon:in",
+          "snippet": "4.0 out of 5 stars — ₹470 — 4.0 out of 5 — 253 ratings",
+          "observedAt": "2026-09-07T13:14:35.096947+00:00"
+        },
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B07P8FP14D",
+          "source": "amazon:in",
+          "snippet": "4.2 out of 5 stars — ₹209 — 4.2 out of 5 — 2,722 ratings",
+          "observedAt": "2026-09-07T13:14:35.097423+00:00"
         }
       ],
-      "freshnessDate": "2026-08-31T14:43:43.727056+00:00",
+      "freshnessDate": "2026-09-07T13:14:35.097568+00:00",
       "notes": "diversity=0.14; community=0 search=0 product=5 ad-library=0 launch=0"
     },
     {
@@ -607,41 +623,41 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "evidence": [
         {
           "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B07YY9N6TY",
+          "url": "https://www.amazon.in/dp/B07YX8M37J",
           "source": "amazon:in",
-          "snippet": "Mortein 45ml x 6 (Buy 4 Get 2 Free) Fits All Machines | SmartPlus Mosquito Repellent Refill | Mosquito Repellent &amp; Killer | 100% Protection from Dengue Mosquitoes, Pack of 6 — ₹316 — 4.0 out of 5 — 39,868 ratings",
-          "observedAt": "2026-08-31T14:44:26.487367+00:00"
+          "snippet": "Good Knight Flash Liquid Vaporiser Pack Of 4 (45ml Each) | 2x Faster Than Before | Mosquito Repellent Refill | India s Most Powerful Liquid Vaporizer — ₹250 — 4.2 out of 5 — 23,349 ratings",
+          "observedAt": "2026-09-07T13:14:28.428735+00:00"
         },
         {
           "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0C86RTS5X",
+          "url": "https://www.amazon.in/dp/B07FPRB9CR",
           "source": "amazon:in",
-          "snippet": "Good Knight Flash Liquid Vaporiser | Pack Of 4 (45ml Each) | Lavender Fragrance | 2x Faster Than Before | Mosquito Repellent Refill | India s Most Powerful Liquid Vaporizer — ₹266 — 4.3 out of 5 — 13,235 ratings",
-          "observedAt": "2026-08-31T14:44:26.487935+00:00"
+          "snippet": "Godrej aer Matic Automatic Room Fresheners Refill Pack | Violet Valley Bloom | 2000 Sprays Guaranteed | Lasts up to 60 days (210ml) — ₹192 — 4.2 out of 5 — 21,193 ratings",
+          "observedAt": "2026-09-07T13:14:28.429042+00:00"
         },
         {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B0982DRKF9",
           "source": "amazon:in",
-          "snippet": "Odomos Universal Liquid Vaporiser 45ml X Pack Of 6 | Mosquito Repellent Single Refill | 100% Protection| Fits All Machines | Protects Dengue, Malaria &amp; Chikungunya Mosquitoes | — ₹259 — 4.0 out of 5 — 13,948 ratings",
-          "observedAt": "2026-08-31T14:44:26.488326+00:00"
+          "snippet": "Odomos Universal Liquid Vaporiser 45ml X Pack Of 6 | Mosquito Repellent Single Refill | 100% Protection| Fits All Machines | Protects Dengue, Malaria &amp; Chikungunya Mosquitoes | — ₹259 — 4.0 out of 5 — 14,032 ratings",
+          "observedAt": "2026-09-07T13:14:28.429380+00:00"
         },
         {
           "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B07FPKP85K",
+          "url": "https://www.amazon.in/dp/B079L68NLK",
           "source": "amazon:in",
-          "snippet": "Godrej aer Matic Automatic Room Fresheners Refill Pack | Fresh Lush Green | 2000 Sprays Guaranteed | Lasts up to 60 days (210ml) — ₹243 — 4.2 out of 5 — 8,796 ratings",
-          "observedAt": "2026-08-31T14:44:26.488720+00:00"
+          "snippet": "Air Wick 250 ml - Lavender &amp; Lotus, Freshmatic Automatic Air Freshener Refill | 2600 Sprays Guaranteed | Automatic Room Freshener, Bathroom Freshener and Room Spray — ₹247 — 4.2 out of 5 — 8,864 ratings",
+          "observedAt": "2026-09-07T13:14:28.429752+00:00"
         },
         {
           "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0H2HSNYVL",
+          "url": "https://www.amazon.in/dp/B0C86RTS5X",
           "source": "amazon:in",
-          "snippet": "Eveready Ultima Mosquito Repellent Refill, Fits All Machines, Advanced Japanese Formula, 100% Protection from Dengue, Chikungunya &amp; Malaria, Pack of 2 — ₹119 — 4.3 out of 5 — 85 ratings",
-          "observedAt": "2026-08-31T14:44:26.489150+00:00"
+          "snippet": "Good Knight Flash Liquid Vaporiser | Pack Of 4 (45ml Each) | Lavender Fragrance | 2x Faster Than Before | Mosquito Repellent Refill | India s Most Powerful Liquid Vaporizer — ₹261 — 4.3 out of 5 — 13,318 ratings",
+          "observedAt": "2026-09-07T13:14:28.430042+00:00"
         }
       ],
-      "freshnessDate": "2026-08-31T14:44:26.489278+00:00",
+      "freshnessDate": "2026-09-07T13:14:28.430164+00:00",
       "notes": "diversity=0.14; community=0 search=0 product=5 ad-library=0 launch=0"
     },
     {
@@ -652,59 +668,23 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [],
-      "freshnessDate": "2026-08-31T14:42:01.511577+00:00",
+      "freshnessDate": "2026-09-07T13:13:54.060763+00:00",
       "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "oral-care-sub-niches",
       "demandScore": null,
-      "competitionScore": 0.5,
-      "pricingScore": 0.9,
+      "competitionScore": null,
+      "pricingScore": null,
       "adSaturationScore": null,
       "agentVisibilityScore": null,
-      "evidence": [
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B09S18RQLD",
-          "source": "amazon:in",
-          "snippet": "Gum Care Toothpaste For Complete Oral Care | Prevents From Dry Mouth, Gum Diseases| India&#x27;s First Toothpaste With Carrymax Technology| Made In India| Mint Flavour Pack Of 3 — ₹350 — 4.2 out of 5 — 1,239 ratings",
-          "observedAt": "2026-08-31T14:43:58.097795+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B09JLLHYGT",
-          "source": "amazon:in",
-          "snippet": "Ultra Clean Toothpaste For Daily Protection Against Gum Problems, For Long Lasting Ultra Clean Feeling Multi Pack, 75g*2 — ₹207 — 4.2 out of 5 — 5,425 ratings",
-          "observedAt": "2026-08-31T14:43:58.098205+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0CLDFLX9G",
-          "source": "amazon:in",
-          "snippet": "3.9 out of 5 stars — ₹176 — 3.9 out of 5 — 209 ratings",
-          "observedAt": "2026-08-31T14:43:58.098643+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B09JLNL36K",
-          "source": "amazon:in",
-          "snippet": "Toothpaste Expert Gum Care | Daily Fluoride, Gum Protection Tooth Paste Combo Pack 150gm (75gm x 2) | For Redness, Swelling and Bleeding Gums, Freshness, Reduces Plaque — ₹207 — 4.2 out of 5 — 5,556 ratings",
-          "observedAt": "2026-08-31T14:43:58.100757+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B0C3WDNCNN",
-          "source": "amazon:in",
-          "snippet": "Happy Smile Gum Paint Herbal for Bleeding Gums, Bad Breath, Toothache, Strong Teeth, Sensitivity &amp; Gum Pain Relief with Laung Oil (Clove), Pudina Satva | Protect Daily Gum Problems Naturally — ₹267 — 4.1 out of 5 — 310 ratings",
-          "observedAt": "2026-08-31T14:43:58.101212+00:00"
-        }
-      ],
-      "freshnessDate": "2026-08-31T14:43:58.101349+00:00",
-      "notes": "diversity=0.14; community=0 search=0 product=5 ad-library=0 launch=0"
+      "evidence": [],
+      "freshnessDate": "2026-09-07T13:14:21.705820+00:00",
+      "notes": "diversity=0.00; community=0 search=0 product=0 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "sleep-stress-support-products",
-      "demandScore": 0.7,
+      "demandScore": 0.4,
       "competitionScore": null,
       "pricingScore": null,
       "adSaturationScore": null,
@@ -712,42 +692,21 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
       "evidence": [
         {
           "sourceClass": "community",
-          "url": "https://reddit.com/r/sleep/comments/1w38k3u/if_your_sleep_schedule_is_completely_fucked_heres/",
+          "url": "https://reddit.com/r/sleep/comments/1w9oh14/til_if_you_cant_fall_asleep_in_20_mins_you_should/",
           "source": "reddit:sleep",
-          "snippet": "If your sleep schedule is completely fucked, here's what actually fixed mine — Mine used to be a mess too. Sound familiar? Stay up too late, do the math: it's 2am, so set an alarm for 10 to get a ful…",
-          "observedAt": "2026-08-31T09:21:32+00:00"
+          "snippet": "TIL: If you can't fall asleep in 20 mins, you should get out of bed (not \"try harder\") — I used to force myself to stay in bed for hours thinking \"at least I'm resting\". Turns out that's exactly how…",
+          "observedAt": "2026-09-07T10:29:55+00:00"
         },
         {
           "sourceClass": "community",
-          "url": "https://reddit.com/r/sleep/comments/1w36efj/bad_sleeping/",
+          "url": "https://reddit.com/r/sleep/comments/1w9g4gx/a_while_ago_i_posted_asking_about_the_hatch/",
           "source": "reddit:sleep",
-          "snippet": "Bad sleeping — Hi everyone, first of all I want to apologize for my trash English, ain't my native language. To be clear, I've been struggling to sleep for years now, I've been through many medicatio…",
-          "observedAt": "2026-08-31T07:17:31+00:00"
-        },
-        {
-          "sourceClass": "community",
-          "url": "https://reddit.com/r/sleep/comments/1w36e6c/does_increasing_training_load_result_in_poor/",
-          "source": "reddit:sleep",
-          "snippet": "Does increasing training load result in poor sleep? Please help. — I recently increased my training load to prepare for an upcoming marathon, but ever since doing this, my sleep has gone for a toss.…",
-          "observedAt": "2026-08-31T07:17:08+00:00"
-        },
-        {
-          "sourceClass": "community",
-          "url": "https://reddit.com/r/sleep/comments/1w34tas/i_would_like_to_know_how_people_sleep_in_pajamas/",
-          "source": "reddit:sleep",
-          "snippet": "I would like to know how people sleep in pajamas? — I tryed they get twisted and are so uncomfortable. I feel tight or loose or just plain claustrophobic. I prefer naked",
-          "observedAt": "2026-08-31T05:50:02+00:00"
-        },
-        {
-          "sourceClass": "community",
-          "url": "https://reddit.com/r/sleep/comments/1w333hw/help_with_hyperarousal_noticing_im_falling_asleep/",
-          "source": "reddit:sleep",
-          "snippet": "Help with Hyperarousal/ noticing I’m falling asleep. — Hi everyone, I thought I’d come in here to ask for some advice and people’s opinions on what seems to be hyperarousal/ being aware that I’m fall…",
-          "observedAt": "2026-08-31T04:20:00+00:00"
+          "snippet": "A while ago I posted asking about the Hatch restore sunrise alarm clock. A few people asked if I had bought it and how I liked it. I decided to save myself over $100 and bought the DreamEgg instead.…",
+          "observedAt": "2026-09-07T02:57:52+00:00"
         }
       ],
-      "freshnessDate": "2026-08-31T14:42:43.691251+00:00",
-      "notes": "diversity=0.14; community=5 search=0 product=0 ad-library=0 launch=0"
+      "freshnessDate": "2026-09-07T13:13:43.866092+00:00",
+      "notes": "diversity=0.14; community=2 search=0 product=0 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "intimate-hygiene",
@@ -761,46 +720,46 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B00S6KDGNE",
           "source": "amazon:in",
-          "snippet": "VWash Plus Expert Intimate Hygiene|| With Tea Tree Oil|| Liquid Wash Prevents Dryness|| Itchiness And Irritation|| Balances PH|| Paraben Free|| 200 ml — ₹269 — 4.4 out of 5 — 21,567 ratings",
-          "observedAt": "2026-08-31T14:43:50.972870+00:00"
+          "snippet": "VWash Plus Expert Intimate Hygiene|| With Tea Tree Oil|| Liquid Wash Prevents Dryness|| Itchiness And Irritation|| Balances PH|| Paraben Free|| 200 ml — ₹286 — 4.4 out of 5 — 21,581 ratings",
+          "observedAt": "2026-09-07T13:14:48.552130+00:00"
         },
         {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B08GP3FMTV",
           "source": "amazon:in",
-          "snippet": "Namyaa Intimate Wash with Haldi Chandan, Prevents Dryness, Itchiness and Irritation | pH Balanced | Prevents Bad smell, 100ml — ₹199 — 4.1 out of 5 — 3,749 ratings",
-          "observedAt": "2026-08-31T14:43:50.973336+00:00"
+          "snippet": "Namyaa Intimate Wash with Haldi Chandan, Prevents Dryness, Itchiness and Irritation | pH Balanced | Prevents Bad smell, 100ml — ₹199 — 4.1 out of 5 — 3,755 ratings",
+          "observedAt": "2026-09-07T13:14:48.552513+00:00"
         },
         {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B07CN2D6JF",
           "source": "amazon:in",
-          "snippet": "Pee Safe Intimate Wash For Women 105ml Natural Ayurvedic | Paraben-Free | Lemongrass Fragrance and 100% Alcohol-Free, pH Balanced, Sulfate-Free — ₹149 — 4.3 out of 5 — 8,103 ratings",
-          "observedAt": "2026-08-31T14:43:50.973735+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B07XQPMNLJ",
-          "source": "amazon:in",
-          "snippet": "Pee Safe Natural Intimate Wash for Men | Tea Tree Essential Oil | Ayurvedic | Men Genital Wash | Mens Ball wash | Men&#x27;s Intimate wash 100ml — ₹299 — 4.2 out of 5 — 8,408 ratings",
-          "observedAt": "2026-08-31T14:43:50.975847+00:00"
+          "snippet": "Pee Safe Intimate Wash For Women 105ml Natural Ayurvedic | Paraben-Free | Lemongrass Fragrance and 100% Alcohol-Free, pH Balanced, Sulfate-Free — ₹159 — 4.3 out of 5 — 8,114 ratings",
+          "observedAt": "2026-09-07T13:14:48.552808+00:00"
         },
         {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B08LJ37N3H",
           "source": "amazon:in",
-          "snippet": "VWash Plus Expert Intimate Hygiene|| 350 ml — ₹490 — 4.4 out of 5 — 4,589 ratings",
-          "observedAt": "2026-08-31T14:43:50.976208+00:00"
+          "snippet": "VWash Plus Expert Intimate Hygiene|| 350 ml — ₹499 — 4.4 out of 5 — 4,597 ratings",
+          "observedAt": "2026-09-07T13:14:48.554409+00:00"
+        },
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B07XQPMNLJ",
+          "source": "amazon:in",
+          "snippet": "Pee Safe Natural Intimate Wash for Men | Tea Tree Essential Oil | Ayurvedic | Men Genital Wash | Mens Ball wash | Men&#x27;s Intimate wash 100ml — ₹299 — 4.2 out of 5 — 8,789 ratings",
+          "observedAt": "2026-09-07T13:14:48.554804+00:00"
         }
       ],
-      "freshnessDate": "2026-08-31T14:43:50.976346+00:00",
+      "freshnessDate": "2026-09-07T13:14:48.554951+00:00",
       "notes": "diversity=0.14; community=0 search=0 product=5 ad-library=0 launch=0"
     },
     {
       "nicheSlug": "condiments-sauces-regional-identity",
       "demandScore": null,
       "competitionScore": 0.5,
-      "pricingScore": 0.6,
+      "pricingScore": 0.9,
       "adSaturationScore": null,
       "agentVisibilityScore": null,
       "evidence": [
@@ -808,39 +767,39 @@ export const BUNDLED_D2C_ARTIFACT: D2COpportunityArtifact | null = {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B000T43KG8",
           "source": "amazon:in",
-          "snippet": "Lee Kum Kee Hoisin Sauce, 240 Gm — ₹309 — 4.3 out of 5 — 982 ratings",
-          "observedAt": "2026-08-31T14:44:19.382116+00:00"
+          "snippet": "Lee Kum Kee Hoisin Sauce, 240 Gm — ₹299 — 4.3 out of 5 — 982 ratings",
+          "observedAt": "2026-09-07T13:15:01.718387+00:00"
         },
         {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B0FFMM73RX",
           "source": "amazon:in",
           "snippet": "3.7 out of 5 stars — ₹260 — 3.7 out of 5 — 10 ratings",
-          "observedAt": "2026-08-31T14:44:19.382633+00:00"
+          "observedAt": "2026-09-07T13:15:01.718718+00:00"
         },
         {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B0GWT53VWQ",
           "source": "amazon:in",
-          "snippet": "Honey Chilli Oil — ₹340",
-          "observedAt": "2026-08-31T14:44:19.383027+00:00"
-        },
-        {
-          "sourceClass": "product",
-          "url": "https://www.amazon.in/dp/B07PHS7FWK",
-          "source": "amazon:in",
-          "snippet": "Lee Kum Kee Hoisin Sauce, 8.47 oz ? 240 g — ₹309 — 4.4 out of 5 — 271 ratings",
-          "observedAt": "2026-08-31T14:44:19.384249+00:00"
+          "snippet": "Honey Chilli Oil — ₹340 — 5.0 out of 5 — 2 ratings",
+          "observedAt": "2026-09-07T13:15:01.719039+00:00"
         },
         {
           "sourceClass": "product",
           "url": "https://www.amazon.in/dp/B07PMKJDNL",
           "source": "amazon:in",
-          "snippet": "urban platter Worcestershire Sauce, 200Gram [Tasty &amp; Delicious] — ₹216 — 4.3 out of 5 — 344 ratings",
-          "observedAt": "2026-08-31T14:44:19.384707+00:00"
+          "snippet": "urban platter Worcestershire Sauce, 200Gram [Tasty &amp; Delicious] — ₹216 — 4.3 out of 5 — 345 ratings",
+          "observedAt": "2026-09-07T13:15:01.720045+00:00"
+        },
+        {
+          "sourceClass": "product",
+          "url": "https://www.amazon.in/dp/B0944338TY",
+          "source": "amazon:in",
+          "snippet": "Barilla Pasta Sauce - Napoletana 400 gm, Non - GMO Project Verified, Vegan, Gluten free, No added Colour or Presevatives — ₹449 — 4.4 out of 5 — 183 ratings",
+          "observedAt": "2026-09-07T13:15:01.720345+00:00"
         }
       ],
-      "freshnessDate": "2026-08-31T14:44:19.384854+00:00",
+      "freshnessDate": "2026-09-07T13:15:01.720462+00:00",
       "notes": "diversity=0.14; community=0 search=0 product=5 ad-library=0 launch=0"
     }
   ]
