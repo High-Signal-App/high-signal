@@ -31,3 +31,9 @@ No deployment was performed. This requires only a web Worker release after exact
 Read-only provider preflight found current `high-signal-web` version 403 `608508e0-0f44-46fa-8e80-e26eb2c679d5`, tag `50beb67b62cb3fc21044fd8da6abbdb5bdf33ffc`, at 100% traffic in deployment `76e0bcfc-a20e-4478-a2b3-89dcb81eeb28`. Recheck immediately before any approved release. The rollback command is `pnpm --filter @high-signal/web exec wrangler rollback 608508e0-0f44-46fa-8e80-e26eb2c679d5 --name high-signal-web --message 'Revert review sample presentation regression' --yes`.
 
 Hosted acceptance must repeat the exact public record, list/embed/feed and mobile checks, retain all original sources, and confirm the numeric score cannot override the evidence limitation. Broader claim calibration and publication consistency remain #133 gates even if this web candidate passes.
+
+## Canonical edge-cache correction
+
+The first authorized web-only release deployed source `b1440b58e2f1ac36d60ad040803984e8f3c07ace` as version 404 `7a469c30-5691-4217-927d-688552f82c9c` at 100% traffic (deployment `75b0723c-905a-4350-b1ab-683fe44d33b1`). Exact CI `34132687524` passed. Ordinary isolated Chrome requests exposed a persistent regional cache difference: HKG served the qualified page, while SIN served the old heading with `x-edge-cache: HIT`, `cf-cache-status: HIT`, age 27125 seconds. A fresh query was not accepted as guest proof.
+
+The bounded follow-up adds the public corpus policy revision to Worker cache keys for root, signals, entities, embeds and sitemap. RSC keeps its complete route query and routing headers; HTML and RSC remain distinct. Existing cache TTLs and provider configuration are unchanged. Focused regressions verify old-key separation, affected paths, RSC state and unchanged unrelated paths. The separate agent Markdown cache/API/MCP semantics remain outside this repair.

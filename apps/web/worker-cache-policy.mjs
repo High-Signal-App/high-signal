@@ -1,3 +1,4 @@
+import { PUBLIC_CORPUS_POLICY_REVISION } from './public-corpus-policy.mjs';
 import { isPublicHtmlPath, normalizePublicPath } from './public-route-registry.mjs';
 
 const HTML_CACHE_CONTROL = 'public, max-age=300, s-maxage=86400';
@@ -51,14 +52,23 @@ export function isCacheableDocumentRequest(request) {
 
 export function cacheKeyForRequest(request) {
   const url = new URL(request.url);
-  if (isRscRequest(request)) return request;
-
   const pathname = normalizePublicPath(url.pathname);
-  if (pathname === '/') url.searchParams.set('__hs_cache_schema', ROOT_CACHE_SCHEMA);
-  else if (pathname === '/data' || pathname.startsWith('/data/')) {
+  if (!isRscRequest(request) && pathname === '/') {
+    url.searchParams.set('__hs_cache_schema', ROOT_CACHE_SCHEMA);
+  } else if (!isRscRequest(request) && (pathname === '/data' || pathname.startsWith('/data/'))) {
     url.searchParams.set('__hs_cache_schema', DATA_CACHE_SCHEMA);
-  } else return request;
-  return new Request(url, request);
+  }
+  if (
+    pathname === '/' ||
+    pathname === '/sitemap.xml' ||
+    ['/signals', '/entities', '/embed'].some(
+      (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
+    )
+  ) {
+    // Existing edge entries can outlive a release; policy changes must reach normal URLs.
+    url.searchParams.set('__hs_presentation', PUBLIC_CORPUS_POLICY_REVISION);
+  }
+  return url.href === request.url ? request : new Request(url, request);
 }
 
 export function cacheControlForRequest(request) {

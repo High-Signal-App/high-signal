@@ -125,3 +125,23 @@ assert.equal(edgeCacheStatus(rsc, 'HIT'), 'RSC-HIT');
 assert.equal(edgeCacheStatus(request('/about'), 'MISS'), 'MISS');
 
 console.log('Worker cache policy contract passed.');
+
+for (const path of [
+  '/',
+  '/signals',
+  '/signals/example',
+  '/signals/types/review',
+  '/entities/OPENAI',
+  '/embed/example',
+  '/sitemap.xml',
+]) {
+  const key = cacheKeyForRequest(request(path));
+  assert.equal(new URL(key.url).searchParams.get('__hs_presentation'), '2026-09-07.1');
+  assert.notEqual(key.url, request(path).url, 'old policy cache entries must not be reused');
+}
+const rscKey = cacheKeyForRequest(rsc);
+assert.equal(new URL(rscKey.url).searchParams.get('_rsc'), 'route-state');
+assert.equal(new URL(rscKey.url).searchParams.get('__hs_presentation'), '2026-09-07.1');
+assert.equal(rscKey.headers.get('Next-Router-State-Tree'), 'state');
+assert.equal(rscKey.headers.get('RSC'), '1');
+assert.notEqual(rscKey.url, cacheKeyForRequest(request('/signals/a-published-signal')).url);
