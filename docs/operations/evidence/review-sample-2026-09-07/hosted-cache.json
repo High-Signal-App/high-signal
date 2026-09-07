@@ -1,0 +1,50 @@
+[
+  {
+    "heading": "OPENAI: recorded app review sample",
+    "headers": {
+      "age": "55",
+      "cache-control": "public, max-age=300, s-maxage=86400",
+      "cf-cache-status": "HIT",
+      "cf-ray": "a37671213ddf5914-SIN",
+      "date": "Mon, 07 Sep 2026 14:35:48 GMT",
+      "x-edge-cache": "HIT"
+    }
+  },
+  {
+    "heading": "OPENAI: recorded app review sample",
+    "headers": {
+      "age": "56",
+      "cache-control": "public, max-age=300, s-maxage=86400",
+      "cf-cache-status": "HIT",
+      "cf-ray": "a3767130bb468799-SIN",
+      "date": "Mon, 07 Sep 2026 14:35:49 GMT",
+      "x-edge-cache": "HIT"
+    }
+  },
+  {
+    "heading": "OPENAI: recorded app review sample",
+    "headers": {
+      "age": "56",
+      "cache-control": "public, max-age=300, s-maxage=86400",
+      "cf-cache-status": "HIT",
+      "cf-ray": "a3767133b930b6bd-SIN",
+      "date": "Mon, 07 Sep 2026 14:35:49 GMT",
+      "x-edge-cache": "HIT"
+    }
+  },
+  {
+    "heading": "OPENAI: recorded app review sample",
+    "headers": {
+      "age": "59",
+      "cache-control": "public, max-age=300, s-maxage=86400",
+      "cf-cache-status": "HIT",
+      "cf-ray": "a3767136af376042-SIN",
+      "date": "Mon, 07 Sep 2026 14:35:52 GMT",
+      "x-edge-cache": "HIT"
+    }
+  },
+  {
+    "sitemapStatus": 200,
+    "reviewSampleOmitted": true
+  }
+]

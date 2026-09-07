@@ -1,0 +1,48 @@
+{
+  "at": "2026-09-07T14:35:00.833Z",
+  "source": "ddefa8dd2e27648a8952e98640f96a682ba9b02b",
+  "results": [
+    {
+      "width": 1440,
+      "status": 200,
+      "sixExcerpts": true,
+      "diagnosticsAndOriginalRetained": true,
+      "noindex": true,
+      "noNewsArticle": true,
+      "noOverflow": true,
+      "embed": true,
+      "list": true,
+      "methodology": true
+    },
+    {
+      "width": 390,
+      "status": 200,
+      "sixExcerpts": true,
+      "diagnosticsAndOriginalRetained": true,
+      "noindex": true,
+      "noNewsArticle": true,
+      "noOverflow": true,
+      "embed": true,
+      "list": true,
+      "methodology": true
+    }
+  ],
+  "feeds": [
+    {
+      "path": "/signals/rss",
+      "status": 200,
+      "qualified": true
+    },
+    {
+      "path": "/signals/atom",
+      "status": 200,
+      "qualified": true
+    },
+    {
+      "path": "/entities/OPENAI/rss",
+      "status": 200,
+      "qualified": true
+    }
+  ],
+  "limit": "Non-review signal control is local; older hosted history requires verification. Hosted methodology is navigation control only."
+}

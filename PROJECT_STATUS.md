@@ -2,14 +2,15 @@
 
 Last updated: 2026-09-07
 
-Review-sample qualification source repair: review-only app-store citations now
+Review-sample qualification web release: review-only app-store citations now
 render as a deduplicated review sample, with no verified adoption/satisfaction
 trend. Original generated narrative and stored confidence/quality score remain
 inspectable as hypotheses/diagnostics; original sources are preserved. Detail,
 cards, embeds and feeds share this presentation, and the web corpus policy
 withholds Article indexing. Actual local desktop/mobile rendering, 30 test
-suites, typecheck and Next build passed. Deployment remains pending reviewed
-exact-source release. API/MCP/Daily Brief semantic consistency, mixed-source
+suites, typecheck and OpenNext build passed. Source `ddefa8dd` is live on web
+Worker version 405 at 100% traffic after exact CI `34133353634`; ordinary
+desktop/mobile, list/embed/feed and previously stale SIN cache checks pass. API/MCP/Daily Brief semantic consistency, mixed-source
 claims and real confidence calibration remain open in #133; the product is
 not qualified for sharing. [Evidence and release boundary](docs/operations/2026-09-07-review-sample-qualification.md).
 

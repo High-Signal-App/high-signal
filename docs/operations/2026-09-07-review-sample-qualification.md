@@ -24,9 +24,9 @@ A read-only copy of the actual public signal and claim response was served by an
 
 The two temporary local services and isolated browsers were stopped. The existing `sweep-abandoned-20260906` stash remains untouched. Public fixture files are temporary and not committed; no original stored content was edited.
 
-## Reviewed release required
+## Initial reviewed release preflight
 
-No deployment was performed. This requires only a web Worker release after exact-head checks and review; no API deployment, D1 migration, seed or publication rerun is needed. Rebuild through the existing web OpenNext path and tag the exact source at release time; do not deploy a fixture-configured development build.
+The initial source receipt preceded deployment. The reviewed scope required only a web Worker release after exact-head checks and review; no API deployment, D1 migration, seed or publication rerun is needed. Rebuild through the existing web OpenNext path and tag the exact source at release time; do not deploy a fixture-configured development build.
 
 Read-only provider preflight found current `high-signal-web` version 403 `608508e0-0f44-46fa-8e80-e26eb2c679d5`, tag `50beb67b62cb3fc21044fd8da6abbdb5bdf33ffc`, at 100% traffic in deployment `76e0bcfc-a20e-4478-a2b3-89dcb81eeb28`. Recheck immediately before any approved release. The rollback command is `pnpm --filter @high-signal/web exec wrangler rollback 608508e0-0f44-46fa-8e80-e26eb2c679d5 --name high-signal-web --message 'Revert review sample presentation regression' --yes`.
 
@@ -37,3 +37,15 @@ Hosted acceptance must repeat the exact public record, list/embed/feed and mobil
 The first authorized web-only release deployed source `b1440b58e2f1ac36d60ad040803984e8f3c07ace` as version 404 `7a469c30-5691-4217-927d-688552f82c9c` at 100% traffic (deployment `75b0723c-905a-4350-b1ab-683fe44d33b1`). Exact CI `34132687524` passed. Ordinary isolated Chrome requests exposed a persistent regional cache difference: HKG served the qualified page, while SIN served the old heading with `x-edge-cache: HIT`, `cf-cache-status: HIT`, age 27125 seconds. A fresh query was not accepted as guest proof.
 
 The bounded follow-up adds the public corpus policy revision to Worker cache keys for root, signals, entities, embeds and sitemap. RSC keeps its complete route query and routing headers; HTML and RSC remain distinct. Existing cache TTLs and provider configuration are unchanged. Focused regressions verify old-key separation, affected paths, RSC state and unchanged unrelated paths. The separate agent Markdown cache/API/MCP semantics remain outside this repair.
+
+## Final hosted release and acceptance
+
+Source `ddefa8dd2e27648a8952e98640f96a682ba9b02b` passed exact CI [34133353634](https://github.com/High-Signal-App/high-signal/actions/runs/34133353634) and the full local OpenNext/Blume build. The guard reported clean main, synchronized remote and known target; because its monorepo target autodetection chose the API, the existing web-only command was explicitly run from `apps/web`: `pnpm exec opennextjs-cloudflare deploy --tag ddefa8dd2e27648a8952e98640f96a682ba9b02b`. Full CI was separately verified before dispatch, rather than relying only on the guard's green-workflow label.
+
+Production `high-signal-web` version 405 is `950432b9-68e9-466d-8c19-78e00ee19e5c`, exact source tag above, at 100% traffic in deployment `7153ee4f-c164-411c-88ea-2ddc4cba5cbb` (2026-09-07 14:34:15 UTC). No API deployment, schema migration, stored content change or generation/publication run occurred. Immediate rollback is version 404 `7a469c30-5691-4217-927d-688552f82c9c`; it preserves the presentation fix but can reuse stale cache entries. The pre-repair version 403 command above remains the full rollback if required.
+
+Ordinary queryless public URLs passed in isolated Chrome at desktop 1440×1000 and mobile 390×844: factual six-review headline/summary, all six source excerpts, closed original interpretation and diagnostic disclosures that expose the original narrative and 99/low values when opened, no strong-evidence badge, noindex/follow, no NewsArticle markup and no horizontal overflow. List, embed, RSS, Atom and entity RSS show the qualified sample presentation. Methodology remains reachable as the hosted non-review navigation control; non-review signal behavior has local regression coverage, not a new hosted historical-signal qualification. A request with limit 100 returned only three current published signals, all three recognized review samples. Older historical requests required verification; no access gate was bypassed and no broader history count is inferred.
+
+Four further ordinary Chrome requests reached the previously stale SIN cache and all returned the corrected headline with edge HIT (ages 55–59 seconds). The ordinary sitemap returned 200 and omitted this ineligible review sample. [Desktop](evidence/review-sample-2026-09-07/hosted-1440.png), [mobile](evidence/review-sample-2026-09-07/hosted-390.png), [journey assertions](evidence/review-sample-2026-09-07/hosted-render.json), and [cache/sitemap receipts](evidence/review-sample-2026-09-07/hosted-cache.json) are retained.
+
+This qualifies the bounded web presentation repair only. Mixed-source assertions, calibrated confidence, API/MCP/Brief semantic consistency, separate agent Markdown output/cache, scheduled freshness and Digg acceptance remain in #133. High Signal remains unqualified for portfolio sharing. Browsers and temporary local services are stopped; the pre-existing stash is preserved.

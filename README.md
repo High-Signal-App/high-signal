@@ -376,10 +376,10 @@ and claim/baseline calibration. No open issue was closed; no PR was open.
 
 ### Review-only claim qualification (2026-09-07)
 
-A checked source repair separates review observations from generated surge/adoption
+The web release at `ddefa8dd` separates review observations from generated surge/adoption
 hypotheses on the web. Original evidence remains inspectable, and the numeric
-pipeline score no longer acts as a confidence badge. [Local render and release
-boundary](docs/operations/2026-09-07-review-sample-qualification.md).
-Deployment and broader API/MCP/Brief claim calibration remain in
+pipeline score no longer acts as a confidence badge. [Local and hosted release evidence](docs/operations/2026-09-07-review-sample-qualification.md).
+Ordinary desktop/mobile acceptance passed, including the previously stale edge cache.
+Broader API/MCP/Brief claim calibration remains in
 [issue #133](https://github.com/High-Signal-App/high-signal/issues/133); this does
 not make the corpus shareable. No published content or existing stash was changed.
