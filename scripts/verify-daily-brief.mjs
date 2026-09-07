@@ -22,6 +22,7 @@
  *   BRIEF_REGIONS=global,south-asia node scripts/verify-daily-brief.mjs
  */
 
+import { verifyMcpConsumer } from './verify-mcp-consumer.mjs';
 import { calendarDate, validateBriefFreshness } from './verify-daily-brief-lib.mjs';
 
 const API = process.env.HIGH_SIGNAL_API ?? 'https://api.highsignal.app';
@@ -100,6 +101,17 @@ for (const region of REGIONS) {
   } catch (err) {
     failures++;
     process.stdout.write(`✗ ${err instanceof Error ? err.message : String(err)}\n`);
+  }
+}
+
+// The daily freshness gate also exercises the installed consumer contract.
+if (API.replace(/\/$/, '') === 'https://api.highsignal.app') {
+  try {
+    const consumer = await verifyMcpConsumer({ now });
+    console.log(`✓ MCP consumer parity: ${JSON.stringify(consumer.editions)}`);
+  } catch (error) {
+    failures++;
+    console.log(`✗ MCP consumer parity: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 

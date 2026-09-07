@@ -2,9 +2,10 @@
  * Daily brief D1 queries: public sections, personal sections, snapshots, feeds.
  */
 
-import { and, asc, desc, eq, inArray, gte, isNull, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, gte, lt, isNull, sql } from 'drizzle-orm';
 import {
   assessSignalQuality,
+  istDayRange,
   extractBriefEditorialSummary,
   familyForSignalType,
   normalizeCommunitySummary,
@@ -25,7 +26,7 @@ import {
   type SignalFamily,
 } from '@high-signal/shared';
 import { db, schema } from '../../db';
-import { serializeClaimEvidenceLink } from '../../lib/signal-quality';
+import { d1QueryChunks, serializeClaimEvidenceLink } from '../../lib/signal-quality';
 import {
   COMMUNITY_DIGEST_LOOKBACK_DAYS,
   IDEAS_LIMIT,
@@ -373,8 +374,11 @@ export async function buildDiggAttention(
 
 export async function buildStocks(
   database: BriefDatabase,
-  countries: string[]
+  countries: string[],
+  publicationDay?: string
 ): Promise<BriefStockItem[]> {
+  const dayRange = publicationDay ? istDayRange(publicationDay) : null;
+  if (publicationDay && !dayRange) throw new Error('invalid_publication_day');
   const sinceMs = Date.now() - RECENT_SIGNAL_WINDOW_DAYS * 24 * 60 * 60 * 1000;
   const sinceDate = new Date(sinceMs);
 
@@ -399,7 +403,9 @@ export async function buildStocks(
     .where(
       and(
         eq(schema.signals.reviewStatus, 'published'),
-        gte(schema.signals.publishedAt, sinceDate),
+        gte(schema.signals.publishedAt, dayRange?.start ?? sinceDate),
+        ...(dayRange ? [lt(schema.signals.publishedAt, dayRange.end)] : []),
+        sql`${schema.signals.bodyMd} NOT LIKE '> _backfill_%'`,
         ...(countries.length
           ? [
               inArray(
@@ -411,7 +417,7 @@ export async function buildStocks(
       )
     )
     .orderBy(desc(schema.signals.publishedAt))
-    .limit(STOCKS_LIMIT * 4); // overfetch so the post-filter can rank by direction
+    .limit(publicationDay ? 500 : STOCKS_LIMIT * 4);
 
   // Defend the public brief from legacy rows that predate cite-or-kill: require
   // two unique citations and never surface prediction-market-only evidence.
@@ -505,7 +511,7 @@ export async function buildStocks(
         },
       ];
     })
-    .slice(0, STOCKS_LIMIT);
+    .slice(0, publicationDay ? 200 : STOCKS_LIMIT);
 }
 
 async function loadBriefProvenanceBySignalId(
@@ -514,22 +520,29 @@ async function loadBriefProvenanceBySignalId(
 ): Promise<Map<string, NonNullable<BriefStockItem['provenance']>>> {
   const uniqueIds = Array.from(new Set(signalIds));
   if (uniqueIds.length === 0) return new Map();
-  const claimRows = await database
-    .select()
-    .from(schema.claimRecords)
-    .where(
-      and(
-        inArray(schema.claimRecords.signalId, uniqueIds),
-        eq(schema.claimRecords.surface, 'signal')
-      )
-    )
-    .orderBy(desc(schema.claimRecords.createdAt));
+  const claimRows: (typeof schema.claimRecords.$inferSelect)[] = [];
+  for (const ids of d1QueryChunks(uniqueIds)) {
+    claimRows.push(
+      ...(await database
+        .select()
+        .from(schema.claimRecords)
+        .where(
+          and(inArray(schema.claimRecords.signalId, ids), eq(schema.claimRecords.surface, 'signal'))
+        )
+        .orderBy(desc(schema.claimRecords.createdAt)))
+    );
+  }
   if (claimRows.length === 0) return new Map();
   const claimIds = claimRows.map((claim) => claim.id);
-  const linkRows = await database
-    .select()
-    .from(schema.claimEvidenceLinks)
-    .where(inArray(schema.claimEvidenceLinks.claimId, claimIds));
+  const linkRows: (typeof schema.claimEvidenceLinks.$inferSelect)[] = [];
+  for (const ids of d1QueryChunks(claimIds)) {
+    linkRows.push(
+      ...(await database
+        .select()
+        .from(schema.claimEvidenceLinks)
+        .where(inArray(schema.claimEvidenceLinks.claimId, ids)))
+    );
+  }
   const linksByClaim = new Map<string, ClaimEvidenceLink[]>();
   for (const link of linkRows) {
     const links = linksByClaim.get(link.claimId) ?? [];

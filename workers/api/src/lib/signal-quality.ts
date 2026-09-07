@@ -17,7 +17,7 @@ interface PublicationContext {
 
 const D1_IN_QUERY_CHUNK_SIZE = 90;
 
-function chunks<T>(values: T[]): T[][] {
+export function d1QueryChunks<T>(values: T[]): T[][] {
   const result: T[][] = [];
   for (let index = 0; index < values.length; index += D1_IN_QUERY_CHUNK_SIZE) {
     result.push(values.slice(index, index + D1_IN_QUERY_CHUNK_SIZE));
@@ -103,7 +103,7 @@ export async function enrichPublishedSignals<T extends typeof schema.signals.$in
   if (signalIds.length === 0) return [];
   const database = db(d1);
   const claims: Array<typeof schema.claimRecords.$inferSelect> = [];
-  for (const signalIdChunk of chunks(signalIds)) {
+  for (const signalIdChunk of d1QueryChunks(signalIds)) {
     claims.push(
       ...(await database
         .select()
@@ -118,7 +118,7 @@ export async function enrichPublishedSignals<T extends typeof schema.signals.$in
   }
   const claimIds = claims.map((claim) => claim.id);
   const links: Array<typeof schema.claimEvidenceLinks.$inferSelect> = [];
-  for (const claimIdChunk of chunks(claimIds)) {
+  for (const claimIdChunk of d1QueryChunks(claimIds)) {
     links.push(
       ...(await database
         .select()

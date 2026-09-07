@@ -40,7 +40,7 @@ vi.mock('../routes/brief/query', async (importOriginal) => {
 
 import { briefRoute, parseDailyBriefRequest, safeCategory } from '../routes/brief';
 import { dailySignalEdition } from '../routes/brief/route';
-import type { BriefSnapshot } from '@high-signal/shared';
+import { istDay, type BriefSnapshot } from '@high-signal/shared';
 import { createHistoryGrant } from '../lib/history-access';
 
 const env = { DB: {} as D1Database };
@@ -178,6 +178,55 @@ describe('GET /daily', () => {
     expect(body.nextExpectedPublishAt).toBeTruthy();
     // Should be an ISO timestamp at 03:30 UTC
     expect(body.nextExpectedPublishAt).toMatch(/^20\d{2}-\d{2}-\d{2}T03:30:00/);
+  });
+
+  it('reads signals published after yesterday snapshot was computed', async () => {
+    const day = istDay(new Date(), -1);
+    mocks.tryGetPrecomputedSnapshot.mockResolvedValue({
+      generatedAt: `${day}T03:30:00Z`,
+      region: 'global',
+      hasBrand: false,
+      stocks: [],
+      ideas: [],
+      trends: [],
+      perception: [],
+      improvements: [],
+    });
+    mocks.buildStocks.mockResolvedValue([
+      {
+        entityName: 'Test Corp',
+        signalSlug: 'late-publication',
+        publishedAt: `${day}T04:00:00Z`,
+        whatChanged: 'Test Corp announced a new product launch today.',
+        whyItMatters: 'This expands their market reach significantly.',
+        uncertainty: 'No material uncertainty was identified.',
+        provenance: { primaryCount: 2, corroborationCount: 1, contradictionCount: 0 },
+        evidenceUrls: [{ url: 'https://example.com/1' }, { url: 'https://example.org/2' }],
+      },
+    ] as never);
+    const response = await briefRoute.request(`http://test/daily?date=${day}`, {}, env);
+    const body = (await response.json()) as BriefSnapshot;
+    expect(body.stocks.map((item) => item.signalSlug)).toEqual(['late-publication']);
+    expect(mocks.buildStocks).toHaveBeenCalledWith(expect.anything(), [], day);
+  });
+
+  it('does not reuse cached signals when the public ledger read fails', async () => {
+    const day = istDay(new Date(), -1);
+    mocks.tryGetPrecomputedSnapshot.mockResolvedValue({
+      generatedAt: `${day}T03:30:00Z`,
+      region: 'global',
+      hasBrand: false,
+      stocks: [{ signalSlug: 'stale', publishedAt: `${day}T03:00:00Z` }],
+      ideas: [],
+      trends: [],
+      perception: [],
+      improvements: [],
+    });
+    mocks.buildStocks.mockRejectedValue(new Error('ledger unavailable'));
+    const response = await briefRoute.request(`http://test/daily?date=${day}`, {}, env);
+    const body = (await response.json()) as BriefSnapshot;
+    expect(body.stocks).toEqual([]);
+    expect(body.categoryStates?.stocks.status).toBe('unavailable');
   });
 
   it('marks a precomputed snapshot as published', async () => {

@@ -18,6 +18,7 @@ import { Hono, type Context } from 'hono';
 import { desc, sql } from 'drizzle-orm';
 import {
   buildBriefEditionReceipt,
+  categoryStatesForSnapshot,
   countriesForRegion,
   isProtectedHistoryDay,
   isRegion,
@@ -86,12 +87,28 @@ async function handleDailyBriefRequest(c: Context<{ Bindings: Env }>) {
   }
   if (protectedHistory) c.header('Cache-Control', 'private, no-store');
   const database = db(c.env.DB);
+  const editionDate = request.archiveDate ?? istDay();
 
   const cached = await cachedDailyBrief(database, request);
   if (cached) {
     if (cached.status === 200) {
+      let snapshot = cached.body;
+      // The public two-day signal ledger stays current when publication happens
+      // after a region snapshot was computed. Never substitute a stale cached
+      // stock section if this authoritative read fails.
+      if (!protectedHistory) {
+        const stocks = await safeCategory(
+          () => buildStocks(database, countriesForRegion(request.region), editionDate),
+          'stocks'
+        );
+        snapshot = pruneUnpublishableBriefItems({
+          ...snapshot,
+          stocks: stocks.items,
+          categoryStates: { ...categoryStatesForSnapshot(snapshot), stocks: stocks.state },
+        }).snapshot;
+      }
       const body = {
-        ...dailySignalEdition(cached.body, request.archiveDate ?? istDay()),
+        ...dailySignalEdition(snapshot, editionDate),
         publishStatus: 'published' as const,
       };
       return c.json(body, cached.status);
@@ -99,10 +116,10 @@ async function handleDailyBriefRequest(c: Context<{ Bindings: Env }>) {
     return c.json(cached.body, cached.status);
   }
 
-  const snapshot = dailySignalEdition(await composeDailyBrief(database, request), istDay());
+  const snapshot = dailySignalEdition(await composeDailyBrief(database, request), editionDate);
   // No precomputed snapshot for today — the publish cron hasn't run yet.
   // Mark it pending so agents don't mistake stale content for today's edition.
-  if (!request.archiveDate) {
+  if (!protectedHistory) {
     return c.json({
       ...snapshot,
       publishStatus: 'pending' as const,
@@ -159,7 +176,7 @@ async function cachedDailyBrief(
   if (snapshot && (request.archiveDate || buildBriefEditionReceipt(snapshot).publishable)) {
     return { body: snapshot, status: 200 as const };
   }
-  if (request.archiveDate) {
+  if (request.archiveDate && isProtectedHistoryDay(request.archiveDate)) {
     return {
       body: { error: 'no_brief_for_date', date: request.archiveDate, region: request.region },
       status: 404 as const,
@@ -174,7 +191,7 @@ async function composeDailyBrief(
 ) {
   const countries = countriesForRegion(request.region);
   const [stockResult, ideaResult, trendResult, attention] = await Promise.all([
-    safeCategory(() => buildStocks(database, countries), 'stocks'),
+    safeCategory(() => buildStocks(database, countries, request.archiveDate ?? istDay()), 'stocks'),
     safeCategory(() => buildIdeas(database, request.region, countries), 'ideas'),
     safeCategory(() => buildTrends(database, request.region, countries), 'trends'),
     buildDiggAttention(database),
