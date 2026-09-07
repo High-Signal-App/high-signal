@@ -373,3 +373,13 @@ python/ingest/tests/test_markets_kalshi.py -q` (58 tests).
 The sole open issue remains [#133](https://github.com/High-Signal-App/high-signal/issues/133),
 including provider recovery evidence, scheduled-chain/Digg latency acceptance,
 and claim/baseline calibration. No open issue was closed; no PR was open.
+
+### Review-only claim qualification (2026-09-07)
+
+A checked source repair separates review observations from generated surge/adoption
+hypotheses on the web. Original evidence remains inspectable, and the numeric
+pipeline score no longer acts as a confidence badge. [Local render and release
+boundary](docs/operations/2026-09-07-review-sample-qualification.md).
+Deployment and broader API/MCP/Brief claim calibration remain in
+[issue #133](https://github.com/High-Signal-App/high-signal/issues/133); this does
+not make the corpus shareable. No published content or existing stash was changed.

@@ -98,3 +98,20 @@ assert.equal(
 assert.equal(evaluateDirectoryPage().eligible, false);
 
 console.log('public corpus policy tests passed');
+
+const reviewSignal = {
+  reviewStatus: 'published',
+  qualityScore: 99,
+  confidence: 'high',
+  primaryEntityId: 'example',
+  bodyMd: '# Adoption surged\n\n'.padEnd(260, 'e'),
+  evidenceUrls: [
+    'https://play.google.com/store/apps/details?id=com.example&reviewId=one',
+    'https://itunes.apple.com/us/review?id=123&reviewId=two',
+  ],
+};
+assert.equal(evaluateSignal(reviewSignal).eligible, false);
+assert.deepEqual(robotsForVerdict(evaluateSignal(reviewSignal)), { index: false, follow: true });
+assert.ok(
+  evaluateSignal(reviewSignal).reasons.includes('review-sample-without-verified-trend-baseline')
+);

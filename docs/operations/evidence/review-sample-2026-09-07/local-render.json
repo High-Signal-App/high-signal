@@ -1,0 +1,26 @@
+[
+  {
+    "width": 1440,
+    "originalReviewExcerpts": 6,
+    "collapsedDiagnosticsAndNarrativeInspectable": true,
+    "metadataNoindex": true,
+    "articleOmitted": true,
+    "listEmbedRssAtomQualified": true,
+    "overflow": {
+      "viewport": 1440,
+      "document": 1440
+    }
+  },
+  {
+    "width": 390,
+    "originalReviewExcerpts": 6,
+    "collapsedDiagnosticsAndNarrativeInspectable": true,
+    "metadataNoindex": true,
+    "articleOmitted": true,
+    "listEmbedRssAtomQualified": true,
+    "overflow": {
+      "viewport": 390,
+      "document": 390
+    }
+  }
+]

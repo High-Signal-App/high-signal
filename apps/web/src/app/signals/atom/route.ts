@@ -2,7 +2,7 @@ import { headers } from 'next/headers';
 
 import { api } from '@/lib/api';
 import { signalExcerpt, signalHeadline } from '@/lib/rss';
-import { isBackfillSignal } from '@/lib/signal-format';
+import { isBackfillSignal, signalPresentation } from '@/lib/signal-format';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,14 +39,14 @@ export async function GET() {
   const entries = signals
     .map(
       (s) => `  <entry>
-    <title>${escapeXml(signalHeadline(s.bodyMd, s.slug))}</title>
+    <title>${escapeXml(signalPresentation(s).sample?.headline ?? signalHeadline(s.bodyMd, s.slug))}</title>
     <id>${escapeXml(`${base}/signals/${s.slug}`)}</id>
     <link href="${escapeXml(`${base}/signals/${s.slug}`)}" />
     <updated>${new Date(s.publishedAt).toISOString()}</updated>
-    <summary>${escapeXml(signalExcerpt(s.bodyMd, 600))}</summary>
-    <category term="${escapeXml(s.signalType)}" />
-    <category term="${escapeXml(s.direction)}" />
-    <category term="${escapeXml(s.confidence)}" />
+    <summary>${escapeXml(signalPresentation(s).sample?.summary ?? signalExcerpt(s.bodyMd, 600))}</summary>
+    <category term="${escapeXml(signalPresentation(s).sample ? 'review sample' : s.signalType)}" />
+    <category term="${escapeXml(signalPresentation(s).sample ? 'trend not established' : s.direction)}" />
+    <category term="${escapeXml(signalPresentation(s).sample ? 'unverified hypothesis' : s.confidence)}" />
   </entry>`
     )
     .join('\n');

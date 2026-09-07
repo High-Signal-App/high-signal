@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { ConfidenceBadge } from '@/components/atoms/ConfidenceBadge';
 import { DirectionPill } from '@/components/atoms/DirectionPill';
 import { api } from '@/lib/api';
-import { signalHeadline } from '@/lib/rss';
+import { signalPresentation } from '@/lib/signal-format';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,7 +20,7 @@ export default async function EmbedSignal({ params }: { params: Promise<{ slug: 
     return notFound();
   }
   const { signal } = data;
-  const headline = signalHeadline(signal.bodyMd, signal.slug);
+  const { headline, summary, sample } = signalPresentation(signal);
 
   return (
     <main className="bg-zinc-950 p-4 text-zinc-300">
@@ -31,18 +31,27 @@ export default async function EmbedSignal({ params }: { params: Promise<{ slug: 
             <span className="text-zinc-700">·</span>
             <span className="text-[var(--color-accent)]">{signal.primaryEntityId}</span>
             <span className="text-zinc-700">·</span>
-            <span>{signal.signalType.replaceAll('_', ' ')}</span>
+            <span>{sample ? 'review sample' : signal.signalType.replaceAll('_', ' ')}</span>
           </div>
           <div className="flex items-center gap-2">
-            <ConfidenceBadge confidence={signal.confidence} />
-            <DirectionPill direction={signal.direction} />
+            {sample ? (
+              <span className="text-sm text-amber-300">Trend not established</span>
+            ) : (
+              <>
+                <ConfidenceBadge confidence={signal.confidence} />
+                <DirectionPill direction={signal.direction} />
+              </>
+            )}
           </div>
         </div>
         <h3 className="mt-3 text-base font-medium text-zinc-100">{headline}</h3>
+        {sample && <p className="mt-3 text-sm text-zinc-400">{summary}</p>}
         <div className="mt-3 flex items-center gap-4 font-mono text-[10px] text-zinc-500">
-          <span>
-            window <span className="nums text-zinc-300">{signal.predictedWindowDays}d</span>
-          </span>
+          {!sample && (
+            <span>
+              window <span className="nums text-zinc-300">{signal.predictedWindowDays}d</span>
+            </span>
+          )}
           <span>
             evidence <span className="nums text-zinc-300">{signal.evidenceUrls.length}</span>
           </span>

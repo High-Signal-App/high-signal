@@ -1,13 +1,12 @@
 import Link from 'next/link';
 import type { SignalRow } from '@/lib/api';
-import { signalHeadline, signalSummary } from '@/lib/signal-format';
+import { signalPresentation } from '@/lib/signal-format';
 import { pricedInContext, pricedInTone } from '@/lib/price-context';
 import { DirectionPill } from '../atoms/DirectionPill';
 import { ConfidenceBadge } from '../atoms/ConfidenceBadge';
 
 export function SignalCard({ s }: { s: SignalRow }) {
-  const headline = signalHeadline(s.bodyMd, s.slug);
-  const summary = signalSummary(s.bodyMd, s.slug);
+  const { headline, summary, sample } = signalPresentation(s);
   const price = pricedInContext(s.primaryEntityId, s.direction);
   return (
     <Link
@@ -27,10 +26,10 @@ export function SignalCard({ s }: { s: SignalRow }) {
               <span className="text-zinc-700">·</span>
             </>
           )}
-          <span>{s.signalType.replaceAll('_', ' ')}</span>
+          <span>{sample ? 'review sample' : s.signalType.replaceAll('_', ' ')}</span>
         </div>
         <div className="flex shrink-0 items-center gap-3">
-          {price.status !== 'unknown' ? (
+          {!sample && price.status !== 'unknown' ? (
             <span
               className={`border px-2 py-1 font-mono text-[10px] uppercase tracking-[0.16em] ${pricedInTone(price.status)}`}
               title={price.reason}
@@ -38,15 +37,21 @@ export function SignalCard({ s }: { s: SignalRow }) {
               {price.label}
             </span>
           ) : null}
-          <ConfidenceBadge confidence={s.confidence} />
-          <DirectionPill direction={s.direction} />
+          {sample ? (
+            <span className="text-sm text-amber-300">Trend not established</span>
+          ) : (
+            <>
+              <ConfidenceBadge confidence={s.confidence} />
+              <DirectionPill direction={s.direction} />
+            </>
+          )}
         </div>
       </div>
       <h3 className="mt-4 max-w-3xl text-xl font-medium leading-snug tracking-tight text-zinc-100 group-hover:text-white">
         {headline}
       </h3>
       {summary && <p className="mt-3 max-w-3xl text-sm leading-6 text-zinc-400">{summary}</p>}
-      {s.spilloverEntityIds.length > 0 && (
+      {!sample && s.spilloverEntityIds.length > 0 && (
         <div className="mt-4 flex flex-wrap items-baseline gap-1.5 font-mono text-[10px] text-zinc-500">
           <span className="uppercase tracking-[0.18em]">spillover</span>
           {s.spilloverEntityIds.slice(0, 8).map((eid) => (
@@ -60,18 +65,20 @@ export function SignalCard({ s }: { s: SignalRow }) {
         </div>
       )}
       <div className="mt-4 flex items-center gap-4 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500">
-        <span>
-          window <span className="nums text-zinc-300">{s.predictedWindowDays}d</span>
-        </span>
+        {!sample && (
+          <span>
+            window <span className="nums text-zinc-300">{s.predictedWindowDays}d</span>
+          </span>
+        )}
         <span>
           evidence <span className="nums text-zinc-300">{s.evidenceUrls.length}</span>
         </span>
-        {typeof s.qualityScore === 'number' && (
+        {!sample && typeof s.qualityScore === 'number' && (
           <span>
             quality <span className="nums text-zinc-300">{s.qualityScore}</span>
           </span>
         )}
-        {price.price ? (
+        {!sample && price.price ? (
           <span title={price.reason}>
             {price.price.ticker}{' '}
             <span className="nums text-zinc-300">${price.price.currentPrice.toFixed(2)}</span> / 45d{' '}

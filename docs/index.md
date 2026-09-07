@@ -81,3 +81,5 @@ pnpm docs:blume:build  # static build into dist/ (git-ignored)
 ```
 
 `docs:check` runs in CI (`.github/workflows/docs.yml`) on every push and PR.
+
+- [Review sample qualification and release boundary](operations/2026-09-07-review-sample-qualification.md) — September 7 public claim-calibration regression and local render evidence.

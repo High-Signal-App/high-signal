@@ -2,7 +2,7 @@ import { headers } from 'next/headers';
 
 import { api } from '@/lib/api';
 import { buildRssXml, signalExcerpt, signalHeadline } from '@/lib/rss';
-import { isBackfillSignal } from '@/lib/signal-format';
+import { isBackfillSignal, signalPresentation } from '@/lib/signal-format';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,12 +27,14 @@ export async function GET() {
       'Every published High Signal signal — evidence-backed, with direction and confidence, scored against forward returns.',
     lastBuildDate: signals.length > 0 ? new Date(signals[0].publishedAt) : new Date(),
     items: signals.map((s) => ({
-      title: signalHeadline(s.bodyMd, s.slug),
+      title: signalPresentation(s).sample?.headline ?? signalHeadline(s.bodyMd, s.slug),
       link: `${base}/signals/${s.slug}`,
       guid: `${base}/signals/${s.slug}`,
       pubDate: new Date(s.publishedAt),
-      description: signalExcerpt(s.bodyMd, 600),
-      categories: [s.signalType, s.direction, s.confidence],
+      description: signalPresentation(s).sample?.summary ?? signalExcerpt(s.bodyMd, 600),
+      categories: signalPresentation(s).sample
+        ? ['review sample', 'trend not established']
+        : [s.signalType, s.direction, s.confidence],
     })),
   });
 

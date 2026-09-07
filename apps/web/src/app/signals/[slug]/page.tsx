@@ -1,7 +1,7 @@
 import type { Metadata, Route } from 'next';
 import { notFound } from 'next/navigation';
 import { ApiError, api } from '@/lib/api';
-import { isBackfillSignal, signalHeadline, signalSummary } from '@/lib/signal-format';
+import { isBackfillSignal, signalPresentation } from '@/lib/signal-format';
 import { pricedInContext, pricedInTone } from '@/lib/price-context';
 import { DirectionPill } from '@/components/atoms/DirectionPill';
 import { ConfidenceBadge } from '@/components/atoms/ConfidenceBadge';
@@ -16,10 +16,6 @@ import { verifiedHistoryGrant } from '@/lib/history-access';
 import { isProtectedHistoryDay, istDayFromTimestamp } from '@high-signal/shared';
 
 export const dynamic = 'force-dynamic';
-
-function deriveHeadline(bodyMd: string): string {
-  return signalHeadline(bodyMd, 'signal');
-}
 
 function markdownWithoutFirstHeading(markdown: string) {
   return markdown.replace(/^\s*#\s+.+\n+/, '').trim();
@@ -84,10 +80,9 @@ export async function generateMetadata({
   try {
     const { signal } = await api.signal(slug);
     const verdict = evaluateSignal({ ...signal, isBackfill: isBackfillSignal(signal) });
-    const headline = deriveHeadline(signal.bodyMd ?? '');
+    const { headline, summary: storyBlurb } = signalPresentation(signal, 160);
     // Digg-like SEO: meta description should read as a story blurb, not an
     // internal score line. Keep direction/confidence for humans in the body.
-    const storyBlurb = signalSummary(signal.bodyMd ?? '', slug, 160);
     const description =
       storyBlurb.length >= 40
         ? storyBlurb
@@ -170,8 +165,8 @@ export default async function SignalDetail({ params }: { params: Promise<{ slug:
   } catch {
     // Claims surface is additive; a fetch failure should not 404 the signal.
   }
-  const headline = signalHeadline(signal.bodyMd, signal.slug);
-  const summary = signalSummary(signal.bodyMd, signal.slug, 720);
+  const { headline, summary, sample } = signalPresentation(signal, 720);
+  const Interpretation = sample ? 'details' : 'div';
   const verdict = evaluateSignal({ ...signal, isBackfill: isBackfillSignal(signal) });
   const price = pricedInContext(signal.primaryEntityId, signal.direction);
   const bodyMarkdown = markdownWithoutFirstHeading(signal.bodyMd);
@@ -210,11 +205,17 @@ export default async function SignalDetail({ params }: { params: Promise<{ slug:
               {signal.primaryEntityId}
             </a>
             <span className="text-zinc-700">·</span>
-            <span>{signal.signalType.replaceAll('_', ' ')}</span>
+            <span>{sample ? 'review sample' : signal.signalType.replaceAll('_', ' ')}</span>
           </div>
           <div className="flex shrink-0 items-center gap-3">
-            <ConfidenceBadge confidence={signal.confidence} />
-            <DirectionPill direction={signal.direction} />
+            {sample ? (
+              <span className="text-sm text-amber-300">Trend not established</span>
+            ) : (
+              <>
+                <ConfidenceBadge confidence={signal.confidence} />
+                <DirectionPill direction={signal.direction} />
+              </>
+            )}
           </div>
         </div>
         <h1 className="mt-5 max-w-3xl text-3xl font-medium leading-tight tracking-tight">
@@ -222,19 +223,16 @@ export default async function SignalDetail({ params }: { params: Promise<{ slug:
         </h1>
         {summary && <p className="mt-5 max-w-3xl text-base leading-7 text-zinc-300">{summary}</p>}
         <div className="mt-6 flex items-center gap-5 font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--color-muted)]">
-          <span>
-            window <span className="nums text-zinc-300">{signal.predictedWindowDays}d</span>
-          </span>
+          {!sample && (
+            <span>
+              window <span className="nums text-zinc-300">{signal.predictedWindowDays}d</span>
+            </span>
+          )}
           <span>
             evidence <span className="nums text-zinc-300">{evidence.length}</span>
           </span>
-          {typeof signal.qualityScore === 'number' && (
-            <span>
-              automated quality score{' '}
-              <span className="nums text-zinc-300">{signal.qualityScore}</span>
-            </span>
-          )}
-          {price.price ? (
+
+          {!sample && price.price ? (
             <span>
               price{' '}
               <span className="nums text-zinc-300">
@@ -246,37 +244,37 @@ export default async function SignalDetail({ params }: { params: Promise<{ slug:
         <ShareBar url={`${SITE_URL}/signals/${slug}`} title={headline} className="mt-6" />
       </header>
 
-      <section className="mt-8 border border-zinc-800 bg-zinc-950/35 p-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--color-muted)]">
-              automated quality score
-            </h2>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-300">
-              {confidenceCopy(signal.qualityScore, signal.independentSourceCount)}
-            </p>
-          </div>
-          {typeof signal.qualityScore === 'number' && (
-            <div className="nums shrink-0 text-4xl font-medium text-zinc-100">
-              {signal.qualityScore}
-            </div>
-          )}
-        </div>
-        <div className="mt-4 flex flex-wrap gap-2 font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--color-muted)]">
-          <span>{signal.confidence} confidence</span>
-          {typeof signal.independentSourceCount === 'number' && (
-            <span>{signal.independentSourceCount} independent source classes</span>
-          )}
-          {signal.sourceClasses?.map((sourceClass) => (
-            <span key={sourceClass}>{sourceClass}</span>
-          ))}
-          {signal.qualityReasons?.map((reason) => (
-            <span key={reason}>{reason.replaceAll('_', ' ')}</span>
-          ))}
-        </div>
-      </section>
+      {sample && (
+        <section className="mt-8 border border-amber-700/50 p-4" aria-labelledby="evidence-limit">
+          <h2 id="evidence-limit" className="font-medium text-amber-200">
+            What the evidence supports
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-zinc-300">{sample.limitation}</p>
+          <p className="mt-2 text-sm leading-6 text-zinc-400">
+            The original generated narrative is retained below for inspection, not presented as an
+            established observation.
+          </p>
+        </section>
+      )}
+      <details className="mt-8 border border-zinc-800 p-4">
+        <summary className="cursor-pointer text-sm text-zinc-400">
+          Stored assessment and pipeline diagnostics
+        </summary>
+        <p className="mt-3 text-sm leading-6 text-zinc-300">
+          {confidenceCopy(signal.qualityScore, signal.independentSourceCount)}
+        </p>
+        <p className="mt-2 text-sm text-zinc-400">
+          Stored editorial confidence: {signal.confidence}. This band is not a measured probability.
+        </p>
+        {sample && (
+          <p className="mt-2 text-sm text-zinc-400">
+            Generated hypothesis: {signal.signalType.replaceAll('_', ' ')} · {signal.direction} ·{' '}
+            {signal.predictedWindowDays} days. Review citations do not verify this hypothesis.
+          </p>
+        )}
+      </details>
 
-      {price.status !== 'unknown' ? (
+      {!sample && price.status !== 'unknown' ? (
         <section className="mt-8 border-y border-zinc-800 py-5">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
@@ -291,7 +289,7 @@ export default async function SignalDetail({ params }: { params: Promise<{ slug:
               {price.label}
             </span>
           </div>
-          {price.price ? (
+          {!sample && price.price ? (
             <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-muted)]">
               <span>
                 as of <span className="nums text-zinc-300">{price.price.asOf}</span>
@@ -333,83 +331,101 @@ export default async function SignalDetail({ params }: { params: Promise<{ slug:
         </section>
       ) : null}
 
-      {signal.observedEvent ||
-      signal.directEntityImpact ||
-      signal.supplyChainImpact ||
-      signal.businessInference ? (
-        <section className="mt-10 border-y border-zinc-800 py-6" aria-labelledby="signal-reasoning">
-          <h2
-            id="signal-reasoning"
-            className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--color-muted)]"
+      <Interpretation className={sample ? 'mt-10 border border-zinc-800 p-4' : undefined}>
+        {sample && (
+          <summary className="cursor-pointer font-medium text-zinc-300">
+            Original generated interpretation — unverified trend hypothesis
+          </summary>
+        )}
+        {signal.observedEvent ||
+        signal.directEntityImpact ||
+        signal.supplyChainImpact ||
+        signal.businessInference ? (
+          <section
+            className="mt-10 border-y border-zinc-800 py-6"
+            aria-labelledby="signal-reasoning"
           >
-            why this became a signal
-          </h2>
-          <dl className="mt-5 grid gap-6 sm:grid-cols-2">
-            {signal.observedEvent ? (
-              <div>
-                <dt className="text-sm font-medium text-zinc-100">Observed event</dt>
-                <dd className="mt-2 text-sm leading-6 text-zinc-400">{signal.observedEvent}</dd>
-              </div>
-            ) : null}
-            {signal.directEntityImpact ? (
-              <div>
-                <dt className="text-sm font-medium text-zinc-100">Direct impact</dt>
-                <dd className="mt-2 text-sm leading-6 text-zinc-400">
-                  {signal.directEntityImpact}
-                </dd>
-              </div>
-            ) : null}
-            {signal.supplyChainImpact ? (
-              <div>
-                <dt className="text-sm font-medium text-zinc-100">Supply-chain impact</dt>
-                <dd className="mt-2 text-sm leading-6 text-zinc-400">{signal.supplyChainImpact}</dd>
-              </div>
-            ) : null}
-            {signal.businessInference ? (
-              <div>
-                <dt className="flex flex-wrap items-center gap-2 text-sm font-medium text-zinc-100">
-                  Business inference
-                  <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--color-muted)]">
-                    {signal.inferenceStrength ?? 'weak'}
-                  </span>
-                </dt>
-                <dd className="mt-2 text-sm leading-6 text-zinc-400">{signal.businessInference}</dd>
-                {signal.inferenceEvidenceUrls && signal.inferenceEvidenceUrls.length > 0 ? (
-                  <dd className="mt-3 flex flex-wrap gap-3 font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--color-muted)]">
-                    {signal.inferenceEvidenceUrls.map((url) => (
-                      <a
-                        key={url}
-                        href={url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="hover:text-[var(--color-accent)]"
-                      >
-                        inference proof · {hostLabel(url)} ↗
-                      </a>
-                    ))}
+            <h2
+              id="signal-reasoning"
+              className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--color-muted)]"
+            >
+              why this became a signal
+            </h2>
+            <dl className="mt-5 grid gap-6 sm:grid-cols-2">
+              {signal.observedEvent ? (
+                <div>
+                  <dt className="text-sm font-medium text-zinc-100">
+                    {sample ? 'Generated event description' : 'Observed event'}
+                  </dt>
+                  <dd className="mt-2 text-sm leading-6 text-zinc-400">{signal.observedEvent}</dd>
+                </div>
+              ) : null}
+              {signal.directEntityImpact ? (
+                <div>
+                  <dt className="text-sm font-medium text-zinc-100">
+                    {sample ? 'Hypothesized direct impact' : 'Direct impact'}
+                  </dt>
+                  <dd className="mt-2 text-sm leading-6 text-zinc-400">
+                    {signal.directEntityImpact}
                   </dd>
-                ) : null}
-              </div>
-            ) : null}
-          </dl>
-        </section>
-      ) : null}
+                </div>
+              ) : null}
+              {signal.supplyChainImpact ? (
+                <div>
+                  <dt className="text-sm font-medium text-zinc-100">Supply-chain impact</dt>
+                  <dd className="mt-2 text-sm leading-6 text-zinc-400">
+                    {signal.supplyChainImpact}
+                  </dd>
+                </div>
+              ) : null}
+              {signal.businessInference ? (
+                <div>
+                  <dt className="flex flex-wrap items-center gap-2 text-sm font-medium text-zinc-100">
+                    Business inference
+                    <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--color-muted)]">
+                      {signal.inferenceStrength ?? 'weak'}
+                    </span>
+                  </dt>
+                  <dd className="mt-2 text-sm leading-6 text-zinc-400">
+                    {signal.businessInference}
+                  </dd>
+                  {signal.inferenceEvidenceUrls && signal.inferenceEvidenceUrls.length > 0 ? (
+                    <dd className="mt-3 flex flex-wrap gap-3 font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--color-muted)]">
+                      {signal.inferenceEvidenceUrls.map((url) => (
+                        <a
+                          key={url}
+                          href={url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="hover:text-[var(--color-accent)]"
+                        >
+                          inference proof · {hostLabel(url)} ↗
+                        </a>
+                      ))}
+                    </dd>
+                  ) : null}
+                </div>
+              ) : null}
+            </dl>
+          </section>
+        ) : null}
 
-      {bodyMarkdown ? (
-        <section id="provenance" className="mt-12 scroll-mt-24 border-t border-zinc-800 pt-6">
-          <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--color-muted)]">
-            signal brief
-          </h2>
-          <div className="mt-5">
-            <MarkdownView markdown={bodyMarkdown} />
-          </div>
-        </section>
-      ) : null}
+        {bodyMarkdown ? (
+          <section id="provenance" className="mt-12 scroll-mt-24 border-t border-zinc-800 pt-6">
+            <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--color-muted)]">
+              signal brief
+            </h2>
+            <div className="mt-5">
+              <MarkdownView markdown={bodyMarkdown} />
+            </div>
+          </section>
+        ) : null}
+      </Interpretation>
 
       {claims.length > 0 && (
         <section className="mt-12 border-t border-zinc-800 pt-6">
           <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--color-muted)]">
-            claim proofs
+            {sample ? 'Stored claim annotations — not trend verification' : 'claim proofs'}
           </h2>
           <ul className="mt-4 space-y-3">
             {claims
@@ -474,7 +490,7 @@ export default async function SignalDetail({ params }: { params: Promise<{ slug:
 
       <section className="mt-12 border-t border-zinc-800 pt-6">
         <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--color-muted)]">
-          source data used as proof
+          {sample ? 'Original review excerpts and source links' : 'source data used as proof'}
         </h2>
         <ul className="mt-4 space-y-3">
           {evidence.map((e) => {

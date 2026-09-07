@@ -1,3 +1,4 @@
+import { reviewSample } from '../../review-sample.mjs';
 import type { SignalRow } from '@/lib/api';
 
 const BACKFILL_MARKER = '> _backfill_';
@@ -26,7 +27,7 @@ function trimSentence(value: string, maxChars: number) {
   return `${value.slice(0, maxChars).replace(/\s+\S*$/, '')}...`;
 }
 
-export function signalHeadline(bodyMd: string | undefined, slug: string) {
+function signalHeadline(bodyMd: string | undefined, slug: string) {
   const lines = (bodyMd ?? '')
     .split('\n')
     .map(stripMarkdown)
@@ -36,7 +37,7 @@ export function signalHeadline(bodyMd: string | undefined, slug: string) {
   return trimSentence(first, MAX_HEADLINE);
 }
 
-export function signalSummary(bodyMd: string | undefined, slug: string, maxChars = MAX_SUMMARY) {
+function signalSummary(bodyMd: string | undefined, slug: string, maxChars = MAX_SUMMARY) {
   const headline = signalHeadline(bodyMd, slug);
   const lines = (bodyMd ?? '')
     .split('\n')
@@ -47,4 +48,13 @@ export function signalSummary(bodyMd: string | undefined, slug: string, maxChars
   const text = lines.join(' ');
   if (!text) return '';
   return trimSentence(text, maxChars);
+}
+
+export function signalPresentation(signal: SignalRow, maxChars = MAX_SUMMARY) {
+  const sample = reviewSample(signal);
+  return {
+    sample,
+    headline: sample?.headline ?? signalHeadline(signal.bodyMd, signal.slug),
+    summary: sample?.summary ?? signalSummary(signal.bodyMd, signal.slug, maxChars),
+  };
 }

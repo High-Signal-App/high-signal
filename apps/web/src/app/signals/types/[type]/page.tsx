@@ -10,7 +10,7 @@ import {
 } from '@/components/system/HighSignalUI';
 import { BreadcrumbJsonLd, SignalTypeTaxonomyJsonLd } from '@/components/seo/structured-data';
 import { api, type SignalRow } from '@/lib/api';
-import { signalHeadline } from '@/lib/signal-format';
+import { signalPresentation } from '@/lib/signal-format';
 import { familyForSignalType, familyLabel } from '@high-signal/shared';
 import { SITE_URL } from '@/lib/site';
 import { evaluateCollection, robotsForVerdict } from '../../../../../public-corpus-policy.mjs';
@@ -156,9 +156,9 @@ export default async function SignalTypePage({ params }: { params: Promise<{ typ
         empty={`No ${human} signals have been published yet.`}
         items={signals.slice(0, 50).map((s) => ({
           href: `/signals/${s.slug}`,
-          kicker: `${new Date(s.publishedAt).toISOString().slice(0, 10)} · ${s.primaryEntityId} · ${s.direction} · ${s.confidence}`,
-          title: signalHeadline(s.bodyMd, s.slug),
-          body: null,
+          kicker: `${new Date(s.publishedAt).toISOString().slice(0, 10)} · ${s.primaryEntityId} · ${signalPresentation(s).sample ? 'review sample · trend not established' : `${s.direction} · ${s.confidence}`}`,
+          title: signalPresentation(s).headline,
+          body: signalPresentation(s).sample ? signalPresentation(s).summary : null,
         }))}
       />
     </PageShell>

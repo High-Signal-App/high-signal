@@ -2,7 +2,16 @@
 
 Last updated: 2026-09-07
 
-Portfolio verification repair: signal details label `qualityScore` as an automated quality score, without turning it into “strong evidence” or a publication verdict. The independent editorial confidence label remains visible. Historical surge claims and sample/baseline calibration still require the evidence review in issue #133; this presentation correction does not qualify the corpus for sharing. Implementation is local until pushed/deployed.
+Review-sample qualification source repair: review-only app-store citations now
+render as a deduplicated review sample, with no verified adoption/satisfaction
+trend. Original generated narrative and stored confidence/quality score remain
+inspectable as hypotheses/diagnostics; original sources are preserved. Detail,
+cards, embeds and feeds share this presentation, and the web corpus policy
+withholds Article indexing. Actual local desktop/mobile rendering, 30 test
+suites, typecheck and Next build passed. Deployment remains pending reviewed
+exact-source release. API/MCP/Daily Brief semantic consistency, mixed-source
+claims and real confidence calibration remain open in #133; the product is
+not qualified for sharing. [Evidence and release boundary](docs/operations/2026-09-07-review-sample-qualification.md).
 
 September 7 market cron qualification: run `34101952108` persisted 391 events
 but its only AI generation request failed; exit code 3 correctly signalled a

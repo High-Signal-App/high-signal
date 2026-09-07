@@ -9,7 +9,7 @@ import {
 } from '@/components/system/HighSignalUI';
 import { BreadcrumbJsonLd, EntityMonthJsonLd } from '@/components/seo/structured-data';
 import { api, type SignalRow } from '@/lib/api';
-import { signalHeadline } from '@/lib/signal-format';
+import { signalPresentation } from '@/lib/signal-format';
 import { SITE_URL } from '@/lib/site';
 import { entityPeriodSignalFilters } from '../../../../../public-corpus-records.mjs';
 import { evaluateCollection, robotsForVerdict } from '../../../../../public-corpus-policy.mjs';
@@ -116,9 +116,9 @@ export default async function EntityMonthPage({
         empty={`No published signals on ${entity.name} during ${period}.`}
         items={monthSignals.map((s) => ({
           href: `/signals/${s.slug}`,
-          kicker: `${new Date(s.publishedAt).toISOString().slice(0, 10)} · ${s.signalType} · ${s.direction} · ${s.confidence}`,
-          title: signalHeadline(s.bodyMd, s.slug),
-          body: null,
+          kicker: `${new Date(s.publishedAt).toISOString().slice(0, 10)} · ${s.signalType} · ${signalPresentation(s).sample ? 'review sample · trend not established' : `${s.direction} · ${s.confidence}`}`,
+          title: signalPresentation(s).headline,
+          body: signalPresentation(s).sample ? signalPresentation(s).summary : null,
         }))}
       />
     </PageShell>

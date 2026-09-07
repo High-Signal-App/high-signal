@@ -53,6 +53,7 @@ const NODE_SUITES = [
   ['verify-daily-brief', 'scripts/verify-daily-brief.test.mjs'],
   ['issue-133-acceptance', 'scripts/verify-issue-133-acceptance.test.mjs'],
   ['public-corpus', 'scripts/public-corpus-policy.test.mjs'],
+  ['review-sample', 'scripts/review-sample.test.mjs'],
   ['public-corpus-receipt', 'scripts/public-corpus-receipt.test.mjs'],
   ['reddit-daily-archive', 'scripts/reddit-daily-archive.test.mjs'],
   ['scheduled-data-workflows', 'scripts/scheduled-data-workflows.test.mjs'],

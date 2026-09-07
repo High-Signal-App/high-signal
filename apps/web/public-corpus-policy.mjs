@@ -1,4 +1,6 @@
-export const PUBLIC_CORPUS_POLICY_REVISION = '2026-08-14.1';
+import { reviewSample } from './review-sample.mjs';
+
+export const PUBLIC_CORPUS_POLICY_REVISION = '2026-09-07.1';
 
 export const PUBLIC_CORPUS_ROUTE_FAMILIES = Object.freeze([
   'company',
@@ -55,6 +57,7 @@ export function evaluateSignal(signal) {
   }
   if (textLength(signal?.bodyMd) < 240) reasons.push('signal-body-under-240');
   if (count(signal?.evidenceUrls) < 2) reasons.push('fewer-than-two-citations');
+  if (reviewSample(signal)) reasons.push('review-sample-without-verified-trend-baseline');
   return verdict('signal', reasons, 'evidence');
 }
 
