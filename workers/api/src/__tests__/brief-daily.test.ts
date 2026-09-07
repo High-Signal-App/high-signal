@@ -39,6 +39,8 @@ vi.mock('../routes/brief/query', async (importOriginal) => {
 });
 
 import { briefRoute, parseDailyBriefRequest, safeCategory } from '../routes/brief';
+import { dailySignalEdition } from '../routes/brief/route';
+import type { BriefSnapshot } from '@high-signal/shared';
 import { createHistoryGrant } from '../lib/history-access';
 
 const env = { DB: {} as D1Database };
@@ -121,7 +123,8 @@ describe('GET /daily', () => {
   });
 
   it('composes live public sections when the cache misses', async () => {
-    mocks.buildStocks.mockResolvedValue([{ ticker: 'NVDA' }] as never);
+    const stock = { ticker: 'NVDA', publishedAt: new Date().toISOString() };
+    mocks.buildStocks.mockResolvedValue([stock] as never);
     mocks.buildIdeas.mockRejectedValue(new Error('ideas down'));
     mocks.buildTrends.mockResolvedValue([]);
     mocks.buildDiggAttention.mockResolvedValue({
@@ -144,7 +147,7 @@ describe('GET /daily', () => {
     };
     expect(body.region).toBe('north-america');
     expect(body.hasBrand).toBe(false);
-    expect(body.stocks).toEqual([{ ticker: 'NVDA' }]);
+    expect(body.stocks).toEqual([stock]);
     expect(body.ideas).toEqual([]);
     expect(body.attentionLeaders).toEqual([{ shortId: 'digg-1' }]);
     expect(body.emergingBeforeMainstream).toEqual([{ shortId: 'digg-2' }]);
@@ -162,7 +165,8 @@ describe('GET /daily', () => {
   });
 
   it('marks a live-composed brief as pending with nextExpectedPublishAt', async () => {
-    mocks.buildStocks.mockResolvedValue([{ ticker: 'NVDA' }] as never);
+    const stock = { ticker: 'NVDA', publishedAt: new Date().toISOString() };
+    mocks.buildStocks.mockResolvedValue([stock] as never);
 
     const response = await briefRoute.request('http://test/daily', {}, env);
     expect(response.status).toBe(200);
@@ -225,5 +229,57 @@ describe('safeCategory', () => {
       items: [],
       state: { status: 'unavailable', source: 'live', reason: 'builder_failed' },
     });
+  });
+});
+
+describe('daily signal edition', () => {
+  const snapshot = {
+    generatedAt: '2026-09-07T06:30:00Z',
+    region: 'global',
+    hasBrand: false,
+    stocks: [
+      { signalSlug: 'old', publishedAt: '2026-09-06T18:29:59Z' },
+      { signalSlug: 'start', publishedAt: '2026-09-06T18:30:00Z' },
+      { signalSlug: 'end', publishedAt: '2026-09-07T18:29:59Z' },
+      { signalSlug: 'tomorrow', publishedAt: '2026-09-07T18:30:00Z' },
+      { signalSlug: 'undated' },
+    ],
+    ideas: [],
+    trends: [],
+    perception: [],
+    improvements: [],
+    categoryStates: {
+      stocks: { status: 'ready', source: 'live' },
+      ideas: { status: 'empty', source: 'live' },
+      trends: { status: 'empty', source: 'live' },
+    },
+  } as unknown as BriefSnapshot;
+
+  it('uses IST publication boundaries and never refreshes old or undated claims', () => {
+    const result = dailySignalEdition(snapshot, '2026-09-07');
+    expect(result.stocks.map((item) => item.signalSlug)).toEqual(['start', 'end']);
+    expect(result.editionDate).toBe('2026-09-07');
+    expect(result.timeZone).toBe('Asia/Kolkata');
+    expect(snapshot.stocks).toHaveLength(5);
+  });
+
+  it('reports no qualifying items when a rolling snapshot only has older signals', () => {
+    const result = dailySignalEdition(snapshot, '2026-09-09');
+    expect(result.stocks).toEqual([]);
+    expect(result.categoryStates?.stocks.status).toBe('empty');
+  });
+
+  it('preserves unavailable rather than presenting it as a quiet day', () => {
+    const result = dailySignalEdition(
+      {
+        ...snapshot,
+        categoryStates: {
+          ...snapshot.categoryStates!,
+          stocks: { status: 'unavailable', reason: 'd1_timeout' },
+        },
+      },
+      '2026-09-09'
+    );
+    expect(result.categoryStates?.stocks).toEqual({ status: 'unavailable', reason: 'd1_timeout' });
   });
 });

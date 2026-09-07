@@ -3,6 +3,7 @@ import { and, desc, eq, gte, lt, sql, type SQL } from 'drizzle-orm';
 import {
   isProtectedHistoryDay,
   istDayFromTimestamp,
+  istDayRange,
   recentHistoryStart,
   type SignalContentCategory,
 } from '@high-signal/shared';
@@ -36,9 +37,8 @@ function parseDateRange(c: { req: { query: (key: string) => string | undefined }
   const from = c.req.query('from');
   const to = c.req.query('to');
   if (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
-    const start = new Date(`${date}T00:00:00.000Z`);
-    const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
-    return { start, end };
+    const range = istDayRange(date);
+    if (range) return range;
   }
   const start = from ? new Date(from) : null;
   const end = to ? new Date(to) : null;

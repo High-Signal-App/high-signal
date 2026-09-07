@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import faulthandler
 import json
 import logging
 import os
@@ -1101,6 +1102,9 @@ def run(source: Source, days: int, *, generate_signals: bool = True) -> dict:
 
 
 def main() -> None:
+    # Native parser failures bypass Python exceptions. Keep all thread stacks
+    # in the job log so an abort can be attributed instead of only reporting 134.
+    faulthandler.enable(all_threads=True)
     p = argparse.ArgumentParser()
     p.add_argument(
         "--source",

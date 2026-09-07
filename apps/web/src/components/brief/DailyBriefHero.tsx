@@ -73,7 +73,9 @@ export function DailyBriefHero({
         <span className="sm:ml-auto">
           {signalOnly && signalState.status === 'unavailable'
             ? 'Publication unavailable'
-            : `Published ${generated} UTC`}
+            : brief.publishStatus === 'pending'
+              ? 'Publication pending'
+              : `Updated ${generated} UTC`}
         </span>
       </div>
 

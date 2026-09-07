@@ -13,7 +13,13 @@ export async function GET() {
     const r = await api.signals();
     signals = r.signals.filter((signal) => !isBackfillSignal(signal));
   } catch {
-    /* API offline — degrade to empty array. */
+    return Response.json(
+      { error: 'signals_api_unavailable' },
+      {
+        status: 503,
+        headers: { 'Cache-Control': 'no-store' },
+      }
+    );
   }
 
   return new Response(JSON.stringify({ generatedAt: new Date().toISOString(), signals }), {

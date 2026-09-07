@@ -22,6 +22,7 @@ import {
   isProtectedHistoryDay,
   isRegion,
   istDay,
+  istDayFromTimestamp,
   pruneUnpublishableBriefItems,
   summarizeBriefDiscovery,
   type BriefCategoryStates,
@@ -88,14 +89,17 @@ async function handleDailyBriefRequest(c: Context<{ Bindings: Env }>) {
 
   const cached = await cachedDailyBrief(database, request);
   if (cached) {
-    if (cached.status === 200 && !request.archiveDate) {
-      const body = { ...cached.body, publishStatus: 'published' as const };
+    if (cached.status === 200) {
+      const body = {
+        ...dailySignalEdition(cached.body, request.archiveDate ?? istDay()),
+        publishStatus: 'published' as const,
+      };
       return c.json(body, cached.status);
     }
     return c.json(cached.body, cached.status);
   }
 
-  const snapshot = await composeDailyBrief(database, request);
+  const snapshot = dailySignalEdition(await composeDailyBrief(database, request), istDay());
   // No precomputed snapshot for today — the publish cron hasn't run yet.
   // Mark it pending so agents don't mistake stale content for today's edition.
   if (!request.archiveDate) {
@@ -106,6 +110,34 @@ async function handleDailyBriefRequest(c: Context<{ Bindings: Env }>) {
     });
   }
   return c.json(snapshot);
+}
+
+/** A rolling composition must not relabel older signals as today's publications. */
+export function dailySignalEdition(snapshot: BriefSnapshot, editionDate: string): BriefSnapshot {
+  const stocks = snapshot.stocks.filter(
+    (item) => item.publishedAt && istDayFromTimestamp(item.publishedAt) === editionDate
+  );
+  return {
+    ...snapshot,
+    editionDate,
+    timeZone: 'Asia/Kolkata',
+    stocks,
+    ...(snapshot.categoryStates
+      ? {
+          categoryStates: {
+            ...snapshot.categoryStates,
+            stocks:
+              snapshot.categoryStates.stocks.status === 'unavailable'
+                ? snapshot.categoryStates.stocks
+                : {
+                    ...snapshot.categoryStates.stocks,
+                    status: stocks.length ? 'ready' : 'empty',
+                    reason: stocks.length ? null : 'no_qualifying_items',
+                  },
+          },
+        }
+      : {}),
+  };
 }
 
 export function parseDailyBriefRequest(c: Context<{ Bindings: Env }>) {

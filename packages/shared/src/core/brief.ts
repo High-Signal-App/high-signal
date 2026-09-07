@@ -260,6 +260,9 @@ export interface BriefImprovementItem {
 
 export interface BriefSnapshot {
   generatedAt: string;
+  /** Publication day of the signal section, independent of composition time. */
+  editionDate?: string;
+  timeZone?: 'Asia/Kolkata';
   region: Region;
   hasBrand: boolean;
   stocks: BriefStockItem[];

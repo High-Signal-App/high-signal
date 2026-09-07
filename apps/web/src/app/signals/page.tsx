@@ -30,16 +30,24 @@ function formatDay(day: string) {
   });
 }
 
-async function signalsForDay(day: string): Promise<SignalRow[]> {
+async function signalsForDay(day: string): Promise<SignalRow[] | null> {
   try {
     const result = await api.signals({ date: day, limit: 200 });
     return result.signals.filter((signal) => !isBackfillSignal(signal));
   } catch {
-    return [];
+    return null;
   }
 }
 
-function SignalDay({ day, label, signals }: { day: string; label: string; signals: SignalRow[] }) {
+function SignalDay({
+  day,
+  label,
+  signals,
+}: {
+  day: string;
+  label: string;
+  signals: SignalRow[] | null;
+}) {
   return (
     <section className="mt-10" aria-labelledby={`signals-${label.toLowerCase()}`}>
       <div className="flex flex-wrap items-baseline justify-between gap-3 border-b border-[var(--color-line)] pb-3">
@@ -51,7 +59,10 @@ function SignalDay({ day, label, signals }: { day: string; label: string; signal
             {label}
           </h2>
           <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-muted)]">
-            {day} · {signals.length} published signal{signals.length === 1 ? '' : 's'}
+            {day} ·{' '}
+            {signals === null
+              ? 'signal source unavailable'
+              : `${signals.length} published signal${signals.length === 1 ? '' : 's'}`}
           </p>
         </div>
         <Link
@@ -61,7 +72,7 @@ function SignalDay({ day, label, signals }: { day: string; label: string; signal
           read brief →
         </Link>
       </div>
-      {signals.length > 0 ? (
+      {signals && signals.length > 0 ? (
         <div className="divide-y divide-[var(--color-line)]">
           {signals.map((signal) => (
             <SignalCard key={signal.id} s={signal} />
@@ -69,7 +80,9 @@ function SignalDay({ day, label, signals }: { day: string; label: string; signal
         </div>
       ) : (
         <p className="border-b border-[var(--color-line)] py-8 text-sm leading-6 text-[var(--color-muted)]">
-          No signal cleared the evidence and materiality gates for this day.
+          {signals === null
+            ? 'The signal store could not be read. Publication counts are unavailable.'
+            : 'No signal cleared the evidence and materiality gates for this day.'}
         </p>
       )}
     </section>
