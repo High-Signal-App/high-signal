@@ -334,3 +334,14 @@ This section is maintained by the SaaS Maker Active-AI product/design loop so fu
 
 - No current Active-AI product/design task from the 2026-05-25/26 loop. Treat this as watch/status unless new evidence appears.
 <!-- ACTIVE-AI-TASK-LOG:END -->
+
+<!-- portfolio-retained-work:2026-09-07 -->
+## Retained work from the portfolio review
+
+These are unresolved requirements retained at the owner’s request. They are not completed features. Work should follow a concrete need and fresh evidence.
+
+### Harden daily freshness, Digg verification, and publishability
+
+Verify current daily coverage, original sources including Digg, and publishability; remove evidence-strength claims unsupported by the underlying samples.
+
+Original requirements and discussion: [#133](https://github.com/High-Signal-App/high-signal/issues/133).
