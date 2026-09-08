@@ -134,8 +134,9 @@ export function buildTrackRecordDatasetJsonLd(opts: {
     '@type': 'Dataset',
     name: `${SITE_NAME} Public Hit-Rate Ledger`,
     description:
-      `Every published market signal scored against subsequent market moves. ` +
-      `${opts.liveCount} live forward predictions and ${opts.backfillCount} historical-replay calibrations.`,
+      `Recorded market-scoring observations, including pending records. ` +
+      `${opts.liveCount} records marked as live and ${opts.backfillCount} historical-replay records. ` +
+      `Cohort labels do not establish publication timing or predictive reliability.`,
     url: `${SITE_URL}/track-record`,
     creator: { '@id': `${SITE_URL}/#organization` },
     license: 'https://creativecommons.org/licenses/by/4.0/',

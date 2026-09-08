@@ -3,6 +3,7 @@ import { api, type TrackBucket } from '@/lib/api';
 import { TrackRecordDatasetJsonLd } from '@/components/seo/structured-data';
 
 import { SITE_URL } from '@/lib/site';
+import { summarizeTrackBuckets } from '@/lib/track-record-summary';
 export const dynamic = 'force-dynamic';
 export const metadata = {
   // Self-canonical: the root layout deliberately sets none (a site-wide
@@ -10,30 +11,13 @@ export const metadata = {
   alternates: { canonical: `${SITE_URL}/track-record` },
   title: 'Public hit-rate ledger',
   description:
-    'Every published High Signal market call scored against subsequent market moves. Live forward predictions and historical-replay calibrations, broken down by signal type. The moat is the number being public.',
+    'Recorded market-scoring outcomes, including pending observations. Records marked as live and historical replay are shown separately; these observations do not establish predictive reliability.',
 };
 
 interface Cohorts {
   live: TrackBucket[];
   backfill: TrackBucket[];
   all: TrackBucket[];
-}
-
-function summarizeBuckets(buckets: TrackBucket[]) {
-  return buckets.reduce(
-    (acc, bucket) => {
-      acc.hit += bucket.hit;
-      acc.miss += bucket.miss;
-      acc.push += bucket.push;
-      acc.total += bucket.total;
-      return acc;
-    },
-    { hit: 0, miss: 0, push: 0, total: 0 }
-  );
-}
-
-function hitRateFrom(summary: ReturnType<typeof summarizeBuckets>) {
-  return summary.hit + summary.miss > 0 ? summary.hit / (summary.hit + summary.miss) : null;
 }
 
 function formatHitRate(value: number | null) {
@@ -45,14 +29,25 @@ export default async function TrackRecordPage() {
   // the raw combined debugging table below is operator-only.
   const isAdmin = await hasAdminSession();
 
-  let cohorts: Cohorts = { live: [], backfill: [], all: [] };
+  let cohorts: Cohorts;
   try {
     cohorts = await api.trackRecordCohorts();
   } catch {
-    /* offline */
+    return (
+      <main className="mx-auto max-w-5xl px-5 py-14 sm:px-6 sm:py-16">
+        <h1 className="text-3xl font-medium tracking-tight">Track record unavailable</h1>
+        <p className="mt-4 text-sm text-zinc-400">
+          The scoring ledger could not be loaded. No outcome counts or rates are available.
+        </p>
+        <a href="/track-record" className="mt-6 inline-flex min-h-11 items-center underline">
+          Try again
+        </a>
+      </main>
+    );
   }
 
-  const liveCount = cohorts.live.reduce((sum, b) => sum + b.total, 0);
+  const liveSummary = summarizeTrackBuckets(cohorts.live);
+  const liveCount = liveSummary.total;
   const backfillCount = cohorts.backfill.reduce((sum, b) => sum + b.total, 0);
 
   return (
@@ -69,30 +64,31 @@ export default async function TrackRecordPage() {
           public hit-rate ledger
         </div>
         <h1 className="mt-3 text-3xl font-medium tracking-tight">Track record</h1>
-        {liveCount > 0 && liveCount < 10 ? (
+        {liveSummary.smallResolvedSample ? (
           <p className="mt-4 border border-amber-500/40 bg-amber-500/[0.04] p-3 text-sm leading-6 text-amber-100">
-            <strong>Sample warning:</strong> the live cohort below has only {liveCount} scored
-            prediction{liveCount === 1 ? '' : 's'}. Any rate on a sample this small is statistically
-            meaningless — read it as &ldquo;direction of travel,&rdquo; not as a reliable accuracy
-            claim. Wait until n ≥ 10 (per signal type) before trusting it. The number is what it is;
-            we&apos;d rather expose that than dress it up.
+            <strong>Small resolved sample:</strong> the cohort marked as live has only{' '}
+            {liveSummary.resolved} hit-or-miss scoring records. Pending records and pushes do not
+            increase the hit-rate denominator. This sample does not establish predictive
+            reliability.
           </p>
         ) : null}
         <p className="mt-3 max-w-2xl text-sm text-zinc-400">
-          Every published market signal scored against subsequent market moves. Read Live first; use
-          Backfill only to calibrate the scoring system.
+          Recorded scoring outcomes against subsequent market moves. These are scoring records, not
+          a count of independently verified predictions. Forward-labelled and replay cohorts are
+          separated by the stored signal convention; historical provenance remains under review.
           <br />
           <span className="text-zinc-500">
-            Hit-rate excludes pushes. Push means the market move was too small or inconclusive.
+            Hit-rate is hits divided by hits plus misses. Pending records and pushes are excluded; a
+            push means the market move was too small or inconclusive.
           </span>
         </p>
       </header>
 
       <section className="mt-8 grid gap-px border border-zinc-800 bg-zinc-800 md:grid-cols-3">
         <GuideItem
-          label="Use for trust"
-          value="Live"
-          body="Forward predictions made before the scoring window closed."
+          label="Read with care"
+          value="Live label"
+          body="These records are marked as live; their original publication timing is not verified."
         />
         <GuideItem
           label="Use for tuning"
@@ -108,11 +104,11 @@ export default async function TrackRecordPage() {
 
       <section className="mt-10 grid grid-cols-1 gap-6 lg:grid-cols-[1.15fr_0.85fr]">
         <CohortBlock
-          title="Live predictions"
-          subtitle="real forward calls"
+          title="Records marked as live"
+          subtitle="publication timing unverified"
           tone="accent"
           buckets={cohorts.live}
-          note="This is the only section that should count for public trust later."
+          note="Historical outcomes are retained. This rate is not calibrated confidence or proof of future accuracy."
         />
         <CohortBlock
           title="Backfill calibration"
@@ -168,8 +164,8 @@ function CohortBlock({
   buckets: TrackBucket[];
   note: string;
 }) {
-  const overall = summarizeBuckets(buckets);
-  const overallHitRate = hitRateFrom(overall);
+  const overall = summarizeTrackBuckets(buckets);
+  const overallHitRate = overall.hitRate;
   const titleClass = tone === 'accent' ? 'text-[var(--color-accent)]' : 'text-zinc-400';
 
   return (
@@ -195,6 +191,10 @@ function CohortBlock({
           <Stat label="push" value={overall.push} tone="muted" />
         </div>
       </div>
+      <p className="mt-4 text-sm leading-6 text-zinc-400">
+        Based on {overall.resolved} hit-or-miss records out of {overall.total} total records.{' '}
+        {overall.pending} pending; {overall.push} pushes excluded from the rate.
+      </p>
       <p className="mt-4 border-t border-zinc-900 pt-3 text-sm leading-6 text-zinc-500">{note}</p>
       <div className="mt-4">
         <BucketTable
@@ -250,10 +250,11 @@ function BucketTable({
         <thead className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
           <tr>
             <th className="border-b border-zinc-800 py-2 text-left">type</th>
-            <th className="border-b border-zinc-800 py-2 text-right">n</th>
+            <th className="border-b border-zinc-800 py-2 text-right">records</th>
             <th className="border-b border-zinc-800 py-2 text-right">hit</th>
             <th className="border-b border-zinc-800 py-2 text-right">miss</th>
             <th className="border-b border-zinc-800 py-2 text-right">push</th>
+            <th className="border-b border-zinc-800 py-2 text-right">pending</th>
             <th className="border-b border-zinc-800 py-2 text-right">hit-rate</th>
           </tr>
         </thead>
@@ -276,6 +277,7 @@ function BucketTable({
                 <td className="border-b border-zinc-900 py-1.5 text-right text-zinc-500">
                   {b.push}
                 </td>
+                <td className="border-b border-zinc-900 py-1.5 text-right">{b.pending}</td>
                 <td className="border-b border-zinc-900 py-1.5 text-right">
                   {formatHitRate(b.hitRate)}
                 </td>

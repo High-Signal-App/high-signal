@@ -124,8 +124,6 @@ assert.equal(
 assert.equal(edgeCacheStatus(rsc, 'HIT'), 'RSC-HIT');
 assert.equal(edgeCacheStatus(request('/about'), 'MISS'), 'MISS');
 
-console.log('Worker cache policy contract passed.');
-
 for (const path of [
   '/',
   '/signals',
@@ -145,3 +143,10 @@ assert.equal(new URL(rscKey.url).searchParams.get('__hs_presentation'), '2026-09
 assert.equal(rscKey.headers.get('Next-Router-State-Tree'), 'state');
 assert.equal(rscKey.headers.get('RSC'), '1');
 assert.notEqual(rscKey.url, cacheKeyForRequest(request('/signals/a-published-signal')).url);
+
+assert.equal(
+  new URL(cacheKeyForRequest(request('/track-record')).url).searchParams.get('__hs_cache_schema'),
+  'track-record-v2'
+);
+
+console.log('Worker cache policy contract passed.');

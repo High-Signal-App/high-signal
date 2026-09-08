@@ -9,6 +9,7 @@ const ROOT_CLIENT_CACHE_CONTROL = 'private, no-cache';
 const RSC_CACHE_CONTROL = 'public, max-age=0, s-maxage=3600';
 const ROOT_CACHE_SCHEMA = 'daily-brief-v2';
 const DATA_CACHE_SCHEMA = 'source-data-v2';
+const TRACK_RECORD_CACHE_SCHEMA = 'track-record-v2';
 
 // Public pages that intentionally do not advertise an AI-crawler Markdown
 // representation. They still benefit from the same anonymous HTML/RSC cache.
@@ -57,6 +58,8 @@ export function cacheKeyForRequest(request) {
     url.searchParams.set('__hs_cache_schema', ROOT_CACHE_SCHEMA);
   } else if (!isRscRequest(request) && (pathname === '/data' || pathname.startsWith('/data/'))) {
     url.searchParams.set('__hs_cache_schema', DATA_CACHE_SCHEMA);
+  } else if (pathname === '/track-record') {
+    url.searchParams.set('__hs_cache_schema', TRACK_RECORD_CACHE_SCHEMA);
   }
   if (
     pathname === '/' ||

@@ -21,6 +21,7 @@ const ROOT = resolve(__dirname, '..');
 // Each job: { name, cmd, args }. tsx suites run directly via the local tsx bin;
 // the workers/api vitest suite runs through pnpm so it uses the package config.
 const TSX_SUITES = [
+  ['track-record-summary', 'scripts/track-record-summary.test.ts'],
   ['signals', 'scripts/sync-signals.test.ts'],
   ['signals:auto-publish', 'scripts/auto-publish-rules.test.ts'],
   ['access-jwt', 'apps/web/scripts/access-jwt.test.ts'],

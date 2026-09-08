@@ -1,6 +1,13 @@
 # high-signal — PROJECT STATUS
 
-Last updated: 2026-09-07
+Last updated: 2026-09-08
+
+September 8 Track Record correction: the small-sample warning now uses hits
+plus misses, not pending scoring rows. The page shows total/pending counts and
+labels the stored non-backfill cohort without claiming independently verified
+forward predictions. API failures render unavailable instead of empty counts.
+Historical outcomes remain unchanged. Source checks pass; publication and
+historical scoring provenance qualification are tracked in issue #133.
 
 Review-sample qualification web release: review-only app-store citations now
 render as a deduplicated review sample, with no verified adoption/satisfaction
