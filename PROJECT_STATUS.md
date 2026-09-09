@@ -2,6 +2,13 @@
 
 Last updated: 2026-09-09
 
+API release34358213440 deployed the first Brief gate correction, but live
+verification found a fresh-composition bypass: the response became pending while
+still including the seeded idea. The follow-up now prunes freshly composed
+responses as well as cached snapshots. A route regression covers the actual
+unsupported-opportunity shape and retains valid stock fixtures. This follow-up
+is not yet released; do not treat the first release as full gate acceptance.
+
 The next Brief gate repair applies structured claim provenance to opportunities
 and trends, requiring primary support, independent corroboration, no contradiction
 and two citations present in the claim receipt. Public URLs alone no longer

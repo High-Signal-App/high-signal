@@ -119,7 +119,10 @@ async function handleDailyBriefRequest(c: Context<{ Bindings: Env }>) {
     return c.json(cached.body, cached.status);
   }
 
-  const snapshot = dailySignalEdition(await composeDailyBrief(database, request), editionDate);
+  const snapshot = dailySignalEdition(
+    pruneUnpublishableBriefItems(await composeDailyBrief(database, request)).snapshot,
+    editionDate
+  );
   // No precomputed snapshot for today — the publish cron hasn't run yet.
   // Mark it pending so agents don't mistake stale content for today's edition.
   if (!protectedHistory) {

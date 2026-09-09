@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   tryGetPrecomputedSnapshot: vi.fn(),
   buildStocks: vi.fn(async () => []),
-  buildIdeas: vi.fn(async () => []),
+  buildIdeas: vi.fn(async (): Promise<BriefSnapshot['ideas']> => []),
   buildTrends: vi.fn(async () => []),
   buildDiggAttention: vi.fn(async () => ({
     attentionLeaders: [],
@@ -123,7 +123,18 @@ describe('GET /daily', () => {
   });
 
   it('composes live public sections when the cache misses', async () => {
-    const stock = { ticker: 'NVDA', publishedAt: new Date().toISOString() };
+    const stock = {
+      ticker: 'NVDA',
+      publishedAt: new Date().toISOString(),
+      whatChanged: 'The company announced a capacity expansion.',
+      whyItMatters: 'The expansion increases available production capacity.',
+      uncertainty: 'The completion date remains subject to permitting.',
+      evidenceUrls: [
+        { url: 'https://primary.example/a' },
+        { url: 'https://independent.example/a' },
+      ],
+      provenance: { primaryCount: 1, corroborationCount: 1, contradictionCount: 0 },
+    };
     mocks.buildStocks.mockResolvedValue([stock] as never);
     mocks.buildIdeas.mockRejectedValue(new Error('ideas down'));
     mocks.buildTrends.mockResolvedValue([]);
@@ -164,8 +175,42 @@ describe('GET /daily', () => {
     expect(mocks.buildStocks).toHaveBeenCalled();
   });
 
+  it('withholds unsupported ideas from fresh composition, not only cached snapshots', async () => {
+    mocks.buildIdeas.mockResolvedValue([
+      {
+        title: 'Seeded hypothesis',
+        description: 'A seeded claim about customer demand.',
+        whyNow: 'Five product pages were collected.',
+        source: 'opportunity',
+        region: 'global',
+        subreddit: null,
+        surfacedAt: new Date().toISOString(),
+        evidenceUrls: [{ url: 'https://marketplace.example/product' }],
+      },
+    ]);
+    const response = await briefRoute.request('http://test/daily', {}, env);
+    const body = (await response.json()) as BriefSnapshot;
+    expect(body.ideas).toEqual([]);
+    expect(body.categoryStates?.ideas).toMatchObject({
+      status: 'empty',
+      reason: 'items_withheld_by_publish_gate',
+    });
+    expect(body.publishStatus).toBe('pending');
+  });
+
   it('marks a live-composed brief as pending with nextExpectedPublishAt', async () => {
-    const stock = { ticker: 'NVDA', publishedAt: new Date().toISOString() };
+    const stock = {
+      ticker: 'NVDA',
+      publishedAt: new Date().toISOString(),
+      whatChanged: 'The company announced a capacity expansion.',
+      whyItMatters: 'The expansion increases available production capacity.',
+      uncertainty: 'The completion date remains subject to permitting.',
+      evidenceUrls: [
+        { url: 'https://primary.example/a' },
+        { url: 'https://independent.example/a' },
+      ],
+      provenance: { primaryCount: 1, corroborationCount: 1, contradictionCount: 0 },
+    };
     mocks.buildStocks.mockResolvedValue([stock] as never);
 
     const response = await briefRoute.request('http://test/daily', {}, env);
