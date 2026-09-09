@@ -1,0 +1,37 @@
+{
+  "run": 34346562721,
+  "source": "c9aa099f428a71b246678ef4717e5942119fa950",
+  "conclusion": "success",
+  "finishedAt": "2026-09-09T12:13:19Z",
+  "funnel": {
+    "fetch_run_id": "d19360e497a44351",
+    "events": 4354,
+    "events_pushed": 4354,
+    "duplicates_collapsed": 903,
+    "events_no_entity": 2652,
+    "events_low_cluster": 649,
+    "clusters_reaching_generation": 29,
+    "generation_requests": 8,
+    "generation_request_failures": 2,
+    "generation_failure_classes": {
+      "unexpected": 2
+    },
+    "signals_drafted": 0,
+    "candidates_generated": 1,
+    "candidates_rejected_no_proof": 1,
+    "candidates_rejected_thin_evidence_urls": 0,
+    "candidates_rejected_single_evidentiary_origin": 0,
+    "candidates_rejected_single_provider": 1,
+    "candidates_admitted_single_provider_authoritative": 0,
+    "errors": 2,
+    "paths": []
+  },
+  "persistenceWarnings": [
+    "audit /admin/events: only 48/50 events inserted",
+    "audit /admin/events: only 42/50 events inserted",
+    "audit /admin/events: only 49/50 events inserted",
+    "audit /admin/events: only 44/50 events inserted",
+    "audit /admin/events: only 3/4 events inserted"
+  ],
+  "qualification": "Zero drafts; no publication dispatched. Job success does not qualify a useful edition. events_pushed is a reported counter, not proof all events were inserted; batch warnings require reconciliation. Two generation failures remain classified unexpected."
+}
