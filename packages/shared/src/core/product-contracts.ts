@@ -102,15 +102,18 @@ export function normalizeCommunitySummary(value: unknown): CommunitySummary | nu
 
   if (typeof value !== 'object') return null;
   const raw = value as Record<string, unknown>;
-  const keyTrend = normalizeSummaryItem(raw['key_trend'] ?? raw['overview']);
+  const keyTrend = normalizeSummaryItem(raw['keyTrend'] ?? raw['key_trend'] ?? raw['overview']);
   const keyAction =
-    normalizeSummaryItem(raw['key_action'] ?? raw['actionable_takeaway'] ?? raw['action_item']) ??
-    deriveAction(keyTrend);
-  const notableRaw = Array.isArray(raw['notable_discussions'])
-    ? raw['notable_discussions']
-    : Array.isArray(raw['discussion_points'])
-      ? raw['discussion_points']
-      : [];
+    normalizeSummaryItem(
+      raw['keyAction'] ?? raw['key_action'] ?? raw['actionable_takeaway'] ?? raw['action_item']
+    ) ?? deriveAction(keyTrend);
+  const notableRaw = Array.isArray(raw['notableDiscussions'])
+    ? raw['notableDiscussions']
+    : Array.isArray(raw['notable_discussions'])
+      ? raw['notable_discussions']
+      : Array.isArray(raw['discussion_points'])
+        ? raw['discussion_points']
+        : [];
   const notableDiscussions = notableRaw
     .map((item) => normalizeSummaryItem(item))
     .filter((item): item is CommunitySummaryItem => Boolean(item));

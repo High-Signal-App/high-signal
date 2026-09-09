@@ -4,6 +4,14 @@ Last updated: 2026-09-09
 
 Current September 9 qualification:
 
+Pending community storage repair: the generator stores normalized camelCase
+summaries, but read normalization only accepted snake_case fields and returned
+null for the stored object. Normalization now accepts its canonical output as
+well as legacy payloads. A JSON storage/read regression reproduces the loss and
+verifies preservation of trend, action, discussions and source IDs. This does
+not grant provenance or publication eligibility; source-ID validation, source
+links and independently supported community claims remain within #133.
+
 High Signal remains unqualified for sharing: no useful evidence-qualified edition
 has been demonstrated. Existing issue #133 owns synthesis, independent support,
 and opportunity/trend provenance; the repairs below are not separate open tasks.
