@@ -18,6 +18,20 @@ def test_events_from_response_maps_cve() -> None:
                         {"lang": "en", "value": "A GitHub Enterprise Server vulnerability."}
                     ],
                     "references": [{"url": "https://example.com/advisory"}],
+                    "configurations": [
+                        {
+                            "nodes": [
+                                {
+                                    "cpeMatch": [
+                                        {
+                                            "vulnerable": True,
+                                            "criteria": "cpe:2.3:a:github:enterprise_server:*:*:*:*:*:*:*:*",
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ],
                     "metrics": {
                         "cvssMetricV31": [
                             {
@@ -60,3 +74,59 @@ def test_nvd_timestamp_uses_api_accepted_utc_format() -> None:
     value = datetime(2026, 8, 25, 12, 34, 56, tzinfo=timezone.utc)
 
     assert nvd._nvd_timestamp(value) == "2026-08-25T12:34:56.000Z"
+
+
+def test_github_search_does_not_attribute_third_party_integration() -> None:
+    cve = {
+        "id": "CVE-2026-82282",
+        "published": "2026-09-01T08:00:00Z",
+        "descriptions": [
+            {"lang": "en", "value": "Atlantis fails to authenticate its GitHub App setup endpoint."}
+        ],
+        "references": [{"url": "https://github.com/runatlantis/atlantis"}],
+        "configurations": [
+            {
+                "nodes": [
+                    {
+                        "cpeMatch": [
+                            {
+                                "vulnerable": True,
+                                "criteria": "cpe:2.3:a:runatlantis:atlantis:*:*:*:*:*:*:*:*",
+                            },
+                            {
+                                "vulnerable": False,
+                                "criteria": "cpe:2.3:a:github:enterprise_server:*:*:*:*:*:*:*:*",
+                            },
+                        ]
+                    }
+                ]
+            }
+        ],
+    }
+    events = nvd.events_from_response(
+        NvdKeyword("GitHub", "GITHUB"),
+        {"vulnerabilities": [{"cve": cve}]},
+        datetime(2026, 9, 1, tzinfo=timezone.utc),
+    )
+    assert len(events) == 1
+    assert events[0].primary_entity_id is None
+    assert pipeline._event_entity(events[0]) is None
+    assert "NVD CVE: GitHub" not in events[0].title
+    assert "Atlantis" in events[0].title
+
+
+def test_github_search_without_affected_product_stays_unassigned() -> None:
+    cve = {
+        "id": "CVE-2026-12345",
+        "published": "2026-09-01T08:00:00Z",
+        "descriptions": [
+            {"lang": "en", "value": "GitHub credentials leaked by a third-party tool."}
+        ],
+    }
+    event = nvd.events_from_response(
+        NvdKeyword("GitHub", "GITHUB"),
+        {"vulnerabilities": [{"cve": cve}]},
+        datetime(2026, 9, 1, tzinfo=timezone.utc),
+    )[0]
+    assert event.primary_entity_id is None
+    assert pipeline._event_entity(event) is None

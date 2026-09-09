@@ -69,6 +69,19 @@ def _cvss_summary(cve: dict[str, Any]) -> str:
     return ""
 
 
+def _github_is_affected(node: Any) -> bool:
+    """A search term or reference host is not affected-product attribution."""
+    if isinstance(node, list):
+        return any(_github_is_affected(item) for item in node)
+    if not isinstance(node, dict) or node.get("negate") is True:
+        return False
+    if node.get("vulnerable") is True and str(node.get("criteria", "")).startswith(
+        "cpe:2.3:a:github:"
+    ):
+        return True
+    return any(_github_is_affected(value) for value in node.values())
+
+
 def events_from_response(
     keyword: NvdKeyword, payload: dict[str, Any], since: datetime
 ) -> list[Event]:
@@ -105,6 +118,14 @@ def events_from_response(
             ]
             if part
         )
+        entity_id = keyword.entity_id
+        if entity_id == "GITHUB" and not _github_is_affected(cve.get("configurations")):
+            entity_id = None
+        title = (
+            f"NVD CVE: {keyword.keyword} {cve_id}"
+            if entity_id
+            else f"NVD CVE: {cve_id} — {description[:160]}"
+        )
         raw_hash = event_hash("nvd", keyword.keyword, cve_id, published.isoformat())
         out.append(
             Event(
@@ -112,9 +133,9 @@ def events_from_response(
                 source=f"nvd:{keyword.keyword.lower().replace(' ', '-')}",
                 source_url=f"https://nvd.nist.gov/vuln/detail/{cve_id}",
                 published_at=published,
-                title=f"NVD CVE: {keyword.keyword} {cve_id}",
+                title=title,
                 content=content[:20_000] or None,
-                primary_entity_id=keyword.entity_id,
+                primary_entity_id=entity_id,
                 raw_hash=raw_hash,
             )
         )
