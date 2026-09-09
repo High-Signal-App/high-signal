@@ -23,6 +23,15 @@ def _gazetteer() -> dict[str, str]:
 # Snowflake, FormFactor, Onto Innovation, Arm Holdings, Meta Platforms/Facebook).
 _COMMON_WORD_TICKERS = frozenset({"net", "onto", "form", "snow", "arm", "meta"})
 
+# USGS location text such as "96 km NNE of Lospalos" names a bearing, not
+# Nano Nuclear Energy. Exclude only this demonstrated distance/bearing context
+# from matching; keep bare financial tickers, $NNE and company names eligible.
+# This does not alter retained source events or evidence.
+_GEOGRAPHIC_NNE = re.compile(
+    r"(?<![\w$])\d+(?:\.\d+)?\s*(?:km|kilomet(?:er|re)s?|mi|miles?)\s+NNE\s+of\b",
+    re.IGNORECASE,
+)
+
 
 @lru_cache(maxsize=1)
 def _compiled_patterns() -> list[tuple[re.Pattern[str], str, bool]]:
@@ -53,6 +62,7 @@ def gazetteer_match(text: str) -> list[str]:
     """Cheap deterministic match against known entities. Returns entity IDs."""
     if not text:
         return []
+    text = _GEOGRAPHIC_NNE.sub(" ", text)
     needle = text.lower()
     hits: set[str] = set()
     for pattern, eid, case_sensitive in _compiled_patterns():
@@ -99,9 +109,9 @@ def entity_scores(text: str, title: str | None = None) -> dict[str, int]:
     so common-word-ticker guards apply here too."""
     if not text and not title:
         return {}
-    body_cs = text or ""
+    body_cs = _GEOGRAPHIC_NNE.sub(" ", text or "")
     body_ci = body_cs.lower()
-    title_cs = title or ""
+    title_cs = _GEOGRAPHIC_NNE.sub(" ", title or "")
     title_ci = title_cs.lower()
     scores: dict[str, int] = {}
     for pattern, eid, case_sensitive in _compiled_patterns():

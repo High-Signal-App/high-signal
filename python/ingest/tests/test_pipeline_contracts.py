@@ -8,6 +8,42 @@ from high_signal_ingest import generator, pipeline
 from high_signal_ingest.types import EvidenceItem, Event, SignalCandidate, SourceDocument
 
 
+def test_usgs_bearing_does_not_route_earthquake_to_nuclear_company(monkeypatch) -> None:
+    import httpx
+
+    from high_signal_ingest.sources import us_gov_api
+
+    now = datetime(2026, 9, 9, tzinfo=timezone.utc)
+    title = "M 4.8 - 96 km NNE of Lospalos, Timor Leste"
+    payload = {
+        "features": [
+            {
+                "id": "synthetic-earthquake",
+                "properties": {
+                    "title": title,
+                    "place": "96 km NNE of Lospalos, Timor Leste",
+                    "mag": 4.8,
+                    "time": now.timestamp() * 1000,
+                    "url": "https://earthquake.usgs.gov/earthquakes/eventpage/synthetic-earthquake",
+                },
+            }
+        ],
+    }
+    monkeypatch.setattr(us_gov_api, "_now", lambda: now)
+    monkeypatch.setattr(
+        us_gov_api.httpx,
+        "get",
+        lambda *args, **kwargs: httpx.Response(
+            200, json=payload, request=httpx.Request("GET", us_gov_api.USGS_URL)
+        ),
+    )
+    events = us_gov_api._fetch_usgs_earthquakes(1)
+    assert len(events) == 1
+    assert events[0].title == title
+    assert "96 km NNE of Lospalos" in events[0].content
+    assert pipeline._event_entity(events[0]) is None
+
+
 def _event(
     source_url: str,
     entity_id: str = "NVDA",

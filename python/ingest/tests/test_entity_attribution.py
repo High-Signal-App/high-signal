@@ -15,11 +15,42 @@ entity data, not a fixture gazetteer.
 
 from __future__ import annotations
 
+import pytest
+
 from high_signal_ingest.extract.entities import (
     entity_scores,
     event_supports_entity,
+    gazetteer_match,
     primary_entity,
 )
+
+
+@pytest.mark.parametrize("bearing", ["96 km NNE of", "96.5 km nne of", "60 miles NNE of"])
+def test_geographic_bearing_is_not_nano_nuclear(bearing):
+    title = f"M 4.8 - {bearing} Lospalos, Timor Leste"
+    assert "NNE" not in gazetteer_match(title)
+    assert "NNE" not in entity_scores(title, title=title)
+    assert primary_entity(title, title=title) is None
+
+
+@pytest.mark.parametrize(
+    "title",
+    [
+        "$NNE announces reactor test",
+        "NNE shares rise after reactor announcement",
+        "Nano Nuclear Energy announces reactor test",
+        "Nano Nuclear Energy assesses earthquake 96 km NNE of Lospalos",
+    ],
+)
+def test_geographic_guard_preserves_company_mentions(title):
+    assert "NNE" in gazetteer_match(title)
+    assert primary_entity("", title=title) == "NNE"
+
+
+@pytest.mark.parametrize("bearing", ["NNEward", "NNEA", "north-northeast"])
+def test_bearing_lookalikes_do_not_create_ticker_matches(bearing):
+    title = f"M 4.8 - 96 km {bearing} of Lospalos"
+    assert "NNE" not in gazetteer_match(title)
 
 
 def test_title_mention_outweighs_body():
