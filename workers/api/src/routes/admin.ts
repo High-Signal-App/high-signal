@@ -35,6 +35,7 @@ import { mtsAdminRoute } from './admin-mts';
 import { scheduledDataAdminRoute } from './admin-scheduled-data';
 import { precomputeBriefSnapshots } from './brief';
 import { enrichSignals, serializeClaimEvidenceLink } from '../lib/signal-quality';
+import { retainedEvidenceCandidates } from '../lib/attention-admin';
 
 type Env = {
   DB: D1Database;
@@ -59,6 +60,26 @@ adminRoute.use('*', async (c, next) => {
 adminRoute.route('/digg', diggAdminRoute);
 adminRoute.route('/mts', mtsAdminRoute);
 adminRoute.route('/scheduled-data', scheduledDataAdminRoute);
+
+/** Read-only, bounded corpus lookup for issuer-announcement verification. */
+adminRoute.post('/evidence/related', async (c) => {
+  const body = await c.req.json<{ title?: unknown }>().catch(() => null);
+  const title = typeof body?.title === 'string' ? body.title.trim() : '';
+  if (title.length < 20 || title.length > 400) {
+    return c.json({ error: 'invalid_title' }, 400);
+  }
+  try {
+    const evidence = await retainedEvidenceCandidates(
+      c.env.DB,
+      title,
+      Math.floor(Date.now() / 1000),
+      ['market:%', 'reddit:%', 'digg%', 'mts%', 'huggingface:%', 'github:%', 'nvd:%']
+    );
+    return c.json({ evidence });
+  } catch {
+    return c.json({ error: 'related_evidence_unavailable' }, 503);
+  }
+});
 
 /** Rebuild the reader-facing brief immediately after the publication gate. */
 adminRoute.post('/brief/precompute', async (c) => {

@@ -4,7 +4,19 @@ Last updated: 2026-09-09
 
 Current September 9 qualification:
 
-The pending IR retrieval change follows up to three same-origin release links
+Pending retained-corroboration handoff: up to six issuer announcements across
+distinct entities now request related articles from the existing three-day
+corpus lookup through an authenticated API route. Source/date/text are retained,
+relevance filtering precedes ordinary story/proof gates, and lookup failures
+are counted separately from empty results. All 478 Python tests and full local
+quality pass. API deployment and end-to-end acceptance remain pending.
+
+IR run 34363288917 completed with 221 events, 199 acknowledged, 22 unacknowledged,
+and zero drafts. D1 independently confirms all three ASML releases with their
+original publication dates, text, and issuer-announcement metadata.
+[Retention receipt](docs/operations/2026-09-09-ir-retention-terminal.json).
+
+The merged IR retrieval change follows up to three same-origin release links
 and emits only explicitly dated, recent articles with retained text. Index
 snapshots are discovery-only and cannot seed signal generation. A live ASML
 probe produced three September 8 announcements (3,399–3,836 characters each);

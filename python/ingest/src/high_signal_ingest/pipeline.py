@@ -20,6 +20,7 @@ from urllib.parse import urlsplit
 
 from . import audit, source_catalog
 from .extract.entities import primary_entity
+from .retained_corroboration import load_retained_corroboration
 from .graph import spillover_ids
 from .seed import load_entities
 from .sources import (
@@ -1010,6 +1011,12 @@ def run(source: Source, days: int, *, generate_signals: bool = True) -> dict:
             "paths": [],
         }
 
+    related, retrieval_metrics = load_retained_corroboration(events)
+    for retained in related:
+        entity_id = _event_entity(retained)
+        if entity_id:
+            by_entity[entity_id].append(retained)
+
     written: list[str] = []
     fallback_clusters: list[tuple[str, list[Event]]] = []
     proof_tally = new_proof_tally()
@@ -1130,6 +1137,7 @@ def run(source: Source, days: int, *, generate_signals: bool = True) -> dict:
         **proof_tally,
         "errors": errors,
         "paths": written,
+        **retrieval_metrics,
     }
 
 

@@ -65,6 +65,11 @@ def new_run_id() -> str:
     return uuid.uuid4().hex[:16]
 
 
+def fetch_related_evidence(title: str) -> dict[str, Any] | None:
+    """Read-only corpus lookup; None distinguishes failure from empty evidence."""
+    return _post_result("/admin/evidence/related", {"title": title})
+
+
 def push_events(events: Iterable[Event], fetch_run_id: str | None) -> int:
     """Return server-acknowledged events, including already-stored duplicates.
 
