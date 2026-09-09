@@ -1,0 +1,42 @@
+{
+  "runId": 34378740787,
+  "sourceCommit": "f11058a4a305f485661841a0f07961f3df16a936",
+  "ciRun": 34378735640,
+  "ciConclusion": "success",
+  "conclusion": "success",
+  "summary": {
+    "fetch_run_id": "d2923d407fd84f74",
+    "events": 221,
+    "events_pushed": 221,
+    "events_unacknowledged": 0,
+    "duplicates_collapsed": 8,
+    "events_no_entity": 201,
+    "events_low_cluster": 10,
+    "clusters_reaching_generation": 2,
+    "generation_requests": 1,
+    "generation_request_failures": 0,
+    "generation_failure_classes": {},
+    "signals_drafted": 0,
+    "candidates_generated": 2,
+    "candidates_rejected_no_proof": 2,
+    "candidates_rejected_thin_evidence_urls": 0,
+    "candidates_rejected_single_evidentiary_origin": 2,
+    "candidates_rejected_single_provider": 0,
+    "candidates_admitted_single_provider_authoritative": 0,
+    "errors": 0,
+    "paths": [],
+    "related_evidence_lookups": 12,
+    "related_evidence_failures": 0,
+    "related_events_loaded": 3,
+    "related_story_match_requests": 4,
+    "related_story_match_failures": 0
+  },
+  "generationAudit": {
+    "reason": "ok:2/2",
+    "requestedCompletionTokens": 8000,
+    "finishReason": "stop"
+  },
+  "acceptance": "Complete generated bodies and copied-origin rejection verified in hosted run. Both candidates rejected as single-origin despite model-assigned distinct IDs. No draft or useful Brief published.",
+  "remaining": "Grounded synthesis and genuinely independent supporting evidence. Do not promote syndicated releases or ungrounded commercial inferences.",
+  "shareable": false
+}

@@ -4,6 +4,16 @@ Last updated: 2026-09-09
 
 Current September 9 qualification:
 
+Hosted replay 34378740787 verified complete generation and copied-origin
+rejection together: 221/221 event acknowledgements, four successful comparisons,
+three related articles, two complete generated candidates, zero operational
+errors. The audit confirms requested limit 8000 and finish_reason=stop. Both
+candidates were rejected for a single evidentiary origin despite the model giving
+issuer releases and syndicated copies different IDs. No draft was published.
+Remaining: grounded synthesis and genuinely independent supporting evidence;
+transport success is not useful Brief acceptance. Work remains under #133.
+[Hosted acceptance receipt](docs/operations/2026-09-09-complete-generation-replay.json).
+
 Replay 34377502755 acknowledged 221/221 events and loaded three audited matches,
 but generation remained truncated after two attempts (final completion 2000
 tokens). The saved receipt cannot reconstruct the first attempt. Pending repair:
