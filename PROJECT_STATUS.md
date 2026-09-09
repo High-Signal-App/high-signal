@@ -2,6 +2,19 @@
 
 Last updated: 2026-09-09
 
+Run34346562721 completed successfully but produced zero drafts from 4,354 events.
+One generated candidate failed the proof gate; two generation requests failed.
+Five event-batch acknowledgements were short by 18 events in total. The API counts
+duplicate no-ops as accepted, so those shortfalls indicate caught write failures,
+not ordinary deduplication. Exact causes remain unverified. The old client counted
+every HTTP-success batch in full, overstating `events_pushed`.
+
+The current repair counts the API's acknowledged events, rejects malformed counts,
+and adds `events_unacknowledged` to both pipeline summary paths. It preserves
+best-effort audit transport and does not retry writes or claim distinct new rows.
+No new ingestion/publication has been dispatched. Existing issue133 remains open;
+the terminal receipt is `docs/operations/2026-09-09-coherent-ingest-verification.json`.
+
 September 9 thematic repair: whole-theme buckets no longer produce deterministic
 corroboration or directional prose. Discovery requires an explicit named
 data-center project, location and compatible event type within 72 hours;

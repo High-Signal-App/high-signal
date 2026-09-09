@@ -33,10 +33,14 @@ def _enabled() -> bool:
 
 
 def _post(path: str, body: dict[str, Any]) -> bool:
+    return _post_result(path, body) is not None
+
+
+def _post_result(path: str, body: dict[str, Any]) -> dict[str, Any] | None:
     api = _api_base()
     tok = _token()
     if not api or not tok:
-        return False
+        return None
     try:
         r = httpx.post(
             f"{api.rstrip('/')}{path}",
@@ -46,26 +50,15 @@ def _post(path: str, body: dict[str, Any]) -> bool:
         )
         if r.status_code >= 400:
             LOGGER.warning("audit %s failed: %s %s", path, r.status_code, r.text[:200])
-            return False
-        # Check response body for partial failures (e.g. D1 inserts that
-        # silently failed in the catch block)
-        try:
-            resp = r.json()
-            if isinstance(resp, dict) and "inserted" in resp:
-                expected = len(body.get("events", []))
-                if resp["inserted"] < expected:
-                    LOGGER.warning(
-                        "audit %s: only %d/%d events inserted",
-                        path,
-                        resp["inserted"],
-                        expected,
-                    )
-        except Exception:
-            pass
-        return True
+            return None
+        resp = r.json()
+        if not isinstance(resp, dict):
+            LOGGER.warning("audit %s: invalid acknowledgement", path)
+            return None
+        return resp
     except Exception as exc:
         LOGGER.warning("audit %s exception: %s", path, exc)
-        return False
+        return None
 
 
 def new_run_id() -> str:
@@ -73,7 +66,11 @@ def new_run_id() -> str:
 
 
 def push_events(events: Iterable[Event], fetch_run_id: str | None) -> int:
-    """Bulk-push raw events. Returns count attempted."""
+    """Return server-acknowledged events, including already-stored duplicates.
+
+    The API's legacy `inserted` counter counts successful upserts/no-ops, not
+    distinct new rows. Missing or malformed acknowledgements prove no acceptance.
+    """
     if not _enabled():
         return 0
     payload = [
@@ -97,17 +94,22 @@ def push_events(events: Iterable[Event], fetch_run_id: str | None) -> int:
     chunk = 50
     for i in range(0, len(payload), chunk):
         batch = payload[i : i + chunk]
-        ok = _post("/admin/events", {"events": batch})
-        if ok:
-            total += len(batch)
-        else:
+        result = _post_result("/admin/events", {"events": batch})
+        accepted = result.get("inserted") if result is not None else None
+        if type(accepted) is not int or not 0 <= accepted <= len(batch):
+            accepted = 0
+            LOGGER.warning("push_events: invalid or missing batch acknowledgement")
+        total += accepted
+        if accepted < len(batch):
             LOGGER.warning(
-                "push_events chunk %d/%d failed (%d events lost)",
+                "push_events chunk %d/%d: %d/%d acknowledged (%d unacknowledged)",
                 i // chunk + 1,
                 (len(payload) + chunk - 1) // chunk,
+                accepted,
                 len(batch),
+                len(batch) - accepted,
             )
-    LOGGER.info("push_events: %d/%d events persisted", total, len(payload))
+    LOGGER.info("push_events: %d/%d events acknowledged", total, len(payload))
     return total
 
 
