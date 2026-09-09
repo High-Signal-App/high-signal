@@ -40,3 +40,8 @@ dev = [
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+
+[tool.uv]
+# GitHub Actions and ingestion run on Linux x86_64. Reject releases that
+# cannot install there, even when resolution runs on a developer Mac.
+required-environments = ["sys_platform == 'linux' and platform_machine == 'x86_64'"]
