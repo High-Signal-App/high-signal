@@ -1,0 +1,47 @@
+{
+  "runId": 34374070475,
+  "sourceCommit": "513f63756f8ab78e01e7f946158fb91d4da7cff4",
+  "ciRun": 34374036694,
+  "ciConclusion": "success",
+  "conclusion": "failure",
+  "summary": {
+    "fetch_run_id": "0fd092b548394e26",
+    "events": 218,
+    "events_pushed": 218,
+    "events_unacknowledged": 0,
+    "duplicates_collapsed": 8,
+    "events_no_entity": 198,
+    "events_low_cluster": 11,
+    "clusters_reaching_generation": 1,
+    "generation_requests": 1,
+    "generation_request_failures": 1,
+    "generation_failure_classes": {
+      "client_error": 1
+    },
+    "signals_drafted": 0,
+    "candidates_generated": 0,
+    "candidates_rejected_no_proof": 0,
+    "candidates_rejected_thin_evidence_urls": 0,
+    "candidates_rejected_single_evidentiary_origin": 0,
+    "candidates_rejected_single_provider": 0,
+    "candidates_admitted_single_provider_authoritative": 0,
+    "errors": 1,
+    "paths": [],
+    "related_evidence_lookups": 12,
+    "related_evidence_failures": 0,
+    "related_events_loaded": 1,
+    "related_story_match_requests": 4,
+    "related_story_match_failures": 3
+  },
+  "matcherAudit": {
+    "http200": 1,
+    "http400AfterTwoAttempts": 3
+  },
+  "generationAudit": {
+    "reason": "http_400",
+    "providerMessage": "All providers failed: 404 status code (no body)",
+    "providerType": "input_nonretriable"
+  },
+  "acceptance": "Persistence acknowledged all 218 events. Provider routing remains unavailable for three comparisons and generation. No candidate or draft; shareability remains unverified. Inspect configured provider routing before another replay.",
+  "shareable": false
+}

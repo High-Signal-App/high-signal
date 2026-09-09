@@ -4,6 +4,14 @@ Last updated: 2026-09-09
 
 Current September 9 qualification:
 
+Matcher outage handling merged in PR #171; merged-main CI 34374036694 passed.
+Diagnostic replay 34374070475 acknowledged 218/218 events but produced no draft.
+One comparison succeeded; three returned HTTP 400 after two attempts. Generation
+also failed with HTTP 400: the provider wrapper reported an upstream 404 with
+no body (input_nonretriable). Next investigate the configured provider route;
+additional replay or evidence-rule changes are not justified by this result.
+[Diagnostic receipt](docs/operations/2026-09-09-matcher-outage-diagnostic.json).
+
 Released retrieval ranking repair: rank retained results by matching title-token
 count before the 50-row limit, using recency as a tie-breaker. The real SQL
 regression reproduces an older relevant report hidden by 60 newer weak matches.
