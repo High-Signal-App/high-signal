@@ -1,0 +1,57 @@
+{
+  "observedAt": "2026-09-09T10:40:10.649777+00:00",
+  "run": "https://github.com/High-Signal-App/high-signal/actions/runs/34338300121",
+  "source": "f6654bd27065c0301dc5cf0156549ff29e9dd9e8",
+  "inputs": {
+    "cohort": "all",
+    "runner": "github-hosted"
+  },
+  "conclusion": "success",
+  "duration": "32m9s",
+  "manifest": {
+    "status": "complete",
+    "windowStart": "2026-09-08T10:05:32.738Z",
+    "windowEnd": "2026-09-09T10:05:32.738Z",
+    "requestedCommunities": 99,
+    "completedCommunities": 99,
+    "partialCommunities": 0,
+    "failedCommunities": 0,
+    "postCount": 2657,
+    "commentCount": 35363,
+    "commentsSeen": 55817,
+    "eventCount": 1228,
+    "requestMetrics": {
+      "requests": 2666,
+      "retries": 0,
+      "waitedMs": 1065566,
+      "remaining": 422
+    },
+    "objectPrefix": "reddit/v2/run=34338300121/attempt=1/date=2026-09-09"
+  },
+  "pointer": {
+    "schema": "high-signal.reddit-latest.v1",
+    "archiveSchemaVersion": 2,
+    "archiveDate": "2026-09-09",
+    "windowStart": "2026-09-08T10:05:32.738Z",
+    "windowEnd": "2026-09-09T10:05:32.738Z",
+    "status": "complete",
+    "requestedCommunities": 99,
+    "eventCount": 1228,
+    "objects": {
+      "events": "reddit/v2/run=34338300121/attempt=1/date=2026-09-09/events.jsonl.zst",
+      "index": "reddit/v2/run=34338300121/attempt=1/date=2026-09-09/subreddits.index.json",
+      "manifest": "reddit/v2/run=34338300121/attempt=1/date=2026-09-09/manifest.json"
+    },
+    "eventsSha256": "cfe82ddfec65345c932f264652d977e17a8e2fe6231ed7396b86bf156f46bd33",
+    "eventsBytes": 501282
+  },
+  "verification": {
+    "owningArchiveVerifier": "healthy; complete; zero unresolvedMore/listingCapped",
+    "consumerFreshnessValidator": "passed existing eight-hour gate",
+    "allEventProvenance": "all1228 events reference the exact run/attempt raw-object prefix",
+    "eventSha256": "cfe82ddfec65345c932f264652d977e17a8e2fe6231ed7396b86bf156f46bd33",
+    "remoteReceipt": "workflow downloaded exact run manifest/events and compared bytes, then uploaded/downloaded/compared latest.json; all steps passed",
+    "remotePointerVerifiedAt": "2026-09-09T10:37:15Z"
+  },
+  "scope": "Public-source archive qualification only; no downstream generation, publication, useful edition or real redaction qualified."
+}

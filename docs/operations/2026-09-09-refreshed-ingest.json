@@ -1,0 +1,45 @@
+{
+  "observedAt": "2026-09-09T11:10:17.892805+00:00",
+  "run": "https://github.com/High-Signal-App/high-signal/actions/runs/34341530766",
+  "source": "f6654bd27065c0301dc5cf0156549ff29e9dd9e8",
+  "inputs": {
+    "source": "all",
+    "days": 1
+  },
+  "conclusion": "success",
+  "startedAt": "2026-09-09T10:41:04Z",
+  "completedAt": "2026-09-09T11:06:21Z",
+  "jobDuration": "25m11s",
+  "archiveRun": "34338300121",
+  "archiveConsumer": "freshness/hash export and source availability diagnostic passed",
+  "funnel": {
+    "fetch_run_id": "95666b7e2a314732",
+    "events": 4419,
+    "events_pushed": 4419,
+    "duplicates_collapsed": 904,
+    "events_no_entity": 2669,
+    "events_low_cluster": 684,
+    "clusters_reaching_generation": 35,
+    "generation_requests": 9,
+    "generation_request_failures": 3,
+    "generation_failure_classes": {
+      "unexpected": 2,
+      "invalid_json": 1
+    },
+    "signals_drafted": 1,
+    "candidates_generated": 1,
+    "candidates_rejected_no_proof": 1,
+    "candidates_rejected_thin_evidence_urls": 0,
+    "candidates_rejected_single_evidentiary_origin": 1,
+    "candidates_rejected_single_provider": 0,
+    "candidates_admitted_single_provider_authoritative": 0,
+    "errors": 3,
+    "paths": [
+      "pushed:theme_datacenter-imec-advances-scalable-superconducting-tech-with-nbtin-circuits-and-30nm-interco"
+    ]
+  },
+  "persistence": "All 4419 events pushed; one pushed thematic draft independently read back with six evidence rows (548d65290de0c473); no draft file fallback reported.",
+  "qualification": "No entity candidate cleared proofs. The thematic draft combines unrelated stories and is not a useful edition; structural quality100/publishabletrue is not publisher approval. No publication dispatched.",
+  "failureLimits": "Two generation failures classified unexpected, one invalid_json; terminal logs do not disclose a narrower cause.",
+  "draftReceipt": "2026-09-09-thematic-draft-readback.json"
+}

@@ -1,0 +1,49 @@
+{
+  "observedAt": "2026-09-09T11:08:53.793Z",
+  "url": "https://api.highsignal.app/signals/theme_datacenter-imec-advances-scalable-superconducting-tech-with-nbtin-circuits-and-30nm-interco",
+  "status": 200,
+  "signal": {
+    "id": "548d65290de0c473",
+    "slug": "theme_datacenter-imec-advances-scalable-superconducting-tech-with-nbtin-circuits-and-30nm-interco",
+    "reviewStatus": "draft",
+    "direction": "down",
+    "observedEvent": null,
+    "qualityScore": 100,
+    "publishable": true,
+    "independentSourceCount": 5,
+    "bodyMd": "# Data Center Buildout: Imec Advances Scalable Superconducting Tech with NbTiN Circuits and 30nm Interconnects\n\nA **data center buildout** pattern corroborated by 58 sources across 2 channels (legistar, news). These items don't name a single tracked company — they describe a thematic shift (land-use, energy, or capacity moves) that precedes named-entity activity.\n\n## Evidence\n\n- [Imec Advances Scalable Superconducting Tech with NbTiN Circuits and 30nm Interconnects](https://www.hpcwire.com/off-the-wire/imec-advances-scalable-superconducting-tech-with-nbtin-circuits-and-30nm-interconnects/)\n- [Qatar's Meeza signs 8MW lease with global hyperscaler](https://www.datacenterdynamics.com/en/news/qatars-meeza-signs-8mw-lease-with-global-hyperscaler/)\n- [Ann Arbor MI — City Council: An Ordinance to Amend Chapter 55 (Zoning), Rezoning of 1.199 Acres from TWP (Township District) to O (Office District), 2080 South State Street Rezoning (CPC Recommendation: Approval - 9 Yeas and 0 Nays)](https://a2gov.legistar.com/LegislationDetail.aspx?ID=39220&GUID=A37715D7-3F1D-4ED1-B6B7-A619EE25951C)\n- [Mesa AZ — City Council: A resolution making findings required by A.R.S. § 9-500.11 (Version 2) for the City to enter into a “retail development tax incentive agreement” and approving and authorizing the City Manager to enter into a development agreement that is a “retail development tax incentive ag](https://mesa.legistar.com/LegislationDetail.aspx?ID=24034&GUID=AC2B9D73-8FDE-41E1-8BF4-9A22A82F9FB5)\n- [Denver CO — Pending: Approves a map amendment to rezone property from G-MX-3, DO-8 to U-MS-5, DO-8, located at 2246 N. Federal Blvd., in Council District 1.](https://denver.legistar.com/LegislationDetail.aspx?ID=57454&GUID=3EB1720C-2412-4E30-AA96-2162E9BDB0E7)\n- [Mesa AZ — City Council: Making findings required by A.R.S. § 9-500.11 (version 2) for the City to enter into, and approving and authorizing the City Manager to enter into, a development agreement that is a “retail development tax incentive agreement” under A.R.S. § 9-500.11 (version 2), for the deve](https://mesa.legistar.com/LegislationDetail.aspx?ID=24027&GUID=021CB062-AC76-46BC-9D28-4610DE9E546A)\n\n## Read\n\nDirectional read is `down`. Reviewer should confirm the theme is material, attach any tracked entities the buildout implicates (operators, utilities, suppliers), and adjust the window before publishing."
+  },
+  "evidence": [
+    {
+      "url": "https://www.hpcwire.com/off-the-wire/imec-advances-scalable-superconducting-tech-with-nbtin-circuits-and-30nm-interconnects/",
+      "sourceType": "news",
+      "publishedAt": "2026-09-08T19:58:03.000Z"
+    },
+    {
+      "url": "https://www.datacenterdynamics.com/en/news/qatars-meeza-signs-8mw-lease-with-global-hyperscaler/",
+      "sourceType": "news",
+      "publishedAt": "2026-09-08T14:00:22.000Z"
+    },
+    {
+      "url": "https://a2gov.legistar.com/LegislationDetail.aspx?ID=39220&GUID=A37715D7-3F1D-4ED1-B6B7-A619EE25951C",
+      "sourceType": "legistar",
+      "publishedAt": "2026-09-08T00:00:00.000Z"
+    },
+    {
+      "url": "https://mesa.legistar.com/LegislationDetail.aspx?ID=24034&GUID=AC2B9D73-8FDE-41E1-8BF4-9A22A82F9FB5",
+      "sourceType": "legistar",
+      "publishedAt": "2026-09-07T00:00:00.000Z"
+    },
+    {
+      "url": "https://denver.legistar.com/LegislationDetail.aspx?ID=57454&GUID=3EB1720C-2412-4E30-AA96-2162E9BDB0E7",
+      "sourceType": "legistar",
+      "publishedAt": "2026-09-03T00:00:00.000Z"
+    },
+    {
+      "url": "https://mesa.legistar.com/LegislationDetail.aspx?ID=24027&GUID=021CB062-AC76-46BC-9D28-4610DE9E546A",
+      "sourceType": "legistar",
+      "publishedAt": "2026-09-01T00:00:00.000Z"
+    }
+  ],
+  "assessment": "Persisted draft confirmed. Structural publishable/quality score does not demonstrate a coherent event: chip technology, Qatar lease, office rezoning and retail incentives are not independent corroboration of one data-center buildout claim. No publication authorized or performed."
+}
