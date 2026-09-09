@@ -30,6 +30,7 @@ from dataclasses import asdict, dataclass, field
 from . import pipeline
 from .extract.entities import gazetteer_match
 from .types import Event
+from .thematic import is_buildout_topic
 from .utils import event_text, source_family  # noqa: F401  (source_family re-exported)
 
 
@@ -73,14 +74,10 @@ THEME_BUCKETS: list[tuple[str, tuple[str, ...]]] = [
     (
         "data-center-buildout",
         (
-            "rezon",
-            "conditional use",
-            "special exception",
-            "site plan",
-            "development agreement",
-            "hyperscale",
-            "comprehensive plan",
-            "zoning",
+            "data center",
+            "data centre",
+            "datacenter",
+            "data-center",
         ),
     ),
     (
@@ -177,7 +174,11 @@ _THEME_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
 
 def classify_themes(text: str) -> list[str]:
     low = text.lower()
-    return [theme for theme, pat in _THEME_PATTERNS if pat.search(low)]
+    return [
+        theme
+        for theme, pat in _THEME_PATTERNS
+        if (is_buildout_topic(text) if theme == "data-center-buildout" else pat.search(low))
+    ]
 
 
 @dataclass

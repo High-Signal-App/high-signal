@@ -2,13 +2,24 @@
 
 Last updated: 2026-09-09
 
+September 9 thematic repair: whole-theme buckets no longer produce deterministic
+corroboration or directional prose. Discovery requires an explicit named
+data-center project, location and compatible event type within 72 hours;
+conflicting sites cannot merge through a headline omitting its site number.
+English headline anchors are conservative: unknown names/locations stay research
+inputs, and these anchors are not semantic proof. Each eligible story now uses
+the existing semantic generator with at most six unique source items, followed
+by the ordinary independent-origin proof gate. The five-attempt ceiling includes
+rejected candidates. Production-citation regression and independently worded
+positive fixtures pass; live generation/publication remains unqualified in #133.
+
 September 9 semantic-review repair: legacy drafts now supply the AI judge with
 bounded retained source excerpts, explicitly distinguished from full documents.
 Missing text cannot receive verified alignment, duplicate assessments cannot
 satisfy the two-source floor, and an evidence lookup outage leaves the draft
 unchanged with a failed run. Existing structured receipt handling is unchanged.
 This is source/test evidence only; no publisher run has qualified the repair.
-The separate thematic story-coherence defect remains in issue #133.
+The subsequent thematic repair and live qualification remain in issue #133.
 
 September 9 archive refresh safety: a same-day partial refresh could overwrite
 payloads referenced by the previous complete pointer. Source now isolates each
