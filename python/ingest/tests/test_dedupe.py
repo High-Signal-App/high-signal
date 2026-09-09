@@ -148,3 +148,56 @@ def test_edgar_filing_outranks_a_news_rewrite() -> None:
     out = dedupe.dedupe_exact([rewrite, filing])
     assert len(out) == 1
     assert out[0].source == "edgar_8k"
+
+
+def test_distinct_cves_are_not_one_corroborated_story() -> None:
+    events = [
+        _ev("nvd:langflow", f"NVD CVE: Langflow {cve}", f"https://nvd.nist.gov/vuln/detail/{cve}")
+        for cve in ["CVE-2026-19295", "CVE-2026-19306"]
+    ]
+    assert len(dedupe.dedupe(events)) == 2
+
+
+def test_same_cve_keeps_independent_reports_together() -> None:
+    events = [
+        _ev(
+            "nvd",
+            "Langflow security vulnerability CVE-2026-19295",
+            "https://nvd.nist.gov/vuln/detail/CVE-2026-19295",
+        ),
+        _ev(
+            "news",
+            "Langflow security vulnerability CVE-2026-19295",
+            "https://news.example/langflow",
+        ),
+    ]
+    stories = dedupe.dedupe(events)
+    assert len(stories) == 1
+    assert stories[0].distinct_sources == 2
+
+
+def test_generic_security_headline_cannot_bridge_different_cves() -> None:
+    from itertools import permutations
+
+    events = [
+        _ev(
+            "nvd",
+            "Langflow critical security vulnerability patch update CVE-2026-19295",
+            "https://nvd.nist.gov/vuln/detail/CVE-2026-19295",
+        ),
+        _ev(
+            "news",
+            "Langflow critical security vulnerability patch update",
+            "https://news.example/langflow",
+        ),
+        _ev(
+            "nvd",
+            "Langflow critical security vulnerability patch update CVE-2026-19306",
+            "https://nvd.nist.gov/vuln/detail/CVE-2026-19306",
+        ),
+    ]
+    for order in permutations(events):
+        stories = dedupe.dedupe(list(order))
+        assert all(
+            not (events[0] in story.members and events[2] in story.members) for story in stories
+        )

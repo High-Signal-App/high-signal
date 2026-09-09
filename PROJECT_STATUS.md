@@ -2,70 +2,31 @@
 
 Last updated: 2026-09-09
 
-Documentation-head CI 34359986362 failed before tests because an unlocked fresh
-Python resolution selected multidict 6.8.0 without a Linux x86_64 artifact.
-The ingest resolver now explicitly requires that platform. Isolated fresh
-resolution selects 6.7.1 and a Linux installation dry run passes; real CI is
-pending. No dependency was added and no local environment was reinstalled.
+Current September 9 qualification:
 
-API release 34359719365 deploys source 42ba39d at 100% traffic and closes the
-fresh-composition bypass found after release 34358213440. Ordinary and
-cache-busted global/South Asia live requests now withhold unsupported ideas and
-remain pending. Full local quality and exact main CI passed. See
-`docs/operations/2026-09-09-brief-gate-release.json`. This is publication-gate
-acceptance, not useful-edition or shareability acceptance.
-
-The next Brief gate repair applies structured claim provenance to opportunities
-and trends, requiring primary support, independent corroboration, no contradiction
-and two citations present in the claim receipt. Public URLs alone no longer
-qualify seeded hypotheses. Cached and protected-history responses are pruned
-without rewriting their stored snapshots; an edition emptied by the gate is
-pending rather than published. Existing opportunity/trend builders do not yet
-produce qualifying claim receipts, so they remain withheld until that synthesis
-path is implemented and verified. This is source/test work, not a released or
-useful edition. Existing issue #133 owns that remaining acceptance.
-
-PR #158 is merged and API source `76fb00152f6e262804284713ddd3cc019afb4c59`
-is deployed by run34356191933, with production smoke passed. Worker
-`85e58ec2-5207-43c0-bfea-74b94561e92b` serves the exact tag at 100% traffic.
-HKEX verification34356380335 acknowledged all 24 events with zero errors;
-read-only D1 confirms the nine previously absent events now exist with unresolved
-entity IDs preserved. It generated no candidates and does not qualify the Brief.
-Full ingest34356640737 is running from `06f52612130c3abb59e41514f1a49f4c22c76563`
-(the repair plus a bot label-backtest refresh). No publisher was dispatched.
-Receipt: `docs/operations/2026-09-09-ingest-repair-release.json`.
-
-The event-ingest repair now resolves source-supplied entity IDs against D1.
-Known entities remain linked; unknown identifiers are retained as
-`unresolvedPrimaryEntityId` in source-document metadata and the observation is
-stored with a null canonical entity link. No company is auto-created. Failed
-lookups remain unacknowledged writes rather than being treated as unknown IDs.
-The per-request cache avoids repeated lookups for the same ID. Route regressions
-cover source-text/metadata retention, known/null links and lookup outages.
-This source repair does not backfill historical missing events or establish
-that all 18 historical write failures had the same cause.
-
-A read-only D1 receipt lookup identifies one generation failure in that run:
-`generate ANTHROPIC: 'dict' object has no attribute 'rstrip'`. The generator
-assumed `body_md` was text. The current repair rejects missing, empty and non-text
-bodies as audited `invalid_response` failures. A malformed batch item no longer
-discards valid siblings; those siblings still face the existing proof gates.
-An entirely malformed batch remains a failure, not an empty success. This does
-not establish the second generation failure or the 18 event-write causes.
-No new ingest or publication has run.
-
-Run34346562721 completed successfully but produced zero drafts from 4,354 events.
-One generated candidate failed the proof gate; two generation requests failed.
-Five event-batch acknowledgements were short by 18 events in total. The API counts
-duplicate no-ops as accepted, so those shortfalls indicate caught write failures,
-not ordinary deduplication. Exact causes remain unverified. The old client counted
-every HTTP-success batch in full, overstating `events_pushed`.
-
-The current repair counts the API's acknowledged events, rejects malformed counts,
-and adds `events_unacknowledged` to both pipeline summary paths. It preserves
-best-effort audit transport and does not retry writes or claim distinct new rows.
-No new ingestion/publication has been dispatched. Existing issue133 remains open;
-the terminal receipt is `docs/operations/2026-09-09-coherent-ingest-verification.json`.
+- API source `42ba39d3b001ac6985af8d8ed7c01ef442a96864` is deployed at
+  100% traffic by run 34359719365. Ordinary and cache-busted global/South Asia
+  responses withhold unsupported seeded ideas and remain pending. Cached and
+  protected-history route regressions pass without changing stored snapshots.
+  [Live receipt](docs/operations/2026-09-09-brief-gate-release.json).
+- Useful-edition acceptance remains open in #133. Opportunity/trend builders
+  still lack qualifying claim provenance. Source collection and successful
+  generation calls do not establish a usable Brief.
+- PR #158 repaired event acknowledgements, unknown-entity persistence, and
+  malformed generation bodies. HKEX run 34356380335 acknowledged 24/24 events;
+  D1 confirms all nine previously absent events. It generated no candidates.
+  [Release receipt](docs/operations/2026-09-09-ingest-repair-release.json) and
+  [earlier failed funnel](docs/operations/2026-09-09-coherent-ingest-verification.json).
+- Full ingest 34356640737 remains active from source `06f5261`. Three successful
+  generation receipts observed so far include broad security narratives;
+  their presence does not prove publication acceptance. No publisher dispatched.
+- A reproduced clustering defect merged different Langflow CVEs at title
+  overlap 0.6. The pending fix preserves CVE identity across component merges,
+  including generic-headline bridges, while retaining same-CVE reports.
+  All 461 Python tests pass; live ingest qualification is still pending.
+- PR #161 is merged after green Linux CI. The resolver now requires Linux
+  x86_64 artifacts, excluding the incompatible multidict 6.8.0 release that
+  broke documentation-head CI 34359986362. No production dependency was added.
 
 September 9 thematic repair: whole-theme buckets no longer produce deterministic
 corroboration or directional prose. Discovery requires an explicit named
