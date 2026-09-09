@@ -887,6 +887,33 @@ def _candidate_from_batch_item(
     )
 
 
+def _parse_batch_candidates(
+    items: list,
+    cluster_events: dict[str, list[Event]],
+    cluster_entities: dict[str, str],
+    cluster_spillovers: dict[str, list[str]],
+) -> tuple[list[SignalCandidate], int]:
+    candidates: list[SignalCandidate] = []
+    invalid_bodies = 0
+    for item in items:
+        if not isinstance(item, dict) or not item.get("publish"):
+            continue
+        try:
+            candidate = _candidate_from_batch_item(
+                item,
+                cluster_events,
+                cluster_entities,
+                cluster_spillovers,
+            )
+        except SignalGenerationUnavailable:
+            invalid_bodies += 1
+            continue
+        if candidate:
+            candidates.append(candidate)
+
+    return candidates, invalid_bodies
+
+
 def generate_batch(
     clusters: list[tuple[str, list[Event], list[str]]],
 ) -> list[SignalCandidate]:
@@ -963,24 +990,9 @@ def generate_batch(
         _record(False, None, "unexpected_response_shape")
         return []
 
-    candidates: list[SignalCandidate] = []
-    invalid_bodies = 0
-    for item in items:
-        if not isinstance(item, dict) or not item.get("publish"):
-            continue
-        try:
-            candidate = _candidate_from_batch_item(
-                item,
-                cluster_events,
-                cluster_entities,
-                cluster_spillovers,
-            )
-        except SignalGenerationUnavailable:
-            invalid_bodies += 1
-            continue
-        if candidate:
-            candidates.append(candidate)
-
+    candidates, invalid_bodies = _parse_batch_candidates(
+        items, cluster_events, cluster_entities, cluster_spillovers
+    )
     if invalid_bodies:
         _record(False, None, f"invalid_body_md:{invalid_bodies};retained:{len(candidates)}")
         if not candidates:

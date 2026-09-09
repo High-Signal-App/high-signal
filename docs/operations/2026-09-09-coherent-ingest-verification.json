@@ -39,5 +39,26 @@
     "ingestRunId": "a9e5de541c57530b",
     "errorSample": "generate ANTHROPIC: 'dict' object has no attribute 'rstrip'",
     "interpretation": "Generator assumes body_md is text. Invalid body shapes now fail explicitly; valid batch siblings remain subject to unchanged proof gates. This does not diagnose both failures or the 18 unacknowledged event writes."
+  },
+  "persistenceFollowup": {
+    "method": "Read-only D1 queries scoped to retained documents fetched during the run; source entity IDs checked against entities and document raw hashes against events",
+    "missingEntityReferences": [
+      {
+        "source": "hkex:01024",
+        "entityId": "KUAISHOU",
+        "documentsWithoutMatchingEvent": 3
+      },
+      {
+        "source": "hkex:01810",
+        "entityId": "XIAOMI",
+        "documentsWithoutMatchingEvent": 3
+      },
+      {
+        "source": "hkex:09618",
+        "entityId": "JD",
+        "documentsWithoutMatchingEvent": 3
+      }
+    ],
+    "interpretation": "Nine retained documents have absent canonical entity IDs and no event by raw hash. This is consistent with foreign-key rejection; historical exception logs are unavailable, and all 18 failed acknowledgements are not explained. HKEX adapter emits issuer-day search-page snapshots rather than parsed individual filings, so these records do not establish actionable filing evidence."
   }
 }
