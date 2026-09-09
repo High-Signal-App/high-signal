@@ -83,7 +83,12 @@ def match_story(left: Event, right: Event) -> tuple[bool, str]:
         accepted=accepted,
         reason=reason,
         request_json=request,
-        response_json={"result": result, "failureClass": meta.get("failure_class")},
+        response_json={
+            "result": result,
+            "failureClass": meta.get("failure_class"),
+            "httpStatus": meta.get("http_status"),
+            "attempts": meta.get("attempts"),
+        },
         tokens_in=meta.get("tokens_in"),
         tokens_out=meta.get("tokens_out"),
         latency_ms=meta.get("latency_ms"),
