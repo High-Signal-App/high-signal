@@ -1,10 +1,17 @@
 from datetime import datetime, timedelta, timezone
 
+import pytest
+
 from high_signal_ingest import retained_corroboration as retained
 from high_signal_ingest.pipeline import _event_entity
 from high_signal_ingest.types import Event, SourceDocument
 
 TITLE = "ASML and Intel collaborate on advanced semiconductor lithography production"
+
+
+@pytest.fixture(autouse=True)
+def research_match(monkeypatch):
+    monkeypatch.setattr(retained, "match_story", lambda *_: (True, "same_event"))
 
 
 def announcement(entity="ASML", index=0):
@@ -46,17 +53,17 @@ def test_retains_source_date_and_text_without_semantic_credit(monkeypatch):
     assert metrics["related_events_loaded"] == 1
 
 
-def test_bounds_lookup_count_and_avoids_repeating_entity(monkeypatch):
+def test_bounds_lookup_count_by_distinct_announcement_url(monkeypatch):
     calls = []
     monkeypatch.setattr(
         retained.audit,
         "fetch_related_evidence",
         lambda title: calls.append(title) or {"evidence": []},
     )
-    events = [announcement(f"ENTITY{i}", i) for i in range(10)]
-    events.append(announcement("ENTITY9", 11))
-    assert retained.load_retained_corroboration(events)[1]["related_evidence_lookups"] == 6
-    assert len(calls) == 6
+    events = [announcement("ASML", i) for i in range(30)]
+    events.append(events[-1].model_copy())
+    assert retained.load_retained_corroboration(events)[1]["related_evidence_lookups"] == 24
+    assert len(calls) == 24
 
 
 def test_filters_irrelevant_undated_stale_future_thin_and_duplicate_results(monkeypatch):
@@ -95,3 +102,36 @@ def test_index_snapshots_never_trigger_lookup(monkeypatch):
         lambda title: (_ for _ in ()).throw(AssertionError("unexpected request")),
     )
     assert retained.load_retained_corroboration([event])[1]["related_evidence_lookups"] == 0
+
+
+def test_model_budget_and_unavailable_results(monkeypatch):
+    rows = [row(url=f"https://reporter.example/{i}") for i in range(10)]
+    monkeypatch.setattr(retained.audit, "fetch_related_evidence", lambda _: {"evidence": rows})
+    monkeypatch.setattr(retained, "match_story", lambda *_: (False, "model_unavailable"))
+    events, metrics = retained.load_retained_corroboration([announcement()])
+    assert events == []
+    assert metrics["related_story_match_requests"] == 6
+    assert metrics["related_story_match_failures"] == 6
+
+
+def test_matched_different_headlines_reach_story_grouping_without_proof_credit(monkeypatch):
+    from high_signal_ingest.pipeline import _pre_group_clusters
+
+    primary = announcement()
+    secondary = row(title="Intel production milestone uses ASML lithography tools")
+    monkeypatch.setattr(
+        retained.audit, "fetch_related_evidence", lambda _: {"evidence": [secondary]}
+    )
+    events, _ = retained.load_retained_corroboration([primary])
+    assert len(events) == 1
+    assert events[0].research_story_anchor == primary.source_url
+    assert events[0].source_document.parsed_fields == {"retrievedFrom": "retained_corpus"}
+    large, batches, skipped = _pre_group_clusters({"ASML": [primary, *events]})
+    assert len(large) + sum(len(batch) for batch in batches) == 1
+    assert skipped == 0
+
+
+def test_same_company_but_different_event_stays_out(monkeypatch):
+    monkeypatch.setattr(retained.audit, "fetch_related_evidence", lambda _: {"evidence": [row()]})
+    monkeypatch.setattr(retained, "match_story", lambda *_: (False, "not_matched"))
+    assert retained.load_retained_corroboration([announcement()])[0] == []

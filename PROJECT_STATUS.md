@@ -4,6 +4,16 @@ Last updated: 2026-09-09
 
 Current September 9 qualification:
 
+Pending retained-story matching: recent announcement lookup now covers at most
+24 distinct URLs, followed by at most six same-event comparisons through the
+existing configured model client. Positive comparisons require exact passages
+from both retained texts and a saved audit receipt. An internal association
+connects different headlines only for candidate grouping; distinct-CVE and
+publication proof gates remain unchanged. All 492 Python tests pass, including
+unavailable-model, fabricated-quote, audit failure and grouping regressions.
+Hosted model acceptance and useful Brief output remain unverified. Existing
+issue #133 owns this work; no new task was opened.
+
 Applied schema repair: production marked migration 0008 applied but retained its
 old unique raw-hash index. Filtered Worker logs locate rejected writes in the
 document upsert, and Microsoft/Alibaba failures match hashes under alternate

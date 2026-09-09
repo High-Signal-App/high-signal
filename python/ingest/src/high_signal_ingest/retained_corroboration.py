@@ -6,12 +6,15 @@ from datetime import datetime, timedelta, timezone
 from urllib.parse import urlsplit
 
 from . import audit
+from .dedupe import canonical_url
 from .digg_verify import title_alignment
 from .extract.entities import gazetteer_match
 from .types import Event, SourceDocument
+from .story_match import match_story
 from .utils import event_hash
 
-MAX_LOOKUPS = 6
+MAX_LOOKUPS = 24
+MAX_STORY_MATCHES = 6
 
 
 def _retained_event(row: object, title: str, now: datetime) -> Event | None:
@@ -21,7 +24,9 @@ def _retained_event(row: object, title: str, now: datetime) -> Event | None:
     headline, date = row.get("title"), row.get("seendate")
     if not all(isinstance(value, str) for value in [url, text, source, headline, date]):
         return None
-    if len(text) < 500 or title_alignment(title, headline) < 0.6:
+    # Broad research recall; the audited same-event matcher below decides
+    # association. This threshold never grants claim support.
+    if len(text) < 500 or title_alignment(title, headline) < 0.25:
         return None
     try:
         parsed = urlsplit(url)
@@ -50,27 +55,24 @@ def _retained_event(row: object, title: str, now: datetime) -> Event | None:
     )
 
 
-def load_retained_corroboration(events: list[Event]) -> tuple[list[Event], dict[str, int]]:
-    metrics = {
-        "related_evidence_lookups": 0,
-        "related_evidence_failures": 0,
-        "related_events_loaded": 0,
-    }
-    seen_entities: set[str] = set()
-    seen_urls = {event.source_url for event in events}
-    related: list[Event] = []
+def _research_candidates(
+    events: list[Event], seen_urls: set[str], metrics: dict[str, int]
+) -> list[tuple[float, Event, Event]]:
+    seen_announcements: set[str] = set()
+    candidates: list[tuple[float, Event, Event]] = []
     now = datetime.now(timezone.utc)
     for event in sorted(events, key=lambda item: item.published_at, reverse=True):
         metadata = event.source_document.parsed_fields if event.source_document else {}
         if not metadata or metadata.get("documentKind") != "issuer_announcement":
             continue
-        if not event.primary_entity_id or event.primary_entity_id in seen_entities:
+        announcement_url = canonical_url(event.source_url)
+        if not event.primary_entity_id or announcement_url in seen_announcements:
             continue
         if not event.title or not 20 <= len(event.title) <= 400:
             continue
         if metrics["related_evidence_lookups"] >= MAX_LOOKUPS:
             break
-        seen_entities.add(event.primary_entity_id)
+        seen_announcements.add(announcement_url)
         metrics["related_evidence_lookups"] += 1
         payload = audit.fetch_related_evidence(event.title)
         if payload is None or not isinstance(payload.get("evidence"), list):
@@ -78,10 +80,42 @@ def load_retained_corroboration(events: list[Event]) -> tuple[list[Event], dict[
             continue
         for row in payload["evidence"][:50]:
             retained = _retained_event(row, event.title, now)
-            if retained and retained.source_url not in seen_urls:
-                if event.primary_entity_id in gazetteer_match(retained.title or ""):
-                    retained.primary_entity_id = event.primary_entity_id
-                seen_urls.add(retained.source_url)
-                related.append(retained)
+            if retained and canonical_url(retained.source_url) not in seen_urls:
+                candidates.append(
+                    (title_alignment(event.title, retained.title or ""), event, retained)
+                )
+    return candidates
+
+
+def load_retained_corroboration(events: list[Event]) -> tuple[list[Event], dict[str, int]]:
+    metrics = {
+        "related_evidence_lookups": 0,
+        "related_evidence_failures": 0,
+        "related_events_loaded": 0,
+        "related_story_match_requests": 0,
+        "related_story_match_failures": 0,
+    }
+    seen_urls = {canonical_url(event.source_url) for event in events}
+    candidates = _research_candidates(events, seen_urls, metrics)
+    related: list[Event] = []
+    for _, event, retained in sorted(candidates, key=lambda pair: pair[0], reverse=True):
+        url = canonical_url(retained.source_url)
+        if url in seen_urls:
+            continue
+        if metrics["related_story_match_requests"] >= MAX_STORY_MATCHES:
+            break
+        metrics["related_story_match_requests"] += 1
+        matched, reason = match_story(event, retained)
+        if reason in {"model_unavailable", "audit_unavailable"}:
+            metrics["related_story_match_failures"] += 1
+        if not matched:
+            continue
+        if event.primary_entity_id in gazetteer_match(
+            f"{retained.title or ''} {(retained.content or '')[:5000]}"
+        ):
+            retained.primary_entity_id = event.primary_entity_id
+        retained.research_story_anchor = event.source_url
+        seen_urls.add(url)
+        related.append(retained)
     metrics["related_events_loaded"] = len(related)
     return related, metrics
