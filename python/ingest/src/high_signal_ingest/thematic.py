@@ -14,7 +14,12 @@ from .dedupe import dedupe_exact
 from .types import Event
 
 _FACILITY = re.compile(r"((?:\b[A-Za-z][\w'-]*\s+){1,5})data[ -]?cent(?:er|re)\b", re.I)
-_LOCATION = re.compile(r"\b(?:in|near)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)")
+_LOCATION = re.compile(r"(?i:\b(?:in|near))\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)")
+_LOCATION_END = re.compile(
+    r"\s+(?:wins|receives|gains|gets|approval|approved|for|with|site|campus|"
+    r"signs|lease|expansion|plans|plan|construction|after|before)\b",
+    re.I,
+)
 _SITE = re.compile(r"\b(?:site|campus|phase)\s*(?:#\s*)?(\d+)\b", re.I)
 _GENERIC = frozenset(
     "council city county new proposed planned approves approved approval plans "
@@ -62,7 +67,8 @@ def _anchor(event: Event) -> _Anchor | None:
     if not action:
         return None
     site = _SITE.search(title)
-    return _Anchor(" ".join(names), location[1].lower(), site[1] if site else None, action)
+    place = _LOCATION_END.split(location[1], maxsplit=1)[0].lower()
+    return _Anchor(" ".join(names), place, site[1] if site else None, action)
 
 
 def buildout_stories(events: list[Event]) -> list[list[Event]]:

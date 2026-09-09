@@ -27,6 +27,14 @@ def test_same_project_paraphrases_group_without_identical_title_words():
     assert buildout_stories(events) == [events]
 
 
+def test_title_case_news_and_sentence_case_reports_share_anchors():
+    events = [
+        event("Council approves Orion data center in Mesa", "legistar", 1),
+        event("Orion Data Center In Mesa Wins Approval For Expansion", "news", 2),
+    ]
+    assert buildout_stories(events) == [events]
+
+
 def test_unrelated_live_draft_topics_are_not_buildout_corroboration():
     events = [
         event(title, index=i)
