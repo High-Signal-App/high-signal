@@ -6,6 +6,8 @@ import tailwindcss from '@tailwindcss/vite';
 export default defineConfig({
   site: 'https://highsignal.app',
   output: 'static',
+  // Preserve the existing whitespace semantics across the Astro 7 compiler.
+  compressHTML: true,
   trailingSlash: 'never',
   build: {
     format: 'file',

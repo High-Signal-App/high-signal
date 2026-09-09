@@ -24,6 +24,7 @@ const TSX_SUITES = [
   ['track-record-summary', 'scripts/track-record-summary.test.ts'],
   ['signals', 'scripts/sync-signals.test.ts'],
   ['signals:auto-publish', 'scripts/auto-publish-rules.test.ts'],
+  ['signals:judge-transport', 'scripts/auto-publish-transport.test.ts'],
   ['access-jwt', 'apps/web/scripts/access-jwt.test.ts'],
   ['seo', 'scripts/seo-json-ld.test.ts'],
   ['requirements', 'scripts/daily-requirements.test.ts'],

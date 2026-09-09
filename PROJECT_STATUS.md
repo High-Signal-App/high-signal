@@ -1,6 +1,19 @@
 # high-signal — PROJECT STATUS
 
-Last updated: 2026-09-08
+Last updated: 2026-09-09
+
+September 9 publisher recovery source: run `34307420151` had a configured
+judge, but its provider returned HTTP 400 for failed JSON generation. The
+publisher called this unavailable AI, killed its sole draft and reported zero
+errors. The source now retries eligible transport/generation failures once
+with unchanged structured-output and evidence rules, bounds each request,
+redacts provider error details, and counts exhausted judge failures as
+operational errors. Missing-key/dry-run behavior and deterministic editorial
+decisions remain unchanged. Synthetic real-CLI tests cover recovery, exhausted
+failure, authentication rejection, missing configuration and deterministic
+rejection. This is source verification, not a recovered published Brief;
+release and scheduled acceptance remain in #133.
+
 
 September 8 Track Record correction: the small-sample warning now uses hits
 plus misses, not pending scoring rows. The page shows total/pending counts and
@@ -868,3 +881,7 @@ Python adapters under `python/ingest/src/high_signal_ingest/sources/` — all wi
 Open work is tracked only in [GitHub Issues](https://github.com/High-Signal-App/high-signal/issues).
 An open issue is a to-do, a linked pull request is in progress, and merge plus
 issue closure makes the work done.
+
+### 2026-09-09 dependency release gate
+
+PR #151 also patches the six newly failing dependency advisories with Next 16.3.3, Astro 7.2.8, and scoped Sharp 0.35.4, js-yaml 4.3.2 and SVGO 4.1.0 resolutions. Astro retains the previous HTML whitespace behavior. The production Next/OpenNext/docs bundle and static landing build pass; the landing preserves visible text and all 11 links. Full local quality passes: 32 repository suites and 364 API tests, with zero critical findings and no newly unaccepted high findings (32 existing high findings total, 7 production). No exception or baseline was widened. Mobile production-build guest rendering returns 200 without horizontal overflow; this does not qualify a useful daily edition or authenticated behavior.

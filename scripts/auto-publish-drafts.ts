@@ -40,9 +40,9 @@ import {
   applyStructuredClaimEvidence,
   dateKeyInTimeZone,
   deterministicVerdict,
-  parseAiVerdictResponse,
   type VerdictResult,
 } from './auto-publish-rules';
+import { requestJudge } from './auto-publish-transport';
 import {
   judgePublishability,
   oppositeDirectionConflictIds,
@@ -92,6 +92,7 @@ const AI_PROJECT_ID = process.env['AI_PROJECT_ID'] ?? 'high-signal';
 
 const MAX_BODY_CHARS = 2400;
 const MAX_AI_RESPONSE_TOKENS = 800;
+let judgeRequestFailures = 0;
 const RATE_LIMIT_MS = 250; // gentle pacing between AI calls
 
 async function fetchSignalsByStatus(
@@ -378,45 +379,33 @@ async function aiVerdict(signal: SignalRow): Promise<VerdictResult | null> {
     qualityScore: signal.qualityScore ?? null,
     body: signal.bodyMd.slice(0, MAX_BODY_CHARS),
   };
-  try {
-    const response = await fetch(`${AI_BASE_URL.replace(/\/$/, '')}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${AI_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: AI_MODEL,
-        project_id: AI_PROJECT_ID,
-        temperature: 0.1,
-        // A publish verdict includes a claim tuple plus one assessment per URL;
-        // 200 tokens truncated otherwise-valid JSON in production.
-        max_tokens: MAX_AI_RESPONSE_TOKENS,
-        stream: false,
-        response_format: { type: 'json_object' },
-        messages: [
-          { role: 'system', content: JUDGE_SYSTEM },
-          { role: 'user', content: JSON.stringify(payload) },
-        ],
-      }),
-    });
-    if (!response.ok) {
-      console.warn(
-        `[auto-publish] AI ${response.status}: ${(await response.text()).slice(0, 160)}`
-      );
-      return null;
-    }
-    const data = (await response.json()) as unknown;
-    const parsed = parseAiVerdictResponse(data);
-    if (parsed) return parsed;
-    const keys =
-      data && typeof data === 'object' ? Object.keys(data).slice(0, 8).join(',') : 'none';
-    console.warn(`[auto-publish] AI response could not be parsed for ${signal.slug}; keys=${keys}`);
-    return null;
-  } catch (error) {
-    console.warn(`[auto-publish] AI exception on ${signal.slug}:`, error);
-    return null;
-  }
+  const result = await requestJudge(`${AI_BASE_URL.replace(/\/$/, '')}/chat/completions`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${AI_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: AI_MODEL,
+      project_id: AI_PROJECT_ID,
+      temperature: 0.1,
+      // A publish verdict includes a claim tuple plus one assessment per URL;
+      // 200 tokens truncated otherwise-valid JSON in production.
+      max_tokens: MAX_AI_RESPONSE_TOKENS,
+      stream: false,
+      response_format: { type: 'json_object' },
+      messages: [
+        { role: 'system', content: JUDGE_SYSTEM },
+        { role: 'user', content: JSON.stringify(payload) },
+      ],
+    }),
+  });
+  if ('verdict' in result) return result.verdict;
+  judgeRequestFailures++;
+  console.warn(
+    `[auto-publish] AI judge failed for ${signal.slug}: ${result.failure} after ${result.attempts} attempt(s)`
+  );
+  return null;
 }
 
 async function judge(signal: SignalRow): Promise<VerdictResult> {
@@ -429,7 +418,7 @@ async function judge(signal: SignalRow): Promise<VerdictResult> {
   // Without AI, prefer KILL over HOLD per Sarthak's "don't block me" policy.
   return {
     verdict: 'kill',
-    reason: `${det.reason}; no AI available, biasing to kill`,
+    reason: `${det.reason}; ${AI_API_KEY && !DRY ? 'configured AI judge failed' : 'no AI configured or dry run'}, biasing to kill`,
     source: 'rule',
   };
 }
@@ -536,6 +525,7 @@ async function main(): Promise<void> {
     }
   }
 
+  errors += judgeRequestFailures;
   console.log(
     `[auto-publish] done: ${publishedCount} published-or-kept / ${killed} killed / ${held} held / ${errors} errors`
   );
