@@ -27,4 +27,15 @@ describe('community digest contracts', () => {
     expect(normalizeCommunitySummary(null)).toBeNull();
     expect(normalizeCommunitySummary('not an object')).toBeNull();
   });
+
+  it('preserves the normalized summary through JSON storage and read normalization', () => {
+    const stored = normalizeCommunitySummary({
+      key_trend: { title: 'A trend', desc: 'Observed discussion', sourceId: ['abc123'] },
+      key_action: { title: 'An action', desc: 'Follow up', sourceId: ['abc123', 'def456'] },
+      notable_discussions: [
+        { title: 'A discussion', desc: 'Details', link: 'https://example.org' },
+      ],
+    });
+    expect(normalizeCommunitySummary(JSON.parse(JSON.stringify(stored)))).toEqual(stored);
+  });
 });
