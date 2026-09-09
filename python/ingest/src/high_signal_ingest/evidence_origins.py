@@ -43,3 +43,15 @@ def coalesce_copied_origins(events: list[Event], origins: list[str]) -> list[str
             group = root(i)
             canonical[group] = min(canonical.get(group, origin), origin)
     return [canonical[root(i)] if origin else "" for i, origin in enumerate(origins)]
+
+
+def distinct_generation_events(events: list[Event]) -> list[Event]:
+    """Keep the first source per copied-text group, without declaring independence."""
+    origins = coalesce_copied_origins(events, [event.source_url for event in events])
+    selected: list[Event] = []
+    seen: set[str] = set()
+    for event, origin in zip(events, origins):
+        if origin not in seen:
+            selected.append(event)
+            seen.add(origin)
+    return selected
