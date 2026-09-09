@@ -4,6 +4,16 @@ Last updated: 2026-09-09
 
 Current September 9 qualification:
 
+Replay 34369800251 completed with 220/220 acknowledgements, no write timeouts,
+two audited same-event matches, two story groups reaching generation, and one
+generated candidate. It was correctly rejected for a single evidentiary origin:
+the matched HPCwire pages reproduce the issuer releases. No drafts were produced.
+The next retrieval gap is observed: the newest-50 OR-token lookup admits many
+unrelated "high"/"industry" matches and excludes the older retained Tom's Hardware
+report before semantic matching can inspect it. Rank relevance before the limit;
+do not treat the reprints as independent proof.
+[Passage-matcher replay](docs/operations/2026-09-09-passage-match-replay.json).
+
 Pending replay repairs: run 34368481847 completed but timed out on two 50-event
 write requests (100 acknowledgements unknown) and admitted no matched articles.
 Two positive same-event decisions failed excerpt length/exactness validation.
