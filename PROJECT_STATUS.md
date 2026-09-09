@@ -4,6 +4,13 @@ Last updated: 2026-09-09
 
 Current September 9 qualification:
 
+Origin repair merged in PR #172 after hosted CI passed. The missing-body audit
+from replay 34375574748 reports finish_reason=length: 1505 reasoning tokens consumed
+most of the 2000-token completion cap. Pending transport repair rejects truncated
+output even when it parses as JSON and retries once with an 8000-token ceiling,
+within the existing two-attempt limit. A second truncation raises output_truncated;
+no body is fabricated. Hosted acceptance remains pending under #133.
+
 Pending origin repair: substantially copied retained texts share one proof origin
 regardless of model-assigned IDs. Existing common-origin connections are preserved;
 unassessed sources gain no credit. The bounded five-word-sequence rule catches both

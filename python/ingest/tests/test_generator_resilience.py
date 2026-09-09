@@ -254,3 +254,30 @@ def test_unknown_provider_failure_metadata_is_not_echoed():
         )
     assert caught.value.failure_class == "unknown"
     assert str(caught.value) == "provider_failure"
+
+
+@pytest.mark.parametrize("second_finish", ["stop", "length"])
+def test_truncated_json_is_retried_with_bounded_output_space(monkeypatch, second_finish):
+    requests = []
+
+    def handler(request):
+        requests.append(json.loads(request.content))
+        finish = "length" if len(requests) == 1 else second_finish
+        return _make_response(
+            200,
+            {"choices": [{"finish_reason": finish, "message": {"content": '{"publish": false}'}}]},
+        )
+
+    out, meta = _run_with_transport(httpx.MockTransport(handler), monkeypatch)
+    assert [r["max_tokens"] for r in requests] == [2000, 8000]
+    assert requests[0]["messages"] == requests[1]["messages"]
+    if second_finish == "stop":
+        assert out == {"publish": False}
+        assert meta["failure_class"] is None
+        assert meta["reason"] is None
+    else:
+        assert out is None
+        assert meta["failure_class"] == "output_truncated"
+        with pytest.raises(generator.SignalGenerationUnavailable) as error:
+            generator._raise_for_provider_failure(meta)
+        assert error.value.failure_class == "output_truncated"

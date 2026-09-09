@@ -332,6 +332,7 @@ _AI_BACKOFF_CAP = float(os.environ.get("AI_BACKOFF_CAP", "8.0"))
 _AI_TIMEOUT = float(os.environ.get("AI_TIMEOUT", "60.0"))
 _AI_USER_CONTENT_LIMIT = 14_000
 _AI_MAX_COMPLETION_TOKENS = 2_000
+_AI_EXPANDED_COMPLETION_TOKENS = 8_000
 
 
 def _parse_json_message(message: str) -> dict | list:
@@ -357,7 +358,13 @@ def _parse_json_message(message: str) -> dict | list:
 
 
 def _completion_request(
-    prompt: str, content: str, model: str, project_id: str, *, use_json_mode: bool
+    prompt: str,
+    content: str,
+    model: str,
+    project_id: str,
+    *,
+    use_json_mode: bool,
+    max_tokens: int = _AI_MAX_COMPLETION_TOKENS,
 ) -> dict:
     payload = {
         "model": model,
@@ -367,7 +374,7 @@ def _completion_request(
             {"role": "user", "content": content[:_AI_USER_CONTENT_LIMIT]},
         ],
         "temperature": 0.1,
-        "max_tokens": _AI_MAX_COMPLETION_TOKENS,
+        "max_tokens": max_tokens,
     }
     if use_json_mode:
         payload["response_format"] = {"type": "json_object"}
@@ -384,6 +391,44 @@ def _classify_exception(exc: Exception) -> str:
     return "invalid_response"
 
 
+def _completion_output(body: dict, meta: dict) -> dict | list | None:
+    usage = body.get("usage") or {}
+    meta["tokens_in"] = usage.get("prompt_tokens")
+    meta["tokens_out"] = usage.get("completion_tokens")
+    choice = body["choices"][0]
+    if choice.get("finish_reason") == "length":
+        meta["failure_class"] = "output_truncated"
+        meta["reason"] = "output_truncated"
+        return None
+    return _parse_json_message(choice["message"]["content"])
+
+
+def _expanded_completion_budget(meta: dict, attempt: int, budget: int) -> int | None:
+    if (
+        meta.get("failure_class") == "output_truncated"
+        and attempt < _AI_RETRIES
+        and budget < _AI_EXPANDED_COMPLETION_TOKENS
+    ):
+        return _AI_EXPANDED_COMPLETION_TOKENS
+    return None
+
+
+def _completion_meta(model: str | None, content: str) -> dict:
+    return {
+        "model": model,
+        "prompt_version": PROMPT_VERSION,
+        "reason": None,
+        "raw_response": None,
+        "latency_ms": None,
+        "tokens_in": None,
+        "tokens_out": None,
+        "request_user": content[:8000],
+        "attempts": 0,
+        "failure_class": None,
+        "http_status": None,
+    }
+
+
 def _ai_complete(prompt: str, content: str) -> tuple[dict | list | None, dict]:
     """Call OpenAI-compatible endpoint. Returns (parsed_json, audit_meta).
 
@@ -398,19 +443,7 @@ def _ai_complete(prompt: str, content: str) -> tuple[dict | list | None, dict]:
     key = os.environ.get("AI_API_KEY") or os.environ.get("HF_TOKEN")
     model = os.environ.get("AI_MODEL")
     project_id = os.environ.get("AI_PROJECT_ID", "high-signal")
-    meta: dict = {
-        "model": model,
-        "prompt_version": PROMPT_VERSION,
-        "reason": None,
-        "raw_response": None,
-        "latency_ms": None,
-        "tokens_in": None,
-        "tokens_out": None,
-        "request_user": content[:8000],
-        "attempts": 0,
-        "failure_class": None,
-        "http_status": None,
-    }
+    meta = _completion_meta(model, content)
     if not key:
         meta["reason"] = "no_api_key"
         return None, meta
@@ -423,13 +456,19 @@ def _ai_complete(prompt: str, content: str) -> tuple[dict | list | None, dict]:
     started = time.monotonic()
     attempt = 0
     use_json_mode = True
+    completion_budget = _AI_MAX_COMPLETION_TOKENS
     while True:
         attempt += 1
         meta["attempts"] = attempt
         try:
             # project_id is required by the project-owned free-ai gateway.
             request_json = _completion_request(
-                prompt, content, model, project_id, use_json_mode=use_json_mode
+                prompt,
+                content,
+                model,
+                project_id,
+                use_json_mode=use_json_mode,
+                max_tokens=completion_budget,
             )
             r = httpx.post(
                 f"{base.rstrip('/')}/chat/completions",
@@ -462,11 +501,13 @@ def _ai_complete(prompt: str, content: str) -> tuple[dict | list | None, dict]:
             body = r.json()
             meta["raw_response"] = body
             meta["failure_class"] = None  # success clears any prior retryable class
-            usage = body.get("usage") or {}
-            meta["tokens_in"] = usage.get("prompt_tokens")
-            meta["tokens_out"] = usage.get("completion_tokens")
-            msg = body["choices"][0]["message"]["content"]
-            return _parse_json_message(msg), meta
+            meta["reason"] = None
+            parsed = _completion_output(body, meta)
+            expanded = _expanded_completion_budget(meta, attempt, completion_budget)
+            if expanded is not None:
+                completion_budget = expanded
+                continue
+            return parsed, meta
         except Exception as exc:
             meta["latency_ms"] = int((time.monotonic() - started) * 1000)
             failure_class = _classify_exception(exc)
@@ -497,6 +538,7 @@ class SignalGenerationUnavailable(RuntimeError):
             "network_error",
             "invalid_json",
             "invalid_response",
+            "output_truncated",
         }
         self.failure_class = failure_class if failure_class in allowed else "unknown"
 
