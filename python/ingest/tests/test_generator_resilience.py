@@ -114,6 +114,7 @@ def test_ai_complete_429_retries_then_succeeds(monkeypatch) -> None:
     assert calls["n"] == 2
     assert meta["attempts"] == 2
     assert meta["failure_class"] is None  # success clears the class
+    assert meta["http_status"] == 200
 
 
 def test_ai_complete_repeated_5xx_exhausts_retries(monkeypatch) -> None:
@@ -131,6 +132,7 @@ def test_ai_complete_repeated_5xx_exhausts_retries(monkeypatch) -> None:
     assert meta["attempts"] == 2
     assert meta["failure_class"] == "server_error"
     assert "http_503" in _meta_reason(meta)
+    assert meta["http_status"] == 503
 
 
 def test_ai_complete_4xx_is_terminal_no_retry(monkeypatch) -> None:
@@ -147,6 +149,7 @@ def test_ai_complete_4xx_is_terminal_no_retry(monkeypatch) -> None:
     assert calls["n"] == 1
     assert meta["attempts"] == 1
     assert meta["failure_class"] == "client_error"
+    assert meta["http_status"] == 400
 
 
 def test_ai_complete_retries_json_validation_failure_without_json_mode(monkeypatch) -> None:

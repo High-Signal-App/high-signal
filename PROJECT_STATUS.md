@@ -17,8 +17,10 @@ was produced. Attempt 2 finished with 221/221 acknowledgements but all four
 story comparisons failed (model_unavailable/client_error), leaving zero related
 articles and no generation requests. Its green workflow is not recovery evidence:
 the pipeline does not yet fail a complete matcher outage. Useful-edition
-acceptance remains unverified. Next: expose matcher failure detail and fail a
-complete matcher outage before another replay.
+acceptance remains unverified. The pending repair makes a complete matcher
+outage exit 3, while valid negative comparisons and partial failures remain
+distinct. Matcher audit receipts now retain HTTP status and attempt count
+without copying raw provider error bodies. Hosted acceptance is still pending.
 [Terminal replay receipt](docs/operations/2026-09-09-retained-ranking-replay.json).
 [Release receipt](docs/operations/2026-09-09-retained-ranking-release.json).
 [Ranking probe](docs/operations/2026-09-09-retained-ranking-probe.json).

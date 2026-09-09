@@ -888,3 +888,30 @@ def test_batch_with_only_invalid_bodies_is_a_failure_not_an_empty_success(monkey
     with pytest.raises(generator.SignalGenerationUnavailable) as failure:
         generator.generate_batch([("NVDA", [_event("https://one.example/a")], [])])
     assert failure.value.failure_class == "invalid_response"
+
+
+@pytest.mark.parametrize(
+    "requests,failures,exit_code", [(4, 4, 3), (4, 1, None), (4, 0, None), (0, 0, None)]
+)
+def test_cli_distinguishes_story_match_outage_from_negative_results(
+    monkeypatch, capfd, requests, failures, exit_code
+):
+    result = {
+        "events": 221,
+        "signals_drafted": 0,
+        "errors": 0,
+        "generation_requests": 0,
+        "generation_request_failures": 0,
+        "related_story_match_requests": requests,
+        "related_story_match_failures": failures,
+    }
+    monkeypatch.setattr(pipeline, "run", lambda *_a, **_k: result)
+    monkeypatch.setattr(pipeline.sys, "argv", ["pipeline", "--source", "ir", "--json"])
+    if exit_code:
+        with pytest.raises(SystemExit) as caught:
+            pipeline.main()
+        assert caught.value.code == exit_code
+        assert "story matching unavailable" in capfd.readouterr().err
+    else:
+        pipeline.main()
+        assert "story matching unavailable" not in capfd.readouterr().err

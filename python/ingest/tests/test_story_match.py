@@ -90,3 +90,32 @@ def test_passages_are_bounded_exact_substrings_even_without_word_breaks():
     passages = story_match._passages(text, "L")
     assert len(passages) > 2
     assert all(40 <= len(passage) <= 600 and passage in text for passage in passages.values())
+
+
+def test_unavailable_match_records_structured_diagnostics_without_raw_provider_body(monkeypatch):
+    receipts = []
+    monkeypatch.setattr(
+        story_match,
+        "_ai_complete",
+        lambda *_: (
+            None,
+            {
+                "failure_class": "client_error",
+                "http_status": 402,
+                "attempts": 1,
+                "reason": "private error details",
+                "raw_response": "private provider response",
+            },
+        ),
+    )
+    monkeypatch.setattr(story_match.audit, "push_llm_run", lambda **kw: receipts.append(kw) or True)
+    assert story_match.match_story(event(LEFT, "left"), event(RIGHT, "right")) == (
+        False,
+        "model_unavailable",
+    )
+    assert receipts[0]["response_json"] == {
+        "result": None,
+        "failureClass": "client_error",
+        "httpStatus": 402,
+        "attempts": 1,
+    }

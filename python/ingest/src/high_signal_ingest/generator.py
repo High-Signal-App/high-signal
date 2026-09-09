@@ -408,6 +408,7 @@ def _ai_complete(prompt: str, content: str) -> tuple[dict | list | None, dict]:
         "request_user": content[:8000],
         "attempts": 0,
         "failure_class": None,
+        "http_status": None,
     }
     if not key:
         meta["reason"] = "no_api_key"
@@ -436,6 +437,7 @@ def _ai_complete(prompt: str, content: str) -> tuple[dict | list | None, dict]:
                 timeout=_AI_TIMEOUT,
             )
             meta["latency_ms"] = int((time.monotonic() - started) * 1000)
+            meta["http_status"] = r.status_code
             if r.status_code != 200:
                 cls = _classify_http(r.status_code)
                 meta["failure_class"] = cls

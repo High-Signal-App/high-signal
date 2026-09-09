@@ -923,6 +923,19 @@ def generation_outage_alert(result: dict) -> str | None:
     )
 
 
+def story_match_outage_alert(result: dict) -> str | None:
+    """Distinguish unavailable comparisons from valid negative story decisions."""
+    requests = result.get("related_story_match_requests", 0)
+    failures = result.get("related_story_match_failures", 0)
+    if requests <= 0 or failures < requests:
+        return None
+    return (
+        "::error title=story matching unavailable::"
+        f"all {requests} retained story comparison(s) failed; "
+        "consult retained-story-match audit receipts for provider or audit failures"
+    )
+
+
 def run(source: Source, days: int, *, generate_signals: bool = True) -> dict:
     started_at = datetime.now(timezone.utc)
     fetch_run_id = audit.new_run_id()
@@ -1174,7 +1187,7 @@ def main() -> None:
     alert = zero_draft_alert(out)
     if alert:
         print(alert, file=sys.stderr)
-    outage = generation_outage_alert(out)
+    outage = generation_outage_alert(out) or story_match_outage_alert(out)
     if outage:
         print(outage, file=sys.stderr)
         sys.exit(3)
