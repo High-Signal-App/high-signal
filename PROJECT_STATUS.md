@@ -2,6 +2,16 @@
 
 Last updated: 2026-09-09
 
+The event-ingest repair now resolves source-supplied entity IDs against D1.
+Known entities remain linked; unknown identifiers are retained as
+`unresolvedPrimaryEntityId` in source-document metadata and the observation is
+stored with a null canonical entity link. No company is auto-created. Failed
+lookups remain unacknowledged writes rather than being treated as unknown IDs.
+The per-request cache avoids repeated lookups for the same ID. Route regressions
+cover source-text/metadata retention, known/null links and lookup outages.
+This source repair does not backfill historical missing events or establish
+that all 18 historical write failures had the same cause.
+
 A read-only D1 receipt lookup identifies one generation failure in that run:
 `generate ANTHROPIC: 'dict' object has no attribute 'rstrip'`. The generator
 assumed `body_md` was text. The current repair rejects missing, empty and non-text
