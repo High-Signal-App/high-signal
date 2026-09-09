@@ -881,3 +881,7 @@ Python adapters under `python/ingest/src/high_signal_ingest/sources/` — all wi
 Open work is tracked only in [GitHub Issues](https://github.com/High-Signal-App/high-signal/issues).
 An open issue is a to-do, a linked pull request is in progress, and merge plus
 issue closure makes the work done.
+
+### 2026-09-09 dependency release gate
+
+PR #151 also patches the six newly failing dependency advisories with Next 16.3.3, Astro 7.2.8, and scoped Sharp 0.35.4, js-yaml 4.3.2 and SVGO 4.1.0 resolutions. Astro retains the previous HTML whitespace behavior. The production Next/OpenNext/docs bundle and static landing build pass; the landing preserves visible text and all 11 links. Full local quality passes: 32 repository suites and 364 API tests, with zero critical findings and no newly unaccepted high findings (32 existing high findings total, 7 production). No exception or baseline was widened. Mobile production-build guest rendering returns 200 without horizontal overflow; this does not qualify a useful daily edition or authenticated behavior.
