@@ -131,7 +131,7 @@ function SourceSummary({
     count === 0 ? 'no stored rows' : latestObservedAt ? day : `${live?.futureCount ?? 0} future`;
   return (
     <>
-      <code className="w-32 shrink-0 truncate font-mono text-sm text-zinc-100 sm:w-40">
+      <code className="min-w-0 flex-1 truncate font-mono text-sm text-zinc-100 sm:w-40 sm:flex-none">
         {source.id}
       </code>
       <span className="hidden w-48 shrink-0 truncate text-xs text-[var(--color-muted)] sm:block">

@@ -2,6 +2,16 @@
 
 Last updated: 2026-09-09
 
+September 9 release acceptance: exact main `66c7731f` passed CI and all six
+release gates. Web Worker `64ab0938-d7a2-4894-b5c9-c08df14524d6` is verified at
+100% traffic with the full SHA tag. Brief, Signals, Sources and Track Record
+return 200 with their expected headings. Sources had a confirmed 30px mobile
+page overflow; its identifier now flexes around badges/counts while desktop
+width stays fixed. Built-page checks pass at 320, 390 and 1440px. The existing
+publisher retry `34321907153` exhausted two HTTP 502 judge attempts, published
+nothing and correctly reported one operational error. The useful daily Brief
+and shared gateway recovery remain unqualified under #133 and Free AI #65.
+
 September 9 publisher recovery source: run `34307420151` had a configured
 judge, but its provider returned HTTP 400 for failed JSON generation. The
 publisher called this unavailable AI, killed its sole draft and reported zero
