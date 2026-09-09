@@ -1,0 +1,22 @@
+{
+  "scope": "Read-only corroboration retrieval probe; no LLM, ingestion writes, or publication",
+  "story": "Xanadu and ASML to Collaborate on Lithography for Photonic Quantum Hardware",
+  "existingPath": {
+    "discovery": "Only supplied HPCwire URL returned; empty search result versus swallowed search failure not distinguished by current function",
+    "retrievedEvents": 0
+  },
+  "directFetchChecks": [
+    {
+      "url": "https://www.hpcwire.com/off-the-wire/xanadu-and-asml-to-collaborate-on-lithography-for-photonic-quantum-hardware/",
+      "status": 403,
+      "extractedCharacters": 0
+    },
+    {
+      "url": "https://investors.xanadu.ai/news-releases/news-release-details/xanadu-and-asml-announce-collaboration-advance-lithography",
+      "status": 200,
+      "extractedCharacters": 9923,
+      "discoveryMethod": "manual web search, not existing pipeline"
+    }
+  ],
+  "conclusion": "The existing extractor can read the original issuer release. Automatic primary-source discovery failed to supply that accessible origin in this probe. The issuer release alone is not independent corroboration, and copies of it must not count as additional origins."
+}

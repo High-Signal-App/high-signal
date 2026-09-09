@@ -4,7 +4,14 @@ Last updated: 2026-09-09
 
 Current September 9 qualification:
 
-Pending attribution repair: retained CVE-2026-82282 describes Atlantis but
+A read-only primary retrieval probe found HPCwire returns 403 while the issuer
+release returns 200 and 9,923 extracted characters. Existing discovery supplied
+only the blocked secondary page; manual search found the readable original.
+Primary-source discovery is a demonstrated gap, not an extractor failure here.
+The release alone still lacks independent corroboration.
+[Probe receipt](docs/operations/2026-09-09-primary-retrieval-probe.json).
+
+PR #163 merged after green CI: retained CVE-2026-82282 describes Atlantis but
 `nvd:github` assigned it to GitHub from the search keyword. The adapter now
 requires an affected GitHub CPE before assigning GITHUB, retains unresolved
 records with source-derived titles, and prevents later gazetteer reassignment.
