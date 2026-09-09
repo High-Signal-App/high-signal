@@ -229,7 +229,7 @@ describe('GET /daily', () => {
     expect(body.categoryStates?.stocks.status).toBe('unavailable');
   });
 
-  it('marks a precomputed snapshot as published', async () => {
+  it('does not call a cached edition published after its only section becomes empty', async () => {
     mocks.tryGetPrecomputedSnapshot.mockResolvedValue({
       generatedAt: '2026-09-06T03:31:00.000Z',
       region: 'global',
@@ -264,7 +264,7 @@ describe('GET /daily', () => {
       publishStatus: string;
       nextExpectedPublishAt?: string;
     };
-    expect(body.publishStatus).toBe('published');
+    expect(body.publishStatus).toBe('pending');
     expect(body.nextExpectedPublishAt).toBeUndefined();
   });
 });

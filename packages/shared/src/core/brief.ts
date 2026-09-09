@@ -112,6 +112,8 @@ export interface BriefStockItem {
 }
 
 export interface BriefIdeaItem {
+  /** Claim evidence is required for publication; absent on research-only candidates. */
+  provenance?: BriefClaimProvenance;
   title: string;
   description: string;
   source: 'community' | 'opportunity';
@@ -128,6 +130,8 @@ export interface BriefIdeaItem {
 }
 
 export interface BriefTrendItem {
+  /** Claim evidence is required for publication; absent on research-only candidates. */
+  provenance?: BriefClaimProvenance;
   title: string;
   description: string;
   subreddit: string;
@@ -423,6 +427,24 @@ function isUsableCitation(value: BriefCitation): boolean {
   }
 }
 
+function hasClaimSupport(item: BriefIdeaItem | BriefTrendItem): boolean {
+  const proof = item.provenance;
+  return Boolean(
+    proof &&
+      proof.primaryCount >= 1 &&
+      proof.corroborationCount >= 1 &&
+      proof.independentOriginCount >= 2 &&
+      proof.contradictionCount === 0 &&
+      new Set(
+        item.evidenceUrls
+          .filter(
+            (citation) => isUsableCitation(citation) && proof.evidenceUrls?.includes(citation.url)
+          )
+          .map((citation) => citation.url)
+      ).size >= 2
+  );
+}
+
 /** Validate only new edition writes; historical snapshots remain readable. */
 export function buildBriefEditionReceipt(snapshot: BriefSnapshot): BriefEditionReceipt {
   const states = categoryStatesForSnapshot(snapshot);
@@ -470,6 +492,9 @@ export function buildBriefEditionReceipt(snapshot: BriefSnapshot): BriefEditionR
   });
 
   snapshot.ideas.forEach((item, index) => {
+    if (!hasClaimSupport(item)) {
+      issues.push({ section: 'ideas', item: index, reason: 'unsupported_structured_claim' });
+    }
     if (
       !isCompleteBriefText(item.description) ||
       !isCompleteBriefText(item.whyNow) ||
@@ -479,6 +504,9 @@ export function buildBriefEditionReceipt(snapshot: BriefSnapshot): BriefEditionR
     }
   });
   snapshot.trends.forEach((item, index) => {
+    if (!hasClaimSupport(item)) {
+      issues.push({ section: 'trends', item: index, reason: 'unsupported_structured_claim' });
+    }
     if (
       !isCompleteBriefText(item.description) ||
       !isCompleteBriefText(item.whyNow) ||

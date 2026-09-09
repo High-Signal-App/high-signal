@@ -2,6 +2,16 @@
 
 Last updated: 2026-09-09
 
+The next Brief gate repair applies structured claim provenance to opportunities
+and trends, requiring primary support, independent corroboration, no contradiction
+and two citations present in the claim receipt. Public URLs alone no longer
+qualify seeded hypotheses. Cached and protected-history responses are pruned
+without rewriting their stored snapshots; an edition emptied by the gate is
+pending rather than published. Existing opportunity/trend builders do not yet
+produce qualifying claim receipts, so they remain withheld until that synthesis
+path is implemented and verified. This is source/test work, not a released or
+useful edition. Existing issue #133 owns that remaining acceptance.
+
 PR #158 is merged and API source `76fb00152f6e262804284713ddd3cc019afb4c59`
 is deployed by run34356191933, with production smoke passed. Worker
 `85e58ec2-5207-43c0-bfea-74b94561e92b` serves the exact tag at 100% traffic.
