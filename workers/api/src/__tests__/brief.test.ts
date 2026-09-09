@@ -377,6 +377,55 @@ Primary and corroborating reports are attached.
     });
   });
 
+  it('withholds research opportunities and trends without claim evidence while keeping qualified stock items', () => {
+    const snapshot = validSnapshot();
+    const item = {
+      title: 'Research hypothesis',
+      description: 'Customers may need a different product.',
+      whyNow: 'A product listing was collected this week.',
+      region: 'global' as const,
+      source: 'opportunity' as const,
+      subreddit: 'synthetic',
+      surfacedAt: '2026-09-09T00:00:00Z',
+      evidenceUrls: [{ url: 'https://marketplace.example/product' }],
+    };
+    snapshot.ideas = [item];
+    snapshot.trends = [item];
+    const pruned = pruneUnpublishableBriefItems(snapshot);
+    expect(pruned.snapshot.ideas).toEqual([]);
+    expect(pruned.snapshot.trends).toEqual([]);
+    expect(pruned.snapshot.stocks).toHaveLength(1);
+    expect(pruned.snapshot.categoryStates?.ideas.reason).toBe('items_withheld_by_publish_gate');
+    expect(snapshot.ideas).toHaveLength(1);
+  });
+
+  it('requires matching citations and independent origins for a supported opportunity', () => {
+    const snapshot = validSnapshot();
+    const stock = snapshot.stocks[0];
+    snapshot.ideas = [
+      {
+        title: 'Supported opportunity',
+        description: 'Two retained sources document the same customer need.',
+        whyNow: 'Independent sources reported this need this week.',
+        region: 'global',
+        source: 'opportunity',
+        subreddit: null,
+        surfacedAt: '2026-09-09T00:00:00Z',
+        evidenceUrls: stock.evidenceUrls,
+        provenance: { ...stock.provenance!, assertion: 'A customer need exists.' },
+      },
+    ];
+    expect(pruneUnpublishableBriefItems(snapshot).snapshot.ideas).toHaveLength(1);
+    snapshot.ideas[0].provenance!.independentOriginCount = 1;
+    expect(pruneUnpublishableBriefItems(snapshot).snapshot.ideas).toEqual([]);
+    snapshot.ideas[0].provenance!.independentOriginCount = 2;
+    snapshot.ideas[0].evidenceUrls = [
+      { url: 'https://unrelated.example/' },
+      { url: 'https://other.example/' },
+    ];
+    expect(pruneUnpublishableBriefItems(snapshot).snapshot.ideas).toEqual([]);
+  });
+
   it('fails closed for fixture, malformed, unsupported, and unavailable editions', () => {
     const fixture = validSnapshot();
     if (!fixture.categoryStates) throw new Error('expected category state fixture');

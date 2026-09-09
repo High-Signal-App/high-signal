@@ -107,9 +107,12 @@ async function handleDailyBriefRequest(c: Context<{ Bindings: Env }>) {
           categoryStates: { ...categoryStatesForSnapshot(snapshot), stocks: stocks.state },
         }).snapshot;
       }
+      snapshot = dailySignalEdition(pruneUnpublishableBriefItems(snapshot).snapshot, editionDate);
       const body = {
-        ...dailySignalEdition(snapshot, editionDate),
-        publishStatus: 'published' as const,
+        ...snapshot,
+        publishStatus: buildBriefEditionReceipt(snapshot).publishable
+          ? ('published' as const)
+          : ('pending' as const),
       };
       return c.json(body, cached.status);
     }
