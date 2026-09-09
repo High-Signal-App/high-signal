@@ -4,7 +4,15 @@ Last updated: 2026-09-09
 
 Current September 9 qualification:
 
-Pending retained-corroboration handoff: up to six issuer announcements across
+Pending event persistence repair: 195 of 348 examined IR documents have stored
+IDs different from the writer's computed ID. An upsert preserves that stored ID,
+so linking an event to the computed ID can fail its foreign key. SQLite and a
+route regression reproduce the mismatch. The writer now uses the upsert's
+returned ID, preserving existing documents. Runtime replay remains pending;
+this does not yet prove the cause of every unacknowledged write.
+[Identity receipt](docs/operations/2026-09-09-document-identity-repair.json).
+
+Merged retained-corroboration handoff (API release pending): up to six issuer announcements across
 distinct entities now request related articles from the existing three-day
 corpus lookup through an authenticated API route. Source/date/text are retained,
 relevance filtering precedes ordinary story/proof gates, and lookup failures

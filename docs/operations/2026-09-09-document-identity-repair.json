@@ -1,0 +1,28 @@
+{
+  "readOnlyProductionObservation": {
+    "examinedIRDocuments": 348,
+    "existingIdsDifferentFromComputedIds": 195,
+    "examples": [
+      {
+        "source": "ir:INTC",
+        "existingId": "02de17c1b503202a",
+        "computedId": "53ff992d2ae66344"
+      },
+      {
+        "source": "ir:FURIOSA",
+        "existingId": "442b241a7f63c8f6",
+        "computedId": "57fe5da23d9b1c53"
+      }
+    ]
+  },
+  "reproduction": {
+    "sqliteForeignKeysEnabled": true,
+    "computedIdAfterConflict": "FOREIGN KEY constraint failed",
+    "returnedPersistedId": "event inserted while preserving existing document identity"
+  },
+  "repair": "Use source-document upsert RETURNING id for event foreign keys, rather than assuming the computed insert ID was used.",
+  "limits": [
+    "Runtime release and replay pending",
+    "This demonstrates a failure mechanism; it does not yet attribute each of the 22 unacknowledged writes"
+  ]
+}
