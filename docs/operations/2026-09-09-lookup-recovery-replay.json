@@ -1,0 +1,47 @@
+{
+  "runId": 34381655339,
+  "sourceCommit": "687496fce2773524bdeb0882f14ec8f0681c7b05",
+  "workflowConclusion": "failure",
+  "summary": {
+    "fetch_run_id": "441c454b88404716",
+    "events": 221,
+    "events_pushed": 221,
+    "events_unacknowledged": 0,
+    "duplicates_collapsed": 8,
+    "events_no_entity": 201,
+    "events_low_cluster": 12,
+    "clusters_reaching_generation": 0,
+    "generation_requests": 0,
+    "generation_request_failures": 0,
+    "generation_failure_classes": {},
+    "signals_drafted": 0,
+    "candidates_generated": 0,
+    "candidates_rejected_no_proof": 0,
+    "candidates_rejected_thin_evidence_urls": 0,
+    "candidates_rejected_single_evidentiary_origin": 0,
+    "candidates_rejected_single_provider": 0,
+    "candidates_admitted_single_provider_authoritative": 0,
+    "errors": 0,
+    "paths": [],
+    "related_evidence_lookups": 12,
+    "related_evidence_failures": 0,
+    "related_events_loaded": 0,
+    "related_story_match_requests": 4,
+    "related_story_match_failures": 4
+  },
+  "matcherAudit": {
+    "requests": 4,
+    "attemptsPerRequest": 2,
+    "httpStatuses": {
+      "429": 1,
+      "502": 3
+    },
+    "failureClasses": {
+      "rate_limited": 1,
+      "server_error": 3
+    }
+  },
+  "acceptance": "All evidence lookups succeeded; no retry warning was emitted, so live retry recovery was not exercised. All model comparisons failed. No synthesis or useful edition acceptance.",
+  "nextAction": "Investigate gateway/provider availability before another ingestion replay.",
+  "shareable": false
+}

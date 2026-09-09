@@ -4,167 +4,60 @@ Last updated: 2026-09-09
 
 Current September 9 qualification:
 
-Pending read-only lookup resilience: unavailable retained-evidence requests are
-retried once with the identical title. Valid empty results are not retried, and
-two unavailable responses remain a failure rather than empty evidence. Regression
-coverage exercises connection-reset recovery and exhaustion through the HTTP
-client. Hosted synthesis acceptance remains pending under #133.
+High Signal remains unqualified for sharing: no useful evidence-qualified edition
+has been demonstrated. Existing issue #133 owns synthesis, independent support,
+and opportunity/trend provenance; the repairs below are not separate open tasks.
 
-PR #175 passed hosted CI and merged. Replay 34380010961 acknowledged 222/222
-events but did not exercise synthesis: four retained-evidence lookups failed
-with TLS handshake timeout, connection resets and unexpected TLS EOF. No related
-article, comparison, generation request or draft resulted. Next add a bounded
-retry for these read-only unavailable lookups; preserve empty versus failed
-results. The green workflow does not prove content acceptance.
-[Transport receipt](docs/operations/2026-09-09-evidence-lookup-transport.json).
+Merged pipeline repairs (PRs #165–#176):
 
-Pending synthesis-input repair: the latest saved prompt did contain the Tom's
-Hardware report, but also duplicated issuer text and retained legacy instructions
-to draft single-source items. Both article paths now collapse substantially copied
-text before prompting, preserving all stored events and distinct reports. Prompts
-require independent support at every confidence level and preserve qualifications
-on cumulative wafer counts and funding eligibility. This is not an independence
-claim for nonmatching text. Hosted grounded-output acceptance remains pending.
+- Source-document writes preserve stored IDs; migration 0029 restores the
+  intended non-unique raw-hash index. Hosted runs now acknowledge all events.
+  See the [identity release](docs/operations/2026-09-09-document-identity-release.json),
+  [identity replay](docs/operations/2026-09-09-ir-identity-replay.json),
+  [identity repair](docs/operations/2026-09-09-document-identity-repair.json),
+  [index drift](docs/operations/2026-09-09-source-document-index-drift.json),
+  [index repair](docs/operations/2026-09-09-source-document-index-repair.json), and
+  [post-repair replay](docs/operations/2026-09-09-ir-index-repair-replay.json).
+- Retained article lookup ranks title relevance before its 50-row limit.
+  Audited same-event matching selects exact retained passage IDs; grouping
+  grants no publication evidence. Event writes use bounded idempotent retries.
+  See the [initial matcher replay](docs/operations/2026-09-09-story-match-replay.json),
+  [passage matcher replay](docs/operations/2026-09-09-passage-match-replay.json),
+  [ranking probe](docs/operations/2026-09-09-retained-ranking-probe.json), and
+  [ranking release](docs/operations/2026-09-09-retained-ranking-release.json).
+  API source `f20c79589c925db18abdeafeecc8ee4c6baf025a` was verified at 100%
+  traffic by deployment 34371448730. Subsequent repairs are Python ingestion code.
+- Complete matcher outages now fail the workflow and retain safe status/attempt
+  audits. Free AI upstream missing-model fallback was separately repaired and
+  released. See the [ranking replay](docs/operations/2026-09-09-retained-ranking-replay.json),
+  [outage diagnostic](docs/operations/2026-09-09-matcher-outage-diagnostic.json), and
+  [gateway recovery](docs/operations/2026-09-09-gateway-recovery-replay.json).
+- Copied article text shares one proof origin even when the model assigns
+  different IDs. Both generation paths omit copied prompt inputs and require
+  independent support at every confidence level. Uncopied text does not
+  automatically establish independence.
+  [Copy probe](docs/operations/2026-09-09-copied-origin-probe.json).
+- Article generation requests 8000 completion tokens from the first attempt;
+  story matching retains its 2000-token default. Truncated output is rejected,
+  attempts remain bounded, and requested limits are audited. Replay 34378740787
+  generated two complete candidates (finish_reason=stop), both correctly rejected
+  for a single evidentiary origin. Zero drafts resulted.
+  [Complete-generation receipt](docs/operations/2026-09-09-complete-generation-replay.json).
+- PR #176 passed hosted CI and merged as
+  `687496fce2773524bdeb0882f14ec8f0681c7b05`. Unavailable read-only evidence
+  lookups retry once with the identical title; valid empty results do not retry,
+  and exhausted failures remain distinct. This follows replay 34380010961,
+  where four TLS/reset failures prevented all comparison and generation despite
+  a green workflow. [Transport receipt](docs/operations/2026-09-09-evidence-lookup-transport.json).
 
-Hosted replay 34378740787 verified complete generation and copied-origin
-rejection together: 221/221 event acknowledgements, four successful comparisons,
-three related articles, two complete generated candidates, zero operational
-errors. The audit confirms requested limit 8000 and finish_reason=stop. Both
-candidates were rejected for a single evidentiary origin despite the model giving
-issuer releases and syndicated copies different IDs. No draft was published.
-Remaining: grounded synthesis and genuinely independent supporting evidence;
-transport success is not useful Brief acceptance. Work remains under #133.
-[Hosted acceptance receipt](docs/operations/2026-09-09-complete-generation-replay.json).
-
-Replay 34377502755 acknowledged 221/221 events and loaded three audited matches,
-but generation remained truncated after two attempts (final completion 2000
-tokens). The saved receipt cannot reconstruct the first attempt. Pending repair:
-single and batch article generation request 8000 tokens from attempt one, while
-story comparison keeps its 2000-token default. The existing attempt cap and
-truncated-output rejection remain. Generation audit records the requested limit.
-Hosted article and evidence acceptance remain unverified under #133.
-
-Origin repair merged in PR #172 after hosted CI passed. The missing-body audit
-from replay 34375574748 reports finish_reason=length: 1505 reasoning tokens consumed
-most of the 2000-token completion cap. Pending transport repair rejects truncated
-output even when it parses as JSON and retries once with an 8000-token ceiling,
-within the existing two-attempt limit. A second truncation raises output_truncated;
-no body is fabricated. Hosted acceptance remains pending under #133.
-
-Pending origin repair: substantially copied retained texts share one proof origin
-regardless of model-assigned IDs. Existing common-origin connections are preserved;
-unassessed sources gain no credit. The bounded five-word-sequence rule catches both
-observed HPCwire reprints (ASML 81.3%, GlobalFoundries 97.6% containment), while the
-Tom's Hardware comparison remains separate (0%). Separation does not establish
-independence. All 505 Python tests and full quality checks pass; hosted acceptance
-and the missing-body generation repair remain pending under #133.
-[Retained-text probe](docs/operations/2026-09-09-copied-origin-probe.json).
-
-Post-gateway replay 34375574748 acknowledged 222/222 events and completed all
-four comparisons with HTTP 200 (three same-event matches, one negative).
-Generation returned JSON but omitted body_md; validation rejected it, so no
-draft exists. Its proof assessments also incorrectly gave independent origin
-IDs to ASML's release and an HPCwire syndicated copy. Transport recovered for
-this run, but editorial validity did not. Next enforce common-origin evidence
-independently of model IDs and verify the generation output contract.
-[Recovery replay receipt](docs/operations/2026-09-09-gateway-recovery-replay.json).
-
-Matcher outage handling merged in PR #171; merged-main CI 34374036694 passed.
-Diagnostic replay 34374070475 acknowledged 218/218 events but produced no draft.
-One comparison succeeded; three returned HTTP 400 after two attempts. Generation
-also failed with HTTP 400: the provider wrapper reported an upstream 404 with
-no body (input_nonretriable). Next investigate the configured provider route;
-additional replay or evidence-rule changes are not justified by this result.
-[Diagnostic receipt](docs/operations/2026-09-09-matcher-outage-diagnostic.json).
-
-Released retrieval ranking repair: rank retained results by matching title-token
-count before the 50-row limit, using recency as a tie-breaker. The real SQL
-regression reproduces an older relevant report hidden by 60 newer weak matches.
-A read-only production probe of the changed query places the previously omitted
-Tom's Hardware Intel report fourth. API source `f20c79589c925db18abdeafeecc8ee4c6baf025a`
-is verified at 100% traffic after deploy 34371448730 passed production smoke.
-Hosted IR replay 34371627509 attempt 1 failed at generation with a server error.
-All 220 events were acknowledged; 12 lookups and four audited comparisons loaded
-three related articles with no lookup/matcher failures. No candidate or draft
-was produced. Attempt 2 finished with 221/221 acknowledgements but all four
-story comparisons failed (model_unavailable/client_error), leaving zero related
-articles and no generation requests. Its green workflow is not recovery evidence:
-the pipeline does not yet fail a complete matcher outage. Useful-edition
-acceptance remains unverified. The pending repair makes a complete matcher
-outage exit 3, while valid negative comparisons and partial failures remain
-distinct. Matcher audit receipts now retain HTTP status and attempt count
-without copying raw provider error bodies. Hosted acceptance is still pending.
-[Terminal replay receipt](docs/operations/2026-09-09-retained-ranking-replay.json).
-[Release receipt](docs/operations/2026-09-09-retained-ranking-release.json).
-[Ranking probe](docs/operations/2026-09-09-retained-ranking-probe.json).
-
-Replay 34369800251 completed with 220/220 acknowledgements, no write timeouts,
-two audited same-event matches, two story groups reaching generation, and one
-generated candidate. It was correctly rejected for a single evidentiary origin:
-the matched HPCwire pages reproduce the issuer releases. No drafts were produced.
-The next retrieval gap is observed: the newest-50 OR-token lookup admits many
-unrelated "high"/"industry" matches and excludes the older retained Tom's Hardware
-report before semantic matching can inspect it. Rank relevance before the limit;
-do not treat the reprints as independent proof.
-[Passage-matcher replay](docs/operations/2026-09-09-passage-match-replay.json).
-
-Pending replay repairs: run 34368481847 completed but timed out on two 50-event
-write requests (100 acknowledgements unknown) and admitted no matched articles.
-Two positive same-event decisions failed excerpt length/exactness validation.
-Event writes now use 25-event batches with one identical-payload retry when the
-response is unavailable, without double counting. Matcher v2 selects predefined
-passage IDs; saved excerpts come directly from the retained source text rather
-than model copying. Unknown/cross-article IDs fail validation. Hosted acceptance
-of these repairs remains pending.
-[Replay receipt](docs/operations/2026-09-09-story-match-replay.json).
-
-Pending retained-story matching: recent announcement lookup now covers at most
-24 distinct URLs, followed by at most six same-event comparisons through the
-existing configured model client. Positive comparisons require exact passages
-from both retained texts and a saved audit receipt. An internal association
-connects different headlines only for candidate grouping; distinct-CVE and
-publication proof gates remain unchanged. All 492 Python tests pass, including
-unavailable-model, fabricated-quote, audit failure and grouping regressions.
-Hosted model acceptance and useful Brief output remain unverified. Existing
-issue #133 owns this work; no new task was opened.
-
-Applied schema repair: production marked migration 0008 applied but retained its
-old unique raw-hash index. Filtered Worker logs locate rejected writes in the
-document upsert, and Microsoft/Alibaba failures match hashes under alternate
-URL keys. Migration 0029 restores the already-declared non-unique hash index;
-SQLite regression verifies unchanged document IDs, rows, event references and
-document-key uniqueness. PR #167 passed CI and merged. Migration 0029 is now
-applied remotely; D1 confirms the intended non-unique hash index and unchanged
-sample document IDs. Post-repair IR replay 34366731182 completed with 222/222
-acknowledged and zero unacknowledged events. D1 confirms newly retained redirected
-Microsoft, Alibaba and ACM Research document keys with the same hashes as their
-older keys. Their event hashes already existed, so this is recovered document
-upsert/acknowledgement behavior, not 222 newly inserted event rows. Six related
-lookups still admit no articles; no drafts were produced.
-[Post-repair replay](docs/operations/2026-09-09-ir-index-repair-replay.json).
-[Repair receipt](docs/operations/2026-09-09-source-document-index-repair.json).
-[Index drift receipt](docs/operations/2026-09-09-source-document-index-drift.json).
-
-Released event persistence repair: 195 of 348 examined IR documents have stored
-IDs different from the writer's computed ID. An upsert preserves that stored ID,
-so linking an event to the computed ID can fail its foreign key. SQLite and a
-route regression reproduce the mismatch. The writer now uses the upsert's
-returned ID, preserving existing documents. Runtime replay 34365332852 still
-acknowledged only 199 of 221 events, so this did not resolve the observed missing
-writes. The six related-evidence lookups succeeded but loaded no articles and
-produced no drafts. The write failure remains under investigation in #133.
-[Replay receipt](docs/operations/2026-09-09-ir-identity-replay.json).
-[Identity receipt](docs/operations/2026-09-09-document-identity-repair.json).
-
-Released retained-corroboration handoff: up to six issuer announcements across
-distinct entities now request related articles from the existing three-day
-corpus lookup through an authenticated API route. Source/date/text are retained,
-relevance filtering precedes ordinary story/proof gates, and lookup failures
-are counted separately from empty results. All 478 Python tests and full local
-quality pass. API source `fcc84e15e9156073f690e67a197802b40f2f5dfb` is verified
-at 100% traffic after successful deploy 34365153389 and production smoke checks.
-IR replay 34365332852 completed; end-to-end acceptance failed as described above.
-[Release receipt](docs/operations/2026-09-09-document-identity-release.json).
+Current verification: replay 34381655339 failed correctly after a complete model
+comparison outage. All 221 events were acknowledged and all 12 evidence lookups
+succeeded; live lookup retry recovery itself was not exercised. Four comparisons
+exhausted two attempts each: one HTTP 429 and three HTTP 502. No synthesis or
+draft resulted. Merged-main CI 34381650811 passed. The next action is gateway/
+provider availability diagnosis before another replay. Hosted grounded-output
+acceptance remains pending; source volume and transport fixes do not qualify the
+Brief. [Latest replay receipt](docs/operations/2026-09-09-lookup-recovery-replay.json).
 
 IR run 34363288917 completed with 221 events, 199 acknowledged, 22 unacknowledged,
 and zero drafts. D1 independently confirms all three ASML releases with their
