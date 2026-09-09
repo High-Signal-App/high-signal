@@ -556,6 +556,13 @@ def _events_selected_as_evidence(
     ]
 
 
+def _body_markdown(output: dict) -> str:
+    body = output.get("body_md")
+    if not isinstance(body, str) or not body.strip():
+        raise SignalGenerationUnavailable("invalid_body_md", failure_class="invalid_response")
+    return body
+
+
 def _append_missing_proof_links(body_md: str, events: Iterable[Event]) -> str:
     """Make every retained proof visible even when model prose omits its URL."""
     missing_urls = [
@@ -687,7 +694,11 @@ def generate(
 
     headline = out.get("headline", "signal")
     slug = f"{primary_entity_id.lower()}-{_slugify(headline)}"
-    body_md = out.get("body_md", "")
+    try:
+        body_md = _body_markdown(out)
+    except SignalGenerationUnavailable:
+        _record(False, None, "invalid_body_md")
+        raise
     cited_events = _events_selected_as_evidence(out, body_md, evs)
     body_md = _append_missing_proof_links(body_md, cited_events)
     business_inference, inference_strength, inference_urls = _normalize_business_inference(
@@ -832,7 +843,7 @@ def _candidate_from_batch_item(
         return None
     signal_type = _signal_type_id(item.get("signal_type"))
     headline = item.get("headline", "signal")
-    body_md = item.get("body_md", "")
+    body_md = _body_markdown(item)
     cited_events = _events_selected_as_evidence(item, body_md, evs)
     body_md = _append_missing_proof_links(body_md, cited_events)
     inference_urls = [
@@ -953,17 +964,27 @@ def generate_batch(
         return []
 
     candidates: list[SignalCandidate] = []
+    invalid_bodies = 0
     for item in items:
         if not isinstance(item, dict) or not item.get("publish"):
             continue
-        candidate = _candidate_from_batch_item(
-            item,
-            cluster_events,
-            cluster_entities,
-            cluster_spillovers,
-        )
+        try:
+            candidate = _candidate_from_batch_item(
+                item,
+                cluster_events,
+                cluster_entities,
+                cluster_spillovers,
+            )
+        except SignalGenerationUnavailable:
+            invalid_bodies += 1
+            continue
         if candidate:
             candidates.append(candidate)
 
-    _record(True, None, f"ok:{len(candidates)}/{len(clusters)}")
+    if invalid_bodies:
+        _record(False, None, f"invalid_body_md:{invalid_bodies};retained:{len(candidates)}")
+        if not candidates:
+            raise SignalGenerationUnavailable("invalid_body_md", failure_class="invalid_response")
+    else:
+        _record(True, None, f"ok:{len(candidates)}/{len(clusters)}")
     return candidates

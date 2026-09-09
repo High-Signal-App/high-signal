@@ -2,6 +2,15 @@
 
 Last updated: 2026-09-09
 
+A read-only D1 receipt lookup identifies one generation failure in that run:
+`generate ANTHROPIC: 'dict' object has no attribute 'rstrip'`. The generator
+assumed `body_md` was text. The current repair rejects missing, empty and non-text
+bodies as audited `invalid_response` failures. A malformed batch item no longer
+discards valid siblings; those siblings still face the existing proof gates.
+An entirely malformed batch remains a failure, not an empty success. This does
+not establish the second generation failure or the 18 event-write causes.
+No new ingest or publication has run.
+
 Run34346562721 completed successfully but produced zero drafts from 4,354 events.
 One generated candidate failed the proof gate; two generation requests failed.
 Five event-batch acknowledgements were short by 18 events in total. The API counts

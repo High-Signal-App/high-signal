@@ -33,5 +33,11 @@
     "audit /admin/events: only 44/50 events inserted",
     "audit /admin/events: only 3/4 events inserted"
   ],
-  "qualification": "Zero drafts; no publication dispatched. Job success does not qualify a useful edition. events_pushed is a reported counter, not proof all events were inserted; batch warnings require reconciliation. Two generation failures remain classified unexpected."
+  "qualification": "Zero drafts; no publication dispatched. Job success does not qualify a useful edition. events_pushed is a reported counter, not proof all events were inserted; batch warnings require reconciliation. Two generation failures remain classified unexpected.",
+  "followupDiagnosis": {
+    "source": "Read-only D1 ingest_runs query scoped to run start window",
+    "ingestRunId": "a9e5de541c57530b",
+    "errorSample": "generate ANTHROPIC: 'dict' object has no attribute 'rstrip'",
+    "interpretation": "Generator assumes body_md is text. Invalid body shapes now fail explicitly; valid batch siblings remain subject to unchanged proof gates. This does not diagnose both failures or the 18 unacknowledged event writes."
+  }
 }

@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+from collections import defaultdict
 from datetime import datetime, timezone
+
+import pytest
 
 from high_signal_ingest import generator, pipeline
 from high_signal_ingest.types import EvidenceItem, Event, SignalCandidate, SourceDocument
@@ -816,3 +819,72 @@ def test_pipeline_failure_receipt_is_safe_and_still_fails_the_cli(monkeypatch, c
         pipeline.main()
     assert caught.value.code == 3
     assert '"generation_failure_classes": {"timeout": 2}' in capfd.readouterr().out
+
+
+@pytest.mark.parametrize("body", [{"What changed": "Capacity expanded"}, None, [], "   "])
+def test_generation_rejects_non_text_body_with_audited_failure(monkeypatch, body) -> None:
+    from high_signal_ingest import audit
+
+    receipts = []
+    monkeypatch.setattr(audit, "push_llm_run", lambda **row: receipts.append(row))
+    monkeypatch.setattr(
+        generator,
+        "_ai_complete",
+        lambda *_: (
+            {"publish": True, "headline": "Capacity", "body_md": body},
+            {"model": "test", "prompt_version": "test"},
+        ),
+    )
+    with pytest.raises(generator.SignalGenerationUnavailable) as failure:
+        generator.generate("NVDA", [_event("https://one.example/a")], [])
+    assert failure.value.failure_class == "invalid_response"
+    assert receipts[0]["reason"] == "invalid_body_md"
+    assert receipts[0]["accepted"] is False
+
+
+def test_batch_invalid_body_keeps_valid_sibling_and_records_partial_failure(monkeypatch) -> None:
+    from high_signal_ingest import audit
+
+    receipts = []
+    monkeypatch.setattr(audit, "push_llm_run", lambda **row: receipts.append(row))
+    item = {
+        "cluster_id": "story-1",
+        "entity_id": "NVDA",
+        "publish": True,
+        "signal_type": "capacity_change",
+        "direction": "up",
+        "confidence": "medium",
+        "headline": "Capacity changed",
+        "body_md": "NVIDIA expanded capacity.",
+    }
+    monkeypatch.setattr(
+        generator,
+        "_ai_complete",
+        lambda *_: (
+            {"signals": [{**item, "body_md": {"section": "text"}}, item]},
+            {"model": "test"},
+        ),
+    )
+    candidates = generator.generate_batch([("NVDA", [_event("https://one.example/a")], [])])
+    assert len(candidates) == 1
+    assert candidates[0].body_md == "NVIDIA expanded capacity."
+    assert receipts[0]["accepted"] is False
+    assert receipts[0]["reason"] == "invalid_body_md:1;retained:1"
+    assert not pipeline.record_proof(candidates[0], defaultdict(int))
+
+
+def test_batch_with_only_invalid_bodies_is_a_failure_not_an_empty_success(monkeypatch) -> None:
+    from high_signal_ingest import audit
+
+    monkeypatch.setattr(audit, "push_llm_run", lambda **_: True)
+    monkeypatch.setattr(
+        generator,
+        "_ai_complete",
+        lambda *_: (
+            {"signals": [{"entity_id": "NVDA", "publish": True, "body_md": {"section": "text"}}]},
+            {"model": "test"},
+        ),
+    )
+    with pytest.raises(generator.SignalGenerationUnavailable) as failure:
+        generator.generate_batch([("NVDA", [_event("https://one.example/a")], [])])
+    assert failure.value.failure_class == "invalid_response"
