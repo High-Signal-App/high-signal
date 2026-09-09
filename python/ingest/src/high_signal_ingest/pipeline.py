@@ -86,7 +86,6 @@ from .generator import (
     fallback_candidate,
     generate,
     generate_batch,
-    thematic_candidate,
 )
 from .writer import emit
 
@@ -729,13 +728,14 @@ _THEMATIC_DRAFT_LIMIT = 5
 
 
 def _emit_thematic_drafts(events: list[Event]) -> list[str]:
-    """Cluster entity-less events by theme and emit thematic signal drafts.
+    """Generate from compatible named events, never whole theme buckets.
 
-    Additive and strictly gated: a theme produces a draft only when its events
-    span ≥ 2 distinct sources AND carry ≥ 2 distinct URLs (cite-or-kill), so a
-    lone item never publishes on a theme. Bounded by ``_THEMATIC_DRAFT_LIMIT``.
+    Two channels/URLs nominate a story for semantic generation; only generated
+    candidates with verified independent-origin proofs are emitted. At most
+    ``_THEMATIC_DRAFT_LIMIT`` generator calls, including rejected candidates.
     """
     from .grouping import classify_themes  # lazy: grouping imports this module
+    from .thematic import buildout_stories
 
     buckets: dict[str, list[Event]] = defaultdict(list)
     for ev in events:
@@ -746,7 +746,11 @@ def _emit_thematic_drafts(events: list[Event]) -> list[str]:
                 buckets[theme].append(ev)
 
     written: list[str] = []
-    for theme, evs in buckets.items():
+    stories = [
+        (theme, story) for theme, bucket in buckets.items() for story in buildout_stories(bucket)
+    ]
+    attempts = 0
+    for theme, evs in stories:
         if len(written) >= _THEMATIC_DRAFT_LIMIT:
             break
         evs = dedupe_exact(evs)
@@ -754,9 +758,13 @@ def _emit_thematic_drafts(events: list[Event]) -> list[str]:
         urls = {e.source_url for e in evs if e.source_url}
         if len(sources) < 2 or len(urls) < 2:
             continue
-        entity_id, signal_type = _THEME_SIGNALS[theme]
-        cand = thematic_candidate(entity_id, signal_type, evs)
-        if cand:
+        if attempts >= _THEMATIC_DRAFT_LIMIT:
+            break
+        attempts += 1
+        entity_id, _ = _THEME_SIGNALS[theme]
+        selected = sorted(evs, key=lambda event: event.published_at, reverse=True)[:6]
+        cand = generate(entity_id, selected, [])
+        if cand and _has_publishable_proofs(cand):
             written.append(emit(cand))
     return written
 
