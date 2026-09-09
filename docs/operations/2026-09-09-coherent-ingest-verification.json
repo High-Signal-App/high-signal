@@ -33,5 +33,66 @@
     "audit /admin/events: only 44/50 events inserted",
     "audit /admin/events: only 3/4 events inserted"
   ],
-  "qualification": "Zero drafts; no publication dispatched. Job success does not qualify a useful edition. events_pushed is a reported counter, not proof all events were inserted; batch warnings require reconciliation. Two generation failures remain classified unexpected."
+  "qualification": "Zero drafts; no publication dispatched. Job success does not qualify a useful edition. events_pushed is a reported counter, not proof all events were inserted; batch warnings require reconciliation. Two generation failures remain classified unexpected.",
+  "followupDiagnosis": {
+    "source": "Read-only D1 ingest_runs query scoped to run start window",
+    "ingestRunId": "a9e5de541c57530b",
+    "errorSample": "generate ANTHROPIC: 'dict' object has no attribute 'rstrip'",
+    "interpretation": "Generator assumes body_md is text. Invalid body shapes now fail explicitly; valid batch siblings remain subject to unchanged proof gates. This does not diagnose both failures or the 18 unacknowledged event writes."
+  },
+  "persistenceFollowup": {
+    "method": "Read-only D1 queries scoped to retained documents fetched during the run; source entity IDs checked against entities and document raw hashes against events",
+    "missingEntityReferences": [
+      {
+        "source": "hkex:01024",
+        "entityId": "KUAISHOU",
+        "documentsWithoutMatchingEvent": 3
+      },
+      {
+        "source": "hkex:01810",
+        "entityId": "XIAOMI",
+        "documentsWithoutMatchingEvent": 3
+      },
+      {
+        "source": "hkex:09618",
+        "entityId": "JD",
+        "documentsWithoutMatchingEvent": 3
+      }
+    ],
+    "interpretation": "Nine retained documents have absent canonical entity IDs and no event by raw hash. This is consistent with foreign-key rejection; historical exception logs are unavailable, and all 18 failed acknowledgements are not explained. HKEX adapter emits issuer-day search-page snapshots rather than parsed individual filings, so these records do not establish actionable filing evidence."
+  },
+  "localPersistenceVerification": {
+    "scope": "Actual local Worker with isolated D1 and repository migrations; synthetic documents only",
+    "attempts": [
+      {
+        "status": 200,
+        "acknowledged": 3
+      },
+      {
+        "status": 200,
+        "acknowledged": 3
+      }
+    ],
+    "persistedRowsAfterReplay": [
+      {
+        "raw_hash": "qualification-0",
+        "primary_entity_id": null,
+        "raw_text": "Synthetic evidence retained",
+        "parsed_fields": "{\"fixture\":true,\"unresolvedPrimaryEntityId\":\"UNKNOWN\"}"
+      },
+      {
+        "raw_hash": "qualification-1",
+        "primary_entity_id": "KNOWN",
+        "raw_text": "Synthetic evidence retained",
+        "parsed_fields": "{\"fixture\":true}"
+      },
+      {
+        "raw_hash": "qualification-2",
+        "primary_entity_id": null,
+        "raw_text": "Synthetic evidence retained",
+        "parsed_fields": "{\"fixture\":true}"
+      }
+    ],
+    "meaning": "Acknowledgements include duplicate no-ops. Exactly three rows remain after replay. Unknown source identifiers remain metadata, known identifiers retain FK links. No production write occurred."
+  }
 }

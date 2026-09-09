@@ -574,6 +574,7 @@ adminRoute.post('/events', async (c) => {
   const body = (await c.req.json()) as { events?: EventInput[] };
   const events = body.events ?? [];
   let inserted = 0;
+  const entityCache = new Map<string, string | null>();
   for (const e of events) {
     const id = await sha16(e.rawHash);
     const sourceDocument = normalizeSourceDocument(e);
@@ -592,6 +593,17 @@ adminRoute.post('/events', async (c) => {
         : {}),
     };
     try {
+      const primaryEntityId = await resolveEventEntity(c.env.DB, e.primaryEntityId, entityCache);
+      if (e.primaryEntityId && !primaryEntityId) {
+        const parsedFields = {
+          ...(sourceDocument.parsedFields && typeof sourceDocument.parsedFields === 'object'
+            ? sourceDocument.parsedFields
+            : { sourceParsedFields: sourceDocument.parsedFields }),
+          unresolvedPrimaryEntityId: e.primaryEntityId,
+        };
+        sourceDocument.parsedFields = parsedFields;
+        Object.assign(sourceDocumentUpdate, { parsedFields });
+      }
       await db(c.env.DB)
         .insert(schema.sourceDocuments)
         .values({
@@ -620,7 +632,7 @@ adminRoute.post('/events', async (c) => {
           publishedAt: new Date(e.publishedAt),
           title: e.title ?? null,
           content: e.content ?? null,
-          primaryEntityId: e.primaryEntityId ?? null,
+          primaryEntityId,
           rawHash: e.rawHash,
           sourceDocumentId,
           fetchRunId: e.fetchRunId ?? null,
@@ -638,6 +650,23 @@ adminRoute.post('/events', async (c) => {
   }
   return c.json({ inserted });
 });
+
+async function resolveEventEntity(
+  binding: D1Database,
+  entityId: string | null | undefined,
+  cache: Map<string, string | null>
+): Promise<string | null> {
+  if (!entityId) return null;
+  if (cache.has(entityId)) return cache.get(entityId) ?? null;
+  const found = await db(binding)
+    .select({ id: schema.entities.id })
+    .from(schema.entities)
+    .where(eq(schema.entities.id, entityId))
+    .limit(1);
+  const resolved = found[0]?.id ?? null;
+  cache.set(entityId, resolved);
+  return resolved;
+}
 
 export function normalizeSourceDocument(e: EventInput) {
   const doc = e.sourceDocument ?? {};
