@@ -60,5 +60,39 @@
       }
     ],
     "interpretation": "Nine retained documents have absent canonical entity IDs and no event by raw hash. This is consistent with foreign-key rejection; historical exception logs are unavailable, and all 18 failed acknowledgements are not explained. HKEX adapter emits issuer-day search-page snapshots rather than parsed individual filings, so these records do not establish actionable filing evidence."
+  },
+  "localPersistenceVerification": {
+    "scope": "Actual local Worker with isolated D1 and repository migrations; synthetic documents only",
+    "attempts": [
+      {
+        "status": 200,
+        "acknowledged": 3
+      },
+      {
+        "status": 200,
+        "acknowledged": 3
+      }
+    ],
+    "persistedRowsAfterReplay": [
+      {
+        "raw_hash": "qualification-0",
+        "primary_entity_id": null,
+        "raw_text": "Synthetic evidence retained",
+        "parsed_fields": "{\"fixture\":true,\"unresolvedPrimaryEntityId\":\"UNKNOWN\"}"
+      },
+      {
+        "raw_hash": "qualification-1",
+        "primary_entity_id": "KNOWN",
+        "raw_text": "Synthetic evidence retained",
+        "parsed_fields": "{\"fixture\":true}"
+      },
+      {
+        "raw_hash": "qualification-2",
+        "primary_entity_id": null,
+        "raw_text": "Synthetic evidence retained",
+        "parsed_fields": "{\"fixture\":true}"
+      }
+    ],
+    "meaning": "Acknowledgements include duplicate no-ops. Exactly three rows remain after replay. Unknown source identifiers remain metadata, known identifiers retain FK links. No production write occurred."
   }
 }
