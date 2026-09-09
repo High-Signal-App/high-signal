@@ -1,3 +1,4 @@
+import { archiveIsLatest } from './reddit-archive-publication.mjs';
 import { execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { readFile, stat, writeFile } from 'node:fs/promises';
@@ -304,7 +305,7 @@ export async function redactArchive(outputDir, { postIds, commentIds, reasonCode
   ];
   const eventsFile = manifest.files.find((file) => file.name === 'events.jsonl.zst');
   const latest = JSON.parse(await readFile(latestPath, 'utf8'));
-  const updatesLatest = latest.archiveDate === manifest.windowEnd.slice(0, 10);
+  const updatesLatest = archiveIsLatest(manifest, latest);
   if (updatesLatest) {
     latest.eventCount = manifest.eventCount;
     latest.eventsSha256 = eventsFile.sha256;
