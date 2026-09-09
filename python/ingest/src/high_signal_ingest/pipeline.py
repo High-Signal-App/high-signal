@@ -678,6 +678,8 @@ def _pre_group_clusters(
 
 
 def _event_entity(ev: Event) -> str | None:
+    if ev.source_document and (ev.source_document.parsed_fields or {}).get("discoveryOnly"):
+        return None
     if ev.primary_entity_id:
         return ev.primary_entity_id
     # KEV vendor/product names are often short or generic ("Lite", "Core",

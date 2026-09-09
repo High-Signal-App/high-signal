@@ -1,0 +1,33 @@
+{
+  "scope": "Read-only live IR adapter probe; no writes or publication",
+  "asml": {
+    "index": "https://www.asml.com/en/investors",
+    "announcementCount": 3,
+    "dates": [
+      "2026-09-08T11:00:00+00:00",
+      "2026-09-08T06:10:00+00:00",
+      "2026-09-08T06:05:00+00:00"
+    ],
+    "textCharacters": [
+      3557,
+      3836,
+      3399
+    ],
+    "paths": [
+      "asml-begins-construction-of-new-eindhoven-campus",
+      "intel-foundry-and-asml-collaborate-to-accelerate-industry-readiness-for-high-na-euv",
+      "samsung-electronics-and-asml-expand-collaboration-on-next-generation-semiconductor-manufacturing"
+    ],
+    "indexDiscoveryOnly": true
+  },
+  "xanadu": {
+    "index": "https://investors.xanadu.ai/",
+    "events": 0,
+    "qualification": "Not established by this probe"
+  },
+  "limits": [
+    "No independent corroboration or publication acceptance",
+    "Other issuer templates not yet live-qualified",
+    "The post-probe redirect rejection guard is covered by a focused mocked transport test"
+  ]
+}
