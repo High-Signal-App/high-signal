@@ -1,0 +1,19 @@
+{
+  "observedAt": "2026-09-09",
+  "pullRequest": 167,
+  "sourceCommit": "d5f2126092070b0c93a12e73e8c0c8be60850ff8",
+  "prCiRun": 34366380465,
+  "migration": "0029_source_document_hash_index_repair.sql",
+  "pendingBeforeApplication": ["0029_source_document_hash_index_repair.sql"],
+  "command": "pnpm db:migrate:remote",
+  "exitCode": 0,
+  "productionChecks": {
+    "migrationRecorded": true,
+    "rawHashIndexSql": "CREATE INDEX `source_documents_raw_hash_idx` ON `source_documents` (`raw_hash`)",
+    "documentKeyIndexSql": "CREATE UNIQUE INDEX source_documents_document_key_idx ON source_documents (document_key)",
+    "sampleDocumentIdsUnchanged": ["4f8f152813d7b6c1", "9d8191b3c63a3973", "139c61d500d578d7", "20bd6407edb2814c"]
+  },
+  "postRepairReplay": 34366731182,
+  "replayStatusAtRecording": "in_progress",
+  "acceptance": "Production index repair verified. Event acknowledgement recovery and useful Brief output remain unverified."
+}

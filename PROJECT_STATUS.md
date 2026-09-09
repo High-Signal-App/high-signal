@@ -4,12 +4,15 @@ Last updated: 2026-09-09
 
 Current September 9 qualification:
 
-Pending schema repair: production marks migration 0008 applied but retains its
+Applied schema repair: production marked migration 0008 applied but retained its
 old unique raw-hash index. Filtered Worker logs locate rejected writes in the
 document upsert, and Microsoft/Alibaba failures match hashes under alternate
 URL keys. Migration 0029 restores the already-declared non-unique hash index;
 SQLite regression verifies unchanged document IDs, rows, event references and
-document-key uniqueness. It has not been applied remotely.
+document-key uniqueness. PR #167 passed CI and merged. Migration 0029 is now
+applied remotely; D1 confirms the intended non-unique hash index and unchanged
+sample document IDs. Post-repair IR replay 34366731182 is running.
+[Repair receipt](docs/operations/2026-09-09-source-document-index-repair.json).
 [Index drift receipt](docs/operations/2026-09-09-source-document-index-drift.json).
 
 Released event persistence repair: 195 of 348 examined IR documents have stored
