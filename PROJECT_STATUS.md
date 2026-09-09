@@ -13,8 +13,12 @@ is verified at 100% traffic after deploy 34371448730 passed production smoke.
 Hosted IR replay 34371627509 attempt 1 failed at generation with a server error.
 All 220 events were acknowledged; 12 lookups and four audited comparisons loaded
 three related articles with no lookup/matcher failures. No candidate or draft
-was produced. Attempt 2 has been requested; useful-edition acceptance remains
-unverified. This is retrieval/release evidence, not independent publication proof.
+was produced. Attempt 2 finished with 221/221 acknowledgements but all four
+story comparisons failed (model_unavailable/client_error), leaving zero related
+articles and no generation requests. Its green workflow is not recovery evidence:
+the pipeline does not yet fail a complete matcher outage. Useful-edition
+acceptance remains unverified. Next: expose matcher failure detail and fail a
+complete matcher outage before another replay.
 [Terminal replay receipt](docs/operations/2026-09-09-retained-ranking-replay.json).
 [Release receipt](docs/operations/2026-09-09-retained-ranking-release.json).
 [Ranking probe](docs/operations/2026-09-09-retained-ranking-probe.json).

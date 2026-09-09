@@ -31,6 +31,38 @@
     "related_story_match_requests": 4,
     "related_story_match_failures": 0
   },
-  "acceptance": "Ranked retrieval loaded three related articles with no lookup or matcher failures. Generation failed with server_error; no candidate or publication acceptance was obtained. Attempt 2 requested to distinguish transient provider failure.",
-  "shareable": false
+  "acceptance": "Attempt 1 recovered three related articles but generation timed out upstream (HTTP 502, two attempts, 94192ms). Attempt 2 failed all four story comparisons with client_error and skipped generation. No useful edition or independent publication acceptance.",
+  "shareable": false,
+  "retry": {
+    "attempt": 2,
+    "workflowConclusion": "success",
+    "summary": {
+      "fetch_run_id": "cb42a89afb25498c",
+      "events": 221,
+      "events_pushed": 221,
+      "events_unacknowledged": 0,
+      "duplicates_collapsed": 8,
+      "events_no_entity": 201,
+      "events_low_cluster": 12,
+      "clusters_reaching_generation": 0,
+      "generation_requests": 0,
+      "generation_request_failures": 0,
+      "generation_failure_classes": {},
+      "signals_drafted": 0,
+      "candidates_generated": 0,
+      "candidates_rejected_no_proof": 0,
+      "candidates_rejected_thin_evidence_urls": 0,
+      "candidates_rejected_single_evidentiary_origin": 0,
+      "candidates_rejected_single_provider": 0,
+      "candidates_admitted_single_provider_authoritative": 0,
+      "errors": 0,
+      "paths": [],
+      "related_evidence_lookups": 12,
+      "related_evidence_failures": 0,
+      "related_events_loaded": 0,
+      "related_story_match_requests": 4,
+      "related_story_match_failures": 4
+    },
+    "acceptance": "Failed product acceptance: all four story comparisons unavailable with client_error audit classification. No generation request or candidate. Workflow success does not prove model recovery."
+  }
 }
