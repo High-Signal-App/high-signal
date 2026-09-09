@@ -683,7 +683,9 @@ def _event_entity(ev: Event) -> str | None:
     # KEV vendor/product names are often short or generic ("Lite", "Core",
     # "Console"). Avoid broad ticker gazetteer matches; the adapter already
     # applies exact vendor/product mapping for tracked entities.
-    if ev.source == "cisa-kev":
+    # NVD GitHub search also returns third-party integrations and hosted
+    # advisories. Preserve the adapter's unresolved affected-product decision.
+    if ev.source in {"cisa-kev", "nvd:github"}:
         return None
     # Attribute on title (weighted) + a tight lead window only. The full body
     # drags in "top movers" widgets, related-article rails, and doc footers that

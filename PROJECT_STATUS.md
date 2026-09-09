@@ -4,6 +4,13 @@ Last updated: 2026-09-09
 
 Current September 9 qualification:
 
+Pending attribution repair: retained CVE-2026-82282 describes Atlantis but
+`nvd:github` assigned it to GitHub from the search keyword. The adapter now
+requires an affected GitHub CPE before assigning GITHUB, retains unresolved
+records with source-derived titles, and prevents later gazetteer reassignment.
+Other NVD vendor mappings are not covered by this fix. Existing issue #133
+owns runtime qualification; historical stored rows have not been rewritten.
+
 - API source `42ba39d3b001ac6985af8d8ed7c01ef442a96864` is deployed at
   100% traffic by run 34359719365. Ordinary and cache-busted global/South Asia
   responses withhold unsupported seeded ideas and remain pending. Cached and
