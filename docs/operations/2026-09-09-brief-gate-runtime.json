@@ -1,0 +1,37 @@
+{
+  "run": 34358213440,
+  "versionId": "1edba100-33fd-444d-aafd-a4df473fbaed",
+  "sourceCommit": "66053d4266fc2a6bbe76d24d9bc68645a0b85e57",
+  "deploymentId": "64cc1ce9-d204-47c1-8cd2-432de1595a49",
+  "traffic": [
+    {
+      "version_id": "1edba100-33fd-444d-aafd-a4df473fbaed",
+      "percentage": 100
+    }
+  ],
+  "response": {
+    "http": 200,
+    "publishStatus": "pending",
+    "categoryStates": {
+      "stocks": {
+        "status": "empty",
+        "source": "live",
+        "reason": "no_qualifying_items"
+      },
+      "ideas": {
+        "status": "ready",
+        "source": "live",
+        "reason": null
+      },
+      "trends": {
+        "status": "empty",
+        "source": "live",
+        "reason": "no_qualifying_items"
+      }
+    },
+    "stocks": 0,
+    "ideas": 1,
+    "trends": 0
+  },
+  "acceptance": "Failed: uncached composition still included the unsupported idea. Follow-up regression and route fix in progress."
+}
