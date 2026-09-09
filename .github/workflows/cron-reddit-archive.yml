@@ -65,9 +65,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         shell: bash
         run: |
-          if ! npx --yes wrangler@4.120.0 r2 bucket info high-signal-reddit-archive >/dev/null 2>&1; then
-            npx --yes wrangler@4.120.0 r2 bucket create high-signal-reddit-archive
-          fi
+          npx --yes wrangler@4.120.0 r2 bucket info high-signal-reddit-archive >/dev/null
 
       - name: Restore prior partial archive
         if: github.event_name == 'workflow_dispatch' && inputs.resume_run_id != ''
@@ -116,13 +114,9 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         shell: bash
         run: |
-          archive_date=$(node -p "JSON.parse(require('fs').readFileSync('artifacts/reddit-archive/manifest.json')).windowEnd.slice(0,10)")
-          requested=$(node -p "JSON.parse(require('fs').readFileSync('artifacts/reddit-archive/manifest.json')).requestedCommunities")
           configured=$(node -p "JSON.parse(require('fs').readFileSync('python/ingest/src/high_signal_ingest/seed/reddit_communities.json')).communityCount")
-          object_prefix="reddit/v2/date=$archive_date"
-          if [[ "$requested" != "$configured" ]]; then
-            object_prefix="reddit/v2/canary/run=$GITHUB_RUN_ID/date=$archive_date"
-          fi
+          object_prefix=$(node scripts/reddit-archive-publication.mjs prepare \
+            artifacts/reddit-archive "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "$configured")
           prefix="high-signal-reddit-archive/$object_prefix"
           npx --yes wrangler@4.120.0 r2 object put "$prefix/posts.jsonl.zst" \
             --file artifacts/reddit-archive/posts.jsonl.zst \
@@ -152,13 +146,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         shell: bash
         run: |
-          archive_date=$(node -p "JSON.parse(require('fs').readFileSync('artifacts/reddit-archive/manifest.json')).windowEnd.slice(0,10)")
-          requested=$(node -p "JSON.parse(require('fs').readFileSync('artifacts/reddit-archive/manifest.json')).requestedCommunities")
-          configured=$(node -p "JSON.parse(require('fs').readFileSync('python/ingest/src/high_signal_ingest/seed/reddit_communities.json')).communityCount")
-          object_prefix="reddit/v2/date=$archive_date"
-          if [[ "$requested" != "$configured" ]]; then
-            object_prefix="reddit/v2/canary/run=$GITHUB_RUN_ID/date=$archive_date"
-          fi
+          object_prefix=$(node -p "JSON.parse(require('fs').readFileSync('artifacts/reddit-archive/manifest.json')).objectPrefix")
           remote_manifest="$RUNNER_TEMP/reddit-archive-manifest.json"
           remote_events="$RUNNER_TEMP/reddit-archive-events.jsonl.zst"
           npx --yes wrangler@4.120.0 r2 object get \

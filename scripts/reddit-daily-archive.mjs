@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { createHash } from 'node:crypto';
+import { publicationPrefix } from './reddit-archive-publication.mjs';
 import { once } from 'node:events';
 import { createReadStream, createWriteStream } from 'node:fs';
 import { access, mkdir, readFile, stat, writeFile } from 'node:fs/promises';
@@ -121,7 +122,13 @@ function redditPermalink(post) {
   return permalink.startsWith('http') ? permalink : `https://www.reddit.com${permalink}`;
 }
 
-export function eventRow(post, subreddit, archiveDate, retrievedAt) {
+export function eventRow(
+  post,
+  subreddit,
+  archiveDate,
+  retrievedAt,
+  objectPrefix = `reddit/v${ARCHIVE_SCHEMA_VERSION}/date=${archiveDate}`
+) {
   const sourceUrl = redditPermalink(post);
   const rawHash = createHash('sha256')
     .update(['reddit', subreddit, sourceUrl].join('␟'))
@@ -152,9 +159,9 @@ export function eventRow(post, subreddit, archiveDate, retrievedAt) {
       schemaVersion: ARCHIVE_SCHEMA_VERSION,
       date: archiveDate,
       postId: String(post?.id || ''),
-      postObject: `reddit/v${ARCHIVE_SCHEMA_VERSION}/date=${archiveDate}/posts.jsonl.zst`,
-      commentsObject: `reddit/v${ARCHIVE_SCHEMA_VERSION}/date=${archiveDate}/comments.jsonl.zst`,
-      manifestObject: `reddit/v${ARCHIVE_SCHEMA_VERSION}/date=${archiveDate}/manifest.json`,
+      postObject: `${objectPrefix}/posts.jsonl.zst`,
+      commentsObject: `${objectPrefix}/comments.jsonl.zst`,
+      manifestObject: `${objectPrefix}/manifest.json`,
     },
   };
 }
@@ -307,7 +314,7 @@ async function collectPost(context, post) {
   if (postQualifiesForEvent(post)) {
     const eventBytes = await writeJsonLine(
       streams.events,
-      eventRow(post, subreddit, archiveDate, retrievedAt)
+      eventRow(post, subreddit, archiveDate, retrievedAt, context.objectPrefix)
     );
     result.events += 1;
     totals.events += 1;
@@ -369,6 +376,7 @@ async function collectCommunity(context, subreddit) {
   } = context;
   const result = initialCommunityResult(subreddit, totals);
   const postContext = {
+    objectPrefix: context.objectPrefix,
     archiveDate,
     client,
     seenCommentIds,
@@ -548,6 +556,8 @@ async function prepareResume({ communities, paths, windowStart, windowEnd }) {
 }
 
 function createLatestPointer(manifest, archiveDate, files) {
+  const objectPrefix =
+    manifest.objectPrefix || `reddit/v${ARCHIVE_SCHEMA_VERSION}/date=${archiveDate}`;
   const eventsFile = files.find((file) => file.name === 'events.jsonl.zst');
   return {
     schema: 'high-signal.reddit-latest.v1',
@@ -559,9 +569,9 @@ function createLatestPointer(manifest, archiveDate, files) {
     requestedCommunities: manifest.requestedCommunities,
     eventCount: manifest.eventCount,
     objects: {
-      events: `reddit/v${ARCHIVE_SCHEMA_VERSION}/date=${archiveDate}/events.jsonl.zst`,
-      index: `reddit/v${ARCHIVE_SCHEMA_VERSION}/date=${archiveDate}/subreddits.index.json`,
-      manifest: `reddit/v${ARCHIVE_SCHEMA_VERSION}/date=${archiveDate}/manifest.json`,
+      events: `${objectPrefix}/events.jsonl.zst`,
+      index: `${objectPrefix}/subreddits.index.json`,
+      manifest: `${objectPrefix}/manifest.json`,
     },
     eventsSha256: eventsFile.sha256,
     eventsBytes: eventsFile.bytes,
@@ -610,6 +620,7 @@ async function finalizeArchive(context) {
     indexReceipt,
     resumeState,
   });
+  if (context.objectPrefix) manifest.objectPrefix = context.objectPrefix;
   const latest = createLatestPointer(manifest, archiveDate, files);
   await writeFile(paths.manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
   await writeFile(paths.latestPath, `${JSON.stringify(latest, null, 2)}\n`);
@@ -626,6 +637,7 @@ export async function runArchive({
   windowEnd,
   client,
   resume = false,
+  objectPrefix,
 }) {
   await mkdir(outputDir, { recursive: true });
   const paths = archivePaths(outputDir);
@@ -650,6 +662,7 @@ export async function runArchive({
     duplicateComments: 0,
   };
   const context = {
+    objectPrefix,
     archiveDate: windowEnd.toISOString().slice(0, 10),
     client,
     communities,
@@ -696,7 +709,16 @@ async function main() {
     clientSecret: process.env.REDDIT_CLIENT_SECRET,
     userAgent: process.env.REDDIT_USER_AGENT || USER_AGENT,
   });
+  const objectPrefix = process.env.GITHUB_RUN_ID
+    ? publicationPrefix(
+        { windowEnd: windowEnd.toISOString(), requestedCommunities: communities.length },
+        process.env.GITHUB_RUN_ID,
+        process.env.GITHUB_RUN_ATTEMPT,
+        JSON.parse(await readFile(ROSTER_PATH, 'utf8')).communityCount
+      )
+    : undefined;
   const receipt = await runArchive({
+    objectPrefix,
     communities,
     outputDir: options.outputDir,
     windowStart,

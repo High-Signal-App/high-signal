@@ -2,6 +2,15 @@
 
 Last updated: 2026-09-09
 
+September 9 archive refresh safety: a same-day partial refresh could overwrite
+payloads referenced by the previous complete pointer. Source now isolates each
+Actions run/attempt, publishes latest only after complete verification, validates
+finite consumer timestamps, and makes bucket preflight read-only. Authorized
+redaction selects exact archive identity and serializes with refresh; legacy date
+partitions remain supported. Mocked workflow/storage tests preserve the previous
+complete payload and newer same-day pointers. No real refresh or redaction has
+run on this source; ingestion/publication remain in #133. [Runbook and evidence](docs/operations/runbooks/reddit-archive.md).
+
 September 9 candidate audit: scheduled ingestion persisted 4,204 events and
 sent 30 stories to generation; six candidates became one proof-admitted draft.
 The sole earthquake candidate exposed a deterministic routing defect: geographic
