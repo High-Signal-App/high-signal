@@ -156,8 +156,9 @@ def jaccard(a: frozenset[str], b: frozenset[str]) -> float:
 
 
 class _UnionFind:
-    def __init__(self, n: int) -> None:
-        self.parent = list(range(n))
+    def __init__(self, identities: list[frozenset[str]]) -> None:
+        self.parent = list(range(len(identities)))
+        self.identities = identities
 
     def find(self, x: int) -> int:
         while self.parent[x] != x:
@@ -167,8 +168,15 @@ class _UnionFind:
 
     def union(self, a: int, b: int) -> None:
         ra, rb = self.find(a), self.find(b)
-        if ra != rb:
-            self.parent[rb] = ra
+        if ra == rb:
+            return
+        left, right = self.identities[ra], self.identities[rb]
+        if left and right and not left.intersection(right):
+            return
+        self.parent[rb] = ra
+        # Keep the common identity at the component root so an unlabelled
+        # headline cannot transitively bridge two different vulnerabilities.
+        self.identities[ra] = left.intersection(right) if left and right else left or right
 
 
 @dataclass
@@ -214,7 +222,11 @@ def _rank(ev: Event) -> tuple[int, str]:
 def dedupe(events: list[Event]) -> list[Story]:
     """Collapse duplicate / near-duplicate events into corroborated stories."""
     n = len(events)
-    uf = _UnionFind(n)
+    identities = [
+        frozenset(re.findall(r"\bCVE-\d{4}-\d{4,}\b", f"{e.title} {e.source_url}".upper()))
+        for e in events
+    ]
+    uf = _UnionFind(identities)
 
     urls = [external_url(e) for e in events]
     tokens = [title_tokens(e.title) for e in events]
