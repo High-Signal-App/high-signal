@@ -67,7 +67,11 @@ def new_run_id() -> str:
 
 def fetch_related_evidence(title: str) -> dict[str, Any] | None:
     """Read-only corpus lookup; None distinguishes failure from empty evidence."""
-    return _post_result("/admin/evidence/related", {"title": title})
+    result = _post_result("/admin/evidence/related", {"title": title})
+    if result is None:
+        LOGGER.warning("retained evidence: retrying unavailable read-only lookup once")
+        result = _post_result("/admin/evidence/related", {"title": title})
+    return result
 
 
 def push_events(events: Iterable[Event], fetch_run_id: str | None) -> int:

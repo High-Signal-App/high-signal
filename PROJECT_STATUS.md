@@ -4,6 +4,12 @@ Last updated: 2026-09-09
 
 Current September 9 qualification:
 
+Pending read-only lookup resilience: unavailable retained-evidence requests are
+retried once with the identical title. Valid empty results are not retried, and
+two unavailable responses remain a failure rather than empty evidence. Regression
+coverage exercises connection-reset recovery and exhaustion through the HTTP
+client. Hosted synthesis acceptance remains pending under #133.
+
 PR #175 passed hosted CI and merged. Replay 34380010961 acknowledged 222/222
 events but did not exercise synthesis: four retained-evidence lookups failed
 with TLS handshake timeout, connection resets and unexpected TLS EOF. No related
