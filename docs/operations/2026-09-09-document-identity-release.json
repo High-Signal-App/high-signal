@@ -1,0 +1,21 @@
+{
+  "observedAt": "2026-09-09T14:41:07.471221Z",
+  "sourceCommit": "fcc84e15e9156073f690e67a197802b40f2f5dfb",
+  "pullRequests": [165, 166],
+  "ciRun": 34364886524,
+  "deploymentRun": 34365153389,
+  "deploymentConclusion": "success",
+  "deploymentId": "70681d88-8c72-4541-a3e5-9e084834d573",
+  "versionId": "dcfca9cf-51ab-47a7-95ce-fadbbbbef4c5",
+  "trafficPercentage": 100,
+  "workflowSmoke": "Health, daily dump, Brief, MCP tool list and today Brief passed.",
+  "replay": {
+    "run": 34365332852,
+    "source": "ir",
+    "days": 3,
+    "statusAtRecording": "in_progress",
+    "acceptance": "Pending terminal acknowledgement and related-evidence metrics."
+  },
+  "shareable": false,
+  "limitation": "Released code and smoke checks do not establish a useful evidence-qualified edition."
+}
