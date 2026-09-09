@@ -16,7 +16,7 @@ from typing import Iterable, cast
 
 import httpx
 
-from .evidence_origins import coalesce_copied_origins
+from .evidence_origins import coalesce_copied_origins, distinct_generation_events
 from .extract.entities import event_supports_entity
 from .seed import signal_type_ids
 from .types import Confidence, Direction, Event, EvidenceItem, SignalCandidate
@@ -78,10 +78,12 @@ Output STRICT JSON (no commentary):
 Rules:
 - "publish": true only when the event is aligned with the active collection and
   implies a concrete company, sector, supply-chain, demand, financing, product,
-  regulatory, or competitive change. Use low confidence for weak or single-source
-  aligned items instead of publish=false.
-- Cite every supplied source used in body_md as inline links. Medium/high
-  confidence drafts need ≥ 2 distinct sources; low confidence drafts may use 1.
+  regulatory, or competitive change AND has semantically aligned primary evidence
+  plus independent corroboration of the same assertion. Otherwise publish=false.
+- Cite every supplied source used in body_md as inline links. Every draft needs
+  at least two independent evidence origins, at every confidence level. Copied
+  texts have been collapsed for input diversity; nonmatching text does NOT prove
+  independence. Reporting that only repeats an issuer claim is still one origin.
 - body_md must contain `## What changed`, `## Why it matters`, and
   `## Uncertainty`, each followed by at least one complete, source-grounded
   sentence. The uncertainty must name a concrete caveat, competing explanation,
@@ -94,12 +96,16 @@ Rules:
   automatically independent: use the same originating_evidence_id when several
   publishers repeat one filing, announcement, interview, study, or wire report.
   Mark aligned false when a URL is context rather than support for this claim.
+- Preserve source qualifications: cumulative tool testing/R&D/production is not
+  all production, and a funding eligibility ceiling is not cash already received.
+  Do not infer new orders, revenue growth, competitors or adoption from a milestone
+  unless the supplied sources support those claims.
 - Include 2-4 short source quotations or near-verbatim snippets in a section
   called "What the sources said". Keep each quote under 35 words and tie it to
   the source URL. If a source does not provide useful quotable text, summarize
   the concrete datum instead of inventing a quote.
 - "confidence" calibration:
-  - low: single source, weak source, rumor, or early uncorroborated clue
+  - low: independently corroborated event with substantial uncertainty about impact
   - medium: 2 corroborating sources
   - high: official filing/press release + corroborating coverage
 - "signal_type" should stay dynamic:
@@ -700,7 +706,9 @@ def generate(
     events: Iterable[Event],
     spillover_candidates: list[str],
 ) -> SignalCandidate | None:
-    evs = _relevant_events(primary_entity_id, list(events), spillover_candidates)
+    evs = distinct_generation_events(
+        _relevant_events(primary_entity_id, list(events), spillover_candidates)
+    )
     if not evs:
         return None
     blob = "\n\n".join(
@@ -830,10 +838,12 @@ Output one STRICT JSON object (no commentary):
 Rules (same as single-entity, applied per entity):
 - "publish": true only when the event is aligned with the active collection and
   implies a concrete company, sector, supply-chain, demand, financing, product,
-  regulatory, or competitive change. Use low confidence for weak or single-source
-  aligned items instead of publish=false.
-- Cite every supplied source used in body_md as inline links. Medium/high
-  confidence drafts need ≥ 2 distinct sources; low confidence drafts may use 1.
+  regulatory, or competitive change AND has semantically aligned primary evidence
+  plus independent corroboration of the same assertion. Otherwise publish=false.
+- Cite every supplied source used in body_md as inline links. Every draft needs
+  at least two independent evidence origins, at every confidence level. Copied
+  texts have been collapsed for input diversity; nonmatching text does NOT prove
+  independence. Reporting that only repeats an issuer claim is still one origin.
 - For every returned entity, structure body_md with `## What changed`,
   `## Why it matters`, and `## Uncertainty`. Put a complete source-grounded
   sentence under each heading and make the last section identify a real caveat,
@@ -844,12 +854,16 @@ Rules (same as single-entity, applied per entity):
 - Return a proof assessment for every cited URL. Repeated publishers of the
   same original filing, announcement, interview, study, or wire report must use
   the same originating_evidence_id and therefore count as one proof origin.
+- Preserve source qualifications: cumulative tool testing/R&D/production is not
+  all production, and a funding eligibility ceiling is not cash already received.
+  Do not infer new orders, revenue growth, competitors or adoption from a milestone
+  unless the supplied sources support those claims.
 - Include 2-4 short source quotations or near-verbatim snippets in a section
   called "What the sources said". Keep each quote under 35 words and tie it to
   the source URL. If a source does not provide useful quotable text, summarize
   the concrete datum instead of inventing a quote.
 - "confidence" calibration:
-  - low: single source, weak source, rumor, or early uncorroborated clue
+  - low: independently corroborated event with substantial uncertainty about impact
   - medium: 2 corroborating sources
   - high: official filing/press release + corroborating coverage
 - "signal_type" should stay dynamic:
@@ -991,7 +1005,7 @@ def generate_batch(
     cluster_spillovers: dict[str, list[str]] = {}
     for idx, (entity_id, raw_evs, spillovers) in enumerate(clusters):
         cluster_id = f"story-{idx + 1}"
-        evs = _relevant_events(entity_id, list(raw_evs), spillovers)
+        evs = distinct_generation_events(_relevant_events(entity_id, list(raw_evs), spillovers))
         if not evs:
             continue
         cluster_events[cluster_id] = evs

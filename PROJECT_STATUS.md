@@ -4,6 +4,14 @@ Last updated: 2026-09-09
 
 Current September 9 qualification:
 
+Pending synthesis-input repair: the latest saved prompt did contain the Tom's
+Hardware report, but also duplicated issuer text and retained legacy instructions
+to draft single-source items. Both article paths now collapse substantially copied
+text before prompting, preserving all stored events and distinct reports. Prompts
+require independent support at every confidence level and preserve qualifications
+on cumulative wafer counts and funding eligibility. This is not an independence
+claim for nonmatching text. Hosted grounded-output acceptance remains pending.
+
 Hosted replay 34378740787 verified complete generation and copied-origin
 rejection together: 221/221 event acknowledgements, four successful comparisons,
 three related articles, two complete generated candidates, zero operational
