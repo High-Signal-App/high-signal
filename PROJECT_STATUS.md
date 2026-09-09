@@ -4,12 +4,15 @@ Last updated: 2026-09-09
 
 Current September 9 qualification:
 
-Pending retrieval ranking repair: rank retained results by matching title-token
+Released retrieval ranking repair: rank retained results by matching title-token
 count before the 50-row limit, using recency as a tie-breaker. The real SQL
 regression reproduces an older relevant report hidden by 60 newer weak matches.
 A read-only production probe of the changed query places the previously omitted
-Tom's Hardware Intel report fourth. API deployment and hosted ingestion remain
-pending; this is retrieval evidence, not independent publication proof.
+Tom's Hardware Intel report fourth. API source `f20c79589c925db18abdeafeecc8ee4c6baf025a`
+is verified at 100% traffic after deploy 34371448730 passed production smoke.
+Hosted IR replay 34371627509 is running. This is retrieval/release evidence,
+not independent publication proof.
+[Release receipt](docs/operations/2026-09-09-retained-ranking-release.json).
 [Ranking probe](docs/operations/2026-09-09-retained-ranking-probe.json).
 
 Replay 34369800251 completed with 220/220 acknowledgements, no write timeouts,

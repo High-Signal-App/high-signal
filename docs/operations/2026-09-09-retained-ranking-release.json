@@ -1,0 +1,16 @@
+{
+  "observedAt": "2026-09-09T15:38:08.449174Z",
+  "sourceCommit": "f20c79589c925db18abdeafeecc8ee4c6baf025a",
+  "pullRequest": 170,
+  "ciRun": 34371153872,
+  "deploymentRun": 34371448730,
+  "deploymentConclusion": "success",
+  "deploymentId": "f24637cb-e711-478c-9116-a90b8404c180",
+  "versionId": "32e18f0b-76d2-4733-86c1-6d9f8fb77cbf",
+  "trafficPercentage": 100,
+  "smoke": "Production health, daily dump, Brief, MCP tools and today Brief checks passed.",
+  "replayRun": 34371627509,
+  "replayStatusAtRecording": "in_progress",
+  "shareable": false,
+  "acceptance": "Ranked retrieval API release verified. Hosted retrieval, semantic comparison, independent-origin candidate and useful-edition acceptance remain pending."
+}
