@@ -4,6 +4,14 @@ Last updated: 2026-09-09
 
 Current September 9 qualification:
 
+PR #175 passed hosted CI and merged. Replay 34380010961 acknowledged 222/222
+events but did not exercise synthesis: four retained-evidence lookups failed
+with TLS handshake timeout, connection resets and unexpected TLS EOF. No related
+article, comparison, generation request or draft resulted. Next add a bounded
+retry for these read-only unavailable lookups; preserve empty versus failed
+results. The green workflow does not prove content acceptance.
+[Transport receipt](docs/operations/2026-09-09-evidence-lookup-transport.json).
+
 Pending synthesis-input repair: the latest saved prompt did contain the Tom's
 Hardware report, but also duplicated issuer text and retained legacy instructions
 to draft single-source items. Both article paths now collapse substantially copied

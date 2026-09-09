@@ -1,0 +1,41 @@
+{
+  "runId": 34380010961,
+  "sourceCommit": "2d2517701f32b6b51566cfc9857eb44e0e43d604",
+  "workflowConclusion": "success",
+  "summary": {
+    "fetch_run_id": "4bcdc4ac89db4490",
+    "events": 222,
+    "events_pushed": 222,
+    "events_unacknowledged": 0,
+    "duplicates_collapsed": 8,
+    "events_no_entity": 202,
+    "events_low_cluster": 12,
+    "clusters_reaching_generation": 0,
+    "generation_requests": 0,
+    "generation_request_failures": 0,
+    "generation_failure_classes": {},
+    "signals_drafted": 0,
+    "candidates_generated": 0,
+    "candidates_rejected_no_proof": 0,
+    "candidates_rejected_thin_evidence_urls": 0,
+    "candidates_rejected_single_evidentiary_origin": 0,
+    "candidates_rejected_single_provider": 0,
+    "candidates_admitted_single_provider_authoritative": 0,
+    "errors": 0,
+    "paths": [],
+    "related_evidence_lookups": 12,
+    "related_evidence_failures": 4,
+    "related_events_loaded": 0,
+    "related_story_match_requests": 0,
+    "related_story_match_failures": 0
+  },
+  "lookupFailureClasses": [
+    "TLS handshake timeout",
+    "connection reset by peer",
+    "unexpected TLS EOF",
+    "connection reset by peer"
+  ],
+  "acceptance": "Not exercised: no related articles, comparisons or generation requests after four read-only evidence lookup transport failures. Workflow success is not synthesis acceptance.",
+  "nextAction": "Add one bounded retry for unavailable read-only retained-evidence requests; keep failed lookups distinct from valid empty results.",
+  "shareable": false
+}
