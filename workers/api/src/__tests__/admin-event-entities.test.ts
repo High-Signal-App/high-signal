@@ -5,7 +5,7 @@ const fetcher = app as unknown as {
   fetch(request: Request, env: Record<string, unknown>): Promise<Response>;
 };
 
-function database(lookupFails = false) {
+function database(lookupFails = false, existingDocumentId?: string) {
   const writes: Array<{ sql: string; args: unknown[] }> = [];
   let lookups = 0;
   return {
@@ -21,6 +21,10 @@ function database(lookupFails = false) {
           return statement;
         },
         async raw() {
+          if (sql.startsWith('insert into "source_documents"')) {
+            writes.push({ sql, args });
+            return [[existingDocumentId ?? args[0]]];
+          }
           lookups++;
           if (lookupFails) throw new Error('lookup unavailable');
           return args[0] === 'NVDA' ? [['NVDA']] : [];
@@ -56,22 +60,35 @@ async function ingest(db: ReturnType<typeof database>, ids: Array<string | null>
   );
 }
 
-function eventEntity(row: { sql: string; args: unknown[] }) {
+function eventField(row: { sql: string; args: unknown[] }, column: string) {
   const columns = row.sql
     .match(/\(([^)]+)\) values/)?.[1]
     .split(',')
     .map((s) => s.trim().replaceAll('"', ''));
-  return row.args[columns?.indexOf('primary_entity_id') ?? -1];
+  return row.args[columns?.indexOf(column) ?? -1];
 }
 
 describe('event entity persistence', () => {
+  it('links a new event to the persisted document ID when an older key already exists', async () => {
+    const db = database(false, 'legacy-document-id');
+    const response = await ingest(db, ['NVDA']);
+    expect(await response.json()).toEqual({ inserted: 1 });
+    const event = db.writes.find((row) => row.sql.startsWith('insert into "events"'));
+    expect(eventField(event!, 'source_document_id')).toBe('legacy-document-id');
+  });
+
   it('retains unknown identifiers as metadata without assigning a nonexistent entity', async () => {
     const db = database();
     const response = await ingest(db, ['UNKNOWN', 'NVDA', null, 'UNKNOWN']);
     expect(await response.json()).toEqual({ inserted: 4 });
     expect(db.lookups).toBe(2);
     const events = db.writes.filter((row) => row.sql.startsWith('insert into "events"'));
-    expect(events.map(eventEntity)).toEqual([null, 'NVDA', null, null]);
+    expect(events.map((row) => eventField(row, 'primary_entity_id'))).toEqual([
+      null,
+      'NVDA',
+      null,
+      null,
+    ]);
     const docs = db.writes.filter((row) => row.sql.startsWith('insert into "source_documents"'));
     expect(docs[0].args).toContain(
       JSON.stringify({ existing: 'preserved', unresolvedPrimaryEntityId: 'UNKNOWN' })

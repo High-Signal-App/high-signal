@@ -625,7 +625,7 @@ adminRoute.post('/events', async (c) => {
         sourceDocument.parsedFields = parsedFields;
         Object.assign(sourceDocumentUpdate, { parsedFields });
       }
-      await db(c.env.DB)
+      const [persistedDocument] = await db(c.env.DB)
         .insert(schema.sourceDocuments)
         .values({
           id: sourceDocumentId,
@@ -643,7 +643,9 @@ adminRoute.post('/events', async (c) => {
         .onConflictDoUpdate({
           target: schema.sourceDocuments.documentKey,
           set: sourceDocumentUpdate,
-        });
+        })
+        .returning({ id: schema.sourceDocuments.id });
+      if (!persistedDocument) throw new Error('source_document_upsert_returned_no_row');
       await db(c.env.DB)
         .insert(schema.events)
         .values({
@@ -655,7 +657,7 @@ adminRoute.post('/events', async (c) => {
           content: e.content ?? null,
           primaryEntityId,
           rawHash: e.rawHash,
-          sourceDocumentId,
+          sourceDocumentId: persistedDocument.id,
           fetchRunId: e.fetchRunId ?? null,
         })
         .onConflictDoNothing({ target: schema.events.rawHash });
