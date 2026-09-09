@@ -2,6 +2,12 @@
 
 Last updated: 2026-09-09
 
+Documentation-head CI 34359986362 failed before tests because an unlocked fresh
+Python resolution selected multidict 6.8.0 without a Linux x86_64 artifact.
+The ingest resolver now explicitly requires that platform. Isolated fresh
+resolution selects 6.7.1 and a Linux installation dry run passes; real CI is
+pending. No dependency was added and no local environment was reinstalled.
+
 API release 34359719365 deploys source 42ba39d at 100% traffic and closes the
 fresh-composition bypass found after release 34358213440. Ordinary and
 cache-busted global/South Asia live requests now withhold unsupported ideas and
