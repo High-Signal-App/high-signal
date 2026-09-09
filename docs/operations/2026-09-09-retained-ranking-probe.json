@@ -1,0 +1,13 @@
+{
+  "observedAt": "2026-09-09",
+  "method": "Read-only production D1 execution of the exact query built by the changed retainedEvidenceCandidates function; Worker endpoint not yet deployed.",
+  "queryTitle": "Intel Foundry and ASML Collaborate to Accelerate Industry Readiness for High-NA EUV",
+  "before": "Newest-first OR-token selection filled the 50-result limit with broad high/industry matches and omitted the older report.",
+  "after": {
+    "ranking": "Matching title-token count descending, then publication date descending, then source URL ascending.",
+    "reportRank": 4,
+    "reportUrl": "https://www.tomshardware.com/tech-industry/semiconductors/intel-surpasses-one-million-high-na-euv-wafers-processed-outpaces-the-rest-of-the-industry-combined-company-also-trailblazing-giant-6-12-photomasks-to-speed-production-and-lower-costs1"
+  },
+  "regression": "SQLite execution of the production query: an older multi-token report outranks 60 newer weak matches; future, stale, excluded-source and thin records remain excluded.",
+  "acceptance": "Retrieval recall improvement verified. Hosted matcher and independent-origin publication acceptance remain pending."
+}

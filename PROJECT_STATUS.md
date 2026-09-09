@@ -4,6 +4,14 @@ Last updated: 2026-09-09
 
 Current September 9 qualification:
 
+Pending retrieval ranking repair: rank retained results by matching title-token
+count before the 50-row limit, using recency as a tie-breaker. The real SQL
+regression reproduces an older relevant report hidden by 60 newer weak matches.
+A read-only production probe of the changed query places the previously omitted
+Tom's Hardware Intel report fourth. API deployment and hosted ingestion remain
+pending; this is retrieval evidence, not independent publication proof.
+[Ranking probe](docs/operations/2026-09-09-retained-ranking-probe.json).
+
 Replay 34369800251 completed with 220/220 acknowledgements, no write timeouts,
 two audited same-event matches, two story groups reaching generation, and one
 generated candidate. It was correctly rejected for a single evidentiary origin:

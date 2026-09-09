@@ -231,11 +231,13 @@ export async function retainedEvidenceCandidates(
        WHERE published_at >= ? AND published_at <= unixepoch() AND length(content) >= 500
          ${exclusions ? `AND ${exclusions}` : ''}
          AND (${tokens.map(() => 'lower(title) LIKE ?').join(' OR ')})
-       ORDER BY published_at DESC LIMIT 50`
+       ORDER BY (${tokens.map(() => 'CASE WHEN lower(title) LIKE ? THEN 1 ELSE 0 END').join(' + ')}) DESC,
+         published_at DESC, source_url ASC LIMIT 50`
     )
     .bind(
       firstSeenAt - 3 * 24 * 60 * 60,
       ...excludedSourcePatterns,
+      ...tokens.map((token) => `%${token}%`),
       ...tokens.map((token) => `%${token}%`)
     )
     .all<{
