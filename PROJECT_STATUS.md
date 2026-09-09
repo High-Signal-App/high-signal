@@ -4,7 +4,15 @@ Last updated: 2026-09-09
 
 Current September 9 qualification:
 
-Pending community storage repair: the generator stores normalized camelCase
+Latest consumer verification: replay 34383136925 on gateway source bcb190a9
+completed with partial inference recovery. One story comparison succeeded; three
+failed with HTTP 502 after two attempts each. The matched GlobalFoundries group
+contained copied issuer text; generation completed with an empty signals array.
+No candidate or draft resulted. Correct withholding is verified, useful output
+is not. Further evidence retrieval and provider reliability remain under #133.
+[Replay receipt](docs/operations/2026-09-09-degraded-routing-consumer-replay.json).
+
+Community storage repair merged in PR #177 after hosted CI: the generator stores normalized camelCase
 summaries, but read normalization only accepted snake_case fields and returned
 null for the stored object. Normalization now accepts its canonical output as
 well as legacy payloads. A JSON storage/read regression reproduces the loss and

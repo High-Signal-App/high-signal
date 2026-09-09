@@ -1,0 +1,50 @@
+{
+  "runId": 34383136925,
+  "sourceCommit": "2dfa9ea3235c87db43aa5e6285ae88dc4e91fb41",
+  "gatewaySourceCommit": "bcb190a9e88c0afd04ad05cca7ddb020fe5e37ae",
+  "workflowConclusion": "success",
+  "summary": {
+    "fetch_run_id": "1b8079bc79a34cf1",
+    "events": 222,
+    "events_pushed": 222,
+    "events_unacknowledged": 0,
+    "duplicates_collapsed": 8,
+    "events_no_entity": 202,
+    "events_low_cluster": 11,
+    "clusters_reaching_generation": 1,
+    "generation_requests": 1,
+    "generation_request_failures": 0,
+    "generation_failure_classes": {},
+    "signals_drafted": 0,
+    "candidates_generated": 0,
+    "candidates_rejected_no_proof": 0,
+    "candidates_rejected_thin_evidence_urls": 0,
+    "candidates_rejected_single_evidentiary_origin": 0,
+    "candidates_rejected_single_provider": 0,
+    "candidates_admitted_single_provider_authoritative": 0,
+    "errors": 0,
+    "paths": [],
+    "related_evidence_lookups": 12,
+    "related_evidence_failures": 0,
+    "related_events_loaded": 1,
+    "related_story_match_requests": 4,
+    "related_story_match_failures": 3
+  },
+  "matcherAudit": {
+    "http200": 1,
+    "http502": 3,
+    "failedRequestAttempts": 2,
+    "acceptedMatch": "GlobalFoundries issuer release and HPCwire press-release copy"
+  },
+  "generationAudit": {
+    "reason": "ok:0/1",
+    "model": "openai/gpt-oss-120b",
+    "provider": "groq",
+    "finishReason": "stop",
+    "content": {
+      "signals": []
+    }
+  },
+  "acceptance": "Partial protected inference recovery only. One copied-origin group reached generation and produced no candidate; three comparisons failed. No useful Brief or shareability acceptance.",
+  "shareable": false
+}
