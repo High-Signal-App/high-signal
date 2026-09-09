@@ -10,8 +10,9 @@ from typing import Iterator
 import httpx
 
 from ..seed import load_entities
-from ..types import Event
+from ..types import Event, SourceDocument
 from ..utils import event_hash
+from .ir_announcements import retrieve_announcements
 
 
 USER_AGENT = "high-signal/0.1 ir-ingest"
@@ -59,11 +60,13 @@ async def poll_ir_page_async(
     if r.status_code != 200:
         LOGGER.debug("ir fetch failed entity=%s url=%s status=%s", entity_id, ir_url, r.status_code)
         return []
+    announcements = await retrieve_announcements(entity_id, str(r.url), r.text, client)
     text = await asyncio.to_thread(_extract_ir_text, r.text)
     if not text:
-        return []
+        return announcements
     raw_hash = event_hash("ir", entity_id, ir_url, str(datetime.now(timezone.utc).date()))
     return [
+        *announcements,
         Event(
             id=raw_hash[:16],
             source=f"ir:{entity_id}",
@@ -73,7 +76,12 @@ async def poll_ir_page_async(
             content=text[:20_000],
             primary_entity_id=entity_id,
             raw_hash=raw_hash,
-        )
+            source_document=SourceDocument(
+                canonical_url=str(r.url),
+                raw_text=text[:20_000],
+                parsed_fields={"documentKind": "issuer_index", "discoveryOnly": True},
+            ),
+        ),
     ]
 
 

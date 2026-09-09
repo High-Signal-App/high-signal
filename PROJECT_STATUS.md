@@ -4,6 +4,13 @@ Last updated: 2026-09-09
 
 Current September 9 qualification:
 
+The pending IR retrieval change follows up to three same-origin release links
+and emits only explicitly dated, recent articles with retained text. Index
+snapshots are discovery-only and cannot seed signal generation. A live ASML
+probe produced three September 8 announcements (3,399–3,836 characters each);
+Xanadu root produced none. This improves primary inputs but is not a published
+edition or independent-corroboration receipt.
+
 A read-only primary retrieval probe found HPCwire returns 403 while the issuer
 release returns 200 and 9,923 extracted characters. Existing discovery supplied
 only the blocked secondary page; manual search found the readable original.
