@@ -1,0 +1,18 @@
+{
+  "observedAt": "2026-09-09",
+  "diagnosticRun": 34365843113,
+  "workerVersion": "dcfca9cf-51ab-47a7-95ce-fadbbbbef4c5",
+  "liveObservation": {
+    "migration0008MarkedApplied": true,
+    "rawHashIndexSql": "CREATE UNIQUE INDEX `source_documents_raw_hash_idx` ON `source_documents` (`raw_hash`)",
+    "documentKeyIndexSql": "CREATE UNIQUE INDEX source_documents_document_key_idx ON source_documents (document_key)",
+    "filteredWorkerLogs": "Rejected IR writes fail during the source_documents upsert. The existing log truncates the query before the underlying cause.",
+    "matchingExistingHashes": [
+      {"source": "ir:MSFT", "hashPrefix": "5ca1b4864a3d", "documentKey": "ir:msft:https://microsoft.com/en-us/investor"},
+      {"source": "ir:BABA", "hashPrefix": "b5c5e3adc689", "documentKey": "ir:baba:https://alibabagroup.com/en/ir/home"}
+    ]
+  },
+  "localReproduction": "An upsert by redirected document key fails on raw_hash uniqueness. Migration 0029 permits the shared hash while preserving document IDs, event foreign keys, row count and document-key uniqueness. Reapplying the repair is safe in the fixture.",
+  "productionRepairApplied": false,
+  "acceptance": "Awaiting migration review, application and hosted replay. This evidence does not yet prove that every missing write has this cause."
+}

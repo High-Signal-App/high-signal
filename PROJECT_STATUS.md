@@ -4,12 +4,23 @@ Last updated: 2026-09-09
 
 Current September 9 qualification:
 
+Pending schema repair: production marks migration 0008 applied but retains its
+old unique raw-hash index. Filtered Worker logs locate rejected writes in the
+document upsert, and Microsoft/Alibaba failures match hashes under alternate
+URL keys. Migration 0029 restores the already-declared non-unique hash index;
+SQLite regression verifies unchanged document IDs, rows, event references and
+document-key uniqueness. It has not been applied remotely.
+[Index drift receipt](docs/operations/2026-09-09-source-document-index-drift.json).
+
 Released event persistence repair: 195 of 348 examined IR documents have stored
 IDs different from the writer's computed ID. An upsert preserves that stored ID,
 so linking an event to the computed ID can fail its foreign key. SQLite and a
 route regression reproduce the mismatch. The writer now uses the upsert's
-returned ID, preserving existing documents. Runtime replay remains pending;
-this does not yet prove the cause of every unacknowledged write.
+returned ID, preserving existing documents. Runtime replay 34365332852 still
+acknowledged only 199 of 221 events, so this did not resolve the observed missing
+writes. The six related-evidence lookups succeeded but loaded no articles and
+produced no drafts. The write failure remains under investigation in #133.
+[Replay receipt](docs/operations/2026-09-09-ir-identity-replay.json).
 [Identity receipt](docs/operations/2026-09-09-document-identity-repair.json).
 
 Released retained-corroboration handoff: up to six issuer announcements across
@@ -19,7 +30,7 @@ relevance filtering precedes ordinary story/proof gates, and lookup failures
 are counted separately from empty results. All 478 Python tests and full local
 quality pass. API source `fcc84e15e9156073f690e67a197802b40f2f5dfb` is verified
 at 100% traffic after successful deploy 34365153389 and production smoke checks.
-IR replay 34365332852 is running; end-to-end acceptance remains pending.
+IR replay 34365332852 completed; end-to-end acceptance failed as described above.
 [Release receipt](docs/operations/2026-09-09-document-identity-release.json).
 
 IR run 34363288917 completed with 221 events, 199 acknowledged, 22 unacknowledged,

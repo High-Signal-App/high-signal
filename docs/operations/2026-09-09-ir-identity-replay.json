@@ -1,0 +1,31 @@
+{
+  "run": 34365332852,
+  "conclusion": "success",
+  "sourceCommit": "fcc84e15e9156073f690e67a197802b40f2f5dfb",
+  "summary": {
+    "fetch_run_id": "9cd599fddc20473f",
+    "events": 221,
+    "events_pushed": 199,
+    "events_unacknowledged": 22,
+    "duplicates_collapsed": 8,
+    "events_no_entity": 201,
+    "events_low_cluster": 12,
+    "clusters_reaching_generation": 0,
+    "generation_requests": 0,
+    "generation_request_failures": 0,
+    "generation_failure_classes": {},
+    "signals_drafted": 0,
+    "candidates_generated": 0,
+    "candidates_rejected_no_proof": 0,
+    "candidates_rejected_thin_evidence_urls": 0,
+    "candidates_rejected_single_evidentiary_origin": 0,
+    "candidates_rejected_single_provider": 0,
+    "candidates_admitted_single_provider_authoritative": 0,
+    "errors": 0,
+    "paths": [],
+    "related_evidence_lookups": 6,
+    "related_evidence_failures": 0,
+    "related_events_loaded": 0
+  },
+  "acceptance": "Persistence remains incomplete: 199 of 221 acknowledged, unchanged from before the identity fix. Six related lookups succeeded but loaded no articles. No drafts produced."
+}
