@@ -2,6 +2,16 @@
 
 Last updated: 2026-09-09
 
+PR #158 is merged and API source `76fb00152f6e262804284713ddd3cc019afb4c59`
+is deployed by run34356191933, with production smoke passed. Worker
+`85e58ec2-5207-43c0-bfea-74b94561e92b` serves the exact tag at 100% traffic.
+HKEX verification34356380335 acknowledged all 24 events with zero errors;
+read-only D1 confirms the nine previously absent events now exist with unresolved
+entity IDs preserved. It generated no candidates and does not qualify the Brief.
+Full ingest34356640737 is running from `06f52612130c3abb59e41514f1a49f4c22c76563`
+(the repair plus a bot label-backtest refresh). No publisher was dispatched.
+Receipt: `docs/operations/2026-09-09-ingest-repair-release.json`.
+
 The event-ingest repair now resolves source-supplied entity IDs against D1.
 Known entities remain linked; unknown identifiers are retained as
 `unresolvedPrimaryEntityId` in source-document metadata and the observation is

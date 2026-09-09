@@ -1,0 +1,57 @@
+{
+  "sourceCommit": "76fb00152f6e262804284713ddd3cc019afb4c59",
+  "deploymentRun": 34356191933,
+  "mainCIRun": 34355925844,
+  "deploymentId": "3b55f080-a097-4c45-aa21-ea410fef79ec",
+  "versions": [
+    {
+      "version_id": "85e58ec2-5207-43c0-bfea-74b94561e92b",
+      "percentage": 100
+    }
+  ],
+  "createdOn": "2026-09-09T13:18:48.469758Z",
+  "rollback": {
+    "id": "2f973f17-018b-4bd5-9b6b-4b9ce95dec4a",
+    "versions": [
+      {
+        "version_id": "d200616d-4c06-4c3a-acb7-1590a34722f6",
+        "percentage": 100
+      }
+    ],
+    "created_on": "2026-09-07T07:23:43.073044Z"
+  },
+  "verification": "API smoke passed; exact source tag at 100%. HKEX persistence recovery verified; useful full-source generation remains unqualified.",
+  "hkexVerification": {
+    "run": 34356380335,
+    "sourceCommit": "06f52612130c3abb59e41514f1a49f4c22c76563",
+    "conclusion": "success",
+    "funnel": {
+      "fetch_run_id": "eb5d11884071408c",
+      "events": 24,
+      "events_pushed": 24,
+      "events_unacknowledged": 0,
+      "duplicates_collapsed": 0,
+      "events_no_entity": 0,
+      "events_low_cluster": 24,
+      "clusters_reaching_generation": 0,
+      "generation_requests": 0,
+      "generation_request_failures": 0,
+      "generation_failure_classes": {},
+      "signals_drafted": 0,
+      "candidates_generated": 0,
+      "candidates_rejected_no_proof": 0,
+      "candidates_rejected_thin_evidence_urls": 0,
+      "candidates_rejected_single_evidentiary_origin": 0,
+      "candidates_rejected_single_provider": 0,
+      "candidates_admitted_single_provider_authoritative": 0,
+      "errors": 0,
+      "paths": []
+    },
+    "databaseReadback": {
+      "KUAISHOU": 3,
+      "XIAOMI": 3,
+      "JD": 3
+    },
+    "meaning": "Nine previously absent event rows now exist with unresolved entity metadata. This verifies the missing-entity persistence fix, not all historical write failures or a useful edition."
+  }
+}
