@@ -1,6 +1,19 @@
 # high-signal — PROJECT STATUS
 
-Last updated: 2026-09-08
+Last updated: 2026-09-09
+
+September 9 publisher recovery source: run `34307420151` had a configured
+judge, but its provider returned HTTP 400 for failed JSON generation. The
+publisher called this unavailable AI, killed its sole draft and reported zero
+errors. The source now retries eligible transport/generation failures once
+with unchanged structured-output and evidence rules, bounds each request,
+redacts provider error details, and counts exhausted judge failures as
+operational errors. Missing-key/dry-run behavior and deterministic editorial
+decisions remain unchanged. Synthetic real-CLI tests cover recovery, exhausted
+failure, authentication rejection, missing configuration and deterministic
+rejection. This is source verification, not a recovered published Brief;
+release and scheduled acceptance remain in #133.
+
 
 September 8 Track Record correction: the small-sample warning now uses hits
 plus misses, not pending scoring rows. The page shows total/pending counts and
