@@ -2,6 +2,14 @@
 
 Last updated: 2026-09-09
 
+September 9 candidate audit: scheduled ingestion persisted 4,204 events and
+sent 30 stories to generation; six candidates became one proof-admitted draft.
+The sole earthquake candidate exposed a deterministic routing defect: geographic
+`96 km NNE of` text matched Nano Nuclear Energy. Matching now excludes that
+specific bearing context while preserving explicit ticker/company references
+and raw evidence. This is source-only verification, not a useful Brief or a
+recovered generation run. [Funnel, reproduction and limits](docs/operations/2026-09-09-candidate-attribution.md).
+
 September 9 release acceptance: exact main `66c7731f` passed CI and all six
 release gates. Web Worker `64ab0938-d7a2-4894-b5c9-c08df14524d6` is verified at
 100% traffic with the full SHA tag. Brief, Signals, Sources and Track Record
