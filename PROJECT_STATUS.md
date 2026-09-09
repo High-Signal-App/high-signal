@@ -17,13 +17,14 @@ Current September 9 qualification:
   D1 confirms all nine previously absent events. It generated no candidates.
   [Release receipt](docs/operations/2026-09-09-ingest-repair-release.json) and
   [earlier failed funnel](docs/operations/2026-09-09-coherent-ingest-verification.json).
-- Full ingest 34356640737 remains active from source `06f5261`. Three successful
-  generation receipts observed so far include broad security narratives;
-  their presence does not prove publication acceptance. No publisher dispatched.
-- A reproduced clustering defect merged different Langflow CVEs at title
-  overlap 0.6. The pending fix preserves CVE identity across component merges,
-  including generic-headline bridges, while retaining same-CVE reports.
-  All 461 Python tests pass; live ingest qualification is still pending.
+- Full ingest 34356640737 finished: 4,343 events, 4,341 acknowledged, two
+  unacknowledged; nine generation requests, one server error, seven candidates,
+  all seven rejected for single-provider proof. Zero drafts and no publisher.
+  [Terminal receipt](docs/operations/2026-09-09-full-ingest-terminal.json).
+- PR #162 is merged after green CI and all 461 local Python tests. It fixes
+  distinct CVEs merging at title overlap 0.6, including generic-headline
+  bridges, while retaining same-CVE reports. It was not in the completed run;
+  useful-edition acceptance remains open.
 - PR #161 is merged after green Linux CI. The resolver now requires Linux
   x86_64 artifacts, excluding the incompatible multidict 6.8.0 release that
   broke documentation-head CI 34359986362. No production dependency was added.

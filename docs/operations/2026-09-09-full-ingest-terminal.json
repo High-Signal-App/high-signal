@@ -1,0 +1,32 @@
+{
+  "runId": 34356640737,
+  "sourceCommit": "06f52612130c3abb59e41514f1a49f4c22c76563",
+  "conclusion": "success",
+  "summary": {
+    "fetch_run_id": "e7a8a9fffafa4887",
+    "events": 4343,
+    "events_pushed": 4341,
+    "events_unacknowledged": 2,
+    "duplicates_collapsed": 871,
+    "events_no_entity": 2661,
+    "events_low_cluster": 658,
+    "clusters_reaching_generation": 31,
+    "generation_requests": 9,
+    "generation_request_failures": 1,
+    "generation_failure_classes": {
+      "server_error": 1
+    },
+    "signals_drafted": 0,
+    "candidates_generated": 7,
+    "candidates_rejected_no_proof": 7,
+    "candidates_rejected_thin_evidence_urls": 0,
+    "candidates_rejected_single_evidentiary_origin": 0,
+    "candidates_rejected_single_provider": 7,
+    "candidates_admitted_single_provider_authoritative": 0,
+    "errors": 1,
+    "paths": []
+  },
+  "publicationDispatched": false,
+  "qualification": "Failed useful-edition acceptance: all seven candidates failed single-provider proof; no drafts. Two event writes remain unacknowledged.",
+  "followUp": "PR162 addresses reproduced merging of distinct CVE records. That code was not part of this run. Independent evidence and community synthesis remain unresolved."
+}
