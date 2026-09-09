@@ -59,11 +59,28 @@ lookalikes. No editorial threshold, prompt, evidence-origin rule or publication
 decision was loosened.
 
 Local full `pnpm quality`, seed preflight and all 433 ingestion tests pass;
-branch coverage is 56.82%, above the existing 55% floor. The separate existing
-Python CI `pip-audit --local` gate fails with 60 reported findings across 13
-packages (including duplicate advisory IDs). Sampled installed versions match
-the lockfile. Dependency remediation is separate from this attribution repair;
-no full-green or merge-ready claim is made while that gate fails.
+branch coverage is 56.82%, above the existing 55% floor.
+
+The initial local Python audit reported 60 entries across 13 packages, but that
+environment used a stale **ignored local** `uv.lock`. Neither Python project
+tracks a lockfile. Matching installed versions to that local file did not prove
+the hosted dependency state. [Exact PR CI](https://github.com/High-Signal-App/high-signal/actions/runs/34326644399)
+passed with a fresh resolution: GLiNER 0.2.29, newspaper4k 0.9.6, lxml 6.1.3,
+Torch 2.14.0 and Transformers 5.16.1; its `pip-audit --local` found no known
+vulnerabilities. The lab's fresh default/development dependency resolution also
+passed its audit. This supersedes the initial draft-PR audit-blocked description.
+
+The existing local ingest environment was refreshed without a manifest change
+or audit exclusion. The targeted compatible versions include Torch 2.13.0,
+Transformers 5.10.1, GLiNER 0.2.29 and newspaper4k 0.9.6; the latter two upgrades
+permit patched Transformers/lxml versions. Its audit is also clean. Local
+compatibility checks passed three synthetic HTML extraction paths (production,
+trafilatura and newspaper), finite random-config CPU inference of shape
+`[1, 5, 16]`, and a local tokenizer roundtrip. GLiNER factory resolution selects
+`UniEncoderSpanGLiNER` with the production `predict_entities(text, labels,
+threshold)` call interface. These checks do not establish pretrained model/NER
+quality; no pretrained inference was run.
+No model weights, owner data, provider configuration or lockfile policy changed.
 
 ## Limits and next proof
 
