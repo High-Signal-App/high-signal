@@ -25,7 +25,7 @@ def _make_response(status: int, body: dict | str | None = None) -> httpx.Respons
 
 
 def _run_with_transport(
-    transport: httpx.MockTransport, monkeypatch
+    transport: httpx.MockTransport, monkeypatch, **completion_options
 ) -> tuple[dict | list | None, dict]:
     """Patch httpx.post to use the mock transport and run _ai_complete."""
     monkeypatch.setenv("AI_API_KEY", "test-key")
@@ -48,7 +48,7 @@ def _run_with_transport(
         return real_client.send(req)
 
     monkeypatch.setattr(httpx, "post", _fake_post)
-    return generator._ai_complete("system prompt", "user content")
+    return generator._ai_complete("system prompt", "user content", **completion_options)
 
 
 def test_ai_complete_success_first_try(monkeypatch) -> None:
@@ -281,3 +281,24 @@ def test_truncated_json_is_retried_with_bounded_output_space(monkeypatch, second
         with pytest.raises(generator.SignalGenerationUnavailable) as error:
             generator._raise_for_provider_failure(meta)
         assert error.value.failure_class == "output_truncated"
+
+
+def test_article_budget_survives_a_transport_retry(monkeypatch):
+    requests = []
+
+    def handler(request):
+        requests.append(json.loads(request.content))
+        if len(requests) == 1:
+            return _make_response(502, {"error": "temporary upstream failure"})
+        return _make_response(
+            200,
+            {"choices": [{"finish_reason": "stop", "message": {"content": '{"publish": false}'}}]},
+        )
+
+    out, meta = _run_with_transport(
+        httpx.MockTransport(handler), monkeypatch, max_completion_tokens=8000
+    )
+    assert out == {"publish": False}
+    assert [r["max_tokens"] for r in requests] == [8000, 8000]
+    assert meta["requested_completion_tokens"] == 8000
+    assert meta["attempts"] == 2

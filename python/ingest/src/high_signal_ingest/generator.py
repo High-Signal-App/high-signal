@@ -429,7 +429,9 @@ def _completion_meta(model: str | None, content: str) -> dict:
     }
 
 
-def _ai_complete(prompt: str, content: str) -> tuple[dict | list | None, dict]:
+def _ai_complete(
+    prompt: str, content: str, *, max_completion_tokens: int = _AI_MAX_COMPLETION_TOKENS
+) -> tuple[dict | list | None, dict]:
     """Call OpenAI-compatible endpoint. Returns (parsed_json, audit_meta).
 
     `audit_meta` is always populated (model + reason + latency + raw response
@@ -456,10 +458,11 @@ def _ai_complete(prompt: str, content: str) -> tuple[dict | list | None, dict]:
     started = time.monotonic()
     attempt = 0
     use_json_mode = True
-    completion_budget = _AI_MAX_COMPLETION_TOKENS
+    completion_budget = min(max_completion_tokens, _AI_EXPANDED_COMPLETION_TOKENS)
     while True:
         attempt += 1
         meta["attempts"] = attempt
+        meta["requested_completion_tokens"] = completion_budget
         try:
             # project_id is required by the project-owned free-ai gateway.
             request_json = _completion_request(
@@ -709,11 +712,12 @@ def generate(
         f"SPILLOVER CANDIDATES: {', '.join(spillover_candidates)}\n\n"
         f"EVENTS:\n{blob}"
     )
-    out, meta = _ai_complete(_prompt(), user)
+    out, meta = _ai_complete(_prompt(), user, max_completion_tokens=_AI_EXPANDED_COMPLETION_TOKENS)
     request_blob = {
         "primary": primary_entity_id,
         "user": meta.pop("request_user", ""),
         "attempts": meta.get("attempts"),
+        "requested_completion_tokens": meta.get("requested_completion_tokens"),
         "failure_class": meta.get("failure_class"),
     }
 
@@ -1008,11 +1012,14 @@ def generate_batch(
     if not entity_blocks:
         return []
     user = "\n\n".join(entity_blocks)
-    out, meta = _ai_complete(_batch_prompt(), user)
+    out, meta = _ai_complete(
+        _batch_prompt(), user, max_completion_tokens=_AI_EXPANDED_COMPLETION_TOKENS
+    )
     request_blob = {
         "entities": [eid for eid, _, _ in clusters],
         "user": meta.pop("request_user", ""),
         "attempts": meta.get("attempts"),
+        "requested_completion_tokens": meta.get("requested_completion_tokens"),
         "failure_class": meta.get("failure_class"),
     }
 
