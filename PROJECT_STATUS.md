@@ -10,8 +10,12 @@ regression reproduces an older relevant report hidden by 60 newer weak matches.
 A read-only production probe of the changed query places the previously omitted
 Tom's Hardware Intel report fourth. API source `f20c79589c925db18abdeafeecc8ee4c6baf025a`
 is verified at 100% traffic after deploy 34371448730 passed production smoke.
-Hosted IR replay 34371627509 is running. This is retrieval/release evidence,
-not independent publication proof.
+Hosted IR replay 34371627509 attempt 1 failed at generation with a server error.
+All 220 events were acknowledged; 12 lookups and four audited comparisons loaded
+three related articles with no lookup/matcher failures. No candidate or draft
+was produced. Attempt 2 has been requested; useful-edition acceptance remains
+unverified. This is retrieval/release evidence, not independent publication proof.
+[Terminal replay receipt](docs/operations/2026-09-09-retained-ranking-replay.json).
 [Release receipt](docs/operations/2026-09-09-retained-ranking-release.json).
 [Ranking probe](docs/operations/2026-09-09-retained-ranking-probe.json).
 
