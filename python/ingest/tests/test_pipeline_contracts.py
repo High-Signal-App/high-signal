@@ -830,7 +830,7 @@ def test_generation_rejects_non_text_body_with_audited_failure(monkeypatch, body
     monkeypatch.setattr(
         generator,
         "_ai_complete",
-        lambda *_: (
+        lambda *_, **_kwargs: (
             {"publish": True, "headline": "Capacity", "body_md": body},
             {"model": "test", "prompt_version": "test"},
         ),
@@ -860,7 +860,7 @@ def test_batch_invalid_body_keeps_valid_sibling_and_records_partial_failure(monk
     monkeypatch.setattr(
         generator,
         "_ai_complete",
-        lambda *_: (
+        lambda *_, **_kwargs: (
             {"signals": [{**item, "body_md": {"section": "text"}}, item]},
             {"model": "test"},
         ),
@@ -880,7 +880,7 @@ def test_batch_with_only_invalid_bodies_is_a_failure_not_an_empty_success(monkey
     monkeypatch.setattr(
         generator,
         "_ai_complete",
-        lambda *_: (
+        lambda *_, **_kwargs: (
             {"signals": [{"entity_id": "NVDA", "publish": True, "body_md": {"section": "text"}}]},
             {"model": "test"},
         ),
@@ -915,3 +915,18 @@ def test_cli_distinguishes_story_match_outage_from_negative_results(
     else:
         pipeline.main()
         assert "story matching unavailable" not in capfd.readouterr().err
+
+
+def test_both_article_paths_request_full_completion_budget(monkeypatch):
+    budgets = []
+
+    def complete(_prompt, _content, *, max_completion_tokens):
+        budgets.append(max_completion_tokens)
+        return {"publish": False, "signals": []}, {"model": "test", "prompt_version": "test"}
+
+    monkeypatch.setattr(generator, "_ai_complete", complete)
+    monkeypatch.setattr(pipeline.audit, "push_llm_run", lambda **_: True)
+    event = _event("https://one.example/a")
+    generator.generate("NVDA", [event], [])
+    generator.generate_batch([("NVDA", [event], [])])
+    assert budgets == [8000, 8000]

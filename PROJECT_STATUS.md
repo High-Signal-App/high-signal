@@ -4,6 +4,14 @@ Last updated: 2026-09-09
 
 Current September 9 qualification:
 
+Replay 34377502755 acknowledged 221/221 events and loaded three audited matches,
+but generation remained truncated after two attempts (final completion 2000
+tokens). The saved receipt cannot reconstruct the first attempt. Pending repair:
+single and batch article generation request 8000 tokens from attempt one, while
+story comparison keeps its 2000-token default. The existing attempt cap and
+truncated-output rejection remain. Generation audit records the requested limit.
+Hosted article and evidence acceptance remain unverified under #133.
+
 Origin repair merged in PR #172 after hosted CI passed. The missing-body audit
 from replay 34375574748 reports finish_reason=length: 1505 reasoning tokens consumed
 most of the 2000-token completion cap. Pending transport repair rejects truncated
