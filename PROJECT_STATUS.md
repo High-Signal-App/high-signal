@@ -11,7 +11,13 @@ URL keys. Migration 0029 restores the already-declared non-unique hash index;
 SQLite regression verifies unchanged document IDs, rows, event references and
 document-key uniqueness. PR #167 passed CI and merged. Migration 0029 is now
 applied remotely; D1 confirms the intended non-unique hash index and unchanged
-sample document IDs. Post-repair IR replay 34366731182 is running.
+sample document IDs. Post-repair IR replay 34366731182 completed with 222/222
+acknowledged and zero unacknowledged events. D1 confirms newly retained redirected
+Microsoft, Alibaba and ACM Research document keys with the same hashes as their
+older keys. Their event hashes already existed, so this is recovered document
+upsert/acknowledgement behavior, not 222 newly inserted event rows. Six related
+lookups still admit no articles; no drafts were produced.
+[Post-repair replay](docs/operations/2026-09-09-ir-index-repair-replay.json).
 [Repair receipt](docs/operations/2026-09-09-source-document-index-repair.json).
 [Index drift receipt](docs/operations/2026-09-09-source-document-index-drift.json).
 

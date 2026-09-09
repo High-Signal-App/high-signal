@@ -1,0 +1,49 @@
+{
+  "run": 34366731182,
+  "conclusion": "success",
+  "sourceCommit": "d5f2126092070b0c93a12e73e8c0c8be60850ff8",
+  "summary": {
+    "fetch_run_id": "835d5f3ff19143bc",
+    "events": 222,
+    "events_pushed": 222,
+    "events_unacknowledged": 0,
+    "duplicates_collapsed": 8,
+    "events_no_entity": 202,
+    "events_low_cluster": 12,
+    "clusters_reaching_generation": 0,
+    "generation_requests": 0,
+    "generation_request_failures": 0,
+    "generation_failure_classes": {},
+    "signals_drafted": 0,
+    "candidates_generated": 0,
+    "candidates_rejected_no_proof": 0,
+    "candidates_rejected_thin_evidence_urls": 0,
+    "candidates_rejected_single_evidentiary_origin": 0,
+    "candidates_rejected_single_provider": 0,
+    "candidates_admitted_single_provider_authoritative": 0,
+    "errors": 0,
+    "paths": [],
+    "related_evidence_lookups": 6,
+    "related_evidence_failures": 0,
+    "related_events_loaded": 0
+  },
+  "acceptance": "All 222 events acknowledged after migration 0029, versus 199 of 221 before. Six related-evidence lookups succeed but return no admitted articles; no drafts produced. Shareability remains unverified.",
+  "d1Verification": {
+    "newRedirectedDocumentIds": {
+      "ir:MSFT": "87b2f479e0defe65",
+      "ir:BABA": "48256567c9e14280",
+      "ir:ACMR": "b2e6f0b6ddfb7792"
+    },
+    "sameHashesAsOlderKeys": true,
+    "eachHashHasExistingEvent": true,
+    "newEventRowsForFetchRun": 0,
+    "meaning": "Acknowledgement includes existing-event no-ops. Recovered source-document writes do not imply newly inserted events."
+  },
+  "nextInvestigation": {
+    "retainedExample": "ASML Intel High-NA announcement and Toms Hardware million-wafer report share specific facts but have different headlines",
+    "retrievalTitleAlignment": 0.4444444444444444,
+    "storyTitleJaccard": 0.15384615384615385,
+    "currentThreshold": 0.6,
+    "limitation": "Related content is a research lead, not automatically independent claim support."
+  }
+}
