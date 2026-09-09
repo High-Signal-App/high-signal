@@ -242,6 +242,14 @@ def dedupe(events: list[Event]) -> list[Story]:
         for j in idxs[1:]:
             uf.union(idxs[0], j)
 
+    # A retained-text comparison may connect different headlines to the same
+    # event. This only nominates a story; origin and claim proof gates still run.
+    # Preserve the component-level distinct-CVE guard for these links too.
+    for i, event in enumerate(events):
+        if event.research_story_anchor:
+            for j in by_url.get(canonical_url(event.research_story_anchor), []):
+                uf.union(i, j)
+
     # 2) Title token overlap, guarded by same-day OR shared entity.
     for i in range(n):
         if not tokens[i]:

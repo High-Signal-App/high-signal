@@ -32,6 +32,13 @@ def test_canonical_url_strips_tracking_keeps_id() -> None:
     )
 
 
+def test_research_link_cannot_merge_distinct_cve_identities() -> None:
+    left = _ev("ir:vendor", "Fix for CVE-2026-19295", "https://vendor.example/first")
+    right = _ev("news:reporter", "Report about CVE-2026-19306", "https://reporter.example/second")
+    right.research_story_anchor = left.source_url
+    assert len(dedupe.dedupe([left, right])) == 2
+
+
 def test_merges_on_shared_external_url() -> None:
     # HN keeps the article URL in content; a news item links it directly.
     hn = _ev(

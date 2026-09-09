@@ -59,6 +59,8 @@ class Event(BaseModel):
     primary_entity_id: Optional[str] = None
     raw_hash: str
     source_document: Optional[SourceDocument] = None
+    # Internal, audited research association only; never publication evidence.
+    research_story_anchor: Optional[str] = None
 
 
 class EvidenceItem(BaseModel):
