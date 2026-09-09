@@ -2,14 +2,25 @@
 
 Last updated: 2026-09-09
 
+September 9 semantic-review repair: legacy drafts now supply the AI judge with
+bounded retained source excerpts, explicitly distinguished from full documents.
+Missing text cannot receive verified alignment, duplicate assessments cannot
+satisfy the two-source floor, and an evidence lookup outage leaves the draft
+unchanged with a failed run. Existing structured receipt handling is unchanged.
+This is source/test evidence only; no publisher run has qualified the repair.
+The separate thematic story-coherence defect remains in issue #133.
+
 September 9 archive refresh safety: a same-day partial refresh could overwrite
 payloads referenced by the previous complete pointer. Source now isolates each
 Actions run/attempt, publishes latest only after complete verification, validates
 finite consumer timestamps, and makes bucket preflight read-only. Authorized
 redaction selects exact archive identity and serializes with refresh; legacy date
 partitions remain supported. Mocked workflow/storage tests preserve the previous
-complete payload and newer same-day pointers. No real refresh or redaction has
-run on this source; ingestion/publication remain in #133. [Runbook and evidence](docs/operations/runbooks/reddit-archive.md).
+complete payload and newer same-day pointers. Archive34338300121 subsequently
+completed all 99 communities; ingestion34341530766 persisted 4,419 events but
+produced no useful edition. Its sole thematic draft mixed unrelated stories and
+was not published. No real redaction ran. Ingestion/publication remain in #133.
+[Runbook and evidence](docs/operations/runbooks/reddit-archive.md).
 
 September 9 candidate audit: scheduled ingestion persisted 4,204 events and
 sent 30 stories to generation; six candidates became one proof-admitted draft.

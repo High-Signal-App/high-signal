@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { requestJudge } from './auto-publish-transport';
+import { groundJudgeVerdict, retainedJudgeEvidence } from './auto-publish-evidence';
 
 const request = {
   method: 'POST',
@@ -59,6 +60,11 @@ const signal = {
 globalThis.fetch = async (input, init) => {
   const url = new URL(String(input));
   if (url.hostname === 'judge.invalid') {
+    const payload = JSON.parse(JSON.parse(init.body).messages[1].content);
+    if (payload.evidence?.length !== 2 || payload.evidence.some(item =>
+      item.textCoverage !== 'retained_excerpt' || !item.excerpt.startsWith('Retained public source excerpt'))) {
+      throw new Error('Judge did not receive retained source excerpts');
+    }
     requests++;
     if (mode === 'recover' && requests === 2) return Response.json({
       choices: [{message: {content: JSON.stringify({verdict: 'kill', reason: 'Not corroborated'})}}]
@@ -70,6 +76,12 @@ globalThis.fetch = async (input, init) => {
     signals: url.searchParams.get('status') === 'draft' ? [signal] : []
   });
   if (url.pathname === '/claims/by-signal/fixture') return Response.json({claims: []});
+  if (url.pathname === '/signals/fixture') {
+    if (mode === 'lookup-failed') return new Response('', {status: 503});
+    return Response.json({evidence: mode === 'no-text' ? [] : signal.evidenceUrls.map(url => ({
+      url, excerpt: 'Retained public source excerpt for ' + url
+    }))});
+  }
   if (url.pathname === '/admin/signals/fixture' && init.method === 'PATCH') {
     if (JSON.parse(init.body).reviewStatus !== 'killed') throw new Error('Unexpected publish');
     console.log('fixture withheld');
@@ -87,6 +99,8 @@ process.on('exit', () => console.log('judge requests=' + requests));
       ['auth', 1, 1],
       ['absent', 0, 0],
       ['deterministic', 0, 0],
+      ['no-text', 0, 0],
+      ['lookup-failed', 1, 0],
     ] as const) {
       const child = spawnSync(
         process.execPath,
@@ -106,7 +120,7 @@ process.on('exit', () => console.log('judge requests=' + requests));
         }
       );
       assert.equal(child.status, exit, mode + ': ' + child.stdout + child.stderr);
-      assert.ok(child.stdout.includes('fixture withheld'));
+      assert.equal(child.stdout.includes('fixture withheld'), mode !== 'lookup-failed');
       assert.ok(child.stdout.includes('judge requests=' + attempts));
       assert.ok(child.stdout.includes(exit === 1 ? '1 errors' : '0 errors'));
       assert.ok(!child.stderr.includes('PRIVATE_PROVIDER_DETAIL'));
@@ -117,6 +131,51 @@ process.on('exit', () => console.log('judge requests=' + requests));
 }
 
 async function main() {
+  const urls = ['https://a.example/report', 'https://b.example/report'];
+  const evidence = retainedJudgeEvidence(urls, {
+    evidence: [
+      { url: urls[0], excerpt: '  Retained source A  ' },
+      { url: urls[1], excerpt: 'Retained source B' },
+      { url: 'https://unrelated.example', excerpt: 'Not cited' },
+    ],
+  });
+  assert.equal(evidence.length, 2);
+  assert.equal(evidence[0].excerpt, 'Retained source A');
+  assert.equal(evidence[0].textCoverage, 'retained_excerpt');
+  assert.deepEqual(
+    retainedJudgeEvidence(urls, { evidence: [{ url: urls[0], excerpt: ' ' }] }),
+    urls.map((url) => ({ url, excerpt: null, textCoverage: 'unavailable' }))
+  );
+  const publish = {
+    verdict: 'publish' as const,
+    source: 'ai' as const,
+    reason: 'Aligned excerpts',
+    evidenceAssessments: urls.map((url, index) => ({
+      url,
+      aligned: true,
+      originatingEvidenceId: String(index),
+    })),
+  };
+  assert.equal(groundJudgeVerdict(publish, evidence).verdict, 'publish');
+  assert.equal(groundJudgeVerdict(publish, evidence.slice(0, 1)).verdict, 'kill');
+  assert.equal(
+    groundJudgeVerdict(
+      {
+        ...publish,
+        evidenceAssessments: [publish.evidenceAssessments[0], publish.evidenceAssessments[0]],
+      },
+      evidence
+    ).verdict,
+    'kill',
+    'duplicate assessments are not two sources'
+  );
+  const absent = retainedJudgeEvidence(urls, null);
+  assert.equal(groundJudgeVerdict(publish, absent).verdict, 'kill');
+  assert.equal(
+    retainedJudgeEvidence(urls, { evidence: [{ url: urls[0], excerpt: 'x'.repeat(2000) }] })[0]
+      .excerpt?.length,
+    1500
+  );
   checkCli();
   const recovered = await checkSequence(
     [
