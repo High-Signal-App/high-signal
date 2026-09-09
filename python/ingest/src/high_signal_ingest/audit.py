@@ -94,12 +94,19 @@ def push_events(events: Iterable[Event], fetch_run_id: str | None) -> int:
     ]
     if not payload:
         return 0
-    # D1 batches — chunk to keep bodies small
+    # Each event performs sequential document/entity/event operations. Keep
+    # batches below the observed 50-event request timeout boundary.
     total = 0
-    chunk = 50
+    chunk = 25
     for i in range(0, len(payload), chunk):
         batch = payload[i : i + chunk]
         result = _post_result("/admin/events", {"events": batch})
+        if result is None:
+            # The response can time out after writes committed. This endpoint
+            # upserts by document key and deduplicates events by raw hash, so
+            # retry the identical payload once. Never sum both attempts.
+            LOGGER.warning("push_events: retrying batch without acknowledgement once")
+            result = _post_result("/admin/events", {"events": batch})
         accepted = result.get("inserted") if result is not None else None
         if type(accepted) is not int or not 0 <= accepted <= len(batch):
             accepted = 0
