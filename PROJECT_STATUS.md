@@ -4,6 +4,15 @@ Last updated: 2026-09-09
 
 Current September 9 qualification:
 
+Post-gateway replay 34375574748 acknowledged 222/222 events and completed all
+four comparisons with HTTP 200 (three same-event matches, one negative).
+Generation returned JSON but omitted body_md; validation rejected it, so no
+draft exists. Its proof assessments also incorrectly gave independent origin
+IDs to ASML's release and an HPCwire syndicated copy. Transport recovered for
+this run, but editorial validity did not. Next enforce common-origin evidence
+independently of model IDs and verify the generation output contract.
+[Recovery replay receipt](docs/operations/2026-09-09-gateway-recovery-replay.json).
+
 Matcher outage handling merged in PR #171; merged-main CI 34374036694 passed.
 Diagnostic replay 34374070475 acknowledged 218/218 events but produced no draft.
 One comparison succeeded; three returned HTTP 400 after two attempts. Generation

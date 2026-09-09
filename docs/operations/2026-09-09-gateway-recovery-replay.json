@@ -1,0 +1,38 @@
+{
+  "runId": 34375574748,
+  "gatewaySource": "f4aa1bef4a6d6ca5a00ad2b15cdf0c97abefe2c4",
+  "conclusion": "failure",
+  "summary": {
+    "fetch_run_id": "b928e04c7fbc420c",
+    "events": 222,
+    "events_pushed": 222,
+    "events_unacknowledged": 0,
+    "duplicates_collapsed": 8,
+    "events_no_entity": 202,
+    "events_low_cluster": 10,
+    "clusters_reaching_generation": 2,
+    "generation_requests": 1,
+    "generation_request_failures": 1,
+    "generation_failure_classes": {
+      "invalid_response": 1
+    },
+    "signals_drafted": 0,
+    "candidates_generated": 0,
+    "candidates_rejected_no_proof": 0,
+    "candidates_rejected_thin_evidence_urls": 0,
+    "candidates_rejected_single_evidentiary_origin": 0,
+    "candidates_rejected_single_provider": 0,
+    "candidates_admitted_single_provider_authoritative": 0,
+    "errors": 1,
+    "paths": [],
+    "related_evidence_lookups": 12,
+    "related_evidence_failures": 0,
+    "related_events_loaded": 3,
+    "related_story_match_requests": 4,
+    "related_story_match_failures": 0
+  },
+  "modelResults": "All four comparisons returned HTTP 200: three positive same-event decisions, one negative. Batch completion returned JSON but omitted body_md.",
+  "proofDefect": "Generated ASML claim assigned different originating_evidence_id values to the primary ASML release and the HPCwire off-the-wire copy. Missing-body validation rejected the candidate before publication. Origin independence must not depend solely on model-provided IDs.",
+  "shareable": false,
+  "nextAction": "Repair evidence-origin enforcement and validate the generation output contract before another replay."
+}
