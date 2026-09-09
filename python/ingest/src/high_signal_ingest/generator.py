@@ -16,6 +16,7 @@ from typing import Iterable, cast
 
 import httpx
 
+from .evidence_origins import coalesce_copied_origins
 from .extract.entities import event_supports_entity
 from .seed import signal_type_ids
 from .types import Confidence, Direction, Event, EvidenceItem, SignalCandidate
@@ -609,12 +610,20 @@ def _proof_evidence(output: dict, cited_events: list[Event]) -> list[EvidenceIte
         for item in raw_assessments
         if isinstance(item, dict) and item.get("url")
     }
+    origins = coalesce_copied_origins(
+        cited_events,
+        [
+            str(assessments.get(event.source_url, {}).get("originating_evidence_id") or "").strip()[
+                :500
+            ]
+            for event in cited_events
+        ],
+    )
     seen_origins: set[str] = set()
     proof_items: list[EvidenceItem] = []
-    for event in cited_events:
+    for event, origin in zip(cited_events, origins):
         assessment = assessments.get(event.source_url, {})
         aligned = assessment.get("aligned") is True
-        origin = str(assessment.get("originating_evidence_id") or "").strip()[:500]
         verified = aligned and bool(origin)
         role = "context"
         if verified and origin not in seen_origins:
