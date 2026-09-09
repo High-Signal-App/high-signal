@@ -1,0 +1,28 @@
+{
+  "source": "Retained story-match request passages from run 34375574748, read-only D1 probe",
+  "rule": "At least 80 matching distinct five-word sequences and at least 80 percent containment of shorter retained text; maximum 5000 words per text. Only merges existing origins, never grants independence.",
+  "pairs": [
+    {
+      "primary": "GlobalFoundries 375M release",
+      "comparison": "HPCwire off-the-wire copy",
+      "shared": 497,
+      "shorter": 509,
+      "copyDetected": true
+    },
+    {
+      "primary": "ASML High-NA release",
+      "comparison": "HPCwire off-the-wire copy",
+      "shared": 452,
+      "shorter": 556,
+      "copyDetected": true
+    },
+    {
+      "primary": "ASML High-NA release",
+      "comparison": "Toms Hardware million-wafer report",
+      "shared": 0,
+      "shorter": 556,
+      "copyDetected": false
+    }
+  ],
+  "limitation": "Does not establish independence for nonmatching text or detect every paraphrased copy; publication evidence requirements still apply."
+}

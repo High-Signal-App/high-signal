@@ -4,6 +4,15 @@ Last updated: 2026-09-09
 
 Current September 9 qualification:
 
+Pending origin repair: substantially copied retained texts share one proof origin
+regardless of model-assigned IDs. Existing common-origin connections are preserved;
+unassessed sources gain no credit. The bounded five-word-sequence rule catches both
+observed HPCwire reprints (ASML 81.3%, GlobalFoundries 97.6% containment), while the
+Tom's Hardware comparison remains separate (0%). Separation does not establish
+independence. All 505 Python tests and full quality checks pass; hosted acceptance
+and the missing-body generation repair remain pending under #133.
+[Retained-text probe](docs/operations/2026-09-09-copied-origin-probe.json).
+
 Post-gateway replay 34375574748 acknowledged 222/222 events and completed all
 four comparisons with HTTP 200 (three same-event matches, one negative).
 Generation returned JSON but omitted body_md; validation rejected it, so no
