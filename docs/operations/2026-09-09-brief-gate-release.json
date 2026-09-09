@@ -1,0 +1,47 @@
+{
+  "observedAt": "2026-09-09T13:52:00Z",
+  "sourceCommit": "42ba39d3b001ac6985af8d8ed7c01ef442a96864",
+  "pullRequest": 160,
+  "ciRun": 34359483196,
+  "deploymentRun": 34359719365,
+  "deploymentId": "f06526cc-a1e8-4ae2-afb0-f8fe0749c61b",
+  "versionId": "324850e5-f02f-4320-b4eb-de8a7ae01db5",
+  "trafficPercentage": 100,
+  "liveChecks": [
+    {
+      "query": "probe=gate-42ba39d",
+      "http": 200,
+      "publishStatus": "pending",
+      "counts": {
+        "stocks": 0,
+        "ideas": 0,
+        "trends": 0
+      },
+      "ideasReason": "items_withheld_by_publish_gate"
+    },
+    {
+      "query": "",
+      "http": 200,
+      "publishStatus": "pending",
+      "counts": {
+        "stocks": 0,
+        "ideas": 0,
+        "trends": 0
+      },
+      "ideasReason": "items_withheld_by_publish_gate"
+    },
+    {
+      "query": "region=south-asia&probe=gate-42ba39d",
+      "http": 200,
+      "publishStatus": "pending",
+      "counts": {
+        "stocks": 0,
+        "ideas": 0,
+        "trends": 0
+      },
+      "ideasReason": "items_withheld_by_publish_gate"
+    }
+  ],
+  "acceptance": "Fresh composition withholds unsupported seeded opportunities in ordinary and cache-busted live requests. Cached-route behavior covered by route tests; these live probes do not independently prove a precomputed cache hit. Useful evidence-qualified edition remains incomplete.",
+  "shareable": false
+}

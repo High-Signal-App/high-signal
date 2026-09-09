@@ -2,12 +2,12 @@
 
 Last updated: 2026-09-09
 
-API release34358213440 deployed the first Brief gate correction, but live
-verification found a fresh-composition bypass: the response became pending while
-still including the seeded idea. The follow-up now prunes freshly composed
-responses as well as cached snapshots. A route regression covers the actual
-unsupported-opportunity shape and retains valid stock fixtures. This follow-up
-is not yet released; do not treat the first release as full gate acceptance.
+API release 34359719365 deploys source 42ba39d at 100% traffic and closes the
+fresh-composition bypass found after release 34358213440. Ordinary and
+cache-busted global/South Asia live requests now withhold unsupported ideas and
+remain pending. Full local quality and exact main CI passed. See
+`docs/operations/2026-09-09-brief-gate-release.json`. This is publication-gate
+acceptance, not useful-edition or shareability acceptance.
 
 The next Brief gate repair applies structured claim provenance to opportunities
 and trends, requiring primary support, independent corroboration, no contradiction
