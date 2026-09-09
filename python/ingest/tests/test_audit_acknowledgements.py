@@ -27,7 +27,7 @@ def configured(monkeypatch):
 
 
 def test_partial_batches_count_only_acknowledged_events(monkeypatch, caplog):
-    responses = iter([{"inserted": 48}, {"inserted": 1}])
+    responses = iter([{"inserted": 23}, {"inserted": 1}])
     sizes = []
 
     def post(_url, **kwargs):
@@ -35,8 +35,8 @@ def test_partial_batches_count_only_acknowledged_events(monkeypatch, caplog):
         return httpx.Response(200, json=next(responses))
 
     monkeypatch.setattr(audit.httpx, "post", post)
-    assert audit.push_events(events(51), "synthetic-run") == 49
-    assert sizes == [50, 1]
+    assert audit.push_events(events(26), "synthetic-run") == 24
+    assert sizes == [25, 1]
     assert "2 unacknowledged" in caplog.text
 
 
@@ -49,9 +49,26 @@ def test_invalid_acknowledgement_does_not_claim_persistence(monkeypatch, body):
 
 
 def test_failed_batch_does_not_hide_later_success(monkeypatch):
-    responses = iter([httpx.Response(503), httpx.Response(200, json={"inserted": 1})])
+    responses = iter(
+        [httpx.Response(503), httpx.Response(503), httpx.Response(200, json={"inserted": 1})]
+    )
     monkeypatch.setattr(audit.httpx, "post", lambda *_a, **_k: next(responses))
-    assert audit.push_events(events(51), "synthetic-run") == 1
+    assert audit.push_events(events(26), "synthetic-run") == 1
+
+
+def test_timeout_retries_identical_batch_without_double_counting(monkeypatch):
+    payloads = []
+
+    def post(_url, **kwargs):
+        payloads.append(kwargs["json"])
+        if len(payloads) == 1:
+            raise httpx.ReadTimeout("response lost after writes")
+        return httpx.Response(200, json={"inserted": len(kwargs["json"]["events"])})
+
+    monkeypatch.setattr(audit.httpx, "post", post)
+    assert audit.push_events(events(26), "same-run") == 26
+    assert [len(payload["events"]) for payload in payloads] == [25, 25, 1]
+    assert payloads[0] == payloads[1]
 
 
 def test_non_json_success_does_not_claim_persistence(monkeypatch):

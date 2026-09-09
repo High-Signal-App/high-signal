@@ -4,6 +4,16 @@ Last updated: 2026-09-09
 
 Current September 9 qualification:
 
+Pending replay repairs: run 34368481847 completed but timed out on two 50-event
+write requests (100 acknowledgements unknown) and admitted no matched articles.
+Two positive same-event decisions failed excerpt length/exactness validation.
+Event writes now use 25-event batches with one identical-payload retry when the
+response is unavailable, without double counting. Matcher v2 selects predefined
+passage IDs; saved excerpts come directly from the retained source text rather
+than model copying. Unknown/cross-article IDs fail validation. Hosted acceptance
+of these repairs remains pending.
+[Replay receipt](docs/operations/2026-09-09-story-match-replay.json).
+
 Pending retained-story matching: recent announcement lookup now covers at most
 24 distinct URLs, followed by at most six same-event comparisons through the
 existing configured model client. Positive comparisons require exact passages

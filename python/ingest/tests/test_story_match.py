@@ -24,8 +24,8 @@ def decision(**changes):
     return {
         "sameEvent": True,
         "event": "The million wafer processing milestone",
-        "leftQuote": LEFT,
-        "rightQuote": RIGHT,
+        "leftPassageId": "L0",
+        "rightPassageId": "R0",
         **changes,
     }
 
@@ -47,8 +47,9 @@ def test_different_headline_matching_requires_saved_receipt(monkeypatch):
     [
         decision(sameEvent=False),
         decision(sameEvent="true"),
-        decision(leftQuote="Invented evidence for a different event that never appeared."),
-        decision(rightQuote="short"),
+        decision(leftPassageId="invented"),
+        decision(rightPassageId="L0"),
+        decision(leftPassageId=[]),
         decision(event="vague"),
         [],
         None,
@@ -69,3 +70,23 @@ def test_thin_text_never_calls_model(monkeypatch):
         False,
         "thin_text",
     )
+
+
+def test_selected_passages_preserve_exact_source_and_ignore_generated_quotes(monkeypatch):
+    receipts = []
+    model_result = decision(leftQuote="invented" * 100, rightQuote="rewritten")
+    monkeypatch.setattr(story_match, "_ai_complete", lambda *_: (model_result, {}))
+    monkeypatch.setattr(story_match.audit, "push_llm_run", lambda **kw: receipts.append(kw) or True)
+    left, right = event(LEFT, "left"), event(RIGHT, "right")
+    assert story_match.match_story(left, right)[0]
+    result = receipts[0]["response_json"]["result"]
+    assert result["leftQuote"] in left.content
+    assert result["rightQuote"] in right.content
+    assert 40 <= len(result["leftQuote"]) <= 600
+
+
+def test_passages_are_bounded_exact_substrings_even_without_word_breaks():
+    text = "α" * 1200 + "\n" + ("A sentence with punctuation. " * 50)
+    passages = story_match._passages(text, "L")
+    assert len(passages) > 2
+    assert all(40 <= len(passage) <= 600 and passage in text for passage in passages.values())
