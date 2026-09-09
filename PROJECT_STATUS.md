@@ -4,6 +4,11 @@ Last updated: 2026-09-09
 
 Current September 9 qualification:
 
+API release c4752fa4 is verified at 100% traffic after deployment 34385140654
+passed its health, daily dump, Brief and MCP smoke checks. The summary storage
+repair is live; useful-edition acceptance remains open.
+[Release receipt](docs/operations/2026-09-09-community-summary-release.json).
+
 Latest consumer verification: replay 34383136925 on gateway source bcb190a9
 completed with partial inference recovery. One story comparison succeeded; three
 failed with HTTP 502 after two attempts each. The matched GlobalFoundries group

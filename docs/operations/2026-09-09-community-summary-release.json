@@ -1,0 +1,14 @@
+{
+  "observedAt": "2026-09-09T17:48:59.928196Z",
+  "sourceCommit": "c4752fa40cc4f2221647d7a1a519abd77ba1223f",
+  "pullRequest": 177,
+  "ciRun": 34384825341,
+  "deploymentRun": 34385140654,
+  "deploymentConclusion": "success",
+  "deploymentId": "dd90b291-bfd1-456b-9e73-628de40ea703",
+  "versionId": "adaa2e63-fb00-4b8f-9a2d-38c45da60879",
+  "trafficPercentage": 100,
+  "smoke": "Hosted health, daily dump, Brief and MCP checks passed",
+  "shareable": false,
+  "acceptance": "Summary normalization repair released. No useful independently supported Brief has been demonstrated; provider reliability and community provenance remain open under issue 133."
+}
