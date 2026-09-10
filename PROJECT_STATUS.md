@@ -22,8 +22,16 @@ upserts instead of replacement SQL. Its actual generated statements passed
 real-schema SQLite tests for draft refresh, all reviewed statuses, reviewed
 claims, correction replay and failure rollback. The complete quality gate also
 passes with this second repair. No bulk production markdown import was run.
-The existing full-ingestion run 34537916675 remains active. Useful daily output
-and live replay acceptance remain unqualified under issue 133.
+Markdown-import commit `2730cdb478a9e6465d44e00c976cc8a7aa12a71b` passed
+hosted CI 34540378805. Full ingestion 34537916675 completed successfully:
+4,438 events were acknowledged with zero unacknowledged events; 887 exact
+duplicates collapsed. Thirty clusters reached generation, seven generation
+requests ran, and one returned invalid output. The one generated candidate was
+withheld for missing proof and a single provider; zero drafts resulted. Related
+evidence lookup and story matching had no failures. This proves ingestion
+completion, not a useful edition or post-fix replay (no draft reached sync).
+Useful daily output remains unqualified under issue 133. Fetch run:
+`99491cd4ef5b4de9`.
 
 Previous September 9 qualification:
 
@@ -1123,8 +1131,9 @@ source review found unsupported supplier roles and order/capacity assertions
 in its analysis. Its underlying source announcement and independent report
 support the wafer milestone, not those extra claims. The row remains retained.
 The full Reddit archive 34535029309 succeeded, including R2 manifest and
-complete consumer-pointer verification. Full ingestion 34537916675 is running
-against that refreshed pointer; its outcome still needs inspection.
+complete consumer-pointer verification. Full ingestion 34537916675 subsequently
+completed with 4,438 acknowledged events and zero drafts; see the current
+qualification above.
 
 The rejected draft exposed a publication bypass: structured claim eligibility
 plus a sufficient source count could skip semantic review of the body. The
