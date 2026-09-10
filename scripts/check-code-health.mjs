@@ -196,7 +196,7 @@ function checkDependencies() {
     );
   }
   // Debt: https://github.com/High-Signal-App/high-signal/issues/104
-  const baseline = { critical: 0, high: 40, productionCritical: 0, productionHigh: 15 };
+  const baseline = { critical: 0, high: 25, productionCritical: 0, productionHigh: 0 };
   console.log(
     `Dependencies: ${observed.critical} critical, ${observed.high} high total; ` +
       `${observed.productionCritical} critical, ${observed.productionHigh} high in production.`

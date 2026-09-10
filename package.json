@@ -129,7 +129,10 @@
       "next>sharp": "0.35.4",
       "miniflare>sharp": "0.35.4",
       "cosmiconfig>js-yaml": "4.3.2",
-      "astro>svgo": "4.1.0"
+      "astro>svgo": "4.1.0",
+      "protobufjs@>=7.0.0 <7.6.1": "7.6.1",
+      "fast-xml-builder@>=1.0.0 <1.1.7": "1.1.7",
+      "nanoid@>=3.0.0 <3.3.18": "3.3.18"
     }
   }
 }

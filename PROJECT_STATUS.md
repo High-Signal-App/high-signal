@@ -1067,3 +1067,15 @@ PR #151 also patches the six newly failing dependency advisories with Next 16.3.
 ## September 10 — published syndication correction
 
 Filed the [append-only correction receipt](docs/operations/2026-09-10-syndication-correction.md). The original Anthropic signal is corrected and excluded from the public list; the successor remains draft with one originating report. Existing evidence/history is preserved.
+
+## September 11 — production dependency qualification
+
+Scoped resolutions update protobufjs to 7.6.1, fast-xml-builder to 1.1.7 and
+nanoid to 3.3.18 without adding a direct dependency. The production audit now
+reports zero critical/high findings (previously seven high); 15 moderate and
+six low findings remain. The full quality gate, all 32 repository test suites
+and the production Next build pass. The dependency guard now caps production
+high findings at zero and total high findings at the remaining 25 development
+findings. This source qualification does not establish deployment or repair
+the empty daily edition. Fresh archive/ingestion and useful-output acceptance
+remain tracked in issue 133.
