@@ -106,3 +106,25 @@ def test_article_request_omits_copy_but_keeps_distinct_report(monkeypatch, batch
     assert events[0].source_url in requests[0]
     assert events[1].source_url not in requests[0]
     assert events[2].source_url in requests[0]
+
+
+def test_explicit_wire_dateline_merges_short_reprint_with_original_publisher():
+    original = event("wire", "Original reporting, available only as a short excerpt.")
+    original.source_url = "https://www.bloomberg.com/news/report"
+    reprint = event("mint", "(Bloomberg) -- A short syndicated excerpt with different truncation.")
+    assert coalesce_copied_origins([original, reprint], ["a", "b"]) == ["a", "a"]
+    assert coalesce_copied_origins([reprint, original], ["b", "a"]) == ["a", "a"]
+    reprint.content = "Our independent investigation mentions Bloomberg in passing."
+    assert coalesce_copied_origins([original, reprint], ["a", "b"]) == ["a", "b"]
+
+
+def test_wire_reprints_cannot_supply_second_publisher_even_for_distinct_stories():
+    original = event("wire", "Separate reporting on a different part of the event.")
+    original.source_url = "https://www.bloomberg.com/news/another-story"
+    reprint = event("mint", "(Bloomberg) -- A different story still credited to the same wire.")
+    independent = event("independent", "An independently sourced original investigation.")
+    assert coalesce_copied_origins([original, reprint, independent], ["a", "b", "c"]) == [
+        "a",
+        "a",
+        "c",
+    ]

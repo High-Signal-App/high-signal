@@ -169,6 +169,38 @@ async function main() {
     'kill',
     'duplicate assessments are not two sources'
   );
+  const wireUrls = ['https://www.bloomberg.com/news/report', 'https://www.livemint.com/report'];
+  const wirePublish = {
+    ...publish,
+    evidenceAssessments: wireUrls.map((url, index) => ({
+      url,
+      aligned: true,
+      originatingEvidenceId: String(index),
+    })),
+  };
+  const wireEvidence = retainedJudgeEvidence(wireUrls, {
+    evidence: [
+      { url: wireUrls[0], excerpt: 'Original reporting from the wire service.' },
+      { url: wireUrls[1], excerpt: '(Bloomberg) -- The same report republished by Mint.' },
+    ],
+  });
+  assert.equal(
+    groundJudgeVerdict(wirePublish, wireEvidence).verdict,
+    'kill',
+    'wire reprint cannot be certified as independent'
+  );
+  assert.equal(
+    groundJudgeVerdict(
+      wirePublish,
+      wireEvidence.map((item, index) =>
+        index === 1
+          ? { ...item, excerpt: 'Our own investigation mentions Bloomberg in passing.' }
+          : item
+      )
+    ).verdict,
+    'publish',
+    'ordinary publisher mentions do not prove syndication'
+  );
   const absent = retainedJudgeEvidence(urls, null);
   assert.equal(groundJudgeVerdict(publish, absent).verdict, 'kill');
   assert.equal(

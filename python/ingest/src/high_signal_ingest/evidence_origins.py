@@ -1,6 +1,7 @@
 """Conservative copied-text evidence: can merge origins, never grant independence."""
 
 import re
+from urllib.parse import urlparse
 
 from .types import Event
 
@@ -10,13 +11,33 @@ def _shingles(text: str) -> set[tuple[str, ...]]:
     return {tuple(words[i : i + 5]) for i in range(len(words) - 4)}
 
 
+def _wire_credit(event: Event) -> str | None:
+    match = re.match(r"\s*\((Bloomberg|Reuters)\)\s*(?:--|—|–)", event.content or "", re.I)
+    return match.group(1).lower() if match else None
+
+
+def _wire_publisher(event: Event) -> str | None:
+    host = (urlparse(event.source_url).hostname or "").lower()
+    return next(
+        (
+            wire
+            for wire in ("bloomberg", "reuters")
+            if host == f"{wire}.com" or host.endswith(f".{wire}.com")
+        ),
+        None,
+    )
+
+
 def coalesce_copied_origins(events: list[Event], origins: list[str]) -> list[str]:
     """Keep model-declared common origins and merge substantially copied articles.
 
     At least 80 distinct five-word sequences must match and cover 80 percent of
     the shorter text's sequences. This catches reprints with publisher wrappers;
     shared names, short quotations and topic similarity are insufficient.
-    No match establishes independence, and missing origin IDs stay missing.
+    Explicit wire credits also collapse publisher credit beside that wire outlet,
+    even for distinct stories: this is a conservative independence gate, not a
+    claim that their texts are identical. No match establishes independence,
+    and missing origin IDs stay missing.
     """
     parents = list(range(len(events)))
 
@@ -35,7 +56,12 @@ def coalesce_copied_origins(events: list[Event], origins: list[str]) -> list[str
             overlap = len(texts[i] & texts[j])
             shorter = min(len(texts[i]), len(texts[j]))
             copied = overlap >= 80 and overlap >= 0.8 * shorter
-            if origin == origins[j] or copied:
+            wire_i, wire_j = _wire_credit(events[i]), _wire_credit(events[j])
+            credited_copy = bool(
+                (wire_i and wire_i in (wire_j, _wire_publisher(events[j])))
+                or (wire_j and wire_j == _wire_publisher(events[i]))
+            )
+            if origin == origins[j] or copied or credited_copy:
                 parents[root(i)] = root(j)
     canonical: dict[int, str] = {}
     for i, origin in enumerate(origins):

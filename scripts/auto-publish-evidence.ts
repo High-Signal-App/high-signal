@@ -29,6 +29,29 @@ export function retainedJudgeEvidence(urls: string[], payload: unknown): JudgeEv
   });
 }
 
+// Conservative publisher-independence gate: a credited wire reprint cannot
+// supply a second independent publisher beside that wire service. This does
+// not assert identical story identity; ambiguous assessments need review.
+// Ordinary mentions and short quotations do not establish syndication.
+function wireAttribution(item: JudgeEvidence): string | null {
+  return (
+    /^\s*\((Bloomberg|Reuters)\)\s*(?:--|—|–)/i.exec(item.excerpt ?? '')?.[1]?.toLowerCase() ?? null
+  );
+}
+
+function wirePublisher(url: string): string | null {
+  try {
+    const host = new URL(url).hostname.toLowerCase();
+    return (
+      ['bloomberg', 'reuters'].find(
+        (wire) => host === `${wire}.com` || host.endsWith(`.${wire}.com`)
+      ) ?? null
+    );
+  } catch {
+    return null;
+  }
+}
+
 /** A model cannot certify a source it was not shown, even when its JSON is valid. */
 export function groundJudgeVerdict(
   verdict: VerdictResult,
@@ -46,6 +69,26 @@ export function groundJudgeVerdict(
       source: 'rule',
       reason: 'semantic publish assessment lacks retained source text for aligned evidence',
     };
+  }
+  for (const item of evidence) {
+    const wire = wireAttribution(item);
+    const assessment = aligned.find((link) => link.url === item.url);
+    if (!wire || !assessment) continue;
+    const contradicted = evidence.some((other) => {
+      if (
+        other.url === item.url ||
+        (wireAttribution(other) !== wire && wirePublisher(other.url) !== wire)
+      )
+        return false;
+      const peer = aligned.find((link) => link.url === other.url);
+      return peer && peer.originatingEvidenceId !== assessment.originatingEvidenceId;
+    });
+    if (contradicted)
+      return {
+        verdict: 'kill',
+        source: 'rule',
+        reason: 'explicit wire attribution contradicts model-certified source independence',
+      };
   }
   return verdict;
 }
