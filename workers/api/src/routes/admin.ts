@@ -36,6 +36,7 @@ import { scheduledDataAdminRoute } from './admin-scheduled-data';
 import { precomputeBriefSnapshots } from './brief';
 import { enrichSignals, serializeClaimEvidenceLink } from '../lib/signal-quality';
 import { retainedEvidenceCandidates } from '../lib/attention-admin';
+import { syncSignal, type SignalUpsert } from '../lib/signal-sync';
 
 type Env = {
   DB: D1Database;
@@ -120,155 +121,28 @@ adminRoute.post('/scores', async (c) => {
   return c.json({ inserted: inserted.length, ids: inserted });
 });
 
-interface SignalUpsert {
-  slug: string;
-  signalType: string;
-  primaryEntityId: string;
-  direction: 'up' | 'down' | 'neutral';
-  confidence: 'low' | 'medium' | 'high';
-  predictedWindowDays: number;
-  publishedAt: string; // ISO
-  evidenceUrls: string[];
-  evidence?: Array<{
-    url: string;
-    sourceType?: string | null;
-    excerpt?: string | null;
-    publishedAt?: string | null;
-    sourceDocumentKey?: string | null;
-    originatingEvidenceId?: string | null;
-    semanticAlignment?: 'unverified' | 'verified' | 'rejected';
-    role?: ClaimEvidenceRole;
-    supports?: Array<
-      'observed_event' | 'direct_entity_impact' | 'supply_chain_impact' | 'business_inference'
-    >;
-  }>;
-  spilloverEntityIds?: string[];
-  reviewStatus?: 'draft' | 'published' | 'corrected' | 'killed';
-  supersedesSignalId?: string | null;
-  bodyMd: string;
-  observedEvent?: string | null;
-  directEntityImpact?: string | null;
-  supplyChainImpact?: string | null;
-  businessInference?: string | null;
-  inferenceStrength?: 'none' | 'weak' | 'moderate' | 'strong' | null;
-  inferenceEvidenceUrls?: string[];
-  claim?: {
-    assertion: string;
-    event: string;
-    amount?: string | number | null;
-    date: string;
-    direction: 'up' | 'down' | 'neutral';
-  };
-}
-
-type SignalEvidenceUpsert = NonNullable<SignalUpsert['evidence']>[number];
-
 adminRoute.post('/sync', async (c) => {
   const body = (await c.req.json()) as { signals?: SignalUpsert[] };
   const sigs = body.signals ?? [];
+  if (!Array.isArray(sigs)) return c.json({ error: 'bad_payload' }, 400);
   let upserts = 0;
   let createdEntities = 0;
   let proofUpserts = 0;
-  for (const s of sigs) {
-    const id = await sha16(s.slug);
-
-    // Auto-upsert missing entities so the LLM picking up novel names
-    // (DEEPSEEK, ASUSTEK, etc.) doesn't kill the whole batch on FK violation.
-    const created = await ensureEntities(c.env.DB, [
-      s.primaryEntityId,
-      ...(s.spilloverEntityIds ?? []),
-    ]);
-    createdEntities += created;
-
-    // Auto-publish normal ingest, but preserve explicit drafts for fallback
-    // candidates that need review before entering the public feed.
-    // Sync creates candidates; the only path into published state is the
-    // shared publishability gate in PATCH /admin/signals/:slug.
-    const reviewStatus = s.reviewStatus === 'corrected' ? 'corrected' : 'draft';
-    const inferenceEvidenceUrls = Array.from(
-      new Set((s.inferenceEvidenceUrls ?? []).filter((url) => s.evidenceUrls.includes(url)))
-    );
-    const businessInference =
-      s.businessInference && inferenceEvidenceUrls.length > 0 ? s.businessInference : null;
-    const inferenceStrength = businessInference ? (s.inferenceStrength ?? 'weak') : 'none';
-
+  let skipped = 0;
+  let failed = 0;
+  for (const signal of sigs) {
     try {
-      await db(c.env.DB)
-        .insert(schema.signals)
-        .values({
-          id,
-          slug: s.slug,
-          signalType: s.signalType,
-          primaryEntityId: s.primaryEntityId,
-          direction: s.direction,
-          confidence: s.confidence,
-          predictedWindowDays: s.predictedWindowDays,
-          publishedAt: new Date(s.publishedAt),
-          evidenceUrls: s.evidenceUrls,
-          spilloverEntityIds: s.spilloverEntityIds ?? [],
-          reviewStatus,
-          supersedesSignalId: s.supersedesSignalId ?? null,
-          bodyMd: s.bodyMd,
-          observedEvent: s.observedEvent ?? null,
-          directEntityImpact: s.directEntityImpact ?? null,
-          supplyChainImpact: s.supplyChainImpact ?? null,
-          businessInference,
-          inferenceStrength,
-          inferenceEvidenceUrls,
-        })
-        .onConflictDoUpdate({
-          target: schema.signals.slug,
-          set: {
-            signalType: s.signalType,
-            direction: s.direction,
-            confidence: s.confidence,
-            predictedWindowDays: s.predictedWindowDays,
-            publishedAt: new Date(s.publishedAt),
-            evidenceUrls: s.evidenceUrls,
-            spilloverEntityIds: s.spilloverEntityIds ?? [],
-            reviewStatus,
-            supersedesSignalId: s.supersedesSignalId ?? null,
-            bodyMd: s.bodyMd,
-            observedEvent: s.observedEvent ?? null,
-            directEntityImpact: s.directEntityImpact ?? null,
-            supplyChainImpact: s.supplyChainImpact ?? null,
-            businessInference,
-            inferenceStrength,
-            inferenceEvidenceUrls,
-          },
-        });
-    } catch (err) {
-      console.error('[admin/sync] insert failed', s.slug, String(err));
-      continue;
+      const result = await syncSignal(c.env.DB, signal);
+      upserts += result.upserts;
+      createdEntities += result.createdEntities;
+      proofUpserts += result.proofUpserts;
+      if (!result.upserts) skipped++;
+    } catch {
+      console.error('[admin/sync] transaction failed', signal.slug);
+      failed++;
     }
-
-    // Replace evidence rows
-    await db(c.env.DB).delete(schema.evidence).where(eq(schema.evidence.signalId, id));
-    const evidenceByUrl = new Map((s.evidence ?? []).map((item) => [item.url, item]));
-    for (const url of s.evidenceUrls) {
-      const item = evidenceByUrl.get(url);
-      const evidencePublishedAt = item?.publishedAt ? new Date(item.publishedAt) : null;
-      await db(c.env.DB)
-        .insert(schema.evidence)
-        .values({
-          id: await sha16(`${id}:${url}`),
-          signalId: id,
-          url,
-          sourceType: item?.sourceType || inferSourceType(url),
-          excerpt: item?.excerpt ?? null,
-          publishedAt:
-            evidencePublishedAt && Number.isFinite(evidencePublishedAt.getTime())
-              ? evidencePublishedAt
-              : null,
-        });
-    }
-    if (s.claim) {
-      await persistExtractedClaim(c.env.DB, id, s);
-      proofUpserts++;
-    }
-    upserts++;
   }
-  return c.json({ upserts, createdEntities, proofUpserts });
+  return c.json({ upserts, createdEntities, proofUpserts, skipped, failed }, failed ? 503 : 200);
 });
 
 adminRoute.get('/signals-review', async (c) => {
@@ -286,183 +160,6 @@ adminRoute.get('/signals-review', async (c) => {
     .limit(500);
   return c.json({ signals: enrichSignals(rows) });
 });
-
-async function ensureEntities(d1: D1Database, ids: (string | null | undefined)[]): Promise<number> {
-  const unique = Array.from(new Set(ids.filter((x): x is string => !!x)));
-  if (unique.length === 0) return 0;
-  let created = 0;
-  for (const id of unique) {
-    const r = await db(d1)
-      .insert(schema.entities)
-      .values({
-        id,
-        ticker: null,
-        name: id,
-        type: 'private',
-        country: null,
-        sector: null,
-        metadata: { autoCreated: true, source: 'admin/sync' },
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      })
-      .onConflictDoNothing({ target: schema.entities.id })
-      .returning({ id: schema.entities.id });
-    if (r.length > 0) created++;
-  }
-  return created;
-}
-
-async function resolveSourceDocumentId(
-  d1: D1Database,
-  item: SignalEvidenceUpsert | undefined,
-  url: string
-): Promise<string | null> {
-  const where = item?.sourceDocumentKey
-    ? eq(schema.sourceDocuments.documentKey, item.sourceDocumentKey)
-    : eq(schema.sourceDocuments.canonicalUrl, canonicalSourceUrl(url));
-  const [sourceDocument] = await db(d1)
-    .select({ id: schema.sourceDocuments.id })
-    .from(schema.sourceDocuments)
-    .where(where)
-    .limit(1);
-  return sourceDocument?.id ?? null;
-}
-
-async function persistExtractedEvidenceLink(
-  d1: D1Database,
-  claimId: string,
-  url: string,
-  item: SignalEvidenceUpsert | undefined,
-  now: Date
-) {
-  const sourceDocumentId = await resolveSourceDocumentId(d1, item, url);
-  const rawOrigin = item?.originatingEvidenceId?.trim() || null;
-  const verified =
-    item?.semanticAlignment === 'verified' &&
-    !!sourceDocumentId &&
-    !!rawOrigin &&
-    (item.role === 'primary' || item.role === 'corroboration');
-  const alignment =
-    item?.semanticAlignment === 'rejected' ? 'rejected' : verified ? 'verified' : 'unverified';
-  const originId = rawOrigin ? await sha16(`origin:${claimId}:${rawOrigin.toLowerCase()}`) : null;
-  const role = item?.role ?? 'context';
-  const linkId = await sha16(`link:${claimId}:${canonicalSourceUrl(url)}`);
-  const notes = [
-    `verifier:signal-extractor`,
-    `alignment:${alignment}`,
-    item?.supports?.length ? `supports:${item.supports.join(',')}` : null,
-  ]
-    .filter(Boolean)
-    .join(' ');
-  await db(d1)
-    .insert(schema.claimEvidenceLinks)
-    .values({
-      id: linkId,
-      claimId,
-      evidenceUrl: url,
-      sourceDocumentId,
-      originatingEvidenceId: originId,
-      semanticAlignment: alignment,
-      role,
-      weight: 1,
-      notes,
-      addedAt: now,
-      addedBy: 'signal-extractor',
-    })
-    .onConflictDoUpdate({
-      target: schema.claimEvidenceLinks.id,
-      set: {
-        sourceDocumentId,
-        originatingEvidenceId: originId,
-        semanticAlignment: alignment,
-        role,
-        notes,
-      },
-    });
-  await db(d1)
-    .insert(schema.claimTimelineEvents)
-    .values({
-      id: await sha16(`tl:${claimId}:add:${linkId}`),
-      claimId,
-      kind: 'evidence_added',
-      payload: { linkId, url, role, source: 'signal-extractor' },
-      actor: 'signal-extractor',
-      createdAt: now,
-    })
-    .onConflictDoNothing({ target: schema.claimTimelineEvents.id });
-}
-
-async function persistExtractedClaim(d1: D1Database, signalId: string, signal: SignalUpsert) {
-  if (!signal.claim) return;
-  const tuple = normalizeClaimTuple({
-    entity: signal.primaryEntityId,
-    event: signal.claim.event,
-    amount: signal.claim.amount ?? null,
-    date: signal.claim.date,
-    direction: signal.claim.direction,
-  });
-  const claimId = await sha16(`claim:signal-extractor:${signalId}:${tuple.key}`);
-  const now = new Date();
-  const assertion = signal.claim.assertion.trim().slice(0, 500) || signal.slug.replaceAll('-', ' ');
-
-  await db(d1)
-    .insert(schema.claimRecords)
-    .values({
-      id: claimId,
-      signalId,
-      surface: 'signal',
-      assertion,
-      confidenceBand: signal.confidence,
-      reviewStatus: 'draft',
-      version: 1,
-      createdAt: now,
-      claimEntityId: tuple.entity,
-      claimEvent: tuple.event,
-      claimAmount: tuple.amount,
-      claimDate: tuple.date,
-      claimDirection: tuple.direction,
-      claimTupleKey: tuple.key,
-    })
-    .onConflictDoUpdate({
-      target: schema.claimRecords.id,
-      set: {
-        assertion,
-        confidenceBand: signal.confidence,
-        claimEntityId: tuple.entity,
-        claimEvent: tuple.event,
-        claimAmount: tuple.amount,
-        claimDate: tuple.date,
-        claimDirection: tuple.direction,
-        claimTupleKey: tuple.key,
-      },
-    });
-
-  await db(d1)
-    .insert(schema.claimTimelineEvents)
-    .values({
-      id: await sha16(`tl:${claimId}:created`),
-      claimId,
-      kind: 'created',
-      payload: { source: 'signal-extractor', signalSlug: signal.slug },
-      actor: 'signal-extractor',
-      createdAt: now,
-    })
-    .onConflictDoNothing({ target: schema.claimTimelineEvents.id });
-
-  await persistExtractedEvidenceLinks(d1, signal, claimId, now);
-}
-
-async function persistExtractedEvidenceLinks(
-  d1: D1Database,
-  signal: SignalUpsert,
-  claimId: string,
-  now: Date
-) {
-  const evidenceByUrl = new Map((signal.evidence ?? []).map((item) => [item.url, item]));
-  for (const url of signal.evidenceUrls) {
-    await persistExtractedEvidenceLink(d1, claimId, url, evidenceByUrl.get(url), now);
-  }
-}
 
 adminRoute.patch('/signals/:slug', async (c) => {
   const slug = c.req.param('slug');
@@ -1457,14 +1154,6 @@ adminRoute.post('/claims/:id/corrections', async (c) => {
     });
   return c.json({ id: newId, parentId, version: parent.version + 1 });
 });
-
-function inferSourceType(url: string): string {
-  if (url.includes('sec.gov')) return 'edgar';
-  if (url.includes('reddit.com')) return 'reddit';
-  if (url.includes('github.com')) return 'github';
-  if (url.includes('twitter.com') || url.includes('x.com')) return 'x';
-  return 'web';
-}
 
 // ─── /admin/backfill-entities ─────────────────────────────────────────────
 // One-shot repair: re-runs the regex-word-boundary gazetteer match on events

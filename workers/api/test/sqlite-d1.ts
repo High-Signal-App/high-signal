@@ -72,7 +72,11 @@ class Statement {
     return Promise.resolve({
       success: true,
       results: [],
-      meta: { rows_read: 0, rows_written: Number(result.changes ?? 0) },
+      meta: {
+        changes: Number(result.changes ?? 0),
+        rows_read: 0,
+        rows_written: Number(result.changes ?? 0),
+      },
     });
   }
 }

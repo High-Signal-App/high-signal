@@ -1,8 +1,25 @@
 # high-signal — PROJECT STATUS
 
-Last updated: 2026-09-09
+Last updated: 2026-09-11
 
-Current September 9 qualification:
+Current September 11 qualification:
+
+The API ingestion repair preserves reviewed signals and claims on replay. Draft
+content, evidence, extracted claims, timelines and discovered entities are now
+written in one guarded D1 transaction. A reviewer who publishes before that
+transaction prevents every write; a failed proof write rolls the whole candidate
+back and returns a failure response. The real-schema SQLite route suite covers
+all protected statuses, changed claim tuples, draft refreshes, append-only
+corrections, rollback and the publication race. All 13 focused cases, 387 API
+tests and the complete repository quality gate pass. Release verification is
+pending.
+
+The separate operator markdown importer (`scripts/sync-signals.ts`) still uses
+replacement SQL and needs the same preservation guarantee before unattended
+readiness is claimed. It is not the Python ingestion route repaired here.
+Useful daily output remains unqualified under issue 133.
+
+Previous September 9 qualification:
 
 API release c4752fa4 is verified at 100% traffic after deployment 34385140654
 passed its health, daily dump, Brief and MCP smoke checks. The summary storage
@@ -1114,7 +1131,6 @@ checks, CLI regressions for complete-body review and oversized rejection, and
 the full quality gate pass (32 suites, 376 API tests). These changes do not
 prove model judgments infallible or qualify a useful edition.
 
-Before claiming unattended readiness, also verify repeated ingestion cannot
-resurrect killed/corrected rows or rewrite published history: the current
-`/admin/sync` conflict-update path assigns incoming candidates to draft.
+The API replay repair above addresses the `/admin/sync` overwrite. The separate
+operator markdown importer remains an open history-preservation path.
 Useful-output acceptance remains open in issue 133.
