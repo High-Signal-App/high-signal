@@ -1076,6 +1076,25 @@ reports zero critical/high findings (previously seven high); 15 moderate and
 six low findings remain. The full quality gate, all 32 repository test suites
 and the production Next build pass. The dependency guard now caps production
 high findings at zero and total high findings at the remaining 25 development
-findings. This source qualification does not establish deployment or repair
-the empty daily edition. Fresh archive/ingestion and useful-output acceptance
-remain tracked in issue 133.
+findings. Exact-source CI 34535459623 and Docs 34535459625 passed. Web deployment
+34536708022 passed its production smoke checks; Cloudflare deployment
+092bb8f6-1b56-4165-a5a6-49c9a8d4b47b serves version
+4edfc3b7-cee4-4af0-8525-7a536d9ee44d at 100%, tagged with
+edc2950858ffff1be17c7f0cc45f8edfed863021. No API deployment was needed for this
+web dependency change.
+
+The useful-output gate still fails: September 11 has zero public brief items,
+with ideas withheld by the publication gate; MCP agrees with that empty result.
+News-only ingestion 34536796400 succeeded with 527 acknowledged events, nine
+exact duplicates collapsed, 358 events without a matched entity, 158 events
+without a qualifying story cluster, and one generation request with no provider
+failure. It generated no draft. The retained LLM audit identifies that cluster
+as two Google-owned update pages, not independent corroboration; no signal was
+forced through the gate. The public mobile view at 390px has no horizontal
+overflow, and Signals, Sources and Track Record return HTTP 200.
+
+Issuer-announcement replay 34537377898 and the full Reddit archive refresh
+34535029309 were started and remain pending verification. After the archive
+publishes its verified complete pointer, run full ingestion and inspect the
+candidate evidence before publishing. These handles are continuation pointers,
+not completion receipts. Useful-output acceptance remains open in issue 133.
