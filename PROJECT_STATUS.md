@@ -1093,8 +1093,28 @@ as two Google-owned update pages, not independent corroboration; no signal was
 forced through the gate. The public mobile view at 390px has no horizontal
 overflow, and Signals, Sources and Track Record return HTTP 200.
 
-Issuer-announcement replay 34537377898 and the full Reddit archive refresh
-34535029309 were started and remain pending verification. After the archive
-publishes its verified complete pointer, run full ingestion and inspect the
-candidate evidence before publishing. These handles are continuation pointers,
-not completion receipts. Useful-output acceptance remains open in issue 133.
+Issuer-announcement replay 34537377898 succeeded: 225 events acknowledged,
+16 retained-evidence lookups, six semantic story comparisons, and one draft.
+Draft 7cdd56e0041c9268 was then marked killed through the admin API after
+source review found unsupported supplier roles and order/capacity assertions
+in its analysis. Its underlying source announcement and independent report
+support the wafer milestone, not those extra claims. The row remains retained.
+The full Reddit archive 34535029309 succeeded, including R2 manifest and
+complete consumer-pointer verification. Full ingestion 34537916675 is running
+against that refreshed pointer; its outcome still needs inspection.
+
+The rejected draft exposed a publication bypass: structured claim eligibility
+plus a sufficient source count could skip semantic review of the body. The
+publisher now requires semantic review for every otherwise eligible draft,
+sends the complete body (up to 16,000 characters), and withholds larger bodies
+rather than approving a truncated excerpt. Its prompt explicitly checks facts
+in every section, including supplier/customer roles and purported orders.
+A regression reproduced the old inappropriate publish verdict. All 38 rubric
+checks, CLI regressions for complete-body review and oversized rejection, and
+the full quality gate pass (32 suites, 376 API tests). These changes do not
+prove model judgments infallible or qualify a useful edition.
+
+Before claiming unattended readiness, also verify repeated ingestion cannot
+resurrect killed/corrected rows or rewrite published history: the current
+`/admin/sync` conflict-update path assigns incoming candidates to draft.
+Useful-output acceptance remains open in issue 133.

@@ -360,8 +360,8 @@ export function deterministicVerdict(signal: JudgeableSignal): VerdictResult {
 
   if (signal.publishable === true && independent >= 2) {
     return {
-      verdict: 'publish',
-      reason: `pipeline blessed AND ${independent} independent source classes`,
+      verdict: 'hold',
+      reason: `${independent} independent source classes; full-prose semantic review required`,
       source: 'rule',
     };
   }

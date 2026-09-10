@@ -57,6 +57,12 @@ const signal = {
     ['https://a.example/report', 'https://b.example/report'],
   bodyMd: 'Evidence https://a.example/report and https://b.example/report'
 };
+if (mode === 'prose' || mode === 'oversized') {
+  signal.independentSourceCount = 2;
+  signal.bodyMd = '## What changed\\nThe company announced a manufacturing milestone covering research, certification and selected production layers.\\n## Why it matters\\nThe announcement provides evidence of manufacturing progress, while the business implications depend on customer adoption.\\n## Uncertainty\\nFuture customer commitments, manufacturing costs and the timing of further deployments remain unverified.\\nSources: https://a.example/report and https://b.example/report\\n' +
+    'Background context. '.repeat(mode === 'oversized' ? 1000 : 150) +
+    'Unsupported company roles at the end of the draft.';
+}
 globalThis.fetch = async (input, init) => {
   const url = new URL(String(input));
   if (url.hostname === 'judge.invalid') {
@@ -66,6 +72,14 @@ globalThis.fetch = async (input, init) => {
       throw new Error('Judge did not receive retained source excerpts');
     }
     requests++;
+    if (mode === 'prose') {
+      if (!payload.body.endsWith('Unsupported company roles at the end of the draft.')) {
+        throw new Error('Judge did not receive the complete prose');
+      }
+      return Response.json({choices: [{message: {content: JSON.stringify({
+        verdict: 'kill', reason: 'Unsupported supplier roles in the body'
+      })}}]});
+    }
     if (mode === 'recover' && requests === 2) return Response.json({
       choices: [{message: {content: JSON.stringify({verdict: 'kill', reason: 'Not corroborated'})}}]
     });
@@ -75,7 +89,16 @@ globalThis.fetch = async (input, init) => {
   if (url.pathname === '/admin/signals-review') return Response.json({
     signals: url.searchParams.get('status') === 'draft' ? [signal] : []
   });
-  if (url.pathname === '/claims/by-signal/fixture') return Response.json({claims: []});
+  if (url.pathname === '/claims/by-signal/fixture') return Response.json({
+    claims: mode === 'prose' || mode === 'oversized' ? [{
+      id: 'claim', reviewStatus: 'draft', evidence: signal.evidenceUrls.map((evidenceUrl, index) => ({
+        id: 'link-' + index, claimId: 'claim', evidenceUrl,
+        sourceDocumentId: 'origin-' + index,
+        role: index === 0 ? 'primary' : 'corroboration', weight: 1,
+        notes: 'alignment:verified'
+      }))
+    }] : []
+  });
   if (url.pathname === '/signals/fixture') {
     if (mode === 'lookup-failed') return new Response('', {status: 503});
     return Response.json({evidence: mode === 'no-text' ? [] : signal.evidenceUrls.map(url => ({
@@ -101,6 +124,8 @@ process.on('exit', () => console.log('judge requests=' + requests));
       ['deterministic', 0, 0],
       ['no-text', 0, 0],
       ['lookup-failed', 1, 0],
+      ['prose', 0, 1],
+      ['oversized', 0, 0],
     ] as const) {
       const child = spawnSync(
         process.execPath,

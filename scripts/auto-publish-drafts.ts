@@ -9,8 +9,7 @@
  *             claim about a specific entity, and would not embarrass the
  *             project to ship as-is.
  *   KILL    — uncorroborated, vague, contradictory, or pure prediction-market
- *             noise. The draft gets review_status='corrected' (the closest
- *             non-published end state; the brief never reads from it).
+ *             noise. The draft gets review_status='killed'.
  *   HOLD    — only for genuine uncertainty. The script biases against this.
  *
  * Auth: bearer ADMIN_TOKEN against API_BASE. Reads drafts via the public
@@ -22,9 +21,8 @@
  *
  * Env (required for the AI call; the rest come from secrets):
  *   AI_BASE_URL   default https://api.deepseek.com/v1
- *   AI_API_KEY    required when not --dry; else the script skips the LLM
- *                 and falls back to a deterministic rubric (≥ 2 independent
- *                 source classes → publish, else kill).
+ *   AI_API_KEY    required for publication. Dry runs and missing AI cannot
+ *                 certify semantic support and never approve publication.
  *   AI_MODEL      default deepseek-chat
  *   AI_PROJECT_ID project tag required by the free-ai gateway; defaults to
  *                 high-signal and is harmless for other OpenAI-compatible APIs
@@ -91,7 +89,7 @@ const AI_API_KEY = process.env['AI_API_KEY'] ?? '';
 const AI_MODEL = process.env['AI_MODEL'] ?? 'deepseek-chat';
 const AI_PROJECT_ID = process.env['AI_PROJECT_ID'] ?? 'high-signal';
 
-const MAX_BODY_CHARS = 2400;
+const MAX_BODY_CHARS = 16_000;
 const MAX_AI_RESPONSE_TOKENS = 800;
 let judgeRequestFailures = 0;
 const RATE_LIMIT_MS = 250; // gentle pacing between AI calls
@@ -362,6 +360,11 @@ actually establish; URL wording, draft prose and quality scores are not source
 text. Mark unavailable or insufficient text unaligned. Do not infer independent
 origins from different hosts; if the excerpts do not establish origin, do not
 certify independence. Never claim to have opened a URL or read omitted text.
+8. Review factual statements in EVERY body section, not only the headline claim.
+Unsupported company roles, customer orders, quantities and quotations are KILL,
+even when the central event is well sourced. Analysis must be explicitly framed
+as inference and follow from the retained evidence; it cannot introduce invented
+facts about suppliers, customers or competitors.
 
 When and only when verdict is publish, also return:
 - claimTuple: {entity,event,amount,date,direction}
@@ -373,6 +376,13 @@ Return strict JSON.`;
 
 async function aiVerdict(signal: SignalRow): Promise<VerdictResult | null> {
   if (!AI_API_KEY || DRY) return null;
+  if (signal.bodyMd.length > MAX_BODY_CHARS) {
+    return {
+      verdict: 'kill',
+      source: 'rule',
+      reason: 'body exceeds full-prose semantic review limit; shorten before publication',
+    };
+  }
   const response = await fetch(`${API_BASE}/signals/${encodeURIComponent(signal.slug)}`, {
     cache: 'no-store',
     signal: AbortSignal.timeout(10_000),
@@ -398,7 +408,7 @@ async function aiVerdict(signal: SignalRow): Promise<VerdictResult | null> {
     independentSourceCount: signal.independentSourceCount ?? 0,
     qualityReasons: signal.qualityReasons ?? [],
     qualityScore: signal.qualityScore ?? null,
-    body: signal.bodyMd.slice(0, MAX_BODY_CHARS),
+    body: signal.bodyMd,
   };
   const result = await requestJudge(`${AI_BASE_URL.replace(/\/$/, '')}/chat/completions`, {
     method: 'POST',
@@ -431,9 +441,9 @@ async function aiVerdict(signal: SignalRow): Promise<VerdictResult | null> {
 
 async function judge(signal: SignalRow): Promise<VerdictResult> {
   const det = deterministicVerdict(signal);
-  // If the deterministic rubric is decisive (publish or kill), take it.
-  // Reserve the AI call for the genuinely-borderline 'hold' band.
-  if (det.verdict !== 'hold') return det;
+  // Structural proof for the central claim cannot certify the rest of the prose.
+  // Every otherwise eligible draft must also pass the retained-evidence judge.
+  if (det.verdict === 'kill') return det;
   const ai = await aiVerdict(signal);
   if (ai) return ai;
   // Without AI, prefer KILL over HOLD per Sarthak's "don't block me" policy.

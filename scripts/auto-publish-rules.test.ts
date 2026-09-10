@@ -200,7 +200,7 @@ check(
   'prediction-market-only'
 );
 check(
-  'publish when one prediction market + one real news source',
+  'review mixed market and news evidence semantically',
   {
     evidenceUrls: ['https://manifold.markets/a', 'https://reuters.com/foo'],
     publishable: true,
@@ -208,12 +208,30 @@ check(
     sourceClasses: ['market', 'news'],
     bodyMd: BRIEF_READY_BODY,
   },
-  'publish'
+  'hold'
 );
 
 console.log('\nauto-publish rubric — strongest case (both signals agree)');
 check(
-  'publish when publishable=true AND >=2 independent classes',
+  'structured proof for one claim cannot approve unsupported prose elsewhere',
+  {
+    evidenceUrls: ['https://asml.com/announcement', 'https://tomshardware.com/report'],
+    publishable: true,
+    provenanceSource: 'structured_claims',
+    independentSourceCount: 2,
+    bodyMd: `## What changed
+Intel and ASML reported a wafer-processing milestone that includes research, tool certification and selected production layers.
+## Why it matters
+Mask makers MU and SMIC will benefit from new orders as wider adoption puts pressure on the lithography supply chain.
+## Uncertainty
+Future adoption and the economic outcome remain uncertain because the transition depends on yields, manufacturing costs and customer commitments.
+Sources: https://asml.com/announcement and https://tomshardware.com/report`,
+  },
+  'hold',
+  'semantic'
+);
+check(
+  'review pipeline-approved drafts despite multiple independent classes',
   {
     evidenceUrls: ['https://ir.foo.com', 'https://reuters.com', 'https://bloomberg.com'],
     publishable: true,
@@ -221,7 +239,7 @@ check(
     sourceClasses: ['ir', 'news'],
     bodyMd: BRIEF_READY_BODY,
   },
-  'publish',
+  'hold',
   'independent source classes'
 );
 
@@ -310,7 +328,7 @@ check(
   'evidence-stuffing'
 );
 check(
-  'publish when body actually references each evidence URL',
+  'URL references still require semantic review of the prose',
   {
     evidenceUrls: [
       'https://www.theverge.com/tech/936507/gemini-omni-hands-on-deepfake-ai-video',
@@ -327,7 +345,7 @@ check(
     independentSourceCount: 2,
     sourceClasses: ['news', 'blog'],
   },
-  'publish',
+  'hold',
   'independent source classes'
 );
 check(
@@ -339,7 +357,7 @@ check(
     independentSourceCount: 2,
     sourceClasses: ['news', 'ir'],
   },
-  'publish',
+  'hold',
   'independent source classes'
 );
 
