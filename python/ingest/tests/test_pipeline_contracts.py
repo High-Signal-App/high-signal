@@ -108,6 +108,43 @@ def test_cluster_emits_fallback_when_generation_is_empty(monkeypatch) -> None:
     assert emitted[0].evidence[0].url == "https://example.com/a"
 
 
+def test_cluster_does_not_count_an_unacknowledged_emit_or_fallback(monkeypatch) -> None:
+    candidate = generator.fallback_candidate(
+        "NVDA",
+        [
+            _event("https://news.example/a", source="news:one"),
+            _event("https://filing.example/b", source="filing:two"),
+        ],
+        [],
+    )
+    assert candidate is not None
+    candidate.evidence[0].semantic_alignment = "verified"
+    candidate.evidence[0].role = "primary"
+    candidate.evidence[0].originating_evidence_id = "news-one"
+    candidate.evidence[1].semantic_alignment = "verified"
+    candidate.evidence[1].role = "corroboration"
+    candidate.evidence[1].originating_evidence_id = "filing-two"
+
+    monkeypatch.setattr(pipeline, "generate", lambda *_args, **_kwargs: candidate)
+    monkeypatch.setattr(pipeline, "_has_publishable_proofs", lambda _candidate: True)
+    monkeypatch.setattr(pipeline, "emit", lambda _candidate: None)
+    monkeypatch.setattr(
+        pipeline,
+        "_emit_fallback_drafts",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("fallback emitted")),
+    )
+
+    assert (
+        pipeline.cluster_and_generate(
+            [
+                _event("https://news.example/a", source="news:one"),
+                _event("https://filing.example/b", source="filing:two"),
+            ]
+        )
+        == []
+    )
+
+
 def test_cluster_can_forbid_review_fallback_for_attention_verification(monkeypatch) -> None:
     monkeypatch.delenv("AI_API_KEY", raising=False)
     monkeypatch.delenv("HF_TOKEN", raising=False)
@@ -779,6 +816,36 @@ def test_run_receipt_reports_clusters_reaching_generation(monkeypatch) -> None:
     assert out["generation_request_failures"] == 0
     assert out["events_low_cluster"] == 17
     assert out["candidates_generated"] == 0
+
+
+def test_run_batch_noop_is_handled_without_success_path_or_fallback(monkeypatch) -> None:
+    event = _event("https://example.com/a", source="news:one")
+    candidate = generator.fallback_candidate("NVDA", [event], [])
+    assert candidate is not None
+    candidate.source_cluster_id = "story-1"
+
+    monkeypatch.setattr(pipeline, "fetch", lambda *_a, **_k: [event])
+    monkeypatch.setattr(pipeline.audit, "push_events", lambda *_a, **_k: 0)
+    monkeypatch.setattr(pipeline.audit, "push_ingest_run", lambda **_k: None)
+    monkeypatch.setattr(pipeline.audit, "push_ingest_runs", lambda *_a, **_k: None)
+    monkeypatch.setattr(pipeline, "load_retained_corroboration", lambda _events: ([], {}))
+    monkeypatch.setattr(
+        pipeline, "_pre_group_clusters", lambda _groups: ([], [[("NVDA", [event])]], 0)
+    )
+    monkeypatch.setattr(pipeline, "generate_batch", lambda _batch: [candidate])
+    monkeypatch.setattr(pipeline, "record_proof", lambda *_args: True)
+    monkeypatch.setattr(pipeline, "emit", lambda _candidate: None)
+    monkeypatch.setattr(
+        pipeline,
+        "_emit_fallback_drafts",
+        lambda *_args: (_ for _ in ()).throw(AssertionError("fallback emitted")),
+    )
+    monkeypatch.setattr(pipeline, "_emit_thematic_drafts", lambda *_args: [])
+
+    out = pipeline.run("all", 1)
+
+    assert out["paths"] == []
+    assert out["signals_drafted"] == 0
 
 
 def test_fetch_only_receipt_carries_the_cluster_counter(monkeypatch) -> None:

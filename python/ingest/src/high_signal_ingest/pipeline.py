@@ -717,10 +717,12 @@ def cluster_and_generate(events: list[Event], *, allow_fallback: bool = True) ->
     for entity_id, evs in proof_clusters:
         cand = generate(entity_id, evs, _spillover_candidates(entity_id))
         if cand and _has_publishable_proofs(cand):
-            written.append(emit(cand))
+            receipt = emit(cand)
+            if receipt is not None:
+                written.append(receipt)
         else:
             fallback_clusters.append((entity_id, evs))
-    if allow_fallback and not written and _fallback_drafts_enabled():
+    if allow_fallback and not written and fallback_clusters and _fallback_drafts_enabled():
         written.extend(_emit_fallback_drafts(fallback_clusters))
     return written
 
@@ -770,7 +772,9 @@ def _emit_thematic_drafts(events: list[Event]) -> list[str]:
         selected = sorted(evs, key=lambda event: event.published_at, reverse=True)[:6]
         cand = generate(entity_id, selected, [])
         if cand and _has_publishable_proofs(cand):
-            written.append(emit(cand))
+            receipt = emit(cand)
+            if receipt is not None:
+                written.append(receipt)
     return written
 
 
@@ -785,7 +789,9 @@ def _emit_fallback_drafts(clusters: list[tuple[str, list[Event]]]) -> list[str]:
     for entity_id, evs in ranked[:FALLBACK_DRAFT_LIMIT]:
         cand = fallback_candidate(entity_id, evs, _spillover_candidates(entity_id))
         if cand:
-            written.append(emit(cand))
+            receipt = emit(cand)
+            if receipt is not None:
+                written.append(receipt)
     return written
 
 
@@ -1065,7 +1071,9 @@ def run(source: Source, days: int, *, generate_signals: bool = True) -> dict:
             fallback_clusters.append((entity_id, evs))
             continue
         if cand and record_proof(cand, proof_tally):
-            written.append(emit(cand))
+            receipt = emit(cand)
+            if receipt is not None:
+                written.append(receipt)
         else:
             fallback_clusters.append((entity_id, evs))
 
@@ -1096,9 +1104,11 @@ def run(source: Source, days: int, *, generate_signals: bool = True) -> dict:
         for cand in cands:
             if not record_proof(cand, proof_tally):
                 continue
-            written.append(emit(cand))
             if cand.source_cluster_id:
                 emitted_cluster_ids.add(cand.source_cluster_id)
+            receipt = emit(cand)
+            if receipt is not None:
+                written.append(receipt)
         for index, (entity_id, evs) in enumerate(batch):
             if f"story-{index + 1}" not in emitted_cluster_ids:
                 fallback_clusters.append((entity_id, evs))

@@ -204,12 +204,26 @@ def push_signal(candidate: SignalCandidate) -> dict:
     return dict(r.json())
 
 
-def emit(candidate: SignalCandidate) -> str:
+def emit(candidate: SignalCandidate) -> str | None:
     """Choose write path: API push if API_BASE+ADMIN_TOKEN set, else local file."""
     if os.environ.get("API_BASE") and os.environ.get("ADMIN_TOKEN"):
         try:
-            push_signal(candidate)
-            return f"pushed:{candidate.slug}"
+            result = push_signal(candidate)
+            if (
+                type(result.get("upserts")) is int
+                and result["upserts"] == 1
+                and result.get("failed", 0) == 0
+                and result.get("skipped", 0) == 0
+            ):
+                return f"pushed:{candidate.slug}"
+            LOGGER.info(
+                "push_signal did not acknowledge %s (upserts=%s, failed=%s, skipped=%s)",
+                candidate.slug,
+                result.get("upserts"),
+                result.get("failed", 0),
+                result.get("skipped", 0),
+            )
+            return None
         except Exception as exc:
             LOGGER.warning("push_signal failed, falling back to file: %s", exc)
     fp = write_signal(candidate)

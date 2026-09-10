@@ -4,6 +4,13 @@ Last updated: 2026-09-11
 
 Current September 11 qualification:
 
+Ingestion now counts a remote draft only when the sync API acknowledges one
+upsert with no failed or skipped records. Protected replay no-ops produce no
+success path or local fallback, and do not trigger fallback generation. Entity,
+batch, thematic and backfill counts follow this receipt; transport exceptions
+retain the existing local-file recovery. This corrects completion reporting;
+it does not establish a useful edition or change publication eligibility.
+
 The API ingestion repair preserves reviewed signals and claims on replay. Draft
 content, evidence, extracted claims, timelines and discovered entities are now
 written in one guarded D1 transaction. A reviewer who publishes before that

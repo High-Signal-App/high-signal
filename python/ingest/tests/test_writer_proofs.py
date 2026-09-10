@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
+import httpx
+import pytest
 import yaml
 
 from high_signal_ingest import writer
@@ -88,3 +90,42 @@ def test_push_signal_sends_structured_claim_and_proofs(monkeypatch) -> None:
         "observed_event",
         "direct_entity_impact",
     ]
+
+
+@pytest.mark.parametrize(
+    ("response", "expected"),
+    [
+        (
+            {"upserts": 1, "createdEntities": 1, "failed": 0, "skipped": 0},
+            "pushed:nvda-capacity-expansion",
+        ),
+        ({"upserts": 1, "failed": 1, "skipped": 1}, None),
+        ({"upserts": 0, "skipped": 1}, None),
+        ({"skipped": 1}, None),
+    ],
+)
+def test_emit_only_reports_acknowledged_upsert(monkeypatch, response, expected) -> None:
+    monkeypatch.setenv("API_BASE", "https://api.example")
+    monkeypatch.setenv("ADMIN_TOKEN", "test-token")
+    monkeypatch.setattr(writer, "push_signal", lambda _candidate: response)
+    monkeypatch.setattr(
+        writer,
+        "write_signal",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("no local fallback")),
+    )
+
+    assert writer.emit(_candidate()) == expected
+
+
+def test_emit_falls_back_to_local_file_on_push_failure(monkeypatch, tmp_path) -> None:
+    monkeypatch.setenv("API_BASE", "https://api.example")
+    monkeypatch.setenv("ADMIN_TOKEN", "test-token")
+    monkeypatch.setattr(
+        writer,
+        "push_signal",
+        lambda _candidate: (_ for _ in ()).throw(httpx.ReadTimeout("temporary failure")),
+    )
+    fallback = tmp_path / "nvda-capacity-expansion.md"
+    monkeypatch.setattr(writer, "write_signal", lambda *_args, **_kwargs: fallback)
+
+    assert writer.emit(_candidate()) == str(fallback)

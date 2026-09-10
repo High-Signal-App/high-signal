@@ -106,8 +106,8 @@ def run(start: datetime, end: datetime, sources: list[str], window_chunk_days: i
                 # yfinance can compute hit/miss today.
                 cand.published_at = max(e.published_at for e in evs)
                 _mark_backfill(cand)
-                emit(cand)
-                total_drafted += 1
+                if emit(cand) is not None:
+                    total_drafted += 1
         print(
             f"[backfill] {cursor.date()} → {chunk_end.date()}  "
             f"events={len(events)}  drafted={total_drafted}",
