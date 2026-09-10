@@ -11,13 +11,19 @@ transaction prevents every write; a failed proof write rolls the whole candidate
 back and returns a failure response. The real-schema SQLite route suite covers
 all protected statuses, changed claim tuples, draft refreshes, append-only
 corrections, rollback and the publication race. All 13 focused cases, 387 API
-tests and the complete repository quality gate pass. Release verification is
-pending.
+tests and the complete repository quality gate pass. Commit
+`246d12112507d09de04f871e183584128c5f5c04` passed CI 34539927335 and API
+deployment 34540207476, including production smoke checks. Cloudflare deployment
+`68b8c650-f1a0-4913-893b-0d39fe7fa2d0` serves version
+`51c1f636-f3fe-4b28-bbf5-f0ddf3e0b2a1`, tagged with that commit, at 100%.
 
-The separate operator markdown importer (`scripts/sync-signals.ts`) still uses
-replacement SQL and needs the same preservation guarantee before unattended
-readiness is claimed. It is not the Python ingestion route repaired here.
-Useful daily output remains unqualified under issue 133.
+The operator markdown importer (`scripts/sync-signals.ts`) now emits guarded
+upserts instead of replacement SQL. Its actual generated statements passed
+real-schema SQLite tests for draft refresh, all reviewed statuses, reviewed
+claims, correction replay and failure rollback. The complete quality gate also
+passes with this second repair. No bulk production markdown import was run.
+The existing full-ingestion run 34537916675 remains active. Useful daily output
+and live replay acceptance remain unqualified under issue 133.
 
 Previous September 9 qualification:
 
@@ -1131,6 +1137,6 @@ checks, CLI regressions for complete-body review and oversized rejection, and
 the full quality gate pass (32 suites, 376 API tests). These changes do not
 prove model judgments infallible or qualify a useful edition.
 
-The API replay repair above addresses the `/admin/sync` overwrite. The separate
-operator markdown importer remains an open history-preservation path.
+The API and operator-import repairs above address both history-overwrite paths;
+live replay acceptance remains pending.
 Useful-output acceptance remains open in issue 133.

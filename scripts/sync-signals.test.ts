@@ -1,5 +1,8 @@
 #!/usr/bin/env tsx
 import assert from 'node:assert/strict';
+import { DatabaseSync } from 'node:sqlite';
+import { readdirSync, readFileSync } from 'node:fs';
+import { buildSignalSql } from './sync-signals.sql';
 import { canonicalSourceUrl, escSql, parseFrontmatter, parseTinyYaml } from './sync-signals.lib';
 
 const VALID = `---
@@ -101,4 +104,74 @@ assert.throws(() => parseFrontmatter(badWindow), /predicted_window_days/);
 const badDate = VALID.replace('2026-05-01T14:30:00Z', 'yesterday');
 assert.throws(() => parseFrontmatter(badDate), /published_at/);
 
-console.log('sync-signals.test.ts: ok');
+// Exercise generated operator-import SQL against the actual schema, not SQL strings.
+const database = new DatabaseSync(':memory:');
+const migrations = new URL('../packages/db/migrations/', import.meta.url);
+for (const file of readdirSync(migrations)
+  .filter((name) => name.endsWith('.sql'))
+  .sort()) {
+  database.exec(readFileSync(new URL(file, migrations), 'utf8'));
+}
+database.exec(`PRAGMA foreign_keys = ON;
+  INSERT INTO entities (id, name, type, created_at, updated_at) VALUES ('NVDA', 'NVIDIA', 'public', 1, 1)`);
+const apply = (front = parsed.front, body = parsed.body) => {
+  database.exec('BEGIN');
+  try {
+    database.exec(buildSignalSql(front, body).join('\n'));
+    database.exec('COMMIT');
+  } catch (error) {
+    database.exec('ROLLBACK');
+    throw error;
+  }
+};
+const snapshot = () =>
+  Object.fromEntries(
+    ['signals', 'evidence', 'claim_records', 'claim_evidence_links', 'claim_timeline_events'].map(
+      (table) => [table, database.prepare(`SELECT * FROM ${table} ORDER BY id`).all()]
+    )
+  );
+try {
+  apply();
+  apply(parsed.front, 'A newer unreviewed draft');
+  assert.equal(
+    database.prepare('SELECT body_md FROM signals').get()!.body_md,
+    'A newer unreviewed draft'
+  );
+  for (const status of ['published', 'corrected', 'killed']) {
+    database.prepare('UPDATE signals SET review_status = ?').run(status);
+    const before = snapshot();
+    apply(
+      { ...parsed.front, claim_assertion: 'Unsupported replacement' },
+      'Changed reviewed prose'
+    );
+    assert.deepEqual(snapshot(), before, `${status} signal history must be immutable`);
+  }
+  database.exec("UPDATE signals SET review_status = 'draft'");
+  for (const status of ['held', 'published', 'corrected', 'killed']) {
+    database.prepare('UPDATE claim_records SET review_status = ?').run(status);
+    const before = snapshot();
+    apply({ ...parsed.front, claim_event: 'Different event' }, 'Changed proof history');
+    assert.deepEqual(snapshot(), before, `${status} claim must freeze its parent`);
+  }
+  database.exec("UPDATE claim_records SET review_status = 'draft'");
+  const beforeFailure = snapshot();
+  database.exec(`CREATE TRIGGER fail_proof BEFORE INSERT ON claim_evidence_links
+    BEGIN SELECT RAISE(ABORT, 'injected proof failure'); END`);
+  assert.throws(() => apply(parsed.front, 'Partial write attempt'), /injected proof failure/);
+  assert.deepEqual(snapshot(), beforeFailure, 'Failed import must roll back all candidate writes');
+  database.exec('DROP TRIGGER fail_proof');
+  apply(
+    { ...parsed.front, slug: 'nvda-correction', review_status: 'corrected' },
+    'A new correction'
+  );
+  const beforeCorrectionReplay = snapshot();
+  apply(
+    { ...parsed.front, slug: 'nvda-correction', review_status: 'corrected' },
+    'Rewritten correction'
+  );
+  assert.deepEqual(snapshot(), beforeCorrectionReplay);
+} finally {
+  database.close();
+}
+
+console.log('sync-signals.test.ts: parsing and transactional history checks passed');
