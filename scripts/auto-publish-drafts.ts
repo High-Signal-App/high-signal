@@ -41,7 +41,11 @@ import {
   type VerdictResult,
 } from './auto-publish-rules';
 import { requestJudge } from './auto-publish-transport';
-import { groundJudgeVerdict, retainedJudgeEvidence } from './auto-publish-evidence';
+import {
+  groundJudgeVerdict,
+  retainedJudgeEvidence,
+  retainedSourceClasses,
+} from './auto-publish-evidence';
 import {
   judgePublishability,
   oppositeDirectionConflictIds,
@@ -72,6 +76,7 @@ interface SignalRow {
 const args = new Set(process.argv.slice(2));
 const REMOTE = args.has('--remote');
 const DRY = args.has('--dry');
+const TARGET_SLUG = process.argv.find((arg) => arg.startsWith('--slug='))?.slice('--slug='.length);
 const LOCAL = !REMOTE;
 /**
  * --reapply: also re-judge currently-published signals and KILL any that
@@ -83,9 +88,9 @@ const RETRY_KILLED_TODAY = args.has('--retry-killed-today');
 
 const API_BASE =
   process.env['API_BASE'] ?? (LOCAL ? 'http://127.0.0.1:8787' : 'https://api.highsignal.app');
-const ADMIN_TOKEN = process.env['ADMIN_TOKEN'] ?? '';
+const ADMIN_TOKEN = (process.env['ADMIN_TOKEN'] ?? '').trim();
 const AI_BASE_URL = process.env['AI_BASE_URL'] ?? 'https://api.deepseek.com/v1';
-const AI_API_KEY = process.env['AI_API_KEY'] ?? '';
+const AI_API_KEY = (process.env['AI_API_KEY'] ?? '').trim();
 const AI_MODEL = process.env['AI_MODEL'] ?? 'deepseek-chat';
 const AI_PROJECT_ID = process.env['AI_PROJECT_ID'] ?? 'high-signal';
 
@@ -372,7 +377,23 @@ When and only when verdict is publish, also return:
 Use the SAME originatingEvidenceId when several publishers repeat one original report.
 Different hosts are not independent unless their originating evidence differs.
 
-Return strict JSON.`;
+Return a strict JSON object with these required fields for EVERY decision:
+- verdict: exactly "publish", "kill", or "hold"
+- reason: a nonempty string explaining the decisive evidence or missing support
+For hold or kill, identify the specific unresolved requirement; never omit the reason.
+For publish, also include claimTuple and evidenceAssessments as specified above.
+Publish receipt types are mandatory:
+- claimTuple.entity and claimTuple.event: nonempty strings identifying the specific claim
+- claimTuple.amount: null unless the central claim directly states one precise quantity;
+  otherwise a nonempty string. Do not invent or calculate a comparison for this field.
+- claimTuple.date: a real calendar date in exact YYYY-MM-DD format, using the event
+  date stated in the body when available, never a month name or today's draft date
+- claimTuple.direction: exactly "up", "down", or "neutral"
+- evidenceAssessments: exactly one object for every cited evidence URL, with url
+  exactly matching that URL, aligned a JSON boolean, and originatingEvidenceId a
+  nonempty descriptive STRING identifying its original evidence, never a number
+Retained sourceType metadata describes document categories, not independent origin;
+origin verification must still come from the retained excerpts.`;
 
 async function aiVerdict(signal: SignalRow): Promise<VerdictResult | null> {
   if (!AI_API_KEY || DRY) return null;
@@ -404,7 +425,7 @@ async function aiVerdict(signal: SignalRow): Promise<VerdictResult | null> {
     windowDays: signal.predictedWindowDays,
     evidenceUrls: signal.evidenceUrls.slice(0, 8),
     evidence,
-    sourceClasses: signal.sourceClasses ?? [],
+    sourceClasses: retainedSourceClasses(evidence),
     independentSourceCount: signal.independentSourceCount ?? 0,
     qualityReasons: signal.qualityReasons ?? [],
     qualityScore: signal.qualityScore ?? null,
@@ -465,11 +486,14 @@ async function main(): Promise<void> {
   const killedToday = killedRows.filter(
     (signal) => todayIst && dateKeyInTimeZone(signal.publishedAt) === todayIst
   );
-  const toJudge = REAPPLY_PUBLISHED
+  const candidates = REAPPLY_PUBLISHED
     ? [...drafts, ...published]
     : RETRY_KILLED_TODAY
       ? [...drafts, ...killedToday]
       : drafts;
+  const toJudge = TARGET_SLUG
+    ? candidates.filter((signal) => signal.slug === TARGET_SLUG)
+    : candidates;
   const conflicts = oppositeDirectionConflictIds([...drafts, ...published, ...killedToday]);
   for (const signal of toJudge) signal.oppositeDirectionConflict = conflicts.has(signal.id);
   console.log(

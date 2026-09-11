@@ -1,9 +1,11 @@
-import type { VerdictResult } from './auto-publish-rules';
+import { hasValidPublishReceipt, type VerdictResult } from './auto-publish-rules';
+import { classifySource, type SourceClass } from '@high-signal/shared';
 
 export interface JudgeEvidence {
   url: string;
   excerpt: string | null;
   textCoverage: 'retained_excerpt' | 'unavailable';
+  sourceType?: string;
 }
 
 /** Only retained text from the owning API is evidence, never URL wording or draft prose. */
@@ -25,8 +27,26 @@ export function retainedJudgeEvidence(urls: string[], payload: unknown): JudgeEv
         item.excerpt.trim()
     );
     const excerpt = row ? row.excerpt.trim().slice(0, 1500) : null;
-    return { url, excerpt, textCoverage: excerpt ? 'retained_excerpt' : 'unavailable' };
+    return {
+      url,
+      excerpt,
+      textCoverage: excerpt ? 'retained_excerpt' : 'unavailable',
+      ...(typeof row?.sourceType === 'string' ? { sourceType: row.sourceType } : {}),
+    };
   });
+}
+
+/** Retained ingestion types describe documents; they never certify independent origins. */
+export function retainedSourceClasses(evidence: JudgeEvidence[]): SourceClass[] {
+  return [
+    ...new Set(
+      evidence.map((item): SourceClass => {
+        if (item.sourceType === 'ir' || item.sourceType === 'sec') return 'official';
+        if (item.sourceType === 'news') return 'news';
+        return classifySource(item.url);
+      })
+    ),
+  ];
 }
 
 // Conservative publisher-independence gate: a credited wire reprint cannot
@@ -58,10 +78,23 @@ export function groundJudgeVerdict(
   evidence: JudgeEvidence[]
 ): VerdictResult {
   if (verdict.verdict !== 'publish') return verdict;
+  if (!hasValidPublishReceipt(verdict)) {
+    return { verdict: 'kill', source: 'rule', reason: 'invalid publish receipt' };
+  }
+  const expected = new Set(evidence.map((item) => item.url));
+  const assessments = verdict.evidenceAssessments!;
+  if (assessments.length !== expected.size || assessments.some((item) => !expected.has(item.url))) {
+    return {
+      verdict: 'kill',
+      source: 'rule',
+      reason: 'publish receipt must assess each cited URL exactly once',
+    };
+  }
   const visible = new Set(evidence.filter((item) => item.excerpt).map((item) => item.url));
   const aligned = verdict.evidenceAssessments?.filter((item) => item.aligned) ?? [];
   if (
     new Set(aligned.map((item) => item.url)).size < 2 ||
+    new Set(aligned.map((item) => item.originatingEvidenceId)).size < 2 ||
     aligned.some((item) => !visible.has(item.url))
   ) {
     return {

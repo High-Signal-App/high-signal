@@ -4,6 +4,34 @@ Last updated: 2026-09-11
 
 Current September 11 qualification:
 
+One useful narrow edition is now published through the normal draft and full-body
+semantic review path. The operator-curated benchmark item compares OpenAI's
+GPT-6 Astra/Sol Terminal-Bench 4.0 scorecard with Artificial Analysis's separate
+September 9 measurements, retains the DeepSWE regression caveat, and preserves
+the original September 3/9 source dates. Public daily data contains one signal;
+the Brief exposes its what/why/uncertainty and version-1 proof with two independent
+origins. `verify-daily-brief.mjs` passes, including MCP consumer parity. This is
+an operator-curated D1 import, not an automated acquisition success or a new Git
+markdown archive. Issue 133 still owns reliable unattended useful output.
+
+The publisher now explicitly requests and validates complete typed semantic
+receipts, requires a nonempty reason, preserves retained source classes, and
+supports one-slug publication. Observed credential whitespace is normalized at
+the existing audit/publisher boundaries; audit failures no longer log response
+bodies or credential-bearing exception text. A normal replay acknowledged the
+two events but skipped the reviewed signal with zero signal/proof updates;
+public body, evidence, claim ID and version remained identical. The published
+item is `openai-astra-terminal-bench-improvement-independent-september-2026`
+(signal `518836626da1b6f2`, claim `189d14a62deab113`, version 1).
+
+Live readback also exposed a cached draft hiding the newly published proof page,
+with streamed not-found responses retained by the web detail cache. Nonpublished
+API detail responses now prohibit shared caching, and individual web proof pages
+bypass the custom HTML/RSC cache. Published API reads and listing caches remain
+available. Focused regressions cover draft-to-published visibility and detail
+cache exclusion. Deployment and browser acceptance of these final cache repairs
+are tracked separately.
+
 Web navigation now acknowledges primary-link clicks immediately and streams a
 shared loading view before destination data resolves. The navigation remains
 available, loading status is announced accessibly, and reduced-motion settings
@@ -66,7 +94,7 @@ requests ran, and one returned invalid output. The one generated candidate was
 withheld for missing proof and a single provider; zero drafts resulted. Related
 evidence lookup and story matching had no failures. This proves ingestion
 completion, not a useful edition or post-fix replay (no draft reached sync).
-Useful daily output remains unqualified under issue 133. Fetch run:
+That run did not qualify useful daily output under issue 133. Fetch run:
 `99491cd4ef5b4de9`.
 
 Previous September 9 qualification:
@@ -92,8 +120,8 @@ verifies preservation of trend, action, discussions and source IDs. This does
 not grant provenance or publication eligibility; source-ID validation, source
 links and independently supported community claims remain within #133.
 
-High Signal remains unqualified for sharing: no useful evidence-qualified edition
-has been demonstrated. Existing issue #133 owns synthesis, independent support,
+At the September 9 checkpoint, no useful evidence-qualified edition had been
+demonstrated. Existing issue #133 owns synthesis, independent support,
 and opportunity/trend provenance; the repairs below are not separate open tasks.
 
 Merged pipeline repairs (PRs #165–#176):

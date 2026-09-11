@@ -39,6 +39,10 @@ export function isCacheableDocumentRequest(request) {
   const url = new URL(request.url);
   const pathname = normalizePublicPath(url.pathname);
   if (!isPublicCachePath(pathname)) return false;
+  // Individual signals are mutable publication records. A streamed 404 from
+  // the detail renderer is still an HTTP 200, so response headers cannot
+  // reliably prevent the Worker from sharing that stale result.
+  if (isSignalDetailPath(pathname)) return false;
 
   // Anonymous HTML is cached only at its canonical, queryless URL. RSC
   // variants keep their complete URL and routing headers so Next.js cannot
@@ -122,6 +126,15 @@ export function edgeCacheStatus(request, result) {
 
 function isPublicCachePath(pathname) {
   return isPublicDocumentPath(pathname) || PUBLIC_DATA_CACHE_CONTROL.has(pathname);
+}
+
+function isSignalDetailPath(pathname) {
+  return (
+    isPublicDocumentPath(pathname) &&
+    pathname.startsWith('/signals/') &&
+    pathname !== '/signals/types' &&
+    pathname.split('/').length === 3
+  );
 }
 
 function isPublicDocumentPath(pathname) {

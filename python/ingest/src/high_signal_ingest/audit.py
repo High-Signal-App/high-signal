@@ -25,7 +25,8 @@ def _api_base() -> str | None:
 
 
 def _token() -> str | None:
-    return os.environ.get("ADMIN_TOKEN")
+    token = os.environ.get("ADMIN_TOKEN")
+    return token.strip() if token else None
 
 
 def _enabled() -> bool:
@@ -49,7 +50,7 @@ def _post_result(path: str, body: dict[str, Any]) -> dict[str, Any] | None:
             timeout=30.0,
         )
         if r.status_code >= 400:
-            LOGGER.warning("audit %s failed: %s %s", path, r.status_code, r.text[:200])
+            LOGGER.warning("audit %s failed: HTTP %s", path, r.status_code)
             return None
         resp = r.json()
         if not isinstance(resp, dict):
@@ -57,7 +58,8 @@ def _post_result(path: str, body: dict[str, Any]) -> dict[str, Any] | None:
             return None
         return resp
     except Exception as exc:
-        LOGGER.warning("audit %s exception: %s", path, exc)
+        # HTTP transports can embed Authorization headers in exception text.
+        LOGGER.warning("audit %s exception: %s", path, type(exc).__name__)
         return None
 
 

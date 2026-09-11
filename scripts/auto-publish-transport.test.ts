@@ -4,7 +4,11 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { requestJudge } from './auto-publish-transport';
-import { groundJudgeVerdict, retainedJudgeEvidence } from './auto-publish-evidence';
+import {
+  groundJudgeVerdict,
+  retainedJudgeEvidence,
+  retainedSourceClasses,
+} from './auto-publish-evidence';
 
 const request = {
   method: 'POST',
@@ -66,7 +70,11 @@ if (mode === 'prose' || mode === 'oversized') {
 globalThis.fetch = async (input, init) => {
   const url = new URL(String(input));
   if (url.hostname === 'judge.invalid') {
+    if (init.headers.Authorization !== 'Bearer synthetic-judge') throw new Error('Judge credential whitespace not normalized');
+    const system = JSON.parse(init.body).messages[0].content;
+    if (!system.includes('required fields for EVERY decision') || !system.includes('reason: a nonempty string')) throw new Error('Judge response contract missing');
     const payload = JSON.parse(JSON.parse(init.body).messages[1].content);
+    if (JSON.stringify(payload.sourceClasses) !== JSON.stringify(['official', 'news'])) throw new Error('Retained source classes lost');
     if (payload.evidence?.length !== 2 || payload.evidence.some(item =>
       item.textCoverage !== 'retained_excerpt' || !item.excerpt.startsWith('Retained public source excerpt'))) {
       throw new Error('Judge did not receive retained source excerpts');
@@ -86,9 +94,12 @@ globalThis.fetch = async (input, init) => {
     return new Response('Failed to validate JSON; PRIVATE_PROVIDER_DETAIL', {status: mode === 'auth' ? 401 : 400});
   }
   if (url.hostname !== 'fixture.invalid') throw new Error('Unexpected network destination');
-  if (url.pathname === '/admin/signals-review') return Response.json({
-    signals: url.searchParams.get('status') === 'draft' ? [signal] : []
-  });
+  if (url.pathname === '/admin/signals-review') {
+    if (init.headers.Authorization !== 'Bearer synthetic-admin') throw new Error('Admin credential whitespace not normalized');
+    return Response.json({
+    signals: url.searchParams.get('status') === 'draft' ? [signal, {...signal, id:'other', slug:'other'}] : []
+    });
+  }
   if (url.pathname === '/claims/by-signal/fixture') return Response.json({
     claims: mode === 'prose' || mode === 'oversized' ? [{
       id: 'claim', reviewStatus: 'draft', evidence: signal.evidenceUrls.map((evidenceUrl, index) => ({
@@ -101,8 +112,8 @@ globalThis.fetch = async (input, init) => {
   });
   if (url.pathname === '/signals/fixture') {
     if (mode === 'lookup-failed') return new Response('', {status: 503});
-    return Response.json({evidence: mode === 'no-text' ? [] : signal.evidenceUrls.map(url => ({
-      url, excerpt: 'Retained public source excerpt for ' + url
+    return Response.json({evidence: mode === 'no-text' ? [] : signal.evidenceUrls.map((url, index) => ({
+      url, excerpt: 'Retained public source excerpt for ' + url, sourceType: index === 0 ? 'ir' : 'news'
     }))});
   }
   if (url.pathname === '/admin/signals/fixture' && init.method === 'PATCH') {
@@ -129,7 +140,15 @@ process.on('exit', () => console.log('judge requests=' + requests));
     ] as const) {
       const child = spawnSync(
         process.execPath,
-        ['--import', 'tsx', '--import', preload, 'scripts/auto-publish-drafts.ts', '--local'],
+        [
+          '--import',
+          'tsx',
+          '--import',
+          preload,
+          'scripts/auto-publish-drafts.ts',
+          '--local',
+          '--slug=fixture',
+        ],
         {
           cwd: process.cwd(),
           encoding: 'utf8',
@@ -139,8 +158,8 @@ process.on('exit', () => console.log('judge requests=' + requests));
             TEST_JUDGE_MODE: mode,
             API_BASE: 'https://fixture.invalid',
             AI_BASE_URL: 'https://judge.invalid',
-            AI_API_KEY: mode === 'absent' ? '' : 'synthetic-judge',
-            ADMIN_TOKEN: 'synthetic-admin',
+            AI_API_KEY: mode === 'absent' ? '' : ' \tsynthetic-judge\r\n',
+            ADMIN_TOKEN: ' \tsynthetic-admin\r\n',
           },
         }
       );
@@ -168,6 +187,17 @@ async function main() {
   assert.equal(evidence[0].excerpt, 'Retained source A');
   assert.equal(evidence[0].textCoverage, 'retained_excerpt');
   assert.deepEqual(
+    retainedSourceClasses(
+      retainedJudgeEvidence(urls, {
+        evidence: [
+          { url: urls[0], excerpt: 'Issuer measurement', sourceType: 'ir' },
+          { url: urls[1], excerpt: 'Independent measurement', sourceType: 'news' },
+        ],
+      })
+    ),
+    ['official', 'news']
+  );
+  assert.deepEqual(
     retainedJudgeEvidence(urls, { evidence: [{ url: urls[0], excerpt: ' ' }] }),
     urls.map((url) => ({ url, excerpt: null, textCoverage: 'unavailable' }))
   );
@@ -175,6 +205,13 @@ async function main() {
     verdict: 'publish' as const,
     source: 'ai' as const,
     reason: 'Aligned excerpts',
+    claimTuple: {
+      entity: 'OPENAI',
+      event: 'Measured improvement',
+      amount: null,
+      date: '2026-09-09',
+      direction: 'up' as const,
+    },
     evidenceAssessments: urls.map((url, index) => ({
       url,
       aligned: true,
@@ -182,6 +219,38 @@ async function main() {
     })),
   };
   assert.equal(groundJudgeVerdict(publish, evidence).verdict, 'publish');
+  assert.equal(groundJudgeVerdict({ ...publish, claimTuple: undefined }, evidence).verdict, 'kill');
+  assert.equal(
+    groundJudgeVerdict(
+      {
+        ...publish,
+        evidenceAssessments: [
+          ...publish.evidenceAssessments,
+          {
+            url: 'https://uncited.example/result',
+            aligned: false,
+            originatingEvidenceId: 'uncited',
+          },
+        ],
+      },
+      evidence
+    ).verdict,
+    'kill',
+    'even unaligned uncited assessments are rejected'
+  );
+  assert.equal(
+    groundJudgeVerdict(
+      {
+        ...publish,
+        evidenceAssessments: publish.evidenceAssessments.map((item) => ({
+          ...item,
+          originatingEvidenceId: 'same-origin',
+        })),
+      },
+      evidence
+    ).verdict,
+    'kill'
+  );
   assert.equal(groundJudgeVerdict(publish, evidence.slice(0, 1)).verdict, 'kill');
   assert.equal(
     groundJudgeVerdict(

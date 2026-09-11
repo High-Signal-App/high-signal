@@ -421,13 +421,37 @@ checkBool(
 );
 
 console.log('\nAI verdict response parsing');
+const validPublishReceipt = {
+  claimTuple: {
+    entity: 'OPENAI',
+    event: 'Terminal benchmark improvement',
+    amount: null,
+    date: '2026-09-09',
+    direction: 'up',
+  },
+  evidenceAssessments: [
+    {
+      url: 'https://issuer.example/result',
+      aligned: true,
+      originatingEvidenceId: 'issuer-evaluation',
+    },
+    {
+      url: 'https://lab.example/result',
+      aligned: true,
+      originatingEvidenceId: 'independent-evaluation',
+    },
+  ],
+};
 checkBool(
   'parses fenced uppercase verdict',
   parseAiVerdictResponse({
     choices: [
       {
         message: {
-          content: '```json\n{"verdict":"PUBLISH","reason":"corroborated"}\n```',
+          content:
+            '```json\n' +
+            JSON.stringify({ verdict: 'PUBLISH', reason: 'corroborated', ...validPublishReceipt }) +
+            '\n```',
         },
       },
     ],
@@ -437,17 +461,84 @@ checkBool(
 checkBool(
   'parses content blocks and decision alias',
   parseAiVerdictResponse({
-    choices: [{ message: { content: [{ type: 'text', text: '{"decision":"kill"}' }] } }],
+    choices: [
+      {
+        message: {
+          content: [{ type: 'text', text: '{"decision":"kill","reason":"Unsupported"}' }],
+        },
+      },
+    ],
   })?.verdict === 'kill',
   true
 );
 checkBool(
   'parses legacy completion text surrounded by prose',
-  parseAiVerdictResponse({ choices: [{ text: 'Result: {"action":"hold"} done.' }] })?.verdict ===
-    'hold',
+  parseAiVerdictResponse({
+    choices: [{ text: 'Result: {"action":"hold","reason":"Missing origin"} done.' }],
+  })?.verdict === 'hold',
   true
 );
 checkBool('rejects malformed AI response', parseAiVerdictResponse({ choices: [] }) === null, true);
+for (const receipt of [
+  {},
+  { ...validPublishReceipt, claimTuple: null },
+  ...[
+    { entity: '' },
+    { event: ' ' },
+    { amount: undefined },
+    { amount: 10.6 },
+    { date: 'September 2026' },
+    { date: '2026-02-30' },
+    { direction: 'positive' },
+    { direction: ['up'] },
+  ].map((change) => ({
+    ...validPublishReceipt,
+    claimTuple: { ...validPublishReceipt.claimTuple, ...change },
+  })),
+  { ...validPublishReceipt, evidenceAssessments: [] },
+  ...[
+    { originatingEvidenceId: 1 },
+    { originatingEvidenceId: '' },
+    { aligned: 'true' },
+    { url: '' },
+  ].map((change) => ({
+    ...validPublishReceipt,
+    evidenceAssessments: [
+      { ...validPublishReceipt.evidenceAssessments[0], ...change },
+      validPublishReceipt.evidenceAssessments[1],
+    ],
+  })),
+  {
+    ...validPublishReceipt,
+    evidenceAssessments: [
+      validPublishReceipt.evidenceAssessments[0],
+      validPublishReceipt.evidenceAssessments[0],
+    ],
+  },
+]) {
+  checkBool(
+    'rejects incomplete or malformed publish receipt',
+    parseAiVerdictResponse({
+      choices: [
+        {
+          message: {
+            content: JSON.stringify({ verdict: 'publish', reason: 'Supported', ...receipt }),
+          },
+        },
+      ],
+    }) === null,
+    true
+  );
+}
+for (const reason of [undefined, null, '', '   ', 42]) {
+  checkBool(
+    'rejects absent or empty decision reason: ' + String(reason),
+    parseAiVerdictResponse({
+      choices: [{ message: { content: JSON.stringify({ verdict: 'hold', reason }) } }],
+    }) === null,
+    true
+  );
+}
 
 console.log('\nIST date filtering');
 checkBool(

@@ -192,6 +192,9 @@ signalsRoute.get('/:slug', async (c) => {
     .where(eq(schema.signals.slug, slug))
     .limit(1);
   if (!row) return c.json({ error: 'not_found' }, 404);
+  // A draft may be reviewed and published immediately after this read. Do not
+  // let that transitional state make the public proof page appear missing.
+  if (row.reviewStatus !== 'published') c.header('Cache-Control', 'private, no-store');
   if (row.reviewStatus === 'published' && row.bodyMd.trimStart().startsWith('> _backfill_')) {
     return c.json({ error: 'not_found' }, 404);
   }

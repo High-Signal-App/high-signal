@@ -29,7 +29,6 @@ assert.match(apiWrangler, /\[exports\.PublicApi\.cache\]\s+enabled = true/);
 for (const path of [
   '/',
   '/about',
-  '/signals/a-published-signal',
   '/entities/openai',
   '/entities/openai/2026-08',
   '/markets/NVDA',
@@ -42,6 +41,21 @@ for (const path of [
 ]) {
   assert.equal(isCacheableDocumentRequest(request(path)), true, `${path} must be edge-cacheable`);
 }
+assert.equal(
+  isCacheableDocumentRequest(request('/signals')),
+  true,
+  'the signals index remains edge-cacheable'
+);
+assert.equal(
+  isCacheableDocumentRequest(request('/signals/types')),
+  true,
+  'the signal types index remains edge-cacheable'
+);
+assert.equal(
+  isCacheableDocumentRequest(request('/signals/a-published-signal')),
+  false,
+  'canonical signal detail HTML must bypass the shared cache'
+);
 
 for (const denied of [
   request('/brief'),
@@ -65,7 +79,11 @@ const rsc = request('/signals/a-published-signal?_rsc=route-state', {
   headers: { RSC: '1', 'Next-Router-State-Tree': 'state' },
 });
 assert.equal(isRscRequest(rsc), true);
-assert.equal(isCacheableDocumentRequest(rsc), true, 'canonical anonymous RSC must be cacheable');
+assert.equal(
+  isCacheableDocumentRequest(rsc),
+  false,
+  'canonical signal detail RSC must bypass the shared cache'
+);
 assert.equal(
   isCacheableDocumentRequest(
     request('/signals/a-published-signal?_rsc=route-state&preview=1', { headers: { RSC: '1' } })

@@ -66,6 +66,54 @@ function normalizedVerdict(value: unknown): Verdict | null {
   return allowed.includes(decision as Verdict) ? (decision as Verdict) : null;
 }
 
+function isNonEmptyText(value: unknown): value is string {
+  return typeof value === 'string' && value.trim().length > 0;
+}
+
+function isValidClaimTuple(value: unknown): boolean {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const row = value as Record<string, unknown>;
+  if (!isNonEmptyText(row.entity) || !isNonEmptyText(row.event) || !isNonEmptyText(row.date))
+    return false;
+  if (row.amount !== null && !isNonEmptyText(row.amount)) return false;
+  if (typeof row.direction !== 'string' || !['up', 'down', 'neutral'].includes(row.direction))
+    return false;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(row.date)) return false;
+  const date = new Date(`${row.date}T00:00:00.000Z`);
+  return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === row.date;
+}
+
+function isValidEvidenceAssessment(value: unknown, urls: Set<string>): boolean {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const row = value as Record<string, unknown>;
+  if (
+    !isNonEmptyText(row.url) ||
+    typeof row.aligned !== 'boolean' ||
+    !isNonEmptyText(row.originatingEvidenceId)
+  )
+    return false;
+  try {
+    if (!['https:', 'http:'].includes(new URL(row.url).protocol)) return false;
+  } catch {
+    return false;
+  }
+  if (urls.has(row.url)) return false;
+  urls.add(row.url);
+  return true;
+}
+
+/** Validate model-authored receipt fields before any claim/status mutation. */
+export function hasValidPublishReceipt(input: {
+  claimTuple?: unknown;
+  evidenceAssessments?: unknown;
+}): boolean {
+  if (!isValidClaimTuple(input.claimTuple)) return false;
+  const assessments = input.evidenceAssessments;
+  if (!Array.isArray(assessments) || assessments.length < 2) return false;
+  const urls = new Set<string>();
+  return assessments.every((value) => isValidEvidenceAssessment(value, urls));
+}
+
 /**
  * Parse a verdict from an OpenAI-compatible completion. A few free-tier
  * providers return uppercase decisions, text content blocks, or a legacy
@@ -91,10 +139,11 @@ export function parseAiVerdictResponse(payload: unknown): VerdictResult | null {
   try {
     const parsed = JSON.parse(jsonObjectText(raw)) as Record<string, unknown>;
     const decision = normalizedVerdict(parsed.verdict ?? parsed.decision ?? parsed.action);
-    if (!decision) return null;
+    if (!decision || typeof parsed.reason !== 'string' || !parsed.reason.trim()) return null;
+    if (decision === 'publish' && !hasValidPublishReceipt(parsed)) return null;
     return {
       verdict: decision,
-      reason: typeof parsed.reason === 'string' ? parsed.reason : '(no reason)',
+      reason: parsed.reason.trim(),
       source: 'ai',
       claimTuple: parsed.claimTuple as VerdictResult['claimTuple'],
       evidenceAssessments: parsed.evidenceAssessments as VerdictResult['evidenceAssessments'],

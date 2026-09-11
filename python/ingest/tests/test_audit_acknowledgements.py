@@ -81,3 +81,54 @@ def test_other_audit_posts_keep_boolean_contract(monkeypatch):
         audit.httpx, "post", lambda *_a, **_k: httpx.Response(200, json={"inserted": 1})
     )
     assert audit._post("/admin/llm-runs", {"runs": [{}]}) is True
+
+
+def test_invalid_header_failure_does_not_log_credentials(monkeypatch, caplog):
+    credential = "synthetic-private-token\n"
+    monkeypatch.setenv("ADMIN_TOKEN", credential)
+
+    def post(_url, **kwargs):
+        raise httpx.LocalProtocolError(
+            f"Illegal header value {kwargs['headers']['Authorization']!r}"
+        )
+
+    monkeypatch.setattr(audit.httpx, "post", post)
+    assert audit.push_events(events(1), "synthetic-run") == 0
+    assert "LocalProtocolError" in caplog.text
+    assert "synthetic-private-token" not in caplog.text
+    assert "Bearer" not in caplog.text
+    assert "Illegal header value" not in caplog.text
+
+
+def test_token_surrounding_whitespace_is_normalized_at_request_boundary(monkeypatch):
+    monkeypatch.setenv("ADMIN_TOKEN", " \tsynthetic-test-token\r\n")
+
+    def post(_url, **kwargs):
+        assert kwargs["headers"]["Authorization"] == "Bearer synthetic-test-token"
+        return httpx.Response(200, json={"inserted": 1})
+
+    monkeypatch.setattr(audit.httpx, "post", post)
+    assert audit.push_events(events(1), "synthetic-run") == 1
+
+
+def test_whitespace_only_token_is_unconfigured(monkeypatch):
+    monkeypatch.setenv("ADMIN_TOKEN", " \r\n")
+
+    def post(*_args, **_kwargs):
+        pytest.fail("An empty credential must not make a request")
+
+    monkeypatch.setattr(audit.httpx, "post", post)
+    assert audit._enabled() is False
+    assert audit.push_events(events(1), "synthetic-run") == 0
+
+
+def test_http_failure_does_not_log_reflected_response_body(monkeypatch, caplog):
+    monkeypatch.setattr(
+        audit.httpx,
+        "post",
+        lambda *_a, **_k: httpx.Response(401, text="Bearer synthetic-private-token"),
+    )
+    assert audit.push_events(events(1), "synthetic-run") == 0
+    assert "HTTP 401" in caplog.text
+    assert "synthetic-private-token" not in caplog.text
+    assert "Bearer" not in caplog.text
