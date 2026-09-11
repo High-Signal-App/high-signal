@@ -82,9 +82,21 @@ Worker, web Worker, and finally the Modal `high-signal` secret. Verify the new
 token against `/admin/audit/summary`, confirm the prior token receives 401,
 and load `/review` before declaring the rotation complete.
 
-Modal has no partial-update CLI contract for an existing multi-key Secret. Edit
-only `ADMIN_TOKEN` and `API_BASE` in the dashboard so `SEC_USER_AGENT` is
-preserved, then run a bounded manual backfill and query its `ingest_runs` row.
+The installed Modal SDK supports `Secret.from_name("high-signal").update(...)`.
+Pass only the changed key: the SDK merges it and preserves unmentioned values,
+including `SEC_USER_AGENT`. Read the new value from Infisical into process memory;
+do not pass it as a command-line argument or write an intermediate credential
+file. Updates apply to new containers, so verify a fresh container can read
+`/admin/audit/summary` successfully. A read-only authentication check is enough
+for a credential-only rotation; a pipeline change still requires its own ingest
+receipt. The CLI's whole-secret replacement is not a partial update.
+
+For Worker secret-only releases, use `wrangler versions secret put ADMIN_TOKEN`
+with the full source revision in `--tag`, then promote the returned version ID
+with `wrangler versions deploy <version-id>@100 --yes`. Confirm the latest
+uploaded version is the active version before cloning it; do not accidentally
+promote an unrelated, unreleased upload. This preserves existing code and
+triggers while keeping the secret change separately reviewable.
 
 ## Verify before retiring the password gate
 

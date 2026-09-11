@@ -4,6 +4,15 @@ Last updated: 2026-09-11
 
 Current September 11 qualification:
 
+The exposed machine credential has been rotated through Infisical, GitHub
+Actions, both Workers and Modal. The replacement returns 200 from the protected
+audit summary; the previous credential returns 401. A fresh Modal container
+also returns 200, with the existing SEC user-agent setting preserved. Values
+were passed through process memory and stdin, without plaintext credential
+files or command-line arguments. The runbook now documents the SDK's partial
+secret update and tagged Worker secret-version releases. Browser operator
+acceptance remains a separate check.
+
 One useful narrow edition is now published through the normal draft and full-body
 semantic review path. The operator-curated benchmark item compares OpenAI's
 GPT-6 Astra/Sol Terminal-Bench 4.0 scorecard with Artificial Analysis's separate
