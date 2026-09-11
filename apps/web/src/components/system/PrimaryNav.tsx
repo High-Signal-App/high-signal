@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import Link, { useLinkStatus } from 'next/link';
 import type { Route } from 'next';
 import { usePathname } from 'next/navigation';
 
@@ -34,22 +34,40 @@ const PRIMARY_ITEMS: NavItem[] = [
 ];
 
 const linkBase =
-  'inline-flex min-h-11 items-center whitespace-nowrap border-b px-1.5 font-mono text-[9px] uppercase tracking-[0.04em] transition-colors duration-150 sm:px-2 sm:text-[11px] sm:tracking-[0.08em]';
+  'relative inline-flex min-h-11 items-center whitespace-nowrap border-b px-1.5 font-mono text-[9px] uppercase tracking-[0.04em] transition-colors duration-150 sm:px-2 sm:text-[11px] sm:tracking-[0.08em]';
+
+function NavigationPending({ label }: { label: string }) {
+  const { pending } = useLinkStatus();
+
+  return pending ? (
+    <span
+      role="status"
+      className="absolute inset-x-0 -bottom-px h-0.5 bg-[var(--color-accent)] motion-safe:animate-pulse"
+    >
+      <span className="sr-only">Loading {label}…</span>
+    </span>
+  ) : null;
+}
 
 export function PrimaryNav() {
   const pathname = usePathname() ?? '/';
 
   return (
-    <nav className="fixed inset-x-0 top-0 z-50 h-14 border-b border-[var(--color-line)] bg-[var(--color-bg)]">
+    <nav
+      aria-label="Primary"
+      className="fixed inset-x-0 top-0 z-50 h-14 border-b border-[var(--color-line)] bg-[var(--color-bg)]"
+    >
       <div className="mx-auto flex max-w-7xl items-center gap-2 px-3 py-1.5 sm:gap-5 sm:px-6">
         <Link
           href={'/' as Route}
           prefetch={false}
-          className="inline-flex min-h-11 shrink-0 items-center font-mono text-[10px] uppercase tracking-[0.1em] text-[var(--color-fg)] transition-colors duration-150 hover:text-[var(--color-accent)] sm:text-[11px] sm:tracking-[0.12em]"
+          aria-label="High Signal home"
+          className="relative inline-flex min-h-11 shrink-0 items-center font-mono text-[10px] uppercase tracking-[0.1em] text-[var(--color-fg)] transition-colors duration-150 hover:text-[var(--color-accent)] sm:text-[11px] sm:tracking-[0.12em]"
         >
           <span className="mr-2 inline-block size-1 rounded-full bg-[var(--color-accent)] align-middle" />
           <span className="sm:hidden">HS</span>
           <span className="hidden sm:inline">high signal</span>
+          <NavigationPending label="brief" />
         </Link>
 
         <ul className="flex flex-1 items-center justify-between gap-x-0 sm:justify-start sm:gap-x-1">
@@ -60,6 +78,8 @@ export function PrimaryNav() {
                 <Link
                   href={item.href as Route}
                   prefetch={false}
+                  aria-label={item.label}
+                  aria-current={active ? 'page' : undefined}
                   className={`${linkBase} ${
                     active
                       ? 'border-[var(--color-accent)] text-[var(--color-accent)]'
@@ -67,6 +87,7 @@ export function PrimaryNav() {
                   }`}
                 >
                   {item.label}
+                  <NavigationPending label={item.label} />
                 </Link>
               </li>
             );
