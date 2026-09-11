@@ -1,7 +1,11 @@
 #!/usr/bin/env node
 
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { resolve } from 'node:path';
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import {
   cacheControlForRequest,
@@ -15,6 +19,8 @@ import {
 } from '../apps/web/worker-cache-policy.mjs';
 
 const request = (path, init = {}) => new Request(`https://highsignal.app${path}`, init);
+const BUILD_A = 'build-a';
+const BUILD_B = 'build-b';
 
 const apiWrangler = readFileSync(new URL('../workers/api/wrangler.toml', import.meta.url), 'utf8');
 assert.match(apiWrangler, /\[cache\]\s+enabled = false/);
@@ -73,13 +79,16 @@ assert.equal(
   'an _rsc query without the RSC header must not be mistaken for an RSC request'
 );
 
-const rootKey = cacheKeyForRequest(request('/'));
+const rootKey = cacheKeyForRequest(request('/'), BUILD_A);
 assert.equal(new URL(rootKey.url).searchParams.get('__hs_cache_schema'), 'daily-brief-v2');
-const dataKey = cacheKeyForRequest(request('/data'));
+const dataKey = cacheKeyForRequest(request('/data'), BUILD_A);
 assert.equal(new URL(dataKey.url).searchParams.get('__hs_cache_schema'), 'source-data-v2');
-const dataSourceKey = cacheKeyForRequest(request('/data/nvd'));
+const dataSourceKey = cacheKeyForRequest(request('/data/nvd'), BUILD_A);
 assert.equal(new URL(dataSourceKey.url).searchParams.get('__hs_cache_schema'), 'source-data-v2');
-assert.equal(cacheKeyForRequest(request('/about')).url, 'https://highsignal.app/about');
+assert.equal(
+  new URL(cacheKeyForRequest(request('/about'), BUILD_A).url).searchParams.get('__hs_build'),
+  BUILD_A
+);
 
 assert.equal(cacheControlForRequest(request('/')), 'public, max-age=60, s-maxage=300');
 assert.equal(clientCacheControlForRequest(request('/')), 'private, no-cache');
@@ -133,20 +142,63 @@ for (const path of [
   '/embed/example',
   '/sitemap.xml',
 ]) {
-  const key = cacheKeyForRequest(request(path));
+  const key = cacheKeyForRequest(request(path), BUILD_A);
   assert.equal(new URL(key.url).searchParams.get('__hs_presentation'), '2026-09-07.1');
   assert.notEqual(key.url, request(path).url, 'old policy cache entries must not be reused');
 }
-const rscKey = cacheKeyForRequest(rsc);
+const rscKey = cacheKeyForRequest(rsc, BUILD_A);
 assert.equal(new URL(rscKey.url).searchParams.get('_rsc'), 'route-state');
 assert.equal(new URL(rscKey.url).searchParams.get('__hs_presentation'), '2026-09-07.1');
 assert.equal(rscKey.headers.get('Next-Router-State-Tree'), 'state');
 assert.equal(rscKey.headers.get('RSC'), '1');
-assert.notEqual(rscKey.url, cacheKeyForRequest(request('/signals/a-published-signal')).url);
+assert.notEqual(
+  rscKey.url,
+  cacheKeyForRequest(request('/signals/a-published-signal'), BUILD_A).url
+);
 
 assert.equal(
-  new URL(cacheKeyForRequest(request('/track-record')).url).searchParams.get('__hs_cache_schema'),
+  new URL(cacheKeyForRequest(request('/track-record'), BUILD_A).url).searchParams.get(
+    '__hs_cache_schema'
+  ),
   'track-record-v2'
 );
+
+const htmlA = cacheKeyForRequest(request('/signals'), BUILD_A).url;
+const htmlB = cacheKeyForRequest(request('/signals'), BUILD_B).url;
+assert.notEqual(htmlA, htmlB, 'HTML cache entries must be isolated per build');
+const rscA = cacheKeyForRequest(rsc, BUILD_A).url;
+const rscB = cacheKeyForRequest(rsc, BUILD_B).url;
+assert.notEqual(rscA, rscB, 'RSC cache entries must be isolated per build');
+
+for (const invalidBuildId of [undefined, null, '', 'a/b', 'a b', 'a'.repeat(129), 123]) {
+  assert.throws(() => cacheKeyForRequest(request('/signals'), invalidBuildId), /safe build ID/);
+}
+
+const generator = fileURLToPath(
+  new URL('../apps/web/scripts/write-cache-build-id.mjs', import.meta.url)
+);
+for (const buildId of ['fixture-build-1\n', undefined, '', 'invalid/build']) {
+  const fixtureRoot = mkdtempSync(resolve(tmpdir(), 'high-signal-cache-build-'));
+  try {
+    const fixtureAssets = resolve(fixtureRoot, '.open-next/assets');
+    const generatedPath = resolve(fixtureRoot, '.open-next/cache-build-id.mjs');
+    mkdirSync(fixtureAssets, { recursive: true });
+    if (buildId !== undefined) writeFileSync(resolve(fixtureAssets, 'BUILD_ID'), buildId);
+    const generated = spawnSync(process.execPath, [generator], {
+      env: { ...process.env, CACHE_BUILD_WEB_ROOT: fixtureRoot },
+      encoding: 'utf8',
+    });
+    if (buildId === 'fixture-build-1\n') {
+      assert.equal(generated.status, 0, generated.stderr);
+      const module = await import(pathToFileURL(generatedPath).href);
+      assert.equal(module.CACHE_BUILD_ID, 'fixture-build-1');
+    } else {
+      assert.notEqual(generated.status, 0, 'missing or invalid BUILD_ID must stop the build');
+      assert.equal(existsSync(generatedPath), false, 'never emit a shared fallback namespace');
+    }
+  } finally {
+    rmSync(fixtureRoot, { recursive: true, force: true });
+  }
+}
 
 console.log('Worker cache policy contract passed.');

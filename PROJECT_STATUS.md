@@ -16,6 +16,12 @@ releasing the requests rendered Signals normally. The focused navigation suite
 covers the current four destinations, delayed responses, keyboard activation and
 back navigation. This repairs navigation feedback, not useful-edition acceptance.
 
+Production probes also identified stale route fragments from a previous Next
+build, which forced full-document reloads. The Worker now namespaces both HTML
+and RSC edge entries with the generated OpenNext BUILD_ID; deployment fails if
+that ID is missing or malformed. Existing streaming, cache lifetimes, and
+operator cache bypasses are preserved.
+
 Issuer announcement discovery now recognizes same-origin OpenAI `/index/`
 articles, which the generic press-release path matcher omitted. HTTPS, the
 three-link retrieval limit, explicit publication metadata and body requirements

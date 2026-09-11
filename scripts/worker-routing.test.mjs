@@ -64,8 +64,13 @@ assert.match(
 );
 assert.match(
   workerSource,
-  /cacheKeyForRequest\(request\)/,
+  /cacheKeyForRequest\(request,\s*CACHE_BUILD_ID\)/,
   'the versioned Daily Brief cache key must be used for edge reads and writes'
+);
+assert.match(
+  workerSource,
+  /\.\/\.open-next\/cache-build-id\.mjs/,
+  'the Worker must import the build namespace generated after OpenNext builds'
 );
 assert.match(
   workerSource,
@@ -81,6 +86,11 @@ assert.match(
   cachePolicySource,
   /isPublicCachePath\(pathname\)/,
   'the cache must share the canonical public-route registry'
+);
+assert.match(
+  webPackage.scripts['cf:build'],
+  /opennextjs-cloudflare build && node scripts\/write-cache-build-id\.mjs/,
+  'the build namespace must be generated from OpenNext output before deployment'
 );
 assert.doesNotMatch(
   cachePolicySource,

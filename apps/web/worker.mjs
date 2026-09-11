@@ -1,6 +1,7 @@
 // worker.mjs — wraps OpenNext with guarded public HTML and agent-surface caching.
 
 import openNext from './.open-next/worker.js';
+import { CACHE_BUILD_ID } from './.open-next/cache-build-id.mjs';
 import { guardPublicRequest } from './abuse-guard.mjs';
 import { withTiming } from './timing.mjs';
 import {
@@ -144,7 +145,7 @@ const worker = {
     }
 
     const cache = caches.default;
-    const cacheKey = cacheKeyForRequest(request);
+    const cacheKey = cacheKeyForRequest(request, CACHE_BUILD_ID);
     const cached = await cache.match(cacheKey);
     if (cached) {
       const hit = new Response(cached.body, cached);

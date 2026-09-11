@@ -51,7 +51,10 @@ export function isCacheableDocumentRequest(request) {
   return url.search === '' && request.headers.get('rsc') !== '1';
 }
 
-export function cacheKeyForRequest(request) {
+export function cacheKeyForRequest(request, buildId) {
+  if (typeof buildId !== 'string' || !/^[A-Za-z0-9._-]{1,128}$/.test(buildId)) {
+    throw new Error('cache build namespace is required and must be a safe build ID');
+  }
   const url = new URL(request.url);
   const pathname = normalizePublicPath(url.pathname);
   if (!isRscRequest(request) && pathname === '/') {
@@ -71,6 +74,8 @@ export function cacheKeyForRequest(request) {
     // Existing edge entries can outlive a release; policy changes must reach normal URLs.
     url.searchParams.set('__hs_presentation', PUBLIC_CORPUS_POLICY_REVISION);
   }
+  // HTML and Flight payloads must come from the same Next build across deployments.
+  url.searchParams.set('__hs_build', buildId);
   return url.href === request.url ? request : new Request(url, request);
 }
 
