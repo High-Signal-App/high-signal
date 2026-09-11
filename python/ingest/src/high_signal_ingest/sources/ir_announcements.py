@@ -16,6 +16,8 @@ from ..utils import event_hash
 
 MAX_ANNOUNCEMENTS = 3
 RELEASE_PATH = re.compile(r"/(?:news-release-details|press-releases?|news-releases?)/.+", re.I)
+OPENAI_HOSTS = frozenset({"openai.com"})
+OPENAI_INDEX_PATH = re.compile(r"/index/.+", re.I)
 
 
 class _PageMetadata(HTMLParser):
@@ -59,7 +61,10 @@ def announcement_links(html: str, page_url: str) -> list[str]:
         if (
             parsed.scheme == "https"
             and parsed.netloc == origin.netloc
-            and RELEASE_PATH.search(parsed.path)
+            and (
+                RELEASE_PATH.search(parsed.path)
+                or (parsed.hostname in OPENAI_HOSTS and OPENAI_INDEX_PATH.fullmatch(parsed.path))
+            )
             and url != urldefrag(page_url)[0]
             and url not in links
         ):

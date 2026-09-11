@@ -44,6 +44,23 @@ def test_links_are_same_origin_deduplicated_and_bounded():
     ]
 
 
+def test_openai_index_links_are_allowed_only_on_openai_same_origin():
+    html = '<a href="/index/introducing-product">OpenAI article</a>'
+    html += '<a href="http://openai.com/index/insecure">insecure</a>'
+    html += '<a href="https://other.example/index/unrelated">unrelated</a>'
+    assert releases.announcement_links(html, "https://openai.com/") == [
+        "https://openai.com/index/introducing-product"
+    ]
+
+    assert (
+        releases.announcement_links(
+            '<a href="/index/article">unrelated same-origin path</a>',
+            "https://other.example/",
+        )
+        == []
+    )
+
+
 def test_release_uses_publication_date_and_retains_source(extractor):
     event = releases.announcement_event("ISSUER", URL, page(), NOW)
     assert event.published_at == datetime(2026, 9, 9, 11, 1, 4, tzinfo=timezone.utc)
@@ -52,6 +69,14 @@ def test_release_uses_publication_date_and_retains_source(extractor):
     assert event.title == "Issuer announces a new chip"
     assert event.source_url == URL
     assert pipeline._event_entity(event) == "ISSUER"
+
+
+def test_openai_index_article_uses_existing_date_and_body_gates(extractor):
+    url = "https://openai.com/index/introducing-product"
+    event = releases.announcement_event("OPENAI", url, page(), NOW)
+    assert event is not None
+    assert event.source_url == url
+    assert event.source_document.parsed_fields["documentKind"] == "issuer_announcement"
 
 
 @pytest.mark.parametrize(

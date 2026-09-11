@@ -4,6 +4,13 @@ Last updated: 2026-09-11
 
 Current September 11 qualification:
 
+Issuer announcement discovery now recognizes same-origin OpenAI `/index/`
+articles, which the generic press-release path matcher omitted. HTTPS, the
+three-link retrieval limit, explicit publication metadata and body requirements
+remain unchanged. Focused discovery tests cover the fix. Direct OpenAI fetches
+returned HTTP 403 during verification, so successful collection and publication
+remain unverified; this change does not qualify a new edition.
+
 Ingestion now counts a remote draft only when the sync API acknowledges one
 upsert with no failed or skipped records. Protected replay no-ops produce no
 success path or local fallback, and do not trigger fallback generation. Entity,
