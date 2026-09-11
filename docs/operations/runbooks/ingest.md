@@ -34,15 +34,16 @@ Current production cadence:
 
 ## Diagnosing a zero-draft day
 
-A zero-draft run exits 0 with `errors: 0`, so it looks like a healthy tick. Two
-things now make the drought readable without opening the LLM logs:
+A zero-draft run can exit 0 even when it produces no useful edition. These
+receipts distinguish missing inputs, model decisions, proof failures and delivery:
 
 - The run receipt (returned by `pipeline`, and stored in the `ingest_runs.notes`
   column) carries `candidates_generated`, `candidates_rejected_no_proof`, and a
   per-clause breakdown: `candidates_rejected_thin_evidence_urls`,
   `candidates_rejected_single_evidentiary_origin`,
-  `candidates_rejected_single_provider`. `candidates_generated: 0` means the
-  model was never asked or never answered; a high
+  `candidates_rejected_single_provider`. `candidates_generated: 0` means no
+  candidate reached proof checking; generation may have been skipped, failed,
+  deliberately declined publication, or returned an empty batch. A high
   `candidates_rejected_single_evidentiary_origin` means the model returned
   candidates whose proofs were never marked aligned against distinct origins.
 - `candidates_admitted_single_provider_authoritative` counts drafts that cleared
@@ -60,6 +61,11 @@ things now make the drought readable without opening the LLM logs:
 - `pipeline` prints a `::warning title=zero signal drafts::` annotation on
   stderr when a run fetched events yet drafted nothing, so the GitHub run page
   shows the drought instead of a silent green tick.
+- `llm_runs.reason` records individual outcomes: `publish_false` is a deliberate
+  decline, `ok:0/N` is a completed batch with no retained candidates, and
+  `invalid_json` is an unusable model response. Inspect these existing audit
+  records before changing prompts or adding diagnostics. An accepted audit row
+  does not mean a signal was created or published.
 
 Every generated candidate still needs verified independent support to pass the
 ingestion proof gate, including low-confidence candidates. Retained source
@@ -114,7 +120,7 @@ one that failed or was not scheduled.
 wrangler d1 execute high-signal-db --remote --config workers/api/wrangler.toml \
   --command "SELECT source, count(*) runs, sum(errors) errors, sum(signals_drafted) drafted
              FROM ingest_runs
-             WHERE started_at >= datetime('now','-7 days')
+             WHERE started_at >= unixepoch('now','-7 days')
              GROUP BY source ORDER BY runs DESC"
 
 # Last 20 errors in detail
@@ -127,11 +133,20 @@ wrangler d1 execute high-signal-db --remote --config workers/api/wrangler.toml \
 # Events fetched in the last 24 h, per source
 wrangler d1 execute high-signal-db --remote --config workers/api/wrangler.toml \
   --command "SELECT source, count(*) n FROM events
-             WHERE ingested_at >= datetime('now','-1 day')
+             WHERE ingested_at >= unixepoch('now','-1 day')
              GROUP BY source ORDER BY n DESC"
+
+# Recent generation decisions, without request or response bodies
+wrangler d1 execute high-signal-db --remote --config workers/api/wrangler.toml \
+  --command "SELECT datetime(created_at,'unixepoch') created_utc,
+                    model, prompt_version, accepted, reason
+             FROM llm_runs
+             WHERE created_at >= unixepoch('now','-1 day')
+             ORDER BY created_at DESC LIMIT 20"
 ```
 
-The `/admin/health` route surfaces the same shape via HTTP for dashboards.
+Stored timestamps are Unix seconds. The protected `/admin/audit/summary` route
+provides aggregate audit counts; it does not expose per-request reasons.
 
 ## Triage
 
@@ -148,23 +163,26 @@ The `/admin/health` route surfaces the same shape via HTTP for dashboards.
      `news` and `gdelt` are most flaky.
 
 3. **`errors > 0` with `generate <entity>:` in `error_sample`.**
-   - LLM call failed for that cluster. Check `llm_runs` for the matching
-     `started_at` to see token usage / status code. Common cause: AI gateway
+   - LLM call failed for that cluster. Check `llm_runs.created_at` within the
+     ingest run's time window for token usage and failure reason. Common cause: AI gateway
      rate limit; rerun the single source with
      `uv run python -m high_signal_ingest.pipeline --source <s> --days <n>`.
 
-4. **Signals drafted but missing from D1 after sync.**
-   - Sync runs locally from disk. Re-run `pnpm signals:sync:remote --force`
-     to bypass the skip-cache, then re-check the `signals` table.
+4. **A candidate exists but no remote draft was acknowledged.**
+   - Inspect `signals_delivery_failed`, `recovery_paths` and the existing signal
+     status first. API ingestion writes directly to D1; recovery markdown is not
+     evidence of delivery. A protected replay skip is expected. The separate
+     disk importer must not be used to overwrite reviewed records.
 
 ## Recovery
 
-- **Replay a fetch run.** `events` rows include `fetch_run_id`; you can
-  filter them out and re-feed a downstream step. There's no replay CLI today
-  — escape hatch is `wrangler d1 execute --command "DELETE FROM events WHERE
-  fetch_run_id = '<id>'"` followed by a fresh run.
-- **Force a full sync.** `pnpm signals:sync:remote --force` ignores the
-  content-hash cache and re-applies every signal.
-- **Wipe a broken signal row.** Delete the source markdown (or flip
-  `review_status` to `corrected` and supersede it), then re-sync. D1
-  `INSERT OR REPLACE` will overwrite; orphan rows need a manual `DELETE`.
+- **Retry a bounded source.** Inspect the retained `events` by `fetch_run_id`,
+  repair the demonstrated failure and rerun that source. There is no exact-run
+  replay CLI; a new fetch has new provenance. Preserve existing audit rows.
+- **Recheck the disk importer.** An explicitly approved
+  `pnpm signals:sync:remote --force` bypasses only the local content-hash cache.
+  Its guarded upserts still preserve published, corrected and killed records;
+  it is not a way to bypass review protection or replay recovery artifacts.
+- **Correct a reviewed signal.** Preserve its markdown and stored proof. Add a
+  new correction that cites the original and follow the normal review workflow;
+  do not delete history or replace the original row.
