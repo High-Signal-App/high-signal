@@ -19,27 +19,29 @@ test('primary navigation exposes the four reader destinations', async ({ page })
   );
 });
 
-test('navigation acknowledges a click before a slow destination responds', async ({ page }) => {
-  await page.goto('/');
+test('navigation acknowledges a click when destination prefetch is still unavailable', async ({
+  page,
+}) => {
   let releaseNavigation = () => {};
   const navigationGate = new Promise<void>((resolve) => {
     releaseNavigation = resolve;
   });
-  let interceptedNavigation = false;
+  let interceptedDestination = false;
   await page.route('**/signals?*', async (route) => {
     if (route.request().headers()['rsc'] === '1') {
-      interceptedNavigation = true;
+      interceptedDestination = true;
       await navigationGate;
     }
     await route.continue();
   });
+  await page.goto('/');
 
   const nav = page.getByRole('navigation', { name: 'Primary', exact: true });
   const signals = nav.getByRole('link', { name: 'signals', exact: true });
   try {
     await signals.focus();
     await page.keyboard.press('Enter');
-    await expect.poll(() => interceptedNavigation).toBe(true);
+    await expect.poll(() => interceptedDestination).toBe(true);
     await expect(signals.getByRole('status')).toHaveText('Loading signals…');
     await expect(page.getByRole('heading', { name: 'Signals', exact: true })).toHaveCount(0);
   } finally {

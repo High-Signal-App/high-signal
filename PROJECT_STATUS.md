@@ -7,8 +7,11 @@ Current September 11 qualification:
 Web navigation now acknowledges primary-link clicks immediately and streams a
 shared loading view before destination data resolves. The navigation remains
 available, loading status is announced accessibly, and reduced-motion settings
-are respected. A production-build browser check held both Signals API responses:
-click feedback appeared in 12 ms and the destination loading view in 17 ms;
+are respected. Automatic prefetch is enabled for the four main destinations;
+dynamic routes prefetch their loading boundary, while the cached Sources route
+can prefetch its completed page. Click feedback also works when prefetch has not
+arrived. A production-build browser check held both Signals API responses:
+click feedback appeared in 17 ms and the destination loading view in 26 ms;
 releasing the requests rendered Signals normally. The focused navigation suite
 covers the current four destinations, delayed responses, keyboard activation and
 back navigation. This repairs navigation feedback, not useful-edition acceptance.
