@@ -838,9 +838,9 @@ def test_run_batch_noop_is_handled_without_success_path_or_fallback(monkeypatch)
     monkeypatch.setattr(
         pipeline,
         "_emit_fallback_drafts",
-        lambda *_args: (_ for _ in ()).throw(AssertionError("fallback emitted")),
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("fallback emitted")),
     )
-    monkeypatch.setattr(pipeline, "_emit_thematic_drafts", lambda *_args: [])
+    monkeypatch.setattr(pipeline, "_emit_thematic_drafts", lambda *_args, **_kwargs: [])
 
     out = pipeline.run("all", 1)
 

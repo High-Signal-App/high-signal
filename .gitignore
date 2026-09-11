@@ -66,3 +66,6 @@ agents.log
 
 # Generated automation reports
 reports/
+
+# Undelivered candidates are operator recovery files, not published signals.
+signal-recovery/

@@ -35,3 +35,12 @@ jobs:
           SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT || 'high-signal sarthakagrawal927@gmail.com' }}
         run: |
           uv run python -m high_signal_ingest.pipeline --source markets
+
+      - name: Preserve undelivered signal candidates
+        if: always() && hashFiles('python/ingest/signal-recovery/*.md') != ''
+        uses: actions/upload-artifact@v7
+        with:
+          name: signal-recovery-${{ github.run_id }}-${{ github.run_attempt }}
+          path: python/ingest/signal-recovery/*.md
+          if-no-files-found: error
+          retention-days: 14

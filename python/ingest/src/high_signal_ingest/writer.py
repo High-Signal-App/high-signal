@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import logging
 import os
+import re
+import uuid
 from datetime import datetime
 from pathlib import Path
 
@@ -20,6 +22,16 @@ from .types import SignalCandidate
 
 
 LOGGER = logging.getLogger(__name__)
+
+
+class SignalDeliveryError(RuntimeError):
+    """A candidate could not be delivered to the configured remote sink."""
+
+    def __init__(self, slug: str, reason: str, recovery_path: Path | None = None) -> None:
+        self.slug = slug
+        self.reason = reason
+        self.recovery_path = recovery_path
+        super().__init__(f"signal delivery failed for {slug}: {reason}")
 
 
 def _review_status(candidate: SignalCandidate) -> str:
@@ -120,11 +132,37 @@ def write_signal(candidate: SignalCandidate, root: Path | None = None) -> Path:
     fp = dir_ / f"{candidate.slug}.md"
     front = _frontmatter(candidate, day)
     body = candidate.body_md.strip()
-    fp.write_text(
-        f"---\n{yaml.safe_dump(front, sort_keys=False).strip()}\n---\n\n{body}\n",
-        encoding="utf-8",
-    )
+    fp.write_text(_render_signal(front, body), encoding="utf-8")
     return fp
+
+
+def _render_signal(front: dict[str, object], body: str) -> str:
+    return f"---\n{yaml.safe_dump(front, sort_keys=False).strip()}\n---\n\n{body}\n"
+
+
+def write_recovery_signal(candidate: SignalCandidate) -> Path:
+    """Write a failed remote delivery under a unique, operator-recoverable path."""
+    root = Path.cwd() / "signal-recovery"
+    root.mkdir(parents=True, exist_ok=True)
+    day = candidate.published_at.strftime("%Y-%m-%d")
+    front = _frontmatter(candidate, day)
+    body = candidate.body_md.strip()
+    safe_slug = (re.sub(r"[^A-Za-z0-9._-]+", "-", candidate.slug).strip(".-") or "signal")[:120]
+    content = _render_signal(front, body).encode("utf-8")
+    for _ in range(10):
+        path = root / f"{safe_slug}-{uuid.uuid4().hex}.md"
+        try:
+            descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        except FileExistsError:
+            continue
+        try:
+            with os.fdopen(descriptor, "wb") as handle:
+                handle.write(content)
+        except Exception:
+            path.unlink(missing_ok=True)
+            raise
+        return path
+    raise FileExistsError("could not allocate a unique recovery signal path")
 
 
 def write_signal_dict(d: dict, root: Path | None = None) -> Path:
@@ -204,27 +242,61 @@ def push_signal(candidate: SignalCandidate) -> dict:
     return dict(r.json())
 
 
+def _delivery_reason(exc: Exception) -> str:
+    if isinstance(exc, httpx.HTTPStatusError):
+        return f"HTTP {exc.response.status_code}"
+    return exc.__class__.__name__
+
+
+def _acknowledgement(result: object) -> str:
+    if not isinstance(result, dict):
+        raise ValueError("malformed response")
+    upserts = result.get("upserts")
+    failed = result.get("failed", 0)
+    skipped = result.get("skipped", 0)
+    if type(upserts) is not int or type(failed) is not int or type(skipped) is not int:
+        raise ValueError("malformed counters")
+    if upserts == 1 and failed == 0 and skipped == 0:
+        return "pushed"
+    if upserts == 0 and failed == 0 and skipped == 1:
+        return "skipped"
+    raise ValueError("unexpected counters")
+
+
 def emit(candidate: SignalCandidate) -> str | None:
     """Choose write path: API push if API_BASE+ADMIN_TOKEN set, else local file."""
     if os.environ.get("API_BASE") and os.environ.get("ADMIN_TOKEN"):
         try:
             result = push_signal(candidate)
-            if (
-                type(result.get("upserts")) is int
-                and result["upserts"] == 1
-                and result.get("failed", 0) == 0
-                and result.get("skipped", 0) == 0
-            ):
+            acknowledgement = _acknowledgement(result)
+            if acknowledgement == "pushed":
                 return f"pushed:{candidate.slug}"
-            LOGGER.info(
-                "push_signal did not acknowledge %s (upserts=%s, failed=%s, skipped=%s)",
-                candidate.slug,
-                result.get("upserts"),
-                result.get("failed", 0),
-                result.get("skipped", 0),
-            )
+            LOGGER.info("push_signal skipped protected signal %s", candidate.slug)
             return None
+        except SignalDeliveryError:
+            raise
         except Exception as exc:
-            LOGGER.warning("push_signal failed, falling back to file: %s", exc)
+            reason = _delivery_reason(exc)
+            try:
+                recovery_path = write_recovery_signal(candidate)
+            except Exception as recovery_exc:
+                recovery_reason = _delivery_reason(recovery_exc)
+                LOGGER.warning(
+                    "signal delivery failed for %s: %s; recovery unavailable (%s)",
+                    candidate.slug,
+                    reason,
+                    recovery_reason,
+                )
+                raise SignalDeliveryError(
+                    candidate.slug,
+                    f"{reason}; recovery write failed ({recovery_reason})",
+                ) from None
+            LOGGER.warning(
+                "signal delivery failed for %s: %s; recovery saved at %s",
+                candidate.slug,
+                reason,
+                recovery_path,
+            )
+            raise SignalDeliveryError(candidate.slug, reason, recovery_path) from None
     fp = write_signal(candidate)
     return str(fp)

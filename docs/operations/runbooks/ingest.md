@@ -1,6 +1,7 @@
 # Ingest runbook
 
-How to inspect, debug, and recover the Python ingest pipeline running on Modal.
+How to inspect, debug, and recover the Python ingest pipeline running in GitHub
+Actions, locally, or through the manual Modal entry points.
 
 The pipeline emits three audit streams to the API (admin-token gated) on every
 run; you read them back to answer *did the cron fire?*, *what did it see?*,
@@ -15,6 +16,7 @@ and *what blew up?*.
 | `llm_runs` (D1)                    | Each generator LLM call, with token usage and outcome.                                            |
 | `signals/YYYY-MM-DD/*.md`          | Drafted signal markdown that the writer emitted. Source of truth on disk + git.                  |
 | `.tmp/signals-sync-cache-*.json`   | Local skip-cache used by `pnpm signals:sync:*`.                                                  |
+| `signal-recovery/*.md`            | Undelivered candidates in the process working directory, separate from published history.       |
 
 ## Generation scope
 
@@ -59,9 +61,32 @@ things now make the drought readable without opening the LLM logs:
   stderr when a run fetched events yet drafted nothing, so the GitHub run page
   shows the drought instead of a silent green tick.
 
-Low-confidence drafts are expected. Single-source or weak-source events should
-enter the review queue as `low` confidence instead of disappearing. Medium/high
-signals still need stronger evidence before publication.
+Every generated candidate still needs verified independent support to pass the
+ingestion proof gate, including low-confidence candidates. Retained source
+events remain available when no candidate clears that gate.
+
+## Delivery failures and recovery
+
+In API mode, `signals_drafted` counts only acknowledged upserts. A protected
+replay is a valid skip. Transport errors, failure receipts and malformed
+acknowledgements increment `signals_delivery_failed` and `errors`; the pipeline
+and backfill CLIs exit 4 even when other candidates were delivered successfully.
+`signals_recovered` and `recovery_paths` report separately saved candidates,
+never delivered drafts. If the recovery write also fails, the delivery error
+remains and no recovery path is claimed.
+
+The writer creates unique markdown files in `signal-recovery/` under its current
+working directory. It never uses the published `signals/` tree for API-failure
+recovery. GitHub's ingestion and backfill workflows upload only those recovery
+files as `signal-recovery-<run-id>-<attempt>` artifacts, retained for 14 days.
+Download them before expiry, inspect the failed run and existing signal status,
+then retry the bounded source after repairing delivery. A timeout can occur
+after the server committed, so a missing acknowledgement does not prove that
+the database is empty. Do not bulk-import recovery files or replace reviewed
+signals to make a run green.
+
+The manual Modal entry points return the same failure counters, but their local
+recovery paths are ephemeral; GitHub artifact retention does not cover Modal.
 
 ## Quick checks
 

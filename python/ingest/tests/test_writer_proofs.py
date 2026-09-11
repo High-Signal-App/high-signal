@@ -92,40 +92,107 @@ def test_push_signal_sends_structured_claim_and_proofs(monkeypatch) -> None:
     ]
 
 
+def test_emit_accepts_exact_upsert_and_protected_skip(monkeypatch, tmp_path) -> None:
+    monkeypatch.setenv("API_BASE", "https://api.example")
+    monkeypatch.setenv("ADMIN_TOKEN", "test-token")
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(writer, "push_signal", lambda _candidate: {"upserts": 1})
+    assert writer.emit(_candidate()) == "pushed:nvda-capacity-expansion"
+
+    monkeypatch.setattr(writer, "push_signal", lambda _candidate: {"upserts": 0, "skipped": 1})
+    assert writer.emit(_candidate()) is None
+    assert not (tmp_path / "signal-recovery").exists()
+
+
 @pytest.mark.parametrize(
-    ("response", "expected"),
+    "response",
     [
-        (
-            {"upserts": 1, "createdEntities": 1, "failed": 0, "skipped": 0},
-            "pushed:nvda-capacity-expansion",
-        ),
-        ({"upserts": 1, "failed": 1, "skipped": 1}, None),
-        ({"upserts": 0, "skipped": 1}, None),
-        ({"skipped": 1}, None),
+        {"upserts": 1, "failed": 1, "skipped": 0},
+        {"upserts": 0, "failed": 0, "skipped": 0},
+        {"upserts": True, "failed": 0, "skipped": 0},
+        {"upserts": 1, "failed": False, "skipped": 0},
+        {"upserts": 1, "failed": 0, "skipped": True},
+        {"upserts": 1, "failed": 0, "skipped": 1},
+        ["not", "an", "object"],
+        {"failed": 0, "skipped": 0},
     ],
 )
-def test_emit_only_reports_acknowledged_upsert(monkeypatch, response, expected) -> None:
+def test_emit_rejects_malformed_or_failed_receipts(monkeypatch, tmp_path, response) -> None:
     monkeypatch.setenv("API_BASE", "https://api.example")
     monkeypatch.setenv("ADMIN_TOKEN", "test-token")
+    monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(writer, "push_signal", lambda _candidate: response)
-    monkeypatch.setattr(
-        writer,
-        "write_signal",
-        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("no local fallback")),
-    )
 
-    assert writer.emit(_candidate()) == expected
+    with pytest.raises(writer.SignalDeliveryError) as caught:
+        writer.emit(_candidate())
+    assert caught.value.slug == "nvda-capacity-expansion"
+    assert caught.value.recovery_path is not None
+    assert caught.value.recovery_path.parent == tmp_path / "signal-recovery"
+    assert "token" not in str(caught.value)
+    assert not (tmp_path / "signals").exists()
 
 
-def test_emit_falls_back_to_local_file_on_push_failure(monkeypatch, tmp_path) -> None:
+def test_http_503_writes_recovery_and_preserves_published_sentinel(monkeypatch, tmp_path) -> None:
     monkeypatch.setenv("API_BASE", "https://api.example")
     monkeypatch.setenv("ADMIN_TOKEN", "test-token")
-    monkeypatch.setattr(
-        writer,
-        "push_signal",
-        lambda _candidate: (_ for _ in ()).throw(httpx.ReadTimeout("temporary failure")),
-    )
-    fallback = tmp_path / "nvda-capacity-expansion.md"
-    monkeypatch.setattr(writer, "write_signal", lambda *_args, **_kwargs: fallback)
+    monkeypatch.chdir(tmp_path)
+    signals_root = tmp_path / "signals"
+    monkeypatch.setattr(writer, "_default_signals_root", lambda: signals_root)
+    published = signals_root / "2026-08-26" / "nvda-capacity-expansion.md"
+    published.parent.mkdir(parents=True)
+    published.write_text("published sentinel\n", encoding="utf-8")
 
-    assert writer.emit(_candidate()) == str(fallback)
+    transport = httpx.MockTransport(lambda _request: httpx.Response(503, text="secret token body"))
+    with httpx.Client(transport=transport) as client:
+        monkeypatch.setattr(writer.httpx, "post", client.post)
+        with pytest.raises(writer.SignalDeliveryError) as caught:
+            writer.emit(_candidate())
+
+    assert caught.value.reason == "HTTP 503"
+    assert caught.value.recovery_path is not None
+    assert caught.value.recovery_path.read_text(encoding="utf-8").endswith("Supply increased.\n")
+    assert published.read_text(encoding="utf-8") == "published sentinel\n"
+
+
+def test_retries_retain_distinct_recovery_files(monkeypatch, tmp_path) -> None:
+    monkeypatch.setenv("API_BASE", "https://api.example")
+    monkeypatch.setenv("ADMIN_TOKEN", "test-token")
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(writer, "push_signal", lambda _candidate: {"upserts": 1, "failed": 1})
+
+    paths = []
+    for _ in range(2):
+        with pytest.raises(writer.SignalDeliveryError) as caught:
+            writer.emit(_candidate())
+        paths.append(caught.value.recovery_path)
+    assert paths[0] != paths[1]
+    assert len(list((tmp_path / "signal-recovery").glob("*.md"))) == 2
+
+
+def test_recovery_filename_is_bounded_and_stays_under_root(monkeypatch, tmp_path) -> None:
+    monkeypatch.setenv("API_BASE", "https://api.example")
+    monkeypatch.setenv("ADMIN_TOKEN", "test-token")
+    monkeypatch.chdir(tmp_path)
+    candidate = _candidate().model_copy(update={"slug": "../" + ("very-long-" * 50)})
+    monkeypatch.setattr(writer, "push_signal", lambda _candidate: {"upserts": 0, "failed": 1})
+
+    with pytest.raises(writer.SignalDeliveryError) as caught:
+        writer.emit(candidate)
+    path = caught.value.recovery_path
+    assert path is not None
+    assert path.parent == tmp_path / "signal-recovery"
+    assert len(path.name.encode("ascii")) <= 160
+
+
+def test_recovery_filesystem_error_stays_a_delivery_error(monkeypatch, tmp_path) -> None:
+    monkeypatch.setenv("API_BASE", "https://api.example")
+    monkeypatch.setenv("ADMIN_TOKEN", "test-token")
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(writer, "push_signal", lambda _candidate: {"upserts": 0, "failed": 1})
+    monkeypatch.setattr(writer, "write_recovery_signal", lambda _candidate: (_ for _ in ()).throw(OSError("/secret/token")))
+
+    with pytest.raises(writer.SignalDeliveryError) as caught:
+        writer.emit(_candidate())
+    assert caught.value.recovery_path is None
+    assert caught.value.reason == "ValueError; recovery write failed (OSError)"
+    assert "/secret" not in str(caught.value)

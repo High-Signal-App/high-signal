@@ -21,7 +21,7 @@ from .graph import spillover_ids
 from .seed import load_entities
 from .sources import edgar, gdelt
 from .types import Event, SignalCandidate
-from .writer import emit
+from .writer import SignalDeliveryError, emit
 
 
 def _parse_date(s: str) -> datetime:
@@ -51,6 +51,21 @@ def _mark_backfill(c: SignalCandidate) -> SignalCandidate:
     return c
 
 
+def _group_events(events: list[Event]) -> tuple[dict[str, list[Event]], int]:
+    by_entity: dict[str, list[Event]] = defaultdict(list)
+    no_entity = 0
+    for ev in events:
+        eid = ev.primary_entity_id
+        if not eid:
+            text = f"{ev.title or ''}\n{(ev.content or '')[:4000]}"
+            eid = primary_entity(text)
+        if eid:
+            by_entity[eid].append(ev)
+        else:
+            no_entity += 1
+    return by_entity, no_entity
+
+
 def run(start: datetime, end: datetime, sources: list[str], window_chunk_days: int = 7) -> dict:
     """Walk the date range in `window_chunk_days` chunks, ingest each."""
     started_at = datetime.now(timezone.utc)
@@ -61,6 +76,9 @@ def run(start: datetime, end: datetime, sources: list[str], window_chunk_days: i
     total_low_cluster = 0
     total_no_entity = 0
     errors = 0
+    signals_delivery_failed = 0
+    recovery_paths: list[str] = []
+    error_sample: str | None = None
 
     cursor = start
     while cursor < end:
@@ -75,16 +93,8 @@ def run(start: datetime, end: datetime, sources: list[str], window_chunk_days: i
         total_events += len(events)
         audit.push_events(events, fetch_run_id)
 
-        by_entity: dict[str, list[Event]] = defaultdict(list)
-        for ev in events:
-            eid = ev.primary_entity_id
-            if not eid:
-                text = f"{ev.title or ''}\n{(ev.content or '')[:4000]}"
-                eid = primary_entity(text)
-            if eid:
-                by_entity[eid].append(ev)
-            else:
-                total_no_entity += 1
+        by_entity, no_entity = _group_events(events)
+        total_no_entity += no_entity
 
         for entity_id, evs in by_entity.items():
             try:
@@ -106,7 +116,18 @@ def run(start: datetime, end: datetime, sources: list[str], window_chunk_days: i
                 # yfinance can compute hit/miss today.
                 cand.published_at = max(e.published_at for e in evs)
                 _mark_backfill(cand)
-                if emit(cand) is not None:
+                try:
+                    receipt = emit(cand)
+                except SignalDeliveryError as exc:
+                    signals_delivery_failed += 1
+                    errors += 1
+                    if error_sample is None:
+                        error_sample = str(exc)[:300]
+                    if exc.recovery_path is not None:
+                        recovery_paths.append(str(exc.recovery_path))
+                    print(f"[backfill] signal delivery failed slug={exc.slug}: {exc.reason}")
+                    receipt = None
+                if receipt is not None:
                     total_drafted += 1
         print(
             f"[backfill] {cursor.date()} → {chunk_end.date()}  "
@@ -123,7 +144,12 @@ def run(start: datetime, end: datetime, sources: list[str], window_chunk_days: i
         events_dropped_low_cluster=total_low_cluster,
         signals_drafted=total_drafted,
         errors=errors,
-        notes=f"start={start.date()} end={end.date()} fetch_run_id={fetch_run_id}",
+        error_sample=error_sample,
+        notes=(
+            f"start={start.date()} end={end.date()} fetch_run_id={fetch_run_id} "
+            f"signals_delivery_failed={signals_delivery_failed} "
+            f"signals_recovered={len(recovery_paths)}"
+        ),
     )
 
     return {
@@ -133,6 +159,9 @@ def run(start: datetime, end: datetime, sources: list[str], window_chunk_days: i
         "no_entity": total_no_entity,
         "low_cluster": total_low_cluster,
         "errors": errors,
+        "signals_delivery_failed": signals_delivery_failed,
+        "recovery_paths": recovery_paths,
+        "signals_recovered": len(recovery_paths),
     }
 
 
@@ -157,6 +186,8 @@ def main() -> None:
         window_chunk_days=args.chunk_days,
     )
     print(out)
+    if out.get("signals_delivery_failed", 0) > 0:
+        raise SystemExit(4)
 
 
 if __name__ == "__main__":

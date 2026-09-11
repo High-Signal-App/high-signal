@@ -88,7 +88,7 @@ from .generator import (
     generate,
     generate_batch,
 )
-from .writer import emit
+from .writer import SignalDeliveryError, emit
 
 Source = Literal[
     "edgar",
@@ -734,7 +734,26 @@ _THEME_SIGNALS: dict[str, tuple[str, str]] = {
 _THEMATIC_DRAFT_LIMIT = 5
 
 
-def _emit_thematic_drafts(events: list[Event]) -> list[str]:
+def _record_emission(
+    candidate: SignalCandidate,
+    written: list[str],
+    delivery_failures: list[SignalDeliveryError] | None = None,
+) -> None:
+    """Count acknowledged drafts, retaining per-candidate failures for the run audit."""
+    try:
+        receipt = emit(candidate)
+    except SignalDeliveryError as exc:
+        if delivery_failures is None:
+            raise
+        delivery_failures.append(exc)
+        return
+    if receipt is not None:
+        written.append(receipt)
+
+
+def _emit_thematic_drafts(
+    events: list[Event], *, delivery_failures: list[SignalDeliveryError] | None = None
+) -> list[str]:
     """Generate from compatible named events, never whole theme buckets.
 
     Two channels/URLs nominate a story for semantic generation; only generated
@@ -772,13 +791,15 @@ def _emit_thematic_drafts(events: list[Event]) -> list[str]:
         selected = sorted(evs, key=lambda event: event.published_at, reverse=True)[:6]
         cand = generate(entity_id, selected, [])
         if cand and _has_publishable_proofs(cand):
-            receipt = emit(cand)
-            if receipt is not None:
-                written.append(receipt)
+            _record_emission(cand, written, delivery_failures)
     return written
 
 
-def _emit_fallback_drafts(clusters: list[tuple[str, list[Event]]]) -> list[str]:
+def _emit_fallback_drafts(
+    clusters: list[tuple[str, list[Event]]],
+    *,
+    delivery_failures: list[SignalDeliveryError] | None = None,
+) -> list[str]:
     """Emit bounded review-only fallbacks from already proof-bearing stories."""
     written: list[str] = []
     ranked = sorted(
@@ -789,9 +810,7 @@ def _emit_fallback_drafts(clusters: list[tuple[str, list[Event]]]) -> list[str]:
     for entity_id, evs in ranked[:FALLBACK_DRAFT_LIMIT]:
         cand = fallback_candidate(entity_id, evs, _spillover_candidates(entity_id))
         if cand:
-            receipt = emit(cand)
-            if receipt is not None:
-                written.append(receipt)
+            _record_emission(cand, written, delivery_failures)
     return written
 
 
@@ -1025,6 +1044,9 @@ def run(source: Source, days: int, *, generate_signals: bool = True) -> dict:
             "generation_requests": 0,
             "generation_request_failures": 0,
             "signals_drafted": 0,
+            "signals_delivery_failed": 0,
+            "signals_recovered": 0,
+            "recovery_paths": [],
             **new_proof_tally(),
             "errors": errors,
             "paths": [],
@@ -1037,6 +1059,7 @@ def run(source: Source, days: int, *, generate_signals: bool = True) -> dict:
             by_entity[entity_id].append(retained)
 
     written: list[str] = []
+    delivery_failures: list[SignalDeliveryError] = []
     fallback_clusters: list[tuple[str, list[Event]]] = []
     proof_tally = new_proof_tally()
     generation_requests = 0
@@ -1071,9 +1094,7 @@ def run(source: Source, days: int, *, generate_signals: bool = True) -> dict:
             fallback_clusters.append((entity_id, evs))
             continue
         if cand and record_proof(cand, proof_tally):
-            receipt = emit(cand)
-            if receipt is not None:
-                written.append(receipt)
+            _record_emission(cand, written, delivery_failures)
         else:
             fallback_clusters.append((entity_id, evs))
 
@@ -1106,21 +1127,30 @@ def run(source: Source, days: int, *, generate_signals: bool = True) -> dict:
                 continue
             if cand.source_cluster_id:
                 emitted_cluster_ids.add(cand.source_cluster_id)
-            receipt = emit(cand)
-            if receipt is not None:
-                written.append(receipt)
+            _record_emission(cand, written, delivery_failures)
         for index, (entity_id, evs) in enumerate(batch):
             if f"story-{index + 1}" not in emitted_cluster_ids:
                 fallback_clusters.append((entity_id, evs))
 
-    if not written and fallback_clusters and _fallback_drafts_enabled():
-        fallback_written = _emit_fallback_drafts(fallback_clusters)
+    if not written and not delivery_failures and fallback_clusters and _fallback_drafts_enabled():
+        fallback_written = _emit_fallback_drafts(
+            fallback_clusters, delivery_failures=delivery_failures
+        )
         written.extend(fallback_written)
 
     # Thematic signals from entity-less events (additive; never touches the
     # entity path above). Strictly gated by cite-or-kill — see _emit_thematic_drafts.
-    thematic_written = _emit_thematic_drafts(no_entity_events)
+    thematic_written = _emit_thematic_drafts(no_entity_events, delivery_failures=delivery_failures)
     written.extend(thematic_written)
+
+    errors += len(delivery_failures)
+    if delivery_failures and error_sample is None:
+        error_sample = str(delivery_failures[0])[:300]
+    recovery_paths = [
+        str(failure.recovery_path)
+        for failure in delivery_failures
+        if failure.recovery_path is not None
+    ]
 
     audit.push_ingest_run(
         source=source,
@@ -1139,6 +1169,8 @@ def run(source: Source, days: int, *, generate_signals: bool = True) -> dict:
                 f"generation_requests={generation_requests}",
                 f"generation_request_failures={generation_request_failures}",
                 f"generation_failure_classes={dict(generation_failure_classes)}",
+                f"signals_delivery_failed={len(delivery_failures)}",
+                f"signals_recovered={len(recovery_paths)}",
                 *(f"{k}={v}" for k, v in proof_tally.items()),
             ]
         ),
@@ -1157,6 +1189,9 @@ def run(source: Source, days: int, *, generate_signals: bool = True) -> dict:
         "generation_request_failures": generation_request_failures,
         "generation_failure_classes": dict(generation_failure_classes),
         "signals_drafted": len(written),
+        "signals_delivery_failed": len(delivery_failures),
+        "signals_recovered": len(recovery_paths),
+        "recovery_paths": recovery_paths,
         **proof_tally,
         "errors": errors,
         "paths": written,
@@ -1197,6 +1232,15 @@ def main() -> None:
     alert = zero_draft_alert(out)
     if alert:
         print(alert, file=sys.stderr)
+    if out.get("signals_delivery_failed", 0):
+        print(
+            "::error title=signal delivery failed::"
+            f"{out['signals_delivery_failed']} candidates were not acknowledged by the API; "
+            f"{out.get('signals_recovered', 0)} recovery files retained. "
+            "Recovery files are not delivered drafts.",
+            file=sys.stderr,
+        )
+        sys.exit(4)
     outage = generation_outage_alert(out) or story_match_outage_alert(out)
     if outage:
         print(outage, file=sys.stderr)

@@ -13,10 +13,14 @@ remain unverified; this change does not qualify a new edition.
 
 Ingestion now counts a remote draft only when the sync API acknowledges one
 upsert with no failed or skipped records. Protected replay no-ops produce no
-success path or local fallback, and do not trigger fallback generation. Entity,
-batch, thematic and backfill counts follow this receipt; transport exceptions
-retain the existing local-file recovery. This corrects completion reporting;
-it does not establish a useful edition or change publication eligibility.
+success path or local fallback. Failed or malformed acknowledgements and
+transport failures count as delivery errors, including in mixed-success runs;
+the pipeline and backfill CLIs exit 4. Undelivered candidates go to unique files
+under `signal-recovery/`, separate from published signal history. The five
+GitHub Actions ingestion/backfill workflows retain those files for 14 days.
+Entity, batch, thematic and backfill counts exclude recovery files. This
+corrects completion reporting; it does not establish a useful edition or change
+publication eligibility.
 
 The API ingestion repair preserves reviewed signals and claims on replay. Draft
 content, evidence, extracted claims, timelines and discovered entities are now

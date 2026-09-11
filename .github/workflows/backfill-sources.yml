@@ -70,3 +70,12 @@ jobs:
             echo "::endgroup::"
           done
           exit $fail
+
+      - name: Preserve undelivered signal candidates
+        if: always() && hashFiles('python/ingest/signal-recovery/*.md') != ''
+        uses: actions/upload-artifact@v7
+        with:
+          name: signal-recovery-${{ github.run_id }}-${{ github.run_attempt }}
+          path: python/ingest/signal-recovery/*.md
+          if-no-files-found: error
+          retention-days: 14
