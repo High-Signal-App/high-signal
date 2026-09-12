@@ -2,21 +2,24 @@
 
 Last updated: 2026-09-12
 
-September 12 App Health integration (local, awaiting production activation):
+September 12 App Health integration — live:
 
-Highsignal now wires App Health web analytics, backend endpoint measurements,
-explicit application logs, and a revocable public live analytics footer link.
-Coarse `traffic.summary` logs distinguish verified bots, declared crawlers,
-automation, and unknown requests. Public aggregates exclude operational logs.
-The Highsignal project and production public/share keys are provisioned; private
-Worker ingest-key bindings and deployment remain pending. This is not yet live
-observation evidence. See [the rollout checklist](docs/operations/runbooks/app-health.md)
-and [issue #178](https://github.com/High-Signal-App/high-signal/issues/178).
+Both Highsignal Workers serve the App Health integration at 100% traffic. The
+production environment has live receipts for web analytics, endpoint monitoring,
+and logs. A real signal click produced an acknowledged `signal.opened` event;
+a controlled invalid history check produced `history.blocked`; declared-bot
+summaries were stored for both API and web traffic. The signed-out footer viewer
+shows aggregate page views and live sessions. Temporary-share revocation was
+verified (200 before, 404 after); the attached share remains active.
 
-Local verification: full `pnpm quality`, 36 suites including 391 API assertions,
-three focused browser tests, and the Cloudflare web build passed. Server SDK
-flushes are request-scoped and awaited; private browser-route transitions stop
-capture before the tracker records them.
+The environment-scoped private key is stored in High Signal Infisical prod and
+both Workers. No private key entered source or client bundles. CI and Docs are
+green for runtime release `6185c4db9648b2fbd1d5f8d667a4b0dc46ced355`.
+Local verification includes full `pnpm quality`, 36 suites / 391 API assertions,
+three browser checks, and Cloudflare builds/dry runs. The initial observation
+baseline includes controlled verification visits, not demonstrated user growth.
+See [the integration runbook](docs/operations/runbooks/app-health.md) and
+[issue #178](https://github.com/High-Signal-App/high-signal/issues/178).
 
 Current September 11 qualification:
 

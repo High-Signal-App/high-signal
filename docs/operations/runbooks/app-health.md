@@ -5,8 +5,7 @@ description: Activate and observe Highsignal analytics, endpoint health, logs, a
 
 # App Health integration
 
-Status: implemented and locally verified on September 12, 2026; production
-activation and live receipt checks are pending. Tracking: [issue #178](https://github.com/High-Signal-App/high-signal/issues/178).
+Status: production integration and live receipt checks verified on September 12, 2026. Tracking: [issue #178](https://github.com/High-Signal-App/high-signal/issues/178).
 
 ## Surfaces
 
@@ -46,12 +45,35 @@ Worker lifetime or an awaited Next `after` callback. Endpoint and log batches us
 separate ingest endpoints; this does not batch different HTTP requests together.
 Browser delivery uses the bounded App Health tracker queue and heartbeat.
 
-## Activation checklist
+## September 12 production receipt
+
+Runtime release: `6185c4db9648b2fbd1d5f8d667a4b0dc46ced355`, deployed to both
+Workers at 100% after exact-revision CI and Docs passed. Deployment evidence is
+recorded in [the release receipt](../evidence/app-health-2026-09-12.json).
+
+- Browser: tracker 200, event batches 202, no browser errors during the probe.
+- Real reading action: `signal.opened` acknowledged after opening a published signal.
+- Server logs: controlled invalid Turnstile verification returned 403 and stored
+  `history.blocked` at warn level. The actual verification gate remained intact.
+- Bot visibility: `traffic.summary` rows contain declared bots on web and API.
+  Verified-bot metadata was not observed in these canaries; it is not inferred.
+- All three capability receipt timestamps are populated for Highsignal / production.
+- Public viewer: signed-out page and aggregate API returned 200, with an active
+  session and page-view totals. A separate temporary share returned 404 after
+  revocation; the footer share was not revoked.
+- Private key: environment-scoped, persisted in High Signal Infisical prod and
+  provisioned on both Workers. No private value is stored in this repository.
+
+The initial traffic includes controlled release verification. Leave the SDKs
+running and review trends, failures, quotas and costs after several days; no
+unattended review job has been created.
+
+## Future activation or recovery checklist
 
 The project, production environment, origin-scoped public key, and public share
 already exist. Do not create a second project.
 
-- Obtain authorization for secret provisioning and production release.
+- Obtain authorization before any future key rotation or production release.
 - Provision one production environment-scoped private ingest key on both
   Highsignal Workers as `APP_HEALTH_INGEST_KEY`, using the approved secret workflow.
   Never place it in source, public variables, command arguments, or plaintext files.

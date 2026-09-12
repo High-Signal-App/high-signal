@@ -1,0 +1,297 @@
+{
+  "observedAt": "2026-09-12",
+  "runtimeSourceCommit": "6185c4db9648b2fbd1d5f8d667a4b0dc46ced355",
+  "ci": "https://github.com/High-Signal-App/high-signal/actions/runs/34702939751",
+  "workers": [
+    {
+      "package": "@high-signal/api",
+      "deploymentId": "de7e89bc-5c60-496f-adf4-04776925c25b",
+      "versionId": "54771d41-0556-4811-b075-3cf563f42ef8",
+      "sourceCommit": "6185c4db9648b2fbd1d5f8d667a4b0dc46ced355",
+      "trafficPercent": 100,
+      "createdAt": "2026-09-12T15:43:25.343296Z"
+    },
+    {
+      "package": "@high-signal/web",
+      "deploymentId": "38de8f85-602f-449c-a56b-1f0e3165b0e7",
+      "versionId": "74411c4b-d500-4b1b-b876-9f2c2b5b9f6e",
+      "sourceCommit": "6185c4db9648b2fbd1d5f8d667a4b0dc46ced355",
+      "trafficPercent": 100,
+      "createdAt": "2026-09-12T15:43:59.916031Z"
+    }
+  ],
+  "ingestion": [
+    [
+      {
+        "capability": "analytics",
+        "enabled": 1,
+        "first_received_at": 1789227895081,
+        "last_received_at": 1789227972517
+      },
+      {
+        "capability": "endpoints",
+        "enabled": 1,
+        "first_received_at": 1789227888280,
+        "last_received_at": 1789228009963
+      },
+      {
+        "capability": "logs",
+        "enabled": 1,
+        "first_received_at": 1789227838470,
+        "last_received_at": 1789228010260
+      }
+    ],
+    [
+      {
+        "event": "traffic.summary",
+        "level": "info",
+        "timestamp": 1789228006531,
+        "props": "{\"verified_bot\":0,\"declared_bot\":1,\"automation\":0,\"unknown\":0,\"requests\":1,\"window_ms\":0,\"surface\":\"web\"}"
+      },
+      {
+        "event": "traffic.summary",
+        "level": "info",
+        "timestamp": 1789227991652,
+        "props": "{\"verified_bot\":0,\"declared_bot\":1,\"automation\":0,\"unknown\":0,\"requests\":1,\"window_ms\":0,\"surface\":\"web\"}"
+      },
+      {
+        "event": "history.blocked",
+        "level": "warn",
+        "timestamp": 1789227973612,
+        "props": "{\"country\":\"IN\",\"status\":403}"
+      },
+      {
+        "event": "traffic.summary",
+        "level": "info",
+        "timestamp": 1789227962301,
+        "props": "{\"verified_bot\":0,\"declared_bot\":1,\"automation\":0,\"unknown\":0,\"requests\":1,\"window_ms\":0,\"surface\":\"web\"}"
+      },
+      {
+        "event": "traffic.summary",
+        "level": "info",
+        "timestamp": 1789227954278,
+        "props": "{\"verified_bot\":0,\"declared_bot\":1,\"automation\":0,\"unknown\":0,\"requests\":1,\"window_ms\":0,\"surface\":\"web\"}"
+      },
+      {
+        "event": "traffic.summary",
+        "level": "info",
+        "timestamp": 1789227936257,
+        "props": "{\"verified_bot\":0,\"declared_bot\":1,\"automation\":0,\"unknown\":0,\"requests\":1,\"window_ms\":0,\"surface\":\"web\"}"
+      },
+      {
+        "event": "traffic.summary",
+        "level": "info",
+        "timestamp": 1789227918713,
+        "props": "{\"verified_bot\":0,\"declared_bot\":1,\"automation\":0,\"unknown\":0,\"requests\":1,\"window_ms\":0,\"surface\":\"web\"}"
+      },
+      {
+        "event": "traffic.summary",
+        "level": "info",
+        "timestamp": 1789227903927,
+        "props": "{\"verified_bot\":0,\"declared_bot\":1,\"automation\":0,\"unknown\":0,\"requests\":1,\"window_ms\":0,\"surface\":\"web\"}"
+      },
+      {
+        "event": "traffic.summary",
+        "level": "info",
+        "timestamp": 1789227887995,
+        "props": "{\"verified_bot\":0,\"declared_bot\":1,\"automation\":0,\"unknown\":0,\"requests\":1,\"window_ms\":0,\"surface\":\"api\"}"
+      },
+      {
+        "event": "traffic.summary",
+        "level": "info",
+        "timestamp": 1789227880886,
+        "props": "{\"verified_bot\":0,\"declared_bot\":1,\"automation\":0,\"unknown\":0,\"requests\":1,\"window_ms\":0,\"surface\":\"web\"}"
+      },
+      {
+        "event": "traffic.summary",
+        "level": "info",
+        "timestamp": 1789227867261,
+        "props": "{\"verified_bot\":0,\"declared_bot\":1,\"automation\":0,\"unknown\":0,\"requests\":1,\"window_ms\":0,\"surface\":\"web\"}"
+      }
+    ]
+  ],
+  "readingAction": {
+    "destination": "/signals/openai-astra-terminal-bench-improvement-independent-september-2026",
+    "events": [
+      {
+        "type": "pageview",
+        "path": "/signals"
+      },
+      {
+        "type": "event",
+        "name": "signal.opened",
+        "path": "/signals"
+      }
+    ]
+  },
+  "shareRevocation": {
+    "temporary_share_id": "8026966e-e880-433e-92c0-e0a52a61137d",
+    "before_revocation": 200,
+    "after_revocation": 404,
+    "attached_share_unchanged": true
+  },
+  "browser": {
+    "observedAt": "2026-09-12T15:46:55.649Z",
+    "responses": [
+      {
+        "url": "https://ingest.sassmaker.com/tracker.js",
+        "status": 200
+      },
+      {
+        "url": "https://ingest.sassmaker.com/v1/browser",
+        "status": 202
+      },
+      {
+        "url": "https://ingest.sassmaker.com/tracker.js",
+        "status": 304
+      },
+      {
+        "url": "https://ingest.sassmaker.com/v1/browser",
+        "status": 202
+      },
+      {
+        "url": "https://ingest.sassmaker.com/v1/browser",
+        "status": 202
+      }
+    ],
+    "errors": [],
+    "privacyStatus": 200,
+    "hasLiveLink": 1,
+    "browserTracker": true,
+    "signalsStatus": 200,
+    "readingActionDestination": "/signals",
+    "historyProbe": {
+      "status": 403,
+      "body": {
+        "error": "verification_failed"
+      }
+    },
+    "viewerStatus": 200,
+    "viewerText": "Live analytics \u00b7 App Health\n\nHighsignal\nproduction\nAbout App Health\nLive sessions\n1\nActive within the last 45 seconds\n\nRefreshes every 10 seconds\n\nPage views \u00b7 last 24 hours\n3\n11:17 PM\n03:17 AM\n07:17 AM\n11:17 AM\n03:17 PM\n08:17 PM\n0\n1\n2\n3\n4\nView chart values\n\nEvent totals may arrive later \u00b7 Updated 09:17 PM\n\n07:17",
+    "shared": {
+      "status": 200,
+      "body": {
+        "project": {
+          "name": "Highsignal",
+          "environment": "production"
+        },
+        "source": "analytics-engine",
+        "sampled": false,
+        "updated_at": 1789228036602,
+        "live": {
+          "active": 1,
+          "measured_at": 1789228033364,
+          "ttl_ms": 45000
+        },
+        "traffic": {
+          "from": 1789141632676,
+          "to": 1789228032676,
+          "series": [
+            {
+              "timestamp": 1789141632676,
+              "pageviews": 0
+            },
+            {
+              "timestamp": 1789145232676,
+              "pageviews": 0
+            },
+            {
+              "timestamp": 1789148832676,
+              "pageviews": 0
+            },
+            {
+              "timestamp": 1789152432676,
+              "pageviews": 0
+            },
+            {
+              "timestamp": 1789156032676,
+              "pageviews": 0
+            },
+            {
+              "timestamp": 1789159632676,
+              "pageviews": 0
+            },
+            {
+              "timestamp": 1789163232676,
+              "pageviews": 0
+            },
+            {
+              "timestamp": 1789166832676,
+              "pageviews": 0
+            },
+            {
+              "timestamp": 1789170432676,
+              "pageviews": 0
+            },
+            {
+              "timestamp": 1789174032676,
+              "pageviews": 0
+            },
+            {
+              "timestamp": 1789177632676,
+              "pageviews": 0
+            },
+            {
+              "timestamp": 1789181232676,
+              "pageviews": 0
+            },
+            {
+              "timestamp": 1789184832676,
+              "pageviews": 0
+            },
+            {
+              "timestamp": 1789188432676,
+              "pageviews": 0
+            },
+            {
+              "timestamp": 1789192032676,
+              "pageviews": 0
+            },
+            {
+              "timestamp": 1789195632676,
+              "pageviews": 0
+            },
+            {
+              "timestamp": 1789199232676,
+              "pageviews": 0
+            },
+            {
+              "timestamp": 1789202832676,
+              "pageviews": 0
+            },
+            {
+              "timestamp": 1789206432676,
+              "pageviews": 0
+            },
+            {
+              "timestamp": 1789210032676,
+              "pageviews": 0
+            },
+            {
+              "timestamp": 1789213632676,
+              "pageviews": 0
+            },
+            {
+              "timestamp": 1789217232676,
+              "pageviews": 0
+            },
+            {
+              "timestamp": 1789220832676,
+              "pageviews": 0
+            },
+            {
+              "timestamp": 1789224432676,
+              "pageviews": 3
+            }
+          ],
+          "pageviews": 3
+        }
+      }
+    }
+  },
+  "limitations": [
+    "Controlled verification visits are included in the initial totals.",
+    "Bot request summaries are approximate and omit traffic blocked before the Worker.",
+    "No autonomous multi-day review job was scheduled."
+  ]
+}
