@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
     emergingBeforeMainstream: [],
     attentionEvidenceGaps: [],
   })),
+  buildNews: vi.fn(async (): Promise<NonNullable<BriefSnapshot['news']>> => []),
   buildPerception: vi.fn(async () => []),
   buildImprovements: vi.fn(async () => []),
   buildWatching: vi.fn(async () => []),
@@ -31,6 +32,7 @@ vi.mock('../routes/brief/query', async (importOriginal) => {
     buildIdeas: mocks.buildIdeas,
     buildTrends: mocks.buildTrends,
     buildDiggAttention: mocks.buildDiggAttention,
+    buildNews: mocks.buildNews,
     buildPerception: mocks.buildPerception,
     buildImprovements: mocks.buildImprovements,
     buildWatching: mocks.buildWatching,
@@ -93,6 +95,7 @@ describe('GET /daily', () => {
       emergingBeforeMainstream: [],
       attentionEvidenceGaps: [],
     });
+    mocks.buildNews.mockResolvedValue([]);
   });
 
   it('requires verification before reading an older archive date', async () => {
@@ -311,6 +314,27 @@ describe('GET /daily', () => {
     };
     expect(body.publishStatus).toBe('pending');
     expect(body.nextExpectedPublishAt).toBeUndefined();
+  });
+
+  it('returns ready news when market signals are empty or pending', async () => {
+    const news = [
+      {
+        id: 'news-1',
+        title: 'Issuer announces a capacity expansion',
+        summary: 'The issuer announced a capacity expansion in a retained filing excerpt.',
+        event_at: '2026-09-12T08:00:00.000Z',
+        what_changed: '',
+        source_references: [{ url: 'https://sec.gov/archives/example', source: 'edgar' }],
+        evidence_status: 'official' as const,
+      },
+    ];
+    mocks.buildNews.mockResolvedValue(news);
+    const response = await briefRoute.request('http://test/daily', {}, env);
+    const body = (await response.json()) as BriefSnapshot & { publishStatus: string };
+    expect(body.stocks).toEqual([]);
+    expect(body.news).toEqual(news);
+    expect(body.publishStatus).toBe('pending');
+    expect(mocks.buildNews).toHaveBeenCalled();
   });
 });
 

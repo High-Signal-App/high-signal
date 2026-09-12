@@ -33,10 +33,11 @@ import {
   type Region,
 } from '@high-signal/shared';
 import { db, schema } from '../../db';
-import { renderFromSeed, safeCategory } from './compose';
+import { renderFromSeed, safe, safeCategory, withBriefNews } from './compose';
 import {
   buildDiggAttention,
   buildIdeas,
+  buildNews,
   buildStocks,
   buildTrends,
   tryGetPrecomputedSnapshot,
@@ -108,6 +109,12 @@ async function handleDailyBriefRequest(c: Context<{ Bindings: Env }>) {
         }).snapshot;
       }
       snapshot = dailySignalEdition(pruneUnpublishableBriefItems(snapshot).snapshot, editionDate);
+      if (!snapshot.news) {
+        snapshot = withBriefNews(
+          snapshot,
+          await safe(() => buildNews(database, request.region, editionDate), 'news')
+        );
+      }
       const body = {
         ...snapshot,
         publishStatus: buildBriefEditionReceipt(snapshot).publishable
@@ -196,11 +203,13 @@ async function composeDailyBrief(
   request: ReturnType<typeof parseDailyBriefRequest>
 ) {
   const countries = countriesForRegion(request.region);
-  const [stockResult, ideaResult, trendResult, attention] = await Promise.all([
-    safeCategory(() => buildStocks(database, countries, request.archiveDate ?? istDay()), 'stocks'),
+  const editionDate = request.archiveDate ?? istDay();
+  const [stockResult, ideaResult, trendResult, attention, news] = await Promise.all([
+    safeCategory(() => buildStocks(database, countries, editionDate), 'stocks'),
     safeCategory(() => buildIdeas(database, request.region, countries), 'ideas'),
     safeCategory(() => buildTrends(database, request.region, countries), 'trends'),
     buildDiggAttention(database),
+    safe(() => buildNews(database, request.region, editionDate), 'news'),
   ]);
 
   const brand = loadDailyBriefBrand(request);
@@ -211,6 +220,7 @@ async function composeDailyBrief(
     stocks: stockResult.items,
     ideas: ideaResult.items,
     trends: trendResult.items,
+    news,
     perception: brand.perception,
     improvements: brand.improvements,
     ...attention,
@@ -272,11 +282,12 @@ async function precomputeBriefRegion(
 ): Promise<BriefPrecomputeRegionResult> {
   try {
     const countries = countriesForRegion(region);
-    const [stockResult, ideaResult, trendResult, attention] = await Promise.all([
+    const [stockResult, ideaResult, trendResult, attention, news] = await Promise.all([
       safeCategory(() => buildStocks(database, countries), 'stocks'),
       safeCategory(() => buildIdeas(database, region, countries), 'ideas'),
       safeCategory(() => buildTrends(database, region, countries), 'trends'),
       buildDiggAttention(database),
+      safe(() => buildNews(database, region, today), 'news'),
     ]);
     const snapshot: BriefSnapshot = {
       generatedAt: nowIso,
@@ -285,6 +296,7 @@ async function precomputeBriefRegion(
       stocks: stockResult.items,
       ideas: ideaResult.items,
       trends: trendResult.items,
+      news,
       perception: [],
       improvements: [],
       ...attention,

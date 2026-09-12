@@ -10,15 +10,16 @@ startups, and finance with cited evidence and a public record of matured calls.
 
 ## Best-fit requests
 
-- Summarize today's or yesterday's evidence-qualified Daily Brief.
+- Summarize today's or yesterday's Daily Brief, starting with `data.news`.
 - Inspect one published signal, its cited evidence, confidence, and claims.
 - Compare a market call with High Signal's public hit-rate ledger.
 - Retrieve the current public daily data in a structured form.
 
 Do not use High Signal as a real-time price feed, personalized news service, or
-source of investment advice. The separately labeled attention layer is context,
-not evidence. A section can be empty when evidence does not clear the publishing
-bar.
+source of investment advice. News is retained reporting, not a directional
+market call. The separately labeled attention layer is context, not evidence.
+A signal section can be empty when evidence does not clear the publishing bar;
+that must not hide ready news.
 
 ## How to use it
 
@@ -40,9 +41,14 @@ history may be withheld by the public verification boundary.
 
 ## Response rules
 
+- Summarize `data.news` first. Keep system-quality commentary (coverage,
+  `publishStatus`, pending publish time) to two lines after the news.
+- Preserve `source_references` and `evidence_status` (`official`, `reported`,
+  `unverified`). Do not recast news as buy/sell calls.
 - Preserve links to the evidence High Signal provides.
 - State that High Signal requires at least two cited sources before publishing
-  a signal; do not turn that threshold into an independent guarantee.
+  a signal; do not turn that threshold into an independent guarantee, and do
+  not apply it to `news`.
 - Keep confidence, maturity windows, and corrections attached to the relevant
   signal.
 - Never present attention-only items as evidence-qualified signals.

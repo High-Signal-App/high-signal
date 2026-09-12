@@ -9,7 +9,13 @@
 import type { Region } from '../primitives/region';
 import type { BriefClaimProvenance } from './claim-provenance';
 
-export type BriefSectionKey = 'stocks' | 'ideas' | 'trends' | 'perception' | 'improvements';
+export type BriefSectionKey =
+  | 'stocks'
+  | 'ideas'
+  | 'trends'
+  | 'news'
+  | 'perception'
+  | 'improvements';
 
 export interface BriefCitation {
   url: string;
@@ -262,6 +268,18 @@ export interface BriefImprovementItem {
   intent?: BriefIntentItem;
 }
 
+export type BriefNewsEvidenceStatus = 'official' | 'reported' | 'unverified';
+
+export interface BriefNewsItem {
+  id: string;
+  title: string;
+  summary: string;
+  event_at: string;
+  what_changed: string;
+  source_references: BriefCitation[];
+  evidence_status: BriefNewsEvidenceStatus;
+}
+
 export interface BriefSnapshot {
   generatedAt: string;
   /** Publication day of the signal section, independent of composition time. */
@@ -272,6 +290,11 @@ export interface BriefSnapshot {
   stocks: BriefStockItem[];
   ideas: BriefIdeaItem[];
   trends: BriefTrendItem[];
+  /**
+   * Ranked news from retained records. Independent of market-signal
+   * publish gates. Absent on snapshots written before news existed.
+   */
+  news?: BriefNewsItem[];
   perception: BriefPerceptionItem[];
   improvements: BriefImprovementItem[];
   /** Derived attention is optional on archived snapshots created before Digg. */
@@ -602,12 +625,14 @@ export interface BriefDiscoverySummary {
 
 interface DiscoverableBriefItem {
   evidenceUrls?: readonly unknown[];
+  source_references?: readonly unknown[];
 }
 
 interface DiscoverableBriefSections {
   stocks?: readonly DiscoverableBriefItem[];
   ideas?: readonly DiscoverableBriefItem[];
   trends?: readonly DiscoverableBriefItem[];
+  news?: readonly DiscoverableBriefItem[];
 }
 
 /**
@@ -618,13 +643,15 @@ interface DiscoverableBriefSections {
 export function summarizeBriefDiscovery(
   snapshot: DiscoverableBriefSections | null
 ): BriefDiscoverySummary {
-  const publicItems = [snapshot?.stocks, snapshot?.ideas, snapshot?.trends].flatMap((section) =>
-    Array.isArray(section) ? section : []
+  const publicItems = [snapshot?.stocks, snapshot?.ideas, snapshot?.trends, snapshot?.news].flatMap(
+    (section) => (Array.isArray(section) ? section : [])
   );
   return {
     publicItemCount: publicItems.length,
     citedItemCount: publicItems.filter(
-      (item) => Array.isArray(item.evidenceUrls) && item.evidenceUrls.length > 0
+      (item) =>
+        (Array.isArray(item.evidenceUrls) && item.evidenceUrls.length > 0) ||
+        (Array.isArray(item.source_references) && item.source_references.length > 0)
     ).length,
   };
 }

@@ -2,6 +2,16 @@
 
 Last updated: 2026-09-12
 
+September 12 news-first Daily Brief — code:
+
+`get_daily_brief` now returns `data.news` (up to eight ranked stories from
+retained D1 events). News does not require a market prediction or two
+independent sources, and empty or pending signals do not hide it. Clustering
+merges duplicate coverage and keeps distinct same-company events apart.
+ChatGPT skill copy summarizes `news[]` first. Tracked in
+[issue #179](https://github.com/High-Signal-App/high-signal/issues/179).
+Deployment and a live-day replay against production records remain after merge.
+
 September 12 App Health integration — live:
 
 Both Highsignal Workers serve the App Health integration at 100% traffic. The

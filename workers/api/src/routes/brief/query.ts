@@ -5,14 +5,17 @@
 import { and, asc, desc, eq, inArray, gte, lt, isNull, sql } from 'drizzle-orm';
 import {
   assessSignalQuality,
+  composeNewsStories,
   istDayRange,
   extractBriefEditorialSummary,
   familyForSignalType,
   normalizeCommunitySummary,
   oppositeDirectionConflictIds,
   rankEvidenceUrls,
+  reportingWindow,
   selectBriefClaimProvenance,
   type BriefAttentionSections,
+  type BriefNewsItem,
   type DiggAttentionGapItem,
   type DiggAttentionItem,
   type BriefIdeaItem,
@@ -46,6 +49,8 @@ type BriefDatabase = ReturnType<typeof db>;
 
 const DIGG_ATTENTION_WINDOW_HOURS = 36;
 const DIGG_SECTION_LIMIT = 8;
+const NEWS_LOOKBACK_MS = 24 * 60 * 60 * 1000;
+const NEWS_RECORD_LIMIT = 800;
 
 function jsonValue<T>(value: unknown, fallback: T): T {
   if (value == null) return fallback;
@@ -826,6 +831,77 @@ export async function buildTrends(
   }
   void countries;
   return trends;
+}
+
+export async function previousBriefComputedAt(
+  database: BriefDatabase,
+  region: Region,
+  beforeDate: string
+): Promise<Date | null> {
+  try {
+    const rows = await database
+      .select({ computedAt: schema.dailyBriefSnapshots.computedAt })
+      .from(schema.dailyBriefSnapshots)
+      .where(
+        and(
+          eq(schema.dailyBriefSnapshots.region, region),
+          lt(schema.dailyBriefSnapshots.date, beforeDate)
+        )
+      )
+      .orderBy(desc(schema.dailyBriefSnapshots.date))
+      .limit(1);
+    const raw = rows[0]?.computedAt;
+    if (!raw) return null;
+    const parsed = new Date(raw);
+    return Number.isFinite(parsed.getTime()) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function buildNews(
+  database: BriefDatabase,
+  region: Region,
+  editionDate: string,
+  now = new Date()
+): Promise<BriefNewsItem[]> {
+  const previous = await previousBriefComputedAt(database, region, editionDate);
+  const window = reportingWindow(previous, now);
+  const lookbackStart = new Date(window.start.getTime() - NEWS_LOOKBACK_MS);
+  const rows = await database
+    .select({
+      id: schema.events.id,
+      source: schema.events.source,
+      sourceUrl: schema.events.sourceUrl,
+      publishedAt: schema.events.publishedAt,
+      ingestedAt: schema.events.ingestedAt,
+      title: schema.events.title,
+      content: schema.events.content,
+      retainedText: schema.sourceDocuments.rawText,
+      primaryEntityId: schema.events.primaryEntityId,
+    })
+    .from(schema.events)
+    .leftJoin(schema.sourceDocuments, eq(schema.events.sourceDocumentId, schema.sourceDocuments.id))
+    .where(
+      and(gte(schema.events.ingestedAt, lookbackStart), lt(schema.events.ingestedAt, window.end))
+    )
+    .orderBy(desc(schema.events.ingestedAt), desc(schema.events.id))
+    .limit(NEWS_RECORD_LIMIT);
+
+  return composeNewsStories(
+    rows.map((row) => ({
+      id: row.id,
+      source: row.source,
+      sourceUrl: row.sourceUrl,
+      publishedAt: row.publishedAt,
+      ingestedAt: row.ingestedAt,
+      title: row.title,
+      content: row.content,
+      retainedText: row.retainedText,
+      primaryEntityId: row.primaryEntityId,
+    })),
+    window
+  );
 }
 
 /**
