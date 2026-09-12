@@ -14,6 +14,7 @@
     "@high-signal/db": "workspace:*",
     "@high-signal/shared": "workspace:*",
     "@modelcontextprotocol/server": "2.0.0",
+    "@saas-maker/app-health": "https://github.com/sass-maker/app-health/releases/download/node-v0.4.0/saas-maker-app-health-0.4.0.tgz",
     "ai": "6.0.168",
     "drizzle-orm": "0.45.2",
     "hono": "4.12.34",

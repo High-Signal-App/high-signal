@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Script from 'next/script';
 import './globals.css';
 import { AnalyticsProvider } from '@/components/posthog-provider';
+import { AppHealthAnalytics } from '@/components/AppHealthAnalytics';
 import { VitalsReporter } from '@/components/VitalsReporter';
 import { PrimaryNav } from '@/components/system/PrimaryNav';
 import { SiteFooter } from '@/components/system/SiteFooter';
@@ -101,6 +102,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       {children}
       <SiteFooter />
       <VitalsReporter />
+      <AppHealthAnalytics />
     </AnalyticsProvider>
   );
 

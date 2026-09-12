@@ -6,21 +6,34 @@ import { handlePublicApiCache, isPublicCacheRequest } from './public-cache';
 import { refreshEventsSourceRollup } from './lib/events-rollup';
 import { dispatchDueWorkflows } from './lib/workflow-scheduler';
 import { precomputeBriefSnapshots } from './routes/brief';
+import { observeApiRequest } from './app-health';
 
 async function handleApiRequest(request: Request, env: Env, ctx: ExecutionContext) {
-  const pathname = new URL(request.url).pathname;
-  if (pathname === '/mcp/server-card') {
-    return handleHighSignalMcpCardRequest(request);
+  const startedAt = Date.now();
+  let response: Response | null = null;
+  try {
+    const pathname = new URL(request.url).pathname;
+    if (pathname === '/mcp/server-card') {
+      response = await handleHighSignalMcpCardRequest(request);
+      return response;
+    }
+    if (pathname === '/mcp') {
+      response = await handleHighSignalMcpRequest(request, env, ctx);
+      return response;
+    }
+    const cache =
+      typeof caches === 'undefined' ? null : (caches as CacheStorage & { default: Cache }).default;
+    response = await handlePublicApiCache(request, async () => app.fetch(request, env, ctx), {
+      cache,
+      waitUntil: (promise) => ctx.waitUntil(promise),
+    });
+    return response;
+  } catch (error) {
+    observeApiRequest(request, null, startedAt, env, ctx);
+    throw error;
+  } finally {
+    if (response) observeApiRequest(request, response, startedAt, env, ctx);
   }
-  if (pathname === '/mcp') {
-    return handleHighSignalMcpRequest(request, env, ctx);
-  }
-  const cache =
-    typeof caches === 'undefined' ? null : (caches as CacheStorage & { default: Cache }).default;
-  return handlePublicApiCache(request, async () => app.fetch(request, env, ctx), {
-    cache,
-    waitUntil: (promise) => ctx.waitUntil(promise),
-  });
 }
 
 export class PublicApi extends WorkerEntrypoint<Env> {

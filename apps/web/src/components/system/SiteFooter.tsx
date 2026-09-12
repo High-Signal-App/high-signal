@@ -2,6 +2,7 @@ import Link from 'next/link';
 import type { Route } from 'next';
 
 import { SITE_URL } from '@/lib/site';
+import { APP_HEALTH_LIVE_URL } from '@/lib/app-health-public';
 
 interface FooterLink {
   href: string;
@@ -66,6 +67,14 @@ export function SiteFooter() {
         <div className="mt-10 flex flex-wrap items-center justify-between gap-4 border-t border-[var(--color-line)] pt-6 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
           <span>© {year} High Signal</span>
           <nav className="flex flex-wrap items-center gap-x-5 gap-y-2">
+            <a
+              href={APP_HEALTH_LIVE_URL}
+              referrerPolicy="no-referrer"
+              rel="noreferrer"
+              className="inline-flex min-h-11 items-center hover:text-[var(--color-fg)]"
+            >
+              Live analytics
+            </a>
             <a
               href="https://sarthakagrawal.dev"
               className="inline-flex min-h-11 items-center hover:text-[var(--color-fg)]"

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { HISTORY_ACCESS_ACTION } from '@high-signal/shared';
+import { trackAppHealthEvent } from '@/lib/app-health-browser';
 import { TurnstileWidget } from '@/components/turnstile-widget';
 
 const TURNSTILE_SITE_KEY =
@@ -37,6 +38,7 @@ export function HistoryGate({
             : 'The human check was not accepted. Please try again.'
         );
       }
+      trackAppHealthEvent('history.unlocked');
       router.refresh();
     } catch (reason) {
       setError(

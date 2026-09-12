@@ -29,6 +29,10 @@ export type Env = {
   GITHUB_WORKFLOW_TOKEN?: string;
   TURNSTILE_HOSTNAMES?: string;
   TURNSTILE_SECRET?: string;
+  APP_HEALTH_INGEST_KEY?: string;
+  APP_HEALTH_INGEST_URL?: string;
+  APP_HEALTH_ENVIRONMENT?: string;
+  APP_HEALTH_RELEASE?: string;
 };
 
 export const app = new Hono<{ Bindings: Env }>();

@@ -1,6 +1,22 @@
 # high-signal — PROJECT STATUS
 
-Last updated: 2026-09-11
+Last updated: 2026-09-12
+
+September 12 App Health integration (local, awaiting production activation):
+
+Highsignal now wires App Health web analytics, backend endpoint measurements,
+explicit application logs, and a revocable public live analytics footer link.
+Coarse `traffic.summary` logs distinguish verified bots, declared crawlers,
+automation, and unknown requests. Public aggregates exclude operational logs.
+The Highsignal project and production public/share keys are provisioned; private
+Worker ingest-key bindings and deployment remain pending. This is not yet live
+observation evidence. See [the rollout checklist](docs/operations/runbooks/app-health.md)
+and [issue #178](https://github.com/High-Signal-App/high-signal/issues/178).
+
+Local verification: full `pnpm quality`, 36 suites including 391 API assertions,
+three focused browser tests, and the Cloudflare web build passed. Server SDK
+flushes are request-scoped and awaited; private browser-route transitions stop
+capture before the tracker records them.
 
 Current September 11 qualification:
 

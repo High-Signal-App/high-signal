@@ -7,6 +7,8 @@
  *
  * Every event carries project_id: "high-signal".
  */
+import { trackAppHealthEvent } from './app-health-browser';
+
 const PROJECT = 'high-signal' as const;
 
 /** The product-specific action behind a core_action event. */
@@ -28,7 +30,8 @@ async function capture(event: string, properties: Record<string, unknown>) {
 export function trackEvent(event: string, properties: Record<string, unknown> = {}): void {
   try {
     if (typeof window === 'undefined') return;
-    void capture(event, { project_id: PROJECT, ...properties });
+    if (event !== 'page_view') trackAppHealthEvent(event);
+    void capture(event, { project_id: PROJECT, ...properties }).catch(() => {});
   } catch {
     // Analytics must never break a user flow.
   }

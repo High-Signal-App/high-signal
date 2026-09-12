@@ -20,12 +20,26 @@ export default function PrivacyPage() {
         ← high signal
       </Link>
       <h1 className="mt-3 text-3xl font-medium tracking-tight text-white">Privacy</h1>
-      <p className="mt-4 text-xs text-zinc-500">Last updated: 2026-05-15.</p>
+      <p className="mt-4 text-xs text-zinc-500">Last updated: 2026-09-12.</p>
 
       <h2 className="mt-8 text-base font-semibold text-white">Public surfaces</h2>
       <p className="mt-2 text-sm leading-7">
         The Daily Brief, signals, sources, Company Universe, Track Record, and signal feeds are
         public and require no account. We do not maintain reader profiles or watchlists.
+      </p>
+
+      <h2 className="mt-8 text-base font-semibold text-white">Product analytics</h2>
+      <p className="mt-2 text-sm leading-7">
+        App Health measures page views, referring domains, and named reading actions using a
+        short-lived identifier in your browser session storage. Its tracking events omit query
+        strings, link text, form inputs, and account identifiers. We also use PostHog and Microsoft
+        Clarity to understand product usage and usability.
+      </p>
+      <p className="mt-2 text-sm leading-7">
+        Server monitoring records route templates, response status, timing, and explicit operational
+        events. Coarse traffic summaries distinguish verified bots, declared crawlers, recognizable
+        automation, and unknown traffic without storing raw user agents or IP addresses in those
+        summaries. Our public live analytics link shows aggregate analytics, not operational logs.
       </p>
 
       <h2 className="mt-8 text-base font-semibold text-white">Operator access</h2>

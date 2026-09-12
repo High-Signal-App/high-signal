@@ -22,6 +22,7 @@ import {
   isCacheableDocumentResponse,
 } from './worker-cache-policy.mjs';
 import { isPublicHtmlPath, normalizePublicPath } from './public-route-registry.mjs';
+import { observeWebRequest } from './app-health.mjs';
 
 export {
   DOQueueHandler,
@@ -103,90 +104,104 @@ function postProcessResponse(request, url, response) {
   return response;
 }
 
-const worker = {
-  fetch: withTiming(async function fetch(request, env, ctx) {
-    const url = new URL(request.url);
-    if (url.pathname.startsWith(PRIVATE_ASSET_PREFIX)) {
-      return new Response('Not found', { status: 404 });
-    }
-    // Agent / LLM indexing surfaces (fleet GEO standard)
+const timedFetch = withTiming(async function fetch(request, env, ctx) {
+  const url = new URL(request.url);
+  if (url.pathname.startsWith(PRIVATE_ASSET_PREFIX)) {
+    return new Response('Not found', { status: 404 });
+  }
+  // Agent / LLM indexing surfaces (fleet GEO standard)
+  {
+    const agent = handleAgentEdge(request);
+    if (agent) return agent;
+  }
+  const guarded = guardPublicRequest(request);
+  if (guarded) return guarded;
+
+  const crawlerMarkdown = await handleCachedCrawlerMarkdown(
+    request,
+    (htmlRequest) => openNext.fetch(htmlRequest, env, ctx),
     {
-      const agent = handleAgentEdge(request);
-      if (agent) return agent;
+      cache: caches.default,
+      cacheEnabled: !request.headers.has('authorization') && !hasAuthCookie(request),
+      waitUntil: (promise) => ctx.waitUntil(promise),
     }
-    const guarded = guardPublicRequest(request);
-    if (guarded) return guarded;
+  );
+  if (crawlerMarkdown) return crawlerMarkdown;
 
-    const crawlerMarkdown = await handleCachedCrawlerMarkdown(
-      request,
-      (htmlRequest) => openNext.fetch(htmlRequest, env, ctx),
-      {
-        cache: caches.default,
-        cacheEnabled: !request.headers.has('authorization') && !hasAuthCookie(request),
-        waitUntil: (promise) => ctx.waitUntil(promise),
-      }
-    );
-    if (crawlerMarkdown) return crawlerMarkdown;
-
-    const markdown = await handleCachedRenderedMarkdown(
-      request,
-      (htmlRequest) => openNext.fetch(htmlRequest, env, ctx),
-      {
-        cache: caches.default,
-        cacheEnabled: !request.headers.has('authorization') && !hasAuthCookie(request),
-        waitUntil: (promise) => ctx.waitUntil(promise),
-      }
-    );
-    if (markdown) return markdown;
-
-    if (!isCacheableDocumentRequest(request)) {
-      const response = await openNext.fetch(request, env, ctx);
-      return postProcessResponse(request, url, response);
+  const markdown = await handleCachedRenderedMarkdown(
+    request,
+    (htmlRequest) => openNext.fetch(htmlRequest, env, ctx),
+    {
+      cache: caches.default,
+      cacheEnabled: !request.headers.has('authorization') && !hasAuthCookie(request),
+      waitUntil: (promise) => ctx.waitUntil(promise),
     }
+  );
+  if (markdown) return markdown;
 
-    const cache = caches.default;
-    const cacheKey = cacheKeyForRequest(request, CACHE_BUILD_ID);
-    const cached = await cache.match(cacheKey);
-    if (cached) {
-      const hit = new Response(cached.body, cached);
-      hit.headers.set('Cache-Control', clientCacheControlForRequest(request));
-      hit.headers.set('x-edge-cache', edgeCacheStatus(request, 'HIT'));
-      return hit;
-    }
-
+  if (!isCacheableDocumentRequest(request)) {
     const response = await openNext.fetch(request, env, ctx);
-    if (!isCacheableDocumentResponse(request, response)) {
-      return postProcessResponse(request, url, response);
-    }
+    return postProcessResponse(request, url, response);
+  }
 
-    const headers = new Headers(response.headers);
-    headers.set('Cache-Control', cacheControlForRequest(request));
-    // Add Accept negotiation without replacing OpenNext's RSC routing Vary
-    // headers. RSC payloads have their own URL-keyed cache entries.
-    const normalizedPath = normalizePublicPath(url.pathname);
-    const contentType = headers.get('content-type') ?? '';
-    if (contentType.includes('text/html') && isPublicHtmlPath(normalizedPath)) {
-      headers.set('Link', agentDiscoveryLinkHeader(url.origin, normalizedPath));
-      const existingVary = headers.get('Vary');
-      if (existingVary) {
-        if (!existingVary.toLowerCase().includes('accept')) {
-          headers.set('Vary', `${existingVary}, Accept`);
-        }
-      } else {
-        headers.set('Vary', 'Accept');
+  const cache = caches.default;
+  const cacheKey = cacheKeyForRequest(request, CACHE_BUILD_ID);
+  const cached = await cache.match(cacheKey);
+  if (cached) {
+    const hit = new Response(cached.body, cached);
+    hit.headers.set('Cache-Control', clientCacheControlForRequest(request));
+    hit.headers.set('x-edge-cache', edgeCacheStatus(request, 'HIT'));
+    return hit;
+  }
+
+  const response = await openNext.fetch(request, env, ctx);
+  if (!isCacheableDocumentResponse(request, response)) {
+    return postProcessResponse(request, url, response);
+  }
+
+  const headers = new Headers(response.headers);
+  headers.set('Cache-Control', cacheControlForRequest(request));
+  // Add Accept negotiation without replacing OpenNext's RSC routing Vary
+  // headers. RSC payloads have their own URL-keyed cache entries.
+  const normalizedPath = normalizePublicPath(url.pathname);
+  const contentType = headers.get('content-type') ?? '';
+  if (contentType.includes('text/html') && isPublicHtmlPath(normalizedPath)) {
+    headers.set('Link', agentDiscoveryLinkHeader(url.origin, normalizedPath));
+    const existingVary = headers.get('Vary');
+    if (existingVary) {
+      if (!existingVary.toLowerCase().includes('accept')) {
+        headers.set('Vary', `${existingVary}, Accept`);
       }
+    } else {
+      headers.set('Vary', 'Accept');
     }
+  }
 
-    const cacheable = new Response(response.body, {
-      status: response.status,
-      statusText: response.statusText,
-      headers,
-    });
-    ctx.waitUntil(cache.put(cacheKey, cacheable.clone()));
-    cacheable.headers.set('Cache-Control', clientCacheControlForRequest(request));
-    cacheable.headers.set('x-edge-cache', edgeCacheStatus(request, 'MISS'));
-    return cacheable;
-  }),
+  const cacheable = new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+  ctx.waitUntil(cache.put(cacheKey, cacheable.clone()));
+  cacheable.headers.set('Cache-Control', clientCacheControlForRequest(request));
+  cacheable.headers.set('x-edge-cache', edgeCacheStatus(request, 'MISS'));
+  return cacheable;
+});
+
+const worker = {
+  async fetch(request, env, ctx) {
+    const startedAt = Date.now();
+    let response = null;
+    try {
+      response = await timedFetch(request, env, ctx);
+      return response;
+    } catch (error) {
+      observeWebRequest(request, null, startedAt, env, ctx);
+      throw error;
+    } finally {
+      if (response) observeWebRequest(request, response, startedAt, env, ctx);
+    }
+  },
 };
 
 export default worker;

@@ -17,10 +17,11 @@ see `../../PROJECT_STATUS.md`).
 - **DB** — own `@high-signal/db` workspace package (Drizzle on Cloudflare D1,
   schema in `packages/db/src/schema.ts`); no shared SaaS Maker DB package.
 - **Observability** — PostHog directly (no `@saas-maker/ops`).
-- **App Health application logs** — the zero-dependency drop-in client copied
-  to `apps/web/src/lib/ping.ts`, not the `@saas-maker/app-health` SDK, which
-  would need a release bump to adopt `log()`. Emits the history-unlock events;
-  see ADR-015 in `decisions.md`.
+- **App Health** — published `@saas-maker/app-health` 0.4.0 for endpoint
+  measurements and explicit logs in both Workers; App Health's browser tracker
+  for page views, reading actions, sessions, and live presence. PostHog and
+  Clarity remain in place. The public footer links to a revocable aggregate-only
+  live viewer. See the [rollout checklist](../operations/runbooks/app-health.md).
 - **Email** — `cloudflare:email` binding (`workers/api/src/lib/email.ts`); no
   SaaS Maker email package.
 - **Analytics** — PostHog directly (`apps/web/src/lib/foundry-monitoring.ts`);
