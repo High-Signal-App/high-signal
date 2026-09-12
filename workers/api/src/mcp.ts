@@ -198,7 +198,7 @@ function createHighSignalMcpServer(dependencies: HighSignalMcpDependencies) {
     {
       title: 'Get Daily Brief',
       description:
-        'Return the evidence-qualified High Signal brief for today or yesterday in India Standard Time, with source coverage, health, and counts of available records. The response includes publishStatus ("published" when served from a precomputed snapshot, "pending" when the daily publish cron has not run yet) and nextExpectedPublishAt (ISO timestamp for the next scheduled publish at 03:30 UTC / 09:00 IST) when pending. Signals are restricted to the requested IST publication day. An empty signal section does not imply that source ingestion is unavailable. When pending, retry after nextExpectedPublishAt.',
+        'Return the High Signal brief for today or yesterday in India Standard Time. Summarize data.news first (ranked stories from retained records; not market signals). data.news is independent of empty or pending stocks/ideas/trends. Then at most two lines of system-quality commentary (source coverage, publishStatus, nextExpectedPublishAt). Preserve source_references and evidence_status (official, reported, unverified). Do not recast news as directional market calls. Signals remain restricted to the requested IST publication day. When pending, retry after nextExpectedPublishAt.',
       inputSchema: z.object({
         day: z
           .enum(['today', 'yesterday'])

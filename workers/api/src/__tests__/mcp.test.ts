@@ -203,6 +203,17 @@ describe('High Signal MCP', () => {
           stocks: [],
           ideas: [],
           trends: [],
+          news: [
+            {
+              id: 'news-1',
+              title: 'Issuer files an 8-K',
+              summary: 'The issuer filed an 8-K describing a capacity expansion.',
+              event_at: '2026-08-26T00:30:00.000Z',
+              what_changed: '',
+              source_references: [{ url: 'https://sec.gov/Archives/example' }],
+              evidence_status: 'official',
+            },
+          ],
         },
         cacheStatus: 'API-MISS',
       };
@@ -221,6 +232,9 @@ describe('High Signal MCP', () => {
     const data = sc['data'] as Record<string, unknown>;
     expect(data['publishStatus']).toBe('pending');
     expect(data['nextExpectedPublishAt']).toBe('2026-08-26T03:30:00.000Z');
+    expect(data['news']).toEqual([
+      expect.objectContaining({ id: 'news-1', evidence_status: 'official' }),
+    ]);
   });
 
   it('surfaces publishStatus published when brief is from a precomputed snapshot', async () => {

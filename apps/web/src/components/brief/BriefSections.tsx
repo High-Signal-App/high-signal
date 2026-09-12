@@ -4,7 +4,9 @@ import type { ReactNode } from 'react';
 import {
   categoryStatesForSnapshot,
   type BriefCategoryState,
+  type BriefCitation,
   type BriefIdeaItem,
+  type BriefNewsItem,
   type BriefPublicSectionKey,
   type BriefSnapshot,
   type BriefStockItem,
@@ -297,6 +299,72 @@ function TrendItem({ item }: { item: BriefTrendItem }) {
   );
 }
 
+function NewsWhatChanged({ value }: { value: string }) {
+  return (
+    <p className="mt-3 max-w-[70ch] text-sm leading-6 text-[var(--color-muted)]">
+      <span className="font-medium text-[var(--color-fg)]">What changed:</span> {value}
+    </p>
+  );
+}
+
+function NewsSourceReferences({ citations }: { citations: BriefCitation[] }) {
+  return (
+    <div className="mt-5 flex flex-wrap gap-4 border-t border-[var(--color-line)] pt-3 font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--color-muted)]">
+      {citations.map((citation) => (
+        <a
+          key={citation.url}
+          href={citation.url}
+          target="_blank"
+          rel="noreferrer"
+          className="hover:text-[var(--color-accent)]"
+        >
+          {citation.source ?? sourceHost(citation.url)} ↗
+        </a>
+      ))}
+    </div>
+  );
+}
+
+function NewsItem({ item }: { item: BriefNewsItem }) {
+  return (
+    <article className="brief-feed-item border-b border-[var(--color-line)] py-7 last:border-b-0">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--color-muted)]">
+        <span className="text-[var(--color-fg)]">{item.evidence_status}</span>
+        <span>{item.event_at.slice(0, 10)}</span>
+      </div>
+      <h3 className="brief-feed-item-title mt-3 max-w-4xl text-2xl font-medium leading-8 tracking-[-0.02em]">
+        {item.title}
+      </h3>
+      <p className="mt-3 max-w-[70ch] text-sm leading-6 text-[var(--color-muted)]">
+        {item.summary}
+      </p>
+      {item.what_changed ? <NewsWhatChanged value={item.what_changed} /> : null}
+      <NewsSourceReferences citations={item.source_references} />
+    </article>
+  );
+}
+
+export function NewsFeed({ brief }: { brief: BriefSnapshot }) {
+  const news = brief.news ?? [];
+  if (news.length === 0) return null;
+  return (
+    <section id="news" className="scroll-mt-20 border-b border-[var(--color-line)] py-8">
+      <h2 className="font-mono text-[10px] font-normal uppercase tracking-[0.14em] text-[var(--color-muted)]">
+        {news.length} {news.length === 1 ? 'story' : 'stories'}
+      </h2>
+      <p className="mt-3 max-w-[70ch] text-sm leading-6 text-[var(--color-muted)]">
+        Ranked from retained records. Single-source reporting is attributed; this is not a market
+        signal.
+      </p>
+      <div className="brief-feed-items mt-6 border-t border-[var(--color-line)]">
+        {news.map((item) => (
+          <NewsItem key={item.id} item={item} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export function SignalFeed({
   brief,
   editionDay,
@@ -379,6 +447,7 @@ export function BriefSections({
 
   return (
     <>
+      <NewsFeed brief={brief} />
       {sections.includes('stocks') ? (
         <SectionShell
           id="markets-companies"

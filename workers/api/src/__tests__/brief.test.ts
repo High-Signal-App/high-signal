@@ -377,6 +377,27 @@ Primary and corroborating reports are attached.
     });
   });
 
+  it('does not let news items fail or inflate the market-signal receipt', () => {
+    const snapshot = validSnapshot();
+    snapshot.news = [
+      {
+        id: 'news-1',
+        title: 'Single-source reported news',
+        summary: 'A retained excerpt describes the announcement without a second origin.',
+        event_at: '2026-08-11T05:00:00.000Z',
+        what_changed: '',
+        source_references: [{ url: 'https://reuters.com/example' }],
+        evidence_status: 'reported',
+      },
+    ];
+    expect(buildBriefEditionReceipt(snapshot).publishable).toBe(true);
+    const pruned = pruneUnpublishableBriefItems({
+      ...snapshot,
+      stocks: snapshot.stocks.map((item) => ({ ...item, evidenceUrls: [] })),
+    });
+    expect(pruned.snapshot.news).toEqual(snapshot.news);
+  });
+
   it('withholds research opportunities and trends without claim evidence while keeping qualified stock items', () => {
     const snapshot = validSnapshot();
     const item = {

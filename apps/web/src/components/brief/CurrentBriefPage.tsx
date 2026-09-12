@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import type { Route } from 'next';
-import { SignalFeed } from '@/components/brief/BriefSections';
+import { NewsFeed, SignalFeed } from '@/components/brief/BriefSections';
 import { DailyBriefHero } from '@/components/brief/DailyBriefHero';
 import { HomeJsonLd } from '@/components/seo/structured-data';
 import { PageShell } from '@/components/system/HighSignalUI';
@@ -84,6 +84,7 @@ export async function CurrentBriefPage({
         signalOnly
       />
       <div className="brief-edition">
+        <NewsFeed brief={brief} />
         <SignalFeed brief={brief} editionDay={selectedDay} />
       </div>
     </PageShell>

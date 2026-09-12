@@ -15,7 +15,9 @@ import {
   type BriefIdeaItem,
   type BriefImprovementItem,
   type BriefIntentItem,
+  type BriefNewsItem,
   type BriefPerceptionItem,
+  type BriefSnapshot,
   type HitRateBand,
   type Region,
   type SeedProduct,
@@ -194,6 +196,11 @@ export async function safe<T>(builder: () => Promise<T[]>, section: string): Pro
 export interface PublicCategoryResult<T> {
   items: T[];
   state: BriefCategoryState;
+}
+
+/** News is independent of market-signal publish gates and snapshot history. */
+export function withBriefNews(snapshot: BriefSnapshot, news: BriefNewsItem[]): BriefSnapshot {
+  return { ...snapshot, news };
 }
 
 /** Public categories expose failure instead of disguising it as demo data. */
