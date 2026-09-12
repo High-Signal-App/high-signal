@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import {
   categoryStatesForSnapshot,
   type BriefCategoryState,
+  type BriefCitation,
   type BriefIdeaItem,
   type BriefNewsItem,
   type BriefPublicSectionKey,
@@ -298,6 +299,32 @@ function TrendItem({ item }: { item: BriefTrendItem }) {
   );
 }
 
+function NewsWhatChanged({ value }: { value: string }) {
+  return (
+    <p className="mt-3 max-w-[70ch] text-sm leading-6 text-[var(--color-muted)]">
+      <span className="font-medium text-[var(--color-fg)]">What changed:</span> {value}
+    </p>
+  );
+}
+
+function NewsSourceReferences({ citations }: { citations: BriefCitation[] }) {
+  return (
+    <div className="mt-5 flex flex-wrap gap-4 border-t border-[var(--color-line)] pt-3 font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--color-muted)]">
+      {citations.map((citation) => (
+        <a
+          key={citation.url}
+          href={citation.url}
+          target="_blank"
+          rel="noreferrer"
+          className="hover:text-[var(--color-accent)]"
+        >
+          {citation.source ?? sourceHost(citation.url)} ↗
+        </a>
+      ))}
+    </div>
+  );
+}
+
 function NewsItem({ item }: { item: BriefNewsItem }) {
   return (
     <article className="brief-feed-item border-b border-[var(--color-line)] py-7 last:border-b-0">
@@ -311,25 +338,8 @@ function NewsItem({ item }: { item: BriefNewsItem }) {
       <p className="mt-3 max-w-[70ch] text-sm leading-6 text-[var(--color-muted)]">
         {item.summary}
       </p>
-      {item.what_changed ? (
-        <p className="mt-3 max-w-[70ch] text-sm leading-6 text-[var(--color-muted)]">
-          <span className="font-medium text-[var(--color-fg)]">What changed:</span>{' '}
-          {item.what_changed}
-        </p>
-      ) : null}
-      <div className="mt-5 flex flex-wrap gap-4 border-t border-[var(--color-line)] pt-3 font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--color-muted)]">
-        {item.source_references.map((citation) => (
-          <a
-            key={citation.url}
-            href={citation.url}
-            target="_blank"
-            rel="noreferrer"
-            className="hover:text-[var(--color-accent)]"
-          >
-            {citation.source ?? sourceHost(citation.url)} ↗
-          </a>
-        ))}
-      </div>
+      {item.what_changed ? <NewsWhatChanged value={item.what_changed} /> : null}
+      <NewsSourceReferences citations={item.source_references} />
     </article>
   );
 }
