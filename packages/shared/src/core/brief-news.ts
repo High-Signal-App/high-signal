@@ -7,8 +7,8 @@ import { canonicalSourceUrl } from './source-document';
 import { classifySource } from './signal-intelligence';
 import type { BriefCitation, BriefNewsEvidenceStatus, BriefNewsItem } from './brief';
 
-export const NEWS_LIMIT = 8;
-export const DEFAULT_NEWS_WINDOW_MS = 24 * 60 * 60 * 1000;
+const NEWS_LIMIT = 8;
+const DEFAULT_NEWS_WINDOW_MS = 24 * 60 * 60 * 1000;
 const JACCARD_THRESHOLD = 0.72;
 const TITLE_ONLY_MAX = 80;
 const SUMMARY_MAX_SENTENCES = 3;
@@ -170,7 +170,7 @@ export interface NewsRecord {
   primaryEntityId?: string | null;
 }
 
-export interface NewsReportingWindow {
+interface NewsReportingWindow {
   start: Date;
   end: Date;
   previousSnapshotAt: Date | null;
@@ -296,12 +296,12 @@ export function composeNewsStories(
   return ranked.map((story) => story.item);
 }
 
-export function newsCanonicalUrl(record: Pick<NewsRecord, 'sourceUrl' | 'content'>): string {
+function newsCanonicalUrl(record: Pick<NewsRecord, 'sourceUrl' | 'content'>): string {
   const embedded = record.content ? LINK_RE.exec(record.content)?.[1] : null;
   return canonicalizeNewsUrl(embedded ?? record.sourceUrl);
 }
 
-export function canonicalizeNewsUrl(value: string | null | undefined): string {
+function canonicalizeNewsUrl(value: string | null | undefined): string {
   if (!value) return '';
   try {
     const parsed = new URL(value.trim());

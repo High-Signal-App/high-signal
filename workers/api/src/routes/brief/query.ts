@@ -833,7 +833,7 @@ export async function buildTrends(
   return trends;
 }
 
-export async function previousBriefComputedAt(
+async function previousBriefComputedAt(
   database: BriefDatabase,
   region: Region,
   beforeDate: string
