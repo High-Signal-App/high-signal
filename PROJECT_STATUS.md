@@ -2,7 +2,7 @@
 
 Last updated: 2026-09-14
 
-September 14 Global brief trend ranking — release-qualified:
+September 14 Global brief trend ranking — live:
 
 Global news has no country cap, quota, bonus, or penalty. Stories are ordered by
 observed trend strength: unique publisher domains and independent attention
@@ -13,7 +13,11 @@ the rest of the world. Prediction-market questions remain excluded from reader
 news even when entity extraction assigned a company; they stay market research
 inputs. A retained-story refresh handles new unusable crawl records without
 aborting the whole news refresh. Full `pnpm quality` passes with 30/30 suites
-and 338 API assertions, and `pnpm build` succeeds.
+and 338 API assertions, and `pnpm build` succeeds. API deploy run `34776403878`
+published worker version `b47a5679-fdc0-4d36-8803-e23d40562695`; a no-cache
+production read ranked the September 13 edition by 3, 2, then 2 independent
+publisher domains before its single-publisher stories. The September 14
+edition currently has one qualified story and no prediction-market URLs.
 
 September 13 Daily Brief data-path repair — live:
 
