@@ -27,6 +27,13 @@ describe('public API edge cache', () => {
     expect(
       isPublicCacheRequest(
         new Request('https://api.highsignal.app/brief/daily', {
+          headers: { 'cache-control': 'no-cache' },
+        })
+      )
+    ).toBe(false);
+    expect(
+      isPublicCacheRequest(
+        new Request('https://api.highsignal.app/brief/daily', {
           headers: { authorization: 'Bearer redacted' },
         })
       )

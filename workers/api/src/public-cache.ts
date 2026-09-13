@@ -11,6 +11,8 @@ type PublicApiCacheOptions = {
 export function isPublicCacheRequest(request: Request) {
   if (request.method !== 'GET' && request.method !== 'HEAD') return false;
   if (request.headers.has('authorization') || request.headers.has('cookie')) return false;
+  const cacheDirective = request.headers.get('cache-control')?.toLowerCase() ?? '';
+  if (cacheDirective.includes('no-cache') || cacheDirective.includes('no-store')) return false;
 
   const path = new URL(request.url).pathname;
   return path !== '/health' && path !== '/admin' && !path.startsWith('/admin/');

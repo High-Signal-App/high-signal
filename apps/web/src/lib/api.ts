@@ -551,10 +551,16 @@ export const api = {
     if (params.region) search.set('region', params.region);
     if (params.date) search.set('date', params.date);
     const suffix = search.toString();
-    return fetchJson<BriefSnapshot>(
-      `/brief/daily${suffix ? `?${suffix}` : ''}`,
-      historyRequest(historyGrant)
-    );
+    const historyInit = historyRequest(historyGrant);
+    const headers = new Headers(historyInit?.headers);
+    // The page response has its own edge TTL. Bypass the API Worker's second
+    // cache layer so a fresh render never embeds a pre-publication snapshot.
+    headers.set('Cache-Control', 'no-cache');
+    return fetchJson<BriefSnapshot>(`/brief/daily${suffix ? `?${suffix}` : ''}`, {
+      ...historyInit,
+      cache: 'no-store',
+      headers,
+    });
   },
   briefDates: (historyGrant?: string | null) =>
     fetchJson<{
