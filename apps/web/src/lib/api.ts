@@ -558,7 +558,6 @@ export const api = {
     headers.set('Cache-Control', 'no-cache');
     return fetchJson<BriefSnapshot>(`/brief/daily${suffix ? `?${suffix}` : ''}`, {
       ...historyInit,
-      cache: 'no-store',
       headers,
     });
   },
