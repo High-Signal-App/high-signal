@@ -6,6 +6,7 @@ import {
   hasUsableRetainedText,
   reportingWindow,
   reportingWindowForEdition,
+  sanitizeBriefNewsItems,
   selectNewsRecords,
   type NewsRecord,
 } from '@high-signal/shared';
@@ -428,6 +429,39 @@ describe('composeNewsStories', () => {
       WINDOW
     );
     expect(story.evidence_status).toBe('unverified');
+  });
+});
+
+describe('sanitizeBriefNewsItems', () => {
+  it('removes unrelated citations inherited by a cached story cluster', () => {
+    const [story] = sanitizeBriefNewsItems([
+      {
+        id: 'revolut-breach',
+        title: 'Revolut confirms customer data breach through fake government requests',
+        summary:
+          'Revolut confirmed that attackers obtained customer data by submitting fraudulent government requests.',
+        event_at: '2026-09-12T08:00:00.000Z',
+        what_changed: '',
+        source_references: [
+          {
+            url: 'https://techcrunch.com/2026/09/12/revolut-confirms-customer-data-breach-through-fake-government-requests/',
+            source: 'news',
+          },
+          {
+            url: 'https://techcrunch.com/2026/09/11/scammers-target-crypto-owners-after-trezor-confirms-data-breach/',
+            source: 'news',
+          },
+        ],
+        evidence_status: 'reported',
+      },
+    ]);
+
+    expect(story?.source_references).toEqual([
+      {
+        url: 'https://techcrunch.com/2026/09/12/revolut-confirms-customer-data-breach-through-fake-government-requests/',
+        source: 'news',
+      },
+    ]);
   });
 });
 

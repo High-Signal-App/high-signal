@@ -572,9 +572,37 @@ export function sanitizeBriefNewsItems(items: readonly BriefNewsItem[]): BriefNe
     ) {
       continue;
     }
-    sanitized.push({ ...item, title, summary });
+    const publicReferences = item.source_references.filter((citation) => {
+      try {
+        const protocol = new URL(citation.url).protocol;
+        return protocol === 'http:' || protocol === 'https:';
+      } catch {
+        return false;
+      }
+    });
+    const relevantReferences = publicReferences.filter((citation) =>
+      citationMatchesTitle(citation.url, title)
+    );
+    const sourceReferences = relevantReferences.length
+      ? relevantReferences
+      : publicReferences.slice(0, 1);
+    if (sourceReferences.length === 0) continue;
+    sanitized.push({ ...item, title, summary, source_references: sourceReferences });
   }
   return sanitized;
+}
+
+function citationMatchesTitle(url: string, title: string): boolean {
+  try {
+    const parsed = new URL(url);
+    const urlTokens = titleTokens(`${parsed.hostname} ${decodeURIComponent(parsed.pathname)}`);
+    const identityTokens = [...titleTokens(title)].filter(
+      (token) => !COMPANYISH_STOP.has(token) && !EVENT_TOKENS.has(token) && !/^\d+$/.test(token)
+    );
+    return identityTokens.filter((token) => urlTokens.has(token)).length >= 2;
+  } catch {
+    return false;
+  }
 }
 
 function sourceReferences(members: NewsRecord[]): BriefCitation[] {
