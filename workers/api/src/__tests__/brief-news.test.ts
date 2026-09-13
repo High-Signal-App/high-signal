@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   clusterNewsRecords,
   composeNewsStories,
+  countryForNewsRecord,
   hasBriefNewsTopic,
   hasUsableRetainedText,
   reportingWindow,
@@ -286,6 +287,16 @@ describe('clusterNewsRecords', () => {
 });
 
 describe('composeNewsStories', () => {
+  it('recognizes India-owned publishers after verification rewrites the source name', () => {
+    expect(
+      countryForNewsRecord({
+        source: 'news:mts-verification:livemint.com',
+        sourceUrl: 'https://www.livemint.com/market/example',
+        country: null,
+      })
+    ).toBe('IN');
+  });
+
   it('replays a day of retained records through the news composer', () => {
     const stories = composeNewsStories(
       [

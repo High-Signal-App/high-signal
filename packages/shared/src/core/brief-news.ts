@@ -16,6 +16,21 @@ const TITLE_ONLY_MAX = 80;
 const SUMMARY_MAX_SENTENCES = 3;
 const EXCERPT_MAX = 1200;
 
+const INDIA_NEWS_HOSTS = new Set([
+  'analyticsindiamag.com',
+  'business-standard.com',
+  'cnbctv18.com',
+  'economictimes.indiatimes.com',
+  'entrackr.com',
+  'hindustantimes.com',
+  'inc42.com',
+  'indianexpress.com',
+  'livemint.com',
+  'moneycontrol.com',
+  'thehindu.com',
+  'yourstory.com',
+]);
+
 const TRACKING_PARAMS = new Set([
   'utm_source',
   'utm_medium',
@@ -278,7 +293,7 @@ export interface NewsRecord {
 
 /** Prefer an entity country, with narrow fallbacks for country-owned source adapters. */
 export function countryForNewsRecord(
-  record: Pick<NewsRecord, 'source' | 'country'>
+  record: Pick<NewsRecord, 'source' | 'sourceUrl' | 'country'>
 ): string | null {
   const explicit = record.country?.trim().toUpperCase();
   if (explicit) return explicit;
@@ -286,6 +301,12 @@ export function countryForNewsRecord(
   if (source.startsWith('news:india-') || source.startsWith('india-gov:')) return 'IN';
   if (source.startsWith('china-news:')) return 'CN';
   if (source === 'hkex' || source.startsWith('hkex:')) return 'HK';
+  try {
+    const host = new URL(record.sourceUrl).hostname.replace(/^www\./i, '').toLowerCase();
+    if (INDIA_NEWS_HOSTS.has(host)) return 'IN';
+  } catch {
+    // Invalid public URLs are rejected later by the story composer.
+  }
   return null;
 }
 

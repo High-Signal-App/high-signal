@@ -12,7 +12,7 @@ unknown geography remains eligible rather than being guessed. Region-specific
 editions now filter news to their configured country set instead of replaying
 the same unfiltered news mix. This corrects a production snapshot where three
 of five Global stories were India-specific while preserving India in both
-Global and South Asia. Full `pnpm quality` passes with 30/30 suites and 336 API
+Global and South Asia. Full `pnpm quality` passes with 30/30 suites and 337 API
 assertions, and `pnpm build` succeeds.
 
 September 13 Daily Brief data-path repair — live:
