@@ -2,7 +2,6 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   clusterNewsRecords,
   composeNewsStories,
-  countryForNewsRecord,
   hasBriefNewsTopic,
   hasUsableRetainedText,
   reportingWindow,
@@ -324,16 +323,6 @@ describe('composeNewsStories', () => {
     expect(story.what_changed).toBe('');
   });
 
-  it('recognizes India-owned publishers after verification rewrites the source name', () => {
-    expect(
-      countryForNewsRecord({
-        source: 'news:mts-verification:livemint.com',
-        sourceUrl: 'https://www.livemint.com/market/example',
-        country: null,
-      })
-    ).toBe('IN');
-  });
-
   it('replays a day of retained records through the news composer', () => {
     const stories = composeNewsStories(
       [
@@ -430,54 +419,57 @@ describe('composeNewsStories', () => {
     expect(composeNewsStories(extras, WINDOW)).toHaveLength(8);
   });
 
-  it('limits a known country to two stories in a diversified global edition', () => {
+  it('does not impose a geographic quota on qualified stories', () => {
     const stories = composeNewsStories(
       [
-        ...[
-          'Alpha acquires chip startup in Bengaluru',
-          'Beta reports quarterly earnings beat in India',
-          'Gamma confirms customer data breach in India',
-          'Delta files IPO prospectus in India',
-        ].map((title, index) =>
-          record({
-            id: `india-${index}`,
-            title,
-            sourceUrl: `https://reuters.com/india-${index}`,
-            country: 'in',
-          })
-        ),
-        ...[
-          'Epsilon launches battery factory in America',
-          'Zeta settles antitrust lawsuit in America',
-          'Eta recalls cloud security appliance in America',
-        ].map((title, index) =>
-          record({
-            id: `us-${index}`,
-            title,
-            sourceUrl: `https://reuters.com/us-${index}`,
-            country: 'US',
-          })
-        ),
-        ...[
-          'Theta acquires fintech lender in Britain',
-          'Iota raises funding for quantum chip lab in Britain',
-        ].map((title, index) =>
-          record({
-            id: `uk-${index}`,
-            title,
-            sourceUrl: `https://reuters.com/uk-${index}`,
-            country: 'GB',
-          })
-        ),
-      ],
-      WINDOW,
-      { diversifyCountries: true }
+        'Alpha acquires chip startup in Bengaluru',
+        'Beta reports quarterly earnings beat in India',
+        'Gamma confirms customer data breach in India',
+        'Delta files IPO prospectus in India',
+      ].map((title, index) =>
+        record({
+          id: `india-${index}`,
+          title,
+          sourceUrl: `https://reuters.com/india-${index}`,
+        })
+      ),
+      WINDOW
     );
 
-    expect(stories).toHaveLength(6);
-    expect(stories.filter((story) => story.title.includes('India'))).toHaveLength(2);
-    expect(stories.filter((story) => story.title.includes('America'))).toHaveLength(2);
-    expect(stories.filter((story) => story.title.includes('Britain'))).toHaveLength(2);
+    expect(stories).toHaveLength(4);
+  });
+
+  it('ranks independently observed trends above equally fresh single-source news', () => {
+    const trendingTitle = 'Acme launches a new inference chip for cloud providers';
+    const stories = composeNewsStories(
+      [
+        record({
+          id: 'single-official',
+          title: 'Beta launches an enterprise API for cloud customers',
+          source: 'ir',
+          sourceUrl: 'https://beta.example/news/enterprise-api',
+        }),
+        record({
+          id: 'trend-reuters',
+          title: trendingTitle,
+          sourceUrl: 'https://reuters.com/acme-chip',
+        }),
+        record({
+          id: 'trend-bbc',
+          title: trendingTitle,
+          sourceUrl: 'https://bbc.com/news/acme-chip',
+        }),
+        record({
+          id: 'trend-techcrunch',
+          title: trendingTitle,
+          sourceUrl: 'https://techcrunch.com/acme-chip',
+        }),
+      ],
+      WINDOW
+    );
+
+    expect(stories[0]?.title).toBe(trendingTitle);
+    expect(stories[0]?.source_references).toHaveLength(3);
   });
 
   it('strips publisher prompts, newsletter preambles, and repeated titles from summaries', () => {

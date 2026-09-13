@@ -895,11 +895,9 @@ export async function buildNews(
       content: schema.events.content,
       retainedText: schema.sourceDocuments.rawText,
       primaryEntityId: schema.events.primaryEntityId,
-      country: schema.entities.country,
     })
     .from(schema.events)
     .leftJoin(schema.sourceDocuments, eq(schema.events.sourceDocumentId, schema.sourceDocuments.id))
-    .leftJoin(schema.entities, eq(schema.entities.id, schema.events.primaryEntityId))
     .where(
       and(gte(schema.events.ingestedAt, lookbackStart), lt(schema.events.ingestedAt, window.end))
     )
@@ -916,9 +914,8 @@ export async function buildNews(
     content: row.content,
     retainedText: row.retainedText,
     primaryEntityId: row.primaryEntityId,
-    country: row.country,
   }));
-  return composeNewsStories(records, window, { diversifyCountries: region === 'global' });
+  return composeNewsStories(records, window);
 }
 
 /**

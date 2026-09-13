@@ -2,20 +2,18 @@
 
 Last updated: 2026-09-14
 
-September 14 Global brief geographic balance — live:
+September 14 Global brief trend ranking — release-qualified:
 
-Global news keeps the existing evidence, importance, novelty, and freshness
-ordering, then limits any identified country to two of the eight available
-story slots. Country identity comes from the event's primary entity, with
-narrow source-owned fallbacks for India, mainland China, and Hong Kong feeds;
-unknown geography remains eligible rather than being guessed. This corrects a
-production snapshot where three of five Global stories were India-specific
-while preserving India in the candidate pool. Prediction-market questions are
-also excluded from reader news even when entity extraction assigned a company;
-they remain market research inputs. A retained-story refresh handles new
-unusable crawl records without aborting the whole news refresh. Full
-`pnpm quality` passes with 30/30 suites and 338 API assertions, and `pnpm build`
-succeeds.
+Global news has no country cap, quota, bonus, or penalty. Stories are ordered by
+observed trend strength: unique publisher domains and independent attention
+channels, then evidence quality, freshness, and recency. Repeated records from
+one publisher do not manufacture reach. This replaces the temporary country
+cap while preserving every qualified India story in the same candidate pool as
+the rest of the world. Prediction-market questions remain excluded from reader
+news even when entity extraction assigned a company; they stay market research
+inputs. A retained-story refresh handles new unusable crawl records without
+aborting the whole news refresh. Full `pnpm quality` passes with 30/30 suites
+and 338 API assertions, and `pnpm build` succeeds.
 
 September 13 Daily Brief data-path repair — live:
 

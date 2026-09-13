@@ -5,31 +5,15 @@
 
 import { canonicalSourceUrl } from './source-document';
 import { istDayRange } from './history-access';
-import { classifySource, isPredictionMarketOnly } from './signal-intelligence';
+import { classifySource, isPredictionMarketOnly, sourceDomain } from './signal-intelligence';
 import type { BriefCitation, BriefNewsEvidenceStatus, BriefNewsItem } from './brief';
 
 const NEWS_LIMIT = 8;
-const GLOBAL_NEWS_COUNTRY_LIMIT = 2;
 const DEFAULT_NEWS_WINDOW_MS = 24 * 60 * 60 * 1000;
 const JACCARD_THRESHOLD = 0.72;
 const TITLE_ONLY_MAX = 80;
 const SUMMARY_MAX_SENTENCES = 3;
 const EXCERPT_MAX = 1200;
-
-const INDIA_NEWS_HOSTS = new Set([
-  'analyticsindiamag.com',
-  'business-standard.com',
-  'cnbctv18.com',
-  'economictimes.indiatimes.com',
-  'entrackr.com',
-  'hindustantimes.com',
-  'inc42.com',
-  'indianexpress.com',
-  'livemint.com',
-  'moneycontrol.com',
-  'thehindu.com',
-  'yourstory.com',
-]);
 
 const TRACKING_PARAMS = new Set([
   'utm_source',
@@ -145,6 +129,16 @@ const COMPANYISH_STOP = new Set([
   'company',
   'co',
   'holdings',
+]);
+
+const ATTENTION_SOURCE_FAMILIES = new Set([
+  'bluesky',
+  'digg',
+  'hackernews',
+  'lobsters',
+  'mts',
+  'producthunt',
+  'reddit',
 ]);
 
 const BRIEF_NEWS_TOPICS = new Set([
@@ -288,26 +282,6 @@ export interface NewsRecord {
   content: string | null;
   retainedText: string | null;
   primaryEntityId?: string | null;
-  country?: string | null;
-}
-
-/** Prefer an entity country, with narrow fallbacks for country-owned source adapters. */
-export function countryForNewsRecord(
-  record: Pick<NewsRecord, 'source' | 'sourceUrl' | 'country'>
-): string | null {
-  const explicit = record.country?.trim().toUpperCase();
-  if (explicit) return explicit;
-  const source = record.source.toLowerCase();
-  if (source.startsWith('news:india-') || source.startsWith('india-gov:')) return 'IN';
-  if (source.startsWith('china-news:')) return 'CN';
-  if (source === 'hkex' || source.startsWith('hkex:')) return 'HK';
-  try {
-    const host = new URL(record.sourceUrl).hostname.replace(/^www\./i, '').toLowerCase();
-    if (INDIA_NEWS_HOSTS.has(host)) return 'IN';
-  } catch {
-    // Invalid public URLs are rejected later by the story composer.
-  }
-  return null;
 }
 
 interface NewsReportingWindow {
@@ -457,8 +431,7 @@ export function clusterNewsRecords(records: readonly NewsRecord[]): NewsRecord[]
 
 export function composeNewsStories(
   records: readonly NewsRecord[],
-  window: NewsReportingWindow,
-  options: { diversifyCountries?: boolean } = {}
+  window: NewsReportingWindow
 ): BriefNewsItem[] {
   const selected = selectNewsRecords(records, window);
   const clusters = clusterNewsRecords(selected);
@@ -466,28 +439,21 @@ export function composeNewsStories(
     .map((members) => storyFromCluster(members, window))
     .filter((story): story is RankedNews => story != null)
     .sort((a, b) => {
+      if (a.trendSources !== b.trendSources) return b.trendSources - a.trendSources;
+      if (a.crossChannel !== b.crossChannel) return Number(b.crossChannel) - Number(a.crossChannel);
+      if (a.publisherSources !== b.publisherSources) {
+        return b.publisherSources - a.publisherSources;
+      }
+      if (a.attentionChannels !== b.attentionChannels) {
+        return b.attentionChannels - a.attentionChannels;
+      }
       if (a.importance !== b.importance) return b.importance - a.importance;
       if (a.novelty !== b.novelty) return b.novelty - a.novelty;
       if (a.evidence !== b.evidence) return b.evidence - a.evidence;
       return b.eventAtMs - a.eventAtMs;
-    });
-  const stories = options.diversifyCountries
-    ? selectCountryDiverseStories(ranked)
-    : ranked.slice(0, NEWS_LIMIT);
-  return stories.map((story) => story.item);
-}
-
-function selectCountryDiverseStories(stories: readonly RankedNews[]): RankedNews[] {
-  const countryCounts = new Map<string, number>();
-  const selected: RankedNews[] = [];
-  for (const story of stories) {
-    if (selected.length >= NEWS_LIMIT) break;
-    const country = story.country;
-    if (country && (countryCounts.get(country) ?? 0) >= GLOBAL_NEWS_COUNTRY_LIMIT) continue;
-    selected.push(story);
-    if (country) countryCounts.set(country, (countryCounts.get(country) ?? 0) + 1);
-  }
-  return selected;
+    })
+    .slice(0, NEWS_LIMIT);
+  return ranked.map((story) => story.item);
 }
 
 function newsCanonicalUrl(record: Pick<NewsRecord, 'sourceUrl' | 'content'>): string {
@@ -547,6 +513,7 @@ function storyFromCluster(members: NewsRecord[], window: NewsReportingWindow): R
   const evidenceStatus = evidenceStatusFor(usable, references);
   const eventAt = earliestPublished(usable);
   const whatChanged = whatChangedInWindow(usable, window, summary);
+  const trend = trendStrength(usable);
   const item: BriefNewsItem = {
     id: clusterId(usable),
     title,
@@ -558,24 +525,52 @@ function storyFromCluster(members: NewsRecord[], window: NewsReportingWindow): R
   };
   return {
     item,
-    country:
-      countryForNewsRecord(representative) ||
-      usable.map(countryForNewsRecord).find((country) => country != null) ||
-      null,
-    importance: importanceScore(usable, evidenceStatus),
+    ...trend,
+    importance: importanceScore(usable, evidenceStatus, trend.trendSources),
     novelty: noveltyScore(usable, window),
-    evidence: evidenceScore(usable, excerpt),
+    evidence: evidenceScore(excerpt, trend.publisherSources),
     eventAtMs: eventAt.getTime(),
   };
 }
 
 interface RankedNews {
   item: BriefNewsItem;
-  country: string | null;
+  trendSources: number;
+  publisherSources: number;
+  attentionChannels: number;
+  crossChannel: boolean;
   importance: number;
   novelty: number;
   evidence: number;
   eventAtMs: number;
+}
+
+function trendStrength(
+  members: readonly NewsRecord[]
+): Pick<RankedNews, 'trendSources' | 'publisherSources' | 'attentionChannels' | 'crossChannel'> {
+  const publishers = new Set<string>();
+  const attention = new Set<string>();
+  for (const member of members) {
+    const family = sourceFamily(member.source);
+    if (ATTENTION_SOURCE_FAMILIES.has(family)) {
+      attention.add(family);
+      continue;
+    }
+    try {
+      const protocol = new URL(member.sourceUrl).protocol;
+      if (protocol !== 'http:' && protocol !== 'https:') continue;
+    } catch {
+      continue;
+    }
+    const domain = sourceDomain(member.sourceUrl);
+    if (domain) publishers.add(domain);
+  }
+  return {
+    trendSources: publishers.size + attention.size,
+    publisherSources: publishers.size,
+    attentionChannels: attention.size,
+    crossChannel: publishers.size > 0 && attention.size > 0,
+  };
 }
 
 function retainedBody(
@@ -725,7 +720,11 @@ function evidenceStatusFor(
   return 'unverified';
 }
 
-function importanceScore(members: NewsRecord[], status: BriefNewsEvidenceStatus): number {
+function importanceScore(
+  members: NewsRecord[],
+  status: BriefNewsEvidenceStatus,
+  independentSourceCount: number
+): number {
   const maxRank = Math.max(
     ...members.map((member) => SOURCE_RANK[sourceFamily(member.source)] ?? 1)
   );
@@ -735,7 +734,7 @@ function importanceScore(members: NewsRecord[], status: BriefNewsEvidenceStatus)
   )
     ? 8
     : 0;
-  return maxRank + statusBoost + eventBoost + Math.min(members.length, 4);
+  return maxRank + statusBoost + eventBoost + Math.min(independentSourceCount, 4);
 }
 
 function noveltyScore(members: NewsRecord[], window: NewsReportingWindow): number {
@@ -744,8 +743,8 @@ function noveltyScore(members: NewsRecord[], window: NewsReportingWindow): numbe
   return Math.max(0, 48 - ageHours);
 }
 
-function evidenceScore(members: NewsRecord[], excerpt: string): number {
-  return Math.min(excerpt.length / 80, 20) + Math.min(members.length, 5);
+function evidenceScore(excerpt: string, publisherSourceCount: number): number {
+  return Math.min(excerpt.length / 80, 20) + Math.min(publisherSourceCount, 5);
 }
 
 function whatChangedInWindow(
