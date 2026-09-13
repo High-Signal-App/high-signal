@@ -7,12 +7,10 @@ import { claimsRoute } from './routes/claims';
 import { communitiesRoute } from './routes/communities';
 import { companyUniverseRoute } from './routes/company-universe';
 import { convergenceRoute } from './routes/convergence';
-import { d2cRoute } from './routes/d2c';
 import { dataRoute } from './routes/data';
 import { enrichRoute } from './routes/enrich';
 import { entitiesRoute } from './routes/entities';
 import { historyRoute } from './routes/history';
-import { learningRoute } from './routes/learning';
 import { marketsRoute } from './routes/markets';
 import { productsRoute } from './routes/products';
 import { sectorsRoute } from './routes/sectors';
@@ -63,9 +61,7 @@ app.route('/enrich', enrichRoute);
 app.route('/attention', attentionRoute);
 app.route('/claims', claimsRoute);
 app.route('/data', dataRoute);
-app.route('/d2c', d2cRoute);
 app.route('/company-universe', companyUniverseRoute);
-app.route('/learning', learningRoute);
 app.route('/history', historyRoute);
 
 app.onError((error, c) => {

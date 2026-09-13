@@ -1,6 +1,5 @@
 /**
- * Daily Brief contract. The brief has 3 public sections plus 2 personal
- * sections that appear once a brand is connected.
+ * Public Daily Brief contract.
  *
  * Each item carries enough metadata for the renderer to show evidence inline
  * (citations + hit-rate where applicable) without a second round-trip.
@@ -9,13 +8,7 @@
 import type { Region } from '../primitives/region';
 import type { BriefClaimProvenance } from './claim-provenance';
 
-export type BriefSectionKey =
-  | 'stocks'
-  | 'ideas'
-  | 'trends'
-  | 'news'
-  | 'perception'
-  | 'improvements';
+export type BriefSectionKey = 'stocks' | 'ideas' | 'trends' | 'news';
 
 export interface BriefCitation {
   url: string;
@@ -211,63 +204,6 @@ export interface BriefAttentionSections {
   attentionEvidenceGaps: DiggAttentionGapItem[];
 }
 
-/** Source-backed buyer/community intent attached to owner-scoped brief items. */
-export interface BriefIntentItem {
-  id: string;
-  brandId: string;
-  brandName: string;
-  source: string;
-  sourceUrl: string;
-  sourceTitle: string;
-  sourceExcerpt: string;
-  platform: string;
-  intentStage:
-    | 'awareness'
-    | 'pain'
-    | 'comparison'
-    | 'purchase'
-    | 'proof'
-    | 'integration'
-    | 'content';
-  actionType:
-    | 'watch'
-    | 'reply'
-    | 'create_proof'
-    | 'improve_docs'
-    | 'add_integration'
-    | 'write_comparison'
-    | 'content_opportunity';
-  score: number;
-  competitors: string[];
-  evidenceTaskId: string | null;
-  foundAt: string;
-}
-
-export interface BriefPerceptionItem {
-  brandName: string;
-  mentionRate: number | null;
-  positiveShare: number | null;
-  competitorPresence: number | null;
-  latestCheckAt: string | null;
-  configId: string;
-  /** Highest-scoring open buyer/community finding for this brand. */
-  topIntent?: BriefIntentItem;
-}
-
-export interface BriefImprovementItem {
-  brandName: string;
-  area: string;
-  task: string;
-  priority: 'high' | 'medium' | 'low';
-  /** Null for an action derived directly from intent rather than an audit. */
-  auditId: string | null;
-  surfacedAt: string;
-  /** Original evidence URL when the task was created from a source finding. */
-  sourceUrl?: string | null;
-  /** Present when this action was exposed by a buyer/community finding. */
-  intent?: BriefIntentItem;
-}
-
 export type BriefNewsEvidenceStatus = 'official' | 'reported' | 'unverified';
 
 export interface BriefNewsItem {
@@ -286,7 +222,6 @@ export interface BriefSnapshot {
   editionDate?: string;
   timeZone?: 'Asia/Kolkata';
   region: Region;
-  hasBrand: boolean;
   stocks: BriefStockItem[];
   ideas: BriefIdeaItem[];
   trends: BriefTrendItem[];
@@ -295,8 +230,6 @@ export interface BriefSnapshot {
    * publish gates. Absent on snapshots written before news existed.
    */
   news?: BriefNewsItem[];
-  perception: BriefPerceptionItem[];
-  improvements: BriefImprovementItem[];
   /** Derived attention is optional on archived snapshots created before Digg. */
   attentionLeaders?: DiggAttentionItem[];
   emergingBeforeMainstream?: DiggAttentionItem[];
@@ -657,4 +590,3 @@ export function summarizeBriefDiscovery(
 }
 
 export const BRIEF_PUBLIC_SECTIONS: BriefSectionKey[] = ['stocks', 'ideas', 'trends'];
-export const BRIEF_PERSONAL_SECTIONS: BriefSectionKey[] = ['perception', 'improvements'];

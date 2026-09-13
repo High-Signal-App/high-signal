@@ -5,7 +5,7 @@ const GITHUB_API_VERSION = '2022-11-28';
 
 export type ScheduledWorkflow = {
   workflow: string;
-  purpose: 'reddit-archive' | 'digg' | 'mts' | 'ingest' | 'publish' | 'validate' | 'deliver';
+  purpose: 'reddit-archive' | 'digg' | 'mts' | 'ingest' | 'publish' | 'validate';
   inputs?: Record<string, string>;
 };
 
@@ -13,7 +13,6 @@ const DAILY_WORKFLOWS = new Map<string, ScheduledWorkflow>([
   ['02:30', { workflow: 'cron-ingest.yml', purpose: 'ingest' }],
   ['03:30', { workflow: 'cron-publish.yml', purpose: 'publish' }],
   ['04:00', { workflow: 'cron-validate-brief.yml', purpose: 'validate' }],
-  ['04:30', { workflow: 'personal-brief.yml', purpose: 'deliver' }],
 ]);
 
 export type WorkflowDispatchResult = ScheduledWorkflow & {

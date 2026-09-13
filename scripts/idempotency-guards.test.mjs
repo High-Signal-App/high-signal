@@ -56,28 +56,21 @@ assert.ok(
   'admin /admin/scores handler must exist — score_runs upsert is the score watermark'
 );
 
-// 6. d2c_niche_snapshots and d2c_agent_visibility have unique indexes on
-// (niche_id, snapshot_date) — weekly cron retries dedupe.
-assert.ok(
-  /d2cNicheSnapshots|d2c_niche_snapshots/.test(schema),
-  'd2c_niche_snapshots must be in schema — weekly D2C cron dedupes on (niche, snapshot_date)'
-);
-
-// 7. delivery_log is gone. Brief email delivery was removed with the rest of
+// 6. delivery_log is gone. Brief email delivery was removed with the rest of
 // the per-user surface (migration 0020), so there is no send to deduplicate.
 assert.ok(
   !/deliveryLog|delivery_log/.test(schema),
   'delivery_log must NOT be in schema — brief email delivery was removed'
 );
 
-// 8. daily_brief_snapshots upsert by date — precompute re-runs overwrite, not
+// 7. daily_brief_snapshots upsert by date — precompute re-runs overwrite, not
 // duplicate.
 assert.ok(
   /dailyBriefSnapshots|daily_brief_snapshots/.test(schema),
   'daily_brief_snapshots must be in schema — brief precompute upserts by date'
 );
 
-// 9. ingest_runs is append-only audit (no dedup needed — it's the debug window,
+// 8. ingest_runs is append-only audit (no dedup needed — it's the debug window,
 // not durable product state). Verify the admin route inserts, never updates.
 assert.ok(
   /adminRoute\.post\(["']\/ingest-runs["']/.test(admin),
@@ -89,7 +82,7 @@ assert.ok(
 );
 
 // 10. The watermark-advancement rule: source watermarks (ingest_runs.started_at,
-// market_quotes.fetched_at, d2c_niche_snapshots.snapshot_date) advance only
+// market_quotes.fetched_at and other timestamp watermarks advance only
 // when durable output succeeds. Verify the audit push is best-effort AFTER
 // the pipeline writes (audit.py comment confirms this).
 const auditPy = await readFile(

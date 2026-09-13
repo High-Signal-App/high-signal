@@ -1,5 +1,5 @@
 /**
- * Daily brief D1 queries: public sections, personal sections, snapshots, feeds.
+ * Daily brief D1 queries: public sections, snapshots, and feeds.
  */
 
 import { and, asc, desc, eq, inArray, gte, lt, isNull, sql } from 'drizzle-orm';
@@ -36,7 +36,6 @@ import {
   RECENT_SIGNAL_WINDOW_DAYS,
   STOCKS_LIMIT,
   TRENDS_LIMIT,
-  d2cBriefItemsForRegion,
   headlineFromBody,
   isBriefStockEvidenceEligible,
   isPublicSourceLink,
@@ -643,16 +642,6 @@ export async function buildIdeas(
   region: Region,
   countries: string[]
 ): Promise<BriefIdeaItem[]> {
-  // India D2C Opportunity Pipeline (plan 0013). Prepend up to 3 briefs for
-  // south-asia and 1 rotating brief for global, ahead of community digests.
-  // Real D1 community ideas still fill the remaining slots up to IDEAS_LIMIT.
-  const d2cItems = d2cBriefItemsForRegion(region)
-    .filter((item) => item.evidenceUrls.some((evidence) => isPublicSourceLink(evidence.url)))
-    .map((item) => ({
-      ...item,
-      whyNow: item.opportunity?.marketTimingReasons[0] ?? item.description,
-    }));
-
   const sinceMs = Date.now() - COMMUNITY_DIGEST_LOOKBACK_DAYS * 24 * 60 * 60 * 1000;
   // Source A: community digests' key_action items across public digests.
   const digestRows = await database
@@ -677,7 +666,7 @@ export async function buildIdeas(
     .orderBy(desc(schema.communityDigestSnapshots.snapshotDate))
     .limit(60);
 
-  const ideas: BriefIdeaItem[] = [...d2cItems];
+  const ideas: BriefIdeaItem[] = [];
   for (const digest of digestRows) {
     const summary = normalizeCommunitySummary(digest.summary);
     const action = summary?.keyAction;

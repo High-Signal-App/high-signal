@@ -97,12 +97,9 @@ export default async function BriefDatePage({ params, searchParams }: BriefDateP
   const heroBrief: BriefSnapshot = brief ?? {
     generatedAt: `${date}T00:00:00.000Z`,
     region,
-    hasBrand: false,
     stocks: [],
     ideas: [],
     trends: [],
-    perception: [],
-    improvements: [],
     categoryStates: {
       stocks: { status: 'empty', source: 'live', reason: 'snapshot_missing' },
       ideas: { status: 'empty', source: 'live', reason: 'snapshot_missing' },

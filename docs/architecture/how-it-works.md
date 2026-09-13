@@ -15,9 +15,9 @@ description: "Learning-tier walkthrough: how a signal flows from noisy public so
 > ingestion/insight split, and [`../operations/jobs.md`](../operations/jobs.md)
 > for the exact cron schedule.
 
-High Signal is **one product**: a daily synthesized brief that answers five
-questions for the operator (see [`../product/direction.md`](../product/direction.md)).
-Everything below exists to produce that brief with cited, scorable evidence.
+High Signal is **one product**: a daily synthesized brief that fulfills the
+public reader promise in [`../product/prd.md`](../product/prd.md). Everything
+below exists to produce that brief with cited, scorable evidence.
 
 ## The one-sentence version
 
@@ -52,7 +52,7 @@ flowchart TD
         SYNC["sync-signals.ts → /admin/sync"]
         D1[("D1 + Drizzle<br/>signals, evidence, score_runs, ...")]
         JUDGE["auto-publish judge<br/>rules → AI on HOLD"]
-        API["Hono API (workers/api)<br/>/brief/daily composes 5 sections"]
+        API["Hono API (workers/api)<br/>/brief/daily composes news + evidence-qualified sections"]
     end
 
     WEB["Next.js web app (apps/web)<br/>public brief + lenses"]
@@ -122,11 +122,12 @@ call for quality.
 
 **Cite-or-kill is enforced at every layer**: source-strength requires ≥ 2
 distinct URLs to reach `medium`/`high`, thematic (entity-less) drafts require
-≥ 2 distinct sources *and* ≥ 2 URLs, and if the LLM is unavailable the pipeline
-degrades to conservative `fallback_candidate` drafts (never silent failure).
-The rationale (evidence-first, "cite or kill") comes from the founding thesis:
-the public hit-rate ledger is the product's moat, so an uncited claim has no
-value here.
+≥ 2 distinct sources *and* ≥ 2 URLs, and provider failures retain their source
+events without manufacturing a candidate. Explicit keyless/local review runs
+may emit bounded `fallback_candidate` drafts, but those remain review items and
+must pass the normal publication gate. The rationale (evidence-first, "cite or
+kill") comes from the founding thesis: the public hit-rate ledger is the
+product's moat, so an uncited claim has no value here.
 
 ### 4. The signal store — append-only git markdown
 
@@ -182,10 +183,9 @@ commit and a test update — that is intentional.
 
 ### 7. The API — composing the brief
 
-`workers/api/src/routes/brief/` (`GET /brief/daily?region=&owner=`) composes
-the Daily Brief's five sections: three public (stocks / ideas / trends) that
-render without a user, and two personal (perception / improvements) that need an
-`ownerId` with a connected brand. Per-signal-type hit-rate is computed from
+`workers/api/src/routes/brief/` (`GET /brief/daily?region=&date=`) composes
+the public Daily Brief from stocks, ideas, trends, and ranked news.
+Per-signal-type hit-rate is computed from
 `score_runs` joined to `signals` and inlined into each item, keeping the moat
 visible. Each section is wrapped in a `safe()` helper so one broken lens
 degrades a single brief section instead of failing the whole response. Common
@@ -195,7 +195,7 @@ regions are precomputed by cron so the API does one D1 lookup instead of many.
 
 `apps/web` (Next.js 16 App Router) reads the API through `apps/web/src/lib/api.ts`
 (`fetchJson('/brief/daily?...')`). The signals brief is the homepage; the lenses
-(Markets, Communities, Agent Eval) are deep views, not separate products
+(Markets and Communities) are deep views, not separate products
 (ADR-011). There is **no reader auth** — every readable page is anonymous and
 cacheable. Cloudflare Access gates the bounded operator paths, and
 `apps/web/src/lib/access.ts` verifies the JWT again before the admin proxy can
@@ -219,4 +219,5 @@ inject `ADMIN_TOKEN` (ADR-014).
 - Every "why" as a dated, append-only ADR: [`decisions.md`](decisions.md)
 - The ingestion/insight boundary and migration path: [`data-service-boundary.md`](data-service-boundary.md)
 - Exact cron schedule, ordering, and secrets: [`../operations/jobs.md`](../operations/jobs.md)
-- Locked product direction and the five sections: [`../product/direction.md`](../product/direction.md)
+- Final product requirements: [`../product/prd.md`](../product/prd.md)
+- Locked product direction: [`../product/direction.md`](../product/direction.md)

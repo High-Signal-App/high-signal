@@ -90,7 +90,7 @@ lens.
 - **Corroboration** — trusted news, GDELT, Techmeme-style meta-curation, and independent reporting that confirms a primary event is broader than one page.
 - **Weak-signal candidates** — Reddit, HN, YouTube discovery/transcripts, Substack, prediction markets, and community chatter. These can start review items but should not auto-publish alone.
 - **Enrichment** — Wikidata, GLEIF, Wikipedia pageviews, equities snapshots, and other sources that improve mapping, context, or ranking but are rarely a signal by themselves.
-- **Lens-specific intelligence** — Wayback/CDX, competitor page diffs, AI answer checks, review sites, and similar product/competitor sources belong to Mention or Agent Eval until their outcome metric is defined.
+- **Brand intelligence** — Wayback/CDX, competitor page diffs, AI answer checks, review sites, and similar product/competitor sources belong to Mentionpilot.
 
 Add sources in curated batches. A source should be removed or demoted if it
 mostly creates unmapped events, duplicate syndication waves, or drafts with no

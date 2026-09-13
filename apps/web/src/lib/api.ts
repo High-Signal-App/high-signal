@@ -329,41 +329,6 @@ export interface DataSourceEventsResponse {
   available: boolean;
 }
 
-export interface IntentOpportunity {
-  id: string;
-  brandId: string;
-  ownerId: string;
-  source: string;
-  sourceUrl: string;
-  sourceTitle: string;
-  sourceExcerpt: string;
-  platform: string;
-  intentStage:
-    | 'awareness'
-    | 'pain'
-    | 'comparison'
-    | 'purchase'
-    | 'proof'
-    | 'integration'
-    | 'content';
-  actionType:
-    | 'watch'
-    | 'reply'
-    | 'create_proof'
-    | 'improve_docs'
-    | 'add_integration'
-    | 'write_comparison'
-    | 'content_opportunity';
-  score: number;
-  competitors: string[];
-  matchedKeywords: string[];
-  evidenceTaskId: string | null;
-  replyDraft: string | null;
-  status: 'open' | 'dismissed' | 'done';
-  foundAt: string;
-  updatedAt: string;
-}
-
 export const api = {
   signals: (f: SignalFilters = {}, historyGrant?: string | null) =>
     fetchJson<{ signals: SignalRow[] }>(`/signals${qs(f)}`, historyRequest(historyGrant)),
@@ -581,13 +546,9 @@ export const api = {
     fetchJson<{ digests: CommunityDigestSnapshot[] }>(
       `/products/communities/${encodeURIComponent(subreddit)}/${period}/digests`
     ),
-  brief: (
-    params: { region?: Region; productId?: string; date?: string } = {},
-    historyGrant?: string | null
-  ) => {
+  brief: (params: { region?: Region; date?: string } = {}, historyGrant?: string | null) => {
     const search = new URLSearchParams();
     if (params.region) search.set('region', params.region);
-    if (params.productId) search.set('product', params.productId);
     if (params.date) search.set('date', params.date);
     const suffix = search.toString();
     return fetchJson<BriefSnapshot>(

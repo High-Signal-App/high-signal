@@ -18,7 +18,7 @@ and blocked work in GitHub Issues.
 
 ## Purpose
 
-**High Signal is one product: a daily synthesized brief.** It aggregates noisy
+**High Signal is a news media product built around one daily synthesized brief.** It aggregates noisy
 public sources (Reddit, news, Hacker News, YouTube transcripts, SEC filings,
 GitHub, IR pages, etc.), curates and cleans them, and publishes only claims that
 clear the evidence gates. The reader-facing product is the Brief, Signals and
@@ -37,7 +37,6 @@ prior "umbrella + 5 sub-products" framing in `plans/0004-platform-consolidation.
 - **Web**: Next.js 16 (App Router, Turbopack) — `apps/web`
 - **API**: Hono on Cloudflare Workers — `workers/api`
 - **DB**: Cloudflare D1 + Drizzle — schema in `packages/db`
-- **Lab substrate**: local-first Postgres (FTS + `pgvector`) — `python/lab` (plan `0007`, parked)
 - **Python ingestion + scoring**: edgartools, Trafilatura, GLiNER, NetworkX — `python/ingest`. Relation extraction (GLiREL) is a parked stub returning a typed empty result (not a declared dep); FinBERT sentiment is code-present but its `transformers` dep is undeclared and returns an unavailable/neutral-with-reason result. Daily crons on GitHub Actions; Modal kept for ad-hoc backfills only.
 - **Signal store**: git-versioned markdown under `signals/YYYY-MM-DD/<slug>.md` — append-only, never rewritten.
 - **Auth**: none for readers — the product is fully public. Cloudflare Access gates the bounded operator paths, and `apps/web/src/lib/access.ts` verifies the Access JWT again at the Worker. The `/api/admin` proxy then injects `ADMIN_TOKEN` server-side so it never reaches the browser. ADR-014 is the migration plan that supersedes the abandoned Access decision in ADR-007 and amends ADR-013's password gate.
@@ -60,7 +59,7 @@ pnpm db:migrate:local | pnpm db:migrate:remote
 pnpm db:seed:local | pnpm db:seed:remote
 pnpm signals:sync:local | pnpm signals:sync:remote
 pnpm signals:auto-publish:remote          # two-tier judge (rules + AI on HOLD)
-pnpm personal:brief                       # operator personal command brief
+pnpm market:refresh && pnpm market:snapshot # derive market context from the canonical equities snapshot
 pnpm ingest:local                         # python pipeline --source all --days 1
 pnpm source:diagnose                      # read-only source health (never prints secrets)
 pnpm docs:check                           # internal-link check + empty-dir sanity on docs/ (no frontmatter validation)
@@ -78,7 +77,7 @@ Cron job intent + ordering: [`docs/operations/jobs.md`](docs/operations/jobs.md)
 - **Confidence as a band** — `low` / `medium` / `high`, calibrated post-hoc against hit-rate.
 - **Public hit-rate ledger from day 1** — the moat.
 - **Auto-publish, no human gate** — daily `cron-publish.yml` runs `scripts/auto-publish-drafts.ts` at 07:00 UTC. Two-tier judge: deterministic rubric (`scripts/auto-publish-rules.ts`, unit-tested) → AI judge on HOLD only → HOLD biases to KILL without AI. PUBLISH → `review_status='published'`; KILL → `review_status='killed'` (reversible via `/review`). Full rules in [`docs/architecture/decisions.md`](docs/architecture/decisions.md) ADR-008.
-- **World change → product opportunity** — major changes and repeated app complaints become concrete product ideas.
+- **Community context** — repeated, source-linked community demand may inform the brief while Community Intelligence remains in this repo.
 - **Attention is not evidence** — short-form and aggregator activity can raise investigation priority, but only structured evidence can support publication.
 
 Architecture decisions (ADRs): [`docs/architecture/decisions.md`](docs/architecture/decisions.md).
@@ -101,6 +100,7 @@ Data service boundary: [`docs/architecture/data-service-boundary.md`](docs/archi
 - **No secrets in the repo.** No `.env`, keys, or production configs in commits. Cron secrets live in GitHub Actions secrets / Infisical.
 - **No user accounts.** Per-user features (Mentions, Watchlists, email brief delivery, saved Agent Eval history) were deleted in migration `0020` — see ADR-013. Do not add a per-user table, a login for readers, or a second auth vendor without a new ADR.
 - **`tracked_communities` is operator curation, not user data.** Its `owner_id` column is vestigial. The public brief's Behavior & Culture section reads its digests, so its CRUD lives behind `ADMIN_TOKEN` in `workers/api/src/routes/admin.ts` — never re-scope it per user or delete it.
+- **Brand intelligence belongs to Mentionpilot.** Do not reintroduce agent-evaluation, competitor-perception, or personal brand-monitoring product code here.
 - **Free AI first.** Prefer the `free-ai` gateway / local models / free tiers; escalate to paid models only when justified.
 
 ## Documentation navigation

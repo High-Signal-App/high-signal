@@ -3,7 +3,7 @@ title: Product Direction (Locked)
 description: The authoritative locked product-direction snapshot for High Signal — brand, Daily Brief, sections, pricing, lenses, sources, and hard rules.
 ---
 
-# Product Direction — Locked (2026-05-25)
+# Product Direction — Locked (updated 2026-09-13)
 
 This is the **authoritative product-direction snapshot**, referenced from
 [`agents.md`](https://github.com/High-Signal-App/high-signal/blob/main/agents.md) and [`SPEC.md`](https://github.com/High-Signal-App/high-signal/blob/main/SPEC.md). It
@@ -81,11 +81,12 @@ the public brief recomputes from that region's entities and retained sources.
 - **Markets lens** feeds Markets & companies. The AI-infra / semiconductors signal pipeline
   + public hit-rate ledger remain the proof-of-quality.
 - **Communities input** feeds Business opportunities and Behavior & culture — pain, demand,
-  narrative, and lifestyle drift. Curation remains operator-only.
+  narrative, and lifestyle drift. Curation remains operator-only until Reddit Insights can
+  take over raw collection and history without losing these inputs.
 - **Entities, sectors, convergence, and market context** remain supporting
   research indexes rather than standalone products.
-- **Lab substrate** (plan `0007`) remains parked local infrastructure with no
-  public UI.
+- **Brand intelligence** belongs to Mentionpilot. High Signal does not own agent
+  evaluation, competitor perception, personal product ranking, or generic content generation.
 
 ## Company Universe
 
@@ -173,8 +174,7 @@ boundaries.
 - Generic reel generation without evidence, positioning, or agent-readiness
   scoring.
 - Licensed datasets (premature).
-- Vector retrieval in the public signal product surface (defer until evidence
-  search is the bottleneck) — the HighSignal Lab substrate (plan `0007`) does
-  use `pgvector` internally; keep vector search inside Lab.
+- Vector retrieval in the public signal product surface until evidence search is
+  a measured bottleneck.
 - Paid SaaS, billing, multi-tenancy.
 - Mobile app, Discord/Slack alerts (RSS + email + Twitter is enough).

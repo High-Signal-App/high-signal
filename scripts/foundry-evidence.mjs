@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // foundry-evidence.mjs — produces a sanitized Foundry evidence snapshot
-// aggregating job lifecycle, API health, freshness, cost, product funnel,
+// aggregating job lifecycle, API health, freshness, cost,
 // and data durability into reports/foundry-evidence/<date>.json.
 //
 // Read-only. No production mutation. No secrets. No raw prompts/content.
@@ -8,7 +8,7 @@
 // Inputs (all optional — the snapshot degrades gracefully to "blocked" status
 // when an evidence source is unavailable):
 //   - API_BASE + ADMIN_TOKEN env vars → /health, /admin/audit/summary
-//   - Local git artifacts (jobs.json, daily-source-refreshes.json, etc.)
+//   - Local git artifacts such as jobs.json
 //   - git log for artifact freshness
 //
 // Sanitization guarantees (tested in foundry-evidence.test.mjs):
@@ -26,7 +26,6 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
 const JOBS_JSON = resolve(ROOT, 'docs/operations/jobs.json');
 const SAFE_ACTIONS_JSON = resolve(ROOT, 'scripts/foundry-safe-actions.json');
-const DAILY_REFRESH_JSON = resolve(ROOT, 'apps/web/src/data/daily-source-refreshes.json');
 const REPORTS_DIR = resolve(ROOT, 'reports/foundry-evidence');
 
 function fail(msg, code = 2) {
@@ -90,41 +89,6 @@ async function httpGet(url, headers = {}, timeoutMs = 8000) {
   } finally {
     clearTimeout(timer);
   }
-}
-
-// Aggregate product funnel evidence from the bundled daily-source-refreshes
-// artifact (no network required). This is the same source as
-// buildDailyAutomationStatus in apps/web/src/lib/daily-intelligence.ts.
-async function productFunnelEvidence() {
-  const records = await readJson(DAILY_REFRESH_JSON);
-  if (!records || !Array.isArray(records)) {
-    return { status: 'blocked', reason: 'daily-source-refreshes.json missing or invalid' };
-  }
-  const liveRecords = records.filter((r) => !r.seededReplay && !r.replay);
-  const accepted = liveRecords.filter((r) => r.digest?.accepted !== false);
-  const latestAcceptedAt = accepted
-    .map((r) => r.digest?.acceptedAt ?? r.digest?.snapshotDate)
-    .filter(Boolean)
-    .sort()
-    .at(-1);
-  const latestAcceptedDate = latestAcceptedAt?.slice(0, 10) ?? null;
-  const now = Date.now();
-  const freshnessHours = latestAcceptedAt
-    ? (now - new Date(latestAcceptedAt).getTime()) / 3_600_000
-    : null;
-  return {
-    status: freshnessHours == null ? 'empty' : freshnessHours <= 36 ? 'fresh' : 'stale',
-    latestAcceptedDate,
-    latestAcceptedAt,
-    freshnessHours: freshnessHours == null ? null : Math.round(freshnessHours * 10) / 10,
-    observedSnapshots: liveRecords.length,
-    acceptedSnapshots: accepted.length,
-    rejectedSnapshots: liveRecords.length - accepted.length,
-    acquisitionSignal: 'daily-source-refreshes.json acceptedSnapshots (operator-facing)',
-    ctaSignal: 'n/a — free product, no billing conversion (accepted exception)',
-    activationSignal: 'Clerk sign-in events on /auth (Clerk dashboard — not queried here)',
-    returnSignal: 'daily_brief_snapshots daily refresh (queried below if API reachable)',
-  };
 }
 
 // Aggregate API health + audit summary evidence (requires API_BASE + ADMIN_TOKEN).
@@ -294,7 +258,6 @@ async function main() {
   const safeActions = await readJson(SAFE_ACTIONS_JSON);
   if (!safeActions) fail('scripts/foundry-safe-actions.json missing or invalid', 1);
 
-  const productFunnel = await productFunnelEvidence();
   const api = await apiEvidence();
   const cost = costProviderEvidence(api);
   const durability = await dataDurabilityEvidence();
@@ -318,7 +281,6 @@ async function main() {
     date,
     generatedAt: new Date().toISOString(),
     inventoryVersion: jobsJson.version,
-    productFunnel,
     api,
     costProvider: cost,
     dataDurability: durability,
@@ -332,7 +294,6 @@ async function main() {
   await writeFile(join(REPORTS_DIR, `${date}.json`), JSON.stringify(sanitized, null, 2) + '\n');
 
   console.log(`foundry-evidence: wrote reports/foundry-evidence/${date}.json`);
-  console.log(`  productFunnel: ${productFunnel.status}`);
   console.log(`  api: ${api.status}`);
   console.log(`  costProvider: ${cost.status}`);
   console.log(`  dataDurability: ${durability.status}`);

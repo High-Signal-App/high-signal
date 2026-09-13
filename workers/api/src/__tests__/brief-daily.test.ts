@@ -55,18 +55,16 @@ describe('parseDailyBriefRequest', () => {
     const response = await app.request('http://test/');
     await expect(response.json()).resolves.toEqual({
       region: 'global',
-      productId: '',
       archiveDate: null,
     });
   });
 
   it('keeps a valid archive date and unknown regions fall back to global', async () => {
     const response = await app.request(
-      'http://test/?region=not-a-region&date=2026-01-02&product=acme'
+      'http://test/?region=not-a-region&date=2026-01-02&product=ignored'
     );
     await expect(response.json()).resolves.toEqual({
       region: 'global',
-      productId: 'acme',
       archiveDate: '2026-01-02',
     });
   });
@@ -77,7 +75,6 @@ describe('parseDailyBriefRequest', () => {
     const response = await app.request('http://test/?owner=user-1');
     await expect(response.json()).resolves.toEqual({
       region: 'global',
-      productId: '',
       archiveDate: null,
     });
   });
@@ -151,7 +148,6 @@ describe('GET /daily', () => {
     expect(response.status).toBe(200);
     const body = (await response.json()) as {
       region: string;
-      hasBrand: boolean;
       stocks: unknown[];
       ideas: unknown[];
       attentionLeaders: unknown[];
@@ -160,7 +156,6 @@ describe('GET /daily', () => {
       categoryStates: Record<string, { status: string; reason: string | null }>;
     };
     expect(body.region).toBe('north-america');
-    expect(body.hasBrand).toBe(false);
     expect(body.stocks).toEqual([stock]);
     expect(body.ideas).toEqual([]);
     expect(body.attentionLeaders).toEqual([{ shortId: 'digg-1' }]);
@@ -233,12 +228,9 @@ describe('GET /daily', () => {
     mocks.tryGetPrecomputedSnapshot.mockResolvedValue({
       generatedAt: `${day}T03:30:00Z`,
       region: 'global',
-      hasBrand: false,
       stocks: [],
       ideas: [],
       trends: [],
-      perception: [],
-      improvements: [],
     });
     mocks.buildStocks.mockResolvedValue([
       {
@@ -263,12 +255,9 @@ describe('GET /daily', () => {
     mocks.tryGetPrecomputedSnapshot.mockResolvedValue({
       generatedAt: `${day}T03:30:00Z`,
       region: 'global',
-      hasBrand: false,
       stocks: [{ signalSlug: 'stale', publishedAt: `${day}T03:00:00Z` }],
       ideas: [],
       trends: [],
-      perception: [],
-      improvements: [],
     });
     mocks.buildStocks.mockRejectedValue(new Error('ledger unavailable'));
     const response = await briefRoute.request(`http://test/daily?date=${day}`, {}, env);
@@ -281,7 +270,6 @@ describe('GET /daily', () => {
     mocks.tryGetPrecomputedSnapshot.mockResolvedValue({
       generatedAt: '2026-09-06T03:31:00.000Z',
       region: 'global',
-      hasBrand: false,
       stocks: [
         {
           entityName: 'Test Corp',
@@ -297,8 +285,6 @@ describe('GET /daily', () => {
       ],
       ideas: [],
       trends: [],
-      perception: [],
-      improvements: [],
       categoryStates: {
         stocks: { status: 'ready', source: 'precomputed', reason: null },
         ideas: { status: 'empty', source: 'precomputed', reason: 'no_qualifying_items' },
@@ -354,7 +340,6 @@ describe('daily signal edition', () => {
   const snapshot = {
     generatedAt: '2026-09-07T06:30:00Z',
     region: 'global',
-    hasBrand: false,
     stocks: [
       { signalSlug: 'old', publishedAt: '2026-09-06T18:29:59Z' },
       { signalSlug: 'start', publishedAt: '2026-09-06T18:30:00Z' },
@@ -364,8 +349,6 @@ describe('daily signal edition', () => {
     ],
     ideas: [],
     trends: [],
-    perception: [],
-    improvements: [],
     categoryStates: {
       stocks: { status: 'ready', source: 'live' },
       ideas: { status: 'empty', source: 'live' },

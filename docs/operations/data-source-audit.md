@@ -1,5 +1,9 @@
 # Data Source Audit
 
+> Historical source audit. Product ownership and active jobs were superseded by
+> the 2026-09-13 scope reset. Brand intelligence now belongs to Mentionpilot;
+> the personal brief, D2C pipeline, and Lab are retired from High Signal.
+
 Status: working audit
 Updated: 2026-08-25
 
@@ -118,7 +122,7 @@ daily-brief insights. Pipeline jobs are only the mechanism that runs them.
 | Package registries | Wired | npm/PyPI releases and advisories for curated packages | Developer ecosystem drift, supply-chain risk, adoption/release cadence signals. |
 | Hugging Face | Wired | Public model/dataset activity | Model-distribution drift, AI ecosystem adoption, emerging tooling/model trends. |
 | Semantic Scholar | Wired bridge | Recent research-paper search | Research corroboration and early technical trend signal. Should eventually be fed by `researchPapers`. |
-| YouTube discovery + transcripts | Wired | Technical/market channel RSS plus transcripts; optional API-key search/view-count ranking for brand-awareness probes | Expert commentary, brand-awareness/perception, and narrative context. Weak alone; useful for corroboration or hypothesis formation. Official API does not provide arbitrary third-party transcripts. |
+| YouTube discovery + transcripts | Wired | Technical/market channel RSS plus best-effort transcripts | Expert commentary and narrative context for editorial corroboration. Weak alone; official API does not provide arbitrary third-party transcripts. |
 | Podcasts | Wired, optional-key | Podcast Index episode metadata | Long-form commentary discovery. Transcript/summarization is downstream, not daily source truth yet. |
 | GDELT | Wired | Broad news search/replay API | Historical backfill and broad corroboration; noisy if used too broadly. |
 | Techmeme | Wired | Tech news meta-curation RSS | Detects when a weak/primary event crosses into broader tech attention. |
@@ -313,7 +317,7 @@ ingest audit rows, source-health rows, and accepted signal contribution.
 | --- | --- | --- | --- |
 | `researchPapers` | External producer built, not connected here | Paper ingestion, source-specific paper metadata, abstract/full-text processing, topic tags, reviewer/rating signals | Export normalized research documents and evidence candidates; High Signal uses them for technical trend corroboration, not broad standalone crawl |
 | GitHub repository product / 14k repo DB | External / Lab-planned, not connected | Repo universe, stars/forks, commits, topics, releases, maintainer activity, issue clusters | Feed High Signal repo/activity candidates through normalized documents/events; avoid duplicating broad GitHub crawling |
-| Mention / Agent Eval legacy repos | Partially migrated, deeper adapters not fully ported | Brand perception, AI answer checks, competitor visibility, page/proof gaps | Feed personal sections: market perception and product-improvement ideas |
+| Mentionpilot | Moved out of High Signal | Brand perception, AI answer checks, competitor visibility, page/proof gaps | Owned and developed in the Mentionpilot repository |
 | Market data service | Future extraction candidate | Public equity/ETF/index/crypto closes and derived metrics | Replace current yfinance snapshot only when ready; until then no second price ingress |
 | EDGAR / filings service | Future extraction candidate | SEC, XBRL, Form D, filings replay, company-facts normalization | Move late because it is large; current High Signal adapters remain enough for v0 |
 | Wayback/CDX and competitor page diffs | Deferred to Mention / Agent Eval | Page-change monitoring and competitor proof-surface deltas | Do not add to public brief until an outcome metric exists |

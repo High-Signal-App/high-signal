@@ -39,11 +39,8 @@ const EXACT = new Set([
   '/claims',
   '/data/daily',
   '/data/sources',
-  '/d2c/opportunities',
-  '/d2c/agent-visibility',
   '/company-universe',
   '/company-universe/lookup',
-  '/learning/daily',
   '/history/access',
 ]);
 const TEMPLATES: Array<[RegExp, string]> = [
@@ -59,7 +56,6 @@ const TEMPLATES: Array<[RegExp, string]> = [
   [/^\/claims\/by-signal\/[^/]+$/, '/claims/by-signal/:slug'],
   [/^\/claims\/[^/]+$/, '/claims/:id'],
   [/^\/data\/sources\/[^/]+$/, '/data/sources/:id'],
-  [/^\/d2c\/opportunities\/[^/]+$/, '/d2c/opportunities/:slug'],
   [/^\/attention\/[^/]+$/, '/attention/:article'],
   [/^\/company-universe\/[^/]+$/, '/company-universe/:slug'],
   [/^\/admin\/signals\/[^/]+$/, '/admin/signals/:slug'],

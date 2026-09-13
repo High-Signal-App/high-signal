@@ -1,10 +1,9 @@
 /**
  * Daily Brief route. The single composed surface for High Signal.
  *
- * GET /brief/daily?region=<region>&product=<seedProductId>
+ * GET /brief/daily?region=<region>&date=<YYYY-MM-DD>
  *
  * - Three public sections (stocks / ideas / trends) compose without a user.
- * - Perception / improvements are seed-only demo content driven by `product`.
  * - Everything filters by region when one is supplied; "global" or absent
  *   means no country filter.
  *
@@ -27,13 +26,11 @@ import {
   pruneUnpublishableBriefItems,
   summarizeBriefDiscovery,
   type BriefCategoryStates,
-  type BriefImprovementItem,
-  type BriefPerceptionItem,
   type BriefSnapshot,
   type Region,
 } from '@high-signal/shared';
 import { db, schema } from '../../db';
-import { renderFromSeed, safe, safeCategory, withBriefNews } from './compose';
+import { safe, safeCategory, withBriefNews } from './compose';
 import {
   buildDiggAttention,
   buildIdeas,
@@ -144,23 +141,31 @@ async function handleDailyBriefRequest(c: Context<{ Bindings: Env }>) {
 
 /** A rolling composition must not relabel older signals as today's publications. */
 export function dailySignalEdition(snapshot: BriefSnapshot, editionDate: string): BriefSnapshot {
-  const stocks = snapshot.stocks.filter(
+  const publicSnapshot = { ...snapshot } as BriefSnapshot & {
+    hasBrand?: unknown;
+    perception?: unknown;
+    improvements?: unknown;
+  };
+  delete publicSnapshot.hasBrand;
+  delete publicSnapshot.perception;
+  delete publicSnapshot.improvements;
+  const stocks = publicSnapshot.stocks.filter(
     (item) => item.publishedAt && istDayFromTimestamp(item.publishedAt) === editionDate
   );
   return {
-    ...snapshot,
+    ...publicSnapshot,
     editionDate,
     timeZone: 'Asia/Kolkata',
     stocks,
-    ...(snapshot.categoryStates
+    ...(publicSnapshot.categoryStates
       ? {
           categoryStates: {
-            ...snapshot.categoryStates,
+            ...publicSnapshot.categoryStates,
             stocks:
-              snapshot.categoryStates.stocks.status === 'unavailable'
-                ? snapshot.categoryStates.stocks
+              publicSnapshot.categoryStates.stocks.status === 'unavailable'
+                ? publicSnapshot.categoryStates.stocks
                 : {
-                    ...snapshot.categoryStates.stocks,
+                    ...publicSnapshot.categoryStates.stocks,
                     status: stocks.length ? 'ready' : 'empty',
                     reason: stocks.length ? null : 'no_qualifying_items',
                   },
@@ -175,7 +180,6 @@ export function parseDailyBriefRequest(c: Context<{ Bindings: Env }>) {
   const dateParam = c.req.query('date')?.trim() ?? '';
   return {
     region: (isRegion(rawRegion) ? rawRegion : 'global') as Region,
-    productId: c.req.query('product')?.trim() ?? '',
     archiveDate: /^\d{4}-\d{2}-\d{2}$/.test(dateParam) ? dateParam : null,
   };
 }
@@ -212,17 +216,13 @@ async function composeDailyBrief(
     safe(() => buildNews(database, request.region, editionDate), 'news'),
   ]);
 
-  const brand = loadDailyBriefBrand(request);
   return {
     generatedAt: new Date().toISOString(),
     region: request.region,
-    hasBrand: brand.hasBrand,
     stocks: stockResult.items,
     ideas: ideaResult.items,
     trends: trendResult.items,
     news,
-    perception: brand.perception,
-    improvements: brand.improvements,
     ...attention,
     categoryStates: {
       stocks: stockResult.state,
@@ -230,29 +230,6 @@ async function composeDailyBrief(
       trends: trendResult.state,
     },
   } satisfies BriefSnapshot;
-}
-
-/**
- * Perception and improvements are seed-only. They used to be composed from a
- * signed-in owner's connected brand (mention configs + agent-eval audits), but
- * per-user data was removed when the product went fully public; the `?product=`
- * seed picker is all that remains.
- */
-function loadDailyBriefBrand(request: ReturnType<typeof parseDailyBriefRequest>) {
-  let perception: BriefPerceptionItem[] = [];
-  let improvements: BriefImprovementItem[] = [];
-  let hasBrand = false;
-
-  if (request.productId) {
-    const seeded = renderFromSeed(request.productId);
-    if (seeded) {
-      perception = seeded.perception;
-      improvements = seeded.improvements;
-      hasBrand = true;
-    }
-  }
-
-  return { perception, improvements, hasBrand };
 }
 
 /**
@@ -292,13 +269,10 @@ async function precomputeBriefRegion(
     const snapshot: BriefSnapshot = {
       generatedAt: nowIso,
       region,
-      hasBrand: false,
       stocks: stockResult.items,
       ideas: ideaResult.items,
       trends: trendResult.items,
       news,
-      perception: [],
-      improvements: [],
       ...attention,
       categoryStates: {
         stocks: stockResult.state,

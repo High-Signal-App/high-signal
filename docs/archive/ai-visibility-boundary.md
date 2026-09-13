@@ -1,5 +1,9 @@
 # AI visibility package boundary
 
+> Historical boundary retained for provenance. High Signal retired this
+> implementation on 2026-09-13; current ownership belongs to Mentionpilot as
+> recorded in [`../product/ecosystem.md`](../product/ecosystem.md).
+
 High Signal consumes the provider-independent
 `@saas-maker/ai-visibility` engine from
 `sass-maker/fleet-workspace/foundry/packages/ai-visibility`.

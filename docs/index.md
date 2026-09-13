@@ -19,8 +19,10 @@ product spec is [`SPEC.md`](https://github.com/High-Signal-App/high-signal/blob/
 [`architecture/how-it-works.md`](architecture/how-it-works.md) — a learning-tier
 walkthrough that traces one signal from a noisy public source to a published
 brief and explains the major components, boundaries, and key decisions.
-For the Mentions extraction boundary, see
-[`architecture/ai-visibility-boundary.md`](architecture/ai-visibility-boundary.md).
+
+For the concise product requirements, see [`Highsignal PRD`](product/prd.md).
+For the three products and related retirements, see the
+[product ownership map](product/ecosystem.md).
 
 ## How this tree is organized
 

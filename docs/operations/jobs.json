@@ -374,92 +374,6 @@
       "acceptedExceptions": []
     },
     {
-      "id": "personal-brief",
-      "kind": "operator-brief",
-      "owner": "sarthak",
-      "trigger": {
-        "type": "worker-dispatch",
-        "cron": "30 4 * * *",
-        "tz": "UTC",
-        "schedulerJob": "worker-cron-brief-precompute"
-      },
-      "workflowFile": ".github/workflows/personal-brief.yml",
-      "runtime": "github-actions-ubuntu",
-      "command": "pnpm personal:brief refresh-sources && pnpm daily:snapshot && git commit + push",
-      "workingDirectory": ".",
-      "bounds": {
-        "timeoutMinutes": 30,
-        "concurrency": 1,
-        "retryMax": 0
-      },
-      "idempotency": {
-        "mechanism": "daily-source-refreshes.json content-hash skip cache; append-only product-flow-refresh.jsonl",
-        "watermark": "apps/web/src/data/daily-source-refreshes.json latestAcceptedDate",
-        "deduplicationEvidence": "scripts/daily-automation-status.test.ts; buildDailyAutomationStatus"
-      },
-      "freshness": {
-        "windowHours": 36,
-        "evidenceSource": "daily-source-refreshes.json latestAcceptedAt"
-      },
-      "outputExpectation": {
-        "minAcceptedSnapshots": 1,
-        "zeroOutputIsFailure": true
-      },
-      "failureDestination": {
-        "durableState": "stale apps/web/src/data/daily-source-refreshes.json (freshnessStatus='stale' or 'empty')",
-        "notification": "github-actions job failure email; surfaced on /operator dashboard"
-      },
-      "evidence": {
-        "lifecycleArtifact": "apps/web/src/data/daily-source-refreshes.json",
-        "auditFunction": "buildDailyAutomationStatus (apps/web/src/lib/daily-intelligence.ts)",
-        "adminEndpoint": "n/a (operator surface)"
-      },
-      "acceptedExceptions": []
-    },
-    {
-      "id": "cron-acceptance-monitor",
-      "kind": "acceptance-monitor",
-      "owner": "sarthak",
-      "trigger": {
-        "type": "schedule",
-        "cron": "15 5 * * *",
-        "tz": "UTC"
-      },
-      "workflowFile": ".github/workflows/cron-acceptance-monitor.yml",
-      "runtime": "github-actions-ubuntu",
-      "command": "node scripts/verify-issue-133-acceptance.mjs",
-      "workingDirectory": ".",
-      "bounds": {
-        "timeoutMinutes": 5,
-        "concurrency": 1,
-        "retryMax": 0
-      },
-      "idempotency": {
-        "mechanism": "issue state guard plus workflow self-disable after successful closure",
-        "watermark": "GitHub issue #133 state",
-        "deduplicationEvidence": "scripts/verify-issue-133-acceptance.test.mjs"
-      },
-      "freshness": {
-        "windowHours": 0,
-        "evidenceSource": "same-day GitHub Actions runs plus /admin/digg/status"
-      },
-      "outputExpectation": {
-        "minAcceptedGates": 0,
-        "zeroOutputIsFailure": false
-      },
-      "failureDestination": {
-        "durableState": "GitHub Actions run summary; issue #133 remains open",
-        "notification": "github-actions job failure email"
-      },
-      "evidence": {
-        "validator": "scripts/verify-issue-133-acceptance.mjs",
-        "adminEndpoint": "/admin/digg/status"
-      },
-      "acceptedExceptions": [
-        "Native GitHub schedule delay is acceptable because this monitor does not drive the product pipeline"
-      ]
-    },
-    {
       "id": "cron-backtest",
       "kind": "backtest",
       "owner": "sarthak",
@@ -513,7 +427,7 @@
       },
       "workflowFile": ".github/workflows/cron-equities.yml",
       "runtime": "github-actions-ubuntu",
-      "command": "python -m high_signal_ingest.equities_daily + pnpm equities:snapshot + pnpm tickers:bundle + commit",
+      "command": "python -m high_signal_ingest.equities_daily + pnpm equities:snapshot + pnpm price:snapshot + pnpm market:refresh + pnpm market:snapshot + pnpm tickers:bundle + commit",
       "workingDirectory": ".",
       "bounds": {
         "timeoutMinutes": 45,
@@ -629,50 +543,6 @@
       },
       "acceptedExceptions": [
         "Only scores signals whose predicted_window_days has elapsed"
-      ]
-    },
-    {
-      "id": "cron-d2c-opportunities",
-      "kind": "ingestion",
-      "owner": "sarthak",
-      "trigger": {
-        "type": "schedule",
-        "cron": "0 7 * * 1",
-        "tz": "UTC"
-      },
-      "workflowFile": ".github/workflows/cron-d2c-opportunities.yml",
-      "runtime": "github-actions-ubuntu",
-      "command": "pnpm d2c:collect + pnpm d2c:agent-visibility + pnpm d2c:sync:remote + pnpm d2c:bundle + commit",
-      "workingDirectory": ".",
-      "bounds": {
-        "timeoutMinutes": 30,
-        "concurrency": 1,
-        "retryMax": 0
-      },
-      "idempotency": {
-        "mechanism": "d2c_niche_snapshots (niche_id, snapshot_date) unique; agent_visibility (niche_id, snapshot_date) unique",
-        "watermark": "d2c_niche_snapshots.snapshot_date max",
-        "deduplicationEvidence": "packages/db/migrations/0016_d2c_opportunities.sql unique indexes"
-      },
-      "freshness": {
-        "windowHours": 168,
-        "evidenceSource": "d2c_niche_snapshots.snapshot_date max"
-      },
-      "outputExpectation": {
-        "minNiches": 1,
-        "zeroOutputIsFailure": false
-      },
-      "failureDestination": {
-        "durableState": "stale d2c bundle; /opportunities/d2c shows stale window",
-        "notification": "github-actions job failure email"
-      },
-      "evidence": {
-        "lifecycleTable": "d2c_niche_snapshots, d2c_agent_visibility",
-        "lifecycleArtifact": "apps/web/src/data/d2c-opportunities-bundle.json (committed)"
-      },
-      "acceptedExceptions": [
-        "Weekly cadence \u2014 freshness window 7 days",
-        "AI overlay falls back to gap=1 'wide-open' entries when AI_API_KEY absent"
       ]
     },
     {
@@ -1045,14 +915,14 @@
       "canonicalLiveProbe": "https://high-signal.app/ (and /brief, /signals, /track-record)",
       "buildEvidence": "github-actions ci.yml (pnpm typecheck + pnpm test)",
       "indexingEvidence": "apps/web public sitemap + robots.txt + llms.txt (agent-ready audit)",
-      "acquisitionSignal": "daily-source-refreshes.json acceptedSnapshots (operator-facing) + /explore sitemap",
+      "acquisitionSignal": "public traffic and signal-open events through App Health",
       "ctaSignal": "n/a \u2014 free product, no signup conversion target today (accepted exception: no billing)",
-      "activationSignal": "Clerk sign-in events on /auth (Clerk dashboard)",
-      "returnSignal": "daily_brief_snapshots daily refresh + delivery_log (plan 0009)",
+      "activationSignal": "signal.opened events and Daily Brief reads through App Health",
+      "returnSignal": "daily_brief_snapshots publication cadence plus returning aggregate traffic",
       "clientErrorSignal": "next.js error boundary + cloudflare observability (head_sampling_rate 0.1)",
       "acceptedExceptions": [
         "No billing conversion target \u2014 free product (PROJECT_STATUS.md)",
-        "Clerk production cutover still pending (STATUS.md blockers)"
+        "No reader accounts or individual conversion identity"
       ]
     },
     {

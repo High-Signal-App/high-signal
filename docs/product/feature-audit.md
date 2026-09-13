@@ -1,5 +1,10 @@
 # High Signal feature audit
 
+> Historical audit retained for provenance. Its product-status claims were
+> superseded by the 2026-09-13 boundary in [`scope-reset.md`](scope-reset.md).
+> Personal, D2C, Lab, generic ideas/reels, and High Signal brand-evaluation code
+> have since been retired; brand intelligence moved to Mentionpilot.
+
 Date: 2026-06-02
 
 Scope: this audit covers the `high-signal` repository only. It intentionally does not audit the future Knowledgebase service, the external `researchPapers` repository, or a separate GitHub-repository product. Source inventory details live in `docs/operations/data-source-audit.md` and `docs/operations/data-source-inventory.csv`; this document audits application features and data ownership.
@@ -230,10 +235,6 @@ Lab is already a candidate separate subsystem because it owns a different databa
 | --- | --- | --- |
 | `data/equities-snapshot.jsonl` | Generated equities snapshot bundle | Derived artifact, not source of truth |
 | `apps/web/src/data/equities-snapshot.json` | Web-consumable equity bundle | Derived artifact |
-| `data/product-flow-refresh.jsonl` | Product/daily flow refresh records | Operator/internal or brief input |
-| `apps/web/src/data/daily-source-refreshes.json` | Offline daily-source audit snapshot | Derived artifact |
-| Personal source registry/snapshots | Personal command brief source definitions and outputs | Internal operator data, not core product source truth |
-
 These generated artifacts are useful for fast read surfaces but should not be treated as independent source systems. When a generated artifact exists alongside D1 tables, the audit should name one canonical owner and treat the other as cache/read bundle.
 
 ## Feature grouping by likely owner

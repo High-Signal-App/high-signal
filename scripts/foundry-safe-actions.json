@@ -11,17 +11,6 @@
   },
   "safeActions": [
     {
-      "id": "refresh-daily-source-snapshot",
-      "actionLevel": "execute-safe",
-      "command": "pnpm daily:snapshot",
-      "workingDirectory": ".",
-      "idempotency": "content-hash skip cache; append-only product-flow-refresh.jsonl",
-      "verification": "git diff --stat apps/web/src/data/daily-source-refreshes.json shows expected date; pnpm daily-automation:test passes",
-      "sideEffects": "writes apps/web/src/data/daily-source-refreshes.json (committed by operator or personal-brief cron)",
-      "maxRetries": 2,
-      "requiresApproval": false
-    },
-    {
       "id": "refresh-market-snapshot",
       "actionLevel": "execute-safe",
       "command": "pnpm market:snapshot",

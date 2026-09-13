@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import type { Route } from 'next';
-import { DEMO_REGIONS, regionLabel, type Region } from '@high-signal/shared';
+import { PUBLIC_BRIEF_REGIONS, regionLabel, type Region } from '@high-signal/shared';
 
 export function RegionPicker({ active }: { active: Region }) {
   const router = useRouter();
@@ -28,7 +28,7 @@ export function RegionPicker({ active }: { active: Region }) {
         }}
         className="min-h-11 border border-[var(--color-line)] bg-[var(--color-bg)] px-3 py-2 text-[var(--color-fg)] outline-none focus:border-[var(--color-accent)]"
       >
-        {DEMO_REGIONS.map((region) => (
+        {PUBLIC_BRIEF_REGIONS.map((region) => (
           <option key={region} value={region}>
             {regionLabel(region).toLowerCase()}
           </option>

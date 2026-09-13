@@ -10,12 +10,9 @@ import { istDay, isRegion, type Region } from '@high-signal/shared';
 const EMPTY_BRIEF: BriefSnapshot = {
   generatedAt: new Date().toISOString(),
   region: 'global',
-  hasBrand: false,
   stocks: [],
   ideas: [],
   trends: [],
-  perception: [],
-  improvements: [],
   categoryStates: {
     stocks: { status: 'unavailable', source: 'live', reason: 'brief_api_unavailable' },
     ideas: { status: 'unavailable', source: 'live', reason: 'brief_api_unavailable' },

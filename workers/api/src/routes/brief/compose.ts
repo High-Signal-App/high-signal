@@ -1,26 +1,16 @@
 /**
- * Pure brief composition helpers: ranking, hit-rate, seed rendering, and
- * section-merge. Query modules own D1; this file must stay side-effect free
+ * Pure brief composition helpers: ranking, hit-rate, and section merge.
+ * Query modules own D1; this file must stay side-effect free
  * aside from the fault-isolation wrappers.
  */
 
 import {
-  BUNDLED_D2C_ARTIFACT,
-  d2cBriefItems,
   familyForSignalType,
-  findSeedProduct,
   publishability,
-  SEED_PRODUCTS,
   type BriefCategoryState,
-  type BriefIdeaItem,
-  type BriefImprovementItem,
-  type BriefIntentItem,
   type BriefNewsItem,
-  type BriefPerceptionItem,
   type BriefSnapshot,
   type HitRateBand,
-  type Region,
-  type SeedProduct,
   type SignalFamily,
 } from '@high-signal/shared';
 
@@ -164,23 +154,6 @@ export function headlineFromBody(bodyMd: string, fallback: string): string {
   return `${headline.slice(0, cutoff).replace(/[,:;\-–—]+$/, '')}…`;
 }
 
-export function renderFromSeed(productId: string): {
-  perception: BriefPerceptionItem[];
-  improvements: BriefImprovementItem[];
-} | null {
-  const product = findSeedProduct(productId);
-  if (!product) return null;
-  return seedToBrief(product);
-}
-
-export function pickSpotlight(region: Region, nowMs: number = Date.now()): SeedProduct | null {
-  const pool =
-    region === 'global' ? SEED_PRODUCTS : SEED_PRODUCTS.filter((p) => p.region === region);
-  if (pool.length === 0) return null;
-  const hourBucket = Math.floor(nowMs / (1000 * 60 * 60));
-  return pool[hourBucket % pool.length] ?? null;
-}
-
 /**
  * Run a non-public builder and absorb an independent failure.
  */
@@ -225,154 +198,4 @@ export async function safeCategory<T>(
       state: { status: 'unavailable', source: 'live', reason: 'builder_failed' },
     };
   }
-}
-
-/**
- * Add the highest-scoring open intent finding to each connected brand's
- * perception row. Intent-only brands remain visible with unavailable metrics.
- */
-export function mergeIntentIntoPerception(
-  perception: BriefPerceptionItem[],
-  intents: BriefIntentItem[]
-): BriefPerceptionItem[] {
-  if (intents.length === 0) return perception;
-  const topByBrand = new Map<string, BriefIntentItem>();
-  for (const intent of intents) {
-    const current = topByBrand.get(intent.brandId);
-    if (!current || intent.score > current.score) topByBrand.set(intent.brandId, intent);
-  }
-
-  const existingBrands = new Set(perception.map((item) => item.configId));
-  const enriched = perception.map((item) => ({
-    ...item,
-    ...(topByBrand.has(item.configId) ? { topIntent: topByBrand.get(item.configId) } : {}),
-  }));
-  for (const [brandId, intent] of topByBrand) {
-    if (existingBrands.has(brandId)) continue;
-    enriched.push({
-      brandName: intent.brandName,
-      mentionRate: null,
-      positiveShare: null,
-      competitorPresence: null,
-      latestCheckAt: null,
-      configId: brandId,
-      topIntent: intent,
-    });
-  }
-  return enriched;
-}
-
-const intentPriority = (score: number): 'high' | 'medium' | 'low' =>
-  score >= 75 ? 'high' : score >= 50 ? 'medium' : 'low';
-
-const intentActionCopy = (intent: BriefIntentItem): { area: string; task: string } | null => {
-  const title =
-    intent.sourceTitle.length > 100
-      ? `${intent.sourceTitle.slice(0, 99).trim()}...`
-      : intent.sourceTitle;
-  switch (intent.actionType) {
-    case 'reply':
-      return { area: 'buyer response', task: `Review and reply to buyer intent: ${title}` };
-    case 'create_proof':
-      return { area: 'proof', task: `Add proof for buyer question: ${title}` };
-    case 'improve_docs':
-      return { area: 'docs', task: `Clarify the docs or support gap behind: ${title}` };
-    case 'add_integration':
-      return { area: 'integrations', task: `Validate and document integration demand: ${title}` };
-    case 'write_comparison':
-      return { area: 'comparisons', task: `Publish a sourced comparison response for: ${title}` };
-    case 'content_opportunity':
-      return { area: 'positioning', task: `Create a sourced answer for: ${title}` };
-    case 'watch':
-      return null;
-  }
-};
-
-/**
- * Attach intent evidence to matching Agent Eval tasks, then synthesize actions
- * only for findings that are not already represented by the same source URL.
- */
-export function mergeIntentIntoImprovements(
-  improvements: BriefImprovementItem[],
-  intents: BriefIntentItem[]
-): BriefImprovementItem[] {
-  if (intents.length === 0) return improvements;
-  const bySource = new Map<string, number>();
-  const merged = improvements.map((item, index) => {
-    if (item.sourceUrl) bySource.set(item.sourceUrl, index);
-    return { ...item };
-  });
-
-  for (const intent of intents) {
-    const existingIndex = bySource.get(intent.sourceUrl);
-    if (existingIndex !== undefined) {
-      merged[existingIndex] = { ...merged[existingIndex], intent };
-      continue;
-    }
-    const action = intentActionCopy(intent);
-    if (!action) continue;
-    bySource.set(intent.sourceUrl, merged.length);
-    merged.push({
-      brandName: intent.brandName,
-      area: action.area,
-      task: action.task,
-      priority: intentPriority(intent.score),
-      auditId: null,
-      surfacedAt: intent.foundAt,
-      sourceUrl: intent.sourceUrl,
-      intent,
-    });
-  }
-
-  const priorityWeight = { high: 0, medium: 1, low: 2 } as const;
-  return merged
-    .sort((a, b) => {
-      const priority = priorityWeight[a.priority] - priorityWeight[b.priority];
-      if (priority !== 0) return priority;
-      return (b.intent?.score ?? -1) - (a.intent?.score ?? -1);
-    })
-    .slice(0, 8);
-}
-
-export function seedToBrief(
-  product: SeedProduct,
-  nowIso: string = new Date().toISOString()
-): {
-  perception: BriefPerceptionItem[];
-  improvements: BriefImprovementItem[];
-} {
-  return {
-    perception: [
-      {
-        brandName: product.brandName,
-        mentionRate: product.perception.mentionRate,
-        positiveShare: product.perception.positiveShare,
-        competitorPresence: product.perception.competitorPresence,
-        latestCheckAt: nowIso,
-        configId: `seed:${product.id}`,
-      },
-    ],
-    improvements: product.improvements.map((improvement) => ({
-      brandName: product.brandName,
-      area: improvement.area,
-      task: improvement.task,
-      priority: improvement.priority,
-      auditId: `seed:${product.id}`,
-      surfacedAt: nowIso,
-    })),
-  };
-}
-
-/**
- * India D2C Opportunity Briefs for section 02. Up to 3 for south-asia, 1
- * rotating for global, none for other regions. Uses the build-time bundled
- * artifact when present, otherwise seed-only briefs.
- */
-export function d2cBriefItemsForRegion(region: Region): BriefIdeaItem[] {
-  if (region !== 'south-asia' && region !== 'global') return [];
-  const limit = region === 'south-asia' ? 3 : 1;
-  // Rotate one niche per day so the global brief shows variety across the
-  // 20-niche pool without flooding section 02 with India-only items.
-  const rotateFor = Math.floor(Date.now() / (24 * 60 * 60 * 1000));
-  return d2cBriefItems(region, limit, BUNDLED_D2C_ARTIFACT, rotateFor);
 }

@@ -20,7 +20,6 @@ const productionPaths = [
   'packages/db/src',
   'packages/shared/src',
   'python/ingest/src',
-  'python/lab/src',
   'scripts',
   'workers/api/src',
 ];
@@ -85,8 +84,8 @@ function checkComplexity() {
     maxParams: Math.max(0, ...rows.map((row) => row[3])),
   };
   // Debt: https://github.com/High-Signal-App/high-signal/issues/104
-  // Ratcheted 2026-08-22 (ADR-013 removals).
-  const baseline = { violations: 92, maxCcn: 56, maxLength: 398, maxParams: 11 };
+  // Ratcheted 2026-09-13 after the product-boundary cleanup.
+  const baseline = { violations: 79, maxCcn: 56, maxLength: 394, maxParams: 11 };
   console.log(
     `Complexity: ${observed.functions} functions, ${observed.nloc} NLOC, ` +
       `${observed.violations} violations; max CCN ${observed.maxCcn}, ` +
@@ -121,8 +120,8 @@ function checkDuplication() {
   const observed = JSON.parse(readFileSync(join(outputDirectory, 'jscpd-report.json'), 'utf8'))
     .statistics.total;
   // Debt: https://github.com/High-Signal-App/high-signal/issues/104
-  // Re-baselined 2026-08-28 after the deterministic ingest-coverage pass.
-  const baseline = { clones: 100, duplicatedLines: 1291, percentage: 2.0685456089471406 };
+  // Ratcheted 2026-09-13 after the product-boundary cleanup.
+  const baseline = { clones: 81, duplicatedLines: 1021, percentage: 1.964594958629979 };
   console.log(
     `Duplication: ${observed.duplicatedLines}/${observed.lines} lines ` +
       `(${observed.percentage.toFixed(4)}%), ${observed.clones} groups across ` +
@@ -220,7 +219,8 @@ function checkSuppressions() {
   );
   const observed = result.stdout.trim() ? result.stdout.trim().split('\n').length : 0;
   // Debt: https://github.com/High-Signal-App/high-signal/issues/104
-  const baseline = { count: 52 };
+  // Ratcheted 2026-09-13 after the product-boundary cleanup.
+  const baseline = { count: 45 };
   console.log(`Suppressions: ${observed} inline directives.`);
   failRegressions('Suppressions', { count: observed }, baseline);
 }
@@ -237,7 +237,6 @@ function checkPythonFormat() {
       'format',
       '--check',
       'python/ingest/src',
-      'python/lab/src',
     ],
     { allowFailure: true }
   );
@@ -281,8 +280,8 @@ function checkUnused() {
     { exports: 0, types: 0 }
   );
   // Debt: https://github.com/High-Signal-App/high-signal/issues/104
-  // Ratcheted 2026-08-28 after the deterministic ingest-coverage pass.
-  const baseline = { exports: 20, types: 23 };
+  // Ratcheted 2026-09-13 after the product-boundary cleanup.
+  const baseline = { exports: 17, types: 14 };
   console.log(
     `Unused: 0 high-confidence findings; ${observed.exports} exports, ${observed.types} types.`
   );

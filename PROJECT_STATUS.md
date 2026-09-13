@@ -1,6 +1,49 @@
 # high-signal — PROJECT STATUS
 
-Last updated: 2026-09-12
+Last updated: 2026-09-13
+
+September 13 product boundary cleanup — local code, not deployed:
+
+High Signal is now bounded to news, evidence, market/equity context, company
+research, track record/backtests, and the current Community Intelligence input.
+The personal command brief, generic idea/reel ranking, India D2C opportunity
+pipeline, Lab substrate, and High Signal copies of brand-evaluation tooling were
+removed. Mentionpilot now owns reusable brand evidence audits, competitor prompt
+sets, and perception clustering. Community Intelligence remains here until a
+future Reddit Insights migration can preserve its live digest and brief inputs.
+
+Market refresh was extracted from the retired personal workflow into
+`pnpm market:refresh` and added to `cron-equities.yml`, keeping the single
+yfinance snapshot as the only equity-price ingress. Historical migrations and
+plans remain for auditability; no production migration, deployment, commit, or
+push is part of this cleanup.
+
+The concise product PRD is now a final, testable acceptance contract rather
+than a direction sketch. Current documentation no longer advertises retired
+Mentions, Agent Eval, Lab, or playground work as active High Signal scope; the
+old AI-visibility boundary is preserved under `docs/archive/`. MCP documentation
+matches the eight-tool read-only contract.
+
+The scheduled Daily Brief validator now accepts a source-linked news-only
+edition without requiring a market signal. It still fails a completely empty
+edition and rejects news without a title, publication date, or public source.
+This aligns scheduled acceptance with the September 12 news-first Brief while
+preserving cite-or-kill for signals and the no-filler rule.
+
+Local completion evidence: `pnpm quality` passes, including 30/30 script and
+package suites plus 319 API assertions; the separate ingest suite passes 515
+tests at 60.03% branch-aware coverage; `pnpm build` succeeds; and all six
+Playwright browser checks pass on isolated port 3011. Code-health baselines were
+ratcheted to the smaller active codebase. These are local receipts, not a
+deployment or live proof of this revision.
+
+A read-only production check at 17:52 IST found the current deployed revision
+reachable and MCP-compatible, but the September 13 global Brief remained
+`pending` with zero news and zero public signals. The scheduled ingest succeeded
+with 1,352 material evidence inputs; the publisher and validator still failed on
+the deployed validator's old signal-only usefulness rule. This local change is
+therefore release-ready but does not clear live acceptance until it is committed,
+deployed, and replayed.
 
 September 12 news-first Daily Brief — code:
 
@@ -512,22 +555,20 @@ Recovery and existing quality/freshness acceptance remain in issue #133.
 | DB | Drizzle + D1 (`packages/db`, migrations 0000–0028; remote ledger current) | `high-signal-db` |
 | Shared | `@high-signal/shared` types, scorers, composers | — |
 | Ingest | Python `uv`, edgartools, yfinance, GLiNER, etc. | GitHub Actions cron + optional Modal |
-| Lab (parked) | Postgres/pgvector, FastAPI (`python/lab`) | Local docker-compose only |
 | Signals store | Git markdown `signals/YYYY-MM-DD/` | Sync scripts → D1 |
 
 ```
 apps/web          Next.js 16 — brief, lenses, review, settings, legal
 workers/api       Hono + D1 — public JSON API, admin ingest hooks, cron delivery
 packages/db       Drizzle schema + SQL migrations
-packages/shared   Agent-eval scorer, claim provenance, watchlist impact, OpenLens helpers
+packages/shared   Brief contracts, claim provenance, NLP, market and traffic helpers
 python/ingest     Daily source adapters → events/entities → signal candidates
-python/lab        Local Postgres substrate (plan 0007, parked)
 signals/          Append-only markdown signal cards
 scripts/          D1 seed, sync, snapshots, auto-publish, test harnesses
-.github/workflows cron-ingest, cron-score, cron-markets, cron-equities, cron-backtest, cron-publish, cron-validate-brief, personal-brief
+.github/workflows cron-ingest, cron-score, cron-markets, cron-equities, cron-backtest, cron-publish, cron-validate-brief
 ```
 
-**Data ownership:** D1 is canonical for signals, evidence, entities, mentions, agent-eval, markets, delivery, watchlists, cited URLs. Git markdown under `signals/` is human-readable source synced into D1. JSON bundles (`equities-snapshot`, `price-context`, `market-refreshes`, `known-tickers`) are derived artifacts from `data/equities-snapshot.jsonl` — not independent market-data sources. Prediction markets (`market_quotes`) are separate from equity prices.
+**Data ownership:** D1 is canonical for signals, evidence, entities, communities, markets, company data, and cited URLs. Git markdown under `signals/` is human-readable source synced into D1. JSON bundles (`equities-snapshot`, `price-context`, `market-refreshes`, `known-tickers`) are derived artifacts from `data/equities-snapshot.jsonl` — not independent market-data sources. Prediction markets (`market_quotes`) are separate from equity prices.
 
 ```bash
 pnpm install
@@ -537,12 +578,10 @@ pnpm build | pnpm typecheck | pnpm lint
 pnpm test                   # all package + script test suites
 pnpm db:migrate:local | pnpm db:migrate:remote
 pnpm db:seed:local | pnpm db:seed:remote
-pnpm product-flow:seed:local | pnpm product-flow:seed:remote
 pnpm signals:sync:local | pnpm signals:sync:remote
 pnpm signals:publish-drafts:* | pnpm signals:auto-publish:*
-pnpm daily:snapshot | pnpm market:snapshot | pnpm price:snapshot
+pnpm market:refresh | pnpm market:snapshot | pnpm price:snapshot
 pnpm equities:snapshot | pnpm tickers:bundle | pnpm drank:sync
-pnpm personal:brief [refresh-sources|feedback|decide|tasks|sync-tasks|report]
 pnpm ingest:local | pnpm source:diagnose | pnpm source:quality | pnpm ingest:preflight
 cd python/ingest && uv sync && uv run python -m high_signal_ingest.pipeline --source all --days 1
 wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangler.toml
@@ -1020,17 +1059,16 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 - Four public intelligence guides use one typed content registry and reusable
   renderer, with visible evidence receipts, breadcrumbs, contextual product
   links, page-matched JSON-LD, canonical metadata, and Markdown parity.
-- Region picker and seed product pickers on brief; no sign-in anywhere.
+- Region picker on the public brief; no sign-in anywhere.
 - SEO JSON-LD tests (`pnpm seo:test`).
 
 ### Daily Brief
 
-- `/` and `/brief` render five sections with hit-rate inline on stock claims.
+- `/` and `/brief` render the public news, stocks, business-opportunity, and trend sections with hit-rate inline on stock claims.
 - Public stock cards enforce two unique citations at read time and reject
   prediction-market-only evidence; live community ideas and trends require a
   valid source thread before entering the brief.
-- Worker `GET /brief/daily?region=&owner=` composes from D1 with seed fallback.
-- Worker `GET /learning/daily` publishes a compact versioned learning feed derived from public brief sections only.
+- Worker `GET /brief/daily?region=&date=` composes from retained D1 evidence. Empty and unavailable states remain explicit.
 - Section 02 ideas now render Opportunity Brief context: verdict, confidence, target user/problem, evidence mix, why-now, risk, next validation step, and prior hit-rate where present.
 - Today and yesterday are selected on the homepage; earlier records live under Signals. Signal RSS/Atom and the complete daily JSON API remain available.
 - Convergence callout above composer pulls multi-source entity hits + prediction-market drift.

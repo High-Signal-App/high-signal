@@ -1,5 +1,9 @@
 # Project Recommendation Context
 
+> Historical recommendation snapshot. Current product scope is defined in
+> [`scope-reset.md`](scope-reset.md); paths and active/parked labels below may no
+> longer exist after the 2026-09-13 cleanup.
+
 Generated: 2026-06-06T21:14:19.566Z (boundary guidance refreshed 2026-07-25)
 
 This file is a CodeVetter Repo Unpacked-inspired audit written for Starboard recommendations. It is intentionally local, evidence-oriented, and safe to commit: it records product context, feature areas, stack inventory, and recommendation guidance without secrets or environment values.

@@ -19,7 +19,7 @@ description: Reference for the GitHub Actions cron jobs and deploy workflows tha
 ## Daily pipeline order (IST; cron remains UTC)
 
 The API Worker's Cloudflare `*/30` and exact `00:17 UTC` crons are the
-authoritative scheduler for the seven timing-critical workflows. It dispatches
+authoritative scheduler for timing-critical workflows. It dispatches
 GitHub Actions through their `workflow_dispatch` entry points using a
 repository-scoped Actions-write token.
 Migration `0024` stores one lease per workflow/time slot, so a retried Worker
@@ -37,10 +37,8 @@ The daily cycle is sequenced so each stage consumes the previous stage's output:
 | 08:00 / 02:30 | `cron-ingest.yml` | Bounded 28-source `--source all --days 1` ingest run → events → draft signals. |
 | 09:00 / 03:30 | `cron-publish.yml` | Mandatory shared publishability gate plus semantic/origin-aware claim judge; then authenticated brief rebuild and reader-facing freshness verification. The workflow cannot stay green with an empty public edition. |
 | 09:30 / 04:00 | `cron-validate-brief.yml` | Assert the edition is dated today in IST and its newest material evidence is under two hours old. |
-| 10:00 / 04:30 | `personal-brief.yml` | Deliver the operator personal command brief after public validation. |
-| 10:45 / 05:15 | `cron-acceptance-monitor.yml` | Check issue #133's on-time chain and genuine Digg latency receipts; close the issue and disable itself only after both pass. This non-critical monitor uses native GitHub scheduling because delay does not affect the product pipeline. |
 | 14:30 / 09:00 | `cron-backtest.yml` | Read a bounded event/signal window through the operator API, replay convergence labels → next-24h hit-rates → `workers/api/src/lib/label-backtest.json`. Well clear of `cron-equities` (21:30 UTC). The commit ships with the next manual API deploy. |
-| 21:30 (Mon–Fri) | `cron-equities.yml` | The **only** scheduled public stock-price ingress. yfinance EOD after US close → `data/equities-snapshot.jsonl` + derived bundles. The commit ships with the next manual web deploy. |
+| 21:30 (Mon–Fri) | `cron-equities.yml` | The **only** scheduled public stock-price ingress. yfinance EOD after US close → `data/equities-snapshot.jsonl`, market context, and derived web bundles. The commit ships with the next manual web deploy. |
 | 22:30 | `cron-score.yml` | Daily scoring for matured signal windows (after US market close). |
 
 ## High-frequency
@@ -56,7 +54,6 @@ The daily cycle is sequenced so each stage consumes the previous stage's output:
 | Day (UTC) | Workflow | Intent |
 | --- | --- | --- |
 | Sun 00:00 | `cron-source-cadences.yml` | Run the 7-source weekly group with a 14-day recovery window. |
-| Mon 07:00 | `cron-d2c-opportunities.yml` | India D2C opportunity pipeline (plan 0013): collect community evidence → agent-visibility overlay → persist through the operator API → commit bundled artifact. |
 | Mon 09:00 | `weekly.yml` | Quality check: runs `lint`, `typecheck`, `test`, `build` if the scripts exist. |
 
 ## Monthly
@@ -98,7 +95,7 @@ fetches can succeed while `events`, `ingest_runs`, `/data`, and quote history
 stay unchanged — see [`runbooks/ingest.md`](runbooks/ingest.md)). Other commonly
 required secrets: `AI_API_KEY` / `AI_BASE_URL` / `AI_MODEL` (signal generation; falls back to
 free-ai gateway / deterministic drafts when absent), `SEC_USER_AGENT` (EDGAR).
-The backtest and D2C workflows use `API_BASE` + `ADMIN_TOKEN` and require no
+The backtest workflow uses `API_BASE` + `ADMIN_TOKEN` and requires no
 Cloudflare account-level database credential.
 
 Source-specific keys are listed in

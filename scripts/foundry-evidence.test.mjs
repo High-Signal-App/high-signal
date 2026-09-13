@@ -98,7 +98,6 @@ assert.deepEqual(
 assert.equal(snapshot.project, 'high-signal');
 assert.ok(typeof snapshot.generatedAt === 'string');
 assert.ok(typeof snapshot.inventoryVersion === 'number');
-assert.ok(snapshot.productFunnel, 'snapshot must include productFunnel');
 assert.ok(snapshot.api, 'snapshot must include api');
 assert.ok(snapshot.costProvider, 'snapshot must include costProvider');
 assert.ok(snapshot.dataDurability, 'snapshot must include dataDurability');

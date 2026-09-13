@@ -9,7 +9,7 @@ High Signal is **one product**: a synthesized **Daily Brief** assembled from noi
 
 Readers start with today or yesterday, open each signal to inspect its proof, and use Sources, Company Universe, and Track Record for context. Older records live in the chronological Signals surface behind a Turnstile human check. There are no reader accounts or personalized editions.
 
-Markets, Communities, Entities, Sectors, and Convergence are supporting inputs or research indexes. They are not separate products. Agent Eval, Domains, and Lab no longer have public High Signal surfaces.
+Markets, Communities, Entities, Sectors, and Convergence are supporting inputs or research indexes. They are not separate products. Brand intelligence lives in Mentionpilot. The former personal brief, D2C pipeline, Agent Eval implementation, and Lab have been retired from this repository.
 
 Pricing: free. No paid tier, no billing. Region is a free filter.
 
@@ -29,20 +29,11 @@ Pricing: free. No paid tier, no billing. Region is a free filter.
 - Existing incumbents (AlphaSense, Brightwave, Daloopa) own enterprise research workflows; nobody ships a directed spillover graph + public hit-rate
 - Source layer is fully covered by OSS — no licensed feeds required for v0
 
-## Status (snapshot 2026-05-30 — superseded by `PROJECT_STATUS.md`)
+## Product status
 
-The bullets below are a historical snapshot. Since then the active shell has collapsed around the Daily Brief + signals / track record / lenses; Lab and the standalone communities product are parked. See `PROJECT_STATUS.md` for what is current.
-
-- **Daily Brief** — primary surface at `/` and `/brief`. Worker route `/brief/daily?region=&owner=` composes the five sections from the lenses below. Region filter free for everyone; default global.
-- **Markets lens** — functional. Ingest + signal log + review queue + public hit-rate ledger at `/track-record`. Feeds brief section 1 with inline hit-rate per signal type.
-- **Communities lens** — functional. Tracked-subreddit CRUD, periodic digest generation (LLM summary when `HIGH_SIGNAL_AI_API_KEY` is set, deterministic fallback otherwise). Feeds brief sections 2 and 3.
-- **Mentions lens** — UI + worker wired at `/mentions`. Real LLM checks fail-closed without `HIGH_SIGNAL_AI_API_KEY`; the local preview analyzer panel works regardless. Feeds brief section 4 (per connected brand).
-- **Agent Eval lens** — deterministic 8-area evidence scorer + reel briefs at `/agent-eval`. Real-AI prompt execution overlays when the same key is set. Feeds brief section 5 (per connected brand).
-- **Cross-source convergence** — `/convergence` page + `GET /convergence?hours=24&min_sources=3` API route. Lists entities hit by ≥ N distinct sources in a rolling window — the strongest pre-news pattern in the system. SQL aggregation against the `events` table; no new ingest. Now also overlays the latest prediction-market quote per entity with 4h prob drift, and a "Watching closely" callout sits above the brief composer pulling the same data. Breakout/divergence labels carry an inline next-24h hit-rate from a backtest replayed weekly by `cron-backtest.yml`; full ledger at `/track-record/labels` and `GET /track-record/labels`.
-- **Gazetteer candidates** — `/unmapped` page + `GET /unmapped?hours=24` API route. Three candidate streams from the same unmapped-events query: (1) **$TICKER** mentions, (2) **bare tickers** — UPPERCASE 3–5 char tokens matched against a 2,502-symbol allowlist derived from the equities universe, (3) **bare entities** — open-world capitalized 1–3 word phrases that survive a stoplist (countries, common nouns, market platforms) + a leading-word stripper ("Will Harvey Weinstein" → "Harvey Weinstein") + corporate-suffix normalization ("Anthropic PBC" → "Anthropic") + a seed-entities dedupe. Each candidate has a "copy CSV row" button that calls `/enrich/ticker?token=$NVDA`, fetches Wikidata SPARQL for company name + country + industry + Wikipedia URL + CIK, and copies a fully-shaped seed-CSV row to the clipboard. Closes the loop: the more sources you ingest → the more candidates surface → one-click promote → next ingest run picks the new entity up.
-- **Lab substrate** (plan `0007`, parked — local discovery substrate only, not product infrastructure) — Phase 1 expanded: docker-compose Postgres+pgvector, schema, HN ingest with outbound-link extraction, one-hop materialization, GitHub trending scraper, 4-factor scorer (HN + recency + velocity + GitHub-momentum placeholder), union-find story clustering, local sentence-transformer embeddings + semantic search, GLiNER entity extraction, local-LLM summarization (Ollama / vLLM), FastAPI feed at `/lab` with cluster-collapse toggle. Still pending from plan 0007: 14k-repo DB import, GitHub API enrichment for repos, GitHub-momentum factor in scorer.
-
-For day-to-day stack and conventions, read `agents.md` (canonical).
+The final acceptance contract is [`docs/product/prd.md`](docs/product/prd.md).
+Current implementation and release evidence lives in [`PROJECT_STATUS.md`](PROJECT_STATUS.md).
+For day-to-day stack and conventions, read [`agents.md`](agents.md).
 
 ## Integrations & companion tools
 
@@ -88,7 +79,6 @@ Legend used in the notes:
 
 ### Builder activity
 - [x] **GitHub releases** *(11 AI-infra repos)* — `python/ingest/sources/github.py`
-- [x] **GitHub trending** *(5 languages × daily/weekly/monthly)* — `python/ingest/lab/github_trending.py`
 - [x] **GitHub stars (personal + ≥ 5k-star repos)** — `../starboard`
 - [x] **GitHub Archive** *(bounded public hourly archive reader over already tracked repos; avoids ingesting the unrelated firehose)* — `python/ingest/sources/github_archive.py`
 - [x] **Hugging Face Hub** *(recent/trending models + datasets via public Hub API; download trend deltas still pending)* — `python/ingest/sources/huggingface.py`
@@ -105,7 +95,7 @@ Legend used in the notes:
 - [x] **Hacker News** — `python/ingest/src/high_signal_ingest/sources/hackernews.py` (daily keyless Algolia source; title, points, comments, outbound link)
 - [x] **Digg attention overlay** — `python/ingest/src/high_signal_ingest/digg.py`; five documented feeds, 30-minute snapshots, immediate original-source verification for material crossings, and evidence/confidence contribution fixed to none. Released with D1 migrations `0022`–`0023`.
 - [x] **Reddit daily archive** *(99 curated technology, business, markets and national India communities)* — one OAuth collection writes Zstd-22 posts, relevant comment trees and a versioned event export to private R2; scheduled High Signal ingestion and approved sibling products consume that shared export rather than scraping again. Reddit is attention, not proof. `scripts/reddit-daily-archive.mjs`, `python/ingest/src/high_signal_ingest/sources/reddit.py`
-- [x] **YouTube discovery + transcripts** *(15 hardware/macro/founder/operator channels; optional `YOUTUBE_API_KEY` enables official YouTube Data API discovery/view-count ranking for brand-awareness probes; transcript access remains best-effort and separate from official API coverage)* — `python/ingest/sources/youtube.py`, `scripts/youtube-brand-awareness-probe.py`
+- [x] **YouTube discovery + transcripts** *(15 hardware/macro/founder/operator channels; transcript access remains best-effort and separate from official API coverage)* — `python/ingest/sources/youtube.py`
 - [x] **Bluesky AT Protocol** *(optional-auth search lane for real founder/researcher presence; full Relay firehose can replace it later if volume justifies it)* — `python/ingest/sources/bluesky.py`
 - [x] **Lobste.rs** *(small technical RSS weak-signal source; curated alternative to broad social firehose)* — `python/ingest/sources/lobsters.py`
 - [x] **Substack RSS pool** *(curated first batch — Pragmatic Engineer, Lenny's, Latent Space, Import AI; expand toward ~200 tech/startup writers)* — `python/ingest/sources/substack.py`
@@ -134,7 +124,7 @@ Legend used in the notes:
 - [x] **Wikidata enrichment** *(bounded explicit enrichment adapter plus `/enrich/ticker` SPARQL lookup for candidate promotion; not part of daily `--source all` signal generation)* — `python/ingest/sources/wikidata.py`, `workers/api/src/routes/enrich.ts`
 
 ### Competitor / product intelligence
-- [x] **Wayback Machine CDX** *(moved out of general aggregation per product boundary; belongs to Mention / Agent Eval product-diff lane, not the High Signal public-source brief)* — other product backlog
+- [x] **Wayback Machine CDX** *(moved out of general aggregation per product boundary; belongs to Mentionpilot, not the High Signal public-source brief)* — Mentionpilot backlog
 
 ### Security
 - [x] **NVD CVE API** *(curated keyword queries for tracked security/devtool products; CISA KEV remains the exploited-in-wild source)* — `python/ingest/sources/nvd.py`
@@ -144,74 +134,21 @@ Legend used in the notes:
 
 **Naming convention**: ingest sources live under `python/ingest/src/high_signal_ingest/sources/`; sources that produce a web surface own a route under `apps/web/src/app/`; cron workflows live in `.github/workflows/cron-*.yml`. Each new pipeline gets a row in this list — keep it the canonical status board.
 
-## Historical roadmap suggestions
+## Work tracking
 
-These retained suggestions are not a current delivery order or completed work.
-The locked [product direction](docs/product/direction.md) controls scope;
-current scheduled-chain, Digg, freshness and publication acceptance remains in
-[issue #133](https://github.com/High-Signal-App/high-signal/issues/133).
-Source expansion, credentials and threshold changes require their own evidence
-and owner scope; they were not performed during the September 7 audit.
-
-1. **Review the source-quality report after the next full ingest** — `pnpm source:quality -- --json` measures fetched events, mapped entities, duplicate-ish source families, and unmapped samples for Reddit / YouTube / Bluesky / CISA KEV / Lobste.rs / Techmeme / Substack / package registries / jobs / GitHub Archive / Hugging Face / NVD / Guardian / patents / government contracts / Wikidata / Semantic Scholar / Regulations.gov / Companies House / Metaculus / Podcast Index / macro rates / SEC XBRL without writing signals.
-2. **Promote candidates from `/unmapped` to seed** — keep walking recurring high-signal entities into `ai_infra_entities.csv` so they get mapped on the next ingest. The first security/devtool batch is in: Palo Alto Networks, Trend Micro, Drupal, Langflow, Nx, TanStack, and LiteSpeed.
-3. **Monitor the loosened breakout threshold** — breakout now triggers at +15% week-over-week pageview delta. Let the daily backtest build enough observations before retuning again.
-4. **Expand curated lists inside wired adapters** — job-board slugs, Substack feeds, npm/PyPI packages, Bluesky searches, Podcast Index feeds, and Form D private-company queries are adapter configuration now; scale those lists before adding another broad firehose.
-5. **Provision optional source credentials** — set only the sources you want live: `GUARDIAN_API_KEY`, `SAM_API_KEY`, `REGULATIONS_GOV_API_KEY`, `COMPANIES_HOUSE_API_KEY`, `METACULUS_TOKEN`, `BLUESKY_IDENTIFIER` / `BLUESKY_APP_PASSWORD`, `PODCAST_INDEX_KEY` / `PODCAST_INDEX_SECRET`, `FRED_API_KEY`, `SEMANTIC_SCHOLAR_API_KEY`.
-
-## Parked discussion: Signal Studio and playgrounds
-**Signal Studio** is the recommended first playground: a visual content lab that turns High Signal findings into polished marketing assets. It should feel like a futuristic marketing command center, not a boring dashboard. It can be playground-quality visually while still producing assets useful for selling High Signal.
-
-Inputs:
-- Company URL
-- Product positioning
-- Competitor names
-- High Signal audit findings
-- One target buyer persona
-
-Outputs:
-- AI visibility audit snapshot
-- Competitor comparison page
-- LinkedIn carousel
-- Short-form reel script
-- Landing page teardown
-- "Why we lose to competitor X" brief
-- Launch announcement
-- Weekly founder update
-
-Other playgrounds worth adding:
-- **AI SERP Theater** — show simulated buyer-agent searches visually: prompts enter, AI assistants answer, competitors appear/disappear, and citations light up. Strong demo surface for High Signal.
-- **Competitor Roast Machine** — enter two SaaS sites and generate a brutal but useful comparison across positioning, trust, AI visibility, homepage clarity, pricing clarity, and content gaps. Fun, shareable, lead-gen friendly.
-- **Launch Page Forge** — given a product idea, generate five landing page angles, a pricing page, comparison page, demo script, outbound emails, and social posts. Useful for the fleet and visually attractive.
-- **Market Pulse Wall** — a live wall of signals: Reddit complaints, AI search mentions, GitHub trends, news, pricing changes, and founder posts. Potential High Signal "wow" screen.
-- **Prompt-to-Campaign** — type a goal like "sell High Signal to devtool founders" and generate the campaign: ICP, message, landing section, posts, cold emails, ad concepts, and demo flow.
-
-Worth folding into core High Signal:
-- AI fact-checker / source surfacer
-- Hyperlocal/community intelligence
-- Market pulse / geo heatmap
-- AI visibility / recommendation tracking
-- Competitor monitoring
-
-Worth playgrounding as marketing tools:
-- Prompt-to-campaign generator
-- Competitor roast/comparison machine
-- AI SERP theater
-- Launch page forge
-- Signal-to-reel/carousel generator
-- "Put in an idea, get the go/no-go brief"
+The PRD and locked product direction define scope. Planned, deferred, and
+blocked work lives in this repository's GitHub Issues rather than in a second
+README roadmap.
 
 ## Architecture
 ```
 apps/web              Next.js 16 + Tailwind v4 — futurist + clean UI, fully public
 workers/api           Hono on Cloudflare Workers + D1 binding + cron
 packages/db           Drizzle schema + migrations (sqlite/D1) — signals, mentions,
-                      communities, agent-eval, market quotes
-packages/shared       Cross-package types + deterministic Agent-Eval scorer
+                      communities, market quotes
+packages/shared       Cross-package types + deterministic news/market helpers
 python/ingest         uv-managed: edgartools, Trafilatura, GLiNER, FinBERT, yfinance
   └ GitHub Actions runs daily ingest, markets polling, and scoring
-python/lab            Local-first Postgres substrate (plan 0007): pgvector,
-                      HN ingest, GitHub trending, scorer, FastAPI feed
 signals/              Git-versioned, append-only signal markdown
 scripts/              CSV→D1 + signals.md→D1 sync
 ```
@@ -228,15 +165,8 @@ cd python/ingest && uv sync && cd -
 wrangler d1 create high-signal-db        # paste the id into workers/api/wrangler.toml
 pnpm db:migrate:local
 pnpm db:seed:local                       # loads 274 entities + 175 relationships
-pnpm product-flow:seed:local             # loads reviewed product-flow evidence for /ideas
-pnpm personal:brief                      # prints the personal build/change/watch brief
-pnpm personal:brief refresh-sources      # refreshes public product-flow evidence from tracked communities
-pnpm personal:brief feedback high-signal-agent-evaluation build build "core direction"
-pnpm personal:brief decide high-signal-agent-evaluation accepted build "turn this into next work"
-pnpm personal:brief tasks                # prints SaaS Maker-ready task drafts from accepted actions
-pnpm personal:brief sync-tasks           # dry-runs idempotent SaaS Maker task creation
-pnpm personal:brief sync-tasks --apply   # creates missing accepted-action tasks via SaaS Maker
-pnpm personal:brief report               # writes reports/personal/YYYY-MM-DD.md for weekly review
+pnpm market:refresh                      # derive grouped market context from the equities snapshot
+pnpm market:snapshot                     # build the web market-history artifact
 
 # 4. Env (dedicated Infisical project; production defaults to `prod`)
 #   ADMIN_TOKEN, AI_BASE_URL, AI_API_KEY, AI_MODEL
@@ -255,22 +185,6 @@ cd python/ingest && uv run python -m high_signal_ingest.pipeline --source news -
 #   - git commit
 pnpm signals:sync:local
 
-# 8. Optional: bring up the Lab substrate (plan 0007)
-docker compose -f python/lab/docker-compose.yml up -d
-cd python/lab && uv sync
-uv run python -m high_signal_lab.ingest --limit 30           # HN + page text + outbound links
-uv run python -m high_signal_lab.materialize --limit 50      # fetch one-hop linked pages
-uv run python -m high_signal_lab.github_trending             # github.com/trending into repos
-# Optional enrichment passes (each downloads its own model on first run):
-uv sync --extra embeddings && uv run python -m high_signal_lab.embed
-uv sync --extra entities && uv run python -m high_signal_lab.extract_entities
-# Optional: point at any OpenAI-compatible endpoint (Ollama localhost:11434/v1 default):
-uv run python -m high_signal_lab.summarize
-uv run python -m high_signal_lab.cluster                     # story grouping (union-find)
-uv run python -m high_signal_lab.score                       # 4-factor scoring
-uv run python -m high_signal_lab.server                      # http://localhost:8765
-# Then in the web app shell:
-export LAB_API_URL=http://localhost:8765 && pnpm dev
 ```
 
 ## Code health
@@ -288,16 +202,15 @@ dependencies, Python dead code, complexity, duplication, dependency advisories,
 cycles, inline suppressions, and documentation integrity. Existing measured debt
 is held to checked-in no-regression baselines in `scripts/check-code-health.mjs`;
 lower a baseline when cleanup improves it, and link any accepted debt to a GitHub
-issue rather than refreshing a number automatically. The ingest and parked Lab
-Python surfaces also run their native checks in separate CI jobs.
+issue rather than refreshing a number automatically. The ingest Python surface
+also runs its native checks in CI.
 
 ## Quick links
+- Product requirements: `docs/product/prd.md`
 - Spec: `SPEC.md`
 - Commercial handoff: `docs/product/handoff.md`
 - Consolidation plan: `plans/0004-platform-consolidation.md`
 - Plan: `plans/0001-research-artifact-first.md`
-- Lab substrate plan: `plans/0007-highsignal-lab-substrate.md`
-- Lab bring-up: `python/lab/README.md`
 - Research: `research/market-and-oss.md`
 - Stack + conventions: `agents.md`
 - Seed corpus: `python/ingest/src/high_signal_ingest/seed/`
@@ -314,9 +227,10 @@ Python surfaces also run their native checks in separate CI jobs.
 - Agent catalog: `https://highsignal.app/api/ai`
 - OpenAPI: `https://highsignal.app/openapi.json`
 
-The MCP contract is intentionally limited to `get_daily_brief`, `get_signal`,
-and `get_daily_dump`. These tools reuse the same cached public API reads and
-Today/Yesterday history boundary as the website.
+The MCP contract exposes eight stable read-only tools: `get_daily_brief`,
+`get_signal`, `get_daily_dump`, `get_source_coverage`, `search_signals`,
+`browse_source`, `get_track_record`, and `get_entity`. They reuse the same
+cached public API reads and Today/Yesterday history boundary as the website.
 
 ## Deploy
 - Web → Cloudflare Workers via OpenNext (`.github/workflows/deploy-web.yml`)

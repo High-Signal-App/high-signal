@@ -218,7 +218,7 @@ export default async function MarketsPage({
 
       {snapshot.groups.length === 0 ? (
         <p className="mt-10 text-sm text-[var(--color-muted)]">
-          No bundled market refresh exists yet. Run `pnpm personal:brief refresh-markets` and `pnpm
+          No bundled market refresh exists yet. Run `pnpm market:refresh` and `pnpm
           market:snapshot`.
         </p>
       ) : null}

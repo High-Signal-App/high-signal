@@ -31,6 +31,17 @@ export const REGIONS: Region[] = [
   'oceania',
 ];
 
+/** Regions currently exposed by the public Daily Brief picker. */
+export const PUBLIC_BRIEF_REGIONS: Region[] = [
+  'global',
+  'north-america',
+  'europe',
+  'south-asia',
+  'east-asia',
+  'southeast-asia',
+  'latam',
+];
+
 export interface RegionMeta {
   label: string;
   countries: string[];

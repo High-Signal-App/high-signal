@@ -146,7 +146,7 @@ Phase 3: make High Signal an insight layer only.
   behind the existing equities snapshot path until a dedicated market-data
   service replaces it.
 - Prediction markets are not stock prices.
-- Wayback/CDX and competitor page diffs belong to Mention / Agent Eval until
+- Wayback/CDX and competitor page diffs belong to Mentionpilot until
   they have an explicit public-brief outcome metric.
 - Raw data storage must not weaken cite-or-kill. Signals still need visible
   evidence and source diversity.

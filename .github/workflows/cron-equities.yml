@@ -55,6 +55,10 @@ jobs:
         run: pnpm equities:snapshot
       - name: build price-context.json
         run: pnpm price:snapshot
+      - name: refresh market context from the canonical equities snapshot
+        run: pnpm market:refresh
+      - name: build market-refreshes.json
+        run: pnpm market:snapshot
       - name: bundle known-tickers.json for Worker
         run: pnpm tickers:bundle
 
@@ -66,6 +70,8 @@ jobs:
           git add data/equities-snapshot.jsonl \
                   apps/web/src/data/equities-snapshot.json \
                   apps/web/src/data/price-context.json \
+                  data/personal-market-refresh.jsonl \
+                  apps/web/src/data/market-refreshes.json \
                   workers/api/src/lib/known-tickers.json
           if git diff --staged --quiet; then
             echo "no changes to commit"

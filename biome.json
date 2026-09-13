@@ -31,8 +31,6 @@
       "!data",
       "!apps/web/src/data",
       "!packages/db/migrations",
-      "!packages/shared/src/content/d2c-opportunities-artifact.ts",
-      "!packages/shared/src/content/d2c-agent-visibility-artifact.ts",
       "!**/*.css",
       "!**/*.svg"
     ]

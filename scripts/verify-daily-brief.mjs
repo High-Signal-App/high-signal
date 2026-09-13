@@ -23,7 +23,11 @@
  */
 
 import { verifyMcpConsumer } from './verify-mcp-consumer.mjs';
-import { calendarDate, validateBriefFreshness } from './verify-daily-brief-lib.mjs';
+import {
+  calendarDate,
+  validateBriefContent,
+  validateBriefFreshness,
+} from './verify-daily-brief-lib.mjs';
 
 const API = process.env.HIGH_SIGNAL_API ?? 'https://api.highsignal.app';
 const REGIONS = (process.env.BRIEF_REGIONS ?? 'global')
@@ -31,7 +35,7 @@ const REGIONS = (process.env.BRIEF_REGIONS ?? 'global')
   .map((r) => r.trim())
   .filter(Boolean);
 
-/** A region is healthy when the edition resolves and carries at least one item. */
+/** A region is healthy when the edition resolves and carries valid reader-visible content. */
 async function checkRegion(region, dailyDump, now) {
   const expectedDate = calendarDate(now);
   const url = `${API}/brief/daily?region=${encodeURIComponent(region)}&date=${expectedDate}&validation=${now.getTime()}`;
@@ -48,26 +52,7 @@ async function checkRegion(region, dailyDump, now) {
   if (!res.ok) throw new Error(`status ${res.status}`);
 
   const brief = await res.json();
-  const sections = ['stocks', 'ideas', 'trends'];
-  const counts = Object.fromEntries(
-    sections.map((key) => [key, Array.isArray(brief?.[key]) ? brief[key].length : 0])
-  );
-  const total = sections.reduce((sum, key) => sum + counts[key], 0);
-
-  const withheld = sections.filter(
-    (key) => brief?.categoryStates?.[key]?.reason === 'items_withheld_by_publish_gate'
-  );
-
-  if (total === 0) {
-    throw new Error(
-      `edition served but every section is empty (${JSON.stringify(counts)})` +
-        (withheld.length > 0
-          ? ` — ${withheld.join(', ')} had items withheld by the publish gate, so this is a gate ` +
-            'failure, not a quiet day'
-          : '')
-    );
-  }
-
+  const { counts, total, withheld } = validateBriefContent(brief);
   const freshness = validateBriefFreshness(brief, dailyDump, now);
   return { counts, total, withheld, freshness };
 }

@@ -22,6 +22,63 @@ export function timestampMs(value) {
   return Date.parse(value);
 }
 
+const SIGNAL_SECTIONS = ['stocks', 'ideas', 'trends'];
+
+function isPublicUrl(value) {
+  if (typeof value !== 'string' || !value.trim()) return false;
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' || url.protocol === 'http:';
+  } catch {
+    return false;
+  }
+}
+
+/** Validate that a served edition contains honest reader-visible content. */
+export function validateBriefContent(brief) {
+  for (const key of SIGNAL_SECTIONS) {
+    if (!Array.isArray(brief?.[key])) throw new Error(`${key} section is not an array`);
+  }
+  if (brief?.news != null && !Array.isArray(brief.news)) {
+    throw new Error('news section is not an array');
+  }
+  const news = brief?.news ?? [];
+  const counts = {
+    news: news.length,
+    ...Object.fromEntries(SIGNAL_SECTIONS.map((key) => [key, brief[key].length])),
+  };
+  const total = Object.values(counts).reduce((sum, count) => sum + count, 0);
+  const withheld = SIGNAL_SECTIONS.filter(
+    (key) => brief?.categoryStates?.[key]?.reason === 'items_withheld_by_publish_gate'
+  );
+
+  if (total === 0) {
+    throw new Error(
+      `edition served but news and signal sections are empty (${JSON.stringify(counts)})` +
+        (withheld.length > 0
+          ? ` — ${withheld.join(', ')} had items withheld by the publish gate`
+          : '')
+    );
+  }
+
+  for (const [index, item] of news.entries()) {
+    if (!item || typeof item.title !== 'string' || !item.title.trim()) {
+      throw new Error(`news item ${index} has no title`);
+    }
+    if (!Number.isFinite(timestampMs(item.event_at))) {
+      throw new Error(`news item ${index} has no publication date`);
+    }
+    if (
+      !Array.isArray(item.source_references) ||
+      !item.source_references.some((citation) => isPublicUrl(citation?.url))
+    ) {
+      throw new Error(`news item ${index} has no public source`);
+    }
+  }
+
+  return { counts, total, withheld };
+}
+
 export function validateBriefFreshness(brief, dailyDump, now = new Date()) {
   const expectedDate = calendarDate(now);
   const briefDate = calendarDate(brief?.generatedAt);

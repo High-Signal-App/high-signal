@@ -170,10 +170,8 @@ latest agent-evaluation tables." PROJECT_STATUS.md (2026-06-13): migration
 creates a persistent gap between local and remote schema state. Automate remote
 migration verification in CI or add a preflight check before deploy.
 
-### Seed fallback content prevents a blank brief but can mask data pipeline gaps
+### Retired: seed fallback content masked data pipeline gaps
 
-`packages/shared/src/seed-content.ts` ships 35 stock signals, 20 business ideas,
-and 18 lifestyle trends as demo fallback. The brief always renders well even on
-an empty D1. The risk: an operator might not notice the real pipeline has stopped
-producing data if the seed content looks plausible. Add a visible "showing demo
-data" signal in the brief UI when falling back.
+High Signal previously shipped plausible seed stocks, business ideas, and trends.
+That fallback was removed in the 2026-09-13 scope reset. The public brief now
+shows explicit empty or unavailable states when retained evidence is absent.

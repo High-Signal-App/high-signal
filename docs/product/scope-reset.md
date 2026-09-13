@@ -1,72 +1,36 @@
 # High Signal scope reset
 
-Date: 2026-06-03
+Date: 2026-09-13
 
-Purpose: reduce the project back to a coherent product without throwing away useful work. This is a product-scope decision, not a deletion plan.
+High Signal is a news media product. It collects public information, publishes an evidence-backed Daily Brief, and exposes the research and track-record surfaces needed to inspect that reporting.
 
 ## Active product
 
-High Signal is one product: an evidence-backed daily intelligence brief.
-
-The active product answers:
-
-1. What changed?
-2. Who is affected?
-3. What is worth watching?
-4. What does the track record say about this kind of signal?
-5. For a connected brand, how does the market and AI-agent layer perceive it?
-6. For a connected brand, what should be improved so humans and agents can understand, cite, and recommend it?
-
-## Active surfaces
-
 | Area | Status | Reason |
 | --- | --- | --- |
-| Daily brief | Active | Main product surface |
-| Signals | Active | Core insight object |
-| Evidence | Active | Cite-or-kill foundation |
-| Track record / hit-rate | Active | Quality moat |
-| Small source pipeline | Active | Feeds the brief; source volume is not the goal |
-| Mentions | Active | Feeds brand perception and share-of-voice |
-| Agent eval | Active | Feeds product-improvement ideas and agent-readiness |
-| Markets lens | Active but narrow | Only insofar as it supports "stocks watching for a boom" and market context |
+| Daily Brief and news | Active | Main reader product |
+| Signals and evidence | Active | Published claims and their proof |
+| Track record and backtests | Active | Measures whether market calls hold up |
+| Markets and equities | Active | Reporting context and market activity |
+| Company Universe, entities, sectors, convergence | Active | Research indexes supporting coverage |
+| Community Intelligence | Active for now | Supplies community demand and culture context; its raw collection and history will later move to Reddit Insights |
 
-## Parked areas
+## Retired from High Signal
 
-Parked means:
+- Personal command brief and product-idea ranking
+- India D2C opportunity pipeline
+- Lab substrate
+- Agent evaluation and competitor-perception utilities
+- Seed-product and synthetic fallback content
+- Standalone learning feed and YouTube brand-awareness probe
+- Generic reel generation
 
-- Keep the code and data.
-- Do not delete working routes.
-- Remove from primary product focus/navigation where practical.
-- Do not expand unless the parked area is required by the active brief.
-- Treat future work as separate approval, not automatic continuation.
-
-| Area | Parked stance | Allowed use |
-| --- | --- | --- |
-| Lab | Parked | Optional local discovery substrate; not part of the product path |
-| Personal/operator cockpit | Parked | Internal-only workflow; not a customer-facing product |
-| Standalone equities UI | Parked | Market data can feed the brief; no broad stock terminal expansion |
-| Standalone communities product | Parked | Community data may feed ideas/trends; no separate community product push |
-| Broad source expansion | Parked | Freeze "add more sources" unless a source improves corroboration, novelty, entity coverage, or hit-rate |
+Mentionpilot owns brand intelligence, including evidence-readiness scoring, competitor prompt sets, perception clustering, and community-opportunity ranking. Historical migrations and plans remain in this repository as audit history; they are not active runtime contracts.
 
 ## Boundary rules
 
-1. More data is not the product. Better insight is the product.
-2. Mentions and agent eval are active only because they produce brief sections 4 and 5.
-3. Communities are an input, not a destination.
-4. Equities are an input to market signals, not a stock terminal.
-5. Lab is a substrate experiment, not a product dependency.
-6. Personal workflows are operator tooling, not product scope.
-7. A new source must state its canonical key, freshness expectation, dedupe rule, use in the brief, and culling rule before it is added.
-
-## Implementation implication
-
-The repo can stay consolidated for now, but the navigation and docs should reflect the active product:
-
-- Keep: brief, markets, mentions, agent eval, track record, review.
-- De-emphasize: communities and lab.
-- Keep direct URLs available for parked areas while decisions settle.
-
-The event boundary is now explicit: the existing `Event` type and D1 `events`
-table are normalized source observations, while actionable conclusions begin at
-`SignalCandidate` and `signals`. No `normalized_events` model exists today.
-Keep source-of-truth ownership clear for market/equity data.
+1. High Signal publishes news and market intelligence.
+2. Markets, equities, company data, and backtests may remain when they improve reporting or prove its quality.
+3. Community Intelligence stays operational until Reddit Insights can replace its raw collection and historical store without losing capability.
+4. Brand monitoring and AI visibility belong to Mentionpilot.
+5. New sources must state their freshness, dedupe rule, editorial use, and culling rule.

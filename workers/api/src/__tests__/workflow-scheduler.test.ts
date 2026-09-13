@@ -51,10 +51,10 @@ describe('Cloudflare workflow scheduler', () => {
       workflow: 'cron-validate-brief.yml',
       purpose: 'validate',
     });
-    expect(workflowsDueAt(new Date('2026-08-29T04:30:00Z'))[2]).toEqual({
-      workflow: 'personal-brief.yml',
-      purpose: 'deliver',
-    });
+    expect(workflowsDueAt(new Date('2026-08-29T04:30:00Z'))).toEqual([
+      { workflow: 'cron-digg.yml', purpose: 'digg' },
+      { workflow: 'cron-mts.yml', purpose: 'mts' },
+    ]);
     expect(workflowsDueAt(new Date('2026-08-29T04:17:00Z'))).toEqual([]);
   });
 
