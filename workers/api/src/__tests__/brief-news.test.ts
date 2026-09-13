@@ -287,6 +287,32 @@ describe('clusterNewsRecords', () => {
 });
 
 describe('composeNewsStories', () => {
+  it('keeps the retained summary when only unusable new evidence refreshes a cluster', () => {
+    const title = 'Acme acquires a chip supplier for cloud expansion';
+    const [story] = composeNewsStories(
+      [
+        record({
+          id: 'older-usable',
+          title,
+          sourceUrl: 'https://reuters.com/acme-chip-deal',
+          ingestedAt: '2026-09-10T09:00:00.000Z',
+        }),
+        record({
+          id: 'fresh-headline-only',
+          title,
+          sourceUrl: 'https://example.com/acme-chip-update',
+          ingestedAt: '2026-09-12T09:00:00.000Z',
+          content: title,
+          retainedText: title,
+        }),
+      ],
+      WINDOW
+    );
+
+    expect(story.title).toBe(title);
+    expect(story.what_changed).toBe('');
+  });
+
   it('recognizes India-owned publishers after verification rewrites the source name', () => {
     expect(
       countryForNewsRecord({

@@ -756,6 +756,7 @@ function whatChangedInWindow(
   const fresh = members.filter(
     (member) => toDate(member.ingestedAt).getTime() >= window.start.getTime()
   );
+  if (fresh.length === 0) return '';
   const latest = fresh.reduce((best, record) =>
     toDate(record.ingestedAt).getTime() >= toDate(best.ingestedAt).getTime() ? record : best
   );
