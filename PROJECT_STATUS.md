@@ -5,8 +5,8 @@ Last updated: 2026-09-13
 September 13 Daily Brief data-path repair — live:
 
 A reader-path audit found healthy retained inputs but an empty public edition.
-The deployed Workers are still on the September 11 revision, before the
-news-first Brief landed. Local code also had three last-mile defects: morning
+Production was still on the September 11 revision before this repair, and the
+news-first Brief also had three last-mile defects: morning
 snapshots froze an empty `news` array after later source refreshes, precompute
 queried a rolling stock window that the public day filter then removed, and the
 bounded news query could be crowded out by later high-volume attention or
@@ -21,13 +21,14 @@ published without weakening the market-signal evidence receipt.
 
 Initial production QA caught routine IR landing-page snapshots occupying the
 eight story slots. The final quality gate excludes those crawl snapshots,
-common paywall boilerplate, and news outside technology, startups, and finance;
-it also merges differently worded coverage of the same named event. A replay
-over the current public source feed returns eight topical stories and merges
-the overlapping OpenAI IPO reports into a two-source item. Full `pnpm quality`
-and `pnpm build` pass; the deployed API, web, and MCP consumer checks are green.
+common paywall boilerplate, routine court crawls, stock-pick listicles, and news
+outside technology, startups, and finance; it also merges differently worded
+coverage of the same named event. A replay over the current public source feed
+returns eight topical stories and merges the overlapping OpenAI IPO reports
+into a two-source item. Full `pnpm quality` and `pnpm build` pass; the deployed
+API, web, and MCP consumer checks are green.
 
-September 13 reader-surface reduction — local code, not deployed:
+September 13 reader-surface reduction — live:
 
 The public product shell now exposes three reader destinations: Brief, Signals,
 and Track Record. Sources, methodology, and the public API remain secondary

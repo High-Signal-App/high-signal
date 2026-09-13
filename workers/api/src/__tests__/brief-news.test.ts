@@ -142,6 +142,38 @@ describe('selectNewsRecords', () => {
     ]);
   });
 
+  it('rejects routine court crawls and stock-pick listicles from the daily edition', () => {
+    const courtOpinion = record({
+      id: 'routine-court-opinion',
+      title: 'Court opinion: BINGHAM LIVESTOCK v. PACCAR',
+      source: 'courtlistener',
+      sourceUrl: 'https://www.courtlistener.com/opinion/12345/example/',
+      retainedText:
+        'The court considered a routine vehicle warranty dispute and affirmed the lower court judgment after reviewing the purchase agreement.',
+    });
+    const stockPicks = record({
+      id: 'stock-picks',
+      title: 'Top stocks to Buy under ₹200: Five ideas with target, stop-loss',
+      sourceUrl: 'https://example.com/top-stocks-to-buy',
+      retainedText:
+        'The article recommends five shares to retail investors with entry prices, price targets, and stop-loss levels for the next session.',
+    });
+    const materialLegalNews = record({
+      id: 'material-legal-news',
+      title: 'Regulator blocks major chip merger after antitrust review',
+      source: 'news',
+      sourceUrl: 'https://example.com/chip-merger-blocked',
+      retainedText:
+        'The regulator blocked the semiconductor acquisition after finding that the deal would reduce competition in accelerator hardware.',
+    });
+
+    expect(
+      selectNewsRecords([courtOpinion, stockPicks, materialLegalNews], WINDOW).map(
+        (item) => item.id
+      )
+    ).toEqual(['material-legal-news']);
+  });
+
   it('keeps the reader edition inside technology, startups, and finance', () => {
     expect(
       hasBriefNewsTopic(

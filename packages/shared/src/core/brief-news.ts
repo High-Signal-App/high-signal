@@ -231,6 +231,8 @@ const PAYWALL_MARKERS = [
 ];
 
 const ROUTINE_IR_SNAPSHOT_RE = /\bir snapshot$/i;
+const LOW_VALUE_NEWS_TITLE_RE =
+  /^(?:court opinion:)\s|\b(?:top stocks?|stocks?) to buy\b|\btarget,?\s+stop-loss\b/i;
 
 const SOURCE_RANK: Record<string, number> = {
   edgar: 9,
@@ -459,6 +461,7 @@ export function hasUsableRetainedText(
   if (PAYWALL_MARKERS.some((marker) => retained.toLowerCase().includes(marker))) return false;
   const title = (record.title ?? '').trim();
   if (ROUTINE_IR_SNAPSHOT_RE.test(title)) return false;
+  if (LOW_VALUE_NEWS_TITLE_RE.test(title)) return false;
   if (!title) return retained.length >= 80;
   if (retained === title || retained.length <= Math.max(title.length, TITLE_ONLY_MAX)) return false;
   return retained.length >= 80;
