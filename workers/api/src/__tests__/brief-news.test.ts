@@ -531,6 +531,28 @@ describe('composeNewsStories', () => {
 });
 
 describe('sanitizeBriefNewsItems', () => {
+  it('removes cached prediction-market questions from reader news', () => {
+    expect(
+      sanitizeBriefNewsItems([
+        {
+          id: 'market-question',
+          title: 'Will Microsoft acquire OpenAI before 2028?',
+          summary:
+            'A prediction-market question asks whether Microsoft will acquire OpenAI before 2028.',
+          event_at: '2026-09-13T18:30:00.000Z',
+          what_changed: '',
+          source_references: [
+            {
+              url: 'https://manifold.markets/example/openai-acquisition',
+              source: 'market',
+            },
+          ],
+          evidence_status: 'unverified',
+        },
+      ])
+    ).toEqual([]);
+  });
+
   it('removes unrelated citations inherited by a cached story cluster', () => {
     const [story] = sanitizeBriefNewsItems([
       {

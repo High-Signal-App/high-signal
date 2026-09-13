@@ -14,7 +14,7 @@ while preserving India in the candidate pool. Prediction-market questions are
 also excluded from reader news even when entity extraction assigned a company;
 they remain market research inputs. A retained-story refresh handles new
 unusable crawl records without aborting the whole news refresh. Full
-`pnpm quality` passes with 30/30 suites and 337 API assertions, and `pnpm build`
+`pnpm quality` passes with 30/30 suites and 338 API assertions, and `pnpm build`
 succeeds.
 
 September 13 Daily Brief data-path repair — live:

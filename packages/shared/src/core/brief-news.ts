@@ -640,6 +640,7 @@ export function sanitizeBriefNewsItems(items: readonly BriefNewsItem[]): BriefNe
         return false;
       }
     });
+    if (isPredictionMarketOnly(publicReferences.map((citation) => citation.url))) continue;
     const relevantReferences = publicReferences.filter((citation) =>
       citationMatchesTitle(citation.url, title)
     );
