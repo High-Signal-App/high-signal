@@ -441,7 +441,8 @@ describe('sanitizeBriefNewsItems', () => {
         summary:
           'Revolut confirmed that attackers obtained customer data by submitting fraudulent government requests.',
         event_at: '2026-09-12T08:00:00.000Z',
-        what_changed: '',
+        what_changed:
+          'Listen to this article in summarized format Revolut confirmed that attackers obtained customer data by submitting fraudulent government requests.',
         source_references: [
           {
             url: 'https://techcrunch.com/2026/09/12/revolut-confirms-customer-data-breach-through-fake-government-requests/',
@@ -462,6 +463,7 @@ describe('sanitizeBriefNewsItems', () => {
         source: 'news',
       },
     ]);
+    expect(story?.what_changed).toBe('');
   });
 });
 

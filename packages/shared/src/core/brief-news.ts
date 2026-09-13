@@ -587,7 +587,15 @@ export function sanitizeBriefNewsItems(items: readonly BriefNewsItem[]): BriefNe
       ? relevantReferences
       : publicReferences.slice(0, 1);
     if (sourceReferences.length === 0) continue;
-    sanitized.push({ ...item, title, summary, source_references: sourceReferences });
+    const cleanedWhatChanged = cleanRetainedText(item.what_changed, title);
+    const whatChanged = cleanedWhatChanged === summary ? '' : cleanedWhatChanged;
+    sanitized.push({
+      ...item,
+      title,
+      summary,
+      what_changed: whatChanged,
+      source_references: sourceReferences,
+    });
   }
   return sanitized;
 }
