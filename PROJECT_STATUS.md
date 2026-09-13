@@ -23,10 +23,12 @@ Initial production QA caught routine IR landing-page snapshots occupying the
 eight story slots. The final quality gate excludes those crawl snapshots,
 common paywall boilerplate, routine court crawls, stock-pick listicles, and news
 outside technology, startups, and finance; it also merges differently worded
-coverage of the same named event. A replay over the current public source feed
-returns eight topical stories and merges the overlapping OpenAI IPO reports
-into a two-source item. Full `pnpm quality` and `pnpm build` pass; the deployed
-API, web, and MCP consumer checks are green.
+coverage of the same named event without joining unrelated companies on generic
+event language. Publisher navigation, listening prompts, repeated titles, and
+newsletter preambles are removed before summaries reach readers. A replay over
+the current public source feed returns eight topical stories. Full `pnpm
+quality` and `pnpm build` pass; the deployed API, web, and MCP consumer checks
+are green.
 
 September 13 reader-surface reduction — live:
 

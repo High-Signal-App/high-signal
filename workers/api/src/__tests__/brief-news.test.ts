@@ -106,6 +106,15 @@ describe('selectNewsRecords', () => {
     ).toBe(false);
     expect(
       hasUsableRetainedText({
+        title: 'OpenAI IPO remains on hold',
+        content:
+          'Search fieldHome page Seeking Alpha - Power to InvestorsAbout PremiumCreate free accountSearch for Symbols and analysts before the article begins.',
+        retainedText:
+          'Search fieldHome page Seeking Alpha - Power to InvestorsAbout PremiumCreate free accountSearch for Symbols and analysts before the article begins.',
+      })
+    ).toBe(false);
+    expect(
+      hasUsableRetainedText({
         title: 'Exclusive investigation',
         content: 'Please log in to continue reading this article.',
         retainedText: 'Please log in to continue reading this article.',
@@ -248,6 +257,20 @@ describe('clusterNewsRecords', () => {
     });
     expect(clusterNewsRecords([broad, focused])).toHaveLength(1);
   });
+
+  it('does not merge unrelated companies that share generic breach language', () => {
+    const revolut = record({
+      id: 'revolut-breach',
+      title: 'Revolut confirms customer data breach through fake government requests',
+      sourceUrl: 'https://techcrunch.example/revolut-breach',
+    });
+    const trezor = record({
+      id: 'trezor-breach',
+      title: 'Trezor confirms customer data breach through compromised email provider',
+      sourceUrl: 'https://techcrunch.example/trezor-breach',
+    });
+    expect(clusterNewsRecords([revolut, trezor])).toHaveLength(2);
+  });
 });
 
 describe('composeNewsStories', () => {
@@ -345,6 +368,38 @@ describe('composeNewsStories', () => {
       })
     );
     expect(composeNewsStories(extras, WINDOW)).toHaveLength(8);
+  });
+
+  it('strips publisher prompts, newsletter preambles, and repeated titles from summaries', () => {
+    const title = "Buffett's confidence in troubled decade-old acquisition finally pays off";
+    const [story] = composeNewsStories(
+      [
+        record({
+          id: 'clean-summary',
+          title,
+          sourceUrl: 'https://example.com/berkshire-acquisition',
+          retainedText: `(This is the Warren Buffett Watch newsletter, news and analysis on Berkshire Hathaway. You can sign up here.) ${title}. Six years after the write-down, the acquisition returned to growth as aerospace demand recovered.`,
+        }),
+      ],
+      WINDOW
+    );
+    expect(story.summary).toBe(
+      'Six years after the write-down, the acquisition returned to growth as aerospace demand recovered.'
+    );
+
+    const [listenPrompt] = composeNewsStories(
+      [
+        record({
+          id: 'listen-prompt',
+          title: 'NSE publishes IPO price band',
+          sourceUrl: 'https://example.com/nse-ipo',
+          retainedText:
+            'Listen to this article in summarized format NSE will raise capital through an offer for sale after publishing the final IPO price band.',
+        }),
+      ],
+      WINDOW
+    );
+    expect(listenPrompt.summary.startsWith('Listen to this article')).toBe(false);
   });
 
   it('labels community attention as unverified and never treats it as a fact', () => {

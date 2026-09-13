@@ -115,6 +115,11 @@ const EVENT_TOKENS = new Set([
 
 const COMPANYISH_STOP = new Set([
   ...STOP,
+  'confirmed',
+  'confirms',
+  'customer',
+  'customers',
+  'data',
   'inc',
   'corp',
   'ltd',
@@ -217,7 +222,7 @@ const BRIEF_NEWS_TOPICS = new Set([
   'venture',
 ]);
 
-const PAYWALL_MARKERS = [
+const RETAINED_TEXT_BLOCKERS = [
   'please log in',
   'please login',
   'sign in to continue',
@@ -228,6 +233,7 @@ const PAYWALL_MARKERS = [
   'this content is for subscribers',
   'user id and password',
   'paywall',
+  'search fieldhome page',
 ];
 
 const ROUTINE_IR_SNAPSHOT_RE = /\bir snapshot$/i;
@@ -458,7 +464,9 @@ export function hasUsableRetainedText(
 ): boolean {
   const retained = retainedBody(record);
   if (!retained) return false;
-  if (PAYWALL_MARKERS.some((marker) => retained.toLowerCase().includes(marker))) return false;
+  if (RETAINED_TEXT_BLOCKERS.some((marker) => retained.toLowerCase().includes(marker))) {
+    return false;
+  }
   const title = (record.title ?? '').trim();
   if (ROUTINE_IR_SNAPSHOT_RE.test(title)) return false;
   if (LOW_VALUE_NEWS_TITLE_RE.test(title)) return false;
@@ -519,14 +527,19 @@ function retainedBody(
 }
 
 function summarizeRetained(excerpt: string, title: string): string | null {
-  const cleaned = excerpt
+  let cleaned = excerpt
     .replace(/!\[[^\]]*]\([^)]+\)/g, ' ')
     .replace(/\[[^\]]*]\([^)]+\)/g, ' ')
     .replace(/<[^>]+>/g, ' ')
     .replace(/[`*_>#]/g, '')
     .replace(/\s+/g, ' ')
-    .trim();
-  if (PAYWALL_MARKERS.some((marker) => cleaned.toLowerCase().includes(marker))) return null;
+    .trim()
+    .replace(/^listen to this article in summarized format\s*/i, '')
+    .replace(/^\(this is the .{0,300}? newsletter,.{0,500}?\)\s*/i, '');
+  if (cleaned.toLowerCase().startsWith(title.toLowerCase())) {
+    cleaned = cleaned.slice(title.length).replace(/^[\s—:.-]+/, '');
+  }
+  if (RETAINED_TEXT_BLOCKERS.some((marker) => cleaned.toLowerCase().includes(marker))) return null;
   const sentences = cleaned
     .split(/(?<=[.!?])\s+(?=[A-Z0-9“"'])/)
     .map((sentence) => sentence.trim())
