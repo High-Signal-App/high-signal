@@ -175,11 +175,22 @@ describe('selectNewsRecords', () => {
       retainedText:
         'The regulator blocked the semiconductor acquisition after finding that the deal would reduce competition in accelerator hardware.',
     });
+    const priceTarget = record({
+      id: 'price-target',
+      title: 'Titan stock outlook: Buy for 20% upside; check share price target',
+      sourceUrl: 'https://example.com/titan-price-target',
+    });
+    const marketPrediction = record({
+      id: 'market-prediction',
+      title: 'Sensex, Nifty prediction for Tuesday: Should investors buy the dip?',
+      sourceUrl: 'https://example.com/market-prediction',
+    });
 
     expect(
-      selectNewsRecords([courtOpinion, stockPicks, materialLegalNews], WINDOW).map(
-        (item) => item.id
-      )
+      selectNewsRecords(
+        [courtOpinion, stockPicks, priceTarget, marketPrediction, materialLegalNews],
+        WINDOW
+      ).map((item) => item.id)
     ).toEqual(['material-legal-news']);
   });
 

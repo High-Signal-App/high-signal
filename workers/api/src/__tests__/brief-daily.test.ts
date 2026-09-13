@@ -95,6 +95,7 @@ describe('GET /daily', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.tryGetPrecomputedSnapshot.mockResolvedValue(null);
+    mocks.tryGetPrecomputedSnapshot.mockResolvedValue(null);
     mocks.buildStocks.mockResolvedValue([]);
     mocks.buildIdeas.mockResolvedValue([]);
     mocks.buildTrends.mockResolvedValue([]);
@@ -425,6 +426,42 @@ describe('brief precompute', () => {
     expect(mocks.insertBriefSnapshot).toHaveBeenCalledTimes(5);
     expect(mocks.buildStocks).toHaveBeenCalledTimes(5);
     for (const call of mocks.buildStocks.mock.calls) expect(call[2]).toBe(result.date);
+  });
+
+  it('reuses a sanitized current edition when an incremental news rebuild is empty', async () => {
+    mocks.buildNews.mockResolvedValue([]);
+    mocks.tryGetPrecomputedSnapshot.mockResolvedValue({
+      generatedAt: new Date().toISOString(),
+      region: 'global',
+      stocks: [],
+      ideas: [],
+      trends: [],
+      news: [
+        {
+          id: 'good-news',
+          title: 'OpenAI launches a verified enterprise API',
+          summary:
+            'OpenAI launched a verified enterprise API with a documented release date and customer scope.',
+          event_at: new Date().toISOString(),
+          what_changed: '',
+          source_references: [{ url: 'https://openai.example/api', source: 'news' }],
+          evidence_status: 'reported',
+        },
+        {
+          id: 'stock-pick',
+          title: 'Top stocks to buy under ₹200',
+          summary: 'This cached article recommends shares, price targets, and stop-loss levels.',
+          event_at: new Date().toISOString(),
+          what_changed: '',
+          source_references: [{ url: 'https://example.com/stock-picks', source: 'news' }],
+          evidence_status: 'reported',
+        },
+      ],
+    });
+
+    const result = await precomputeBriefSnapshots(env);
+    expect(result.globalPublished).toBe(true);
+    expect(result.regions[0]?.counts?.news).toBe(1);
   });
 });
 

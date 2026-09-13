@@ -238,7 +238,7 @@ const RETAINED_TEXT_BLOCKERS = [
 
 const ROUTINE_IR_SNAPSHOT_RE = /\bir snapshot$/i;
 const LOW_VALUE_NEWS_TITLE_RE =
-  /^(?:court opinion:)\s|\b(?:top stocks?|stocks?) to buy\b|\btarget,?\s+stop-loss\b/i;
+  /^(?:court opinion:)\s|\b(?:top stocks?|stocks?) to buy\b|\btarget,?\s+stop-loss\b|\bshare price target\b|\bshould investors (?:buy|sell)\b|\b(?:sensex|nifty|stock market) prediction\b/i;
 
 const SOURCE_RANK: Record<string, number> = {
   edgar: 9,
@@ -526,7 +526,7 @@ function retainedBody(
   return raw.slice(0, EXCERPT_MAX);
 }
 
-function summarizeRetained(excerpt: string, title: string): string | null {
+function cleanRetainedText(excerpt: string, title: string): string {
   let cleaned = excerpt
     .replace(/!\[[^\]]*]\([^)]+\)/g, ' ')
     .replace(/\[[^\]]*]\([^)]+\)/g, ' ')
@@ -539,6 +539,11 @@ function summarizeRetained(excerpt: string, title: string): string | null {
   if (cleaned.toLowerCase().startsWith(title.toLowerCase())) {
     cleaned = cleaned.slice(title.length).replace(/^[\s—:.-]+/, '');
   }
+  return cleaned;
+}
+
+function summarizeRetained(excerpt: string, title: string): string | null {
+  const cleaned = cleanRetainedText(excerpt, title);
   if (RETAINED_TEXT_BLOCKERS.some((marker) => cleaned.toLowerCase().includes(marker))) return null;
   const sentences = cleaned
     .split(/(?<=[.!?])\s+(?=[A-Z0-9“"'])/)
@@ -550,6 +555,26 @@ function summarizeRetained(excerpt: string, title: string): string | null {
     .trim();
   if (picked.length < 24) return null;
   return picked.length > 480 ? `${picked.slice(0, 477).replace(/\s+\S*$/, '')}…` : picked;
+}
+
+/** Re-apply current reader-quality rules when an incremental rebuild has no new story. */
+export function sanitizeBriefNewsItems(items: readonly BriefNewsItem[]): BriefNewsItem[] {
+  const sanitized: BriefNewsItem[] = [];
+  for (const item of items) {
+    const title = item.title.trim();
+    if (!title || ROUTINE_IR_SNAPSHOT_RE.test(title) || LOW_VALUE_NEWS_TITLE_RE.test(title)) {
+      continue;
+    }
+    const summary = cleanRetainedText(item.summary, title);
+    if (
+      summary.length < 24 ||
+      RETAINED_TEXT_BLOCKERS.some((marker) => summary.toLowerCase().includes(marker))
+    ) {
+      continue;
+    }
+    sanitized.push({ ...item, title, summary });
+  }
+  return sanitized;
 }
 
 function sourceReferences(members: NewsRecord[]): BriefCitation[] {

@@ -28,9 +28,11 @@ event language. Publisher navigation, listening prompts, repeated titles, and
 newsletter preambles are removed before summaries reach readers. The bounded
 read prioritizes original-publisher pages already verified from material
 attention crossings so a bulk feed refresh cannot displace the reader edition;
-attention itself remains excluded from evidence. A replay over the current
-public source feed returns eight topical stories. Full `pnpm quality` and `pnpm
-build` pass; the deployed API, web, and MCP consumer checks are green.
+attention itself remains excluded from evidence. Same-day rebuilds with no new
+incremental story preserve and re-sanitize the last valid reader edition instead
+of trying to replace it with an empty snapshot. A replay over the current public
+source feed returns eight topical stories. Full `pnpm quality` and `pnpm build`
+pass; the deployed API, web, and MCP consumer checks are green.
 
 September 13 reader-surface reduction — live:
 

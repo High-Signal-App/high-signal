@@ -24,6 +24,7 @@ import {
   istDay,
   istDayFromTimestamp,
   pruneUnpublishableBriefItems,
+  sanitizeBriefNewsItems,
   summarizeBriefDiscovery,
   type BriefCategoryStates,
   type BriefSnapshot,
@@ -253,11 +254,13 @@ async function refreshSnapshotNews(
   shouldRefresh: boolean
 ): Promise<BriefSnapshot> {
   if (!shouldRefresh) return snapshot;
+  const cachedNews = sanitizeBriefNewsItems(snapshot.news ?? []);
   try {
-    return withBriefNews(snapshot, await buildNews(database, region, editionDate));
+    const refreshed = await buildNews(database, region, editionDate);
+    return withBriefNews(snapshot, refreshed.length > 0 ? refreshed : cachedNews);
   } catch (error) {
     console.warn('[brief] news refresh unavailable', error);
-    return snapshot.news == null ? withBriefNews(snapshot, []) : snapshot;
+    return withBriefNews(snapshot, cachedNews);
   }
 }
 
@@ -317,14 +320,17 @@ async function precomputeBriefRegion(
   nowIso: string
 ): Promise<BriefPrecomputeRegionResult> {
   try {
+    const existing = await tryGetPrecomputedSnapshot(database, today, region);
     const countries = countriesForRegion(region);
-    const [stockResult, ideaResult, trendResult, attention, news] = await Promise.all([
+    const [stockResult, ideaResult, trendResult, attention, refreshedNews] = await Promise.all([
       safeCategory(() => buildStocks(database, countries, today), 'stocks'),
       safeCategory(() => buildIdeas(database, region, countries), 'ideas'),
       safeCategory(() => buildTrends(database, region, countries), 'trends'),
       buildDiggAttention(database),
       safe(() => buildNews(database, region, today), 'news'),
     ]);
+    const cachedNews = sanitizeBriefNewsItems(existing?.news ?? []);
+    const news = refreshedNews.length > 0 ? refreshedNews : cachedNews;
     const snapshot: BriefSnapshot = {
       generatedAt: nowIso,
       region,
