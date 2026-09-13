@@ -51,14 +51,20 @@ const DIGG_SECTION_LIMIT = 8;
 const NEWS_LOOKBACK_MS = 24 * 60 * 60 * 1000;
 const NEWS_RECORD_LIMIT = 800;
 
-// Keep the bounded query useful when a late high-volume attention or market
-// ingest lands after the reported/official feeds. These sources sort first;
-// the remaining capacity still admits community and other retained records.
-const NEWS_SOURCE_PRIORITY = sql<number>`case when (
+// Keep the bounded query useful when a late high-volume feed lands. Original
+// publisher pages fetched after a material attention crossing sort first so a
+// bulk news refresh cannot displace them; editorial ranking still happens
+// after this retrieval bound and attention itself never becomes evidence.
+const NEWS_SOURCE_PRIORITY = sql<number>`case
+when (
+  ${schema.events.source} like 'news:digg-verification:%' or
+  ${schema.events.source} like 'news:mts-verification:%'
+) then 3
+when (
   ${schema.events.source} = 'news' or ${schema.events.source} like 'news:%' or
   ${schema.events.source} = 'guardian' or ${schema.events.source} = 'techmeme' or
-  ${schema.events.source} = 'gdelt' or ${schema.events.source} = 'china-news' or
-  ${schema.events.source} = 'scmp' or ${schema.events.source} like 'edgar_%' or
+  ${schema.events.source} = 'china-news' or ${schema.events.source} = 'scmp' or
+  ${schema.events.source} like 'edgar_%' or
   ${schema.events.source} = 'sec-xbrl' or ${schema.events.source} like 'sec-xbrl:%' or
   ${schema.events.source} = 'ir' or ${schema.events.source} like 'ir:%' or
   ${schema.events.source} = 'hkex' or ${schema.events.source} = 'courtlistener' or
@@ -68,7 +74,9 @@ const NEWS_SOURCE_PRIORITY = sql<number>`case when (
   ${schema.events.source} = 'cisa-kev' or ${schema.events.source} = 'eia' or
   ${schema.events.source} = 'bls' or ${schema.events.source} = 'companies-house' or
   ${schema.events.source} like 'global-macro:%'
-) then 1 else 0 end`;
+) then 2
+when ${schema.events.source} = 'gdelt' then 1
+else 0 end`;
 
 function jsonValue<T>(value: unknown, fallback: T): T {
   if (value == null) return fallback;

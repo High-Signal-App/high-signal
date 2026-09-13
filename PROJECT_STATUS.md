@@ -25,10 +25,12 @@ common paywall boilerplate, routine court crawls, stock-pick listicles, and news
 outside technology, startups, and finance; it also merges differently worded
 coverage of the same named event without joining unrelated companies on generic
 event language. Publisher navigation, listening prompts, repeated titles, and
-newsletter preambles are removed before summaries reach readers. A replay over
-the current public source feed returns eight topical stories. Full `pnpm
-quality` and `pnpm build` pass; the deployed API, web, and MCP consumer checks
-are green.
+newsletter preambles are removed before summaries reach readers. The bounded
+read prioritizes original-publisher pages already verified from material
+attention crossings so a bulk feed refresh cannot displace the reader edition;
+attention itself remains excluded from evidence. A replay over the current
+public source feed returns eight topical stories. Full `pnpm quality` and `pnpm
+build` pass; the deployed API, web, and MCP consumer checks are green.
 
 September 13 reader-surface reduction — live:
 

@@ -473,4 +473,50 @@ describe('buildNews', () => {
       stories.some((story) => story.title === 'Acme launches verified capacity expansion')
     ).toBe(true);
   });
+
+  it('keeps original-publisher verification inside the limit after a bulk news refresh', async () => {
+    d1 = createSqliteD1();
+    applyMigrations(d1);
+    const now = new Date('2026-09-12T12:00:00.000Z');
+    const recent = Math.floor(now.getTime() / 1000) - 60;
+    const bulkNews = Array.from({ length: 801 }, (_, index) => [
+      `bulk-${index}`,
+      'news:bulk-feed',
+      `https://bulk-news.example/${index}`,
+      recent,
+      `Company ${index} launches cloud product`,
+      `Company ${index} launched a cloud product. The retained report records the release date, customer scope, and operational details.`,
+      `bulk-hash-${index}`,
+      recent,
+    ]);
+    const verifiedPublisher = [
+      'verified-publisher',
+      'news:mts-verification:example.com',
+      'https://publisher.example/openai-api',
+      recent - 3_600,
+      'OpenAI launches verified enterprise API',
+      'OpenAI launched a verified enterprise API. The original publisher page records the release date, customer scope, and operational details.',
+      'verified-publisher-hash',
+      recent - 3_600,
+    ];
+
+    const allRows = [...bulkNews, verifiedPublisher];
+    for (let offset = 0; offset < allRows.length; offset += 300) {
+      const rows = allRows.slice(offset, offset + 300);
+      const values = rows
+        .map(
+          ([id, source, url, publishedAt, title, content, rawHash, ingestedAt]) =>
+            `('${id}','${source}','${url}',${publishedAt},'${title}','${content}',NULL,'${rawHash}',${ingestedAt})`
+        )
+        .join(',');
+      d1.exec(
+        `INSERT INTO events (id, source, source_url, published_at, title, content, primary_entity_id, raw_hash, ingested_at) VALUES ${values}`
+      );
+    }
+
+    const stories = await buildNews(db(d1.binding), 'global', '2026-09-12', now);
+    expect(stories.some((story) => story.title === 'OpenAI launches verified enterprise API')).toBe(
+      true
+    );
+  });
 });
