@@ -5,7 +5,7 @@
 
 import { canonicalSourceUrl } from './source-document';
 import { istDayRange } from './history-access';
-import { classifySource } from './signal-intelligence';
+import { classifySource, isPredictionMarketOnly } from './signal-intelligence';
 import type { BriefCitation, BriefNewsEvidenceStatus, BriefNewsItem } from './brief';
 
 const NEWS_LIMIT = 8;
@@ -384,6 +384,9 @@ export function selectNewsRecords(
 
 /** Keep the reader feed inside the product's technology/startup/finance scope. */
 export function hasBriefNewsTopic(record: NewsRecord): boolean {
+  if (record.source.startsWith('market:') || isPredictionMarketOnly([record.sourceUrl])) {
+    return false;
+  }
   if (record.primaryEntityId?.trim()) return true;
   if ((SOURCE_RANK[sourceFamily(record.source)] ?? 0) >= 7) return true;
   const text = `${record.title ?? ''} ${retainedBody(record) ?? ''}`.slice(0, 800).toLowerCase();
