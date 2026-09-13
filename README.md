@@ -7,9 +7,9 @@
 
 High Signal is **one product**: a synthesized **Daily Brief** assembled from noisy public sources across **technology, startups, and finance**. The public edition contains three evidence-qualified sections: markets and companies, business opportunities, and behavior and culture.
 
-Readers start with today or yesterday, open each signal to inspect its proof, and use Sources, Company Universe, and Track Record for context. Older records live in the chronological Signals surface behind a Turnstile human check. There are no reader accounts or personalized editions.
+Readers start with today or yesterday, open a signal to inspect its proof, and use Track Record to judge prior calls. Sources and methodology support verification. Older records live in the chronological Signals surface behind a Turnstile human check. There are no reader accounts or personalized editions.
 
-Markets, Communities, Entities, Sectors, and Convergence are supporting inputs or research indexes. They are not separate products. Brand intelligence lives in Mentionpilot. The former personal brief, D2C pipeline, Agent Eval implementation, and Lab have been retired from this repository.
+Company Universe, Markets, Communities, Entities, Sectors, and Convergence are supporting inputs or contextual research indexes. They stay out of the global reader navigation and are not separate products. Brand intelligence lives in Mentionpilot. The former personal brief, D2C pipeline, Agent Eval implementation, and Lab have been retired from this repository.
 
 Pricing: free. No paid tier, no billing. Region is a free filter.
 

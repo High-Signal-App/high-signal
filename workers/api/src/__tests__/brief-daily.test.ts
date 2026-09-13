@@ -3,7 +3,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   tryGetPrecomputedSnapshot: vi.fn(),
-  buildStocks: vi.fn(async () => []),
+  buildStocks: vi.fn(
+    async (_database?: unknown, _countries?: string[], _publicationDay?: string) => []
+  ),
   buildIdeas: vi.fn(async (): Promise<BriefSnapshot['ideas']> => []),
   buildTrends: vi.fn(async () => []),
   buildDiggAttention: vi.fn(async () => ({
@@ -16,12 +18,21 @@ const mocks = vi.hoisted(() => ({
   buildImprovements: vi.fn(async () => []),
   buildWatching: vi.fn(async () => []),
   buildIntentBriefItems: vi.fn(async () => []),
+  insertBriefSnapshot: vi.fn(async () => undefined),
 }));
 
-vi.mock('../../db', () => ({
-  db: () => ({ mocked: true }),
-  schema: {},
-}));
+vi.mock('../db', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../db')>();
+  return {
+    ...actual,
+    db: () => ({
+      mocked: true,
+      insert: () => ({
+        values: () => ({ onConflictDoUpdate: mocks.insertBriefSnapshot }),
+      }),
+    }),
+  };
+});
 
 vi.mock('../routes/brief/query', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../routes/brief/query')>();
@@ -41,7 +52,7 @@ vi.mock('../routes/brief/query', async (importOriginal) => {
 });
 
 import { briefRoute, parseDailyBriefRequest, safeCategory } from '../routes/brief';
-import { dailySignalEdition } from '../routes/brief/route';
+import { dailySignalEdition, precomputeBriefSnapshots } from '../routes/brief/route';
 import { istDay, type BriefSnapshot } from '@high-signal/shared';
 import { createHistoryGrant } from '../lib/history-access';
 
@@ -321,6 +332,99 @@ describe('GET /daily', () => {
     expect(body.news).toEqual(news);
     expect(body.publishStatus).toBe('pending');
     expect(mocks.buildNews).toHaveBeenCalled();
+  });
+
+  it('refreshes news for a cached public edition even when its morning snapshot was empty', async () => {
+    const day = istDay(new Date(), -1);
+    const news = [
+      {
+        id: 'news-late',
+        title: 'Issuer reports an afternoon capacity expansion',
+        summary: 'The retained report records the expansion and its announced timetable.',
+        event_at: `${day}T12:00:00.000Z`,
+        what_changed: '',
+        source_references: [{ url: 'https://news.example/afternoon', source: 'news' }],
+        evidence_status: 'reported' as const,
+      },
+    ];
+    mocks.tryGetPrecomputedSnapshot.mockResolvedValue({
+      generatedAt: `${day}T03:30:00.000Z`,
+      region: 'global',
+      stocks: [],
+      ideas: [],
+      trends: [],
+      news: [],
+    });
+    mocks.buildNews.mockResolvedValue(news);
+
+    const response = await briefRoute.request(`http://test/daily?date=${day}`, {}, env);
+    const body = (await response.json()) as BriefSnapshot & { publishStatus: string };
+    expect(body.news).toEqual(news);
+    expect(body.publishStatus).toBe('published');
+    expect(mocks.buildNews).toHaveBeenCalledWith(expect.anything(), 'global', day);
+  });
+
+  it('preserves cached news when a live refresh fails', async () => {
+    const day = istDay(new Date(), -1);
+    const cachedNews = [
+      {
+        id: 'news-cached',
+        title: 'Issuer confirms a retained product launch',
+        summary: 'The cached report records the launch and the public release timetable.',
+        event_at: `${day}T08:00:00.000Z`,
+        what_changed: '',
+        source_references: [{ url: 'https://issuer.example/launch', source: 'ir' }],
+        evidence_status: 'official' as const,
+      },
+    ];
+    mocks.tryGetPrecomputedSnapshot.mockResolvedValue({
+      generatedAt: `${day}T03:30:00.000Z`,
+      region: 'global',
+      stocks: [],
+      ideas: [],
+      trends: [],
+      news: cachedNews,
+    });
+    mocks.buildNews.mockRejectedValue(new Error('D1 timeout'));
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+    const response = await briefRoute.request(`http://test/daily?date=${day}`, {}, env);
+    const body = (await response.json()) as BriefSnapshot;
+    expect(body.news).toEqual(cachedNews);
+    warn.mockRestore();
+  });
+});
+
+describe('brief precompute', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.buildStocks.mockResolvedValue([]);
+    mocks.buildIdeas.mockResolvedValue([]);
+    mocks.buildTrends.mockResolvedValue([]);
+    mocks.buildDiggAttention.mockResolvedValue({
+      attentionLeaders: [],
+      emergingBeforeMainstream: [],
+      attentionEvidenceGaps: [],
+    });
+    mocks.buildNews.mockResolvedValue([
+      {
+        id: 'news-1',
+        title: 'Regulator publishes a retained daily update',
+        summary: 'The retained update describes the decision and its effective timetable.',
+        event_at: new Date().toISOString(),
+        what_changed: '',
+        source_references: [{ url: 'https://regulator.example/update', source: 'gov' }],
+        evidence_status: 'official',
+      },
+    ]);
+  });
+
+  it('stores a news-only edition and scopes stock reads to its exact IST day', async () => {
+    const result = await precomputeBriefSnapshots(env);
+    expect(result.globalPublished).toBe(true);
+    expect(mocks.insertBriefSnapshot).toHaveBeenCalledTimes(5);
+    expect(mocks.buildStocks).toHaveBeenCalledTimes(5);
+    for (const call of mocks.buildStocks.mock.calls) expect(call[2]).toBe(result.date);
   });
 });
 

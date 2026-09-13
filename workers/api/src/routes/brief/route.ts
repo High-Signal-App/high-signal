@@ -43,6 +43,48 @@ import { bearerGrant, verifyHistoryGrant } from '../../lib/history-access';
 
 type Env = { DB: D1Database; BRIEF_CACHE?: KVNamespace; TURNSTILE_SECRET?: string };
 
+function isPublicNewsUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' || url.protocol === 'http:';
+  } catch {
+    return false;
+  }
+}
+
+/** Publication readiness for the whole reader edition, including news. */
+function buildDailyBriefReceipt(snapshot: BriefSnapshot) {
+  const signalReceipt = buildBriefEditionReceipt(snapshot);
+  const news = snapshot.news ?? [];
+  const issues: Array<{ section: string; item: number | null; reason: string }> =
+    signalReceipt.issues.filter(
+      (issue) =>
+        !(news.length > 0 && issue.section === 'edition' && issue.reason === 'edition_has_no_items')
+    );
+
+  news.forEach((item, index) => {
+    if (typeof item.title !== 'string' || !item.title.trim()) {
+      issues.push({ section: 'news', item: index, reason: 'missing_title' });
+    }
+    if (typeof item.event_at !== 'string' || !Number.isFinite(Date.parse(item.event_at))) {
+      issues.push({ section: 'news', item: index, reason: 'missing_publication_date' });
+    }
+    if (
+      !Array.isArray(item.source_references) ||
+      !item.source_references.some((citation) => citation && isPublicNewsUrl(citation.url))
+    ) {
+      issues.push({ section: 'news', item: index, reason: 'missing_public_source' });
+    }
+  });
+
+  const counts = { news: news.length, ...signalReceipt.counts };
+  return {
+    publishable: Object.values(counts).some((count) => count > 0) && issues.length === 0,
+    counts,
+    issues,
+  };
+}
+
 /**
  * The publish cron runs at 03:30 UTC (09:00 IST) daily. When no precomputed
  * snapshot exists for today yet, this returns the next occurrence so agents
@@ -106,15 +148,16 @@ async function handleDailyBriefRequest(c: Context<{ Bindings: Env }>) {
         }).snapshot;
       }
       snapshot = dailySignalEdition(pruneUnpublishableBriefItems(snapshot).snapshot, editionDate);
-      if (!snapshot.news) {
-        snapshot = withBriefNews(
-          snapshot,
-          await safe(() => buildNews(database, request.region, editionDate), 'news')
-        );
-      }
+      snapshot = await refreshSnapshotNews(
+        database,
+        snapshot,
+        request.region,
+        editionDate,
+        !protectedHistory || snapshot.news == null
+      );
       const body = {
         ...snapshot,
-        publishStatus: buildBriefEditionReceipt(snapshot).publishable
+        publishStatus: buildDailyBriefReceipt(snapshot).publishable
           ? ('published' as const)
           : ('pending' as const),
       };
@@ -190,7 +233,7 @@ async function cachedDailyBrief(
 ) {
   const lookupDate = request.archiveDate ?? istDay();
   const snapshot = await tryGetPrecomputedSnapshot(database, lookupDate, request.region);
-  if (snapshot && (request.archiveDate || buildBriefEditionReceipt(snapshot).publishable)) {
+  if (snapshot && (request.archiveDate || buildDailyBriefReceipt(snapshot).publishable)) {
     return { body: snapshot, status: 200 as const };
   }
   if (request.archiveDate && isProtectedHistoryDay(request.archiveDate)) {
@@ -200,6 +243,22 @@ async function cachedDailyBrief(
     };
   }
   return null;
+}
+
+async function refreshSnapshotNews(
+  database: ReturnType<typeof db>,
+  snapshot: BriefSnapshot,
+  region: Region,
+  editionDate: string,
+  shouldRefresh: boolean
+): Promise<BriefSnapshot> {
+  if (!shouldRefresh) return snapshot;
+  try {
+    return withBriefNews(snapshot, await buildNews(database, region, editionDate));
+  } catch (error) {
+    console.warn('[brief] news refresh unavailable', error);
+    return snapshot.news == null ? withBriefNews(snapshot, []) : snapshot;
+  }
 }
 
 async function composeDailyBrief(
@@ -241,7 +300,7 @@ async function composeDailyBrief(
 interface BriefPrecomputeRegionResult {
   region: Region;
   status: 'published' | 'rejected' | 'failed';
-  counts?: { stocks: number; ideas: number; trends: number };
+  counts?: { news: number; stocks: number; ideas: number; trends: number };
   issues?: Array<{ section: string; item: number | null; reason: string }>;
 }
 
@@ -260,7 +319,7 @@ async function precomputeBriefRegion(
   try {
     const countries = countriesForRegion(region);
     const [stockResult, ideaResult, trendResult, attention, news] = await Promise.all([
-      safeCategory(() => buildStocks(database, countries), 'stocks'),
+      safeCategory(() => buildStocks(database, countries, today), 'stocks'),
       safeCategory(() => buildIdeas(database, region, countries), 'ideas'),
       safeCategory(() => buildTrends(database, region, countries), 'trends'),
       buildDiggAttention(database),
@@ -289,7 +348,7 @@ async function precomputeBriefRegion(
       );
     }
 
-    const receipt = buildBriefEditionReceipt(publishedSnapshot);
+    const receipt = buildDailyBriefReceipt(publishedSnapshot);
     if (!receipt.publishable) {
       console.error(
         `[brief-precompute] ${region} REJECTED on ${today} — no snapshot written`,
@@ -311,7 +370,7 @@ async function precomputeBriefRegion(
         set: { briefJson: JSON.stringify(publishedSnapshot), computedAt: nowIso },
       });
     console.log(
-      `[brief-precompute] ${region}: ${publishedSnapshot.stocks.length} stocks, ${publishedSnapshot.ideas.length} ideas, ${publishedSnapshot.trends.length} trends, ${publishedSnapshot.attentionLeaders?.length ?? 0} attention leaders, ${pruned.withheld.length} withheld; gate=pass`
+      `[brief-precompute] ${region}: ${publishedSnapshot.news?.length ?? 0} news, ${publishedSnapshot.stocks.length} stocks, ${publishedSnapshot.ideas.length} ideas, ${publishedSnapshot.trends.length} trends, ${publishedSnapshot.attentionLeaders?.length ?? 0} attention leaders, ${pruned.withheld.length} withheld; gate=pass`
     );
     return { region, status: 'published', counts: receipt.counts };
   } catch (err) {

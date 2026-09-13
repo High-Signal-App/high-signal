@@ -22,10 +22,11 @@ and blocked work in GitHub Issues.
 public sources (Reddit, news, Hacker News, YouTube transcripts, SEC filings,
 GitHub, IR pages, etc.), curates and cleans them, and publishes only claims that
 clear the evidence gates. The reader-facing product is the Brief, Signals and
-proof pages, Sources, Company Universe, and Track Record. Markets, communities,
-and other adapters are inputs or research indexes, not separate products. There
-are no reader accounts or personalization; Cloudflare Access protects only the
-bounded operator review and publishing paths.
+proof pages, and Track Record. Sources and methodology verify the reporting;
+Company Universe, markets, communities, entities, sectors, and other adapters
+are supporting context, not separate products. There are no reader accounts or
+personalization; Cloudflare Access protects only the bounded operator review
+and publishing paths.
 
 Locked product direction (brand, sections, pricing, lenses, hard rules, UI
 direction, out-of-scope): [`docs/product/direction.md`](docs/product/direction.md).

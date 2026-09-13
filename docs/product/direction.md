@@ -84,15 +84,17 @@ the public brief recomputes from that region's entities and retained sources.
   narrative, and lifestyle drift. Curation remains operator-only until Reddit Insights can
   take over raw collection and history without losing these inputs.
 - **Entities, sectors, convergence, and market context** remain supporting
-  research indexes rather than standalone products.
+  research indexes rather than standalone products. They remain addressable and
+  may be linked from relevant evidence, but they stay out of global navigation.
 - **Brand intelligence** belongs to Mentionpilot. High Signal does not own agent
   evaluation, competitor perception, personal product ranking, or generic content generation.
 
 ## Company Universe
 
-The source-backed Company Universe remains a first-class public research
-surface. It preserves provenance from official accelerator and investor
-directories and links company context back to current signals.
+The source-backed Company Universe is retained as a contextual evidence utility,
+not a reader product destination. It preserves provenance from official
+accelerator and investor directories and may be linked from relevant signals,
+but it stays out of global navigation and the core product promise.
 
 ## Sources
 
@@ -110,10 +112,10 @@ licensed archives. Premium broker research, expert calls, licensed private-
 company data, dependable restricted-social firehoses, and real-time global
 earnings media remain explicit gaps.
 
-The public Sources directory lists every configured source family with cadence,
-freshness, last-run state, stored volume, and the latest retained data. Source
-accuracy and the hit-rate ledger remain Track Record concerns rather than being
-mixed into the source inventory.
+The public Sources verification utility lists every configured source family
+with cadence, freshness, last-run state, stored volume, and the latest retained
+data. Source accuracy and the hit-rate ledger remain Track Record concerns
+rather than being mixed into the source inventory.
 
 ## Hard rules baked in
 
@@ -134,22 +136,18 @@ mixed into the source inventory.
 - **Multi-collection engine for EverythingRated** (2026-04-26) — design archived
   at [`plans/0003-multi-collection-for-everythingrated.md`](https://github.com/High-Signal-App/high-signal/blob/main/plans/0003-multi-collection-for-everythingrated.md).
   Not shipped; reopening trigger is in that file.
-- **Per-platform fan-out for Mentions/Agent-Eval** (Claude / ChatGPT / Perplexity
-  / Gemini as distinct provider creds). Today both use one OpenAI-compatible
-  endpoint and tag everything `platform: 'custom'`. Reopen if users demand
-  per-platform breakdowns. (Note: Mentions multi-model fan-out landed 2026-07-04
-  — see `../../PROJECT_STATUS.md`.)
+- **Per-platform fan-out for Mentions/Agent-Eval** was considered inside High
+  Signal and superseded by the 2026-09-13 boundary cleanup. Brand evaluation
+  now belongs to Mentionpilot; do not reopen it as a High Signal surface.
 - **Paid tiers / region gating** — explicitly out of scope (2026-05-25).
   Everything is free; region is a free filter. Revisit when usage proves
   willingness-to-pay.
 
-## Consolidation rule
+## Product boundary rule
 
-Do not delete or archive `mentionpilot` or `agentMode` until the relevant
-features have been migrated into this repo and verified. Treat those repos as
-read-only migration sources. Do not copy entire directories wholesale; port the
-useful domain behavior into High Signal's app shell, schema, API, and ingest
-boundaries.
+Do not migrate sibling-product features back into High Signal without a new,
+evidence-backed product decision. Retained research routes support reporting;
+they do not justify a second navigation system or an all-features directory.
 
 ## UI direction (locked)
 
@@ -164,7 +162,9 @@ boundaries.
 - Animations only on state change (signal published, hit-rate update). No
   decorative motion.
 - The default Brief view preserves the evidence-terminal reading path.
-  Newspaper may recompose the same semantic item order into a lead-plus-columns
+- Global navigation is limited to Brief, Signals, and Track Record; verification
+  utilities remain secondary.
+- Newspaper may recompose the same semantic item order into a lead-plus-columns
   layout on wider screens and must collapse to one column on narrow screens.
 
 ## Out of scope (resist)

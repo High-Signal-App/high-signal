@@ -28,11 +28,14 @@ The primary reader path is:
 
 - Daily Brief
 - Signals and proof pages
-- Sources
-- Company Universe
 - Track Record
 
-Supporting research indexes include markets, equities, entities, sectors, convergence, communities, and unmapped-entity review. Operator review, backtests, and community curation are protected workflows.
+Sources, methodology, and the public API are verification utilities. Supporting
+research indexes include Company Universe, markets, equities, entities, sectors,
+convergence, communities, and unmapped-entity review. They remain addressable
+and may be linked from relevant evidence, but they are not global navigation or
+separate product promises. Operator review, backtests, and community curation
+are protected workflows.
 
 There are no reader accounts, personalized editions, paid tiers, or connected-brand sections.
 

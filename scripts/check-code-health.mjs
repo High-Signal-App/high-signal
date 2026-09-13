@@ -121,7 +121,7 @@ function checkDuplication() {
     .statistics.total;
   // Debt: https://github.com/High-Signal-App/high-signal/issues/104
   // Ratcheted 2026-09-13 after the product-boundary cleanup.
-  const baseline = { clones: 81, duplicatedLines: 1021, percentage: 1.964594958629979 };
+  const baseline = { clones: 80, duplicatedLines: 1012, percentage: 1.9474646396613104 };
   console.log(
     `Duplication: ${observed.duplicatedLines}/${observed.lines} lines ` +
       `(${observed.percentage.toFixed(4)}%), ${observed.clones} groups across ` +

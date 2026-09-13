@@ -12,7 +12,7 @@ import {
   normalizeCommunitySummary,
   oppositeDirectionConflictIds,
   rankEvidenceUrls,
-  reportingWindow,
+  reportingWindowForEdition,
   selectBriefClaimProvenance,
   type BriefAttentionSections,
   type BriefNewsItem,
@@ -50,6 +50,25 @@ const DIGG_ATTENTION_WINDOW_HOURS = 36;
 const DIGG_SECTION_LIMIT = 8;
 const NEWS_LOOKBACK_MS = 24 * 60 * 60 * 1000;
 const NEWS_RECORD_LIMIT = 800;
+
+// Keep the bounded query useful when a late high-volume attention or market
+// ingest lands after the reported/official feeds. These sources sort first;
+// the remaining capacity still admits community and other retained records.
+const NEWS_SOURCE_PRIORITY = sql<number>`case when (
+  ${schema.events.source} = 'news' or ${schema.events.source} like 'news:%' or
+  ${schema.events.source} = 'guardian' or ${schema.events.source} = 'techmeme' or
+  ${schema.events.source} = 'gdelt' or ${schema.events.source} = 'china-news' or
+  ${schema.events.source} = 'scmp' or ${schema.events.source} like 'edgar_%' or
+  ${schema.events.source} = 'sec-xbrl' or ${schema.events.source} like 'sec-xbrl:%' or
+  ${schema.events.source} = 'ir' or ${schema.events.source} like 'ir:%' or
+  ${schema.events.source} = 'hkex' or ${schema.events.source} = 'courtlistener' or
+  ${schema.events.source} = 'legistar' or ${schema.events.source} = 'openstates' or
+  ${schema.events.source} like 'regulations%' or ${schema.events.source} like 'us-gov-api:%' or
+  ${schema.events.source} like 'india-gov:%' or ${schema.events.source} like 'gov-contracts:%' or
+  ${schema.events.source} = 'cisa-kev' or ${schema.events.source} = 'eia' or
+  ${schema.events.source} = 'bls' or ${schema.events.source} = 'companies-house' or
+  ${schema.events.source} like 'global-macro:%'
+) then 1 else 0 end`;
 
 function jsonValue<T>(value: unknown, fallback: T): T {
   if (value == null) return fallback;
@@ -855,7 +874,7 @@ export async function buildNews(
   now = new Date()
 ): Promise<BriefNewsItem[]> {
   const previous = await previousBriefComputedAt(database, region, editionDate);
-  const window = reportingWindow(previous, now);
+  const window = reportingWindowForEdition(previous, editionDate, now);
   const lookbackStart = new Date(window.start.getTime() - NEWS_LOOKBACK_MS);
   const rows = await database
     .select({
@@ -874,7 +893,7 @@ export async function buildNews(
     .where(
       and(gte(schema.events.ingestedAt, lookbackStart), lt(schema.events.ingestedAt, window.end))
     )
-    .orderBy(desc(schema.events.ingestedAt), desc(schema.events.id))
+    .orderBy(desc(NEWS_SOURCE_PRIORITY), desc(schema.events.ingestedAt), desc(schema.events.id))
     .limit(NEWS_RECORD_LIMIT);
 
   return composeNewsStories(

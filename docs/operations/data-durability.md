@@ -89,6 +89,6 @@ description: Authoritative sources, reconstruction paths, migration guards, and 
 
 ## Restore verification
 
-- **Reconstructable from git**: clone fresh → `pnpm install` → `pnpm db:seed:remote` → `pnpm signals:sync:remote --force` → `pnpm equities:snapshot` → `pnpm market:refresh` → `pnpm market:snapshot` → `pnpm tickers:bundle`. Verify with `pnpm source:diagnose` and the `/explore` sitemap.
+- **Reconstructable from git**: clone fresh → `pnpm install` → `pnpm db:seed:remote` → `pnpm signals:sync:remote --force` → `pnpm equities:snapshot` → `pnpm market:refresh` → `pnpm market:snapshot` → `pnpm tickers:bundle`. Verify with `pnpm source:diagnose` and `/sitemap.xml`.
 - **Reconstructable from upstream APIs**: re-run the relevant cron workflow (`workflow_dispatch`) for the affected date window. Idempotency guards (`raw_hash`, hour-bucket ids, and `(ticker,date)` uniques) prevent duplicates.
 - **Not reconstructable (audit/user state)**: restore from operator D1 export. No automated restore path — recorded as an accepted exception per the spec's data-durability requirement.

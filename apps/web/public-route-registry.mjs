@@ -27,7 +27,7 @@ export const PUBLIC_STATIC_ROUTES = [
     path: '/startup-intelligence-platform',
     title: 'Startup intelligence platform',
     description:
-      'The qualified company universe, product facets, provenance, and links to current signals.',
+      'How the Daily Brief connects cited startup changes to evidence and measured outcomes.',
     changeFrequency: 'weekly',
     priority: 0.8,
   },
@@ -35,15 +35,14 @@ export const PUBLIC_STATIC_ROUTES = [
     path: '/market-intelligence-for-founders',
     title: 'Market intelligence for founders',
     description:
-      'A source-backed workflow from the Daily Brief to companies, opportunities, and outcomes.',
+      'A source-backed workflow from the Daily Brief to signal proof and measured outcomes.',
     changeFrequency: 'monthly',
     priority: 0.8,
   },
   {
     path: '/technology-trend-intelligence',
     title: 'Technology trend intelligence',
-    description:
-      'A research path through cited signals, convergence, entities, sectors, and history.',
+    description: 'A research path from the Daily Brief through cited signals and public history.',
     changeFrequency: 'weekly',
     priority: 0.8,
   },
@@ -139,13 +138,6 @@ export const PUBLIC_STATIC_ROUTES = [
     description: 'Evidence-backed company and product case studies.',
     changeFrequency: 'weekly',
     priority: 0.85,
-  },
-  {
-    path: '/explore',
-    title: 'Explore',
-    description: 'Directory of reachable High Signal product surfaces.',
-    changeFrequency: 'daily',
-    priority: 0.75,
   },
   {
     path: '/convergence',

@@ -28,11 +28,12 @@ record matters more than aggregation volume.
 
 ## Operating Context
 
-Readers start from today or yesterday's brief, then follow signals into proof
-pages, sources, entities, Company Universe profiles, and the track-record
-ledger. Earlier records sit in the chronological Signals surface. Public pages
-work without signup; older history uses a Turnstile check rather than an
-account. Region is a free filter.
+Readers start from today or yesterday's brief, follow a signal into its proof,
+and use the track-record ledger to judge prior calls. Sources and methodology
+remain verification utilities; company, entity, sector, convergence, and market
+views are linked only when they add context. Earlier records sit in the
+chronological Signals surface. Public pages work without signup; older history
+uses a Turnstile check rather than an account. Region is a free filter.
 
 ## Capabilities and Constraints
 
@@ -47,6 +48,8 @@ account. Region is a free filter.
 - Everything is free for now. There is no paid tier or billing gate.
 - There are no reader accounts, personalization, featured rotations, or
   standalone idea-scoring tools.
+- The global reader navigation contains only Brief, Signals, and Track record.
+  Supporting research routes do not become peer product destinations.
 
 ## Brand Commitments
 

@@ -3,20 +3,26 @@ import { test, expect } from '@playwright/test';
 const DESTINATIONS = [
   { label: 'brief', href: '/' },
   { label: 'signals', href: '/signals' },
-  { label: 'sources', href: '/data' },
   { label: 'track record', href: '/track-record' },
 ];
 
-test('primary navigation exposes the four reader destinations', async ({ page }) => {
+test('primary navigation exposes only the three reader destinations', async ({ page }) => {
   await page.goto('/');
   const nav = page.getByRole('navigation', { name: 'Primary', exact: true });
   for (const { label, href } of DESTINATIONS) {
     await expect(nav.getByRole('link', { name: label, exact: true })).toHaveAttribute('href', href);
   }
+  await expect(nav.getByRole('link', { name: 'sources', exact: true })).toHaveCount(0);
   await expect(nav.getByRole('link', { name: 'brief', exact: true })).toHaveAttribute(
     'aria-current',
     'page'
   );
+});
+
+test('the retired feature directory returns readers to the brief', async ({ page }) => {
+  await page.goto('/explore');
+  await expect(page).toHaveURL('/');
+  await expect(page.getByRole('heading', { name: 'Today’s verified signals.' })).toBeVisible();
 });
 
 test('navigation acknowledges a click when destination prefetch is still unavailable', async ({

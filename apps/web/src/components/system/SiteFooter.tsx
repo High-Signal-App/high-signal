@@ -9,32 +9,21 @@ interface FooterLink {
   label: string;
 }
 
-const PRODUCT: FooterLink[] = [
+const READ: FooterLink[] = [
   { href: '/', label: 'Brief' },
   { href: '/signals', label: 'Signals' },
-  { href: '/data', label: 'Sources' },
-  { href: '/case-studies', label: 'Company Universe' },
   { href: '/track-record', label: 'Track record' },
 ];
 
-const RESEARCH: FooterLink[] = [
-  { href: '/markets', label: 'Markets' },
-  { href: '/entities', label: 'Entities' },
-  { href: '/sectors', label: 'Sectors' },
-  { href: '/convergence', label: 'Convergence' },
-];
-
-const OPERATOR: FooterLink[] = [
-  { href: '/review', label: 'Review queue' },
-  { href: '/explore', label: 'Explore all features' },
-  { href: '/api-docs', label: 'API docs' },
-];
-
-const LEGAL: FooterLink[] = [
-  { href: '/about', label: 'About' },
+const VERIFY: FooterLink[] = [
+  { href: '/data', label: 'Sources' },
   { href: '/methodology', label: 'Methodology' },
-  { href: '/methodology/data-parity', label: 'Data parity' },
   { href: '/editorial-policy', label: 'Editorial policy' },
+];
+
+const PROJECT: FooterLink[] = [
+  { href: '/about', label: 'About' },
+  { href: '/api-docs', label: 'API & feeds' },
   { href: '/privacy', label: 'Privacy' },
   { href: '/terms', label: 'Terms' },
 ];
@@ -52,17 +41,15 @@ export function SiteFooter() {
           </a>
         </p>
         <p className="mt-3 max-w-3xl text-xs leading-5 text-[var(--color-muted)]">
-          A free, public Daily Brief across technology, startups, and finance. No reader account,
-          paid tier, or personalization; when evidence does not clear the bar, a section stays
-          empty.
+          One free, public Daily Brief across technology, startups, and finance. Read the change,
+          inspect its proof, then check the outcome.
         </p>
       </div>
       <div className="mx-auto max-w-5xl px-6 py-10">
-        <div className="grid grid-cols-2 gap-8 sm:grid-cols-4">
-          <FooterColumn title="Product" links={PRODUCT} />
-          <FooterColumn title="Research" links={RESEARCH} />
-          <FooterColumn title="Operator" links={OPERATOR} />
-          <FooterColumn title="Legal" links={LEGAL} />
+        <div className="grid grid-cols-2 gap-8 sm:grid-cols-3">
+          <FooterColumn title="Read" links={READ} />
+          <FooterColumn title="Verify" links={VERIFY} />
+          <FooterColumn title="Project" links={PROJECT} />
         </div>
         <div className="mt-10 flex flex-wrap items-center justify-between gap-4 border-t border-[var(--color-line)] pt-6 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
           <span>© {year} High Signal</span>
@@ -74,24 +61,6 @@ export function SiteFooter() {
               className="inline-flex min-h-11 items-center hover:text-[var(--color-fg)]"
             >
               Live analytics
-            </a>
-            <a
-              href="https://sarthakagrawal.dev"
-              className="inline-flex min-h-11 items-center hover:text-[var(--color-fg)]"
-            >
-              Sarthak
-            </a>
-            <a
-              href="https://sassmaker.com"
-              className="inline-flex min-h-11 items-center hover:text-[var(--color-fg)]"
-            >
-              Foundry
-            </a>
-            <a
-              href="https://github.com/High-Signal-App/high-signal/issues"
-              className="inline-flex min-h-11 items-center hover:text-[var(--color-fg)]"
-            >
-              Roadmap
             </a>
             <a
               href="https://github.com/High-Signal-App/high-signal"

@@ -2,7 +2,7 @@
 
 Date: 2026-09-13
 
-High Signal is a news media product. It collects public information, publishes an evidence-backed Daily Brief, and exposes the research and track-record surfaces needed to inspect that reporting.
+High Signal is a news media product. It collects public information, publishes an evidence-backed Daily Brief, and exposes the proof and track record needed to inspect that reporting.
 
 ## Active product
 
@@ -11,9 +11,15 @@ High Signal is a news media product. It collects public information, publishes a
 | Daily Brief and news | Active | Main reader product |
 | Signals and evidence | Active | Published claims and their proof |
 | Track record and backtests | Active | Measures whether market calls hold up |
-| Markets and equities | Active | Reporting context and market activity |
-| Company Universe, entities, sectors, convergence | Active | Research indexes supporting coverage |
-| Community Intelligence | Active for now | Supplies community demand and culture context; its raw collection and history will later move to Reddit Insights |
+
+## Supporting machinery
+
+| Area | Status | Reason |
+| --- | --- | --- |
+| Sources and methodology | Verification | Explain provenance and publication rules |
+| Markets and equities | Context | Support reporting and market-call evaluation |
+| Company Universe, entities, sectors, convergence | Context | Remain addressable when a report needs deeper evidence; not global product destinations |
+| Community Intelligence | Input for now | Supplies community demand and culture context; its raw collection and history will later move to Reddit Insights |
 
 ## Retired from High Signal
 

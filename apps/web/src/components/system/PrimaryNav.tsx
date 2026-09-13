@@ -22,11 +22,6 @@ const PRIMARY_ITEMS: NavItem[] = [
     match: (path) => path.startsWith('/signals'),
   },
   {
-    href: '/data',
-    label: 'sources',
-    match: (path) => path === '/data' || path.startsWith('/data/'),
-  },
-  {
     href: '/track-record',
     label: 'track record',
     match: (path) => path.startsWith('/track-record') || path.startsWith('/backtest-workbench'),

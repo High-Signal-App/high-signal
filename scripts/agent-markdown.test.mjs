@@ -28,7 +28,7 @@ const discoveryLinks = agentDiscoveryLinkHeader('https://highsignal.app', '/mark
 assert.match(discoveryLinks, /<\/markets\.md>; rel="alternate"; type="text\/markdown"/);
 assert.match(discoveryLinks, /<\/\.well-known\/ard\.json>; rel="ard"/);
 
-assert.equal(PUBLIC_STATIC_ROUTES.length, 28, 'static public route count must be deliberate');
+assert.equal(PUBLIC_STATIC_ROUTES.length, 27, 'static public route count must be deliberate');
 assert.ok(
   !PUBLIC_STATIC_ROUTES.some((route) => route.path === '/brief'),
   'the /brief compatibility redirect must not compete with the canonical root in the agent catalog'

@@ -71,9 +71,13 @@ proof and market context → publish corrections and evaluate matured calls.
 
 ### R5. Supporting research
 
-- Sources, Company Universe, entities, sectors, convergence, market context,
-  and Community Intelligence MAY remain public when they help readers inspect
-  or understand the reporting.
+- The global reader navigation SHALL contain only Brief, Signals, and Track
+  Record. High Signal SHALL NOT expose an all-features directory.
+- Sources, methodology, and the public API MAY remain globally linked as
+  verification utilities.
+- Company Universe, entities, sectors, convergence, and market context MAY
+  remain addressable and contextually linked when they help explain reporting;
+  they SHALL NOT be presented as peer products.
 - Community Intelligence SHALL remain an operator-curated input until Reddit
   Insights can replace its raw collection and history without losing the digest
   and brief contracts.
@@ -132,11 +136,14 @@ The product satisfies this PRD when all of the following are true:
    direct hit rate.
 7. Market pages consume the canonical equity snapshot and visually distinguish
    prices from prediction-market probabilities.
-8. Retired product routes, scheduled jobs, runtime imports, and synthetic brief
+8. The public shell presents Brief, Signals, and Track Record as the only reader
+   destinations; verification utilities remain secondary and `/explore`
+   redirects to the Brief.
+9. Retired product routes, scheduled jobs, runtime imports, and synthetic brief
    fallbacks are absent from active code.
-9. Repository formatting, types, tests, builds, documentation checks, and the
+10. Repository formatting, types, tests, builds, documentation checks, and the
    relevant browser journey pass for the release candidate.
-10. Production is called complete only after the exact revision is deployed and
+11. Production is called complete only after the exact revision is deployed and
     the anonymous reader journey is reverified live.
 
 ## Success measures

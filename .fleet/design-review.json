@@ -2,8 +2,8 @@
   "$schema": "fleet.design-review.v1",
   "version": 1,
   "project": "high-signal",
-  "target": "Homepage daily signals and proof path",
-  "surfaceMode": "persuade",
+  "target": "Public reader navigation and product surface hierarchy",
+  "surfaceMode": "read",
   "mode": "preserve",
   "register": "product",
   "context": {
@@ -13,40 +13,51 @@
   "direction": {
     "references": [],
     "probes": [],
-    "selected": "evidence-terminal-brief",
+    "selected": "reduced-reader-path",
     "approval": "not-required",
-    "before": "artifacts/design/before-homepage-signal-simplification-1440.png",
+    "before": "apps/web/artifacts/design/before-product-reduction-1440.png",
+    "library": {
+      "strategy": "upstream-first",
+      "primary": "existing-project-system",
+      "sources": [],
+      "runtime": "existing",
+      "customReplacement": {
+        "used": false,
+        "authorization": "not-required",
+        "reason": ""
+      }
+    },
     "contract": {
-      "purpose": "Help a reader scan today's independently supported signals and open the proof.",
-      "purposeSource": "PRODUCT.md and docs/product/direction.md",
-      "canonicalPurpose": "High Signal turns public evidence across technology, startups, and finance into one concise Daily Brief whose claims have independent support and click-through proof.",
+      "purpose": "Reduce the public shell to the one daily brief, its evidence, and its measured history.",
+      "purposeSource": "Site Health purpose contract, PRODUCT.md, and docs/product/prd.md",
+      "canonicalPurpose": "High Signal turns scattered technology, startup, finance, and market sources into one evidence-backed daily intelligence brief.",
       "purposeAlignment": "match",
       "driftNote": "",
-      "audience": "Founders, operators, and researchers filtering noisy public information.",
-      "job": "See whether any verified signal shipped today or yesterday, then open its proof page.",
-      "thesis": "One calm signal ledger; input feeds stay backstage.",
-      "system": "Preserve the existing Evidence Terminal typography, rules, spacing, and restrained cyan accent.",
-      "signature": "The claim-to-proof path: headline, change, consequence, uncertainty, and citations.",
-      "risk": "A quiet day can look sparse; that is accepted because cite-or-kill matters more than feed fullness."
+      "audience": "A curious operator who wants decision-relevant changes without reading every feed and article.",
+      "job": "Read the current brief, inspect a claim's evidence, and check how comparable calls performed.",
+      "thesis": "Three reader destinations make one product legible: Brief, Signals, and Track record.",
+      "system": "Preserve the existing Evidence Terminal typography, spacing, rules, and restrained cyan accent.",
+      "signature": "The claim-to-proof-to-outcome path stays visible while source and research machinery moves backstage.",
+      "risk": "Useful research routes could become harder to discover, so they remain addressable and contextually linked without appearing as peer products."
     }
   },
   "evidence": {
     "screenshots": [
       {
         "width": 390,
-        "path": "artifacts/design/landing-audit-390.png"
+        "path": "apps/web/artifacts/design/after-product-reduction-390.png"
       },
       {
         "width": 768,
-        "path": "artifacts/design/landing-audit-768.png"
+        "path": "apps/web/artifacts/design/after-product-reduction-768.png"
       },
       {
         "width": 1440,
-        "path": "artifacts/design/landing-audit-1440.png"
+        "path": "apps/web/artifacts/design/after-product-reduction-1440.png"
       }
     ],
     "projectCheck": {
-      "command": "web and API typecheck + web and targeted Biome checks + web production build + API brief suite + git diff --check",
+      "command": "pnpm quality; pnpm build; PLAYWRIGHT_PORT=3011 pnpm --dir apps/web exec playwright test e2e/nav.spec.ts e2e/app-health.spec.ts",
       "status": "pass"
     },
     "critique": {
@@ -64,51 +75,36 @@
     "detector": {
       "posture": "advisory",
       "findings": [
-        "Exact 390px, 768px, and 1440px browser captures have no horizontal overflow and preserve the evidence-ledger hierarchy.",
-        "Ten compact footer links failed touch-target checks; all footer navigation now clears 44 pixels and candidate accessibility is 100.",
-        "The invalid Agentmap robots directive and conflicting static robots file were replaced by one typed policy that keeps public and AI discovery surfaces crawlable while operator paths remain disallowed."
+        "The global header now exposes only Brief, Signals, and Track record at all exact widths 390, 768, and 1440 without overflow.",
+        "The footer keeps source proof, methodology, policies, API feeds, live analytics, repository, and RSS access while removing research, operator, portfolio, and roadmap promotion.",
+        "The former all-features directory redirects to the Brief and is absent from the public discovery registry; contextual research routes remain directly addressable."
       ]
     },
     "comprehension": {
-      "status": "pass",
-      "reviewer": "canonical purpose contract, live product data, and fresh exact-width browser review",
+      "status": "not-applicable",
+      "reviewer": "",
       "answers": {
-        "product": "A concise Daily Brief built from public evidence across technology, startups, and finance.",
-        "audience": "Founders and operators who need decision-relevant changes without reading every feed.",
-        "value": "Fewer claims, each worth inspecting and easy to verify.",
-        "mechanism": "A claim ships only with an aligned primary source and independent corroboration.",
-        "proof": "The live first viewport exposes the current verified signal, its change, consequence, uncertainty, two sources, and direct-history state.",
-        "nextAction": "Open the current signal, switch to yesterday, or browse the chronological signal record."
+        "product": "",
+        "audience": "",
+        "value": "",
+        "mechanism": "",
+        "proof": "",
+        "nextAction": ""
       },
       "purposeScore": {
-        "product": 25,
-        "audience": 15,
-        "value": 15,
-        "mechanism": 15,
-        "proof": 14,
-        "nextAction": 14,
-        "total": 98
+        "product": 0,
+        "audience": 0,
+        "value": 0,
+        "mechanism": 0,
+        "proof": 0,
+        "nextAction": 0,
+        "total": 0
       },
       "mismatches": []
-    },
-    "performance": {
-      "weightedLcpMs": 1340,
-      "cls": 0,
-      "tbtMs": 29
-    },
-    "visualQuality": {
-      "priority": "P2",
-      "score": 95,
-      "minimum": 88
-    },
-    "accessibility": {
-      "lighthouseMobile": 100,
-      "contrastFailures": 0,
-      "note": "Footer navigation now exposes 44-pixel touch targets; candidate accessibility and target-size audits pass."
     }
   },
   "ownerFeedback": {
-    "decision": "delegated",
-    "note": "The owner set the signal-only, no-Digg landing hierarchy and delegated implementation details."
+    "decision": "agent-selected",
+    "note": "The agent selected the direction; no owner approval was required."
   }
 }

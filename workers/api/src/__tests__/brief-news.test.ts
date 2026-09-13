@@ -1,12 +1,16 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import {
   clusterNewsRecords,
   composeNewsStories,
   hasUsableRetainedText,
   reportingWindow,
+  reportingWindowForEdition,
   selectNewsRecords,
   type NewsRecord,
 } from '@high-signal/shared';
+import { applyMigrations, createSqliteD1, type TestD1 } from '../../test/sqlite-d1';
+import { db } from '../db';
+import { buildNews } from '../routes/brief/query';
 
 const WINDOW_END = new Date('2026-09-12T12:00:00.000Z');
 const WINDOW = reportingWindow(new Date('2026-09-11T12:00:00.000Z'), WINDOW_END);
@@ -39,6 +43,16 @@ describe('reportingWindow', () => {
     const fallback = reportingWindow(null, now);
     expect(now.getTime() - fallback.start.getTime()).toBe(24 * 60 * 60 * 1000);
   });
+
+  it('stops historical repair reads at the IST edition boundary', () => {
+    const historical = reportingWindowForEdition(
+      null,
+      '2026-09-11',
+      new Date('2026-09-13T12:00:00.000Z')
+    );
+    expect(historical.start.toISOString()).toBe('2026-09-10T18:30:00.000Z');
+    expect(historical.end.toISOString()).toBe('2026-09-11T18:30:00.000Z');
+  });
 });
 
 describe('selectNewsRecords', () => {
@@ -69,6 +83,16 @@ describe('selectNewsRecords', () => {
         .map((item) => item.id)
         .sort()
     ).toEqual(['old', 'update']);
+  });
+
+  it('treats the reporting-window end as exclusive', () => {
+    const boundary = record({
+      id: 'next-edition',
+      title: 'Acme launches a new service at midnight',
+      sourceUrl: 'https://acme.example/midnight',
+      ingestedAt: WINDOW.end,
+    });
+    expect(selectNewsRecords([boundary], WINDOW)).toEqual([]);
   });
 
   it('rejects headline-only and paywall text', () => {
@@ -239,5 +263,60 @@ describe('composeNewsStories', () => {
       WINDOW
     );
     expect(story.evidence_status).toBe('unverified');
+  });
+});
+
+describe('buildNews', () => {
+  let d1: TestD1 | null = null;
+
+  afterEach(() => {
+    d1?.close();
+    d1 = null;
+  });
+
+  it('keeps reported news inside the limit after a larger, newer attention ingest', async () => {
+    d1 = createSqliteD1();
+    applyMigrations(d1);
+    const now = new Date('2026-09-12T12:00:00.000Z');
+    const recent = Math.floor(now.getTime() / 1000) - 60;
+    const attention = Array.from({ length: 801 }, (_, index) => [
+      `mts-${index}`,
+      'mts',
+      `https://attention.example/${index}`,
+      recent,
+      `Community launches tool ${index}`,
+      `Community launches tool ${index}. This retained attention excerpt records discussion volume and timing without presenting it as verified reporting.`,
+      `mts-hash-${index}`,
+      recent,
+    ]);
+    const reported = [
+      'reported-1',
+      'news:reuters',
+      'https://reuters.com/acme-capacity',
+      recent - 3_600,
+      'Acme launches verified capacity expansion',
+      'Acme launched a verified capacity expansion. The retained report identifies the facility, announced timetable, and operating consequence.',
+      'reported-hash-1',
+      recent - 3_600,
+    ];
+
+    const allRows = [reported, ...attention];
+    for (let offset = 0; offset < allRows.length; offset += 300) {
+      const rows = allRows.slice(offset, offset + 300);
+      const values = rows
+        .map(
+          ([id, source, url, publishedAt, title, content, rawHash, ingestedAt]) =>
+            `('${id}','${source}','${url}',${publishedAt},'${title}','${content}',NULL,'${rawHash}',${ingestedAt})`
+        )
+        .join(',');
+      d1.exec(
+        `INSERT INTO events (id, source, source_url, published_at, title, content, primary_entity_id, raw_hash, ingested_at) VALUES ${values}`
+      );
+    }
+
+    const stories = await buildNews(db(d1.binding), 'global', '2026-09-12', now);
+    expect(
+      stories.some((story) => story.title === 'Acme launches verified capacity expansion')
+    ).toBe(true);
   });
 });

@@ -27,7 +27,10 @@ Brand evaluation, competitor perception, and prompt-set logic now live in Mentio
 
 ## Product surfaces
 
-- Reader surfaces: Daily Brief, Signals, Sources, Company Universe, and Track Record.
+- Reader surfaces: Daily Brief, Signals and proof pages, and Track Record.
+- Verification/context surfaces: Sources, methodology, Company Universe, markets,
+  entities, sectors, and convergence. These support reporting without becoming
+  global product destinations.
 - Supporting research: markets, equities, entities, sectors, convergence, communities, and unmapped-entity review.
 - Operator paths: publishing review, backtest workbench, and community curation behind Cloudflare Access.
 

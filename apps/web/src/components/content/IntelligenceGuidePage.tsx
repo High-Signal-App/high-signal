@@ -14,7 +14,6 @@ export function IntelligenceGuidePage({ guide }: { guide: IntelligenceGuide }) {
         <BreadcrumbJsonLd
           trail={[
             { name: 'Home', path: '/' },
-            { name: 'Intelligence guides', path: '/explore' },
             { name: guide.title, path: guide.slug },
           ]}
         />
@@ -29,13 +28,6 @@ export function IntelligenceGuidePage({ guide }: { guide: IntelligenceGuide }) {
             href="/"
           >
             High Signal
-          </Link>
-          <span aria-hidden="true">/</span>
-          <Link
-            className="min-h-11 py-3 hover:text-[var(--color-accent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
-            href="/explore"
-          >
-            Intelligence guides
           </Link>
           <span aria-hidden="true">/</span>
           <span aria-current="page" className="py-3 text-[var(--color-fg)]">

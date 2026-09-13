@@ -2,6 +2,43 @@
 
 Last updated: 2026-09-13
 
+September 13 Daily Brief data-path repair — local code, not deployed:
+
+A reader-path audit found healthy retained inputs but an empty public edition.
+The deployed Workers are still on the September 11 revision, before the
+news-first Brief landed. Local code also had three last-mile defects: morning
+snapshots froze an empty `news` array after later source refreshes, precompute
+queried a rolling stock window that the public day filter then removed, and the
+bounded news query could be crowded out by later high-volume attention or
+market rows.
+
+The Brief now refreshes deterministic source-linked news for today's and
+yesterday's public editions while retaining the cached copy if the refresh
+fails. Historical repair reads stop at the IST edition boundary. Reported and
+official sources receive priority inside the bounded query, precompute reads
+the exact IST signal day, and a valid news-only edition can be stored and marked
+published without weakening the market-signal evidence receipt. Full
+`pnpm quality` passes: 30/30 suites, 33 API files / 325 assertions, typechecks,
+formatting, lint, coverage, dependency/cycle guards, and docs validation.
+`pnpm build` also succeeds. Production remains unchanged until an explicit
+commit, push, and deploy.
+
+September 13 reader-surface reduction — local code, not deployed:
+
+The public product shell now exposes three reader destinations: Brief, Signals,
+and Track Record. Sources, methodology, and the public API remain secondary
+verification utilities. Company Universe, markets, entities, sectors,
+convergence, and other research routes remain addressable and contextually
+linkable, but are no longer advertised in global navigation or an all-features
+directory. `/explore` is now a compatibility redirect to the Brief. No source,
+market, research, API, or operator implementation was deleted in this pass.
+Local evidence: full `pnpm quality` passes with 30/30 suites and 319 API
+assertions, `pnpm build` succeeds, and six focused Chromium journeys pass for
+navigation, the compatibility redirect, loading feedback, and analytics
+isolation. Exact-width review at 390, 768, and 1440 pixels found no overflow or
+blocked navigation. These are source and local-browser receipts, not deployment
+or live-production proof.
+
 September 13 product boundary cleanup — local code, not deployed:
 
 High Signal is now bounded to news, evidence, market/equity context, company
@@ -116,13 +153,13 @@ are tracked separately.
 Web navigation now acknowledges primary-link clicks immediately and streams a
 shared loading view before destination data resolves. The navigation remains
 available, loading status is announced accessibly, and reduced-motion settings
-are respected. Automatic prefetch is enabled for the four main destinations;
-dynamic routes prefetch their loading boundary, while the cached Sources route
-can prefetch its completed page. Click feedback also works when prefetch has not
-arrived. A production-build browser check held both Signals API responses:
+are respected. Automatic prefetch is enabled for the three main destinations;
+dynamic destinations prefetch their loading boundary, while footer and support
+links avoid speculative prefetch. Click feedback also works when prefetch has
+not arrived. A production-build browser check held both Signals API responses:
 click feedback appeared in 17 ms and the destination loading view in 26 ms;
 releasing the requests rendered Signals normally. The focused navigation suite
-covers the current four destinations, delayed responses, keyboard activation and
+covers the current three destinations, delayed responses, keyboard activation and
 back navigation. This repairs navigation feedback, not useful-edition acceptance.
 
 Production probes also identified stale route fragments from a previous Next
@@ -398,9 +435,9 @@ Recovery and existing quality/freshness acceptance remain in issue #133.
 
 ## Why/What
 
-**Thesis:** One product — a synthesized **Daily Brief** from many noisy public sources across technology, startups, and finance. Global by default; region is a free filter. The public edition has three evidence-qualified categories: (1) markets and companies, (2) business opportunities, and (3) behavior and culture. `/` is the non-personalized default; Signals, Sources, Company Universe, and Track Record provide the proof and research path. Free; no billing.
+**Thesis:** One product — a synthesized **Daily Brief** from many noisy public sources across technology, startups, and finance. Global by default; region is a free filter. The public edition has three evidence-qualified categories: (1) markets and companies, (2) business opportunities, and (3) behavior and culture. `/` is the non-personalized default; Signals provide the proof and chronology, and Track Record provides the outcome history. Free; no billing.
 
-**In scope:** Daily Brief (`/` `/brief`), chronological Signals and proof pages, Sources, Company Universe, Track Record, source ingest pipeline, Markets context, Communities input, Entities, Sectors, Convergence, Unmapped gazetteer, and operator review/admin.
+**In scope:** Daily Brief (`/` `/brief`), chronological Signals and proof pages, and Track Record are the reader product. Sources and methodology verify the reporting. Company Universe, Markets context, Communities input, Entities, Sectors, Convergence, the Unmapped gazetteer, source ingest, and operator review/admin remain supporting machinery rather than peer product surfaces.
 
 **Out / parked:** standalone Ideas, Opportunities, Teardowns, Featured, Personal Brief, weekly digest and cadenced publication pages; Agent Eval and Domains public surfaces; Lab UI; standalone equities, communities, and connected-brand products; broad source expansion without quality gates; paid tiers; Knowledgebase integration/dependency. High Signal's current evidence is already queryable through its Git signal store and D1 APIs; revisit only for a concrete retrieval use case those stores cannot serve.
 
@@ -541,9 +578,9 @@ Recovery and existing quality/freshness acceptance remain in issue #133.
   newline handling, and future-effective Legistar/OpenStates dates before those
   sources move to weekly collection.
 - Operator admin session gates `/review`, `/backtest-workbench`, and community curation.
-- Primary nav follows the public reading path: Brief, Signals, Sources, and Track Record. `/explore` lists only the core product, supporting research indexes, and trust/docs surfaces.
+- Primary nav follows the public reading path: Brief, Signals, and Track Record. `/explore` redirects to the Brief.
 - Public/support pages include About, Methodology, Editorial Policy, API docs, Privacy, and Terms.
-- The footer groups Product / Research / Operator / Legal. Review is the only operator surface linked publicly and remains protected by Cloudflare Access.
+- The footer separates Read / Verify / Project links. Research indexes and operator tools are not advertised globally; protected operator routes remain directly addressable.
 - Removed `@saas-maker/ops`, `@saas-maker/ai`, `@saas-maker/analytics-sdk`, and shared eslint/tsconfig npm deps (2026-06-20). Workers use local `ai-client.ts`; root lint uses Biome.
 
 ### Stack & commands
@@ -1024,19 +1061,17 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 - **2026-07-03:** Collapsed the active product shell around data, signals, history, and evals. `/` now renders the signals feed, with Global / US / China / India scopes, default company/idea focus lists, and a fixed sidebar. `/data` is a compact clickable source directory: only sources with stored events open, and they open the latest available source-day view. Signal detail pages link cited evidence back to source-day data when the evidence source maps to the catalog.
 - **README status date (2026-05-30)** lags this file for day-to-day scope; `PROJECT_STATUS.md` + `package.json` scripts are authoritative.
 
-## Products
+## Product and supporting surfaces
 
 | Product surface | Route / entry | Role |
 | --- | --- | --- |
 | Daily Brief | `/`, `/brief` | Today and yesterday across three evidence-qualified categories |
 | Signals & proofs | `/signals`, `/signals/[slug]` | Chronological record and detailed source-backed proof pages |
-| Sources | `/data`, `/data/[source]` | Source inventory, cadence, health, and latest retained data |
-| Company Universe | `/case-studies` | Source-backed company directory and profiles |
 | Track Record | `/track-record` | Public ledger of matured directional calls |
-| Intelligence guides | `/daily-intelligence-brief`, `/startup-intelligence-platform`, `/market-intelligence-for-founders`, `/technology-trend-intelligence` | Evidence-led public explanations for core search intents |
-| Markets context | `/markets` | Prediction-market context (not equity prices) feeding the brief |
+| Verification | `/data`, `/methodology`, `/editorial-policy`, `/api-docs` | Source inventory, evidence rules, and public read contracts |
+| Contextual research | `/case-studies`, `/markets`, `/entities`, `/sectors`, `/convergence` | Addressable evidence and context linked when relevant; not global product destinations |
+| Public explainers | `/daily-intelligence-brief`, `/startup-intelligence-platform`, `/market-intelligence-for-founders`, `/technology-trend-intelligence` | Evidence-led explanations that return readers to the core workflow |
 | Communities input | operator-only | Tracked-subreddit digests → brief sections 2–3 |
-| Convergence | `/convergence` | Multi-source entity aggregation + market overlay |
 | Unmapped gazetteer | `/unmapped` | Ticker/bare-entity candidates for enrichment |
 | Operator / admin | `/review`, `/admin/*` | Review queue, ingest hooks, delivery admin |
 | Legal & docs | `/about`, `/methodology`, `/methodology/data-parity`, `/privacy`, `/terms`, `/api-docs` | Public trust and data-parity surfaces |
@@ -1045,11 +1080,11 @@ wrangler d1 migrations list high-signal-db --remote --config workers/api/wrangle
 
 ### Product shell & navigation
 
-- Primary nav is Brief, Signals, Sources, and Track Record.
-- `/explore` contains only the core product, research indexes, and trust/docs surfaces.
-- Footer is grouped Product / Research / Operator / Legal; Review is footer-only and Access-protected.
+- Primary nav is Brief, Signals, and Track Record.
+- `/explore` redirects to the Brief and is excluded from public discovery.
+- Footer is grouped Read / Verify / Project; research indexes and operator tools are not global links.
 - Public pages: `/about`, `/methodology`, `/editorial-policy`, `/api-docs`, `/privacy`, `/terms`.
-- Agent-readable public corpus: 28 static surfaces plus dated briefs, signals,
+- Agent-readable public corpus: 27 static surfaces plus dated briefs, signals,
   signal taxonomies, entities, entity-month archives, case studies, and
   company-universe pagination share the same server-rendered source as HTML;
   private/operator and non-HTML routes are excluded by tested route rules.

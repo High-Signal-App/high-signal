@@ -10,7 +10,7 @@ export const SITE_ALTERNATE_NAMES = ['HighSignal', 'highsignal.app'] as const;
 export const SITE_TAGLINE = 'Evidence-first intelligence brief';
 export const SITE_DESCRIPTION =
   'High Signal is evidence-first intelligence on technology, startups, and finance. ' +
-  'Every claim cites two sources and a public hit-rate ledger.';
+  'Every published signal cites two independent sources and enters a public hit-rate ledger.';
 export const SITE_PUBLISHER = 'High Signal';
 export const SITE_LOCALE = 'en';
 export const SITE_TWITTER = '@sarthakagrawal';
@@ -22,13 +22,10 @@ export const SITE_TWITTER = '@sarthakagrawal';
 export const SITE_KEY_PATHS = [
   '/',
   '/brief',
-  '/track-record',
   '/signals',
+  '/track-record',
   '/data',
-  '/case-studies',
-  '/markets',
-  '/entities',
-  '/sectors',
+  '/methodology',
   '/about',
 ] as const;
 

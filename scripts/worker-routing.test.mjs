@@ -128,14 +128,13 @@ assert.match(
   'bulk AI crawlers must use the cached agent-readable representation'
 );
 
-// The four primary destinations use automatic loading-boundary prefetch.
+// The three primary destinations use automatic loading-boundary prefetch.
 // Large link collections must still avoid speculative requests for every item.
 const highFanoutLinkSources = [
   'apps/web/src/components/system/SiteFooter.tsx',
   'apps/web/src/components/molecules/SignalCard.tsx',
   'apps/web/src/app/case-studies/CompanyUniverseList.tsx',
   'apps/web/src/app/case-studies/CompanyUniverseTable.tsx',
-  'apps/web/src/app/explore/page.tsx',
 ];
 for (const sourcePath of highFanoutLinkSources) {
   const source = readFileSync(resolve(root, sourcePath), 'utf8');

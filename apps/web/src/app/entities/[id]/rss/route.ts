@@ -30,21 +30,26 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
 
   if (!entity) return new Response('entity not found', { status: 404 });
 
+  const items = signals.map((signal) => {
+    const sample = signalPresentation(signal).sample;
+    return {
+      title: sample?.headline ?? signalHeadline(signal.bodyMd, signal.slug),
+      link: `${base}/signals/${signal.slug}`,
+      guid: `${base}/signals/${signal.slug}`,
+      pubDate: new Date(signal.publishedAt),
+      description: sample?.summary ?? signalExcerpt(signal.bodyMd, 600),
+      categories: sample
+        ? ['review sample', 'trend not established', entity.id]
+        : [signal.signalType, signal.direction, signal.confidence, entity.id],
+    };
+  });
+
   const xml = buildRssXml({
     title: `High Signal — ${entity.name}${entity.ticker ? ` (${entity.ticker})` : ''}`,
     link: `${base}/entities/${entity.id}`,
     description: `Every published High Signal signal tied to ${entity.name}. Evidence-backed, direction + confidence, scored against forward returns.`,
     lastBuildDate: signals.length > 0 ? new Date(signals[0].publishedAt) : new Date(),
-    items: signals.map((s) => ({
-      title: signalPresentation(s).sample?.headline ?? signalHeadline(s.bodyMd, s.slug),
-      link: `${base}/signals/${s.slug}`,
-      guid: `${base}/signals/${s.slug}`,
-      pubDate: new Date(s.publishedAt),
-      description: signalPresentation(s).sample?.summary ?? signalExcerpt(s.bodyMd, 600),
-      categories: signalPresentation(s).sample
-        ? ['review sample', 'trend not established', entity.id]
-        : [s.signalType, s.direction, s.confidence, entity.id],
-    })),
+    items,
   });
 
   return new Response(xml, {

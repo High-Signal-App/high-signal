@@ -4,6 +4,7 @@
  */
 
 import { canonicalSourceUrl } from './source-document';
+import { istDayRange } from './history-access';
 import { classifySource } from './signal-intelligence';
 import type { BriefCitation, BriefNewsEvidenceStatus, BriefNewsItem } from './brief';
 
@@ -194,12 +195,31 @@ export function reportingWindow(
   };
 }
 
+/**
+ * Bound a news read to its requested IST edition. Current editions grow until
+ * now; past editions stop at midnight so a repair read cannot pull in the next
+ * day's records.
+ */
+export function reportingWindowForEdition(
+  previousSnapshotAt: Date | string | null | undefined,
+  editionDate: string,
+  now = new Date()
+): NewsReportingWindow {
+  const edition = istDayRange(editionDate);
+  if (!edition) return reportingWindow(previousSnapshotAt, now);
+  if (now.getTime() < edition.start.getTime()) {
+    return { start: edition.start, end: edition.start, previousSnapshotAt: null };
+  }
+  const end = now.getTime() < edition.end.getTime() ? now : edition.end;
+  return reportingWindow(previousSnapshotAt, end);
+}
+
 export function selectNewsRecords(
   records: readonly NewsRecord[],
   window: NewsReportingWindow
 ): NewsRecord[] {
   const inWindow = (value: Date) =>
-    value.getTime() >= window.start.getTime() && value.getTime() <= window.end.getTime();
+    value.getTime() >= window.start.getTime() && value.getTime() < window.end.getTime();
 
   const selected: NewsRecord[] = [];
   for (const members of clusterNewsRecords(records)) {

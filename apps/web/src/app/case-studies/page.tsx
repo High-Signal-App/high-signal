@@ -28,7 +28,7 @@ export default function CaseStudiesPage() {
 
   return (
     <PageShell max="max-w-5xl">
-      <BackLink href="/explore">back to explore</BackLink>
+      <BackLink href="/signals">back to signals</BackLink>
       <HeroHeader eyebrow="generated artifact" title="Company universe" size="md">
         Startups backed by YC, Antler, a16z, or Techstars. Every row retains first-party source
         evidence and includes deterministic competitor mappings.
