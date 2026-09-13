@@ -6,6 +6,8 @@ import { and, asc, desc, eq, inArray, gte, lt, isNull, sql } from 'drizzle-orm';
 import {
   assessSignalQuality,
   composeNewsStories,
+  countryForNewsRecord,
+  countriesForRegion,
   istDayRange,
   extractBriefEditorialSummary,
   familyForSignalType,
@@ -881,6 +883,7 @@ export async function buildNews(
   editionDate: string,
   now = new Date()
 ): Promise<BriefNewsItem[]> {
+  const countries = countriesForRegion(region);
   const previous = await previousBriefComputedAt(database, region, editionDate);
   const window = reportingWindowForEdition(previous, editionDate, now);
   const lookbackStart = new Date(window.start.getTime() - NEWS_LOOKBACK_MS);
@@ -895,29 +898,37 @@ export async function buildNews(
       content: schema.events.content,
       retainedText: schema.sourceDocuments.rawText,
       primaryEntityId: schema.events.primaryEntityId,
+      country: schema.entities.country,
     })
     .from(schema.events)
     .leftJoin(schema.sourceDocuments, eq(schema.events.sourceDocumentId, schema.sourceDocuments.id))
+    .leftJoin(schema.entities, eq(schema.entities.id, schema.events.primaryEntityId))
     .where(
       and(gte(schema.events.ingestedAt, lookbackStart), lt(schema.events.ingestedAt, window.end))
     )
     .orderBy(desc(NEWS_SOURCE_PRIORITY), desc(schema.events.ingestedAt), desc(schema.events.id))
     .limit(NEWS_RECORD_LIMIT);
 
-  return composeNewsStories(
-    rows.map((row) => ({
-      id: row.id,
-      source: row.source,
-      sourceUrl: row.sourceUrl,
-      publishedAt: row.publishedAt,
-      ingestedAt: row.ingestedAt,
-      title: row.title,
-      content: row.content,
-      retainedText: row.retainedText,
-      primaryEntityId: row.primaryEntityId,
-    })),
-    window
-  );
+  const records = rows.map((row) => ({
+    id: row.id,
+    source: row.source,
+    sourceUrl: row.sourceUrl,
+    publishedAt: row.publishedAt,
+    ingestedAt: row.ingestedAt,
+    title: row.title,
+    content: row.content,
+    retainedText: row.retainedText,
+    primaryEntityId: row.primaryEntityId,
+    country: row.country,
+  }));
+  const regionalRecords = countries.length
+    ? records.filter((record) => {
+        const country = countryForNewsRecord(record);
+        return country ? countries.includes(country) : false;
+      })
+    : records;
+
+  return composeNewsStories(regionalRecords, window, { diversifyCountries: region === 'global' });
 }
 
 /**

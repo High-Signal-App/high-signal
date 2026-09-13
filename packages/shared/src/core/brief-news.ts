@@ -9,6 +9,7 @@ import { classifySource } from './signal-intelligence';
 import type { BriefCitation, BriefNewsEvidenceStatus, BriefNewsItem } from './brief';
 
 const NEWS_LIMIT = 8;
+const GLOBAL_NEWS_COUNTRY_LIMIT = 2;
 const DEFAULT_NEWS_WINDOW_MS = 24 * 60 * 60 * 1000;
 const JACCARD_THRESHOLD = 0.72;
 const TITLE_ONLY_MAX = 80;
@@ -272,6 +273,20 @@ export interface NewsRecord {
   content: string | null;
   retainedText: string | null;
   primaryEntityId?: string | null;
+  country?: string | null;
+}
+
+/** Prefer an entity country, with narrow fallbacks for country-owned source adapters. */
+export function countryForNewsRecord(
+  record: Pick<NewsRecord, 'source' | 'country'>
+): string | null {
+  const explicit = record.country?.trim().toUpperCase();
+  if (explicit) return explicit;
+  const source = record.source.toLowerCase();
+  if (source.startsWith('news:india-') || source.startsWith('india-gov:')) return 'IN';
+  if (source.startsWith('china-news:')) return 'CN';
+  if (source === 'hkex' || source.startsWith('hkex:')) return 'HK';
+  return null;
 }
 
 interface NewsReportingWindow {
@@ -418,7 +433,8 @@ export function clusterNewsRecords(records: readonly NewsRecord[]): NewsRecord[]
 
 export function composeNewsStories(
   records: readonly NewsRecord[],
-  window: NewsReportingWindow
+  window: NewsReportingWindow,
+  options: { diversifyCountries?: boolean } = {}
 ): BriefNewsItem[] {
   const selected = selectNewsRecords(records, window);
   const clusters = clusterNewsRecords(selected);
@@ -430,9 +446,24 @@ export function composeNewsStories(
       if (a.novelty !== b.novelty) return b.novelty - a.novelty;
       if (a.evidence !== b.evidence) return b.evidence - a.evidence;
       return b.eventAtMs - a.eventAtMs;
-    })
-    .slice(0, NEWS_LIMIT);
-  return ranked.map((story) => story.item);
+    });
+  const stories = options.diversifyCountries
+    ? selectCountryDiverseStories(ranked)
+    : ranked.slice(0, NEWS_LIMIT);
+  return stories.map((story) => story.item);
+}
+
+function selectCountryDiverseStories(stories: readonly RankedNews[]): RankedNews[] {
+  const countryCounts = new Map<string, number>();
+  const selected: RankedNews[] = [];
+  for (const story of stories) {
+    if (selected.length >= NEWS_LIMIT) break;
+    const country = story.country;
+    if (country && (countryCounts.get(country) ?? 0) >= GLOBAL_NEWS_COUNTRY_LIMIT) continue;
+    selected.push(story);
+    if (country) countryCounts.set(country, (countryCounts.get(country) ?? 0) + 1);
+  }
+  return selected;
 }
 
 function newsCanonicalUrl(record: Pick<NewsRecord, 'sourceUrl' | 'content'>): string {
@@ -503,6 +534,10 @@ function storyFromCluster(members: NewsRecord[], window: NewsReportingWindow): R
   };
   return {
     item,
+    country:
+      countryForNewsRecord(representative) ||
+      usable.map(countryForNewsRecord).find((country) => country != null) ||
+      null,
     importance: importanceScore(usable, evidenceStatus),
     novelty: noveltyScore(usable, window),
     evidence: evidenceScore(usable, excerpt),
@@ -512,6 +547,7 @@ function storyFromCluster(members: NewsRecord[], window: NewsReportingWindow): R
 
 interface RankedNews {
   item: BriefNewsItem;
+  country: string | null;
   importance: number;
   novelty: number;
   evidence: number;

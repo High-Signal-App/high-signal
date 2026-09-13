@@ -2,6 +2,19 @@
 
 Last updated: 2026-09-13
 
+September 13 Global brief geographic balance — live:
+
+Global news keeps the existing evidence, importance, novelty, and freshness
+ordering, then limits any identified country to two of the eight available
+story slots. Country identity comes from the event's primary entity, with
+narrow source-owned fallbacks for India, mainland China, and Hong Kong feeds;
+unknown geography remains eligible rather than being guessed. Region-specific
+editions now filter news to their configured country set instead of replaying
+the same unfiltered news mix. This corrects a production snapshot where three
+of five Global stories were India-specific while preserving India in both
+Global and South Asia. Full `pnpm quality` passes with 30/30 suites and 336 API
+assertions, and `pnpm build` succeeds.
+
 September 13 Daily Brief data-path repair — live:
 
 A reader-path audit found healthy retained inputs but an empty public edition.

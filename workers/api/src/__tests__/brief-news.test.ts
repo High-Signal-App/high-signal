@@ -382,6 +382,56 @@ describe('composeNewsStories', () => {
     expect(composeNewsStories(extras, WINDOW)).toHaveLength(8);
   });
 
+  it('limits a known country to two stories in a diversified global edition', () => {
+    const stories = composeNewsStories(
+      [
+        ...[
+          'Alpha acquires chip startup in Bengaluru',
+          'Beta reports quarterly earnings beat in India',
+          'Gamma confirms customer data breach in India',
+          'Delta files IPO prospectus in India',
+        ].map((title, index) =>
+          record({
+            id: `india-${index}`,
+            title,
+            sourceUrl: `https://reuters.com/india-${index}`,
+            country: 'in',
+          })
+        ),
+        ...[
+          'Epsilon launches battery factory in America',
+          'Zeta settles antitrust lawsuit in America',
+          'Eta recalls cloud security appliance in America',
+        ].map((title, index) =>
+          record({
+            id: `us-${index}`,
+            title,
+            sourceUrl: `https://reuters.com/us-${index}`,
+            country: 'US',
+          })
+        ),
+        ...[
+          'Theta acquires fintech lender in Britain',
+          'Iota raises funding for quantum chip lab in Britain',
+        ].map((title, index) =>
+          record({
+            id: `uk-${index}`,
+            title,
+            sourceUrl: `https://reuters.com/uk-${index}`,
+            country: 'GB',
+          })
+        ),
+      ],
+      WINDOW,
+      { diversifyCountries: true }
+    );
+
+    expect(stories).toHaveLength(6);
+    expect(stories.filter((story) => story.title.includes('India'))).toHaveLength(2);
+    expect(stories.filter((story) => story.title.includes('America'))).toHaveLength(2);
+    expect(stories.filter((story) => story.title.includes('Britain'))).toHaveLength(2);
+  });
+
   it('strips publisher prompts, newsletter preambles, and repeated titles from summaries', () => {
     const title = "Buffett's confidence in troubled decade-old acquisition finally pays off";
     const [story] = composeNewsStories(
@@ -565,5 +615,55 @@ describe('buildNews', () => {
     expect(stories.some((story) => story.title === 'OpenAI launches verified enterprise API')).toBe(
       true
     );
+  });
+
+  it('filters regional news by the primary entity country', async () => {
+    d1 = createSqliteD1();
+    applyMigrations(d1);
+    const now = new Date('2026-09-12T12:00:00.000Z');
+    const recent = Math.floor(now.getTime() / 1000) - 60;
+    d1.exec(`
+      INSERT INTO entities (id, name, type, country, created_at, updated_at) VALUES
+        ('india-company', 'India Company', 'public', 'IN', ${recent}, ${recent}),
+        ('us-company', 'US Company', 'public', 'US', ${recent}, ${recent});
+      INSERT INTO events (
+        id, source, source_url, published_at, title, content,
+        primary_entity_id, raw_hash, ingested_at
+      ) VALUES
+        (
+          'india-event', 'news', 'https://reuters.com/india-event', ${recent},
+          'India Company launches cloud infrastructure',
+          'India Company launched cloud infrastructure. The retained report records the timetable, customer scope, and operational details.',
+          'india-company', 'india-event-hash', ${recent}
+        ),
+        (
+          'us-event', 'news', 'https://reuters.com/us-event', ${recent},
+          'US Company acquires battery supplier',
+          'US Company acquired a battery supplier. The retained report records the timetable, transaction scope, and operational details.',
+          'us-company', 'us-event-hash', ${recent}
+        ),
+        (
+          'india-source-event', 'news:india-mint-markets',
+          'https://livemint.com/india-source-event', ${recent},
+          'India startup raises funding for cloud expansion',
+          'India startup raised funding for cloud expansion. The retained report records the timetable, investor group, and operational details.',
+          NULL, 'india-source-event-hash', ${recent}
+        );
+    `);
+
+    const southAsia = await buildNews(db(d1.binding), 'south-asia', '2026-09-12', now);
+    const northAmerica = await buildNews(db(d1.binding), 'north-america', '2026-09-12', now);
+    const global = await buildNews(db(d1.binding), 'global', '2026-09-12', now);
+
+    expect(southAsia.map((story) => story.title).sort()).toEqual(
+      [
+        'India Company launches cloud infrastructure',
+        'India startup raises funding for cloud expansion',
+      ].sort()
+    );
+    expect(northAmerica.map((story) => story.title)).toEqual([
+      'US Company acquires battery supplier',
+    ]);
+    expect(global).toHaveLength(3);
   });
 });
