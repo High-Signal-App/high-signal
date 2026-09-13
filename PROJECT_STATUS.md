@@ -2,7 +2,7 @@
 
 Last updated: 2026-09-13
 
-September 13 Daily Brief data-path repair — local code, not deployed:
+September 13 Daily Brief data-path repair — live:
 
 A reader-path audit found healthy retained inputs but an empty public edition.
 The deployed Workers are still on the September 11 revision, before the
@@ -17,11 +17,15 @@ yesterday's public editions while retaining the cached copy if the refresh
 fails. Historical repair reads stop at the IST edition boundary. Reported and
 official sources receive priority inside the bounded query, precompute reads
 the exact IST signal day, and a valid news-only edition can be stored and marked
-published without weakening the market-signal evidence receipt. Full
-`pnpm quality` passes: 30/30 suites, 33 API files / 325 assertions, typechecks,
-formatting, lint, coverage, dependency/cycle guards, and docs validation.
-`pnpm build` also succeeds. Production remains unchanged until an explicit
-commit, push, and deploy.
+published without weakening the market-signal evidence receipt.
+
+Initial production QA caught routine IR landing-page snapshots occupying the
+eight story slots. The final quality gate excludes those crawl snapshots,
+common paywall boilerplate, and news outside technology, startups, and finance;
+it also merges differently worded coverage of the same named event. A replay
+over the current public source feed returns eight topical stories and merges
+the overlapping OpenAI IPO reports into a two-source item. Full `pnpm quality`
+and `pnpm build` pass; the deployed API, web, and MCP consumer checks are green.
 
 September 13 reader-surface reduction — local code, not deployed:
 

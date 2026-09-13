@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   clusterNewsRecords,
   composeNewsStories,
+  hasBriefNewsTopic,
   hasUsableRetainedText,
   reportingWindow,
   reportingWindowForEdition,
@@ -110,6 +111,58 @@ describe('selectNewsRecords', () => {
         retainedText: 'Please log in to continue reading this article.',
       })
     ).toBe(false);
+    expect(
+      hasUsableRetainedText({
+        title: 'AI server exports slow in August',
+        content:
+          'Keep me signed in. Some subscribers prefer to save their User ID and password on this computer.',
+        retainedText:
+          'Keep me signed in. Some subscribers prefer to save their User ID and password on this computer.',
+      })
+    ).toBe(false);
+  });
+
+  it('rejects routine IR crawl snapshots while retaining real issuer announcements', () => {
+    const boilerplate = record({
+      id: 'ir-snapshot',
+      title: 'NVDA IR snapshot',
+      source: 'ir',
+      sourceUrl: 'https://nvidia.com',
+      retainedText:
+        'Products Solutions Industries Investors Careers. This is a routine retained landing-page crawl with no announced change.',
+    });
+    const announcement = record({
+      id: 'ir-announcement',
+      title: 'Nvidia launches Blackwell Ultra for hyperscalers',
+      source: 'ir',
+      sourceUrl: 'https://nvidianews.nvidia.com/news/blackwell-ultra',
+    });
+    expect(selectNewsRecords([boilerplate, announcement], WINDOW).map((item) => item.id)).toEqual([
+      'ir-announcement',
+    ]);
+  });
+
+  it('keeps the reader edition inside technology, startups, and finance', () => {
+    expect(
+      hasBriefNewsTopic(
+        record({
+          id: 'sports',
+          title: 'Rybakina wins the US Open final',
+          sourceUrl: 'https://example.com/tennis-final',
+          retainedText:
+            'Rybakina won the tennis final in straight sets. The match concluded after a two-hour contest in New York.',
+        })
+      )
+    ).toBe(false);
+    expect(
+      hasBriefNewsTopic(
+        record({
+          id: 'finance',
+          title: 'Oracle cancels a planned stock sale',
+          sourceUrl: 'https://example.com/oracle-stock',
+        })
+      )
+    ).toBe(true);
   });
 });
 
@@ -148,6 +201,20 @@ describe('clusterNewsRecords', () => {
 
     const split = clusterNewsRecords([earnings, deal]);
     expect(split).toHaveLength(2);
+  });
+
+  it('merges differently worded reporting about the same named event', () => {
+    const broad = record({
+      id: 'openai-broad',
+      title: 'OpenAI rules out IPO this year as Altman warns AI is moving too fast',
+      sourceUrl: 'https://cnbc.example/openai-ipo',
+    });
+    const focused = record({
+      id: 'openai-focused',
+      title: 'Sam Altman says OpenAI IPO not happening in 2026',
+      sourceUrl: 'https://finance.example/openai-ipo',
+    });
+    expect(clusterNewsRecords([broad, focused])).toHaveLength(1);
   });
 });
 

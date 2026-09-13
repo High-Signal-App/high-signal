@@ -126,16 +126,111 @@ const COMPANYISH_STOP = new Set([
   'holdings',
 ]);
 
+const BRIEF_NEWS_TOPICS = new Set([
+  'acquire',
+  'acquired',
+  'acquires',
+  'acquisition',
+  'ai',
+  'android',
+  'antitrust',
+  'api',
+  'app',
+  'apps',
+  'automation',
+  'bank',
+  'banking',
+  'battery',
+  'billing',
+  'breach',
+  'capex',
+  'chip',
+  'chips',
+  'cloud',
+  'computing',
+  'cybersecurity',
+  'data',
+  'deal',
+  'developer',
+  'developers',
+  'digital',
+  'earnings',
+  'economic',
+  'economy',
+  'energy',
+  'exports',
+  'factory',
+  'finance',
+  'financial',
+  'foundry',
+  'funding',
+  'gas',
+  'hardware',
+  'infrastructure',
+  'internet',
+  'investment',
+  'investor',
+  'iphone',
+  'ipo',
+  'launch',
+  'launched',
+  'launches',
+  'lawsuit',
+  'llm',
+  'manufacturing',
+  'market',
+  'markets',
+  'merger',
+  'model',
+  'models',
+  'oil',
+  'outage',
+  'phone',
+  'platform',
+  'privacy',
+  'product',
+  'production',
+  'profit',
+  'purchase',
+  'raises',
+  'rates',
+  'regulation',
+  'regulator',
+  'revenue',
+  'robot',
+  'robotics',
+  'security',
+  'semiconductor',
+  'shares',
+  'smartphone',
+  'software',
+  'solar',
+  'startup',
+  'stock',
+  'supply',
+  'tariff',
+  'tech',
+  'technology',
+  'telecom',
+  'trade',
+  'transmission',
+  'venture',
+]);
+
 const PAYWALL_MARKERS = [
   'please log in',
   'please login',
   'sign in to continue',
+  'keep me signed in',
   'subscribe to read',
   'subscription required',
   'create an account to continue',
   'this content is for subscribers',
+  'user id and password',
   'paywall',
 ];
+
+const ROUTINE_IR_SNAPSHOT_RE = /\bir snapshot$/i;
 
 const SOURCE_RANK: Record<string, number> = {
   edgar: 9,
@@ -222,7 +317,7 @@ export function selectNewsRecords(
     value.getTime() >= window.start.getTime() && value.getTime() < window.end.getTime();
 
   const selected: NewsRecord[] = [];
-  for (const members of clusterNewsRecords(records)) {
+  for (const members of clusterNewsRecords(records.filter(hasBriefNewsTopic))) {
     const fresh = members.filter((record) => inWindow(toDate(record.ingestedAt)));
     if (fresh.length === 0) continue;
     const older = members.filter(
@@ -241,6 +336,15 @@ export function selectNewsRecords(
     selected.push(...members.filter(hasUsableRetainedText));
   }
   return selected;
+}
+
+/** Keep the reader feed inside the product's technology/startup/finance scope. */
+export function hasBriefNewsTopic(record: NewsRecord): boolean {
+  if (record.primaryEntityId?.trim()) return true;
+  if ((SOURCE_RANK[sourceFamily(record.source)] ?? 0) >= 7) return true;
+  const text = `${record.title ?? ''} ${retainedBody(record) ?? ''}`.slice(0, 800).toLowerCase();
+  const tokens = text.match(/[a-z0-9]+/g) ?? [];
+  return tokens.some((token) => BRIEF_NEWS_TOPICS.has(token));
 }
 
 export function clusterNewsRecords(records: readonly NewsRecord[]): NewsRecord[][] {
@@ -279,7 +383,14 @@ export function clusterNewsRecords(records: readonly NewsRecord[]): NewsRecord[]
     if (tokens[i].size === 0) continue;
     for (let j = i + 1; j < n; j++) {
       if (find(i) === find(j) || tokens[j].size === 0) continue;
-      if (jaccard(tokens[i], tokens[j]) < JACCARD_THRESHOLD) continue;
+      const similarity = jaccard(tokens[i], tokens[j]);
+      const shared = new Set([...tokens[i]].filter((token) => tokens[j].has(token)));
+      const sharedContext = [...shared].filter(
+        (token) => !COMPANYISH_STOP.has(token) && !EVENT_TOKENS.has(token)
+      );
+      const sameEventWithContext =
+        setsIntersect(eventTokens[i], eventTokens[j]) && sharedContext.length >= 2;
+      if (similarity < JACCARD_THRESHOLD && !sameEventWithContext) continue;
       if (eventTokens[i].size === 0 || eventTokens[j].size === 0) continue;
       if (!setsIntersect(eventTokens[i], eventTokens[j])) continue;
       if (companyOnlyOverlap(tokens[i], tokens[j], eventTokens[i], eventTokens[j])) continue;
@@ -347,6 +458,7 @@ export function hasUsableRetainedText(
   if (!retained) return false;
   if (PAYWALL_MARKERS.some((marker) => retained.toLowerCase().includes(marker))) return false;
   const title = (record.title ?? '').trim();
+  if (ROUTINE_IR_SNAPSHOT_RE.test(title)) return false;
   if (!title) return retained.length >= 80;
   if (retained === title || retained.length <= Math.max(title.length, TITLE_ONLY_MAX)) return false;
   return retained.length >= 80;
@@ -356,7 +468,7 @@ function storyFromCluster(members: NewsRecord[], window: NewsReportingWindow): R
   const usable = members.filter(hasUsableRetainedText);
   if (usable.length === 0) return null;
   const representative = usable.reduce((best, record) =>
-    rankRecord(record) >= rankRecord(best) ? record : best
+    rankRecord(record) > rankRecord(best) ? record : best
   );
   const title = (representative.title ?? '').trim();
   if (!title) return null;
