@@ -113,14 +113,11 @@ export function buildOrganizationJsonLd(): JsonLdBlock[] {
 export function buildHomeJsonLd(): JsonLdBlock {
   return {
     '@context': 'https://schema.org',
-    '@type': 'WebApplication',
+    '@type': 'WebSite',
     name: `${SITE_NAME} Daily Brief`,
     alternateName: SITE_ALTERNATE_NAMES,
     url: SITE_URL,
-    applicationCategory: 'BusinessApplication',
-    operatingSystem: 'Web',
     description: SITE_DESCRIPTION,
-    offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
     publisher: { '@id': `${SITE_URL}/#organization` },
   };
 }
@@ -304,22 +301,20 @@ export function buildSignalTypeTaxonomyJsonLd(opts: {
 }
 
 /**
- * SoftwareApplication — the canonical "this is an app" record for AI
- * assistants and rich results. Carries the free offer, creator, and
- * the one-sentence product description used across fleet surfaces.
+ * WebSite record for AI assistants and rich results — emitted instead of
+ * SoftwareApplication because there is no public review evidence to support
+ * app-type rich-result eligibility. Carries the creator and the one-sentence
+ * product description used across fleet surfaces.
  */
 export function buildSoftwareApplicationJsonLd(): JsonLdBlock {
   return {
     '@context': 'https://schema.org',
-    '@type': 'SoftwareApplication',
+    '@type': 'WebSite',
     name: SITE_NAME,
     alternateName: SITE_ALTERNATE_NAMES,
-    applicationCategory: 'NewsApplication',
-    operatingSystem: 'Web Browser',
     url: SITE_URL,
     description:
       'One daily brief from 20+ noisy public sources — SEC filings, Reddit, Hacker News, YouTube transcripts, GitHub, prediction markets, and more. Every claim cites at least two independent sources.',
-    offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
     creator: {
       '@type': 'Person',
       name: 'Sarthak Agrawal',
