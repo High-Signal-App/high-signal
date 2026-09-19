@@ -75,17 +75,15 @@ console.log('Organization + WebSite JSON-LD');
   check('serialises to valid JSON', serialisable(blocks));
 }
 
-console.log('\nHome (WebApplication) JSON-LD');
+console.log('\nHome (WebSite) JSON-LD');
 {
   const block = buildHomeJsonLd();
-  check('type WebApplication', block['@type'] === 'WebApplication');
+  check('type WebSite', block['@type'] === 'WebSite');
   check('url absolute', isAbsoluteUrl(block.url));
-  check('operatingSystem', block.operatingSystem === 'Web');
   check(
-    'WebApplication carries reviewed brand aliases',
+    'WebSite carries reviewed brand aliases',
     JSON.stringify(block.alternateName) === JSON.stringify(SITE_ALTERNATE_NAMES)
   );
-  check('price = 0 (free)', (block.offers as { price: string }).price === '0');
   check(
     'publisher refs Organization @id',
     (block.publisher as { '@id': string })['@id'] === `${SITE_URL}/#organization`
