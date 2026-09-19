@@ -135,6 +135,42 @@ def test_ai_complete_repeated_5xx_exhausts_retries(monkeypatch) -> None:
     assert meta["http_status"] == 503
 
 
+def test_ai_complete_retries_malformed_completion_then_succeeds(monkeypatch) -> None:
+    """A malformed completion is retried once; valid JSON on retry succeeds."""
+    calls = {"n": 0}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls["n"] += 1
+        if calls["n"] == 1:
+            return _make_response(200, {"choices": [{"message": {"content": "not json"}}]})
+        return _make_response(
+            200, {"choices": [{"message": {"content": json.dumps({"publish": False})}}]}
+        )
+
+    transport = httpx.MockTransport(handler)
+    out, meta = _run_with_transport(transport, monkeypatch)
+    assert out == {"publish": False}
+    assert calls["n"] == 2
+    assert meta["attempts"] == 2
+    assert meta["failure_class"] is None
+
+
+def test_ai_complete_repeated_malformed_completion_exhausts_retries(monkeypatch) -> None:
+    """Repeated malformed completions exhaust the bounded retry budget."""
+    calls = {"n": 0}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls["n"] += 1
+        return _make_response(200, {"choices": [{"message": {"content": "still not json"}}]})
+
+    transport = httpx.MockTransport(handler)
+    out, meta = _run_with_transport(transport, monkeypatch)
+    assert out is None
+    assert calls["n"] == 2
+    assert meta["attempts"] == 2
+    assert meta["failure_class"] == "invalid_json"
+
+
 def test_ai_complete_4xx_is_terminal_no_retry(monkeypatch) -> None:
     """A 400 (non-429) is terminal — no retry, returns None immediately."""
     calls = {"n": 0}

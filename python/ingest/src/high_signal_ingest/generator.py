@@ -330,6 +330,12 @@ def _is_retryable(cls: str) -> bool:
     return cls in ("rate_limited", "server_error")
 
 
+def _sleep_before_retry(attempt: int) -> None:
+    """Apply bounded full-jitter backoff before the next provider attempt."""
+    sleep_for = min(_AI_BACKOFF_CAP, _AI_BACKOFF_BASE * (2 ** (attempt - 1)))
+    time.sleep(random.uniform(0, sleep_for))
+
+
 # Bounded retry for the signal-generation LLM call. Reuses the full-jitter
 # discipline from pipeline._with_backoff. Env-overridable for ops tuning.
 _AI_RETRIES = int(os.environ.get("AI_RETRIES", "2"))
@@ -442,8 +448,8 @@ def _ai_complete(
 
     `audit_meta` is always populated (model + reason + latency + raw response
     if any) so callers can persist a llm_run row even on failure. Retries
-    429/5xx with full-jitter backoff (bounded by ``_AI_RETRIES``); 4xx
-    (non-429) and parse errors are terminal. ``attempts`` and
+    429/5xx and malformed completions with full-jitter backoff (bounded by
+    ``_AI_RETRIES``); 4xx (non-429) responses are terminal. ``attempts`` and
     ``failure_class`` are recorded for telemetry.
     """
     # The operator selects a project-owned free-provider/local endpoint.
@@ -502,9 +508,7 @@ def _ai_complete(
                     use_json_mode = False
                     continue
                 if _is_retryable(cls) and attempt < _AI_RETRIES:
-                    sleep_for = min(_AI_BACKOFF_CAP, _AI_BACKOFF_BASE * (2 ** (attempt - 1)))
-                    sleep_for = random.uniform(0, sleep_for)  # full jitter
-                    time.sleep(sleep_for)
+                    _sleep_before_retry(attempt)
                     continue
                 return None, meta
             body = r.json()
@@ -523,13 +527,13 @@ def _ai_complete(
             meta["failure_class"] = failure_class
             # Exception messages may contain request URLs or credentials.
             meta["reason"] = failure_class
-            # Network/timeout blips are retryable; JSON parse errors are terminal.
-            if attempt < _AI_RETRIES and isinstance(
-                exc, (httpx.TimeoutException, httpx.NetworkError)
+            # Network/timeout blips and malformed completions are retryable;
+            # HTTP client errors remain terminal.
+            if attempt < _AI_RETRIES and (
+                isinstance(exc, (httpx.TimeoutException, httpx.NetworkError))
+                or failure_class in ("invalid_json", "invalid_response")
             ):
-                sleep_for = min(_AI_BACKOFF_CAP, _AI_BACKOFF_BASE * (2 ** (attempt - 1)))
-                sleep_for = random.uniform(0, sleep_for)
-                time.sleep(sleep_for)
+                _sleep_before_retry(attempt)
                 continue
             return None, meta
 
