@@ -338,3 +338,66 @@ def test_article_budget_survives_a_transport_retry(monkeypatch):
     assert [r["max_tokens"] for r in requests] == [8000, 8000]
     assert meta["requested_completion_tokens"] == 8000
     assert meta["attempts"] == 2
+
+
+def test_ai_complete_wrong_shape_retries_then_succeeds(monkeypatch) -> None:
+    """A parsed completion violating the caller's contract retries like invalid_json."""
+    calls = {"n": 0}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls["n"] += 1
+        if calls["n"] == 1:
+            return _make_response(200, {"choices": [{"message": {"content": '["a","list"]'}}]})
+        return _make_response(
+            200, {"choices": [{"message": {"content": json.dumps({"publish": False})}}]}
+        )
+
+    out, meta = _run_with_transport(
+        httpx.MockTransport(handler),
+        monkeypatch,
+        expect=lambda response: isinstance(response, dict),
+    )
+    assert out == {"publish": False}
+    assert calls["n"] == 2
+    assert meta["attempts"] == 2
+    assert meta["failure_class"] is None
+
+
+def test_ai_complete_wrong_shape_exhausts_as_invalid_response(monkeypatch) -> None:
+    """Persistent contract violations are an operational failure, not a decline."""
+    calls = {"n": 0}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls["n"] += 1
+        return _make_response(
+            200,
+            {"choices": [{"message": {"content": json.dumps({"signals": []})}}]},
+        )
+
+    out, meta = _run_with_transport(
+        httpx.MockTransport(handler),
+        monkeypatch,
+        expect=lambda response: isinstance(response, dict) and "publish" in response,
+    )
+    assert out is None
+    assert calls["n"] == 2
+    assert meta["attempts"] == 2
+    assert meta["failure_class"] == "invalid_response"
+    assert meta["reason"] == "unexpected_response_shape"
+    with pytest.raises(generator.SignalGenerationUnavailable) as caught:
+        generator._raise_for_provider_failure(meta)
+    assert caught.value.failure_class == "invalid_response"
+
+
+def test_ai_complete_without_expect_keeps_any_parsed_shape(monkeypatch) -> None:
+    """The shared transport stays shape-agnostic unless a caller opts in."""
+    out, meta = _run_with_transport(
+        httpx.MockTransport(
+            lambda _req: _make_response(
+                200, {"choices": [{"message": {"content": '["any","shape"]'}}]}
+            )
+        ),
+        monkeypatch,
+    )
+    assert out == ["any", "shape"]
+    assert meta["failure_class"] is None

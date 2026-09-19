@@ -59,10 +59,16 @@ def test_coherent_story_uses_semantic_generator_and_normal_proof_gate(monkeypatc
 
     monkeypatch.setattr(pipeline, "generate", generate)
     monkeypatch.setattr(pipeline, "emit", lambda candidate: candidate.slug)
-    assert pipeline._emit_thematic_drafts(events) == ["orion"]
+    tally = pipeline.new_proof_tally()
+    assert pipeline._emit_thematic_drafts(events, proof_tally=tally) == ["orion"]
+    assert tally["candidates_generated"] == 1
+    assert tally["candidates_rejected_no_proof"] == 0
     assert calls == [("THEME_DATACENTER", events, [])]
     monkeypatch.setattr(pipeline, "generate", lambda *_: _candidate(events, verified=False))
-    assert pipeline._emit_thematic_drafts(events) == []
+    assert pipeline._emit_thematic_drafts(events, proof_tally=tally) == []
+    assert tally["candidates_generated"] == 2
+    assert tally["candidates_rejected_no_proof"] == 1
+    assert tally["candidates_rejected_single_evidentiary_origin"] == 1
 
 
 def test_bad_live_topics_do_not_reach_generation(monkeypatch):
@@ -71,11 +77,15 @@ def test_bad_live_topics_do_not_reach_generation(monkeypatch):
         _ev("news", 2, "Imec advances superconducting technology for hyperscalers"),
     ]
 
+    calls = []
+
     def unexpected(*args):
+        calls.append(args)
         raise AssertionError("Unrelated topics reached generation")
 
     monkeypatch.setattr(pipeline, "generate", unexpected)
     assert pipeline._emit_thematic_drafts(events) == []
+    assert calls == []
 
 
 def test_citation_selection_is_bounded_and_unique(monkeypatch):

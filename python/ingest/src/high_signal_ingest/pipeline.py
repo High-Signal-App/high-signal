@@ -751,8 +751,21 @@ def _record_emission(
         written.append(receipt)
 
 
+def _record_thematic_failure(exc: Exception, stats: dict[str, int] | None) -> None:
+    if stats is None:
+        return
+    failure_class = (
+        exc.failure_class if isinstance(exc, SignalGenerationUnavailable) else "unexpected"
+    )
+    stats[f"failure:{failure_class}"] += 1
+
+
 def _emit_thematic_drafts(
-    events: list[Event], *, delivery_failures: list[SignalDeliveryError] | None = None
+    events: list[Event],
+    *,
+    delivery_failures: list[SignalDeliveryError] | None = None,
+    generation_stats: dict[str, int] | None = None,
+    proof_tally: dict[str, int] | None = None,
 ) -> list[str]:
     """Generate from compatible named events, never whole theme buckets.
 
@@ -763,6 +776,7 @@ def _emit_thematic_drafts(
     from .grouping import classify_themes  # lazy: grouping imports this module
     from .thematic import buildout_stories
 
+    tally = proof_tally if proof_tally is not None else new_proof_tally()
     buckets: dict[str, list[Event]] = defaultdict(list)
     for ev in events:
         if not ev.source_url:
@@ -787,10 +801,18 @@ def _emit_thematic_drafts(
         if attempts >= _THEMATIC_DRAFT_LIMIT:
             break
         attempts += 1
+        if generation_stats is not None:
+            generation_stats["requests"] += 1
         entity_id, _ = _THEME_SIGNALS[theme]
         selected = sorted(evs, key=lambda event: event.published_at, reverse=True)[:6]
-        cand = generate(entity_id, selected, [])
-        if cand and _has_publishable_proofs(cand):
+        try:
+            cand = generate(entity_id, selected, [])
+        except Exception as exc:
+            # The thematic path is additive: a provider failure must not discard
+            # the entity-path receipts computed above it.
+            _record_thematic_failure(exc, generation_stats)
+            continue
+        if cand and record_proof(cand, tally):
             _record_emission(cand, written, delivery_failures)
     return written
 
@@ -959,6 +981,26 @@ def story_match_outage_alert(result: dict) -> str | None:
         f"all {requests} retained story comparison(s) failed; "
         "consult retained-story-match audit receipts for provider or audit failures"
     )
+
+
+def _fold_thematic_stats(
+    stats: dict[str, int], generation_failure_classes: dict[str, int]
+) -> tuple[int, int, str | None]:
+    """Fold thematic-path attempts/failures into the run receipt counters.
+
+    Thematic calls are real generation requests; their provider failures must
+    land in the same failure classes as the entity path so an outage there
+    reads as an operational failure, not a silent empty theme day.
+    """
+    failures = 0
+    error: str | None = None
+    for key, count in stats.items():
+        if key.startswith("failure:"):
+            cls = key.removeprefix("failure:")
+            failures += count
+            generation_failure_classes[cls] += count
+            error = error or f"thematic generation failed: {cls}"[:300]
+    return stats.get("requests", 0), failures, error
 
 
 def run(source: Source, days: int, *, generate_signals: bool = True) -> dict:
@@ -1140,8 +1182,21 @@ def run(source: Source, days: int, *, generate_signals: bool = True) -> dict:
 
     # Thematic signals from entity-less events (additive; never touches the
     # entity path above). Strictly gated by cite-or-kill — see _emit_thematic_drafts.
-    thematic_written = _emit_thematic_drafts(no_entity_events, delivery_failures=delivery_failures)
+    thematic_stats: dict[str, int] = defaultdict(int)
+    thematic_written = _emit_thematic_drafts(
+        no_entity_events,
+        delivery_failures=delivery_failures,
+        generation_stats=thematic_stats,
+        proof_tally=proof_tally,
+    )
     written.extend(thematic_written)
+    requests, failures, error = _fold_thematic_stats(thematic_stats, generation_failure_classes)
+    clusters_reaching_generation += requests
+    generation_requests += requests
+    generation_request_failures += failures
+    errors += failures
+    if error and error_sample is None:
+        error_sample = error
 
     errors += len(delivery_failures)
     if delivery_failures and error_sample is None:

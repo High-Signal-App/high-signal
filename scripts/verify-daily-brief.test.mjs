@@ -92,4 +92,28 @@ assert.throws(
   /future-dated/
 );
 
+// A retained edition served for the wrong IST day — yesterday's dump under
+// today's request — must fail even when its evidence looks fresh.
+assert.throws(
+  () =>
+    validateBriefFreshness(
+      { generatedAt: '2026-08-25T03:30:00.000Z' },
+      { date: '2026-08-24', latestEvidenceInputAt: '2026-08-25T02:30:00.000Z' },
+      now
+    ),
+  /does not equal current IST date/
+);
+
+// The recorded failure mode: ingest produced no timestamped material evidence
+// input at all — a collection outage, not an editorial zero.
+assert.throws(
+  () =>
+    validateBriefFreshness(
+      { generatedAt: '2026-08-25T03:30:00.000Z' },
+      { date: '2026-08-25', latestEvidenceInputAt: null },
+      now
+    ),
+  /no timestamped evidence input/
+);
+
 console.log('verify-daily-brief: freshness checks passed');
