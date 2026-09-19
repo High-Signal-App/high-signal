@@ -12,7 +12,7 @@ import random
 import re
 import time
 from datetime import datetime, timezone
-from typing import Iterable, cast
+from typing import Callable, Iterable, cast
 
 import httpx
 
@@ -403,7 +403,15 @@ def _classify_exception(exc: Exception) -> str:
     return "invalid_response"
 
 
-def _completion_output(body: dict, meta: dict) -> dict | list | None:
+class _UnexpectedResponseShape(Exception):
+    """A parsed completion violated the caller's response contract."""
+
+    meta_reason = "unexpected_response_shape"
+
+
+def _completion_output(
+    body: dict, meta: dict, expect: Callable[[object], bool] | None = None
+) -> dict | list | None:
     usage = body.get("usage") or {}
     meta["tokens_in"] = usage.get("prompt_tokens")
     meta["tokens_out"] = usage.get("completion_tokens")
@@ -412,7 +420,10 @@ def _completion_output(body: dict, meta: dict) -> dict | list | None:
         meta["failure_class"] = "output_truncated"
         meta["reason"] = "output_truncated"
         return None
-    return _parse_json_message(choice["message"]["content"])
+    parsed = _parse_json_message(choice["message"]["content"])
+    if expect is not None and not expect(parsed):
+        raise _UnexpectedResponseShape
+    return parsed
 
 
 def _expanded_completion_budget(meta: dict, attempt: int, budget: int) -> int | None:
@@ -442,7 +453,11 @@ def _completion_meta(model: str | None, content: str) -> dict:
 
 
 def _ai_complete(
-    prompt: str, content: str, *, max_completion_tokens: int = _AI_MAX_COMPLETION_TOKENS
+    prompt: str,
+    content: str,
+    *,
+    max_completion_tokens: int = _AI_MAX_COMPLETION_TOKENS,
+    expect: Callable[[object], bool] | None = None,
 ) -> tuple[dict | list | None, dict]:
     """Call OpenAI-compatible endpoint. Returns (parsed_json, audit_meta).
 
@@ -450,7 +465,8 @@ def _ai_complete(
     if any) so callers can persist a llm_run row even on failure. Retries
     429/5xx and malformed completions with full-jitter backoff (bounded by
     ``_AI_RETRIES``); 4xx (non-429) responses are terminal. ``attempts`` and
-    ``failure_class`` are recorded for telemetry.
+    ``failure_class`` are recorded for telemetry. ``expect`` contract
+    violations retry, then report ``invalid_response`` — never a decline.
     """
     # The operator selects a project-owned free-provider/local endpoint.
     base = os.environ.get("AI_BASE_URL")
@@ -515,7 +531,7 @@ def _ai_complete(
             meta["raw_response"] = body
             meta["failure_class"] = None  # success clears any prior retryable class
             meta["reason"] = None
-            parsed = _completion_output(body, meta)
+            parsed = _completion_output(body, meta, expect)
             expanded = _expanded_completion_budget(meta, attempt, completion_budget)
             if expanded is not None:
                 completion_budget = expanded
@@ -526,7 +542,7 @@ def _ai_complete(
             failure_class = _classify_exception(exc)
             meta["failure_class"] = failure_class
             # Exception messages may contain request URLs or credentials.
-            meta["reason"] = failure_class
+            meta["reason"] = getattr(exc, "meta_reason", failure_class)
             # Network/timeout blips and malformed completions are retryable;
             # HTTP client errors remain terminal.
             if attempt < _AI_RETRIES and (
@@ -724,7 +740,14 @@ def generate(
         f"SPILLOVER CANDIDATES: {', '.join(spillover_candidates)}\n\n"
         f"EVENTS:\n{blob}"
     )
-    out, meta = _ai_complete(_prompt(), user, max_completion_tokens=_AI_EXPANDED_COMPLETION_TOKENS)
+    out, meta = _ai_complete(
+        _prompt(),
+        user,
+        max_completion_tokens=_AI_EXPANDED_COMPLETION_TOKENS,
+        expect=lambda response: (
+            isinstance(response, dict) and isinstance(response.get("publish"), bool)
+        ),
+    )
     request_blob = {
         "primary": primary_entity_id,
         "user": meta.pop("request_user", ""),
@@ -989,6 +1012,16 @@ def _parse_batch_candidates(
     return candidates, invalid_bodies
 
 
+def _batch_response_shape(response: object) -> bool:
+    """Batch contract: a list of explicit decisions, including a valid empty list."""
+    items = (
+        response.get("signals", response.get("results")) if isinstance(response, dict) else response
+    )
+    return isinstance(items, list) and all(
+        isinstance(item, dict) and isinstance(item.get("publish"), bool) for item in items
+    )
+
+
 def generate_batch(
     clusters: list[tuple[str, list[Event], list[str]]],
 ) -> list[SignalCandidate]:
@@ -1031,7 +1064,10 @@ def generate_batch(
         return []
     user = "\n\n".join(entity_blocks)
     out, meta = _ai_complete(
-        _batch_prompt(), user, max_completion_tokens=_AI_EXPANDED_COMPLETION_TOKENS
+        _batch_prompt(),
+        user,
+        max_completion_tokens=_AI_EXPANDED_COMPLETION_TOKENS,
+        expect=_batch_response_shape,
     )
     request_blob = {
         "entities": [eid for eid, _, _ in clusters],
@@ -1057,7 +1093,7 @@ def generate_batch(
             latency_ms=meta.get("latency_ms"),
         )
 
-    if not out:
+    if out is None:
         _record(False, None, meta.get("reason") or "no_response")
         _raise_for_provider_failure(meta)
         return []

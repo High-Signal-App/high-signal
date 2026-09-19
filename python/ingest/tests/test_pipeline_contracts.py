@@ -987,7 +987,7 @@ def test_cli_distinguishes_story_match_outage_from_negative_results(
 def test_both_article_paths_request_full_completion_budget(monkeypatch):
     budgets = []
 
-    def complete(_prompt, _content, *, max_completion_tokens):
+    def complete(_prompt, _content, *, max_completion_tokens, **_kwargs):
         budgets.append(max_completion_tokens)
         return {"publish": False, "signals": []}, {"model": "test", "prompt_version": "test"}
 
@@ -997,3 +997,192 @@ def test_both_article_paths_request_full_completion_budget(monkeypatch):
     generator.generate("NVDA", [event], [])
     generator.generate_batch([("NVDA", [event], [])])
     assert budgets == [8000, 8000]
+
+
+def _gateway(handler, monkeypatch) -> None:
+    """Point the shared completion transport at an httpx.MockTransport handler."""
+    import httpx
+
+    monkeypatch.setenv("AI_API_KEY", "test-key")
+    monkeypatch.setenv("AI_BASE_URL", "https://test-gateway.example/v1")
+    monkeypatch.setenv("AI_MODEL", "test-model")
+    monkeypatch.setattr(generator, "_AI_RETRIES", 1)
+    monkeypatch.setattr(generator, "_AI_BACKOFF_CAP", 0.0)
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+
+    def _post(url, **kwargs):
+        import json as jsonlib
+
+        payload = kwargs.get("json")
+        request = httpx.Request(
+            "POST",
+            url,
+            headers=kwargs.get("headers", {}),
+            content=jsonlib.dumps(payload).encode() if payload else None,
+        )
+        return client.send(request)
+
+    monkeypatch.setattr(generator.httpx, "post", _post)
+
+
+def _completion(payload) -> object:
+    import httpx
+    import json as jsonlib
+
+    body = {"choices": [{"finish_reason": "stop", "message": {"content": jsonlib.dumps(payload)}}]}
+    return httpx.Response(200, content=jsonlib.dumps(body).encode())
+
+
+@pytest.mark.parametrize("payload", [{"signals": []}, {"publish": None}, {"publish": 0}])
+def test_wrong_shape_completion_is_a_generation_failure_not_a_decline(monkeypatch, payload) -> None:
+    """A parsed completion missing the required `publish` field is malformed —
+    it must count as an operational failure, not an editorial decline."""
+    from high_signal_ingest import audit
+
+    receipts = []
+    monkeypatch.setattr(audit, "push_llm_run", lambda **row: receipts.append(row))
+    _gateway(lambda _req: _completion(payload), monkeypatch)
+
+    with pytest.raises(generator.SignalGenerationUnavailable) as failure:
+        generator.generate("NVDA", [_event("https://one.example/a")], [])
+    assert failure.value.failure_class == "invalid_response"
+    assert receipts[0]["reason"] == "unexpected_response_shape"
+    assert receipts[0]["accepted"] is False
+
+
+def test_explicit_decline_remains_an_editorial_result(monkeypatch) -> None:
+    """An explicit publish=false is still a decline, not a failure."""
+    from high_signal_ingest import audit
+
+    receipts = []
+    monkeypatch.setattr(audit, "push_llm_run", lambda **row: receipts.append(row))
+    _gateway(lambda _req: _completion({"publish": False}), monkeypatch)
+
+    assert generator.generate("NVDA", [_event("https://one.example/a")], []) is None
+    assert receipts[0]["reason"] == "publish_false"
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [{"publish": False}, [None], [{}], {"signals": [None]}, [{"publish": None}]],
+)
+def test_batch_wrong_shape_is_not_recorded_as_an_empty_success(monkeypatch, payload) -> None:
+    """A single-signal-shaped response on the batch endpoint must not record
+    `ok:0/N` — that would mask an operational failure as editorial zero."""
+    from high_signal_ingest import audit
+
+    receipts = []
+    monkeypatch.setattr(audit, "push_llm_run", lambda **row: receipts.append(row))
+    _gateway(lambda _req: _completion(payload), monkeypatch)
+
+    with pytest.raises(generator.SignalGenerationUnavailable) as failure:
+        generator.generate_batch([("NVDA", [_event("https://one.example/a")], [])])
+    assert failure.value.failure_class == "invalid_response"
+    assert receipts[0]["reason"] == "unexpected_response_shape"
+    assert receipts[0]["accepted"] is False
+
+
+@pytest.mark.parametrize("payload", [[], {"signals": []}])
+def test_batch_empty_signals_remains_a_decline(monkeypatch, payload) -> None:
+    """An explicit empty signals array stays a successful decline."""
+    from high_signal_ingest import audit
+
+    receipts = []
+    monkeypatch.setattr(audit, "push_llm_run", lambda **row: receipts.append(row))
+    _gateway(lambda _req: _completion(payload), monkeypatch)
+
+    assert generator.generate_batch([("NVDA", [_event("https://one.example/a")], [])]) == []
+    assert receipts[0]["reason"] == "ok:0/1"
+    assert receipts[0]["accepted"] is True
+
+
+def _entityless_event(source_url: str, source: str) -> Event:
+    return Event(
+        id=source_url.rsplit("/", 1)[-1],
+        source=source,
+        source_url=source_url,
+        published_at=datetime(2026, 4, 25, tzinfo=timezone.utc),
+        title="Council approves Orion data center campus in Mesa",
+        content="The council approved the Orion data center rezoning in Mesa.",
+        raw_hash=source_url,
+        source_document=SourceDocument(document_key=f"{source}:{source_url}"),
+    )
+
+
+def test_thematic_provider_failure_is_counted_not_fatal(monkeypatch) -> None:
+    """A thematic-path provider failure is a counted operational failure; the
+    additive path must not crash the run or discard entity-path receipts."""
+    from high_signal_ingest import grouping, thematic
+
+    events = [
+        _entityless_event("https://a.example/orion", "news:a"),
+        _entityless_event("https://b.example/orion", "ir:b"),
+    ]
+    monkeypatch.setattr(grouping, "classify_themes", lambda _text: ["data-center-buildout"])
+    monkeypatch.setattr(thematic, "buildout_stories", lambda _bucket: [events])
+
+    def fail(*_a, **_k):
+        raise generator.SignalGenerationUnavailable("timeout", failure_class="timeout")
+
+    monkeypatch.setattr(pipeline, "generate", fail)
+    stats: dict[str, int] = defaultdict(int)
+
+    written = pipeline._emit_thematic_drafts(events, generation_stats=stats)
+
+    assert written == []
+    assert stats == {"requests": 1, "failure:timeout": 1}
+
+
+def test_thematic_decline_stays_editorial_zero(monkeypatch) -> None:
+    """A real publish=false on the thematic path is still a decline."""
+    from high_signal_ingest import grouping, thematic
+
+    events = [
+        _entityless_event("https://a.example/orion", "news:a"),
+        _entityless_event("https://b.example/orion", "ir:b"),
+    ]
+    monkeypatch.setattr(grouping, "classify_themes", lambda _text: ["data-center-buildout"])
+    monkeypatch.setattr(thematic, "buildout_stories", lambda _bucket: [events])
+    monkeypatch.setattr(pipeline, "generate", lambda *_a, **_k: None)
+    stats: dict[str, int] = defaultdict(int)
+
+    assert pipeline._emit_thematic_drafts(events, generation_stats=stats) == []
+    assert stats == {"requests": 1}
+
+
+@pytest.mark.parametrize("failure_class", ["timeout", "unexpected"])
+def test_run_receipt_counts_thematic_generation_failures(monkeypatch, failure_class) -> None:
+    """The run receipt must reflect a thematic-path provider failure — an
+    operational failure, not an editorial zero."""
+    from high_signal_ingest import grouping, thematic
+
+    events = [
+        _entityless_event("https://a.example/orion", "news:a"),
+        _entityless_event("https://b.example/orion", "ir:b"),
+    ]
+    monkeypatch.setattr(pipeline, "fetch", lambda *_a, **_k: events)
+    monkeypatch.setattr(pipeline.audit, "push_events", lambda *_a, **_k: len(events))
+    monkeypatch.setattr(pipeline.audit, "push_ingest_run", lambda **_k: None)
+    monkeypatch.setattr(pipeline.audit, "push_ingest_runs", lambda *_a, **_k: None)
+    monkeypatch.setattr(pipeline, "load_retained_corroboration", lambda _events: ([], {}))
+    monkeypatch.setattr(pipeline, "_pre_group_clusters", lambda _groups: ([], [], 0))
+    monkeypatch.setattr(pipeline, "_emit_fallback_drafts", lambda *_a, **_k: [])
+    monkeypatch.setattr(grouping, "classify_themes", lambda _text: ["data-center-buildout"])
+    monkeypatch.setattr(thematic, "buildout_stories", lambda _bucket: [events])
+
+    def fail(*_a, **_k):
+        if failure_class == "unexpected":
+            raise KeyError("direction")
+        raise generator.SignalGenerationUnavailable("timeout", failure_class="timeout")
+
+    monkeypatch.setattr(pipeline, "generate", fail)
+
+    out = pipeline.run("all", 1)
+
+    assert out["generation_requests"] == 1
+    assert out["generation_request_failures"] == 1
+    assert out["generation_failure_classes"] == {failure_class: 1}
+    assert out["clusters_reaching_generation"] == 1
+    assert out["signals_drafted"] == 0
+    assert out["errors"] == 1
+    assert pipeline.generation_outage_alert(out) is not None

@@ -70,7 +70,13 @@ def match_story(left: Event, right: Event) -> tuple[bool, str]:
         "left": {"url": left.source_url, "title": left.title, "passages": left_passages},
         "right": {"url": right.source_url, "title": right.title, "passages": right_passages},
     }
-    result, meta = _ai_complete(PROMPT, json.dumps(request, ensure_ascii=False))
+    result, meta = _ai_complete(
+        PROMPT,
+        json.dumps(request, ensure_ascii=False),
+        expect=lambda response: (
+            isinstance(response, dict) and isinstance(response.get("sameEvent"), bool)
+        ),
+    )
     result = _resolve_passages(result, left_passages, right_passages)
     accepted = _valid_match(result, left_text, right_text)
     reason = "same_event" if accepted else "not_matched"
