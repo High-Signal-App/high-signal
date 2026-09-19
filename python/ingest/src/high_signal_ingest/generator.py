@@ -442,8 +442,8 @@ def _ai_complete(
 
     `audit_meta` is always populated (model + reason + latency + raw response
     if any) so callers can persist a llm_run row even on failure. Retries
-    429/5xx with full-jitter backoff (bounded by ``_AI_RETRIES``); 4xx
-    (non-429) and parse errors are terminal. ``attempts`` and
+    429/5xx and malformed completions with full-jitter backoff (bounded by
+    ``_AI_RETRIES``); 4xx (non-429) responses are terminal. ``attempts`` and
     ``failure_class`` are recorded for telemetry.
     """
     # The operator selects a project-owned free-provider/local endpoint.
@@ -523,9 +523,14 @@ def _ai_complete(
             meta["failure_class"] = failure_class
             # Exception messages may contain request URLs or credentials.
             meta["reason"] = failure_class
-            # Network/timeout blips are retryable; JSON parse errors are terminal.
-            if attempt < _AI_RETRIES and isinstance(
-                exc, (httpx.TimeoutException, httpx.NetworkError)
+            # Network/timeout blips and malformed completions are retryable:
+            # free-tier models occasionally emit unparseable or wrongly shaped
+            # output stochastically, and treating the first bad sample as
+            # terminal can zero a whole signal day. HTTP client errors remain
+            # terminal.
+            if attempt < _AI_RETRIES and (
+                isinstance(exc, (httpx.TimeoutException, httpx.NetworkError))
+                or failure_class in ("invalid_json", "invalid_response")
             ):
                 sleep_for = min(_AI_BACKOFF_CAP, _AI_BACKOFF_BASE * (2 ** (attempt - 1)))
                 sleep_for = random.uniform(0, sleep_for)
