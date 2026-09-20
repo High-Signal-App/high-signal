@@ -1,4 +1,5 @@
 import {
+  buildArticleJsonLd,
   buildBreadcrumbJsonLd,
   buildCompanyProfileJsonLd,
   buildEntityMonthJsonLd,
@@ -12,6 +13,7 @@ import {
   buildSoftwareApplicationJsonLd,
   buildTrackRecordDatasetJsonLd,
 } from '@/components/seo/json-ld-builders';
+import type { Article } from '@/data/articles';
 import type { IntelligenceGuide } from '@/data/intelligence-guides';
 
 /**
@@ -72,6 +74,20 @@ export function IntelligenceGuideJsonLd({
         description: guide.metaDescription,
         kind: guide.schemaKind,
         sections: guide.sections,
+      })}
+    />
+  );
+}
+
+export function ArticleJsonLd({ article }: { article: Article }): React.JSX.Element {
+  return (
+    <LdJson
+      data={buildArticleJsonLd({
+        path: article.path,
+        title: article.title,
+        description: article.metaDescription,
+        publishedAt: article.publishedAt,
+        bodyMd: article.bodyMd,
       })}
     />
   );

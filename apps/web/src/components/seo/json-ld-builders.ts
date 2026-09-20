@@ -78,6 +78,39 @@ export function buildIntelligenceGuideJsonLd(opts: {
   return [article];
 }
 
+/**
+ * Article record for /articles/<slug> editorial pages — mirrors the
+ * Article block emitted for intelligence guides but carries the real
+ * publication date and section outline from the cleaned markdown body.
+ */
+export function buildArticleJsonLd(opts: {
+  path: string;
+  title: string;
+  description: string;
+  publishedAt: string;
+  bodyMd: string;
+}): JsonLdBlock {
+  const url = `${SITE_URL}${opts.path}`;
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: opts.title,
+    description: opts.description,
+    url,
+    mainEntityOfPage: url,
+    inLanguage: 'en',
+    datePublished: opts.publishedAt,
+    dateModified: opts.publishedAt,
+    publisher: { '@id': `${SITE_URL}/#organization` },
+    author: { '@id': `${SITE_URL}/#organization` },
+    articleSection: opts.bodyMd
+      .split('\n')
+      .filter((line) => line.startsWith('# '))
+      .map((line) => line.replace(/^#\s+/, '').trim()),
+    wordCount: opts.bodyMd.split(/\s+/).filter(Boolean).length,
+  };
+}
+
 export function buildOrganizationJsonLd(): JsonLdBlock[] {
   return [
     {

@@ -36,6 +36,7 @@ Operators and investors who want a high-signal daily read instead of raw feed no
 - Daily brief: https://highsignal.app/ — Primary composed brief
 - Track record: https://highsignal.app/track-record — Public hit-rate ledger
 - Markets: https://highsignal.app/markets — Market signals
+- Articles: https://highsignal.app/articles — Long-form pieces on evidence standards and research practice
 
 ## Machine surfaces
 

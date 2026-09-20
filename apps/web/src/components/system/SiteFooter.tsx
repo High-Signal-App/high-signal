@@ -13,6 +13,7 @@ const READ: FooterLink[] = [
   { href: '/', label: 'Brief' },
   { href: '/signals', label: 'Signals' },
   { href: '/track-record', label: 'Track record' },
+  { href: '/articles', label: 'Articles' },
 ];
 
 const VERIFY: FooterLink[] = [
