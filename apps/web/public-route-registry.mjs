@@ -140,6 +140,102 @@ export const PUBLIC_STATIC_ROUTES = [
     priority: 0.85,
   },
   {
+    path: '/articles',
+    title: 'Articles',
+    description:
+      'Long-form articles on evidence standards, source mix, spillover mapping, and accountable research practice.',
+    changeFrequency: 'weekly',
+    priority: 0.75,
+  },
+  {
+    path: '/articles/building-a-source-mix-across-technology-startups-and-finance',
+    title: 'Building a source mix across technology, startups, and finance',
+    description:
+      'How to build a high-signal information pipeline by combining capital filings, builder activity, and qualified discourse.',
+    changeFrequency: 'monthly',
+    priority: 0.7,
+  },
+  {
+    path: '/articles/designing-one-useful-daily-brief-instead-of-another-infinite-feed',
+    title: 'Designing one useful daily brief instead of another infinite feed',
+    description:
+      'The product design shift from infinite feeds to one synthesized daily brief with a cite-or-kill gate.',
+    changeFrequency: 'monthly',
+    priority: 0.7,
+  },
+  {
+    path: '/articles/how-to-disclose-missing-evidence-in-a-concise-news-product',
+    title: 'How to disclose missing evidence in a concise news product',
+    description:
+      'Making uncertainty visible: confidence bands and cite-or-kill rules that keep missing evidence from becoming false claims.',
+    changeFrequency: 'monthly',
+    priority: 0.7,
+  },
+  {
+    path: '/articles/how-to-map-second-order-spillovers-from-a-company-event',
+    title: 'How to map second-order spillovers from a company event',
+    description:
+      'A methodology for tracing downstream effects of company news through supplier, customer, and peer networks.',
+    changeFrequency: 'monthly',
+    priority: 0.7,
+  },
+  {
+    path: '/articles/how-to-separate-a-useful-signal-from-a-story-that-merely-sounds-predictive',
+    title: 'How to separate a useful signal from a story that merely sounds predictive',
+    description:
+      'Differentiating evidence-backed signals from narrative noise with corroboration and measured hit-rates.',
+    changeFrequency: 'monthly',
+    priority: 0.7,
+  },
+  {
+    path: '/articles/primary-sources-vs-commentary-in-fast-moving-company-news',
+    title: 'Primary sources vs commentary in fast-moving company news',
+    description:
+      'Why separating primary source evidence from commentary is essential in fast-moving company news.',
+    changeFrequency: 'monthly',
+    priority: 0.7,
+  },
+  {
+    path: '/articles/using-regional-filters-without-fragmenting-a-global-brief',
+    title: 'Using regional filters without fragmenting a global brief',
+    description:
+      'Applying regional context to a global brief without splitting the evidence pool into separate editions.',
+    changeFrequency: 'monthly',
+    priority: 0.7,
+  },
+  {
+    path: '/articles/versioned-signal-memory-for-accountable-research',
+    title: 'Versioned signal memory for accountable research',
+    description:
+      'Append-only, git-versioned records of claims, confidence, and sources for verifiable research.',
+    changeFrequency: 'monthly',
+    priority: 0.7,
+  },
+  {
+    path: '/articles/when-thin-research-pages-should-stay-out-of-search-indexes',
+    title: 'When thin research pages should stay out of search indexes',
+    description:
+      'Why withholding thin, evidence-poor pages from search engines preserves credibility and SEO health.',
+    changeFrequency: 'monthly',
+    priority: 0.7,
+  },
+  {
+    path: '/articles/why-a-public-news-brief-can-work-without-reader-accounts',
+    title: 'Why a public news brief can work without reader accounts',
+    description:
+      'Serving a fully public, evidence-first daily brief without sign-ups, personalization, or paywalls.',
+    changeFrequency: 'monthly',
+    priority: 0.7,
+  },
+  {
+    path: '/articles/why-prediction-market-probabilities-are-not-equity-price-evidence',
+    title: 'Why prediction-market probabilities are not equity-price evidence',
+    description:
+      'Crowd probabilities are useful context but never sole evidence for a directional market claim.',
+    changeFrequency: 'monthly',
+    priority: 0.7,
+  },
+  {
     path: '/convergence',
     title: 'Convergence',
     description: 'Signals that converge across independent source classes.',
