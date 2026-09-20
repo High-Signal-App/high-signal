@@ -1,11 +1,11 @@
 /**
  * Editorial articles — long-form practice pieces recovered from drafts.
- * Content is stored as cleaned markdown (`bodyMd`) and rendered by
- * `@/components/content/ArticleMarkdown`; each article gets a thin
+ * Content is stored as cleaned markdown (`bodyMd`) and rendered by the
+ * shared `@/components/system/MarkdownView`; each article gets a thin
  * static page under `app/articles/<slug>/page.tsx`.
  */
 
-export interface ArticleLink {
+interface ArticleLink {
   href: string;
   title: string;
   description: string;
