@@ -5,7 +5,7 @@ import { api, type SignalRow } from '@/lib/api';
 import { familyForSignalType, familyLabel, type SignalFamily } from '@high-signal/shared';
 import { SITE_URL } from '@/lib/site';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 600;
 export const metadata: Metadata = {
   title: 'Signal types — taxonomy of every call we publish',
   description:

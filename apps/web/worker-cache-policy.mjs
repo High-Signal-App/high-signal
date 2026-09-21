@@ -7,6 +7,9 @@ const DATA_HTML_CACHE_CONTROL = 'public, max-age=60, s-maxage=300';
 const ROOT_EDGE_CACHE_CONTROL = 'public, max-age=60, s-maxage=300';
 const ROOT_CLIENT_CACHE_CONTROL = 'private, no-cache';
 const RSC_CACHE_CONTROL = 'public, max-age=0, s-maxage=3600';
+const FEED_CACHE_CONTROL = 'public, max-age=300, s-maxage=300';
+const DATA_CACHE_CONTROL = 'public, max-age=300, s-maxage=3600';
+const OG_IMAGE_CACHE_CONTROL = 'public, max-age=86400, s-maxage=86400';
 const ROOT_CACHE_SCHEMA = 'daily-brief-v2';
 const DATA_CACHE_SCHEMA = 'source-data-v2';
 const TRACK_RECORD_CACHE_SCHEMA = 'track-record-v2';
@@ -15,11 +18,36 @@ const TRACK_RECORD_CACHE_SCHEMA = 'track-record-v2';
 // representation. They still benefit from the same anonymous HTML/RSC cache.
 const PUBLIC_HTML_ONLY_PATHS = new Set(['/case-studies/search', '/mentions']);
 
-const PUBLIC_DATA_CACHE_CONTROL = new Map([['/sitemap.xml', 'public, max-age=300, s-maxage=3600']]);
+// Machine-readable public payloads. Feed readers and link expanders re-poll
+// these far more often than browsers visit pages, and none of them read the
+// query string — junk tracking params share the canonical cache entry.
+// path -> [cache-control, required content-type substring]
+const PUBLIC_DATA_CACHE_CONTROL = new Map([
+  ['/sitemap.xml', ['public, max-age=300, s-maxage=3600', 'xml']],
+  ['/robots.txt', ['public, max-age=3600, s-maxage=86400', 'text/plain']],
+  ['/signals/rss', [FEED_CACHE_CONTROL, 'xml']],
+  ['/signals/atom', [FEED_CACHE_CONTROL, 'xml']],
+  ['/signals.json', [DATA_CACHE_CONTROL, 'json']],
+  ['/entities.json', [DATA_CACHE_CONTROL, 'json']],
+  ['/data/hit-rate.json', [DATA_CACHE_CONTROL, 'json']],
+  ['/data/hit-rate.csv', [DATA_CACHE_CONTROL, 'csv']],
+]);
 
-// A request carrying Cloudflare Access's operator-session cookie must never be
-// served from, or written to, the shared edge cache.
-const AUTH_COOKIE_FRAGMENTS = ['CF_Authorization'];
+// /entities/<id>/rss — per-entity feed, same cacheability as the main feeds.
+const ENTITY_FEED_PATTERN = /^\/entities\/[^/]+\/rss$/;
+
+// Query-keyed payloads — the query selects the response, so it stays in the
+// cache key: OG images by ?title=, market snapshots by ?date=.
+const QUERY_KEYED_DATA_PATHS = new Map([
+  ['/api/og', [OG_IMAGE_CACHE_CONTROL, 'image/']],
+  ['/markets.json', [DATA_CACHE_CONTROL, 'json']],
+  ['/sectors/sectors.json', [DATA_CACHE_CONTROL, 'json']],
+]);
+
+// Requests carrying either an operator-session cookie or a verified-history
+// grant must never be served from, or written to, the shared edge cache —
+// both unlock personalized content that must not leak to anonymous traffic.
+const AUTH_COOKIE_FRAGMENTS = ['CF_Authorization', 'high-signal-history'];
 
 export function hasAuthCookie(request) {
   const cookie = request.headers.get('cookie');
@@ -34,15 +62,17 @@ export function isRscRequest(request) {
 
 export function isCacheableDocumentRequest(request) {
   if (request.method !== 'GET') return false;
-  if (request.headers.has('authorization') || hasAuthCookie(request)) return false;
+  // Cloudflare Access accepts the JWT assertion header as well as the cookie.
+  if (
+    request.headers.has('authorization') ||
+    request.headers.has('cf-access-jwt-assertion') ||
+    hasAuthCookie(request)
+  )
+    return false;
 
   const url = new URL(request.url);
   const pathname = normalizePublicPath(url.pathname);
   if (!isPublicCachePath(pathname)) return false;
-  // Individual signals are mutable publication records. A streamed 404 from
-  // the detail renderer is still an HTTP 200, so response headers cannot
-  // reliably prevent the Worker from sharing that stale result.
-  if (isSignalDetailPath(pathname)) return false;
 
   // Anonymous HTML is cached only at its canonical, queryless URL. RSC
   // variants keep their complete URL and routing headers so Next.js cannot
@@ -52,7 +82,11 @@ export function isCacheableDocumentRequest(request) {
       isPublicDocumentPath(pathname) && [...url.searchParams.keys()].every((key) => key === '_rsc')
     );
   }
-  return url.search === '' && request.headers.get('rsc') !== '1';
+  if (request.headers.get('rsc') === '1') return false;
+  // Data payloads ignore junk query params (or are keyed by them, /api/og) —
+  // tracking params cannot bypass the edge cache.
+  if (isPublicDataPath(pathname)) return true;
+  return url.search === '';
 }
 
 export function cacheKeyForRequest(request, buildId) {
@@ -61,6 +95,8 @@ export function cacheKeyForRequest(request, buildId) {
   }
   const url = new URL(request.url);
   const pathname = normalizePublicPath(url.pathname);
+  // Canonical data payloads do not vary by query string.
+  if (!isRscRequest(request) && isCanonicalDataPath(pathname)) url.search = '';
   if (!isRscRequest(request) && pathname === '/') {
     url.searchParams.set('__hs_cache_schema', ROOT_CACHE_SCHEMA);
   } else if (!isRscRequest(request) && (pathname === '/data' || pathname.startsWith('/data/'))) {
@@ -87,13 +123,14 @@ export function cacheControlForRequest(request) {
   if (isRscRequest(request)) return RSC_CACHE_CONTROL;
 
   const pathname = normalizePublicPath(new URL(request.url).pathname);
-  const dataCacheControl = PUBLIC_DATA_CACHE_CONTROL.get(pathname);
-  if (dataCacheControl) return dataCacheControl;
+  const dataPolicy = dataPolicyForPath(pathname);
+  if (dataPolicy) return dataPolicy[0];
   if (pathname === '/') return ROOT_EDGE_CACHE_CONTROL;
   if (pathname === '/data' || pathname.startsWith('/data/')) return DATA_HTML_CACHE_CONTROL;
   if (
     pathname === '/brief/archive' ||
     pathname === '/signals' ||
+    pathname.startsWith('/signals/') ||
     pathname === '/entities' ||
     pathname === '/markets' ||
     pathname.startsWith('/entities/') ||
@@ -112,9 +149,15 @@ export function clientCacheControlForRequest(request) {
 
 export function isCacheableDocumentResponse(request, response) {
   if (response?.status !== 200 || response.headers.has('set-cookie')) return false;
+  // Routes opt out per-response — e.g. the feeds' empty fallback when the API
+  // is offline must never occupy the shared cache.
+  const responseCacheControl = (response.headers.get('cache-control') ?? '').toLowerCase();
+  if (responseCacheControl.includes('no-store') || responseCacheControl.includes('private'))
+    return false;
   const pathname = normalizePublicPath(new URL(request.url).pathname);
   const contentType = (response.headers.get('content-type') ?? '').toLowerCase();
-  if (pathname === '/sitemap.xml') return contentType.includes('xml');
+  const dataPolicy = dataPolicyForPath(pathname);
+  if (dataPolicy) return contentType.includes(dataPolicy[1]);
   return isRscRequest(request)
     ? contentType.includes('text/x-component')
     : contentType.includes('text/html');
@@ -125,15 +168,26 @@ export function edgeCacheStatus(request, result) {
 }
 
 function isPublicCachePath(pathname) {
-  return isPublicDocumentPath(pathname) || PUBLIC_DATA_CACHE_CONTROL.has(pathname);
+  return isPublicDocumentPath(pathname) || isPublicDataPath(pathname);
 }
 
-function isSignalDetailPath(pathname) {
+function isPublicDataPath(pathname) {
   return (
-    isPublicDocumentPath(pathname) &&
-    pathname.startsWith('/signals/') &&
-    pathname !== '/signals/types' &&
-    pathname.split('/').length === 3
+    PUBLIC_DATA_CACHE_CONTROL.has(pathname) ||
+    QUERY_KEYED_DATA_PATHS.has(pathname) ||
+    ENTITY_FEED_PATTERN.test(pathname)
+  );
+}
+
+function isCanonicalDataPath(pathname) {
+  return PUBLIC_DATA_CACHE_CONTROL.has(pathname) || ENTITY_FEED_PATTERN.test(pathname);
+}
+
+function dataPolicyForPath(pathname) {
+  return (
+    PUBLIC_DATA_CACHE_CONTROL.get(pathname) ??
+    QUERY_KEYED_DATA_PATHS.get(pathname) ??
+    (ENTITY_FEED_PATTERN.test(pathname) ? [FEED_CACHE_CONTROL, 'xml'] : undefined)
   );
 }
 

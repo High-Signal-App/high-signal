@@ -15,6 +15,7 @@ import {
   getCaseStudy,
 } from '../data';
 
+export const revalidate = 3600;
 interface PageProps {
   params: Promise<{ slug: string }>;
 }

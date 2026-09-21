@@ -1,10 +1,9 @@
-import { headers } from 'next/headers';
-
 import { api } from '@/lib/api';
 import { signalExcerpt, signalHeadline } from '@/lib/rss';
 import { isBackfillSignal, signalPresentation } from '@/lib/signal-format';
+import { SITE_URL } from '@/lib/site';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 300;
 
 function escapeXml(s: string): string {
   return s
@@ -20,17 +19,16 @@ function escapeXml(s: string): string {
  * the canonical IDs are stable URLs so cross-format dedup just works.
  */
 export async function GET() {
-  const h = await headers();
-  const proto = h.get('x-forwarded-proto') ?? 'https';
-  const host = h.get('x-forwarded-host') ?? h.get('host') ?? 'localhost';
-  const base = `${proto}://${host}`;
+  const base = SITE_URL;
 
   let signals: Awaited<ReturnType<typeof api.signals>>['signals'] = [];
+  let degraded = false;
   try {
     const r = await api.signals();
     signals = r.signals.filter((signal) => !isBackfillSignal(signal));
   } catch {
-    /* API offline */
+    /* API offline — empty feed is returned but must not be cached. */
+    degraded = true;
   }
 
   const updated =
@@ -66,7 +64,9 @@ ${entries}
     status: 200,
     headers: {
       'Content-Type': 'application/atom+xml; charset=utf-8',
-      'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+      'Cache-Control': degraded
+        ? 'no-store'
+        : 'public, s-maxage=300, stale-while-revalidate=600',
     },
   });
 }

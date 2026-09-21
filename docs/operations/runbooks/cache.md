@@ -7,8 +7,18 @@ description: Verify that anonymous High Signal reads reuse Cloudflare cache with
 
 High Signal has guarded Cloudflare cache layers:
 
-- `high-signal-web` uses `caches.default` for anonymous HTML, RSC, and agent
-  representations in `apps/web/worker.mjs`.
+- `high-signal-web` keeps a **global ISR cache** (OpenNext incremental cache in
+  the `high-signal-web-inc-cache` R2 bucket, with a `DOQueueHandler`
+  revalidation queue and `DOShardedTagCache` tag cache — see
+  `apps/web/open-next.config.ts` and `wrangler.toml`). Routes with
+  `export const revalidate` render at most once per window *globally*; routes
+  that read `searchParams`, `headers()`, or `cookies()` stay per-request, and
+  `binding.fetch` calls bypass the Next data cache entirely at runtime.
+- `high-signal-web` uses `caches.default` for anonymous HTML, RSC, feeds, JSON
+  exports, and OG images in `apps/web/worker.mjs` (policy in
+  `worker-cache-policy.mjs`). This layer is per-colo — it dedupes repeated
+  reader/feed-reader traffic but cannot stop crawlers that walk the corpus
+  once per URL; that is the ISR layer's job.
 - `high-signal-api` routes safe anonymous `GET` and `HEAD` requests through a cached
   `PublicApi` entrypoint before Worker execution. The default entrypoint remains
   an uncached gateway so private request variants cannot hit public cache entries.
