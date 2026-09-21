@@ -1,7 +1,7 @@
 import { api } from '@/lib/api';
 import { isBackfillSignal } from '@/lib/signal-format';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 300;
 
 /**
  * JSON twin of /signals/rss. Convenient for callers that want

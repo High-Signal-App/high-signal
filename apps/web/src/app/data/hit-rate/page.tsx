@@ -4,7 +4,7 @@ import { api, type TrackBucket } from '@/lib/api';
 import { TrackRecordDatasetJsonLd } from '@/components/seo/structured-data';
 import { SITE_URL } from '@/lib/site';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 3600;
 
 export const metadata: Metadata = {
   title: 'Public hit-rate ledger — data',

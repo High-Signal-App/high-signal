@@ -1,6 +1,5 @@
 import { api, type TrackBucket } from '@/lib/api';
 
-export const dynamic = 'force-dynamic';
 export const revalidate = 3600;
 
 function csvEscape(value: string | number | null): string {

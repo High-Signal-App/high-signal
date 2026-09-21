@@ -51,7 +51,12 @@ export async function fetchApiResponse(path: string, init?: RequestInit): Promis
   if (binding) {
     return binding.fetch(`https://api${path}`, init);
   }
-  return fetch(`${API_BASE}${path}`, { ...init, cache: 'no-store' });
+  // Only reached at build time and in `next dev` — the service binding above
+  // bypasses Next's fetch instrumentation entirely, so `cache: 'no-store'`
+  // here bought nothing at runtime while forcing every API-driven page to
+  // classify as fully dynamic at build. A revalidate window keeps those pages
+  // eligible for the incremental cache.
+  return fetch(`${API_BASE}${path}`, { ...init, next: { revalidate: 300 } });
 }
 
 export async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {

@@ -7,6 +7,7 @@ import { parseCompanySearchPage } from '../company-search-url';
 import type { UniverseCompany } from '../data';
 import { CompanySearchPagination } from './CompanySearchPagination';
 
+export const dynamic = 'force-dynamic';
 interface SearchPageProps {
   searchParams: Promise<{ page?: string | string[]; q?: string | string[] }>;
 }

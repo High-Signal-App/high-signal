@@ -1,23 +1,21 @@
-import { headers } from 'next/headers';
-
 import { api } from '@/lib/api';
 import { buildRssXml, signalExcerpt, signalHeadline } from '@/lib/rss';
 import { isBackfillSignal, signalPresentation } from '@/lib/signal-format';
+import { SITE_URL } from '@/lib/site';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 300;
 
 export async function GET() {
-  const h = await headers();
-  const proto = h.get('x-forwarded-proto') ?? 'https';
-  const host = h.get('x-forwarded-host') ?? h.get('host') ?? 'localhost';
-  const base = `${proto}://${host}`;
+  const base = SITE_URL;
 
   let signals: Awaited<ReturnType<typeof api.signals>>['signals'] = [];
+  let degraded = false;
   try {
     const r = await api.signals();
     signals = r.signals.filter((signal) => !isBackfillSignal(signal));
   } catch {
-    /* API offline — return an empty feed rather than 500. */
+    /* API offline — return an empty feed rather than 500, uncacheable. */
+    degraded = true;
   }
 
   const xml = buildRssXml({
@@ -42,7 +40,9 @@ export async function GET() {
     status: 200,
     headers: {
       'Content-Type': 'application/rss+xml; charset=utf-8',
-      'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+      'Cache-Control': degraded
+        ? 'no-store'
+        : 'public, s-maxage=300, stale-while-revalidate=600',
     },
   });
 }

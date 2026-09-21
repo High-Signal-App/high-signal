@@ -1,7 +1,7 @@
 import { api, type EntityRow } from '@/lib/api';
 import { SITE_URL } from '@/lib/site';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 3600;
 export const metadata = {
   title: 'Entities',
   // Self-canonical: the root layout deliberately sets none (a site-wide

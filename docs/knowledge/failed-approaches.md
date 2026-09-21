@@ -108,3 +108,29 @@ pitfalls see [`learnings/lessons.md`](learnings/lessons.md).
 - **Why:** Vector retrieval in the public signal product surface is deferred
   until evidence search is the bottleneck (Lab uses `pgvector` internally only).
 - **Reopen trigger:** evidence search becomes the product bottleneck.
+
+## Web CPU: response headers + per-colo edge cache alone (2026-09)
+
+- **Tried (several times):** `Cache-Control` on `force-dynamic` route
+  responses, then `caches.default` wrapping anonymous HTML in
+  `worker.mjs`.
+- **Why it failed:** Response headers on Worker output are inert —
+  `application/rss+xml` and HTML from a Worker are not edge-cached by
+  default, so every feed poll and crawler hit still ran the full Next.js
+  render. The later `caches.default` layer is **per-colo**: crawlers
+  walking the corpus (DotBot/Ahrefs/Semrush ~1-3s CPU per render) still
+  rendered each URL once per POP, and `/signals/[slug]` was excluded
+  outright. Two silent traps compounded it: `fetchApiResponse`'s
+  `cache: 'no-store'` fallback forced every API-driven page dynamic at
+  build (the option is dead code at runtime — `binding.fetch` is not
+  Next-instrumented), and `open-next.config.ts` had no incremental cache
+  (`dummy` default) so ISR was impossible.
+- **Fix that stuck:** real incremental cache (R2 + regional cache + DO
+  queue/tag cache) + `revalidate` on non-personalized routes + edge cache
+  extended to feeds/JSON/OG and anonymous signal detail, with
+  `CF_Authorization`/`high-signal-history` cookies and the
+  `cf-access-jwt-assertion` header excluded. See
+  `docs/operations/runbooks/cache.md`.
+- **Do not retry:** tuning `Cache-Control` headers or adding more paths
+  to `caches.default` without the global incremental cache — per-colo
+  caches cannot absorb corpus-walking crawler traffic.

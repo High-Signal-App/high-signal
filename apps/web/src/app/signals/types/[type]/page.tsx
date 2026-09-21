@@ -15,7 +15,7 @@ import { familyForSignalType, familyLabel } from '@high-signal/shared';
 import { SITE_URL } from '@/lib/site';
 import { evaluateCollection, robotsForVerdict } from '../../../../../public-corpus-policy.mjs';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 600;
 
 export async function generateMetadata({
   params,

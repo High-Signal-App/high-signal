@@ -1,10 +1,9 @@
-import { headers } from 'next/headers';
-
 import { api } from '@/lib/api';
 import { buildRssXml, signalExcerpt, signalHeadline } from '@/lib/rss';
 import { signalPresentation } from '@/lib/signal-format';
+import { SITE_URL } from '@/lib/site';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 300;
 
 /**
  * /entities/[id]/rss — RSS feed of every public signal tied to one entity.
@@ -13,10 +12,7 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
-  const h = await headers();
-  const proto = h.get('x-forwarded-proto') ?? 'https';
-  const host = h.get('x-forwarded-host') ?? h.get('host') ?? 'localhost';
-  const base = `${proto}://${host}`;
+  const base = SITE_URL;
 
   let entity: Awaited<ReturnType<typeof api.entity>>['entity'] | null = null;
   let signals: Awaited<ReturnType<typeof api.entity>>['signals'] = [];
@@ -25,7 +21,10 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
     entity = r.entity;
     signals = r.signals;
   } catch {
-    return new Response('entity not found', { status: 404 });
+    return new Response('entity not found', {
+      status: 404,
+      headers: { 'Cache-Control': 'no-store' },
+    });
   }
 
   if (!entity) return new Response('entity not found', { status: 404 });

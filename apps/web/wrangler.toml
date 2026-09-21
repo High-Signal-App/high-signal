@@ -42,3 +42,26 @@ CF_ACCESS_TEAM_DOMAIN = "long-frog-c8a6.cloudflareaccess.com"
 [[services]]
 binding = "API"
 service = "high-signal-api"
+
+# OpenNext revalidation queue invokes this same Worker.
+[[services]]
+binding = "WORKER_SELF_REFERENCE"
+service = "high-signal-web"
+
+# OpenNext incremental (ISR) cache — globally shared so each route renders once
+# per revalidation window instead of once per edge colo.
+[[r2_buckets]]
+binding = "NEXT_INC_CACHE_R2_BUCKET"
+bucket_name = "high-signal-web-inc-cache"
+
+[[durable_objects.bindings]]
+name = "NEXT_CACHE_DO_QUEUE"
+class_name = "DOQueueHandler"
+
+[[durable_objects.bindings]]
+name = "NEXT_TAG_CACHE_DO_SHARDED"
+class_name = "DOShardedTagCache"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["DOQueueHandler", "DOShardedTagCache"]

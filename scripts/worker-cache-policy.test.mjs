@@ -53,8 +53,52 @@ assert.equal(
 );
 assert.equal(
   isCacheableDocumentRequest(request('/signals/a-published-signal')),
-  false,
-  'canonical signal detail HTML must bypass the shared cache'
+  true,
+  'anonymous signal detail HTML is edge-cacheable (grant holders bypass below)'
+);
+
+for (const path of [
+  '/signals/rss',
+  '/signals/atom',
+  '/entities/openai/rss',
+  '/signals.json',
+  '/entities.json',
+  '/markets.json',
+  '/sectors/sectors.json',
+  '/data/hit-rate.json',
+  '/data/hit-rate.csv',
+  '/robots.txt',
+  '/api/og?title=Test',
+]) {
+  assert.equal(
+    isCacheableDocumentRequest(request(path)),
+    true,
+    `${path} must be edge-cacheable`
+  );
+}
+
+// Junk tracking params must not defeat the feed/JSON cache — canonical data
+// payloads ignore their query string.
+assert.equal(
+  isCacheableDocumentRequest(request('/signals/rss?utm_source=bot&x=1')),
+  true,
+  'feeds stay cacheable under junk query params'
+);
+const feedKey = cacheKeyForRequest(request('/signals/rss?utm_source=bot&x=1'), BUILD_A);
+assert.equal(feedKey.url.includes('utm_source'), false, 'junk params are stripped');
+assert.equal(
+  new URL(feedKey.url).searchParams.get('__hs_build'),
+  BUILD_A,
+  'junk params collapse into the canonical feed cache entry'
+);
+// Query-keyed payloads keep their query: /api/og varies by ?title=.
+const ogA = cacheKeyForRequest(request('/api/og?title=Alpha'), BUILD_A).url;
+const ogB = cacheKeyForRequest(request('/api/og?title=Beta'), BUILD_A).url;
+assert.notEqual(ogA, ogB, 'OG images must be keyed by their title param');
+assert.equal(
+  new URL(ogA).searchParams.get('title'),
+  'Alpha',
+  'the title param stays in the cache key'
 );
 
 for (const denied of [
@@ -64,6 +108,10 @@ for (const denied of [
   request('/about', { method: 'POST' }),
   request('/about', { headers: { Authorization: 'Bearer private' } }),
   request('/about', { headers: { Cookie: 'CF_Authorization=access.jwt.token' } }),
+  request('/signals/a-published-signal', {
+    headers: { Cookie: 'high-signal-history=grant.token' },
+  }),
+  request('/track-record', { headers: { 'cf-access-jwt-assertion': 'access.jwt' } }),
 ]) {
   assert.equal(isCacheableDocumentRequest(denied), false, `${denied.url} must bypass the cache`);
 }
@@ -81,8 +129,8 @@ const rsc = request('/signals/a-published-signal?_rsc=route-state', {
 assert.equal(isRscRequest(rsc), true);
 assert.equal(
   isCacheableDocumentRequest(rsc),
-  false,
-  'canonical signal detail RSC must bypass the shared cache'
+  true,
+  'anonymous signal detail RSC is edge-cacheable'
 );
 assert.equal(
   isCacheableDocumentRequest(
@@ -116,6 +164,43 @@ assert.equal(cacheControlForRequest(request('/data')), 'public, max-age=60, s-ma
 assert.equal(cacheControlForRequest(request('/data/nvd')), 'public, max-age=60, s-maxage=300');
 assert.equal(cacheControlForRequest(rsc), 'public, max-age=0, s-maxage=3600');
 assert.equal(cacheControlForRequest(request('/sitemap.xml')), 'public, max-age=300, s-maxage=3600');
+assert.equal(
+  cacheControlForRequest(request('/signals/a-published-signal')),
+  'public, max-age=60, s-maxage=3600'
+);
+assert.equal(cacheControlForRequest(request('/signals/rss')), 'public, max-age=300, s-maxage=300');
+assert.equal(
+  cacheControlForRequest(request('/entities/openai/rss')),
+  'public, max-age=300, s-maxage=300'
+);
+assert.equal(cacheControlForRequest(request('/api/og?title=x')), 'public, max-age=86400, s-maxage=86400');
+
+for (const [path, type] of [
+  ['/signals/rss', 'application/rss+xml'],
+  ['/signals/atom', 'application/atom+xml'],
+  ['/entities/openai/rss', 'application/rss+xml'],
+  ['/signals.json', 'application/json'],
+  ['/data/hit-rate.csv', 'text/csv'],
+  ['/robots.txt', 'text/plain'],
+  ['/api/og?title=x', 'image/png'],
+]) {
+  assert.equal(
+    isCacheableDocumentResponse(
+      request(path),
+      new Response('ok', { headers: { 'Content-Type': `${type}; charset=utf-8` } })
+    ),
+    true,
+    `${path} must accept ${type} responses`
+  );
+}
+assert.equal(
+  isCacheableDocumentResponse(
+    request('/signals/rss'),
+    new Response('<h1>oops</h1>', { headers: { 'Content-Type': 'text/html' } })
+  ),
+  false,
+  'a feed path must not cache an HTML error body'
+);
 
 assert.equal(
   isCacheableDocumentResponse(

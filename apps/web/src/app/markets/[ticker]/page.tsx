@@ -6,7 +6,7 @@ import { EntityDetail } from '@/components/organisms/EntityDetail';
 import { SITE_URL } from '@/lib/site';
 import { evaluateEntity, robotsForVerdict } from '../../../../public-corpus-policy.mjs';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 600;
 
 const TICKER_REGEX = /^[A-Z0-9]+(?:\.[A-Z]+)?$/i;
 

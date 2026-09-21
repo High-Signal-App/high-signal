@@ -5,7 +5,7 @@ import { DirectionPill } from '@/components/atoms/DirectionPill';
 import { api } from '@/lib/api';
 import { signalPresentation } from '@/lib/signal-format';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 3600;
 
 /**
  * /embed/[slug] — chromeless single-signal card designed to be iframed

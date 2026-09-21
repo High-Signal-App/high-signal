@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { api, type SourceAccuracyBucket } from '@/lib/api';
 import { SITE_URL } from '@/lib/site';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 3600;
 
 export const metadata: Metadata = {
   title: 'Source accuracy — data',
