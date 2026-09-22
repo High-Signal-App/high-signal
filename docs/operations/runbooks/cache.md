@@ -63,9 +63,18 @@ it, and SQLite's OR-to-index optimization needs every arm to be usable):
 - **seek** — resolve the family to concrete raw `source` values from the rollup,
   then seek `events_source_rollup_idx`. Chosen for families under
   `SEEK_PLAN_MAX_ROWS` rows, and for any family that spans a single source value.
+  The `IN` list is also capped at `SEEK_PLAN_MAX_SOURCES` (90) values: D1 binds
+  at most 100 parameters per statement and the same query binds the date range,
+  cursor, limit, and offset, so wider families (`news`, `ir`, `reddit`) must
+  scan rather than fail the request.
 - **scan** — walk `events_published_id_idx` newest-first and filter. Chosen for
   large families spread over many source values, where matches are dense enough
   that the first page is found within a few hundred rows.
+
+`GET /data/records/:id` is the per-record permalink behind both surfaces: one
+`events` row with its `source_documents` retained text (capped at 12k chars),
+catalog family, and resolved entity. Brief `news[]` citations carry `recordId`,
+and each source-browser row links to its record.
 
 Resolution reads the rollup **and** every source seen since the rollup's ingest
 watermark, so a source value that first appeared after the last rebuild is still

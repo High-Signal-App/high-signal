@@ -682,7 +682,7 @@ function sourceReferences(members: NewsRecord[]): BriefCitation[] {
       continue;
     }
     seen.add(url);
-    out.push({ url, source: sourceFamily(member.source) });
+    out.push({ url, source: sourceFamily(member.source), recordId: member.id });
   }
   return out;
 }

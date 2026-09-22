@@ -260,6 +260,32 @@ async function readSourceTotalsFromRollup(database: DB, id: string) {
 const SEEK_PLAN_MAX_ROWS = 5000;
 
 /**
+ * D1 allows at most 100 bound parameters per statement, and the listing query
+ * also binds the date range, cursor position, limit, and offset alongside the
+ * `IN` list. Families spanning more raw `source` values than this (`news`,
+ * `ir`, `reddit` in production) would overflow the cap and fail the request,
+ * so they keep the scan plan — a `?date=` request is already bounded by the
+ * `published_at` index range.
+ */
+const SEEK_PLAN_MAX_SOURCES = 90;
+
+/**
+ * The listing seeks only when the resolved family is both small enough to
+ * bind into an `IN` list (see SEEK_PLAN_MAX_SOURCES) and small enough to beat
+ * the time-ordered scan. A single-source family always seeks — SQLite walks
+ * the index already ordered by `published_at` and needs only an incremental
+ * sort for `id`. Anything wider or larger keeps the scan plan, which `null`
+ * signals to the caller. An empty resolution still returns `[]` when the
+ * family is small, so "resolves to nothing" stays distinguishable from
+ * "declined to seek" and the listing can short-circuit on `1 = 0`.
+ */
+export function seekPlanCandidates(resolved: string[] | null, total: number): string[] | null {
+  if (resolved === null || resolved.length > SEEK_PLAN_MAX_SOURCES) return null;
+  if (resolved.length !== 1 && total > SEEK_PLAN_MAX_ROWS) return null;
+  return resolved;
+}
+
+/**
  * Resolves one catalog family to the raw `source` values it covers, or `null`
  * when the rollup cannot answer and the caller must fall back to scanning.
  *
@@ -756,12 +782,7 @@ dataRoute.get('/sources/:id', async (c) => {
   const worthResolving =
     !sourceFilter && (total <= SEEK_PLAN_MAX_ROWS || sourceCount === null || sourceCount === 1);
   if (worthResolving) {
-    const resolved = await resolveFamilySources(database, id);
-    // One candidate is always worth seeking: SQLite walks the index already
-    // ordered by `published_at` and needs only an incremental sort for `id`.
-    if (resolved && (resolved.length === 1 || total <= SEEK_PLAN_MAX_ROWS)) {
-      candidates = resolved;
-    }
+    candidates = seekPlanCandidates(await resolveFamilySources(database, id), total);
   }
   const access =
     candidates === null
@@ -796,6 +817,9 @@ dataRoute.get('/sources/:id', async (c) => {
   const hasMore = rows.length > limit;
   const page = hasMore ? rows.slice(0, limit) : rows;
   const events = page.map((r) => ({
+    // `id` also feeds the keyset cursor and is the permalink key for
+    // `/data/records/:id`, so a listed row can be inspected directly.
+    id: r.id,
     title: r.title,
     content: r.content,
     url: r.url,
@@ -829,6 +853,97 @@ dataRoute.get('/sources/:id', async (c) => {
         : null,
     available: true,
   });
+});
+
+/**
+ * Retained text can run to a full article body; the public record carries
+ * enough to inspect what the pipeline kept, not the whole document.
+ */
+const RETAINED_TEXT_MAX = 12_000;
+
+function epochSeconds(value: Date | number | null): number | null {
+  if (value == null) return null;
+  if (value instanceof Date) return Math.floor(value.getTime() / 1000);
+  return Number(value);
+}
+
+/**
+ * GET /data/records/:id — one retained `events` row with the text retained in
+ * `source_documents`, its catalog family, and its resolved entity. This is the
+ * permalink the Daily Brief's ranked stories and the source-browser rows point
+ * at, so a reader can inspect the record behind a citation rather than only
+ * the external URL.
+ */
+dataRoute.get('/records/:id', async (c) => {
+  const id = c.req.param('id');
+  const database = db(c.env.DB);
+  let row:
+    | {
+        id: string;
+        source: string;
+        url: string;
+        title: string | null;
+        content: string | null;
+        entity: string | null;
+        entityName: string | null;
+        publishedAt: Date;
+        ingestedAt: Date;
+        retainedText: string | null;
+        documentFetchedAt: Date | null;
+        canonicalUrl: string | null;
+      }
+    | undefined;
+  try {
+    [row] = await database
+      .select({
+        id: schema.events.id,
+        source: schema.events.source,
+        url: schema.events.sourceUrl,
+        title: schema.events.title,
+        content: schema.events.content,
+        entity: schema.events.primaryEntityId,
+        entityName: schema.entities.name,
+        publishedAt: schema.events.publishedAt,
+        ingestedAt: schema.events.ingestedAt,
+        retainedText: schema.sourceDocuments.rawText,
+        documentFetchedAt: schema.sourceDocuments.fetchedAt,
+        canonicalUrl: schema.sourceDocuments.canonicalUrl,
+      })
+      .from(schema.events)
+      .leftJoin(schema.entities, eq(schema.events.primaryEntityId, schema.entities.id))
+      .leftJoin(
+        schema.sourceDocuments,
+        eq(schema.events.sourceDocumentId, schema.sourceDocuments.id)
+      )
+      .where(eq(schema.events.id, id))
+      .limit(1);
+  } catch {
+    return c.json({ id, available: false });
+  }
+  if (!row) return c.json({ error: 'not_found', id }, 404);
+
+  const retainedText = row.retainedText;
+  return c.json(
+    {
+      id: row.id,
+      source: row.source,
+      family: family(row.source),
+      url: row.url,
+      canonicalUrl: row.canonicalUrl,
+      title: row.title,
+      content: row.content,
+      retainedText: retainedText ? retainedText.slice(0, RETAINED_TEXT_MAX) : null,
+      retainedTextTruncated: retainedText !== null && retainedText.length > RETAINED_TEXT_MAX,
+      entity: row.entity,
+      entityName: row.entityName,
+      publishedAt: epochSeconds(row.publishedAt),
+      ingestedAt: epochSeconds(row.ingestedAt),
+      documentFetchedAt: epochSeconds(row.documentFetchedAt),
+      available: true,
+    },
+    200,
+    { 'Cache-Control': 'public, max-age=60, s-maxage=3600' }
+  );
 });
 
 async function loadAttentionSourceStatus(d1: D1Database, sampleLimit: number) {

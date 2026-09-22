@@ -303,6 +303,11 @@ export interface DataSourcesResponse {
   uncataloguedSources: string[];
 }
 export interface DataSourceEvent {
+  /**
+   * Retained `events` row id — the `/data/records/:id` permalink key. Absent
+   * on attention rows (digg/mts), which live outside the `events` table.
+   */
+  id?: string;
   title: string | null;
   content: string | null;
   url: string;
@@ -328,6 +333,24 @@ export interface DataSourceEventsResponse {
   nextCursor: string | null;
   available: boolean;
 }
+export interface DataRecordResponse {
+  id: string;
+  /** Raw `events.source` value and the catalog family it resolves to. */
+  source: string;
+  family: string;
+  url: string;
+  canonicalUrl: string | null;
+  title: string | null;
+  content: string | null;
+  retainedText: string | null;
+  retainedTextTruncated: boolean;
+  entity: string | null;
+  entityName: string | null;
+  publishedAt: number | null;
+  ingestedAt: number | null;
+  documentFetchedAt: number | null;
+  available: boolean;
+}
 
 export const api = {
   signals: (f: SignalFilters = {}, historyGrant?: string | null) =>
@@ -349,6 +372,8 @@ export const api = {
       `/data/sources/${encodeURIComponent(id)}${q ? `?${q}` : ''}`
     );
   },
+  dataRecord: (id: string) =>
+    fetchJson<DataRecordResponse>(`/data/records/${encodeURIComponent(id)}`),
   facets: () => fetchJson<Facets>('/signals/facets'),
   signal: (slug: string, historyGrant?: string | null) =>
     fetchJson<{

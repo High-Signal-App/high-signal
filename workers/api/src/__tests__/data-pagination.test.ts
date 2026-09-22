@@ -1,9 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { istDayFromTimestamp } from '@high-signal/shared';
 import { applyMigrations, createSqliteD1, type TestD1 } from '../../test/sqlite-d1';
 import { app } from '../app';
 import { db } from '../db';
 import { decodeKeysetCursor, encodeKeysetCursor } from '../lib/cursor';
 import { refreshEventsSourceRollup } from '../lib/events-rollup';
+import { seekPlanCandidates } from '../routes/data';
 
 const NOW = Math.floor(Date.now() / 1000);
 const DAY = 86_400;
@@ -261,10 +263,13 @@ describe('GET /data/sources/:id response contract', () => {
     for (const field of LEGACY_FIELDS) expect(body, field).toHaveProperty(field);
     expect(Object.keys(body).sort()).toEqual([...LEGACY_FIELDS, 'nextCursor'].sort());
     const [event] = body['events'] as Array<Record<string, unknown>>;
-    // `id` is selected to build the cursor but must not leak into the payload.
+    // `id` is exposed on purpose: it feeds the keyset cursor and is the
+    // `/data/records/:id` permalink key, so a listed row can be inspected
+    // directly from its retained record.
     expect(Object.keys(event ?? {}).sort()).toEqual([
       'content',
       'entity',
+      'id',
       'publishedAt',
       'source',
       'title',
@@ -303,6 +308,32 @@ describe('GET /data/sources/:id response contract', () => {
     expect(body['available']).toBe(true);
   });
 
+  it('serves a date-filtered family spanning more raw sources than a statement can bind', async () => {
+    // In production `news` spans 100+ raw `source` values. Resolving the
+    // family into `source IN (…)` would exceed D1's 100 bound-parameter cap —
+    // that is what made /data/news and /data/ir report their stores
+    // unreachable — so wide families must keep the time-ordered scan.
+    // `?date=` is an IST day; derive the day from the seed timestamp so the
+    // filter always lands on the seeded rows.
+    const publishedAt = NOW - DAY;
+    const day = istDayFromTimestamp(publishedAt * 1000)!;
+    seedEvents(
+      d1,
+      Array.from({ length: 120 }, (_, i) => ({
+        id: `nw-${String(i).padStart(3, '0')}`,
+        source: `news:feed-${i}`,
+        publishedAt,
+        ingestedAt: publishedAt + 60,
+      }))
+    );
+    await refreshEventsSourceRollup(env(), db(d1.binding), new Date(NOW * 1000));
+    const { status, body } = await get(`/data/sources/news?date=${day}&limit=200`);
+    expect(status).toBe(200);
+    expect(body['available']).toBe(true);
+    expect(body['total']).toBe(120);
+    expect((body['events'] as PageEvent[]).length).toBe(120);
+  });
+
   it('finds a source value that first appeared after the last rebuild', async () => {
     await refreshEventsSourceRollup(env(), db(d1.binding), new Date(NOW * 1000));
     // A brand-new sub-source, so the rollup has never seen this `source` value.
@@ -311,6 +342,29 @@ describe('GET /data/sources/:id response contract', () => {
     const sources = new Set((body['events'] as PageEvent[]).map((e) => e.source));
     expect(sources).toContain('legistar:tucson');
     expect((body['events'] as PageEvent[]).length).toBe(7);
+  });
+});
+
+describe('seekPlanCandidates', () => {
+  const wide = (n: number) => Array.from({ length: n }, (_, i) => `news:feed-${i}`);
+
+  it('declines families wider than a D1 statement can bind', () => {
+    expect(seekPlanCandidates(wide(91), 10)).toBeNull();
+    expect(seekPlanCandidates(wide(90), 10)).toHaveLength(90);
+  });
+
+  it('keeps the single-source seek at any table size', () => {
+    expect(seekPlanCandidates(['markets'], 9_000_000)).toEqual(['markets']);
+  });
+
+  it('scans multi-source families past the row crossover', () => {
+    expect(seekPlanCandidates(['a', 'b'], 5_001)).toBeNull();
+    expect(seekPlanCandidates(['a', 'b'], 5_000)).toEqual(['a', 'b']);
+  });
+
+  it('distinguishes an empty resolution from an unresolvable one', () => {
+    expect(seekPlanCandidates([], 0)).toEqual([]);
+    expect(seekPlanCandidates(null, 0)).toBeNull();
   });
 });
 
