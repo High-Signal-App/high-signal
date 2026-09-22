@@ -280,6 +280,14 @@ export default async function DataSourcePage({
               </p>
             )}
             <div className="mt-1 flex flex-wrap gap-2 pl-[4.5rem] font-mono text-[10px] text-zinc-600">
+              {ev.id && (
+                <Link
+                  href={`/data/records/${encodeURIComponent(ev.id)}` as Route}
+                  className="rounded border border-zinc-800 px-1.5 py-0.5 hover:text-[var(--color-accent)]"
+                >
+                  record
+                </Link>
+              )}
               {ev.entity && (
                 <Link
                   href={`/entities/${encodeURIComponent(ev.entity)}`}

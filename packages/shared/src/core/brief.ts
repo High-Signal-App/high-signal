@@ -13,6 +13,11 @@ export type BriefSectionKey = 'stocks' | 'ideas' | 'trends' | 'news';
 export interface BriefCitation {
   url: string;
   source?: string | null;
+  /**
+   * The retained `events` row behind this citation — the `/data/records/:id`
+   * permalink. Absent on citations composed before records were addressable.
+   */
+  recordId?: string;
 }
 
 export type BriefPublicSectionKey = 'stocks' | 'ideas' | 'trends';

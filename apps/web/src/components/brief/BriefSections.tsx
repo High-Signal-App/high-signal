@@ -311,15 +311,24 @@ function NewsSourceReferences({ citations }: { citations: BriefCitation[] }) {
   return (
     <div className="mt-5 flex flex-wrap gap-4 border-t border-[var(--color-line)] pt-3 font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--color-muted)]">
       {citations.map((citation) => (
-        <a
-          key={citation.url}
-          href={citation.url}
-          target="_blank"
-          rel="noreferrer"
-          className="hover:text-[var(--color-accent)]"
-        >
-          {citation.source ?? sourceHost(citation.url)} ↗
-        </a>
+        <span key={citation.url} className="inline-flex items-center gap-2">
+          <a
+            href={citation.url}
+            target="_blank"
+            rel="noreferrer"
+            className="hover:text-[var(--color-accent)]"
+          >
+            {citation.source ?? sourceHost(citation.url)} ↗
+          </a>
+          {citation.recordId ? (
+            <Link
+              href={`/data/records/${encodeURIComponent(citation.recordId)}` as Route}
+              className="text-[var(--color-fg)] underline decoration-[var(--color-line)] underline-offset-4 hover:text-[var(--color-accent)]"
+            >
+              record
+            </Link>
+          ) : null}
+        </span>
       ))}
     </div>
   );
