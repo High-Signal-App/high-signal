@@ -124,6 +124,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           }}
         />
         {/* fleet-jsonld:end */}
+        <script
+          type="application/ld+json"
+          // biome-ignore lint/security/noDangerouslySetInnerHtml: product entity JSON-LD
+          dangerouslySetInnerHTML={{
+            __html: `{"@context":"https://schema.org","@type":"NewsMediaOrganization","@id":"https://highsignal.app/#org","name":"High Signal","alternateName":["HighSignal","highsignal.app","High Signal Daily Brief"],"url":"https://highsignal.app","description":"Free public Daily Brief on technology, startups, and finance with cited sources and a public hit-rate ledger.","founder":{"@id":"https://sarthakagrawal.dev/#person"},"sameAs":["https://github.com/High-Signal-App/high-signal"]}`,
+          }}
+        />
       </head>
       <body className="min-h-dvh font-sans antialiased">
         {app}
