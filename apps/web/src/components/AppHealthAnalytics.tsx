@@ -1,6 +1,7 @@
 'use client';
 
-import { usePathname } from 'next/navigation';
+import type { Route } from 'next';
+import { usePathname, useRouter } from 'next/navigation';
 import { classifyUserAgent } from '@high-signal/shared';
 import { useEffect } from 'react';
 import { APP_HEALTH_PUBLIC_KEY } from '@/lib/app-health-public';
@@ -16,6 +17,7 @@ let activeScript: HTMLScriptElement | undefined;
 
 export function AppHealthAnalytics() {
   const pathname = usePathname();
+  const router = useRouter();
   const publicPage = isPublicAnalyticsPath(pathname);
   useEffect(() => {
     // UA matches are claims, not verification. Server-side summaries account
@@ -63,15 +65,49 @@ export function AppHealthAnalytics() {
       const tagged = event.target.closest<HTMLElement>('[data-app-health-event]');
       const taggedName = tagged?.dataset['appHealthEvent'];
       if (taggedName) trackAppHealthEvent(taggedName);
-      const link = event.target.closest<HTMLAnchorElement>('main a[href]');
-      if (!link) return;
-      const name = readingAction(link.href, location.origin);
+
+      const link = event.target.closest<HTMLAnchorElement>('a[href]');
+      const name = link?.closest('main') ? readingAction(link.href, location.origin) : null;
       if (name) trackAppHealthEvent(name);
+
+      const tracker = browserTracker();
+      if (
+        !link ||
+        !(taggedName || name) ||
+        !tracker ||
+        event.defaultPrevented ||
+        event.button !== 0 ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.shiftKey ||
+        event.altKey ||
+        link.target === '_blank' ||
+        link.hasAttribute('download') ||
+        new URL(link.href, location.href).origin !== location.origin
+      )
+        return;
+
+      // Wait for the named action batch before moving to another reader route.
+      event.preventDefault();
+      const destination = new URL(link.href, location.href);
+      const nextPath = `${destination.pathname}${destination.search}${destination.hash}`;
+      let timer: number | undefined;
+      void Promise.race([
+        tracker.flush(),
+        new Promise<void>((resolve) => {
+          timer = window.setTimeout(resolve, 1200);
+        }),
+      ])
+        .catch(() => undefined)
+        .finally(() => {
+          if (timer !== undefined) window.clearTimeout(timer);
+          router.push(nextPath as Route);
+        });
     };
-    document.addEventListener('click', click);
+    document.addEventListener('click', click, true);
     return () => {
       disposed = true;
-      document.removeEventListener('click', click);
+      document.removeEventListener('click', click, true);
       script.remove();
       browserTracker()?.stop();
       window.removeEventListener('popstate', pop, true);

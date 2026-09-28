@@ -52,6 +52,34 @@ test('captures public navigation once, fixed actions, and excludes private trans
   expect(batches.flatMap((b) => b.events).some((e) => e.path.startsWith('/review'))).toBe(false);
 });
 
+test('acknowledges the primary signals CTA before in-app navigation', async ({ page }) => {
+  const batches: Array<{ events: Array<{ type: string; path: string; name?: string }> }> = [];
+  await page.route('https://ingest.sassmaker.com/tracker.js', async (route) => {
+    await route.fulfill({ contentType: 'application/javascript', body: tracker });
+  });
+  await page.route('https://ingest.sassmaker.com/v1/browser', async (route) => {
+    batches.push(route.request().postDataJSON());
+    await route.fulfill({ status: 202, body: '{}' });
+  });
+
+  await page.goto('/');
+  const browse = page.getByRole('link', { name: 'browse earlier verified signals', exact: true });
+  await expect(browse).toBeVisible();
+  await browse.click();
+
+  await expect(page).toHaveURL(/\/signals$/);
+  await expect
+    .poll(() =>
+      batches
+        .flatMap((batch) => batch.events)
+        .some((event) => event.name === 'signals.browse_opened')
+    )
+    .toBe(true);
+  expect(batches.flatMap((batch) => batch.events)).toContainEqual(
+    expect.objectContaining({ type: 'event', name: 'signals.browse_opened', path: '/' })
+  );
+});
+
 test('analytics delivery failure leaves the page usable', async ({ page }) => {
   await page.route('https://ingest.sassmaker.com/**', (route) => route.abort());
   await page.goto('/privacy');

@@ -431,6 +431,7 @@ export function SignalFeed({
             or{' '}
             <Link
               href={'/signals' as Route}
+              data-app-health-event="signals.browse_opened"
               className="text-[var(--color-fg)] underline decoration-[var(--color-line)] underline-offset-4 hover:text-[var(--color-accent)]"
             >
               browse earlier verified signals
