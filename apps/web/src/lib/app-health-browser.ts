@@ -35,7 +35,7 @@ export function readingAction(href: string, origin: string): string | null {
     if (!['http:', 'https:'].includes(url.protocol)) return null;
     if (url.origin !== origin) return 'source.opened';
     if (/^\/signals\/[^/]+$/.test(url.pathname)) return 'signal.opened';
-    if (/^\/data\/[^/]+$/.test(url.pathname)) return 'source.explored';
+    if (/^\/data\/(?:[^/]+|records\/[^/]+)$/.test(url.pathname)) return 'source.explored';
     if (/^\/case-studies\/[^/]+$/.test(url.pathname)) return 'company.opened';
     if (/^\/brief\/[^/]+$/.test(url.pathname)) return 'archive.opened';
     return null;

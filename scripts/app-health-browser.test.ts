@@ -16,6 +16,10 @@ assert.equal(
   readingAction('/signals/public?token=secret', 'https://highsignal.app'),
   'signal.opened'
 );
+assert.equal(
+  readingAction('/data/records/public-id?token=secret', 'https://highsignal.app'),
+  'source.explored'
+);
 assert.equal(readingAction('/review/private', 'https://highsignal.app'), null);
 assert.equal(readingAction('mailto:secret@example.com', 'https://highsignal.app'), null);
 console.log('App Health public route and action privacy checks passed');
