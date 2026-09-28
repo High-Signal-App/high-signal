@@ -104,5 +104,26 @@ const jsonLd =
       data-name="High Signal"
       defer
     ></script>
+    <script is:inline type="module" src="https://sassmaker.com/newsletter-capture.js"></script>
+    <script is:inline>
+      (function () {
+        var key = 'ahk_pub_4aca0714a951e8151c8118c7daa800b7c96f0407166438cf3a13b206d1276385';
+        var script = document.createElement('script');
+        script.src = 'https://ingest.sassmaker.com/tracker.js';
+        script.async = true;
+        script.dataset.key = key;
+        script.dataset.endpoint = 'https://ingest.sassmaker.com/v1/browser';
+        document.head.appendChild(script);
+        document.addEventListener('click', function (event) {
+          var target = event.target;
+          if (!(target instanceof Element)) return;
+          var link = target.closest('a[data-app-health-event]');
+          var name = link && link.getAttribute('data-app-health-event');
+          if (name && window.appHealth && typeof window.appHealth.track === 'function') {
+            window.appHealth.track(name);
+          }
+        });
+      })();
+    </script>
   </body>
 </html>

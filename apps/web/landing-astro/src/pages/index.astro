@@ -16,7 +16,7 @@ const DESCRIPTION =
         <a href="/" class="no-underline hover:text-[var(--color-fg)]">Brief</a>
         <a href="/signals" class="no-underline hover:text-[var(--color-fg)]">Signals</a>
         <a href="/data" class="no-underline hover:text-[var(--color-fg)]">Sources</a>
-        <a href="/track-record" class="no-underline hover:text-[var(--color-fg)]">Track record</a>
+        <a href="/track-record" data-app-health-event="track_record.opened" class="no-underline hover:text-[var(--color-fg)]">Track record</a>
       </nav>
     </header>
 
@@ -45,12 +45,14 @@ const DESCRIPTION =
       <div class="mt-8 flex flex-wrap items-center gap-3">
         <a
           href="/"
+          data-app-health-event="brief.opened"
           class="inline-flex h-11 items-center justify-center rounded-md bg-[var(--color-accent)] px-5 text-sm font-medium text-black no-underline transition-opacity hover:opacity-90"
         >
           Read today&apos;s brief
         </a>
         <a
           href="/signals"
+          data-app-health-event="signals.browsed"
           class="inline-flex h-11 items-center justify-center rounded-md border border-[var(--color-line)] px-5 text-sm font-medium text-[var(--color-fg)] no-underline transition-colors hover:border-[var(--color-muted)]"
         >
           Browse signals
@@ -68,6 +70,13 @@ const DESCRIPTION =
           Every published signal cites at least two independent sources.
         </p>
       </div>
+      <saas-maker-newsletter-capture
+        catalog-id="high-signal"
+        product-name="High Signal"
+        kind="newsletter"
+        source="footer"
+        privacy-url="https://highsignal.app/privacy"
+      ></saas-maker-newsletter-capture>
       <nav class="flex flex-wrap gap-x-4 gap-y-2 font-mono text-[10px] uppercase tracking-[0.14em]">
         <a href="/about">About</a>
         <a href="/methodology">Methodology</a>

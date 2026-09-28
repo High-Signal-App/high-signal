@@ -141,6 +141,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           data-name="High Signal"
           strategy="lazyOnload"
         />
+        <Script
+          src="https://sassmaker.com/newsletter-capture.js"
+          type="module"
+          strategy="lazyOnload"
+        />
       </body>
     </html>
   );

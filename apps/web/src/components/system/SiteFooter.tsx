@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type { Route } from 'next';
+import { createElement } from 'react';
 
 import { SITE_URL } from '@/lib/site';
 import { APP_HEALTH_LIVE_URL } from '@/lib/app-health-public';
@@ -37,7 +38,11 @@ export function SiteFooter() {
         <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-[var(--color-muted)]">
           Every signal cites ≥ 2 sources. Hit-rate tracked from day one.
           <span className="mx-3 opacity-30">—</span>
-          <a href="/track-record" className="hover:text-[var(--color-fg)]">
+          <a
+            href="/track-record"
+            data-app-health-event="track_record.opened"
+            className="hover:text-[var(--color-fg)]"
+          >
             See the ledger →
           </a>
         </p>
@@ -47,6 +52,13 @@ export function SiteFooter() {
         </p>
       </div>
       <div className="mx-auto max-w-5xl px-6 py-10">
+        {createElement('saas-maker-newsletter-capture', {
+          'catalog-id': 'high-signal',
+          'product-name': 'High Signal',
+          kind: 'newsletter',
+          source: 'footer',
+          'privacy-url': 'https://highsignal.app/privacy',
+        })}
         <div className="grid grid-cols-2 gap-8 sm:grid-cols-3">
           <FooterColumn title="Read" links={READ} />
           <FooterColumn title="Verify" links={VERIFY} />

@@ -60,6 +60,9 @@ export function AppHealthAnalytics() {
     });
     const click = (event: MouseEvent) => {
       if (!(event.target instanceof Element)) return;
+      const tagged = event.target.closest<HTMLElement>('[data-app-health-event]');
+      const taggedName = tagged?.dataset['appHealthEvent'];
+      if (taggedName) trackAppHealthEvent(taggedName);
       const link = event.target.closest<HTMLAnchorElement>('main a[href]');
       if (!link) return;
       const name = readingAction(link.href, location.origin);
