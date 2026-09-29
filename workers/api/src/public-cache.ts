@@ -16,7 +16,9 @@ export function isPublicCacheRequest(request: Request) {
 
   const url = new URL(request.url);
   if (
-    (url.pathname === '/brief/daily' || url.pathname === '/data/sources') &&
+    (url.pathname === '/brief/daily' ||
+      url.pathname === '/data/sources' ||
+      /^\/data\/sources\/[^/]+$/.test(url.pathname)) &&
     url.searchParams.get('timing') === '1'
   ) {
     return false;

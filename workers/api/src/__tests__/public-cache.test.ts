@@ -53,6 +53,12 @@ describe('public API edge cache', () => {
       isPublicCacheRequest(new Request('https://api.highsignal.app/data/sources?timing=1'))
     ).toBe(false);
     expect(
+      isPublicCacheRequest(new Request('https://api.highsignal.app/data/sources/markets?timing=1'))
+    ).toBe(false);
+    expect(
+      isPublicCacheRequest(new Request('https://api.highsignal.app/data/sources/markets'))
+    ).toBe(true);
+    expect(
       isPublicCacheRequest(
         new Request('https://api.highsignal.app/brief/daily?verification=not-diagnostics')
       )

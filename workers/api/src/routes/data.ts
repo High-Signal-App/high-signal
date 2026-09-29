@@ -708,6 +708,10 @@ dataRoute.get('/sources', async (c) => {
  * in JS.
  */
 dataRoute.get('/sources/:id', async (c) => {
+  const timings: ServerTimingEntry[] = [];
+  const diagnostics = c.req.query('timing') === '1';
+  const stage = <T>(name: string, work: () => Promise<T>) =>
+    diagnostics ? timeServerStage(timings, name, work) : work();
   const id = c.req.param('id');
   const requestedLimit = Number(c.req.query('limit') ?? 50);
   const requestedOffset = Number(c.req.query('offset') ?? 0);
@@ -730,11 +734,15 @@ dataRoute.get('/sources/:id', async (c) => {
   const sourceFilter = c.req.query('source');
 
   if (id === 'digg' || id === 'mts') {
-    return attentionSourceEvents(c, id, {
-      limit,
-      offset,
-      date: range ? date : undefined,
-    });
+    const response = await stage('attention_events', () =>
+      attentionSourceEvents(c, id, {
+        limit,
+        offset,
+        date: range ? date : undefined,
+      })
+    );
+    setServerTiming(c, timings, diagnostics);
+    return response;
   }
 
   const database = db(c.env.DB);
@@ -758,16 +766,18 @@ dataRoute.get('/sources/:id', async (c) => {
     // minutes behind); a `?date=` or `?source=` request still asks `events`
     // directly, because the rollup carries no per-day breakdown and a
     // single-source total is already an index seek.
-    const row =
+    const row = await stage('source_totals', async () =>
       filters.length === 0 && (await eventsRollupIsReady(database))
-        ? await readSourceTotalsFromRollup(database, id)
-        : await readSourceTotalsLive(database, where);
+        ? readSourceTotalsFromRollup(database, id)
+        : readSourceTotalsLive(database, where)
+    );
     total = Number(row?.n ?? 0);
     latestObservedAt = Number(row?.latestObservedAt ?? 0);
     lastIngestedAt = Number(row?.lastIngestedAt ?? 0);
     futureCount = Number(row?.futureCount ?? 0);
     sourceCount = row?.sourceCount === undefined ? null : Number(row.sourceCount);
   } catch {
+    setServerTiming(c, timings, diagnostics);
     return c.json({
       id,
       date: range ? date : undefined,
@@ -795,7 +805,8 @@ dataRoute.get('/sources/:id', async (c) => {
   const worthResolving =
     !sourceFilter && (total <= SEEK_PLAN_MAX_ROWS || sourceCount === null || sourceCount === 1);
   if (worthResolving) {
-    candidates = seekPlanCandidates(await resolveFamilySources(database, id), total);
+    const resolved = await stage('family_resolution', () => resolveFamilySources(database, id));
+    candidates = seekPlanCandidates(resolved, total);
   }
   const access =
     candidates === null
@@ -809,23 +820,25 @@ dataRoute.get('/sources/:id', async (c) => {
   const cursorFilter = cursor ? keysetAfter(cursor) : undefined;
   // One extra row decides `hasMore` exactly, instead of inferring it from a
   // `total` the rollup may have computed up to 30 minutes ago.
-  const rows = await database
-    .select({
-      id: schema.events.id,
-      title: schema.events.title,
-      content: schema.events.content,
-      url: schema.events.sourceUrl,
-      source: schema.events.source,
-      entity: schema.events.primaryEntityId,
-      publishedAt: schema.events.publishedAt,
-    })
-    .from(schema.events)
-    .where(cursorFilter ? and(access, cursorFilter) : access)
-    // `id` is the unique tiebreaker. Without it a `LIMIT` over `published_at`
-    // alone is not a well-defined window and pages overlap inside tie blocks.
-    .orderBy(desc(schema.events.publishedAt), desc(schema.events.id))
-    .limit(limit + 1)
-    .offset(offset);
+  const rows = await stage('event_page', () =>
+    database
+      .select({
+        id: schema.events.id,
+        title: schema.events.title,
+        content: schema.events.content,
+        url: schema.events.sourceUrl,
+        source: schema.events.source,
+        entity: schema.events.primaryEntityId,
+        publishedAt: schema.events.publishedAt,
+      })
+      .from(schema.events)
+      .where(cursorFilter ? and(access, cursorFilter) : access)
+      // `id` is the unique tiebreaker. Without it a `LIMIT` over `published_at`
+      // alone is not a well-defined window and pages overlap inside tie blocks.
+      .orderBy(desc(schema.events.publishedAt), desc(schema.events.id))
+      .limit(limit + 1)
+      .offset(offset)
+  );
 
   const hasMore = rows.length > limit;
   const page = hasMore ? rows.slice(0, limit) : rows;
@@ -845,6 +858,7 @@ dataRoute.get('/sources/:id', async (c) => {
   }));
 
   const last = page.at(-1);
+  setServerTiming(c, timings, diagnostics);
   return c.json({
     id,
     date: range ? date : undefined,
