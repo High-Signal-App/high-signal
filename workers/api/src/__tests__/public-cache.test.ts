@@ -45,6 +45,46 @@ describe('public API edge cache', () => {
     ).toBe(false);
   });
 
+  it('bypasses shared caching only for explicit diagnostics on measured routes', () => {
+    expect(
+      isPublicCacheRequest(new Request('https://api.highsignal.app/brief/daily?timing=1'))
+    ).toBe(false);
+    expect(
+      isPublicCacheRequest(new Request('https://api.highsignal.app/data/sources?timing=1'))
+    ).toBe(false);
+    expect(
+      isPublicCacheRequest(
+        new Request('https://api.highsignal.app/brief/daily?verification=not-diagnostics')
+      )
+    ).toBe(true);
+    expect(isPublicCacheRequest(new Request('https://api.highsignal.app/signals?timing=1'))).toBe(
+      true
+    );
+  });
+
+  it('does not store diagnostic timing responses in the shared API cache', async () => {
+    const cache = memoryCache();
+    const response = await handlePublicApiCache(
+      new Request('https://api.highsignal.app/brief/daily?timing=1'),
+      async () =>
+        Response.json(
+          { ok: true },
+          {
+            headers: {
+              'cache-control': 'private, no-store',
+              'server-timing': 'snapshot;dur=12.3',
+            },
+          }
+        ),
+      { cache }
+    );
+
+    expect(response.headers.get('server-timing')).toBe('snapshot;dur=12.3');
+    expect(response.headers.get('x-edge-cache')).toBeNull();
+    expect(cache.match).not.toHaveBeenCalled();
+    expect(cache.put).not.toHaveBeenCalled();
+  });
+
   it('makes a safe HEAD response front-cacheable without storing it as a GET body', async () => {
     const cache = memoryCache();
     const response = await handlePublicApiCache(

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { applyMigrations, createSqliteD1, type TestD1 } from '../../test/sqlite-d1';
 import { app } from '../app';
 import { db } from '../db';
@@ -90,7 +90,7 @@ const CATALOG_IDS = [
 describe('events source rollup', () => {
   it('reports only fixed stage names and durations on a source-status cache miss', async () => {
     const response = await app.fetch(
-      new Request('http://test/data/sources?samples=1&marker=private-value'),
+      new Request('http://test/data/sources?timing=1&samples=1&marker=private-value'),
       env()
     );
     const timing = response.headers.get('server-timing') ?? '';
@@ -99,6 +99,22 @@ describe('events source rollup', () => {
     );
     expect(timing).not.toContain('private-value');
     expect(timing).not.toContain('samples');
+    expect(response.headers.get('cache-control')).toBe('private, no-store');
+  });
+
+  it('bypasses the shared source-status snapshot when diagnostics are opted in', async () => {
+    const get = vi.fn(async () => ({ cached: true }));
+    const put = vi.fn(async () => undefined);
+    const response = await app.fetch(new Request('http://test/data/sources?timing=1'), {
+      ...env(),
+      BRIEF_CACHE: { get, put } as unknown as KVNamespace,
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('server-timing')).toContain('source_rollup;dur=');
+    expect(response.headers.get('cache-control')).toBe('private, no-store');
+    expect(get).not.toHaveBeenCalled();
+    expect(put).not.toHaveBeenCalled();
   });
 
   it('serves the live aggregate until the cron has built the rollup', async () => {

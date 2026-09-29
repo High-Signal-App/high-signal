@@ -17,9 +17,11 @@ export async function timeServerStage<T>(
 
 export function setServerTiming<B extends object>(
   c: Context<{ Bindings: B }>,
-  entries: ServerTimingEntry[]
+  entries: ServerTimingEntry[],
+  enabled: boolean
 ) {
-  if (!entries.length) return;
+  if (!enabled || !entries.length) return;
+  c.header('Cache-Control', 'private, no-store');
   c.header(
     'Server-Timing',
     entries

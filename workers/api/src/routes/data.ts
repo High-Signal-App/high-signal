@@ -488,10 +488,11 @@ dataRoute.get('/daily', async (c) => {
  */
 dataRoute.get('/sources', async (c) => {
   const timings: ServerTimingEntry[] = [];
+  const diagnostics = c.req.query('timing') === '1';
   const requestedSamples = Number(c.req.query('samples') ?? 0);
   const limit = Math.min(Math.max(Number.isFinite(requestedSamples) ? requestedSamples : 0, 0), 10);
   const cacheKey = sourceStatusCacheKey(limit);
-  if (c.env.BRIEF_CACHE) {
+  if (!diagnostics && c.env.BRIEF_CACHE) {
     try {
       const cached = await c.env.BRIEF_CACHE.get(cacheKey, 'json');
       if (cached) {
@@ -513,7 +514,7 @@ dataRoute.get('/sources', async (c) => {
   try {
     rows = await timeServerStage(timings, 'source_rollup', () => loadSourceAggregates(database));
   } catch {
-    setServerTiming(c, timings);
+    setServerTiming(c, timings, diagnostics);
     return c.json(
       {
         schemaVersion: '2',
@@ -539,7 +540,9 @@ dataRoute.get('/sources', async (c) => {
         uncataloguedSources: [],
       },
       200,
-      { 'Cache-Control': 'public, max-age=60, s-maxage=3600' }
+      {
+        'Cache-Control': diagnostics ? 'private, no-store' : 'public, max-age=60, s-maxage=3600',
+      }
     );
   }
 
@@ -676,7 +679,7 @@ dataRoute.get('/sources', async (c) => {
     samplesAvailable,
     uncataloguedSources: [...counts.keys()].filter((id) => !catalogIds.has(id)).sort(),
   };
-  if (c.env.BRIEF_CACHE) {
+  if (!diagnostics && c.env.BRIEF_CACHE) {
     try {
       await c.env.BRIEF_CACHE.put(cacheKey, JSON.stringify(payload), {
         expirationTtl: SOURCE_STATUS_CACHE_TTL_SECONDS,
@@ -685,8 +688,10 @@ dataRoute.get('/sources', async (c) => {
       console.error('[data/sources] shared cache write failed', error);
     }
   }
-  setServerTiming(c, timings);
-  return c.json(payload, 200, { 'Cache-Control': 'public, max-age=60, s-maxage=3600' });
+  setServerTiming(c, timings, diagnostics);
+  return c.json(payload, 200, {
+    'Cache-Control': diagnostics ? 'private, no-store' : 'public, max-age=60, s-maxage=3600',
+  });
 });
 
 /**
