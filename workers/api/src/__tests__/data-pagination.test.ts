@@ -129,6 +129,18 @@ describe('keyset cursor codec', () => {
 });
 
 describe('GET /data/sources/:id pagination', () => {
+  it('keeps diagnostic timing and the same response on attention-source early returns', async () => {
+    const ordinary = await get('/data/sources/digg?limit=2');
+    const response = await app.fetch(
+      new Request('http://test/data/sources/digg?limit=2&timing=1'),
+      env()
+    );
+
+    expect(response.headers.get('server-timing')).toMatch(/^attention_events;dur=\d+\.\d+$/);
+    expect(response.headers.get('cache-control')).toBe('private, no-store');
+    await expect(response.json()).resolves.toEqual(ordinary.body);
+  });
+
   it('opts into fixed-name stage timing without exposing query values or changing the body', async () => {
     const ordinary = await get('/data/sources/markets?marker=private-value');
     const response = await app.fetch(
