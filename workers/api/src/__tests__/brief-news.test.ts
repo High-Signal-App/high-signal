@@ -678,4 +678,26 @@ describe('buildNews', () => {
       true
     );
   });
+
+  it('loads retained source text for ranked news candidates', async () => {
+    d1 = createSqliteD1();
+    applyMigrations(d1);
+    const now = new Date('2026-09-12T12:00:00.000Z');
+    const ingestedAt = Math.floor(now.getTime() / 1000) - 60;
+    d1.exec(`
+      INSERT INTO source_documents
+        (id, source, canonical_url, fetched_at, published_at, raw_hash, raw_text, created_at)
+      VALUES
+        ('doc-reuters', 'news:reuters', 'https://reuters.com/acme-austin', ${ingestedAt}, ${ingestedAt}, 'doc-hash', 'Acme opened a new semiconductor factory in Austin on Monday. The facility has capacity for 40,000 wafers each month and will start shipping to customers in December.', ${ingestedAt});
+      INSERT INTO events
+        (id, source, source_url, published_at, title, content, primary_entity_id, raw_hash, ingested_at, source_document_id)
+      VALUES
+        ('reuters-retained', 'news:reuters', 'https://reuters.com/acme-austin', ${ingestedAt}, 'Acme opens semiconductor factory in Austin', NULL, NULL, 'event-hash', ${ingestedAt}, 'doc-reuters');
+    `);
+
+    const stories = await buildNews(db(d1.binding), 'global', '2026-09-12', now);
+    expect(stories).toHaveLength(1);
+    expect(stories[0]?.summary.toLowerCase()).toContain('austin');
+    expect(stories[0]?.source_references[0]?.url).toBe('https://reuters.com/acme-austin');
+  });
 });
