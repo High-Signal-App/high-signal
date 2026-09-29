@@ -448,7 +448,7 @@ describe('events pagination index coverage', () => {
       SELECT source FROM events_source_rollup
       WHERE (SELECT rebuilt_at FROM state) > 0 AND source LIKE 'legistar:%'
       UNION ALL
-      SELECT events.source FROM events INDEXED BY events_ingested_at_idx
+      SELECT DISTINCT events.source FROM events INDEXED BY events_ingested_at_idx
       WHERE (SELECT rebuilt_at FROM state) > 0
         AND events.ingested_at >= (SELECT max_ingested_at FROM state)
         AND (events.source = 'legistar' OR events.source LIKE 'legistar:%' OR events.source GLOB 'legistar_*')

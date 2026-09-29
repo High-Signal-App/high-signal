@@ -321,7 +321,7 @@ async function resolveFamilySources(database: DB, id: string): Promise<string[] 
       WHERE (SELECT rebuilt_at FROM state) > 0
         AND ${sourceMatch(id, schema.eventsSourceRollup.source)}
       UNION ALL
-      SELECT events.source FROM events INDEXED BY events_ingested_at_idx
+      SELECT DISTINCT events.source FROM events INDEXED BY events_ingested_at_idx
       WHERE (SELECT rebuilt_at FROM state) > 0
         AND events.ingested_at >= (SELECT max_ingested_at FROM state)
         AND ${sourceMatch(id, schema.events.source)}
