@@ -129,6 +129,24 @@ describe('keyset cursor codec', () => {
 });
 
 describe('GET /data/sources/:id pagination', () => {
+  it('opts into fixed-name stage timing without exposing query values or changing the body', async () => {
+    const ordinary = await get('/data/sources/markets?marker=private-value');
+    const response = await app.fetch(
+      new Request('http://test/data/sources/markets?marker=private-value&timing=1'),
+      env()
+    );
+    const timing = response.headers.get('server-timing') ?? '';
+
+    expect(response.status).toBe(200);
+    expect(timing).toMatch(
+      /^source_totals;dur=\d+\.\d+, family_resolution;dur=\d+\.\d+, event_page;dur=\d+\.\d+$/
+    );
+    expect(timing).not.toContain('private-value');
+    expect(timing).not.toContain('markets');
+    expect(response.headers.get('cache-control')).toBe('private, no-store');
+    await expect(response.json()).resolves.toEqual(ordinary.body);
+  });
+
   it('pages a tie block without dropping or repeating a row', async () => {
     // 12 `markets` rows share one `published_at`; a 5-row page lands inside it.
     const walked = await walkByCursor('markets', 5);
