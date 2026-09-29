@@ -884,7 +884,25 @@ export async function buildNews(
   const previous = await previousBriefComputedAt(database, region, editionDate);
   const window = reportingWindowForEdition(previous, editionDate, now);
   const lookbackStart = new Date(window.start.getTime() - NEWS_LOOKBACK_MS);
+  const newsCandidates = database.$with('news_candidates').as(
+    database
+      .select({
+        id: schema.events.id,
+        ingestedAt: schema.events.ingestedAt,
+        sourcePriority: NEWS_SOURCE_PRIORITY.as('source_priority'),
+      })
+      .from(schema.events)
+      .where(
+        and(gte(schema.events.ingestedAt, lookbackStart), lt(schema.events.ingestedAt, window.end))
+      )
+      .orderBy(desc(NEWS_SOURCE_PRIORITY), desc(schema.events.ingestedAt), desc(schema.events.id))
+      .limit(NEWS_RECORD_LIMIT)
+  );
+  // Rank the bounded ID set using the covering ingest index before loading the
+  // wider event rows and retained document text. Joining documents before the
+  // top-N sort made D1 do one random document lookup for every recent event.
   const rows = await database
+    .with(newsCandidates)
     .select({
       id: schema.events.id,
       source: schema.events.source,
@@ -896,13 +914,14 @@ export async function buildNews(
       retainedText: schema.sourceDocuments.rawText,
       primaryEntityId: schema.events.primaryEntityId,
     })
-    .from(schema.events)
+    .from(newsCandidates)
+    .innerJoin(schema.events, eq(newsCandidates.id, schema.events.id))
     .leftJoin(schema.sourceDocuments, eq(schema.events.sourceDocumentId, schema.sourceDocuments.id))
-    .where(
-      and(gte(schema.events.ingestedAt, lookbackStart), lt(schema.events.ingestedAt, window.end))
-    )
-    .orderBy(desc(NEWS_SOURCE_PRIORITY), desc(schema.events.ingestedAt), desc(schema.events.id))
-    .limit(NEWS_RECORD_LIMIT);
+    .orderBy(
+      desc(newsCandidates.sourcePriority),
+      desc(newsCandidates.ingestedAt),
+      desc(newsCandidates.id)
+    );
 
   const records = rows.map((row) => ({
     id: row.id,
