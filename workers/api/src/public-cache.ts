@@ -14,7 +14,14 @@ export function isPublicCacheRequest(request: Request) {
   const cacheDirective = request.headers.get('cache-control')?.toLowerCase() ?? '';
   if (cacheDirective.includes('no-cache') || cacheDirective.includes('no-store')) return false;
 
-  const path = new URL(request.url).pathname;
+  const url = new URL(request.url);
+  if (
+    (url.pathname === '/brief/daily' || url.pathname === '/data/sources') &&
+    url.searchParams.get('timing') === '1'
+  ) {
+    return false;
+  }
+  const path = url.pathname;
   return path !== '/health' && path !== '/admin' && !path.startsWith('/admin/');
 }
 

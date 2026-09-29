@@ -117,6 +117,7 @@ briefRoute.get('/daily', async (c) => handleDailyBriefRequest(c));
 
 async function handleDailyBriefRequest(c: Context<{ Bindings: Env }>) {
   const timings: ServerTimingEntry[] = [];
+  const diagnostics = c.req.query('timing') === '1';
   const request = parseDailyBriefRequest(c);
   const protectedHistory = Boolean(
     request.archiveDate && isProtectedHistoryDay(request.archiveDate)
@@ -170,10 +171,10 @@ async function handleDailyBriefRequest(c: Context<{ Bindings: Env }>) {
           ? ('published' as const)
           : ('pending' as const),
       };
-      setServerTiming(c, timings);
+      setServerTiming(c, timings, diagnostics);
       return c.json(body, cached.status);
     }
-    setServerTiming(c, timings);
+    setServerTiming(c, timings, diagnostics);
     return c.json(cached.body, cached.status);
   }
 
@@ -184,14 +185,14 @@ async function handleDailyBriefRequest(c: Context<{ Bindings: Env }>) {
   // No precomputed snapshot for today — the publish cron hasn't run yet.
   // Mark it pending so agents don't mistake stale content for today's edition.
   if (!protectedHistory) {
-    setServerTiming(c, timings);
+    setServerTiming(c, timings, diagnostics);
     return c.json({
       ...snapshot,
       publishStatus: 'pending' as const,
       nextExpectedPublishAt: nextExpectedPublishAt(),
     });
   }
-  setServerTiming(c, timings);
+  setServerTiming(c, timings, diagnostics);
   return c.json(snapshot);
 }
 

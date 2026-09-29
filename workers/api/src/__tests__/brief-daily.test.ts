@@ -156,9 +156,20 @@ describe('GET /daily', () => {
       attentionEvidenceGaps: [{ id: 'digg-3' }],
     } as never);
 
-    const response = await briefRoute.request('http://test/daily?region=north-america', {}, env);
+    const response = await briefRoute.request(
+      'http://test/daily?region=north-america&verification=ignored',
+      {},
+      env
+    );
     expect(response.status).toBe(200);
-    const timing = response.headers.get('server-timing') ?? '';
+    expect(response.headers.get('server-timing')).toBeNull();
+    const diagnosticResponse = await briefRoute.request(
+      'http://test/daily?region=north-america&timing=1',
+      {},
+      env
+    );
+    const timing = diagnosticResponse.headers.get('server-timing') ?? '';
+    expect(diagnosticResponse.headers.get('cache-control')).toBe('private, no-store');
     expect(timing).toMatch(/snapshot;dur=\d+\.\d+/);
     expect(timing).toMatch(/stocks;dur=\d+\.\d+/);
     expect(timing).toMatch(/news;dur=\d+\.\d+/);
