@@ -440,6 +440,25 @@ describe('events pagination index coverage', () => {
     expect(detail).not.toContain('events_source_rollup_idx');
   });
 
+  it('keeps combined family resolution on the ingest range index', async () => {
+    const detail = await plan(`
+      WITH state AS (
+        SELECT max_ingested_at, rebuilt_at FROM events_rollup_state WHERE id = 1 LIMIT 1
+      )
+      SELECT source FROM events_source_rollup
+      WHERE (SELECT rebuilt_at FROM state) > 0 AND source LIKE 'legistar:%'
+      UNION ALL
+      SELECT events.source FROM events INDEXED BY events_ingested_at_idx
+      WHERE (SELECT rebuilt_at FROM state) > 0
+        AND events.ingested_at >= (SELECT max_ingested_at FROM state)
+        AND (events.source = 'legistar' OR events.source LIKE 'legistar:%' OR events.source GLOB 'legistar_*')
+      UNION ALL
+      SELECT NULL WHERE NOT EXISTS (SELECT 1 FROM state WHERE rebuilt_at > 0)
+    `);
+    expect(detail).toContain('events_ingested_at_idx (ingested_at>?)');
+    expect(detail).not.toContain('SCAN events ');
+  });
+
   it('still serves published_at range queries after the index swap', async () => {
     // Migration 0026 dropped `events_published_idx`; `(published_at, id)` has
     // it as a leading prefix, so the rollup's maturation probe is unaffected.
