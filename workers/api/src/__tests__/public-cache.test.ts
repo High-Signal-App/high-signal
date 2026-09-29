@@ -62,14 +62,21 @@ describe('public API edge cache', () => {
 
   it('serves a repeated anonymous GET without calling the route again', async () => {
     const cache = memoryCache();
-    const next = vi.fn(async () => Response.json({ generatedAt: '2026-08-24T00:00:00Z' }));
+    const next = vi.fn(async () =>
+      Response.json(
+        { generatedAt: '2026-08-24T00:00:00Z' },
+        { headers: { 'server-timing': 'snapshot;dur=12.3' } }
+      )
+    );
     const request = new Request('https://api.highsignal.app/brief/daily?region=global');
 
     const miss = await handlePublicApiCache(request, next, { cache });
     const hit = await handlePublicApiCache(request, next, { cache });
 
     expect(miss.headers.get('x-edge-cache')).toBe('API-MISS');
+    expect(miss.headers.get('server-timing')).toBe('snapshot;dur=12.3');
     expect(hit.headers.get('x-edge-cache')).toBe('API-HIT');
+    expect(hit.headers.get('server-timing')).toBeNull();
     expect(hit.headers.get('cache-control')).toBe(publicApiCachePolicy.public);
     await expect(hit.json()).resolves.toEqual({ generatedAt: '2026-08-24T00:00:00Z' });
     expect(next).toHaveBeenCalledTimes(1);

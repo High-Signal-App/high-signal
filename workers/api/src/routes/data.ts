@@ -8,6 +8,7 @@ import { eventsRollupIsReady, readEventsRollupState } from '../lib/events-rollup
 import { enrichPublishedSignals, partitionPublishable } from '../lib/signal-quality';
 import sourceCatalog from '../lib/source-catalog.json';
 import { buildDiggAttention, tryGetPrecomputedSnapshot } from './brief/query';
+import { setServerTiming, timeServerStage, type ServerTimingEntry } from '../lib/server-timing';
 
 type Env = { DB: D1Database; BRIEF_CACHE?: KVNamespace };
 
@@ -486,6 +487,7 @@ dataRoute.get('/daily', async (c) => {
  * public directory read cost bounded.
  */
 dataRoute.get('/sources', async (c) => {
+  const timings: ServerTimingEntry[] = [];
   const requestedSamples = Number(c.req.query('samples') ?? 0);
   const limit = Math.min(Math.max(Number.isFinite(requestedSamples) ? requestedSamples : 0, 0), 10);
   const cacheKey = sourceStatusCacheKey(limit);
@@ -509,8 +511,9 @@ dataRoute.get('/sources', async (c) => {
   // cron interval (30 minutes) behind `events`.
   let rows: SourceAggregateRow[] = [];
   try {
-    rows = await loadSourceAggregates(database);
+    rows = await timeServerStage(timings, 'source_rollup', () => loadSourceAggregates(database));
   } catch {
+    setServerTiming(c, timings);
     return c.json(
       {
         schemaVersion: '2',
@@ -573,23 +576,25 @@ dataRoute.get('/sources', async (c) => {
 
   let runRows: SourceRun[] = [];
   try {
-    runRows = await database
-      .select({
-        source: schema.ingestRuns.source,
-        startedAt: schema.ingestRuns.startedAt,
-        finishedAt: schema.ingestRuns.finishedAt,
-        eventsFetched: schema.ingestRuns.eventsFetched,
-        errors: schema.ingestRuns.errors,
-      })
-      .from(schema.ingestRuns)
-      .where(
-        inArray(
-          schema.ingestRuns.source,
-          CATALOG_SOURCES.map((source) => source.id)
+    runRows = await timeServerStage(timings, 'ingest_runs', () =>
+      database
+        .select({
+          source: schema.ingestRuns.source,
+          startedAt: schema.ingestRuns.startedAt,
+          finishedAt: schema.ingestRuns.finishedAt,
+          eventsFetched: schema.ingestRuns.eventsFetched,
+          errors: schema.ingestRuns.errors,
+        })
+        .from(schema.ingestRuns)
+        .where(
+          inArray(
+            schema.ingestRuns.source,
+            CATALOG_SOURCES.map((source) => source.id)
+          )
         )
-      )
-      .orderBy(desc(schema.ingestRuns.startedAt))
-      .limit(1000);
+        .orderBy(desc(schema.ingestRuns.startedAt))
+        .limit(1000)
+    );
   } catch {
     // Event inventory remains useful when run receipts are temporarily absent.
   }
@@ -659,7 +664,9 @@ dataRoute.get('/sources', async (c) => {
     };
   });
 
-  const attentionSources = await loadAttentionSourceStatus(c.env.DB, limit);
+  const attentionSources = await timeServerStage(timings, 'attention', () =>
+    loadAttentionSourceStatus(c.env.DB, limit)
+  );
   const payload = {
     schemaVersion: '2',
     generatedAt,
@@ -678,6 +685,7 @@ dataRoute.get('/sources', async (c) => {
       console.error('[data/sources] shared cache write failed', error);
     }
   }
+  setServerTiming(c, timings);
   return c.json(payload, 200, { 'Cache-Control': 'public, max-age=60, s-maxage=3600' });
 });
 

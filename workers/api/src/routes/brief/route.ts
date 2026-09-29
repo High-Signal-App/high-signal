@@ -41,6 +41,7 @@ import {
   tryGetPrecomputedSnapshot,
 } from './query';
 import { bearerGrant, verifyHistoryGrant } from '../../lib/history-access';
+import { setServerTiming, timeServerStage, type ServerTimingEntry } from '../../lib/server-timing';
 
 type Env = { DB: D1Database; BRIEF_CACHE?: KVNamespace; TURNSTILE_SECRET?: string };
 
@@ -115,6 +116,7 @@ export const briefRoute = new Hono<{ Bindings: Env }>();
 briefRoute.get('/daily', async (c) => handleDailyBriefRequest(c));
 
 async function handleDailyBriefRequest(c: Context<{ Bindings: Env }>) {
+  const timings: ServerTimingEntry[] = [];
   const request = parseDailyBriefRequest(c);
   const protectedHistory = Boolean(
     request.archiveDate && isProtectedHistoryDay(request.archiveDate)
@@ -130,7 +132,9 @@ async function handleDailyBriefRequest(c: Context<{ Bindings: Env }>) {
   const database = db(c.env.DB);
   const editionDate = request.archiveDate ?? istDay();
 
-  const cached = await cachedDailyBrief(database, request);
+  const cached = await timeServerStage(timings, 'snapshot', () =>
+    cachedDailyBrief(database, request)
+  );
   if (cached) {
     if (cached.status === 200) {
       let snapshot = cached.body;
@@ -139,7 +143,10 @@ async function handleDailyBriefRequest(c: Context<{ Bindings: Env }>) {
       // stock section if this authoritative read fails.
       if (!protectedHistory) {
         const stocks = await safeCategory(
-          () => buildStocks(database, countriesForRegion(request.region), editionDate),
+          () =>
+            timeServerStage(timings, 'stocks', () =>
+              buildStocks(database, countriesForRegion(request.region), editionDate)
+            ),
           'stocks'
         );
         snapshot = pruneUnpublishableBriefItems({
@@ -154,7 +161,8 @@ async function handleDailyBriefRequest(c: Context<{ Bindings: Env }>) {
         snapshot,
         request.region,
         editionDate,
-        !protectedHistory || snapshot.news == null
+        !protectedHistory || snapshot.news == null,
+        timings
       );
       const body = {
         ...snapshot,
@@ -162,24 +170,28 @@ async function handleDailyBriefRequest(c: Context<{ Bindings: Env }>) {
           ? ('published' as const)
           : ('pending' as const),
       };
+      setServerTiming(c, timings);
       return c.json(body, cached.status);
     }
+    setServerTiming(c, timings);
     return c.json(cached.body, cached.status);
   }
 
   const snapshot = dailySignalEdition(
-    pruneUnpublishableBriefItems(await composeDailyBrief(database, request)).snapshot,
+    pruneUnpublishableBriefItems(await composeDailyBrief(database, request, timings)).snapshot,
     editionDate
   );
   // No precomputed snapshot for today — the publish cron hasn't run yet.
   // Mark it pending so agents don't mistake stale content for today's edition.
   if (!protectedHistory) {
+    setServerTiming(c, timings);
     return c.json({
       ...snapshot,
       publishStatus: 'pending' as const,
       nextExpectedPublishAt: nextExpectedPublishAt(),
     });
   }
+  setServerTiming(c, timings);
   return c.json(snapshot);
 }
 
@@ -251,12 +263,15 @@ async function refreshSnapshotNews(
   snapshot: BriefSnapshot,
   region: Region,
   editionDate: string,
-  shouldRefresh: boolean
+  shouldRefresh: boolean,
+  timings: ServerTimingEntry[]
 ): Promise<BriefSnapshot> {
   if (!shouldRefresh) return snapshot;
   const cachedNews = sanitizeBriefNewsItems(snapshot.news ?? []);
   try {
-    const refreshed = await buildNews(database, region, editionDate);
+    const refreshed = await timeServerStage(timings, 'news', () =>
+      buildNews(database, region, editionDate)
+    );
     return withBriefNews(snapshot, refreshed.length > 0 ? refreshed : cachedNews);
   } catch (error) {
     console.warn('[brief] news refresh unavailable', error);
@@ -266,16 +281,24 @@ async function refreshSnapshotNews(
 
 async function composeDailyBrief(
   database: ReturnType<typeof db>,
-  request: ReturnType<typeof parseDailyBriefRequest>
+  request: ReturnType<typeof parseDailyBriefRequest>,
+  timings: ServerTimingEntry[]
 ) {
   const countries = countriesForRegion(request.region);
   const editionDate = request.archiveDate ?? istDay();
   const [stockResult, ideaResult, trendResult, attention, news] = await Promise.all([
-    safeCategory(() => buildStocks(database, countries, editionDate), 'stocks'),
+    safeCategory(
+      () => timeServerStage(timings, 'stocks', () => buildStocks(database, countries, editionDate)),
+      'stocks'
+    ),
     safeCategory(() => buildIdeas(database, request.region, countries), 'ideas'),
     safeCategory(() => buildTrends(database, request.region, countries), 'trends'),
     buildDiggAttention(database),
-    safe(() => buildNews(database, request.region, editionDate), 'news'),
+    safe(
+      () =>
+        timeServerStage(timings, 'news', () => buildNews(database, request.region, editionDate)),
+      'news'
+    ),
   ]);
 
   return {

@@ -56,6 +56,7 @@ describe('data source directory contract', () => {
     });
 
     expect(response.status).toBe(200);
+    expect(response.headers.get('server-timing')).toBeNull();
     await expect(response.json()).resolves.toEqual(snapshot);
     expect(get).toHaveBeenCalledWith(sourceStatusCacheKey(0), 'json');
   });
