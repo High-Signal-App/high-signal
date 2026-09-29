@@ -4,7 +4,7 @@ import type { SQLiteColumn } from 'drizzle-orm/sqlite-core';
 import { istDay, istDayRange } from '@high-signal/shared';
 import { db, type DB, schema } from '../db';
 import { encodeKeysetCursor, decodeKeysetCursor, type KeysetCursor } from '../lib/cursor';
-import { eventsRollupIsReady, readEventsRollupState } from '../lib/events-rollup';
+import { eventsRollupIsReady } from '../lib/events-rollup';
 import { enrichPublishedSignals, partitionPublishable } from '../lib/signal-quality';
 import sourceCatalog from '../lib/source-catalog.json';
 import { buildDiggAttention, tryGetPrecomputedSnapshot } from './brief/query';
@@ -307,16 +307,29 @@ export function seekPlanCandidates(resolved: string[] | null, total: number): st
  */
 async function resolveFamilySources(database: DB, id: string): Promise<string[] | null> {
   try {
-    const state = await readEventsRollupState(database);
-    if (!state || state.rebuiltAt <= 0) return null;
-    const rollupRows = await database
-      .select({ source: schema.eventsSourceRollup.source })
-      .from(schema.eventsSourceRollup)
-      .where(sourceMatch(id, schema.eventsSourceRollup.source));
-    const recentRows = await database.all<{ source: string }>(sql`
-      SELECT DISTINCT source FROM events INDEXED BY events_ingested_at_idx
-      WHERE ${schema.events.ingestedAt} >= ${state.maxIngestedAt} AND ${sourceMatch(id)}`);
-    return [...new Set([...rollupRows, ...recentRows].map((row) => row.source))];
+    // Keep the rollup and its post-watermark supplement in one D1 statement.
+    // The previous three sequential statements spent two extra D1 round trips;
+    // the state CTE lets both data arms share one readiness check and watermark.
+    const rows = await database.all<{ source: string | null }>(sql`
+      WITH state AS (
+        SELECT max_ingested_at, rebuilt_at
+        FROM events_rollup_state
+        WHERE id = 1
+        LIMIT 1
+      )
+      SELECT source FROM events_source_rollup
+      WHERE (SELECT rebuilt_at FROM state) > 0
+        AND ${sourceMatch(id, schema.eventsSourceRollup.source)}
+      UNION ALL
+      SELECT DISTINCT events.source FROM events INDEXED BY events_ingested_at_idx
+      WHERE (SELECT rebuilt_at FROM state) > 0
+        AND events.ingested_at >= (SELECT max_ingested_at FROM state)
+        AND ${sourceMatch(id, schema.events.source)}
+      UNION ALL
+      SELECT NULL AS source
+      WHERE NOT EXISTS (SELECT 1 FROM state WHERE rebuilt_at > 0)`);
+    if (rows.some((row) => row.source === null)) return null;
+    return [...new Set(rows.map((row) => row.source!))];
   } catch (error) {
     console.error('[data/sources/:id] source resolution unavailable, scanning', error);
     return null;
