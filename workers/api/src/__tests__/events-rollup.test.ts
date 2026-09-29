@@ -88,6 +88,19 @@ const CATALOG_IDS = [
 ];
 
 describe('events source rollup', () => {
+  it('reports only fixed stage names and durations on a source-status cache miss', async () => {
+    const response = await app.fetch(
+      new Request('http://test/data/sources?samples=1&marker=private-value'),
+      env()
+    );
+    const timing = response.headers.get('server-timing') ?? '';
+    expect(timing).toMatch(
+      /^source_rollup;dur=\d+\.\d+, ingest_runs;dur=\d+\.\d+, attention;dur=\d+\.\d+$/
+    );
+    expect(timing).not.toContain('private-value');
+    expect(timing).not.toContain('samples');
+  });
+
   it('serves the live aggregate until the cron has built the rollup', async () => {
     await expect(eventsRollupIsReady(db(d1.binding))).resolves.toBe(false);
     const body = await sourcesPayload();

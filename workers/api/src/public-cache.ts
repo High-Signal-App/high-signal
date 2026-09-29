@@ -85,7 +85,14 @@ export async function handlePublicApiCache(
   const response = await next();
   const cacheable = cacheableResponse(response);
   if (!cacheable) return privateResponse(response);
-  const write = Promise.resolve(options.cache.put(key, cacheable.clone())).catch((error) => {
+  const storedHeaders = new Headers(cacheable.headers);
+  storedHeaders.delete('server-timing');
+  const storedResponse = new Response(cacheable.clone().body, {
+    status: cacheable.status,
+    statusText: cacheable.statusText,
+    headers: storedHeaders,
+  });
+  const write = Promise.resolve(options.cache.put(key, storedResponse)).catch((error) => {
     console.error('[cache] public API write failed', error);
   });
   if (options.waitUntil) options.waitUntil(write);

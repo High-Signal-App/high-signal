@@ -158,6 +158,11 @@ describe('GET /daily', () => {
 
     const response = await briefRoute.request('http://test/daily?region=north-america', {}, env);
     expect(response.status).toBe(200);
+    const timing = response.headers.get('server-timing') ?? '';
+    expect(timing).toMatch(/snapshot;dur=\d+\.\d+/);
+    expect(timing).toMatch(/stocks;dur=\d+\.\d+/);
+    expect(timing).toMatch(/news;dur=\d+\.\d+/);
+    expect(timing).not.toMatch(/north-america|daily|region|date/i);
     const body = (await response.json()) as {
       region: string;
       stocks: unknown[];
