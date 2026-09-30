@@ -143,28 +143,34 @@ async function handleDailyBriefRequest(c: Context<{ Bindings: Env }>) {
       // after a region snapshot was computed. Never substitute a stale cached
       // stock section if this authoritative read fails.
       if (!protectedHistory) {
-        const stocks = await safeCategory(
-          () =>
-            timeServerStage(timings, 'stocks', () =>
-              buildStocks(database, countriesForRegion(request.region), editionDate)
-            ),
-          'stocks'
-        );
+        const [stocks, refreshedSnapshot] = await Promise.all([
+          safeCategory(
+            () =>
+              timeServerStage(timings, 'stocks', () =>
+                buildStocks(database, countriesForRegion(request.region), editionDate)
+              ),
+            'stocks'
+          ),
+          refreshSnapshotNews(database, snapshot, request.region, editionDate, true, timings),
+        ]);
         snapshot = pruneUnpublishableBriefItems({
           ...snapshot,
           stocks: stocks.items,
           categoryStates: { ...categoryStatesForSnapshot(snapshot), stocks: stocks.state },
         }).snapshot;
+        snapshot = { ...snapshot, news: refreshedSnapshot.news };
       }
       snapshot = dailySignalEdition(pruneUnpublishableBriefItems(snapshot).snapshot, editionDate);
-      snapshot = await refreshSnapshotNews(
-        database,
-        snapshot,
-        request.region,
-        editionDate,
-        !protectedHistory || snapshot.news == null,
-        timings
-      );
+      if (protectedHistory) {
+        snapshot = await refreshSnapshotNews(
+          database,
+          snapshot,
+          request.region,
+          editionDate,
+          snapshot.news == null,
+          timings
+        );
+      }
       const body = {
         ...snapshot,
         publishStatus: buildDailyBriefReceipt(snapshot).publishable
