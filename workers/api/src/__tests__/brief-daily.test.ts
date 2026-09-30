@@ -381,6 +381,44 @@ describe('GET /daily', () => {
     expect(mocks.buildNews).toHaveBeenCalledWith(expect.anything(), 'global', day);
   });
 
+  it('refreshes cached stocks and news concurrently', async () => {
+    const day = istDay(new Date(), -1);
+    mocks.tryGetPrecomputedSnapshot.mockResolvedValue({
+      generatedAt: `${day}T03:30:00.000Z`,
+      region: 'global',
+      stocks: [],
+      ideas: [],
+      trends: [],
+      news: [],
+    });
+
+    let releaseStocks!: () => void;
+    let releaseNews!: () => void;
+    const stocksGate = new Promise<void>((resolve) => (releaseStocks = resolve));
+    const newsGate = new Promise<void>((resolve) => (releaseNews = resolve));
+    const started: string[] = [];
+    mocks.buildStocks.mockImplementation(async () => {
+      started.push('stocks');
+      await stocksGate;
+      return [];
+    });
+    mocks.buildNews.mockImplementation(async () => {
+      started.push('news');
+      await newsGate;
+      return [];
+    });
+
+    const pendingResponse = briefRoute.request(`http://test/daily?date=${day}`, {}, env);
+    try {
+      await vi.waitFor(() => expect(started).toEqual(['stocks', 'news']));
+    } finally {
+      releaseStocks();
+      releaseNews();
+    }
+    const response = await pendingResponse;
+    expect(response.status).toBe(200);
+  });
+
   it('preserves cached news when a live refresh fails', async () => {
     const day = istDay(new Date(), -1);
     const cachedNews = [
