@@ -1,4 +1,4 @@
-import { DEFAULT_WORKERS_AI_MODEL, generateChatCompletion } from './ai-client';
+import { generateChatCompletion } from './ai-client';
 import type { AIConfig } from './ai-client';
 import { normalizeCommunitySummary } from '@high-signal/shared';
 import type { CommunitySummary } from '@high-signal/shared';
@@ -6,6 +6,7 @@ import type { DB } from '../db';
 import { schema } from '../db';
 
 type Env = {
+  FREE_AI?: Fetcher;
   AI?: Ai;
   NEURON_BUDGET?: DurableObjectNamespace;
   HIGH_SIGNAL_AI_ENDPOINT_URL?: string;
@@ -216,22 +217,11 @@ function parseSummary(text: string) {
 }
 
 function resolveEndpointConfig(env: Env): AIConfig | null {
-  if (env.AI) {
-    return {
-      binding: env.AI,
-      neuronBudget: env.NEURON_BUDGET,
-      model: env.HIGH_SIGNAL_AI_MODEL || DEFAULT_WORKERS_AI_MODEL,
-    };
-  }
   const apiKey = env.HIGH_SIGNAL_AI_API_KEY || env.OPENAI_API_KEY;
   const endpointUrl = env.HIGH_SIGNAL_AI_ENDPOINT_URL;
   const model = env.HIGH_SIGNAL_AI_MODEL;
-  if (!apiKey || !endpointUrl || !model) return null;
-  return {
-    endpointUrl,
-    apiKey,
-    model,
-  };
+  if (apiKey && endpointUrl && model) return { endpointUrl, apiKey, model };
+  return env.FREE_AI ? { gateway: env.FREE_AI, model: 'auto' } : null;
 }
 
 function defaultPrompt(subreddit: string) {

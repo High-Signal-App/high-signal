@@ -9,6 +9,11 @@ routes = [
   { pattern = "api.highsignal.app", custom_domain = true },
 ]
 
+[[services]]
+binding = "FREE_AI"
+service = "free-ai-gateway"
+entrypoint = "FleetGateway"
+
 [ai]
 binding = "AI"
 

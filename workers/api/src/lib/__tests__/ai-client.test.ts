@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { withWorkersAiBudget } from '../ai-client';
+import { generateChatCompletion, withWorkersAiBudget } from '../ai-client';
 
 const MODEL = '@cf/meta/llama-3.1-8b-instruct';
 const CAP = 9_500;
@@ -41,6 +41,42 @@ function fakeBudget(options: ReplyOptions = {}) {
 }
 
 describe('Workers AI daily budget guard', () => {
+  it('routes managed chat completion through the private High Signal gateway binding', async () => {
+    const tokenBudgets: number[] = [];
+    const fetch = vi.fn(async (request: Request) => {
+      expect(new URL(request.url).pathname).toBe('/v1/chat/completions');
+      expect(request.headers.get('x-gateway-project-id')).toBe('high-signal');
+      expect(request.headers.get('authorization')).toBe('Bearer gateway-managed');
+      const body = (await request.json()) as { model: string; max_tokens: number };
+      expect(body.model).toBe('auto');
+      tokenBudgets.push(body.max_tokens);
+      return Response.json({ choices: [{ message: { content: 'managed summary' } }] });
+    });
+    const directRun = vi.fn();
+    const config = {
+      gateway: { fetch } as unknown as Fetcher,
+      binding: { run: directRun } as unknown as Ai,
+      model: 'auto',
+    };
+
+    await expect(
+      generateChatCompletion({
+        config,
+        messages: [{ role: 'user', content: 'summarize evidence' }],
+      })
+    ).resolves.toBe('managed summary');
+    await expect(
+      generateChatCompletion({
+        config,
+        messages: [{ role: 'user', content: 'summarize more evidence' }],
+        maxTokens: 9_000,
+      })
+    ).resolves.toBe('managed summary');
+    expect(tokenBudgets).toEqual([512, 8_192]);
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(directRun).not.toHaveBeenCalled();
+  });
+
   it('prices the bounded serialized UTF-8 payload and reserves every binding attempt', async () => {
     const budget = fakeBudget();
     const run = vi.fn(async (_model: string, _input: unknown) => ({ response: 'ok' }));

@@ -1,6 +1,11 @@
 # high-signal — PROJECT STATUS
 
-Last updated: 2026-09-14
+Last updated: 2026-10-02
+
+Managed community research now uses the private `FREE_AI` service binding to
+Fleet's gateway by default, with `auto` model selection, existing output-token
+bounds, and no direct Workers AI fallback. Explicit configured endpoint
+credentials still select the existing BYOK path.
 
 September 14 Global brief trend ranking — live:
 
