@@ -1,6 +1,7 @@
 import { hasAdminSession } from '@/lib/admin-guard';
 import { api, type TrackBucket } from '@/lib/api';
 import { TrackRecordDatasetJsonLd } from '@/components/seo/structured-data';
+import { HorizontalScrollRegion } from '@/components/HorizontalScrollRegion';
 
 import { SITE_URL } from '@/lib/site';
 import { summarizeTrackBuckets } from '@/lib/track-record-summary';
@@ -169,7 +170,7 @@ function CohortBlock({
   const titleClass = tone === 'accent' ? 'text-[var(--color-accent)]' : 'text-zinc-400';
 
   return (
-    <div className="border border-zinc-800 bg-zinc-950/40 p-5">
+    <div className="min-w-0 border border-zinc-800 bg-zinc-950/40 p-5">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-baseline sm:justify-between">
         <h2 className={`font-mono text-[10px] uppercase tracking-[0.2em] ${titleClass}`}>
           {title}
@@ -244,8 +245,8 @@ function BucketTable({
       </div>
     );
   }
-  return (
-    <section className="mt-2 max-w-full overflow-x-auto" aria-label="Signal-type hit-rate ledger">
+  const scrollableLedger = (
+    <HorizontalScrollRegion className="mt-2" aria-label="Signal-type hit-rate ledger">
       <table className="w-full min-w-[520px] text-sm">
         <thead className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
           <tr>
@@ -285,6 +286,7 @@ function BucketTable({
             ))}
         </tbody>
       </table>
-    </section>
+    </HorizontalScrollRegion>
   );
+  return scrollableLedger;
 }
