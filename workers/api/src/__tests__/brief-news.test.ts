@@ -297,6 +297,26 @@ describe('clusterNewsRecords', () => {
 });
 
 describe('composeNewsStories', () => {
+  it('decodes retained HTML entities before publishing plain-text summaries', () => {
+    const title = 'Trump describes a new technology agreement';
+    const [story] = composeNewsStories(
+      [
+        record({
+          id: 'entity-escaped-story',
+          title,
+          sourceUrl: 'https://cnbc.com/example/technology-agreement',
+          retainedText:
+            `${title}. Trump called the agreement &ldquo;morally binding&rdquo;` +
+            ' &mdash; but said talks continue&hellip; More detail is due soon.',
+        }),
+      ],
+      WINDOW
+    );
+
+    expect(story?.summary).toContain('“morally binding” — but said talks continue…');
+    expect(story?.summary).not.toMatch(/&(?:ldquo|rdquo|mdash|hellip);/);
+  });
+
   it('keeps the retained summary when only unusable new evidence refreshes a cluster', () => {
     const title = 'Acme acquires a chip supplier for cloud expansion';
     const [story] = composeNewsStories(
@@ -523,6 +543,49 @@ describe('composeNewsStories', () => {
 });
 
 describe('sanitizeBriefNewsItems', () => {
+  it('decodes common named and numeric entities once and preserves plain ampersands', () => {
+    const [story] = sanitizeBriefNewsItems([
+      {
+        id: 'entity-escaped-story',
+        title: 'A retained technology story',
+        summary:
+          'The report says &ldquo;proceed&rdquo;&nbsp;— &lsquo;details&rsquo; follow. ' +
+          'A &#8217; quote and &#x2014; dash; literal &amp;ldquo; stays visible, ' +
+          'as does &unknown;.',
+        event_at: '2026-09-12T08:00:00.000Z',
+        what_changed: '',
+        source_references: [{ url: 'https://example.com/retained-story', source: 'news' }],
+        evidence_status: 'reported',
+      },
+    ]);
+
+    expect(story?.summary).toBe(
+      'The report says “proceed” — ‘details’ follow. A ’ quote and — dash; ' +
+        'literal &ldquo; stays visible, as does &unknown;.'
+    );
+  });
+
+  it('replaces invalid numeric references and strips tags exposed by entity decoding', () => {
+    const [story] = sanitizeBriefNewsItems([
+      {
+        id: 'encoded-markup-story',
+        title: 'A retained technology story',
+        summary:
+          'The retained item contains &lt;script&gt;unsafe()&lt;/script&gt; text. ' +
+          'Invalid &#0;, &#xD800;, and &#x110000; references are replaced.',
+        event_at: '2026-09-12T08:00:00.000Z',
+        what_changed: '',
+        source_references: [{ url: 'https://example.com/retained-story', source: 'news' }],
+        evidence_status: 'reported',
+      },
+    ]);
+
+    expect(story?.summary).toBe(
+      'The retained item contains unsafe() text. Invalid �, �, and � references are replaced.'
+    );
+    expect(story?.summary).not.toMatch(/<\/?script>/i);
+  });
+
   it('removes cached prediction-market questions from reader news', () => {
     expect(
       sanitizeBriefNewsItems([
