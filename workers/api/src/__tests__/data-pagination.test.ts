@@ -136,7 +136,9 @@ describe('GET /data/sources/:id pagination', () => {
       env()
     );
 
-    expect(response.headers.get('server-timing')).toMatch(/^attention_events;dur=\d+\.\d+$/);
+    expect(response.headers.get('server-timing')).toMatch(
+      /^attention_events;dur=\d+\.\d+, route;dur=\d+\.\d+$/
+    );
     expect(response.headers.get('cache-control')).toBe('private, no-store');
     await expect(response.json()).resolves.toEqual(ordinary.body);
   });
@@ -148,15 +150,35 @@ describe('GET /data/sources/:id pagination', () => {
       env()
     );
     const timing = response.headers.get('server-timing') ?? '';
+    const ordinaryResponse = await app.fetch(
+      new Request('http://test/data/sources/markets?marker=private-value'),
+      env()
+    );
 
     expect(response.status).toBe(200);
     expect(timing).toMatch(
-      /^source_totals;dur=\d+\.\d+, family_resolution;dur=\d+\.\d+, event_page;dur=\d+\.\d+$/
+      /^source_totals;dur=\d+\.\d+, family_resolution;dur=\d+\.\d+, event_page;dur=\d+\.\d+, route;dur=\d+\.\d+$/
     );
     expect(timing).not.toContain('private-value');
     expect(timing).not.toContain('markets');
     expect(response.headers.get('cache-control')).toBe('private, no-store');
+    expect(ordinaryResponse.headers.get('server-timing')).toBeNull();
     await expect(response.json()).resolves.toEqual(ordinary.body);
+  });
+
+  it('marks early diagnostic validation responses private and includes route duration', async () => {
+    const response = await app.fetch(
+      new Request('http://test/data/sources/markets?date=2026-02-30&timing=1'),
+      env()
+    );
+
+    expect(response.status).toBe(400);
+    expect(response.headers.get('cache-control')).toBe('private, no-store');
+    expect(response.headers.get('server-timing')).toMatch(/^route;dur=\d+\.\d+$/);
+    await expect(response.json()).resolves.toEqual({
+      error: 'invalid_date',
+      expected: 'YYYY-MM-DD',
+    });
   });
 
   it('pages a tie block without dropping or repeating a row', async () => {

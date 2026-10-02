@@ -37,6 +37,25 @@ export const app = new Hono<{ Bindings: Env }>();
 const publicCors = cors({ origin: '*' });
 
 app.use('*', async (c, next) => {
+  const path = c.req.path;
+  const isMeasuredPath =
+    path === '/brief/daily' || path === '/data/sources' || /^\/data\/sources\/[^/]+$/.test(path);
+  if (c.req.method !== 'GET' || !isMeasuredPath || c.req.query('timing') !== '1') {
+    return next();
+  }
+
+  // This measures Hono middleware, route work, and JSON response construction.
+  // It intentionally excludes the Worker cache/index wrapper, network time, and
+  // response transfer, which are outside this app boundary.
+  const startedAt = performance.now();
+  await next();
+  const duration = Math.max(0, performance.now() - startedAt).toFixed(1);
+  const currentTiming = c.res.headers.get('Server-Timing');
+  c.header('Cache-Control', 'private, no-store');
+  c.header('Server-Timing', [currentTiming, `route;dur=${duration}`].filter(Boolean).join(', '));
+});
+
+app.use('*', async (c, next) => {
   const isAdminPath = c.req.path === '/admin' || c.req.path.startsWith('/admin/');
   if (!isAdminPath) return publicCors(c, next);
   if (c.req.method === 'OPTIONS') return c.json({ error: 'cors_not_allowed' }, 403);

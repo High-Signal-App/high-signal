@@ -55,8 +55,9 @@ import { briefRoute, parseDailyBriefRequest, safeCategory } from '../routes/brie
 import { dailySignalEdition, precomputeBriefSnapshots } from '../routes/brief/route';
 import { istDay, type BriefSnapshot } from '@high-signal/shared';
 import { createHistoryGrant } from '../lib/history-access';
+import { app as apiApp } from '../app';
 
-const env = { DB: {} as D1Database };
+const env = { DB: {} as D1Database, ENVIRONMENT: 'test' };
 
 describe('parseDailyBriefRequest', () => {
   const app = new Hono<{ Bindings: { DB: D1Database } }>();
@@ -108,9 +109,13 @@ describe('GET /daily', () => {
   });
 
   it('requires verification before reading an older archive date', async () => {
-    const response = await briefRoute.request('http://test/daily?date=2020-01-01', {}, env);
+    const response = await apiApp.fetch(
+      new Request('http://test/brief/daily?date=2020-01-01&timing=1'),
+      env
+    );
     expect(response.status).toBe(403);
     expect(response.headers.get('cache-control')).toBe('private, no-store');
+    expect(response.headers.get('server-timing')).toMatch(/^route;dur=\d+\.\d+$/);
     await expect(response.json()).resolves.toEqual({
       error: 'history_verification_required',
     });
@@ -120,18 +125,32 @@ describe('GET /daily', () => {
   it('returns 404 after a verified older date has no snapshot', async () => {
     const secret = 'test-history-secret';
     const { grant } = await createHistoryGrant(secret);
-    const response = await briefRoute.request(
-      'http://test/daily?date=2020-01-01',
-      { headers: { Authorization: `Bearer ${grant}` } },
+    const response = await apiApp.fetch(
+      new Request('http://test/brief/daily?date=2020-01-01&timing=1', {
+        headers: { Authorization: `Bearer ${grant}` },
+      }),
       { ...env, TURNSTILE_SECRET: secret }
     );
     expect(response.status).toBe(404);
     expect(response.headers.get('cache-control')).toBe('private, no-store');
+    expect(response.headers.get('server-timing')).toMatch(
+      /^snapshot;dur=\d+\.\d+, route;dur=\d+\.\d+$/
+    );
     await expect(response.json()).resolves.toEqual({
       error: 'no_brief_for_date',
       date: '2020-01-01',
       region: 'global',
     });
+  });
+
+  it('marks diagnostic error-handler responses private and times the route', async () => {
+    mocks.buildDiggAttention.mockRejectedValue(new Error('synthetic route failure'));
+    const response = await apiApp.fetch(new Request('http://test/brief/daily?timing=1'), env);
+
+    expect(response.status).toBe(500);
+    expect(response.headers.get('cache-control')).toBe('private, no-store');
+    expect(response.headers.get('server-timing')).toMatch(/route;dur=\d+\.\d+$/);
+    await expect(response.json()).resolves.toEqual({ error: 'Internal Server Error' });
   });
 
   it('composes live public sections when the cache misses', async () => {
@@ -156,16 +175,14 @@ describe('GET /daily', () => {
       attentionEvidenceGaps: [{ id: 'digg-3' }],
     } as never);
 
-    const response = await briefRoute.request(
-      'http://test/daily?region=north-america&verification=ignored',
-      {},
+    const response = await apiApp.fetch(
+      new Request('http://test/brief/daily?region=north-america&verification=ignored'),
       env
     );
     expect(response.status).toBe(200);
     expect(response.headers.get('server-timing')).toBeNull();
-    const diagnosticResponse = await briefRoute.request(
-      'http://test/daily?region=north-america&timing=1',
-      {},
+    const diagnosticResponse = await apiApp.fetch(
+      new Request('http://test/brief/daily?region=north-america&timing=1'),
       env
     );
     const timing = diagnosticResponse.headers.get('server-timing') ?? '';
@@ -173,6 +190,7 @@ describe('GET /daily', () => {
     expect(timing).toMatch(/snapshot;dur=\d+\.\d+/);
     expect(timing).toMatch(/stocks;dur=\d+\.\d+/);
     expect(timing).toMatch(/news;dur=\d+\.\d+/);
+    expect(timing).toMatch(/route;dur=\d+\.\d+$/);
     expect(timing).not.toMatch(/north-america|daily|region|date/i);
     const body = (await response.json()) as {
       region: string;
