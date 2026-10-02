@@ -56,7 +56,7 @@ export function DailyBriefHero({
   brief: BriefSnapshot;
   region: Region;
   editionDate?: string;
-  editionDay?: 'today' | 'yesterday';
+  editionDay?: 'today' | 'yesterday' | 'earlier';
   signalOnly?: boolean;
 }) {
   const generated = brief.generatedAt.slice(0, 16).replace('T', ' ');
@@ -83,7 +83,7 @@ export function DailyBriefHero({
         <div>
           <h1 className="max-w-3xl text-4xl font-medium leading-[1.05] tracking-[-0.03em] text-[var(--color-fg)] sm:text-5xl">
             {signalOnly
-              ? `${editionDay === 'today' ? 'Today’s' : 'Yesterday’s'} verified signals.`
+              ? `${editionDay === 'today' ? 'Today’s' : editionDay === 'yesterday' ? 'Yesterday’s' : 'Earlier'} verified signals.`
               : 'What changed, why it matters, and what remains uncertain.'}
           </h1>
           <p className="mt-4 max-w-[70ch] text-sm leading-6 text-[var(--color-muted)]">

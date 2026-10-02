@@ -4,21 +4,9 @@ import { NewsFeed, SignalFeed } from '@/components/brief/BriefSections';
 import { DailyBriefHero } from '@/components/brief/DailyBriefHero';
 import { HomeJsonLd } from '@/components/seo/structured-data';
 import { PageShell } from '@/components/system/HighSignalUI';
-import { api, type BriefSnapshot } from '@/lib/api';
+import { api } from '@/lib/api';
+import { resolveCurrentBrief } from '@/lib/current-brief';
 import { istDay, isRegion, type Region } from '@high-signal/shared';
-
-const EMPTY_BRIEF: BriefSnapshot = {
-  generatedAt: new Date().toISOString(),
-  region: 'global',
-  stocks: [],
-  ideas: [],
-  trends: [],
-  categoryStates: {
-    stocks: { status: 'unavailable', source: 'live', reason: 'brief_api_unavailable' },
-    ideas: { status: 'unavailable', source: 'live', reason: 'brief_api_unavailable' },
-    trends: { status: 'unavailable', source: 'live', reason: 'brief_api_unavailable' },
-  },
-};
 
 export async function CurrentBriefPage({
   searchParams,
@@ -29,17 +17,15 @@ export async function CurrentBriefPage({
   const rawRegion = (params.region ?? 'global').toLowerCase().trim();
   const region: Region = isRegion(rawRegion) ? rawRegion : 'global';
   const selectedDay = params.day === 'yesterday' ? 'yesterday' : 'today';
-  const editionDate = istDay(new Date(), selectedDay === 'yesterday' ? -1 : 0);
-
-  let brief: BriefSnapshot = { ...EMPTY_BRIEF, region };
-  try {
-    brief = await api.brief({
-      region,
-      date: selectedDay === 'yesterday' ? editionDate : undefined,
-    });
-  } catch {
-    // The explicit unavailable state below is preferable to substituting input feeds.
-  }
+  const now = new Date();
+  const brief = await resolveCurrentBrief(api, region, selectedDay, now);
+  const editionDate = brief.editionDate;
+  const editionDay =
+    editionDate === istDay(now)
+      ? 'today'
+      : editionDate === istDay(now, -1)
+        ? 'yesterday'
+        : 'earlier';
 
   return (
     <PageShell>
@@ -77,12 +63,12 @@ export async function CurrentBriefPage({
         brief={brief}
         region={region}
         editionDate={editionDate}
-        editionDay={selectedDay}
+        editionDay={editionDay}
         signalOnly
       />
       <div className="brief-edition">
         <NewsFeed brief={brief} />
-        <SignalFeed brief={brief} editionDay={selectedDay} />
+        <SignalFeed brief={brief} editionDay={editionDay} />
       </div>
     </PageShell>
   );
