@@ -154,3 +154,30 @@ jobs:
             artifacts/reddit-archive-redaction/subreddits.index.json
             artifacts/reddit-archive-redaction/latest.json
           retention-days: 30
+
+  snapshot-publish:
+    needs: redact
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    concurrency:
+      group: reddit-insights-snapshot-publication
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          repository: High-Signal-App/research-subreddit
+          ref: 13018c0a5f6a84d799a486122226be34903ce95b
+          path: snapshot-product
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+      - name: Install Zstandard
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y zstd
+      - name: Publish and verify private snapshot derivatives
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_R2_API_TOKEN || secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: node snapshot-product/scripts/publish-snapshots.mjs --refresh-only
