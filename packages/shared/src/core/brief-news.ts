@@ -581,8 +581,101 @@ function retainedBody(
   return raw.slice(0, EXCERPT_MAX);
 }
 
+const NAMED_TEXT_ENTITIES = new Map<string, string>([
+  ['amp', '&'],
+  ['apos', "'"],
+  ['bull', '•'],
+  ['cent', '¢'],
+  ['copy', '©'],
+  ['deg', '°'],
+  ['divide', '÷'],
+  ['euro', '€'],
+  ['gt', '>'],
+  ['hellip', '…'],
+  ['laquo', '«'],
+  ['ldquo', '“'],
+  ['larr', '←'],
+  ['lsquo', '‘'],
+  ['lt', '<'],
+  ['mdash', '—'],
+  ['micro', 'µ'],
+  ['middot', '·'],
+  ['nbsp', ' '],
+  ['ndash', '–'],
+  ['para', '¶'],
+  ['pound', '£'],
+  ['plusmn', '±'],
+  ['quot', '"'],
+  ['raquo', '»'],
+  ['reg', '®'],
+  ['rdquo', '”'],
+  ['rarr', '→'],
+  ['rsquo', '’'],
+  ['sect', '§'],
+  ['thinsp', '\u2009'],
+  ['trade', '™'],
+  ['times', '×'],
+  ['uarr', '↑'],
+  ['yen', '¥'],
+]);
+
+const C1_CODE_POINT_REPLACEMENTS = new Map<number, number>([
+  [0x80, 0x20ac],
+  [0x82, 0x201a],
+  [0x83, 0x192],
+  [0x84, 0x201e],
+  [0x85, 0x2026],
+  [0x86, 0x2020],
+  [0x87, 0x2021],
+  [0x88, 0x2c6],
+  [0x89, 0x2030],
+  [0x8a, 0x160],
+  [0x8b, 0x2039],
+  [0x8c, 0x152],
+  [0x8e, 0x17d],
+  [0x91, 0x2018],
+  [0x92, 0x2019],
+  [0x93, 0x201c],
+  [0x94, 0x201d],
+  [0x95, 0x2022],
+  [0x96, 0x2013],
+  [0x97, 0x2014],
+  [0x98, 0x2dc],
+  [0x99, 0x2122],
+  [0x9a, 0x161],
+  [0x9b, 0x203a],
+  [0x9c, 0x153],
+  [0x9e, 0x17e],
+  [0x9f, 0x178],
+]);
+
+function decodeHtmlCharacterReferences(value: string): string {
+  return value.replace(/&(#(?:x[\da-f]+|\d+);?|[a-z][a-z\d]+;)/gi, (reference, entity: string) => {
+    const hasSemicolon = entity.endsWith(';');
+    const value = hasSemicolon ? entity.slice(0, -1) : entity;
+    if (!value.startsWith('#')) {
+      return NAMED_TEXT_ENTITIES.get(value) ?? reference;
+    }
+
+    const hexadecimal = value[1]?.toLowerCase() === 'x';
+    let codePoint = Number.parseInt(value.slice(hexadecimal ? 2 : 1), hexadecimal ? 16 : 10);
+    if (codePoint >= 0x80 && codePoint <= 0x9f) {
+      codePoint = C1_CODE_POINT_REPLACEMENTS.get(codePoint) ?? codePoint;
+    }
+    if (
+      !Number.isInteger(codePoint) ||
+      codePoint === 0 ||
+      codePoint > 0x10ffff ||
+      (codePoint >= 0xd800 && codePoint <= 0xdfff)
+    ) {
+      return '\ufffd';
+    }
+    return String.fromCodePoint(codePoint);
+  });
+}
+
 function cleanRetainedText(excerpt: string, title: string): string {
-  let cleaned = excerpt
+  let cleaned = decodeHtmlCharacterReferences(excerpt)
     .replace(/!\[[^\]]*]\([^)]+\)/g, ' ')
     .replace(/\[[^\]]*]\([^)]+\)/g, ' ')
     .replace(/<[^>]+>/g, ' ')
