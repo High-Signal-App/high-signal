@@ -81,37 +81,48 @@ type DebitResult = {
   dayKey: string;
 };
 
-type RequestPlan = { input: Record<string, unknown>; neurons: number } | { error: string };
+type NormalizedInput = Record<string, unknown> & { max_tokens: number };
+type RequestPlan = { input: NormalizedInput; neurons: number } | { error: string };
 
 function planRequest(model: string, value: unknown): RequestPlan {
   const pricing = TEXT_PRICING[model];
   if (!pricing) return { error: 'neuron_budget_model_unpriced' };
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return { error: 'neuron_budget_input_invalid' };
-  }
-  const source = value as Record<string, unknown>;
-  const requested = 'max_tokens' in source ? source['max_tokens'] : DEFAULT_OUTPUT_TOKENS;
-  if (typeof requested !== 'number' || !Number.isSafeInteger(requested) || requested <= 0) {
-    return { error: 'neuron_budget_input_invalid' };
-  }
-  const outputTokens = Math.min(requested, MAX_OUTPUT_TOKENS);
-  const input = { ...source, max_tokens: outputTokens };
-  let serialized: string;
-  try {
-    serialized = JSON.stringify(input);
-  } catch {
-    return { error: 'neuron_budget_input_invalid' };
-  }
-  if (typeof serialized !== 'string') return { error: 'neuron_budget_input_invalid' };
+  const input = normalizeInput(value);
+  if (!input) return { error: 'neuron_budget_input_invalid' };
+  const serialized = serializeInput(input);
+  if (!serialized) return { error: 'neuron_budget_input_invalid' };
 
   const inputBytes = new TextEncoder().encode(serialized).byteLength;
   const neurons = Math.max(
     1,
     Math.ceil(
-      (inputBytes * pricing.input * NEURON_BUFFER + outputTokens * pricing.output) / 1_000_000
+      (inputBytes * pricing.input * NEURON_BUFFER + input.max_tokens * pricing.output) / 1_000_000
     )
   );
   return neurons > BUDGET_CAP ? { error: 'neuron_budget_request_too_large' } : { input, neurons };
+}
+
+function normalizeInput(value: unknown): NormalizedInput | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+  const source = value as Record<string, unknown>;
+  const requested = 'max_tokens' in source ? source['max_tokens'] : DEFAULT_OUTPUT_TOKENS;
+  if (!isPositiveSafeInteger(requested)) return null;
+  const outputTokens = Math.min(requested, MAX_OUTPUT_TOKENS);
+  return { ...source, max_tokens: outputTokens };
+}
+
+function isPositiveSafeInteger(value: unknown): value is number {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value > 0;
+}
+
+function serializeInput(input: NormalizedInput): string | null {
+  try {
+    return JSON.stringify(input) ?? null;
+  } catch {
+    return null;
+  }
 }
 
 async function reserveNeurons(
@@ -134,32 +145,35 @@ async function reserveNeurons(
 }
 
 function isDebit(value: unknown, status: number, neurons: number): value is DebitResult {
+  if (!isDebitSnapshot(value, status)) return false;
+  const result = value;
+  return result.allowed
+    ? result.retryAfter === 0 && result.used >= neurons
+    : result.retryAfter > 0 && result.used + neurons > BUDGET_CAP;
+}
+
+function isDebitSnapshot(value: unknown, status: number): value is DebitResult {
   if (status !== 200 || value === null || typeof value !== 'object' || Array.isArray(value)) {
     return false;
   }
-  const result = value as Record<string, unknown>;
+  return isDebitFields(value as Record<string, unknown>);
+}
+
+function isDebitFields(result: Record<string, unknown>): result is DebitResult {
   const used = result['used'];
   const remaining = result['remaining'];
   const retryAfter = result['retryAfter'];
-  if (
-    typeof result['allowed'] !== 'boolean' ||
-    typeof used !== 'number' ||
-    !Number.isSafeInteger(used) ||
-    used < 0 ||
-    used > BUDGET_CAP ||
-    typeof remaining !== 'number' ||
-    !Number.isSafeInteger(remaining) ||
-    remaining < 0 ||
-    used + remaining !== BUDGET_CAP ||
-    typeof retryAfter !== 'number' ||
-    !Number.isSafeInteger(retryAfter) ||
-    retryAfter < 0 ||
-    result['dayKey'] !== new Date().toISOString().slice(0, 10)
-  )
+  if (typeof result['allowed'] !== 'boolean' || !isCounter(used) || !isCounter(remaining)) {
     return false;
-  return result['allowed']
-    ? retryAfter === 0 && used >= neurons
-    : retryAfter > 0 && used + neurons > BUDGET_CAP;
+  }
+  if (used + remaining !== BUDGET_CAP || !isCounter(retryAfter, Number.MAX_SAFE_INTEGER)) {
+    return false;
+  }
+  return result['dayKey'] === new Date().toISOString().slice(0, 10);
+}
+
+function isCounter(value: unknown, maximum = BUDGET_CAP): value is number {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 && value <= maximum;
 }
 
 function budgetError(code: string, debit: DebitResult | null = null) {
