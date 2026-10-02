@@ -64,73 +64,79 @@ export default function DataParityMethodologyPage() {
         </ul>
       </section>
 
-      <section className="py-9" aria-labelledby="reference-ledger">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-accent)]">
-              {DATA_PARITY_REFERENCES.length} attributable references
-            </div>
-            <h2 id="reference-ledger" className="mt-2 text-3xl font-medium tracking-[-0.025em]">
-              Capability ledger
-            </h2>
-          </div>
-          <p className="max-w-[46ch] text-xs leading-5 text-[var(--color-muted)]">
-            Covered source mappings are regression-tested against the generated source catalog.
-          </p>
-        </div>
-
-        <div className="mt-6 border-t border-[var(--color-line)]">
-          {DATA_PARITY_REFERENCES.map((reference) => (
-            <article
-              key={reference.id}
-              className="grid gap-5 border-b border-[var(--color-line)] py-7 lg:grid-cols-[190px_minmax(0,1fr)]"
-            >
-              <div>
-                <h3 className="text-lg font-medium">{reference.name}</h3>
-                <a
-                  href={reference.officialUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="mt-2 inline-block font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--color-muted)] hover:text-[var(--color-accent)]"
-                >
-                  official reference ↗
-                </a>
-              </div>
-              <div className="divide-y divide-[var(--color-line)] border-y border-[var(--color-line)]">
-                {reference.capabilities.map((capability) => (
-                  <div
-                    key={capability.id}
-                    className="grid gap-3 py-4 md:grid-cols-[140px_minmax(0,1fr)]"
-                  >
-                    <div
-                      className={`font-mono text-[10px] uppercase tracking-[0.14em] ${statusTone(capability.status)}`}
-                    >
-                      {capability.status}
-                    </div>
-                    <div>
-                      <div className="text-sm font-medium text-[var(--color-fg)]">
-                        {capability.label}
-                      </div>
-                      <p className="mt-2 max-w-[72ch] text-sm leading-6 text-[var(--color-muted)]">
-                        {capability.limitation}
-                      </p>
-                      {capability.highSignalSourceIds.length > 0 ? (
-                        <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.1em] text-[var(--color-muted)]">
-                          sources · {capability.highSignalSourceIds.join(' · ')}
-                        </p>
-                      ) : capability.productCapability ? (
-                        <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.1em] text-[var(--color-muted)]">
-                          product capability · {capability.productCapability}
-                        </p>
-                      ) : null}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
+      <ReferenceLedger />
     </PageShell>
+  );
+}
+
+function ReferenceLedger() {
+  return (
+    <section className="py-9" aria-labelledby="reference-ledger">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-accent)]">
+            {DATA_PARITY_REFERENCES.length} attributable references
+          </div>
+          <h2 id="reference-ledger" className="mt-2 text-3xl font-medium tracking-[-0.025em]">
+            Capability ledger
+          </h2>
+        </div>
+        <p className="max-w-[46ch] text-xs leading-5 text-[var(--color-muted)]">
+          Covered source mappings are regression-tested against the generated source catalog.
+        </p>
+      </div>
+
+      <div className="mt-6 border-t border-[var(--color-line)]">
+        {DATA_PARITY_REFERENCES.map((reference) => (
+          <article
+            key={reference.id}
+            className="grid gap-5 border-b border-[var(--color-line)] py-7 lg:grid-cols-[190px_minmax(0,1fr)]"
+          >
+            <div>
+              <h3 className="text-lg font-medium">{reference.name}</h3>
+              <a
+                href={reference.officialUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-2 inline-block font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--color-muted)] hover:text-[var(--color-accent)]"
+              >
+                official reference ↗
+              </a>
+            </div>
+            <div className="divide-y divide-[var(--color-line)] border-y border-[var(--color-line)]">
+              {reference.capabilities.map((capability) => (
+                <div
+                  key={capability.id}
+                  className="grid gap-3 py-4 md:grid-cols-[140px_minmax(0,1fr)]"
+                >
+                  <div
+                    className={`font-mono text-[10px] uppercase tracking-[0.14em] ${statusTone(capability.status)}`}
+                  >
+                    {capability.status}
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium text-[var(--color-fg)]">
+                      {capability.label}
+                    </div>
+                    <p className="mt-2 max-w-[72ch] text-sm leading-6 text-[var(--color-muted)]">
+                      {capability.limitation}
+                    </p>
+                    {capability.highSignalSourceIds.length > 0 ? (
+                      <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.1em] text-[var(--color-muted)]">
+                        sources · {capability.highSignalSourceIds.join(' · ')}
+                      </p>
+                    ) : capability.productCapability ? (
+                      <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.1em] text-[var(--color-muted)]">
+                        product capability · {capability.productCapability}
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
   );
 }
