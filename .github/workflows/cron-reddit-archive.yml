@@ -35,7 +35,7 @@ permissions:
   actions: read
 
 concurrency:
-  group: cron-reddit-archive
+  group: ${{ github.event_name == 'workflow_dispatch' && inputs.refresh_snapshots_only && 'reddit-insights-manual-refresh' || 'cron-reddit-archive' }}
   cancel-in-progress: false
 
 jobs:
