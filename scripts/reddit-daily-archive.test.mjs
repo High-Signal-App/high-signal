@@ -564,7 +564,11 @@ fs.mkdirSync(path.dirname(to),{recursive:true});fs.copyFileSync(from,to);
   assert.doesNotMatch(workflow, /r2 bucket create/);
   const redactionWorkflow = await readFile('.github/workflows/reddit-archive-redact.yml', 'utf8');
   assert.match(redactionWorkflow, /group: cron-reddit-archive\n/);
-  assert.ok(workflow.includes("group: ${{ github.event_name == 'workflow_dispatch' && inputs.refresh_snapshots_only && 'reddit-insights-manual-refresh' || 'cron-reddit-archive' }}"));
+  assert.ok(
+    workflow.includes(
+      "group: ${{ github.event_name == 'workflow_dispatch' && inputs.refresh_snapshots_only && 'reddit-insights-manual-refresh' || 'cron-reddit-archive' }}"
+    )
+  );
   const redactionDir = join(root, 'artifacts/reddit-archive-redaction');
   await cp(backup, redactionDir, { recursive: true });
   const currentPointer = await readFile(pointerPath, 'utf8');
