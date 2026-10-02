@@ -4,13 +4,12 @@ import { createWorkersAI } from 'workers-ai-provider';
 
 export interface AIConfig {
   binding?: Ai;
+  gateway?: Fetcher;
   neuronBudget?: DurableObjectNamespace;
   endpointUrl?: string;
   apiKey?: string;
   model: string;
 }
-
-export const DEFAULT_WORKERS_AI_MODEL = '@cf/meta/llama-3.1-8b-instruct';
 
 export interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
@@ -28,20 +27,33 @@ export interface ChatCompletionOptions {
 /** Generate text through an explicitly configured free-provider/local endpoint. */
 export async function generateChatCompletion(options: ChatCompletionOptions): Promise<string> {
   const { config, messages, systemPrompt, maxTokens = 512, signal } = options;
-  const model = config.binding
-    ? createWorkersAI({ binding: withWorkersAiBudget(config.binding, config.neuronBudget) })(
-        config.model
-      )
-    : createOpenAICompatible({
-        name: 'high-signal-direct',
-        baseURL: required(config.endpointUrl, 'AI endpoint URL').trim().replace(/\/+$/, ''),
-        apiKey: required(config.apiKey, 'AI API key'),
-      }).chatModel(config.model);
+  const model = config.gateway
+    ? createOpenAICompatible({
+        name: 'fleet-managed-gateway',
+        baseURL: 'https://fleet-gateway.internal/v1',
+        apiKey: 'gateway-managed',
+        supportsStructuredOutputs: false,
+        fetch: (input, init) => {
+          const request = new Request(input, init);
+          const headers = new Headers(request.headers);
+          headers.set('x-gateway-project-id', 'high-signal');
+          return config.gateway!.fetch(new Request(request, { headers }));
+        },
+      }).chatModel('auto')
+    : config.binding
+      ? createWorkersAI({ binding: withWorkersAiBudget(config.binding, config.neuronBudget) })(
+          config.model
+        )
+      : createOpenAICompatible({
+          name: 'high-signal-direct',
+          baseURL: required(config.endpointUrl, 'AI endpoint URL').trim().replace(/\/+$/, ''),
+          apiKey: required(config.apiKey, 'AI API key'),
+        }).chatModel(config.model);
   const result = await generateText({
     model,
     ...(systemPrompt ? { system: systemPrompt } : {}),
     messages,
-    maxOutputTokens: maxTokens,
+    maxOutputTokens: Math.min(maxTokens, MAX_OUTPUT_TOKENS),
     maxRetries: 0,
     abortSignal: signal,
   });
