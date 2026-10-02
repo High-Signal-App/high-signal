@@ -32,7 +32,7 @@ The daily cycle is sequenced so each stage consumes the previous stage's output:
 
 | Time (IST / UTC) | Workflow | Intent |
 | --- | --- | --- |
-| 05:47 / 00:17 | `cron-reddit-archive.yml` | Capture one exact prior-24-hour window from the complete curated subreddit roster (currently 99), preserve posts plus relevance-filtered comment trees as compact Zstd-22 JSONL packs in private R2, and publish a compressed event export for High Signal and approved sibling consumers. Manual dispatch can run the 10-community canary on GitHub-hosted infrastructure or the labelled personal side machine. |
+| 05:47 / 00:17 | `cron-reddit-archive.yml` | Capture one exact prior-24-hour window from the complete curated subreddit roster (currently 99), preserve posts plus relevance-filtered comment trees as compact Zstd-22 JSONL packs in private R2, and publish a compressed event export for High Signal and approved sibling consumers. Successful collection also refreshes private Reddit Insights snapshots. Manual dispatch can run the 10-community canary or refresh snapshots only without collecting Reddit. |
 | 06:30 / 01:00 | `cron-source-cadences.yml` | Fetch-only macro-rate and crypto on-chain context; no signal drafting. |
 | 08:00 / 02:30 | `cron-ingest.yml` | Bounded 28-source `--source all --days 1` ingest run → events → draft signals. |
 | 09:00 / 03:30 | `cron-publish.yml` | Mandatory shared publishability gate plus semantic/origin-aware claim judge; then authenticated brief rebuild and reader-facing freshness verification. The workflow cannot stay green with an empty public edition. |
@@ -127,3 +127,15 @@ ingest is CPU-bound (GLiNER entity extraction; optional FinBERT sentiment via an
 undeclared `transformers` extra that falls back to rules when absent).
 `python/ingest/modal_app.py` is kept only
 for ad-hoc long backfills via `modal run`.
+
+### Reddit Insights snapshot publication
+
+The collection and redaction workflows publish bounded, author-minimized exports
+to the existing private `reddit-insights-archive` bucket using the pinned Reddit
+Insights publisher. Both publication jobs share a concurrency group. The
+publisher discovers the canonical latest complete archive and rechecks every
+published source manifest, replacing revised collections and renewing unchanged
+24-hour leases. Collection failure does not extend serving leases. For a manual
+refresh without ingestion, dispatch `cron-reddit-archive.yml` with
+`refresh_snapshots_only=true`. Existing R2 credential references are reused;
+no raw archive object is rewritten by publication.
