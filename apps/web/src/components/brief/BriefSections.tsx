@@ -379,7 +379,7 @@ export function SignalFeed({
   editionDay,
 }: {
   brief: BriefSnapshot;
-  editionDay: 'today' | 'yesterday';
+  editionDay: 'today' | 'yesterday' | 'earlier';
 }) {
   const state = categoryStatesForSnapshot(brief).stocks;
   const count = brief.stocks.length;
@@ -398,7 +398,9 @@ export function SignalFeed({
             ? `${count} verified ${count === 1 ? 'signal' : 'signals'}`
             : state.status === 'unavailable'
               ? 'Signal source unavailable'
-              : `No verified signals ${editionDay}`}
+              : editionDay === 'earlier'
+                ? 'No verified signals in this edition'
+                : `No verified signals ${editionDay}`}
         </h2>
         {state.status === 'ready' && count > 0 ? (
           <Link
