@@ -550,7 +550,8 @@ describe('sanitizeBriefNewsItems', () => {
         title: 'A retained technology story',
         summary:
           'The report says &ldquo;proceed&rdquo;&nbsp;— &lsquo;details&rsquo; follow. ' +
-          'A &#8217; quote and &#x2014; dash; literal &amp;ldquo; stays visible, ' +
+          'A &#8217; quote and &#x2014; dash; no-semicolon &#39 quote; ' +
+          'literal &amp;ldquo; stays visible, ' +
           'as does &unknown;.',
         event_at: '2026-09-12T08:00:00.000Z',
         what_changed: '',
@@ -561,6 +562,7 @@ describe('sanitizeBriefNewsItems', () => {
 
     expect(story?.summary).toBe(
       'The report says “proceed” — ‘details’ follow. A ’ quote and — dash; ' +
+        "no-semicolon ' quote; " +
         'literal &ldquo; stays visible, as does &unknown;.'
     );
   });

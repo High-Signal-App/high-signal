@@ -650,13 +650,15 @@ const C1_CODE_POINT_REPLACEMENTS = new Map<number, number>([
 ]);
 
 function decodeHtmlCharacterReferences(value: string): string {
-  return value.replace(/&(#(?:x[\da-f]+|\d+)|[a-z][a-z\d]+);/gi, (reference, entity: string) => {
-    if (!entity.startsWith('#')) {
-      return NAMED_TEXT_ENTITIES.get(entity) ?? reference;
+  return value.replace(/&(#(?:x[\da-f]+|\d+);?|[a-z][a-z\d]+;)/gi, (reference, entity: string) => {
+    const hasSemicolon = entity.endsWith(';');
+    const value = hasSemicolon ? entity.slice(0, -1) : entity;
+    if (!value.startsWith('#')) {
+      return NAMED_TEXT_ENTITIES.get(value) ?? reference;
     }
 
-    const hexadecimal = entity[1]?.toLowerCase() === 'x';
-    let codePoint = Number.parseInt(entity.slice(hexadecimal ? 2 : 1), hexadecimal ? 16 : 10);
+    const hexadecimal = value[1]?.toLowerCase() === 'x';
+    let codePoint = Number.parseInt(value.slice(hexadecimal ? 2 : 1), hexadecimal ? 16 : 10);
     if (codePoint >= 0x80 && codePoint <= 0x9f) {
       codePoint = C1_CODE_POINT_REPLACEMENTS.get(codePoint) ?? codePoint;
     }
