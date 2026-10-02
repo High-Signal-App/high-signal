@@ -95,7 +95,7 @@ describe('events source rollup', () => {
     );
     const timing = response.headers.get('server-timing') ?? '';
     expect(timing).toMatch(
-      /^source_rollup;dur=\d+\.\d+, ingest_runs;dur=\d+\.\d+, attention;dur=\d+\.\d+$/
+      /^source_rollup;dur=\d+\.\d+, ingest_runs;dur=\d+\.\d+, attention;dur=\d+\.\d+, route;dur=\d+\.\d+$/
     );
     expect(timing).not.toContain('private-value');
     expect(timing).not.toContain('samples');
@@ -111,7 +111,9 @@ describe('events source rollup', () => {
     });
 
     expect(response.status).toBe(200);
-    expect(response.headers.get('server-timing')).toContain('source_rollup;dur=');
+    expect(response.headers.get('server-timing')).toMatch(
+      /source_rollup;dur=\d+\.\d+.*route;dur=\d+\.\d+/
+    );
     expect(response.headers.get('cache-control')).toBe('private, no-store');
     expect(get).not.toHaveBeenCalled();
     expect(put).not.toHaveBeenCalled();
