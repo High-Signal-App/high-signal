@@ -7,6 +7,23 @@ Fleet's gateway by default, with `auto` model selection, existing output-token
 bounds, and no direct Workers AI fallback. Explicit configured endpoint
 credentials still select the existing BYOK path.
 
+October 2 API route timing diagnostics — live:
+
+Opt-in `?timing=1` diagnostics are available on `GET /brief/daily`,
+`GET /data/sources`, and `GET /data/sources/:id`. They append a fixed `route`
+duration covering the Hono middleware and handler boundary, including request
+parsing, CORS, and response construction/serialization. Diagnostic responses
+are `private, no-store`, including early errors; ordinary requests have no
+`Server-Timing`. This excludes the Worker cache/index wrapper, network time, and
+response transfer. Deployed by [API workflow run 37046547482](https://github.com/High-Signal-App/high-signal/actions/runs/37046547482)
+from source SHA `ded140edbba8434636501c8f43968dcfcabd920e`, producing Worker
+version `061d14b0-ebc1-4c2c-8cb1-9f9ee2bbd0f2`. Workflow smoke checks and seven
+public diagnostic, ordinary, and early-error probes passed; the brief, sources,
+and detail route samples measured 686 ms, 513 ms, and 283 ms inside Hono.
+These are point samples, not p95 or evidence of latency recovery; stage timings
+may overlap. See [PR #214](https://github.com/High-Signal-App/high-signal/pull/214).
+Post-release App Health qualification remains open in [issue #198](https://github.com/High-Signal-App/high-signal/issues/198).
+
 September 14 Global brief trend ranking — live:
 
 Global news has no country cap, quota, bonus, or penalty. Stories are ordered by
