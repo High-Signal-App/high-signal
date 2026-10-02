@@ -62,50 +62,12 @@ export function withWorkersAiBudget(binding: Ai, budget: DurableObjectNamespace 
     get(target, property) {
       if (property !== 'run') return Reflect.get(target, property, target);
       return async (model: string, input: unknown, options?: AiOptions) => {
-        const pricing = TEXT_PRICING[model];
-        if (!pricing || !input || typeof input !== 'object') {
-          throw budgetError('neuron_budget_model_unpriced', null, null, null, null);
-        }
-
-        const rawOutput = Number(
-          (input as { max_tokens?: unknown }).max_tokens ?? DEFAULT_OUTPUT_TOKENS
-        );
-        if (!Number.isFinite(rawOutput) || rawOutput < 0) {
-          throw budgetError('neuron_budget_input_invalid', null, null, null, null);
-        }
-        const outputTokens = Math.min(MAX_OUTPUT_TOKENS, Math.max(1, Math.ceil(rawOutput)));
-        const boundedInput = {
-          ...(input as Record<string, unknown>),
-          max_tokens: outputTokens,
-        };
-        let serialized: string;
-        try {
-          serialized = JSON.stringify(boundedInput);
-        } catch {
-          throw budgetError('neuron_budget_input_unserializable', null, null, null, null);
-        }
-        const inputTokens = Math.max(
-          1,
-          Math.ceil(new TextEncoder().encode(serialized).byteLength / 4)
-        );
-        const neurons = Math.max(
-          1,
-          Math.ceil(
-            ((inputTokens * pricing.input + outputTokens * pricing.output) / 1_000_000) *
-              NEURON_BUFFER
-          )
-        );
-        const debit = await reserveNeurons(budget, neurons);
-        if (!debit || !debit.allowed) {
-          throw budgetError(
-            debit ? 'neuron_budget_exhausted' : 'neuron_budget_unavailable',
-            debit?.used ?? null,
-            debit?.remaining ?? null,
-            debit?.retryAfter ?? null,
-            debit?.dayKey ?? null
-          );
-        }
-        return target.run.call(target, model, boundedInput, options);
+        const plan = planRequest(model, input);
+        if ('error' in plan) throw budgetError(plan.error);
+        const debit = await reserveNeurons(budget, plan.neurons);
+        if (!debit) throw budgetError('neuron_budget_unavailable');
+        if (!debit.allowed) throw budgetError('neuron_budget_exhausted', debit);
+        return target.run.call(target, model, plan.input, options);
       };
     },
   });
@@ -119,6 +81,39 @@ type DebitResult = {
   dayKey: string;
 };
 
+type RequestPlan = { input: Record<string, unknown>; neurons: number } | { error: string };
+
+function planRequest(model: string, value: unknown): RequestPlan {
+  const pricing = TEXT_PRICING[model];
+  if (!pricing) return { error: 'neuron_budget_model_unpriced' };
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return { error: 'neuron_budget_input_invalid' };
+  }
+  const source = value as Record<string, unknown>;
+  const requested = 'max_tokens' in source ? source['max_tokens'] : DEFAULT_OUTPUT_TOKENS;
+  if (typeof requested !== 'number' || !Number.isSafeInteger(requested) || requested <= 0) {
+    return { error: 'neuron_budget_input_invalid' };
+  }
+  const outputTokens = Math.min(requested, MAX_OUTPUT_TOKENS);
+  const input = { ...source, max_tokens: outputTokens };
+  let serialized: string;
+  try {
+    serialized = JSON.stringify(input);
+  } catch {
+    return { error: 'neuron_budget_input_invalid' };
+  }
+  if (typeof serialized !== 'string') return { error: 'neuron_budget_input_invalid' };
+
+  const inputBytes = new TextEncoder().encode(serialized).byteLength;
+  const neurons = Math.max(
+    1,
+    Math.ceil(
+      (inputBytes * pricing.input * NEURON_BUFFER + outputTokens * pricing.output) / 1_000_000
+    )
+  );
+  return neurons > BUDGET_CAP ? { error: 'neuron_budget_request_too_large' } : { input, neurons };
+}
+
 async function reserveNeurons(
   budget: DurableObjectNamespace | undefined,
   neurons: number
@@ -131,43 +126,56 @@ async function reserveNeurons(
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ neurons }),
     });
-    if (!response.ok) return null;
-    const debit = (await response.json()) as Partial<DebitResult>;
-    if (
-      typeof debit.allowed !== 'boolean' ||
-      !Number.isInteger(debit.used) ||
-      debit.used! < 0 ||
-      debit.used! > BUDGET_CAP ||
-      !Number.isInteger(debit.remaining) ||
-      debit.remaining! < 0 ||
-      debit.remaining! > BUDGET_CAP ||
-      debit.used! + debit.remaining! !== BUDGET_CAP ||
-      !Number.isInteger(debit.retryAfter) ||
-      debit.retryAfter! < 0 ||
-      typeof debit.dayKey !== 'string' ||
-      debit.dayKey !== new Date().toISOString().slice(0, 10)
-    )
-      return null;
-    return debit as DebitResult;
+    const body: unknown = await response.json().catch(() => null);
+    return isDebit(body, response.status, neurons) ? body : null;
   } catch {
     return null;
   }
 }
 
-function budgetError(
-  code: string,
-  used: number | null,
-  remaining: number | null,
-  retryAfter: number | null,
-  dayKey: string | null
-) {
+function isDebit(value: unknown, status: number, neurons: number): value is DebitResult {
+  if (status !== 200 || value === null || typeof value !== 'object' || Array.isArray(value)) {
+    return false;
+  }
+  const result = value as Record<string, unknown>;
+  const used = result['used'];
+  const remaining = result['remaining'];
+  const retryAfter = result['retryAfter'];
+  if (
+    typeof result['allowed'] !== 'boolean' ||
+    typeof used !== 'number' ||
+    !Number.isSafeInteger(used) ||
+    used < 0 ||
+    used > BUDGET_CAP ||
+    typeof remaining !== 'number' ||
+    !Number.isSafeInteger(remaining) ||
+    remaining < 0 ||
+    used + remaining !== BUDGET_CAP ||
+    typeof retryAfter !== 'number' ||
+    !Number.isSafeInteger(retryAfter) ||
+    retryAfter < 0 ||
+    result['dayKey'] !== new Date().toISOString().slice(0, 10)
+  )
+    return false;
+  return result['allowed']
+    ? retryAfter === 0 && used >= neurons
+    : retryAfter > 0 && used + neurons > BUDGET_CAP;
+}
+
+function budgetError(code: string, debit: DebitResult | null = null) {
   return Object.assign(
     new Error(
-      used === null
+      debit === null
         ? 'Workers AI daily budget state is unavailable.'
-        : `Workers AI daily budget exhausted (${used}/${BUDGET_CAP}).`
+        : `Workers AI daily budget exhausted (${debit.used}/${BUDGET_CAP}).`
     ),
-    { code, used, remaining, retryAfter, dayKey }
+    {
+      code,
+      used: debit?.used ?? null,
+      remaining: debit?.remaining ?? null,
+      retryAfter: debit?.retryAfter ?? null,
+      dayKey: debit?.dayKey ?? null,
+    }
   );
 }
 
