@@ -12,6 +12,12 @@ routes = [
 [ai]
 binding = "AI"
 
+# Share Fleet's global UTC-day Workers AI Neuron budget.
+[[durable_objects.bindings]]
+name = "NEURON_BUDGET"
+class_name = "NeuronBudgetDO"
+script_name = "free-ai-gateway"
+
 # The public entrypoint is cached before Worker execution. The default gateway
 # remains uncached so it can reject cookies, authorization, admin paths,
 # mutations, health checks, and other private variants before cache lookup.
