@@ -132,13 +132,22 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {`(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/ybcgyx9ugh";y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window,document,"clarity","script","ybcgyx9ugh");window.clarity("set","project_id","high-signal");`}
         </Script>
         <Script
-          src="https://sassmaker.com/project-strip.js"
+          src="https://sassmaker.com/project-strip.js?v=precise-b0adaa67"
           data-project="high-signal"
+          data-theme="dark"
+          data-host-only="true"
+          data-font-base="/fonts/fleet-footer-precise-v1/"
           strategy="lazyOnload"
         />
         <Script
-          src="https://sassmaker.com/ai-chat-footer.js"
+          src="https://sassmaker.com/ai-chat-footer.js?v=precise-b0adaa67"
           data-name="High Signal"
+          data-project="high-signal"
+          data-theme="dark"
+          data-host-only="true"
+          data-capture="false"
+          data-surface="app"
+          data-font-base="/fonts/fleet-footer-precise-v1/"
           strategy="lazyOnload"
         />
         <Script
