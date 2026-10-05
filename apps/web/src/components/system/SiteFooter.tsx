@@ -53,6 +53,8 @@ export function SiteFooter() {
         'catalog-id': 'high-signal',
         'product-name': 'High Signal',
         kind: 'newsletter',
+        layout: 'compact',
+        integrated: '',
         source: 'footer',
         'privacy-url': 'https://highsignal.app/privacy',
       })}
