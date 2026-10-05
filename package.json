@@ -91,14 +91,16 @@
     "quality:dependencies": "node scripts/check-code-health.mjs dependencies",
     "quality:cycles": "knip --cycles --no-config-hints",
     "quality:suppressions": "node scripts/check-code-health.mjs suppressions",
-    "quality": "pnpm format:check && pnpm quality:python-format && pnpm lint && pnpm quality:python-lint && pnpm typecheck && pnpm test && pnpm quality:coverage && pnpm quality:unused && pnpm quality:python-unused && pnpm quality:complexity && pnpm quality:duplication && pnpm quality:dependencies && pnpm quality:cycles && pnpm quality:suppressions && pnpm docs:check",
+    "quality": "pnpm format:check && pnpm quality:python-format && pnpm lint && pnpm quality:python-lint && pnpm typecheck && pnpm test && pnpm quality:coverage && pnpm quality:unused && pnpm quality:python-unused && pnpm quality:complexity && pnpm quality:duplication && pnpm quality:cache-security && pnpm quality:dependencies && pnpm quality:cycles && pnpm quality:suppressions && pnpm docs:check",
     "docs:check": "node scripts/docs-check.mjs",
     "docs:blume:dev": "cd docs-site && npx blume dev",
     "docs:blume:build": "cd docs-site && npx blume build",
     "docs:blume:preview": "cd docs-site && npx blume preview",
     "docs:blume:check": "cd docs-site && npx blume check",
     "docs:blume:validate": "cd docs-site && npx blume validate",
-    "prepare": "husky"
+    "prepare": "husky",
+    "test:dependency-security": "node --test scripts/http-cache-security.test.mjs",
+    "quality:cache-security": "node scripts/check-http-cache-security.mjs && node --test scripts/http-cache-security.test.mjs"
   },
   "pnpm": {
     "overrides": {
@@ -117,7 +119,11 @@
       "brace-expansion@>=2.0.0 <3.0.0": "2.1.7",
       "brace-expansion@>=4.0.0 <6.0.0": "5.0.12",
       "nanoid@>=3.0.0 <3.3.18": "3.3.18",
-      "devalue@<=5.9.2": "5.9.3"
+      "devalue@<=5.9.2": "5.9.3",
+      "http-cache-semantics": "4.3.0"
+    },
+    "patchedDependencies": {
+      "http-cache-semantics@4.3.0": "patches/http-cache-semantics@4.3.0.patch"
     }
   }
 }
