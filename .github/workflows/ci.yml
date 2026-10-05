@@ -39,7 +39,7 @@ jobs:
             echo "Cache patch guard accepted a synthetic patch mutation." >&2
             exit 1
           fi
-          if ! rg -q "the reviewed local patch changed or is missing" "$log"; then
+          if ! grep -Fq "the reviewed local patch changed or is missing" "$log"; then
             cat "$log"
             echo "Cache patch guard failed for an unexpected reason." >&2
             exit 1
