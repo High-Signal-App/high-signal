@@ -23,7 +23,38 @@ jobs:
         with: { python-version: "3.11" }
       - run: uv sync --project python/ingest --only-group dev
       - run: pnpm install --frozen-lockfile
+      - run: pnpm quality:cache-security
+      - name: Verify cache patch guard rejects a mutation
+        shell: bash
+        run: |
+          patch='patches/http-cache-semantics@4.3.0.patch'
+          backup="$RUNNER_TEMP/http-cache-semantics@4.3.0.patch"
+          log="$RUNNER_TEMP/cache-patch-guard-negative.log"
+          cp "$patch" "$backup"
+          restore_patch() { cp "$backup" "$patch"; }
+          trap restore_patch EXIT
+          printf '\n# deliberate guard mutation probe\n' >> "$patch"
+          if pnpm exec node scripts/check-http-cache-security.mjs > "$log" 2>&1; then
+            cat "$log"
+            echo "Cache patch guard accepted a synthetic patch mutation." >&2
+            exit 1
+          fi
+          if ! grep -Fq "the reviewed local patch changed or is missing" "$log"; then
+            cat "$log"
+            echo "Cache patch guard failed for an unexpected reason." >&2
+            exit 1
+          fi
+          restore_patch
+          trap - EXIT
       - run: pnpm quality
+      - name: Build High Signal Storybook
+        run: pnpm --filter @high-signal/web build-storybook
+      - uses: actions/upload-artifact@v7
+        with:
+          name: highsignal-storybook-${{ github.sha }}
+          path: apps/web/storybook-static
+          if-no-files-found: error
+          retention-days: 1
 
   python:
     runs-on: ubuntu-latest
@@ -43,3 +74,26 @@ jobs:
       # Fixture-driven adapter tests keep this gate fully offline.
       - run: uv run pytest -q --cov=high_signal_ingest --cov-branch --cov-fail-under=55
       - run: uv run pip-audit --local
+
+  storybook-lockfile-candidate:
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.ref == 'agent/highsignal-issue218-cachefix-20261005'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+      - name: Regenerate lockfile for the exact PR head
+        run: pnpm install --lockfile-only --ignore-scripts
+      - uses: actions/upload-artifact@v7
+        with:
+          name: highsignal-lockfile-${{ github.event.pull_request.head.sha }}
+          path: pnpm-lock.yaml
+          if-no-files-found: error
+          retention-days: 1
