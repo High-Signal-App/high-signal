@@ -1,0 +1,44 @@
+name: Temporary High Signal deploy readiness
+on:
+  push:
+    branches: [agent/highsignal220-deploy-preflight]
+permissions:
+  contents: read
+  actions: read
+jobs:
+  guard:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          repository: High-Signal-App/high-signal
+          ref: main
+          path: high-signal
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/checkout@v6
+        with:
+          repository: sass-maker/saas-maker
+          ref: c8138c477e060174d2245f76219dc290acf56d2c
+          path: saas-maker
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+      - name: Assert the exact post-merge main checkout
+        env:
+          EXPECTED_MAIN_SHA: 0c0ff7801bccb148df059d6d47e6f67845a2298a
+        run: |
+          [[ "$EXPECTED_MAIN_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git -C high-signal branch --show-current)" = main
+          test "$(git -C high-signal rev-parse HEAD)" = "$EXPECTED_MAIN_SHA"
+          test -z "$(git -C high-signal status --porcelain)"
+          test "$(git -C high-signal rev-parse --abbrev-ref --symbolic-full-name '@{u}')" = origin/main
+          git -C high-signal fetch --no-tags origin main
+          test "$(git -C high-signal rev-parse refs/remotes/origin/main)" = "$EXPECTED_MAIN_SHA"
+      - name: Run the canonical six-gate guard
+        env:
+          FLEET_ROOT_OVERRIDE: ${{ github.workspace }}
+          GH_TOKEN: ${{ github.token }}
+        run: bash saas-maker/tooling/scripts/fleet-deploy-guard.sh high-signal
