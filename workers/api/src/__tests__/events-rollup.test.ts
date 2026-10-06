@@ -158,10 +158,10 @@ describe('events source rollup', () => {
     );
 
     const successfulReads = trackAttentionReads();
-    const successfulResponse = await app.fetch(
-      new Request('http://test/data/sources?timing=1'),
-      { ...env(), DB: successfulReads.binding }
-    );
+    const successfulResponse = await app.fetch(new Request('http://test/data/sources?timing=1'), {
+      ...env(),
+      DB: successfulReads.binding,
+    });
     expect(successfulResponse.status).toBe(200);
     expect(successfulReads.maxConcurrentReads()).toBe(2);
     const successfulPayload = (await successfulResponse.json()) as {
@@ -204,10 +204,10 @@ describe('events source rollup', () => {
     ]);
 
     const failedReads = trackAttentionReads('digg_clusters');
-    const failedResponse = await app.fetch(
-      new Request('http://test/data/sources?timing=1'),
-      { ...env(), DB: failedReads.binding }
-    );
+    const failedResponse = await app.fetch(new Request('http://test/data/sources?timing=1'), {
+      ...env(),
+      DB: failedReads.binding,
+    });
     expect(failedResponse.status).toBe(200);
     expect(failedReads.maxConcurrentReads()).toBe(2);
     const failedPayload = (await failedResponse.json()) as {
