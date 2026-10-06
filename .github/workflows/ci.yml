@@ -25,8 +25,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm quality:cache-security
       - name: Verify cache patch guard rejects a mutation
-        shell: bash
         run: |
+          bash --noprofile --norc -e -o pipefail <<'CACHE_GUARD_BASH'
           patch='patches/http-cache-semantics@4.3.0.patch'
           backup="$RUNNER_TEMP/http-cache-semantics@4.3.0.patch"
           log="$RUNNER_TEMP/cache-patch-guard-negative.log"
@@ -46,6 +46,7 @@ jobs:
           fi
           restore_patch
           trap - EXIT
+          CACHE_GUARD_BASH
       - run: pnpm quality
       - name: Build High Signal Next.js application
         run: pnpm --filter @high-signal/web build
