@@ -28,7 +28,7 @@ jobs:
           node-version: 22
       - name: Assert the exact post-merge main checkout
         env:
-          EXPECTED_MAIN_SHA: 0c0ff7801bccb148df059d6d47e6f67845a2298a
+          EXPECTED_MAIN_SHA: 04f1f54f7069469ee30c1675d13441187e1a68b5
         run: |
           [[ "$EXPECTED_MAIN_SHA" =~ ^[0-9a-f]{40}$ ]]
           test "$(git -C high-signal branch --show-current)" = main
