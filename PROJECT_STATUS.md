@@ -1,6 +1,20 @@
 # high-signal — PROJECT STATUS
 
-Last updated: 2026-10-02
+Last updated: 2026-10-06
+
+October 6 source-status query repair — implementation:
+
+The independent Digg and MTS attention-status reads run concurrently while
+retaining their output order, aggregate-before-samples sequencing, and separate
+unknown-status fallback on query failure. The controlled D1 regression covers
+query overlap, the ordered payload and one-family failure isolation. The
+source-map-js and proxy-addr transitive dependencies are pinned to their
+compatible advisory-fixed patch versions; existing security policy and the
+protected-cache patch are preserved. These changes are tracked in
+[PR #220](https://github.com/High-Signal-App/high-signal/pull/220).
+Live before/after performance and broader latency recovery remain separate
+acceptance gates in [issue #198](https://github.com/High-Signal-App/high-signal/issues/198).
+This entry records implementation rather than a deployed performance result.
 
 Managed community research now uses the private `FREE_AI` service binding to
 Fleet's gateway by default, with `auto` model selection, existing output-token
