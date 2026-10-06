@@ -75,6 +75,51 @@ async function sourceDetail(id: string) {
   return (await response.json()) as Record<string, unknown>;
 }
 
+function trackAttentionReads(failedTable?: string) {
+  let activeReads = 0;
+  let maxConcurrentReads = 0;
+  let releaseMtsRead!: () => void;
+  const mtsReadCompleted = new Promise<void>((resolve) => {
+    releaseMtsRead = resolve;
+  });
+  const binding = new Proxy(d1.binding, {
+    get(target, property) {
+      if (property === 'prepare') {
+        return (query: string) => {
+          const statement = target.prepare(query);
+          const table = query.match(/FROM (digg_clusters|mts_situations)/)?.[1];
+          if (!table || !query.startsWith('SELECT COUNT(*)')) return statement;
+          return new Proxy(statement, {
+            get(statementTarget, statementProperty) {
+              if (statementProperty === 'first') {
+                return async () => {
+                  activeReads += 1;
+                  maxConcurrentReads = Math.max(maxConcurrentReads, activeReads);
+                  try {
+                    const result = statementTarget.first();
+                    if (table === 'digg_clusters') await mtsReadCompleted;
+                    const row = await result;
+                    if (table === 'mts_situations') releaseMtsRead();
+                    if (table === failedTable) throw new Error('injected attention read failure');
+                    return row;
+                  } finally {
+                    activeReads -= 1;
+                  }
+                };
+              }
+              const value = Reflect.get(statementTarget, statementProperty, statementTarget);
+              return typeof value === 'function' ? value.bind(statementTarget) : value;
+            },
+          });
+        };
+      }
+      const value = Reflect.get(target, property, target);
+      return typeof value === 'function' ? value.bind(target) : value;
+    },
+  }) as D1Database;
+  return { binding, maxConcurrentReads: () => maxConcurrentReads };
+}
+
 const CATALOG_IDS = [
   'markets',
   'edgar',
@@ -100,6 +145,91 @@ describe('events source rollup', () => {
     expect(timing).not.toContain('private-value');
     expect(timing).not.toContain('samples');
     expect(response.headers.get('cache-control')).toBe('private, no-store');
+  });
+
+  it('reads attention statuses concurrently with stable order and per-family fallback', async () => {
+    d1.exec(
+      `INSERT INTO digg_clusters (short_id, source_id, canonical_digg_url, title, first_seen_at, retrieved_at, raw_payload_hash, raw_payload)
+       VALUES ('digg-1', 'feed-1', 'https://example.test/digg', 'Digg item', ${NOW}, ${NOW}, 'digg-hash', '{}')`
+    );
+    d1.exec(
+      `INSERT INTO mts_situations (situation_id, canonical_mts_url, title, first_seen_at, retrieved_at, payload_hash)
+       VALUES ('mts-1', 'https://example.test/mts', 'MTS item', ${NOW}, ${NOW}, 'mts-hash')`
+    );
+
+    const successfulReads = trackAttentionReads();
+    const successfulResponse = await app.fetch(new Request('http://test/data/sources?timing=1'), {
+      ...env(),
+      DB: successfulReads.binding,
+    });
+    expect(successfulResponse.status).toBe(200);
+    expect(successfulReads.maxConcurrentReads()).toBe(2);
+    const successfulPayload = (await successfulResponse.json()) as {
+      sources: Array<Record<string, unknown>>;
+    };
+    const successfulRows = successfulPayload.sources.filter(
+      (source) => source['id'] === 'digg' || source['id'] === 'mts'
+    );
+    expect(successfulRows).toEqual([
+      {
+        id: 'digg',
+        count: 1,
+        lastAt: NOW,
+        latestObservedAt: NOW,
+        lastIngestedAt: NOW,
+        futureCount: 0,
+        lastRunAt: NOW,
+        lastRunFinishedAt: NOW,
+        lastRunEventsFetched: 1,
+        lastRunErrors: 0,
+        runStatus: 'success_with_data',
+        cadence: 'half_hourly',
+        samples: [],
+      },
+      {
+        id: 'mts',
+        count: 1,
+        lastAt: NOW,
+        latestObservedAt: NOW,
+        lastIngestedAt: NOW,
+        futureCount: 0,
+        lastRunAt: NOW,
+        lastRunFinishedAt: NOW,
+        lastRunEventsFetched: 1,
+        lastRunErrors: 0,
+        runStatus: 'success_with_data',
+        cadence: 'half_hourly',
+        samples: [],
+      },
+    ]);
+
+    const failedReads = trackAttentionReads('digg_clusters');
+    const failedResponse = await app.fetch(new Request('http://test/data/sources?timing=1'), {
+      ...env(),
+      DB: failedReads.binding,
+    });
+    expect(failedResponse.status).toBe(200);
+    expect(failedReads.maxConcurrentReads()).toBe(2);
+    const failedPayload = (await failedResponse.json()) as {
+      sources: Array<Record<string, unknown>>;
+    };
+    const failedRows = failedPayload.sources.filter(
+      (source) => source['id'] === 'digg' || source['id'] === 'mts'
+    );
+    expect(failedRows).toHaveLength(2);
+    expect(failedRows[0]).toMatchObject({
+      id: 'digg',
+      count: 0,
+      runStatus: 'unknown',
+      samples: [],
+    });
+    expect(failedRows[1]).toMatchObject({
+      id: 'mts',
+      count: 1,
+      latestObservedAt: NOW,
+      lastIngestedAt: NOW,
+      runStatus: 'success_with_data',
+    });
   });
 
   it('bypasses the shared source-status snapshot when diagnostics are opted in', async () => {
