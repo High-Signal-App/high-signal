@@ -987,7 +987,7 @@ dataRoute.get('/records/:id', async (c) => {
 });
 
 async function loadAttentionSourceStatus(d1: D1Database, sampleLimit: number) {
-  const output: Array<{
+  type AttentionSourceStatus = {
     id: 'digg' | 'mts';
     count: number;
     lastAt: number;
@@ -1001,7 +1001,7 @@ async function loadAttentionSourceStatus(d1: D1Database, sampleLimit: number) {
     runStatus: 'unknown' | 'success_empty' | 'success_with_data';
     cadence: 'half_hourly';
     samples: Sample[];
-  }> = [];
+  };
   const definitions = [
     {
       id: 'digg' as const,
@@ -1018,64 +1018,65 @@ async function loadAttentionSourceStatus(d1: D1Database, sampleLimit: number) {
       urlColumn: 'canonical_mts_url',
     },
   ];
-  for (const definition of definitions) {
-    try {
-      const aggregate = await d1
-        .prepare(
-          `SELECT COUNT(*) n, COALESCE(MAX(first_seen_at), 0) latest_observed_at,
+  return Promise.all(
+    definitions.map(async (definition): Promise<AttentionSourceStatus> => {
+      try {
+        const aggregate = await d1
+          .prepare(
+            `SELECT COUNT(*) n, COALESCE(MAX(first_seen_at), 0) latest_observed_at,
                   COALESCE(MAX(retrieved_at), 0) last_ingested_at
            FROM ${definition.table}`
-        )
-        .first<{ n: number; latest_observed_at: number; last_ingested_at: number }>();
-      const samples =
-        sampleLimit > 0
-          ? await d1
-              .prepare(
-                `SELECT ${definition.titleColumn} title, ${definition.urlColumn} url,
+          )
+          .first<{ n: number; latest_observed_at: number; last_ingested_at: number }>();
+        const samples =
+          sampleLimit > 0
+            ? await d1
+                .prepare(
+                  `SELECT ${definition.titleColumn} title, ${definition.urlColumn} url,
                         first_seen_at publishedAt
                  FROM ${definition.table}
                  ORDER BY first_seen_at DESC, ${definition.idColumn} DESC LIMIT ?`
-              )
-              .bind(sampleLimit)
-              .all<Sample>()
-          : { results: [] };
-      const count = Number(aggregate?.n ?? 0);
-      const latestObservedAt = Number(aggregate?.latest_observed_at ?? 0);
-      const lastIngestedAt = Number(aggregate?.last_ingested_at ?? 0);
-      output.push({
-        id: definition.id,
-        count,
-        lastAt: latestObservedAt,
-        latestObservedAt,
-        lastIngestedAt,
-        futureCount: 0,
-        lastRunAt: lastIngestedAt,
-        lastRunFinishedAt: lastIngestedAt,
-        lastRunEventsFetched: count,
-        lastRunErrors: 0,
-        runStatus: count > 0 ? 'success_with_data' : 'success_empty',
-        cadence: 'half_hourly',
-        samples: samples.results ?? [],
-      });
-    } catch {
-      output.push({
-        id: definition.id,
-        count: 0,
-        lastAt: 0,
-        latestObservedAt: 0,
-        lastIngestedAt: 0,
-        futureCount: 0,
-        lastRunAt: 0,
-        lastRunFinishedAt: 0,
-        lastRunEventsFetched: 0,
-        lastRunErrors: 0,
-        runStatus: 'unknown',
-        cadence: 'half_hourly',
-        samples: [],
-      });
-    }
-  }
-  return output;
+                )
+                .bind(sampleLimit)
+                .all<Sample>()
+            : { results: [] };
+        const count = Number(aggregate?.n ?? 0);
+        const latestObservedAt = Number(aggregate?.latest_observed_at ?? 0);
+        const lastIngestedAt = Number(aggregate?.last_ingested_at ?? 0);
+        return {
+          id: definition.id,
+          count,
+          lastAt: latestObservedAt,
+          latestObservedAt,
+          lastIngestedAt,
+          futureCount: 0,
+          lastRunAt: lastIngestedAt,
+          lastRunFinishedAt: lastIngestedAt,
+          lastRunEventsFetched: count,
+          lastRunErrors: 0,
+          runStatus: count > 0 ? 'success_with_data' : 'success_empty',
+          cadence: 'half_hourly',
+          samples: samples.results ?? [],
+        };
+      } catch {
+        return {
+          id: definition.id,
+          count: 0,
+          lastAt: 0,
+          latestObservedAt: 0,
+          lastIngestedAt: 0,
+          futureCount: 0,
+          lastRunAt: 0,
+          lastRunFinishedAt: 0,
+          lastRunEventsFetched: 0,
+          lastRunErrors: 0,
+          runStatus: 'unknown',
+          cadence: 'half_hourly',
+          samples: [],
+        };
+      }
+    })
+  );
 }
 
 async function attentionSourceEvents(
