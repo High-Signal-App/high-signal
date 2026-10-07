@@ -13,17 +13,7 @@ const mocks = vi.hoisted(() => ({
     emergingBeforeMainstream: [],
     attentionEvidenceGaps: [],
   })),
-  buildNews: vi.fn(async (...args: unknown[]): Promise<NonNullable<BriefSnapshot['news']>> => {
-    const diagnosticTimings = args[4];
-    if (Array.isArray(diagnosticTimings)) {
-      diagnosticTimings.push(
-        { name: 'news-window', durationMs: 0 },
-        { name: 'news-query', durationMs: 0 },
-        { name: 'news-compose', durationMs: 0 }
-      );
-    }
-    return [];
-  }),
+  buildNews: vi.fn(async (..._args: unknown[]): Promise<NonNullable<BriefSnapshot['news']>> => []),
   buildPerception: vi.fn(async () => []),
   buildImprovements: vi.fn(async () => []),
   buildWatching: vi.fn(async () => []),
@@ -164,6 +154,17 @@ describe('GET /daily', () => {
   });
 
   it('composes live public sections when the cache misses', async () => {
+    mocks.buildNews.mockImplementation(async (...args: unknown[]) => {
+      const diagnosticTimings = args[4];
+      if (Array.isArray(diagnosticTimings)) {
+        diagnosticTimings.push(
+          { name: 'news-window', durationMs: 12 },
+          { name: 'news-query', durationMs: 34 },
+          { name: 'news-compose', durationMs: 5 }
+        );
+      }
+      return [];
+    });
     const stock = {
       ticker: 'NVDA',
       publishedAt: new Date().toISOString(),
