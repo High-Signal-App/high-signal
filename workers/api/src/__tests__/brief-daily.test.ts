@@ -548,7 +548,8 @@ describe('GET /daily', () => {
     expect(diagnosticResponse.status).toBe(200);
     expect(diagnosticResponse.headers.get('cache-control')).toBe('private, no-store');
     expect(diagnosticResponse.headers.get('server-timing')).toMatch(/news;dur=\d+\.\d+/);
-    expect((await diagnosticResponse.json()).news).toEqual(cachedNews);
+    const diagnosticBody = (await diagnosticResponse.json()) as BriefSnapshot;
+    expect(diagnosticBody.news).toEqual(cachedNews);
     expect(mocks.buildNews.mock.calls.at(-1)).toHaveLength(5);
     warn.mockRestore();
   });
