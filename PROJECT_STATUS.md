@@ -1,6 +1,21 @@
 # high-signal — PROJECT STATUS
 
-Last updated: 2026-10-06
+Last updated: 2026-10-07
+
+October 7 daily-brief news diagnostic decomposition — implementation:
+
+Opt-in `?timing=1` diagnostics split news work into `news-window`, `news-query`,
+and `news-compose`. Ordinary requests and precomputation do not collect these
+sub-stages. Reporting windows, the candidate limit, source priority, ordered
+story output, and cached-news error fallback are preserved. Qualification and
+representative latency recovery remain separate acceptance gates in
+[issue #198](https://github.com/High-Signal-App/high-signal/issues/198).
+This entry records implementation rather than deployment or latency recovery.
+
+The existing Sharp overrides are raised to `0.35.5`, and the vulnerable
+`shell-quote` range is pinned to `1.11.0` to address the newly reported
+dependency-audit findings. The cache-security patch and audit policy remain
+unchanged; the regenerated lockfile requires full frozen-install CI qualification.
 
 October 6 source-status query repair — implementation:
 

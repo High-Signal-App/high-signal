@@ -760,9 +760,33 @@ describe('buildNews', () => {
         ('reuters-retained', 'news:reuters', 'https://reuters.com/acme-austin', ${ingestedAt}, 'Acme opens semiconductor factory in Austin', NULL, NULL, 'event-hash', ${ingestedAt}, 'doc-reuters');
     `);
 
-    const stories = await buildNews(db(d1.binding), 'global', '2026-09-12', now);
+    const database = db(d1.binding);
+    const stories = await buildNews(database, 'global', '2026-09-12', now);
+    const timings: Array<{ name: string; durationMs: number }> = [];
+    const diagnosticStories = await buildNews(database, 'global', '2026-09-12', now, timings);
+
     expect(stories).toHaveLength(1);
     expect(stories[0]?.summary.toLowerCase()).toContain('austin');
     expect(stories[0]?.source_references[0]?.url).toBe('https://reuters.com/acme-austin');
+    expect(diagnosticStories).toEqual(stories);
+    expect(timings.map(({ name }) => name)).toEqual(['news-window', 'news-query', 'news-compose']);
+    expect(timings.every(({ durationMs }) => Number.isFinite(durationMs) && durationMs >= 0)).toBe(
+      true
+    );
+  });
+
+  it('records the failed news query stage without swallowing its error', async () => {
+    d1 = createSqliteD1();
+    applyMigrations(d1);
+    d1.exec('DROP TABLE events');
+    const timings: Array<{ name: string; durationMs: number }> = [];
+
+    await expect(
+      buildNews(db(d1.binding), 'global', '2026-09-12', WINDOW_END, timings)
+    ).rejects.toThrow();
+    expect(timings.map(({ name }) => name)).toEqual(['news-window', 'news-query']);
+    expect(timings.every(({ durationMs }) => Number.isFinite(durationMs) && durationMs >= 0)).toBe(
+      true
+    );
   });
 });

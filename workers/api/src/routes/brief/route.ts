@@ -132,6 +132,7 @@ async function handleDailyBriefRequest(c: Context<{ Bindings: Env }>) {
   if (protectedHistory) c.header('Cache-Control', 'private, no-store');
   const database = db(c.env.DB);
   const editionDate = request.archiveDate ?? istDay();
+  const diagnosticNewsTimings = diagnostics ? timings : undefined;
 
   const cached = await timeServerStage(timings, 'snapshot', () =>
     cachedDailyBrief(database, request)
@@ -151,7 +152,15 @@ async function handleDailyBriefRequest(c: Context<{ Bindings: Env }>) {
               ),
             'stocks'
           ),
-          refreshSnapshotNews(database, snapshot, request.region, editionDate, true, timings),
+          refreshSnapshotNews(
+            database,
+            snapshot,
+            request.region,
+            editionDate,
+            true,
+            timings,
+            diagnosticNewsTimings
+          ),
         ]);
         snapshot = pruneUnpublishableBriefItems({
           ...snapshot,
@@ -168,7 +177,8 @@ async function handleDailyBriefRequest(c: Context<{ Bindings: Env }>) {
           request.region,
           editionDate,
           snapshot.news == null,
-          timings
+          timings,
+          diagnosticNewsTimings
         );
       }
       const body = {
@@ -185,7 +195,9 @@ async function handleDailyBriefRequest(c: Context<{ Bindings: Env }>) {
   }
 
   const snapshot = dailySignalEdition(
-    pruneUnpublishableBriefItems(await composeDailyBrief(database, request, timings)).snapshot,
+    pruneUnpublishableBriefItems(
+      await composeDailyBrief(database, request, timings, diagnosticNewsTimings)
+    ).snapshot,
     editionDate
   );
   // No precomputed snapshot for today — the publish cron hasn't run yet.
@@ -271,13 +283,16 @@ async function refreshSnapshotNews(
   region: Region,
   editionDate: string,
   shouldRefresh: boolean,
-  timings: ServerTimingEntry[]
+  timings: ServerTimingEntry[],
+  diagnosticNewsTimings?: ServerTimingEntry[]
 ): Promise<BriefSnapshot> {
   if (!shouldRefresh) return snapshot;
   const cachedNews = sanitizeBriefNewsItems(snapshot.news ?? []);
   try {
     const refreshed = await timeServerStage(timings, 'news', () =>
-      buildNews(database, region, editionDate)
+      diagnosticNewsTimings
+        ? buildNews(database, region, editionDate, undefined, diagnosticNewsTimings)
+        : buildNews(database, region, editionDate)
     );
     return withBriefNews(snapshot, refreshed.length > 0 ? refreshed : cachedNews);
   } catch (error) {
@@ -289,7 +304,8 @@ async function refreshSnapshotNews(
 async function composeDailyBrief(
   database: ReturnType<typeof db>,
   request: ReturnType<typeof parseDailyBriefRequest>,
-  timings: ServerTimingEntry[]
+  timings: ServerTimingEntry[],
+  diagnosticNewsTimings?: ServerTimingEntry[]
 ) {
   const countries = countriesForRegion(request.region);
   const editionDate = request.archiveDate ?? istDay();
@@ -303,7 +319,11 @@ async function composeDailyBrief(
     buildDiggAttention(database),
     safe(
       () =>
-        timeServerStage(timings, 'news', () => buildNews(database, request.region, editionDate)),
+        timeServerStage(timings, 'news', () =>
+          diagnosticNewsTimings
+            ? buildNews(database, request.region, editionDate, undefined, diagnosticNewsTimings)
+            : buildNews(database, request.region, editionDate)
+        ),
       'news'
     ),
   ]);
