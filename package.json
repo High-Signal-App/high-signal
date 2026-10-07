@@ -106,8 +106,10 @@
     "overrides": {
       "@cloudflare/workers-types": "4.20260425.1",
       "browserslist": "4.28.7",
-      "next>sharp": "0.35.4",
-      "miniflare>sharp": "0.35.4",
+      "next>sharp": "0.35.5",
+      "miniflare>sharp": "0.35.5",
+      "astro>sharp": "0.35.5",
+      "shell-quote@>=1.8.4 <1.11.0": "1.11.0",
       "cosmiconfig>js-yaml": "4.3.2",
       "astro>svgo": "4.1.0",
       "webpack-dev-middleware@^6.1.2": "7.4.6",
