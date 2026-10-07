@@ -13,7 +13,17 @@ const mocks = vi.hoisted(() => ({
     emergingBeforeMainstream: [],
     attentionEvidenceGaps: [],
   })),
-  buildNews: vi.fn(async (): Promise<NonNullable<BriefSnapshot['news']>> => []),
+  buildNews: vi.fn(async (...args: unknown[]): Promise<NonNullable<BriefSnapshot['news']>> => {
+    const diagnosticTimings = args[4];
+    if (Array.isArray(diagnosticTimings)) {
+      diagnosticTimings.push(
+        { name: 'news-window', durationMs: 0 },
+        { name: 'news-query', durationMs: 0 },
+        { name: 'news-compose', durationMs: 0 }
+      );
+    }
+    return [];
+  }),
   buildPerception: vi.fn(async () => []),
   buildImprovements: vi.fn(async () => []),
   buildWatching: vi.fn(async () => []),
@@ -181,6 +191,8 @@ describe('GET /daily', () => {
     );
     expect(response.status).toBe(200);
     expect(response.headers.get('server-timing')).toBeNull();
+    expect(response.headers.get('cache-control')).not.toBe('private, no-store');
+    expect(mocks.buildNews.mock.calls.at(-1)).toHaveLength(3);
     const diagnosticResponse = await apiApp.fetch(
       new Request('http://test/brief/daily?region=north-america&timing=1'),
       env
@@ -190,9 +202,14 @@ describe('GET /daily', () => {
     expect(timing).toMatch(/snapshot;dur=\d+\.\d+/);
     expect(timing).toMatch(/stocks;dur=\d+\.\d+/);
     expect(timing).toMatch(/news;dur=\d+\.\d+/);
+    expect(timing).toMatch(/news-window;dur=\d+\.\d+/);
+    expect(timing).toMatch(/news-query;dur=\d+\.\d+/);
+    expect(timing).toMatch(/news-compose;dur=\d+\.\d+/);
     expect(timing).toMatch(/route;dur=\d+\.\d+$/);
     expect(timing).not.toMatch(/north-america|daily|region|date/i);
+    expect(mocks.buildNews.mock.calls.at(-1)).toHaveLength(5);
     const body = (await response.json()) as {
+      generatedAt: string;
       region: string;
       stocks: unknown[];
       ideas: unknown[];
@@ -201,6 +218,8 @@ describe('GET /daily', () => {
       attentionEvidenceGaps: unknown[];
       categoryStates: Record<string, { status: string; reason: string | null }>;
     };
+    const diagnosticBody = (await diagnosticResponse.json()) as typeof body;
+    expect({ ...diagnosticBody, generatedAt: body.generatedAt }).toEqual(body);
     expect(body.region).toBe('north-america');
     expect(body.stocks).toEqual([stock]);
     expect(body.ideas).toEqual([]);
@@ -397,6 +416,60 @@ describe('GET /daily', () => {
     expect(body.news).toEqual(news);
     expect(body.publishStatus).toBe('published');
     expect(mocks.buildNews).toHaveBeenCalledWith(expect.anything(), 'global', day);
+
+    const diagnosticResponse = await briefRoute.request(
+      `http://test/daily?date=${day}&timing=1`,
+      {},
+      env
+    );
+    expect(diagnosticResponse.headers.get('cache-control')).toBe('private, no-store');
+    expect(diagnosticResponse.headers.get('server-timing')).toMatch(/news;dur=\d+\.\d+/);
+    expect(await diagnosticResponse.json()).toEqual(body);
+    expect(mocks.buildNews.mock.calls.at(-1)).toHaveLength(5);
+  });
+
+  it('passes diagnostics through a verified cached history refresh only when requested', async () => {
+    const secret = 'test-history-secret';
+    const { grant } = await createHistoryGrant(secret);
+    mocks.tryGetPrecomputedSnapshot.mockResolvedValue({
+      generatedAt: '2020-01-01T03:30:00.000Z',
+      region: 'global',
+      stocks: [],
+      ideas: [],
+      trends: [],
+    });
+    mocks.buildNews.mockResolvedValue([
+      {
+        id: 'archive-news',
+        title: 'Issuer confirms a historical product launch',
+        summary: 'The retained report records the launch and its public timetable.',
+        event_at: '2020-01-01T08:00:00.000Z',
+        what_changed: '',
+        source_references: [{ url: 'https://issuer.example/archive', source: 'ir' }],
+        evidence_status: 'official' as const,
+      },
+    ]);
+
+    const normalResponse = await apiApp.fetch(
+      new Request('http://test/brief/daily?date=2020-01-01', {
+        headers: { Authorization: `Bearer ${grant}` },
+      }),
+      { ...env, TURNSTILE_SECRET: secret }
+    );
+    expect(normalResponse.status).toBe(200);
+    expect(normalResponse.headers.get('server-timing')).toBeNull();
+    expect(mocks.buildNews.mock.calls.at(-1)).toHaveLength(3);
+
+    const diagnosticResponse = await apiApp.fetch(
+      new Request('http://test/brief/daily?date=2020-01-01&timing=1', {
+        headers: { Authorization: `Bearer ${grant}` },
+      }),
+      { ...env, TURNSTILE_SECRET: secret }
+    );
+    expect(diagnosticResponse.status).toBe(200);
+    expect(diagnosticResponse.headers.get('cache-control')).toBe('private, no-store');
+    expect(diagnosticResponse.headers.get('server-timing')).toMatch(/news;dur=\d+\.\d+/);
+    expect(mocks.buildNews.mock.calls.at(-1)).toHaveLength(5);
   });
 
   it('refreshes cached stocks and news concurrently', async () => {
@@ -464,6 +537,19 @@ describe('GET /daily', () => {
     const response = await briefRoute.request(`http://test/daily?date=${day}`, {}, env);
     const body = (await response.json()) as BriefSnapshot;
     expect(body.news).toEqual(cachedNews);
+    expect(response.headers.get('server-timing')).toBeNull();
+    expect(mocks.buildNews.mock.calls.at(-1)).toHaveLength(3);
+
+    const diagnosticResponse = await briefRoute.request(
+      `http://test/daily?date=${day}&timing=1`,
+      {},
+      env
+    );
+    expect(diagnosticResponse.status).toBe(200);
+    expect(diagnosticResponse.headers.get('cache-control')).toBe('private, no-store');
+    expect(diagnosticResponse.headers.get('server-timing')).toMatch(/news;dur=\d+\.\d+/);
+    expect((await diagnosticResponse.json()).news).toEqual(cachedNews);
+    expect(mocks.buildNews.mock.calls.at(-1)).toHaveLength(5);
     warn.mockRestore();
   });
 });
@@ -497,6 +583,7 @@ describe('brief precompute', () => {
     expect(result.globalPublished).toBe(true);
     expect(mocks.insertBriefSnapshot).toHaveBeenCalledTimes(5);
     expect(mocks.buildStocks).toHaveBeenCalledTimes(5);
+    expect(mocks.buildNews.mock.calls.every((call) => call.length === 3)).toBe(true);
     for (const call of mocks.buildStocks.mock.calls) expect(call[2]).toBe(result.date);
   });
 
