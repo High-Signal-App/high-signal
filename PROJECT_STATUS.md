@@ -1,6 +1,22 @@
 # high-signal — PROJECT STATUS
 
-Last updated: 2026-10-07
+Last updated: 2026-10-08
+
+October 8 inner source-cache qualification and security patch — implementation:
+
+The opt-in `timing=1&cache=observe` sources diagnostic follows the ordinary
+inner KV path and reports its actual HIT/MISS/ERROR/UNAVAILABLE outcome plus
+read duration. SQL-only diagnostics, ordinary responses, source keys, stored
+payloads, six-hour TTL and fallback behavior retain their contracts. Diagnostic
+responses remain private and excluded from the outer cache. Six Worker-boundary
+regressions cover these cases using migrated SQLite D1 and controlled caches.
+
+Both existing Next.js declarations are patched from 16.3.6 to 16.3.8 for
+GHSA-cjq9-62q9-8jv4. The protected cache patch and dependency audit policy remain
+unchanged. Source qualification and natural latency recovery remain separate
+acceptance gates in [issue #198](https://github.com/High-Signal-App/high-signal/issues/198).
+See [PR #223](https://github.com/High-Signal-App/high-signal/pull/223) for exact-source
+CI and release qualification.
 
 October 7 daily-brief news diagnostic decomposition — implementation:
 

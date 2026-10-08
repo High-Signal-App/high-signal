@@ -502,16 +502,28 @@ dataRoute.get('/daily', async (c) => {
 dataRoute.get('/sources', async (c) => {
   const timings: ServerTimingEntry[] = [];
   const diagnostics = c.req.query('timing') === '1';
+  const observeCache = diagnostics && c.req.query('cache') === 'observe';
+  const useSharedCache = !diagnostics || observeCache;
+  const sharedCache = c.env.BRIEF_CACHE;
   const requestedSamples = Number(c.req.query('samples') ?? 0);
   const limit = Math.min(Math.max(Number.isFinite(requestedSamples) ? requestedSamples : 0, 0), 10);
   const cacheKey = sourceStatusCacheKey(limit);
-  if (!diagnostics && c.env.BRIEF_CACHE) {
+  if (observeCache) c.header('X-Source-Cache', sharedCache ? 'MISS' : 'UNAVAILABLE');
+  if (useSharedCache && sharedCache) {
     try {
-      const cached = await c.env.BRIEF_CACHE.get(cacheKey, 'json');
+      const readCache = () => sharedCache.get(cacheKey, 'json');
+      const cached = observeCache
+        ? await timeServerStage(timings, 'kv_read', readCache)
+        : await readCache();
       if (cached) {
-        return c.json(cached, 200, { 'Cache-Control': 'public, max-age=60, s-maxage=3600' });
+        if (observeCache) c.header('X-Source-Cache', 'HIT');
+        setServerTiming(c, timings, diagnostics);
+        return c.json(cached, 200, {
+          'Cache-Control': diagnostics ? 'private, no-store' : 'public, max-age=60, s-maxage=3600',
+        });
       }
     } catch (error) {
+      if (observeCache) c.header('X-Source-Cache', 'ERROR');
       console.error('[data/sources] shared cache read failed', error);
     }
   }
@@ -692,9 +704,9 @@ dataRoute.get('/sources', async (c) => {
     samplesAvailable,
     uncataloguedSources: [...counts.keys()].filter((id) => !catalogIds.has(id)).sort(),
   };
-  if (!diagnostics && c.env.BRIEF_CACHE) {
+  if (useSharedCache && sharedCache) {
     try {
-      await c.env.BRIEF_CACHE.put(cacheKey, JSON.stringify(payload), {
+      await sharedCache.put(cacheKey, JSON.stringify(payload), {
         expirationTtl: SOURCE_STATUS_CACHE_TTL_SECONDS,
       });
     } catch (error) {
