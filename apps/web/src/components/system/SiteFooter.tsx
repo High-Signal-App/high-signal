@@ -33,7 +33,16 @@ const PROJECT: FooterLink[] = [
 export function SiteFooter() {
   const year = new Date().getFullYear();
   return (
-    <footer className="mt-16 border-t border-[var(--color-line)]">
+    <>{createElement('fleet-footer-extension', { 'product-name': 'High Signal', 'art-src': 'https://sassmaker.com/footer-art/high-signal.webp', surface: 'app' }, <>
+{createElement('saas-maker-newsletter-capture', {
+          slot: 'capture',
+          'catalog-id': 'high-signal',
+          'product-name': 'High Signal',
+          kind: 'newsletter',
+          source: 'footer',
+          'privacy-url': 'https://highsignal.app/privacy',
+        })}
+<footer slot="navigation" data-fleet-footer-navigation className="mt-16 border-t border-[var(--color-line)]">
       <div className="mx-auto max-w-5xl px-6 pt-10 pb-0">
         <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-[var(--color-muted)]">
           Every signal cites ≥ 2 sources. Hit-rate tracked from day one.
@@ -52,13 +61,7 @@ export function SiteFooter() {
         </p>
       </div>
       <div className="mx-auto max-w-5xl px-6 py-10">
-        {createElement('saas-maker-newsletter-capture', {
-          'catalog-id': 'high-signal',
-          'product-name': 'High Signal',
-          kind: 'newsletter',
-          source: 'footer',
-          'privacy-url': 'https://highsignal.app/privacy',
-        })}
+        
         <div className="grid grid-cols-2 gap-8 sm:grid-cols-3">
           <FooterColumn title="Read" links={READ} />
           <FooterColumn title="Verify" links={VERIFY} />
@@ -104,6 +107,7 @@ export function SiteFooter() {
         </div>
       </div>
     </footer>
+</>)}</>
   );
 }
 

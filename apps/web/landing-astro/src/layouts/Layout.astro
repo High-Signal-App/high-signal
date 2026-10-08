@@ -3,6 +3,8 @@ import '@/styles/landing.css';
 import '@fontsource-variable/geist';
 
 interface Props {
+  /** This route renders its own declarative product footer. */
+  hasProductFooter?: boolean;
   title: string;
   description: string;
   /** Pathname for this page, e.g. `/compared`. Defaults to `/`. */
@@ -47,6 +49,7 @@ const jsonLd =
           url: SITE_URL,
         },
       };
+const hasProductFooter = Astro.props.hasProductFooter === true;
 ---
 
 <!doctype html>
@@ -84,6 +87,7 @@ const jsonLd =
   </head>
   <body>
     <slot />
+    {!hasProductFooter && <fleet-footer-extension product-name="High Signal" art-src="https://sassmaker.com/footer-art/high-signal.webp" surface="app"></fleet-footer-extension>}
     <script is:inline>
       (function(c,l,a,r,i,t,y){
         c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};

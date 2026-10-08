@@ -6,7 +6,7 @@ const DESCRIPTION =
   'A daily brief from 20+ public sources across technology, startups, and finance. Every claim cites at least two independent sources or does not ship.';
 ---
 
-<Layout title={TITLE} description={DESCRIPTION} pathname="/">
+<Layout hasProductFooter title={TITLE} description={DESCRIPTION} pathname="/">
   <div class="mx-auto flex min-h-svh w-full max-w-6xl flex-col px-5 py-8 sm:px-6 sm:py-12">
     <header class="flex items-center justify-between gap-4 border-b border-[var(--color-line)] pb-6">
       <a href="/" class="text-sm font-medium tracking-tight text-[var(--color-fg)] no-underline">
@@ -60,7 +60,15 @@ const DESCRIPTION =
       </div>
     </main>
 
-    <footer class="grid gap-6 border-t border-[var(--color-line)] py-8 text-xs text-[var(--color-muted)] sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+    <fleet-footer-extension product-name="High Signal" art-src="https://sassmaker.com/footer-art/high-signal.webp">
+<saas-maker-newsletter-capture slot="capture"
+        catalog-id="high-signal"
+        product-name="High Signal"
+        kind="newsletter"
+        source="footer"
+        privacy-url="https://highsignal.app/privacy"
+      ></saas-maker-newsletter-capture>
+<footer slot="navigation" data-fleet-footer-navigation class="grid gap-6 border-t border-[var(--color-line)] py-8 text-xs text-[var(--color-muted)] sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
       <div>
         <p class="max-w-xl leading-5">
           High Signal is a free, public Daily Brief across technology, startups, and finance. No
@@ -70,13 +78,7 @@ const DESCRIPTION =
           Every published signal cites at least two independent sources.
         </p>
       </div>
-      <saas-maker-newsletter-capture
-        catalog-id="high-signal"
-        product-name="High Signal"
-        kind="newsletter"
-        source="footer"
-        privacy-url="https://highsignal.app/privacy"
-      ></saas-maker-newsletter-capture>
+      
       <nav class="flex flex-wrap gap-x-4 gap-y-2 font-mono text-[10px] uppercase tracking-[0.14em]">
         <a href="/about">About</a>
         <a href="/methodology">Methodology</a>
@@ -98,5 +100,6 @@ const DESCRIPTION =
         </a>
       </nav>
     </footer>
+</fleet-footer-extension>
   </div>
 </Layout>
