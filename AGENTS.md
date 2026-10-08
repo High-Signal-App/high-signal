@@ -148,12 +148,12 @@ Data service boundary: [`docs/architecture/data-service-boundary.md`](docs/archi
 
 ### Adding Tasks
 - Track High Signal work in this repository's GitHub issues or OpenSpec changes.
-- Keep reusable cross-project automation in Workflows and Skills and private
+- Keep reusable cross-project automation in `saas-maker/tooling/` and private
   portfolio metadata in Site Health, not SaaS Maker.
 
 ### Using SaaS Maker
 - Do not use the retired SaaS Maker task queue or API as a system of record.
-- Site Health owns private portfolio metadata; Workflows and Skills owns shared
+- Site Health owns private portfolio metadata; `saas-maker/tooling/` owns shared
   automation. High Signal remains independently versioned and deployed.
 
 ### Free AI First
