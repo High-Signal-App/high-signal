@@ -10,7 +10,7 @@ High Signal repository. It is committed Markdown, versioned in git alongside
 the code. [Blume](https://useblume.dev) (`docs-site/blume.config.ts`) is only
 the presentation and search layer over these files — it never owns the content.
 
-Agent-facing operating rules live one level up in [`agents.md`](https://github.com/High-Signal-App/high-signal/blob/main/agents.md).
+Agent-facing operating rules live one level up in [`AGENTS.md`](https://github.com/High-Signal-App/high-signal/blob/main/AGENTS.md).
 Day-to-day status lives in [`STATUS.md`](https://github.com/High-Signal-App/high-signal/blob/main/STATUS.md) (short view) and
 [`PROJECT_STATUS.md`](https://github.com/High-Signal-App/high-signal/blob/main/PROJECT_STATUS.md) (detailed ledger). The full
 product spec is [`SPEC.md`](https://github.com/High-Signal-App/high-signal/blob/main/SPEC.md).
@@ -40,7 +40,7 @@ For the three products and related retirements, see the
 Operational runbooks: [`cache verification`](operations/runbooks/cache.md) and
 [`canonical Reddit archive`](operations/runbooks/reddit-archive.md).
 
-- [`agents.md`](https://github.com/High-Signal-App/high-signal/blob/main/agents.md) — concise agent bootloader: purpose, commands, constraints, doc navigation.
+- [`AGENTS.md`](https://github.com/High-Signal-App/high-signal/blob/main/AGENTS.md) — concise agent bootloader: purpose, commands, constraints, doc navigation.
 - [`STATUS.md`](https://github.com/High-Signal-App/high-signal/blob/main/STATUS.md) — current objective, active work, blockers, next steps (short).
 - [`PROJECT_STATUS.md`](https://github.com/High-Signal-App/high-signal/blob/main/PROJECT_STATUS.md) — detailed, dated status ledger (authoritative for "what shipped").
 - [`SPEC.md`](https://github.com/High-Signal-App/high-signal/blob/main/SPEC.md) — full product spec and working thesis.

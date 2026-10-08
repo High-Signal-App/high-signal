@@ -33,7 +33,7 @@ Pricing: free. No paid tier, no billing. Region is a free filter.
 
 The final acceptance contract is [`docs/product/prd.md`](docs/product/prd.md).
 Current implementation and release evidence lives in [`PROJECT_STATUS.md`](PROJECT_STATUS.md).
-For day-to-day stack and conventions, read [`agents.md`](agents.md).
+For day-to-day stack and conventions, read [`AGENTS.md`](AGENTS.md).
 
 ## Integrations & companion tools
 
@@ -212,7 +212,7 @@ also runs its native checks in CI.
 - Consolidation plan: `plans/0004-platform-consolidation.md`
 - Plan: `plans/0001-research-artifact-first.md`
 - Research: `research/market-and-oss.md`
-- Stack + conventions: `agents.md`
+- Stack + conventions: `AGENTS.md`
 - Seed corpus: `python/ingest/src/high_signal_ingest/seed/`
 - Example signal: `signals/2026-04-25/example-nvda-h100-lead-time.md`
 - Ingest runbook: `docs/operations/runbooks/ingest.md`
