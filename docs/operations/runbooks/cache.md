@@ -135,3 +135,33 @@ application header is the deterministic contract for Cache API reads.
 
 Do not purge the production cache merely to perform this check. A query variant
 or the normal TTL is sufficient for a cold-cache verification.
+
+### Private source-status KV diagnostics
+
+`GET /data/sources?timing=1` measures the real source queries and bypasses both
+outer caches and the inner `BRIEF_CACHE`. Add `&cache=observe` to follow the
+ordinary inner KV read/write path instead, using the same sample-limit key,
+plain JSON payload and six-hour KV TTL. Both diagnostic variants remain
+`private, no-store` and never enter the outer caches.
+
+The observation response adds `X-Source-Cache` with one fixed result:
+
+- `HIT`: this KV read returned the existing source-status payload.
+- `MISS`: this KV read returned no payload; normal source queries followed.
+- `UNAVAILABLE`: no KV binding exists; this is not a measured cache miss.
+- `ERROR`: the KV read failed; normal source queries followed. A later successful
+  cache write does not change the recorded read result.
+
+`Server-Timing` includes `kv_read` only when a KV read was attempted. Ordinary
+responses and stored JSON contain no diagnostic receipt or timing. Unknown
+`cache` values preserve the SQL-only `timing=1` behavior.
+
+Record the exact URL, serving source, status, fixed cache result, stage durations,
+colo and interval for each bounded probe; discard response bodies. Compare only
+the same workload and colo. A HIT reports that request's read, not a globally
+current cache or a database speedup: [KV reads can be stale across locations](https://developers.cloudflare.com/kv/api/read-key-value-pairs/).
+Do not delete keys or shorten TTLs to create a miss. These QA probes do not prove
+population p95, organic activity, or sustained 15-minute/24-hour recovery.
+
+Run `pnpm --filter @high-signal/api exec vitest run src/__tests__/source-cache-diagnostics.test.ts`
+for the real-SQL, Worker-boundary regression alongside the existing cache checks.
