@@ -41,7 +41,13 @@ import {
   tryGetPrecomputedSnapshot,
 } from './query';
 import { bearerGrant, verifyHistoryGrant } from '../../lib/history-access';
-import { setServerTiming, timeServerStage, type ServerTimingEntry } from '../../lib/server-timing';
+import {
+  observeStages,
+  setServerTiming,
+  timeServerStage,
+  type InnerCacheStatus,
+  type ServerTimingEntry,
+} from '../../lib/server-timing';
 
 type Env = { DB: D1Database; BRIEF_CACHE?: KVNamespace; TURNSTILE_SECRET?: string };
 
@@ -111,6 +117,17 @@ const PRECOMPUTED_REGIONS: Region[] = [
   'east-asia',
 ];
 
+/**
+ * Matches the public edge cache's `s-maxage=300`: a published edition read
+ * from KV is never older than one edge-cache lifetime, so stock and news
+ * refreshes reach readers on the same bound as before.
+ */
+export const DAILY_BRIEF_CACHE_TTL_SECONDS = 300;
+
+export function dailyBriefCacheKey(region: Region, editionDate: string) {
+  return `brief:daily:v1:${region}:${editionDate}`;
+}
+
 export const briefRoute = new Hono<{ Bindings: Env }>();
 
 briefRoute.get('/daily', async (c) => handleDailyBriefRequest(c));
@@ -119,6 +136,24 @@ async function handleDailyBriefRequest(c: Context<{ Bindings: Env }>) {
   const timings: ServerTimingEntry[] = [];
   const diagnostics = c.req.query('timing') === '1';
   const request = parseDailyBriefRequest(c);
+  const editionDate = request.archiveDate ?? istDay();
+  const shared = await readSharedDailyBrief(c, request, editionDate, timings, diagnostics);
+  if (shared.hit) {
+    setServerTiming(c, timings, diagnostics);
+    return c.json(shared.hit, 200);
+  }
+  const response = await serveDailyBrief(c, request, editionDate, timings, diagnostics);
+  await shared.store(response);
+  return response;
+}
+
+async function serveDailyBrief(
+  c: Context<{ Bindings: Env }>,
+  request: ReturnType<typeof parseDailyBriefRequest>,
+  editionDate: string,
+  timings: ServerTimingEntry[],
+  diagnostics: boolean
+) {
   const protectedHistory = Boolean(
     request.archiveDate && isProtectedHistoryDay(request.archiveDate)
   );
@@ -131,7 +166,6 @@ async function handleDailyBriefRequest(c: Context<{ Bindings: Env }>) {
   }
   if (protectedHistory) c.header('Cache-Control', 'private, no-store');
   const database = db(c.env.DB);
-  const editionDate = request.archiveDate ?? istDay();
   const diagnosticNewsTimings = diagnostics ? timings : undefined;
 
   const cached = await timeServerStage(timings, 'snapshot', () =>
@@ -212,6 +246,73 @@ async function handleDailyBriefRequest(c: Context<{ Bindings: Env }>) {
   }
   setServerTiming(c, timings, diagnostics);
   return c.json(snapshot);
+}
+
+type SharedDailyBrief = {
+  hit: Record<string, unknown> | null;
+  /** Shares a successful, published current-day response; anything else is skipped. */
+  store: (response: Response) => Promise<void>;
+};
+
+/**
+ * Current-day public editions are shared through KV, so a miss in one colo's
+ * edge cache costs one KV read instead of ~5 D1 round trips (snapshot, stocks,
+ * news window/query). Diagnostics stay SQL-only unless they opt in with
+ * `cache=observe`, matching `/data/sources`. KV failures fall back to D1.
+ */
+async function readSharedDailyBrief(
+  c: Context<{ Bindings: Env }>,
+  request: ReturnType<typeof parseDailyBriefRequest>,
+  editionDate: string,
+  timings: ServerTimingEntry[],
+  diagnostics: boolean
+): Promise<SharedDailyBrief> {
+  const observeCache = diagnostics && c.req.query('cache') === 'observe';
+  const sharedCache = c.env.BRIEF_CACHE;
+  const eligible = !request.archiveDate && (!diagnostics || observeCache);
+  const key = dailyBriefCacheKey(request.region, editionDate);
+  const mark = (status: InnerCacheStatus) => {
+    observeStages(c.req.raw, timings, status);
+    if (observeCache && status !== 'BYPASS') c.header('X-Brief-Cache', status);
+  };
+  mark(!eligible ? 'BYPASS' : sharedCache ? 'MISS' : 'UNAVAILABLE');
+  const noop = { hit: null, store: async () => undefined };
+  if (!eligible || !sharedCache) return noop;
+  try {
+    const hit = await timeServerStage(timings, 'kv_read', () =>
+      sharedCache.get<Record<string, unknown>>(key, 'json')
+    );
+    if (hit) {
+      mark('HIT');
+      return { ...noop, hit };
+    }
+  } catch (error) {
+    mark('ERROR');
+    console.error('[brief/daily] shared cache read failed', error);
+  }
+  return {
+    hit: null,
+    store: async (response) => {
+      if (response.status !== 200) return;
+      const text = await response.clone().text();
+      let published = false;
+      try {
+        published = (JSON.parse(text) as { publishStatus?: unknown }).publishStatus === 'published';
+      } catch {
+        return;
+      }
+      if (!published) return;
+      const write = sharedCache
+        .put(key, text, { expirationTtl: DAILY_BRIEF_CACHE_TTL_SECONDS })
+        .catch((error) => console.error('[brief/daily] shared cache write failed', error));
+      try {
+        c.executionCtx.waitUntil(write);
+      } catch {
+        // No execution context (direct app.fetch in tests): finish inline.
+        await write;
+      }
+    },
+  };
 }
 
 /** A rolling composition must not relabel older signals as today's publications. */

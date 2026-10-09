@@ -31,6 +31,7 @@ export type Env = {
   APP_HEALTH_INGEST_URL?: string;
   APP_HEALTH_ENVIRONMENT?: string;
   APP_HEALTH_RELEASE?: string;
+  APP_HEALTH_STAGE_SAMPLE_RATE?: string;
 };
 
 export const app = new Hono<{ Bindings: Env }>();

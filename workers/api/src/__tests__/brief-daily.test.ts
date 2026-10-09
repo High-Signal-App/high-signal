@@ -51,7 +51,13 @@ vi.mock('../routes/brief/query', async (importOriginal) => {
   };
 });
 
-import { briefRoute, parseDailyBriefRequest, safeCategory } from '../routes/brief';
+import {
+  DAILY_BRIEF_CACHE_TTL_SECONDS,
+  briefRoute,
+  dailyBriefCacheKey,
+  parseDailyBriefRequest,
+  safeCategory,
+} from '../routes/brief';
 import { dailySignalEdition, precomputeBriefSnapshots } from '../routes/brief/route';
 import { istDay, type BriefSnapshot } from '@high-signal/shared';
 import { createHistoryGrant } from '../lib/history-access';
@@ -553,6 +559,143 @@ describe('GET /daily', () => {
     expect(diagnosticBody.news).toEqual(cachedNews);
     expect(mocks.buildNews.mock.calls.at(-1)).toHaveLength(5);
     warn.mockRestore();
+  });
+});
+
+describe('GET /daily shared KV edition cache (#198)', () => {
+  const day = istDay();
+  const news = [
+    {
+      id: 'news-today',
+      title: 'Issuer reports a capacity expansion',
+      summary: 'The retained report records the expansion and its announced timetable.',
+      event_at: `${day}T02:00:00.000Z`,
+      what_changed: '',
+      source_references: [{ url: 'https://news.example/today', source: 'news' }],
+      evidence_status: 'reported' as const,
+    },
+  ];
+
+  function kv() {
+    const stored = new Map<string, string>();
+    return {
+      stored,
+      get: vi.fn(async (key: string) => {
+        const value = stored.get(key);
+        return value === undefined ? null : JSON.parse(value);
+      }),
+      put: vi.fn(async (key: string, value: string) => {
+        stored.set(key, value);
+      }),
+    };
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.tryGetPrecomputedSnapshot.mockResolvedValue({
+      generatedAt: `${day}T00:00:00.000Z`,
+      region: 'global',
+      stocks: [],
+      ideas: [],
+      trends: [],
+      news,
+    });
+    mocks.buildStocks.mockResolvedValue([]);
+    mocks.buildNews.mockResolvedValue(news);
+  });
+
+  it('stores a published current edition and serves the next miss from KV without D1', async () => {
+    const cache = kv();
+    const kvEnv = { ...env, BRIEF_CACHE: cache as unknown as KVNamespace };
+    const first = await briefRoute.request('http://test/daily', {}, kvEnv);
+    const body = (await first.json()) as { publishStatus: string };
+    expect(body.publishStatus).toBe('published');
+    expect(cache.put).toHaveBeenCalledWith(
+      dailyBriefCacheKey('global', day),
+      JSON.stringify(body),
+      { expirationTtl: DAILY_BRIEF_CACHE_TTL_SECONDS }
+    );
+    expect(DAILY_BRIEF_CACHE_TTL_SECONDS).toBe(300);
+
+    vi.clearAllMocks();
+    const second = await briefRoute.request('http://test/daily', {}, kvEnv);
+    expect(second.status).toBe(200);
+    expect(second.headers.get('server-timing')).toBeNull();
+    await expect(second.json()).resolves.toEqual(body);
+    expect(mocks.tryGetPrecomputedSnapshot).not.toHaveBeenCalled();
+    expect(mocks.buildStocks).not.toHaveBeenCalled();
+    expect(mocks.buildNews).not.toHaveBeenCalled();
+  });
+
+  it('keeps plain diagnostics SQL-only and reports KV only when observed', async () => {
+    const cache = kv();
+    cache.stored.set(dailyBriefCacheKey('global', day), JSON.stringify({ unexpected: true }));
+    const kvEnv = { ...env, BRIEF_CACHE: cache as unknown as KVNamespace };
+
+    const sqlOnly = await briefRoute.request('http://test/daily?timing=1', {}, kvEnv);
+    expect(sqlOnly.headers.get('x-brief-cache')).toBeNull();
+    expect(cache.get).not.toHaveBeenCalled();
+    expect(cache.put).not.toHaveBeenCalled();
+    expect(mocks.tryGetPrecomputedSnapshot).toHaveBeenCalled();
+
+    const observed = await briefRoute.request(
+      'http://test/daily?timing=1&cache=observe',
+      {},
+      kvEnv
+    );
+    expect(observed.headers.get('x-brief-cache')).toBe('HIT');
+    expect(observed.headers.get('cache-control')).toBe('private, no-store');
+    expect(observed.headers.get('server-timing')).toMatch(/^kv_read;dur=\d+\.\d+$/);
+    await expect(observed.json()).resolves.toEqual({ unexpected: true });
+
+    const unavailable = await briefRoute.request(
+      'http://test/daily?timing=1&cache=observe',
+      {},
+      env
+    );
+    expect(unavailable.headers.get('x-brief-cache')).toBe('UNAVAILABLE');
+  });
+
+  it('never caches archive dates or pending editions, and survives KV failures', async () => {
+    const cache = kv();
+    const kvEnv = { ...env, BRIEF_CACHE: cache as unknown as KVNamespace };
+    const yesterday = istDay(new Date(), -1);
+    await briefRoute.request(`http://test/daily?date=${yesterday}`, {}, kvEnv);
+    expect(cache.get).not.toHaveBeenCalled();
+    expect(cache.put).not.toHaveBeenCalled();
+
+    mocks.tryGetPrecomputedSnapshot.mockResolvedValue(null);
+    mocks.buildNews.mockResolvedValue([]);
+    const pending = await briefRoute.request('http://test/daily', {}, kvEnv);
+    await expect(pending.json()).resolves.toMatchObject({ publishStatus: 'pending' });
+    expect(cache.put).not.toHaveBeenCalled();
+
+    const broken = {
+      get: vi.fn(async () => {
+        throw new Error('kv down');
+      }),
+      put: vi.fn(async () => {
+        throw new Error('kv down');
+      }),
+    };
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    mocks.tryGetPrecomputedSnapshot.mockResolvedValue({
+      generatedAt: `${day}T00:00:00.000Z`,
+      region: 'global',
+      stocks: [],
+      ideas: [],
+      trends: [],
+      news,
+    });
+    mocks.buildNews.mockResolvedValue(news);
+    const fallback = await briefRoute.request(
+      'http://test/daily',
+      {},
+      { ...env, BRIEF_CACHE: broken as unknown as KVNamespace }
+    );
+    expect(fallback.status).toBe(200);
+    await expect(fallback.json()).resolves.toMatchObject({ publishStatus: 'published' });
+    expect(broken.put).toHaveBeenCalled();
   });
 });
 

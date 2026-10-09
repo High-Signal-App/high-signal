@@ -61,11 +61,21 @@ export async function readEventsRollupState(database: DB): Promise<EventsRollupS
   return row ?? null;
 }
 
+// Readiness is monotonic: once a rebuild stamps `rebuilt_at`, later refreshes
+// only move it forward. An isolate therefore remembers a ready answer per D1
+// binding, removing one D1 round trip from every later `/data/sources/:id`
+// miss (about 200 ms from colos far from the database). A not-ready or failed
+// answer is never remembered.
+const readyBindings = new WeakSet<object>();
+
 /** True once a rebuild has populated the rollup, so reads may trust it. */
-export async function eventsRollupIsReady(database: DB): Promise<boolean> {
+export async function eventsRollupIsReady(database: DB, binding?: object): Promise<boolean> {
+  if (binding && readyBindings.has(binding)) return true;
   try {
     const state = await readEventsRollupState(database);
-    return (state?.rebuiltAt ?? 0) > 0;
+    const ready = (state?.rebuiltAt ?? 0) > 0;
+    if (ready && binding) readyBindings.add(binding);
+    return ready;
   } catch {
     // Migration 0025 not applied yet — callers fall back to the live query.
     return false;
