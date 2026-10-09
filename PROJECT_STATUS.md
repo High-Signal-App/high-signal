@@ -1,6 +1,27 @@
 # high-signal — PROJECT STATUS
 
-Last updated: 2026-10-09
+Last updated: 2026-10-10
+
+October 10 streamed crawler Markdown correction — implementation:
+
+The Markdown converter skips temporary React Suspense fallbacks and selects
+completed page content from the consumed HTML stream. Incomplete loading-only
+renders return an uncached error. Markdown cache keys now include the existing
+web build ID, so corrected releases do not reuse prior loading-shell entries.
+Regression coverage includes nested fallback boundaries, completed content,
+incomplete streams and cache isolation across builds. Browser rendering is
+unchanged. Production qualification and performance acceptance remain tracked
+in [issue #198](https://github.com/High-Signal-App/high-signal/issues/198).
+
+October 9 public query-cache qualification — live:
+
+Both Workers are live at 100% from `75541e3fa6eade207e6743301b18a152b62ab9d1`;
+[API](https://github.com/High-Signal-App/high-signal/actions/runs/37974192625)
+and [web](https://github.com/High-Signal-App/high-signal/actions/runs/37974187460)
+deploy and smoke checks passed. Same-colo source-date and company-search pairs
+qualified MISS then HIT, preserving body hashes and distinct query results.
+Unknown selectors retained private/no-store. Production traffic recovery and
+the 95% cache-hit target remain unverified.
 
 October 9 public query-cache qualification — implementation:
 
