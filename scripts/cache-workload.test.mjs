@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { createCacheSummary } from '../apps/web/cache-summary.mjs';
 const dataUrl = (source) => `data:text/javascript;base64,${Buffer.from(source).toString('base64')}`;
 const renderer = dataUrl(
-  `export const DOQueueHandler=class {}; export const DOShardedTagCache=class {}; export const BucketCachePurge=class {}; export default {fetch: async request => { globalThis.__rendered++; return new Response('<html>'+new URL(request.url).pathname+new URL(request.url).searchParams.get('date')+'</html>', {headers:{'content-type':'text/html'}}); }};`
+  `export const DOQueueHandler=class {}; export const DOShardedTagCache=class {}; export const BucketCachePurge=class {}; export default {fetch: async request => { globalThis.__rendered++; return new Response('<html><main data-high-signal-public-cache="source-detail-v1">'+new URL(request.url).pathname+new URL(request.url).searchParams.get('date')+'</main></html>', {headers:{'content-type':'text/html','cache-control':'private, no-cache, no-store, max-age=0, must-revalidate'}}); }};`
 );
 let source = readFileSync(new URL('../apps/web/worker.mjs', import.meta.url), 'utf8');
 source = source.replace(/from '([^']+)'/g, (_, path) => {
@@ -53,7 +53,7 @@ try {
     else misses++;
     assert.equal(
       await response.text(),
-      `<html>/data/source${index}2026-10-${index % 2 ? '08' : '09'}</html>`
+      `<html><main data-high-signal-public-cache="source-detail-v1">/data/source${index}2026-10-${index % 2 ? '08' : '09'}</main></html>`
     );
     await Promise.all(pending);
   }

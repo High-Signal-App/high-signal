@@ -20,6 +20,7 @@ import {
   hasAuthCookie,
   isCacheableDocumentRequest,
   isCacheableDocumentResponse,
+  qualifyPublicQueryResponse,
 } from './worker-cache-policy.mjs';
 import { isPublicHtmlPath, normalizePublicPath } from './public-route-registry.mjs';
 import { createCacheSummary } from './cache-summary.mjs';
@@ -155,7 +156,10 @@ const timedFetch = withTiming(async function fetch(request, env, ctx) {
     return hit;
   }
 
-  const response = await openNext.fetch(request, env, ctx);
+  const response = await qualifyPublicQueryResponse(
+    request,
+    await openNext.fetch(request, env, ctx)
+  );
   if (!isCacheableDocumentResponse(request, response)) {
     return postProcessResponse(request, url, response);
   }
