@@ -135,6 +135,31 @@ assert.equal(rendered.status, 200);
 assert.match(rendered.headers.get('content-type') ?? '', /text\/markdown/);
 assert.match(await rendered.text(), /Current cited market evidence/);
 
+// Next.js streams the route loading main before the completed page segment.
+const streamedHtml = `<html><body><nav>Navigation</nav><!--$?--><template id="B:0"></template><main><div role="status">Loading page…<!--$--><p>Nested fallback</p><!--/$--></div></main><!--/$--><footer>Footer</footer><div hidden id="S:0"><main><h1>Methodology</h1><p>Every published claim clears the evidence gates.</p></main></div><script>$RC("B:0","S:0")</script></body></html>`;
+const streamedMarkdown = await handleRenderedMarkdown(
+  markdownRequest('/methodology.md'),
+  async () => new Response(streamedHtml, { headers: { 'Content-Type': 'text/html' } })
+);
+assert.equal(streamedMarkdown.status, 200);
+const streamedText = await streamedMarkdown.text();
+assert.match(streamedText, /# Methodology/);
+assert.match(streamedText, /Every published claim clears the evidence gates/);
+assert.doesNotMatch(streamedText, /Loading page|Nested fallback|Navigation|Footer|\$RC/);
+const incompleteMarkdown = await handleRenderedMarkdown(
+  markdownRequest('/markets.md'),
+  async () =>
+    new Response(
+      '<html><body><!--$?--><template id="B:0"></template><main>Loading page…</main><!--/$--><footer>Footer</footer></body></html>',
+      { headers: { 'Content-Type': 'text/html' } }
+    )
+);
+assert.equal(
+  incompleteMarkdown.status,
+  502,
+  'an incomplete stream must not become cacheable Markdown'
+);
+
 const cacheEntries = new Map();
 const cacheWrites = [];
 const markdownCache = {
@@ -184,6 +209,15 @@ assert.equal(
 );
 assert.equal(cachedRenderCount, 1, 'cache hit must not invoke OpenNext');
 assert.equal(await cacheHit.text(), missBody, 'cache hit must preserve the rendered Markdown body');
+
+const newBuildMiss = await handleCachedRenderedMarkdown(
+  markdownRequest('/markets.md'),
+  renderCachedMarkets,
+  { ...cacheOptions, cacheBuildId: 'next-release' }
+);
+assert.equal(newBuildMiss.headers.get('x-edge-cache'), 'AGENT-MISS');
+assert.equal(cachedRenderCount, 2, 'new releases must not reuse an old loading-shell entry');
+await Promise.all(cacheWrites);
 
 const bulkCrawlerRequest = markdownRequest('/markets/NVDA', {
   'User-Agent':
@@ -290,7 +324,7 @@ await handleCachedRenderedMarkdown(markdownRequest('/markets.md'), renderCachedM
   ...cacheOptions,
   cacheEnabled: false,
 });
-assert.equal(cachedRenderCount, 4, 'query, HEAD, and authenticated paths must bypass the cache');
+assert.equal(cachedRenderCount, 5, 'query, HEAD, and authenticated paths must bypass the cache');
 
 let errorCacheWrites = 0;
 const errorResponse = await handleCachedRenderedMarkdown(

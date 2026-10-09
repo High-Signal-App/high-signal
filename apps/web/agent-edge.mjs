@@ -550,7 +550,7 @@ export async function handleRenderedMarkdown(request, renderHtml) {
 export async function handleCachedRenderedMarkdown(
   request,
   renderHtml,
-  { cache, waitUntil, cacheEnabled = true } = {}
+  { cache, waitUntil, cacheEnabled = true, cacheBuildId = 'unversioned' } = {}
 ) {
   const target = resolvePublicMarkdownTarget(request);
   const url = new URL(request.url);
@@ -565,7 +565,9 @@ export async function handleCachedRenderedMarkdown(
 
   if (!canCache) return handleRenderedMarkdown(request, renderHtml);
 
-  const cacheKey = new Request(url.toString(), { method: 'GET' });
+  const cacheUrl = new URL(url);
+  cacheUrl.searchParams.set('__hs_agent_build', cacheBuildId);
+  const cacheKey = new Request(cacheUrl.toString(), { method: 'GET' });
   const cached = await cache.match(cacheKey);
   if (cached) return withEdgeCacheStatus(cached, 'AGENT-HIT');
 
@@ -587,7 +589,7 @@ export async function handleCachedRenderedMarkdown(
 export async function handleCachedCrawlerMarkdown(
   request,
   renderHtml,
-  { cache, waitUntil, cacheEnabled = true } = {}
+  { cache, waitUntil, cacheEnabled = true, cacheBuildId = 'unversioned' } = {}
 ) {
   if (!cacheEnabled || !isBulkAiCrawler(request) || request.method !== 'GET') return null;
   if (request.headers.get('rsc') === '1') return null;
@@ -607,6 +609,7 @@ export async function handleCachedCrawlerMarkdown(
       cache,
       waitUntil,
       cacheEnabled: true,
+      cacheBuildId,
     }));
   if (!response) return null;
 
@@ -680,8 +683,35 @@ export function htmlDisallowsIndexing(html) {
   return false;
 }
 
+// React's pending Suspense boundary contains temporary HTML. The completed
+// segment appears later in the stream; consuming the body does not execute $RC.
+function withoutSuspenseFallbacks(html) {
+  const stack = [];
+  let source = '';
+  let cursor = 0;
+  let fallbackStart = null;
+  for (const marker of html.matchAll(/<!--\$(?:\?|!)?-->|<!--\/\$-->/g)) {
+    if (marker[0] !== '<!--/$-->') {
+      const pending = marker[0] === '<!--$?-->';
+      stack.push(pending);
+      if (pending && fallbackStart === null) fallbackStart = marker.index;
+    } else {
+      stack.pop();
+      if (fallbackStart !== null && !stack.includes(true)) {
+        source += html.slice(cursor, fallbackStart);
+        cursor = marker.index + marker[0].length;
+        fallbackStart = null;
+      }
+    }
+  }
+  return source + html.slice(cursor, fallbackStart ?? html.length);
+}
+
 export function htmlDocumentToMarkdown(html, canonicalUrl) {
+  const hadMain = /<main\b/i.test(html);
+  html = withoutSuspenseFallbacks(html.replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi, ''));
   const main = html.match(/<main\b[^>]*>([\s\S]*?)<\/main>/i);
+  if (hadMain && !main) return '';
   const body = html.match(/<body\b[^>]*>([\s\S]*?)<\/body>/i);
   let source = main?.[1] ?? body?.[1] ?? html;
   const codeBlocks = [];

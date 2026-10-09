@@ -124,6 +124,7 @@ const timedFetch = withTiming(async function fetch(request, env, ctx) {
     (htmlRequest) => openNext.fetch(htmlRequest, env, ctx),
     {
       cache: caches.default,
+      cacheBuildId: CACHE_BUILD_ID,
       cacheEnabled: !request.headers.has('authorization') && !hasAuthCookie(request),
       waitUntil: (promise) => ctx.waitUntil(promise),
     }
@@ -135,6 +136,7 @@ const timedFetch = withTiming(async function fetch(request, env, ctx) {
     (htmlRequest) => openNext.fetch(htmlRequest, env, ctx),
     {
       cache: caches.default,
+      cacheBuildId: CACHE_BUILD_ID,
       cacheEnabled: !request.headers.has('authorization') && !hasAuthCookie(request),
       waitUntil: (promise) => ctx.waitUntil(promise),
     }
