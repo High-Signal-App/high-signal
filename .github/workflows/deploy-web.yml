@@ -17,12 +17,23 @@ jobs:
         working-directory: apps/web
         env:
           SKIP_NEXT_APP_BUILD: "false"
-      - run: pnpm exec opennextjs-cloudflare deploy --tag "$GITHUB_SHA"
+      # `opennextjs-cloudflare deploy` populates R2 through a temporary
+      # remote-preview Worker, which needs a single token with both Workers
+      # Scripts edit and R2 access. Split it: the R2-scoped token writes the
+      # ISR cache over the R2 REST API, then the Workers token deploys.
+      - name: Populate R2 incremental cache
+        run: node scripts/populate-r2-cache.mjs
         working-directory: apps/web
         env:
-          # The ISR incremental cache populates R2 at deploy time; the general
-          # Workers token lacks R2 access, so use the R2-scoped token here.
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_R2_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      - name: Deploy Worker
+        run: pnpm exec wrangler deploy --tag "$GITHUB_SHA"
+        working-directory: apps/web
+        env:
+          # Stops wrangler from delegating back to `opennextjs-cloudflare deploy`.
+          OPEN_NEXT_DEPLOY: "true"
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       - name: Smoke production web
         run: |
