@@ -47,6 +47,23 @@ async function main() {
 
     sent.length = 0;
     deliveries.length = 0;
+    const env = { APP_HEALTH_INGEST_KEY: 'test-key' };
+    for (let i = 0; i < 200; i++) {
+      observeWebRequest(
+        new Request('https://highsignal.app/data'),
+        new Response(null),
+        Date.now(),
+        env,
+        { waitUntil: (p: Promise<unknown>) => deliveries.push(p) }
+      );
+    }
+    await Promise.all(deliveries);
+    const batches = sent.filter((entry) => entry.url.endsWith('/v1/ingest'));
+    assert.equal(batches.length, 4, '200 requests must use four 50-event HTTP batches');
+    assert.equal(batches.flatMap((entry) => entry.body.events).length, 200);
+
+    sent.length = 0;
+    deliveries.length = 0;
     for (let i = 0; i < 200; i++) {
       observeWebRequest(
         new Request('https://highsignal.app/data', {

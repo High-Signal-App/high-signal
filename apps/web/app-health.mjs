@@ -1,9 +1,11 @@
 import { createAppHealthClient } from '@saas-maker/app-health';
 import { createTrafficSummary } from '@high-signal/shared';
+import { createWorkerHealthBuffer } from '@high-signal/shared/worker-health-buffer.mjs';
 import { publicRouteDescriptor } from './public-route-registry.mjs';
 
 const ENDPOINT = 'https://ingest.sassmaker.com/v1/ingest';
 const summarizeTraffic = createTrafficSummary();
+const buffer = createWorkerHealthBuffer(createAppHealthClient);
 export function normalizeWebRoute(pathname) {
   const path = pathname.replace(/\/+$/, '') || '/';
   const descriptor = publicRouteDescriptor(path);
@@ -30,14 +32,14 @@ export function observeWebRequest(request, response, startedAt, env, ctx) {
     typeof env?.APP_HEALTH_INGEST_KEY === 'string' ? env.APP_HEALTH_INGEST_KEY.trim() : '';
   if (!key || (!route && !summary)) return;
   try {
-    const client = createAppHealthClient({
+    const client = buffer.client(env, {
       key,
       endpoint: env.APP_HEALTH_INGEST_URL || ENDPOINT,
       environment: env.APP_HEALTH_ENVIRONMENT || 'production',
       release: env.APP_HEALTH_RELEASE,
       runtime: 'worker',
-      maxQueueSize: 2,
-      maxBatchSize: 2,
+      maxQueueSize: 100,
+      maxBatchSize: 100,
       maxRetries: 0,
       requestTimeoutMs: 1000,
       disableTimer: true,

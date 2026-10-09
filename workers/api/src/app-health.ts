@@ -1,3 +1,4 @@
+import { createWorkerHealthBuffer } from '@high-signal/shared/worker-health-buffer.mjs';
 import { createAppHealthClient, type AppHealthClient } from '@saas-maker/app-health';
 import { createTrafficSummary } from '@high-signal/shared';
 import { takeObservedStages } from './lib/server-timing';
@@ -127,19 +128,21 @@ export function normalizeApiRoute(pathname: string): string | null {
   return TEMPLATES.find(([pattern]) => pattern.test(path))?.[1] ?? null;
 }
 
-function clientFor(env: AppHealthEnv): AppHealthClient | null {
+const healthBuffer = createWorkerHealthBuffer(createAppHealthClient);
+
+function clientFor(env: AppHealthEnv): Pick<AppHealthClient, 'record' | 'log' | 'flush'> | null {
   const key = env?.APP_HEALTH_INGEST_KEY?.trim();
   if (!key) return null;
   try {
-    return createAppHealthClient({
+    return healthBuffer.client(env, {
       key,
       endpoint: env.APP_HEALTH_INGEST_URL ?? DEFAULT_ENDPOINT,
       environment: env.APP_HEALTH_ENVIRONMENT ?? env.ENVIRONMENT ?? 'production',
       release: env.APP_HEALTH_RELEASE,
       runtime: 'worker',
-      // One request record, one traffic summary, one stage-timing log.
-      maxQueueSize: 3,
-      maxBatchSize: 2,
+      // Cross-request buffer owns values; each drain creates its own SDK client.
+      maxQueueSize: 100,
+      maxBatchSize: 100,
       maxRetries: 0,
       requestTimeoutMs: 1_000,
       disableTimer: true,

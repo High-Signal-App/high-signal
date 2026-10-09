@@ -294,6 +294,31 @@ for (const invalidBuildId of [undefined, null, '', 'a/b', 'a b', 'a'.repeat(129)
   assert.throws(() => cacheKeyForRequest(request('/signals'), invalidBuildId), /safe build ID/);
 }
 
+// Approved source/search selectors are cacheable but never collapse content.
+for (const path of [
+  '/data/nvd?date=2026-10-09',
+  '/data/nvd?all=1&p=2',
+  '/case-studies/search?q=alpha&page=2',
+]) {
+  assert.equal(isCacheableDocumentRequest(request(path)), true, path);
+}
+assert.notEqual(
+  cacheKeyForRequest(request('/data/nvd?date=2026-10-08'), BUILD_A).url,
+  cacheKeyForRequest(request('/data/nvd?date=2026-10-09'), BUILD_A).url
+);
+assert.equal(
+  cacheKeyForRequest(request('/data/nvd?all=1&p=2&utm_source=bot'), BUILD_A).url,
+  cacheKeyForRequest(request('/data/nvd?p=2&all=1'), BUILD_A).url
+);
+for (const path of [
+  '/data/nvd?date=2026-02-31',
+  '/data/nvd?p=1&p=2',
+  '/data/nvd?preview=1',
+  '/case-studies/search?private=1',
+]) {
+  assert.equal(isCacheableDocumentRequest(request(path)), false, path);
+}
+
 const generator = fileURLToPath(
   new URL('../apps/web/scripts/write-cache-build-id.mjs', import.meta.url)
 );
