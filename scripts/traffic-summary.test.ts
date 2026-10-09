@@ -8,6 +8,7 @@ const request = (agent: string) =>
 assert.equal(classifyTraffic(request('Mozilla/5.0')), 'unknown');
 assert.equal(classifyTraffic(request('Googlebot/2.1')), 'declared_bot');
 assert.equal(classifyTraffic(request('curl/8')), 'automation');
+assert.equal(classifyTraffic(request('Lightpanda/1.0')), 'automation');
 const verified = request('Googlebot/2.1');
 Object.defineProperty(verified, 'cf', { value: { botManagement: { verifiedBot: true } } });
 assert.equal(classifyTraffic(verified), 'verified_bot');

@@ -21,7 +21,11 @@ export function normalizeWebRoute(pathname) {
 
 export function observeWebRequest(request, response, startedAt, env, ctx) {
   const summary = summarizeTraffic(request);
-  const route = normalizeWebRoute(new URL(request.url).pathname);
+  // Rejected bursts still enter the bounded traffic summary. Do not turn
+  // every cheap rejection into another Worker invocation and D1 write.
+  const route = response?.headers.has('x-high-signal-guard')
+    ? null
+    : normalizeWebRoute(new URL(request.url).pathname);
   const key =
     typeof env?.APP_HEALTH_INGEST_KEY === 'string' ? env.APP_HEALTH_INGEST_KEY.trim() : '';
   if (!key || (!route && !summary)) return;

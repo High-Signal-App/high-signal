@@ -22,6 +22,24 @@ const request = (path, init = {}) => new Request(`https://highsignal.app${path}`
 const BUILD_A = 'build-a';
 const BUILD_B = 'build-b';
 
+const canonicalDocument = cacheKeyForRequest(request('/data'), BUILD_A).url;
+for (const suffix of ['?utm_source=campaign', '?utm_medium=social&fbclid=click', '?gclid=a']) {
+  const tracked = request(`/data${suffix}`);
+  assert.equal(isCacheableDocumentRequest(tracked), true);
+  assert.equal(cacheKeyForRequest(tracked, BUILD_A).url, canonicalDocument);
+}
+for (const suffix of ['?date=2025-01-15', '?utm_source=campaign&date=2025-01-15']) {
+  assert.equal(isCacheableDocumentRequest(request(`/data${suffix}`)), false);
+}
+assert.equal(
+  isCacheableDocumentRequest(
+    request('/data?utm_source=campaign', {
+      headers: { authorization: 'Bearer test' },
+    })
+  ),
+  false
+);
+
 const apiWrangler = readFileSync(new URL('../workers/api/wrangler.toml', import.meta.url), 'utf8');
 assert.match(apiWrangler, /\[cache\]\s+enabled = false/);
 assert.match(apiWrangler, /\[exports\.PublicApi\.cache\]\s+enabled = true/);

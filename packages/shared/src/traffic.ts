@@ -17,7 +17,7 @@ export function classifyUserAgent(agent: string): Exclude<TrafficClass, 'verifie
   )
     return 'declared_bot';
   if (
-    /curl\/|wget\/|python-requests|python-httpx|HeadlessChrome|Go-http-client|node-fetch|undici/i.test(
+    /curl\/|wget\/|python-requests|python-httpx|HeadlessChrome|Lightpanda\/|Go-http-client|node-fetch|undici/i.test(
       agent
     )
   )
