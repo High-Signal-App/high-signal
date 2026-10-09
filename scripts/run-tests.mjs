@@ -43,7 +43,7 @@ const tsxBin = resolve(ROOT, 'node_modules/.bin/tsx');
 // Plain-node test suites (no tsx cold-start cost). These run alongside the
 // tsx suites; the runner spawns them concurrently just like the others.
 const NODE_SUITES = [
-  ['worker-health-runtime', 'scripts/worker-health-runtime.test.mjs'],
+  ['worker-health-runtime', 'apps/web/scripts/worker-health-runtime.test.mjs'],
   ['cache-workload', 'scripts/cache-workload.test.mjs'],
   ['abuse-guard', 'scripts/abuse-guard.test.mjs'],
   ['footer-contract', 'apps/web/scripts/footer-contract.test.mjs'],

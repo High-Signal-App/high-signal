@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
-const require = createRequire(new URL('../apps/web/package.json', import.meta.url));
+const require = createRequire(new URL('../package.json', import.meta.url));
 const { Miniflare } = createRequire(require.resolve('wrangler'))('miniflare');
 const bufferSource = readFileSync(
-  new URL('../packages/shared/worker-health-buffer.mjs', import.meta.url),
+  new URL('../../../packages/shared/worker-health-buffer.mjs', import.meta.url),
   'utf8'
 );
 const batches = [];
