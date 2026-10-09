@@ -56,3 +56,9 @@ binding = "DB"
 database_name = "high-signal-db"
 database_id = "ebeab72b-61ab-4588-936c-1da6652a2ce4"
 migrations_dir = "../../packages/db/migrations"
+
+# Shared cross-colo cache for precomputed brief snapshots and the public
+# /data/sources status payload (issue #198). Code treats it as optional.
+[[kv_namespaces]]
+binding = "BRIEF_CACHE"
+id = "19d37406210740dc899944781ce10b91"
