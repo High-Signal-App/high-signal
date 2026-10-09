@@ -17,4 +17,10 @@ export {
   type BucketCounts,
 } from './compose';
 
-export { briefRoute, parseDailyBriefRequest, precomputeBriefSnapshots } from './route';
+export {
+  DAILY_BRIEF_CACHE_TTL_SECONDS,
+  briefRoute,
+  dailyBriefCacheKey,
+  parseDailyBriefRequest,
+  precomputeBriefSnapshots,
+} from './route';

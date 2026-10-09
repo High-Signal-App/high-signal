@@ -8,7 +8,12 @@ import { eventsRollupIsReady } from '../lib/events-rollup';
 import { enrichPublishedSignals, partitionPublishable } from '../lib/signal-quality';
 import sourceCatalog from '../lib/source-catalog.json';
 import { buildDiggAttention, tryGetPrecomputedSnapshot } from './brief/query';
-import { setServerTiming, timeServerStage, type ServerTimingEntry } from '../lib/server-timing';
+import {
+  observeStages,
+  setServerTiming,
+  timeServerStage,
+  type ServerTimingEntry,
+} from '../lib/server-timing';
 
 type Env = { DB: D1Database; BRIEF_CACHE?: KVNamespace };
 
@@ -509,13 +514,18 @@ dataRoute.get('/sources', async (c) => {
   const limit = Math.min(Math.max(Number.isFinite(requestedSamples) ? requestedSamples : 0, 0), 10);
   const cacheKey = sourceStatusCacheKey(limit);
   if (observeCache) c.header('X-Source-Cache', sharedCache ? 'MISS' : 'UNAVAILABLE');
+  observeStages(
+    c.req.raw,
+    timings,
+    !useSharedCache ? 'BYPASS' : sharedCache ? 'MISS' : 'UNAVAILABLE'
+  );
   if (useSharedCache && sharedCache) {
     try {
-      const readCache = () => sharedCache.get(cacheKey, 'json');
-      const cached = observeCache
-        ? await timeServerStage(timings, 'kv_read', readCache)
-        : await readCache();
+      const cached = await timeServerStage(timings, 'kv_read', () =>
+        sharedCache.get(cacheKey, 'json')
+      );
       if (cached) {
+        observeStages(c.req.raw, timings, 'HIT');
         if (observeCache) c.header('X-Source-Cache', 'HIT');
         setServerTiming(c, timings, diagnostics);
         return c.json(cached, 200, {
@@ -523,6 +533,7 @@ dataRoute.get('/sources', async (c) => {
         });
       }
     } catch (error) {
+      observeStages(c.req.raw, timings, 'ERROR');
       if (observeCache) c.header('X-Source-Cache', 'ERROR');
       console.error('[data/sources] shared cache read failed', error);
     }
@@ -735,8 +746,8 @@ dataRoute.get('/sources', async (c) => {
 dataRoute.get('/sources/:id', async (c) => {
   const timings: ServerTimingEntry[] = [];
   const diagnostics = c.req.query('timing') === '1';
-  const stage = <T>(name: string, work: () => Promise<T>) =>
-    diagnostics ? timeServerStage(timings, name, work) : work();
+  // Always timed: ordinary misses report these fixed-name stages to App Health.
+  const stage = <T>(name: string, work: () => Promise<T>) => timeServerStage(timings, name, work);
   const id = c.req.param('id');
   const requestedLimit = Number(c.req.query('limit') ?? 50);
   const requestedOffset = Number(c.req.query('offset') ?? 0);
@@ -792,7 +803,7 @@ dataRoute.get('/sources/:id', async (c) => {
     // directly, because the rollup carries no per-day breakdown and a
     // single-source total is already an index seek.
     const row = await stage('source_totals', async () =>
-      filters.length === 0 && (await eventsRollupIsReady(database))
+      filters.length === 0 && (await eventsRollupIsReady(database, c.env.DB))
         ? readSourceTotalsFromRollup(database, id)
         : readSourceTotalsLive(database, where)
     );
