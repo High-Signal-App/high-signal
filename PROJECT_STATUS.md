@@ -4,7 +4,7 @@ Last updated: 2026-10-09
 
 October 9 API and web speed release — live:
 
-Both Workers serve `c2e9927b37fb7c32050cf3a8d856b0564e115de8` at 100% traffic.
+Both Workers were deployed from `c2e9927b37fb7c32050cf3a8d856b0564e115de8` at 100% traffic.
 The six-gate release guard, [API deploy and smoke](https://github.com/High-Signal-App/high-signal/actions/runs/37968870989),
 and [web deploy and smoke](https://github.com/High-Signal-App/high-signal/actions/runs/37968876817) pass.
 Published current-day briefs now use shared KV; a same-NRT Europe-edition
@@ -21,7 +21,8 @@ Release verification exposed a homepage-only crawler fallback: `/index.md`
 is static and must use the agent handler before the dynamic Markdown renderer.
 The follow-up source correction reuses that existing index without invoking
 Next.js; Lightpanda/GPTBot regressions reproduce the defect and verify the fix.
-Search bots retain HTML. This follow-up still requires web release verification.
+Search bots retain HTML. Follow-up CI and web release verification are tracked
+in [PR #234](https://github.com/High-Signal-App/high-signal/pull/234).
 
 [Issue #198](https://github.com/High-Signal-App/high-signal/issues/198) remains open:
 the immediate 15-minute route window has insufficient data, and the 24-hour
