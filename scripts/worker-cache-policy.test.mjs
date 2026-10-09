@@ -53,8 +53,8 @@ assert.equal(
 );
 assert.equal(
   isCacheableDocumentRequest(request('/signals/a-published-signal')),
-  true,
-  'anonymous signal detail HTML is edge-cacheable (grant holders bypass below)'
+  false,
+  'canonical signal detail HTML must bypass the shared cache'
 );
 
 for (const path of [
@@ -70,11 +70,7 @@ for (const path of [
   '/robots.txt',
   '/api/og?title=Test',
 ]) {
-  assert.equal(
-    isCacheableDocumentRequest(request(path)),
-    true,
-    `${path} must be edge-cacheable`
-  );
+  assert.equal(isCacheableDocumentRequest(request(path)), true, `${path} must be edge-cacheable`);
 }
 
 // Junk tracking params must not defeat the feed/JSON cache — canonical data
@@ -129,8 +125,8 @@ const rsc = request('/signals/a-published-signal?_rsc=route-state', {
 assert.equal(isRscRequest(rsc), true);
 assert.equal(
   isCacheableDocumentRequest(rsc),
-  true,
-  'anonymous signal detail RSC is edge-cacheable'
+  false,
+  'canonical signal detail RSC must bypass the shared cache'
 );
 assert.equal(
   isCacheableDocumentRequest(
@@ -173,7 +169,10 @@ assert.equal(
   cacheControlForRequest(request('/entities/openai/rss')),
   'public, max-age=300, s-maxage=300'
 );
-assert.equal(cacheControlForRequest(request('/api/og?title=x')), 'public, max-age=86400, s-maxage=86400');
+assert.equal(
+  cacheControlForRequest(request('/api/og?title=x')),
+  'public, max-age=86400, s-maxage=86400'
+);
 
 for (const [path, type] of [
   ['/signals/rss', 'application/rss+xml'],

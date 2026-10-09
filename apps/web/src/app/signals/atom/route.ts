@@ -64,9 +64,7 @@ ${entries}
     status: 200,
     headers: {
       'Content-Type': 'application/atom+xml; charset=utf-8',
-      'Cache-Control': degraded
-        ? 'no-store'
-        : 'public, s-maxage=300, stale-while-revalidate=600',
+      'Cache-Control': degraded ? 'no-store' : 'public, s-maxage=300, stale-while-revalidate=600',
     },
   });
 }

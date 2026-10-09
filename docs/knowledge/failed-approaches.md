@@ -127,9 +127,11 @@ pitfalls see [`learnings/lessons.md`](learnings/lessons.md).
   (`dummy` default) so ISR was impossible.
 - **Fix that stuck:** real incremental cache (R2 + regional cache + DO
   queue/tag cache) + `revalidate` on non-personalized routes + edge cache
-  extended to feeds/JSON/OG and anonymous signal detail, with
-  `CF_Authorization`/`high-signal-history` cookies and the
-  `cf-access-jwt-assertion` header excluded. See
+  extended to feeds/JSON/OG, with `CF_Authorization`/`high-signal-history`
+  cookies and the `cf-access-jwt-assertion` header excluded. Signal detail
+  (`/signals/[slug]`) stays out of the shared edge cache: a streamed
+  `notFound()` is still HTTP 200, so a killed/unpublished signal could be
+  served stale. See
   `docs/operations/runbooks/cache.md`.
 - **Do not retry:** tuning `Cache-Control` headers or adding more paths
   to `caches.default` without the global incremental cache — per-colo
