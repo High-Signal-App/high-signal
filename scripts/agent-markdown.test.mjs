@@ -251,7 +251,21 @@ assert.equal(headlessHit?.headers.get('x-edge-cache'), 'AGENT-HIT');
 assert.match(await headlessHit.text(), /Cached market evidence for agents/);
 assert.equal(crawlerRenderCount, 1, 'headless crawlers reuse the text cache without rendering');
 
+for (const userAgent of ['Lightpanda/1.0', 'GPTBot/1.0']) {
+  const homepage = await handleCachedCrawlerMarkdown(
+    markdownRequest('/', { 'User-Agent': userAgent }),
+    () => assert.fail('the crawler homepage must use the static index without rendering'),
+    cacheOptions
+  );
+  assert.ok(homepage);
+  assert.equal(homepage.headers.get('content-location'), '/index.md');
+  assert.equal(homepage.headers.get('x-high-signal-crawler-view'), 'markdown');
+  assert.match(homepage.headers.get('vary') ?? '', /User-Agent/i);
+  assert.equal(await homepage.text(), await handleAgentEdge(markdownRequest('/index.md')).text());
+}
+
 for (const bypassed of [
+  markdownRequest('/', { 'User-Agent': 'Googlebot/2.1' }),
   markdownRequest('/markets/NVDA', { 'User-Agent': 'OAI-SearchBot/1.0' }),
   markdownRequest('/markets/NVDA?preview=1', { 'User-Agent': 'meta-externalagent/1.1' }),
   markdownRequest('/markets/NVDA?_rsc=state', {
