@@ -601,11 +601,13 @@ export async function handleCachedCrawlerMarkdown(
   const headers = new Headers(request.headers);
   headers.set('Accept', 'text/markdown');
   const markdownRequest = new Request(markdownUrl, { method: 'GET', headers });
-  const response = await handleCachedRenderedMarkdown(markdownRequest, renderHtml, {
-    cache,
-    waitUntil,
-    cacheEnabled: true,
-  });
+  const response =
+    handleAgentEdge(markdownRequest) ??
+    (await handleCachedRenderedMarkdown(markdownRequest, renderHtml, {
+      cache,
+      waitUntil,
+      cacheEnabled: true,
+    }));
   if (!response) return null;
 
   const responseHeaders = new Headers(response.headers);
