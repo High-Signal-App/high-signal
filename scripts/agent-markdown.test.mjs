@@ -191,6 +191,11 @@ const bulkCrawlerRequest = markdownRequest('/markets/NVDA', {
 });
 assert.equal(isBulkAiCrawler(bulkCrawlerRequest), true);
 assert.equal(
+  isBulkAiCrawler(markdownRequest('/markets/NVDA', { 'User-Agent': 'Lightpanda/1.0' })),
+  true,
+  'bulk headless automation uses the existing cached text representation'
+);
+assert.equal(
   isBulkAiCrawler(markdownRequest('/markets/NVDA', { 'User-Agent': 'OAI-SearchBot/1.0' })),
   false,
   'AI search crawlers must keep the normal HTML experience'
@@ -236,6 +241,15 @@ assert.ok(crawlerHit);
 assert.equal(crawlerHit.headers.get('x-edge-cache'), 'AGENT-HIT');
 assert.equal(crawlerRenderCount, 1, 'bulk crawler cache hit must not invoke OpenNext');
 assert.match(await crawlerHit.text(), /Cached market evidence for agents/);
+
+const headlessHit = await handleCachedCrawlerMarkdown(
+  markdownRequest('/markets/NVDA', { 'User-Agent': 'Lightpanda/1.0' }),
+  renderCrawlerMarket,
+  cacheOptions
+);
+assert.equal(headlessHit?.headers.get('x-edge-cache'), 'AGENT-HIT');
+assert.match(await headlessHit.text(), /Cached market evidence for agents/);
+assert.equal(crawlerRenderCount, 1, 'headless crawlers reuse the text cache without rendering');
 
 for (const bypassed of [
   markdownRequest('/markets/NVDA', { 'User-Agent': 'OAI-SearchBot/1.0' }),

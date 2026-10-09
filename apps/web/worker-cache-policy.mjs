@@ -49,6 +49,10 @@ const QUERY_KEYED_DATA_PATHS = new Map([
 // both unlock personalized content that must not leak to anonymous traffic.
 const AUTH_COOKIE_FRAGMENTS = ['CF_Authorization', 'high-signal-history'];
 
+function isTrackingParameter(key) {
+  return /^utm_[a-z0-9_]+$/i.test(key) || ['gclid', 'fbclid', 'msclkid'].includes(key);
+}
+
 export function hasAuthCookie(request) {
   const cookie = request.headers.get('cookie');
   if (!cookie) return false;
@@ -78,7 +82,7 @@ export function isCacheableDocumentRequest(request) {
   // reliably prevent the Worker from sharing that stale result.
   if (isSignalDetailPath(pathname)) return false;
 
-  // Anonymous HTML is cached only at its canonical, queryless URL. RSC
+  // Anonymous HTML shares its canonical URL when only campaign tags differ. RSC
   // variants keep their complete URL and routing headers so Next.js cannot
   // receive or serve a payload for a different router state.
   if (isRscRequest(request)) {
@@ -90,7 +94,7 @@ export function isCacheableDocumentRequest(request) {
   // Data payloads ignore junk query params (or are keyed by them, /api/og) —
   // tracking params cannot bypass the edge cache.
   if (isPublicDataPath(pathname)) return true;
-  return url.search === '';
+  return [...url.searchParams.keys()].every(isTrackingParameter);
 }
 
 export function cacheKeyForRequest(request, buildId) {
@@ -101,6 +105,11 @@ export function cacheKeyForRequest(request, buildId) {
   const pathname = normalizePublicPath(url.pathname);
   // Canonical data payloads do not vary by query string.
   if (!isRscRequest(request) && isCanonicalDataPath(pathname)) url.search = '';
+  if (!isRscRequest(request) && isPublicDocumentPath(pathname)) {
+    for (const key of [...url.searchParams.keys()]) {
+      if (isTrackingParameter(key)) url.searchParams.delete(key);
+    }
+  }
   if (!isRscRequest(request) && pathname === '/') {
     url.searchParams.set('__hs_cache_schema', ROOT_CACHE_SCHEMA);
   } else if (!isRscRequest(request) && (pathname === '/data' || pathname.startsWith('/data/'))) {

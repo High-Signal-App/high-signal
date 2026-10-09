@@ -44,6 +44,30 @@ async function main() {
       surface: 'web',
     });
     assert.doesNotMatch(JSON.stringify(sent), /private-slug|hidden|Googlebot/);
+
+    sent.length = 0;
+    deliveries.length = 0;
+    for (let i = 0; i < 200; i++) {
+      observeWebRequest(
+        new Request('https://highsignal.app/data', {
+          headers: { 'user-agent': 'Lightpanda/1.0' },
+        }),
+        new Response(null, {
+          status: 429,
+          headers: { 'x-high-signal-guard': 'rate-limit' },
+        }),
+        Date.now(),
+        { APP_HEALTH_INGEST_KEY: 'test-key' },
+        { waitUntil: (p: Promise<unknown>) => deliveries.push(p) }
+      );
+    }
+    await Promise.all(deliveries);
+    assert.equal(
+      sent.filter((entry) => entry.url.endsWith('/v1/ingest')).length,
+      0,
+      'rejected crawler bursts must not create per-request endpoint ingestion'
+    );
+    assert.ok(deliveries.length <= 1, 'traffic summaries remain bounded');
   } finally {
     globalThis.fetch = original;
   }

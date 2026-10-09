@@ -34,6 +34,9 @@ const BULK_AI_CRAWLER_USER_AGENTS = [
   'facebookbot',
   'google-cloudvertexbot',
   'gptbot',
+  // Observed bulk headless crawling: use the existing text representation
+  // instead of booting Next.js and its speculative RSC navigation graph.
+  'lightpanda/',
   'meta-externalagent',
 ];
 
@@ -577,7 +580,7 @@ export async function handleCachedRenderedMarkdown(
 }
 
 /**
- * Keep bulk AI training crawlers useful without sending them through the
+ * Keep bulk AI training crawlers and headless automation useful without sending them through the
  * browser-oriented Next.js/RSC prefetch graph. Search crawlers and user-driven
  * assistants continue to receive normal HTML.
  */
