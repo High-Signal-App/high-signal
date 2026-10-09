@@ -22,6 +22,7 @@ import {
   isCacheableDocumentResponse,
 } from './worker-cache-policy.mjs';
 import { isPublicHtmlPath, normalizePublicPath } from './public-route-registry.mjs';
+import { createCacheSummary } from './cache-summary.mjs';
 import { observeWebRequest } from './app-health.mjs';
 
 export {
@@ -188,6 +189,8 @@ const timedFetch = withTiming(async function fetch(request, env, ctx) {
   return cacheable;
 });
 
+const summarizeCache = createCacheSummary();
+
 const worker = {
   async fetch(request, env, ctx) {
     const startedAt = Date.now();
@@ -199,7 +202,10 @@ const worker = {
       observeWebRequest(request, null, startedAt, env, ctx);
       throw error;
     } finally {
-      if (response) observeWebRequest(request, response, startedAt, env, ctx);
+      if (response) {
+        summarizeCache(response, isCacheableDocumentRequest(request));
+        observeWebRequest(request, response, startedAt, env, ctx);
+      }
     }
   },
 };

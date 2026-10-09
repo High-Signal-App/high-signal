@@ -1,8 +1,11 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import { normalizeApiRoute, observeApiRequest, stageTimingProps } from '../app-health';
 import { observeStages } from '../lib/server-timing';
 import { applyMigrations, createSqliteD1 } from '../../test/sqlite-d1';
 import worker from '../index';
+
+beforeEach(() => vi.useFakeTimers());
+afterEach(() => vi.useRealTimers());
 
 describe('API App Health observer', () => {
   afterEach(() => vi.restoreAllMocks());
@@ -24,6 +27,7 @@ describe('API App Health observer', () => {
         waitUntil: (promise: Promise<unknown>) => deliveries.push(promise),
       } as unknown as ExecutionContext
     );
+    await vi.advanceTimersByTimeAsync(5000);
     await Promise.all(deliveries);
     expect(fetchMock).toHaveBeenCalled();
     const endpoints = requests.map(({ input }) => input);
@@ -57,6 +61,7 @@ describe('API App Health observer', () => {
         ctx
       )
     ).not.toThrow();
+    await vi.advanceTimersByTimeAsync(5000);
     await Promise.all(deliveries);
     expect(() =>
       observeApiRequest(
@@ -173,6 +178,7 @@ describe('API stage-timing logs (#198)', () => {
       { DB: d1.binding, ENVIRONMENT: 'test', APP_HEALTH_INGEST_KEY: 'secret' },
       { waitUntil: (promise: Promise<unknown>) => pending.push(promise) }
     );
+    await vi.advanceTimersByTimeAsync(5000);
     await Promise.all(pending);
     d1.close();
     expect(response.status).toBe(200);

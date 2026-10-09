@@ -86,15 +86,13 @@ export function isCacheableDocumentRequest(request) {
   // variants keep their complete URL and routing headers so Next.js cannot
   // receive or serve a payload for a different router state.
   if (isRscRequest(request)) {
-    return (
-      isPublicDocumentPath(pathname) && [...url.searchParams.keys()].every((key) => key === '_rsc')
-    );
+    return isPublicDocumentPath(pathname) && isPublicQuery(url, true);
   }
   if (request.headers.get('rsc') === '1') return false;
   // Data payloads ignore junk query params (or are keyed by them, /api/og) —
   // tracking params cannot bypass the edge cache.
   if (isPublicDataPath(pathname)) return true;
-  return [...url.searchParams.keys()].every(isTrackingParameter);
+  return isPublicQuery(url);
 }
 
 export function cacheKeyForRequest(request, buildId) {
@@ -110,6 +108,7 @@ export function cacheKeyForRequest(request, buildId) {
       if (isTrackingParameter(key)) url.searchParams.delete(key);
     }
   }
+  url.searchParams.sort();
   if (!isRscRequest(request) && pathname === '/') {
     url.searchParams.set('__hs_cache_schema', ROOT_CACHE_SCHEMA);
   } else if (!isRscRequest(request) && (pathname === '/data' || pathname.startsWith('/data/'))) {
@@ -215,4 +214,32 @@ function dataPolicyForPath(pathname) {
 
 function isPublicDocumentPath(pathname) {
   return isPublicHtmlPath(pathname) || PUBLIC_HTML_ONLY_PATHS.has(pathname);
+}
+
+// Public source history and company search vary by these bounded selectors.
+// Unlike campaign tags, selectors stay in the key; private/preview parameters
+// and duplicate values still bypass rather than risk sharing the wrong result.
+function isPublicQuery(url, rsc = false) {
+  const pathname = normalizePublicPath(url.pathname);
+  const seen = new Set();
+  for (const [key, value] of url.searchParams) {
+    if (seen.has(key)) return false;
+    seen.add(key);
+    if (rsc && key === '_rsc') continue;
+    if (isTrackingParameter(key)) continue;
+    if (/^\/data\/[^/]+$/.test(pathname)) {
+      if (key === 'all' && value === '1') continue;
+      if (key === 'p' && /^\d{1,6}$/.test(value)) continue;
+      if (key === 'date' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+        const date = new Date(`${value}T00:00:00Z`);
+        if (!Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value) continue;
+      }
+    }
+    if (pathname === '/case-studies/search') {
+      if (key === 'page' && /^\d{1,6}$/.test(value)) continue;
+      if (key === 'q' && value.length <= 200) continue;
+    }
+    return false;
+  }
+  return true;
 }
