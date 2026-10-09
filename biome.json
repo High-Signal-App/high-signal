@@ -175,6 +175,12 @@
   },
   "overrides": [
     {
+      "includes": ["workers/api/src/cloudflare-exports.d.ts"],
+      "linter": {
+        "rules": { "style": { "noNamespace": "off" } }
+      }
+    },
+    {
       "includes": [
         "apps/web/src/app/layout.tsx",
         "apps/web/src/components/seo/structured-data.tsx"
