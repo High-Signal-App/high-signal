@@ -75,6 +75,7 @@ export default async function CompanySearchPage({ searchParams }: SearchPageProp
 
   return (
     <PageShell max="max-w-5xl">
+      <span hidden data-high-signal-public-cache="company-search-v1" />
       <BackLink href="/case-studies">back to company universe</BackLink>
       <HeroHeader eyebrow="company search" title="What is each company building?" size="md">
         Search names and descriptions, or combine categories, affiliations, programs, and locations.

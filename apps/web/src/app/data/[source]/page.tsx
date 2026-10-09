@@ -147,7 +147,10 @@ export default async function DataSourcePage({
   const hasMore = data?.hasMore ?? false;
 
   return (
-    <main className="mx-auto max-w-4xl px-6 py-12">
+    <main
+      className="mx-auto max-w-4xl px-6 py-12"
+      data-high-signal-public-cache={data ? 'source-detail-v1' : undefined}
+    >
       <Link
         href="/data"
         className="font-mono text-[11px] text-zinc-500 underline-offset-2 hover:text-[var(--color-accent)] hover:underline"

@@ -2,6 +2,30 @@
 
 Last updated: 2026-10-09
 
+October 9 public query-cache qualification — implementation:
+
+Live source-date variants on `6599fa492cd30f246705ad9d1c3f5e4ab0d69f42`
+still bypassed caching because Next.js emitted its dynamic private/no-store
+policy. Successful public source-detail and company-search renders now opt in
+explicitly. The Worker checks a bounded HTML prefix before applying the
+existing public TTL; unavailable/loading shells, authenticated requests,
+unknown selectors, RSC and other private policies retain their exclusions.
+The realistic Worker regression reproduces 1,000 renders before the repair
+and 20 afterward. Release qualification remains tracked in
+[issue #198](https://github.com/High-Signal-App/high-signal/issues/198).
+
+October 9 telemetry batching and public selectors — live:
+
+[PR #235](https://github.com/High-Signal-App/high-signal/pull/235) is deployed to
+both Workers at 100% from `6599fa492cd30f246705ad9d1c3f5e4ab0d69f42`;
+[API](https://github.com/High-Signal-App/high-signal/actions/runs/37971792025)
+and [web](https://github.com/High-Signal-App/high-signal/actions/runs/37971796939)
+deployment smoke checks pass. Stage logs continue arriving through the bounded
+telemetry buffer. Local Workers runtime proof covers four batches for 200
+observations and delivery after traffic stops. Its controlled 98% cache result
+does not establish a production 95% hit rate; the live query-cache gap above
+was found during release verification.
+
 October 9 API and web speed release — live:
 
 Both Workers were deployed from `c2e9927b37fb7c32050cf3a8d856b0564e115de8` at 100% traffic.

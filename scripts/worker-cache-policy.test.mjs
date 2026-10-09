@@ -16,6 +16,7 @@ import {
   isCacheableDocumentRequest,
   isCacheableDocumentResponse,
   isRscRequest,
+  qualifyPublicQueryResponse,
 } from '../apps/web/worker-cache-policy.mjs';
 
 const request = (path, init = {}) => new Request(`https://highsignal.app${path}`, init);
@@ -252,6 +253,73 @@ assert.equal(
 );
 assert.equal(edgeCacheStatus(rsc, 'HIT'), 'RSC-HIT');
 assert.equal(edgeCacheStatus(request('/about'), 'MISS'), 'MISS');
+
+const dynamicPolicy = 'private, no-cache, no-store, max-age=0, must-revalidate';
+const publicSourceHtml =
+  '<main data-high-signal-public-cache="source-detail-v1">Public events</main>';
+const renderedPage = (html, headers = {}, status = 200) =>
+  new Response(html, {
+    status,
+    headers: { 'Content-Type': 'text/html', 'Cache-Control': dynamicPolicy, ...headers },
+  });
+const qualifiedSource = await qualifyPublicQueryResponse(
+  request('/data/courtlistener?date=2026-10-08'),
+  renderedPage(publicSourceHtml)
+);
+assert.equal(qualifiedSource.headers.get('cache-control'), 'public, max-age=60, s-maxage=300');
+assert.equal(await qualifiedSource.text(), publicSourceHtml);
+const companyHtml = '<span hidden="" data-high-signal-public-cache="company-search-v1"></span>';
+assert.equal(
+  (
+    await qualifyPublicQueryResponse(
+      request('/case-studies/search?q=AI'),
+      renderedPage(companyHtml)
+    )
+  ).headers.get('cache-control'),
+  cacheControlForRequest(request('/case-studies/search?q=AI'))
+);
+for (const [req, original] of [
+  [request('/data/courtlistener?date=2026-10-08'), renderedPage('<main>Data unavailable</main>')],
+  [
+    request('/data/courtlistener'),
+    renderedPage('&lt;main data-high-signal-public-cache="source-detail-v1"&gt;'),
+  ],
+  [request('/data/courtlistener'), renderedPage(companyHtml)],
+  [request('/about'), renderedPage(publicSourceHtml)],
+  [request('/data/courtlistener?preview=1'), renderedPage(publicSourceHtml)],
+  [
+    request('/data/courtlistener', { headers: { Authorization: 'Bearer test' } }),
+    renderedPage(publicSourceHtml),
+  ],
+  [
+    request('/data/courtlistener', { headers: { Cookie: 'CF_Authorization=test' } }),
+    renderedPage(publicSourceHtml),
+  ],
+  [
+    request('/data/courtlistener', { headers: { 'cf-access-jwt-assertion': 'test' } }),
+    renderedPage(publicSourceHtml),
+  ],
+  [
+    request('/data/courtlistener?_rsc=state', { headers: { rsc: '1' } }),
+    renderedPage(publicSourceHtml),
+  ],
+  [
+    request('/data/courtlistener'),
+    renderedPage(publicSourceHtml, { 'Set-Cookie': 'session=test' }),
+  ],
+  [
+    request('/data/courtlistener'),
+    renderedPage(publicSourceHtml, { 'Cache-Control': 'private, no-store' }),
+  ],
+  [request('/data/courtlistener'), renderedPage(publicSourceHtml, {}, 503)],
+  [request('/data/courtlistener'), renderedPage(' '.repeat(262_144) + publicSourceHtml)],
+]) {
+  assert.equal(
+    await qualifyPublicQueryResponse(req, original),
+    original,
+    `${req.url} must keep its policy`
+  );
+}
 
 for (const path of [
   '/',

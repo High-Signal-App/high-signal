@@ -175,6 +175,58 @@ export function isCacheableDocumentResponse(request, response) {
     : contentType.includes('text/html');
 }
 
+const NEXT_DYNAMIC_CACHE_CONTROL = 'private,no-cache,no-store,max-age=0,must-revalidate';
+const PUBLIC_RENDER_SCAN_LIMIT = 262_144;
+
+/**
+ * Next marks searchParams-driven pages private even when they render only
+ * public data. Only these two successful page renders opt in explicitly.
+ * Error/loading shells and every other private response keep their policy.
+ */
+export async function qualifyPublicQueryResponse(request, response) {
+  if (!isCacheableDocumentRequest(request) || isRscRequest(request)) return response;
+  if (response.status !== 200 || response.headers.has('set-cookie')) return response;
+  if (!(response.headers.get('content-type') ?? '').includes('text/html')) return response;
+  const policy = (response.headers.get('cache-control') ?? '').toLowerCase().replace(/\s/g, '');
+  if (policy !== NEXT_DYNAMIC_CACHE_CONTROL) return response;
+  const pathname = normalizePublicPath(new URL(request.url).pathname);
+  const marker = /^\/data\/[^/]+$/.test(pathname)
+    ? /<main\b[^>]*\bdata-high-signal-public-cache="source-detail-v1"/
+    : pathname === '/case-studies/search'
+      ? /<span\b[^>]*\bdata-high-signal-public-cache="company-search-v1"/
+      : null;
+  if (!marker || !(await hasPublicRenderMarker(response, marker))) return response;
+  const headers = new Headers(response.headers);
+  headers.set('Cache-Control', cacheControlForRequest(request));
+  return new Response(response.body, { status: response.status, headers });
+}
+
+async function hasPublicRenderMarker(response, marker) {
+  const reader = response.clone().body?.getReader();
+  if (!reader) return false;
+  let bytes = 0;
+  let prefix = '';
+  const decoder = new TextDecoder();
+  try {
+    while (bytes < PUBLIC_RENDER_SCAN_LIMIT) {
+      const { done, value } = await reader.read();
+      if (done) return false;
+      const part = value.subarray(0, PUBLIC_RENDER_SCAN_LIMIT - bytes);
+      bytes += part.byteLength;
+      prefix += decoder.decode(part, { stream: true });
+      if (marker.test(prefix)) return true;
+    }
+    return false;
+  } catch {
+    return false;
+  } finally {
+    // A tee's cancellation can wait for the original body to be consumed.
+    // Do not await it here: that body is returned to the caller below.
+    void reader.cancel().catch(() => undefined);
+    reader.releaseLock();
+  }
+}
+
 export function edgeCacheStatus(request, result) {
   return isRscRequest(request) ? `RSC-${result}` : result;
 }
