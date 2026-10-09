@@ -1,6 +1,6 @@
 import { api } from '@/lib/api';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 300;
 
 /**
  * Public JSON listing of every entity in the High Signal corpus. Lets

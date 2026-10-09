@@ -11,7 +11,7 @@ import { SITE_URL } from '@/lib/site';
 import { buildPublicCorpusCandidates } from '../../public-corpus-records.mjs';
 import { shouldIncludeInDiscovery } from '../../public-corpus-policy.mjs';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 3600;
 
 const discoveryPresentation = {
   brief: { changeFrequency: 'monthly', priority: 0.8 },

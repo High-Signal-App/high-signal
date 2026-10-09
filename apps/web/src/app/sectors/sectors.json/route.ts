@@ -1,6 +1,6 @@
 import { api } from '@/lib/api';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 3600;
 
 /**
  * JSON twin of /sectors. Lets external dashboards plot net-direction

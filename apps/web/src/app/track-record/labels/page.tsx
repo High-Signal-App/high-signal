@@ -1,6 +1,6 @@
 import { api } from '@/lib/api';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 3600;
 export const metadata = { title: 'Label hit-rates' };
 
 type Stats = { n: number; hits: number; rate: number; lift?: number | null };

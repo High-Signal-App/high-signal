@@ -14,7 +14,7 @@ import { SITE_URL } from '@/lib/site';
 import { entityPeriodSignalFilters } from '../../../../../public-corpus-records.mjs';
 import { evaluateCollection, robotsForVerdict } from '../../../../../public-corpus-policy.mjs';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 3600;
 
 export async function generateMetadata({
   params,

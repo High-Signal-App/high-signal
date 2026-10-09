@@ -3,7 +3,7 @@ import { BackLink, MetricGrid, PageShell, SectionHeader } from '@/components/sys
 import { buildMarketWatchSnapshot, formatMarketPct, marketDirectionTone } from '@/lib/market-watch';
 import { SITE_URL } from '@/lib/site';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 3600;
 export const metadata: Metadata = {
   title: 'Market History',
   alternates: { canonical: `${SITE_URL}/markets/history` },
