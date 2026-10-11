@@ -22,7 +22,7 @@ test('primary navigation exposes only the three reader destinations', async ({ p
 test('the retired feature directory returns readers to the brief', async ({ page }) => {
   await page.goto('/explore');
   await expect(page).toHaveURL('/');
-  await expect(page.getByRole('heading', { name: 'Today’s verified signals.' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Today’s brief.' })).toBeVisible();
 });
 
 test('navigation acknowledges a click when destination prefetch is still unavailable', async ({
