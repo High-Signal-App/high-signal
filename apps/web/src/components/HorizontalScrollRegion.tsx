@@ -24,7 +24,7 @@ export function HorizontalScrollRegion({
         aria-label={`Scroll ${ariaLabel} left`}
         onClick={() => scrollRegion.current?.scrollBy({ left: -120 })}
       >
-        Scroll left
+        scroll left
       </button>
       <button
         type="button"
@@ -32,7 +32,7 @@ export function HorizontalScrollRegion({
         aria-label={`Scroll ${ariaLabel} right`}
         onClick={() => scrollRegion.current?.scrollBy({ left: 120 })}
       >
-        Scroll right
+        scroll right
       </button>
       <section
         ref={scrollRegion}

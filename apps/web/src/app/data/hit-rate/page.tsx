@@ -1,3 +1,5 @@
+import { EmptyState } from '@saas-maker/ui/components/empty-state';
+import { ErrorState } from '@saas-maker/ui/components/error-state';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { api, type TrackBucket } from '@/lib/api';
@@ -82,7 +84,7 @@ function LedgerHeader() {
       </Link>
       <header className="mt-4 mb-10 border-b border-zinc-800 pb-6">
         <h1 className="font-mono text-2xl font-semibold tracking-tight text-zinc-100">
-          Public hit-rate ledger
+          public hit-rate ledger
         </h1>
         <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-400">
           Every published High Signal market call scored against subsequent market moves. Live =
@@ -93,19 +95,19 @@ function LedgerHeader() {
         <div className="mt-5 flex flex-wrap gap-3">
           <a
             href="/data/hit-rate.json"
-            className="border border-[var(--color-accent)]/60 px-4 py-2 font-mono text-[11px] uppercase text-[var(--color-accent)]"
+            className="border border-[var(--color-accent)]/60 px-4 py-2 font-mono text-[11px] text-[var(--color-accent)]"
           >
             ↓ hit-rate.json
           </a>
           <a
             href="/data/hit-rate.csv"
-            className="border border-zinc-800 px-4 py-2 font-mono text-[11px] uppercase text-zinc-400"
+            className="border border-zinc-800 px-4 py-2 font-mono text-[11px] text-zinc-400"
           >
             ↓ hit-rate.csv
           </a>
           <Link
             href="/track-record"
-            className="border border-zinc-800 px-4 py-2 font-mono text-[11px] uppercase text-zinc-400"
+            className="border border-zinc-800 px-4 py-2 font-mono text-[11px] text-zinc-400"
           >
             interactive track record →
           </Link>
@@ -129,13 +131,15 @@ function LedgerContent({
   return available ? (
     <AvailableLedger cohorts={cohorts} live={live} backfill={backfill} />
   ) : (
-    <section className="mb-10 border border-[var(--color-line)] p-5" role="status">
-      <h2 className="font-medium">Ledger temporarily unavailable</h2>
-      <p className="mt-2 text-sm text-[var(--color-muted)]">
-        The evidence service did not respond. This is not a zero-result dataset. Retry this page or
-        its downloads later.
-      </p>
-    </section>
+    <ErrorState
+      title="ledger temporarily unavailable"
+      description="The evidence service did not respond. This is not a zero-result dataset. Retry this page or its downloads later."
+      primaryAction={
+        <a href="" className="underline">
+          try again →
+        </a>
+      }
+    />
   );
 }
 
@@ -152,7 +156,7 @@ function LedgerSchema() {
   ];
   return (
     <section className="border border-zinc-800 p-5">
-      <h2 className="font-mono text-xs uppercase">schema</h2>
+      <h2 className="font-mono text-xs ">schema</h2>
       <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
         {rows.map(([key, value]) => (
           <div key={key}>
@@ -179,7 +183,7 @@ function MetricBox({
   const valueClass = tone === 'accent' ? 'text-[var(--color-accent)]' : 'text-zinc-100';
   return (
     <div className="bg-zinc-950/50 p-4">
-      <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
+      <div className="font-mono text-[10px] tracking-[0.18em] text-[var(--color-muted)]">
         {label}
       </div>
       <div className={`nums mt-2 text-2xl font-medium ${valueClass}`}>{value.toLocaleString()}</div>
@@ -191,16 +195,21 @@ function MetricBox({
 function BucketTable({ buckets, emptyHint }: { buckets: TrackBucket[]; emptyHint: string }) {
   if (buckets.length === 0) {
     return (
-      <div className="mt-4 border border-dashed border-zinc-800 p-6 text-center font-mono text-[11px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
-        {emptyHint}
-      </div>
+      <EmptyState
+        title={emptyHint}
+        primaryAction={
+          <a href="/signals" className="underline">
+            browse signals →
+          </a>
+        }
+      />
     );
   }
 
   return (
     <div className="mt-4 max-w-full overflow-x-auto">
       <table className="w-full min-w-[520px] text-sm">
-        <thead className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
+        <thead className="font-mono text-[10px] tracking-[0.18em] text-[var(--color-muted)]">
           <tr>
             <th className="border-b border-zinc-800 py-2 text-left">type</th>
             <th className="border-b border-zinc-800 py-2 text-right">n</th>
@@ -282,11 +291,11 @@ function AvailableLedger({
         </p>
       )}
       <section className="mb-12">
-        <h2 className="font-mono text-xs uppercase">live predictions by signal type</h2>
+        <h2 className="font-mono text-xs ">live predictions by signal type</h2>
         <BucketTable buckets={cohorts.live} emptyHint="no live scored predictions yet" />
       </section>
       <section className="mb-12">
-        <h2 className="font-mono text-xs uppercase text-[var(--color-muted)]">
+        <h2 className="font-mono text-xs text-[var(--color-muted)]">
           backfill calibration by signal type
         </h2>
         <BucketTable buckets={cohorts.backfill} emptyHint="no backfill scored predictions yet" />

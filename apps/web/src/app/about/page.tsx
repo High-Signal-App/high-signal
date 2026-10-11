@@ -17,11 +17,11 @@ export default function AboutPage() {
     <main className="mx-auto max-w-3xl px-6 py-16 text-zinc-300">
       <Link
         href="/"
-        className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500 hover:text-zinc-300"
+        className="font-mono text-[10px] tracking-[0.2em] text-zinc-500 hover:text-zinc-300"
       >
         ← high signal
       </Link>
-      <h1 className="mt-3 text-3xl font-medium tracking-tight text-white">About</h1>
+      <h1 className="mt-3 text-3xl font-medium tracking-tight text-white">about</h1>
       <p className="mt-4 text-sm leading-6 text-zinc-400">
         High Signal turns noisy public evidence across technology, startups, and finance into one
         free Daily Brief. Its three public sections cover markets and companies, business
@@ -35,9 +35,7 @@ export default function AboutPage() {
       </p>
 
       <section className="mt-10 space-y-3 text-sm leading-6">
-        <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">
-          Quality gates
-        </h2>
+        <h2 className="font-mono text-[10px] tracking-[0.2em] text-zinc-500">quality gates</h2>
         <ul className="list-disc space-y-1 pl-5 text-zinc-300 marker:text-zinc-600">
           <li>Every published signal cites at least two sources.</li>
           <li>Direction (up / down / neutral) and confidence band must be set.</li>
@@ -50,7 +48,7 @@ export default function AboutPage() {
       </section>
 
       <section className="mt-10 space-y-3 text-sm leading-6">
-        <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">Channels</h2>
+        <h2 className="font-mono text-[10px] tracking-[0.2em] text-zinc-500">channels</h2>
         <ul className="list-disc space-y-1 pl-5 text-zinc-300 marker:text-zinc-600">
           <li>
             <Link className="text-[var(--color-accent)] hover:underline" href="/signals">
@@ -84,8 +82,8 @@ export default function AboutPage() {
       </section>
 
       <section className="mt-10 space-y-3 text-sm leading-6">
-        <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">
-          Out of scope (on purpose)
+        <h2 className="font-mono text-[10px] tracking-[0.2em] text-zinc-500">
+          out of scope (on purpose)
         </h2>
         <ul className="list-disc space-y-1 pl-5 text-zinc-300 marker:text-zinc-600">
           <li>Multi-wedge expansion before hit-rate is real.</li>

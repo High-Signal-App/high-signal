@@ -15,32 +15,32 @@ export default function TermsPage() {
     <main className="mx-auto max-w-3xl px-6 py-16 text-zinc-300">
       <Link
         href="/"
-        className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500 hover:text-zinc-300"
+        className="font-mono text-[10px] tracking-[0.2em] text-zinc-500 hover:text-zinc-300"
       >
         ← high signal
       </Link>
-      <h1 className="mt-3 text-3xl font-medium tracking-tight text-white">Terms</h1>
+      <h1 className="mt-3 text-3xl font-medium tracking-tight text-white">terms</h1>
       <p className="mt-4 text-xs text-zinc-500">Last updated: 2026-05-15.</p>
 
-      <h2 className="mt-8 text-base font-semibold text-white">Not financial advice</h2>
+      <h2 className="mt-8 text-base font-semibold text-white">not financial advice</h2>
       <p className="mt-2 text-sm leading-7">
         Signals are best-effort research published with cited evidence and explicit confidence
         bands. They are not a recommendation to buy, sell, or hold any security.
       </p>
 
-      <h2 className="mt-8 text-base font-semibold text-white">Public surfaces</h2>
+      <h2 className="mt-8 text-base font-semibold text-white">public surfaces</h2>
       <p className="mt-2 text-sm leading-7">
         The Daily Brief, signals, sources, Company Universe, Track Record, and their documented RSS
         or JSON interfaces are free to consume and embed. Be polite about rate.
       </p>
 
-      <h2 className="mt-8 text-base font-semibold text-white">No retroactive edits</h2>
+      <h2 className="mt-8 text-base font-semibold text-white">no retroactive edits</h2>
       <p className="mt-2 text-sm leading-7">
         We do not modify or remove published signals after the fact. Corrections are new signals
         that cite the prior.
       </p>
 
-      <h2 className="mt-8 text-base font-semibold text-white">No warranty</h2>
+      <h2 className="mt-8 text-base font-semibold text-white">no warranty</h2>
       <p className="mt-2 text-sm leading-7">
         Provided as-is. We don&apos;t guarantee timeliness, accuracy, or completeness of any signal.
       </p>

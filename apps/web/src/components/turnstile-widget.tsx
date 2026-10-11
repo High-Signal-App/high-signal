@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { ErrorState } from '@saas-maker/ui/components/error-state';
+import { Skeleton, SkeletonContainer } from '@saas-maker/ui/components/skeleton';
 
 const SCRIPT_URL = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
 
@@ -49,6 +51,7 @@ function loadScript() {
     }
   }).catch((error) => {
     scriptPromise = null;
+    document.querySelector(`script[src="${SCRIPT_URL}"]`)?.remove();
     throw error;
   });
   return scriptPromise;
@@ -69,6 +72,8 @@ export function TurnstileWidget({
   const widgetIdRef = useRef<string | null>(null);
   const callbackRef = useRef(onTokenChange);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [retry, setRetry] = useState(0);
 
   useEffect(() => {
     callbackRef.current = onTokenChange;
@@ -76,6 +81,8 @@ export function TurnstileWidget({
 
   useEffect(() => {
     let cancelled = false;
+    setLoading(true);
+    setError('');
     void loadScript()
       .then(() => {
         if (cancelled || !containerRef.current || !window.turnstile) return;
@@ -88,13 +95,16 @@ export function TurnstileWidget({
           },
           'expired-callback': () => callbackRef.current(null),
           'error-callback': () => {
+            setLoading(false);
             setError('Verification failed to load. Refresh and try again.');
             callbackRef.current(null);
           },
         });
+        setLoading(false);
       })
       .catch(() => {
         if (!cancelled) {
+          setLoading(false);
           setError('Verification failed to load. Refresh and try again.');
           callbackRef.current(null);
         }
@@ -106,7 +116,7 @@ export function TurnstileWidget({
         widgetIdRef.current = null;
       }
     };
-  }, [action, siteKey]);
+  }, [action, siteKey, retry]);
 
   useEffect(() => {
     if (resetSignal > 0 && widgetIdRef.current && window.turnstile) {
@@ -115,14 +125,19 @@ export function TurnstileWidget({
   }, [resetSignal]);
 
   return (
-    <div>
+    <div className="relative min-h-[70px]">
+      {loading && (
+        <SkeletonContainer className="absolute inset-0">
+          <Skeleton className="h-[70px] w-[300px] max-w-full" />
+        </SkeletonContainer>
+      )}
       <div
         ref={containerRef}
         className="cf-turnstile"
         data-sitekey={siteKey}
         data-action={action}
       />
-      {error && <p className="mt-2 text-xs text-red-300">{error}</p>}
+      {error && <ErrorState description={error} onRetry={() => setRetry((value) => value + 1)} />}
     </div>
   );
 }

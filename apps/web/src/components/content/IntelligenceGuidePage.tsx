@@ -21,13 +21,13 @@ export function IntelligenceGuidePage({ guide }: { guide: IntelligenceGuide }) {
 
         <nav
           aria-label="Breadcrumb"
-          className="flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--color-muted)]"
+          className="flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[10px] tracking-[0.16em] text-[var(--color-muted)]"
         >
           <Link
             className="min-h-11 py-3 hover:text-[var(--color-accent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
             href="/"
           >
-            High Signal
+            high signal
           </Link>
           <span aria-hidden="true">/</span>
           <span aria-current="page" className="py-3 text-[var(--color-fg)]">
@@ -37,7 +37,7 @@ export function IntelligenceGuidePage({ guide }: { guide: IntelligenceGuide }) {
 
         <article className="mt-8">
           <header className="border-b border-[var(--color-line)] pb-10">
-            <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-accent)]">
+            <p className="font-mono text-[10px] tracking-[0.18em] text-[var(--color-accent)]">
               {guide.eyebrow}
             </p>
             <h1 className="mt-4 max-w-3xl text-4xl font-medium tracking-[-0.025em] text-[var(--color-fg)] sm:text-5xl">
@@ -55,7 +55,7 @@ export function IntelligenceGuidePage({ guide }: { guide: IntelligenceGuide }) {
             <div className="grid gap-2 py-4 sm:grid-cols-[minmax(12rem,0.65fr)_minmax(0,1.6fr)] sm:gap-10">
               <h2
                 id={`${guide.key}-evidence`}
-                className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-accent)]"
+                className="font-mono text-[10px] tracking-[0.18em] text-[var(--color-accent)]"
               >
                 evidence receipt
               </h2>
@@ -75,7 +75,7 @@ export function IntelligenceGuidePage({ guide }: { guide: IntelligenceGuide }) {
                     {item.label}
                   </span>
                   <span className="text-sm leading-6 text-[var(--color-muted)]">{item.detail}</span>
-                  <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-muted)]">
+                  <span className="font-mono text-[10px] tracking-[0.14em] text-[var(--color-muted)]">
                     verified {item.verifiedAt}
                   </span>
                 </Link>
@@ -109,7 +109,7 @@ export function IntelligenceGuidePage({ guide }: { guide: IntelligenceGuide }) {
           <section className="mt-12" aria-labelledby={`${guide.key}-research-path`}>
             <h2
               id={`${guide.key}-research-path`}
-              className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-accent)]"
+              className="font-mono text-[10px] tracking-[0.18em] text-[var(--color-accent)]"
             >
               continue the research
             </h2>
@@ -132,7 +132,7 @@ export function IntelligenceGuidePage({ guide }: { guide: IntelligenceGuide }) {
           </section>
 
           <footer className="mt-12 border border-[var(--color-line)] p-6">
-            <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-accent)]">
+            <p className="font-mono text-[10px] tracking-[0.18em] text-[var(--color-accent)]">
               next step
             </p>
             <Link

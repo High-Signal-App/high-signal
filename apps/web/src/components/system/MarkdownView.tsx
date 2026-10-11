@@ -154,7 +154,7 @@ function inline(text: string): ReactNode[] {
       const external = href.startsWith('http://') || href.startsWith('https://');
       nodes.push(
         <a
-          className="text-[var(--color-accent)] underline-offset-4 hover:underline"
+          className="text-[var(--color-accent)] underline underline-offset-4 hover:underline"
           href={href}
           key={key}
           rel={external ? 'noreferrer' : undefined}
@@ -194,7 +194,7 @@ function inline(text: string): ReactNode[] {
 export function MarkdownView({ markdown }: { markdown: string }) {
   const blocks = parseBlocks(markdown);
   return (
-    <div className="space-y-5 text-sm leading-7 text-zinc-400">
+    <div className="max-w-[68ch] space-y-5 text-sm leading-7 text-zinc-400">
       {blocks.map((block, index) => {
         if (block.type === 'heading') {
           const Tag = `h${block.level}` as 'h2' | 'h3' | 'h4';
@@ -263,7 +263,7 @@ export function MarkdownView({ markdown }: { markdown: string }) {
             // biome-ignore lint/suspicious/noArrayIndexKey: parsed markdown blocks are positionally stable and never reordered (the list is fully rebuilt when the markdown prop changes)
             <div className="overflow-x-auto border border-zinc-800" key={index}>
               <table className="w-full min-w-[36rem] text-left text-xs">
-                <thead className="font-mono uppercase tracking-[0.16em] text-zinc-500">
+                <thead className="font-mono tracking-[0.16em] text-zinc-500">
                   <tr>
                     {block.headers.map((header) => (
                       <th className="border-b border-zinc-800 px-3 py-2" key={header}>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { ErrorState } from '@saas-maker/ui/components/error-state';
 
 interface ShareBarProps {
   url?: string;
@@ -12,6 +13,8 @@ export function ShareBar({ url: propUrl, title: propTitle, className = '' }: Sha
   const [url, setUrl] = useState(propUrl ?? '');
   const [title, setTitle] = useState(propTitle ?? '');
   const [copied, setCopied] = useState(false);
+  const [copying, setCopying] = useState(false);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -24,12 +27,16 @@ export function ShareBar({ url: propUrl, title: propTitle, className = '' }: Sha
   };
 
   const handleCopy = async () => {
+    setCopying(true);
+    setError(false);
     try {
       await navigator.clipboard.writeText(url);
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch {
-      /* ignore */
+      setError(true);
+    } finally {
+      setCopying(false);
     }
   };
 
@@ -39,10 +46,11 @@ export function ShareBar({ url: propUrl, title: propTitle, className = '' }: Sha
 
   return (
     <div className={`flex flex-wrap items-center gap-2 ${className}`}>
-      <span className="mr-1 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
+      <span className="mr-1 font-mono text-[10px] tracking-[0.18em] text-[var(--color-muted)]">
         share
       </span>
       <ShareButton
+        disabled={!url}
         href={twitterHref}
         onClick={(e) => {
           e.preventDefault();
@@ -52,6 +60,7 @@ export function ShareBar({ url: propUrl, title: propTitle, className = '' }: Sha
         icon={<XIcon />}
       />
       <ShareButton
+        disabled={!url}
         href={linkedinHref}
         onClick={(e) => {
           e.preventDefault();
@@ -61,6 +70,7 @@ export function ShareBar({ url: propUrl, title: propTitle, className = '' }: Sha
         icon={<LinkedInIcon />}
       />
       <ShareButton
+        disabled={!url}
         href={redditHref}
         onClick={(e) => {
           e.preventDefault();
@@ -71,23 +81,33 @@ export function ShareBar({ url: propUrl, title: propTitle, className = '' }: Sha
       />
       <button
         type="button"
+        disabled={!url || copying}
         onClick={handleCopy}
-        className="flex items-center gap-2 border border-[var(--color-line)] px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--color-muted)] transition-colors hover:border-[var(--color-accent)] hover:text-[var(--color-fg)]"
+        className="flex items-center gap-2 border border-[var(--color-line)] px-2.5 py-1.5 font-mono text-[10px] tracking-[0.16em] text-[var(--color-muted)] transition-colors hover:border-[var(--color-accent)] hover:text-[var(--color-fg)]"
         aria-label="Copy link"
       >
         <LinkIcon className="size-3.5" />
-        {copied ? 'copied' : 'copy link'}
+        {copying ? 'copying…' : copied ? 'copied' : 'copy link'}
       </button>
+      {error && (
+        <ErrorState
+          className="w-full"
+          title="could not copy link"
+          onRetry={() => void handleCopy()}
+        />
+      )}
     </div>
   );
 }
 
 function ShareButton({
+  disabled,
   href,
   onClick,
   label,
   icon,
 }: {
+  disabled: boolean;
   href: string;
   onClick: (e: React.MouseEvent<HTMLAnchorElement>) => void;
   label: string;
@@ -95,8 +115,9 @@ function ShareButton({
 }) {
   return (
     <a
-      href={href}
-      onClick={onClick}
+      href={disabled ? undefined : href}
+      aria-disabled={disabled}
+      onClick={disabled ? undefined : onClick}
       className="flex size-7 items-center justify-center border border-[var(--color-line)] text-[var(--color-muted)] transition-colors hover:border-[var(--color-accent)] hover:text-[var(--color-fg)]"
       aria-label={`Share on ${label}`}
       target="_blank"

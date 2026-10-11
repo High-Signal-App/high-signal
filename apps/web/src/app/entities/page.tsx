@@ -1,3 +1,5 @@
+import { EmptyState } from '@saas-maker/ui/components/empty-state';
+import { ErrorState } from '@saas-maker/ui/components/error-state';
 import { api, type EntityRow } from '@/lib/api';
 import { SITE_URL } from '@/lib/site';
 
@@ -13,11 +15,12 @@ export const metadata = {
 // of /signals need to navigate the spillover graph.
 export default async function EntitiesPage() {
   let entities: EntityRow[] = [];
+  let unavailable = false;
   try {
     const r = await api.entities();
     entities = r.entities;
   } catch {
-    /* offline */
+    unavailable = true;
   }
 
   const bySector = new Map<string, EntityRow[]>();
@@ -30,22 +33,41 @@ export default async function EntitiesPage() {
     <main className="mx-auto max-w-5xl px-6 py-16">
       <a
         href="/"
-        className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500 hover:text-zinc-300"
+        className="font-mono text-[10px] tracking-[0.2em] text-zinc-500 hover:text-zinc-300"
       >
         ← high signal
       </a>
-      <h1 className="mt-3 text-3xl font-medium tracking-tight">Entities</h1>
+      <h1 className="mt-3 text-3xl font-medium tracking-tight">entities</h1>
       <p className="mt-2 max-w-2xl text-sm text-zinc-400">
         AI-infra graph. Public companies + key private players. Click an entity for relationships +
         signal history.
       </p>
 
+      {unavailable && (
+        <ErrorState
+          primaryAction={
+            <a href="/entities" className="underline">
+              try again →
+            </a>
+          }
+        />
+      )}
+      {!unavailable && entities.length === 0 && (
+        <EmptyState
+          title="no entities yet"
+          primaryAction={
+            <a href="/signals" className="underline">
+              browse signals →
+            </a>
+          }
+        />
+      )}
       <div className="mt-12 space-y-12">
         {Array.from(bySector.entries())
           .sort()
           .map(([sector, list]) => (
             <section key={sector}>
-              <h2 className="border-b border-zinc-800 pb-2 font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">
+              <h2 className="border-b border-zinc-800 pb-2 font-mono text-[10px] tracking-[0.2em] text-zinc-500">
                 {sector} <span className="text-zinc-700">·</span>{' '}
                 <span className="nums">{list.length}</span>
               </h2>

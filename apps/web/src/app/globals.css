@@ -1,17 +1,28 @@
-@import "tailwindcss";
-@import "../styles/footer-fonts.css";
+@import "@saas-maker/ui/theme.css";
+@import "@saas-maker/ui/source-shell.css";
+@source "../../node_modules/@saas-maker/ui/src/components/{skeleton,empty-state,error-state,button}.tsx";
 @plugin "@tailwindcss/typography";
+@import "../styles/high-signal-theme.css";
 
-@theme {
-  --font-sans: "GeistSans", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "GeistMono", ui-monospace, "SF Mono", monospace;
-  --color-bg: oklch(0.16 0 0);
-  --color-fg: oklch(0.96 0 0);
-  --color-muted: oklch(0.67 0 0);
-  --color-line: oklch(0.27 0 0);
-  --color-accent: oklch(0.78 0.18 195);
-  --color-up: oklch(0.78 0.18 145);
-  --color-down: oklch(0.7 0.21 25);
+@theme inline {
+  --color-bg: var(--background);
+  --color-fg: var(--foreground);
+  --color-muted: var(--muted-foreground);
+  --color-line: var(--border);
+  --color-accent: var(--brand);
+  --color-up: var(--signal-up);
+  --color-down: var(--signal-down);
+}
+
+/* Preserve legacy utilities through semantic family tokens. */
+:root {
+  --color-bg: var(--background);
+  --color-fg: var(--foreground);
+  --color-muted: var(--muted-foreground);
+  --color-line: var(--border);
+  --color-accent: var(--brand);
+  --color-up: var(--signal-up);
+  --color-down: var(--signal-down);
 }
 
 @layer base {
@@ -42,7 +53,7 @@
      The grid enhancement starts at tablet width, but the editorial type and
      lead-story hierarchy must change immediately when the toggle is pressed. */
   html[data-reading-view="newspaper"] .brief-edition .brief-feed-item-title {
-    font-family: Georgia, "Times New Roman", serif;
+    font-family: var(--font-sans);
     font-size: 1.75rem;
     line-height: 1.08;
     letter-spacing: -0.035em;
@@ -85,14 +96,14 @@
 
     html[data-reading-view="newspaper"] .brief-edition .brief-feed-item:first-of-type .brief-feed-item-title {
       max-width: 22ch;
-      font-family: Georgia, "Times New Roman", serif;
+      font-family: var(--font-sans);
       font-size: clamp(2.25rem, 5vw, 4.5rem);
       line-height: 0.98;
       letter-spacing: -0.045em;
     }
 
     html[data-reading-view="newspaper"] .brief-edition .brief-feed-item:not(:first-of-type) .brief-feed-item-title {
-      font-family: Georgia, "Times New Roman", serif;
+      font-family: var(--font-sans);
       font-size: 1.65rem;
       line-height: 1.12;
     }
@@ -108,3 +119,121 @@
     }
   }
 }
+
+:where(h1, h2, h3) {
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+:where(main, .container-page) {
+  max-width: 72rem;
+  padding-inline: 1rem;
+  min-width: 0;
+}
+:where(p, .prose) { max-width: 68ch; }
+:where(p, .prose) a { text-decoration: underline; text-underline-offset: 0.2em; }
+:where(a:hover) { color: var(--brand); }
+
+/* The library footer is SSR. Its enhancement never replaces the initial layout. */
+studio-footer { display: block; }
+studio-footer > footer[data-fleet-footer="studio"] { background: var(--background); }
+studio-footer :where([class*="rounded-"]) { border-radius: var(--radius); }
+studio-footer :where([class*="shadow-"]) { box-shadow: none; }
+studio-footer :where(.font-display) { font-weight: 600; letter-spacing: -0.03em; }
+studio-footer :where([class*="ring-"]) { --tw-ring-shadow: 0 0 transparent; }
+studio-footer :where(a:hover) { color: var(--brand); }
+
+@theme inline {
+  --color-zinc-50: var(--foreground);
+  --color-zinc-100: var(--foreground);
+  --color-zinc-200: var(--foreground);
+  --color-zinc-300: var(--foreground);
+  --color-zinc-400: var(--muted-foreground);
+  --color-zinc-500: var(--muted-foreground);
+  --color-zinc-600: var(--muted-foreground);
+  --color-zinc-700: var(--border);
+  --color-zinc-800: var(--border);
+  --color-zinc-900: var(--background);
+  --color-zinc-950: var(--background);
+  --color-emerald-300: var(--signal-up);
+  --color-emerald-400: var(--signal-up);
+  --color-emerald-500: var(--signal-up);
+  --color-green-300: var(--signal-up);
+  --color-green-400: var(--signal-up);
+  --color-green-500: var(--signal-up);
+  --color-red-300: var(--signal-down);
+  --color-red-400: var(--signal-down);
+  --color-red-500: var(--signal-down);
+  --color-rose-300: var(--signal-down);
+  --color-rose-400: var(--signal-down);
+  --color-rose-500: var(--signal-down);
+  --color-amber-300: var(--muted-foreground);
+  --color-amber-400: var(--muted-foreground);
+  --color-amber-500: var(--muted-foreground);
+  --color-cyan-300: var(--muted-foreground);
+  --color-cyan-400: var(--muted-foreground);
+  --color-cyan-500: var(--muted-foreground);
+  --color-white: var(--foreground);
+  --color-black: var(--background);
+  --color-amber-100: var(--foreground);
+  --color-amber-200: var(--foreground);
+}
+
+html[data-theme="ink"] studio-footer[data-theme="ink"][data-mode="dark"] {
+  --font-sans: inherit;
+  --font-text: inherit;
+  --font-display: inherit;
+  --font-accent: inherit;
+  --font-mono: inherit;
+  --display-weight: inherit;
+  --display-tracking: inherit;
+  --display-leading: inherit;
+  --accent-style: inherit;
+  --radius: inherit;
+  --background: inherit;
+  --foreground: inherit;
+  --surface: inherit;
+  --card: inherit;
+  --card-foreground: inherit;
+  --popover: inherit;
+  --popover-foreground: inherit;
+  --primary: inherit;
+  --primary-foreground: inherit;
+  --secondary: inherit;
+  --secondary-foreground: inherit;
+  --muted: inherit;
+  --muted-foreground: inherit;
+  --accent: inherit;
+  --accent-foreground: inherit;
+  --border: inherit;
+  --hairline: inherit;
+  --input: inherit;
+  --ring: inherit;
+  --brand: inherit;
+  --brand-foreground: inherit;
+  --brand-soft: inherit;
+  --brand-ink: inherit;
+  --signal-up: inherit;
+  --signal-down: inherit;
+  --shadow-color: inherit;
+  --sidebar: inherit;
+  --sidebar-foreground: inherit;
+  --sidebar-accent: inherit;
+  --sidebar-accent-foreground: inherit;
+}
+
+[data-slot="skeleton"] { background: var(--accent); }
+
+/* Legacy emphasis becomes neutral chrome; cyan is reserved for interaction. */
+:where(main) :is(span, div, p, h1, h2, h3)[class~="text-[var(--color-accent)]"] { color: var(--foreground); }
+:where(main) a[class~="text-[var(--color-accent)]"] { color: var(--foreground); }
+:where(main) a:hover { color: var(--brand); }
+:where(header, studio-footer) :is(a, button):hover { background-color: var(--accent); }
+:where([data-slot="button"]) { box-shadow: none; }
+:where([data-slot="button"]):hover { background-color: var(--accent); }
+
+[data-content-title] { text-transform: none; }
+main { min-height: calc(100svh - 4rem); }
+
+input, textarea { text-transform: none; }
+svg a:hover { fill: var(--brand); }
+[aria-current="page"] { color: var(--foreground); border-color: var(--border); text-decoration: underline; text-underline-offset: 0.3em; }

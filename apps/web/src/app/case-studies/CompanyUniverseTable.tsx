@@ -14,7 +14,7 @@ export function CompanyUniverseTable({
   return (
     <div className="overflow-x-auto border border-[var(--color-line)]">
       <div className="min-w-[56rem]">
-        <div className="grid grid-cols-[minmax(10rem,1fr)_minmax(8rem,0.7fr)_minmax(12rem,1.1fr)_minmax(14rem,1.4fr)] border-b border-[var(--color-line)] px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500">
+        <div className="grid grid-cols-[minmax(10rem,1fr)_minmax(8rem,0.7fr)_minmax(12rem,1.1fr)_minmax(14rem,1.4fr)] border-b border-[var(--color-line)] px-3 py-2 font-mono text-[10px] tracking-[0.14em] text-zinc-500">
           <div>company</div>
           <div>category</div>
           <div>source</div>

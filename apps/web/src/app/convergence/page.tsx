@@ -28,7 +28,7 @@ function Chip({ label, active, href }: { label: string; active: boolean; href: s
   return (
     <a
       href={href}
-      className={`rounded border px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.18em] ${
+      className={`rounded border px-2 py-0.5 font-mono text-[10px] tracking-[0.18em] ${
         active
           ? 'border-[var(--color-accent)] text-[var(--color-accent)]'
           : 'border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200'
@@ -62,12 +62,12 @@ export default async function ConvergencePage({ searchParams }: Props) {
     <main className="mx-auto max-w-6xl px-6 py-16">
       <a
         href="/"
-        className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500 hover:text-zinc-300"
+        className="font-mono text-[10px] tracking-[0.2em] text-zinc-500 hover:text-zinc-300"
       >
         ← high signal
       </a>
       <header className="mt-3 border-b border-zinc-800 pb-6">
-        <h1 className="text-3xl font-medium tracking-tight">Cross-source convergence</h1>
+        <h1 className="text-3xl font-medium tracking-tight">cross-source convergence</h1>
         <p className="mt-2 max-w-2xl text-sm text-zinc-400">
           Entities hit by <strong>≥ {minSources}</strong> distinct sources in the last{' '}
           <strong>{hours}h</strong>. The strongest pre-news pattern in the system: when news,
@@ -78,9 +78,7 @@ export default async function ConvergencePage({ searchParams }: Props) {
           </span>
         </p>
         <div className="mt-4 flex flex-wrap gap-3">
-          <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
-            window
-          </span>
+          <span className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">window</span>
           {WINDOW_CHOICES.map((h) => (
             <Chip
               key={h}
@@ -89,7 +87,7 @@ export default async function ConvergencePage({ searchParams }: Props) {
               href={`/convergence?hours=${h}&min_sources=${minSources}`}
             />
           ))}
-          <span className="ml-4 font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
+          <span className="ml-4 font-mono text-[10px] tracking-[0.18em] text-zinc-500">
             min sources
           </span>
           {MIN_CHOICES.map((m) => (
@@ -104,7 +102,7 @@ export default async function ConvergencePage({ searchParams }: Props) {
       </header>
 
       {data.rows.length === 0 ? (
-        <div className="mt-12 border border-dashed border-zinc-800 p-10 text-center font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500">
+        <div className="mt-12 border border-dashed border-zinc-800 p-10 text-center font-mono text-[11px] tracking-[0.18em] text-zinc-500">
           no entity hit by ≥{minSources} sources in the last {hours}h
         </div>
       ) : (
@@ -124,18 +122,18 @@ export default async function ConvergencePage({ searchParams }: Props) {
                   </a>
                   {row.name ? <span className="ml-2 text-sm text-zinc-400">{row.name}</span> : null}
                   {row.sector ? (
-                    <span className="ml-2 font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-600">
+                    <span className="ml-2 font-mono text-[10px] tracking-[0.18em] text-zinc-600">
                       {row.sector}
                     </span>
                   ) : null}
                   {row.isNew ? (
-                    <span className="ml-2 rounded border border-emerald-700/60 px-1.5 py-0 font-mono text-[10px] uppercase tracking-[0.18em] text-emerald-300">
+                    <span className="ml-2 rounded border border-emerald-700/60 px-1.5 py-0 font-mono text-[10px] tracking-[0.18em] text-emerald-300">
                       new
                     </span>
                   ) : null}
                   {row.label === 'breakout' ? (
                     <span
-                      className="ml-2 rounded border border-amber-600/60 px-1.5 py-0 font-mono text-[10px] uppercase tracking-[0.18em] text-amber-300"
+                      className="ml-2 rounded border border-amber-600/60 px-1.5 py-0 font-mono text-[10px] tracking-[0.18em] text-amber-300"
                       title={row.labelReason ?? ''}
                     >
                       breakout
@@ -143,14 +141,14 @@ export default async function ConvergencePage({ searchParams }: Props) {
                   ) : null}
                   {row.label === 'divergence' ? (
                     <span
-                      className="ml-2 rounded border border-violet-600/60 px-1.5 py-0 font-mono text-[10px] uppercase tracking-[0.18em] text-violet-300"
+                      className="ml-2 rounded border border-violet-600/60 px-1.5 py-0 font-mono text-[10px] tracking-[0.18em] text-violet-300"
                       title={row.labelReason ?? ''}
                     >
                       divergence
                     </span>
                   ) : null}
                 </div>
-                <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500">
+                <div className="font-mono text-[11px] tracking-[0.18em] text-zinc-500">
                   <span className="text-[var(--color-accent)]">{row.sourceCount} sources</span>
                   <span className="ml-3 text-zinc-600">{row.eventCount} events</span>
                   <span className="ml-3 text-zinc-600">{formatRelative(row.latestAt, nowSec)}</span>
@@ -168,7 +166,7 @@ export default async function ConvergencePage({ searchParams }: Props) {
               </div>
               {row.attention ? (
                 <div className="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1 border-l-2 border-zinc-800 pl-3 text-sm">
-                  <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
+                  <span className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">
                     attention · 30d
                   </span>
                   <span className="font-mono text-zinc-300">
@@ -195,7 +193,7 @@ export default async function ConvergencePage({ searchParams }: Props) {
               ) : null}
               {row.marketQuote ? (
                 <div className="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1 border-l-2 border-zinc-800 pl-3 text-sm">
-                  <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
+                  <span className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">
                     market · {row.marketQuote.source}
                   </span>
                   <a
@@ -231,7 +229,7 @@ export default async function ConvergencePage({ searchParams }: Props) {
                 <ul className="mt-3 space-y-1.5 border-t border-zinc-900 pt-3 text-sm">
                   {row.recent.map((ev) => (
                     <li key={ev.source_url} className="flex flex-wrap gap-2 text-zinc-300">
-                      <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-600">
+                      <span className="font-mono text-[10px] tracking-[0.18em] text-zinc-600">
                         {ev.source}
                       </span>
                       <a

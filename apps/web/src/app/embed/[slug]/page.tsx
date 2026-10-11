@@ -26,7 +26,7 @@ export default async function EmbedSignal({ params }: { params: Promise<{ slug: 
     <main className="bg-zinc-950 p-4 text-zinc-300">
       <article className="rounded-md border border-zinc-800 bg-zinc-950 p-5">
         <div className="flex items-baseline justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-2 font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
+          <div className="flex flex-wrap items-center gap-2 font-mono text-[10px] tracking-[0.18em] text-zinc-500">
             <span>{new Date(signal.publishedAt).toISOString().slice(0, 10)}</span>
             <span className="text-zinc-700">·</span>
             <span className="text-[var(--color-accent)]">{signal.primaryEntityId}</span>

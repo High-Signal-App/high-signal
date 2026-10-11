@@ -79,7 +79,7 @@ export function CompanySearchPagination({ page, query, totalPages }: CompanySear
         )}
       </nav>
       <span
-        className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500"
+        className="font-mono text-[10px] tracking-[0.14em] text-zinc-500"
         role="status"
         aria-live="polite"
       >
@@ -112,8 +112,8 @@ function PageLink({
       aria-disabled={pending || undefined}
       className={
         active
-          ? 'border border-[var(--color-accent)] px-2 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-accent)]'
-          : 'border border-[var(--color-line)] px-2 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 transition hover:border-zinc-600 aria-disabled:cursor-wait aria-disabled:opacity-50'
+          ? 'border border-[var(--color-accent)] px-2 py-1 font-mono text-[10px] tracking-[0.14em] text-[var(--color-accent)]'
+          : 'border border-[var(--color-line)] px-2 py-1 font-mono text-[10px] tracking-[0.14em] text-zinc-400 transition hover:border-zinc-600 aria-disabled:cursor-wait aria-disabled:opacity-50'
       }
     >
       {label ?? page}

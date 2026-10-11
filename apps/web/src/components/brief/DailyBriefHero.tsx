@@ -66,16 +66,16 @@ export function DailyBriefHero({
 
   return (
     <header className="border-b border-[var(--color-line)] pb-7">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-muted)]">
-        <span className="text-[var(--color-accent)]">Daily Brief</span>
-        <span>Edition {date}</span>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 font-mono text-[10px] tracking-[0.14em] text-[var(--color-muted)]">
+        <span className="text-[var(--color-accent)]">daily brief</span>
+        <span>edition {date}</span>
         <span>{regionLabel(region)}</span>
         <span className="sm:ml-auto">
           {signalOnly && signalState.status === 'unavailable'
-            ? 'Publication unavailable'
+            ? 'publication unavailable'
             : brief.publishStatus === 'pending'
-              ? 'Publication pending'
-              : `Updated ${generated} UTC`}
+              ? 'publication pending'
+              : `updated ${generated} utc`}
         </span>
       </div>
 
@@ -83,8 +83,8 @@ export function DailyBriefHero({
         <div>
           <h1 className="max-w-3xl text-4xl font-medium leading-[1.05] tracking-[-0.03em] text-[var(--color-fg)] sm:text-5xl">
             {signalOnly
-              ? `${editionDay === 'today' ? 'Today’s' : editionDay === 'yesterday' ? 'Yesterday’s' : 'Earlier'} brief.`
-              : 'What changed, why it matters, and what remains uncertain.'}
+              ? `${editionDay === 'today' ? 'today’s' : editionDay === 'yesterday' ? 'yesterday’s' : 'earlier'} brief.`
+              : 'what changed, why it matters, and what remains uncertain.'}
           </h1>
           <p className="mt-4 max-w-[70ch] text-sm leading-6 text-[var(--color-muted)]">
             {signalOnly
@@ -109,7 +109,7 @@ export function DailyBriefHero({
               <span className="block text-sm font-medium text-[var(--color-fg)]">
                 {index + 1}. {item.label}
               </span>
-              <span className="mt-1 block font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--color-muted)]">
+              <span className="mt-1 block font-mono text-[10px] tracking-[0.12em] text-[var(--color-muted)]">
                 {stateLabel(item.status, item.count)}
               </span>
             </Link>

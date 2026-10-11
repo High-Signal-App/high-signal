@@ -71,7 +71,7 @@ export default async function PaginatedCaseStudiesPage({ params }: PageProps) {
         ]}
       />
 
-      <Panel eyebrow="source boundary" title="100% High Signal generated">
+      <Panel eyebrow="source boundary" title="100% high signal generated">
         <p className="mt-3 max-w-4xl text-sm leading-6 text-[var(--color-muted)]">
           Generated at {COMPANY_UNIVERSE.generatedAt.slice(0, 16).replace('T', ' ')} UTC by{' '}
           <code>{COMPANY_UNIVERSE.generatedBy}</code>. This paginated route is static and crawlable,

@@ -1,3 +1,4 @@
+import { EmptyState } from '@saas-maker/ui/components/empty-state';
 import type { Metadata } from 'next';
 import { BackLink, PageShell, SectionHeader } from '@/components/system/HighSignalUI';
 import { BreadcrumbJsonLd } from '@/components/seo/structured-data';
@@ -69,7 +70,7 @@ export default async function SignalTypesIndexPage() {
         ]}
       />
 
-      <SectionHeader eyebrow="taxonomy" title="Signal types">
+      <SectionHeader eyebrow="taxonomy" title="signal types">
         Every published-signal type in High Signal, grouped by family. Each type has its own page
         with definition, recent examples, and public hit-rate.
       </SectionHeader>
@@ -79,7 +80,7 @@ export default async function SignalTypesIndexPage() {
           <article key={family} className="py-8">
             <div className="flex items-baseline justify-between">
               <h2 className="text-xl font-medium tracking-tight">{familyLabel(family)}</h2>
-              <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
+              <div className="font-mono text-[10px] tracking-[0.18em] text-[var(--color-muted)]">
                 {rows.length} types · {rows.reduce((sum, r) => sum + r.total, 0)} signals
               </div>
             </div>
@@ -107,9 +108,15 @@ export default async function SignalTypesIndexPage() {
           </article>
         ))}
         {families.length === 0 ? (
-          <p className="py-8 text-sm text-[var(--color-muted)]">
-            No signals indexed yet. The first ingest cycle will populate this page.
-          </p>
+          <EmptyState
+            title="no signals indexed yet"
+            description="No signals indexed yet. The first ingest cycle will populate this page."
+            primaryAction={
+              <a href="/signals" className="underline">
+                browse signals →
+              </a>
+            }
+          />
         ) : null}
       </section>
     </PageShell>

@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { ErrorState } from '@saas-maker/ui/components/error-state';
+import { Skeleton } from '@saas-maker/ui/components/skeleton';
 import { useRouter } from 'next/navigation';
 import { HISTORY_ACCESS_ACTION } from '@high-signal/shared';
 import { trackAppHealthEvent } from '@/lib/app-health-browser';
@@ -10,7 +12,7 @@ const TURNSTILE_SITE_KEY =
   process.env['NEXT_PUBLIC_TURNSTILE_SITE_KEY'] ?? '0x4AAAAAAECKL9dzkPASkdm0';
 
 export function HistoryGate({
-  title = 'Verify to read earlier signals',
+  title = 'verify to read earlier signals',
   description = 'Today and yesterday stay open and fast. A quick human check unlocks older briefs and their signal proof pages for 12 hours.',
 }: {
   title?: string;
@@ -54,16 +56,18 @@ export function HistoryGate({
   return (
     <section
       className="mx-auto mt-10 max-w-2xl border-y border-[var(--color-line)] py-10"
+      aria-busy={pending}
       aria-labelledby="history-gate-title"
     >
-      <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--color-accent)]">
+      <div className="font-mono text-[10px] tracking-[0.2em] text-[var(--color-accent)]">
         protected history
       </div>
-      <h1 id="history-gate-title" className="mt-3 text-3xl font-medium tracking-tight">
+      <h2 id="history-gate-title" className="mt-3 text-3xl font-medium tracking-tight">
         {title}
-      </h1>
+      </h2>
       <p className="mt-4 max-w-[65ch] text-sm leading-6 text-[var(--color-muted)]">{description}</p>
-      <div className="mt-7 min-h-[70px]">
+      <div className="relative mt-7 min-h-[70px]">
+        {pending && <Skeleton className="absolute inset-0 z-10 h-[70px] w-[300px] max-w-full" />}
         <TurnstileWidget
           siteKey={TURNSTILE_SITE_KEY}
           action={HISTORY_ACCESS_ACTION}
@@ -71,25 +75,18 @@ export function HistoryGate({
           onTokenChange={(token) => void verify(token)}
         />
       </div>
-      <p className="mt-4 font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-muted)]">
+      <p className="mt-4 font-mono text-[10px] tracking-[0.14em] text-[var(--color-muted)]">
         {pending ? 'verifying…' : 'one check · 12 hours of access'}
       </p>
       {error ? (
-        <div className="mt-3 flex flex-wrap items-center gap-3">
-          <p className="text-sm text-red-300" role="alert">
-            {error}
-          </p>
-          <button
-            type="button"
-            className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-accent)] hover:underline"
-            onClick={() => {
-              setError('');
-              setResetSignal((value) => value + 1);
-            }}
-          >
-            try again →
-          </button>
-        </div>
+        <ErrorState
+          title="verification did not complete"
+          description={error}
+          onRetry={() => {
+            setError('');
+            setResetSignal((value) => value + 1);
+          }}
+        />
       ) : null}
     </section>
   );

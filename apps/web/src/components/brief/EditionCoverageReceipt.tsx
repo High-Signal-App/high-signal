@@ -12,19 +12,19 @@ export function EditionCoverageReceipt({ coverage }: { coverage: BriefFeedCovera
       aria-label="Edition data coverage"
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-accent)]">
-          Coverage receipt · {coverage.uniqueEvidenceDomains} {domainLabel} ·{' '}
+        <div className="font-mono text-[10px] tracking-[0.14em] text-[var(--color-accent)]">
+          coverage receipt · {coverage.uniqueEvidenceDomains} {domainLabel} ·{' '}
           {coverage.contributingClasses.length} contributing classes
         </div>
         <Link
           href={'/methodology/data-parity' as Route}
-          className="font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--color-muted)] hover:text-[var(--color-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-accent)]"
+          className="font-mono text-[10px] tracking-[0.12em] text-[var(--color-muted)] hover:text-[var(--color-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-accent)]"
         >
           parity ledger →
         </Link>
       </div>
       <details className="group mt-3 border-t border-dashed border-[var(--color-line)] pt-3">
-        <summary className="flex min-h-11 cursor-pointer items-center font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--color-muted)] hover:text-[var(--color-fg)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-accent)]">
+        <summary className="flex min-h-11 cursor-pointer items-center font-mono text-[10px] tracking-[0.12em] text-[var(--color-muted)] hover:text-[var(--color-fg)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-accent)]">
           inspect configured coverage and known gaps
         </summary>
         <div className="mt-4">
@@ -39,7 +39,7 @@ export function EditionCoverageReceipt({ coverage }: { coverage: BriefFeedCovera
             {coverage.configuredClasses.map((sourceClass) => (
               <li
                 key={sourceClass}
-                className={`border px-2 py-1 font-mono text-[9px] uppercase tracking-[0.12em] ${
+                className={`border px-2 py-1 font-mono text-[9px] tracking-[0.12em] ${
                   contributing.has(sourceClass)
                     ? 'border-[var(--color-accent)] bg-[color-mix(in_oklab,var(--color-accent)_12%,transparent)] text-[var(--color-fg)]'
                     : 'border-[var(--color-line)] text-[var(--color-muted)]'

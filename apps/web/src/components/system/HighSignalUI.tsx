@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { EmptyState } from '@saas-maker/ui/components/empty-state';
 
 export interface ProductArea {
   href: string;
@@ -38,14 +39,14 @@ export function PageShell({
   max?: 'max-w-4xl' | 'max-w-5xl';
   children: ReactNode;
 }) {
-  return <main className={`mx-auto ${max} px-5 py-14 sm:px-6 sm:py-16`}>{children}</main>;
+  return <main className={`mx-auto ${max} px-4 py-14 sm:px-6 sm:py-16`}>{children}</main>;
 }
 
 export function BackLink({ href = '/', children = 'back to high signal' }) {
   return (
     <a
       href={href}
-      className="font-mono text-xs uppercase tracking-[0.18em] text-[var(--color-muted)] hover:text-[var(--color-accent)]"
+      className="font-mono text-xs tracking-[0.18em] text-[var(--color-muted)] hover:text-[var(--color-accent)]"
     >
       {children}
     </a>
@@ -57,19 +58,22 @@ export function HeroHeader({
   title,
   children,
   size = 'lg',
+  contentTitle = false,
 }: {
   eyebrow: string;
   title: string;
   children: ReactNode;
   size?: 'md' | 'lg';
+  contentTitle?: boolean;
 }) {
   return (
     <header className="border-b border-[var(--color-line)] pb-8">
-      <div className="flex items-baseline gap-3 font-mono text-xs uppercase tracking-[0.2em] text-[var(--color-muted)]">
-        <span className="size-1.5 rounded-full bg-[var(--color-accent)]" />
+      <div className="flex items-baseline gap-3 font-mono text-xs tracking-[0.2em] text-[var(--color-muted)]">
+        <span className="size-1.5 rounded-full bg-[var(--color-line)]" />
         <span>{eyebrow}</span>
       </div>
       <h1
+        data-content-title={contentTitle || undefined}
         className={`mt-4 font-medium tracking-tight ${size === 'lg' ? 'text-4xl sm:text-5xl' : 'text-3xl sm:text-4xl'}`}
       >
         {title}
@@ -83,17 +87,22 @@ export function SectionHeader({
   eyebrow,
   title,
   children,
+  contentTitle = false,
 }: {
   eyebrow: string;
   title: string;
   children: ReactNode;
+  contentTitle?: boolean;
 }) {
   return (
     <header className="mt-8 border-b border-[var(--color-line)] pb-8">
-      <div className="font-mono text-xs uppercase tracking-[0.2em] text-[var(--color-accent)]">
-        {eyebrow}
-      </div>
-      <h1 className="mt-4 text-3xl font-medium tracking-tight sm:text-4xl">{title}</h1>
+      <div className="font-mono text-xs tracking-[0.2em] text-[var(--color-muted)]">{eyebrow}</div>
+      <h1
+        data-content-title={contentTitle || undefined}
+        className="mt-4 text-3xl font-medium tracking-tight sm:text-4xl"
+      >
+        {title}
+      </h1>
       <p className="mt-4 max-w-2xl text-[var(--color-muted)]">{children}</p>
     </header>
   );
@@ -108,7 +117,7 @@ export function ProductAreaGrid({ items }: { items: ProductArea[] }) {
           href={item.href}
           className="group min-h-48 bg-[var(--color-bg)] p-5 transition-colors hover:bg-white/[0.025]"
         >
-          <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)] group-hover:text-[var(--color-accent)]">
+          <div className="font-mono text-[10px] tracking-[0.18em] text-[var(--color-muted)] group-hover:text-[var(--color-accent)]">
             {item.kicker}
           </div>
           <h2 className="mt-8 text-xl font-medium tracking-tight">{item.title}</h2>
@@ -134,10 +143,10 @@ export function StatGrid({ items }: { items: StatItem[] }) {
           key={item.label}
           className="border border-[var(--color-line)] bg-[var(--color-bg)] p-5"
         >
-          <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
+          <div className="font-mono text-[10px] tracking-[0.18em] text-[var(--color-muted)]">
             {item.label}
           </div>
-          <div className="mt-5 text-xl font-medium">{item.value}</div>
+          <div className="mt-5 font-mono text-xl font-medium tabular-nums">{item.value}</div>
           <div className="mt-2 text-sm text-[var(--color-muted)]">{item.sub}</div>
         </div>
       ))}
@@ -178,7 +187,7 @@ export function Panel({
 }) {
   return (
     <section className="border border-[var(--color-line)] p-5">
-      <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-accent)]">
+      <div className="font-mono text-[10px] tracking-[0.18em] text-[var(--color-muted)]">
         {eyebrow}
       </div>
       {title ? <div className="mt-5 text-2xl font-medium tracking-tight">{title}</div> : null}
@@ -225,7 +234,7 @@ export function Field({
 export function CommandButton({ children }: { children: ReactNode }) {
   return (
     <button
-      className="mt-5 w-full border border-[var(--color-line)] px-4 py-2 font-mono text-xs uppercase tracking-[0.18em] text-[var(--color-fg)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
+      className="mt-5 w-full border border-[var(--color-line)] px-4 py-2 font-mono text-xs tracking-[0.18em] text-[var(--color-fg)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
       type="submit"
     >
       {children}
@@ -241,10 +250,10 @@ export function MetricGrid({ items }: { items: MetricItem[] }) {
           key={item.label}
           className="border border-[var(--color-line)] bg-[var(--color-bg)] p-4"
         >
-          <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
+          <div className="font-mono text-[10px] tracking-[0.18em] text-[var(--color-muted)]">
             {item.label}
           </div>
-          <div className="mt-3 text-xl">{item.value}</div>
+          <div className="mt-3 font-mono text-xl tabular-nums">{item.value}</div>
         </div>
       ))}
     </div>
@@ -262,7 +271,7 @@ export function FeedList({
 }) {
   return (
     <section className="mt-10 border-y border-[var(--color-line)]">
-      <div className="py-4 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-accent)]">
+      <div className="py-4 font-mono text-[10px] tracking-[0.18em] text-[var(--color-muted)]">
         {eyebrow}
       </div>
       <div className="divide-y divide-[var(--color-line)]">
@@ -272,7 +281,7 @@ export function FeedList({
             href={item.href}
             className="block py-5 hover:text-[var(--color-accent)]"
           >
-            <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
+            <div className="font-mono text-[10px] tracking-[0.18em] text-[var(--color-muted)]">
               {item.kicker}
             </div>
             <div className="mt-2 break-words text-lg">{item.title}</div>
@@ -282,7 +291,14 @@ export function FeedList({
           </a>
         ))}
         {items.length === 0 ? (
-          <p className="py-5 text-sm text-[var(--color-muted)]">{empty}</p>
+          <EmptyState
+            title={empty}
+            primaryAction={
+              <a href="/" className="underline underline-offset-4">
+                today’s brief →
+              </a>
+            }
+          />
         ) : null}
       </div>
     </section>

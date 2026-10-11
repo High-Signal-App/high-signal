@@ -1,3 +1,5 @@
+import { EmptyState } from '@saas-maker/ui/components/empty-state';
+import { ErrorState } from '@saas-maker/ui/components/error-state';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { PageShell, SectionHeader } from '@/components/system/HighSignalUI';
@@ -57,18 +59,18 @@ export default async function TickersIndexPage({
     <PageShell>
       <Link
         href="/markets"
-        className="font-mono text-xs uppercase tracking-[0.18em] text-[var(--color-muted)] hover:text-[var(--color-accent)]"
+        className="font-mono text-xs tracking-[0.18em] text-[var(--color-muted)] hover:text-[var(--color-accent)]"
       >
         ← markets
       </Link>
-      <SectionHeader eyebrow="ticker index" title="Tickers">
+      <SectionHeader eyebrow="ticker index" title="tickers">
         Every tracked public company reachable by its ticker symbol. Each page shows signals, price
         context, the spillover graph, and prediction-market consensus.
       </SectionHeader>
 
       <form className="mt-8 flex max-w-xl gap-2" action="/markets/tickers">
         <label className="sr-only" htmlFor="ticker-search">
-          Search tickers or companies
+          search tickers or companies
         </label>
         <input
           id="ticker-search"
@@ -80,20 +82,21 @@ export default async function TickersIndexPage({
         />
         <button
           type="submit"
-          className="min-h-11 border border-[var(--color-line)] px-4 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-fg)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
+          className="min-h-11 border border-[var(--color-line)] px-4 font-mono text-[10px] tracking-[0.18em] text-[var(--color-fg)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
         >
           search
         </button>
       </form>
 
       {!available && (
-        <p
-          className="mt-8 border border-[var(--color-line)] p-5 text-sm text-[var(--color-muted)]"
-          role="status"
-        >
-          The ticker directory is temporarily unavailable. This is not an empty result set; retry
-          this page later.
-        </p>
+        <ErrorState
+          description="The ticker directory is temporarily unavailable. This is not an empty result set; retry this page later."
+          primaryAction={
+            <a href="" className="underline">
+              try again →
+            </a>
+          }
+        />
       )}
 
       <section className="mt-10 border-y border-[var(--color-line)]">
@@ -104,13 +107,13 @@ export default async function TickersIndexPage({
               href={`/markets/${entity.ticker}`}
               className="group bg-[var(--color-bg)] p-4 transition-colors hover:bg-white/[0.02]"
             >
-              <div className="font-mono text-xs uppercase tracking-[0.18em] text-[var(--color-accent)]">
+              <div className="font-mono text-xs tracking-[0.18em] text-[var(--color-accent)]">
                 {entity.ticker}
               </div>
               <div className="mt-2 text-base font-medium text-[var(--color-fg)] group-hover:text-white">
                 {entity.name}
               </div>
-              <div className="mt-1 font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--color-muted)]">
+              <div className="mt-1 font-mono text-[10px] tracking-[0.16em] text-[var(--color-muted)]">
                 {entity.sector ?? 'sector unknown'} · {entity.country ?? 'country unknown'}
               </div>
             </a>
@@ -130,7 +133,7 @@ export default async function TickersIndexPage({
           ) : (
             <span />
           )}
-          <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
+          <span className="font-mono text-[10px] tracking-[0.18em] text-[var(--color-muted)]">
             page {page} of {pageCount}
           </span>
           {page < pageCount ? (
@@ -147,11 +150,19 @@ export default async function TickersIndexPage({
       )}
 
       {available && filtered.length === 0 && (
-        <p className="mt-8 text-sm text-[var(--color-muted)]">
-          {query
-            ? `No ticker or company matches “${params.q}”. Try a shorter symbol or name.`
-            : 'No entities with tickers are available yet.'}
-        </p>
+        <EmptyState
+          title="no matching tickers"
+          description={
+            query
+              ? `No ticker or company matches “${params.q}”. Try a shorter symbol or name.`
+              : 'No entities with tickers are available yet.'
+          }
+          primaryAction={
+            <a href="/markets/tickers" className="underline">
+              all tickers →
+            </a>
+          }
+        />
       )}
     </PageShell>
   );

@@ -23,20 +23,20 @@ export function ArticlePage({ article }: { article: Article }) {
 
         <nav
           aria-label="Breadcrumb"
-          className="flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--color-muted)]"
+          className="flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[10px] tracking-[0.16em] text-[var(--color-muted)]"
         >
           <Link
             className="min-h-11 py-3 hover:text-[var(--color-accent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
             href="/"
           >
-            High Signal
+            high signal
           </Link>
           <span aria-hidden="true">/</span>
           <Link
             className="min-h-11 py-3 hover:text-[var(--color-accent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
             href={'/articles' as Route}
           >
-            Articles
+            articles
           </Link>
           <span aria-hidden="true">/</span>
           <span aria-current="page" className="py-3 text-[var(--color-fg)]">
@@ -46,16 +46,19 @@ export function ArticlePage({ article }: { article: Article }) {
 
         <article className="mt-8">
           <header className="border-b border-[var(--color-line)] pb-10">
-            <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-accent)]">
+            <p className="font-mono text-[10px] tracking-[0.18em] text-[var(--color-accent)]">
               {article.eyebrow}
             </p>
-            <h1 className="mt-4 max-w-3xl text-4xl font-medium tracking-[-0.025em] text-[var(--color-fg)] sm:text-5xl">
+            <h1
+              data-content-title
+              className="mt-4 max-w-3xl text-4xl font-medium tracking-[-0.025em] text-[var(--color-fg)] sm:text-5xl"
+            >
               {article.title}
             </h1>
             <p className="mt-5 max-w-[72ch] text-base leading-7 text-[var(--color-muted)]">
               {article.metaDescription}
             </p>
-            <p className="mt-4 font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--color-muted)]">
+            <p className="mt-4 font-mono text-[10px] tracking-[0.16em] text-[var(--color-muted)]">
               published {article.publishedAt}
             </p>
           </header>
@@ -67,7 +70,7 @@ export function ArticlePage({ article }: { article: Article }) {
           <section className="mt-12" aria-labelledby={`${article.slug}-research-path`}>
             <h2
               id={`${article.slug}-research-path`}
-              className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-accent)]"
+              className="font-mono text-[10px] tracking-[0.18em] text-[var(--color-accent)]"
             >
               continue the research
             </h2>
@@ -90,7 +93,7 @@ export function ArticlePage({ article }: { article: Article }) {
           </section>
 
           <footer className="mt-12 border border-[var(--color-line)] p-6">
-            <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-accent)]">
+            <p className="font-mono text-[10px] tracking-[0.18em] text-[var(--color-accent)]">
               next step
             </p>
             <Link

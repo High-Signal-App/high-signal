@@ -77,7 +77,7 @@ export default async function CompanySearchPage({ searchParams }: SearchPageProp
     <PageShell max="max-w-5xl">
       <span hidden data-high-signal-public-cache="company-search-v1" />
       <BackLink href="/case-studies">back to company universe</BackLink>
-      <HeroHeader eyebrow="company search" title="What is each company building?" size="md">
+      <HeroHeader eyebrow="company search" title="what is each company building?" size="md">
         Search names and descriptions, or combine categories, affiliations, programs, and locations.
       </HeroHeader>
 
@@ -99,7 +99,7 @@ export default async function CompanySearchPage({ searchParams }: SearchPageProp
         results.companies.length > 0 ? (
           <>
             <section className="mt-8">
-              <div className="mb-3 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500">
+              <div className="mb-3 font-mono text-[10px] tracking-[0.14em] text-zinc-500">
                 {results.companyCount.toLocaleString()} ranked matches for “{query}” · showing{' '}
                 {firstResult.toLocaleString()}-{lastResult.toLocaleString()} based on match
               </div>
@@ -116,7 +116,7 @@ export default async function CompanySearchPage({ searchParams }: SearchPageProp
           </Panel>
         )
       ) : (
-        <Panel eyebrow="search ready" title="Describe a company, market, or problem">
+        <Panel eyebrow="search ready" title="describe a company, market, or problem">
           <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">
             Examples: “screenpipe”, “AI workflow finance”, “climate batteries”, “Techstars India”,
             or an exact company name. Open any result to explore its similar-company cluster.

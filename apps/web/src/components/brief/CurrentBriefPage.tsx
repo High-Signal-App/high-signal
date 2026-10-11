@@ -32,7 +32,7 @@ export async function CurrentBriefPage({
       <HomeJsonLd />
       <nav
         aria-label="Daily Brief date"
-        className="mb-6 flex flex-wrap items-center gap-x-5 gap-y-2 border-b border-[var(--color-line)] pb-4 font-mono text-[10px] uppercase tracking-[0.16em]"
+        className="mb-6 flex flex-wrap items-center gap-x-5 gap-y-2 border-b border-[var(--color-line)] pb-4 font-mono text-[10px] tracking-[0.16em]"
       >
         <Link
           href={(region === 'global' ? '/' : `/?region=${region}`) as Route}
@@ -43,7 +43,7 @@ export async function CurrentBriefPage({
               : 'inline-flex min-h-11 items-center text-[var(--color-muted)] hover:text-[var(--color-fg)]'
           }
         >
-          Today
+          today
         </Link>
         <Link
           href={
@@ -56,7 +56,7 @@ export async function CurrentBriefPage({
               : 'inline-flex min-h-11 items-center text-[var(--color-muted)] hover:text-[var(--color-fg)]'
           }
         >
-          Yesterday
+          yesterday
         </Link>
       </nav>
       <DailyBriefHero
