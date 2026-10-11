@@ -57,22 +57,22 @@ export default function ApiDocsPage() {
     <main className="mx-auto max-w-3xl px-6 py-16 text-zinc-300">
       <Link
         href="/"
-        className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500 hover:text-zinc-300"
+        className="font-mono text-[10px] tracking-[0.2em] text-zinc-500 hover:text-zinc-300"
       >
         ← high signal
       </Link>
-      <h1 className="mt-3 text-3xl font-medium tracking-tight text-white">API & feeds</h1>
+      <h1 className="mt-3 text-3xl font-medium tracking-tight text-white">api & feeds</h1>
       <p className="mt-3 text-sm text-zinc-400">
         Connect an MCP client once, read the complete daily dataset as JSON, or subscribe to the
         chronological signal feed. The same published evidence powers every interface.
       </p>
 
       <table className="mt-10 w-full text-sm">
-        <thead className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
+        <thead className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">
           <tr>
-            <th className="border-b border-zinc-800 py-2 text-left">Path</th>
-            <th className="border-b border-zinc-800 py-2 text-left">Format</th>
-            <th className="border-b border-zinc-800 py-2 text-left">Description</th>
+            <th className="border-b border-zinc-800 py-2 text-left">path</th>
+            <th className="border-b border-zinc-800 py-2 text-left">format</th>
+            <th className="border-b border-zinc-800 py-2 text-left">description</th>
           </tr>
         </thead>
         <tbody>

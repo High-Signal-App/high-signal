@@ -1,3 +1,4 @@
+import { EmptyState } from '@saas-maker/ui/components/empty-state';
 import { SignalCard } from '@/components/molecules/SignalCard';
 import { ShareBar } from '@/components/molecules/ShareBar';
 import { SpilloverGraph } from '@/components/organisms/SpilloverGraph';
@@ -17,41 +18,48 @@ export function EntityDetail({ backHref, backLabel, canonicalPath, data }: Entit
     <main className="mx-auto max-w-5xl px-6 py-16">
       <a
         href={backHref}
-        className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--color-muted)] hover:text-zinc-300"
+        className="font-mono text-[10px] tracking-[0.2em] text-[var(--color-muted)] hover:text-zinc-300"
       >
         ← {backLabel}
       </a>
       <header className="mt-3 border-b border-zinc-800 pb-6">
-        <div className="flex items-baseline gap-3 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
+        <div className="flex items-baseline gap-3 font-mono text-[10px] tracking-[0.18em] text-[var(--color-muted)]">
           {entity.ticker && <span className="text-[var(--color-accent)]">{entity.ticker}</span>}
           {entity.country && <span>{entity.country}</span>}
           {entity.sector && <span>{entity.sector}</span>}
           <span>{entity.type}</span>
         </div>
         <div className="mt-2 flex items-start justify-between gap-4">
-          <h1 className="text-3xl font-medium tracking-tight">{entity.name}</h1>
+          <h1 data-content-title className="text-3xl font-medium tracking-tight">
+            {entity.name}
+          </h1>
         </div>
         <ShareBar url={canonicalPath} title={entity.name} className="mt-6" />
       </header>
 
-      <section className="mt-10 grid gap-12 md:grid-cols-[480px_1fr] md:gap-8">
+      <section className="mt-10 grid gap-12 lg:grid-cols-[minmax(0,480px)_minmax(0,1fr)] md:gap-8">
         <div>
-          <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--color-muted)]">
+          <h2 className="font-mono text-[10px] tracking-[0.2em] text-[var(--color-muted)]">
             spillover graph <span className="nums">{relationships.length}</span>
           </h2>
           <div className="mt-4">
             {relationships.length > 0 ? (
               <SpilloverGraph primary={entity.id} relationships={relationships} />
             ) : (
-              <div className="border border-dashed border-zinc-800 p-10 text-center font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
-                no relationships seeded yet
-              </div>
+              <EmptyState
+                title="no relationships seeded yet"
+                primaryAction={
+                  <a href="/entities" className="underline">
+                    browse entities →
+                  </a>
+                }
+              />
             )}
           </div>
         </div>
 
         <div>
-          <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--color-muted)]">
+          <h2 className="font-mono text-[10px] tracking-[0.2em] text-[var(--color-muted)]">
             relationship list
           </h2>
           <ul className="mt-4 divide-y divide-zinc-900">
@@ -71,7 +79,7 @@ export function EntityDetail({ backHref, backLabel, canonicalPath, data }: Entit
                       <a href={`/entities/${other}`} className="text-zinc-200 hover:text-white">
                         {other}
                       </a>
-                      <span className="text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
+                      <span className="text-[10px] tracking-[0.18em] text-[var(--color-muted)]">
                         {r.type}
                       </span>
                     </span>
@@ -87,7 +95,7 @@ export function EntityDetail({ backHref, backLabel, canonicalPath, data }: Entit
 
       {marketQuotes.length > 0 && (
         <section className="mt-12">
-          <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--color-muted)]">
+          <h2 className="font-mono text-[10px] tracking-[0.2em] text-[var(--color-muted)]">
             market consensus <span className="nums">{marketQuotes.length}</span>
             <span className="ml-2 text-[var(--color-muted)]">
               prediction-market quotes (latest)
@@ -114,7 +122,7 @@ export function EntityDetail({ backHref, backLabel, canonicalPath, data }: Entit
                   >
                     {q.question}
                   </a>
-                  <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
+                  <span className="font-mono text-[10px] tracking-[0.18em] text-[var(--color-muted)]">
                     {q.source}
                   </span>
                   {q.volume != null && (
@@ -123,7 +131,7 @@ export function EntityDetail({ backHref, backLabel, canonicalPath, data }: Entit
                     </span>
                   )}
                   {q.resolved && (
-                    <span className="border border-zinc-700 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-400">
+                    <span className="border border-zinc-700 px-1.5 py-0.5 font-mono text-[10px] tracking-[0.18em] text-zinc-400">
                       resolved {q.resolvedOutcome ?? ''}
                     </span>
                   )}
@@ -135,13 +143,18 @@ export function EntityDetail({ backHref, backLabel, canonicalPath, data }: Entit
       )}
 
       <section className="mt-12">
-        <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--color-muted)]">
+        <h2 className="font-mono text-[10px] tracking-[0.2em] text-[var(--color-muted)]">
           recent signals
         </h2>
         {signals.length === 0 ? (
-          <div className="mt-4 border border-dashed border-zinc-800 p-6 text-center font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
-            no signals yet
-          </div>
+          <EmptyState
+            title="no signals yet"
+            primaryAction={
+              <a href="/signals" className="underline">
+                browse signals →
+              </a>
+            }
+          />
         ) : (
           <div className="mt-4 border-t border-zinc-800">
             {signals.map((s) => (

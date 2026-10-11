@@ -1,3 +1,5 @@
+import { EmptyState } from '@saas-maker/ui/components/empty-state';
+import { ErrorState } from '@saas-maker/ui/components/error-state';
 import { api } from '@/lib/api';
 
 import { SITE_URL } from '@/lib/site';
@@ -18,11 +20,12 @@ export default async function SectorsPage({ searchParams }: Props) {
   const sp = await searchParams;
   const days = Math.min(Math.max(Number(sp.days ?? 60), 7), 365);
 
+  let unavailable = false;
   let data: Awaited<ReturnType<typeof api.sectors>> = { days, sectors: [] };
   try {
     data = await api.sectors(days);
   } catch {
-    /* offline */
+    unavailable = true;
   }
 
   const max = Math.max(1, ...data.sectors.map((s) => Math.abs(s.netDirection)));
@@ -31,12 +34,12 @@ export default async function SectorsPage({ searchParams }: Props) {
     <main className="mx-auto max-w-5xl px-5 py-14 sm:px-6 sm:py-16">
       <a
         href="/"
-        className="inline-flex min-h-11 items-center font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500 hover:text-zinc-300 sm:min-h-0"
+        className="inline-flex min-h-11 items-center font-mono text-[10px] tracking-[0.2em] text-zinc-500 hover:text-zinc-300 sm:min-h-0"
       >
         ← high signal
       </a>
       <header className="mt-3 border-b border-zinc-800 pb-6">
-        <h1 className="text-3xl font-medium tracking-tight">Sectors</h1>
+        <h1 className="text-3xl font-medium tracking-tight">sectors</h1>
         <p className="mt-2 max-w-2xl text-sm text-zinc-400">
           Net direction = confidence-weighted, time-decayed sum of signal directions per AI-infra
           sector. Hit-rate from matured signals only.{' '}
@@ -47,14 +50,27 @@ export default async function SectorsPage({ searchParams }: Props) {
         <WindowChips active={days} />
       </header>
 
-      {data.sectors.length === 0 ? (
-        <div className="mt-12 border border-dashed border-zinc-800 p-10 text-center font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500">
-          no sector signals yet — first cards drop after backfill / publish
-        </div>
+      {unavailable ? (
+        <ErrorState
+          primaryAction={
+            <a href="" className="underline">
+              try again →
+            </a>
+          }
+        />
+      ) : data.sectors.length === 0 ? (
+        <EmptyState
+          title="no sector signals yet — first cards drop after backfill / publish"
+          primaryAction={
+            <a href="/signals" className="underline">
+              browse signals →
+            </a>
+          }
+        />
       ) : (
         <section className="mt-8 max-w-full overflow-x-auto" aria-label="Sector signal ledger">
           <table className="w-full min-w-[760px] text-sm">
-            <thead className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
+            <thead className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">
               <tr>
                 <th className="border-b border-zinc-800 py-2 text-left">sector</th>
                 <th className="border-b border-zinc-800 py-2 text-left">net direction</th>
@@ -119,7 +135,7 @@ export default async function SectorsPage({ searchParams }: Props) {
 function WindowChips({ active }: { active: number }) {
   const opts = [7, 14, 30, 60, 90, 180, 365];
   return (
-    <div className="mt-4 flex flex-wrap gap-2 font-mono text-[10px] uppercase tracking-[0.18em]">
+    <div className="mt-4 flex flex-wrap gap-2 font-mono text-[10px] tracking-[0.18em]">
       {opts.map((d) => (
         <a
           key={d}

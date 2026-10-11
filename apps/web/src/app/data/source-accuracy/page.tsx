@@ -1,3 +1,5 @@
+import { EmptyState } from '@saas-maker/ui/components/empty-state';
+import { ErrorState } from '@saas-maker/ui/components/error-state';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { api, type SourceAccuracyBucket } from '@/lib/api';
@@ -33,13 +35,15 @@ export default async function SourceAccuracyPage() {
       <SourceAccuracyHeader />
 
       {!available && (
-        <section className="mb-10 border border-[var(--color-line)] p-5" role="status">
-          <h2 className="font-medium text-[var(--color-fg)]">Source evidence unavailable</h2>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--color-muted)]">
-            The evidence service did not respond. Empty tables below do not mean that every source
-            class has zero scored evidence. Retry this page later.
-          </p>
-        </section>
+        <ErrorState
+          title="source evidence unavailable"
+          description="The evidence service did not respond. Empty tables below do not mean that every source class has zero scored evidence. Retry this page later."
+          primaryAction={
+            <a href="" className="underline">
+              try again →
+            </a>
+          }
+        />
       )}
 
       {available &&
@@ -52,7 +56,7 @@ export default async function SourceAccuracyPage() {
 
       {available && (
         <section className="mb-12">
-          <h2 className="font-mono text-xs uppercase tracking-[0.18em] text-zinc-300">
+          <h2 className="font-mono text-xs tracking-[0.18em] text-zinc-300">
             live predictions by source class
           </h2>
           <BucketTable buckets={cohorts.live} emptyHint="no live scored source evidence yet" />
@@ -61,7 +65,7 @@ export default async function SourceAccuracyPage() {
 
       {available && (
         <section className="mb-12">
-          <h2 className="font-mono text-xs uppercase tracking-[0.18em] text-[var(--color-muted)]">
+          <h2 className="font-mono text-xs tracking-[0.18em] text-[var(--color-muted)]">
             backfill calibration by source class
           </h2>
           <p className="mt-2 max-w-2xl text-sm text-[var(--color-muted)]">
@@ -89,7 +93,7 @@ function SourceAccuracyHeader() {
       </Link>
       <header className="mt-4 mb-10 border-b border-zinc-800 pb-6">
         <h1 className="font-mono text-2xl font-semibold tracking-tight text-zinc-100">
-          Source accuracy
+          source accuracy
         </h1>
         <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-400">
           Hit-rate by evidence source class. Live predictions are forward calls; backfill is
@@ -117,16 +121,21 @@ function BucketTable({
 }) {
   if (buckets.length === 0) {
     return (
-      <div className="mt-4 border border-dashed border-zinc-800 p-6 text-center font-mono text-[11px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
-        {emptyHint}
-      </div>
+      <EmptyState
+        title={emptyHint}
+        primaryAction={
+          <a href="/signals" className="underline">
+            browse signals →
+          </a>
+        }
+      />
     );
   }
 
   return (
     <div className="mt-4 max-w-full overflow-x-auto">
       <table className="w-full min-w-[480px] text-sm">
-        <thead className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
+        <thead className="font-mono text-[10px] tracking-[0.18em] text-[var(--color-muted)]">
           <tr>
             <th className="border-b border-zinc-800 py-2 text-left">source class</th>
             <th className="border-b border-zinc-800 py-2 text-right">n</th>

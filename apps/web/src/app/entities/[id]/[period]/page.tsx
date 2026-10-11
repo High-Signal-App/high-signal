@@ -87,6 +87,7 @@ export default async function EntityMonthPage({
       )}
 
       <SectionHeader
+        contentTitle
         eyebrow={`${entity.name}${entity.ticker ? ` · ${entity.ticker}` : ''} · archive`}
         title={`${period}`}
       >

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { EmptyState } from '@saas-maker/ui/components/empty-state';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { BriefSections } from '@/components/brief/BriefSections';
@@ -16,7 +17,7 @@ import {
   summarizeBriefDiscovery,
   type Region,
 } from '@high-signal/shared';
-import { SITE_URL } from '@/lib/site';
+import { SITE_URL, clampDescription } from '@/lib/site';
 import { evaluateCollection, robotsForVerdict } from '../../../../public-corpus-policy.mjs';
 import { verifiedHistoryGrant } from '@/lib/history-access';
 
@@ -35,6 +36,7 @@ export async function generateMetadata({ params }: BriefDatePageProps): Promise<
   if (isProtectedHistoryDay(date)) {
     return {
       title: `Earlier signals — ${date}`,
+      description: `The High Signal edition for ${date}. Verify to read this archived Daily Brief and its cited evidence.`,
       robots: { index: false, follow: false },
     };
   }
@@ -56,7 +58,9 @@ export async function generateMetadata({ params }: BriefDatePageProps): Promise<
   );
   return {
     title: `Daily Brief — ${date}`,
-    description: `The High Signal Daily Brief for ${date}. Every claim cites two independent sources and a public hit-rate ledger.`,
+    description: clampDescription(
+      `Daily Brief for ${date}: ${discovery.publicItemCount} stories and signals. ${brief?.news?.[0]?.title ?? brief?.stocks[0]?.headline ?? 'Cited evidence across technology, startups, and finance.'}`
+    ),
     alternates: { canonical: `${SITE_URL}/brief/${date}` },
     robots: robotsForVerdict(verdict),
   };
@@ -72,11 +76,11 @@ export default async function BriefDatePage({ params, searchParams }: BriefDateP
       <PageShell>
         <Link
           href="/signals"
-          className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--color-muted)] hover:text-[var(--color-fg)]"
+          className="font-mono text-[10px] tracking-[0.2em] text-[var(--color-muted)] hover:text-[var(--color-fg)]"
         >
           ← signals
         </Link>
-        <HistoryGate title={`Verify to read the ${date} brief`} />
+        <HistoryGate title={`verify to read the ${date} brief`} />
       </PageShell>
     );
   }
@@ -114,12 +118,12 @@ export default async function BriefDatePage({ params, searchParams }: BriefDateP
 
       <section className="border-b border-[var(--color-line)] py-5">
         <div className="flex items-baseline justify-between">
-          <h2 className="font-mono text-[11px] uppercase tracking-[0.2em] text-[var(--color-accent)]">
+          <h2 className="font-mono text-[11px] tracking-[0.2em] text-[var(--color-accent)]">
             daily record — {date}
           </h2>
           <Link
             href="/signals"
-            className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500 hover:text-zinc-300"
+            className="font-mono text-[10px] tracking-[0.18em] text-zinc-500 hover:text-zinc-300"
           >
             all signals →
           </Link>
@@ -142,35 +146,30 @@ export default async function BriefDatePage({ params, searchParams }: BriefDateP
           <BriefSections brief={brief} />
         </div>
       ) : (
-        <section className="mt-8 border border-dashed border-zinc-800 p-10 text-center">
-          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500">
-            no precomputed brief snapshot for {date}
-            {region !== 'global' ? ` in ${region}` : ''}
-          </p>
-          <p className="mt-3 text-sm text-zinc-500">
-            Brief snapshots are stored daily by the precompute cron. This date may predate the
-            archive system, or no snapshot was computed for this region. Try the global region or
-            browse{' '}
-            <Link href="/signals" className="text-[var(--color-accent)] hover:underline">
-              available signals
-            </Link>
-            .
-          </p>
-          <div className="mt-6 flex justify-center gap-3">
-            <Link
-              href={`/brief/${date}`}
-              className="border border-zinc-800 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-400 hover:border-zinc-700"
-            >
-              global region
-            </Link>
-            <Link
-              href="/"
-              className="border border-zinc-800 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-400 hover:border-zinc-700"
-            >
-              today’s brief →
-            </Link>
-          </div>
-        </section>
+        <EmptyState
+          title={`no precomputed brief snapshot for ${date}${region !== 'global' ? ` in ${region}` : ''}`}
+          description={
+            <>
+              Brief snapshots are stored daily by the precompute cron. This date may predate the
+              archive system, or no snapshot was computed for this region. Try the global region or
+              browse{' '}
+              <Link href="/signals" className="underline">
+                available signals
+              </Link>
+              .
+            </>
+          }
+          primaryAction={
+            <div className="flex flex-wrap justify-center gap-4">
+              <Link href={`/brief/${date}`} className="underline underline-offset-4">
+                global region
+              </Link>
+              <Link href="/" className="underline underline-offset-4">
+                today’s brief →
+              </Link>
+            </div>
+          }
+        />
       )}
     </PageShell>
   );

@@ -29,7 +29,7 @@ const PRIMARY_ITEMS: NavItem[] = [
 ];
 
 const linkBase =
-  'relative inline-flex min-h-11 items-center whitespace-nowrap border-b px-1.5 font-mono text-[9px] uppercase tracking-[0.04em] transition-colors duration-150 sm:px-2 sm:text-[11px] sm:tracking-[0.08em]';
+  'relative inline-flex min-h-11 items-center whitespace-nowrap border-b px-1.5 font-mono text-[9px] tracking-[0.04em] transition-colors duration-150 sm:px-2 sm:text-[11px] sm:tracking-[0.08em]';
 
 function NavigationPending({ label }: { label: string }) {
   const { pending } = useLinkStatus();
@@ -56,10 +56,10 @@ export function PrimaryNav() {
         <Link
           href={'/' as Route}
           aria-label="High Signal home"
-          className="relative inline-flex min-h-11 shrink-0 items-center font-mono text-[10px] uppercase tracking-[0.1em] text-[var(--color-fg)] transition-colors duration-150 hover:text-[var(--color-accent)] sm:text-[11px] sm:tracking-[0.12em]"
+          className="relative inline-flex min-h-11 shrink-0 items-center font-mono text-[10px] tracking-[0.1em] text-[var(--color-fg)] transition-colors duration-150 hover:text-[var(--color-accent)] sm:text-[11px] sm:tracking-[0.12em]"
         >
           <span className="mr-2 inline-block size-1 rounded-full bg-[var(--color-accent)] align-middle" />
-          <span className="sm:hidden">HS</span>
+          <span className="sm:hidden">hs</span>
           <span className="hidden sm:inline">high signal</span>
           <NavigationPending label="brief" />
         </Link>

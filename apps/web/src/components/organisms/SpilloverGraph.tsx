@@ -21,12 +21,12 @@ const TYPE_ORDER: RelationshipRow['type'][] = [
 ];
 
 const TYPE_COLOR: Record<RelationshipRow['type'], string> = {
-  supplier: '#7dd3fc', // cyan
-  customer: '#a7f3d0', // emerald-200
-  peer: '#fbbf24', // amber
-  partner: '#c4b5fd', // violet
-  competitor: '#fca5a5', // rose
-  subsidiary: '#9ca3af', // gray
+  supplier: 'var(--foreground)',
+  customer: 'var(--muted-foreground)',
+  peer: 'var(--border)',
+  partner: 'var(--foreground)',
+  competitor: 'var(--muted-foreground)',
+  subsidiary: 'var(--border)',
 };
 
 const SIZE = 480;
@@ -97,7 +97,7 @@ export function SpilloverGraph({
             cy={CENTER}
             r={RADIUS * scale}
             fill="none"
-            stroke="#262626"
+            stroke="var(--border)"
             strokeWidth="1"
             strokeDasharray="2 4"
           />
@@ -132,15 +132,15 @@ export function SpilloverGraph({
                 cy={y}
                 r={3.5}
                 fill={TYPE_COLOR[node.type]}
-                stroke="#0a0a0a"
-                strokeWidth={1.5}
+                stroke="var(--background)"
+                strokeWidth={1}
               />
               <text
                 x={lx}
                 y={ly + 3}
-                fill="#a3a3a3"
+                fill="var(--muted-foreground)"
                 fontSize={10}
-                fontFamily="ui-monospace, monospace"
+                fontFamily="var(--font-mono)"
                 letterSpacing="0.05em"
                 textAnchor={anchor}
               >
@@ -151,14 +151,21 @@ export function SpilloverGraph({
         })}
 
         {/* center node */}
-        <circle cx={CENTER} cy={CENTER} r={20} fill="#0a0a0a" stroke="#7dd3fc" strokeWidth={1.5} />
+        <circle
+          cx={CENTER}
+          cy={CENTER}
+          r={20}
+          fill="var(--background)"
+          stroke="var(--border)"
+          strokeWidth={1}
+        />
         <text
           x={CENTER}
           y={CENTER + 4}
           textAnchor="middle"
-          fill="#fafafa"
+          fill="var(--foreground)"
           fontSize={11}
-          fontFamily="ui-monospace, monospace"
+          fontFamily="var(--font-mono)"
           letterSpacing="0.05em"
         >
           {primary}
@@ -166,7 +173,7 @@ export function SpilloverGraph({
       </svg>
 
       {/* legend */}
-      <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
+      <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 font-mono text-[10px] tracking-[0.18em] text-zinc-500">
         {presentTypes.map((t) => (
           <span key={t} className="flex items-center gap-1.5">
             <span

@@ -30,6 +30,7 @@
       "!python",
       "!data",
       "!apps/web/src/data",
+      "!apps/web/public/studio-footer",
       "!packages/db/migrations",
       "!**/*.css",
       "!**/*.svg"

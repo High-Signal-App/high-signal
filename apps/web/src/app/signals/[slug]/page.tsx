@@ -128,11 +128,11 @@ export default async function SignalDetail({ params }: { params: Promise<{ slug:
         <main className="mx-auto max-w-4xl px-6 py-16">
           <a
             href="/signals"
-            className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--color-muted)] hover:text-[var(--color-fg)]"
+            className="font-mono text-[10px] tracking-[0.2em] text-[var(--color-muted)] hover:text-[var(--color-fg)]"
           >
             ← signals
           </a>
-          <HistoryGate title="Verify to inspect this signal and its proof" />
+          <HistoryGate title="verify to inspect this signal and its proof" />
         </main>
       );
     }
@@ -150,11 +150,11 @@ export default async function SignalDetail({ params }: { params: Promise<{ slug:
       <main className="mx-auto max-w-4xl px-6 py-16">
         <a
           href="/signals"
-          className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--color-muted)] hover:text-[var(--color-fg)]"
+          className="font-mono text-[10px] tracking-[0.2em] text-[var(--color-muted)] hover:text-[var(--color-fg)]"
         >
           ← signals
         </a>
-        <HistoryGate title="Verify to inspect this signal and its proof" />
+        <HistoryGate title="verify to inspect this signal and its proof" />
       </main>
     );
   }
@@ -189,13 +189,13 @@ export default async function SignalDetail({ params }: { params: Promise<{ slug:
       )}
       <a
         href="/signals"
-        className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--color-muted)] hover:text-zinc-300"
+        className="font-mono text-[10px] tracking-[0.2em] text-[var(--color-muted)] hover:text-zinc-300"
       >
         ← signals
       </a>
       <header className="mt-3 border-b border-zinc-800 pb-8">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-2 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2 font-mono text-[10px] tracking-[0.18em] text-[var(--color-muted)]">
             <span>{new Date(signal.publishedAt).toISOString().slice(0, 10)}</span>
             <span className="text-zinc-700">·</span>
             <a
@@ -218,11 +218,14 @@ export default async function SignalDetail({ params }: { params: Promise<{ slug:
             )}
           </div>
         </div>
-        <h1 className="mt-5 max-w-3xl text-3xl font-medium leading-tight tracking-tight">
+        <h1
+          data-content-title
+          className="mt-5 max-w-3xl text-3xl font-medium leading-tight tracking-tight"
+        >
           {headline}
         </h1>
         {summary && <p className="mt-5 max-w-3xl text-base leading-7 text-zinc-300">{summary}</p>}
-        <div className="mt-6 flex items-center gap-5 font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--color-muted)]">
+        <div className="mt-6 flex items-center gap-5 font-mono text-[10px] tracking-[0.16em] text-[var(--color-muted)]">
           {!sample && (
             <span>
               window <span className="nums text-zinc-300">{signal.predictedWindowDays}d</span>
@@ -247,7 +250,7 @@ export default async function SignalDetail({ params }: { params: Promise<{ slug:
       {sample && (
         <section className="mt-8 border border-amber-700/50 p-4" aria-labelledby="evidence-limit">
           <h2 id="evidence-limit" className="font-medium text-amber-200">
-            What the evidence supports
+            what the evidence supports
           </h2>
           <p className="mt-2 text-sm leading-6 text-zinc-300">{sample.limitation}</p>
           <p className="mt-2 text-sm leading-6 text-zinc-400">
@@ -258,7 +261,7 @@ export default async function SignalDetail({ params }: { params: Promise<{ slug:
       )}
       <details className="mt-8 border border-zinc-800 p-4">
         <summary className="cursor-pointer text-sm text-zinc-400">
-          Stored assessment and pipeline diagnostics
+          stored assessment and pipeline diagnostics
         </summary>
         <p className="mt-3 text-sm leading-6 text-zinc-300">
           {confidenceCopy(signal.qualityScore, signal.independentSourceCount)}
@@ -278,19 +281,19 @@ export default async function SignalDetail({ params }: { params: Promise<{ slug:
         <section className="mt-8 border-y border-zinc-800 py-5">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--color-muted)]">
+              <div className="font-mono text-[10px] tracking-[0.2em] text-[var(--color-muted)]">
                 priced-in check
               </div>
               <p className="mt-2 max-w-3xl text-sm leading-6 text-zinc-400">{price.reason}</p>
             </div>
             <span
-              className={`shrink-0 border px-2 py-1 font-mono text-[10px] uppercase tracking-[0.16em] ${pricedInTone(price.status)}`}
+              className={`shrink-0 border px-2 py-1 font-mono text-[10px] tracking-[0.16em] ${pricedInTone(price.status)}`}
             >
               {price.label}
             </span>
           </div>
           {!sample && price.price ? (
-            <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-muted)]">
+            <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 font-mono text-[10px] tracking-[0.14em] text-[var(--color-muted)]">
               <span>
                 as of <span className="nums text-zinc-300">{price.price.asOf}</span>
               </span>
@@ -334,7 +337,7 @@ export default async function SignalDetail({ params }: { params: Promise<{ slug:
       <Interpretation className={sample ? 'mt-10 border border-zinc-800 p-4' : undefined}>
         {sample && (
           <summary className="cursor-pointer font-medium text-zinc-300">
-            Original generated interpretation — unverified trend hypothesis
+            original generated interpretation — unverified trend hypothesis
           </summary>
         )}
         {signal.observedEvent ||
@@ -347,7 +350,7 @@ export default async function SignalDetail({ params }: { params: Promise<{ slug:
           >
             <h2
               id="signal-reasoning"
-              className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--color-muted)]"
+              className="font-mono text-[10px] tracking-[0.2em] text-[var(--color-muted)]"
             >
               why this became a signal
             </h2>
@@ -382,7 +385,7 @@ export default async function SignalDetail({ params }: { params: Promise<{ slug:
                 <div>
                   <dt className="flex flex-wrap items-center gap-2 text-sm font-medium text-zinc-100">
                     Business inference
-                    <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--color-muted)]">
+                    <span className="font-mono text-[9px] tracking-[0.14em] text-[var(--color-muted)]">
                       {signal.inferenceStrength ?? 'weak'}
                     </span>
                   </dt>
@@ -390,7 +393,7 @@ export default async function SignalDetail({ params }: { params: Promise<{ slug:
                     {signal.businessInference}
                   </dd>
                   {signal.inferenceEvidenceUrls && signal.inferenceEvidenceUrls.length > 0 ? (
-                    <dd className="mt-3 flex flex-wrap gap-3 font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--color-muted)]">
+                    <dd className="mt-3 flex flex-wrap gap-3 font-mono text-[10px] tracking-[0.12em] text-[var(--color-muted)]">
                       {signal.inferenceEvidenceUrls.map((url) => (
                         <a
                           key={url}
@@ -412,7 +415,7 @@ export default async function SignalDetail({ params }: { params: Promise<{ slug:
 
         {bodyMarkdown ? (
           <section id="provenance" className="mt-12 scroll-mt-24 border-t border-zinc-800 pt-6">
-            <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--color-muted)]">
+            <h2 className="font-mono text-[10px] tracking-[0.2em] text-[var(--color-muted)]">
               signal brief
             </h2>
             <div className="mt-5">
@@ -424,8 +427,8 @@ export default async function SignalDetail({ params }: { params: Promise<{ slug:
 
       {claims.length > 0 && (
         <section className="mt-12 border-t border-zinc-800 pt-6">
-          <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--color-muted)]">
-            {sample ? 'Stored claim annotations — not trend verification' : 'claim proofs'}
+          <h2 className="font-mono text-[10px] tracking-[0.2em] text-[var(--color-muted)]">
+            {sample ? 'stored claim annotations — not trend verification' : 'claim proofs'}
           </h2>
           <ul className="mt-4 space-y-3">
             {claims
@@ -434,7 +437,7 @@ export default async function SignalDetail({ params }: { params: Promise<{ slug:
               )
               .map((claim) => (
                 <li key={claim.id} className="border border-zinc-900 p-3">
-                  <div className="flex flex-wrap items-baseline justify-between gap-2 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
+                  <div className="flex flex-wrap items-baseline justify-between gap-2 font-mono text-[10px] tracking-[0.18em] text-[var(--color-muted)]">
                     <span>
                       claim · v{claim.version} ·{' '}
                       <span
@@ -446,7 +449,7 @@ export default async function SignalDetail({ params }: { params: Promise<{ slug:
                       </span>
                     </span>
                     <span className="text-[var(--color-muted)]">
-                      P{claim.rollup.primary} · C{claim.rollup.corroboration}
+                      p{claim.rollup.primary} · c{claim.rollup.corroboration}
                       {claim.rollup.contradiction > 0 ? (
                         <span className="text-amber-400"> · X{claim.rollup.contradiction}</span>
                       ) : null}
@@ -458,7 +461,7 @@ export default async function SignalDetail({ params }: { params: Promise<{ slug:
                       {claim.evidence.map((link) => (
                         <li key={link.id} className="flex items-center gap-2">
                           <span
-                            className={`border px-1.5 py-0.5 uppercase tracking-[0.18em] ${
+                            className={`border px-1.5 py-0.5 tracking-[0.18em] ${
                               link.role === 'primary'
                                 ? 'border-emerald-500/40 text-emerald-300'
                                 : link.role === 'corroboration'
@@ -489,8 +492,8 @@ export default async function SignalDetail({ params }: { params: Promise<{ slug:
       )}
 
       <section className="mt-12 border-t border-zinc-800 pt-6">
-        <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--color-muted)]">
-          {sample ? 'Original review excerpts and source links' : 'source data used as proof'}
+        <h2 className="font-mono text-[10px] tracking-[0.2em] text-[var(--color-muted)]">
+          {sample ? 'original review excerpts and source links' : 'source data used as proof'}
         </h2>
         <ul className="mt-4 space-y-3">
           {evidence.map((e) => {
@@ -498,7 +501,7 @@ export default async function SignalDetail({ params }: { params: Promise<{ slug:
             const day = evidenceDay(e.publishedAt);
             return (
               <li key={e.id} className="border border-zinc-900 p-3">
-                <div className="flex flex-wrap items-center gap-2 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
+                <div className="flex flex-wrap items-center gap-2 font-mono text-[10px] tracking-[0.18em] text-[var(--color-muted)]">
                   <span>{e.sourceType}</span>
                   {day ? (
                     <>
@@ -549,7 +552,7 @@ export default async function SignalDetail({ params }: { params: Promise<{ slug:
 
       {signal.spilloverEntityIds.length > 0 && (
         <section className="mt-12 border-t border-zinc-800 pt-6">
-          <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--color-muted)]">
+          <h2 className="font-mono text-[10px] tracking-[0.2em] text-[var(--color-muted)]">
             spillover entities
           </h2>
           <div className="mt-4 flex flex-wrap gap-2">
@@ -568,18 +571,18 @@ export default async function SignalDetail({ params }: { params: Promise<{ slug:
 
       <ShareBar url={`${SITE_URL}/signals/${slug}`} title={headline} className="mt-10" />
 
-      <p className="mt-6 border-l-2 border-zinc-800 pl-3 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
-        Decision support, not stock advice. This signal is research with cited evidence — not a
+      <p className="mt-6 border-l-2 border-zinc-800 pl-3 font-mono text-[10px] tracking-[0.18em] text-[var(--color-muted)]">
+        decision support, not stock advice. this signal is research with cited evidence — not a
         recommendation to buy, sell, or hold any security.
       </p>
 
       {scores.length > 0 && (
         <section className="mt-12 border-t border-zinc-800 pt-6">
-          <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--color-muted)]">
+          <h2 className="font-mono text-[10px] tracking-[0.2em] text-[var(--color-muted)]">
             score history
           </h2>
           <table className="mt-4 w-full text-sm">
-            <thead className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
+            <thead className="font-mono text-[10px] tracking-[0.18em] text-[var(--color-muted)]">
               <tr>
                 <th className="border-b border-zinc-800 py-2 text-left">window</th>
                 <th className="border-b border-zinc-800 py-2 text-left">return</th>

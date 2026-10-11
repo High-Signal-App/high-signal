@@ -29,7 +29,7 @@ export default function CaseStudiesPage() {
   return (
     <PageShell max="max-w-5xl">
       <BackLink href="/signals">back to signals</BackLink>
-      <HeroHeader eyebrow="generated artifact" title="Company universe" size="md">
+      <HeroHeader eyebrow="generated artifact" title="company universe" size="md">
         Startups backed by YC, Antler, a16z, or Techstars. Every row retains first-party source
         evidence and includes deterministic competitor mappings.
       </HeroHeader>
@@ -55,7 +55,7 @@ export default function CaseStudiesPage() {
         lastUpdatedAt={COMPANY_UNIVERSE_LAST_UPDATED}
       />
 
-      <Panel eyebrow="source boundary" title="Four first-party directories">
+      <Panel eyebrow="source boundary" title="four first-party directories">
         <p className="mt-3 max-w-4xl text-sm leading-6 text-[var(--color-muted)]">
           Generated at {COMPANY_UNIVERSE.generatedAt.slice(0, 16).replace('T', ' ')} UTC by{' '}
           <code>{COMPANY_UNIVERSE.generatedBy}</code>. Source inputs:{' '}

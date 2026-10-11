@@ -1,3 +1,4 @@
+import { EmptyState } from '@saas-maker/ui/components/empty-state';
 import { api } from '@/lib/api';
 
 export const revalidate = 3600;
@@ -18,7 +19,7 @@ function Bar({ rate, baselineRate }: { rate: number; baselineRate: number }) {
   const bw = Math.min(baselineRate * 100, 100);
   return (
     <div className="relative h-3 w-40 overflow-hidden rounded bg-zinc-900">
-      <div className="h-full bg-[var(--color-accent)] opacity-80" style={{ width: `${w}%` }} />
+      <div className="h-full bg-[var(--color-fg)] opacity-80" style={{ width: `${w}%` }} />
       <div
         className="absolute top-0 h-full w-px bg-zinc-300"
         style={{ left: `${bw}%` }}
@@ -63,12 +64,12 @@ export default async function LabelTrackRecord() {
     <main className="mx-auto max-w-4xl px-6 py-16">
       <a
         href="/"
-        className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500 hover:text-zinc-300"
+        className="font-mono text-[10px] tracking-[0.2em] text-zinc-500 hover:text-zinc-300"
       >
         ← high signal
       </a>
       <header className="mt-3 border-b border-zinc-800 pb-6">
-        <h1 className="text-3xl font-medium tracking-tight">Label hit-rate ledger</h1>
+        <h1 className="text-3xl font-medium tracking-tight">label hit-rate ledger</h1>
         <p className="mt-2 max-w-2xl text-sm text-zinc-400">
           Backtest-derived calibration for the <code className="bg-zinc-900 px-1">breakout</code>{' '}
           and <code className="bg-zinc-900 px-1">divergence</code> labels rendered on{' '}
@@ -83,9 +84,9 @@ export default async function LabelTrackRecord() {
           </span>
         </p>
         {data ? (
-          <div className="mt-3 font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
+          <div className="mt-3 font-mono text-[10px] tracking-[0.18em] text-zinc-500">
             backtest window: {data.backtestDays}d · generated{' '}
-            {data.generatedAt.slice(0, 16).replace('T', ' ')} UTC
+            {data.generatedAt.slice(0, 16).replace('T', ' ')} utc
           </div>
         ) : null}
       </header>
@@ -93,7 +94,7 @@ export default async function LabelTrackRecord() {
       {data ? (
         <>
           <section className="mt-8 border border-zinc-800 p-4">
-            <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
+            <div className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">
               baseline — any converged entity (≥3 sources, 24h window)
             </div>
             <div className="mt-2 flex items-baseline gap-3 text-sm">
@@ -109,7 +110,7 @@ export default async function LabelTrackRecord() {
             aria-label="Convergence label backtest"
           >
             <table className="w-full min-w-[620px] text-sm">
-              <thead className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
+              <thead className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">
                 <tr className="border-b border-zinc-800">
                   <th className="py-2 text-left">label</th>
                   <th className="py-2 text-left">n</th>
@@ -159,9 +160,14 @@ export default async function LabelTrackRecord() {
           </p>
         </>
       ) : (
-        <div className="mt-12 border border-dashed border-zinc-800 p-10 text-center font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500">
-          no backtest data yet — run scripts/backtest-convergence-labels.py
-        </div>
+        <EmptyState
+          title="no backtest data yet — run scripts/backtest-convergence-labels.py"
+          primaryAction={
+            <a href="/track-record" className="underline">
+              track record →
+            </a>
+          }
+        />
       )}
     </main>
   );

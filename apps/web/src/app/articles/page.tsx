@@ -31,13 +31,13 @@ export default function ArticlesPage() {
 
         <nav
           aria-label="Breadcrumb"
-          className="flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--color-muted)]"
+          className="flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[10px] tracking-[0.16em] text-[var(--color-muted)]"
         >
           <Link
             className="min-h-11 py-3 hover:text-[var(--color-accent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
             href="/"
           >
-            High Signal
+            high signal
           </Link>
           <span aria-hidden="true">/</span>
           <span aria-current="page" className="py-3 text-[var(--color-fg)]">
@@ -45,7 +45,7 @@ export default function ArticlesPage() {
           </span>
         </nav>
 
-        <SectionHeader eyebrow="articles" title="Research practice, in long form">
+        <SectionHeader eyebrow="articles" title="research practice, in long form">
           How the evidence-first model behind the Daily Brief works: source mix, corroboration
           gates, spillover mapping, versioned signal memory, and the public ledger that keeps every
           claim accountable.
@@ -59,7 +59,7 @@ export default function ArticlesPage() {
               className="group grid gap-2 py-6 transition-colors hover:bg-white/[0.02] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)] sm:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] sm:items-baseline sm:gap-10"
             >
               <span>
-                <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-accent)]">
+                <span className="font-mono text-[10px] tracking-[0.18em] text-[var(--color-accent)]">
                   {article.eyebrow}
                 </span>
                 <span className="mt-2 block text-lg font-medium tracking-tight text-[var(--color-fg)] group-hover:text-[var(--color-accent)]">

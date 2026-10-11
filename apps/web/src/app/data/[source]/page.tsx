@@ -1,3 +1,5 @@
+import { EmptyState } from '@saas-maker/ui/components/empty-state';
+import { ErrorState } from '@saas-maker/ui/components/error-state';
 import type { Metadata, Route } from 'next';
 import { unstable_cache } from 'next/cache';
 import Link from 'next/link';
@@ -248,17 +250,30 @@ export default async function DataSourcePage({
       </div>
 
       {(!data || !data.available) && (
-        <p className="font-mono text-[11px] text-amber-400/80">
-          Events store not reachable — try again once the API is up.
-        </p>
+        <ErrorState
+          description="Events store not reachable — try again once the API is up."
+          primaryAction={
+            <a href="" className="underline">
+              try again →
+            </a>
+          }
+        />
       )}
 
       {data?.available && events.length === 0 && (
-        <p className="text-sm text-zinc-500">
-          {selectedDate
-            ? `No events stored for this source on ${selectedDate}. Try adjacent days or all history.`
-            : 'No observations are stored for this configured source. This does not prove the adapter failed; consult its run status and cadence above.'}
-        </p>
+        <EmptyState
+          title="no observations"
+          description={
+            selectedDate
+              ? `No events stored for this source on ${selectedDate}. Try adjacent days or all history.`
+              : 'No observations are stored for this configured source. This does not prove the adapter failed; consult its run status and cadence above.'
+          }
+          primaryAction={
+            <a href="/data" className="underline">
+              all sources →
+            </a>
+          }
+        />
       )}
 
       <ul className="divide-y divide-zinc-900">

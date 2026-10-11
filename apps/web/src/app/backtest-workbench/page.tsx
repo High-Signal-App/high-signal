@@ -61,7 +61,7 @@ export default async function BacktestWorkbenchPage() {
   return (
     <PageShell max="max-w-5xl">
       <BackLink />
-      <SectionHeader eyebrow="signal audit / action quality" title="Backtest Workbench">
+      <SectionHeader eyebrow="signal audit / action quality" title="backtest workbench">
         Compare signal types by whether they produced useful operator actions, not just whether the
         forward return landed. The score rewards hits, calibrated confidence, enough evidence, clear
         direction, and short enough windows to act on.
@@ -92,17 +92,17 @@ export default async function BacktestWorkbenchPage() {
       </section>
 
       <section className="mt-10">
-        <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-accent)]">
+        <div className="font-mono text-[10px] tracking-[0.18em] text-[var(--color-accent)]">
           signal type decision table
         </div>
         {workbench.buckets.length === 0 ? (
-          <div className="mt-4 border border-dashed border-[var(--color-line)] p-10 text-center font-mono text-[11px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
+          <div className="mt-4 border border-dashed border-[var(--color-line)] p-10 text-center font-mono text-[11px] tracking-[0.18em] text-[var(--color-muted)]">
             no scored live signals yet
           </div>
         ) : (
           <div className="mt-4 overflow-x-auto border border-[var(--color-line)]">
             <table className="w-full min-w-[820px] text-sm">
-              <thead className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
+              <thead className="font-mono text-[10px] tracking-[0.18em] text-[var(--color-muted)]">
                 <tr>
                   <th className="border-b border-[var(--color-line)] px-3 py-3 text-left">type</th>
                   <th className="border-b border-[var(--color-line)] px-3 py-3 text-right">n</th>
@@ -139,7 +139,7 @@ export default async function BacktestWorkbenchPage() {
                       {pct(bucket.evidenceReadyRate)}
                     </td>
                     <td
-                      className={`border-b border-[var(--color-line)] px-3 py-3 text-right font-mono text-[10px] uppercase tracking-[0.16em] ${actionTone(bucket.recommendedAction)}`}
+                      className={`border-b border-[var(--color-line)] px-3 py-3 text-right font-mono text-[10px] tracking-[0.16em] ${actionTone(bucket.recommendedAction)}`}
                     >
                       {bucket.recommendedAction}
                     </td>
@@ -152,7 +152,7 @@ export default async function BacktestWorkbenchPage() {
       </section>
 
       <section className="mt-10 grid gap-5">
-        <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-accent)]">
+        <div className="font-mono text-[10px] tracking-[0.18em] text-[var(--color-accent)]">
           scored signal examples
         </div>
         {workbench.examples.map((example) => (
@@ -163,7 +163,7 @@ export default async function BacktestWorkbenchPage() {
           >
             <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
               <div>
-                <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
+                <div className="font-mono text-[10px] tracking-[0.18em] text-[var(--color-muted)]">
                   {example.signalType} / {example.confidence} / {example.outcome}
                 </div>
                 <h2 className="mt-2 text-lg">{example.title ?? example.slug}</h2>
@@ -171,7 +171,7 @@ export default async function BacktestWorkbenchPage() {
               <div className="text-left md:text-right">
                 <div className="nums text-2xl">{score(example.actionScore)}</div>
                 <div
-                  className={`font-mono text-[10px] uppercase tracking-[0.18em] ${bandTone(example.actionBand)}`}
+                  className={`font-mono text-[10px] tracking-[0.18em] ${bandTone(example.actionBand)}`}
                 >
                   {example.actionBand}
                 </div>

@@ -78,8 +78,8 @@ function RecordText({ record }: { record: DataRecordResponse }) {
     <>
       {record.content && record.content !== record.retainedText && (
         <section className="mb-8">
-          <h2 className="font-mono text-[10px] font-normal uppercase tracking-[0.14em] text-zinc-500">
-            Extract
+          <h2 className="font-mono text-[10px] font-normal tracking-[0.14em] text-zinc-500">
+            extract
           </h2>
           <p className="mt-3 max-w-[70ch] whitespace-pre-wrap text-sm leading-6 text-zinc-400">
             {record.content}
@@ -88,8 +88,8 @@ function RecordText({ record }: { record: DataRecordResponse }) {
       )}
 
       <section>
-        <h2 className="font-mono text-[10px] font-normal uppercase tracking-[0.14em] text-zinc-500">
-          Retained text
+        <h2 className="font-mono text-[10px] font-normal tracking-[0.14em] text-zinc-500">
+          retained text
           {record.retainedTextTruncated ? ' (truncated)' : ''}
         </h2>
         {record.retainedText ? (

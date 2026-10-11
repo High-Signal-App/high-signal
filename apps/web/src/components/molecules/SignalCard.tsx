@@ -15,7 +15,7 @@ export function SignalCard({ s }: { s: SignalRow }) {
       className="group block border-b border-zinc-800 px-1 py-7 transition-colors hover:bg-white/[0.02] sm:px-3"
     >
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 font-mono text-[10px] tracking-[0.18em] text-zinc-500">
           <span>{new Date(s.publishedAt).toISOString().slice(0, 10)}</span>
           <span className="text-zinc-700">·</span>
           <span className="text-[var(--color-accent)]">{s.primaryEntityId}</span>
@@ -31,7 +31,7 @@ export function SignalCard({ s }: { s: SignalRow }) {
         <div className="flex shrink-0 items-center gap-3">
           {!sample && price.status !== 'unknown' ? (
             <span
-              className={`border px-2 py-1 font-mono text-[10px] uppercase tracking-[0.16em] ${pricedInTone(price.status)}`}
+              className={`border px-2 py-1 font-mono text-[10px] tracking-[0.16em] ${pricedInTone(price.status)}`}
               title={price.reason}
             >
               {price.label}
@@ -53,7 +53,7 @@ export function SignalCard({ s }: { s: SignalRow }) {
       {summary && <p className="mt-3 max-w-3xl text-sm leading-6 text-zinc-400">{summary}</p>}
       {!sample && s.spilloverEntityIds.length > 0 && (
         <div className="mt-4 flex flex-wrap items-baseline gap-1.5 font-mono text-[10px] text-zinc-500">
-          <span className="uppercase tracking-[0.18em]">spillover</span>
+          <span className="tracking-[0.18em]">spillover</span>
           {s.spilloverEntityIds.slice(0, 8).map((eid) => (
             <span key={eid} className="border border-zinc-800 px-1.5 py-0.5 text-zinc-400">
               {eid}
@@ -64,7 +64,7 @@ export function SignalCard({ s }: { s: SignalRow }) {
           )}
         </div>
       )}
-      <div className="mt-4 flex items-center gap-4 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500">
+      <div className="mt-4 flex items-center gap-4 font-mono text-[10px] tracking-[0.14em] text-zinc-500">
         {!sample && (
           <span>
             window <span className="nums text-zinc-300">{s.predictedWindowDays}d</span>

@@ -117,7 +117,7 @@ export default async function EquitiesPage({
   return (
     <PageShell>
       <BackLink />
-      <SectionHeader eyebrow="market context" title="Equities Snapshot">
+      <SectionHeader eyebrow="market context" title="equities snapshot">
         Daily returns, volatility, and 52-week context across the working universe of US,
         international, ETF, index, and crypto tickers. Refreshed nightly after US close.
       </SectionHeader>
@@ -142,18 +142,18 @@ export default async function EquitiesPage({
         ]}
       />
 
-      <Panel eyebrow="filter" title="Filter">
+      <Panel eyebrow="filter" title="filter">
         <form method="get" action="/equities" className="flex flex-wrap gap-3 text-sm">
-          <FilterSelect name="country" label="Country" value={params.country} options={countries} />
-          <FilterSelect name="sector" label="Sector" value={params.sector} options={sectors} />
+          <FilterSelect name="country" label="country" value={params.country} options={countries} />
+          <FilterSelect name="sector" label="sector" value={params.sector} options={sectors} />
           <FilterSelect
             name="assetClass"
-            label="Asset class"
+            label="asset class"
             value={params.assetClass}
             options={assetClasses}
           />
           <label className="flex flex-col gap-1">
-            <span className="text-[var(--color-muted)]">Search</span>
+            <span className="text-[var(--color-muted)]">search</span>
             <input
               type="text"
               name="q"
@@ -190,7 +190,7 @@ export default async function EquitiesPage({
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[1100px] border-collapse text-sm">
-              <thead className="text-xs uppercase tracking-wide text-[var(--color-muted)]">
+              <thead className="text-xs tracking-wide text-[var(--color-muted)]">
                 <tr className="border-b border-zinc-800">
                   <Th
                     label="Ticker"

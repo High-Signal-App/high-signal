@@ -83,7 +83,7 @@ export default async function CommunityArchivePage({
         </Panel>
 
         <Panel eyebrow="archive periods">
-          <div className="mt-5 flex gap-2 font-mono text-[10px] uppercase tracking-[0.18em]">
+          <div className="mt-5 flex gap-2 font-mono text-[10px] tracking-[0.18em]">
             {periods.map((option) => (
               <a
                 key={option}
@@ -107,7 +107,7 @@ export default async function CommunityArchivePage({
             const href = redditSourceLink(subreddit, item.sourceId) ?? item.link ?? '#';
             return (
               <article key={`${item.title}-${href}`} className="bg-[var(--color-bg)] p-5">
-                <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
+                <div className="font-mono text-[10px] tracking-[0.18em] text-[var(--color-muted)]">
                   source
                 </div>
                 <a

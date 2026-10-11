@@ -38,7 +38,7 @@ export function CompanySearchForm({
         aria-busy={isPending}
       >
         <label htmlFor="company-universe-query" className="block">
-          <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500">
+          <span className="font-mono text-[10px] tracking-[0.14em] text-zinc-500">
             search {companyCount.toLocaleString()} companies
           </span>
           <div className="mt-2 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
@@ -55,7 +55,7 @@ export function CompanySearchForm({
             <button
               type="submit"
               disabled={isPending}
-              className="inline-flex h-11 items-center justify-center gap-2 border border-[var(--color-accent)] px-5 font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-accent)] transition hover:bg-[var(--color-accent)] hover:text-black disabled:cursor-wait disabled:bg-[var(--color-accent)] disabled:text-black"
+              className="inline-flex h-11 items-center justify-center gap-2 border border-[var(--color-accent)] px-5 font-mono text-[10px] tracking-[0.14em] text-[var(--color-accent)] transition hover:bg-[var(--color-accent)] hover:text-black disabled:cursor-wait disabled:bg-[var(--color-accent)] disabled:text-black"
             >
               {isPending ? (
                 <LoaderCircle className="size-3.5 animate-spin" aria-hidden="true" />
@@ -70,8 +70,8 @@ export function CompanySearchForm({
           {isPending ? 'Searching companies' : ''}
         </span>
       </form>
-      <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-600">
-        manually refreshed snapshot · last updated {updatedAt} UTC
+      <p className="mt-3 font-mono text-[10px] tracking-[0.12em] text-zinc-600">
+        manually refreshed snapshot · last updated {updatedAt} utc
       </p>
     </section>
   );

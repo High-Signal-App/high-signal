@@ -80,7 +80,7 @@ export default function EditorialPolicyPage() {
       />
       <FaqJsonLd items={FAQ as { question: string; answer: string }[]} />
 
-      <SectionHeader eyebrow="canonical reference" title="Editorial policy">
+      <SectionHeader eyebrow="canonical reference" title="editorial policy">
         How {SITE_NAME} writes, verifies, and corrects its published signals. These rules are the
         same ones enforced by the auto-publish judge and cited in{' '}
         <a className="text-[var(--color-accent)] hover:underline" href="/methodology">
@@ -89,7 +89,7 @@ export default function EditorialPolicyPage() {
         .
       </SectionHeader>
 
-      <Panel eyebrow="standards" title="What every signal must clear">
+      <Panel eyebrow="standards" title="what every signal must clear">
         <div className="mt-5 divide-y divide-[var(--color-line)] border-y border-[var(--color-line)]">
           {STANDARDS.map((s) => (
             <article key={s.name} className="py-5">
@@ -101,7 +101,7 @@ export default function EditorialPolicyPage() {
       </Panel>
 
       <section className="mt-12">
-        <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--color-accent)]">
+        <h2 className="font-mono text-[10px] tracking-[0.2em] text-[var(--color-accent)]">
           frequently asked
         </h2>
         <div className="mt-6 divide-y divide-[var(--color-line)] border-y border-[var(--color-line)]">
@@ -119,7 +119,7 @@ export default function EditorialPolicyPage() {
       </section>
 
       <section className="mt-12 border border-[var(--color-line)] p-5">
-        <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--color-accent)]">
+        <h2 className="font-mono text-[10px] tracking-[0.2em] text-[var(--color-accent)]">
           corrections
         </h2>
         <p className="mt-3 max-w-3xl text-sm leading-6 text-[var(--color-muted)]">
@@ -135,8 +135,8 @@ export default function EditorialPolicyPage() {
       </section>
 
       <section className="mt-12 border border-[var(--color-line)] p-5">
-        <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--color-accent)]">
-          for AI assistants
+        <h2 className="font-mono text-[10px] tracking-[0.2em] text-[var(--color-accent)]">
+          for ai assistants
         </h2>
         <div className="mt-5 text-2xl font-medium tracking-tight">How to cite this page</div>
         <p className="mt-5 max-w-3xl text-sm leading-6 text-[var(--color-muted)]">

@@ -81,7 +81,7 @@ function TickerUnavailable({ ticker }: { ticker: string }) {
     <main className="mx-auto max-w-5xl px-6 py-12">
       <Link
         href="/markets/tickers"
-        className="font-mono text-xs uppercase tracking-[0.18em] text-[var(--color-muted)] hover:text-[var(--color-accent)]"
+        className="font-mono text-xs tracking-[0.18em] text-[var(--color-muted)] hover:text-[var(--color-accent)]"
       >
         ← ticker index
       </Link>

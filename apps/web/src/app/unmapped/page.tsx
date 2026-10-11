@@ -26,7 +26,7 @@ function Chip({ label, active, href }: { label: string; active: boolean; href: s
   return (
     <a
       href={href}
-      className={`rounded border px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.18em] ${
+      className={`rounded border px-2 py-0.5 font-mono text-[10px] tracking-[0.18em] ${
         active
           ? 'border-[var(--color-accent)] text-[var(--color-accent)]'
           : 'border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200'
@@ -51,7 +51,7 @@ function CandidateCard({ c, nowSec }: { c: Candidate; nowSec: number }) {
       <header className="flex flex-wrap items-baseline justify-between gap-3">
         <div className="flex items-baseline gap-3">
           <span className="font-mono text-sm text-zinc-100">{c.token}</span>
-          <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
+          <span className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">
             {c.count} mentions
           </span>
         </div>
@@ -71,7 +71,7 @@ function CandidateCard({ c, nowSec }: { c: Candidate; nowSec: number }) {
         <ul className="mt-3 space-y-1.5 border-t border-zinc-900 pt-3 text-sm">
           {c.samples.map((s) => (
             <li key={s.source_url} className="flex flex-wrap gap-2 text-zinc-300">
-              <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-600">
+              <span className="font-mono text-[10px] tracking-[0.18em] text-zinc-600">
                 {s.source}
               </span>
               <a
@@ -109,14 +109,14 @@ function CandidateSection({
   return (
     <section className="mt-10">
       <div className="flex items-baseline justify-between border-b border-zinc-900 pb-2">
-        <h2 className="font-mono text-[11px] uppercase tracking-[0.2em] text-zinc-300">{title}</h2>
-        <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
+        <h2 className="font-mono text-[11px] tracking-[0.2em] text-zinc-300">{title}</h2>
+        <span className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">
           {candidates.length} candidates
         </span>
       </div>
       <p className="mt-2 max-w-3xl text-xs text-zinc-500">{blurb}</p>
       {candidates.length === 0 ? (
-        <div className="mt-6 border border-dashed border-zinc-800 p-8 text-center font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500">
+        <div className="mt-6 border border-dashed border-zinc-800 p-8 text-center font-mono text-[11px] tracking-[0.18em] text-zinc-500">
           {emptyHint}
         </div>
       ) : (
@@ -155,12 +155,12 @@ export default async function UnmappedPage({ searchParams }: Props) {
     <main className="mx-auto max-w-5xl px-6 py-16">
       <a
         href="/"
-        className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500 hover:text-zinc-300"
+        className="font-mono text-[10px] tracking-[0.2em] text-zinc-500 hover:text-zinc-300"
       >
         ← high signal
       </a>
       <header className="mt-3 border-b border-zinc-800 pb-6">
-        <h1 className="text-3xl font-medium tracking-tight">Gazetteer candidates</h1>
+        <h1 className="text-3xl font-medium tracking-tight">gazetteer candidates</h1>
         <p className="mt-2 max-w-2xl text-sm text-zinc-400">
           Tokens that appeared in events with <em>no</em> entity match in the last{' '}
           <strong>{hours}h</strong> — the strongest candidates to add to{' '}
@@ -168,9 +168,7 @@ export default async function UnmappedPage({ searchParams }: Props) {
           <strong>{data.eventsScanned}</strong> unmapped events.
         </p>
         <div className="mt-4 flex flex-wrap gap-3">
-          <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
-            window
-          </span>
+          <span className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">window</span>
           {WINDOW_CHOICES.map((h) => (
             <Chip
               key={h}

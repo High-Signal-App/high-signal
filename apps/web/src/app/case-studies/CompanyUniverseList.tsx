@@ -1,3 +1,4 @@
+import { EmptyState } from '@saas-maker/ui/components/empty-state';
 import type { Route } from 'next';
 import Link from 'next/link';
 import { getSimilarCompanyCluster } from './company-search';
@@ -35,7 +36,7 @@ export function CompanyUniverseList({
   return (
     <section className="mt-8">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-        <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500">
+        <div className="font-mono text-[10px] tracking-[0.14em] text-zinc-500">
           {summary ?? (
             <>
               showing {start.toLocaleString()}-{end.toLocaleString()} · page {page} of{' '}
@@ -46,7 +47,18 @@ export function CompanyUniverseList({
         {paginated && <Pagination page={page} />}
       </div>
 
-      <CompanyUniverseTable companies={companies} peerNamesBySlug={peerNamesBySlug} />
+      {companies.length > 0 ? (
+        <CompanyUniverseTable companies={companies} peerNamesBySlug={peerNamesBySlug} />
+      ) : (
+        <EmptyState
+          title="no matching companies"
+          primaryAction={
+            <a href="/case-studies" className="underline">
+              browse companies →
+            </a>
+          }
+        />
+      )}
 
       {paginated && (
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
@@ -99,8 +111,8 @@ function PageLink({
       aria-current={active ? 'page' : undefined}
       className={
         active
-          ? 'border border-[var(--color-accent)] px-2 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-accent)]'
-          : 'border border-[var(--color-line)] px-2 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 transition hover:border-zinc-600'
+          ? 'border border-[var(--color-accent)] px-2 py-1 font-mono text-[10px] tracking-[0.14em] text-[var(--color-accent)]'
+          : 'border border-[var(--color-line)] px-2 py-1 font-mono text-[10px] tracking-[0.14em] text-zinc-400 transition hover:border-zinc-600'
       }
     >
       {label ?? page}

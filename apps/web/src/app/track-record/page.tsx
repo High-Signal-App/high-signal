@@ -1,3 +1,5 @@
+import { EmptyState } from '@saas-maker/ui/components/empty-state';
+import { ErrorState } from '@saas-maker/ui/components/error-state';
 import { hasAdminSession } from '@/lib/admin-guard';
 import { api, type TrackBucket } from '@/lib/api';
 import { TrackRecordDatasetJsonLd } from '@/components/seo/structured-data';
@@ -36,13 +38,15 @@ export default async function TrackRecordPage() {
   } catch {
     return (
       <main className="mx-auto max-w-5xl px-5 py-14 sm:px-6 sm:py-16">
-        <h1 className="text-3xl font-medium tracking-tight">Track record unavailable</h1>
-        <p className="mt-4 text-sm text-zinc-400">
-          The scoring ledger could not be loaded. No outcome counts or rates are available.
-        </p>
-        <a href="/track-record" className="mt-6 inline-flex min-h-11 items-center underline">
-          Try again
-        </a>
+        <ErrorState
+          title="track record unavailable"
+          description="The scoring ledger could not be loaded. No outcome counts or rates are available."
+          primaryAction={
+            <a href="/track-record" className="underline">
+              try again
+            </a>
+          }
+        />
       </main>
     );
   }
@@ -56,15 +60,15 @@ export default async function TrackRecordPage() {
       <TrackRecordDatasetJsonLd liveCount={liveCount} backfillCount={backfillCount} />
       <a
         href="/"
-        className="inline-flex min-h-11 items-center font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500 hover:text-zinc-300 sm:min-h-0"
+        className="inline-flex min-h-11 items-center font-mono text-[10px] tracking-[0.2em] text-zinc-500 hover:text-zinc-300 sm:min-h-0"
       >
         ← high signal
       </a>
       <header className="mt-3 border-b border-zinc-800 pb-6">
-        <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--color-accent)]">
+        <div className="font-mono text-[10px] tracking-[0.2em] text-[var(--color-accent)]">
           public hit-rate ledger
         </div>
-        <h1 className="mt-3 text-3xl font-medium tracking-tight">Track record</h1>
+        <h1 className="mt-3 text-3xl font-medium tracking-tight">track record</h1>
         {liveSummary.smallResolvedSample ? (
           <p className="mt-4 border border-amber-500/40 bg-amber-500/[0.04] p-3 text-sm leading-6 text-amber-100">
             <strong>Small resolved sample:</strong> the cohort marked as live has only{' '}
@@ -123,10 +127,10 @@ export default async function TrackRecordPage() {
       {isAdmin ? (
         <section className="mt-12">
           <div className="flex flex-col gap-2 border-b border-zinc-800 pb-3 sm:flex-row sm:items-baseline sm:justify-between">
-            <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">
+            <h2 className="font-mono text-[10px] tracking-[0.2em] text-zinc-500">
               raw combined ledger (admin only)
             </h2>
-            <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-600">
+            <span className="font-mono text-[10px] tracking-[0.18em] text-zinc-600">
               debugging view
             </span>
           </div>
@@ -145,7 +149,7 @@ export default async function TrackRecordPage() {
 function GuideItem({ label, value, body }: { label: string; value: string; body: string }) {
   return (
     <div className="bg-zinc-950/50 p-4">
-      <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">{label}</div>
+      <div className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">{label}</div>
       <div className="mt-3 text-lg font-medium text-zinc-100">{value}</div>
       <p className="mt-2 text-sm leading-6 text-zinc-500">{body}</p>
     </div>
@@ -172,19 +176,13 @@ function CohortBlock({
   return (
     <div className="min-w-0 border border-zinc-800 bg-zinc-950/40 p-5">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-baseline sm:justify-between">
-        <h2 className={`font-mono text-[10px] uppercase tracking-[0.2em] ${titleClass}`}>
-          {title}
-        </h2>
-        <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-600">
-          {subtitle}
-        </span>
+        <h2 className={`font-mono text-[10px] tracking-[0.2em] ${titleClass}`}>{title}</h2>
+        <span className="font-mono text-[10px] tracking-[0.18em] text-zinc-600">{subtitle}</span>
       </div>
       <div className="nums mt-4 flex flex-col gap-4 sm:flex-row sm:items-baseline">
         <div>
           <div className="text-3xl font-medium">{formatHitRate(overallHitRate)}</div>
-          <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
-            hit-rate
-          </div>
+          <div className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">hit-rate</div>
         </div>
         <div className="grid flex-1 grid-cols-3 gap-3 text-sm">
           <Stat label="hit" value={overall.hit} tone="up" />
@@ -222,7 +220,7 @@ function Stat({
   return (
     <div>
       <div className={`text-xl font-medium ${cls}`}>{value}</div>
-      <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">{label}</div>
+      <div className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">{label}</div>
     </div>
   );
 }
@@ -238,17 +236,21 @@ function BucketTable({
 }) {
   if (buckets.length === 0) {
     return (
-      <div
-        className={`border border-dashed border-zinc-800 ${compact ? 'p-4' : 'p-10'} text-center font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500`}
-      >
-        {emptyHint}
-      </div>
+      <EmptyState
+        className={compact ? 'py-4' : undefined}
+        title={emptyHint}
+        primaryAction={
+          <a href="/signals" className="underline">
+            browse signals →
+          </a>
+        }
+      />
     );
   }
   const scrollableLedger = (
     <HorizontalScrollRegion className="mt-2" aria-label="Signal-type hit-rate ledger">
       <table className="w-full min-w-[520px] text-sm">
-        <thead className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
+        <thead className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">
           <tr>
             <th className="border-b border-zinc-800 py-2 text-left">type</th>
             <th className="border-b border-zinc-800 py-2 text-right">records</th>

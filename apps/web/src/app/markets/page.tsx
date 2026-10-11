@@ -1,3 +1,4 @@
+import { EmptyState } from '@saas-maker/ui/components/empty-state';
 import type { Metadata } from 'next';
 import {
   BackLink,
@@ -51,7 +52,7 @@ export default async function MarketsPage({
   return (
     <PageShell>
       <BackLink />
-      <SectionHeader eyebrow="market context" title="Market Intelligence">
+      <SectionHeader eyebrow="market context" title="market intelligence">
         Broad market movement that may affect product timing, buyer mood, or infrastructure spend.
         This is not investment advice or deep single-stock research.
       </SectionHeader>
@@ -86,7 +87,7 @@ export default async function MarketsPage({
       />
 
       <form className="mt-8 grid gap-3 border-y border-[var(--color-line)] py-4 md:grid-cols-[1fr_auto_auto]">
-        <label className="flex flex-col gap-2 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
+        <label className="flex flex-col gap-2 font-mono text-[10px] tracking-[0.18em] text-[var(--color-muted)]">
           date
           <input
             className="border border-[var(--color-line)] bg-transparent px-3 py-2 text-sm text-[var(--color-fg)] outline-none focus:border-[var(--color-accent)]"
@@ -96,13 +97,13 @@ export default async function MarketsPage({
           />
         </label>
         <button
-          className="border border-[var(--color-line)] px-4 py-2 font-mono text-xs uppercase tracking-[0.18em] text-[var(--color-fg)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] md:self-end"
+          className="border border-[var(--color-line)] px-4 py-2 font-mono text-xs tracking-[0.18em] text-[var(--color-fg)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] md:self-end"
           type="submit"
         >
           load
         </button>
         <a
-          className="border border-[var(--color-line)] px-4 py-2 text-center font-mono text-xs uppercase tracking-[0.18em] text-[var(--color-muted)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] md:self-end"
+          className="border border-[var(--color-line)] px-4 py-2 text-center font-mono text-xs tracking-[0.18em] text-[var(--color-muted)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] md:self-end"
           href="/markets/history"
         >
           history
@@ -117,7 +118,7 @@ export default async function MarketsPage({
       ) : null}
 
       <section className="mt-10 grid gap-8 md:grid-cols-3">
-        <Panel eyebrow="source" title="Market snapshots">
+        <Panel eyebrow="source" title="market snapshots">
           <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">
             The daily automation derives this compact watchlist from the canonical equities snapshot
             and bundles the latest records into the web app. JSON export is available at{' '}
@@ -130,13 +131,13 @@ export default async function MarketsPage({
             .
           </p>
         </Panel>
-        <Panel eyebrow="scope" title="Broad context only">
+        <Panel eyebrow="scope" title="broad context only">
           <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">
             The page tracks broad direction, movers, and product implication. It deliberately avoids
             valuation models, analyst-style calls, and trade recommendations.
           </p>
         </Panel>
-        <Panel eyebrow="use" title="Where this matters">
+        <Panel eyebrow="use" title="where this matters">
           <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">
             Market changes feed the planning brief only when they shift positioning, buyer urgency,
             infrastructure budget mood, or the evidence needed for a product bet.
@@ -164,13 +165,13 @@ export default async function MarketsPage({
           <article className="py-8" id={group.id} key={group.id}>
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
-                <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
+                <div className="font-mono text-[10px] tracking-[0.18em] text-[var(--color-muted)]">
                   {group.region} / {latestQuoteDate(group)}
                 </div>
                 <h2 className="mt-2 text-2xl font-medium tracking-tight">{group.title}</h2>
               </div>
               <div
-                className={`font-mono text-xs uppercase tracking-[0.18em] ${marketDirectionTone(group.direction)}`}
+                className={`font-mono text-xs tracking-[0.18em] ${marketDirectionTone(group.direction)}`}
               >
                 {group.direction} / {formatMarketPct(group.averageChangePct)}
               </div>
@@ -189,7 +190,7 @@ export default async function MarketsPage({
                   <div className="bg-[var(--color-bg)] p-4" key={quote.symbol}>
                     <div className="flex items-baseline justify-between gap-4">
                       <div>
-                        <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-accent)]">
+                        <div className="font-mono text-[10px] tracking-[0.18em] text-[var(--color-accent)]">
                           {quote.symbol}
                         </div>
                         <div className="mt-2 text-base font-medium">{quote.name}</div>
@@ -203,7 +204,7 @@ export default async function MarketsPage({
                     <div className="mt-3 text-xs leading-5 text-[var(--color-muted)]">
                       {quote.role}
                     </div>
-                    <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--color-muted)]">
+                    <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 font-mono text-[10px] tracking-[0.16em] text-[var(--color-muted)]">
                       <span>close {quote.close}</span>
                       <span>open {quote.open}</span>
                       <span>volume {formatNumber(quote.volume)}</span>
@@ -217,10 +218,15 @@ export default async function MarketsPage({
       </section>
 
       {snapshot.groups.length === 0 ? (
-        <p className="mt-10 text-sm text-[var(--color-muted)]">
-          No bundled market refresh exists yet. Run `pnpm market:refresh` and `pnpm
-          market:snapshot`.
-        </p>
+        <EmptyState
+          title="no market snapshot yet"
+          description="No bundled market refresh exists yet. Run `pnpm market:refresh` and `pnpm market:snapshot`."
+          primaryAction={
+            <a href="/markets/history" className="underline">
+              market history →
+            </a>
+          }
+        />
       ) : null}
 
       <RouteList

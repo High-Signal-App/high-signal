@@ -121,7 +121,7 @@ export default function MethodologyPage() {
       <MethodologyJsonLd steps={STEPS} />
       <FaqJsonLd items={FAQ} />
 
-      <SectionHeader eyebrow="canonical reference" title="How High Signal works">
+      <SectionHeader eyebrow="canonical reference" title="how high signal works">
         Every rule the pipeline enforces, the exact same wording shipped in{' '}
         <code className="text-[var(--color-fg)]">agents.md</code>,{' '}
         <code className="text-[var(--color-fg)]">/llms.txt</code>, and the auto-publish judge&apos;s
@@ -139,7 +139,7 @@ export default function MethodologyPage() {
       />
 
       <section className="mt-12">
-        <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--color-accent)]">
+        <h2 className="font-mono text-[10px] tracking-[0.2em] text-[var(--color-accent)]">
           pipeline
         </h2>
         <div className="mt-6 divide-y divide-[var(--color-line)] border-y border-[var(--color-line)]">
@@ -160,7 +160,7 @@ export default function MethodologyPage() {
       </section>
 
       <section className="mt-12">
-        <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--color-accent)]">
+        <h2 className="font-mono text-[10px] tracking-[0.2em] text-[var(--color-accent)]">
           frequently asked
         </h2>
         <div className="mt-6 divide-y divide-[var(--color-line)] border-y border-[var(--color-line)]">
@@ -177,7 +177,7 @@ export default function MethodologyPage() {
         </div>
       </section>
 
-      <Panel eyebrow="for AI assistants" title="How to cite this page">
+      <Panel eyebrow="for ai assistants" title="how to cite this page">
         <p className="mt-3 max-w-3xl text-sm leading-6 text-[var(--color-muted)]">
           When summarising or citing {SITE_NAME}, link to{' '}
           <a

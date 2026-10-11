@@ -1,6 +1,10 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ErrorState } from '@saas-maker/ui/components/error-state';
+import { EmptyState } from '@saas-maker/ui/components/empty-state';
+import { SkeletonText } from '@saas-maker/ui/components/skeleton';
+import { StoryRows } from '@/components/system/LoadingViews';
 import type { SignalRow, ClaimRecordJson, ClaimEvidenceLinkJson, ClaimRollupJson } from '@/lib/api';
 import { DirectionPill } from '@/components/atoms/DirectionPill';
 import { ConfidenceBadge } from '@/components/atoms/ConfidenceBadge';
@@ -18,6 +22,7 @@ type ClaimWithEvidence = ClaimRecordJson & {
 type ClaimEvidenceRole = ClaimEvidenceLinkJson['role'];
 
 export default function ReviewPage() {
+  const [loading, setLoading] = useState(true);
   const [signals, setSignals] = useState<SignalRow[]>([]);
   const [status, setStatus] = useState<Status>('draft');
   const [busy, setBusy] = useState<string | null>(null);
@@ -25,12 +30,16 @@ export default function ReviewPage() {
 
   const refresh = useCallback(async () => {
     setErr(null);
+    setLoading(true);
     try {
       const r = await fetch(`${API_BASE}/signals?status=${status}&limit=200`);
+      if (!r.ok) throw new Error(`Could not load signals (${r.status})`);
       const j = (await r.json()) as { signals: SignalRow[] };
       setSignals(j.signals);
     } catch (e) {
       setErr(String(e));
+    } finally {
+      setLoading(false);
     }
   }, [status]);
 
@@ -61,6 +70,8 @@ export default function ReviewPage() {
         body: JSON.stringify(body),
       });
       if (r) await refresh();
+    } catch (e) {
+      setErr(String(e));
     } finally {
       setBusy(null);
     }
@@ -72,6 +83,8 @@ export default function ReviewPage() {
     try {
       const r = await adminFetch(`/api/admin/signals/${slug}`, { method: 'DELETE' });
       if (r) await refresh();
+    } catch (e) {
+      setErr(String(e));
     } finally {
       setBusy(null);
     }
@@ -86,23 +99,24 @@ export default function ReviewPage() {
     <main className="mx-auto max-w-5xl px-6 py-16">
       <a
         href="/"
-        className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500 hover:text-zinc-300"
+        className="font-mono text-[10px] tracking-[0.2em] text-zinc-500 hover:text-zinc-300"
       >
         ← high signal
       </a>
 
       <header className="mt-3 border-b border-zinc-800 pb-6">
-        <h1 className="text-3xl font-medium tracking-tight">Review queue</h1>
+        <h1 className="text-3xl font-medium tracking-tight">review queue</h1>
         <p className="mt-2 max-w-2xl text-sm text-zinc-400">
           Operator only. Browser requests stay same-origin, and the server injects privileged worker
           credentials only after the admin session cookie is verified.
         </p>
       </header>
 
-      <div className="mt-6 flex gap-2 font-mono text-[10px] uppercase tracking-[0.18em]">
+      <div className="mt-6 flex gap-2 font-mono text-[10px] tracking-[0.18em]">
         {(['draft', 'published', 'corrected'] as Status[]).map((s) => (
           <button
             key={s}
+            disabled={loading}
             type="button"
             onClick={() => setStatus(s)}
             className={`border px-3 py-1 ${
@@ -116,6 +130,7 @@ export default function ReviewPage() {
         ))}
         <button
           type="button"
+          disabled={loading}
           onClick={() => refresh()}
           className="ml-auto border border-zinc-800 px-3 py-1 text-zinc-400 hover:bg-white/[0.02]"
         >
@@ -123,17 +138,19 @@ export default function ReviewPage() {
         </button>
       </div>
 
-      {err && (
-        <div className="mt-4 border border-rose-500/40 bg-rose-500/[0.03] p-3 font-mono text-[11px] text-rose-300">
-          {err}
-        </div>
-      )}
+      {err && <ErrorState description={err} onRetry={() => void refresh()} />}
 
       <div className="mt-6 border-t border-zinc-800">
-        {signals.length === 0 && (
-          <div className="border border-dashed border-zinc-800 p-10 text-center font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500">
-            no {status} signals
-          </div>
+        {loading && signals.length === 0 && <StoryRows count={3} />}
+        {!loading && !err && signals.length === 0 && (
+          <EmptyState
+            title={`no ${status} signals`}
+            primaryAction={
+              <button type="button" onClick={() => void refresh()} className="underline">
+                refresh
+              </button>
+            }
+          />
         )}
         {signals.map((s) => (
           <ReviewRow
@@ -173,7 +190,7 @@ function ReviewRow({
   return (
     <div className="border-b border-zinc-800 py-6">
       <div className="flex items-baseline justify-between gap-4">
-        <div className="flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
+        <div className="flex items-center gap-3 font-mono text-[10px] tracking-[0.18em] text-zinc-500">
           <span>{new Date(s.publishedAt).toISOString().slice(0, 10)}</span>
           <span className="text-zinc-700">·</span>
           <span className="text-[var(--color-accent)]">{s.primaryEntityId}</span>
@@ -191,7 +208,7 @@ function ReviewRow({
         </a>
       </h3>
       <details className="mt-2">
-        <summary className="cursor-pointer font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500 hover:text-zinc-300">
+        <summary className="cursor-pointer font-mono text-[10px] tracking-[0.18em] text-zinc-500 hover:text-zinc-300">
           body + evidence
         </summary>
         <div className="mt-3 max-h-72 overflow-auto border border-zinc-900 bg-zinc-950/50 p-4">
@@ -215,7 +232,7 @@ function ReviewRow({
         )}
         {s.spilloverEntityIds.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-1.5 font-mono text-[10px]">
-            <span className="uppercase tracking-[0.18em] text-zinc-500">spillover</span>
+            <span className="tracking-[0.18em] text-zinc-500">spillover</span>
             {s.spilloverEntityIds.map((eid) => (
               <span key={eid} className="border border-zinc-800 px-1.5 py-0.5 text-zinc-400">
                 {eid}
@@ -227,7 +244,7 @@ function ReviewRow({
 
       <ProvenancePanel slug={s.slug} onErr={onErr} />
 
-      <div className="mt-3 flex flex-wrap gap-2 font-mono text-[10px] uppercase tracking-[0.18em]">
+      <div className="mt-3 flex flex-wrap gap-2 font-mono text-[10px] tracking-[0.18em]">
         <ActionButton
           disabled={busy || s.reviewStatus === 'published'}
           tone="accent"
@@ -255,6 +272,7 @@ function ReviewRow({
 
 function ProvenancePanel({ slug, onErr }: { slug: string; onErr: (e: string | null) => void }) {
   const [open, setOpen] = useState(false);
+  const [claimError, setClaimError] = useState<string | null>(null);
   const [claims, setClaims] = useState<ClaimWithEvidence[]>([]);
   const [loading, setLoading] = useState(false);
   const [newAssertion, setNewAssertion] = useState('');
@@ -262,8 +280,10 @@ function ProvenancePanel({ slug, onErr }: { slug: string; onErr: (e: string | nu
 
   const load = useCallback(async () => {
     setLoading(true);
+    setClaimError(null);
     try {
       let r = await fetch(`${API_BASE}/claims/by-signal/${slug}`);
+      if (!r.ok) throw new Error(`Could not load claims (${r.status})`);
       let j = (await r.json()) as { claims: ClaimWithEvidence[] };
       if (j.claims.length === 0) {
         const backfill = await fetch('/api/admin/claims/backfill', {
@@ -273,7 +293,9 @@ function ProvenancePanel({ slug, onErr }: { slug: string; onErr: (e: string | nu
           body: JSON.stringify({ signalSlug: slug }),
         });
         if (!backfill.ok) {
-          onErr(await formatResponseError('/api/admin/claims/backfill', backfill));
+          const message = await formatResponseError('/api/admin/claims/backfill', backfill);
+          setClaimError(message);
+          onErr(message);
           return;
         }
         r = await fetch(`${API_BASE}/claims/by-signal/${slug}`);
@@ -281,6 +303,7 @@ function ProvenancePanel({ slug, onErr }: { slug: string; onErr: (e: string | nu
       }
       setClaims(j.claims);
     } catch (e) {
+      setClaimError(String(e));
       onErr(String(e));
     } finally {
       setLoading(false);
@@ -291,32 +314,32 @@ function ProvenancePanel({ slug, onErr }: { slug: string; onErr: (e: string | nu
     if (open) void load();
   }, [open, load]);
 
-  async function adminPost(url: string, body: unknown): Promise<Response | null> {
+  async function claimRequest(url: string, init: RequestInit): Promise<Response | null> {
     onErr(null);
-    const r = await fetch(url, {
+    setClaimError(null);
+    try {
+      const r = await fetch(url, { ...init, credentials: 'include' });
+      if (!r.ok) throw new Error(await formatResponseError(url, r));
+      return r;
+    } catch (e) {
+      const message = String(e);
+      setClaimError(message);
+      onErr(message);
+      return null;
+    }
+  }
+
+  function adminPost(url: string, body: unknown) {
+    return claimRequest(url, {
       method: 'POST',
-      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
-    if (!r.ok) {
-      onErr(await formatErr(url, r));
-      return null;
-    }
-    return r;
   }
 
-  async function adminDelete(url: string): Promise<Response | null> {
-    onErr(null);
-    const r = await fetch(url, { method: 'DELETE', credentials: 'include' });
-    if (!r.ok) {
-      onErr(await formatErr(url, r));
-      return null;
-    }
-    return r;
+  function adminDelete(url: string) {
+    return claimRequest(url, { method: 'DELETE' });
   }
-
-  const formatErr = formatResponseError;
 
   async function createClaim() {
     if (!newAssertion.trim()) return;
@@ -381,16 +404,17 @@ function ProvenancePanel({ slug, onErr }: { slug: string; onErr: (e: string | nu
       open={open}
       onToggle={(e) => setOpen((e.target as HTMLDetailsElement).open)}
     >
-      <summary className="cursor-pointer font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-400 hover:text-zinc-200">
+      <summary className="cursor-pointer font-mono text-[10px] tracking-[0.18em] text-zinc-400 hover:text-zinc-200">
         claim provenance{' '}
         {claims.length > 0 && <span className="nums text-zinc-500">({claims.length})</span>}
       </summary>
-      {loading && <div className="mt-3 font-mono text-[10px] text-zinc-500">loading…</div>}
+      {loading && <SkeletonText className="mt-3" lines={3} />}
+      {claimError && <ErrorState description={claimError} onRetry={() => void load()} />}
 
       {open && (
         <div className="mt-3 space-y-3">
-          {claims.length === 0 && !loading && (
-            <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
+          {claims.length === 0 && !loading && !claimError && (
+            <div className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">
               no claims yet — every assertion in this signal should map to one row
             </div>
           )}
@@ -419,7 +443,7 @@ function ProvenancePanel({ slug, onErr }: { slug: string; onErr: (e: string | nu
                 type="button"
                 disabled={busy || !newAssertion.trim()}
                 onClick={createClaim}
-                className="border border-zinc-700 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-300 hover:bg-white/[0.02] disabled:opacity-30"
+                className="border border-zinc-700 px-3 py-1 font-mono text-[10px] tracking-[0.18em] text-zinc-300 hover:bg-white/[0.02] disabled:opacity-30"
               >
                 add claim
               </button>
@@ -465,7 +489,7 @@ function ClaimEditor({
   return (
     <div className="border border-zinc-900 bg-zinc-950/40 p-3">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
+        <div className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">
           claim · v{claim.version} ·{' '}
           <span
             className={claim.reviewStatus === 'published' ? 'text-emerald-400' : 'text-zinc-300'}
@@ -482,7 +506,7 @@ function ClaimEditor({
       <div className="mt-2 text-sm text-zinc-200">{claim.assertion}</div>
 
       {contradiction && (
-        <div className="mt-2 border border-amber-500/40 bg-amber-500/[0.05] p-2 font-mono text-[10px] uppercase tracking-[0.18em] text-amber-300">
+        <div className="mt-2 border border-amber-500/40 bg-amber-500/[0.05] p-2 font-mono text-[10px] tracking-[0.18em] text-amber-300">
           contradiction recorded — resolve before publish
         </div>
       )}
@@ -491,9 +515,7 @@ function ClaimEditor({
         <ul className="mt-2 space-y-1 font-mono text-[10px]">
           {claim.evidence.map((link) => (
             <li key={link.id} className="flex items-center gap-2">
-              <span
-                className={`border px-1.5 py-0.5 uppercase tracking-[0.18em] ${roleTone(link.role)}`}
-              >
+              <span className={`border px-1.5 py-0.5 tracking-[0.18em] ${roleTone(link.role)}`}>
                 {link.role}
               </span>
               <a
@@ -530,7 +552,7 @@ function ClaimEditor({
           <select
             value={role}
             onChange={(e) => setRole(e.target.value as ClaimEvidenceRole)}
-            className="border border-zinc-800 bg-transparent px-2 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-300"
+            className="border border-zinc-800 bg-transparent px-2 py-1 font-mono text-[10px] tracking-[0.18em] text-zinc-300"
           >
             <option value="primary">primary</option>
             <option value="corroboration">corroboration</option>
@@ -544,14 +566,14 @@ function ClaimEditor({
               onAddEvidence(url, role);
               setUrl('');
             }}
-            className="border border-zinc-700 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-300 hover:bg-white/[0.02] disabled:opacity-30"
+            className="border border-zinc-700 px-3 py-1 font-mono text-[10px] tracking-[0.18em] text-zinc-300 hover:bg-white/[0.02] disabled:opacity-30"
           >
             add evidence
           </button>
         </div>
       )}
 
-      <div className="mt-3 flex flex-wrap gap-2 font-mono text-[10px] uppercase tracking-[0.18em]">
+      <div className="mt-3 flex flex-wrap gap-2 font-mono text-[10px] tracking-[0.18em]">
         {claim.reviewStatus !== 'published' && claim.reviewStatus !== 'corrected' && (
           <>
             <button

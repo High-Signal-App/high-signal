@@ -26,11 +26,11 @@ export default function DataParityMethodologyPage() {
   return (
     <PageShell>
       <header className="border-b border-[var(--color-line)] pb-8">
-        <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--color-accent)]">
+        <div className="font-mono text-[10px] tracking-[0.16em] text-[var(--color-accent)]">
           methodology · verified {DATA_PARITY_VERIFIED_ON}
         </div>
         <h1 className="mt-4 max-w-4xl text-4xl font-medium tracking-[-0.03em] sm:text-5xl">
-          Public-data parity, without pretending public data is premium data.
+          public-data parity, without pretending public data is premium data.
         </h1>
         <p className="mt-5 max-w-[72ch] text-sm leading-6 text-[var(--color-muted)]">
           This ledger compares data capabilities, not source count, language coverage, latency,
@@ -38,7 +38,7 @@ export default function DataParityMethodologyPage() {
           Signal source or an implemented product workflow. Partial and unavailable rows stay
           visible until the underlying access genuinely changes.
         </p>
-        <div className="mt-5 flex flex-wrap gap-4 font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-muted)]">
+        <div className="mt-5 flex flex-wrap gap-4 font-mono text-[10px] tracking-[0.14em] text-[var(--color-muted)]">
           <Link href="/methodology" className="hover:text-[var(--color-accent)]">
             publication methodology →
           </Link>
@@ -50,7 +50,7 @@ export default function DataParityMethodologyPage() {
 
       <section className="border-b border-[var(--color-line)] py-9" aria-labelledby="known-gaps">
         <h2 id="known-gaps" className="text-2xl font-medium tracking-[-0.02em]">
-          Material gaps we do not rename as parity
+          material gaps we do not rename as parity
         </h2>
         <ul className="mt-5 grid gap-x-8 gap-y-3 border-y border-[var(--color-line)] py-5 text-sm text-[var(--color-muted)] sm:grid-cols-2">
           {MATERIAL_DATA_PARITY_GAPS.map((gap) => (
@@ -74,11 +74,11 @@ function ReferenceLedger() {
     <section className="py-9" aria-labelledby="reference-ledger">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-accent)]">
+          <div className="font-mono text-[10px] tracking-[0.14em] text-[var(--color-accent)]">
             {DATA_PARITY_REFERENCES.length} attributable references
           </div>
           <h2 id="reference-ledger" className="mt-2 text-3xl font-medium tracking-[-0.025em]">
-            Capability ledger
+            capability ledger
           </h2>
         </div>
         <p className="max-w-[46ch] text-xs leading-5 text-[var(--color-muted)]">
@@ -98,7 +98,7 @@ function ReferenceLedger() {
                 href={reference.officialUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="mt-2 inline-block font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--color-muted)] hover:text-[var(--color-accent)]"
+                className="mt-2 inline-block font-mono text-[10px] tracking-[0.12em] text-[var(--color-muted)] hover:text-[var(--color-accent)]"
               >
                 official reference ↗
               </a>
@@ -110,7 +110,7 @@ function ReferenceLedger() {
                   className="grid gap-3 py-4 md:grid-cols-[140px_minmax(0,1fr)]"
                 >
                   <div
-                    className={`font-mono text-[10px] uppercase tracking-[0.14em] ${statusTone(capability.status)}`}
+                    className={`font-mono text-[10px] tracking-[0.14em] ${statusTone(capability.status)}`}
                   >
                     {capability.status}
                   </div>
@@ -122,11 +122,11 @@ function ReferenceLedger() {
                       {capability.limitation}
                     </p>
                     {capability.highSignalSourceIds.length > 0 ? (
-                      <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.1em] text-[var(--color-muted)]">
+                      <p className="mt-3 font-mono text-[10px] tracking-[0.1em] text-[var(--color-muted)]">
                         sources · {capability.highSignalSourceIds.join(' · ')}
                       </p>
                     ) : capability.productCapability ? (
-                      <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.1em] text-[var(--color-muted)]">
+                      <p className="mt-3 font-mono text-[10px] tracking-[0.1em] text-[var(--color-muted)]">
                         product capability · {capability.productCapability}
                       </p>
                     ) : null}

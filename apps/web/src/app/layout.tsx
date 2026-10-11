@@ -4,7 +4,7 @@ import './globals.css';
 import { AnalyticsProvider } from '@/components/posthog-provider';
 import { AppHealthAnalytics } from '@/components/AppHealthAnalytics';
 import { VitalsReporter } from '@/components/VitalsReporter';
-import { PrimaryNav } from '@/components/system/PrimaryNav';
+import { SiteHeader } from '@saas-maker/ui/blocks/site-header';
 import { SiteFooter } from '@/components/system/SiteFooter';
 import {
   clampDescription,
@@ -97,8 +97,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   // protects only the bounded operator paths.
   const app = (
     <AnalyticsProvider>
-      <PrimaryNav />
-      <div aria-hidden="true" className="h-14" />
+      <SiteHeader
+        variant="bar"
+        className="bg-background border-border backdrop-blur-none"
+        brand={{ name: 'high signal', mark: <span className="size-1.5 rounded-full bg-brand" /> }}
+        links={[
+          { label: 'brief', href: '/' },
+          { label: 'signals', href: '/signals' },
+          { label: 'track record', href: '/track-record' },
+          { label: 'podcasts', href: 'https://podcasts.highsignal.app/' },
+        ]}
+      />
       {children}
       <SiteFooter />
       <VitalsReporter />
@@ -107,7 +116,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   );
 
   return (
-    <html lang="en" data-reading-view="brief" suppressHydrationWarning>
+    <html
+      lang="en"
+      data-theme="ink"
+      data-mode="dark"
+      data-reading-view="brief"
+      suppressHydrationWarning
+    >
       <head>
         <script
           // biome-ignore lint/security/noDangerouslySetInnerHtml: guarded local-only preference prevents a layout flash
@@ -128,33 +143,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-dvh font-sans antialiased">
         {app}
         {/* Microsoft Clarity — session replay + heatmaps (additive; PostHog stays) */}
-        <Script id="microsoft-clarity" strategy="lazyOnload">
-          {`(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/ybcgyx9ugh";y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window,document,"clarity","script","ybcgyx9ugh");window.clarity("set","project_id","high-signal");`}
+        <Script id="microsoft-clarity" strategy="afterInteractive">
+          {`(function(c,l,a,r,i){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};var done=false;var events=["pointerdown","keydown","scroll","touchstart"];function go(){if(done)return;done=true;events.forEach(function(event){c.removeEventListener(event,go)});var t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;var y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y)}events.forEach(function(event){c.addEventListener(event,go,{passive:true,once:true})})})(window,document,"clarity","script","ybcgyx9ugh");window.clarity("set","project_id","high-signal");`}
         </Script>
-        <Script
-          src="https://sassmaker.com/project-strip.js?v=precise-b0adaa67"
-          data-project="high-signal"
-          data-theme="dark"
-          data-host-only="true"
-          data-font-base="/fonts/fleet-footer-precise-v1/"
-          strategy="lazyOnload"
-        />
-        <Script
-          src="https://sassmaker.com/ai-chat-footer.js?v=precise-b0adaa67"
-          data-name="High Signal"
-          data-project="high-signal"
-          data-theme="dark"
-          data-host-only="true"
-          data-capture="false"
-          data-surface="app"
-          data-font-base="/fonts/fleet-footer-precise-v1/"
-          strategy="lazyOnload"
-        />
-        <Script
-          src="https://sassmaker.com/newsletter-capture.js"
-          type="module"
-          strategy="lazyOnload"
-        />
+        <Script src="/studio-footer/v0.1.19/footer.js" type="module" strategy="lazyOnload" />
       </body>
     </html>
   );

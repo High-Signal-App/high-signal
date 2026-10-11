@@ -1,3 +1,4 @@
+import { ErrorState } from '@saas-maker/ui/components/error-state';
 import type { Metadata, Route } from 'next';
 import { unstable_cache } from 'next/cache';
 import Link from 'next/link';
@@ -138,7 +139,7 @@ function SourceSummary({
         {source.provider}
       </span>
       <span
-        className={`shrink-0 rounded border px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.12em] ${accessTone(source.access)}`}
+        className={`shrink-0 rounded border px-1.5 py-0.5 font-mono text-[9px] tracking-[0.12em] ${accessTone(source.access)}`}
         title={source.accessBasis}
       >
         {accessLabel(source.access)}
@@ -231,7 +232,7 @@ function SourceGroup({
   return (
     <section className="mb-10">
       <div className="mb-3 flex items-baseline gap-3 border-b border-zinc-800 pb-2">
-        <h2 className="font-mono text-xs uppercase tracking-[0.18em] text-zinc-300">{role}</h2>
+        <h2 className="font-mono text-xs tracking-[0.18em] text-zinc-300">{role}</h2>
         <span className="text-xs text-[var(--color-muted)]">{ROLE_BLURB[role]}</span>
       </div>
       <div className="divide-y divide-zinc-900">
@@ -278,7 +279,7 @@ export default async function DataPage() {
   return (
     <main className="mx-auto max-w-5xl px-6 py-12">
       <header className="mb-10">
-        <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[var(--color-muted)]">
+        <p className="font-mono text-[10px] tracking-[0.22em] text-[var(--color-muted)]">
           source directory
         </p>
         <h1 className="mt-2 text-2xl font-semibold tracking-tight text-zinc-100">
@@ -336,10 +337,21 @@ export default async function DataPage() {
           </p>
         )}
         {!available && (
-          <p className="mt-3 font-mono text-[11px] text-amber-400/80">
-            Live counts unavailable (events store not reachable) — showing the catalog. Regenerate
-            samples locally with <code>python -m high_signal_ingest.data_directory</code>.
-          </p>
+          <ErrorState
+            title="live counts unavailable"
+            description={
+              <>
+                Live counts unavailable (events store not reachable) — showing the catalog.
+                Regenerate samples locally with{' '}
+                <code>python -m high_signal_ingest.data_directory</code>.
+              </>
+            }
+            primaryAction={
+              <a href="/data" className="underline">
+                try again →
+              </a>
+            }
+          />
         )}
       </header>
 

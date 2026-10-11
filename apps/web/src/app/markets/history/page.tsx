@@ -26,7 +26,7 @@ export default async function MarketsHistoryPage() {
   return (
     <PageShell>
       <BackLink href="/markets">back to markets</BackLink>
-      <SectionHeader eyebrow="market archive" title="Market History">
+      <SectionHeader eyebrow="market archive" title="market history">
         Date-browsable snapshots derived from the canonical equities feed for the high-level
         national and international stock watchlist.
       </SectionHeader>
@@ -45,15 +45,15 @@ export default async function MarketsHistoryPage() {
           <article className="py-6" key={record.createdAt}>
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
-                <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
-                  {formatTimestamp(record.createdAt)} UTC / {record.source}
+                <div className="font-mono text-[10px] tracking-[0.18em] text-[var(--color-muted)]">
+                  {formatTimestamp(record.createdAt)} utc / {record.source}
                 </div>
                 <h2 className="mt-2 text-xl font-medium tracking-tight">
                   {record.createdAt.slice(0, 10)} market snapshot
                 </h2>
               </div>
               <a
-                className="border border-[var(--color-line)] px-3 py-2 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-accent)] hover:border-[var(--color-accent)]"
+                className="border border-[var(--color-line)] px-3 py-2 font-mono text-[10px] tracking-[0.18em] text-[var(--color-accent)] hover:border-[var(--color-accent)]"
                 href={`/markets?date=${record.createdAt.slice(0, 10)}`}
               >
                 open date
@@ -63,17 +63,17 @@ export default async function MarketsHistoryPage() {
               {record.groups.map((group) => (
                 <div className="bg-[var(--color-bg)] p-4" key={group.id}>
                   <div className="flex items-baseline justify-between gap-3">
-                    <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
+                    <div className="font-mono text-[10px] tracking-[0.18em] text-[var(--color-muted)]">
                       {group.region}
                     </div>
                     <div
-                      className={`font-mono text-[10px] uppercase tracking-[0.18em] ${marketDirectionTone(group.direction)}`}
+                      className={`font-mono text-[10px] tracking-[0.18em] ${marketDirectionTone(group.direction)}`}
                     >
                       {group.direction} / {formatMarketPct(group.averageChangePct)}
                     </div>
                   </div>
                   <div className="mt-3 text-sm font-medium leading-5">{group.title}</div>
-                  <div className="mt-3 font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--color-muted)]">
+                  <div className="mt-3 font-mono text-[10px] tracking-[0.16em] text-[var(--color-muted)]">
                     {group.quotes
                       .slice()
                       .sort((a, b) => Math.abs(b.changePct) - Math.abs(a.changePct))

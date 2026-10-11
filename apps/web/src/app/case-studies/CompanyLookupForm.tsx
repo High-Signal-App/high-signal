@@ -4,6 +4,7 @@ import type { Route } from 'next';
 import { Search } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { ErrorState } from '@saas-maker/ui/components/error-state';
 
 import { TurnstileWidget } from '@/components/turnstile-widget';
 
@@ -53,15 +54,15 @@ export function CompanyLookupForm() {
   return (
     <form
       onSubmit={submit}
+      aria-busy={pending}
       className="mt-8 border border-[var(--color-line)] p-4"
       aria-label="Create or find a company profile"
     >
       <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)_auto]">
         <label className="block">
-          <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500">
-            company
-          </span>
+          <span className="font-mono text-[10px] tracking-[0.14em] text-zinc-500">company</span>
           <input
+            disabled={pending}
             value={name}
             onChange={(event) => setName(event.target.value)}
             placeholder="Slack"
@@ -69,10 +70,9 @@ export function CompanyLookupForm() {
           />
         </label>
         <label className="block">
-          <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500">
-            domain
-          </span>
+          <span className="font-mono text-[10px] tracking-[0.14em] text-zinc-500">domain</span>
           <input
+            disabled={pending}
             value={domain}
             onChange={(event) => setDomain(event.target.value)}
             placeholder="slack.com"
@@ -82,7 +82,7 @@ export function CompanyLookupForm() {
         <button
           type="submit"
           disabled={pending || !turnstileToken || (!name.trim() && !domain.trim())}
-          className="mt-5 inline-flex h-10 items-center justify-center gap-2 border border-[var(--color-accent)] px-4 font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-accent)] transition hover:bg-[var(--color-accent)] hover:text-black disabled:cursor-not-allowed disabled:border-zinc-700 disabled:text-zinc-600 disabled:hover:bg-transparent"
+          className="mt-5 inline-flex h-10 items-center justify-center gap-2 border border-[var(--color-line)] px-4 font-mono text-[10px] tracking-[0.14em] text-[var(--color-fg)] transition hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] disabled:cursor-not-allowed disabled:border-zinc-700 disabled:text-zinc-600 disabled:hover:bg-transparent"
         >
           <Search className="size-3.5" aria-hidden="true" />
           {pending ? 'creating' : 'lookup'}
@@ -96,7 +96,21 @@ export function CompanyLookupForm() {
           onTokenChange={setTurnstileToken}
         />
       </div>
-      {error && <p className="mt-3 text-sm text-red-300">{error}</p>}
+      {error && (
+        <ErrorState
+          title="could not create company"
+          description={error}
+          primaryAction={
+            <button
+              type="submit"
+              disabled={pending || !turnstileToken}
+              className="underline disabled:opacity-50"
+            >
+              try again →
+            </button>
+          }
+        />
+      )}
     </form>
   );
 }

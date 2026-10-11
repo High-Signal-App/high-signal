@@ -10,7 +10,7 @@ export function RegionPicker({ active }: { active: Region }) {
   const searchParams = useSearchParams();
 
   return (
-    <label className="flex flex-wrap items-center gap-2 font-mono text-[10px] uppercase tracking-[0.18em]">
+    <label className="flex flex-wrap items-center gap-2 font-mono text-[10px] tracking-[0.18em]">
       <span className="text-[var(--color-muted)]">region:</span>
       <select
         value={active}

@@ -131,11 +131,21 @@ assert.match(
 // The three primary destinations use automatic loading-boundary prefetch.
 // Large link collections must still avoid speculative requests for every item.
 const highFanoutLinkSources = [
-  'apps/web/src/components/system/SiteFooter.tsx',
   'apps/web/src/components/molecules/SignalCard.tsx',
   'apps/web/src/app/case-studies/CompanyUniverseList.tsx',
   'apps/web/src/app/case-studies/CompanyUniverseTable.tsx',
 ];
+const footerSource = readFileSync(
+  resolve(root, 'apps/web/src/components/system/SiteFooter.tsx'),
+  'utf8'
+);
+assert.match(footerSource, /renderStudioFooterHtml/, 'footer navigation must render on the server');
+assert.doesNotMatch(
+  footerSource,
+  /from ['"]next\/link['"]/,
+  'framework-free footer links must not prefetch RSC requests'
+);
+
 for (const sourcePath of highFanoutLinkSources) {
   const source = readFileSync(resolve(root, sourcePath), 'utf8');
   assert.match(

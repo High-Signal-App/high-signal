@@ -53,7 +53,7 @@ export function PromoteButton({ token }: Props) {
       type="button"
       onClick={onClick}
       disabled={phase === 'loading'}
-      className={`rounded border px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.18em] transition-colors ${
+      className={`rounded border px-2 py-0.5 font-mono text-[10px] tracking-[0.18em] transition-colors ${
         phase === 'copied'
           ? 'border-emerald-700 text-emerald-300'
           : phase === 'error'

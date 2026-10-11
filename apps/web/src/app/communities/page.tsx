@@ -109,7 +109,7 @@ export default async function CommunitiesPage({
   return (
     <PageShell>
       <BackLink />
-      <SectionHeader eyebrow="community signal layer" title="Community Intelligence">
+      <SectionHeader eyebrow="community signal layer" title="community intelligence">
         Tracked subreddits with periodic source-linked digests. Pain, demand, and narrative shifts —
         captured weekly, and feeding the Daily Brief's behaviour and culture section.
       </SectionHeader>
@@ -141,7 +141,7 @@ export default async function CommunitiesPage({
       />
 
       {isAdmin && tracked.length === 0 ? (
-        <Panel eyebrow="get started" title="Track your first subreddit">
+        <Panel eyebrow="get started" title="track your first subreddit">
           <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">
             Pick a subreddit relevant to a product, audience, or buyer signal. Digests roll up the
             top posts and comments into key trend / notable discussions / key action, with links
@@ -156,10 +156,10 @@ export default async function CommunitiesPage({
         {isAdmin ? (
           <Panel eyebrow="add tracked subreddit">
             <form action={trackSubreddit}>
-              <Field label="Subreddit" name="newSubreddit" defaultValue="LocalLLaMA" />
-              <Field label="Digest prompt (optional)" name="newPrompt" defaultValue="" multiline />
+              <Field label="subreddit" name="newSubreddit" defaultValue="LocalLLaMA" />
+              <Field label="digest prompt (optional)" name="newPrompt" defaultValue="" multiline />
               <label className="mt-5 block text-sm text-[var(--color-muted)]">
-                Period
+                period
                 <select
                   name="newPeriod"
                   defaultValue="week"
@@ -185,8 +185,8 @@ export default async function CommunitiesPage({
 
         <Panel eyebrow="ad-hoc lookup">
           <form>
-            <Field label="Subreddit" name="subreddit" defaultValue={subreddit} />
-            <Field label="Mention query" name="q" defaultValue={query} />
+            <Field label="subreddit" name="subreddit" defaultValue={subreddit} />
+            <Field label="mention query" name="q" defaultValue={query} />
             <CommandButton>preview</CommandButton>
           </form>
           {community ? (
@@ -214,7 +214,7 @@ export default async function CommunitiesPage({
 
       {isAdmin && tracked.length > 0 ? (
         <section className="mt-10 border-y border-[var(--color-line)]">
-          <div className="py-4 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-accent)]">
+          <div className="py-4 font-mono text-[10px] tracking-[0.18em] text-[var(--color-accent)]">
             tracked communities (operator)
           </div>
           <div className="divide-y divide-[var(--color-line)]">
@@ -227,7 +227,7 @@ export default async function CommunitiesPage({
               return (
                 <article key={row.id} className="grid gap-4 py-5 md:grid-cols-[1.2fr_0.8fr]">
                   <div>
-                    <div className="flex items-baseline gap-3 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
+                    <div className="flex items-baseline gap-3 font-mono text-[10px] tracking-[0.18em] text-[var(--color-muted)]">
                       <a
                         className="text-[var(--color-fg)] hover:text-[var(--color-accent)]"
                         href={`/communities/${encodeURIComponent(row.subreddit)}/${row.period}`}
@@ -253,7 +253,7 @@ export default async function CommunitiesPage({
                         <p className="mt-2 text-sm leading-6 text-[var(--color-muted)]">
                           {keyTrend.desc}
                         </p>
-                        <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
+                        <p className="mt-2 font-mono text-[10px] tracking-[0.18em] text-[var(--color-muted)]">
                           snapshot {digest?.snapshotDate.slice(0, 10)} / {digest?.sourceCount}{' '}
                           sources
                         </p>
@@ -268,7 +268,7 @@ export default async function CommunitiesPage({
                     <form action={generateDigest}>
                       <input type="hidden" name="trackedId" value={row.id} />
                       <button
-                        className="w-full border border-[var(--color-line)] px-3 py-2 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
+                        className="w-full border border-[var(--color-line)] px-3 py-2 font-mono text-[10px] tracking-[0.18em] text-[var(--color-muted)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
                         type="submit"
                       >
                         generate digest
@@ -277,7 +277,7 @@ export default async function CommunitiesPage({
                     <form action={removeTracked}>
                       <input type="hidden" name="trackedId" value={row.id} />
                       <button
-                        className="w-full border border-[var(--color-line)] px-3 py-2 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-muted)] hover:border-rose-400 hover:text-rose-400"
+                        className="w-full border border-[var(--color-line)] px-3 py-2 font-mono text-[10px] tracking-[0.18em] text-[var(--color-muted)] hover:border-rose-400 hover:text-rose-400"
                         type="submit"
                       >
                         untrack

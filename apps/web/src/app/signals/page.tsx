@@ -1,3 +1,5 @@
+import { EmptyState } from '@saas-maker/ui/components/empty-state';
+import { ErrorState } from '@saas-maker/ui/components/error-state';
 import type { Metadata, Route } from 'next';
 import Link from 'next/link';
 import { HistoryGate } from '@/components/history/HistoryGate';
@@ -54,11 +56,11 @@ function SignalDay({
         <div>
           <h2
             id={`signals-${label.toLowerCase()}`}
-            className="text-xl font-medium tracking-tight text-[var(--color-fg)]"
+            className="ui-case text-xl font-medium tracking-tight text-[var(--color-fg)]"
           >
             {label}
           </h2>
-          <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-muted)]">
+          <p className="mt-1 font-mono text-[10px] tracking-[0.14em] text-[var(--color-muted)]">
             {day} ·{' '}
             {signals === null
               ? 'signal source unavailable'
@@ -67,7 +69,7 @@ function SignalDay({
         </div>
         <Link
           href={(label === 'Today' ? '/' : '/?day=yesterday') as Route}
-          className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-muted)] hover:text-[var(--color-accent)]"
+          className="font-mono text-[10px] tracking-[0.14em] text-[var(--color-muted)] hover:text-[var(--color-accent)]"
         >
           read brief →
         </Link>
@@ -78,12 +80,28 @@ function SignalDay({
             <SignalCard key={signal.id} s={signal} />
           ))}
         </div>
+      ) : signals === null ? (
+        <ErrorState
+          description="The signal store could not be read. Publication counts are unavailable."
+          primaryAction={
+            <a href="" className="underline">
+              try again →
+            </a>
+          }
+        />
       ) : (
-        <p className="border-b border-[var(--color-line)] py-8 text-sm leading-6 text-[var(--color-muted)]">
-          {signals === null
-            ? 'The signal store could not be read. Publication counts are unavailable.'
-            : 'No signal cleared the evidence and materiality gates for this day.'}
-        </p>
+        <EmptyState
+          title="no verified signals"
+          description="No signal cleared the evidence and materiality gates for this day."
+          primaryAction={
+            <Link
+              href={(label === 'Today' ? '/' : '/?day=yesterday') as Route}
+              className="underline"
+            >
+              read brief →
+            </Link>
+          }
+        />
       )}
     </section>
   );
@@ -122,10 +140,10 @@ export default async function SignalsPage({
     <PageShell max="max-w-5xl">
       <SoftwareApplicationJsonLd />
       <header className="border-b border-[var(--color-line)] pb-7">
-        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--color-accent)]">
+        <p className="font-mono text-[10px] tracking-[0.2em] text-[var(--color-accent)]">
           chronological record
         </p>
-        <h1 className="mt-3 text-3xl font-medium tracking-tight sm:text-4xl">Signals</h1>
+        <h1 className="mt-3 text-3xl font-medium tracking-tight sm:text-4xl">signals</h1>
         <p className="mt-4 max-w-[70ch] text-sm leading-6 text-[var(--color-muted)]">
           Today and yesterday are open. Each signal leads to the claim, its direct impact,
           uncertainty, and the exact primary and corroborating sources used to publish it.
@@ -136,11 +154,11 @@ export default async function SignalsPage({
       <SignalDay day={yesterday} label="Yesterday" signals={yesterdaySignals} />
 
       <section className="mt-12 border-t border-[var(--color-line)] pt-8" aria-labelledby="earlier">
-        <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--color-accent)]">
+        <div className="font-mono text-[10px] tracking-[0.2em] text-[var(--color-accent)]">
           earlier
         </div>
         <h2 id="earlier" className="mt-3 text-2xl font-medium tracking-tight">
-          Earlier signals by brief date
+          earlier signals by brief date
         </h2>
         {!historyGrant ? (
           <HistoryGate />
@@ -159,10 +177,10 @@ export default async function SignalsPage({
                     <span className="text-sm text-[var(--color-muted)]">
                       {formatDay(entry.date)}
                     </span>
-                    <span className="ml-auto font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-muted)]">
+                    <span className="ml-auto font-mono text-[10px] tracking-[0.14em] text-[var(--color-muted)]">
                       {entry.publicItemCount} item{entry.publicItemCount === 1 ? '' : 's'}
                     </span>
-                    <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-accent)]">
+                    <span className="font-mono text-[10px] tracking-[0.14em] text-[var(--color-accent)]">
                       read →
                     </span>
                   </Link>
@@ -171,7 +189,7 @@ export default async function SignalsPage({
             </ul>
             <nav
               aria-label="Earlier signal pages"
-              className="mt-5 flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.14em]"
+              className="mt-5 flex items-center justify-between font-mono text-[10px] tracking-[0.14em]"
             >
               {hasPrevious ? (
                 <Link
@@ -197,9 +215,14 @@ export default async function SignalsPage({
             </nav>
           </>
         ) : (
-          <p className="mt-6 border-y border-[var(--color-line)] py-8 text-sm text-[var(--color-muted)]">
-            No earlier Daily Brief snapshots are available.
-          </p>
+          <EmptyState
+            title="no earlier Daily Brief snapshots are available"
+            primaryAction={
+              <Link href="/" className="underline">
+                today’s brief →
+              </Link>
+            }
+          />
         )}
       </section>
     </PageShell>
