@@ -83,12 +83,12 @@ export function DailyBriefHero({
         <div>
           <h1 className="max-w-3xl text-4xl font-medium leading-[1.05] tracking-[-0.03em] text-[var(--color-fg)] sm:text-5xl">
             {signalOnly
-              ? `${editionDay === 'today' ? 'Today’s' : editionDay === 'yesterday' ? 'Yesterday’s' : 'Earlier'} verified signals.`
+              ? `${editionDay === 'today' ? 'Today’s' : editionDay === 'yesterday' ? 'Yesterday’s' : 'Earlier'} brief.`
               : 'What changed, why it matters, and what remains uncertain.'}
           </h1>
           <p className="mt-4 max-w-[70ch] text-sm leading-6 text-[var(--color-muted)]">
             {signalOnly
-              ? 'High Signal turns public evidence across technology, startups, and finance into one concise Daily Brief for founders and operators. A claim ships only with an aligned primary source and independent corroboration. Open any signal to see what changed, why it matters, what remains uncertain, and the proof.'
+              ? 'High Signal brings technology, startups, and finance into one concise Daily Brief for founders and operators. News is attributed to retained source records. Verified signals require an aligned primary source and independent corroboration; open their proof to inspect the claim and uncertainty.'
               : 'One evidence-first edition across technology, startups, and finance, organized into three public sections: markets and companies, business opportunities, and behavior and culture.'}
           </p>
         </div>
