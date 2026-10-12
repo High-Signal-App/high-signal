@@ -3,11 +3,12 @@ import { dirname, resolve } from 'node:path';
 import { defineConfig } from 'astro/config';
 import react from '@astrojs/react';
 import tailwindcss from '@tailwindcss/vite';
+import webPackage from '@high-signal/web/package.json' with { type: 'json' };
 
 const webRoot = dirname(createRequire(import.meta.url).resolve('@high-signal/web/package.json'));
 
 export default defineConfig({
-  site: 'https://highsignal.app',
+  site: webPackage.homepage,
   output: 'static',
   publicDir: resolve(webRoot, 'public'),
   integrations: [react()],
