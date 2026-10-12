@@ -2,7 +2,15 @@
 
 Last updated: 2026-10-12
 
-October 12 shared-cache compatibility repair — implementation:
+October 12 shared-cache compatibility repair — live:
+
+The web Worker is live at 100% from `c4d16667ecb4ae106bf164bc28b5bbcdf255fca6`;
+[deployment and smoke checks](https://github.com/High-Signal-App/high-signal/actions/runs/38216693745)
+pass. Completed profile probes reused shared ISR across HKG, SIN and NRT with
+identical HTML, without the premature STALE result; same-colo outer hits also
+passed. A missing profile remained private/no-store and outside the outer cache
+on both its initial render and shared ISR read. These are diagnostic checks,
+not a natural-traffic hit-rate or CPU measurement.
 
 Live verification of PR #242 found fresh Worker instances treating new ISR
 entries as stale. The OpenNext adapter is updated from 1.19.4 to 1.20.10 for
@@ -12,6 +20,7 @@ A real local workerd/R2 check restarts the Worker and verifies a completed
 profile is served directly from persisted ISR with identical HTML. Deployment
 runs that check before writing production resources. The adapter's new build
 dependency has a targeted patched glob override; no new cache resource is added.
+See [PR #243](https://github.com/High-Signal-App/high-signal/pull/243).
 Natural-traffic CPU and the 95% target remain unverified in issue #238.
 
 October 12 company-profile cache repair — implementation:
