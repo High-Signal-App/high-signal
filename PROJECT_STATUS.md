@@ -2,6 +2,18 @@
 
 Last updated: 2026-10-12
 
+October 12 shared-cache compatibility repair — implementation:
+
+Live verification of PR #242 found fresh Worker instances treating new ISR
+entries as stale. The OpenNext adapter is updated from 1.19.4 to 1.20.10 for
+Next 16.3 route-cache keys, its required Wrangler peer is updated to 4.149.0,
+and its supported cache interception is enabled.
+A real local workerd/R2 check restarts the Worker and verifies a completed
+profile is served directly from persisted ISR with identical HTML. Deployment
+runs that check before writing production resources. The adapter's new build
+dependency has a targeted patched glob override; no new cache resource is added.
+Natural-traffic CPU and the 95% target remain unverified in issue #238.
+
 October 12 company-profile cache repair — implementation:
 
 Company profiles opt into on-demand ISR through the existing OpenNext/R2

@@ -111,6 +111,7 @@
       "astro>sharp": "0.35.5",
       "shell-quote@>=1.8.4 <1.11.0": "1.11.0",
       "cosmiconfig>js-yaml": "4.3.2",
+      "@node-minify/core>glob": "10.5.0",
       "astro>svgo": "4.1.0",
       "webpack-dev-middleware@^6.1.2": "7.4.6",
       "protobufjs@>=7.0.0 <7.6.1": "7.6.1",
