@@ -1,12 +1,15 @@
-import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
+import { dirname, resolve } from 'node:path';
 import { defineConfig } from 'astro/config';
 import react from '@astrojs/react';
 import tailwindcss from '@tailwindcss/vite';
 
+const webRoot = dirname(createRequire(import.meta.url).resolve('@high-signal/web/package.json'));
+
 export default defineConfig({
   site: 'https://highsignal.app',
   output: 'static',
-  publicDir: '../web/public',
+  publicDir: resolve(webRoot, 'public'),
   integrations: [react()],
   build: { format: 'file', inlineStylesheets: 'never' },
   vite: {
@@ -18,8 +21,8 @@ export default defineConfig({
     plugins: [tailwindcss()],
     resolve: {
       alias: {
-        '@': fileURLToPath(new URL('../web/src', import.meta.url)),
-        '@web-root': fileURLToPath(new URL('../web', import.meta.url)),
+        '@': resolve(webRoot, 'src'),
+        '@web-root': webRoot,
       },
     },
   },

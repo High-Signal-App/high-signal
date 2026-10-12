@@ -2,7 +2,7 @@
 import ReaderLayout from '../../../layouts/ReaderLayout.astro';
 import { CASE_STUDIES } from '@/app/case-studies/data';
 import { CompanyProfileContent } from '@/app/case-studies/[slug]/CompanyProfileContent';
-import { evaluateCompany } from '@high-signal/web/public-corpus-policy.mjs';
+import { evaluateCompany } from '@web-root/public-corpus-policy.mjs';
 
 export function getStaticPaths() {
   if (process.env['READER_BUILD_MODE'] === 'brief') return [];
