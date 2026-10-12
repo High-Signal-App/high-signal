@@ -262,6 +262,28 @@ const renderedPage = (html, headers = {}, status = 200) =>
     status,
     headers: { 'Content-Type': 'text/html', 'Cache-Control': dynamicPolicy, ...headers },
   });
+const profileRequest = request('/case-studies/openai');
+assert.equal(cacheControlForRequest(profileRequest), 'public, max-age=60, s-maxage=3600');
+const profilePolicy = { 'Cache-Control': 's-maxage=3600' };
+const completedProfile = await qualifyPublicQueryResponse(
+  profileRequest,
+  renderedPage(
+    '<span hidden="" data-high-signal-public-cache="company-profile-v1"></span>',
+    profilePolicy
+  )
+);
+assert.equal(isCacheableDocumentResponse(profileRequest, completedProfile), true);
+const missingProfile = await qualifyPublicQueryResponse(
+  profileRequest,
+  renderedPage('<main>Not found</main>', profilePolicy)
+);
+assert.equal(missingProfile.headers.get('cache-control'), 'private, no-store');
+assert.equal(isCacheableDocumentResponse(profileRequest, missingProfile), false);
+assert.equal(
+  isCacheableDocumentRequest(request('/case-studies/openai?_rsc=state', { headers: { rsc: '1' } })),
+  false,
+  'profile RSC shells must stay out of the outer cache'
+);
 const qualifiedSource = await qualifyPublicQueryResponse(
   request('/data/courtlistener?date=2026-10-08'),
   renderedPage(publicSourceHtml)
