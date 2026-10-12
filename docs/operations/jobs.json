@@ -12,6 +12,51 @@
   ],
   "jobs": [
     {
+      "id": "publish-reader",
+      "kind": "publication",
+      "owner": "sarthak",
+      "trigger": {
+        "type": "github-schedule",
+        "cron": "2-59/5 * * * *",
+        "tz": "UTC"
+      },
+      "workflowFile": ".github/workflows/publish-reader.yml",
+      "runtime": "github-actions-ubuntu",
+      "command": "pnpm --filter @high-signal/reader capture && READER_BUILD_MODE=brief pnpm --filter @high-signal/reader build && node apps/reader/scripts/publish-artifacts.mjs",
+      "workingDirectory": ".",
+      "bounds": {
+        "timeoutMinutes": 10,
+        "concurrency": 1,
+        "retryMax": 0,
+        "maxBytesPerSlot": 8388608
+      },
+      "idempotency": {
+        "mechanism": "two bounded R2 slots; checksummed bodies; current pointer promoted last",
+        "watermark": "source SHA + capturedAt",
+        "deduplicationEvidence": "apps/reader/scripts/publish-artifacts.mjs"
+      },
+      "freshness": {
+        "windowHours": 0.08333333333333333,
+        "evidenceSource": "reader/v1/current.json capturedAt"
+      },
+      "outputExpectation": {
+        "variants": 20,
+        "zeroOutputIsFailure": false
+      },
+      "failureDestination": {
+        "durableState": "previous R2 pointer preserved; stale publications delegate to existing renderer",
+        "notification": "GitHub Actions failure"
+      },
+      "evidence": {
+        "artifact": "reader/v1/current.json",
+        "buildEndpoint": "/api/reader-build"
+      },
+      "acceptedExceptions": [
+        "Inactive until the Astro reader pilot is deployed; existing renderer serves misses and expired publications.",
+        "Duplicate events within two minutes reuse the current publication without writing objects."
+      ]
+    },
+    {
       "id": "cron-ingest",
       "kind": "ingestion",
       "owner": "sarthak",

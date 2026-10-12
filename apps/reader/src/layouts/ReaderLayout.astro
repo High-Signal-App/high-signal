@@ -1,0 +1,49 @@
+---
+import '../styles/reader.css';
+import { ReaderHeader } from '../components/ReaderHeader';
+import { SiteFooter } from '@/components/system/SiteFooter';
+import { SiteOrganizationJsonLd } from '@/components/seo/structured-data';
+import { SITE_URL, SITE_TWITTER } from '@/lib/site';
+
+interface Props { title: string; description: string; pathname: string; index?: boolean }
+const { title, description, pathname, index = true } = Astro.props;
+const canonical = new URL(pathname, SITE_URL).href;
+---
+<!doctype html>
+<html lang="en" data-theme="ink" data-mode="dark" data-reading-view="brief">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <SiteOrganizationJsonLd />
+    <meta name="robots" content={index ? 'index, follow, max-image-preview:large' : 'noindex, follow'} />
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="alternate" type="application/rss+xml" href="/signals/rss" title="High Signal — published signals" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:site_name" content="High Signal" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={`${SITE_URL}/opengraph-image`} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:creator" content={SITE_TWITTER} />
+    <meta name="twitter:image" content={`${SITE_URL}/opengraph-image`} />
+    <script is:inline>
+      try { if (localStorage.getItem('high-signal-reading-view') === 'newspaper') document.documentElement.dataset.readingView = 'newspaper'; } catch {}
+    </script>
+  </head>
+  <body class="min-h-dvh font-sans antialiased">
+    <ReaderHeader />
+    <slot />
+    <SiteFooter />
+    <script src="/studio-footer/v0.1.19/footer.js" type="module" is:inline></script>
+    <script>
+      import '../browser';
+    </script>
+  </body>
+</html>

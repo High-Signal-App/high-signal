@@ -6,10 +6,10 @@
  * and logs requests slower than 200 ms via `console.warn`.
  */
 export function withTiming(handler) {
-  return async (request, env, ctx) => {
+  return async (request, env, ctx, ...options) => {
     const start = performance.now();
     const url = new URL(request.url);
-    const response = await handler(request, env, ctx);
+    const response = await handler(request, env, ctx, ...options);
     const duration = performance.now() - start;
 
     // Add Server-Timing header

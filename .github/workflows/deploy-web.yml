@@ -66,3 +66,5 @@ jobs:
               "https://highsignal.app${path}?probe=$GITHUB_SHA")"
             test "$code" = "404"
           done
+      - name: Verify deployed reader documents
+        run: node apps/web/scripts/smoke-reader.mjs

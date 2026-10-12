@@ -1,0 +1,4 @@
+@import "../../../web/src/app/globals.css";
+@source "../../../web/src";
+@source "../../node_modules/@saas-maker/ui/src/blocks/site-header.tsx";
+@source "../../node_modules/@saas-maker/ui/src/blocks/mobile-nav.tsx";

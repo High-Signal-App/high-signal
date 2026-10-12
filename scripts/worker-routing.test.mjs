@@ -7,7 +7,19 @@ import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const wranglerConfig = readFileSync(resolve(root, 'apps/web/wrangler.toml'), 'utf8');
-const workerSource = readFileSync(resolve(root, 'apps/web/worker.mjs'), 'utf8');
+const workerSource = readFileSync(resolve(root, 'apps/web/legacy-worker.mjs'), 'utf8');
+const readerWorker = readFileSync(resolve(root, 'apps/web/worker.mjs'), 'utf8');
+assert.match(
+  readerWorker,
+  /await import\('\.\/legacy-worker\.mjs'\)/,
+  'Next must remain a lazy fallback'
+);
+assert.match(readerWorker, /serveReaderArtifact/, 'Public artifacts must pass the reader gates');
+assert.match(
+  readerWorker,
+  /pathname\.startsWith\('\/_private\/'\)/,
+  'Internal artifacts must not be public'
+);
 const cachePolicySource = readFileSync(resolve(root, 'apps/web/worker-cache-policy.mjs'), 'utf8');
 const webPackage = JSON.parse(readFileSync(resolve(root, 'apps/web/package.json'), 'utf8'));
 

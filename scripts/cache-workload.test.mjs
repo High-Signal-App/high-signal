@@ -5,7 +5,7 @@ const dataUrl = (source) => `data:text/javascript;base64,${Buffer.from(source).t
 const renderer = dataUrl(
   `export const DOQueueHandler=class {}; export const DOShardedTagCache=class {}; export const BucketCachePurge=class {}; export default {fetch: async request => { globalThis.__rendered++; return new Response('<html><main data-high-signal-public-cache="source-detail-v1">'+new URL(request.url).pathname+new URL(request.url).searchParams.get('date')+'</main></html>', {headers:{'content-type':'text/html','cache-control':'private, no-cache, no-store, max-age=0, must-revalidate'}}); }};`
 );
-let source = readFileSync(new URL('../apps/web/worker.mjs', import.meta.url), 'utf8');
+let source = readFileSync(new URL('../apps/web/legacy-worker.mjs', import.meta.url), 'utf8');
 source = source.replace(/from '([^']+)'/g, (_, path) => {
   const url =
     path === './.open-next/worker.js'

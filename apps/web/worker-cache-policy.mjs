@@ -49,7 +49,7 @@ const QUERY_KEYED_DATA_PATHS = new Map([
 // both unlock personalized content that must not leak to anonymous traffic.
 const AUTH_COOKIE_FRAGMENTS = ['CF_Authorization', 'high-signal-history'];
 
-function isTrackingParameter(key) {
+export function isTrackingParameter(key) {
   return /^utm_[a-z0-9_]+$/i.test(key) || ['gclid', 'fbclid', 'msclkid'].includes(key);
 }
 
