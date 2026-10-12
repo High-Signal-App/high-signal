@@ -29,7 +29,11 @@
         "src/**/*.{ts,tsx}"
       ],
       "ignore": ["public-route-registry.d.mts"],
-      "ignoreUnresolved": ["./.open-next/.build/durable-objects/*.js"],
+      "ignoreUnresolved": [
+        "./.open-next/.build/durable-objects/queue.js",
+        "./.open-next/.build/durable-objects/sharded-tag-cache.js",
+        "./.open-next/.build/durable-objects/bucket-cache-purge.js"
+      ],
       "ignoreDependencies": [
         "@opennextjs/cloudflare",
         "@storybook/addon-docs",
