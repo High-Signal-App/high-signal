@@ -2,27 +2,31 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 const require = createRequire(new URL('../package.json', import.meta.url));
-const { Miniflare } = createRequire(require.resolve('wrangler'))('miniflare');
+const { Miniflare, convertV4MiniflareOptions } = createRequire(require.resolve('wrangler'))(
+  'miniflare'
+);
 const bufferSource = readFileSync(
   new URL('../../../packages/shared/worker-health-buffer.mjs', import.meta.url),
   'utf8'
 );
 const batches = [];
-const mf = new Miniflare({
-  modules: true,
-  compatibilityDate: '2026-04-25',
-  script:
-    bufferSource +
-    `
+const mf = new Miniflare(
+  convertV4MiniflareOptions({
+    modules: true,
+    compatibilityDate: '2026-04-25',
+    script:
+      bufferSource +
+      `
     const createClient=()=>{const events=[];return {record(e){events.push(e)},log(){},async flush(){await fetch('https://ingest.test/v1/ingest',{method:'POST',body:JSON.stringify(events)});}};};
     const buffered=createWorkerHealthBuffer(createClient,{delayMs:500,batchSize:50});
     export default {fetch(request,env,ctx){const client=buffered.client(env,{});client.record({method:'GET',route:'/example/:id',status_code:200,duration_ms:1});ctx.waitUntil(client.flush());return new Response('ok');}};
   `,
-  outboundService: async (request) => {
-    batches.push(await request.json());
-    return new Response(null, { status: 202 });
-  },
-});
+    outboundService: async (request) => {
+      batches.push(await request.json());
+      return new Response(null, { status: 202 });
+    },
+  })
+);
 try {
   const responses = await Promise.all(
     Array.from({ length: 200 }, () => mf.dispatchFetch('https://worker.test/example'))
