@@ -2,7 +2,21 @@
 
 Last updated: 2026-10-12
 
-October 12 Astro reader pilot — implemented, not deployed:
+October 12 Astro reader pilot — live:
+
+The web Worker serves 100% of traffic from
+`ab4bdd6f4793043dacd8dc44b263e796df5b7956`, version
+`7c97e9d3-fc62-4157-ac35-716e9b8d3b4b`, activated at 13:45:34 UTC.
+[Exact-main CI](https://github.com/High-Signal-App/high-signal/actions/runs/38256023521),
+[deployment and smoke checks](https://github.com/High-Signal-App/high-signal/actions/runs/38256919496)
+and the [initial bounded publication](https://github.com/High-Signal-App/high-signal/actions/runs/38257993850)
+passed. The publisher workflow is active. Production diagnostic checks verified
+all twenty day/region variants for October 12/11, compiled company HTML and
+Markdown, identical repeated profile bodies, encoded internal-asset blocking,
+and delegation for unknown query parameters, older history and history cookies.
+Chrome verified region/date navigation, mobile navigation, and phone/tablet/desktop
+rendering without horizontal overflow or browser errors. These checks do not
+establish a natural-traffic cache-hit rate or CPU savings.
 
 `apps/reader` prebuilds the company corpus and renders twenty current/public
 brief variants from the existing qualification logic. Shared React templates
@@ -19,9 +33,11 @@ body cache. Missing, incompatible or expired publications delegate to Next.
 Today uses the existing API/KV cache; publisher traffic is classified as automation.
 
 The backend, database, ingestion and existing Cloudflare resources are retained.
-The pilot requires production approval and natural-traffic acceptance in
+The owner approved this release; natural-traffic acceptance remains in
 [issue #238](https://github.com/High-Signal-App/high-signal/issues/238).
 Production CPU savings, the bill forecast and the 95% target remain unverified.
+Briefs fall back to Next when publication exceeds the five-minute freshness
+window; GitHub scheduler delays therefore remain a possible rendering-cost source.
 
 October 12 shared-cache compatibility repair — live:
 
