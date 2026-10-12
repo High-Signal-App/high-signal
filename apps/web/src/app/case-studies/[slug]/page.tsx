@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { BackLink, HeroHeader, PageShell, Panel, StatGrid } from '@/components/system/HighSignalUI';
 import { BreadcrumbJsonLd, CompanyProfileJsonLd } from '@/components/seo/structured-data';
-import { fetchJson } from '@/lib/api';
+import { ApiError, fetchJson } from '@/lib/api';
 import { SITE_URL } from '@/lib/site';
 import { evaluateCompany, robotsForVerdict } from '../../../../public-corpus-policy.mjs';
 import { getSimilarCompanyCluster } from '../company-search';
@@ -21,6 +21,11 @@ interface PageProps {
 }
 
 export const dynamicParams = true;
+
+// Populate the shared ISR cache on first access without building the whole corpus.
+export function generateStaticParams() {
+  return [];
+}
 
 interface LiveCompany extends UniverseCompany {
   status?: string;
@@ -41,8 +46,10 @@ async function getLiveCompany(slug: string): Promise<LiveCompany | null> {
       `/company-universe/${encodeURIComponent(slug)}`
     );
     return { ...payload.company, competitors: payload.competitors };
-  } catch {
-    return null;
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) return null;
+    // An unavailable lookup must fail rendering rather than cache a false not-found.
+    throw error;
   }
 }
 
@@ -101,6 +108,7 @@ export default async function CaseStudyDetailPage({ params }: PageProps) {
 
   return (
     <PageShell max="max-w-5xl">
+      <span hidden data-high-signal-public-cache="company-profile-v1" />
       <BreadcrumbJsonLd
         trail={[
           { name: 'Home', path: '/' },

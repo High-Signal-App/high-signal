@@ -81,6 +81,11 @@ export function isCacheableDocumentRequest(request) {
   // the detail renderer is still an HTTP 200, so response headers cannot
   // reliably prevent the Worker from sharing that stale result.
   if (isSignalDetailPath(pathname)) return false;
+  // Profile Flight responses can contain streamed not-found shells. ISR still
+  // serves valid profiles; only completed HTML enters the outer response cache.
+  if (isCompanyProfilePath(pathname)) {
+    if (request.headers.get('rsc') === '1') return false;
+  }
 
   // Anonymous HTML shares its canonical URL when only campaign tags differ. RSC
   // variants keep their complete URL and routing headers so Next.js cannot
@@ -146,7 +151,8 @@ export function cacheControlForRequest(request) {
     pathname === '/entities' ||
     pathname === '/markets' ||
     pathname.startsWith('/entities/') ||
-    pathname.startsWith('/markets/')
+    pathname.startsWith('/markets/') ||
+    isCompanyProfilePath(pathname)
   ) {
     return FRESH_HTML_CACHE_CONTROL;
   }
@@ -187,9 +193,19 @@ export async function qualifyPublicQueryResponse(request, response) {
   if (!isCacheableDocumentRequest(request) || isRscRequest(request)) return response;
   if (response.status !== 200 || response.headers.has('set-cookie')) return response;
   if (!(response.headers.get('content-type') ?? '').includes('text/html')) return response;
+  const pathname = normalizePublicPath(new URL(request.url).pathname);
+  if (isCompanyProfilePath(pathname)) {
+    const complete = await hasPublicRenderMarker(
+      response,
+      /<span\b[^>]*\bdata-high-signal-public-cache="company-profile-v1"/
+    );
+    if (complete) return response;
+    const headers = new Headers(response.headers);
+    headers.set('Cache-Control', 'private, no-store');
+    return new Response(response.body, { status: response.status, headers });
+  }
   const policy = (response.headers.get('cache-control') ?? '').toLowerCase().replace(/\s/g, '');
   if (policy !== NEXT_DYNAMIC_CACHE_CONTROL) return response;
-  const pathname = normalizePublicPath(new URL(request.url).pathname);
   const marker = /^\/data\/[^/]+$/.test(pathname)
     ? /<main\b[^>]*\bdata-high-signal-public-cache="source-detail-v1"/
     : pathname === '/case-studies/search'
@@ -254,6 +270,10 @@ function isSignalDetailPath(pathname) {
     pathname !== '/signals/types' &&
     pathname.split('/').length === 3
   );
+}
+
+function isCompanyProfilePath(pathname) {
+  return /^\/case-studies\/[^/]+$/.test(pathname) && pathname !== '/case-studies/search';
 }
 
 function dataPolicyForPath(pathname) {

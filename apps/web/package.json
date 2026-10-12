@@ -5,7 +5,7 @@
   "homepage": "https://highsignal.app",
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "next build --webpack",
+    "build": "next build --webpack && node scripts/verify-company-profile-isr.mjs",
     "build:landing": "pnpm -C landing-astro build",
     "cf:build": "opennextjs-cloudflare build && node scripts/write-cache-build-id.mjs && node scripts/overlay-docs.mjs",
     "deploy": "pnpm cf:build && opennextjs-cloudflare deploy --tag \"$(git rev-parse HEAD)\"",

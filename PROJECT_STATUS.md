@@ -1,6 +1,18 @@
 # high-signal — PROJECT STATUS
 
-Last updated: 2026-10-10
+Last updated: 2026-10-12
+
+October 12 company-profile cache repair — implementation:
+
+Company profiles opt into on-demand ISR through the existing OpenNext/R2
+cache; production builds reject a regression to per-request rendering.
+Completed profile HTML has a one-hour outer-cache TTL. Streamed missing pages
+and profile Flight payloads stay outside that outer cache, lookup failures
+remain uncached errors, and successful lookups invalidate the profile's ISR
+entry. The compiled-renderer checks cover reuse, missing-page exclusion,
+post-lookup visibility and API outages. See [PR #242](https://github.com/High-Signal-App/high-signal/pull/242).
+Production CPU savings and the 95% eligible hit-rate target remain unverified
+in [issue #238](https://github.com/High-Signal-App/high-signal/issues/238).
 
 October 10 streamed crawler Markdown correction — implementation:
 
