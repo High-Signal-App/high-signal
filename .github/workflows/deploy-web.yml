@@ -17,6 +17,8 @@ jobs:
         working-directory: apps/web
         env:
           SKIP_NEXT_APP_BUILD: "false"
+      - name: Verify persisted company-profile cache after Worker restart
+        run: node apps/web/scripts/verify-company-profile-cache-restart.mjs
       # `opennextjs-cloudflare deploy` populates R2 through a temporary
       # remote-preview Worker, which needs a single token with both Workers
       # Scripts edit and R2 access. Split it: the R2-scoped token writes the

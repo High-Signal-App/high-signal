@@ -6,6 +6,8 @@ import doShardedTagCache from '@opennextjs/cloudflare/overrides/tag-cache/do-sha
 import { purgeCache } from '@opennextjs/cloudflare/overrides/cache-purge/index';
 
 export default defineCloudflareConfig({
+  // Read the persisted ISR lifetime before a fresh Next instance defaults to 1s.
+  enableCacheInterception: true,
   incrementalCache: withRegionalCache(r2IncrementalCache, { mode: 'long-lived' }),
   queue: doQueue,
   tagCache: doShardedTagCache(),
