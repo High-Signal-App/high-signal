@@ -29,6 +29,11 @@
         "src/**/*.{ts,tsx}"
       ],
       "ignore": ["public-route-registry.d.mts"],
+      "ignoreUnresolved": [
+        "./.open-next/.build/durable-objects/queue.js",
+        "./.open-next/.build/durable-objects/sharded-tag-cache.js",
+        "./.open-next/.build/durable-objects/bucket-cache-purge.js"
+      ],
       "ignoreDependencies": [
         "@opennextjs/cloudflare",
         "@storybook/addon-docs",
@@ -41,6 +46,11 @@
         "wrangler"
       ],
       "ignoreBinaries": ["wrangler"]
+    },
+    "apps/reader": {
+      "entry": ["astro.config.mjs", "src/pages/**/*.astro", "scripts/*.{ts,mjs}"],
+      "project": ["src/**/*.{astro,ts,tsx}", "scripts/*.{ts,mjs}", "astro.config.mjs"],
+      "ignoreDependencies": ["tailwindcss", "@tailwindcss/typography"]
     },
     "apps/web/landing-astro": {
       "entry": ["astro.config.mjs"],

@@ -493,3 +493,32 @@ right trade for telemetry. The client is a silent no-op until
 result but not whether the reader actually got a usable cookie. Log every
 history page view: that is PostHog's job and would bury the unlock. Await the
 ping: adds up to 3 s to a user-facing request for a telemetry write.
+
+---
+
+## ADR-016 — Prepublish the public reader documents
+
+Date: 2026-10-12
+Status: approved pilot; production acceptance pending
+
+**Context.** This public news product has a daily brief and a large company
+corpus. Crawlers visit distinct documents across locations, so warm-repeat
+cache tests cannot establish the cost of first-time reads. Shared ISR remains
+useful, but the public documents do not need Next rendering for each cold key.
+
+**Decision.** Use Astro with the existing React publication templates for
+company profiles and today's/yesterday's regional brief. Keep Hono, D1,
+Drizzle and Python. A thin web Worker serves the compiled documents; Next
+continues to serve dynamic lookups, search, protected history and operators.
+
+**Boundaries.** Brief artifacts stay in the existing private R2 binding.
+Publication verifies deployed code/assets and promotes a pointer only after
+all variants are uploaded. Two reusable slots and a publication size bound
+prevent accumulated refresh storage. The Worker checks source, IST day,
+freshness and body checksum before serving a brief. Internal asset URLs are
+blocked; missing or incompatible artifacts delegate to the existing renderer.
+
+**Acceptance.** Preserve content, evidence, indexing and guest interactions.
+Compare distinct-document reads in the real runtime, then measure production
+CPU and billing in issue #238 before expanding the migration. Cache-hit
+percentages and local handler timings do not establish a production budget.

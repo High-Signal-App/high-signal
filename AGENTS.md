@@ -36,6 +36,10 @@ prior "umbrella + 5 sub-products" framing in `plans/0004-platform-consolidation.
 ## Stack
 
 - **Web**: Next.js 16 (App Router, Turbopack) — `apps/web`
+- **Reader publication pilot**: Astro 7 + shared React templates — `apps/reader`.
+  Compiled company profiles and bounded brief publications pass through the web
+  Worker's freshness/access gates; Next retains dynamic and protected fallbacks.
+  See ADR-016 in [`docs/architecture/decisions.md`](docs/architecture/decisions.md).
 - **API**: Hono on Cloudflare Workers — `workers/api`
 - **DB**: Cloudflare D1 + Drizzle — schema in `packages/db`
 - **Python ingestion + scoring**: edgartools, Trafilatura, GLiNER, NetworkX — `python/ingest`. Relation extraction (GLiREL) is a parked stub returning a typed empty result (not a declared dep); FinBERT sentiment is code-present but its `transformers` dep is undeclared and returns an unavailable/neutral-with-reason result. Daily crons on GitHub Actions; Modal kept for ad-hoc backfills only.

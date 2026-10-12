@@ -1,0 +1,16 @@
+---
+import ReaderLayout from '../../../../layouts/ReaderLayout.astro';
+import { BriefContent } from '../../../../components/BriefContent';
+import { briefInput } from '../../../../input';
+
+export function getStaticPaths() {
+  return (briefInput?.entries ?? []).map((entry) => ({
+    params: { day: entry.day, region: entry.brief.region },
+    props: { entry, capturedAt: briefInput!.capturedAt },
+  }));
+}
+const { entry, capturedAt } = Astro.props;
+---
+<ReaderLayout title="High Signal — Technology, startups and finance brief" description="Read the daily technology, startup and finance brief with attributed news, evidence-qualified signals, source links, uncertainties and permanent signal history." pathname="/">
+  <BriefContent brief={entry.brief} day={entry.day} capturedAt={capturedAt} />
+</ReaderLayout>

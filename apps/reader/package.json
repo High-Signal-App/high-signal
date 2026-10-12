@@ -1,0 +1,33 @@
+{
+  "name": "@high-signal/reader",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "astro build && node scripts/package-artifacts.mjs",
+    "dev": "astro dev",
+    "preview": "astro preview",
+    "capture": "tsx scripts/capture-brief.ts",
+    "typecheck": "astro check",
+    "lint": "biome check ."
+  },
+  "dependencies": {
+    "@astrojs/react": "7.0.1",
+    "@high-signal/shared": "workspace:*",
+    "@saas-maker/ui": "github:sass-maker/ui-library#v0.1.19&path:/packages/ui",
+    "astro": "7.2.8",
+    "react": "19.2.5",
+    "react-dom": "19.2.5"
+  },
+  "devDependencies": {
+    "@high-signal/web": "workspace:*",
+    "@astrojs/check": "0.9.10",
+    "@tailwindcss/vite": "4.3.3",
+    "@tailwindcss/typography": "0.5.19",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "tailwindcss": "4.3.3",
+    "typescript": "6.0.3",
+    "tsx": "4.23.1"
+  }
+}

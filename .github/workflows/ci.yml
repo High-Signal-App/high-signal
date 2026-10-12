@@ -48,8 +48,16 @@ jobs:
           trap - EXIT
           CACHE_GUARD_BASH
       - run: pnpm quality
-      - name: Build High Signal Next.js application
-        run: pnpm --filter @high-signal/web build
+      - name: Build High Signal with the reader overlay
+        run: pnpm --filter @high-signal/web cf:build
+      - name: Compile bounded reader publication fixture
+        run: |
+          pnpm exec tsx apps/reader/scripts/capture-brief.test.ts apps/reader/.generated/brief-input.json
+          READER_BUILD_MODE=brief pnpm --filter @high-signal/reader build
+      - name: Verify real reader runtime and protected fallbacks
+        run: node apps/web/scripts/verify-reader-runtime.mjs apps/reader/dist
+      - name: Verify fallback ISR survives runtime restart
+        run: node apps/web/scripts/verify-company-profile-cache-restart.mjs
       - name: Build High Signal Storybook
         run: pnpm --filter @high-signal/web build-storybook
       - uses: actions/upload-artifact@v7

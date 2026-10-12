@@ -1,0 +1,17 @@
+---
+import ReaderLayout from '../../../layouts/ReaderLayout.astro';
+import { CASE_STUDIES } from '@/app/case-studies/data';
+import { CompanyProfileContent } from '@/app/case-studies/[slug]/CompanyProfileContent';
+import { evaluateCompany } from '@web-root/public-corpus-policy.mjs';
+
+export function getStaticPaths() {
+  if (process.env['READER_BUILD_MODE'] === 'brief') return [];
+  return CASE_STUDIES.map((study) => ({ params: { slug: study.slug }, props: { study } }));
+}
+const { study } = Astro.props;
+const category = study.category === 'Other' ? 'company' : study.category;
+const description = (study.description ? `${study.description} Explore official provenance and meaningfully similar companies.` : `${study.name} company profile with official-source provenance and similar companies.`).slice(0, 160).replace(/\s+\S*$/, '');
+---
+<ReaderLayout title={`${study.name}: ${category}, provenance, and similar companies — High Signal`} description={description} pathname={`/case-studies/${study.slug}`} index={evaluateCompany(study).eligible}>
+  <CompanyProfileContent study={study} />
+</ReaderLayout>

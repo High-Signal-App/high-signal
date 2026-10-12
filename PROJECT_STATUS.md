@@ -2,6 +2,27 @@
 
 Last updated: 2026-10-12
 
+October 12 Astro reader pilot — implemented, not deployed:
+
+`apps/reader` prebuilds the company corpus and renders twenty current/public
+brief variants from the existing qualification logic. Shared React templates
+preserve the current appearance, evidence, canonical URLs and indexing policy.
+The web Worker serves these documents before loading Next; search, new lookups,
+protected history and operator paths retain the existing renderer.
+
+Brief publication checks the deployed source and browser assets, writes an
+inactive R2 slot, then promotes the pointer. Two slots bound storage across
+refreshes and releases; each publication is capped at 8 MiB. Cached pointers
+must match the source, current IST day and five-minute publication window.
+Reused slots are checked against the document checksum before entering the
+body cache. Missing, incompatible or expired publications delegate to Next.
+Today uses the existing API/KV cache; publisher traffic is classified as automation.
+
+The backend, database, ingestion and existing Cloudflare resources are retained.
+The pilot requires production approval and natural-traffic acceptance in
+[issue #238](https://github.com/High-Signal-App/high-signal/issues/238).
+Production CPU savings, the bill forecast and the 95% target remain unverified.
+
 October 12 shared-cache compatibility repair — live:
 
 The web Worker is live at 100% from `c4d16667ecb4ae106bf164bc28b5bbcdf255fca6`;

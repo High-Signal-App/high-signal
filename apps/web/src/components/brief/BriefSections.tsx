@@ -1,7 +1,5 @@
 import { EmptyState } from '@saas-maker/ui/components/empty-state';
 import { ErrorState } from '@saas-maker/ui/components/error-state';
-import Link from 'next/link';
-import type { Route } from 'next';
 import type { ReactNode } from 'react';
 import {
   categoryStatesForSnapshot,
@@ -93,9 +91,9 @@ function SectionShell({
               title="no qualifying items"
               description={stateCopy(state, empty)}
               primaryAction={
-                <Link href="/signals" className="underline">
+                <a href="/signals" className="underline">
                   all signals →
-                </Link>
+                </a>
               }
             />
           )}
@@ -140,12 +138,12 @@ function DirectHistory({ item }: { item: BriefStockItem }) {
           Not enough scored calls of this exact type yet.
         </p>
       )}
-      <Link
-        href={'/track-record' as Route}
+      <a
+        href={'/track-record'}
         className="mt-3 inline-flex min-h-11 items-center font-mono text-[10px] tracking-[0.12em] text-[var(--color-muted)] hover:text-[var(--color-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-accent)]"
       >
         full ledger →
-      </Link>
+      </a>
     </div>
   );
 }
@@ -164,12 +162,12 @@ function StockItem({ item }: { item: BriefStockItem }) {
           <span>{item.predictedWindowDays}d window</span>
         </div>
 
-        <Link
-          href={`/signals/${encodeURIComponent(item.signalSlug)}` as Route}
+        <a
+          href={`/signals/${encodeURIComponent(item.signalSlug)}`}
           className="brief-feed-item-title mt-3 block max-w-4xl text-2xl font-medium leading-8 tracking-[-0.02em] text-[var(--color-fg)] hover:text-[var(--color-accent)]"
         >
           {item.headline}
-        </Link>
+        </a>
 
         {item.whatChanged && item.whyItMatters && item.uncertainty ? (
           <dl className="mt-5 grid gap-4 text-sm leading-6 sm:grid-cols-3">
@@ -207,12 +205,12 @@ function StockItem({ item }: { item: BriefStockItem }) {
             </a>
           ))}
           {item.provenance ? (
-            <Link
-              href={`/signals/${encodeURIComponent(item.signalSlug)}#provenance` as Route}
+            <a
+              href={`/signals/${encodeURIComponent(item.signalSlug)}#provenance`}
               className="hover:text-[var(--color-accent)]"
             >
               claim v{item.provenance.version} · {item.provenance.evidenceCount} supporting
-            </Link>
+            </a>
           ) : null}
         </div>
       </div>
@@ -332,12 +330,12 @@ function NewsSourceReferences({ citations }: { citations: BriefCitation[] }) {
             {citation.source ?? sourceHost(citation.url)} ↗
           </a>
           {citation.recordId ? (
-            <Link
-              href={`/data/records/${encodeURIComponent(citation.recordId)}` as Route}
+            <a
+              href={`/data/records/${encodeURIComponent(citation.recordId)}`}
               className="text-[var(--color-fg)] underline decoration-[var(--color-line)] underline-offset-4 hover:text-[var(--color-accent)]"
             >
               record
-            </Link>
+            </a>
           ) : null}
         </span>
       ))}
@@ -414,12 +412,12 @@ export function SignalFeed({
                 : `no verified signals ${editionDay}`}
         </h2>
         {state.status === 'ready' && count > 0 ? (
-          <Link
-            href={'/signals' as Route}
+          <a
+            href={'/signals'}
             className="inline-flex min-h-11 items-center font-mono text-[10px] tracking-[0.14em] text-[var(--color-muted)] hover:text-[var(--color-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-accent)]"
           >
             all signals →
-          </Link>
+          </a>
         ) : null}
       </div>
 
@@ -446,27 +444,27 @@ export function SignalFeed({
               description={
                 <p className="max-w-[65ch] text-sm leading-6 text-[var(--color-muted)]">
                   Nothing cleared the evidence and publication gates for this edition.{' '}
-                  <Link
-                    href={alternateHref as Route}
+                  <a
+                    href={alternateHref}
                     className="text-[var(--color-fg)] underline decoration-[var(--color-line)] underline-offset-4 hover:text-[var(--color-accent)]"
                   >
                     Check {alternateDay}
-                  </Link>{' '}
+                  </a>{' '}
                   or{' '}
-                  <Link
-                    href={'/signals' as Route}
+                  <a
+                    href={'/signals'}
                     data-app-health-event="signals.browse_opened"
                     className="text-[var(--color-fg)] underline decoration-[var(--color-line)] underline-offset-4 hover:text-[var(--color-accent)]"
                   >
                     browse earlier verified signals
-                  </Link>
+                  </a>
                   .
                 </p>
               }
               primaryAction={
-                <Link href={alternateHref as Route} className="underline">
+                <a href={alternateHref} className="underline">
                   check {alternateDay} →
-                </Link>
+                </a>
               }
             />
           )}
@@ -499,12 +497,12 @@ export function BriefSections({
           count={brief.stocks.length}
           empty="No market signal cleared the editorial and evidence gates for this edition."
           action={
-            <Link
-              href={'/signals' as Route}
+            <a
+              href={'/signals'}
               className="inline-flex min-h-11 items-center font-mono text-[10px] tracking-[0.14em] text-[var(--color-muted)] hover:text-[var(--color-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-accent)]"
             >
               all signals →
-            </Link>
+            </a>
           }
         >
           {marketContext}

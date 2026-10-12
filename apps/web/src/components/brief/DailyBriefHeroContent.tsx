@@ -1,0 +1,121 @@
+import type { ReactNode } from 'react';
+import {
+  categoryStatesForSnapshot,
+  regionLabel,
+  type BriefCategoryStatus,
+  type BriefSnapshot,
+  type Region,
+} from '@high-signal/shared';
+
+function stateLabel(status: BriefCategoryStatus, count: number) {
+  if (status === 'ready') return `${count} ${count === 1 ? 'item' : 'items'}`;
+  if (status === 'unavailable') return 'unavailable';
+  return 'no qualifying items';
+}
+
+interface BriefContent {
+  href: string;
+  label: string;
+  status: BriefCategoryStatus;
+  count: number;
+}
+
+function briefContents(brief: BriefSnapshot): BriefContent[] {
+  const states = categoryStatesForSnapshot(brief);
+  return [
+    {
+      href: '#markets-companies',
+      label: 'Markets & companies',
+      status: states.stocks.status,
+      count: brief.stocks.length,
+    },
+    {
+      href: '#business-opportunities',
+      label: 'Business opportunities',
+      status: states.ideas.status,
+      count: brief.ideas.length,
+    },
+    {
+      href: '#behavior-culture',
+      label: 'Behavior & culture',
+      status: states.trends.status,
+      count: brief.trends.length,
+    },
+  ];
+}
+
+export function DailyBriefHeroContent({
+  brief,
+  region,
+  editionDate,
+  editionDay = 'today',
+  signalOnly = false,
+  regionPicker,
+}: {
+  brief: BriefSnapshot;
+  region: Region;
+  editionDate?: string;
+  editionDay?: 'today' | 'yesterday' | 'earlier';
+  signalOnly?: boolean;
+  regionPicker: ReactNode;
+}) {
+  const generated = brief.generatedAt.slice(0, 16).replace('T', ' ');
+  const date = editionDate ?? brief.generatedAt.slice(0, 10);
+  const contents = briefContents(brief);
+  const signalState = categoryStatesForSnapshot(brief).stocks;
+
+  return (
+    <header className="border-b border-[var(--color-line)] pb-7">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 font-mono text-[10px] tracking-[0.14em] text-[var(--color-muted)]">
+        <span className="text-[var(--color-accent)]">daily brief</span>
+        <span>edition {date}</span>
+        <span>{regionLabel(region)}</span>
+        <span className="sm:ml-auto">
+          {signalOnly && signalState.status === 'unavailable'
+            ? 'publication unavailable'
+            : brief.publishStatus === 'pending'
+              ? 'publication pending'
+              : `updated ${generated} utc`}
+        </span>
+      </div>
+
+      <div className="mt-6 grid gap-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+        <div>
+          <h1 className="max-w-3xl text-4xl font-medium leading-[1.05] tracking-[-0.03em] text-[var(--color-fg)] sm:text-5xl">
+            {signalOnly
+              ? `${editionDay === 'today' ? 'today’s' : editionDay === 'yesterday' ? 'yesterday’s' : 'earlier'} brief.`
+              : 'what changed, why it matters, and what remains uncertain.'}
+          </h1>
+          <p className="mt-4 max-w-[70ch] text-sm leading-6 text-[var(--color-muted)]">
+            {signalOnly
+              ? 'High Signal brings technology, startups, and finance into one concise Daily Brief for founders and operators. News is attributed to retained source records. Verified signals require an aligned primary source and independent corroboration; open their proof to inspect the claim and uncertainty.'
+              : 'One evidence-first edition across technology, startups, and finance, organized into three public sections: markets and companies, business opportunities, and behavior and culture.'}
+          </p>
+        </div>
+        {regionPicker}
+      </div>
+
+      {!signalOnly ? (
+        <nav
+          aria-label="Brief contents"
+          className="mt-7 -mx-1 flex snap-x gap-2 overflow-x-auto px-1 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
+          {contents.map((item, index) => (
+            <a
+              key={item.href}
+              href={item.href}
+              className="min-w-[210px] snap-start border-t border-[var(--color-line)] pt-3 hover:border-[var(--color-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-accent)] sm:min-w-0 sm:flex-1"
+            >
+              <span className="block text-sm font-medium text-[var(--color-fg)]">
+                {index + 1}. {item.label}
+              </span>
+              <span className="mt-1 block font-mono text-[10px] tracking-[0.12em] text-[var(--color-muted)]">
+                {stateLabel(item.status, item.count)}
+              </span>
+            </a>
+          ))}
+        </nav>
+      ) : null}
+    </header>
+  );
+}

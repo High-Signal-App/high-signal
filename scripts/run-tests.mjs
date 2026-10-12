@@ -21,6 +21,7 @@ const ROOT = resolve(__dirname, '..');
 // Each job: { name, cmd, args }. tsx suites run directly via the local tsx bin;
 // the workers/api vitest suite runs through pnpm so it uses the package config.
 const TSX_SUITES = [
+  ['reader-capture', 'apps/reader/scripts/capture-brief.test.ts'],
   ['traffic-summary', 'scripts/traffic-summary.test.ts'],
   ['app-health-worker', 'scripts/app-health-worker.test.ts'],
   ['app-health-ping', 'apps/web/scripts/ping.test.ts'],
@@ -43,6 +44,7 @@ const tsxBin = resolve(ROOT, 'node_modules/.bin/tsx');
 // Plain-node test suites (no tsx cold-start cost). These run alongside the
 // tsx suites; the runner spawns them concurrently just like the others.
 const NODE_SUITES = [
+  ['reader-publication', 'scripts/reader-publication.test.mjs'],
   ['worker-health-runtime', 'apps/web/scripts/worker-health-runtime.test.mjs'],
   ['cache-workload', 'scripts/cache-workload.test.mjs'],
   ['abuse-guard', 'scripts/abuse-guard.test.mjs'],
