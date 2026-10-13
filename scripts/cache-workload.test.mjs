@@ -156,6 +156,18 @@ try {
     3
   );
   assert.ok(changes.every((window) => cacheSummaryProps(window)));
+  clock = 0; // Simulate the Worker module clock before the first request.
+  const requestClock = createCacheSummary(
+    () => clock,
+    () => {}
+  );
+  clock = 5_000;
+  assert.equal(requestClock(hit, true), undefined);
+  clock = 65_000;
+  const requestWindow = requestClock(hit, true);
+  assert.equal(requestWindow.started_at, 5_000);
+  assert.equal(requestWindow.ended_at, 65_000);
+  assert.equal(requestWindow.hits, 2);
   console.log(
     `Public cache workload: ${hits} hits / ${hits + misses} requests (${(100 * hits) / (hits + misses)}%).`
   );

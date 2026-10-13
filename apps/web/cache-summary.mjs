@@ -14,7 +14,8 @@ const increment = (counts, name) => {
 
 // Aggregate Worker-executed outcomes only; no request content crosses requests.
 export function createCacheSummary(now = Date.now, emit = console.info) {
-  let startedAt = now();
+  // Workers freeze the clock during module initialization; start in a request.
+  let startedAt;
   let counts = emptyCounts();
   let cohorts = emptyCohorts();
   let version;
@@ -45,6 +46,7 @@ export function createCacheSummary(now = Date.now, emit = console.info) {
     const context = observationContext(request, versions);
     const nextVersion = { version: context.version, version_source: context.version_source };
     const endedAt = now();
+    startedAt ??= endedAt;
     let record;
     if (
       version &&
