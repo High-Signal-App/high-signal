@@ -209,8 +209,13 @@ const worker = {
       throw error;
     } finally {
       if (response) {
-        summarizeCache(response, isCacheableDocumentRequest(request));
-        observeWebRequest(request, response, startedAt, env, ctx);
+        const cacheSummary = summarizeCache(
+          response,
+          isCacheableDocumentRequest(request),
+          request,
+          { release: env?.APP_HEALTH_RELEASE, cacheBuild: CACHE_BUILD_ID }
+        );
+        observeWebRequest(request, response, startedAt, env, ctx, cacheSummary);
       }
     }
   },

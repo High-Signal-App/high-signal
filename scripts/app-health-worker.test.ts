@@ -1,5 +1,11 @@
 import assert from 'node:assert/strict';
+import { createRequire } from 'node:module';
 import { normalizeWebRoute, observeWebRequest } from '../apps/web/app-health.mjs';
+import { createCacheSummary } from '../apps/web/cache-summary.mjs';
+
+const { MAX_LOG_PROPS } = createRequire(new URL('../apps/web/package.json', import.meta.url))(
+  '@saas-maker/app-health'
+);
 
 async function main() {
   assert.equal(normalizeWebRoute('/signals/private-slug'), '/web/signals/:param');
@@ -85,6 +91,59 @@ async function main() {
       'rejected crawler bursts must not create per-request endpoint ingestion'
     );
     assert.ok(deliveries.length <= 1, 'traffic summaries remain bounded');
+
+    sent.length = 0;
+    deliveries.length = 0;
+    let clock = 0;
+    const summarize = createCacheSummary(
+      () => clock,
+      () => {}
+    );
+    const fixtureRequest = new Request(
+      'https://highsignal.app/unknown/private-value?secret=hidden'
+    );
+    summarize(new Response(null, { headers: { 'x-edge-cache': 'HIT' } }), true, fixtureRequest);
+    clock = 60_000;
+    const cache = summarize(new Response(null), false, fixtureRequest);
+    observeWebRequest(
+      fixtureRequest,
+      new Response(null),
+      Date.now(),
+      env,
+      { waitUntil: (p: Promise<unknown>) => deliveries.push(p) },
+      cache
+    );
+    await Promise.all(deliveries);
+    const cacheLogs = sent
+      .filter((entry) => entry.url.endsWith('/v1/logs'))
+      .flatMap((entry) => entry.body.logs)
+      .filter((log) => log.event === 'web.cache.summary');
+    assert.equal(
+      cacheLogs.length,
+      1,
+      'closed cache window is delivered even on an unmeasured route'
+    );
+    assert.equal(cacheLogs[0].level, 'debug');
+    assert.equal((cacheLogs[0].props as Record<string, unknown>).hits, 1);
+    assert.equal((cacheLogs[0].props as Record<string, unknown>).version, 'unknown');
+    assert.ok(
+      Object.keys(cacheLogs[0].props as Record<string, unknown>).length <= MAX_LOG_PROPS,
+      'aggregate fields fit the installed SDK schema'
+    );
+    assert.doesNotMatch(JSON.stringify(sent), /private-value|hidden|secret=/);
+    assert.equal(deliveries.length, 1, 'cache evidence reuses the request-owned buffered flush');
+    sent.length = 0;
+    deliveries.length = 0;
+    observeWebRequest(
+      fixtureRequest,
+      new Response(null),
+      Date.now(),
+      {},
+      { waitUntil: (p: Promise<unknown>) => deliveries.push(p) },
+      cache
+    );
+    assert.equal(deliveries.length, 0, 'missing configured delivery remains fail-open');
+    assert.equal(sent.length, 0);
   } finally {
     globalThis.fetch = original;
   }

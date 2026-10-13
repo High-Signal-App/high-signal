@@ -2,6 +2,7 @@ import { createAppHealthClient } from '@saas-maker/app-health';
 import { createTrafficSummary } from '@high-signal/shared';
 import { createWorkerHealthBuffer } from '@high-signal/shared/worker-health-buffer.mjs';
 import { publicRouteDescriptor } from './public-route-registry.mjs';
+import { cacheSummaryProps } from './cache-summary.mjs';
 
 const ENDPOINT = 'https://ingest.sassmaker.com/v1/ingest';
 const summarizeTraffic = createTrafficSummary();
@@ -21,8 +22,9 @@ export function normalizeWebRoute(pathname) {
   return null;
 }
 
-export function observeWebRequest(request, response, startedAt, env, ctx) {
+export function observeWebRequest(request, response, startedAt, env, ctx, cacheSummary = null) {
   const summary = summarizeTraffic(request);
+  const cache = cacheSummaryProps(cacheSummary);
   // Rejected bursts still enter the bounded traffic summary. Do not turn
   // every cheap rejection into another Worker invocation and D1 write.
   const route = response?.headers.has('x-high-signal-guard')
@@ -30,7 +32,7 @@ export function observeWebRequest(request, response, startedAt, env, ctx) {
     : normalizeWebRoute(new URL(request.url).pathname);
   const key =
     typeof env?.APP_HEALTH_INGEST_KEY === 'string' ? env.APP_HEALTH_INGEST_KEY.trim() : '';
-  if (!key || (!route && !summary)) return;
+  if (!key || (!route && !summary && !cache)) return;
   try {
     const client = buffer.client(env, {
       key,
@@ -53,6 +55,7 @@ export function observeWebRequest(request, response, startedAt, env, ctx) {
       });
     if (summary)
       client.log('traffic.summary', { level: 'info', props: { ...summary, surface: 'web' } });
+    if (cache) client.log('web.cache.summary', { level: 'debug', props: cache });
     ctx.waitUntil(client.flush().catch(() => undefined));
   } catch {
     // Health delivery is fail-open and must never affect the product response.
