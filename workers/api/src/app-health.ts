@@ -2,6 +2,7 @@ import { createWorkerHealthBuffer } from '@high-signal/shared/worker-health-buff
 import { createAppHealthClient, type AppHealthClient } from '@saas-maker/app-health';
 import { createTrafficSummary } from '@high-signal/shared';
 import { takeObservedStages } from './lib/server-timing';
+import { observationContext } from '@high-signal/shared/observation-context.mjs';
 
 const DEFAULT_ENDPOINT = 'https://ingest.sassmaker.com/v1/ingest';
 const summarizeTraffic = createTrafficSummary();
@@ -39,7 +40,8 @@ export function stageTimingProps(
   route: string | null,
   totalMs: number,
   sampleRate = 1,
-  random: () => number = Math.random
+  random: () => number = Math.random,
+  release?: unknown
 ): Record<string, string | number> | null {
   const observed = takeObservedStages(request);
   if (!route || !STAGE_TIMED_ROUTES.has(route) || request.method !== 'GET') return null;
@@ -48,6 +50,7 @@ export function stageTimingProps(
   if (edge === 'API-HIT' || !observed) return null;
   if (sampleRate < 1 && random() >= sampleRate) return null;
   const props: Record<string, string | number> = {
+    ...observationContext(request, { release }),
     route: `/api${route}`,
     edge_cache: edge.replace(/^API-/, ''),
     inner_cache: observed.innerCache ?? 'NONE',
@@ -166,7 +169,15 @@ export function observeApiRequest(
   if (!route && !summary) return;
   const client = clientFor(env);
   if (!client) return;
-  const stages = stageTimingProps(request, response, route, durationMs, stageSampleRate(env));
+  const stages = stageTimingProps(
+    request,
+    response,
+    route,
+    durationMs,
+    stageSampleRate(env),
+    Math.random,
+    env.APP_HEALTH_RELEASE
+  );
   if (route) {
     client.record({
       method: request.method,

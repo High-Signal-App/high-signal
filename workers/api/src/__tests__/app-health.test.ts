@@ -3,9 +3,57 @@ import { normalizeApiRoute, observeApiRequest, stageTimingProps } from '../app-h
 import { observeStages } from '../lib/server-timing';
 import { applyMigrations, createSqliteD1 } from '../../test/sqlite-d1';
 import worker from '../index';
+import { observationContext } from '@high-signal/shared/observation-context.mjs';
 
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => vi.useRealTimers());
+
+describe('bounded observation context', () => {
+  const release = 'a'.repeat(40);
+
+  it('does not turn browser or publisher declarations into proven natural traffic', () => {
+    const browser = new Request('https://api.example/brief/daily?region=private-value', {
+      headers: { 'user-agent': 'Mozilla/5.0 private-browser', authorization: 'Bearer synthetic' },
+    });
+    expect(observationContext(browser)).toEqual({
+      traffic_cohort: 'unknown',
+      version: 'unknown',
+      version_source: 'unknown',
+    });
+    const declared = new Request(browser.url, {
+      headers: { 'user-agent': 'HighSignal-reader-publisher/1 (synthetic-private-marker)' },
+    });
+    const context = observationContext(declared, { release });
+    expect(context).toEqual({
+      traffic_cohort: 'declared_publisher',
+      version: release,
+      version_source: 'app_health_release',
+    });
+    expect(JSON.stringify(context)).not.toMatch(/private|Bearer|region|publisher\/1/);
+    expect(
+      observationContext(new Request('https://api.example/brief/daily?validation=secret'))
+    ).toMatchObject({ traffic_cohort: 'declared_diagnostic' });
+  });
+
+  it('uses existing bounded version sources or an explicit unknown', () => {
+    expect(
+      observationContext(null, { release: 'unsafe?private=value', readerSource: release })
+    ).toMatchObject({ version: release, version_source: 'reader_source' });
+    expect(
+      observationContext(null, { cacheBuild: '1a2b3c4d-1234-5678-90ab-0123456789ab' })
+    ).toMatchObject({ version_source: 'cache_build' });
+    expect(observationContext(null, { cacheBuild: 'Next_build-123' })).toMatchObject({
+      version: 'Next_build-123',
+      version_source: 'cache_build',
+    });
+    for (const value of [undefined, null, {}, 'private-value', 'a'.repeat(129)]) {
+      expect(observationContext(null, { release: value })).toMatchObject({
+        version: 'unknown',
+        version_source: 'unknown',
+      });
+    }
+  });
+});
 
 describe('API App Health observer', () => {
   afterEach(() => vi.restoreAllMocks());
@@ -111,6 +159,9 @@ describe('API stage-timing logs (#198)', () => {
         640
       )
     ).toEqual({
+      traffic_cohort: 'unknown',
+      version: 'unknown',
+      version_source: 'unknown',
       route: '/api/brief/daily',
       edge_cache: 'MISS',
       inner_cache: 'MISS',

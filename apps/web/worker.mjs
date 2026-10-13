@@ -52,11 +52,13 @@ export default {
       return response;
     } finally {
       if (!state.delegated) {
-        summary(
+        const cacheSummary = summary(
           response,
-          isCacheableDocumentRequest(request) || response?.headers.has('x-reader-renderer')
+          isCacheableDocumentRequest(request) || response?.headers.has('x-reader-renderer'),
+          request,
+          { release: env?.APP_HEALTH_RELEASE, readerSource: READER_BUILD.source }
         );
-        observeWebRequest(request, response, startedAt, env, ctx);
+        observeWebRequest(request, response, startedAt, env, ctx, cacheSummary);
       }
     }
   },
