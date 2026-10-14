@@ -5,6 +5,7 @@ import { AnalyticsProvider } from '@/components/posthog-provider';
 import { AppHealthAnalytics } from '@/components/AppHealthAnalytics';
 import { VitalsReporter } from '@/components/VitalsReporter';
 import { SiteHeader } from '@saas-maker/ui/blocks/site-header';
+import { InteriorFooter } from '@/components/system/InteriorFooter';
 import { SiteFooter } from '@/components/system/SiteFooter';
 import {
   clampDescription,
@@ -109,7 +110,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         ]}
       />
       {children}
-      <SiteFooter />
+      <InteriorFooter>
+        <SiteFooter mode="compact" />
+      </InteriorFooter>
       <VitalsReporter />
       <AppHealthAnalytics />
     </AnalyticsProvider>
@@ -146,7 +149,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Script id="microsoft-clarity" strategy="afterInteractive">
           {`(function(c,l,a,r,i){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};var done=false;var events=["pointerdown","keydown","scroll","touchstart"];function go(){if(done)return;done=true;events.forEach(function(event){c.removeEventListener(event,go)});var t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;var y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y)}events.forEach(function(event){c.addEventListener(event,go,{passive:true,once:true})})})(window,document,"clarity","script","ybcgyx9ugh");window.clarity("set","project_id","high-signal");`}
         </Script>
-        <Script src="/studio-footer/v0.1.19/footer.js" type="module" strategy="lazyOnload" />
+        <Script
+          src="/studio-footer/e8e4941f3b2063a14d8afb73088ddbbb864d94c1/footer.js"
+          type="module"
+          strategy="lazyOnload"
+        />
       </body>
     </html>
   );
