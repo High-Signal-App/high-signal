@@ -31,3 +31,23 @@ test('public art and local OFL font mirrors match recorded public hashes and con
   }
   assert.doesNotMatch(read(`${rootFonts}/provenance.json`), /\/Users\/|Agent Workspaces/i);
 });
+
+test('Next and Astro pin the same reviewed UI and serve its exact footer runtime', () => {
+  const web = JSON.parse(read('apps/web/package.json'));
+  const reader = JSON.parse(read('apps/reader/package.json'));
+  const pin = web.dependencies['@saas-maker/ui'];
+  assert.equal(reader.dependencies['@saas-maker/ui'], pin);
+  const revision = pin.match(/#([a-f0-9]{40})&path:\/packages\/ui$/)?.[1];
+  assert.ok(revision, 'immutable reviewed UI revision');
+  const runtime = `/studio-footer/${revision}/footer.js`;
+  for (const layout of [
+    'apps/web/src/app/layout.tsx',
+    'apps/reader/src/layouts/ReaderLayout.astro',
+  ]) {
+    assert.ok(read(layout).includes(runtime), layout);
+  }
+  assert.equal(
+    sha256(`apps/web/public${runtime}`),
+    sha256('apps/web/node_modules/@saas-maker/ui/footer.js')
+  );
+});
