@@ -5,7 +5,17 @@ export type ServerTimingEntry = { name: string; durationMs: number };
 /** Inner shared-cache (KV) outcome for one request, when the route has one. */
 export type InnerCacheStatus = 'HIT' | 'MISS' | 'ERROR' | 'UNAVAILABLE' | 'BYPASS';
 
-export type ObservedStages = { entries: ServerTimingEntry[]; innerCache?: InnerCacheStatus };
+export type StageContext = {
+  sourceFamily?: string;
+  queryPlan?: 'scan' | 'seek' | 'empty' | 'attention';
+  requestVariant?: 'unfiltered' | 'date' | 'source' | 'date_source';
+  pageMode?: 'first' | 'offset' | 'cursor';
+};
+export type ObservedStages = {
+  entries: ServerTimingEntry[];
+  innerCache?: InnerCacheStatus;
+  context?: StageContext;
+};
 
 // Request-scoped side channel from route handlers to the Worker entrypoint, so
 // ordinary (non-diagnostic) cache misses can report their fixed-name stage
@@ -17,12 +27,14 @@ const observedStages = new WeakMap<Request, ObservedStages>();
 export function observeStages(
   request: Request,
   entries: ServerTimingEntry[],
-  innerCache?: InnerCacheStatus
+  innerCache?: InnerCacheStatus,
+  context?: StageContext
 ) {
   const current = observedStages.get(request);
   observedStages.set(request, {
     entries,
     innerCache: innerCache ?? current?.innerCache,
+    context: context ? { ...current?.context, ...context } : current?.context,
   });
 }
 

@@ -30,8 +30,8 @@ function stageSampleRate(env: AppHealthEnv): number {
 
 /**
  * Props for one `api.stage_timing` log: route template, per-stage elapsed ms,
- * cache outcomes, colo, and status only. Query values, ids, and response
- * content are never included. Returns null when this request is not a
+ * cache outcomes, bounded route labels, colo, and status. Arbitrary path IDs,
+ * query values, and response content are never included. Returns null when this request is not a
  * measured, Worker-executed, ordinary cache miss.
  */
 export function stageTimingProps(
@@ -61,6 +61,22 @@ export function stageTimingProps(
     status: response?.status ?? 500,
     total_ms: Math.max(0, Math.round(totalMs)),
   };
+  if (route === '/brief/daily') {
+    // The route treats only a syntactically valid date as a dated edition.
+    // Report the branch, never the date or region value.
+    props['request_variant'] = /^\d{4}-\d{2}-\d{2}$/.test(
+      new URL(request.url).searchParams.get('date')?.trim() ?? ''
+    )
+      ? 'date_qualified'
+      : 'current';
+  }
+  if (route === '/data/sources/:id' && observed.context) {
+    const { sourceFamily, queryPlan, requestVariant, pageMode } = observed.context;
+    if (sourceFamily) props['source_family'] = sourceFamily;
+    if (queryPlan) props['query_plan'] = queryPlan;
+    if (requestVariant) props['request_variant'] = requestVariant;
+    if (pageMode) props['page_mode'] = pageMode;
+  }
   for (const { name, durationMs } of observed.entries.slice(0, 20)) {
     if (!STAGE_NAME.test(name)) continue;
     const key = `${name.replace(/-/g, '_')}_ms`;
