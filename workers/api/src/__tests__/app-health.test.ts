@@ -264,7 +264,7 @@ describe('API stage-timing logs (#198)', () => {
         source_family: 'courtlistener',
         request_variant: 'date_source',
         page_mode: 'first',
-        query_plan: expect.stringMatching(/^(?:seek|scan|empty)$/),
+        query_plan: 'seek',
         status: 200,
       },
     });

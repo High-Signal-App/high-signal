@@ -871,7 +871,13 @@ dataRoute.get('/sources/:id', async (c) => {
           sql`1 = 0`
         : and(inArray(schema.events.source, candidates), ...filters);
   observeStages(c.req.raw, timings, undefined, {
-    queryPlan: candidates === null ? 'scan' : candidates.length === 0 ? 'empty' : 'seek',
+    queryPlan: sourceFilter
+      ? 'seek'
+      : candidates === null
+        ? 'scan'
+        : candidates.length === 0
+          ? 'empty'
+          : 'seek',
   });
 
   const cursorFilter = cursor ? keysetAfter(cursor) : undefined;
