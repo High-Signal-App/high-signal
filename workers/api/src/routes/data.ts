@@ -378,6 +378,11 @@ interface SourceRun {
 }
 
 const CATALOG_SOURCES = sourceCatalog.sources as CatalogSource[];
+const DIAGNOSTIC_SOURCE_FAMILIES = new Set(CATALOG_SOURCES.map((source) => source.id));
+export function diagnosticSourceFamily(id: string): string {
+  if (DIAGNOSTIC_SOURCE_FAMILIES.has(id)) return id;
+  return id === 'digg' || id === 'mts' ? 'attention' : 'other';
+}
 const SOURCE_STATUS_CACHE_TTL_SECONDS = 6 * 60 * 60;
 
 export function sourceStatusCacheKey(sampleLimit: number) {
@@ -768,8 +773,21 @@ dataRoute.get('/sources/:id', async (c) => {
   // Narrows to one raw `source` value inside the family. An equality on an
   // indexed column, so it is a seek rather than a filter over a wide scan.
   const sourceFilter = c.req.query('source');
+  const sourceFamily = diagnosticSourceFamily(id);
+  observeStages(c.req.raw, timings, undefined, {
+    sourceFamily,
+    requestVariant: range
+      ? sourceFilter
+        ? 'date_source'
+        : 'date'
+      : sourceFilter
+        ? 'source'
+        : 'unfiltered',
+    pageMode: cursor ? 'cursor' : offset > 0 ? 'offset' : 'first',
+  });
 
   if (id === 'digg' || id === 'mts') {
+    observeStages(c.req.raw, timings, undefined, { queryPlan: 'attention' });
     const response = await stage('attention_events', () =>
       attentionSourceEvents(c, id, {
         limit,
@@ -852,6 +870,15 @@ dataRoute.get('/sources/:id', async (c) => {
           // an `IN ()` that SQLite would reject.
           sql`1 = 0`
         : and(inArray(schema.events.source, candidates), ...filters);
+  observeStages(c.req.raw, timings, undefined, {
+    queryPlan: sourceFilter
+      ? 'seek'
+      : candidates === null
+        ? 'scan'
+        : candidates.length === 0
+          ? 'empty'
+          : 'seek',
+  });
 
   const cursorFilter = cursor ? keysetAfter(cursor) : undefined;
   // One extra row decides `hasMore` exactly, instead of inferring it from a

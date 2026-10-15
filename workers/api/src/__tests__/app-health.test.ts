@@ -1,6 +1,7 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import { normalizeApiRoute, observeApiRequest, stageTimingProps } from '../app-health';
 import { observeStages } from '../lib/server-timing';
+import { diagnosticSourceFamily } from '../routes/data';
 import { applyMigrations, createSqliteD1 } from '../../test/sqlite-d1';
 import worker from '../index';
 import { observationContext } from '@high-signal/shared/observation-context.mjs';
@@ -168,9 +169,18 @@ describe('API stage-timing logs (#198)', () => {
       colo: 'unknown',
       status: 200,
       total_ms: 640,
+      request_variant: 'current',
       snapshot_ms: 12,
       news_query_ms: 81,
     });
+    expect(
+      stageTimingProps(
+        observed('https://api.example/brief/daily?date=2026-01-02&region=europe'),
+        miss,
+        '/brief/daily',
+        640
+      )
+    ).toMatchObject({ request_variant: 'date_qualified' });
 
     const hit = new Response('{}', { headers: { 'x-edge-cache': 'API-HIT' } });
     expect(
@@ -202,7 +212,13 @@ describe('API stage-timing logs (#198)', () => {
     ).toBeNull();
   });
 
-  it('logs source-detail stages at debug level without ids or query values', async () => {
+  it('allows only catalog source-family labels', () => {
+    expect(diagnosticSourceFamily('courtlistener')).toBe('courtlistener');
+    expect(diagnosticSourceFamily('mts')).toBe('attention');
+    expect(diagnosticSourceFamily('private-or-unknown-id')).toBe('other');
+  });
+
+  it('logs source-detail stages without arbitrary IDs or query values', async () => {
     const d1 = createSqliteD1();
     applyMigrations(d1);
     vi.stubGlobal('caches', {
@@ -225,7 +241,9 @@ describe('API stage-timing logs (#198)', () => {
         fetch(r: Request, e: Record<string, unknown>, c: unknown): Promise<Response>;
       }
     ).fetch(
-      new Request('https://api.highsignal.app/data/sources/courtlistener?limit=7&date=2026-01-02'),
+      new Request(
+        'https://api.highsignal.app/data/sources/courtlistener?limit=7&date=2026-01-02&source=private-source-value'
+      ),
       { DB: d1.binding, ENVIRONMENT: 'test', APP_HEALTH_INGEST_KEY: 'secret' },
       { waitUntil: (promise: Promise<unknown>) => pending.push(promise) }
     );
@@ -243,12 +261,16 @@ describe('API stage-timing logs (#198)', () => {
       props: {
         route: '/api/data/sources/:id',
         edge_cache: 'MISS',
+        source_family: 'courtlistener',
+        request_variant: 'date_source',
+        page_mode: 'first',
+        query_plan: 'seek',
         status: 200,
       },
     });
     const props = stage?.['props'] as Record<string, unknown>;
     expect(props['source_totals_ms']).toEqual(expect.any(Number));
     expect(props['event_page_ms']).toEqual(expect.any(Number));
-    expect(JSON.stringify(props)).not.toMatch(/courtlistener|2026-01-02|limit/);
+    expect(JSON.stringify(props)).not.toMatch(/2026-01-02|private-source-value|limit/);
   });
 });
