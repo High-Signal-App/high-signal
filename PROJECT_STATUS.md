@@ -1,6 +1,29 @@
 # high-signal — PROJECT STATUS
 
-Last updated: 2026-10-12
+Last updated: 2026-10-16
+
+October 16 source-detail deep-page repair — merged, not released:
+
+[PR #255](https://github.com/High-Signal-App/high-signal/pull/255) is merged
+as `858f0b48bf15c9fe68746a1047b5a53fcd282c61`. For deep source-detail
+event pages, the API now selects a source-key page when the existing rollup
+predicts less work than the time-ordered scan. Shallow and unresolved cases
+retain the previous plan. The bounded SQL check returned the same 51 ordered
+production rows at offsets 20,000 and 40,000 while reducing those individual
+query durations from 5,327.6/5,886.1 ms to 95.9/88.2 ms. These paired
+diagnostics are not end-to-end or natural-traffic latency measurements.
+
+The October 16 release candidate was
+`0cfe5c0d119e73a616f4f4fded3069d926a97f0b` after a scheduled reader
+snapshot commit. Its exact-head manual
+[CI run](https://github.com/High-Signal-App/high-signal/actions/runs/38922280526)
+passed, but the Fleet production guard also requires push-triggered CI at the
+exact deployment SHA. The API production Worker still runs source
+`f434fc0f2935d22dfa1335549fbf3de764c107df`; the deep-page repair is
+**not live**. Once the release gate and API deployment pass, the natural
+15-minute and 24-hour route distributions and the 95% eligible Cache API hit
+rate remain acceptance gates in
+[issue #238](https://github.com/High-Signal-App/high-signal/issues/238).
 
 October 12 Astro reader pilot — live:
 
