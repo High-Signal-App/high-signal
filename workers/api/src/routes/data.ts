@@ -4,6 +4,11 @@ import type { SQLiteColumn } from 'drizzle-orm/sqlite-core';
 import { istDay, istDayRange } from '@high-signal/shared';
 import { db, type DB, schema } from '../db';
 import { encodeKeysetCursor, decodeKeysetCursor, type KeysetCursor } from '../lib/cursor';
+import {
+  sourceKeyPagePlan,
+  sourcePageWorthResolving,
+  type SourceEventPageRow,
+} from '../lib/source-event-page';
 import { eventsRollupIsReady } from '../lib/events-rollup';
 import { enrichPublishedSignals, partitionPublishable } from '../lib/signal-quality';
 import sourceCatalog from '../lib/source-catalog.json';
@@ -194,6 +199,7 @@ interface SourceTotals {
    * listing skip resolving a family it is not going to seek on.
    */
   sourceCount?: number;
+  allRows?: number;
 }
 
 /** One family's stored-row totals, computed over `events`. */
@@ -225,6 +231,7 @@ async function readSourceTotalsFromRollup(database: DB, id: string) {
       lastIngestedAt: sql<number | null>`max(${schema.eventsSourceRollup.lastIngestedAt})`,
       futureCount: sql<number>`coalesce(sum(${schema.eventsSourceRollup.futureCount}), 0)`,
       sourceCount: sql<number>`count(*)`,
+      allRows: sql<number>`(SELECT coalesce(sum(event_count), 0) FROM events_source_rollup)`,
     })
     .from(schema.eventsSourceRollup)
     .where(sourceMatch(id, schema.eventsSourceRollup.source));
@@ -815,6 +822,7 @@ dataRoute.get('/sources/:id', async (c) => {
   let lastIngestedAt = 0;
   let futureCount = 0;
   let sourceCount: number | null = null;
+  let allRows: number | null = null;
   try {
     // Unfiltered totals come from the cron-maintained rollup (at most 30
     // minutes behind); a `?date=` or `?source=` request still asks `events`
@@ -830,6 +838,7 @@ dataRoute.get('/sources/:id', async (c) => {
     lastIngestedAt = Number(row?.lastIngestedAt ?? 0);
     futureCount = Number(row?.futureCount ?? 0);
     sourceCount = row?.sourceCount === undefined ? null : Number(row.sourceCount);
+    allRows = row?.allRows === undefined ? null : Number(row.allRows);
   } catch {
     setServerTiming(c, timings, diagnostics);
     return c.json({
@@ -851,16 +860,22 @@ dataRoute.get('/sources/:id', async (c) => {
   // is worth resolving to concrete source values only when seeking would beat
   // walking `published_at` — see SEEK_PLAN_MAX_ROWS.
   //
-  // A family that is both large and spread across several source values can be
-  // ruled out before resolving anything: the rollup's own `count(*)` already
-  // said how many source values it spans, so the probe is skipped rather than
-  // run and discarded.
+  // Rollup counts let shallow, large-family requests skip the source probe.
+  // Deep offsets also account for the matches the scan would have to skip.
   let candidates: string[] | null = null;
+  let keyPage: ReturnType<typeof sourceKeyPagePlan> = null;
+  // Offset changes the scan cost: it must walk past skipped matches too.
+  // Global size comes from the same small rollup read, without another trip.
+  const preferKeyPage =
+    total > SEEK_PLAN_MAX_ROWS &&
+    sourcePageWorthResolving(sourceCount, total, allRows, offset + limit + 1);
   const worthResolving =
-    !sourceFilter && (total <= SEEK_PLAN_MAX_ROWS || sourceCount === null || sourceCount === 1);
+    !sourceFilter &&
+    (total <= SEEK_PLAN_MAX_ROWS || sourceCount === null || sourceCount === 1 || preferKeyPage);
   if (worthResolving) {
     const resolved = await stage('family_resolution', () => resolveFamilySources(database, id));
-    candidates = seekPlanCandidates(resolved, total);
+    keyPage = preferKeyPage ? sourceKeyPagePlan(resolved, { limit, offset, range, cursor }) : null;
+    candidates = keyPage ? resolved : seekPlanCandidates(resolved, total);
   }
   const access =
     candidates === null
@@ -883,24 +898,29 @@ dataRoute.get('/sources/:id', async (c) => {
   const cursorFilter = cursor ? keysetAfter(cursor) : undefined;
   // One extra row decides `hasMore` exactly, instead of inferring it from a
   // `total` the rollup may have computed up to 30 minutes ago.
-  const rows = await stage('event_page', () =>
-    database
-      .select({
-        id: schema.events.id,
-        title: schema.events.title,
-        content: schema.events.content,
-        url: schema.events.sourceUrl,
-        source: schema.events.source,
-        entity: schema.events.primaryEntityId,
-        publishedAt: schema.events.publishedAt,
-      })
-      .from(schema.events)
-      .where(cursorFilter ? and(access, cursorFilter) : access)
-      // `id` is the unique tiebreaker. Without it a `LIMIT` over `published_at`
-      // alone is not a well-defined window and pages overlap inside tie blocks.
-      .orderBy(desc(schema.events.publishedAt), desc(schema.events.id))
-      .limit(limit + 1)
-      .offset(offset)
+  const rows = await stage<SourceEventPageRow[]>('event_page', async () =>
+    keyPage
+      ? c.env.DB.prepare(keyPage.query)
+          .bind(...keyPage.params)
+          .all<SourceEventPageRow>()
+          .then((result) => result.results)
+      : database
+          .select({
+            id: schema.events.id,
+            title: schema.events.title,
+            content: schema.events.content,
+            url: schema.events.sourceUrl,
+            source: schema.events.source,
+            entity: schema.events.primaryEntityId,
+            publishedAt: schema.events.publishedAt,
+          })
+          .from(schema.events)
+          .where(cursorFilter ? and(access, cursorFilter) : access)
+          // `id` is the unique tiebreaker. Without it a `LIMIT` over `published_at`
+          // alone is not a well-defined window and pages overlap inside tie blocks.
+          .orderBy(desc(schema.events.publishedAt), desc(schema.events.id))
+          .limit(limit + 1)
+          .offset(offset)
   );
 
   const hasMore = rows.length > limit;

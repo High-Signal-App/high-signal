@@ -129,6 +129,30 @@ describe('keyset cursor codec', () => {
 });
 
 describe('GET /data/sources/:id pagination', () => {
+  it('keeps cursor and offset pages identical for an old, large multi-source family', async () => {
+    seedEvents(d1, [
+      ...tiedBatch('us-gov-api:alpha', NOW - 40 * DAY, 3001, 'gov-a'),
+      ...tiedBatch('us-gov-api:beta', NOW - 41 * DAY, 3001, 'gov-b'),
+    ]);
+    d1.exec(`WITH RECURSIVE n(v) AS (SELECT 0 UNION ALL SELECT v+1 FROM n WHERE v<7999)
+      INSERT INTO events (id,source,source_url,published_at,raw_hash,ingested_at)
+      SELECT 'other-'||v,'other','https://example.test/other-'||v,${NOW},'other-'||v,${NOW} FROM n`);
+    await refreshEventsSourceRollup(env(), db(d1.binding), new Date(NOW * 1000));
+    const first = await get('/data/sources/us-gov-api?limit=200&offset=5800');
+    const cursor = await get(`/data/sources/us-gov-api?limit=5&cursor=${first.body['nextCursor']}`);
+    const offset = await get('/data/sources/us-gov-api?limit=5&offset=6000');
+    expect(first.status).toBe(200);
+    expect(first.body['total']).toBe(6002);
+    expect(first.body['hasMore']).toBe(true);
+    expect(cursor.body['events']).toEqual(offset.body['events']);
+    const rows = [
+      ...(first.body['events'] as PageEvent[]),
+      ...(cursor.body['events'] as PageEvent[]),
+    ];
+    expect(new Set(rows.map((row) => row.url)).size).toBe(202);
+    expect(rows.every((row) => row.source === 'us-gov-api:beta')).toBe(true);
+  });
+
   it('keeps diagnostic timing and the same response on attention-source early returns', async () => {
     const ordinary = await get('/data/sources/digg?limit=2');
     const response = await app.fetch(
