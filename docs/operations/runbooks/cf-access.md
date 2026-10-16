@@ -98,6 +98,35 @@ uploaded version is the active version before cloning it; do not accidentally
 promote an unrelated, unreleased upload. This preserves existing code and
 triggers while keeping the secret change separately reviewable.
 
+## Protected history secret recovery
+
+`TURNSTILE_SECRET` belongs in the High Signal project's `prod` environment at
+`/`, and on `high-signal-api`. It must be the existing secret for the dedicated
+widget used by the public history gate (site key `0x4AAAAAAECKL9dzkPASkdm0`).
+Reconcile the vault from that existing widget through the authorized secret
+manager; do not rotate the widget, create a replacement, or attempt to extract
+an unreadable Worker binding. `wrangler secret list` verifies names only.
+
+On October 16, 2026, the existing dedicated widget secret was restored to the
+canonical Production vault. A protected read-back matched the widget's current
+secret exactly. The working API Worker binding was retained without rotation
+or deployment; see [issue #252](https://github.com/High-Signal-App/high-signal/issues/252).
+Restoring the vault entry alone does not require changing the working Worker.
+Record only the widget site key, vault environment/path and entry version,
+Worker binding name and deployed version, and verification time.
+
+Infisical CLI JSON represents a missing requested key with "*not found*" and
+still exits successfully. Check the returned entry rather than its exit code.
+
+For a future Worker recovery, pass the canonical vault value through protected
+stdin to `wrangler versions secret put TURNSTILE_SECRET --name high-signal-api`
+with the verified source revision in `--tag`. Check that the uploaded base
+version matches the intended live source before promoting the staged version
+through the separately approved release path above. Do not use immediate
+`wrangler secret put` as a vault-presence check. After promotion, verify the
+actual public history flow through its normal Turnstile challenge. Never put
+secret values in arguments, logs, git, screenshots, or issue evidence.
+
 ## Verify before retiring the password gate
 
 1. An anonymous request to every protected path redirects to Access.

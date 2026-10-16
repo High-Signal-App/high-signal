@@ -2,7 +2,8 @@
 name = "high-signal-ingest"
 version = "0.1.0"
 description = "Ingestion + entity/relation extraction + signal scoring for high-signal"
-requires-python = ">=3.11"
+# GLiNER requires Torch wheels, which are unavailable for Python 3.15 on Linux.
+requires-python = ">=3.11,<3.15"
 dependencies = [
   "edgartools>=2.0.0",
   "trafilatura>=1.12.0",
