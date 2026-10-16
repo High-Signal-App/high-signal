@@ -107,12 +107,16 @@ Reconcile the vault from that existing widget through the authorized secret
 manager; do not rotate the widget, create a replacement, or attempt to extract
 an unreadable Worker binding. `wrangler secret list` verifies names only.
 
-On October 16, 2026, the API Worker binding was present, while the canonical
-Production vault entry was absent. [Issue #252](https://github.com/High-Signal-App/high-signal/issues/252)
-remains open until the existing correct secret is restored to that vault.
+On October 16, 2026, the existing dedicated widget secret was restored to the
+canonical Production vault. A protected read-back matched the widget's current
+secret exactly. The working API Worker binding was retained without rotation
+or deployment; see [issue #252](https://github.com/High-Signal-App/high-signal/issues/252).
 Restoring the vault entry alone does not require changing the working Worker.
 Record only the widget site key, vault environment/path and entry version,
 Worker binding name and deployed version, and verification time.
+
+Infisical CLI JSON represents a missing requested key with "*not found*" and
+still exits successfully. Check the returned entry rather than its exit code.
 
 For a future Worker recovery, pass the canonical vault value through protected
 stdin to `wrangler versions secret put TURNSTILE_SECRET --name high-signal-api`
