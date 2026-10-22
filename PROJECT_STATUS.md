@@ -1,8 +1,33 @@
 # high-signal — PROJECT STATUS
 
-Last updated: 2026-10-16
+Last updated: 2026-10-23
 
-October 16 source-detail deep-page repair — merged, not released:
+October 23 public dated-brief cache qualification:
+
+Explicit today/yesterday reads now share the existing published-edition KV
+cache with undated reads, retaining date/region keys and the 300-second TTL.
+Protected history, future dates, pending editions, SQL-only diagnostics and
+KV failure fallback retain their boundaries. A bounded latest-200 stage-log
+sample identified 104 dated misses averaging 1,756.52 ms, primarily news work.
+Three controlled pre-change SIN observations returned the same published
+October 22 payload with handler durations 801/730/868 ms. These are diagnostic
+observations, not population recovery or a verified speedup.
+
+At the October 22 20:26 UTC provider refresh, the prior source-detail repair
+was live on API source `ebc043adc52c11ff49ade94a5490d1f4404def7b` at 100%.
+The observed 24-hour brief/source-detail routes were unhealthy/degraded.
+The OpenNext adapter moves from 1.20.10 to 1.20.12: its upstream fix
+inlines the new preview-props manifest required by Next 16.4.1. The real
+Worker restart gate reproduced the old adapter's `Unexpected loadManifest`
+500 both locally and in CI; the gate is retained.
+Both Next declarations move to security release 16.4.1 and PostHog's existing
+DOMPurify dependency is pinned to 3.4.17 to clear four high/critical advisories;
+no new dependency is added. Exact release identity and same-workload live
+verification are recorded in the owning issue. The web Cache API 95% target
+and sustained natural-traffic acceptance remain separate in
+[issue #238](https://github.com/High-Signal-App/high-signal/issues/238).
+
+October 16 source-detail deep-page repair — historical pre-release checkpoint:
 
 [PR #255](https://github.com/High-Signal-App/high-signal/pull/255) is merged
 as `858f0b48bf15c9fe68746a1047b5a53fcd282c61`. For deep source-detail

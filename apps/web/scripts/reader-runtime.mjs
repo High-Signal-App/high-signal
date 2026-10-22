@@ -46,8 +46,8 @@ export async function createReaderRuntime(webRoot = WEB_ROOT, storage = undefine
       resourcePersistencePath: storage,
       isolatedResourcePersistencePath: storage,
       durableObjects: {
-        NEXT_CACHE_DO_QUEUE: 'DOQueueHandler',
-        NEXT_TAG_CACHE_DO_SHARDED: 'DOShardedTagCache',
+        NEXT_CACHE_DO_QUEUE: { className: 'DOQueueHandler', useSQLite: true },
+        NEXT_TAG_CACHE_DO_SHARDED: { className: 'DOShardedTagCache', useSQLite: true },
       },
       // Local fallback checks deliberately simulate unavailable public API data.
       // Known artifact profiles and published brief checks use real compiled bytes.

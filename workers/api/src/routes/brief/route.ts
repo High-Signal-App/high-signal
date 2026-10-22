@@ -255,8 +255,8 @@ type SharedDailyBrief = {
 };
 
 /**
- * Current-day public editions are shared through KV, so a miss in one colo's
- * edge cache costs one KV read instead of ~5 D1 round trips (snapshot, stocks,
+ * Published public editions (today and yesterday) share KV. A miss in one
+ * colo's edge cache costs one KV read instead of ~5 D1 round trips (snapshot, stocks,
  * news window/query). Diagnostics stay SQL-only unless they opt in with
  * `cache=observe`, matching `/data/sources`. KV failures fall back to D1.
  */
@@ -269,7 +269,9 @@ async function readSharedDailyBrief(
 ): Promise<SharedDailyBrief> {
   const observeCache = diagnostics && c.req.query('cache') === 'observe';
   const sharedCache = c.env.BRIEF_CACHE;
-  const eligible = !request.archiveDate && (!diagnostics || observeCache);
+  const now = new Date();
+  const publicDay = editionDate === istDay(now) || editionDate === istDay(now, -1);
+  const eligible = publicDay && (!diagnostics || observeCache);
   const key = dailyBriefCacheKey(request.region, editionDate);
   const mark = (status: InnerCacheStatus) => {
     observeStages(c.req.raw, timings, status);
