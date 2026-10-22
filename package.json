@@ -125,7 +125,9 @@
       "devalue@<=5.9.2": "5.9.3",
       "http-cache-semantics": "4.3.0",
       "source-map-js@>=1.0.0 <1.2.2": "1.2.2",
-      "proxy-addr@>=1.1.0 <2.0.8": "2.0.8"
+      "proxy-addr@>=1.1.0 <2.0.8": "2.0.8",
+      "astro>vite": "8.1.6",
+      "miniflare>ws": "8.21.0"
     },
     "patchedDependencies": {
       "http-cache-semantics@4.3.0": "patches/http-cache-semantics@4.3.0.patch"
