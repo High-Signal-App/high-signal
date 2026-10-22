@@ -16,6 +16,10 @@ observations, not population recovery or a verified speedup.
 At the October 22 20:26 UTC provider refresh, the prior source-detail repair
 was live on API source `ebc043adc52c11ff49ade94a5490d1f4404def7b` at 100%.
 The observed 24-hour brief/source-detail routes were unhealthy/degraded.
+The OpenNext adapter moves from 1.20.10 to 1.20.12: its upstream fix
+inlines the new preview-props manifest required by Next 16.4.1. The real
+Worker restart gate reproduced the old adapter's `Unexpected loadManifest`
+500 both locally and in CI; the gate is retained.
 Both Next declarations move to security release 16.4.1 and PostHog's existing
 DOMPurify dependency is pinned to 3.4.17 to clear four high/critical advisories;
 no new dependency is added. Exact release identity and same-workload live
