@@ -1,8 +1,26 @@
 # high-signal — PROJECT STATUS
 
-Last updated: 2026-10-16
+Last updated: 2026-10-23
 
-October 16 source-detail deep-page repair — merged, not released:
+October 23 public dated-brief cache repair — implementation, release pending:
+
+Explicit today/yesterday reads now share the existing published-edition KV
+cache with undated reads, retaining date/region keys and the 300-second TTL.
+Protected history, future dates, pending editions, SQL-only diagnostics and
+KV failure fallback retain their boundaries. A bounded latest-200 stage-log
+sample identified 104 dated misses averaging 1,756.52 ms, primarily news work.
+Three controlled pre-change SIN observations returned the same published
+October 22 payload with handler durations 801/730/868 ms. These are diagnostic
+observations, not population recovery or a verified speedup.
+
+The previous source-detail repair is live on API source `ebc043adc52c11ff49ade94a5490d1f4404def7b`
+at 100%, independently refreshed October 22 20:26 UTC. Its 24-hour brief and
+source-detail routes remain unhealthy/degraded; the new dated-cache repair
+still requires CI, release and same-workload live verification. The web Cache
+API 95% target and sustained natural-traffic acceptance remain separate in
+[issue #238](https://github.com/High-Signal-App/high-signal/issues/238).
+
+October 16 source-detail deep-page repair — historical pre-release checkpoint:
 
 [PR #255](https://github.com/High-Signal-App/high-signal/pull/255) is merged
 as `858f0b48bf15c9fe68746a1047b5a53fcd282c61`. For deep source-detail

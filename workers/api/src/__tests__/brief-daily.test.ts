@@ -656,11 +656,89 @@ describe('GET /daily shared KV edition cache (#198)', () => {
     expect(unavailable.headers.get('x-brief-cache')).toBe('UNAVAILABLE');
   });
 
-  it('never caches archive dates or pending editions, and survives KV failures', async () => {
+  it.each([0, -1])('shares a published public dated edition at day offset %s', async (offset) => {
+    const date = istDay(new Date(), offset);
     const cache = kv();
     const kvEnv = { ...env, BRIEF_CACHE: cache as unknown as KVNamespace };
-    const yesterday = istDay(new Date(), -1);
-    await briefRoute.request(`http://test/daily?date=${yesterday}`, {}, kvEnv);
+    const url = `http://test/daily?date=${date}`;
+    const first = await briefRoute.request(url, {}, kvEnv);
+    const body = await first.json();
+    expect(body).toMatchObject({ publishStatus: 'published', editionDate: date });
+    expect(cache.put).toHaveBeenCalledWith(
+      dailyBriefCacheKey('global', date),
+      JSON.stringify(body),
+      { expirationTtl: 300 }
+    );
+
+    vi.clearAllMocks();
+    const second = await briefRoute.request(url, {}, kvEnv);
+    await expect(second.json()).resolves.toEqual(body);
+    expect(mocks.tryGetPrecomputedSnapshot).not.toHaveBeenCalled();
+    expect(mocks.buildNews).not.toHaveBeenCalled();
+    expect(mocks.buildStocks).not.toHaveBeenCalled();
+    if (offset === 0) {
+      const undated = await briefRoute.request('http://test/daily', {}, kvEnv);
+      await expect(undated.json()).resolves.toEqual(body);
+      expect(mocks.tryGetPrecomputedSnapshot).not.toHaveBeenCalled();
+    }
+  });
+
+  it('does not read a populated shared key for protected history', async () => {
+    const date = istDay(new Date(), -2);
+    const cache = kv();
+    cache.stored.set(dailyBriefCacheKey('global', date), JSON.stringify({ leaked: true }));
+    const response = await briefRoute.request(
+      `http://test/daily?date=${date}`,
+      {},
+      {
+        ...env,
+        BRIEF_CACHE: cache as unknown as KVNamespace,
+      }
+    );
+    expect(response.status).toBe(403);
+    expect(response.headers.get('cache-control')).toBe('private, no-store');
+    expect(cache.get).not.toHaveBeenCalled();
+    expect(cache.put).not.toHaveBeenCalled();
+
+    const secret = 'test-history-secret';
+    const { grant } = await createHistoryGrant(secret);
+    const verified = await briefRoute.request(
+      `http://test/daily?date=${date}`,
+      {
+        headers: { Authorization: `Bearer ${grant}` },
+      },
+      { ...env, TURNSTILE_SECRET: secret, BRIEF_CACHE: cache as unknown as KVNamespace }
+    );
+    expect(verified.status).toBe(200);
+    expect(verified.headers.get('cache-control')).toBe('private, no-store');
+    expect(cache.get).not.toHaveBeenCalled();
+    expect(cache.put).not.toHaveBeenCalled();
+  });
+
+  it('keeps public dated region keys isolated and future dates out of shared storage', async () => {
+    const cache = kv();
+    const kvEnv = { ...env, BRIEF_CACHE: cache as unknown as KVNamespace };
+    cache.stored.set(dailyBriefCacheKey('global', day), JSON.stringify({ edition: 'global' }));
+    cache.stored.set(dailyBriefCacheKey('europe', day), JSON.stringify({ edition: 'europe' }));
+    const europe = await briefRoute.request(
+      `http://test/daily?date=${day}&region=europe`,
+      {},
+      kvEnv
+    );
+    await expect(europe.json()).resolves.toEqual({ edition: 'europe' });
+    expect(cache.get).toHaveBeenCalledWith(dailyBriefCacheKey('europe', day), 'json');
+
+    vi.clearAllMocks();
+    await briefRoute.request(`http://test/daily?date=${istDay(new Date(), 1)}`, {}, kvEnv);
+    expect(cache.get).not.toHaveBeenCalled();
+    expect(cache.put).not.toHaveBeenCalled();
+  });
+
+  it('never caches protected archive dates or pending editions, and survives KV failures', async () => {
+    const cache = kv();
+    const kvEnv = { ...env, BRIEF_CACHE: cache as unknown as KVNamespace };
+    const protectedDay = istDay(new Date(), -2);
+    await briefRoute.request(`http://test/daily?date=${protectedDay}`, {}, kvEnv);
     expect(cache.get).not.toHaveBeenCalled();
     expect(cache.put).not.toHaveBeenCalled();
 
