@@ -135,7 +135,9 @@ to the existing private `reddit-insights-archive` bucket using the pinned Reddit
 Insights publisher. Both publication jobs share a concurrency group. The
 publisher discovers the canonical latest complete archive and rechecks every
 published source manifest, replacing revised collections and renewing unchanged
-24-hour leases. Collection failure does not extend serving leases. For a manual
+24-hour leases. Missing expired derivatives are rebuilt from the verified source
+archive; unavailable sources, permission failures and checksum mismatches still
+fail publication. Collection failure does not extend serving leases. For a manual
 refresh without ingestion, dispatch `cron-reddit-archive.yml` with
 `refresh_snapshots_only=true`. Existing R2 credential references are reused;
 no raw archive object is rewritten by publication.
