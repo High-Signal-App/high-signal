@@ -166,7 +166,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           repository: High-Signal-App/research-subreddit
-          ref: ab91a427cad22643837d8099296a5a6467fcd2ee
+          ref: ec51b45baa747860456ea6d5ac72ce184ac07417
           path: snapshot-product
           persist-credentials: false
       - uses: actions/setup-node@v6
