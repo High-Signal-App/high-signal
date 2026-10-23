@@ -164,6 +164,34 @@ test('a current challenge never requests the date index or another edition', asy
   assert.deepEqual(source.calls, ['2026-10-02']);
 });
 
+test('one unusable news item cannot silence the supported reporting in an edition', async () => {
+  const valid = {
+    id: 'valid-news',
+    title: 'Example launches a production facility',
+    summary: 'Example announced a production facility with increased manufacturing capacity.',
+    event_at: '2026-10-02T04:00:00Z',
+    what_changed: '',
+    evidence_status: 'reported' as const,
+    source_references: [{ url: 'https://example.com/production-facility' }],
+  };
+  const current: BriefSnapshot = {
+    ...edition('2026-10-02'),
+    stocks: [],
+    news: [
+      valid,
+      { ...valid, id: 'no-citation', source_references: [] },
+      { ...valid, id: 'wrong-subject', title: 'DifferentCo launches a production facility' },
+      { ...valid, id: 'no-date', event_at: 'invalid' },
+    ],
+  };
+  const source = reader({ '2026-10-02': current });
+  const result = await resolveCurrentBrief(source, 'global', 'today', now);
+  assert.equal(result.publishStatus, 'published');
+  assert.deepEqual(result.news, [valid]);
+  assert.deepEqual(source.calls, ['2026-10-02']);
+  assert.equal(current.news?.length, 4, 'the source edition is not mutated');
+});
+
 test('network failures yield unavailable unless a qualified fallback can be read', async () => {
   const source = reader({
     '2026-10-02': new Error('offline'),

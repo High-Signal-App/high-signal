@@ -3,6 +3,8 @@ import { ErrorState } from '@saas-maker/ui/components/error-state';
 import type { ReactNode } from 'react';
 import {
   categoryStatesForSnapshot,
+  briefNewsPageHref,
+  paginateBriefNews,
   type BriefCategoryState,
   type BriefCitation,
   type BriefIdeaItem,
@@ -362,23 +364,80 @@ function NewsItem({ item }: { item: BriefNewsItem }) {
   );
 }
 
-export function NewsFeed({ brief }: { brief: BriefSnapshot }) {
+function NewsPages({
+  selection,
+  day,
+  region,
+}: {
+  selection: ReturnType<typeof paginateBriefNews>;
+  day: 'today' | 'yesterday';
+  region: BriefSnapshot['region'];
+}) {
+  if (selection.pageCount <= 1) return null;
+  const linkClass =
+    'inline-flex min-h-11 items-center hover:text-[var(--color-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-accent)]';
+  return (
+    <nav
+      aria-label="News pages"
+      className="mt-4 flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-t border-[var(--color-line)] pt-3 font-mono text-[10px] tracking-[0.12em] text-[var(--color-muted)]"
+    >
+      <span>
+        stories {selection.from}–{selection.to} of {selection.total}
+      </span>
+      <div className="flex items-center gap-6">
+        {selection.page > 1 ? (
+          <a
+            href={briefNewsPageHref({ page: selection.page - 1, region, day })}
+            rel="prev"
+            className={linkClass}
+          >
+            ← previous stories
+          </a>
+        ) : null}
+        {selection.page < selection.pageCount ? (
+          <a
+            href={briefNewsPageHref({ page: selection.page + 1, region, day })}
+            rel="next"
+            className={linkClass}
+          >
+            more stories →
+          </a>
+        ) : null}
+      </div>
+    </nav>
+  );
+}
+
+export function NewsFeed({
+  brief,
+  pagination,
+}: {
+  brief: BriefSnapshot;
+  pagination?: { page?: string | string[]; day: 'today' | 'yesterday' };
+}) {
   const news = brief.news ?? [];
   if (news.length === 0) return null;
+  const selected = pagination ? paginateBriefNews({ news, requestedPage: pagination.page }) : null;
   return (
     <section id="news" className="scroll-mt-20 border-b border-[var(--color-line)] py-8">
       <h2 className="font-mono text-[10px] font-normal tracking-[0.14em] text-[var(--color-muted)]">
         {news.length} {news.length === 1 ? 'story' : 'stories'}
+        {selected && selected.pageCount > 1
+          ? ` · page ${selected.page} of ${selected.pageCount}`
+          : ''}
       </h2>
       <p className="mt-3 max-w-[70ch] text-sm leading-6 text-[var(--color-muted)]">
         Ranked from retained records. Single-source reporting is attributed; this is not a market
         signal.
       </p>
       <div className="brief-feed-items mt-6 border-t border-[var(--color-line)]">
-        {news.map((item) => (
+        {(selected?.items ?? news).map((item) => (
           <NewsItem key={item.id} item={item} />
         ))}
       </div>
+      {pagination && selected ? (
+        <NewsPages selection={selected} day={pagination.day} region={brief.region} />
+      ) : null}
     </section>
   );
 }

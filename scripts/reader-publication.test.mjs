@@ -145,6 +145,7 @@ test('reader variants preserve selectors and bypass private or framework request
   for (const path of [
     '/?day=2026-10-10',
     '/?day=today&day=yesterday',
+    '/?news_page=2',
     '/?probe=x',
     '/case-studies/search',
     '/case-studies/openai?preview=1',

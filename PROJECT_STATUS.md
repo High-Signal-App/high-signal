@@ -2,6 +2,27 @@
 
 Last updated: 2026-10-23
 
+October 23 expanded-edition reading pages — implementation:
+
+Current Next and compiled reader editions render twenty news stories per page
+with previous/more links that preserve day and region. The API retains the
+complete qualified selection; the reader's first page remains bounded instead
+of growing past its publication budget. Later pages delegate to Next through
+the existing unknown-query fallback, retaining the existing access and cache
+boundaries. Historical renderers retain their existing behavior.
+The reader also withholds invalid news items individually before qualifying an
+edition, so one unsupported citation or invalid date cannot silence otherwise
+supported reporting. The existing item rules and history challenges still apply.
+
+The first source-coverage release is merged in PR #264 at
+`1a8ec663337c1ed293590ecbea46e8c0d37d3da2`. Its exact-main CI and API
+deployment passed. A direct API check returned 421 news stories, exposing the
+need to paginate the real edition rather than rely on the smaller replay.
+The larger edition also exposed all-or-nothing reader qualification when some
+news citations failed its existing item checks. API release
+`39981279845` restored the prior verified source `690cd631` while pagination
+and per-item withholding are qualified. These corrections are not yet released.
+
 October 23 existing-source reading coverage — implementation:
 
 The news composer retains all qualified stories from its existing bounded

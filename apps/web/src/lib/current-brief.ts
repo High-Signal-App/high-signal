@@ -42,6 +42,14 @@ function isChallenge(error: unknown): boolean {
   return status === 401 || status === 403;
 }
 
+function retainQualifiedNews(brief: BriefSnapshot): BriefSnapshot {
+  const news = brief.news ?? [];
+  const qualified = sanitizeBriefNewsItems(news).filter((item) =>
+    Number.isFinite(Date.parse(item.event_at))
+  );
+  return qualified.length === news.length ? brief : { ...brief, news: qualified };
+}
+
 /** Read only public editions; the existing API retains all history/challenge gates. */
 export async function resolveCurrentBrief(
   reader: BriefReader,
@@ -53,7 +61,7 @@ export async function resolveCurrentBrief(
   let unavailable = false;
   let pending: BriefSnapshot | undefined;
   try {
-    const requested = await reader.brief({ region, date: requestedDate });
+    const requested = retainQualifiedNews(await reader.brief({ region, date: requestedDate }));
     if (qualifiedEdition(requested, requestedDate, region)) return requested;
     unavailable = Object.values(requested.categoryStates ?? {}).some(
       (state) => state.status === 'unavailable'
@@ -72,7 +80,7 @@ export async function resolveCurrentBrief(
       .reverse();
     for (const date of candidates) {
       try {
-        const brief = await reader.brief({ region, date });
+        const brief = retainQualifiedNews(await reader.brief({ region, date }));
         if (qualifiedEdition(brief, date, region)) return brief;
       } catch (error) {
         unavailable = true;
