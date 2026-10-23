@@ -104,6 +104,7 @@
   },
   "pnpm": {
     "overrides": {
+      "zod@>=4.0.0 <4.6.6": "4.6.7",
       "@cloudflare/workers-types": "4.20260425.1",
       "browserslist": "4.28.7",
       "next>sharp": "0.35.5",
