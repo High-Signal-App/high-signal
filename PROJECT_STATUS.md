@@ -1,6 +1,6 @@
 # high-signal — PROJECT STATUS
 
-Last updated: 2026-10-23
+Last updated: 2026-10-24
 
 October 23 publication feed intake — implementation:
 
@@ -27,14 +27,19 @@ add-and-fetch run. Release identity and live results are recorded in
 [PR #270](https://github.com/High-Signal-App/high-signal/pull/270). Remaining coverage work stays in
 [issue #268](https://github.com/High-Signal-App/high-signal/issues/268).
 
-October 24 release qualification: exact-main CI `40002904314` passed all jobs.
-API release attempt `40003960732` stopped before deploying because its Workers
-token lacks D1 access (Cloudflare 7403). Migration `0030_feed_sources.sql` remains
-unapplied and the feature is not live. Existing API/web deployments are unchanged.
-Remote migrations retain the established manual operator path; API deploys do not
-implicitly require a broader token. News collection on the new source version
-requires the registry API, so finish the migration and API release before relying
-on its next scheduled refresh. Owner-account database access is required.
+October 24 release qualification:
+
+The initial API release attempt `40003960732` stopped before deployment because
+its Workers token lacks D1 management access (Cloudflare 7403). The release now
+uses the deployed API's existing D1 binding for exactly migration
+`0030_feed_sources.sql`, behind the existing operator authorization. Callers
+cannot supply SQL or select another migration. Initialization validates schema,
+records the standard Wrangler migration receipt atomically, preserves existing
+rows on retry, and fails closed if a recorded registry is missing. Manual
+Wrangler migrations remain compatible. No credentials, bindings, or token scopes
+change. The deployment workflow initializes and reads back the registry before
+its production smoke checks; release identity and live results remain in
+[PR #270](https://github.com/High-Signal-App/high-signal/pull/270).
 
 October 23 expanded-edition reading pages — implementation:
 

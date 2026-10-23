@@ -52,6 +52,16 @@ preserve operator pauses; repair the registry/API and retry `source=news`.
 Public feed excerpts can substitute for inaccessible linked pages. This does not
 supply paid email-only text or bypass a publisher's private feed credentials.
 
+API releases initialize migration `0030_feed_sources.sql` through the deployed
+Worker's existing D1 binding and operator authorization. This fixed operation
+accepts only that migration's name, checks schema, and records the usual Wrangler
+migration receipt in the same batch. Repeated releases preserve sources and
+pauses. A recorded migration with a missing/incompatible table fails closed;
+it does not recreate an empty registry. The deployment workflow reads the
+registry back before reporting success. General remote migrations retain the
+manual Wrangler path; no new D1 management token permission is required for this
+one publication-source table.
+
 ## Diagnosing a zero-draft day
 
 A zero-draft run can exit 0 even when it produces no useful edition. These

@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { z } from 'zod';
 import { and, desc, eq, isNull, lte, or } from 'drizzle-orm';
 import {
   addFeedSourceInputSchema,
@@ -8,6 +9,7 @@ import {
 } from '@high-signal/shared';
 import { db, schema } from '../db';
 import { sha16 } from '../lib/ids';
+import { FEED_SOURCE_MIGRATION, initializeFeedSourceSchema } from '../lib/feed-source-migration';
 import { discoverPublicFeed, publicFeedIdentity, PublicFeedError } from '../lib/public-feeds';
 
 type Env = { DB: D1Database };
@@ -40,6 +42,20 @@ export const feedSourcesAdminRoute = new Hono<{ Bindings: Env }>();
 feedSourcesAdminRoute.use('*', async (c, next) => {
   c.header('Cache-Control', 'private, no-store');
   await next();
+});
+
+const initializationInput = z.object({ migration: z.literal(FEED_SOURCE_MIGRATION.name) }).strict();
+
+// Fixed release operation: no SQL, resource names, or migration choices come from callers.
+feedSourcesAdminRoute.post('/initialize', async (c) => {
+  const parsed = initializationInput.safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) return c.json({ error: 'invalid_feed_initialization' }, 400);
+  try {
+    const applied = await initializeFeedSourceSchema(c.env.DB);
+    return c.json({ ok: true, migration: FEED_SOURCE_MIGRATION.name, applied });
+  } catch {
+    return c.json({ error: 'feed_initialization_failed' }, 503);
+  }
 });
 
 feedSourcesAdminRoute.get('/', async (c) => {

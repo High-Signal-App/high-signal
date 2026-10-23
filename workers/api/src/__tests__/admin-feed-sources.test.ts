@@ -1,8 +1,11 @@
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Hono } from 'hono';
 import { addFeedSourceResponseSchema, feedSourcesResponseSchema } from '@high-signal/shared';
 import { applyMigrations, createSqliteD1, type TestD1 } from '../../test/sqlite-d1';
 import { adminRoute } from '../routes/admin';
+import { FEED_SOURCE_MIGRATION } from '../lib/feed-source-migration';
 import { feedTransport } from '../../test/feed-fixtures';
 
 let database: TestD1;
@@ -118,5 +121,111 @@ describe('operator publication feed registry', () => {
     expect((await request('/missing', 'PATCH', { enabled: true, ownerId: 'reader' })).status).toBe(
       400
     );
+  });
+});
+
+function legacyMigrationState() {
+  database.exec(`DROP TABLE feed_sources;
+    CREATE TABLE d1_migrations (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT UNIQUE NOT NULL,
+      applied_at TEXT DEFAULT CURRENT_TIMESTAMP NOT NULL
+    );
+    INSERT INTO d1_migrations (name) VALUES ('0029_source_document_hash_index_repair.sql');`);
+}
+const initialization = { migration: '0030_feed_sources.sql' };
+
+async function registryExists() {
+  return database.binding
+    .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'feed_sources'")
+    .first();
+}
+
+describe('bounded feed registry release migration', () => {
+  it('matches the canonical migration SQL', () => {
+    const canonical = readFileSync(
+      fileURLToPath(
+        new URL('../../../../packages/db/migrations/0030_feed_sources.sql', import.meta.url).href
+      ),
+      'utf8'
+    );
+    expect(FEED_SOURCE_MIGRATION.sql.trim()).toBe(canonical.trim());
+  });
+
+  it('requires operator auth and accepts only the one named migration', async () => {
+    legacyMigrationState();
+    expect(
+      (
+        await app.request(
+          '/admin/feed-sources/initialize',
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(initialization),
+          },
+          { DB: database.binding, ADMIN_TOKEN: 'test-admin' }
+        )
+      ).status
+    ).toBe(401);
+    expect(
+      (await request('/initialize', 'POST', { migration: '0020_remove_reader_accounts.sql' }))
+        .status
+    ).toBe(400);
+    expect(
+      (await request('/initialize', 'POST', { ...initialization, sql: 'DROP TABLE signals' }))
+        .status
+    ).toBe(400);
+    expect(await registryExists()).toBeNull();
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('initializes a legacy database once and keeps sources and pauses on retry', async () => {
+    legacyMigrationState();
+    const response = await request('/initialize', 'POST', initialization);
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ ok: true, ...initialization, applied: true });
+    expect(feedSourcesResponseSchema.parse(await (await request('')).json()).sources).toEqual([]);
+    const added = addFeedSourceResponseSchema.parse(
+      await (await request('', 'POST', { url: 'https://publisher.example.org/feed' })).json()
+    );
+    await request(`/${added.source.id}`, 'PATCH', { enabled: false });
+    expect(await (await request('/initialize', 'POST', initialization)).json()).toEqual({
+      ok: true,
+      ...initialization,
+      applied: false,
+    });
+    const list = feedSourcesResponseSchema.parse(await (await request('')).json());
+    expect(list.sources).toHaveLength(1);
+    expect(list.sources[0]).toMatchObject({ id: added.source.id, enabled: false });
+    expect(
+      await database.binding
+        .prepare('SELECT count(*) AS total FROM d1_migrations WHERE name = ?')
+        .bind(initialization.migration)
+        .first('total')
+    ).toBe(1);
+  });
+
+  it('does not record a migration over an incompatible existing table', async () => {
+    legacyMigrationState();
+    database.exec(
+      "CREATE TABLE feed_sources (id TEXT); INSERT INTO feed_sources VALUES ('preserved');"
+    );
+    expect((await request('/initialize', 'POST', initialization)).status).toBe(503);
+    expect(
+      await database.binding
+        .prepare('SELECT name FROM d1_migrations WHERE name = ?')
+        .bind(initialization.migration)
+        .first()
+    ).toBeNull();
+    expect(await database.binding.prepare('SELECT id FROM feed_sources').first('id')).toBe(
+      'preserved'
+    );
+  });
+
+  it('fails closed if a recorded registry was removed instead of recreating lost pauses', async () => {
+    legacyMigrationState();
+    database.exec("INSERT INTO d1_migrations (name) VALUES ('0030_feed_sources.sql');");
+    expect((await request('/initialize', 'POST', initialization)).status).toBe(503);
+    expect(await registryExists()).toBeNull();
   });
 });
