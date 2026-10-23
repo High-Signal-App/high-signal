@@ -10,7 +10,8 @@ validates and discovers its feed, stores a publication-wide source, and collects
 it on subsequent daily news refreshes. Operators can pause/resume and inspect
 fetch counts or failures. Validation and collection are separate states; adding
 a feed does not certify that its articles have been fetched or published.
-Registry overrides merge with the existing curated sources by canonical feed URL,
+Managed URLs also suppress matching legacy Substack fetches to prevent duplicate
+collection or bypassing a pause. Registry overrides merge with the existing curated sources by canonical feed URL,
 retaining existing event identity. Pauses also suppress matching seed feeds;
 a configured but unavailable registry fails the RSS adapter closed rather than
 silently resuming paused sources. Public-host checks, bounded redirects/downloads,

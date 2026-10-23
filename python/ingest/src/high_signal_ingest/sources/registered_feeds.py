@@ -70,7 +70,7 @@ def feed_key(value: str) -> str:
     return urlunsplit((url.scheme.lower(), host, url.path.rstrip("/"), urlencode(query), ""))
 
 
-def merge_sources(seeds: list[dict], rows: list[dict] | None, tier_max: int) -> list[dict]:
+def registry_rows(rows: list[dict] | None) -> list[RegisteredFeed]:
     if rows is None:
         # An outage must not silently resume seed feeds the operator paused.
         raise PublicFeedFetchError("Publication feed registry unavailable")
@@ -78,6 +78,13 @@ def merge_sources(seeds: list[dict], rows: list[dict] | None, tier_max: int) -> 
         registered = TypeAdapter(list[RegisteredFeed]).validate_python(rows)
     except ValidationError as exc:
         raise PublicFeedFetchError("Invalid publication feed registry response") from exc
+    for row in registered:
+        public_url(row.feedUrl)
+    return registered
+
+
+def merge_sources(seeds: list[dict], rows: list[dict] | None, tier_max: int) -> list[dict]:
+    registered = registry_rows(rows)
     all_seeds = {feed_key(source["rss"]): source for source in seeds if source.get("rss")}
     selected: dict[str, dict] = {}
     for source in seeds:
