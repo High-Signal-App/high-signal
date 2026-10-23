@@ -2,6 +2,18 @@
 
 Last updated: 2026-10-24
 
+October 24 public source import:
+
+The curated roster adds 107 verified public RSS/Atom feeds from newsletters and
+developer updates to the existing daily news adapter. Canonical feed URLs
+collapse publication aliases; existing source identities and managed pause
+overrides are retained. No mailbox content, private feeds, or subscriber-only
+retrieval is introduced. Sources with no discoverable feed, blocked retrieval,
+or an unrelated publisher redirect were excluded. Production collection and
+reader qualification are recorded in
+[PR #278](https://github.com/High-Signal-App/high-signal/pull/278); remaining
+coverage gaps stay in [issue #268](https://github.com/High-Signal-App/high-signal/issues/268).
+
 October 24 retired product navigation:
 
 Podcasts is retired. Both the Next and compiled reader headers omit its link,
