@@ -228,6 +228,7 @@ html[data-theme="ink"] studio-footer[data-theme="ink"][data-mode="dark"] {
 :where(main) a[class~="text-[var(--color-accent)]"] { color: var(--foreground); }
 :where(main) a:hover { color: var(--brand); }
 :where(header, studio-footer) :is(a, button):hover { background-color: var(--accent); }
+:where(studio-footer) :is(a, button):hover { color: var(--accent-foreground); }
 :where([data-slot="button"]) { box-shadow: none; }
 :where([data-slot="button"]):hover { background-color: var(--accent); }
 

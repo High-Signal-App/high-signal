@@ -150,7 +150,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {`(function(c,l,a,r,i){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};var done=false;var events=["pointerdown","keydown","scroll","touchstart"];function go(){if(done)return;done=true;events.forEach(function(event){c.removeEventListener(event,go)});var t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;var y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y)}events.forEach(function(event){c.addEventListener(event,go,{passive:true,once:true})})})(window,document,"clarity","script","ybcgyx9ugh");window.clarity("set","project_id","high-signal");`}
         </Script>
         <Script
-          src="/studio-footer/e8e4941f3b2063a14d8afb73088ddbbb864d94c1/footer.js"
+          src="/studio-footer/14712fdf622b5a02cb1cedb481356b6ad00a5132/footer.js"
           type="module"
           strategy="lazyOnload"
         />
