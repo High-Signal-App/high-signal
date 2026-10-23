@@ -12,6 +12,10 @@ on:
         description: lookback days
         type: string
         default: "1"
+      feed_url:
+        description: optional public website or feed URL to add before the news refresh
+        type: string
+        default: ""
       fetch_only:
         description: retain source evidence without AI drafting
         type: boolean
@@ -104,6 +108,27 @@ jobs:
           LIBRARIES_IO_API_KEY: ${{ secrets.LIBRARIES_IO_API_KEY }}
           REPLICATE_API_TOKEN: ${{ secrets.REPLICATE_API_TOKEN }}
         run: uv run python -m high_signal_ingest.source_diagnose --require-persistence --require-sec-identity
+      - name: Add optional publication feed
+        if: ${{ inputs.feed_url != '' }}
+        env:
+          FEED_URL: ${{ inputs.feed_url }}
+          ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
+          API_BASE: ${{ secrets.API_BASE }}
+        run: |
+          uv run python - <<'PYTHON'
+          import os
+          import httpx
+          response = httpx.post(
+              f"{os.environ['API_BASE'].rstrip('/')}/admin/feed-sources",
+              headers={"Authorization": f"Bearer {os.environ['ADMIN_TOKEN']}"},
+              json={"url": os.environ["FEED_URL"]},
+              timeout=30,
+          )
+          if response.status_code not in {200, 201}:
+              raise SystemExit(f"Feed registration failed: HTTP {response.status_code}")
+          source = response.json()["source"]
+          print(f"Publication feed ready: {source['id']}")
+          PYTHON
       - name: ingest
         env:
           FETCH_ONLY: ${{ inputs.fetch_only && 'true' || 'false' }}

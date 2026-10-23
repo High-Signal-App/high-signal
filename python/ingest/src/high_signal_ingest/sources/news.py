@@ -4,17 +4,21 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
 from html.parser import HTMLParser
 from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
 from typing import Iterator
+from urllib.parse import urljoin
 
 import feedparser
 import httpx
 
 from ..seed import load_sources
+from .. import audit
 from ..types import Event
 from ..utils import event_hash
+from . import registered_feeds
 
 
 USER_AGENT = "high-signal/0.1 (+https://github.com/sarthakagrawal927)"
@@ -99,16 +103,25 @@ def _extract_article_text(html: str) -> str:
         return ""
 
 
-def _parse_feed(xml_text: str) -> list[dict]:
+def _parse_feed(xml_text: str, *, base_url: str = "", require_feed: bool = False) -> list[dict]:
     """Parse RSS/Atom into {title, link, pub} dicts."""
     out: list[dict] = []
+    if require_feed:
+        markup = re.sub(r"<!\[CDATA\[[\s\S]*?\]\]>", "", xml_text)
+        if re.search(r"<!DOCTYPE|<!ENTITY", markup, re.I):
+            raise registered_feeds.PublicFeedFetchError(
+                "Response is not a supported RSS or Atom feed"
+            )
     parsed = feedparser.parse(xml_text)
+    if require_feed and not parsed.get("version"):
+        raise registered_feeds.PublicFeedFetchError("Response is not a supported RSS or Atom feed")
     if getattr(parsed, "bozo", False):
         LOGGER.debug("feedparser marked feed as bozo: %s", getattr(parsed, "bozo_exception", ""))
     for entry in parsed.entries:
-        link = (entry.get("link") or "").strip()
-        if not link:
+        raw_link = (entry.get("link") or "").strip()
+        if not raw_link:
             continue
+        link = urljoin(base_url, raw_link)
         item = {
             "title": (entry.get("title") or "").strip(),
             "link": link,
@@ -135,9 +148,19 @@ async def _fetch_text(client: httpx.AsyncClient, url: str) -> str:
         return ""
 
 
-async def _extract_body(client: httpx.AsyncClient, url: str, semaphore: asyncio.Semaphore) -> str:
+async def _extract_body(
+    client: httpx.AsyncClient, url: str, semaphore: asyncio.Semaphore, *, public_only: bool = False
+) -> str | None:
     async with semaphore:
-        html = await _fetch_text(client, url)
+        if public_only:
+            try:
+                html = (await registered_feeds.fetch_public_document(client, url)).text
+            except registered_feeds.UnsafeFeedUrl:
+                return None
+            except (registered_feeds.PublicFeedFetchError, httpx.HTTPError, TimeoutError):
+                html = ""
+        else:
+            html = await _fetch_text(client, url)
     if not html:
         return ""
     return await asyncio.to_thread(_extract_article_text, html)
@@ -154,12 +177,23 @@ async def fetch_rss_async(
     url = source.get("rss")
     if not url:
         return []
-    xml_text = await _fetch_text(client, url)
+    registered = bool(source.get("_registry_id"))
+    async with body_semaphore:
+        if registered:
+            document = await registered_feeds.fetch_public_document(client, url)
+            xml_text, url = document.text, document.url
+        else:
+            xml_text = await _fetch_text(client, url)
     if not xml_text:
         return []
-    items = _parse_feed(xml_text)
+    items = _parse_feed(xml_text, base_url=url, require_feed=registered)
     candidates: list[tuple[dict, datetime]] = []
     for it in items:
+        if registered:
+            try:
+                registered_feeds.public_url(it["link"])
+            except registered_feeds.UnsafeFeedUrl:
+                continue
         pub_raw = it["pub"]
         pub = _parse_rfc822(pub_raw) or _parse_iso(pub_raw)
         if pub is None:
@@ -168,16 +202,23 @@ async def fetch_rss_async(
             continue
         candidates.append((it, pub))
 
-    body_tasks: dict[str, asyncio.Task[str]] = {}
+    if registered:
+        candidates = sorted(candidates, key=lambda item: item[1], reverse=True)[:50]
+
+    body_tasks: dict[str, asyncio.Task[str | None]] = {}
     if fetch_body:
         for it, _pub in candidates:
             link = it["link"]
             if link not in body_tasks:
-                body_tasks[link] = asyncio.create_task(_extract_body(client, link, body_semaphore))
+                body_tasks[link] = asyncio.create_task(
+                    _extract_body(client, link, body_semaphore, public_only=registered)
+                )
     out: list[Event] = []
     for it, pub in candidates:
         link = it["link"]
         body = await body_tasks[link] if fetch_body else ""
+        if body is None:
+            continue
         raw_hash = event_hash(source["id"], link)
         out.append(
             Event(
@@ -216,17 +257,8 @@ async def fetch_all_async(
     concurrency: int = DEFAULT_CONCURRENCY,
 ) -> list[Event]:
     since = datetime.now(timezone.utc) - timedelta(days=days)
-    sources: list[dict] = []
-    for src in load_sources():
-        source_type = src.get("type")
-        if source_type not in {"blog", "news_outlet", "mailing_list"} or not src.get("rss"):
-            continue
-        # The curated newsletter seed uses discovery tier 3. It is intake,
-        # not a confidence upgrade; the signal proof gates still apply.
-        limit = max(tier_max, 3) if source_type == "mailing_list" else tier_max
-        if int(src.get("tier", 99)) > limit:
-            continue
-        sources.append(src)
+    registry = await asyncio.to_thread(audit.fetch_feed_sources)
+    sources = registered_feeds.merge_sources(load_sources(), registry, tier_max)
 
     timeout = httpx.Timeout(20.0, connect=10.0)
     limits = httpx.Limits(max_connections=concurrency, max_keepalive_connections=concurrency)
@@ -239,11 +271,40 @@ async def fetch_all_async(
         limits=limits,
     ) as client:
         tasks = [
-            fetch_rss_async(src, since, client, body_semaphore, fetch_body=fetch_body)
+            _fetch_source(src, since, client, body_semaphore, fetch_body=fetch_body)
             for src in sources
         ]
         batches = await asyncio.gather(*tasks)
     return [event for batch in batches for event in batch]
+
+
+async def _fetch_source(
+    source: dict,
+    since: datetime,
+    client: httpx.AsyncClient,
+    semaphore: asyncio.Semaphore,
+    *,
+    fetch_body: bool,
+) -> list[Event]:
+    if not source.get("_registry_id"):
+        return await fetch_rss_async(source, since, client, semaphore, fetch_body=fetch_body)
+    fetched_at = int(datetime.now(timezone.utc).timestamp())
+    events: list[Event] = []
+    error = None
+    try:
+        events = await fetch_rss_async(source, since, client, semaphore, fetch_body=fetch_body)
+    except registered_feeds.PublicFeedFetchError as exc:
+        error = str(exc)
+    except (httpx.HTTPError, TimeoutError) as exc:
+        error = f"Feed fetch failed ({type(exc).__name__})"
+    await registered_feeds.report_fetch(
+        source,
+        fetched_at=fetched_at,
+        count=len(events),
+        error=error,
+        published_at=max((int(event.published_at.timestamp()) for event in events), default=None),
+    )
+    return events
 
 
 def fetch_all(days: int = 1, tier_max: int = 2, fetch_body: bool = True) -> list[Event]:

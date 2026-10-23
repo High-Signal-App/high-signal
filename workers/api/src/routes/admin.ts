@@ -33,6 +33,7 @@ import { db, schema } from '../db';
 import { diggAdminRoute } from './admin-digg';
 import { mtsAdminRoute } from './admin-mts';
 import { scheduledDataAdminRoute } from './admin-scheduled-data';
+import { feedSourcesAdminRoute } from './admin-feed-sources';
 import { precomputeBriefSnapshots } from './brief';
 import { enrichSignals, serializeClaimEvidenceLink } from '../lib/signal-quality';
 import { retainedEvidenceCandidates } from '../lib/attention-admin';
@@ -61,6 +62,7 @@ adminRoute.use('*', async (c, next) => {
 adminRoute.route('/digg', diggAdminRoute);
 adminRoute.route('/mts', mtsAdminRoute);
 adminRoute.route('/scheduled-data', scheduledDataAdminRoute);
+adminRoute.route('/feed-sources', feedSourcesAdminRoute);
 
 /** Read-only, bounded corpus lookup for issuer-announcement verification. */
 adminRoute.post('/evidence/related', async (c) => {

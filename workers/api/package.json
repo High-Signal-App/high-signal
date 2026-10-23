@@ -17,6 +17,7 @@
     "@saas-maker/app-health": "https://github.com/sass-maker/app-health/releases/download/node-v0.4.0/saas-maker-app-health-0.4.0.tgz",
     "ai": "6.0.168",
     "drizzle-orm": "0.45.2",
+    "fast-xml-parser": "5.11.2",
     "hono": "4.12.34",
     "workers-ai-provider": "3.3.1",
     "zod": "4.4.3"

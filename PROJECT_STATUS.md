@@ -2,6 +2,27 @@
 
 Last updated: 2026-10-23
 
+October 23 publication feed intake — implementation:
+
+The Access-protected `/review` page accepts public RSS/Atom URLs and publication
+websites advertising feeds, including public Substack publications. Adding a URL
+validates and discovers its feed, stores a publication-wide source, and collects
+it on subsequent daily news refreshes. Operators can pause/resume and inspect
+fetch counts or failures. Validation and collection are separate states; adding
+a feed does not certify that its articles have been fetched or published.
+Registry overrides merge with the existing curated sources by canonical feed URL,
+retaining existing event identity. Pauses also suppress matching seed feeds;
+a configured but unavailable registry fails the RSS adapter closed rather than
+silently resuming paused sources. Public-host checks, bounded redirects/downloads,
+and XML declaration rejection apply to managed feed retrieval. Private or
+credential-bearing feeds are unsupported. No mailbox connection or subscription
+changes are part of this feature. Collection still passes the existing news and
+signal evidence gates. Local Worker-to-D1 verification discovered Refactoring
+from its website, retained two seven-day articles with their existing source key,
+and confirmed pause/resume plus URL deduplication. Direct public Atom and
+Substack discovery also passed. Release verification is still pending. Remaining coverage work stays in
+[issue #268](https://github.com/High-Signal-App/high-signal/issues/268).
+
 October 23 expanded-edition reading pages — implementation:
 
 Current Next and compiled reader editions render twenty news stories per page
