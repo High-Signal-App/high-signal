@@ -290,7 +290,7 @@ const RETAINED_TEXT_BLOCKERS = [
 
 const ROUTINE_IR_SNAPSHOT_RE = /\bir snapshot$/i;
 const ROUTINE_EARNINGS_CALENDAR_RE =
-  /\bto (?:report|release|announce)\b.*\b(?:results|earnings|guidance)\b|\b(?:schedules?|announces?)\b.*\b(?:earnings|results)\s+(?:call|conference|date)\b|\bto (?:host|hold|webcast)\b.*\b(?:conference|earnings|results)\s+call\b/i;
+  /\bto (?:report|release|announce)\b.*\b(?:results|earnings|guidance)\b|\b(?:schedules?|announces?)\b.*\b(?:earnings|results)\s+(?:call|conference|date)\b|\bto (?:host|hold|webcast)\b.*\b(?:conference|earnings|results)\s+call\b|\b(?:results|earnings)\s+(?:\d{4}\s+)?date\s*(?:&(?:amp;)?|and)\s*time\b|\b(?:earnings|results)\s+(?:preview|announcement\s+schedule)\b/i;
 const LOW_VALUE_NEWS_TITLE_RE =
   /^(?:court opinion:)\s|\b(?:top stocks?|stocks?) to buy\b|\btarget,?\s+stop-loss\b|\bshare price target\b|\bshould investors (?:buy|sell)\b|\b(?:sensex|nifty|stock market) prediction\b/i;
 
@@ -560,7 +560,7 @@ function storyFromCluster(members: NewsRecord[], window: NewsReportingWindow): R
   const representative = usable.reduce((best, record) =>
     rankRecord(record) > rankRecord(best) ? record : best
   );
-  const title = (representative.title ?? '').trim();
+  const title = decodeHtmlCharacterReferences(representative.title ?? '').trim();
   if (!title) return null;
   const excerpt = retainedBody(representative);
   if (!excerpt) return null;

@@ -20,14 +20,21 @@ deployment passed. A direct API check returned 421 news stories, exposing the
 need to paginate the real edition rather than rely on the smaller replay.
 The larger edition also exposed all-or-nothing reader qualification when some
 news citations failed its existing item checks. API release
-`39981279845` restored the prior verified source `690cd631` while pagination
-and per-item withholding are qualified. These corrections are not yet released.
+`39981279845` restored the prior verified source `690cd631` during qualification.
+PR #265 released the corrected reader and API at `f52777d6`:
+web run `39984712309`, version `95c57b37-f02b-4c10-98ca-a89d692be1f3`;
+API run `39985820723`, version `d53f2da2-cb57-494c-b964-5102b2fbdc82`.
+Both release workflows passed. Live browser verification found 484 supported
+stories across 25 pages, with twenty distinct stories on each of the first two
+pages and working navigation. This count is an observation, not a fixed quota.
 
 October 23 existing-source reading coverage — implementation:
 
 The news composer retains all qualified stories from its existing bounded
 candidate query instead of truncating the edition at eight. Routine earnings
 calendar notices are excluded while actual results and guidance remain eligible.
+This includes results date-and-time notices and earnings previews; headline
+character references are decoded for display without changing retained records.
 The news adapter now includes the five already-curated newsletter RSS feeds
 through their discovery tier, and retains cleaned RSS/Atom article text when
 linked-page extraction fails. News attribution and signal proof gates retain
@@ -36,10 +43,23 @@ mode for source refreshes without AI drafting.
 
 Focused checks cover more-than-eight coverage, quiet editions, calendar versus
 results selection, newsletter eligibility, and retained feed text after page
-failure. Release and live reading verification are pending. Opportunities and
+failure. The fetch-only source refresh in run `39978458061` acknowledged 1,134
+events with no errors, AI requests, or drafted signals. PR #267 adds the public
+archives for Platformer, AlphaSignal, Austin Kleon, and Refactoring; a local
+seven-day RSS check retained 27 articles with text. This uses public feeds,
+not continuous mailbox intake, and no subscriptions have been removed.
+The subsequent production refresh in run `39986139637` acknowledged 1,164
+events with zero errors, unacknowledged events, AI requests, or drafted signals.
+The public source browser confirmed retained articles for Platformer (2),
+AlphaSignal (20), and Refactoring (2). Austin Kleon returned no production rows
+despite the local success; its recurring retrieval remains unverified.
+Broken/stale feeds and remaining intake are tracked in
+[issue #268](https://github.com/High-Signal-App/high-signal/issues/268).
+Opportunities and
 culture remain dependent on proof-qualified inputs: their current digest
 builders attach one citation without structured claim provenance, so collecting
-more digests alone cannot satisfy the public edition gate.
+more digests alone cannot satisfy the public edition gate. Their source-to-reader
+work is tracked in [issue #266](https://github.com/High-Signal-App/high-signal/issues/266).
 
 October 23 Daily Brief source grouping:
 
