@@ -17,11 +17,18 @@ const readDataSources = unstable_cache(() => api.dataSources(), ['data-sources']
 });
 
 const readDataSourceEvents = unstable_cache(
-  (source: string, limit: number, offset: number, date: string | null) =>
+  (
+    source: string,
+    limit: number,
+    offset: number,
+    date: string | null,
+    sourceFilter: string | null
+  ) =>
     api.dataSourceEvents(source, {
       limit,
       offset,
       date: date ?? undefined,
+      source: sourceFilter ?? undefined,
     }),
   ['data-source-events'],
   { revalidate: DATA_CACHE_SECONDS }
@@ -100,11 +107,19 @@ function addDays(day: string, delta: number): string {
   return d.toISOString().slice(0, 10);
 }
 
-function sourcePath(source: string, opts: { date?: string; all?: boolean; page?: number }): Route {
+interface SourcePathOptions {
+  date?: string;
+  all?: boolean;
+  page?: number;
+  sourceFilter?: string;
+}
+
+function sourcePath(source: string, opts: SourcePathOptions): Route {
   const q = new URLSearchParams();
   if (opts.all) q.set('all', '1');
   else if (opts.date) q.set('date', opts.date);
   if (opts.page && opts.page > 0) q.set('p', String(opts.page));
+  if (opts.sourceFilter) q.set('source', opts.sourceFilter);
   const qs = q.toString();
   return `/data/${encodeURIComponent(source)}${qs ? `?${qs}` : ''}` as Route;
 }
@@ -114,10 +129,11 @@ export default async function DataSourcePage({
   searchParams,
 }: {
   params: Promise<{ source: string }>;
-  searchParams: Promise<{ p?: string; date?: string; all?: string }>;
+  searchParams: Promise<{ p?: string; date?: string; all?: string; source?: string | string[] }>;
 }) {
   const { source } = await params;
-  const { p, date, all } = await searchParams;
+  const { p, date, all, source: requestedSource } = await searchParams;
+  const sourceFilter = typeof requestedSource === 'string' ? requestedSource : undefined;
   const page = Math.max(Number(p ?? 0) || 0, 0);
   const entry = entryFor(source);
   const allHistoryRequested = all === '1';
@@ -139,7 +155,13 @@ export default async function DataSourcePage({
 
   let data: DataSourceEventsResponse | null = null;
   try {
-    data = await readDataSourceEvents(source, PAGE, page * PAGE, selectedDate ?? null);
+    data = await readDataSourceEvents(
+      source,
+      PAGE,
+      page * PAGE,
+      selectedDate ?? null,
+      sourceFilter ?? null
+    );
   } catch {
     /* worker/D1 unreachable */
   }
@@ -147,6 +169,7 @@ export default async function DataSourcePage({
   const events = data?.events ?? [];
   const total = data?.total ?? 0;
   const hasMore = data?.hasMore ?? false;
+  const observed = sourceFilter ? data : sourceLive;
 
   return (
     <main
@@ -165,14 +188,18 @@ export default async function DataSourcePage({
           <h1 className="font-mono text-2xl font-semibold tracking-tight text-zinc-100">
             {source}
           </h1>
-          {entry && <span className="text-sm text-zinc-500">{entry.provider}</span>}
+          {entry && (
+            <span className="text-sm text-zinc-500">
+              {sourceFilter ? 'selected source' : entry.provider}
+            </span>
+          )}
         </div>
         <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1 font-mono text-xs tabular-nums text-zinc-400">
           <span>
             <span className="text-zinc-100">{total.toLocaleString()}</span>{' '}
             {selectedDate ? `events on ${selectedDate}` : 'events in store'}
           </span>
-          {entry && (
+          {entry && !sourceFilter && (
             <>
               <span>role: {entry.role}</span>
               <span>{entry.windowDays}d fetch window</span>
@@ -181,7 +208,7 @@ export default async function DataSourcePage({
             </>
           )}
         </div>
-        {entry && (
+        {entry && !sourceFilter && (
           <div className="mt-2 space-y-1 text-xs text-zinc-500">
             <p>
               Extracts: <span className="text-zinc-400">{entry.keeps}</span> ·{' '}
@@ -191,12 +218,14 @@ export default async function DataSourcePage({
             <p>Access basis: {entry.accessBasis}</p>
           </div>
         )}
-        {sourceLive && (
+        {observed && (
           <p className="mt-2 font-mono text-[10px] text-zinc-500">
-            Last ingested: {fmtDate(sourceLive.lastIngestedAt)} · run status:{' '}
-            {sourceLive.runStatus.replaceAll('_', ' ')}
-            {sourceLive.futureCount > 0
-              ? ` · ${sourceLive.futureCount.toLocaleString()} future-effective observations retained`
+            Last ingested: {fmtDate(observed.lastIngestedAt)}
+            {!sourceFilter && sourceLive && (
+              <> · run status: {sourceLive.runStatus.replaceAll('_', ' ')}</>
+            )}
+            {observed.futureCount > 0
+              ? ` · ${observed.futureCount.toLocaleString()} future-effective observations retained`
               : ''}
           </p>
         )}
@@ -213,7 +242,7 @@ export default async function DataSourcePage({
         {selectedDate ? (
           <>
             <Link
-              href={sourcePath(source, { date: addDays(selectedDate, -1) })}
+              href={sourcePath(source, { sourceFilter, date: addDays(selectedDate, -1) })}
               className="rounded border border-zinc-800 px-2 py-1 text-zinc-400 hover:border-zinc-600 hover:text-[var(--color-accent)]"
             >
               ← prev day
@@ -222,13 +251,13 @@ export default async function DataSourcePage({
               {selectedDate}
             </span>
             <Link
-              href={sourcePath(source, { date: addDays(selectedDate, 1) })}
+              href={sourcePath(source, { sourceFilter, date: addDays(selectedDate, 1) })}
               className="rounded border border-zinc-800 px-2 py-1 text-zinc-400 hover:border-zinc-600 hover:text-[var(--color-accent)]"
             >
               next day →
             </Link>
             <Link
-              href={sourcePath(source, { all: true })}
+              href={sourcePath(source, { sourceFilter, all: true })}
               className="rounded border border-zinc-800 px-2 py-1 text-zinc-500 hover:border-zinc-600 hover:text-zinc-300"
             >
               all history
@@ -240,7 +269,7 @@ export default async function DataSourcePage({
               all history
             </span>
             <Link
-              href={sourcePath(source, { date: todayIso() })}
+              href={sourcePath(source, { sourceFilter, date: todayIso() })}
               className="rounded border border-zinc-800 px-2 py-1 text-zinc-400 hover:border-zinc-600 hover:text-[var(--color-accent)]"
             >
               today
@@ -266,7 +295,9 @@ export default async function DataSourcePage({
           description={
             selectedDate
               ? `No events stored for this source on ${selectedDate}. Try adjacent days or all history.`
-              : 'No observations are stored for this configured source. This does not prove the adapter failed; consult its run status and cadence above.'
+              : sourceFilter
+                ? 'No collected records for this source yet.'
+                : 'No observations are stored for this configured source. This does not prove the adapter failed; consult its run status and cadence above.'
           }
           primaryAction={
             <a href="/data" className="underline">
@@ -326,7 +357,12 @@ export default async function DataSourcePage({
         <nav className="mt-8 flex items-center justify-between font-mono text-xs">
           {page > 0 ? (
             <Link
-              href={sourcePath(source, { date: selectedDate, all: allHistory, page: page - 1 })}
+              href={sourcePath(source, {
+                sourceFilter,
+                date: selectedDate,
+                all: allHistory,
+                page: page - 1,
+              })}
               className="text-zinc-400 hover:text-[var(--color-accent)]"
             >
               ← newer
@@ -341,7 +377,12 @@ export default async function DataSourcePage({
           </span>
           {hasMore ? (
             <Link
-              href={sourcePath(source, { date: selectedDate, all: allHistory, page: page + 1 })}
+              href={sourcePath(source, {
+                sourceFilter,
+                date: selectedDate,
+                all: allHistory,
+                page: page + 1,
+              })}
               className="text-zinc-400 hover:text-[var(--color-accent)]"
             >
               older →
@@ -366,7 +407,7 @@ export default async function DataSourcePage({
             .map((p) => (
               <Link
                 key={p}
-                href={sourcePath(source, { all: true, page: p })}
+                href={sourcePath(source, { sourceFilter, all: true, page: p })}
                 className="rounded border border-zinc-800 px-1.5 py-0.5 hover:text-[var(--color-accent)]"
               >
                 p{p + 1}

@@ -18,7 +18,10 @@ silently resuming paused sources. Public-host checks, bounded redirects/download
 and XML declaration rejection apply to managed feed retrieval. Private or
 credential-bearing feeds are unsupported. No mailbox connection or subscription
 changes are part of this feature. Collection still passes the existing news and
-signal evidence gates. Local Worker-to-D1 verification discovered Refactoring
+signal evidence gates. The records browser forwards the selected publication
+through its API/cache key and date/history/pagination links; inspection opens all
+retained dates and displays metadata for that source. Local Worker-to-D1
+verification discovered Refactoring
 from its website, retained two seven-day articles with their existing source key,
 and confirmed pause/resume plus URL deduplication. Direct public Atom and
 Substack discovery also passed. Production qualification uses exact-main CI,
