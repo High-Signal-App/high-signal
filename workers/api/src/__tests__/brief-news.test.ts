@@ -231,6 +231,59 @@ describe('selectNewsRecords', () => {
 });
 
 describe('clusterNewsRecords', () => {
+  it('keeps the observed Recursive/Birla and AuxoAI/CureBay/Legora events separate', () => {
+    const titles = [
+      'Recursive launches Flint, a laptop coding model it says was largely built by AI',
+      'Birla AI Labs launches Yug-1, a time-series foundation model built in India',
+      'Forward deployed AI startup AuxoAI raises $20.7 Mn in Series A round led by NTTVC',
+      'Rural healthcare startup CureBay raises Rs 100 Cr in pre-Series C led by IvyCap',
+      'Legal AI startup Legora raises $550M Series E at $8.8B valuation',
+    ];
+    const records = titles.map((title, i) =>
+      record({ id: `observed-${i}`, title, sourceUrl: `https://publisher.example/story-${i}` })
+    );
+    expect(clusterNewsRecords(records).map((group) => group.map((item) => item.id))).toEqual(
+      records.map((item) => [item.id])
+    );
+    const stories = composeNewsStories(records, WINDOW);
+    expect(stories).toHaveLength(5);
+    for (const story of stories) {
+      const original = records.find((item) => item.title === story.title)!;
+      expect(story.source_references.map((item) => item.recordId)).toEqual([original.id]);
+    }
+  });
+
+  it('does not treat a shared funding investor as the story subject', () => {
+    const titles = [
+      'AI startup Acme raises $20 million in Series A round led by Northstar',
+      'AI startup Beta raises $20 million in Series A round led by Northstar',
+    ];
+    expect(
+      clusterNewsRecords(
+        titles.map((title, i) =>
+          record({ id: `funding-${i}`, title, sourceUrl: `https://publisher.example/funding-${i}` })
+        )
+      )
+    ).toHaveLength(2);
+  });
+
+  it('does not merge a new claim through a bridge that only matches one cluster member', () => {
+    const titles = [
+      'Acme launches Alpha Beta cloud model',
+      'Acme launches Alpha Beta Gamma cloud model',
+      'Acme launches Gamma Delta cloud model',
+    ];
+    const groups = clusterNewsRecords(
+      titles.map((title, i) =>
+        record({ id: `bridge-${i}`, title, sourceUrl: `https://publisher.example/bridge-${i}` })
+      )
+    );
+    expect(groups.map((group) => group.map((item) => item.id))).toEqual([
+      ['bridge-0', 'bridge-1'],
+      ['bridge-2'],
+    ]);
+  });
+
   it('merges duplicate coverage of the same announcement and keeps same-company events apart', () => {
     const wire = record({
       id: 'wire',
@@ -543,6 +596,63 @@ describe('composeNewsStories', () => {
 });
 
 describe('sanitizeBriefNewsItems', () => {
+  it('repairs the observed cached model-launch and funding associations', () => {
+    const recursive =
+      'https://techcrunch.com/2026/10/21/recursive-launches-flint-a-laptop-coding-model-it-says-was-largely-built-by-ai/';
+    const birla =
+      'https://analyticsindiamag.com/ai-news/birla-ai-labs-launches-yug-1-a-time-series-foundation-model-built-in-india';
+    const auxo =
+      'https://entrackr.com/news/forward-deployed-ai-startup-auxoai-raises-207-mn-in-series-a-round-led-by-nttvc-12695466';
+    const curebay =
+      'https://entrackr.com/news/rural-healthcare-startup-curebay-raises-rs-100-cr-in-pre-series-c-led-by-ivycap-12705651';
+    const legora =
+      'https://techcrunch.com/2026/10/21/legal-ai-startup-legora-raises-550m-series-e-at-8-8b-valuation/';
+    const stories = sanitizeBriefNewsItems([
+      {
+        id: 'recursive',
+        title: 'Recursive launches Flint, a laptop coding model it says was largely built by AI',
+        summary: 'Recursive released Flint, a coding model designed to run locally on a laptop.',
+        event_at: '2026-10-21T12:00:00Z',
+        what_changed: '',
+        source_references: [birla, recursive].map((url) => ({ url, source: 'news' })),
+        evidence_status: 'reported',
+      },
+      {
+        id: 'auxo',
+        title: 'Forward deployed AI startup AuxoAI raises $20.7 Mn in Series A round led by NTTVC',
+        summary: 'AuxoAI raised20.7million dollars in a funding round led by NTTVC.',
+        event_at: '2026-10-21T12:00:00Z',
+        what_changed: '',
+        source_references: [curebay, auxo, legora].map((url) => ({ url, source: 'news' })),
+        evidence_status: 'reported',
+      },
+    ]);
+    expect(stories.map((story) => story.source_references.map((citation) => citation.url))).toEqual(
+      [[recursive], [auxo]]
+    );
+  });
+
+  it('withholds a named cached event when none of its citations matches its subject', () => {
+    expect(
+      sanitizeBriefNewsItems([
+        {
+          id: 'wrong-subject-only',
+          title: 'Acme raises Series A funding round led by Northstar',
+          summary: 'The retained summary describes Acme raising a new funding round.',
+          event_at: '2026-10-21T12:00:00Z',
+          what_changed: '',
+          source_references: [
+            {
+              url: 'https://publisher.example/beta-raises-series-a-funding-round-led-by-northstar',
+              source: 'news',
+            },
+          ],
+          evidence_status: 'reported',
+        },
+      ])
+    ).toEqual([]);
+  });
+
   it('decodes common named and numeric entities once and preserves plain ampersands', () => {
     const [story] = sanitizeBriefNewsItems([
       {

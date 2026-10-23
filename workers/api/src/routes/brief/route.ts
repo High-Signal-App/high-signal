@@ -125,7 +125,7 @@ const PRECOMPUTED_REGIONS: Region[] = [
 export const DAILY_BRIEF_CACHE_TTL_SECONDS = 300;
 
 export function dailyBriefCacheKey(region: Region, editionDate: string) {
-  return `brief:daily:v1:${region}:${editionDate}`;
+  return `brief:daily:v2:${region}:${editionDate}`;
 }
 
 export const briefRoute = new Hono<{ Bindings: Env }>();
