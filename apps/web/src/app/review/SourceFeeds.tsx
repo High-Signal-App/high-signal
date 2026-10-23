@@ -281,7 +281,7 @@ function SourceFeedRow({
         </p>
         {source.lastFetchedAt !== null && (
           <a
-            href={`/data/news?source=${encodeURIComponent(source.sourceKey)}`}
+            href={`/data/news?source=${encodeURIComponent(source.sourceKey)}&all=1`}
             className="mt-1 inline-flex min-h-11 items-center font-mono text-[11px] text-zinc-400 underline-offset-4 hover:underline"
           >
             inspect collected records ↗
