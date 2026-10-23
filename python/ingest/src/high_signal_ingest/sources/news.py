@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from html.parser import HTMLParser
 from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
 from typing import Iterator
@@ -20,6 +21,40 @@ USER_AGENT = "high-signal/0.1 (+https://github.com/sarthakagrawal927)"
 LOGGER = logging.getLogger(__name__)
 DEFAULT_CONCURRENCY = 16
 PER_HOST_CONCURRENCY = 4
+
+
+class _FeedText(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__()
+        self.parts: list[str] = []
+        self.hidden = 0
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag in {"script", "style"}:
+            self.hidden += 1
+        if tag in {"p", "br", "div", "li"}:
+            self.parts.append(" ")
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag in {"script", "style"}:
+            self.hidden = max(0, self.hidden - 1)
+        if tag in {"p", "div", "li"}:
+            self.parts.append(" ")
+
+    def handle_data(self, data: str) -> None:
+        if not self.hidden:
+            self.parts.append(data)
+
+
+def _feed_text(entry: dict) -> str:
+    values = [part.get("value", "") for part in entry.get("content", [])]
+    values.append(entry.get("summary") or entry.get("description") or "")
+    texts: list[str] = []
+    for value in values:
+        parser = _FeedText()
+        parser.feed(value)
+        texts.append(" ".join("".join(parser.parts).split()))
+    return max(texts, key=len, default="")[:30_000]
 
 
 def _parse_rfc822(s: str) -> datetime | None:
@@ -74,15 +109,17 @@ def _parse_feed(xml_text: str) -> list[dict]:
         link = (entry.get("link") or "").strip()
         if not link:
             continue
-        out.append(
-            {
-                "title": (entry.get("title") or "").strip(),
-                "link": link,
-                "pub": (
-                    entry.get("published") or entry.get("updated") or entry.get("created") or ""
-                ).strip(),
-            }
-        )
+        item = {
+            "title": (entry.get("title") or "").strip(),
+            "link": link,
+            "pub": (
+                entry.get("published") or entry.get("updated") or entry.get("created") or ""
+            ).strip(),
+        }
+        retained = _feed_text(entry)
+        if retained:
+            item["content"] = retained
+        out.append(item)
     return out
 
 
@@ -149,7 +186,7 @@ async def fetch_rss_async(
                 source_url=link,
                 published_at=pub,
                 title=it.get("title") or None,
-                content=body or None,
+                content=body or it.get("content") or None,
                 primary_entity_id=None,  # filled later by entity extractor
                 raw_hash=raw_hash,
             )
@@ -181,9 +218,13 @@ async def fetch_all_async(
     since = datetime.now(timezone.utc) - timedelta(days=days)
     sources: list[dict] = []
     for src in load_sources():
-        if src.get("type") != "blog" and src.get("type") != "news_outlet":
+        source_type = src.get("type")
+        if source_type not in {"blog", "news_outlet", "mailing_list"} or not src.get("rss"):
             continue
-        if int(src.get("tier", 99)) > tier_max:
+        # The curated newsletter seed uses discovery tier 3. It is intake,
+        # not a confidence upgrade; the signal proof gates still apply.
+        limit = max(tier_max, 3) if source_type == "mailing_list" else tier_max
+        if int(src.get("tier", 99)) > limit:
             continue
         sources.append(src)
 

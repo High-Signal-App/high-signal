@@ -8,7 +8,6 @@ import { istDayRange } from './history-access';
 import { classifySource, isPredictionMarketOnly, sourceDomain } from './signal-intelligence';
 import type { BriefCitation, BriefNewsEvidenceStatus, BriefNewsItem } from './brief';
 
-const NEWS_LIMIT = 8;
 const DEFAULT_NEWS_WINDOW_MS = 24 * 60 * 60 * 1000;
 const JACCARD_THRESHOLD = 0.72;
 const TITLE_ONLY_MAX = 80;
@@ -247,6 +246,8 @@ const RETAINED_TEXT_BLOCKERS = [
 ];
 
 const ROUTINE_IR_SNAPSHOT_RE = /\bir snapshot$/i;
+const ROUTINE_EARNINGS_CALENDAR_RE =
+  /\bto (?:report|release|announce)\b.*\b(?:results|earnings|guidance)\b|\b(?:schedules?|announces?)\b.*\b(?:earnings|results)\s+(?:call|conference|date)\b|\bto (?:host|hold|webcast)\b.*\b(?:conference|earnings|results)\s+call\b/i;
 const LOW_VALUE_NEWS_TITLE_RE =
   /^(?:court opinion:)\s|\b(?:top stocks?|stocks?) to buy\b|\btarget,?\s+stop-loss\b|\bshare price target\b|\bshould investors (?:buy|sell)\b|\b(?:sensex|nifty|stock market) prediction\b/i;
 
@@ -465,8 +466,7 @@ export function composeNewsStories(
       if (a.novelty !== b.novelty) return b.novelty - a.novelty;
       if (a.evidence !== b.evidence) return b.evidence - a.evidence;
       return b.eventAtMs - a.eventAtMs;
-    })
-    .slice(0, NEWS_LIMIT);
+    });
   return ranked.map((story) => story.item);
 }
 
@@ -504,6 +504,7 @@ export function hasUsableRetainedText(
   }
   const title = (record.title ?? '').trim();
   if (ROUTINE_IR_SNAPSHOT_RE.test(title)) return false;
+  if (ROUTINE_EARNINGS_CALENDAR_RE.test(title)) return false;
   if (LOW_VALUE_NEWS_TITLE_RE.test(title)) return false;
   if (!title) return retained.length >= 80;
   if (retained === title || retained.length <= Math.max(title.length, TITLE_ONLY_MAX)) return false;
