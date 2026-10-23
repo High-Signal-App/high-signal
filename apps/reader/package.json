@@ -14,7 +14,7 @@
   "dependencies": {
     "@astrojs/react": "7.0.1",
     "@high-signal/shared": "workspace:*",
-    "@saas-maker/ui": "github:sass-maker/ui-library#e8e4941f3b2063a14d8afb73088ddbbb864d94c1&path:/packages/ui",
+    "@saas-maker/ui": "github:sass-maker/ui-library#14712fdf622b5a02cb1cedb481356b6ad00a5132&path:/packages/ui",
     "astro": "7.2.8",
     "react": "19.2.5",
     "react-dom": "19.2.5"

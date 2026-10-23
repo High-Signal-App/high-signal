@@ -20,7 +20,7 @@
   "dependencies": {
     "@high-signal/shared": "workspace:*",
     "@saas-maker/app-health": "https://github.com/sass-maker/app-health/releases/download/node-v0.4.0/saas-maker-app-health-0.4.0.tgz",
-    "@saas-maker/ui": "github:sass-maker/ui-library#e8e4941f3b2063a14d8afb73088ddbbb864d94c1&path:/packages/ui",
+    "@saas-maker/ui": "github:sass-maker/ui-library#14712fdf622b5a02cb1cedb481356b6ad00a5132&path:/packages/ui",
     "jose": "6.2.10",
     "lucide-react": "1.11.0",
     "next": "16.4.1",
