@@ -21,7 +21,10 @@ changes are part of this feature. Collection still passes the existing news and
 signal evidence gates. Local Worker-to-D1 verification discovered Refactoring
 from its website, retained two seven-day articles with their existing source key,
 and confirmed pause/resume plus URL deduplication. Direct public Atom and
-Substack discovery also passed. Release verification is still pending. Remaining coverage work stays in
+Substack discovery also passed. Production qualification uses exact-main CI,
+the additive database migration, API/web release workflows, and a protected
+add-and-fetch run. Release identity and live results are recorded in
+[PR #270](https://github.com/High-Signal-App/high-signal/pull/270). Remaining coverage work stays in
 [issue #268](https://github.com/High-Signal-App/high-signal/issues/268).
 
 October 23 expanded-edition reading pages — implementation:
