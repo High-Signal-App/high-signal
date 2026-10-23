@@ -34,6 +34,23 @@ export const entities = sqliteTable(
   (t) => [index('entities_ticker_idx').on(t.ticker), index('entities_sector_idx').on(t.sector)]
 );
 
+// Publication-wide operator curation. Readers have no accounts or feed lists.
+export const feedSources = sqliteTable('feed_sources', {
+  id: text('id').primaryKey(),
+  url: text('url').notNull(),
+  feedUrl: text('feed_url').notNull().unique(),
+  title: text('title').notNull(),
+  format: text('format', { enum: ['rss', 'atom'] }).notNull(),
+  enabled: integer('enabled', { mode: 'boolean' }).notNull().default(true),
+  sourceKey: text('source_key').notNull(),
+  lastValidatedAt: integer('last_validated_at', { mode: 'timestamp' }).notNull(),
+  lastFetchedAt: integer('last_fetched_at', { mode: 'timestamp' }),
+  lastFetchCount: integer('last_fetch_count'),
+  lastFetchError: text('last_fetch_error'),
+  lastPublishedAt: integer('last_published_at', { mode: 'timestamp' }),
+  ...mutableTimestamps(),
+});
+
 export const relationships = sqliteTable(
   'relationships',
   {

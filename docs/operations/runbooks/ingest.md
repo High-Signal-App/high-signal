@@ -32,6 +32,25 @@ Current production cadence:
 - `cron-score.yml`: daily scoring for matured signal windows.
 - `backfill.yml`: manual historical replay, usually `gdelt,edgar`.
 
+## Add a public publication feed
+
+Open `/review` with operator Access and paste a website or direct RSS/Atom URL
+under **publication sources**. The API discovers advertised feeds (or Substack's
+public feed), validates the XML, and saves the source without a code change.
+The next daily news refresh collects it; **refresh sources** reloads collection
+status, not the publisher. **Inspect collected records** opens its retained
+source evidence. Pausing stops future fetches, including a matching curated seed;
+already-retained reporting remains available.
+
+The manual `cron-ingest.yml` workflow also accepts an optional `feed_url` with
+`source=news` and `fetch_only=true` to add a source and refresh without AI drafting.
+Its existing protected server credentials stay within Actions. A successful URL
+check is not a successful fetch: check the per-feed count/error after ingestion.
+If the configured registry is unavailable, news RSS collection fails closed to
+preserve operator pauses; repair the registry/API and retry `source=news`.
+Public feed excerpts can substitute for inaccessible linked pages. This does not
+supply paid email-only text or bypass a publisher's private feed credentials.
+
 ## Diagnosing a zero-draft day
 
 A zero-draft run can exit 0 even when it produces no useful edition. These

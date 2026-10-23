@@ -9,6 +9,7 @@ import type { SignalRow, ClaimRecordJson, ClaimEvidenceLinkJson, ClaimRollupJson
 import { DirectionPill } from '@/components/atoms/DirectionPill';
 import { ConfidenceBadge } from '@/components/atoms/ConfidenceBadge';
 import { MarkdownView } from '@/components/system/MarkdownView';
+import SourceFeeds from './SourceFeeds';
 
 const API_BASE = process.env['NEXT_PUBLIC_API_BASE'] ?? 'https://api.highsignal.app';
 
@@ -111,6 +112,8 @@ export default function ReviewPage() {
           credentials only after the admin session cookie is verified.
         </p>
       </header>
+
+      <SourceFeeds />
 
       <div className="mt-6 flex gap-2 font-mono text-[10px] tracking-[0.18em]">
         {(['draft', 'published', 'corrected'] as Status[]).map((s) => (

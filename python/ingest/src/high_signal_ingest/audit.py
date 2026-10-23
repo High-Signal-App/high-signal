@@ -67,6 +67,33 @@ def new_run_id() -> str:
     return uuid.uuid4().hex[:16]
 
 
+def fetch_feed_sources() -> list[dict] | None:
+    """None means an unavailable registry; [] also supports unconfigured local runs."""
+    api = _api_base()
+    token = _token()
+    if not api or not token:
+        return []
+    for _attempt in range(2):
+        try:
+            response = httpx.get(
+                f"{api.rstrip('/')}/admin/feed-sources",
+                headers={"Authorization": f"Bearer {token}"},
+                timeout=20.0,
+            )
+            response.raise_for_status()
+            body = response.json()
+            if isinstance(body, dict) and isinstance(body.get("sources"), list):
+                return body["sources"]
+        except (httpx.HTTPError, ValueError):
+            pass
+    LOGGER.warning("publication feed registry unavailable")
+    return None
+
+
+def push_feed_fetch_result(feed_id: str, result: dict) -> bool:
+    return _post(f"/admin/feed-sources/{feed_id}/fetch-result", result)
+
+
 def fetch_related_evidence(title: str) -> dict[str, Any] | None:
     """Read-only corpus lookup; None distinguishes failure from empty evidence."""
     result = _post_result("/admin/evidence/related", {"title": title})

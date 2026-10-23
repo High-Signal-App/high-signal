@@ -9,3 +9,4 @@ export * from './feed-data-coverage';
 export * from './publishability';
 export * from './source-document';
 export * from './history-access';
+export * from './feed-sources';
