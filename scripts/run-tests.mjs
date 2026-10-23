@@ -22,6 +22,7 @@ const ROOT = resolve(__dirname, '..');
 // the workers/api vitest suite runs through pnpm so it uses the package config.
 const TSX_SUITES = [
   ['brief-footer', 'apps/web/scripts/brief-footer.test.ts'],
+  ['current-brief', 'apps/web/scripts/current-brief.test.ts'],
   ['reader-capture', 'apps/reader/scripts/capture-brief.test.ts'],
   ['traffic-summary', 'scripts/traffic-summary.test.ts'],
   ['app-health-worker', 'scripts/app-health-worker.test.ts'],

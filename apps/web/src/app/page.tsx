@@ -35,7 +35,7 @@ export const metadata: Metadata = {
 export default function HomePage({
   searchParams,
 }: {
-  searchParams?: Promise<{ region?: string; day?: string }>;
+  searchParams?: Promise<{ region?: string; day?: string; news_page?: string | string[] }>;
 }) {
   return <CurrentBriefPage searchParams={searchParams} />;
 }

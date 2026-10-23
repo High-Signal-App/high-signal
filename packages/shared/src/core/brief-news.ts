@@ -7,12 +7,55 @@ import { canonicalSourceUrl } from './source-document';
 import { istDayRange } from './history-access';
 import { classifySource, isPredictionMarketOnly, sourceDomain } from './signal-intelligence';
 import type { BriefCitation, BriefNewsEvidenceStatus, BriefNewsItem } from './brief';
+import type { Region } from '../primitives/region';
 
+const NEWS_PAGE_SIZE = 20;
 const DEFAULT_NEWS_WINDOW_MS = 24 * 60 * 60 * 1000;
 const JACCARD_THRESHOLD = 0.72;
 const TITLE_ONLY_MAX = 80;
 const SUMMARY_MAX_SENTENCES = 3;
 const EXCERPT_MAX = 1200;
+
+export function paginateBriefNews({
+  news,
+  requestedPage,
+}: {
+  news: readonly BriefNewsItem[];
+  requestedPage?: unknown;
+}) {
+  const pageCount = Math.max(1, Math.ceil(news.length / NEWS_PAGE_SIZE));
+  const requested =
+    typeof requestedPage === 'string' && /^[1-9]\d*$/.test(requestedPage)
+      ? Number(requestedPage)
+      : 1;
+  const page = Number.isSafeInteger(requested) ? Math.min(requested, pageCount) : 1;
+  const offset = (page - 1) * NEWS_PAGE_SIZE;
+  return {
+    items: news.slice(offset, offset + NEWS_PAGE_SIZE),
+    page,
+    pageCount,
+    total: news.length,
+    from: news.length ? offset + 1 : 0,
+    to: Math.min(offset + NEWS_PAGE_SIZE, news.length),
+  };
+}
+
+export function briefNewsPageHref({
+  page,
+  region,
+  day,
+}: {
+  page: number;
+  region: Region;
+  day: 'today' | 'yesterday';
+}): string {
+  const query = new URLSearchParams({
+    ...(region === 'global' ? {} : { region }),
+    ...(day === 'yesterday' ? { day } : {}),
+    ...(page > 1 ? { news_page: String(page) } : {}),
+  });
+  return `${query.size ? `/?${query}` : '/'}#news`;
+}
 
 const TRACKING_PARAMS = new Set([
   'utm_source',

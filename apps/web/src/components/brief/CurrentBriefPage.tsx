@@ -13,7 +13,7 @@ import { istDay, isRegion, type Region } from '@high-signal/shared';
 export async function CurrentBriefPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ region?: string; day?: string }>;
+  searchParams?: Promise<{ region?: string; day?: string; news_page?: string | string[] }>;
 }) {
   const params = (await searchParams) ?? {};
   const rawRegion = (params.region ?? 'global').toLowerCase().trim();
@@ -70,7 +70,7 @@ export async function CurrentBriefPage({
           signalOnly
         />
         <div className="brief-edition">
-          <NewsFeed brief={brief} />
+          <NewsFeed brief={brief} pagination={{ page: params.news_page, day: selectedDay }} />
           <SignalFeed brief={brief} editionDay={editionDay} />
         </div>
       </PageShell>

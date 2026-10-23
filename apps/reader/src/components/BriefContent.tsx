@@ -92,7 +92,7 @@ export function BriefContent({
         }
       />
       <div className="brief-edition">
-        <NewsFeed brief={brief} />
+        <NewsFeed brief={brief} pagination={{ day }} />
         <SignalFeed brief={brief} editionDay={editionDay} />
       </div>
     </PageShell>
