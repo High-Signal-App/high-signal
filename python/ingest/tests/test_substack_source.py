@@ -2,6 +2,12 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
+import httpx
+import pytest
+
+from high_signal_ingest import audit
+from high_signal_ingest.sources import registered_feeds
+
 from high_signal_ingest import pipeline
 from high_signal_ingest.sources import substack
 from high_signal_ingest.sources.substack import SubstackFeed
@@ -49,3 +55,46 @@ def test_pipeline_fetch_includes_substack(monkeypatch) -> None:
 
     assert pipeline.fetch("substack", days=1) == []
     assert calls == [7]
+
+
+@pytest.mark.parametrize("enabled", [True, False])
+def test_managed_publication_cannot_be_duplicated_or_bypass_pause(monkeypatch, enabled) -> None:
+    monkeypatch.setattr(
+        audit,
+        "fetch_feed_sources",
+        lambda: [
+            {
+                "id": "feed-managed",
+                "feedUrl": "https://publisher.example.org/feed/",
+                "enabled": enabled,
+            }
+        ],
+    )
+    requested: list[str] = []
+    client = httpx.Client
+
+    def respond(request):
+        requested.append(str(request.url))
+        return httpx.Response(200, text="<rss version='2.0'><channel/></rss>")
+
+    monkeypatch.setattr(
+        substack.httpx,
+        "Client",
+        lambda **kwargs: client(transport=httpx.MockTransport(respond), **kwargs),
+    )
+    assert (
+        substack.fetch_all(
+            feeds=[
+                SubstackFeed("managed", "Managed", "https://www.publisher.example.org/feed"),
+                SubstackFeed("untouched", "Untouched", "https://other.example.org/feed"),
+            ]
+        )
+        == []
+    )
+    assert requested == ["https://other.example.org/feed"]
+
+
+def test_registry_outage_cannot_resume_legacy_substack_feeds(monkeypatch) -> None:
+    monkeypatch.setattr(audit, "fetch_feed_sources", lambda: None)
+    with pytest.raises(registered_feeds.PublicFeedFetchError, match="unavailable"):
+        substack.fetch_all()

@@ -40,7 +40,8 @@ public feed), validates the XML, and saves the source without a code change.
 The next daily news refresh collects it; **refresh sources** reloads collection
 status, not the publisher. **Inspect collected records** opens its retained
 source evidence. Pausing stops future fetches, including a matching curated seed;
-already-retained reporting remains available.
+already-retained reporting remains available. Matching legacy Substack fetches
+are suppressed for managed URLs so they cannot bypass a pause or collect twice.
 
 The manual `cron-ingest.yml` workflow also accepts an optional `feed_url` with
 `source=news` and `fetch_only=true` to add a source and refresh without AI drafting.

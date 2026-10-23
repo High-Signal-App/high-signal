@@ -14,6 +14,8 @@ from datetime import datetime, timedelta, timezone
 import feedparser
 import httpx
 
+from .. import audit
+from . import registered_feeds
 from ..types import Event
 from ..utils import event_hash, parse_published_datetime
 
@@ -98,12 +100,20 @@ def events_from_feed(feed: SubstackFeed, xml: str, since: datetime) -> list[Even
 def fetch_all(days: int = 7, feeds: list[SubstackFeed] | None = None) -> list[Event]:
     since = datetime.now(timezone.utc) - timedelta(days=days)
     out: list[Event] = []
+    # Managed URLs belong to news, including paused rows. Do not collect them
+    # again through this legacy curated adapter or bypass an operator pause.
+    managed = {
+        registered_feeds.feed_key(row.feedUrl)
+        for row in registered_feeds.registry_rows(audit.fetch_feed_sources())
+    }
     with httpx.Client(
         headers={"User-Agent": USER_AGENT, "Accept": "application/rss+xml, application/xml"},
         timeout=20.0,
         follow_redirects=True,
     ) as client:
         for feed in feeds or FEEDS:
+            if registered_feeds.feed_key(feed.url) in managed:
+                continue
             try:
                 response = client.get(feed.url)
                 response.raise_for_status()
