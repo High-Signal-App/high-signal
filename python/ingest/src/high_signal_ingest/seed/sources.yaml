@@ -2640,3 +2640,1184 @@
   - data
   extraction_strategy: trafilatura
   notes: Indian AI / data science / tech
+
+# Public publication and developer-update feeds
+- id: ml-1-minute-news
+  name: 1 minute news
+  type: mailing_list
+  url: https://1minutenews.substack.com/
+  rss: https://1minutenews.substack.com/feed
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-cosignwatch
+  name: CosignWatch
+  type: mailing_list
+  url: https://cosignwatch.substack.com/
+  rss: https://cosignwatch.substack.com/feed
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-activate-signal
+  name: Activate Signal
+  type: mailing_list
+  url: https://activatesignal.substack.com/
+  rss: https://activatesignal.substack.com/feed
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-hsrhackerhouse-substack
+  name: hsrhackerhouse Substack
+  type: mailing_list
+  url: https://hsrhackerhouse.substack.com/
+  rss: https://hsrhackerhouse.substack.com/feed
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-ai-first-designer
+  name: AI First Designer
+  type: mailing_list
+  url: https://adplist.substack.com/
+  rss: https://adplist.substack.com/feed
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-build-with-ai-garage
+  name: Build With AI Garage
+  type: mailing_list
+  url: https://buildwithaigarage.substack.com/
+  rss: https://buildwithaigarage.substack.com/feed
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-ai-secret
+  name: AI Secret
+  type: mailing_list
+  url: https://aisecret.us/
+  rss: https://aisecret.us/rss/
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-aiswarya-s-substack
+  name: Aiswarya's Substack
+  type: mailing_list
+  url: https://aiswaryaentelligenceai.substack.com/
+  rss: https://aiswaryaentelligenceai.substack.com/feed
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-my-research-agent
+  name: My Research Agent
+  type: mailing_list
+  url: https://myresearchagent.substack.com/
+  rss: https://myresearchagent.substack.com/feed
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-founder-energy
+  name: Founder Energy
+  type: mailing_list
+  url: https://alimoiz.substack.com/
+  rss: https://alimoiz.substack.com/feed
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-alvyrs-newsletter
+  name: Alvyr’s Newsletter
+  type: mailing_list
+  url: https://alvyr.substack.com/
+  rss: https://alvyr.substack.com/feed
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-build-club-wrapped
+  name: Build Club Wrapped
+  type: mailing_list
+  url: https://buildclub.substack.com/
+  rss: https://buildclub.substack.com/feed
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-anushas-substack
+  name: Anusha’s Substack
+  type: mailing_list
+  url: https://stratupai.substack.com/
+  rss: https://stratupai.substack.com/feed
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-guides-tutorials-and-mobile-industry-news-from-appfigures
+  name: Guides, Tutorials, and Mobile Industry News from Appfigures
+  type: mailing_list
+  url: https://appfigures.com/resources/
+  rss: https://appfigures.com/resources/rss/
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-latest-news-apple-developer
+  name: Latest News - Apple Developer
+  type: mailing_list
+  url: https://developer.apple.com/news/
+  rss: https://developer.apple.com/news/rss/news.rss
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-appwrite-blog
+  name: Appwrite Blog
+  type: mailing_list
+  url: https://appwrite.io/blog
+  rss: https://appwrite.io/blog/rss.xml
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-validator-ai-newsletter
+  name: Validator AI Newsletter
+  type: mailing_list
+  url: https://validatorai.beehiiv.com/
+  rss: https://rss.beehiiv.com/feeds/ORmTwg0yfR.xml
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-algomaster-newsletter
+  name: AlgoMaster Newsletter
+  type: mailing_list
+  url: https://blog.algomaster.io/
+  rss: https://blog.algomaster.io/feed
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-next-play
+  name: next play
+  type: mailing_list
+  url: https://nextplayso.substack.com/
+  rss: https://nextplayso.substack.com/feed
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-unheard-roots
+  name: Unheard Roots
+  type: mailing_list
+  url: https://unheard-roots.beehiiv.com/
+  rss: https://rss.beehiiv.com/feeds/fnf5x3uoSK.xml
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-bits-about-money
+  name: Bits about Money
+  type: mailing_list
+  url: https://www.bitsaboutmoney.com/
+  rss: https://www.bitsaboutmoney.com/archive/rss/
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-bytebytego-newsletter
+  name: ByteByteGo Newsletter
+  type: mailing_list
+  url: https://blog.bytebytego.com/
+  rss: https://blog.bytebytego.com/feed
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-computer-enhance
+  name: Computer, Enhance!
+  type: mailing_list
+  url: https://www.computerenhance.com/
+  rss: https://www.computerenhance.com/feed
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-techwalk-newsletter
+  name: TechWalk Newsletter
+  type: mailing_list
+  url: https://techwalk.beehiiv.com/
+  rss: https://rss.beehiiv.com/feeds/YSbcm1WDrI.xml
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-citrini-research
+  name: Citrini Research
+  type: mailing_list
+  url: https://www.citriniresearch.com/
+  rss: https://www.citriniresearch.com/feed
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-clerk-changelog
+  name: Clerk Changelog
+  type: mailing_list
+  url: https://clerk.com/changelog
+  rss: https://clerk.com/changelog/atom.xml
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-coderabbit-blog
+  name: CodeRabbit Blog
+  type: mailing_list
+  url: https://www.coderabbit.ai/blog
+  rss: https://www.coderabbit.ai/feed
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-confluent-data-in-motion
+  name: 'Confluent: Data in motion'
+  type: mailing_list
+  url: https://www.confluent.io/blog/
+  rss: https://www.confluent.io/rss.xml
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-daily-dose-of-data-science
+  name: Daily Dose of Data Science
+  type: mailing_list
+  url: https://www.dailydoseofds.com/
+  rss: https://www.dailydoseofds.com/newsletter/rss/
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-datocms-blog
+  name: DatoCMS Blog
+  type: mailing_list
+  url: https://www.datocms.com/blog
+  rss: https://www.datocms.com/blog.xml
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-tech-world-with-milan-newsletter
+  name: Tech World With Milan Newsletter
+  type: mailing_list
+  url: https://newsletter.techworld-with-milan.com/
+  rss: https://newsletter.techworld-with-milan.com/feed
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-edge-city-india-2026
+  name: Edge City India 2026
+  type: mailing_list
+  url: https://edgecityindia2026.substack.com/
+  rss: https://edgecityindia2026.substack.com/feed
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-engineers-codex
+  name: Engineer’s Codex
+  type: mailing_list
+  url: https://read.engineerscodex.com/
+  rss: https://read.engineerscodex.com/feed
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-factory-news-rss-feed
+  name: Factory News | RSS Feed
+  type: mailing_list
+  url: https://factory.ai/news
+  rss: https://factory.com/news/rss
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-figma-blog-shortcut
+  name: Figma Blog | Shortcut
+  type: mailing_list
+  url: https://www.figma.com/blog/
+  rss: https://www.figma.com/blog/feed/atom.xml
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-firecrawl-changelog
+  name: Firecrawl Changelog
+  type: mailing_list
+  url: https://www.firecrawl.dev/blog
+  rss: https://www.firecrawl.dev/changelog/rss.xml
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-master-dev-blog-rss-feed
+  name: Master.dev Blog RSS Feed
+  type: mailing_list
+  url: https://frontendmasters.com/blog/
+  rss: https://blog.master.dev/feed/
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-full-signal-by-max-avery
+  name: Full Signal by Max Avery
+  type: mailing_list
+  url: https://maxavery.substack.com/
+  rss: https://maxavery.substack.com/feed
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-high-agency
+  name: High Agency
+  type: mailing_list
+  url: https://essays.highagency.com/
+  rss: https://essays.highagency.com/feed
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-engineering-leadership
+  name: Engineering Leadership
+  type: mailing_list
+  url: https://newsletter.eng-leadership.com/
+  rss: https://newsletter.eng-leadership.com/feed
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-high-growth-engineer
+  name: High Growth Engineer
+  type: mailing_list
+  url: https://careercutler.substack.com/
+  rss: https://read.highgrowthengineer.com/feed
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-hugging-face-blog
+  name: Hugging Face - Blog
+  type: mailing_list
+  url: https://huggingface.co/blog/
+  rss: https://huggingface.co/blog/feed.xml
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-microns
+  name: Microns
+  type: mailing_list
+  url: https://newsletter.microns.io/
+  rss: https://newsletter.microns.io/feed
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-infisical-blog
+  name: Infisical Blog
+  type: mailing_list
+  url: https://infisical.com/blog
+  rss: https://infisical.com/feed.xml
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-justas-markus
+  name: Justas Markus
+  type: mailing_list
+  url: https://insanelycooltools.substack.com/
+  rss: https://justasmarkus.substack.com/feed
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-interconnects-ai
+  name: Interconnects AI
+  type: mailing_list
+  url: https://www.interconnects.ai/
+  rss: https://www.interconnects.ai/feed
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-stonks-simplifed
+  name: Stonks Simplifed
+  type: mailing_list
+  url: https://stonksimplified.substack.com/
+  rss: https://stonksimplified.substack.com/feed
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-stumble-again
+  name: Stumble Again
+  type: mailing_list
+  url: https://stumbleagain.substack.com/
+  rss: https://stumbleagain.substack.com/feed
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-strategic-wealth-briefing-with-jake-claver-qfop
+  name: Strategic Wealth Briefing with Jake Claver, QFOP
+  type: mailing_list
+  url: https://jakeclaver.substack.com/
+  rss: https://jakeclaver.substack.com/feed
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-a-breath-of-fresh-air
+  name: A Breath of Fresh Air
+  type: mailing_list
+  url: https://jayshram.substack.com/
+  rss: https://jayshram.substack.com/feed
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-easy-ambition
+  name: Easy Ambition
+  type: mailing_list
+  url: https://blog.jiajiang.com/
+  rss: https://blog.jiajiang.com/feed
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-coding-challenges
+  name: Coding Challenges
+  type: mailing_list
+  url: https://codingchallenges.substack.com/
+  rss: https://codingchallenges.substack.com/feed
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-job-hunting-sux
+  name: job hunting sux
+  type: mailing_list
+  url: https://www.jobhuntingsux.com/
+  rss: https://www.jobhuntingsux.com/feed
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-tiny-startups
+  name: Tiny Startups
+  type: mailing_list
+  url: https://tinystartupsweekly.substack.com/
+  rss: https://tinystartupsweekly.substack.com/feed
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-justin-welsh
+  name: Justin Welsh
+  type: mailing_list
+  url: https://www.justinwelsh.me/
+  rss: https://justinwelsh.me/rss.xml
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-alpha-by-a16z-speedrun
+  name: Alpha by a16z speedrun
+  type: mailing_list
+  url: https://a16zspeedrunalpha.substack.com/
+  rss: https://a16zspeedrunalpha.substack.com/feed
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-software-design-tidy-first
+  name: 'Software Design: Tidy First?'
+  type: mailing_list
+  url: https://newsletter.kentbeck.com/
+  rss: https://newsletter.kentbeck.com/feed
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-startup-jobs-by-andrew-tan
+  name: Startup Jobs by Andrew Tan
+  type: mailing_list
+  url: https://remoteworkforstudents.substack.com/
+  rss: https://andrewtanjobs.substack.com/feed
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-latent-space
+  name: Latent Space
+  type: mailing_list
+  url: https://www.latent.space/
+  rss: https://latent.space/feed
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-lenny-s-newsletter
+  name: Lenny's Newsletter
+  type: mailing_list
+  url: https://www.lennysnewsletter.com/
+  rss: https://www.lennysnewsletter.com/feed
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-level-up-software-engineering
+  name: Level Up Software Engineering 🚀
+  type: mailing_list
+  url: https://levelupsoftwareengineering.substack.com/
+  rss: https://levelupsoftwareengineering.substack.com/feed
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-levels-fyi-blog
+  name: Levels.fyi Blog
+  type: mailing_list
+  url: https://www.levels.fyi/blog/
+  rss: https://www.levels.fyi/blog/feed.xml
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-lightspeed-india-partners
+  name: Lightspeed India Partners
+  type: mailing_list
+  url: https://lsip.substack.com/
+  rss: https://lsip.substack.com/feed
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-linear-changelog
+  name: Linear Changelog
+  type: mailing_list
+  url: https://linear.app/changelog
+  rss: https://linear.app/rss/changelog.xml
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-linux-foundation-blog
+  name: Linux Foundation - Blog
+  type: mailing_list
+  url: https://www.linuxfoundation.org/blog/
+  rss: https://www.linuxfoundation.org/blog/rss.xml
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-magic-s-newsletter
+  name: Magic's Newsletter
+  type: mailing_list
+  url: https://magicley-newsletter.beehiiv.com/
+  rss: https://rss.beehiiv.com/feeds/u4IMHzsVy6.xml
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-shy-by-design
+  name: shy by design
+  type: mailing_list
+  url: https://shybydesign.substack.com/
+  rss: https://shybydesign.substack.com/feed
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-overthinking-every-thing
+  name: Overthinking Every Thing
+  type: mailing_list
+  url: https://michellerial.substack.com/
+  rss: https://michellerial.substack.com/feed
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-mlai-aus
+  name: MLAI Aus
+  type: mailing_list
+  url: https://mlaiaus.substack.com/
+  rss: https://mlaiaus.substack.com/feed
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-modal-blog
+  name: Modal Blog
+  type: mailing_list
+  url: https://modal.com/blog
+  rss: https://modal.com/blog/atom.xml
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-modular-blog
+  name: Modular Blog
+  type: mailing_list
+  url: https://www.modular.com/
+  rss: https://www.modular.com/blog/rss.xml
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-motherduck-blog-posts-rss-feed
+  name: MotherDuck Blog posts | RSS Feed
+  type: mailing_list
+  url: https://motherduck.com/blog/
+  rss: https://motherduck.com/rss.xml
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-ngrok-news
+  name: '[ngrok news]'
+  type: mailing_list
+  url: https://ngrok.com/blog
+  rss: https://ngrok.com/blog/rss.xml
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-noahpinion
+  name: Noahpinion
+  type: mailing_list
+  url: https://www.noahpinion.blog/
+  rss: https://www.noahpinion.blog/feed
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-ollama
+  name: Ollama
+  type: mailing_list
+  url: https://ollama.com/blog
+  rss: https://ollama.com/blog/rss.xml
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-openrouter-blog
+  name: OpenRouter Blog
+  type: mailing_list
+  url: https://openrouter.ai/announcements
+  rss: https://openrouter.ai/blog/feed.xml
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-pegasus-unfiltered
+  name: Pegasus Unfiltered
+  type: mailing_list
+  url: https://pegasusunfiltered.substack.com/
+  rss: https://pegasusunfiltered.substack.com/feed
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-perthirtysix
+  name: PerThirtySix
+  type: mailing_list
+  url: https://perthirtysix.com/
+  rss: https://perthirtysix.com/rss.xml
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-qodo
+  name: Qodo
+  type: mailing_list
+  url: https://www.qodo.ai/blog/
+  rss: https://www.qodo.ai/feed/
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-building-with-genai
+  name: Building with GenAI
+  type: mailing_list
+  url: https://newsletter.quivr.app/
+  rss: https://rss.beehiiv.com/feeds/8q2OzMXjSI.xml
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-railway-changelog
+  name: Railway Changelog
+  type: mailing_list
+  url: https://railway.com/changelog
+  rss: https://railway.com/changelog/rss.xml
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-replicate-s-blog
+  name: Replicate's blog
+  type: mailing_list
+  url: https://replicate.com/blog
+  rss: https://replicate.com/blog/rss
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-resend-rss-feed
+  name: Resend RSS Feed
+  type: mailing_list
+  url: https://resend.com/blog
+  rss: https://resend.com/blog/rss.xml
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-building-for-developers
+  name: Building for Developers
+  type: mailing_list
+  url: https://showwcasehq.substack.com/
+  rss: https://showwcasehq.substack.com/feed
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-the-peterman-post
+  name: The Peterman Post
+  type: mailing_list
+  url: https://www.developing.dev/
+  rss: https://www.developing.dev/feed
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-blog
+  name: Blog
+  type: mailing_list
+  url: https://sambanova.ai/blog
+  rss: https://sambanova.ai/blog/rss.xml
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-sanjay-says
+  name: Sanjay Says
+  type: mailing_list
+  url: https://sanjaysays.substack.com/
+  rss: https://sanjaysays.substack.com/feed
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-speedrun
+  name: speedrun
+  type: mailing_list
+  url: https://speedrun.substack.com/
+  rss: https://speedrun.substack.com/feed
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-stable-money-newsletter
+  name: Stable Money Newsletter
+  type: mailing_list
+  url: https://stablemoney.substack.com/
+  rss: https://stablemoney.substack.com/feed
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-stacksweep
+  name: Stacksweep
+  type: mailing_list
+  url: https://stacksweep.substack.com/
+  rss: https://stacksweep.substack.com/feed
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-becoming-human-ai
+  name: Becoming Human AI
+  type: mailing_list
+  url: https://becominghumanai.substack.com/
+  rss: https://becominghumanai.substack.com/feed
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-stefan-speaks
+  name: Stefan Speaks
+  type: mailing_list
+  url: https://www.stefanspeaks.org/
+  rss: https://www.stefanspeaks.org/feed
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-good-habits-clubs-newsletter
+  name: Good Habits Club’s Newsletter
+  type: mailing_list
+  url: https://goodhabitsclub.substack.com/
+  rss: https://goodhabitsclub.substack.com/feed
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-the-pragmatic-engineer
+  name: The Pragmatic Engineer
+  type: mailing_list
+  url: https://newsletter.pragmaticengineer.com/
+  rss: https://newsletter.pragmaticengineer.com/feed
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-the-vc-edge
+  name: The VC Edge
+  type: mailing_list
+  url: https://thevcedge.substack.com/
+  rss: https://thevcedge.substack.com/feed
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-this-week-in-web3
+  name: This Week In Web3
+  type: mailing_list
+  url: https://weekinweb3.substack.com/
+  rss: https://weekinweb3.substack.com/feed
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-tinybird-blog
+  name: Tinybird Blog
+  type: mailing_list
+  url: https://www.tinybird.co/blog
+  rss: https://www.tinybird.co/blog/rss.xml
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-turso-blog
+  name: Turso Blog
+  type: mailing_list
+  url: https://turso.tech/blog
+  rss: https://turso.tech/blog/feed.xml
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-micro-saas-idea
+  name: Micro Saas Idea
+  type: mailing_list
+  url: https://microsaasidea.substack.com/
+  rss: https://microsaasidea.substack.com/feed
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-venture-capital-jobs
+  name: Venture Capital Jobs
+  type: mailing_list
+  url: https://venturecapitaljobs.substack.com/
+  rss: https://venturecapitaljobs.substack.com/feed
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-devin-blog
+  name: Devin Blog
+  type: mailing_list
+  url: https://windsurf.com/blog
+  rss: https://devin.ai/rss.xml
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-workos-blog
+  name: WorkOS Blog
+  type: mailing_list
+  url: https://workos.com/blog
+  rss: https://workos.com/blog/rss.xml
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-dataexpert-io-newsletter
+  name: DataExpert.io Newsletter
+  type: mailing_list
+  url: https://blog.dataexpert.io/
+  rss: https://blog.dataexpert.io/feed
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-zo-computer
+  name: Zo Computer
+  type: mailing_list
+  url: https://zocomputer.substack.com/
+  rss: https://zocomputer.substack.com/feed
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-hybrid-hacker
+  name: Hybrid Hacker
+  type: mailing_list
+  url: https://hybridhacker.email/
+  rss: https://hybridhacker.email/feed
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+
+# Public publication and developer-update feeds
+- id: ml-alleywatch
+  name: AlleyWatch
+  type: mailing_list
+  url: https://www.alleywatch.com/
+  rss: https://www.alleywatch.com/feed/
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
+- id: ml-the-fly-blog
+  name: The Fly Blog
+  type: mailing_list
+  url: https://fly.io/blog/
+  rss: https://fly.io/blog/feed.xml
+  paywall: partial
+  tier: 3
+  topic_tags:
+  - newsletter
+  extraction_strategy: trafilatura
+  notes: Public RSS/Atom archive; no account or subscriber-only retrieval
