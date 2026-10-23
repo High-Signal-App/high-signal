@@ -279,7 +279,7 @@ These are reachable from `python/ingest/src/high_signal_ingest/pipeline.py`.
 
 ## Seeded Source Definitions
 
-`python/ingest/src/high_signal_ingest/seed/sources.yaml` contains 205 source
+`python/ingest/src/high_signal_ingest/seed/sources.yaml` contains 209 source
 definitions. These are planned/seeded market-intelligence sources; not every
 entry is a separately proven live source.
 
