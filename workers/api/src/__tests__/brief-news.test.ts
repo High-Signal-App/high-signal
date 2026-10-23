@@ -503,6 +503,9 @@ describe('composeNewsStories', () => {
       'ACM Research to Release Third Quarter 2026 Financial Results on November 5',
       'Acme announces earnings conference call date',
       'Centrus to Webcast Conference Call on November 5 at 8:30 a.m. ET',
+      'Indigo Q2 results 2026 date &amp; time: Interglobe Aviation Quarterly earnings preview, announcement schedule | Details here',
+      'Acme quarterly results date and time: what investors should know',
+      'Beta earnings preview: board meeting next week',
       'Acme reports quarterly earnings and raises guidance',
       'Beta releases third quarter financial results',
     ];
@@ -518,7 +521,19 @@ describe('composeNewsStories', () => {
       ),
       WINDOW
     );
-    expect(stories.map((story) => story.title).sort()).toEqual(titles.slice(4).sort());
+    expect(stories.map((story) => story.title).sort()).toEqual(titles.slice(7).sort());
+  });
+
+  it('decodes retained headline character references for reading without mutating records', () => {
+    const original = record({
+      id: 'encoded-headline',
+      title: 'Acme ships research &amp; development platform',
+      sourceUrl: 'https://reuters.com/acme-research-development-platform',
+    });
+    const stories = composeNewsStories([original], WINDOW);
+    expect(stories[0]?.title).toBe('Acme ships research & development platform');
+    expect(sanitizeBriefNewsItems(stories)).toHaveLength(1);
+    expect(original.title).toBe('Acme ships research &amp; development platform');
   });
 
   it('does not impose a geographic quota on qualified stories', () => {
