@@ -279,31 +279,35 @@ These are reachable from `python/ingest/src/high_signal_ingest/pipeline.py`.
 
 ## Seeded Source Definitions
 
-`python/ingest/src/high_signal_ingest/seed/sources.yaml` contains 168 source
+`python/ingest/src/high_signal_ingest/seed/sources.yaml` contains 205 source
 definitions. These are planned/seeded market-intelligence sources; not every
 entry is a separately proven live source.
 
-Complete row-level inventory: `docs/operations/data-source-inventory.csv`.
+The 168-row historical inventory is in `docs/operations/data-source-inventory.csv`;
+it does not yet cover every current seed definition.
 
 Important distinction:
 
 - `sources.yaml` is the curated source plan.
-- The `news` adapter directly reads only blog/news RSS rows at tier <= 2.
+- The `news` adapter reads blog/news RSS rows at tier <= 2 plus curated
+  newsletter RSS rows through discovery tier 3. Feed article text is retained
+  when linked-page extraction is unavailable. Newsletter intake does not grant
+  signal publication or corroboration credit by itself.
 - Several other adapters use hardcoded curated lists or entity records instead
   of reading `sources.yaml` directly.
 - Live reliability should be judged by ingest audit rows, source-health rows,
   and accepted signal contribution.
 
-Current inventory status:
+Status within the 168-row inventory subset:
 
 | Status | Count | Meaning |
 | --- | ---: | --- |
-| Wired | 43 | Directly wired from the seed list today: 42 blog/news RSS rows plus SEC EDGAR |
-| Seeded | 109 | Curated source definition exists, but current adapters use another input path or no current fetch path |
+| Wired | 48 | 42 blog/news RSS rows, five newsletter RSS rows, and SEC EDGAR |
+| Seeded | 104 | Curated source definition exists, but current adapters use another input path or no current fetch path |
 | Planned | 9 | X/Twitter handles are listed but not integrated |
 | Deferred | 7 | Tier-3 news/blog RSS rows not fetched by the default daily tier filter |
 
-Seed-type breakdown (blog 26, news 24, IR page 43, government 7, industry
+The inventory subset's seed-type breakdown (blog 26, news 24, IR page 43, government 7, industry
 association 8, GitHub 8, Reddit 8, X handle 9, YouTube 4, podcast 5, conference
 11, jobs 6, forum 3, mailing list 5, SEC filing 1) is captured row-by-row in
 `docs/operations/data-source-inventory.csv`.

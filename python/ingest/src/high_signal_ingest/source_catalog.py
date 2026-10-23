@@ -138,7 +138,7 @@ _ACCESS_BASIS_OVERRIDES = {
 
 _CONTENT_DEPTH_OVERRIDES = {
     "edgar": "bounded filing text (up to 50 KB)",
-    "news": "metadata plus linked-page text when fetched (up to 30 KB)",
+    "news": "RSS/Atom article text plus linked-page text when fetched (up to 30 KB)",
     "scmp": "RSS metadata plus linked-page text when fetched (up to 30 KB)",
     "china-news": "RSS metadata plus linked-page text when fetched (up to 30 KB)",
     "youtube": "metadata plus transcript when available (up to 30 KB)",

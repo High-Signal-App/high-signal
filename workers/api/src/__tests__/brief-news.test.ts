@@ -452,7 +452,7 @@ describe('composeNewsStories', () => {
     }
   });
 
-  it('keeps single-source reported news and does not pad past available stories', () => {
+  it('keeps every qualified story beyond eight without padding a quiet edition', () => {
     const one = composeNewsStories(
       [
         record({
@@ -486,10 +486,39 @@ describe('composeNewsStories', () => {
         id: `story-${index}`,
         title,
         sourceUrl: `https://reuters.com/story-${index}`,
+        primaryEntityId: `entity-${index}`,
         retainedText: `${title}. A retained excerpt records the counterparties, timing, and operational consequence without adding market direction.`,
       })
     );
-    expect(composeNewsStories(extras, WINDOW)).toHaveLength(8);
+    const stories = composeNewsStories(extras, WINDOW);
+    expect(stories).toHaveLength(extras.length);
+    expect(new Set(stories.map((story) => story.title))).toEqual(
+      new Set(extras.map((item) => item.title))
+    );
+  });
+
+  it('excludes routine earnings calendars while retaining actual results and guidance', () => {
+    const titles = [
+      'Rockwell Automation to Report Fourth Quarter and Full Year Fiscal 2026 Results',
+      'ACM Research to Release Third Quarter 2026 Financial Results on November 5',
+      'Acme announces earnings conference call date',
+      'Centrus to Webcast Conference Call on November 5 at 8:30 a.m. ET',
+      'Acme reports quarterly earnings and raises guidance',
+      'Beta releases third quarter financial results',
+    ];
+    const stories = composeNewsStories(
+      titles.map((title, index) =>
+        record({
+          id: `earnings-${index}`,
+          title,
+          source: 'ir',
+          primaryEntityId: `issuer-${index}`,
+          sourceUrl: `https://issuer${index}.example/results`,
+        })
+      ),
+      WINDOW
+    );
+    expect(stories.map((story) => story.title).sort()).toEqual(titles.slice(4).sort());
   });
 
   it('does not impose a geographic quota on qualified stories', () => {

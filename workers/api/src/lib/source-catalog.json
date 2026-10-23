@@ -251,7 +251,7 @@
       "cadence": "daily",
       "expectedRunCadenceHours": 24,
       "accessBasis": "Public RSS plus NewsAPI; NewsAPI production use requires an eligible paid plan.",
-      "contentDepth": "metadata plus linked-page text when fetched (up to 30 KB)",
+      "contentDepth": "RSS/Atom article text plus linked-page text when fetched (up to 30 KB)",
       "retention": "D1 event history; source document retained when the adapter emits one.",
       "termsRisk": "restricted"
     },

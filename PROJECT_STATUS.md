@@ -2,6 +2,24 @@
 
 Last updated: 2026-10-23
 
+October 23 existing-source reading coverage — implementation:
+
+The news composer retains all qualified stories from its existing bounded
+candidate query instead of truncating the edition at eight. Routine earnings
+calendar notices are excluded while actual results and guidance remain eligible.
+The news adapter now includes the five already-curated newsletter RSS feeds
+through their discovery tier, and retains cleaned RSS/Atom article text when
+linked-page extraction fails. News attribution and signal proof gates retain
+their separate roles. The ingestion workflow exposes the existing fetch-only
+mode for source refreshes without AI drafting.
+
+Focused checks cover more-than-eight coverage, quiet editions, calendar versus
+results selection, newsletter eligibility, and retained feed text after page
+failure. Release and live reading verification are pending. Opportunities and
+culture remain dependent on proof-qualified inputs: their current digest
+builders attach one citation without structured claim provenance, so collecting
+more digests alone cannot satisfy the public edition gate.
+
 October 23 Daily Brief source grouping:
 
 News clustering now requires a compatible headline subject and event, keeps

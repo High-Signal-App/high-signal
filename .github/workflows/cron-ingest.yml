@@ -12,6 +12,10 @@ on:
         description: lookback days
         type: string
         default: "1"
+      fetch_only:
+        description: retain source evidence without AI drafting
+        type: boolean
+        default: false
 
 jobs:
   ingest:
@@ -102,6 +106,7 @@ jobs:
         run: uv run python -m high_signal_ingest.source_diagnose --require-persistence --require-sec-identity
       - name: ingest
         env:
+          FETCH_ONLY: ${{ inputs.fetch_only && 'true' || 'false' }}
           ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
           API_BASE: ${{ secrets.API_BASE }}
           AI_BASE_URL: ${{ secrets.AI_BASE_URL || 'https://api.deepseek.com' }}
@@ -147,9 +152,13 @@ jobs:
           SIGNAL_CLUSTER_LIMIT: "40"
           SMALL_CLUSTER_THRESHOLD: "4"
         run: |
+          args=()
+          if [ "$FETCH_ONLY" = "true" ]; then
+            args+=(--fetch-only)
+          fi
           uv run python -m high_signal_ingest.pipeline \
             --source "${{ inputs.source || 'all' }}" \
-            --days "${{ inputs.days || '1' }}"
+            --days "${{ inputs.days || '1' }}" "${args[@]}"
 
       - name: Preserve undelivered signal candidates
         if: always() && hashFiles('python/ingest/signal-recovery/*.md') != ''
