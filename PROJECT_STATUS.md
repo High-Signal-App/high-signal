@@ -27,6 +27,15 @@ add-and-fetch run. Release identity and live results are recorded in
 [PR #270](https://github.com/High-Signal-App/high-signal/pull/270). Remaining coverage work stays in
 [issue #268](https://github.com/High-Signal-App/high-signal/issues/268).
 
+October 24 release qualification: exact-main CI `40002904314` passed all jobs.
+API release attempt `40003960732` stopped before deploying because its Workers
+token lacks D1 access (Cloudflare 7403). Migration `0030_feed_sources.sql` remains
+unapplied and the feature is not live. Existing API/web deployments are unchanged.
+Remote migrations retain the established manual operator path; API deploys do not
+implicitly require a broader token. News collection on the new source version
+requires the registry API, so finish the migration and API release before relying
+on its next scheduled refresh. Owner-account database access is required.
+
 October 23 expanded-edition reading pages — implementation:
 
 Current Next and compiled reader editions render twenty news stories per page
