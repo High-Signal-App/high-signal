@@ -15,19 +15,14 @@ export function SiteFooter({ mode = 'full' }: { mode?: 'full' | 'compact' }) {
         catalogId: 'high-signal',
         capture: 'newsletter',
         variant: 'studio',
-        studio: [
-          {
-            id: 'on-record',
-            label: 'high signal podcasts',
-            href: 'https://podcasts.highsignal.app',
-          },
-          ...defaultStudio.filter(
+        studio: defaultStudio
+          .filter(
             (link) =>
               link.id !== 'on-record' &&
               link.id !== 'high-signal' &&
               link.href.replace(/\/$/, '') !== 'https://podcasts.highsignal.app'
-          ),
-        ].slice(0, 4),
+          )
+          .slice(0, 4),
         summary:
           'One free, public Daily Brief across technology, startups, and finance. Read the change, inspect its proof, then check the outcome.',
         privacyUrl: 'https://highsignal.app/privacy',
@@ -47,7 +42,6 @@ export function SiteFooter({ mode = 'full' }: { mode?: 'full' | 'compact' }) {
               { label: 'signals', href: '/signals' },
               { label: 'track record', href: '/track-record' },
               { label: 'articles', href: '/articles' },
-              { label: 'podcasts', href: 'https://podcasts.highsignal.app/' },
             ],
           },
           {

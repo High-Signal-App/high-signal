@@ -2,6 +2,11 @@
 
 Last updated: 2026-10-24
 
+October 24 retired product navigation:
+
+Podcasts is retired. Both the Next and compiled reader headers omit its link,
+and the footer excludes it from reading links and studio recommendations.
+
 October 23 publication feed intake — implementation:
 
 The Access-protected `/review` page accepts public RSS/Atom URLs and publication
