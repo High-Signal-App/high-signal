@@ -371,6 +371,7 @@ export function hasBriefNewsTopic(record: NewsRecord): boolean {
 export function clusterNewsRecords(records: readonly NewsRecord[]): NewsRecord[][] {
   const n = records.length;
   const parent = Array.from({ length: n }, (_, i) => i);
+  const members = Array.from({ length: n }, (_, i) => [i]);
   const find = (x: number): number => {
     while (parent[x] !== x) {
       parent[x] = parent[parent[x]];
@@ -381,7 +382,11 @@ export function clusterNewsRecords(records: readonly NewsRecord[]): NewsRecord[]
   const union = (a: number, b: number) => {
     const ra = find(a);
     const rb = find(b);
-    if (ra !== rb) parent[rb] = ra;
+    if (ra !== rb) {
+      parent[rb] = ra;
+      members[ra].push(...members[rb]);
+      members[rb] = [];
+    }
   };
 
   const urls = records.map(newsCanonicalUrl);
@@ -389,6 +394,22 @@ export function clusterNewsRecords(records: readonly NewsRecord[]): NewsRecord[]
   const eventTokens = tokens.map(
     (set) => new Set([...set].filter((token) => EVENT_TOKENS.has(token)))
   );
+  const subjects = records.map((record) => newsSubject(record.title ?? ''));
+  const sameEvent = (i: number, j: number) => {
+    if (urls[i] && urls[i] === urls[j]) return true;
+    const entityI = records[i].primaryEntityId?.trim();
+    const entityJ = records[j].primaryEntityId?.trim();
+    if (entityI && entityJ && entityI !== entityJ) return false;
+    // Topic words and a shared investor are not the subject of a news event.
+    // Ambiguous titles stay separate rather than acquire unrelated citations.
+    if (!(entityI && entityI === entityJ) && (!subjects[i] || subjects[i] !== subjects[j]))
+      return false;
+    if (!setsIntersect(eventTokens[i], eventTokens[j])) return false;
+    const sharedContext = [...tokens[i]].filter(
+      (token) => tokens[j].has(token) && !isGenericNewsToken(token)
+    );
+    return jaccard(tokens[i], tokens[j]) >= JACCARD_THRESHOLD || sharedContext.length >= 2;
+  };
   const byUrl = new Map<string, number[]>();
   urls.forEach((url, index) => {
     if (!url) return;
@@ -404,17 +425,10 @@ export function clusterNewsRecords(records: readonly NewsRecord[]): NewsRecord[]
     if (tokens[i].size === 0) continue;
     for (let j = i + 1; j < n; j++) {
       if (find(i) === find(j) || tokens[j].size === 0) continue;
-      const similarity = jaccard(tokens[i], tokens[j]);
-      const shared = new Set([...tokens[i]].filter((token) => tokens[j].has(token)));
-      const sharedContext = [...shared].filter(
-        (token) => !COMPANYISH_STOP.has(token) && !EVENT_TOKENS.has(token)
-      );
-      const sameEventWithContext =
-        setsIntersect(eventTokens[i], eventTokens[j]) && sharedContext.length >= 2;
-      if (similarity < JACCARD_THRESHOLD && !sameEventWithContext) continue;
-      if (eventTokens[i].size === 0 || eventTokens[j].size === 0) continue;
-      if (!setsIntersect(eventTokens[i], eventTokens[j])) continue;
-      if (companyOnlyOverlap(tokens[i], tokens[j], eventTokens[i], eventTokens[j])) continue;
+      if (!sameEvent(i, j)) continue;
+      // Single-link clustering lets a broad headline bridge two different
+      // events. Every incoming source must align with every existing member.
+      if (!members[find(i)].every((a) => members[find(j)].every((b) => sameEvent(a, b)))) continue;
       union(i, j);
     }
   }
@@ -734,8 +748,16 @@ export function sanitizeBriefNewsItems(items: readonly BriefNewsItem[]): BriefNe
     );
     const sourceReferences = relevantReferences.length
       ? relevantReferences
-      : publicReferences.slice(0, 1);
-    if (sourceReferences.length === 0) continue;
+      : newsSubject(title)
+        ? []
+        : publicReferences.slice(0, 1);
+    if (sourceReferences.length === 0) {
+      console.warn('[brief-news] cached story withheld', {
+        id: item.id,
+        reason: 'no_subject_aligned_citation',
+      });
+      continue;
+    }
     const cleanedWhatChanged = cleanRetainedText(item.what_changed, title);
     const whatChanged = cleanedWhatChanged === summary ? '' : cleanedWhatChanged;
     sanitized.push({
@@ -753,6 +775,8 @@ function citationMatchesTitle(url: string, title: string): boolean {
   try {
     const parsed = new URL(url);
     const urlTokens = titleTokens(`${parsed.hostname} ${decodeURIComponent(parsed.pathname)}`);
+    const subject = newsSubject(title);
+    if (subject && !urlTokens.has(subject)) return false;
     const identityTokens = [...titleTokens(title)].filter(
       (token) => !COMPANYISH_STOP.has(token) && !EVENT_TOKENS.has(token) && !/^\d+$/.test(token)
     );
@@ -818,9 +842,7 @@ function importanceScore(
   status: BriefNewsEvidenceStatus,
   independentSourceCount: number
 ): number {
-  const maxRank = Math.max(
-    ...members.map((member) => SOURCE_RANK[sourceFamily(member.source)] ?? 1)
-  );
+  const maxRank = Math.max(...members.map(rankRecord));
   const statusBoost = status === 'official' ? 30 : status === 'reported' ? 18 : 4;
   const eventBoost = members.some((member) =>
     [...titleTokens(member.title)].some((token) => EVENT_TOKENS.has(token))
@@ -880,7 +902,10 @@ function clusterId(members: NewsRecord[]): string {
 }
 
 function rankRecord(record: NewsRecord): number {
-  return SOURCE_RANK[sourceFamily(record.source)] ?? 0;
+  // Preserve the original-publisher retrieval priority after generic-topic
+  // clusters split. This is selection priority, never a verification label.
+  const originalPublisher = /^news:(digg|mts)-verification:/.test(record.source);
+  return (SOURCE_RANK[sourceFamily(record.source)] ?? 0) + Number(originalPublisher);
 }
 
 function sourceFamily(source: string): string {
@@ -908,24 +933,26 @@ function setsIntersect(a: Set<string>, b: Set<string>): boolean {
   return false;
 }
 
-function companyOnlyOverlap(
-  a: Set<string>,
-  b: Set<string>,
-  aEvents: Set<string>,
-  bEvents: Set<string>
-): boolean {
-  const shared = new Set([...a].filter((token) => b.has(token)));
-  const sharedEvents = [...shared].filter((token) => EVENT_TOKENS.has(token));
-  if (sharedEvents.length > 0) return false;
-  const leftover = [...shared].filter(
-    (token) => !COMPANYISH_STOP.has(token) && !EVENT_TOKENS.has(token)
-  );
+function isGenericNewsToken(token: string): boolean {
   return (
-    leftover.length === 0 &&
-    aEvents.size > 0 &&
-    bEvents.size > 0 &&
-    !setsIntersect(aEvents, bEvents)
+    COMPANYISH_STOP.has(token) ||
+    EVENT_TOKENS.has(token) ||
+    BRIEF_NEWS_TOPICS.has(token) ||
+    ['lab', 'labs', 'series', 'round', 'million', 'billion', 'valuation'].includes(token) ||
+    /^\d+$/.test(token)
   );
+}
+
+/** A conservative headline subject hint, not a semantic verification receipt. */
+function newsSubject(title: string): string | null {
+  const words = title.replace(PREFIX_RE, '').match(/[A-Za-z0-9]+/g) ?? [];
+  const event = words.findIndex((word) => EVENT_TOKENS.has(word.toLowerCase()));
+  if (event < 0) return null;
+  const prefix = words
+    .slice(0, event)
+    .filter((word) => word.length > 2 && !isGenericNewsToken(word.toLowerCase()));
+  const named = prefix.filter((word) => /[A-Z]/.test(word));
+  return (named.at(-1) ?? prefix.at(-1))?.toLowerCase() ?? null;
 }
 
 function earliestPublished(members: NewsRecord[]): Date {

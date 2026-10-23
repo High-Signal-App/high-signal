@@ -2,6 +2,21 @@
 
 Last updated: 2026-10-23
 
+October 23 Daily Brief source grouping:
+
+News clustering now requires a compatible headline subject and event, keeps
+explicitly different entity IDs separate, and checks every member when joining
+clusters. Generic topic words, shared investors and transitive headline bridges
+cannot supply event identity. Regressions retain the observed Recursive/Birla
+and AuxoAI/CureBay/Legora misassociations. Cached named stories exclude mismatched
+citations and are withheld with `no_subject_aligned_citation` when none align;
+the shared-cache namespace changes so old groups are not reused. Original
+publisher retrieval priority remains effective after generic clusters split.
+These conservative grouping checks do not certify semantic truth or change
+reported news into verified market signals. Existing publication rules, reader
+access and append-only signal records are unchanged. Release qualification uses
+the exact-main CI and API/web deployment workflows.
+
 October 23 public dated-brief cache qualification:
 
 Explicit today/yesterday reads now share the existing published-edition KV
