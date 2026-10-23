@@ -1,7 +1,5 @@
 /*
- * High Signal family theme — one dark theme for highsignal.app (Daily Brief)
- * and podcasts.highsignal.app (High Signal Podcasts). Keep this file
- * byte-identical in both repos.
+ * High Signal theme for the public Daily Brief and its supporting pages.
  *
  * Base: @saas-maker/ui `data-theme="ink"` + `data-mode="dark"` (set both on
  * <html>). This block narrows ink to High Signal's locked direction:

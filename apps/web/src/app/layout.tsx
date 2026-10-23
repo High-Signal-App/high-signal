@@ -106,7 +106,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           { label: 'brief', href: '/' },
           { label: 'signals', href: '/signals' },
           { label: 'track record', href: '/track-record' },
-          { label: 'podcasts', href: 'https://podcasts.highsignal.app/' },
         ]}
       />
       {children}
