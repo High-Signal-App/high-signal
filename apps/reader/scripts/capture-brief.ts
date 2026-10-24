@@ -27,11 +27,9 @@ export async function captureBrief(apiBase: string, now = new Date()): Promise<R
   }
   let dateIndex: Promise<{ dates: Array<{ date: string }> }> | undefined;
   const reader = {
-    brief: ({ region, date }: { region: string; date: string }) =>
-      // Current editions use the existing shared API/KV path, as MCP does.
-      // Only yesterday and archive fallback reads need an explicit date.
+    brief: ({ region, date }: { region: string; date?: string }) =>
       read<BriefSnapshot>(
-        `/brief/daily?${new URLSearchParams({ region, ...(date === istDay(now) ? {} : { date }) })}`
+        `/brief/daily?${new URLSearchParams({ region, ...(date ? { date } : {}) })}`
       ),
     briefDates: () => (dateIndex ??= read('/brief/dates')),
   };

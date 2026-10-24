@@ -1,5 +1,5 @@
 import { istDay, PUBLIC_BRIEF_REGIONS, regionLabel, type BriefSnapshot } from '@high-signal/shared';
-import { NewsFeed, SignalFeed } from '@/components/brief/BriefSections';
+import { BriefEnding, NewsFeed, SignalFeed } from '@/components/brief/BriefSections';
 import { DailyBriefHeroContent } from '@/components/brief/DailyBriefHeroContent';
 import { HomeJsonLd } from '@/components/seo/structured-data';
 import { PageShell } from '@/components/system/HighSignalUI';
@@ -93,7 +93,8 @@ export function BriefContent({
       />
       <div className="brief-edition">
         <NewsFeed brief={brief} pagination={{ day }} />
-        <SignalFeed brief={brief} editionDay={editionDay} />
+        <SignalFeed brief={brief} editionDay={editionDay} concise />
+        {brief.publishStatus === 'published' ? <BriefEnding brief={brief} day={day} /> : null}
       </div>
     </PageShell>
   );

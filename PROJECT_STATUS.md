@@ -2,6 +2,20 @@
 
 Last updated: 2026-10-24
 
+October 24 finite front edition — implementation:
+
+The default Next and compiled reader Brief selects up to eight recent news
+stories, groups overlapping accounts with separate attribution, and shows up to
+three verified signals. A deterministic selection favors consequential changes
+within technology, startups, and finance, limits publisher/funding repetition,
+and excludes promotional, tutorial, and attention-only filler. Quiet editions
+are not padded. “All stories” retains the complete twenty-per-page collection,
+preserving day and region; news and signal evidence gates are unchanged.
+Selection does not rewrite snapshots or upgrade evidence labels. Today’s Next
+fallback now reads the same current-edition refresh as the compiled publisher,
+rather than requesting an explicit-date snapshot. Historical reads retain their
+existing boundaries.
+
 October 24 public source import:
 
 The curated roster adds 107 verified public RSS/Atom feeds from newsletters and

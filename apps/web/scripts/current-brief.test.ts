@@ -61,7 +61,7 @@ function reader(editions: Record<string, BriefSnapshot | Error>, dates = Object.
   const calls: string[] = [];
   return {
     calls,
-    brief: async ({ date }: { date: string }) => {
+    brief: async ({ date = istDay(now) }: { date?: string }) => {
       calls.push(date);
       const result = editions[date];
       if (result instanceof Error) throw result;
@@ -77,6 +77,20 @@ test('published current edition needs no fallback', async () => {
   const source = reader({ '2026-10-02': current });
   assert.equal(await resolveCurrentBrief(source, 'global', 'today', now), current);
   assert.deepEqual(source.calls, ['2026-10-02']);
+});
+
+test('today uses the current refresh while yesterday retains its explicit date', async () => {
+  const requests: Array<{ region: string; date?: string }> = [];
+  const source = {
+    brief: async (params: { region: string; date?: string }) => {
+      requests.push(params);
+      return edition(params.date ?? istDay(now));
+    },
+    briefDates: async () => ({ dates: [] }),
+  };
+  await resolveCurrentBrief(source, 'global', 'today', now);
+  await resolveCurrentBrief(source, 'global', 'yesterday', now);
+  assert.deepEqual(requests, [{ region: 'global' }, { region: 'global', date: '2026-10-01' }]);
 });
 
 test('pending current resolves to a qualified historical edition without relabeling it', async () => {

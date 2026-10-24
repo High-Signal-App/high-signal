@@ -9,7 +9,7 @@ import {
 } from '@high-signal/shared';
 
 interface BriefReader {
-  brief(params: { region: Region; date: string }): Promise<BriefSnapshot>;
+  brief(params: { region: Region; date?: string }): Promise<BriefSnapshot>;
   briefDates(): Promise<{ dates: Array<{ date: string }> }>;
 }
 
@@ -61,7 +61,11 @@ export async function resolveCurrentBrief(
   let unavailable = false;
   let pending: BriefSnapshot | undefined;
   try {
-    const requested = retainQualifiedNews(await reader.brief({ region, date: requestedDate }));
+    // Today uses the shared current-edition refresh, matching the compiled
+    // publisher. Explicit dates are for yesterday and immutable history reads.
+    const requested = retainQualifiedNews(
+      await reader.brief({ region, ...(day === 'yesterday' ? { date: requestedDate } : {}) })
+    );
     if (qualifiedEdition(requested, requestedDate, region)) return requested;
     unavailable = Object.values(requested.categoryStates ?? {}).some(
       (state) => state.status === 'unavailable'
