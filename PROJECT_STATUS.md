@@ -25,6 +25,11 @@ Original articles discovered through HN or X attention remain eligible for
 attributed news even when they cannot satisfy Signal corroboration. News
 citations may carry a validated HN/X discussion link as context, with no extra
 evidence origin or confidence credit.
+Attention investigations that exhaust their initial attempts can recover after
+a cooldown instead of freezing permanently on transient provider failures.
+Recovery is limited to recently retrieved discoveries and the existing bounded
+poll budget. Lifetime attempt counts remain intact, each attempt records its
+actual start, and verified candidates are never automatically requeued.
 
 Known public newsletter archives now share the RSS/Atom add/pause/resume path.
 Social Growth Engineers uses its advertised public RSS; Startups.fyi and

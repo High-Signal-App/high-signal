@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import {
   attentionVerificationMetrics,
+  ATTENTION_VERIFICATION_ELIGIBILITY_SQL,
   bestPosition,
   canonicalAttentionUrl,
   epoch,
@@ -101,7 +102,6 @@ const DIGG_VERIFICATION_THRESHOLDS = {
 
 const MAX_VERIFICATION_REQUESTS_PER_POLL = 6;
 const FRESH_VERIFICATION_RESERVE = 5;
-const STALE_RUNNING_SECONDS = 45 * 60;
 
 export interface VerificationQueueRow {
   short_id: string;
@@ -568,14 +568,7 @@ async function pendingVerificationRequests(d1: D1Database) {
               (SELECT COALESCE(MAX(retrieved_at), 0) FROM digg_feed_snapshots)
                 AS latest_retrieved_at
        FROM digg_clusters
-       WHERE verification_attempts < 3
-         AND (
-           verification_status IN ('requested', 'insufficient_evidence', 'failed')
-           OR (
-             verification_status = 'running'
-             AND verification_started_at <= unixepoch() - ${STALE_RUNNING_SECONDS}
-           )
-         )
+       WHERE ${ATTENTION_VERIFICATION_ELIGIBILITY_SQL}
        ORDER BY verification_requested_at DESC
        LIMIT 200`
     )
