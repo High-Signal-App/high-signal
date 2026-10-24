@@ -11,6 +11,7 @@ import os
 import random
 import re
 import time
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Callable, Iterable, cast
 
@@ -828,10 +829,13 @@ def generate(
 _BATCH_PROMPT_TEMPLATE = """You are a signal extractor for the active High Signal collection:
 AI-infra / semiconductor market intelligence.
 
-You will receive events for MULTIPLE entities in one batch. Your job is to decide
-for EACH entity whether there is an actionable, collection-aligned signal draft.
-Return a JSON object whose `signals` array contains one object per entity that
-warrants a signal; omit entities with no actionable signal.
+You will receive separate story clusters in one batch. Decide for EACH supplied
+CLUSTER whether its own sources support an actionable, collection-aligned signal.
+Return a JSON object whose `signals` array contains at most one object per supplied
+cluster that warrants a signal. The same entity may have several separate stories.
+Copy cluster_id AND entity_id exactly from that cluster's header. Use only URLs
+from that same cluster as proof; never borrow sources or facts from another story.
+Do not move a claim to another cluster or infer a primary entity from spillovers.
 
 Output one STRICT JSON object (no commentary):
 {
@@ -862,7 +866,7 @@ Output one STRICT JSON object (no commentary):
   ]
 }
 
-Rules (same as single-entity, applied per entity):
+Rules (same as single-entity, applied separately per story cluster):
 - "publish": true only when the event is aligned with the active collection and
   implies a concrete company, sector, supply-chain, demand, financing, product,
   regulatory, or competitive change AND has semantically aligned primary evidence
@@ -871,7 +875,7 @@ Rules (same as single-entity, applied per entity):
   at least two independent evidence origins, at every confidence level. Copied
   texts have been collapsed for input diversity; nonmatching text does NOT prove
   independence. Reporting that only repeats an issuer claim is still one origin.
-- For every returned entity, structure body_md with `## What changed`,
+- For every returned cluster, structure body_md with `## What changed`,
   `## Why it matters`, and `## Uncertainty`. Put a complete source-grounded
   sentence under each heading and make the last section identify a real caveat,
   alternative explanation, or evidentiary gap.
@@ -905,10 +909,10 @@ Rules (same as single-entity, applied per entity):
   - Misses, guidance cuts, layoffs, export restrictions, supply-chain hits → "down"
   - Beats, raises, design wins, capex bumps, partnership ups, ASP up → "up"
   - PR fluff, vague AI mentions, conflicting reports → "neutral" OR publish=false
-- If events for multiple entities in this batch describe the SAME underlying event
-  (e.g. a supply-chain disruption affecting both supplier and customer), generate
-  a signal for EACH affected entity with the appropriate direction.
-- Return [] (empty array) if no entity has an actionable signal.
+- Related entities or adjacent input blocks do not make stories interchangeable.
+  Each returned cluster must have its OWN supplied primary evidence and independent
+  corroboration. Withhold a cluster rather than copying another cluster's proofs.
+- Return {"signals": []} if no supplied cluster has an actionable signal.
 """
 
 
@@ -916,7 +920,7 @@ def _batch_prompt() -> str:
     return _BATCH_PROMPT_TEMPLATE.replace("__SIGNAL_TYPES__", ", ".join(signal_type_ids()))
 
 
-BATCH_PROMPT_VERSION = "v2-batch"
+BATCH_PROMPT_VERSION = "v3-story-batch"
 
 
 def _candidate_from_batch_item(
@@ -927,18 +931,24 @@ def _candidate_from_batch_item(
 ) -> SignalCandidate | None:
     cluster_id = str(item.get("cluster_id") or "")
     entity_id = cluster_entities.get(cluster_id, "")
-    if not entity_id:
-        requested_entity = str(item.get("entity_id") or "")
-        matching_clusters = [
-            key for key, value in cluster_entities.items() if value == requested_entity
-        ]
-        if len(matching_clusters) == 1:
-            cluster_id = matching_clusters[0]
-            entity_id = requested_entity
+    if not entity_id or item.get("entity_id") != entity_id:
+        raise SignalGenerationUnavailable(
+            "invalid_cluster_binding", failure_class="invalid_response"
+        )
     evs = cluster_events.get(cluster_id, [])
     spillovers = cluster_spillovers.get(cluster_id, [])
     if not evs:
-        return None
+        raise SignalGenerationUnavailable(
+            "invalid_cluster_binding", failure_class="invalid_response"
+        )
+    allowed_urls = {event.source_url for event in evs if event.source_url}
+    if any(
+        isinstance(proof, dict)
+        and proof.get("aligned") is True
+        and proof.get("url") not in allowed_urls
+        for proof in item.get("proofs", [])
+    ):
+        raise SignalGenerationUnavailable("invalid_proof_binding", failure_class="invalid_response")
     signal_type = _signal_type_id(item.get("signal_type"))
     headline = item.get("headline", "signal")
     body_md = _body_markdown(item)
@@ -990,9 +1000,9 @@ def _parse_batch_candidates(
     cluster_events: dict[str, list[Event]],
     cluster_entities: dict[str, str],
     cluster_spillovers: dict[str, list[str]],
-) -> tuple[list[SignalCandidate], int]:
+) -> tuple[list[SignalCandidate], dict[str, int]]:
     candidates: list[SignalCandidate] = []
-    invalid_bodies = 0
+    invalid_items: dict[str, int] = {}
     for item in items:
         if not isinstance(item, dict) or not item.get("publish"):
             continue
@@ -1003,13 +1013,14 @@ def _parse_batch_candidates(
                 cluster_entities,
                 cluster_spillovers,
             )
-        except SignalGenerationUnavailable:
-            invalid_bodies += 1
+        except SignalGenerationUnavailable as exc:
+            reason = str(exc)
+            invalid_items[reason] = invalid_items.get(reason, 0) + 1
             continue
         if candidate:
             candidates.append(candidate)
 
-    return candidates, invalid_bodies
+    return candidates, invalid_items
 
 
 def _batch_response_shape(response: object) -> bool:
@@ -1022,21 +1033,21 @@ def _batch_response_shape(response: object) -> bool:
     )
 
 
-def generate_batch(
+@dataclass(frozen=True)
+class BatchGenerationInput:
+    user: str
+    cluster_events: dict[str, list[Event]]
+    cluster_entities: dict[str, str]
+    cluster_spillovers: dict[str, list[str]]
+    omitted_clusters: list[dict[str, str]]
+
+
+def batch_generation_input(
     clusters: list[tuple[str, list[Event], list[str]]],
-) -> list[SignalCandidate]:
-    """Generate signals for multiple entity clusters in a single LLM call.
-
-    Each cluster is ``(entity_id, events, spillover_candidates)``. Returns a
-    list of ``SignalCandidate`` objects (only for entities where the model
-    returns ``publish: true``). Designed for small clusters (1-4 events) that
-    are graph-related — the model sees cross-entity context in one call.
-    """
-    if not clusters:
-        return []
-
-    # Build the batched user message
+) -> BatchGenerationInput:
+    """Plan exactly the bounded whole-story input admitted by the generator."""
     entity_blocks: list[str] = []
+    omitted_clusters: list[dict[str, str]] = []
     cluster_events: dict[str, list[Event]] = {}
     cluster_entities: dict[str, str] = {}
     cluster_spillovers: dict[str, list[str]] = {}
@@ -1045,33 +1056,102 @@ def generate_batch(
         evs = distinct_generation_events(_relevant_events(entity_id, list(raw_evs), spillovers))
         if not evs:
             continue
-        cluster_events[cluster_id] = evs
-        cluster_entities[cluster_id] = entity_id
-        cluster_spillovers[cluster_id] = spillovers
         blob = "\n".join(
             f"  - [{e.source}] {e.published_at.isoformat()} | {e.title or ''}\n"
             f"    URL: {e.source_url}\n"
             f"    {(e.content or '')[:1500]}"
             for e in evs
         )
-        entity_blocks.append(
+        block = (
             f"=== CLUSTER {cluster_id} / ENTITY {entity_id} ===\n"
             f"SPILLOVER CANDIDATES: {', '.join(spillovers)}\n"
             f"EVENTS ({len(evs)}):\n{blob}"
         )
+        # The shared transport has a hard character budget. Admit whole stories
+        # before that boundary; unseen or half-cut input cannot produce a draft.
+        if len("\n\n".join([*entity_blocks, block])) > _AI_USER_CONTENT_LIMIT:
+            omitted_clusters.append(
+                {"cluster_id": cluster_id, "entity_id": entity_id, "reason": "input_budget"}
+            )
+            continue
+        entity_blocks.append(block)
+        cluster_events[cluster_id] = evs
+        cluster_entities[cluster_id] = entity_id
+        cluster_spillovers[cluster_id] = spillovers
 
-    if not entity_blocks:
-        return []
-    user = "\n\n".join(entity_blocks)
-    out, meta = _ai_complete(
-        _batch_prompt(),
-        user,
-        max_completion_tokens=_AI_EXPANDED_COMPLETION_TOKENS,
-        expect=_batch_response_shape,
+    return BatchGenerationInput(
+        "\n\n".join(entity_blocks),
+        cluster_events,
+        cluster_entities,
+        cluster_spillovers,
+        omitted_clusters,
     )
+
+
+def pack_generation_batches(
+    clusters: list[tuple[str, list[Event], list[str]]],
+    *,
+    max_clusters: int,
+) -> list[list[tuple[str, list[Event], list[str]]]]:
+    """Partition normal stories before transport limits; never recurse or retry.
+
+    An individually oversized story stays a singleton so the generator can audit
+    its explicit omission without making a provider request. All other stories
+    are offered exactly once, with IDs recalculated within their final batch.
+    """
+    batches: list[list[tuple[str, list[Event], list[str]]]] = []
+    current: list[tuple[str, list[Event], list[str]]] = []
+    for cluster in clusters:
+        if current and (
+            len(current) >= max_clusters
+            or batch_generation_input([*current, cluster]).omitted_clusters
+        ):
+            batches.append(current)
+            current = []
+        current.append(cluster)
+        if batch_generation_input(current).omitted_clusters:
+            batches.append(current)
+            current = []
+    if current:
+        batches.append(current)
+    return batches
+
+
+def generate_batch(
+    clusters: list[tuple[str, list[Event], list[str]]],
+) -> list[SignalCandidate]:
+    """Generate signals for multiple entity clusters in a single LLM call.
+
+    Each cluster is ``(entity_id, events, spillover_candidates)``. Returns a
+    list of ``SignalCandidate`` objects (only for entities where the model
+    returns ``publish: true``). Designed for small clusters (1-4 events) that
+    remain separate stories within one bounded LLM call.
+    """
+    if not clusters:
+        return []
+
+    planned = batch_generation_input(clusters)
+    user = planned.user
+    cluster_events = planned.cluster_events
+    cluster_entities = planned.cluster_entities
+    cluster_spillovers = planned.cluster_spillovers
+    omitted_clusters = planned.omitted_clusters
+    if user:
+        out, meta = _ai_complete(
+            _batch_prompt(),
+            user,
+            max_completion_tokens=_AI_EXPANDED_COMPLETION_TOKENS,
+            expect=_batch_response_shape,
+        )
+    else:
+        out, meta = None, _completion_meta(os.environ.get("AI_MODEL"), user)
     request_blob = {
-        "entities": [eid for eid, _, _ in clusters],
-        "user": meta.pop("request_user", ""),
+        "entities": list(cluster_entities.values()),
+        "offered_clusters": cluster_entities,
+        "omitted_clusters": omitted_clusters,
+        # Preserve the exact bounded batch sent on the wire, beyond the shared
+        # transport's shorter diagnostic preview.
+        "user": user,
         "attempts": meta.get("attempts"),
         "requested_completion_tokens": meta.get("requested_completion_tokens"),
         "failure_class": meta.get("failure_class"),
@@ -1093,6 +1173,10 @@ def generate_batch(
             latency_ms=meta.get("latency_ms"),
         )
 
+    if not user:
+        if omitted_clusters:
+            _record(False, None, "batch_input_omitted")
+        return []
     if out is None:
         _record(False, None, meta.get("reason") or "no_response")
         _raise_for_provider_failure(meta)
@@ -1104,13 +1188,16 @@ def generate_batch(
         _record(False, None, "unexpected_response_shape")
         return []
 
-    candidates, invalid_bodies = _parse_batch_candidates(
+    candidates, invalid_items = _parse_batch_candidates(
         items, cluster_events, cluster_entities, cluster_spillovers
     )
-    if invalid_bodies:
-        _record(False, None, f"invalid_body_md:{invalid_bodies};retained:{len(candidates)}")
+    if invalid_items:
+        reasons = ";".join(f"{reason}:{count}" for reason, count in invalid_items.items())
+        _record(False, None, f"{reasons};retained:{len(candidates)}")
         if not candidates:
-            raise SignalGenerationUnavailable("invalid_body_md", failure_class="invalid_response")
+            raise SignalGenerationUnavailable(
+                next(iter(invalid_items)), failure_class="invalid_response"
+            )
     else:
-        _record(True, None, f"ok:{len(candidates)}/{len(clusters)}")
+        _record(True, None, f"ok:{len(candidates)}/{len(cluster_events)}")
     return candidates

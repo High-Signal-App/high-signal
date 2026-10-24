@@ -13,6 +13,10 @@ The news adapter repairs stale feed endpoints, collects bounded dated public
 archives, records per-publication fetch receipts and supports targeted retries.
 Future earnings notices and other issuers cannot consume retained-corroboration
 match slots; current-batch matching preserves delivery identity and exact proof.
+Signal batches now use story IDs and matching entity IDs throughout. Whole-story
+packing respects the existing input and cluster limits without cutting later
+stories off; receipts record the exact offered input and any oversized singleton.
+Proof URLs from another cluster cannot be reassigned into a draft.
 Cached and full-collection news enforce title-aligned complete excerpts; NOAA
 alerts and CFTC contract reports receive distinct source identities.
 Successful public article fetches can repair an existing retained body without
@@ -20,6 +24,10 @@ changing event identity. Failed/preview retries preserve the last substantive
 body and its hash; evidence lookup reads that repaired document before legacy
 event text. Explicit subscriber-only metadata excludes page extraction while
 leaving public feed previews available.
+The ingestion workflow also supports a bounded replay of one or two explicit
+news record IDs. It verifies their existing identity, fetches aligned public
+article bodies, and preserves the previous public receipt in the replacement's
+raw payload; original event observations remain unchanged.
 
 Community reporting now researches retained attention leads against recent
 retained original documents through the existing free-AI gateway. Supporting
