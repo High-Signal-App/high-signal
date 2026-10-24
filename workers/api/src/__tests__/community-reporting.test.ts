@@ -590,7 +590,7 @@ describe('public community retained source to reader', () => {
     await database.binding
       .prepare(`INSERT INTO llm_runs
       (id,model,prompt_version,accepted,reason,request_json,response_json,created_at)
-      VALUES('later-failure','auto','community-report-v2',0,'research_or_model_unavailable',
+      VALUES('later-failure','auto','community-report-v3',0,'research_or_model_unavailable',
       '{"communityId":"another-public-community"}','null',unixepoch()+1)`)
       .run();
     expect(await buildTrends(db(database.binding), 'global', [])).toHaveLength(1);

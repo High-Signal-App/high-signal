@@ -14,7 +14,7 @@ import {
   type CommunityResearchDocument,
 } from './community-report-proof';
 
-const COMMUNITY_REPORT_PROMPT_VERSION = 'community-report-v2';
+const COMMUNITY_REPORT_PROMPT_VERSION = 'community-report-v3';
 const communityReportOutputSchema = z.object({ report: communityReportSchema }).strict();
 export type CommunityReportingEnv = { DB: D1Database; FREE_AI?: Fetcher };
 type Community = {
@@ -239,7 +239,7 @@ If supported, report must contain exactly these keys:
 - section: one literal string. Use "trends" for behavior/culture or "ideas" for a business opportunity. For example, "section":"trends". Never concatenate enum choices.
 - title: 12–160 characters.
 - description: 40–900 characters, one narrowly stated source-grounded observation in complete sentences.
-- whyNow: 24–600 characters, a grounded practical implication; explicitly label an untested business hypothesis.
+- whyNow: 24–600 characters explaining a current consequence or constraint directly supported by a cited passage. For trends, explain the observed significance without proposing a product, hypothetical solution or future benefit. For ideas, ground the timing in the observed problem; label any proposed business hypothesis as untested and never invent its benefits.
 - uncertainty: 24–600 characters, a concrete limitation or missing evidence.
 - citations: 2–4 objects, each containing ONLY documentId and passageId. Copy documentId from an input document's id and passageId from that document's passages keys. Cite 2–4 DISTINCT documents, exactly one passage per document. Do not include passage text, URLs or any other citation keys.
 
