@@ -125,6 +125,69 @@ beforeEach(() => {
 afterEach(() => database.close());
 
 describe('public community retained source to reader', () => {
+  it('keeps community question boilerplate out of the SQL shortlist and ranks subject matches first', async () => {
+    await seedCommunity();
+    await seedLead();
+    await database.binding
+      .prepare('UPDATE events SET title=? WHERE id=?')
+      .bind('Does anybody here use a formal system for review?', leadId)
+      .run();
+    const text = 'The report describes retained observations and their limitations. '.repeat(12);
+    // More than LIMIT 60 misleading question matches must not crowd out the subject.
+    for (let index = 0; index < 62; index++) {
+      await seedDocument(
+        researchDocument('primary', {
+          id: `question-noise-${index}`,
+          hash: index.toString(16).padStart(64, '0'),
+          recordId: `question-noise-event-${index}`,
+          url: `https://noise-${index}.example/report`,
+          title: "Paid parental leave doesn't strain employers, survey finds",
+          text: `A parental leave survey. ${text}`,
+        })
+      );
+    }
+    await seedDocument(
+      researchDocument('primary', {
+        title: 'AI is making developers faster. It also exposes broken software delivery',
+        text,
+      })
+    );
+    await seedDocument(
+      researchDocument('corroboration', {
+        title: 'A formal system for review workflows',
+        text,
+      })
+    );
+    await seedDocument(
+      researchDocument('primary', {
+        id: 'airport',
+        hash: 'c'.repeat(64),
+        recordId: 'airport-event',
+        url: 'https://airport.example/report',
+        title: 'Airport drop-off charges to be reviewed',
+        text: `An unrelated transport study. ${text}`,
+      })
+    );
+    complete.mockResolvedValue(
+      JSON.stringify({ publish: false, reason: 'Retrieval test only; no report is qualified.' })
+    );
+    expect(
+      await researchPublicCommunity(
+        { DB: database.binding, FREE_AI: freeGateway },
+        communityId,
+        leadId
+      )
+    ).toMatchObject({ status: 'withheld', reason: 'insufficient_evidence' });
+    const request = JSON.parse(complete.mock.calls[0][0].messages[1].content);
+    // A generic study marker is only a tiebreaker after meaningful title relevance.
+    expect(request.documents.map((document: { id: string }) => document.id)).toEqual([
+      'corroboration',
+      'primary',
+      'airport',
+    ]);
+    expect(await count('claim_records')).toBe(0);
+  });
+
   it('publishes actual SQLite receipts, keeps community context separate, and renders only the proven item', async () => {
     await seedResearch();
     const result = await researchPublicCommunity(
