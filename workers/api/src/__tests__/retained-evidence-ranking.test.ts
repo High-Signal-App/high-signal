@@ -23,9 +23,12 @@ describe('retained evidence ranking against SQLite', () => {
     const database = new DatabaseSync(':memory:');
     try {
       database.exec(
-        'CREATE TABLE events (source_url TEXT, title TEXT, content TEXT, published_at INTEGER, source TEXT)'
+        `CREATE TABLE events (source_url TEXT, title TEXT, content TEXT, published_at INTEGER, source TEXT, source_document_id TEXT);
+         CREATE TABLE source_documents (id TEXT PRIMARY KEY,raw_text TEXT)`
       );
-      const insert = database.prepare('INSERT INTO events VALUES (?, ?, ?, ?, ?)');
+      const insert = database.prepare(
+        'INSERT INTO events (source_url,title,content,published_at,source) VALUES (?, ?, ?, ?, ?)'
+      );
       const now = Math.floor(Date.now() / 1000);
       const text = 'Retained article body. '.repeat(40);
       for (let i = 0; i < 60; i++) {

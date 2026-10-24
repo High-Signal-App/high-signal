@@ -224,15 +224,17 @@ export async function retainedEvidenceCandidates(
 ) {
   const tokens = evidenceSearchTokens(title);
   if (tokens.length === 0) return [];
-  const exclusions = excludedSourcePatterns.map(() => 'source NOT LIKE ?').join(' AND ');
+  const exclusions = excludedSourcePatterns.map(() => 'e.source NOT LIKE ?').join(' AND ');
+  const retainedText = "coalesce(nullif(s.raw_text,''),e.content)";
   const rows = await d1
     .prepare(
-      `SELECT source_url, title, content, published_at, source FROM events
-       WHERE published_at >= ? AND published_at <= unixepoch() AND length(content) >= 500
+      `SELECT e.source_url, e.title, ${retainedText} AS content, e.published_at, e.source FROM events e
+       LEFT JOIN source_documents s ON s.id=e.source_document_id
+       WHERE e.published_at >= ? AND e.published_at <= unixepoch() AND length(${retainedText}) >= 500
          ${exclusions ? `AND ${exclusions}` : ''}
-         AND (${tokens.map(() => 'lower(title) LIKE ?').join(' OR ')})
-       ORDER BY (${tokens.map(() => 'CASE WHEN lower(title) LIKE ? THEN 1 ELSE 0 END').join(' + ')}) DESC,
-         published_at DESC, source_url ASC LIMIT 50`
+         AND (${tokens.map(() => 'lower(e.title) LIKE ?').join(' OR ')})
+       ORDER BY (${tokens.map(() => 'CASE WHEN lower(e.title) LIKE ? THEN 1 ELSE 0 END').join(' + ')}) DESC,
+         e.published_at DESC, e.source_url ASC LIMIT 50`
     )
     .bind(
       firstSeenAt - 3 * 24 * 60 * 60,

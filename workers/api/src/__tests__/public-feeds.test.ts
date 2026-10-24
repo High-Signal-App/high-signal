@@ -160,6 +160,8 @@ describe('known public archive discovery', () => {
     ['https://vcunfiltered.beehiiv.com/', '/p/a-public-issue', 'VC Unfiltered'],
     ['https://archive.internetisbeautiful.com/', '/p/a-public-issue', 'Internet Is Beautiful'],
     ['https://www.cerebras.ai/blog', '/blog/a-public-article', 'Cerebras Blog'],
+    ['https://startupsfyi.beehiiv.com/', '/p/a-public-issue', 'Startups.fyi'],
+    ['https://newsletter.strictlyvc.com/', '/p/a-public-issue', 'StrictlyVC'],
   ])('validates only supported listing links: %s', async (url, path, title) => {
     vi.stubGlobal('HTMLRewriter', FixtureHTMLRewriter);
     const html = `<html><li class="category-articles"><a href="${path}">Article</a></li>

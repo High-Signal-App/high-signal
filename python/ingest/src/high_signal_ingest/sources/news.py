@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import logging
 import re
@@ -18,7 +19,7 @@ import httpx
 
 from ..seed import load_sources
 from .. import audit
-from ..types import Event
+from ..types import Event, SourceDocument
 from ..utils import event_hash
 from . import public_archives, registered_feeds
 
@@ -77,6 +78,49 @@ def _parse_iso(s: str) -> datetime | None:
         return d.astimezone(timezone.utc) if d.tzinfo else d.replace(tzinfo=timezone.utc)
     except Exception:
         return None
+
+
+def _declares_private_content(value: object) -> bool:
+    pending = [value]
+    while pending:
+        item = pending.pop()
+        if isinstance(item, dict):
+            access = item.get("isAccessibleForFree")
+            if access is False or (isinstance(access, str) and access.lower() == "false"):
+                return True
+            pending.extend(item.values())
+        elif isinstance(item, list):
+            pending.extend(item)
+    return False
+
+
+class _ArticleAccessMetadata(HTMLParser):
+    """Read publisher access declarations before script markup is discarded."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.non_public = False
+        self.in_json_ld = False
+        self.chunks: list[str] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag == "script":
+            self.in_json_ld = (dict(attrs).get("type") or "").lower() == "application/ld+json"
+            self.chunks = []
+
+    def handle_data(self, data: str) -> None:
+        if self.in_json_ld:
+            self.chunks.append(data)
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag != "script" or not self.in_json_ld:
+            return
+        try:
+            self.non_public |= _declares_private_content(json.loads("".join(self.chunks)))
+        except (ValueError, RecursionError):
+            pass
+        self.in_json_ld = False
+        self.chunks = []
 
 
 class _ArticleMarkup(HTMLParser):
@@ -165,6 +209,10 @@ def article_text_is_aligned(text: str, title: str) -> bool:
 
 
 def _extract_article_text(html: str, title: str = "") -> str:
+    access = _ArticleAccessMetadata()
+    access.feed(html)
+    if access.non_public:
+        return ""
     markup = _ArticleMarkup()
     markup.feed(html)
     html = "".join(markup.parts)
@@ -296,6 +344,35 @@ def _feed_candidates(
     return candidates
 
 
+def _article_receipt(
+    body: str | None, title: str, url: str, published: datetime
+) -> SourceDocument | None:
+    """Refresh an existing URL receipt only from a substantive public article.
+
+    Feed previews and unsuccessful fetches must not erase an earlier retained
+    body. This is extraction provenance, never semantic claim/origin credit.
+    The API supplies its existing source+canonical-URL key; event identity stays
+    unchanged even when the successfully retained article body is repaired.
+    """
+    if not body or len(body) < 500 or not article_text_is_aligned(body, title):
+        return None
+    if re.search(
+        r"please log ?in|sign in to continue|subscribe to read|subscription required|"
+        r"create an account to continue|verify you are human|access denied",
+        body[:500],
+        re.I,
+    ):
+        return None
+    retained = body[:30_000]
+    return SourceDocument(
+        canonical_url=url,
+        published_at=published,
+        raw_hash=hashlib.sha256(retained.encode()).hexdigest(),
+        raw_text=retained,
+        parsed_fields={"documentKind": "news_article", "retrievedFrom": "public_article_page"},
+    )
+
+
 async def fetch_rss_async(
     source: dict,
     since: datetime,
@@ -350,6 +427,7 @@ async def fetch_rss_async(
                 content=body or retained or None,
                 primary_entity_id=None,  # filled later by entity extractor
                 raw_hash=raw_hash,
+                source_document=_article_receipt(body, it.get("title") or "", link, pub),
             )
         )
     return out

@@ -6,6 +6,7 @@ import asyncio
 from datetime import datetime, timezone
 
 import httpx
+import pytest
 
 from high_signal_ingest.sources.news import _parse_feed
 from high_signal_ingest.sources import china_news, news, scmp
@@ -264,3 +265,104 @@ def test_mismatched_scrape_falls_back_to_aligned_feed_body(monkeypatch) -> None:
     assert event.content == feed_body
     assert not news.article_text_is_aligned(navigation, title)
     assert not news.article_text_is_aligned("Microsoft announced an unrelated product.", title)
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        None,
+        "",
+        "IBM is bringing models to customer hardware.",
+        "AI - Nvidia woos Europeans. - Jensen shows robots. - Nvidia builds trailer parks. " * 20,
+        "Please log in to continue. IBM article. " * 30,
+    ],
+)
+def test_failed_thin_navigation_or_challenge_body_cannot_refresh_a_receipt(body):
+    assert (
+        news._article_receipt(
+            body,
+            "IBM CEO backs models on customer hardware",
+            "https://publisher.example/article",
+            datetime.now(timezone.utc),
+        )
+        is None
+    )
+
+
+def test_successful_article_refresh_preserves_event_identity_and_supplies_content_receipt(
+    monkeypatch,
+):
+    import hashlib
+
+    from high_signal_ingest.audit import _source_document_payload
+
+    title = "IBM CEO backs models on customer hardware"
+    body = (
+        "IBM announced a deployment option for models running on customer hardware. "
+        "The company described the implementation, supported systems and rollout schedule. "
+        "Customers can evaluate the software on their own infrastructure before production deployment. "
+    ) * 4
+    published = datetime.now(timezone.utc).strftime("%a, %d %b %Y %H:%M:%S GMT")
+    feed = f"""<rss version="2.0"><channel><item><title>{title}</title>
+      <link>https://publisher.example/article?utm_source=feed</link><pubDate>{published}</pubDate>
+      <description>Short feed preview remains available when article retrieval fails.</description>
+      </item></channel></rss>"""
+    responses = iter(["", body, ""])
+
+    async def extract(*_args, **_kwargs):
+        return next(responses)
+
+    async def public_dns(_url):
+        return None
+
+    monkeypatch.setattr(news, "_extract_body", extract)
+    monkeypatch.setattr(news.registered_feeds, "check_public_host", public_dns)
+
+    async def run():
+        async with httpx.AsyncClient(
+            transport=httpx.MockTransport(lambda _: httpx.Response(200, text=feed))
+        ) as client:
+            events = []
+            for _ in range(3):
+                [event] = await news.fetch_rss_async(
+                    {"id": "publisher", "rss": "https://publisher.example/feed"},
+                    datetime(2026, 1, 1, tzinfo=timezone.utc),
+                    client,
+                    asyncio.Semaphore(2),
+                    fetch_body=True,
+                )
+                events.append(event)
+            return events
+
+    initial, repaired, unavailable = asyncio.run(run())
+    assert len({event.id for event in [initial, repaired, unavailable]}) == 1
+    assert len({event.raw_hash for event in [initial, repaired, unavailable]}) == 1
+    assert initial.source_document is None and unavailable.source_document is None
+    assert repaired.source_document is not None
+    assert repaired.source_document.raw_text == body
+    assert repaired.source_document.raw_hash == hashlib.sha256(body.encode()).hexdigest()
+    assert repaired.source_document.document_key is None
+    assert repaired.source_document.canonical_url == repaired.source_url
+    payload = _source_document_payload(repaired)
+    assert payload["rawText"] == body
+    assert payload["rawHash"] != repaired.raw_hash
+    assert payload["parsedFields"] == {
+        "documentKind": "news_article",
+        "retrievedFrom": "public_article_page",
+    }
+
+
+@pytest.mark.parametrize("flag", [False, "false"])
+def test_article_extraction_respects_explicit_subscriber_access_metadata(flag):
+    import json
+
+    body = "IBM announced models for running on customer hardware with deployment support. " * 20
+    metadata = {
+        "@context": "https://schema.org",
+        "@graph": [{"@type": "NewsArticle", "isAccessibleForFree": flag}],
+    }
+    html = (
+        f'<html><script type="application/ld+json">{json.dumps(metadata)}</script>'
+        f"<article><h1>IBM announced customer models</h1><p>{body}</p></article></html>"
+    )
+    assert news._extract_article_text(html, "IBM announced customer models") == ""
