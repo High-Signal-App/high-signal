@@ -181,6 +181,21 @@ export function parseVerificationResults(value: unknown): AttentionVerificationR
   );
 }
 
+// Initial attempts retain the existing 45-minute crashed-running recovery.
+// Exhausted discoveries may retry once per six hours between attempt starts.
+// Older rows recorded only their first start; the next running update makes
+// this timestamp accurate without resetting their lifetime attempt count.
+export const ATTENTION_VERIFICATION_ELIGIBILITY_SQL = `(
+  (verification_attempts < 3 AND (
+    verification_status IN ('requested', 'insufficient_evidence', 'failed') OR
+    (verification_status='running' AND verification_started_at <= unixepoch() - 2700)
+  )) OR
+  (verification_attempts >= 3 AND
+    verification_status IN ('insufficient_evidence', 'failed', 'running') AND
+    retrieved_at >= unixepoch() - 86400 AND
+    verification_started_at <= unixepoch() - 21600)
+)`;
+
 export async function recordVerificationResults(
   d1: D1Database,
   table: AttentionTable,
@@ -194,7 +209,7 @@ export async function recordVerificationResults(
       d1
         .prepare(
           `UPDATE ${table} SET verification_status=?,
-             verification_started_at=CASE WHEN ?='running' THEN COALESCE(verification_started_at, ?) ELSE verification_started_at END,
+             verification_started_at=CASE WHEN ?='running' THEN ? ELSE verification_started_at END,
              verified_at=CASE WHEN ?='verified_candidate' THEN ? ELSE verified_at END,
              verification_candidate_slug=COALESCE(?, verification_candidate_slug),
              verification_error=?,

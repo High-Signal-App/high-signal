@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import {
   attentionVerificationMetrics,
+  ATTENTION_VERIFICATION_ELIGIBILITY_SQL,
   bestPosition,
   canonicalAttentionUrl,
   epoch,
@@ -20,7 +21,6 @@ type Env = { DB: D1Database };
 const MTS_FEED_URL = 'https://api.mts.now/situations';
 const MIN_REFRESH_SECONDS = 25 * 60;
 const MAX_VERIFICATION_REQUESTS_PER_POLL = 6;
-const STALE_RUNNING_SECONDS = 45 * 60;
 
 interface SourceReference {
   url: string;
@@ -390,10 +390,7 @@ async function pendingVerificationRequests(d1: D1Database) {
               position, position_delta, distinct_source_count,
               (SELECT COALESCE(MAX(retrieved_at), 0) FROM mts_feed_snapshots) latest_retrieved_at
        FROM mts_situations
-       WHERE verification_attempts < 3 AND (
-         verification_status IN ('requested', 'insufficient_evidence', 'failed') OR
-         (verification_status='running' AND verification_started_at <= unixepoch() - ${STALE_RUNNING_SECONDS})
-       )
+       WHERE ${ATTENTION_VERIFICATION_ELIGIBILITY_SQL}
        ORDER BY CASE WHEN retrieved_at >= (SELECT COALESCE(MAX(retrieved_at), 0) - 600 FROM mts_feed_snapshots) THEN 0 ELSE 1 END,
                 COALESCE(position, 10000), ABS(COALESCE(position_delta, 0)) DESC,
                 distinct_source_count DESC, verification_requested_at
