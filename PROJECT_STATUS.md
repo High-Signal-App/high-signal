@@ -44,6 +44,10 @@ prompt plus input to 14,000 characters; unoffered or duplicate-document citation
 are withheld before verification. Oversized inputs remain visibly unavailable.
 A guarded CFTC replay repairs only an unchanged observation's legacy shared
 URL/document association; event identity and copy remain intact.
+Historical CFTC cleanup uses a bounded public cursor scan and normal ingestion,
+verifying each stored tuple and identity before rebuilding its exact receipt.
+Rebuilt receipts identify the retained observation as their provenance; the
+original shared document is preserved.
 Retained-record API cache keys bypass receipts from before that repair, and their
 shared lifetime is five minutes.
 
