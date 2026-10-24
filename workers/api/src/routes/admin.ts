@@ -33,6 +33,7 @@ import { desc, eq as eqOp } from 'drizzle-orm';
 import { db, schema } from '../db';
 import { diggAdminRoute } from './admin-digg';
 import { mtsAdminRoute } from './admin-mts';
+import { newsReceiptAdminRoute } from './admin-news-receipts';
 import { scheduledDataAdminRoute } from './admin-scheduled-data';
 import { feedSourcesAdminRoute } from './admin-feed-sources';
 import { communityReportingAdminRoute } from './admin-community-reporting';
@@ -68,6 +69,7 @@ adminRoute.use('*', async (c, next) => {
 
 adminRoute.route('/digg', diggAdminRoute);
 adminRoute.route('/mts', mtsAdminRoute);
+adminRoute.route('/news-receipts', newsReceiptAdminRoute);
 adminRoute.route('/scheduled-data', scheduledDataAdminRoute);
 adminRoute.route('/feed-sources', feedSourcesAdminRoute);
 adminRoute.route('/communities/research', communityReportingAdminRoute);

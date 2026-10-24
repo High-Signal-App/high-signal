@@ -5,7 +5,7 @@ import asyncio
 import hashlib
 import json
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 
 import httpx
 import pytest
@@ -121,6 +121,75 @@ def test_thin_or_unaligned_public_article_cannot_prepare_a_replay(monkeypatch):
 def test_explicit_id_input_is_bounded(value):
     with pytest.raises(argparse.ArgumentTypeError):
         repair.event_ids(value)
+
+
+def metadata_dispatch_preview(event_id="a" * 16):
+    event = {"id": event_id, "source": "news:publisher", "content": None}
+    document = {"id": "doc", "rawText": None, "rawJson": None}
+    before = {"event": event, "document": document}
+    after = {
+        "fetchedAt": 1792638003,
+        "rawHash": "b" * 64,
+        "rawText": "public article body",
+        "rawJson": "{}",
+        "parsedFields": "{}",
+    }
+    recovery = {
+        "eventId": event_id,
+        "source": "news:publisher",
+        "sourceUrl": "https://publisher.example/story",
+        "title": "A public news story",
+        "publishedAt": "2026-10-21T13:26:00+00:00",
+        "pagePublicationDates": ["2026-10-21T00:00:00+00:00"],
+        "retrievedUrl": "https://publisher.example/story",
+        "articleChars": len(after["rawText"]),
+        "articleHash": after["rawHash"],
+        "alignedToTitle": True,
+        "originalRawHash": "c" * 64,
+        "before": before,
+        "beforeFingerprint": repair._state_fingerprint(before),
+        "after": after,
+    }
+    result = {
+        "recovery": recovery,
+        "applyPlan": None,
+        "appliedFingerprint": None,
+        "applied": False,
+        "rollbackFingerprint": None,
+    }
+    result["applyPlan"] = repair._recovery_plan(recovery)
+    return result
+
+
+@pytest.mark.parametrize("mode", ["metadata-only-apply", "metadata-only-rollback"])
+def test_metadata_dispatch_input_accepts_single_saved_preview(mode):
+    preview = json.dumps(metadata_dispatch_preview())
+    result = repair.validate_metadata_dispatch_input(mode, "a" * 16, preview)
+    assert result["recovery"]["eventId"] == "a" * 16
+
+
+@pytest.mark.parametrize(
+    ("mode", "ids", "mutate", "message"),
+    [
+        ("standard", "a" * 16, None, "Unsupported"),
+        ("metadata-only-apply", "a" * 16 + "," + "b" * 16, None, "one event"),
+        ("metadata-only-apply", "b" * 16, None, "explicit event ID"),
+        ("metadata-only-apply", "a" * 16, "applied", "unapplied"),
+    ],
+)
+def test_metadata_dispatch_input_rejects_unreviewable_requests(mode, ids, mutate, message):
+    preview = metadata_dispatch_preview()
+    if mutate == "applied":
+        preview["applied"] = True
+    with pytest.raises((ValueError, argparse.ArgumentTypeError), match=message):
+        repair.validate_metadata_dispatch_input(mode, ids, json.dumps(preview))
+
+
+def test_metadata_dispatch_input_rejects_oversized_or_missing_preview():
+    with pytest.raises(ValueError, match="60000-byte"):
+        repair.validate_metadata_dispatch_input("metadata-only-apply", "a" * 16, " " * 60_001)
+    with pytest.raises(ValueError, match="saved preview"):
+        repair.validate_metadata_dispatch_input("metadata-only-rollback", "a" * 16, "")
 
 
 @pytest.mark.parametrize("apply", [False, True])
@@ -366,3 +435,207 @@ def test_apply_cannot_read_from_one_api_and_write_to_another(monkeypatch, tmp_pa
     with pytest.raises(SystemExit, match="same API"):
         repair.main()
     assert not preview.exists()
+
+
+def test_metadata_recovery_rolls_back_successful_server_write_after_lost_apply_ack(
+    monkeypatch,
+    tmp_path,
+):
+    url = "https://publisher.example/story"
+    title = "Amazon withdraws its data center application"
+    raw_hash = event_hash("publisher", url)
+    event_id = hashlib.sha256(raw_hash.encode()).hexdigest()[:16]
+    published_at = 1792589160
+    record = {
+        "id": event_id,
+        "source": "news:publisher",
+        "url": url,
+        "canonicalUrl": url,
+        "title": title,
+        "content": None,
+        "retainedText": None,
+        "retainedTextTruncated": False,
+        "entity": None,
+        "publishedAt": published_at,
+        "documentFetchedAt": 1792638003,
+        "available": True,
+    }
+    before = {
+        "event": {
+            "id": event_id,
+            "source": "news:publisher",
+            "sourceUrl": url,
+            "title": title,
+            "content": None,
+            "publishedAt": published_at,
+            "primaryEntityId": None,
+            "rawHash": raw_hash,
+            "fetchRunId": "original-fetch-run",
+            "sourceDocumentId": "source-doc-id",
+        },
+        "document": {
+            "id": "source-doc-id",
+            "source": "news:publisher",
+            "canonicalUrl": url,
+            "documentKey": "news:publisher:https://publisher.example/story",
+            "fetchedAt": 1792638003,
+            "publishedAt": published_at,
+            "rawHash": "original-document-hash",
+            "rawText": None,
+            "rawJson": None,
+            "parsedFields": '{"receiptKind":"metadata_only"}',
+        },
+    }
+    body = (
+        "Amazon withdrew its data center application following local opposition and revised plans. "
+        * 8
+    )
+    html = (
+        "<article><h1>Amazon withdraws its data center application</h1>"
+        '<time itemprop="datePublished" datetime="2026-10-21">October 21, 2026</time>'
+        f"<p>{body}</p></article>"
+    )
+    current_snapshot = {"state": before, "fingerprint": repair._state_fingerprint(before)}
+    request_log = []
+
+    async def public_host(_url):
+        return None
+
+    monkeypatch.setattr(repair.registered_feeds, "check_public_host", public_host)
+
+    def respond(request):
+        nonlocal current_snapshot
+        if request.url.host == "api.example" and request.url.path.startswith("/data/records/"):
+            return httpx.Response(200, json=record)
+        if request.url.host == "api.example" and request.url.path.startswith(
+            "/admin/news-receipts/"
+        ):
+            assert request.headers.get("Authorization") == "Bearer test-token"
+            request_log.append((request.method, request.url.path))
+            if request.method == "POST" and request.url.path.endswith("/rollback"):
+                payload = json.loads(request.content)
+                assert payload["before"] == before
+                assert (
+                    payload["afterFingerprint"]
+                    == repair._recovery_plan(recovery)["expectedAfterFingerprint"]
+                )
+                current_snapshot = {
+                    "state": before,
+                    "fingerprint": repair._state_fingerprint(before),
+                }
+                return httpx.Response(200, json=current_snapshot)
+            return httpx.Response(200, json=current_snapshot)
+        return httpx.Response(200, text=html)
+
+    monkeypatch.setattr(repair.audit, "_token", lambda: "test-token")
+    monkeypatch.setattr(repair.audit, "_enabled", lambda: True)
+    monkeypatch.setattr(repair.audit, "_api_base", lambda: "https://api.example")
+
+    async def run():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(respond)) as client:
+            return await repair.prepare_metadata_recovery(event_id, "https://api.example", client)
+
+    recovery = asyncio.run(run())
+    assert recovery["eventId"] == event_id
+    assert recovery["before"] == before
+    assert recovery["beforeFingerprint"] == repair._state_fingerprint(before)
+    assert recovery["publishedAt"] == "2026-10-21T13:26:00+00:00"
+    assert recovery["pagePublicationDates"] == ["2026-10-21T00:00:00+00:00"]
+    assert recovery["alignedToTitle"] is True
+    assert recovery["articleChars"] >= 500
+    assert (
+        recovery["articleHash"] == hashlib.sha256(recovery["after"]["rawText"].encode()).hexdigest()
+    )
+    assert (
+        json.loads(recovery["after"]["rawJson"])["receiptRecovery"]["originalDocument"]
+        == before["document"]
+    )
+    plan = repair._recovery_plan(recovery)
+    assert plan["bodyHash"] == recovery["articleHash"]
+    assert plan["beforeFingerprint"] == recovery["beforeFingerprint"]
+    assert len(plan["expectedAfterFingerprint"]) == 64
+    preview_path = tmp_path / "preview.json"
+    preview_path.write_text(
+        json.dumps(
+            {
+                "recovery": recovery,
+                "applyPlan": plan,
+                "appliedFingerprint": None,
+                "applied": False,
+                "rollbackFingerprint": None,
+            }
+        )
+    )
+    preview = repair._load_metadata_preview(preview_path, event_id)
+    assert preview["applyPlan"] == plan
+
+    async def verify_saved_preview():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(respond)) as client:
+            return await repair._verify_saved_recovery(preview, "https://api.example", client)
+
+    snapshot, verified_recovery = asyncio.run(verify_saved_preview())
+    assert snapshot["fingerprint"] == plan["beforeFingerprint"]
+    assert verified_recovery["articleHash"] == recovery["articleHash"]
+
+    applied_document = dict(before["document"])
+    applied_document.update(recovery["after"])
+    applied_state = {"event": before["event"], "document": applied_document}
+    # Model a committed apply whose response was lost before the local preview was updated.
+    redacted_state = {
+        "event": applied_state["event"],
+        "document": {
+            **applied_state["document"],
+            "rawText": None,
+            "rawJson": None,
+            "parsedFields": None,
+        },
+    }
+    current_snapshot = {
+        "state": redacted_state,
+        "fingerprint": plan["expectedAfterFingerprint"],
+        "receipt": {
+            "bodyHash": plan["bodyHash"],
+            "bodyChars": plan["bodyChars"],
+            "applied": True,
+        },
+    }
+    preview["applied"] = False
+    preview["appliedFingerprint"] = None
+
+    async def rollback_after_lost_ack():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(respond)) as client:
+            return await repair.rollback_metadata_recovery(preview, "https://api.example", client)
+
+    rollback = asyncio.run(rollback_after_lost_ack())
+    assert current_snapshot["state"] == before
+    assert current_snapshot["fingerprint"] == plan["beforeFingerprint"]
+    assert rollback["fingerprint"] == plan["beforeFingerprint"]
+    assert preview["applied"] is False
+    assert preview["appliedFingerprint"] is None
+    assert preview["rollbackFingerprint"] == plan["beforeFingerprint"]
+    assert request_log[-2:] == [
+        ("GET", f"/admin/news-receipts/{event_id}"),
+        ("POST", f"/admin/news-receipts/{event_id}/rollback"),
+    ]
+
+
+def test_metadata_only_recovery_rejects_page_publication_date_mismatch():
+    with pytest.raises(ValueError, match="did not confirm"):
+        repair._verified_page_publication(
+            '<time itemprop="datePublished" datetime="2026-10-22">October 22, 2026</time>',
+            datetime(2026, 10, 21, 13, 26, tzinfo=UTC),
+        )
+
+
+def test_metadata_recovery_target_and_publisher_are_bound_to_existing_config(monkeypatch):
+    monkeypatch.setattr(repair.audit, "_enabled", lambda: True)
+    monkeypatch.setattr(repair.audit, "_api_base", lambda: "https://api.example/")
+    assert repair._require_admin_target("https://api.example") == "https://api.example"
+    with pytest.raises(ValueError, match="configured API"):
+        repair._require_admin_target("https://attacker.example")
+    assert repair._same_publisher(
+        "https://www.publisher.example/story", "https://publisher.example/canonical"
+    )
+    assert not repair._same_publisher(
+        "https://mirror.example/story", "https://publisher.example/canonical"
+    )
