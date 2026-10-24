@@ -15,7 +15,7 @@ from typing import Iterator
 import feedparser
 import httpx
 
-from ..types import Event
+from ..types import Event, SourceDocument
 from ..utils import event_hash, parse_published_datetime
 
 
@@ -58,6 +58,22 @@ def events_from_feed(xml: str, since: datetime) -> list[Event]:
                 content=content[:20_000] or None,
                 primary_entity_id=None,
                 raw_hash=raw_hash,
+                source_document=SourceDocument(
+                    canonical_url=permalink,
+                    document_key=f"techmeme:{permalink}",
+                    fetched_at=datetime.now(timezone.utc),
+                    published_at=published,
+                    raw_hash=raw_hash,
+                    raw_text=content[:20_000] or None,
+                    parsed_fields={
+                        "documentKind": "techmeme_rss_metadata",
+                        "sourceClass": "attention_aggregator",
+                        "evidenceTier": "derived",
+                        "confidenceContribution": "none",
+                        "discoveryOnly": True,
+                        "discoveredArticleUrl": source_url,
+                    },
+                ),
             )
         )
     return out

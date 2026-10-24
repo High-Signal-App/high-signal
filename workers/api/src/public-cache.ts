@@ -2,6 +2,8 @@ const PUBLIC_CACHE_CONTROL = 'public, max-age=60, s-maxage=300';
 const PRIVATE_CACHE_CONTROL = 'private, no-store';
 const RETAINED_RECORD_CACHE_PARAM = '__hs_retained_record_cache';
 const RETAINED_RECORD_CACHE_EPOCH = 'retained-record-v2';
+const PROOF_CACHE_PARAM = '__hs_proof_cache';
+const PROOF_CACHE_EPOCH = 'retained-origin-v2';
 
 type PublicApiCache = Pick<Cache, 'match' | 'put'>;
 
@@ -31,6 +33,10 @@ export function isPublicCacheRequest(request: Request) {
 
 function cacheKey(request: Request) {
   const url = new URL(request.url);
+  if (/^\/(brief\/daily|data\/daily|signals(?:\/.*)?|claims(?:\/.*)?)$/.test(url.pathname)) {
+    // Recheck retained provenance instead of serving pre-fix proof credit.
+    url.searchParams.set(PROOF_CACHE_PARAM, PROOF_CACHE_EPOCH);
+  }
   if (/^\/data\/records\/[^/]+$/.test(url.pathname)) {
     // Bypass receipts cached before per-record source-document repair. Keep
     // this internal namespace out of the original request passed to the route.

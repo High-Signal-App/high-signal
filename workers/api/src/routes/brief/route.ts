@@ -32,6 +32,7 @@ import {
   type Region,
 } from '@high-signal/shared';
 import { db, schema } from '../../db';
+import { refreshBriefSnapshotEvidence } from '../../lib/signal-quality';
 import { safe, safeCategory, withBriefNews } from './compose';
 import {
   buildDiggAttention,
@@ -137,7 +138,7 @@ const PRECOMPUTED_REGIONS: Region[] = [
 export const DAILY_BRIEF_CACHE_TTL_SECONDS = 300;
 
 export function dailyBriefCacheKey(region: Region, editionDate: string) {
-  return `brief:daily:v2:${region}:${editionDate}`;
+  return `brief:daily:v3:${region}:${editionDate}`;
 }
 
 export const briefRoute = new Hono<{ Bindings: Env }>();
@@ -185,7 +186,7 @@ async function serveDailyBrief(
   );
   if (cached) {
     if (cached.status === 200) {
-      let snapshot = cached.body;
+      let snapshot = await refreshBriefSnapshotEvidence(database, cached.body);
       // The public two-day signal ledger stays current when publication happens
       // after a region snapshot was computed. Never substitute a stale cached
       // stock section if this authoritative read fails.

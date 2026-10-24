@@ -83,7 +83,7 @@ describe('retained article receipt repair through actual SQLite upserts', () => 
           },
           { DB: database.binding, ADMIN_TOKEN: 'test' }
         );
-        expect(await response.json()).toEqual({ inserted: 1 });
+        expect(await response.json()).toMatchObject({ inserted: 1 });
         return database.binding
           .prepare('SELECT parsed_fields FROM source_documents')
           .first<{ parsed_fields: string }>();
@@ -144,7 +144,7 @@ describe('retained article receipt repair through actual SQLite upserts', () => 
             { DB: database.binding, ADMIN_TOKEN: 'test' }
           );
           expect(response.status).toBe(200);
-          expect(await response.json()).toEqual({ inserted: 1 });
+          expect(await response.json()).toMatchObject({ inserted: 1 });
         }
         await push();
         const original = await database.binding
@@ -259,7 +259,7 @@ describe('guarded CFTC per-contract receipt replay', () => {
             },
             { DB: database.binding, ADMIN_TOKEN: 'test' }
           );
-          expect(await response.json()).toEqual({ inserted: 1 });
+          expect(await response.json()).toMatchObject({ inserted: 1 });
         }
         await push(event);
         const before = await database.binding
@@ -404,4 +404,59 @@ it('does not retarget generic, implicit or mismatched CFTC receipts', () => {
       },
     })
   ).toBeNull();
+});
+
+describe('source document acknowledgement identities', () => {
+  it('returns exact persisted keys only for successful events, including replayed observations', async () => {
+    const database = createSqliteD1();
+    try {
+      applyMigrations(database);
+      database.exec(`CREATE TRIGGER reject_failed_event BEFORE INSERT ON events
+        WHEN NEW.raw_hash='rejected' BEGIN SELECT RAISE(ABORT,'fixture failure'); END`);
+      const events = [
+        {
+          source: 'news:original',
+          sourceUrl: 'https://www.publisher.example/article?utm_source=feed',
+          publishedAt: '2026-10-24T00:00:00Z',
+          rawHash: 'normalized',
+          sourceDocument: { rawText: 'Fetched article' },
+        },
+        {
+          source: 'news:original',
+          sourceUrl: 'https://publisher.example/explicit',
+          publishedAt: '2026-10-24T00:00:00Z',
+          rawHash: 'explicit',
+          sourceDocument: { documentKey: 'explicit:receipt', rawText: 'Original article' },
+        },
+        {
+          source: 'news:original',
+          sourceUrl: 'https://publisher.example/rejected',
+          publishedAt: '2026-10-24T00:00:00Z',
+          rawHash: 'rejected',
+          sourceDocument: { rawText: 'Failed event operation' },
+        },
+      ];
+      const push = () =>
+        adminRoute.request(
+          '/events',
+          {
+            method: 'POST',
+            headers: { Authorization: 'Bearer test', 'Content-Type': 'application/json' },
+            body: JSON.stringify({ events }),
+          },
+          { DB: database.binding, ADMIN_TOKEN: 'test' }
+        );
+      const expected = {
+        inserted: 2,
+        sourceDocuments: [
+          { rawHash: 'normalized', documentKey: 'news:original:https://publisher.example/article' },
+          { rawHash: 'explicit', documentKey: 'explicit:receipt' },
+        ],
+      };
+      expect(await (await push()).json()).toEqual(expected);
+      expect(await (await push()).json()).toEqual(expected);
+    } finally {
+      database.close();
+    }
+  });
 });

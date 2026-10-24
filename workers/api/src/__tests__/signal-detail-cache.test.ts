@@ -19,9 +19,13 @@ vi.mock('../db', async (importOriginal) => {
     ...actual,
     db: () => ({
       select: () => ({
-        from: () => ({
-          where: () => Object.assign(Promise.resolve([]), { limit: async () => [state.signal] }),
-        }),
+        from: () => {
+          const query = {
+            where: () => Object.assign(Promise.resolve([]), { limit: async () => [state.signal] }),
+            innerJoin: () => query,
+          };
+          return query;
+        },
       }),
     }),
   };
@@ -31,6 +35,7 @@ vi.mock('../lib/signal-quality', () => ({
   enrichSignal: (row: unknown) => row,
   enrichSignals: vi.fn(),
   partitionPublishable: vi.fn(),
+  sourceAwareEvidenceLinks: async (_database: unknown, links: unknown[]) => links,
 }));
 
 import { signalsRoute } from '../routes/signals';

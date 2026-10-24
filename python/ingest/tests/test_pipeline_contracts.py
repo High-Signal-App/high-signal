@@ -1189,3 +1189,44 @@ def test_run_receipt_counts_thematic_generation_failures(monkeypatch, failure_cl
     assert out["signals_drafted"] == 0
     assert out["errors"] == 1
     assert pipeline.generation_outage_alert(out) is not None
+
+
+@pytest.mark.parametrize("source", ["techmeme", "techmeme:legacy"])
+def test_techmeme_metadata_cannot_be_verified_by_model_or_external_publisher_url(source):
+    events = [_event("https://www.forbes.com/report", source=source),
+              _event("https://independent.example/report")]
+    output = {"proofs": [{"url": event.source_url, "aligned": True,
+        "originating_evidence_id": str(index), "supports": ["observed_event"]}
+        for index, event in enumerate(events)]}
+    evidence = generator._proof_evidence(output, events)
+    assert evidence[0].role == "context"
+    assert evidence[0].semantic_alignment == "unverified"
+    assert pipeline._proof_verdict(_candidate(evidence)).ok is False
+    # Final guard also rejects an old/spoofed proof receipt bypassing the generator.
+    evidence[0].role = "primary"
+    evidence[0].semantic_alignment = "verified"
+    assert pipeline._proof_verdict(_candidate(evidence)).reason == "single_evidentiary_origin"
+
+
+def test_retrieved_hackernews_original_publisher_still_supplies_proof():
+    events = [_event("https://publisher.example/report", source="news:hackernews-original:publisher.example"),
+              _event("https://independent.example/report")]
+    output = {"proofs": [{"url": event.source_url, "aligned": True,
+        "originating_evidence_id": str(index), "supports": ["observed_event"]}
+        for index, event in enumerate(events)]}
+    assert pipeline._proof_verdict(_candidate(generator._proof_evidence(output, events))).ok is True
+
+
+def test_explicit_techmeme_marker_overrides_mislabeled_news_source():
+    events = [_event("https://www.forbes.com/report", source="news"),
+              _event("https://independent.example/report")]
+    events[0].content = "Techmeme permalink: https://www.techmeme.com/261024/p1\nRSS metadata"
+    output = {"proofs": [{"url": event.source_url, "aligned": True,
+        "originating_evidence_id": str(index), "supports": ["observed_event"]}
+        for index, event in enumerate(events)]}
+    evidence = generator._proof_evidence(output, events)
+    assert evidence[0].role == "context"
+    assert evidence[0].semantic_alignment == "unverified"
+    evidence[0].role = "primary"
+    evidence[0].semantic_alignment = "verified"
+    assert pipeline._proof_verdict(_candidate(evidence)).reason == "single_evidentiary_origin"

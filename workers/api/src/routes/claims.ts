@@ -14,6 +14,7 @@ import {
   istDayFromTimestamp,
 } from '@high-signal/shared';
 import { db, schema } from '../db';
+import { sourceAwareEvidenceLinks } from '../lib/signal-quality';
 import { bearerGrant, verifyHistoryGrant } from '../lib/history-access';
 
 type Env = { DB: D1Database; TURNSTILE_SECRET?: string };
@@ -99,7 +100,7 @@ async function loadClaimDetail(d1: D1Database, claimId: string): Promise<ClaimDe
     .orderBy(asc(schema.claimTimelineEvents.createdAt));
   return {
     ...toClaim(claim),
-    evidence: evidence.map(toEvidence),
+    evidence: (await sourceAwareEvidenceLinks(db(d1), evidence)).map(toEvidence),
     timeline: timeline.map(toTimeline),
   };
 }
@@ -144,7 +145,7 @@ claimsRoute.get('/by-signal/:slug', async (c) => {
     .where(inArray(schema.claimEvidenceLinks.claimId, ids))
     .orderBy(asc(schema.claimEvidenceLinks.addedAt));
   const evidenceByClaim = new Map<string, ClaimEvidenceLink[]>();
-  for (const row of links) {
+  for (const row of await sourceAwareEvidenceLinks(db(c.env.DB), links)) {
     const list = evidenceByClaim.get(row.claimId) ?? [];
     list.push(toEvidence(row));
     evidenceByClaim.set(row.claimId, list);

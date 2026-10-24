@@ -72,7 +72,7 @@ describe('event entity persistence', () => {
   it('links a new event to the persisted document ID when an older key already exists', async () => {
     const db = database(false, 'legacy-document-id');
     const response = await ingest(db, ['NVDA']);
-    expect(await response.json()).toEqual({ inserted: 1 });
+    expect(await response.json()).toMatchObject({ inserted: 1 });
     const event = db.writes.find((row) => row.sql.startsWith('insert into "events"'));
     expect(eventField(event!, 'source_document_id')).toBe('legacy-document-id');
   });
@@ -80,7 +80,7 @@ describe('event entity persistence', () => {
   it('retains unknown identifiers as metadata without assigning a nonexistent entity', async () => {
     const db = database();
     const response = await ingest(db, ['UNKNOWN', 'NVDA', null, 'UNKNOWN']);
-    expect(await response.json()).toEqual({ inserted: 4 });
+    expect(await response.json()).toMatchObject({ inserted: 4 });
     expect(db.lookups).toBe(2);
     const events = db.writes.filter((row) => row.sql.startsWith('insert into "events"'));
     expect(events.map((row) => eventField(row, 'primary_entity_id'))).toEqual([
@@ -102,7 +102,7 @@ describe('event entity persistence', () => {
     try {
       const db = database(true);
       const response = await ingest(db, ['NVDA']);
-      expect(await response.json()).toEqual({ inserted: 0 });
+      expect(await response.json()).toMatchObject({ inserted: 0 });
       expect(db.writes).toEqual([]);
     } finally {
       error.mockRestore();

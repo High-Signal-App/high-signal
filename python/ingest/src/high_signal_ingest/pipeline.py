@@ -79,6 +79,7 @@ from .sources import (
     wikidata,
     youtube,
 )
+from .evidence_origins import is_context_only_source
 from .types import Event, SignalCandidate
 from .dedupe import dedupe, dedupe_exact
 from .utils import event_text
@@ -907,6 +908,7 @@ def _proof_verdict(candidate: SignalCandidate) -> ProofVerdict:
         e
         for e in candidate.evidence
         if e.semantic_alignment == "verified"
+        and not is_context_only_source(e.source_type, e.excerpt)
         and e.role in {"primary", "corroboration"}
         and e.originating_evidence_id
     ]

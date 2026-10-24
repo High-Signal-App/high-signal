@@ -182,7 +182,7 @@ describe('public API edge cache', () => {
     expect(next).toHaveBeenCalledTimes(1);
   });
 
-  it.each(['/data/records', '/data/records/ev-1/extra', '/data/sources', '/brief/daily'])(
+  it.each(['/data/records', '/data/records/ev-1/extra', '/data/sources'])(
     'leaves the cache key unchanged for %s',
     async (path) => {
       const cache = memoryCache();
@@ -191,6 +191,25 @@ describe('public API edge cache', () => {
       );
       await handlePublicApiCache(request, async () => Response.json({ ok: true }), { cache });
       expect(cache.match.mock.calls[0]![0].url).toBe(request.url);
+    }
+  );
+
+  it.each(['/brief/daily', '/data/daily', '/signals', '/signals/example', '/claims/example'])(
+    'bypasses cached pre-fix evidence on %s and reuses the checked response',
+    async (path) => {
+      const cache = memoryCache();
+      const request = new Request(`https://api.highsignal.app${path}?region=global`);
+      await cache.put(request, Response.json({ proof: 'legacy' }));
+      const next = vi.fn(async () => Response.json({ proof: 'checked' }));
+      const miss = await handlePublicApiCache(request, next, { cache });
+      const hit = await handlePublicApiCache(request, next, { cache });
+      await expect(miss.json()).resolves.toEqual({ proof: 'checked' });
+      await expect(hit.json()).resolves.toEqual({ proof: 'checked' });
+      expect(next).toHaveBeenCalledTimes(1);
+      expect(new URL(cache.match.mock.calls[0]![0].url).searchParams.get('__hs_proof_cache')).toBe(
+        'retained-origin-v2'
+      );
+      expect(request.url).not.toContain('__hs_proof_cache');
     }
   );
 

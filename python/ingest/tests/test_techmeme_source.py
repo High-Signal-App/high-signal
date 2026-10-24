@@ -28,6 +28,14 @@ def test_events_from_feed_uses_original_article_url() -> None:
     assert events[0].source == "techmeme"
     assert events[0].source_url == "https://www.axios.com/2026/05/30/nvidia-microsoft-pcs-ai-surface-dell"
     assert "Techmeme permalink" in (events[0].content or "")
+    document = events[0].source_document
+    assert document is not None
+    assert document.canonical_url == "https://www.techmeme.com/260531/p4#a260531p4"
+    assert document.raw_text == events[0].content
+    assert document.parsed_fields["discoveredArticleUrl"] == events[0].source_url
+    assert document.parsed_fields["evidenceTier"] == "derived"
+    assert document.parsed_fields["confidenceContribution"] == "none"
+    assert pipeline._event_entity(events[0]) is None
 
 
 def test_events_from_feed_filters_old_items() -> None:

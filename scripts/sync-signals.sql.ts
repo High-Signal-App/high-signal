@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { normalizeClaimTuple } from '@high-signal/shared';
+import { normalizeClaimTuple, isContextOnlyEvidenceSource } from '@high-signal/shared';
 import { canonicalSourceUrl, escSql as esc, parseFrontmatter } from './sync-signals.lib';
 
 type SignalFront = ReturnType<typeof parseFrontmatter>['front'];
@@ -19,9 +19,15 @@ function buildClaimEvidenceSql(front: SignalFront, claimId: string, now: number)
   const guard = mutableSignal(front.slug);
   for (const [index, url] of front.evidence_urls.entries()) {
     const rawRole = front.proof_roles?.[index];
-    const role = ['primary', 'corroboration', 'contradiction', 'context'].includes(rawRole ?? '')
-      ? rawRole
-      : 'context';
+    const contextOnly = isContextOnlyEvidenceSource(
+      front.evidence_source_types?.[index],
+      front.evidence_quotes?.[index]
+    );
+    const role =
+      !contextOnly &&
+      ['primary', 'corroboration', 'contradiction', 'context'].includes(rawRole ?? '')
+        ? rawRole
+        : 'context';
     const rawAlignment = front.proof_semantic_alignments?.[index];
     const rawOrigin = front.proof_originating_evidence_ids?.[index]?.trim() || null;
     const documentKey = front.proof_source_document_keys?.[index]?.trim() || null;
@@ -29,7 +35,9 @@ function buildClaimEvidenceSql(front: SignalFront, claimId: string, now: number)
       ? `document_key=${esc(documentKey)}`
       : `canonical_url=${esc(canonicalSourceUrl(url))}`;
     const sourceDocumentId = `(SELECT id FROM source_documents WHERE ${documentWhere} LIMIT 1)`;
+    const proofDocumentId = `(SELECT id FROM source_documents WHERE id=${sourceDocumentId} AND lower(ltrim(coalesce(raw_text,''), char(9)||char(10)||char(13)||' ')) NOT LIKE 'techmeme permalink:%' AND lower(source) <> 'techmeme' AND lower(source) NOT LIKE 'techmeme:%' LIMIT 1)`;
     const eligibleForVerification =
+      !contextOnly &&
       rawAlignment === 'verified' &&
       rawOrigin !== null &&
       (role === 'primary' || role === 'corroboration');
@@ -37,11 +45,11 @@ function buildClaimEvidenceSql(front: SignalFront, claimId: string, now: number)
       rawAlignment === 'rejected'
         ? `'rejected'`
         : eligibleForVerification
-          ? `CASE WHEN ${sourceDocumentId} IS NOT NULL THEN 'verified' ELSE 'unverified' END`
+          ? `CASE WHEN ${proofDocumentId} IS NOT NULL THEN 'verified' ELSE 'unverified' END`
           : `'unverified'`;
     const supports = front.proof_supports?.[index]?.trim();
     const notes = eligibleForVerification
-      ? `CASE WHEN ${sourceDocumentId} IS NOT NULL THEN ${esc(`verifier:signal-extractor alignment:verified${supports ? ` supports:${supports}` : ''}`)} ELSE ${esc('verifier:signal-extractor alignment:unverified')} END`
+      ? `CASE WHEN ${proofDocumentId} IS NOT NULL THEN ${esc(`verifier:signal-extractor alignment:verified${supports ? ` supports:${supports}` : ''}`)} ELSE ${esc('verifier:signal-extractor alignment:unverified')} END`
       : esc(
           `verifier:signal-extractor alignment:${rawAlignment === 'rejected' ? 'rejected' : 'unverified'}${supports ? ` supports:${supports}` : ''}`
         );

@@ -302,6 +302,36 @@ async function main() {
       .excerpt?.length,
     1500
   );
+  const metadata = evidence.map((item, index) =>
+    index === 0 ? { ...item, sourceType: 'techmeme' } : item
+  );
+  assert.equal(
+    groundJudgeVerdict(publish, metadata).verdict,
+    'kill',
+    'external publisher URL and model origin cannot promote Techmeme metadata'
+  );
+  assert.equal(retainedSourceClasses(metadata)[0], 'other');
+  assert.equal(
+    groundJudgeVerdict(
+      publish,
+      evidence.map((item) => ({
+        ...item,
+        sourceType: 'news:hackernews-original:publisher.example',
+      }))
+    ).verdict,
+    'publish'
+  );
+  const mislabeledMetadata = evidence.map((item, index) =>
+    index === 0
+      ? {
+          ...item,
+          sourceType: 'news',
+          excerpt: 'Techmeme permalink: https://www.techmeme.com/261024/p1\nRSS summary',
+        }
+      : item
+  );
+  assert.equal(groundJudgeVerdict(publish, mislabeledMetadata).verdict, 'kill');
+  assert.equal(retainedSourceClasses(mislabeledMetadata)[0], 'other');
   checkCli();
   const recovered = await checkSequence(
     [

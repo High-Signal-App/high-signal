@@ -8,6 +8,7 @@ import {
   type SignalContentCategory,
 } from '@high-signal/shared';
 import { db, schema } from '../db';
+import { sourceAwareEvidenceLinks } from '../lib/signal-quality';
 import {
   enrichPublishedSignals,
   enrichSignal,
@@ -228,7 +229,27 @@ signalsRoute.get('/:slug', async (c) => {
     .select()
     .from(schema.scoreRuns)
     .where(eq(schema.scoreRuns.signalId, row.id));
-  return c.json({ signal: enrichedRow, evidence: evid, scores });
+  const linkedEvidence = await db(c.env.DB)
+    .select({ link: schema.claimEvidenceLinks })
+    .from(schema.claimEvidenceLinks)
+    .innerJoin(schema.claimRecords, eq(schema.claimRecords.id, schema.claimEvidenceLinks.claimId))
+    .where(eq(schema.claimRecords.signalId, row.id));
+  const sourceAwareLinks = await sourceAwareEvidenceLinks(
+    db(c.env.DB),
+    linkedEvidence.map((entry) => entry.link)
+  );
+  const metadataUrls = new Set(
+    sourceAwareLinks
+      .filter((link) => link.notes?.includes('source:techmeme'))
+      .map((link) => link.evidenceUrl)
+  );
+  return c.json({
+    signal: enrichedRow,
+    evidence: evid.map((item) =>
+      metadataUrls.has(item.url) ? { ...item, sourceType: 'techmeme' } : item
+    ),
+    scores,
+  });
 });
 
 signalsRoute.get('/by-entity/:entityId', async (c) => {

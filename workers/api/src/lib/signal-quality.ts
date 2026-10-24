@@ -1,9 +1,11 @@
 import {
   assessSignalQuality,
+  isContextOnlyEvidenceSource,
   judgePublishability,
   oppositeDirectionConflictIds,
   rollupEvidence,
   type ClaimEvidenceLink,
+  type BriefSnapshot,
 } from '@high-signal/shared';
 import { and, eq, inArray } from 'drizzle-orm';
 import { db, schema } from '../db';
@@ -40,6 +42,93 @@ export function serializeClaimEvidenceLink(
     notes: link.notes ?? null,
     addedAt: link.addedAt.toISOString(),
     addedBy: link.addedBy ?? null,
+  };
+}
+
+/** Preserve stored audit rows while removing proof credit from Techmeme metadata. */
+export async function sourceAwareEvidenceLinks(
+  database: ReturnType<typeof db>,
+  links: Array<typeof schema.claimEvidenceLinks.$inferSelect>
+) {
+  const ids = [
+    ...new Set(links.flatMap((link) => (link.sourceDocumentId ? [link.sourceDocumentId] : []))),
+  ];
+  const contextIds = new Set<string>();
+  for (const chunk of d1QueryChunks(ids)) {
+    const documents = await database
+      .select({
+        id: schema.sourceDocuments.id,
+        source: schema.sourceDocuments.source,
+        rawText: schema.sourceDocuments.rawText,
+      })
+      .from(schema.sourceDocuments)
+      .where(inArray(schema.sourceDocuments.id, chunk));
+    for (const document of documents) {
+      if (isContextOnlyEvidenceSource(document.source, document.rawText))
+        contextIds.add(document.id);
+    }
+  }
+  return links.map((link) =>
+    contextIds.has(link.sourceDocumentId ?? '')
+      ? {
+          ...link,
+          role: 'context' as const,
+          semanticAlignment: 'unverified' as const,
+          notes: `${link.notes ?? ''} alignment:unverified source:techmeme`,
+        }
+      : link
+  );
+}
+
+/** Recheck cached provenance, including protected history, against retained source owners. */
+export async function refreshBriefSnapshotEvidence(
+  database: ReturnType<typeof db>,
+  snapshot: BriefSnapshot
+): Promise<BriefSnapshot> {
+  const items = [...snapshot.stocks, ...snapshot.ideas, ...snapshot.trends];
+  const claimIds = [
+    ...new Set(
+      items.flatMap((item) => (item.provenance?.claimId ? [item.provenance.claimId] : []))
+    ),
+  ];
+  const rows: Array<typeof schema.claimEvidenceLinks.$inferSelect> = [];
+  for (const ids of d1QueryChunks(claimIds)) {
+    rows.push(
+      ...(await database
+        .select()
+        .from(schema.claimEvidenceLinks)
+        .where(inArray(schema.claimEvidenceLinks.claimId, ids)))
+    );
+  }
+  const links = await sourceAwareEvidenceLinks(database, rows);
+  const refresh = <T extends { provenance?: BriefSnapshot['stocks'][number]['provenance'] }>(
+    item: T
+  ): T => {
+    if (!item.provenance) return item;
+    if (!item.provenance.claimId) return { ...item, provenance: undefined };
+    const rollup = rollupEvidence(
+      links
+        .filter((link) => link.claimId === item.provenance!.claimId)
+        .map(serializeClaimEvidenceLink)
+    );
+    return {
+      ...item,
+      provenance: {
+        ...item.provenance,
+        evidenceCount: rollup.supportingUrls.length,
+        primaryCount: rollup.primary,
+        corroborationCount: rollup.corroboration,
+        contradictionCount: rollup.contradiction,
+        independentOriginCount: rollup.supportingOrigins.length,
+        evidenceUrls: rollup.supportingUrls,
+      },
+    };
+  };
+  return {
+    ...snapshot,
+    stocks: snapshot.stocks.map(refresh),
+    ideas: snapshot.ideas.map(refresh),
+    trends: snapshot.trends.map(refresh),
   };
 }
 
@@ -127,7 +216,7 @@ export async function enrichPublishedSignals<T extends typeof schema.signals.$in
     );
   }
   const linksByClaim = new Map<string, ClaimEvidenceLink[]>();
-  for (const link of links) {
+  for (const link of await sourceAwareEvidenceLinks(database, links)) {
     const list = linksByClaim.get(link.claimId) ?? [];
     list.push(serializeClaimEvidenceLink(link));
     linksByClaim.set(link.claimId, list);

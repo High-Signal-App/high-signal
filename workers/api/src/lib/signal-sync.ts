@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm';
 import {
   canonicalSourceUrl,
+  isContextOnlyEvidenceSource,
   normalizeClaimTuple,
   type ClaimEvidenceRole,
 } from '@high-signal/shared';
@@ -135,7 +136,7 @@ export async function syncSignal(d1: D1Database, signal: SignalUpsert) {
     Object.keys(content)
   );
 
-  await queueSignalEvidence(batch, id, signal);
+  await queueSignalEvidence(d1, batch, id, signal);
   if (signal.claim) await queueClaim(d1, batch, id, signal, now);
   if (signal.reviewStatus === 'corrected') {
     batch.write("UPDATE signals SET review_status = 'corrected' WHERE id = ?", id);
@@ -178,17 +179,25 @@ function signalContent(signal: SignalUpsert): Row {
   };
 }
 
-async function queueSignalEvidence(batch: SyncBatch, id: string, signal: SignalUpsert) {
+async function queueSignalEvidence(
+  d1: D1Database,
+  batch: SyncBatch,
+  id: string,
+  signal: SignalUpsert
+) {
   batch.write('DELETE FROM evidence WHERE signal_id = ?', id);
   const evidenceByUrl = new Map((signal.evidence ?? []).map((item) => [item.url, item]));
   for (const url of new Set(signal.evidenceUrls)) {
     const item = evidenceByUrl.get(url);
+    const document = await resolveSourceDocument(d1, item, url);
     const publishedAt = item?.publishedAt ? new Date(item.publishedAt).getTime() : NaN;
     batch.insert('evidence', {
       id: await sha16(`${id}:${url}`),
       signal_id: id,
       url,
-      source_type: item?.sourceType || inferSourceType(url),
+      source_type: isContextOnlyEvidenceSource(document?.source, document?.rawText)
+        ? 'techmeme'
+        : item?.sourceType || inferSourceType(url),
       excerpt: item?.excerpt ?? null,
       published_at: Number.isFinite(publishedAt) ? Math.floor(publishedAt / 1000) : null,
     });
@@ -257,9 +266,14 @@ async function queueEvidenceLink(
   item: SignalEvidenceUpsert | undefined,
   now: number
 ) {
-  const sourceDocumentId = await resolveSourceDocumentId(d1, item, url);
+  const document = await resolveSourceDocument(d1, item, url);
+  const sourceDocumentId = document?.id ?? null;
+  const contextOnly =
+    isContextOnlyEvidenceSource(item?.sourceType, item?.excerpt) ||
+    isContextOnlyEvidenceSource(document?.source, document?.rawText);
   const rawOrigin = item?.originatingEvidenceId?.trim() || null;
   const verified =
+    !contextOnly &&
     item?.semanticAlignment === 'verified' &&
     !!sourceDocumentId &&
     !!rawOrigin &&
@@ -267,7 +281,7 @@ async function queueEvidenceLink(
   const alignment =
     item?.semanticAlignment === 'rejected' ? 'rejected' : verified ? 'verified' : 'unverified';
   const originId = rawOrigin ? await sha16(`origin:${claimId}:${rawOrigin.toLowerCase()}`) : null;
-  const role = item?.role ?? 'context';
+  const role = contextOnly ? 'context' : (item?.role ?? 'context');
   const linkId = await sha16(`link:${claimId}:${canonicalSourceUrl(url)}`);
   const content: Row = {
     source_document_id: sourceDocumentId,
@@ -306,20 +320,24 @@ async function queueEvidenceLink(
   });
 }
 
-async function resolveSourceDocumentId(
+async function resolveSourceDocument(
   d1: D1Database,
   item: SignalEvidenceUpsert | undefined,
   url: string
-): Promise<string | null> {
+): Promise<{ id: string; source: string; rawText: string | null } | null> {
   const where = item?.sourceDocumentKey
     ? eq(schema.sourceDocuments.documentKey, item.sourceDocumentKey)
     : eq(schema.sourceDocuments.canonicalUrl, canonicalSourceUrl(url));
   const [sourceDocument] = await db(d1)
-    .select({ id: schema.sourceDocuments.id })
+    .select({
+      id: schema.sourceDocuments.id,
+      source: schema.sourceDocuments.source,
+      rawText: schema.sourceDocuments.rawText,
+    })
     .from(schema.sourceDocuments)
     .where(where)
     .limit(1);
-  return sourceDocument?.id ?? null;
+  return sourceDocument ?? null;
 }
 
 function inferSourceType(url: string): string {

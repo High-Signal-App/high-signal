@@ -4,7 +4,7 @@ import httpx
 import pytest
 
 from high_signal_ingest import audit
-from high_signal_ingest.types import Event
+from high_signal_ingest.types import Event, SourceDocument
 
 
 def events(count):
@@ -132,3 +132,86 @@ def test_http_failure_does_not_log_reflected_response_body(monkeypatch, caplog):
     assert "HTTP 401" in caplog.text
     assert "synthetic-private-token" not in caplog.text
     assert "Bearer" not in caplog.text
+
+
+def documented_events(count=2):
+    values = events(count)
+    for value in values:
+        value.source_document = SourceDocument(raw_text="Retained original article")
+    return values
+
+
+def test_acknowledged_receipt_keys_bind_only_matching_events_and_reach_generator(monkeypatch):
+    from high_signal_ingest.generator import _proof_evidence
+
+    values = documented_events()
+    values.append(events(3)[2])  # Metadata-only observation never gains a fabricated receipt.
+    monkeypatch.setattr(audit, "_post_result", lambda *_a: {
+        "inserted": 3, "sourceDocuments": [
+            {"rawHash": "hash-0", "documentKey": "server:normalized-key"},
+            {"rawHash": "hash-2", "documentKey": "server:metadata"},
+        ]})
+    assert audit.push_events(iter(values), "run") == 3
+    assert values[0].source_document.document_key == "server:normalized-key"
+    assert values[0].source_document.raw_text == "Retained original article"
+    assert values[1].source_document.document_key is None
+    assert values[2].source_document is None
+    assert _proof_evidence({}, values)[0].source_document_key == "server:normalized-key"
+
+
+def test_partial_ack_only_binds_successfully_identified_receipt(monkeypatch):
+    values = documented_events()
+    monkeypatch.setattr(audit, "_post_result", lambda *_a: {"inserted": 1,
+        "sourceDocuments": [{"rawHash": "hash-1", "documentKey": "server:one"}]})
+    assert audit.push_events(values, "run") == 1
+    assert values[0].source_document.document_key is None
+    assert values[1].source_document.document_key == "server:one"
+
+
+def test_duplicate_observations_bind_consistent_receipts_without_blocking_other_articles(monkeypatch):
+    first, other = documented_events()
+    values = [first, first.model_copy(deep=True), other]
+    monkeypatch.setattr(audit, "_post_result", lambda *_a: {"inserted": 3,
+        "sourceDocuments": [
+            {"rawHash": "hash-0", "documentKey": "server:first"},
+            {"rawHash": "hash-0", "documentKey": "server:first"},
+            {"rawHash": "hash-1", "documentKey": "server:other"},
+        ]})
+    assert audit.push_events(values, "run") == 3
+    assert [value.source_document.document_key for value in values] == [
+        "server:first", "server:first", "server:other"]
+
+
+@pytest.mark.parametrize("ack", [
+    {"inserted": 0, "sourceDocuments": [{"rawHash": "hash-0", "documentKey": "forged"}]},
+    {"inserted": 1, "sourceDocuments": [{"rawHash": "other-batch", "documentKey": "forged"}]},
+    {"inserted": 1, "sourceDocuments": [{"rawHash": "hash-0", "documentKey": "valid"}, {"rawHash": "hash-1", "documentKey": "forged"}]},
+    {"inserted": 2, "sourceDocuments": [{"rawHash": "hash-0", "documentKey": "valid"}, {"rawHash": "hash-0", "documentKey": "forged"}]},
+    {"inserted": 2, "sourceDocuments": [{"rawHash": "hash-0", "documentKey": "valid"}, {"rawHash": "unknown", "documentKey": "forged"}]},
+    {"inserted": 2, "sourceDocuments": [{"rawHash": "hash-0", "documentKey": " "}]},
+    {"inserted": True, "sourceDocuments": [{"rawHash": "hash-0", "documentKey": "forged"}]},
+    {"inserted": 2, "sourceDocuments": "invalid"},
+])
+def test_malformed_or_foreign_receipt_ack_is_never_partly_adopted(monkeypatch, ack):
+    values = documented_events()
+    monkeypatch.setattr(audit, "_post_result", lambda *_a: ack)
+    audit.push_events(values, "run")
+    assert all(value.source_document.document_key is None for value in values)
+
+
+def test_explicit_key_must_agree_and_legacy_response_keeps_it(monkeypatch):
+    values = documented_events(1)
+    values[0].source_document.document_key = "producer:existing"
+    for ack in [{"inserted": 1}, {"inserted": 1, "sourceDocuments": [
+        {"rawHash": "hash-0", "documentKey": "producer:existing"}]},
+        {"inserted": 1, "sourceDocuments": [{"rawHash": "hash-0", "documentKey": "mismatch"}]}]:
+        monkeypatch.setattr(audit, "_post_result", lambda *_a: ack)
+        assert audit.push_events(values, "run") == 1
+        assert values[0].source_document.document_key == "producer:existing"
+
+
+def test_failed_response_never_binds_a_receipt(monkeypatch):
+    values = documented_events(1)
+    monkeypatch.setattr(audit, "_post_result", lambda *_a: None)
+    assert audit.push_events(values, "run") == 0
+    assert values[0].source_document.document_key is None

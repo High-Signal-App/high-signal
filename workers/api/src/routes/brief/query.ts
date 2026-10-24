@@ -28,7 +28,11 @@ import {
   type SignalFamily,
 } from '@high-signal/shared';
 import { db, schema } from '../../db';
-import { d1QueryChunks, serializeClaimEvidenceLink } from '../../lib/signal-quality';
+import {
+  d1QueryChunks,
+  serializeClaimEvidenceLink,
+  sourceAwareEvidenceLinks,
+} from '../../lib/signal-quality';
 import { assertCommunityResearchAvailable } from '../../lib/community-reporting';
 import { communityAssertion } from '../../lib/community-report-proof';
 import { timeServerStage, type ServerTimingEntry } from '../../lib/server-timing';
@@ -65,7 +69,7 @@ when (
 ) then 3
 when (
   ${schema.events.source} = 'news' or ${schema.events.source} like 'news:%' or
-  ${schema.events.source} = 'guardian' or ${schema.events.source} = 'techmeme' or
+  ${schema.events.source} = 'guardian' or
   ${schema.events.source} = 'china-news' or ${schema.events.source} = 'scmp' or
   ${schema.events.source} like 'edgar_%' or
   ${schema.events.source} = 'sec-xbrl' or ${schema.events.source} like 'sec-xbrl:%' or
@@ -586,7 +590,7 @@ async function loadBriefProvenance(
     );
   }
   const linksByClaim = new Map<string, ClaimEvidenceLink[]>();
-  for (const link of linkRows) {
+  for (const link of await sourceAwareEvidenceLinks(database, linkRows)) {
     const links = linksByClaim.get(link.claimId) ?? [];
     links.push(serializeClaimEvidenceLink(link));
     linksByClaim.set(link.claimId, links);
