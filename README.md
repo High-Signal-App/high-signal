@@ -231,6 +231,8 @@ The MCP contract exposes eight stable read-only tools: `get_daily_brief`,
 `get_signal`, `get_daily_dump`, `get_source_coverage`, `search_signals`,
 `browse_source`, `get_track_record`, and `get_entity`. They reuse the same
 cached public API reads and Today/Yesterday history boundary as the website.
+The Brief response includes `readerEdition`, the same short, grouped selection
+as the website. The complete `news` and `stocks` arrays remain available.
 
 ## Deploy
 - Web → Cloudflare Workers via OpenNext (`.github/workflows/deploy-web.yml`)

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   selectBriefEdition,
+  buildReaderEdition,
   briefNewsPageHref,
   type BriefNewsItem,
   type BriefSnapshot,
@@ -32,6 +33,36 @@ function edition(news: BriefNewsItem[]): BriefSnapshot {
 }
 
 describe('finite front edition', () => {
+  it('builds the same machine-readable selection without copying invalid full-collection citations', () => {
+    const primary = story('primary', {
+      title: 'Acme launches Alpha Beta cloud model',
+      summary: 'Acme’s Alpha Beta cloud model is available to enterprise customers this week.',
+      source_references: [
+        { url: 'https://primary.example/acme-alpha-beta-model', recordId: 'primary' },
+      ],
+    });
+    const related = story('related', {
+      title: 'Acme launches Alpha Beta model for cloud customers',
+      summary:
+        'Acme’s Alpha Beta model is rolling out to cloud customers with published technical details.',
+      source_references: [
+        { url: 'https://reporter.example/acme-alpha-beta-model', recordId: 'related' },
+      ],
+    });
+    const bad = story('bad', {
+      title: 'DifferentCo launches Alpha Beta model',
+      source_references: primary.source_references,
+    });
+    const brief = edition([primary, related, bad]);
+    const view = buildReaderEdition(brief);
+    expect(view.news).toHaveLength(1);
+    expect(view.news[0]?.story.source_references).toEqual(primary.source_references);
+    expect(view.news[0]?.related[0]?.source_references).toEqual(related.source_references);
+    expect(view.totalNews).toBe(2);
+    expect(view.signals).toEqual([]);
+    expect(view.totalSignals).toBe(0);
+    expect(brief.news).toHaveLength(3);
+  });
   it('prioritizes consequential changes over input order, old copy, tutorials and attention', () => {
     const brief = edition([
       story('tutorial', { title: 'How to build approval workflows' }),

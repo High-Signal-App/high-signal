@@ -2,14 +2,14 @@ import { createElement } from 'react';
 import { defaultStudio, renderStudioFooterHtml } from '@saas-maker/ui/footer-html';
 import { APP_HEALTH_LIVE_URL } from '@/lib/app-health-public';
 
-export function SiteFooter({ mode = 'full' }: { mode?: 'full' | 'compact' }) {
+export function SiteFooter() {
   const footer = createElement('studio-footer', {
     'data-theme': 'ink',
-    mode: mode,
+    mode: 'full',
     'data-mode': 'dark',
     dangerouslySetInnerHTML: {
       __html: renderStudioFooterHtml({
-        mode,
+        mode: 'full',
         product: 'High Signal',
         url: 'https://highsignal.app',
         catalogId: 'high-signal',
@@ -68,21 +68,5 @@ export function SiteFooter({ mode = 'full' }: { mode?: 'full' | 'compact' }) {
       }),
     },
   });
-  return (
-    <>
-      {footer}
-      {mode === 'compact' && (
-        <nav
-          aria-label="Footer"
-          className="container-page flex flex-wrap gap-x-6 gap-y-2 py-6 text-sm text-muted-foreground"
-        >
-          <a href="/">brief</a>
-          <a href="/signals">signals</a>
-          <a href="/about">about</a>
-          <a href="/privacy">privacy</a>
-          <a href="/terms">terms</a>
-        </nav>
-      )}
-    </>
-  );
+  return footer;
 }

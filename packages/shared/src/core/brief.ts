@@ -7,6 +7,7 @@
 
 import type { Region } from '../primitives/region';
 import type { BriefClaimProvenance } from './claim-provenance';
+import type { BriefReaderEdition } from './brief-edition';
 
 export type BriefSectionKey = 'stocks' | 'ideas' | 'trends' | 'news';
 
@@ -235,6 +236,8 @@ export interface BriefSnapshot {
    * publish gates. Absent on snapshots written before news existed.
    */
   news?: BriefNewsItem[];
+  /** Finite, grouped reader selection. Full news and signals remain above. */
+  readerEdition?: BriefReaderEdition;
   /** Derived attention is optional on archived snapshots created before Digg. */
   attentionLeaders?: DiggAttentionItem[];
   emergingBeforeMainstream?: DiggAttentionItem[];

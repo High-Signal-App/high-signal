@@ -5,7 +5,7 @@ import {
   categoryStatesForSnapshot,
   briefNewsPageHref,
   paginateBriefNews,
-  selectBriefEdition,
+  buildReaderEdition,
   type BriefCategoryState,
   type BriefCitation,
   type BriefIdeaItem,
@@ -436,7 +436,8 @@ export function NewsFeed({
   const news = brief.news ?? [];
   if (news.length === 0) return null;
   const fullStream = pagination?.page !== undefined;
-  const edition = pagination && !fullStream ? selectBriefEdition(brief) : null;
+  const edition =
+    pagination && !fullStream ? (brief.readerEdition ?? buildReaderEdition(brief)) : null;
   const selected = fullStream ? paginateBriefNews({ news, requestedPage: pagination.page }) : null;
   const day = pagination?.day ?? 'today';
   const fullHref = briefNewsPageHref({ page: 1, day, region: brief.region, all: true });
@@ -445,7 +446,7 @@ export function NewsFeed({
       <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
         <h2 className="font-mono text-[10px] font-normal tracking-[0.14em] text-[var(--color-muted)]">
           {edition
-            ? `${edition.items.length} selected ${edition.items.length === 1 ? 'story' : 'stories'}${edition.items.length ? ` · ${edition.readingMinutes} min read` : ''}`
+            ? `${edition.news.length} selected ${edition.news.length === 1 ? 'story' : 'stories'}${edition.news.length ? ` · ${edition.newsReadingMinutes} min read` : ''}`
             : `${news.length} ${news.length === 1 ? 'story' : 'stories'}${selected ? ` · page ${selected.page} of ${selected.pageCount}` : ''}`}
         </h2>
         {pagination ? (
@@ -464,12 +465,12 @@ export function NewsFeed({
       </p>
       <div className="brief-feed-items mt-6 border-t border-[var(--color-line)]">
         {edition
-          ? edition.items.map(({ story, related }) => (
+          ? edition.news.map(({ story, related }) => (
               <NewsItem key={story.id} item={story} related={related} />
             ))
           : (selected?.items ?? news).map((item) => <NewsItem key={item.id} item={item} />)}
       </div>
-      {edition && edition.items.length === 0 ? (
+      {edition && edition.news.length === 0 ? (
         <p className="py-6 text-sm leading-6 text-[var(--color-muted)]">
           No recent reporting met the front edition’s selection rules. The full collection remains
           available above.
@@ -524,7 +525,10 @@ export function SignalFeed({
 
       {state.status === 'ready' && count > 0 ? (
         <div className="brief-feed-items">
-          {(concise ? brief.stocks.slice(0, 3) : brief.stocks).map((item) => (
+          {(concise
+            ? (brief.readerEdition ?? buildReaderEdition(brief)).signals
+            : brief.stocks
+          ).map((item) => (
             <StockItem key={`${item.signalSlug}-${item.entityId}`} item={item} />
           ))}
         </div>

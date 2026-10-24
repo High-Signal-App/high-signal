@@ -70,6 +70,12 @@ export function DailyBriefHeroContent({
         <span className="text-[var(--color-accent)]">daily brief</span>
         <span>edition {date}</span>
         <span>{regionLabel(region)}</span>
+        <a
+          href="/data"
+          className="inline-flex min-h-11 items-center hover:text-[var(--color-accent)]"
+        >
+          sources →
+        </a>
         <span className="sm:ml-auto">
           {signalOnly && signalState.status === 'unavailable'
             ? 'publication unavailable'

@@ -59,7 +59,7 @@ import {
   safeCategory,
 } from '../routes/brief';
 import { dailySignalEdition, precomputeBriefSnapshots } from '../routes/brief/route';
-import { istDay, type BriefSnapshot } from '@high-signal/shared';
+import { buildReaderEdition, istDay, type BriefSnapshot } from '@high-signal/shared';
 import { createHistoryGrant } from '../lib/history-access';
 import { app as apiApp } from '../app';
 
@@ -625,6 +625,36 @@ describe('GET /daily shared KV edition cache (#198)', () => {
     expect(mocks.tryGetPrecomputedSnapshot).not.toHaveBeenCalled();
     expect(mocks.buildStocks).not.toHaveBeenCalled();
     expect(mocks.buildNews).not.toHaveBeenCalled();
+  });
+
+  it('exposes the shared reader edition alongside the complete collection on REST and KV reads', async () => {
+    const article = {
+      ...news[0]!,
+      title: 'Acme launches Alpha Beta cloud model',
+      summary: 'Acme announced the Alpha Beta cloud model with an enterprise rollout this week.',
+      source_references: [
+        { url: 'https://reporter.example/acme-alpha-beta-model', recordId: 'acme' },
+      ],
+      event_at: new Date(Date.now() - 60_000).toISOString(),
+    };
+    mocks.buildNews.mockResolvedValue([article]);
+    mocks.tryGetPrecomputedSnapshot.mockResolvedValue({
+      generatedAt: new Date().toISOString(),
+      region: 'global',
+      stocks: [],
+      ideas: [],
+      trends: [],
+      news: [article],
+    });
+    const cache = kv();
+    const kvEnv = { ...env, BRIEF_CACHE: cache as unknown as KVNamespace };
+    const first = await briefRoute.request('http://test/daily', {}, kvEnv);
+    const body = (await first.json()) as BriefSnapshot;
+    expect(body.readerEdition).toEqual(buildReaderEdition(body));
+    expect(body.readerEdition?.news).toHaveLength(1);
+    expect(body.news).toEqual([article]);
+    const cached = await briefRoute.request('http://test/daily', {}, kvEnv);
+    expect(((await cached.json()) as BriefSnapshot).readerEdition).toEqual(body.readerEdition);
   });
 
   it('keeps plain diagnostics SQL-only and reports KV only when observed', async () => {

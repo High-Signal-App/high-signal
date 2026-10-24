@@ -10,7 +10,7 @@ startups, and finance with cited evidence and a public record of matured calls.
 
 ## Best-fit requests
 
-- Summarize today's or yesterday's Daily Brief, starting with `data.news`.
+- Summarize today's or yesterday's Daily Brief, starting with `data.readerEdition`.
 - Inspect one published signal, its cited evidence, confidence, and claims.
 - Compare a market call with High Signal's public hit-rate ledger.
 - Retrieve the current public daily data in a structured form.
@@ -41,10 +41,15 @@ history may be withheld by the public verification boundary.
 
 ## Response rules
 
-- Summarize `data.news` first. Keep system-quality commentary (coverage,
+- Start with `data.readerEdition.news`: this is the same finite, grouped selection
+  as the website, with the lead account under `story` and separately attributed
+  accounts under `related`. Its `signals` list contains up to three verified
+  signals. The full collection remains in `data.news` and `data.stocks`; use
+  `data.news` as a fallback on older responses. Keep system-quality commentary (coverage,
   `publishStatus`, pending publish time) to two lines after the news.
 - Preserve `source_references` and `evidence_status` (`official`, `reported`,
   `unverified`). Do not recast news as buy/sell calls.
+- Grouping related accounts grants no additional corroboration credit.
 - Preserve links to the evidence High Signal provides.
 - State that High Signal requires at least two cited sources before publishing
   a signal; do not turn that threshold into an independent guarantee, and do
