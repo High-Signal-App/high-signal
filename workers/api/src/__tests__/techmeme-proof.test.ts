@@ -3,6 +3,7 @@ import { applyMigrations, createSqliteD1, type TestD1 } from '../../test/sqlite-
 import { syncSignal, type SignalUpsert } from '../lib/signal-sync';
 import { sourceAwareEvidenceLinks, refreshBriefSnapshotEvidence } from '../lib/signal-quality';
 import { db, schema } from '../db';
+import { adminRoute } from '../routes/admin';
 import { type BriefSnapshot } from '@high-signal/shared';
 
 let database: TestD1;
@@ -158,6 +159,57 @@ describe('Techmeme source-owned proof restrictions', () => {
     await retain('news:hackernews-original:publisher.example');
     await syncSignal(database.binding, signal('news'));
     const links = await db(database.binding).select().from(schema.claimEvidenceLinks);
+    expect((await sourceAwareEvidenceLinks(db(database.binding), links))[0]).toMatchObject({
+      role: 'primary',
+      semanticAlignment: 'verified',
+    });
+  });
+  it('binds an ingested publisher article using its acknowledged key beside older metadata', async () => {
+    await retain('techmeme');
+    await database.binding
+      .prepare("UPDATE source_documents SET canonical_url='https://forbes.com/report'")
+      .run();
+    const response = await adminRoute.request(
+      'http://test/events',
+      {
+        method: 'POST',
+        headers: { Authorization: 'Bearer test', 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          events: [
+            {
+              source: 'news:hackernews-original:forbes.com',
+              sourceUrl: 'https://www.forbes.com/report',
+              publishedAt: '2026-10-24T00:00:00Z',
+              rawHash: 'publisher-observation',
+              content: 'Retained original publisher reporting.',
+              sourceDocument: {
+                canonicalUrl: 'https://www.forbes.com/report',
+                rawText: 'Retained original publisher reporting.',
+              },
+            },
+          ],
+        }),
+      },
+      { DB: database.binding, ADMIN_TOKEN: 'test' }
+    );
+    expect(response.status).toBe(200);
+    const receipt = (await response.json()) as {
+      inserted: number;
+      sourceDocuments: Array<{ rawHash: string; documentKey: string }>;
+    };
+    expect(receipt.inserted).toBe(1);
+    expect(receipt.sourceDocuments).toEqual([
+      {
+        rawHash: 'publisher-observation',
+        documentKey: 'news:hackernews-original:forbes.com:https://forbes.com/report',
+      },
+    ]);
+    const candidate = signal('news:hackernews-original:forbes.com');
+    candidate.evidence![0]!.sourceDocumentKey = receipt.sourceDocuments[0]!.documentKey;
+    await syncSignal(database.binding, candidate);
+    const links = await db(database.binding).select().from(schema.claimEvidenceLinks);
+    expect(links[0]).toMatchObject({ role: 'primary', semanticAlignment: 'verified' });
+    expect(links[0]!.sourceDocumentId).not.toBe('retained');
     expect((await sourceAwareEvidenceLinks(db(database.binding), links))[0]).toMatchObject({
       role: 'primary',
       semanticAlignment: 'verified',

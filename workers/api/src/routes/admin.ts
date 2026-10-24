@@ -305,6 +305,7 @@ adminRoute.post('/events', async (c) => {
   const body = (await c.req.json()) as { events?: EventInput[] };
   const events = body.events ?? [];
   let inserted = 0;
+  const sourceDocuments: Array<{ rawHash: string; documentKey: string }> = [];
   const entityCache = new Map<string, string | null>();
   for (const e of events) {
     const id = await sha16(e.rawHash);
@@ -383,7 +384,10 @@ adminRoute.post('/events', async (c) => {
           target: schema.sourceDocuments.documentKey,
           set: sourceDocumentUpdate,
         })
-        .returning({ id: schema.sourceDocuments.id });
+        .returning({
+          id: schema.sourceDocuments.id,
+          documentKey: schema.sourceDocuments.documentKey,
+        });
       if (!persistedDocument) throw new Error('source_document_upsert_returned_no_row');
       const eventInsert = db(c.env.DB)
         .insert(schema.events)
@@ -417,6 +421,7 @@ adminRoute.post('/events', async (c) => {
         await eventInsert.onConflictDoNothing({ target: schema.events.rawHash });
       }
       inserted++;
+      sourceDocuments.push({ rawHash: e.rawHash, documentKey: persistedDocument.documentKey });
     } catch (err) {
       // Log the actual error so silent D1 insert failures are debuggable.
       // The raw_hash unique constraint guards dedup; other errors (FK miss,
@@ -426,7 +431,7 @@ adminRoute.post('/events', async (c) => {
       );
     }
   }
-  return c.json({ inserted });
+  return c.json({ inserted, sourceDocuments });
 });
 
 async function resolveEventEntity(

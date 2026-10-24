@@ -125,7 +125,8 @@ def push_events(events: Iterable[Event], fetch_run_id: str | None) -> int:
     """
     if not _enabled():
         return 0
-    payload = [_event_payload(event, fetch_run_id) for event in events]
+    event_list = list(events)
+    payload = [_event_payload(event, fetch_run_id) for event in event_list]
     if not payload:
         return 0
     # Each event performs sequential document/entity/event operations. Keep
@@ -145,6 +146,8 @@ def push_events(events: Iterable[Event], fetch_run_id: str | None) -> int:
         if type(accepted) is not int or not 0 <= accepted <= len(batch):
             accepted = 0
             LOGGER.warning("push_events: invalid or missing batch acknowledgement")
+        if result is not None and accepted:
+            _adopt_source_document_keys(result, accepted, event_list[i : i + chunk])
         total += accepted
         if accepted < len(batch):
             LOGGER.warning(
@@ -157,6 +160,45 @@ def push_events(events: Iterable[Event], fetch_run_id: str | None) -> int:
             )
     LOGGER.info("push_events: %d/%d events acknowledged", total, len(payload))
     return total
+
+
+def _adopt_source_document_keys(result: dict, accepted: int, events: list[Event]) -> None:
+    """Bind generation to acknowledged receipts without inventing or changing text.
+
+    Legacy APIs omit sourceDocuments. Validate the whole supplied mapping before
+    adoption so a malformed/foreign/ambiguous acknowledgement cannot partly bind
+    otherwise valid events to a different receipt. Explicit producer keys must agree.
+    """
+    receipts = result.get("sourceDocuments")
+    if receipts is None:
+        return
+    by_hash = {event.raw_hash: event for event in events}
+    if not isinstance(receipts, list) or len(receipts) > accepted or len(by_hash) != len(events):
+        LOGGER.warning("push_events: invalid source document acknowledgement")
+        return
+    keys: dict[str, str] = {}
+    for receipt in receipts:
+        if not isinstance(receipt, dict):
+            return
+        raw_hash, key = receipt.get("rawHash"), receipt.get("documentKey")
+        if (
+            not isinstance(raw_hash, str)
+            or raw_hash not in by_hash
+            or raw_hash in keys
+            or not isinstance(key, str)
+            or not key.strip()
+        ):
+            LOGGER.warning("push_events: invalid source document acknowledgement")
+            return
+        doc = by_hash[raw_hash].source_document
+        if doc and doc.document_key is not None and doc.document_key != key:
+            LOGGER.warning("push_events: conflicting source document acknowledgement")
+            return
+        keys[raw_hash] = key
+    for raw_hash, key in keys.items():
+        doc = by_hash[raw_hash].source_document
+        if doc is not None:
+            doc.document_key = key
 
 
 def _source_document_payload(event: Event) -> dict[str, Any] | None:

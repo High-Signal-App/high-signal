@@ -37,6 +37,9 @@ until recomposed. A publisher URL alone cannot turn an aggregator excerpt into
 retained reporting. Signal generation, synchronization, publication and public
 claim receipts enforce the same provenance boundary, including existing stored
 links, without rewriting published Signals or their audit history.
+Ingestion acknowledgements return the exact retained document key for generation,
+so a fetched original cannot bind to an older aggregator receipt at the same URL.
+Existing document keys and repair identities are preserved.
 
 Known public newsletter archives now share the RSS/Atom add/pause/resume path.
 Social Growth Engineers uses its advertised public RSS; Startups.fyi and
