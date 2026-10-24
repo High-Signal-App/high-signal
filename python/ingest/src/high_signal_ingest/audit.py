@@ -172,8 +172,10 @@ def _adopt_source_document_keys(result: dict, accepted: int, events: list[Event]
     receipts = result.get("sourceDocuments")
     if receipts is None:
         return
-    by_hash = {event.raw_hash: event for event in events}
-    if not isinstance(receipts, list) or len(receipts) > accepted or len(by_hash) != len(events):
+    by_hash: dict[str, list[Event]] = {}
+    for event in events:
+        by_hash.setdefault(event.raw_hash, []).append(event)
+    if not isinstance(receipts, list) or len(receipts) > accepted:
         LOGGER.warning("push_events: invalid source document acknowledgement")
         return
     keys: dict[str, str] = {}
@@ -184,21 +186,23 @@ def _adopt_source_document_keys(result: dict, accepted: int, events: list[Event]
         if (
             not isinstance(raw_hash, str)
             or raw_hash not in by_hash
-            or raw_hash in keys
             or not isinstance(key, str)
             or not key.strip()
+            or (raw_hash in keys and keys[raw_hash] != key)
         ):
             LOGGER.warning("push_events: invalid source document acknowledgement")
             return
-        doc = by_hash[raw_hash].source_document
-        if doc and doc.document_key is not None and doc.document_key != key:
-            LOGGER.warning("push_events: conflicting source document acknowledgement")
-            return
+        for event in by_hash[raw_hash]:
+            doc = event.source_document
+            if doc and doc.document_key is not None and doc.document_key != key:
+                LOGGER.warning("push_events: conflicting source document acknowledgement")
+                return
         keys[raw_hash] = key
     for raw_hash, key in keys.items():
-        doc = by_hash[raw_hash].source_document
-        if doc is not None:
-            doc.document_key = key
+        for event in by_hash[raw_hash]:
+            doc = event.source_document
+            if doc is not None:
+                doc.document_key = key
 
 
 def _source_document_payload(event: Event) -> dict[str, Any] | None:

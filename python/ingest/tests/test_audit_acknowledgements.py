@@ -168,6 +168,20 @@ def test_partial_ack_only_binds_successfully_identified_receipt(monkeypatch):
     assert values[1].source_document.document_key == "server:one"
 
 
+def test_duplicate_observations_bind_consistent_receipts_without_blocking_other_articles(monkeypatch):
+    first, other = documented_events()
+    values = [first, first.model_copy(deep=True), other]
+    monkeypatch.setattr(audit, "_post_result", lambda *_a: {"inserted": 3,
+        "sourceDocuments": [
+            {"rawHash": "hash-0", "documentKey": "server:first"},
+            {"rawHash": "hash-0", "documentKey": "server:first"},
+            {"rawHash": "hash-1", "documentKey": "server:other"},
+        ]})
+    assert audit.push_events(values, "run") == 3
+    assert [value.source_document.document_key for value in values] == [
+        "server:first", "server:first", "server:other"]
+
+
 @pytest.mark.parametrize("ack", [
     {"inserted": 0, "sourceDocuments": [{"rawHash": "hash-0", "documentKey": "forged"}]},
     {"inserted": 1, "sourceDocuments": [{"rawHash": "other-batch", "documentKey": "forged"}]},
