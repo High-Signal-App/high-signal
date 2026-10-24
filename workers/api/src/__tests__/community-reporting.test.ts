@@ -125,6 +125,69 @@ beforeEach(() => {
 afterEach(() => database.close());
 
 describe('public community retained source to reader', () => {
+  it('keeps community question boilerplate out of the SQL shortlist and ranks subject matches first', async () => {
+    await seedCommunity();
+    await seedLead();
+    await database.binding
+      .prepare('UPDATE events SET title=? WHERE id=?')
+      .bind('Does anybody here use a formal system for review?', leadId)
+      .run();
+    const text = 'The report describes retained observations and their limitations. '.repeat(12);
+    // More than LIMIT 60 misleading question matches must not crowd out the subject.
+    for (let index = 0; index < 62; index++) {
+      await seedDocument(
+        researchDocument('primary', {
+          id: `question-noise-${index}`,
+          hash: index.toString(16).padStart(64, '0'),
+          recordId: `question-noise-event-${index}`,
+          url: `https://noise-${index}.example/report`,
+          title: "Paid parental leave doesn't strain employers, survey finds",
+          text: `A parental leave survey. ${text}`,
+        })
+      );
+    }
+    await seedDocument(
+      researchDocument('primary', {
+        title: 'AI is making developers faster. It also exposes broken software delivery',
+        text,
+      })
+    );
+    await seedDocument(
+      researchDocument('corroboration', {
+        title: 'A formal system for review workflows',
+        text,
+      })
+    );
+    await seedDocument(
+      researchDocument('primary', {
+        id: 'airport',
+        hash: 'c'.repeat(64),
+        recordId: 'airport-event',
+        url: 'https://airport.example/report',
+        title: 'Airport drop-off charges to be reviewed',
+        text: `An unrelated transport study. ${text}`,
+      })
+    );
+    complete.mockResolvedValue(
+      JSON.stringify({ publish: false, reason: 'Retrieval test only; no report is qualified.' })
+    );
+    expect(
+      await researchPublicCommunity(
+        { DB: database.binding, FREE_AI: freeGateway },
+        communityId,
+        leadId
+      )
+    ).toMatchObject({ status: 'withheld', reason: 'insufficient_evidence' });
+    const request = JSON.parse(complete.mock.calls[0][0].messages[1].content);
+    // A generic study marker is only a tiebreaker after meaningful title relevance.
+    expect(request.documents.map((document: { id: string }) => document.id)).toEqual([
+      'corroboration',
+      'primary',
+      'airport',
+    ]);
+    expect(await count('claim_records')).toBe(0);
+  });
+
   it('publishes actual SQLite receipts, keeps community context separate, and renders only the proven item', async () => {
     await seedResearch();
     const result = await researchPublicCommunity(
@@ -291,6 +354,75 @@ describe('public community retained source to reader', () => {
     await expect(assertCommunityResearchAvailable(database.binding)).rejects.toThrow(
       'community_research_unavailable'
     );
+  });
+
+  it('retains malformed completion text and its failure stage without provider secrets', async () => {
+    await seedResearch();
+    complete.mockResolvedValue('```json\n{"publish":true');
+    expect(
+      await researchPublicCommunity(
+        { DB: database.binding, FREE_AI: freeGateway },
+        communityId,
+        leadId
+      )
+    ).toMatchObject({ status: 'unavailable', reason: 'invalid_model_response' });
+    const audit = await database.binding
+      .prepare('SELECT response_json FROM llm_runs')
+      .first<{ response_json: string }>();
+    expect(JSON.parse(audit!.response_json)).toEqual({
+      output: { generationText: '```json\n{"publish":true' },
+      failure: { stage: 'generation', kind: 'invalid_json', statusCode: null },
+    });
+    expect(await count('claim_records')).toBe(0);
+  });
+
+  it('records provider status without retaining error messages or headers', async () => {
+    await seedResearch();
+    complete.mockRejectedValue(
+      Object.assign(new Error('secret provider detail'), {
+        statusCode: 503,
+        headers: { authorization: 'secret header' },
+      })
+    );
+    expect(
+      await researchPublicCommunity(
+        { DB: database.binding, FREE_AI: freeGateway },
+        communityId,
+        leadId
+      )
+    ).toMatchObject({ status: 'unavailable', reason: 'research_or_model_unavailable' });
+    const audit = await database.binding
+      .prepare('SELECT response_json FROM llm_runs')
+      .first<{ response_json: string }>();
+    expect(JSON.parse(audit!.response_json)).toEqual({
+      output: null,
+      failure: { stage: 'generation', kind: 'request_or_storage_error', statusCode: 503 },
+    });
+    expect(audit!.response_json).not.toContain('secret');
+  });
+
+  it('keeps already qualified reports readable when later research is unavailable', async () => {
+    await seedResearch();
+    expect(
+      (
+        await researchPublicCommunity(
+          { DB: database.binding, FREE_AI: freeGateway },
+          communityId,
+          leadId
+        )
+      ).status
+    ).toBe('published');
+    await database.binding
+      .prepare(`INSERT INTO llm_runs
+      (id,model,prompt_version,accepted,reason,request_json,response_json,created_at)
+      VALUES('later-failure','auto','community-report-v1',0,'research_or_model_unavailable',
+      '{"communityId":"another-public-community"}','null',unixepoch()+1)`)
+      .run();
+    expect(await buildTrends(db(database.binding), 'global', [])).toHaveLength(1);
+    await expect(buildIdeas(db(database.binding), 'global', [])).rejects.toThrow(
+      'community_research_unavailable'
+    );
+    expect(await buildIdeas(db(database.binding), 'south-asia', [])).toEqual([]);
   });
 
   it('rolls back the digest, claim and evidence if its successful model audit cannot commit', async () => {

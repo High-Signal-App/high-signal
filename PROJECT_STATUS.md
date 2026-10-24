@@ -26,6 +26,18 @@ retained original documents through the existing free-AI gateway. Supporting
 passages, independently checked visible copy, origin checks and an atomic claim
 and audit gate protect publication. Ideas and culture reports appear in both
 reader implementations and `readerEdition`, including uncertainty and proof.
+The first live research attempt failed before its response was recorded. Failure
+receipts now retain the model output and a sanitized failure stage/status, and
+bounded research continues after one unavailable lead. An optional research
+outage stays visible without blocking verified news or hiding prior proven reports.
+A guarded CFTC replay repairs only an unchanged observation's legacy shared
+URL/document association; event identity and copy remain intact.
+
+Production refreshes acknowledged 1,823 news events and 1,723 government events
+without unacknowledged writes. Thirteen repaired/new named publications have
+156 retained records in the 28-day check. The Batch and the ten previously
+missing newsletters still returned HTTP 403; Social Growth Engineers supplies
+partial excerpts, and Cerebras retained articles despite a separate page failure.
 No subscriptions have been removed; blocked, stale and email-only sources still
 require explicit coverage qualification before treating email as replaceable.
 

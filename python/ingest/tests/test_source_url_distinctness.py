@@ -226,3 +226,9 @@ def test_cftc_contracts_and_weeks_survive_url_deduplication(monkeypatch) -> None
     assert len(_urls(events)) == 3
     assert all("market_and_exchange_names=" in event.source_url for event in events)
     assert all("report_date_as_yyyy_mm_dd=" in event.source_url for event in events)
+    for event in events:
+        assert event.source_document is not None
+        assert event.source_document.raw_text == event.content
+        assert event.source_document.raw_hash == event.raw_hash
+        assert event.source_document.canonical_url == event.source_url
+        assert event.source_document.parsed_fields["documentKind"] == "cftc_contract_report"

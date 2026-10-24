@@ -195,7 +195,17 @@ export async function safeCategory<T>(
     console.warn(`[brief] ${section} builder unavailable`, error);
     return {
       items: [],
-      state: { status: 'unavailable', source: 'live', reason: 'builder_failed' },
+      state: {
+        status: 'unavailable',
+        source: 'live',
+        reason:
+          error &&
+          typeof error === 'object' &&
+          'code' in error &&
+          error.code === 'community_research_unavailable'
+            ? 'community_research_unavailable'
+            : 'builder_failed',
+      },
     };
   }
 }

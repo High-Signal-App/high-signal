@@ -114,14 +114,49 @@ function metadata(value: string | null): Record<string, unknown> {
   }
 }
 
+// Community questions contain conversational words that are not research subjects.
+// Keep this local: other evidence searches have their own token requirements.
+const COMMUNITY_QUESTION_WORDS = new Set([
+  'does',
+  'anybody',
+  'here',
+  'anyone',
+  'how',
+  'what',
+  'you',
+  'your',
+  'have',
+  'has',
+  'somebody',
+  'someone',
+  'everybody',
+  'everyone',
+  'there',
+  'which',
+  'would',
+  'could',
+  'should',
+  'where',
+  'when',
+  'them',
+  'they',
+  'their',
+  'this',
+  'that',
+]);
+
+function communitySubjectTokens(text: string): string[] {
+  return evidenceSearchTokens(text).filter((token) => !COMMUNITY_QUESTION_WORDS.has(token));
+}
+
 async function researchDocuments(
   d1: D1Database,
   community: Community,
   lead: Lead
 ): Promise<CommunityResearchDocument[]> {
-  const leadTokens = evidenceSearchTokens(lead.title).slice(0, 4);
+  const leadTokens = communitySubjectTokens(lead.title).slice(0, 4);
   const tokens = [
-    ...new Set([...leadTokens, ...evidenceSearchTokens(community.prompt ?? '')]),
+    ...new Set([...leadTokens, ...communitySubjectTokens(community.prompt ?? '')]),
   ].slice(0, 8);
   if (!tokens.length) return [];
   const matches = tokens.map(() => 'lower(e.title) LIKE ?');
@@ -133,9 +168,9 @@ async function researchDocuments(
      WHERE e.published_at >= ? AND e.published_at <= unixepoch()
        AND (e.source LIKE 'news:%' OR e.source='ir' OR e.source LIKE 'ir:%' OR e.source LIKE 'us-gov%')
        AND (${matches.join(' OR ')})
-     ORDER BY CASE WHEN lower(e.title || ' ' || substr(coalesce(s.raw_text,e.content,''),1,1500)) LIKE '%survey%'
+     ORDER BY (${matches.map((term) => `CASE WHEN ${term} THEN 1 ELSE 0 END`).join('+')}) DESC,
+       CASE WHEN lower(e.title || ' ' || substr(coalesce(s.raw_text,e.content,''),1,1500)) LIKE '%survey%'
        OR lower(e.title || ' ' || substr(coalesce(s.raw_text,e.content,''),1,1500)) LIKE '%study%' THEN 1 ELSE 0 END DESC,
-       (${matches.map((term) => `CASE WHEN ${term} THEN 1 ELSE 0 END`).join('+')}) DESC,
        e.published_at DESC LIMIT 60`
     )
     .bind(
@@ -308,13 +343,16 @@ export async function researchPublicCommunity(
   };
   let result: ResearchResult;
   let response: unknown = null;
+  let stage = 'generation';
+  let failureReason = 'research_or_model_unavailable';
   try {
     if (documents.length < 2)
       result = { status: 'withheld', reason: 'insufficient_retained_documents' };
     else {
-      const generated = communityReportSchema.safeParse(
-        parseJson(await complete(env, REPORT_PROMPT, request))
-      );
+      const generationText = await complete(env, REPORT_PROMPT, request);
+      response = { generationText };
+      failureReason = 'invalid_model_response';
+      const generated = communityReportSchema.safeParse(parseJson(generationText));
       if (!generated.success) result = { status: 'unavailable', reason: 'invalid_model_response' };
       else if (!generated.data.publish) {
         response = generated.data;
@@ -337,14 +375,19 @@ export async function researchPublicCommunity(
               : null,
           };
         });
-        const verified = communityVerificationSchema.safeParse(
-          parseJson(await complete(env, VERIFY_PROMPT, { report, selected }))
-        );
-        response = { report, verification: verified.success ? verified.data : null };
+        stage = 'verification';
+        failureReason = 'research_or_model_unavailable';
+        const verificationText = await complete(env, VERIFY_PROMPT, { report, selected });
+        response = { report, verificationText };
+        failureReason = 'invalid_verification_response';
+        const verified = communityVerificationSchema.safeParse(parseJson(verificationText));
+        if (verified.success) response = { report, verification: verified.data };
         if (!verified.success)
           result = { status: 'unavailable', reason: 'invalid_verification_response' };
         else {
           const proof = communityReportProof(report, verified.data, documents);
+          stage = 'publication';
+          failureReason = 'research_or_model_unavailable';
           result =
             'error' in proof
               ? { status: 'withheld', reason: proof.error }
@@ -355,8 +398,22 @@ export async function researchPublicCommunity(
         }
       }
     }
-  } catch {
-    result = { status: 'unavailable', reason: 'research_or_model_unavailable' };
+  } catch (error) {
+    response = {
+      output: response,
+      failure: {
+        stage,
+        kind: error instanceof SyntaxError ? 'invalid_json' : 'request_or_storage_error',
+        statusCode:
+          error &&
+          typeof error === 'object' &&
+          'statusCode' in error &&
+          typeof error.statusCode === 'number'
+            ? error.statusCode
+            : null,
+      },
+    };
+    result = { status: 'unavailable', reason: failureReason };
   }
   if (result.status !== 'published' && result.status !== 'already_published')
     await researchAudit(env.DB, community, lead, result, request, response).run();
@@ -515,6 +572,8 @@ export async function assertCommunityResearchAvailable(d1: D1Database): Promise<
         'invalid_verification_response',
       ].includes(row.reason)
     )
-      throw new Error('community_research_unavailable');
+      throw Object.assign(new Error('community_research_unavailable'), {
+        code: 'community_research_unavailable',
+      });
   }
 }

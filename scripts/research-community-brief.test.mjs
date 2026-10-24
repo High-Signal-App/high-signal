@@ -61,3 +61,33 @@ test('empty evidence is quiet; transport/model failure remains an explicit faile
     /invalid_model_response/
   );
 });
+
+test('one unavailable lead does not starve the other bounded research attempts', async () => {
+  let attempts = 0;
+  await assert.rejects(
+    () =>
+      researchCommunityBrief({
+        api: 'https://api.example.org',
+        token: 'test-only',
+        fetchImpl: async (url, init) => {
+          if (url.endsWith('/initialize')) return Response.json({ ok: true });
+          if (init.method === 'GET')
+            return Response.json({
+              communities: [
+                { id: 'a', leads: [{ id: 'a0' }] },
+                { id: 'b', leads: [{ id: 'b0' }] },
+              ],
+            });
+          attempts++;
+          return attempts === 1
+            ? Response.json(
+                { status: 'unavailable', reason: 'invalid_model_response' },
+                { status: 503 }
+              )
+            : Response.json({ status: 'published' });
+        },
+      }),
+    /invalid_model_response.*"published":1/
+  );
+  assert.equal(attempts, 2);
+});
