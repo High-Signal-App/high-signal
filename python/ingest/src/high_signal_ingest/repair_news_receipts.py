@@ -192,7 +192,10 @@ def _same_publisher(left: str, right: str) -> bool:
     try:
         a = urllib.parse.urlsplit(left)
         b = urllib.parse.urlsplit(right)
-        host = lambda value: (value.hostname or "").lower().removeprefix("www.")
+
+        def host(value):
+            return (value.hostname or "").lower().removeprefix("www.")
+
         return (
             a.scheme == b.scheme == "https"
             and not a.username
