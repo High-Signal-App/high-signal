@@ -1052,7 +1052,7 @@ dataRoute.get('/records/:id', async (c) => {
       available: true,
     },
     200,
-    { 'Cache-Control': 'public, max-age=60, s-maxage=3600' }
+    { 'Cache-Control': 'public, max-age=60, s-maxage=300' }
   );
 });
 

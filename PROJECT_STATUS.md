@@ -30,8 +30,14 @@ The first live research attempt failed before its response was recorded. Failure
 receipts now retain the model output and a sanitized failure stage/status, and
 bounded research continues after one unavailable lead. An optional research
 outage stays visible without blocking verified news or hiding prior proven reports.
+Research generation and verification request strict schema output. Generation
+offers at most two relevant, exact retained passages per document and bounds the
+prompt plus input to 14,000 characters; unoffered or duplicate-document citations
+are withheld before verification. Oversized inputs remain visibly unavailable.
 A guarded CFTC replay repairs only an unchanged observation's legacy shared
 URL/document association; event identity and copy remain intact.
+Retained-record API cache keys bypass receipts from before that repair, and their
+shared lifetime is five minutes.
 
 Production refreshes acknowledged 1,823 news events and 1,723 government events
 without unacknowledged writes. Thirteen repaired/new named publications have

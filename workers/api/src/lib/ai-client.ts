@@ -1,5 +1,5 @@
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
-import { generateText } from 'ai';
+import { generateText, NoObjectGeneratedError, Output } from 'ai';
 import { createWorkersAI } from 'workers-ai-provider';
 
 export interface AIConfig {
@@ -21,6 +21,7 @@ export interface ChatCompletionOptions {
   messages: ChatMessage[];
   systemPrompt?: string;
   maxTokens?: number;
+  responseSchema?: Parameters<typeof Output.object>[0]['schema'];
   signal?: AbortSignal;
 }
 
@@ -32,7 +33,7 @@ export async function generateChatCompletion(options: ChatCompletionOptions): Pr
         name: 'fleet-managed-gateway',
         baseURL: 'https://fleet-gateway.internal/v1',
         apiKey: 'gateway-managed',
-        supportsStructuredOutputs: false,
+        supportsStructuredOutputs: options.responseSchema != null,
         fetch: (input, init) => {
           const request = new Request(input, init);
           const headers = new Headers(request.headers);
@@ -46,18 +47,30 @@ export async function generateChatCompletion(options: ChatCompletionOptions): Pr
         )
       : createOpenAICompatible({
           name: 'high-signal-direct',
+          supportsStructuredOutputs: options.responseSchema != null,
           baseURL: required(config.endpointUrl, 'AI endpoint URL').trim().replace(/\/+$/, ''),
           apiKey: required(config.apiKey, 'AI API key'),
         }).chatModel(config.model);
-  const result = await generateText({
-    model,
-    ...(systemPrompt ? { system: systemPrompt } : {}),
-    messages,
-    maxOutputTokens: Math.min(maxTokens, MAX_OUTPUT_TOKENS),
-    maxRetries: 0,
-    abortSignal: signal,
-  });
-  return result.text;
+  try {
+    const result = await generateText({
+      model,
+      ...(systemPrompt ? { system: systemPrompt } : {}),
+      ...(options.responseSchema
+        ? { output: Output.object({ schema: options.responseSchema }) }
+        : {}),
+      messages,
+      maxOutputTokens: Math.min(maxTokens, MAX_OUTPUT_TOKENS),
+      maxRetries: 0,
+      abortSignal: signal,
+    });
+    return result.text;
+  } catch (error) {
+    // Keep malformed model text available to the caller's validation and audit.
+    if (options.responseSchema && NoObjectGeneratedError.isInstance(error) && error.text != null) {
+      return error.text;
+    }
+    throw error;
+  }
 }
 
 const BUDGET_CAP = 9_500;
