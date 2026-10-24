@@ -60,7 +60,8 @@ const NEWS_RECORD_LIMIT = 800;
 const NEWS_SOURCE_PRIORITY = sql<number>`case
 when (
   ${schema.events.source} like 'news:digg-verification:%' or
-  ${schema.events.source} like 'news:mts-verification:%'
+  ${schema.events.source} like 'news:mts-verification:%' or
+  ${schema.events.source} like 'news:hackernews-original:%'
 ) then 3
 when (
   ${schema.events.source} = 'news' or ${schema.events.source} like 'news:%' or
@@ -887,6 +888,8 @@ export async function buildNews(
         title: schema.events.title,
         content: schema.events.content,
         retainedText: schema.sourceDocuments.rawText,
+        discussionUrl: sql<unknown>`case when json_valid(${schema.sourceDocuments.parsedFields})
+          then json_extract(${schema.sourceDocuments.parsedFields}, '$.discussionUrl') end`,
         primaryEntityId: schema.events.primaryEntityId,
       })
       .from(newsCandidates)
@@ -910,6 +913,7 @@ export async function buildNews(
       title: row.title,
       content: row.content,
       retainedText: row.retainedText,
+      discussionUrl: row.discussionUrl,
       primaryEntityId: row.primaryEntityId,
     }));
   };

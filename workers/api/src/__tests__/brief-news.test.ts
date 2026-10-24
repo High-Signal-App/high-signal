@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   clusterNewsRecords,
+  briefDiscussionUrl,
   composeNewsStories,
   hasBriefNewsTopic,
   hasUsableRetainedText,
@@ -54,6 +55,67 @@ describe('reportingWindow', () => {
     );
     expect(historical.start.toISOString()).toBe('2026-09-10T18:30:00.000Z');
     expect(historical.end.toISOString()).toBe('2026-09-11T18:30:00.000Z');
+  });
+});
+
+describe('news discussion context', () => {
+  it.each([
+    [
+      'https://news.ycombinator.com/item?id=123&ref=front#comments',
+      'https://news.ycombinator.com/item?id=123',
+    ],
+    ['https://twitter.com/acme/status/456?s=20', 'https://x.com/acme/status/456'],
+    ['https://x.com/acme/status/456/', 'https://x.com/acme/status/456'],
+    ['javascript:alert(1)', null],
+    ['https://x.com.evil.example/acme/status/456', null],
+    ['https://user:password@x.com/acme/status/456', null],
+    ['https://x.com/acme', null],
+    ['https://news.ycombinator.com/item?id=bad', null],
+    ['http://news.ycombinator.com/item?id=123', null],
+    ['https://x.com:8443/acme/status/456', null],
+  ])('accepts only public discussion permalinks: %s', (input, expected) => {
+    expect(briefDiscussionUrl(input)).toBe(expected);
+  });
+
+  it('keeps one publisher citation when the same article also has HN discovery context', () => {
+    const original = record({
+      id: 'publisher-original',
+      title: 'Acme launches a new enterprise API',
+      sourceUrl: 'https://reuters.com/acme-api',
+    });
+    const discovered = record({
+      ...original,
+      id: 'hn-discovered',
+      source: 'news:hackernews-original:reuters.com',
+      discussionUrl: 'https://news.ycombinator.com/item?id=123',
+    });
+    const baseline = composeNewsStories([original], WINDOW);
+    const withDiscussion = composeNewsStories([original, discovered], WINDOW);
+    expect(withDiscussion).toHaveLength(1);
+    expect(withDiscussion[0]?.evidence_status).toBe(baseline[0]?.evidence_status);
+    expect(withDiscussion[0]?.source_references).toEqual([
+      expect.objectContaining({
+        url: original.sourceUrl,
+        discussionUrl: 'https://news.ycombinator.com/item?id=123',
+      }),
+    ]);
+    expect(withDiscussion[0]?.summary).toBe(baseline[0]?.summary);
+  });
+
+  it('ignores malformed discussion metadata without discarding the original reporting', () => {
+    const stories = composeNewsStories(
+      [
+        record({
+          id: 'unsafe-context',
+          title: 'Acme launches a new enterprise API',
+          sourceUrl: 'https://reuters.com/acme-api',
+          discussionUrl: 'javascript:alert(1)',
+        }),
+      ],
+      WINDOW
+    );
+    expect(stories).toHaveLength(1);
+    expect(stories[0]?.source_references[0]).not.toHaveProperty('discussionUrl');
   });
 });
 
@@ -1018,51 +1080,54 @@ describe('buildNews', () => {
     ).toBe(true);
   });
 
-  it('keeps original-publisher verification inside the limit after a bulk news refresh', async () => {
-    d1 = createSqliteD1();
-    applyMigrations(d1);
-    const now = new Date('2026-09-12T12:00:00.000Z');
-    const recent = Math.floor(now.getTime() / 1000) - 60;
-    const bulkNews = Array.from({ length: 801 }, (_, index) => [
-      `bulk-${index}`,
-      'news:bulk-feed',
-      `https://bulk-news.example/${index}`,
-      recent,
-      `Company ${index} launches cloud product`,
-      `Company ${index} launched a cloud product. The retained report records the release date, customer scope, and operational details.`,
-      `bulk-hash-${index}`,
-      recent,
-    ]);
-    const verifiedPublisher = [
-      'verified-publisher',
-      'news:mts-verification:example.com',
-      'https://publisher.example/openai-api',
-      recent - 3_600,
-      'OpenAI launches verified enterprise API',
-      'OpenAI launched a verified enterprise API. The original publisher page records the release date, customer scope, and operational details.',
-      'verified-publisher-hash',
-      recent - 3_600,
-    ];
+  it.each(['news:mts-verification:example.com', 'news:hackernews-original:example.com'])(
+    'keeps %s inside the limit after a bulk news refresh',
+    async (source) => {
+      d1 = createSqliteD1();
+      applyMigrations(d1);
+      const now = new Date('2026-09-12T12:00:00.000Z');
+      const recent = Math.floor(now.getTime() / 1000) - 60;
+      const bulkNews = Array.from({ length: 801 }, (_, index) => [
+        `bulk-${index}`,
+        'news:bulk-feed',
+        `https://bulk-news.example/${index}`,
+        recent,
+        `Company ${index} launches cloud product`,
+        `Company ${index} launched a cloud product. The retained report records the release date, customer scope, and operational details.`,
+        `bulk-hash-${index}`,
+        recent,
+      ]);
+      const verifiedPublisher = [
+        'verified-publisher',
+        source,
+        'https://publisher.example/openai-api',
+        recent - 3_600,
+        'OpenAI launches verified enterprise API',
+        'OpenAI launched a verified enterprise API. The original publisher page records the release date, customer scope, and operational details.',
+        'verified-publisher-hash',
+        recent - 3_600,
+      ];
 
-    const allRows = [...bulkNews, verifiedPublisher];
-    for (let offset = 0; offset < allRows.length; offset += 300) {
-      const rows = allRows.slice(offset, offset + 300);
-      const values = rows
-        .map(
-          ([id, source, url, publishedAt, title, content, rawHash, ingestedAt]) =>
-            `('${id}','${source}','${url}',${publishedAt},'${title}','${content}',NULL,'${rawHash}',${ingestedAt})`
-        )
-        .join(',');
-      d1.exec(
-        `INSERT INTO events (id, source, source_url, published_at, title, content, primary_entity_id, raw_hash, ingested_at) VALUES ${values}`
-      );
+      const allRows = [...bulkNews, verifiedPublisher];
+      for (let offset = 0; offset < allRows.length; offset += 300) {
+        const rows = allRows.slice(offset, offset + 300);
+        const values = rows
+          .map(
+            ([id, source, url, publishedAt, title, content, rawHash, ingestedAt]) =>
+              `('${id}','${source}','${url}',${publishedAt},'${title}','${content}',NULL,'${rawHash}',${ingestedAt})`
+          )
+          .join(',');
+        d1.exec(
+          `INSERT INTO events (id, source, source_url, published_at, title, content, primary_entity_id, raw_hash, ingested_at) VALUES ${values}`
+        );
+      }
+
+      const stories = await buildNews(db(d1.binding), 'global', '2026-09-12', now);
+      expect(
+        stories.some((story) => story.title === 'OpenAI launches verified enterprise API')
+      ).toBe(true);
     }
-
-    const stories = await buildNews(db(d1.binding), 'global', '2026-09-12', now);
-    expect(stories.some((story) => story.title === 'OpenAI launches verified enterprise API')).toBe(
-      true
-    );
-  });
+  );
 
   it('loads retained source text for ranked news candidates', async () => {
     d1 = createSqliteD1();
@@ -1071,9 +1136,9 @@ describe('buildNews', () => {
     const ingestedAt = Math.floor(now.getTime() / 1000) - 60;
     d1.exec(`
       INSERT INTO source_documents
-        (id, source, canonical_url, fetched_at, published_at, raw_hash, raw_text, created_at)
+        (id, source, canonical_url, fetched_at, published_at, raw_hash, raw_text, created_at, parsed_fields)
       VALUES
-        ('doc-reuters', 'news:reuters', 'https://reuters.com/acme-austin', ${ingestedAt}, ${ingestedAt}, 'doc-hash', 'Acme opened a new semiconductor factory in Austin on Monday. The facility has capacity for 40,000 wafers each month and will start shipping to customers in December.', ${ingestedAt});
+        ('doc-reuters', 'news:reuters', 'https://reuters.com/acme-austin', ${ingestedAt}, ${ingestedAt}, 'doc-hash', 'Acme opened a new semiconductor factory in Austin on Monday. The facility has capacity for 40,000 wafers each month and will start shipping to customers in December.', ${ingestedAt}, '{"discussionUrl":"https://news.ycombinator.com/item?id=123"}');
       INSERT INTO events
         (id, source, source_url, published_at, title, content, primary_entity_id, raw_hash, ingested_at, source_document_id)
       VALUES
@@ -1088,6 +1153,15 @@ describe('buildNews', () => {
     expect(stories).toHaveLength(1);
     expect(stories[0]?.summary.toLowerCase()).toContain('austin');
     expect(stories[0]?.source_references[0]?.url).toBe('https://reuters.com/acme-austin');
+    expect(stories[0]?.source_references[0]?.discussionUrl).toBe(
+      'https://news.ycombinator.com/item?id=123'
+    );
+    d1.exec(
+      "UPDATE source_documents SET parsed_fields = 'malformed legacy JSON' WHERE id = 'doc-reuters'"
+    );
+    const legacyStories = await buildNews(database, 'global', '2026-09-12', now);
+    expect(legacyStories).toHaveLength(1);
+    expect(legacyStories[0]?.source_references[0]).not.toHaveProperty('discussionUrl');
     expect(diagnosticStories).toEqual(stories);
     expect(timings.map(({ name }) => name)).toEqual(['news-window', 'news-query', 'news-compose']);
     expect(timings.every(({ durationMs }) => Number.isFinite(durationMs) && durationMs >= 0)).toBe(

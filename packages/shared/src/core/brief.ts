@@ -19,6 +19,31 @@ export interface BriefCitation {
    * permalink. Absent on citations composed before records were addressable.
    */
   recordId?: string;
+  /** Original discovery discussion; context only, never another evidence origin. */
+  discussionUrl?: string;
+}
+
+/** Only public HN item and X status permalinks may accompany a news citation. */
+export function briefDiscussionUrl(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  try {
+    const url = new URL(value);
+    if (url.protocol !== 'https:' || url.username || url.password || url.port) return null;
+    const host = url.hostname.replace(/^www\./, '');
+    if (host === 'news.ycombinator.com' && url.pathname === '/item') {
+      const id = url.searchParams.get('id');
+      return id && /^\d+$/.test(id) ? `https://news.ycombinator.com/item?id=${id}` : null;
+    }
+    if (
+      (host === 'x.com' || host === 'twitter.com') &&
+      /^\/[A-Za-z0-9_]+\/status\/\d+\/?$/.test(url.pathname)
+    ) {
+      return `https://x.com${url.pathname.replace(/\/$/, '')}`;
+    }
+  } catch {
+    // Old snapshots may contain malformed or untrusted discussion metadata.
+  }
+  return null;
 }
 
 export type BriefPublicSectionKey = 'stocks' | 'ideas' | 'trends';

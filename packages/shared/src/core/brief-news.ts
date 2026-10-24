@@ -7,6 +7,7 @@ import { canonicalSourceUrl } from './source-document';
 import { istDayRange } from './history-access';
 import { classifySource, isPredictionMarketOnly, sourceDomain } from './signal-intelligence';
 import type { BriefCitation, BriefNewsEvidenceStatus, BriefNewsItem } from './brief';
+import { briefDiscussionUrl } from './brief';
 import type { Region } from '../primitives/region';
 
 const NEWS_PAGE_SIZE = 20;
@@ -329,6 +330,7 @@ export interface NewsRecord {
   content: string | null;
   retainedText: string | null;
   primaryEntityId?: string | null;
+  discussionUrl?: unknown;
 }
 
 interface NewsReportingWindow {
@@ -988,19 +990,31 @@ function citationMatchesTitle(url: string, title: string): boolean {
 }
 
 function sourceReferences(members: NewsRecord[]): BriefCitation[] {
-  const seen = new Set<string>();
+  const seen = new Map<string, BriefCitation>();
   const out: BriefCitation[] = [];
   for (const member of members) {
     const url = member.sourceUrl.trim();
-    if (!url || seen.has(url)) continue;
+    if (!url) continue;
+    const discussionUrl = briefDiscussionUrl(member.discussionUrl);
+    const existing = seen.get(url);
+    if (existing) {
+      if (discussionUrl && !existing.discussionUrl) existing.discussionUrl = discussionUrl;
+      continue;
+    }
     try {
       const parsed = new URL(url);
       if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') continue;
     } catch {
       continue;
     }
-    seen.add(url);
-    out.push({ url, source: sourceFamily(member.source), recordId: member.id });
+    const citation: BriefCitation = {
+      url,
+      source: sourceFamily(member.source),
+      recordId: member.id,
+      ...(discussionUrl ? { discussionUrl } : {}),
+    };
+    seen.set(url, citation);
+    out.push(citation);
   }
   return out;
 }

@@ -3,6 +3,7 @@ import { ErrorState } from '@saas-maker/ui/components/error-state';
 import type { ReactNode } from 'react';
 import {
   categoryStatesForSnapshot,
+  briefDiscussionUrl,
   briefNewsPageHref,
   paginateBriefNews,
   buildReaderEdition,
@@ -309,17 +310,19 @@ function TrendItem({ item }: { item: BriefTrendItem }) {
           {item.uncertainty}
         </p>
       ) : null}
-      {item.evidenceUrls.map((citation) => (
-        <a
-          key={citation.url}
-          href={citation.url}
-          target="_blank"
-          rel="noreferrer"
-          className="mt-5 inline-flex min-h-11 items-center border-t border-[var(--color-line)] pt-3 font-mono text-[10px] tracking-[0.12em] text-[var(--color-muted)] hover:text-[var(--color-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-accent)]"
-        >
-          source · {citation.source ?? sourceHost(citation.url)} ↗
-        </a>
-      ))}
+      <div className="mt-5 flex flex-wrap gap-4 border-t border-[var(--color-line)] pt-3 font-mono text-[10px] tracking-[0.12em] text-[var(--color-muted)]">
+        {item.evidenceUrls.map((citation) => (
+          <a
+            key={citation.url}
+            href={citation.url}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex min-h-11 items-center hover:text-[var(--color-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-accent)]"
+          >
+            source · {citation.source ?? sourceHost(citation.url)} ↗
+          </a>
+        ))}
+      </div>
     </article>
   );
 }
@@ -335,26 +338,40 @@ function NewsWhatChanged({ value }: { value: string }) {
 function NewsSourceReferences({ citations }: { citations: BriefCitation[] }) {
   return (
     <div className="mt-5 flex flex-wrap gap-4 border-t border-[var(--color-line)] pt-3 font-mono text-[10px] tracking-[0.12em] text-[var(--color-muted)]">
-      {citations.map((citation) => (
-        <span key={citation.url} className="inline-flex items-center gap-2">
-          <a
-            href={citation.url}
-            target="_blank"
-            rel="noreferrer"
-            className="hover:text-[var(--color-accent)]"
-          >
-            {sourceHost(citation.url)} ↗
-          </a>
-          {citation.recordId ? (
+      {citations.map((citation) => {
+        const discussionUrl = briefDiscussionUrl(citation.discussionUrl);
+        return (
+          <span key={citation.url} className="inline-flex flex-wrap items-center gap-2">
             <a
-              href={`/data/records/${encodeURIComponent(citation.recordId)}`}
-              className="text-[var(--color-fg)] underline decoration-[var(--color-line)] underline-offset-4 hover:text-[var(--color-accent)]"
+              href={citation.url}
+              target="_blank"
+              rel="noreferrer"
+              className="hover:text-[var(--color-accent)]"
             >
-              record
+              {sourceHost(citation.url)} ↗
             </a>
-          ) : null}
-        </span>
-      ))}
+            {citation.recordId ? (
+              <a
+                href={`/data/records/${encodeURIComponent(citation.recordId)}`}
+                className="text-[var(--color-fg)] underline decoration-[var(--color-line)] underline-offset-4 hover:text-[var(--color-accent)]"
+              >
+                record
+              </a>
+            ) : null}
+            {discussionUrl ? (
+              <a
+                href={discussionUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex min-h-11 items-center hover:text-[var(--color-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-accent)]"
+              >
+                {discussionUrl.startsWith('https://news.ycombinator.com/') ? 'HN' : 'X'} discussion
+                ↗
+              </a>
+            ) : null}
+          </span>
+        );
+      })}
     </div>
   );
 }

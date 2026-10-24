@@ -287,6 +287,11 @@ def retrieve_events(
                         "discoveredBy": f"{attention_source}_attention_threshold",
                         "attentionSource": attention_source,
                         "attentionSourceId": source_id,
+                        **(
+                            {"discussionUrl": discussion_url}
+                            if (discussion_url := _discussion_url(request))
+                            else {}
+                        ),
                         "alignment": title_alignment(
                             str(request.get("title") or ""), str(article.get("title") or "")
                         ),
@@ -295,6 +300,29 @@ def retrieve_events(
             )
         )
     return events
+
+
+def _discussion_url(request: dict[str, Any]) -> str | None:
+    urls = request.get("sourceUrls")
+    if not isinstance(urls, list):
+        return None
+    for value in urls[:20]:
+        if not isinstance(value, str):
+            continue
+        try:
+            parts = urlsplit(value)
+            if (
+                parts.scheme == "https"
+                and not parts.username
+                and not parts.password
+                and not parts.port
+                and (parts.hostname or "").removeprefix("www.") in {"x.com", "twitter.com"}
+                and re.fullmatch(r"/[A-Za-z0-9_]+/status/\d+/?", parts.path)
+            ):
+                return f"https://x.com{parts.path.rstrip('/')}"
+        except ValueError:
+            continue
+    return None
 
 
 def verify_request(request: dict[str, Any], client: httpx.Client) -> dict[str, Any]:
@@ -310,9 +338,14 @@ def verify_request(request: dict[str, Any], client: httpx.Client) -> dict[str, A
                 {(urlsplit(event.source_url).hostname or "unknown").lower() for event in events}
             ),
         }
+        # A useful original can support attributed news even when this attention
+        # discovery cannot satisfy the separate Signal corroboration gate.
+        if events and audit.push_events(events, f"{attention_source}-{short_id}"[:16]) != len(
+            events
+        ):
+            raise RuntimeError("original_article_retention_unacknowledged")
         if len({urlsplit(event.source_url).hostname for event in events}) < 2:
             return {"shortId": short_id, "status": "insufficient_evidence", **diagnostics}
-        audit.push_events(events, f"{attention_source}-{short_id}"[:16])
         from .pipeline import cluster_and_generate
 
         # A deterministic fallback is a review aid, not proof that the original
