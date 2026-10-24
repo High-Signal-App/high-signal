@@ -1748,7 +1748,9 @@
   name: Light Reading
   type: news_outlet
   url: https://www.lightreading.com/
-  rss: https://www.lightreading.com/rss_simple.asp
+  rss: https://www.lightreading.com/rss.xml
+  feed_aliases:
+  - https://www.lightreading.com/rss_simple.asp
   paywall: none
   tier: 2
   topic_tags:
@@ -2199,7 +2201,9 @@
   name: BBC Business
   type: news_outlet
   url: https://www.bbc.co.uk/business
-  rss: https://feeds.bbci.co.uk/business/rss.xml
+  rss: https://feeds.bbci.co.uk/news/business/rss.xml
+  feed_aliases:
+  - https://feeds.bbci.co.uk/business/rss.xml
   paywall: none
   tier: 2
   topic_tags:
@@ -2347,7 +2351,9 @@
   name: The Hindu — Business
   type: news_outlet
   url: https://www.thehindu.com/business/
-  rss: https://www.thehindu.com/business/fe/default.rss
+  rss: https://www.thehindu.com/business/feeder/default.rss
+  feed_aliases:
+  - https://www.thehindu.com/business/fe/default.rss
   paywall: none
   tier: 1
   topic_tags:
@@ -2386,7 +2392,9 @@
   name: CNBC TV18
   type: news_outlet
   url: https://www.cnbctv18.com/
-  rss: https://www.cnbctv18.com/rss/market.xml
+  rss: https://www.cnbctv18.com/commonfeeds/v1/cne/rss/market.xml
+  feed_aliases:
+  - https://www.cnbctv18.com/rss/market.xml
   paywall: none
   tier: 1
   topic_tags:
