@@ -792,7 +792,7 @@ def test_generation_outage_alert_allows_declines_and_partial_recovery() -> None:
 
 
 def test_run_receipt_reports_clusters_reaching_generation(monkeypatch) -> None:
-    """The counter is sourced from `_pre_group_clusters`, before generation."""
+    """The counter includes complete stories actually offered for generation."""
     monkeypatch.setattr(pipeline, "fetch", lambda *_a, **_k: [])
     monkeypatch.setattr(pipeline.audit, "push_events", lambda *_a, **_k: 0)
     monkeypatch.setattr(pipeline.audit, "push_ingest_run", lambda **_k: None)
@@ -801,7 +801,10 @@ def test_run_receipt_reports_clusters_reaching_generation(monkeypatch) -> None:
     seen: list[tuple[str, list]] = []
 
     def fake_pre_group(_by_entity):
-        clusters = [("NVDA", []), ("AMD", [])]
+        clusters = [
+            ("NVDA", [_event("https://one.example/nvidia")]),
+            ("AMD", [_event("https://two.example/amd", "AMD", title="AMD expands capacity")]),
+        ]
         return [clusters[0]], [[clusters[1]]], 17
 
     monkeypatch.setattr(pipeline, "_pre_group_clusters", fake_pre_group)

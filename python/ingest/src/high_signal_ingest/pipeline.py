@@ -87,6 +87,8 @@ from .generator import (
     fallback_candidate,
     generate,
     generate_batch,
+    batch_generation_input,
+    pack_generation_batches,
 )
 from .writer import SignalDeliveryError, emit
 
@@ -686,8 +688,11 @@ def _pre_group_clusters(
         return large, [], skipped
 
     batches = [
-        small[index : index + MAX_BATCH_ENTITIES]
-        for index in range(0, len(small), MAX_BATCH_ENTITIES)
+        [(entity_id, evs) for entity_id, evs, _ in batch]
+        for batch in pack_generation_batches(
+            [(entity_id, evs, _spillover_candidates(entity_id)) for entity_id, evs in small],
+            max_clusters=MAX_BATCH_ENTITIES,
+        )
     ]
 
     _log.info(
@@ -1141,7 +1146,8 @@ def run(source: Source, days: int, *, generate_signals: bool = True) -> dict:
     # to write about" from "the generator declined almost everything it saw":
     # `candidates_generated: 2` reads identically whether generation received 2
     # clusters or 40. Counted here, before any generator call.
-    clusters_reaching_generation = len(large_clusters) + sum(len(batch) for batch in small_batches)
+    clusters_reaching_generation = len(large_clusters)
+    clusters_omitted_input_budget = 0
 
     # Large clusters: one LLM call each (high-quality, lots of evidence)
     for entity_id, evs in large_clusters:
@@ -1169,7 +1175,10 @@ def run(source: Source, days: int, *, generate_signals: bool = True) -> dict:
         clusters_with_spillover = [
             (entity_id, evs, _spillover_candidates(entity_id)) for entity_id, evs in batch
         ]
-        generation_requests += 1
+        planned = batch_generation_input(clusters_with_spillover)
+        clusters_reaching_generation += len(planned.cluster_entities)
+        clusters_omitted_input_budget += len(planned.omitted_clusters)
+        generation_requests += int(bool(planned.user))
         try:
             cands = generate_batch(clusters_with_spillover)
         except Exception as exc:
@@ -1245,6 +1254,7 @@ def run(source: Source, days: int, *, generate_signals: bool = True) -> dict:
             [
                 f"fetch_run_id={fetch_run_id}",
                 f"clusters_reaching_generation={clusters_reaching_generation}",
+                f"clusters_omitted_input_budget={clusters_omitted_input_budget}",
                 f"generation_requests={generation_requests}",
                 f"generation_request_failures={generation_request_failures}",
                 f"generation_failure_classes={dict(generation_failure_classes)}",
@@ -1264,6 +1274,7 @@ def run(source: Source, days: int, *, generate_signals: bool = True) -> dict:
         "events_no_entity": no_entity,
         "events_low_cluster": low_cluster,
         "clusters_reaching_generation": clusters_reaching_generation,
+        "clusters_omitted_input_budget": clusters_omitted_input_budget,
         "generation_requests": generation_requests,
         "generation_request_failures": generation_request_failures,
         "generation_failure_classes": dict(generation_failure_classes),
