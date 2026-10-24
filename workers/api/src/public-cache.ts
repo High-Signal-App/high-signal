@@ -1,5 +1,7 @@
 const PUBLIC_CACHE_CONTROL = 'public, max-age=60, s-maxage=300';
 const PRIVATE_CACHE_CONTROL = 'private, no-store';
+const RETAINED_RECORD_CACHE_PARAM = '__hs_retained_record_cache';
+const RETAINED_RECORD_CACHE_EPOCH = 'retained-record-v2';
 
 type PublicApiCache = Pick<Cache, 'match' | 'put'>;
 
@@ -28,7 +30,13 @@ export function isPublicCacheRequest(request: Request) {
 }
 
 function cacheKey(request: Request) {
-  return new Request(request.url, { method: 'GET' });
+  const url = new URL(request.url);
+  if (/^\/data\/records\/[^/]+$/.test(url.pathname)) {
+    // Bypass receipts cached before per-record source-document repair. Keep
+    // this internal namespace out of the original request passed to the route.
+    url.searchParams.set(RETAINED_RECORD_CACHE_PARAM, RETAINED_RECORD_CACHE_EPOCH);
+  }
+  return new Request(url, { method: 'GET' });
 }
 
 function withCacheStatus(response: Response, status: 'HIT' | 'MISS') {

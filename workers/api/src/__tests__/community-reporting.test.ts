@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { z } from 'zod';
 import { generateChatCompletion } from '../lib/ai-client';
 import {
   assertCommunityResearchAvailable,
@@ -14,7 +15,11 @@ import {
   researchDocument,
   verificationFixture,
 } from '../../test/community-report-fixtures';
-import type { CommunityResearchDocument } from '../lib/community-report-proof';
+import {
+  communityVerificationSchema,
+  communityPassages,
+  type CommunityResearchDocument,
+} from '../lib/community-report-proof';
 
 vi.mock('../lib/ai-client', () => ({ generateChatCompletion: vi.fn() }));
 const complete = vi.mocked(generateChatCompletion);
@@ -112,7 +117,7 @@ async function count(table: string): Promise<number> {
 function mockSuccessfulResearch() {
   complete.mockImplementation(async (options) => {
     const verifying = options.messages[0].content.startsWith('Independently verify');
-    return JSON.stringify(verifying ? verificationFixture() : reportFixture());
+    return JSON.stringify(verifying ? verificationFixture() : { report: reportFixture() });
   });
 }
 
@@ -169,7 +174,9 @@ describe('public community retained source to reader', () => {
       })
     );
     complete.mockResolvedValue(
-      JSON.stringify({ publish: false, reason: 'Retrieval test only; no report is qualified.' })
+      JSON.stringify({
+        report: { publish: false, reason: 'Retrieval test only; no report is qualified.' },
+      })
     );
     expect(
       await researchPublicCommunity(
@@ -185,6 +192,123 @@ describe('public community retained source to reader', () => {
       'primary',
       'airport',
     ]);
+    expect(await count('claim_records')).toBe(0);
+  });
+
+  it('offers bounded relevant existing passages while retaining complete source text', async () => {
+    await seedCommunity();
+    await seedLead();
+    const background =
+      'Background observations give context and describe unrelated circumstances. '.repeat(20);
+    const subject =
+      'Developer code review workflows describe software quality and formal systems. '.repeat(20);
+    const text = `${background}${subject}${background}${subject}${background}`;
+    for (let index = 0; index < 8; index++) {
+      await seedDocument(
+        researchDocument('primary', {
+          id: `large-${index}`,
+          recordId: `large-event-${index}`,
+          hash: index.toString(16).padStart(64, '0'),
+          url: `https://publication-${index}.example/report`,
+          title: `Marigold review survey ${'detailed retained context '.repeat(20)}`,
+          publishedAt: new Date(Date.now() - (3600 + index * 60) * 1000).toISOString(),
+          text,
+        })
+      );
+    }
+    complete.mockResolvedValue(
+      JSON.stringify({
+        report: {
+          publish: false,
+          reason: 'The retained material does not establish independent evidence.',
+        },
+      })
+    );
+    await researchPublicCommunity(
+      { DB: database.binding, FREE_AI: freeGateway },
+      communityId,
+      leadId
+    );
+    const options = complete.mock.calls[0][0];
+    expect(
+      options.messages[0].content.length + options.messages[1].content.length
+    ).toBeLessThanOrEqual(14_000);
+    const request = JSON.parse(options.messages[1].content);
+    expect(request.documents.length).toBeGreaterThanOrEqual(2);
+    expect(request.documents.length).toBeLessThan(8);
+    expect(request.documents.map((document: { id: string }) => document.id)).toEqual(
+      Array.from({ length: request.documents.length }, (_, index) => `large-${index}`)
+    );
+    const original = communityPassages(text.slice(0, 8_000));
+    for (const document of request.documents) {
+      expect(Object.keys(document.passages)).toEqual(['P2', 'P3']);
+      for (const [id, passage] of Object.entries(document.passages)) {
+        expect(passage).toBe(original[id]);
+        expect(passage).toContain('Developer code review workflows');
+      }
+    }
+    const retained = await database.binding
+      .prepare('SELECT raw_text FROM source_documents WHERE id=?')
+      .bind('large-0')
+      .first<{ raw_text: string }>();
+    expect(retained?.raw_text).toBe(text);
+    expect(complete).toHaveBeenCalledTimes(1);
+    expect(await count('claim_records')).toBe(0);
+  });
+
+  it('audits an oversized two-document input without calling a model', async () => {
+    await seedResearch();
+    await database.binding
+      .prepare('UPDATE events SET source_url=? WHERE id=?')
+      .bind(
+        `https://www.reddit.com/r/ExperiencedDevs/comments/lead?context=${'x'.repeat(14_000)}`,
+        leadId
+      )
+      .run();
+    expect(
+      await researchPublicCommunity(
+        { DB: database.binding, FREE_AI: freeGateway },
+        communityId,
+        leadId
+      )
+    ).toEqual({ status: 'unavailable', reason: 'research_request_too_large' });
+    expect(complete).not.toHaveBeenCalled();
+    expect(await count('claim_records')).toBe(0);
+    const audit = await database.binding
+      .prepare('SELECT accepted,reason,response_json FROM llm_runs')
+      .first<{ accepted: number; reason: string; response_json: string }>();
+    expect(audit).toMatchObject({ accepted: 0, reason: 'research_request_too_large' });
+    expect(JSON.parse(audit!.response_json).requestChars).toBeGreaterThan(14_000);
+    await expect(assertCommunityResearchAvailable(database.binding)).rejects.toThrow(
+      'community_research_unavailable'
+    );
+  });
+
+  it('rejects an existing but unoffered passage before verification', async () => {
+    await seedCommunity();
+    await seedLead();
+    const background =
+      'Background observations give context and describe unrelated circumstances. '.repeat(20);
+    const subject =
+      'Developer code review workflows describe software quality and formal systems. '.repeat(20);
+    const text = `${background}${subject}${background}`;
+    await seedDocument(researchDocument('primary', { text }));
+    await seedDocument(researchDocument('corroboration', { text }));
+    complete.mockImplementation(async (options) => {
+      const request = JSON.parse(options.messages[1].content);
+      expect(
+        request.documents.find((document: { id: string }) => document.id === 'primary').passages.P0
+      ).toBeUndefined();
+      return JSON.stringify({ report: reportFixture() });
+    });
+    expect(
+      await researchPublicCommunity(
+        { DB: database.binding, FREE_AI: freeGateway },
+        communityId,
+        leadId
+      )
+    ).toEqual({ status: 'withheld', reason: 'invalid_passage' });
+    expect(complete).toHaveBeenCalledTimes(1);
     expect(await count('claim_records')).toBe(0);
   });
 
@@ -239,7 +363,16 @@ describe('public community retained source to reader', () => {
       expect(options.config).toMatchObject({ gateway: freeGateway, model: 'auto' });
       expect(options.config.endpointUrl).toBeUndefined();
       expect(options.config.apiKey).toBeUndefined();
+      expect(options.responseSchema).toBeDefined();
     }
+    const outputSchema = complete.mock.calls[0][0].responseSchema as z.ZodType;
+    expect(outputSchema.safeParse({ report: reportFixture() }).success).toBe(true);
+    expect(outputSchema.safeParse(reportFixture()).success).toBe(false);
+    expect(outputSchema.safeParse({ report: reportFixture(), extra: true }).success).toBe(false);
+    expect(complete.mock.calls[1][0].responseSchema).toBe(communityVerificationSchema);
+    expect(complete.mock.calls[1][0].messages[0].content).toContain(
+      '"supports":["description","whyNow"]'
+    );
     const trends = await buildTrends(db(database.binding), 'global', []);
     expect(trends).toHaveLength(1);
     expect(trends[0].description).toBe(reportFixture().description);
@@ -284,7 +417,7 @@ describe('public community retained source to reader', () => {
       JSON.stringify(
         options.messages[0].content.startsWith('Independently verify')
           ? verificationFixture()
-          : { ...reportFixture(), section: 'ideas' }
+          : { report: { ...reportFixture(), section: 'ideas' } }
       )
     );
     expect(
@@ -328,8 +461,10 @@ describe('public community retained source to reader', () => {
     await seedResearch();
     complete.mockResolvedValue(
       JSON.stringify({
-        publish: false,
-        reason: 'The two documents do not support the same narrow observation.',
+        report: {
+          publish: false,
+          reason: 'The two documents do not support the same narrow observation.',
+        },
       })
     );
     expect(
@@ -342,6 +477,46 @@ describe('public community retained source to reader', () => {
     expect(complete).toHaveBeenCalledTimes(1);
     expect(await count('claim_records')).toBe(0);
     await expect(assertCommunityResearchAvailable(database.binding)).resolves.toBeUndefined();
+  });
+
+  it('withholds repeated document citations before verification and retains the audit', async () => {
+    await seedResearch();
+    const report = reportFixture({
+      citations: [
+        { documentId: 'primary', passageId: 'P0' },
+        { documentId: 'primary', passageId: 'P1' },
+      ],
+    });
+    complete.mockResolvedValue(JSON.stringify({ report }));
+    expect(
+      await researchPublicCommunity(
+        { DB: database.binding, FREE_AI: freeGateway },
+        communityId,
+        leadId
+      )
+    ).toEqual({ status: 'withheld', reason: 'duplicate_document' });
+    expect(complete).toHaveBeenCalledTimes(1);
+    expect(await count('claim_records')).toBe(0);
+    expect(await count('community_digest_snapshots')).toBe(0);
+    const audit = await database.binding
+      .prepare('SELECT accepted,reason,response_json FROM llm_runs')
+      .first<{ accepted: number; reason: string; response_json: string }>();
+    expect(audit).toMatchObject({ accepted: 0, reason: 'duplicate_document' });
+    expect(JSON.parse(audit!.response_json)).toEqual({ report });
+  });
+
+  it('rejects unwrapped generator objects without attempting verification', async () => {
+    await seedResearch();
+    complete.mockResolvedValue(JSON.stringify(reportFixture()));
+    expect(
+      await researchPublicCommunity(
+        { DB: database.binding, FREE_AI: freeGateway },
+        communityId,
+        leadId
+      )
+    ).toMatchObject({ status: 'unavailable', reason: 'invalid_model_response' });
+    expect(complete).toHaveBeenCalledTimes(1);
+    expect(await count('claim_records')).toBe(0);
   });
 
   it('keeps unavailable AI distinct from a successful quiet research result', async () => {
@@ -415,7 +590,7 @@ describe('public community retained source to reader', () => {
     await database.binding
       .prepare(`INSERT INTO llm_runs
       (id,model,prompt_version,accepted,reason,request_json,response_json,created_at)
-      VALUES('later-failure','auto','community-report-v1',0,'research_or_model_unavailable',
+      VALUES('later-failure','auto','community-report-v2',0,'research_or_model_unavailable',
       '{"communityId":"another-public-community"}','null',unixepoch()+1)`)
       .run();
     expect(await buildTrends(db(database.binding), 'global', [])).toHaveLength(1);

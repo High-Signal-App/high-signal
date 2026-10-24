@@ -32,12 +32,17 @@ afterEach(() => {
 
 async function get(path: string) {
   const response = await app.fetch(new Request(`http://test${path}`), env());
-  return { status: response.status, body: (await response.json()) as Record<string, unknown> };
+  return {
+    headers: response.headers,
+    status: response.status,
+    body: (await response.json()) as Record<string, unknown>,
+  };
 }
 
 describe('GET /data/records/:id', () => {
   it('returns one retained record with its document text and resolved entity', async () => {
-    const { status, body } = await get('/data/records/ev-1');
+    const { headers, status, body } = await get('/data/records/ev-1');
+    expect(headers.get('cache-control')).toBe('public, max-age=60, s-maxage=300');
     expect(status).toBe(200);
     expect(body).toMatchObject({
       id: 'ev-1',
