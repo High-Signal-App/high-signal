@@ -3,7 +3,7 @@ title: Product Direction (Locked)
 description: The authoritative locked product-direction snapshot for High Signal — brand, Daily Brief, sections, pricing, lenses, sources, and hard rules.
 ---
 
-# Product Direction — Locked (updated 2026-09-13)
+# Product Direction — Locked (updated 2026-10-24)
 
 This is the **authoritative product-direction snapshot**, referenced from
 [`agents.md`](https://github.com/High-Signal-App/high-signal/blob/main/agents.md) and [`SPEC.md`](https://github.com/High-Signal-App/high-signal/blob/main/SPEC.md). It
@@ -44,10 +44,16 @@ of scope as of 2026-05-25.)
 3. **Behavior & culture** — community and cultural shifts surfaced from forums
    and transcripts.
 
-The edition has no target length. More items may ship when each independently
-clears the same editorial and evidence gates; no category is filled with seed or
-synthetic fallback content. `ready`, `empty`, and `unavailable` are explicit
-states, and an unavailable category prevents a new dated snapshot.
+The front edition is a finite read: up to eight recent news stories and three
+verified signals. Selection favors consequential developments in technology,
+startups, and finance, with limits on repeated publishers and funding rounds.
+Overlapping accounts share a story with separately attributed excerpts; grouping
+does not grant corroboration credit or upgrade a news item into a verified signal.
+The complete qualified news collection remains available through “all stories,”
+with edition and region preserved. Published snapshots and signal history remain
+intact. No category is filled with seed or synthetic fallback content. `ready`,
+`empty`, and `unavailable` are explicit states, and an unavailable category prevents
+a new dated snapshot.
 
 Today and yesterday remain anonymous and cacheable. There is no separate Brief
 archive product: `/signals` is the chronological record, `/brief/archive`

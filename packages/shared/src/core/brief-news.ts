@@ -44,15 +44,17 @@ export function briefNewsPageHref({
   page,
   region,
   day,
+  all = false,
 }: {
   page: number;
   region: Region;
   day: 'today' | 'yesterday';
+  all?: boolean;
 }): string {
   const query = new URLSearchParams({
     ...(region === 'global' ? {} : { region }),
     ...(day === 'yesterday' ? { day } : {}),
-    ...(page > 1 ? { news_page: String(page) } : {}),
+    ...(page > 1 || all ? { news_page: String(page) } : {}),
   });
   return `${query.size ? `/?${query}` : '/'}#news`;
 }
@@ -412,7 +414,10 @@ export function hasBriefNewsTopic(record: NewsRecord): boolean {
   return tokens.some((token) => BRIEF_NEWS_TOPICS.has(token));
 }
 
-export function clusterNewsRecords(records: readonly NewsRecord[]): NewsRecord[][] {
+export function clusterNewsRecords(
+  records: readonly NewsRecord[],
+  { editorial = false }: { editorial?: boolean } = {}
+): NewsRecord[][] {
   const n = records.length;
   const parent = Array.from({ length: n }, (_, i) => i);
   const members = Array.from({ length: n }, (_, i) => [i]);
@@ -439,19 +444,46 @@ export function clusterNewsRecords(records: readonly NewsRecord[]): NewsRecord[]
     (set) => new Set([...set].filter((token) => EVENT_TOKENS.has(token)))
   );
   const subjects = records.map((record) => newsSubject(record.title ?? ''));
+  const headlineSubjects = records.map((record) =>
+    (record.title ?? '').match(/^[A-Z][A-Za-z0-9]+/)?.[0].toLowerCase()
+  );
   const sameEvent = (i: number, j: number) => {
     if (urls[i] && urls[i] === urls[j]) return true;
+    // Front-edition grouping may join differently phrased accounts. It grants
+    // no corroboration credit and cannot change stored clusters or snapshots.
+    if (
+      editorial &&
+      Math.abs(
+        toDate(records[i].publishedAt).getTime() - toDate(records[j].publishedAt).getTime()
+      ) >
+        36 * 3_600_000
+    )
+      return false;
     const entityI = records[i].primaryEntityId?.trim();
     const entityJ = records[j].primaryEntityId?.trim();
     if (entityI && entityJ && entityI !== entityJ) return false;
     // Topic words and a shared investor are not the subject of a news event.
     // Ambiguous titles stay separate rather than acquire unrelated citations.
-    if (!(entityI && entityI === entityJ) && (!subjects[i] || subjects[i] !== subjects[j]))
-      return false;
-    if (!setsIntersect(eventTokens[i], eventTokens[j])) return false;
+    const strictSubject = subjects[i] && subjects[i] === subjects[j];
+    const headlineSubject =
+      editorial &&
+      headlineSubjects[i] &&
+      headlineSubjects[i] === headlineSubjects[j] &&
+      !isGenericNewsToken(headlineSubjects[i]!);
+    if (!(entityI && entityI === entityJ) && !strictSubject && !headlineSubject) return false;
     const sharedContext = [...tokens[i]].filter(
       (token) => tokens[j].has(token) && !isGenericNewsToken(token)
     );
+    if (!setsIntersect(eventTokens[i], eventTokens[j])) {
+      // Distinct explicit events (e.g. an acquisition and a launch) stay apart.
+      // Missing event verbs need stronger distinctive headline overlap.
+      return Boolean(
+        headlineSubject &&
+          !(eventTokens[i].size && eventTokens[j].size) &&
+          sharedContext.length >= 3 &&
+          jaccard(tokens[i], tokens[j]) >= 0.25
+      );
+    }
     return jaccard(tokens[i], tokens[j]) >= JACCARD_THRESHOLD || sharedContext.length >= 2;
   };
   const byUrl = new Map<string, number[]>();

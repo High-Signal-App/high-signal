@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { SiteFooter } from '@/components/system/SiteFooter';
 import { briefFooterMode } from '@/lib/brief-footer';
 import type { Route } from 'next';
-import { NewsFeed, SignalFeed } from '@/components/brief/BriefSections';
+import { BriefEnding, NewsFeed, SignalFeed } from '@/components/brief/BriefSections';
 import { DailyBriefHero } from '@/components/brief/DailyBriefHero';
 import { HomeJsonLd } from '@/components/seo/structured-data';
 import { PageShell } from '@/components/system/HighSignalUI';
@@ -71,7 +71,14 @@ export async function CurrentBriefPage({
         />
         <div className="brief-edition">
           <NewsFeed brief={brief} pagination={{ page: params.news_page, day: selectedDay }} />
-          <SignalFeed brief={brief} editionDay={editionDay} />
+          <SignalFeed
+            brief={brief}
+            editionDay={editionDay}
+            concise={params.news_page === undefined}
+          />
+          {params.news_page === undefined && brief.publishStatus === 'published' ? (
+            <BriefEnding brief={brief} day={selectedDay} />
+          ) : null}
         </div>
       </PageShell>
       <SiteFooter mode={briefFooterMode(brief)} />

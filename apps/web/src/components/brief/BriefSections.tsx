@@ -5,6 +5,7 @@ import {
   categoryStatesForSnapshot,
   briefNewsPageHref,
   paginateBriefNews,
+  selectBriefEdition,
   type BriefCategoryState,
   type BriefCitation,
   type BriefIdeaItem,
@@ -329,7 +330,7 @@ function NewsSourceReferences({ citations }: { citations: BriefCitation[] }) {
             rel="noreferrer"
             className="hover:text-[var(--color-accent)]"
           >
-            {citation.source ?? sourceHost(citation.url)} ↗
+            {sourceHost(citation.url)} ↗
           </a>
           {citation.recordId ? (
             <a
@@ -345,7 +346,7 @@ function NewsSourceReferences({ citations }: { citations: BriefCitation[] }) {
   );
 }
 
-function NewsItem({ item }: { item: BriefNewsItem }) {
+function NewsItem({ item, related = [] }: { item: BriefNewsItem; related?: BriefNewsItem[] }) {
   return (
     <article className="brief-feed-item border-b border-[var(--color-line)] py-7 last:border-b-0">
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[10px] tracking-[0.12em] text-[var(--color-muted)]">
@@ -360,6 +361,23 @@ function NewsItem({ item }: { item: BriefNewsItem }) {
       </p>
       {item.what_changed ? <NewsWhatChanged value={item.what_changed} /> : null}
       <NewsSourceReferences citations={item.source_references} />
+      {related.length > 0 ? (
+        <details className="mt-4 max-w-[70ch] border-l border-[var(--color-line)] pl-4">
+          <summary className="min-h-11 cursor-pointer py-3 font-mono text-[10px] tracking-[0.12em] text-[var(--color-muted)] hover:text-[var(--color-fg)]">
+            {related.length} more {related.length === 1 ? 'report' : 'reports'} on this story
+          </summary>
+          <p className="text-xs leading-5 text-[var(--color-muted)]">
+            Related accounts, each attributed to its own source.
+          </p>
+          {related.map((report) => (
+            <div key={report.id} className="py-4">
+              <h4 className="text-sm font-medium">{report.title}</h4>
+              <p className="mt-2 text-sm leading-6 text-[var(--color-muted)]">{report.summary}</p>
+              <NewsSourceReferences citations={report.source_references} />
+            </div>
+          ))}
+        </details>
+      ) : null}
     </article>
   );
 }
@@ -387,7 +405,7 @@ function NewsPages({
       <div className="flex items-center gap-6">
         {selection.page > 1 ? (
           <a
-            href={briefNewsPageHref({ page: selection.page - 1, region, day })}
+            href={briefNewsPageHref({ page: selection.page - 1, region, day, all: true })}
             rel="prev"
             className={linkClass}
           >
@@ -396,7 +414,7 @@ function NewsPages({
         ) : null}
         {selection.page < selection.pageCount ? (
           <a
-            href={briefNewsPageHref({ page: selection.page + 1, region, day })}
+            href={briefNewsPageHref({ page: selection.page + 1, region, day, all: true })}
             rel="next"
             className={linkClass}
           >
@@ -417,24 +435,46 @@ export function NewsFeed({
 }) {
   const news = brief.news ?? [];
   if (news.length === 0) return null;
-  const selected = pagination ? paginateBriefNews({ news, requestedPage: pagination.page }) : null;
+  const fullStream = pagination?.page !== undefined;
+  const edition = pagination && !fullStream ? selectBriefEdition(brief) : null;
+  const selected = fullStream ? paginateBriefNews({ news, requestedPage: pagination.page }) : null;
+  const day = pagination?.day ?? 'today';
+  const fullHref = briefNewsPageHref({ page: 1, day, region: brief.region, all: true });
   return (
     <section id="news" className="scroll-mt-20 border-b border-[var(--color-line)] py-8">
-      <h2 className="font-mono text-[10px] font-normal tracking-[0.14em] text-[var(--color-muted)]">
-        {news.length} {news.length === 1 ? 'story' : 'stories'}
-        {selected && selected.pageCount > 1
-          ? ` · page ${selected.page} of ${selected.pageCount}`
-          : ''}
-      </h2>
+      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
+        <h2 className="font-mono text-[10px] font-normal tracking-[0.14em] text-[var(--color-muted)]">
+          {edition
+            ? `${edition.items.length} selected ${edition.items.length === 1 ? 'story' : 'stories'}${edition.items.length ? ` · ${edition.readingMinutes} min read` : ''}`
+            : `${news.length} ${news.length === 1 ? 'story' : 'stories'}${selected ? ` · page ${selected.page} of ${selected.pageCount}` : ''}`}
+        </h2>
+        {pagination ? (
+          <a
+            href={fullStream ? briefNewsPageHref({ page: 1, day, region: brief.region }) : fullHref}
+            className="inline-flex min-h-11 items-center font-mono text-[10px] tracking-[0.12em] text-[var(--color-muted)] hover:text-[var(--color-accent)]"
+          >
+            {fullStream ? '← back to the brief' : `all ${news.length} stories →`}
+          </a>
+        ) : null}
+      </div>
       <p className="mt-3 max-w-[70ch] text-sm leading-6 text-[var(--color-muted)]">
-        Ranked from retained records. Single-source reporting is attributed; this is not a market
-        signal.
+        {edition
+          ? 'A short selection of recent developments across technology, startups, and finance. Related reporting is grouped; single-source claims remain attributed.'
+          : 'The complete collection from retained records. Single-source reporting is attributed; this is not a market signal.'}
       </p>
       <div className="brief-feed-items mt-6 border-t border-[var(--color-line)]">
-        {(selected?.items ?? news).map((item) => (
-          <NewsItem key={item.id} item={item} />
-        ))}
+        {edition
+          ? edition.items.map(({ story, related }) => (
+              <NewsItem key={story.id} item={story} related={related} />
+            ))
+          : (selected?.items ?? news).map((item) => <NewsItem key={item.id} item={item} />)}
       </div>
+      {edition && edition.items.length === 0 ? (
+        <p className="py-6 text-sm leading-6 text-[var(--color-muted)]">
+          No recent reporting met the front edition’s selection rules. The full collection remains
+          available above.
+        </p>
+      ) : null}
       {pagination && selected ? (
         <NewsPages selection={selected} day={pagination.day} region={brief.region} />
       ) : null}
@@ -445,9 +485,11 @@ export function NewsFeed({
 export function SignalFeed({
   brief,
   editionDay,
+  concise = false,
 }: {
   brief: BriefSnapshot;
   editionDay: 'today' | 'yesterday' | 'earlier';
+  concise?: boolean;
 }) {
   const state = categoryStatesForSnapshot(brief).stocks;
   const count = brief.stocks.length;
@@ -463,7 +505,7 @@ export function SignalFeed({
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--color-line)] pb-4">
         <h2 className="font-mono text-[10px] font-normal tracking-[0.14em] text-[var(--color-muted)]">
           {state.status === 'ready'
-            ? `${count} verified ${count === 1 ? 'signal' : 'signals'}`
+            ? `${concise && count > 3 ? `3 of ${count}` : count} verified ${count === 1 ? 'signal' : 'signals'}`
             : state.status === 'unavailable'
               ? 'signal source unavailable'
               : editionDay === 'earlier'
@@ -482,7 +524,7 @@ export function SignalFeed({
 
       {state.status === 'ready' && count > 0 ? (
         <div className="brief-feed-items">
-          {brief.stocks.map((item) => (
+          {(concise ? brief.stocks.slice(0, 3) : brief.stocks).map((item) => (
             <StockItem key={`${item.signalSlug}-${item.entityId}`} item={item} />
           ))}
         </div>
@@ -530,6 +572,31 @@ export function SignalFeed({
         </div>
       )}
     </section>
+  );
+}
+
+export function BriefEnding({ brief, day }: { brief: BriefSnapshot; day: 'today' | 'yesterday' }) {
+  return (
+    <div className="border-t border-[var(--color-line)] py-8">
+      <p className="text-lg font-medium tracking-[-0.02em]">End of the brief.</p>
+      <p className="mt-2 max-w-[70ch] text-sm leading-6 text-[var(--color-muted)]">
+        Come back for the next edition, or go deeper into the source collection.
+      </p>
+      <div className="mt-3 flex flex-wrap gap-x-6 gap-y-2 font-mono text-[10px] tracking-[0.12em] text-[var(--color-muted)]">
+        <a
+          className="inline-flex min-h-11 items-center hover:text-[var(--color-accent)]"
+          href={briefNewsPageHref({ page: 1, day, region: brief.region, all: true })}
+        >
+          all stories →
+        </a>
+        <a
+          className="inline-flex min-h-11 items-center hover:text-[var(--color-accent)]"
+          href="/data"
+        >
+          source coverage →
+        </a>
+      </div>
+    </div>
   );
 }
 

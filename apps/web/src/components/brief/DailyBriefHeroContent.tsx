@@ -88,7 +88,7 @@ export function DailyBriefHeroContent({
           </h1>
           <p className="mt-4 max-w-[70ch] text-sm leading-6 text-[var(--color-muted)]">
             {signalOnly
-              ? 'High Signal brings technology, startups, and finance into one concise Daily Brief for founders and operators. News is attributed to retained source records. Verified signals require an aligned primary source and independent corroboration; open their proof to inspect the claim and uncertainty.'
+              ? 'The developments worth catching up on in technology, startups, and finance. Read the short edition, follow the sources, then get on with your day. Verified signals carry separate proof and uncertainty.'
               : 'One evidence-first edition across technology, startups, and finance, organized into three public sections: markets and companies, business opportunities, and behavior and culture.'}
           </p>
         </div>
