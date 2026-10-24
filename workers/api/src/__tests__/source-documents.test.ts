@@ -6,6 +6,7 @@ import {
   sourceDocumentKey,
 } from '../routes/admin';
 import { retainedEvidenceCandidates } from '../lib/attention-admin';
+import { cftcReceiptRepairUrls } from '../lib/cftc-receipt-repair';
 import { applyMigrations, createSqliteD1 } from '../../test/sqlite-d1';
 
 describe('source document normalization', () => {
@@ -176,4 +177,166 @@ describe('retained article receipt repair through actual SQLite upserts', () => 
       database.close();
     }
   });
+});
+
+describe('guarded CFTC per-contract receipt replay', () => {
+  it.each([false, true])(
+    'repairs only matching observations and preserves their identity/copy: changed=%s',
+    async (changed) => {
+      const database = createSqliteD1();
+      try {
+        applyMigrations(database);
+        const contract = 'ZCASH PERP STYLE - COINBASE DERIVATIVES, LLC';
+        const reportDate = '2026-10-20T00:00:00.000';
+        const content = `CFTC CoT ${contract} for ${reportDate}. Non-commercial long: 8518, short: 7216, net: 1302.`;
+        const event = {
+          source: 'us-gov-api:cftc-cot',
+          sourceUrl: 'https://www.cftc.gov/MarketReports/CommitmentsofTraders/index.htm',
+          title: `CFTC CoT: ${contract} (${reportDate})`,
+          publishedAt: reportDate + 'Z',
+          rawHash: 'stable-contract-report',
+          content,
+          fetchRunId: 'original-run',
+        };
+        async function push(input: object) {
+          const response = await adminRoute.request(
+            '/events',
+            {
+              method: 'POST',
+              headers: { Authorization: 'Bearer test', 'Content-Type': 'application/json' },
+              body: JSON.stringify({ events: [input] }),
+            },
+            { DB: database.binding, ADMIN_TOKEN: 'test' }
+          );
+          expect(await response.json()).toEqual({ inserted: 1 });
+        }
+        await push(event);
+        const before = await database.binding
+          .prepare('SELECT * FROM events')
+          .first<Record<string, unknown>>();
+        // Reproduce the contaminated shared receipt without changing its event-local observation.
+        database.exec(
+          "UPDATE source_documents SET raw_text = 'GULF FUEL OIL from an unrelated report'"
+        );
+        const url =
+          'https://publicreporting.cftc.gov/resource/jun7-fc8e.json?' +
+          new URLSearchParams({
+            market_and_exchange_names: contract,
+            report_date_as_yyyy_mm_dd: reportDate,
+          });
+        const newContent = changed ? content + ' Changed observation.' : content;
+        const repaired = {
+          ...event,
+          sourceUrl: url,
+          content: newContent,
+          fetchRunId: 'replay-run',
+          sourceDocument: {
+            canonicalUrl: url,
+            rawHash: event.rawHash,
+            rawText: newContent,
+            parsedFields: { documentKind: 'cftc_contract_report', contract, reportDate },
+          },
+        };
+        await push(repaired);
+        await push(repaired);
+        const after = await database.binding
+          .prepare('SELECT * FROM events')
+          .first<Record<string, unknown>>();
+        expect(await database.binding.prepare('SELECT count(*) AS n FROM events').first('n')).toBe(
+          1
+        );
+        if (changed) {
+          expect(after).toEqual(before);
+        } else {
+          expect(after?.['source_url']).toBe(url);
+          expect(after?.['source_document_id']).not.toBe(before?.['source_document_id']);
+          const { source_url: _oldUrl, source_document_id: _oldDoc, ...originalCopy } = before!;
+          const { source_url: _newUrl, source_document_id: _newDoc, ...replayedCopy } = after!;
+          expect(replayedCopy).toEqual(originalCopy);
+          const receipt = await database.binding
+            .prepare('SELECT canonical_url,raw_text FROM source_documents WHERE id = ?')
+            .bind(after?.['source_document_id'])
+            .first();
+          expect(receipt).toEqual({ canonical_url: url, raw_text: content });
+          await push({
+            ...repaired,
+            content: content + ' Conflicting later observation.',
+            sourceDocument: {
+              ...repaired.sourceDocument,
+              rawText: content + ' Conflicting later observation.',
+            },
+          });
+          expect(
+            await database.binding
+              .prepare('SELECT canonical_url,raw_text FROM source_documents WHERE id = ?')
+              .bind(after?.['source_document_id'])
+              .first()
+          ).toEqual(receipt);
+          expect(await database.binding.prepare('SELECT * FROM events').first()).toEqual(after);
+        }
+        const old = await database.binding
+          .prepare('SELECT raw_text FROM source_documents WHERE id = ?')
+          .bind(before?.['source_document_id'])
+          .first('raw_text');
+        expect(old).toBe('GULF FUEL OIL from an unrelated report');
+      } finally {
+        database.close();
+      }
+    }
+  );
+});
+
+it('does not retarget generic, implicit or mismatched CFTC receipts', () => {
+  const contract = 'ZCASH';
+  const reportDate = '2026-10-20';
+  const url =
+    'https://publicreporting.cftc.gov/resource/jun7-fc8e.json?' +
+    new URLSearchParams({
+      market_and_exchange_names: contract,
+      report_date_as_yyyy_mm_dd: reportDate,
+    });
+  const event = {
+    source: 'us-gov-api:cftc-cot',
+    sourceUrl: url,
+    title: `CFTC CoT: ${contract} (${reportDate})`,
+    publishedAt: reportDate + 'T00:00:00Z',
+    rawHash: 'stable',
+    content: 'Retained contract observation',
+    sourceDocument: {
+      canonicalUrl: url,
+      rawHash: 'stable',
+      rawText: 'Retained contract observation',
+      parsedFields: { documentKind: 'cftc_contract_report', contract, reportDate },
+    },
+  };
+  expect(cftcReceiptRepairUrls(event)).toHaveLength(4);
+  expect(cftcReceiptRepairUrls({ ...event, sourceDocument: undefined })).toBeNull();
+  expect(cftcReceiptRepairUrls({ ...event, source: 'news:publisher' })).toBeNull();
+  expect(
+    cftcReceiptRepairUrls({
+      ...event,
+      sourceUrl: 'https://www.cftc.gov/MarketReports/CommitmentsofTraders/index.htm',
+    })
+  ).toBeNull();
+  expect(
+    cftcReceiptRepairUrls({
+      ...event,
+      sourceDocument: { ...event.sourceDocument, rawText: 'Unrelated content' },
+    })
+  ).toBeNull();
+  expect(
+    cftcReceiptRepairUrls({
+      ...event,
+      sourceDocument: { ...event.sourceDocument, canonicalUrl: 'https://publisher.example/other' },
+    })
+  ).toBeNull();
+  expect(
+    cftcReceiptRepairUrls({
+      ...event,
+      sourceDocument: {
+        ...event.sourceDocument,
+        parsedFields: { ...event.sourceDocument.parsedFields, contract: 'GULF OIL' },
+      },
+    })
+  ).toBeNull();
 });

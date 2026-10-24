@@ -52,8 +52,10 @@ does not grant corroboration credit or upgrade a news item into a verified signa
 The complete qualified news collection remains available through “all stories,”
 with edition and region preserved. Published snapshots and signal history remain
 intact. No category is filled with seed or synthetic fallback content. `ready`,
-`empty`, and `unavailable` are explicit states, and an unavailable category prevents
-a new dated snapshot.
+`empty`, and `unavailable` are explicit states. Source or datastore failures prevent
+a new dated snapshot. An optional community-model outage may leave its section
+explicitly unavailable while verified news publishes; it never admits an unsupported
+report or hides an already qualified report.
 
 Today and yesterday remain anonymous and cacheable. There is no separate Brief
 archive product: `/signals` is the chronological record, `/brief/archive`

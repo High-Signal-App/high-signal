@@ -21,6 +21,7 @@ import {
 export { canonicalSourceUrl } from '@high-signal/shared';
 import { buildPatterns, matchEntity, type GazetteerEntity } from '../lib/gazetteer';
 import { sha16 } from '../lib/ids';
+import { cftcReceiptRepairUrls, isSameCftcObservation } from '../lib/cftc-receipt-repair';
 import { generateCommunityDigest } from '../lib/community-research';
 import {
   isRedditPeriod,
@@ -316,6 +317,19 @@ adminRoute.post('/events', async (c) => {
         : {}),
     };
     try {
+      const legacyUrls = cftcReceiptRepairUrls(e);
+      if (legacyUrls) {
+        const [existing] = await db(c.env.DB)
+          .select()
+          .from(schema.events)
+          .where(eq(schema.events.rawHash, e.rawHash))
+          .limit(1);
+        if (existing && !isSameCftcObservation(e, existing)) {
+          // A conflicting replay cannot mutate an already associated receipt either.
+          inserted++;
+          continue;
+        }
+      }
       const primaryEntityId = await resolveEventEntity(c.env.DB, e.primaryEntityId, entityCache);
       if (e.primaryEntityId && !primaryEntityId) {
         const parsedFields = {
@@ -348,7 +362,7 @@ adminRoute.post('/events', async (c) => {
         })
         .returning({ id: schema.sourceDocuments.id });
       if (!persistedDocument) throw new Error('source_document_upsert_returned_no_row');
-      await db(c.env.DB)
+      const eventInsert = db(c.env.DB)
         .insert(schema.events)
         .values({
           id,
@@ -361,8 +375,24 @@ adminRoute.post('/events', async (c) => {
           rawHash: e.rawHash,
           sourceDocumentId: persistedDocument.id,
           fetchRunId: e.fetchRunId ?? null,
-        })
-        .onConflictDoNothing({ target: schema.events.rawHash });
+        });
+      if (legacyUrls) {
+        // Same immutable observation, corrected per-contract receipt/link.
+        // Never update event copy, identity, dates or generation associations.
+        await eventInsert.onConflictDoUpdate({
+          target: schema.events.rawHash,
+          set: { sourceUrl: e.sourceUrl, sourceDocumentId: persistedDocument.id },
+          setWhere: and(
+            eq(schema.events.source, e.source),
+            inArray(schema.events.sourceUrl, legacyUrls),
+            eq(schema.events.title, e.title ?? ''),
+            eq(schema.events.content, e.content ?? ''),
+            eq(schema.events.publishedAt, new Date(e.publishedAt))
+          ),
+        });
+      } else {
+        await eventInsert.onConflictDoNothing({ target: schema.events.rawHash });
+      }
       inserted++;
     } catch (err) {
       // Log the actual error so silent D1 insert failures are debuggable.

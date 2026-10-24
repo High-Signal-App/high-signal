@@ -38,7 +38,7 @@ from xml.etree import ElementTree as ET
 
 import httpx
 
-from ..types import Event
+from ..types import Event, SourceDocument
 from ..utils import event_hash
 
 USER_AGENT = "high-signal/0.1 us-gov-api-ingest"
@@ -138,6 +138,18 @@ def _fetch_cftc_cot(days: int) -> list[Event]:
                 content=content,
                 primary_entity_id=None,
                 raw_hash=raw_hash,
+                source_document=SourceDocument(
+                    canonical_url=source_url,
+                    fetched_at=_now(),
+                    published_at=published,
+                    raw_hash=raw_hash,
+                    raw_text=content,
+                    parsed_fields={
+                        "documentKind": "cftc_contract_report",
+                        "contract": market,
+                        "reportDate": report_date,
+                    },
+                ),
             )
         )
     return out
