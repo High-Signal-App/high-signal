@@ -68,7 +68,18 @@ function buildDailyBriefReceipt(snapshot: BriefSnapshot) {
   const issues: Array<{ section: string; item: number | null; reason: string }> =
     signalReceipt.issues.filter(
       (issue) =>
-        !(news.length > 0 && issue.section === 'edition' && issue.reason === 'edition_has_no_items')
+        !(
+          news.length > 0 &&
+          issue.section === 'edition' &&
+          issue.reason === 'edition_has_no_items'
+        ) &&
+        // Optional research outages remain visible without blocking verified news.
+        !(
+          news.length > 0 &&
+          issue.item === null &&
+          (issue.section === 'ideas' || issue.section === 'trends') &&
+          issue.reason === 'community_research_unavailable'
+        )
     );
 
   news.forEach((item, index) => {

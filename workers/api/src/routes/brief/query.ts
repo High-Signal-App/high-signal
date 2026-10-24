@@ -705,7 +705,6 @@ export async function buildIdeas(
   region: Region,
   countries: string[]
 ): Promise<BriefIdeaItem[]> {
-  await assertCommunityResearchAvailable(database.$client);
   if (region !== 'global') return [];
   const digestRows = await recentPublicDigests(database);
 
@@ -755,6 +754,7 @@ export async function buildIdeas(
   // don't carry a region tag yet); accept the param for future tightening.
   void countries;
 
+  if (!ideas.length) await assertCommunityResearchAvailable(database.$client);
   return ideas;
 }
 
@@ -763,7 +763,6 @@ export async function buildTrends(
   region: Region,
   countries: string[]
 ): Promise<BriefTrendItem[]> {
-  await assertCommunityResearchAvailable(database.$client);
   if (region !== 'global') return [];
   const digestRows = await recentPublicDigests(database);
 
@@ -811,6 +810,7 @@ export async function buildTrends(
     if (trends.length >= TRENDS_LIMIT) break;
   }
   void countries;
+  if (!trends.length) await assertCommunityResearchAvailable(database.$client);
   return trends;
 }
 

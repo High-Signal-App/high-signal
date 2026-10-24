@@ -18,7 +18,7 @@ const mocks = vi.hoisted(() => ({
   buildImprovements: vi.fn(async () => []),
   buildWatching: vi.fn(async () => []),
   buildIntentBriefItems: vi.fn(async () => []),
-  insertBriefSnapshot: vi.fn(async () => undefined),
+  insertBriefSnapshot: vi.fn(async (_options: { set: { briefJson: string } }) => undefined),
 }));
 
 vi.mock('../db', async (importOriginal) => {
@@ -838,6 +838,30 @@ describe('brief precompute', () => {
     expect(mocks.buildStocks).toHaveBeenCalledTimes(5);
     expect(mocks.buildNews.mock.calls.every((call) => call.length === 3)).toBe(true);
     for (const call of mocks.buildStocks.mock.calls) expect(call[2]).toBe(result.date);
+  });
+
+  it('publishes valid news while preserving an optional research outage', async () => {
+    const outage = Object.assign(new Error('community_research_unavailable'), {
+      code: 'community_research_unavailable',
+    });
+    mocks.buildIdeas.mockRejectedValue(outage);
+    mocks.buildTrends.mockRejectedValue(outage);
+    const result = await precomputeBriefSnapshots(env);
+    expect(result.globalPublished).toBe(true);
+    expect(mocks.insertBriefSnapshot).toHaveBeenCalledTimes(5);
+    const snapshot = JSON.parse(mocks.insertBriefSnapshot.mock.calls[0][0].set.briefJson);
+    expect(snapshot.categoryStates.ideas).toMatchObject({
+      status: 'unavailable',
+      reason: 'community_research_unavailable',
+    });
+    expect(snapshot.categoryStates.trends.status).toBe('unavailable');
+  });
+
+  it('still rejects news publication when a category datastore fails', async () => {
+    mocks.buildIdeas.mockRejectedValue(new Error('D1 read failed'));
+    const result = await precomputeBriefSnapshots(env);
+    expect(result.globalPublished).toBe(false);
+    expect(mocks.insertBriefSnapshot).not.toHaveBeenCalled();
   });
 
   it('reuses a sanitized current edition when an incremental news rebuild is empty', async () => {

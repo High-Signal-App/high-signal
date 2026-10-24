@@ -293,6 +293,75 @@ describe('public community retained source to reader', () => {
     );
   });
 
+  it('retains malformed completion text and its failure stage without provider secrets', async () => {
+    await seedResearch();
+    complete.mockResolvedValue('```json\n{"publish":true');
+    expect(
+      await researchPublicCommunity(
+        { DB: database.binding, FREE_AI: freeGateway },
+        communityId,
+        leadId
+      )
+    ).toMatchObject({ status: 'unavailable', reason: 'invalid_model_response' });
+    const audit = await database.binding
+      .prepare('SELECT response_json FROM llm_runs')
+      .first<{ response_json: string }>();
+    expect(JSON.parse(audit!.response_json)).toEqual({
+      output: { generationText: '```json\n{"publish":true' },
+      failure: { stage: 'generation', kind: 'invalid_json', statusCode: null },
+    });
+    expect(await count('claim_records')).toBe(0);
+  });
+
+  it('records provider status without retaining error messages or headers', async () => {
+    await seedResearch();
+    complete.mockRejectedValue(
+      Object.assign(new Error('secret provider detail'), {
+        statusCode: 503,
+        headers: { authorization: 'secret header' },
+      })
+    );
+    expect(
+      await researchPublicCommunity(
+        { DB: database.binding, FREE_AI: freeGateway },
+        communityId,
+        leadId
+      )
+    ).toMatchObject({ status: 'unavailable', reason: 'research_or_model_unavailable' });
+    const audit = await database.binding
+      .prepare('SELECT response_json FROM llm_runs')
+      .first<{ response_json: string }>();
+    expect(JSON.parse(audit!.response_json)).toEqual({
+      output: null,
+      failure: { stage: 'generation', kind: 'request_or_storage_error', statusCode: 503 },
+    });
+    expect(audit!.response_json).not.toContain('secret');
+  });
+
+  it('keeps already qualified reports readable when later research is unavailable', async () => {
+    await seedResearch();
+    expect(
+      (
+        await researchPublicCommunity(
+          { DB: database.binding, FREE_AI: freeGateway },
+          communityId,
+          leadId
+        )
+      ).status
+    ).toBe('published');
+    await database.binding
+      .prepare(`INSERT INTO llm_runs
+      (id,model,prompt_version,accepted,reason,request_json,response_json,created_at)
+      VALUES('later-failure','auto','community-report-v1',0,'research_or_model_unavailable',
+      '{"communityId":"another-public-community"}','null',unixepoch()+1)`)
+      .run();
+    expect(await buildTrends(db(database.binding), 'global', [])).toHaveLength(1);
+    await expect(buildIdeas(db(database.binding), 'global', [])).rejects.toThrow(
+      'community_research_unavailable'
+    );
+    expect(await buildIdeas(db(database.binding), 'south-asia', [])).toEqual([]);
+  });
+
   it('rolls back the digest, claim and evidence if its successful model audit cannot commit', async () => {
     await seedResearch();
     database.exec(`CREATE TRIGGER fail_accepted_community_audit BEFORE INSERT ON llm_runs

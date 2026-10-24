@@ -308,13 +308,16 @@ export async function researchPublicCommunity(
   };
   let result: ResearchResult;
   let response: unknown = null;
+  let stage = 'generation';
+  let failureReason = 'research_or_model_unavailable';
   try {
     if (documents.length < 2)
       result = { status: 'withheld', reason: 'insufficient_retained_documents' };
     else {
-      const generated = communityReportSchema.safeParse(
-        parseJson(await complete(env, REPORT_PROMPT, request))
-      );
+      const generationText = await complete(env, REPORT_PROMPT, request);
+      response = { generationText };
+      failureReason = 'invalid_model_response';
+      const generated = communityReportSchema.safeParse(parseJson(generationText));
       if (!generated.success) result = { status: 'unavailable', reason: 'invalid_model_response' };
       else if (!generated.data.publish) {
         response = generated.data;
@@ -337,14 +340,19 @@ export async function researchPublicCommunity(
               : null,
           };
         });
-        const verified = communityVerificationSchema.safeParse(
-          parseJson(await complete(env, VERIFY_PROMPT, { report, selected }))
-        );
-        response = { report, verification: verified.success ? verified.data : null };
+        stage = 'verification';
+        failureReason = 'research_or_model_unavailable';
+        const verificationText = await complete(env, VERIFY_PROMPT, { report, selected });
+        response = { report, verificationText };
+        failureReason = 'invalid_verification_response';
+        const verified = communityVerificationSchema.safeParse(parseJson(verificationText));
+        if (verified.success) response = { report, verification: verified.data };
         if (!verified.success)
           result = { status: 'unavailable', reason: 'invalid_verification_response' };
         else {
           const proof = communityReportProof(report, verified.data, documents);
+          stage = 'publication';
+          failureReason = 'research_or_model_unavailable';
           result =
             'error' in proof
               ? { status: 'withheld', reason: proof.error }
@@ -355,8 +363,22 @@ export async function researchPublicCommunity(
         }
       }
     }
-  } catch {
-    result = { status: 'unavailable', reason: 'research_or_model_unavailable' };
+  } catch (error) {
+    response = {
+      output: response,
+      failure: {
+        stage,
+        kind: error instanceof SyntaxError ? 'invalid_json' : 'request_or_storage_error',
+        statusCode:
+          error &&
+          typeof error === 'object' &&
+          'statusCode' in error &&
+          typeof error.statusCode === 'number'
+            ? error.statusCode
+            : null,
+      },
+    };
+    result = { status: 'unavailable', reason: failureReason };
   }
   if (result.status !== 'published' && result.status !== 'already_published')
     await researchAudit(env.DB, community, lead, result, request, response).run();
@@ -515,6 +537,8 @@ export async function assertCommunityResearchAvailable(d1: D1Database): Promise<
         'invalid_verification_response',
       ].includes(row.reason)
     )
-      throw new Error('community_research_unavailable');
+      throw Object.assign(new Error('community_research_unavailable'), {
+        code: 'community_research_unavailable',
+      });
   }
 }
