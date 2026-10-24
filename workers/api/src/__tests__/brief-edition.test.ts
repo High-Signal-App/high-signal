@@ -7,10 +7,11 @@ import {
 } from '@high-signal/shared';
 
 function story(id: string, change: Partial<BriefNewsItem> = {}): BriefNewsItem {
+  const title = change.title ?? `${id} launches a production database`;
   return {
     id,
-    title: `${id} launches a production database`,
-    summary: 'The company released a production database with a published migration timeline.',
+    title,
+    summary: `${title}. The company provided the details and timeline in its announcement.`,
     event_at: '2026-10-24T06:00:00Z',
     what_changed: '',
     evidence_status: 'reported',
@@ -163,5 +164,60 @@ describe('finite front edition', () => {
     expect(briefNewsPageHref({ page: 1, day: 'yesterday', region: 'south-asia' })).toBe(
       '/?region=south-asia&day=yesterday#news'
     );
+  });
+
+  it('rejects the observed weather, routine government and unrelated excerpt failures', () => {
+    const bad = [
+      story('intel-memo', {
+        title: 'Scoop: U.S. intel memo warns of advanced Iranian plots to kill officials abroad',
+      }),
+      story('weather', {
+        title:
+          'Small Craft Advisory: Coastal waters east of Ipswich Bay and the Stellwagen Bank National Marine Sanctuary',
+        summary:
+          'Severe Thunderstorm Warning — Buena Vista, IA; Clay, IA. The warning will expire.',
+      }),
+      story('bill', { title: 'Congress: To amend the Internal Revenue Code for agricultural use' }),
+      story('digest', {
+        title: 'Infosys AI revenue jumps 29%; Apple’s foldable iPhone fully pre-booked in week 1',
+        summary:
+          'Dear Reader, Cybercriminals turned a software disclosure into an opportunity. Cloudflare detected attempts to exploit vulnerabilities in PHP.',
+      }),
+      story('navigation', {
+        title: 'IBM CEO says open weight models are now irresistibly good and cheap on-prem',
+        summary:
+          'AI - Nvidia woos wary Europeans with more open weights models. New embedding and reranking models promise smarter agentic RAG workflows.',
+      }),
+    ];
+    const supported = story('minimax', {
+      title: 'MiniMax releases open weights for M3.1 Flash model',
+      summary:
+        'MiniMax released the weights for its M3.1 Flash model for developers to download and deploy.',
+    });
+    const brief = edition([...bad, supported]);
+    expect(selectBriefEdition(brief).items.map(({ story }) => story.id)).toEqual(['minimax']);
+    expect(brief.news).toHaveLength(6);
+  });
+
+  it('groups the same named biosecurity investment with matching currency amount', () => {
+    const news = [
+      story('bbc', { title: 'UK to invest £100m in world first AI Biosecurity Lab' }),
+      story('bloomberg', {
+        title: 'UK Vows £100 Million for Biosecurity Lab With OpenAI, Anthropic',
+      }),
+      story('other-lab', {
+        title: 'UK Vows £200 Million for Biosecurity Lab With OpenAI, Anthropic',
+      }),
+      story('different-unit', {
+        title: 'UK Vows £100 Billion for Biosecurity Lab With OpenAI, Anthropic',
+      }),
+      story('intel-chip', { title: 'Intel releases a new chip architecture' }),
+    ];
+    const result = selectBriefEdition(edition(news));
+    expect(result.items).toHaveLength(4);
+    expect(
+      result.items.find(({ story }) => story.id === 'bbc')?.related.map(({ id }) => id)
+    ).toEqual(['bloomberg']);
+    expect(result.items.some(({ story }) => story.id === 'intel-chip')).toBe(true);
   });
 });

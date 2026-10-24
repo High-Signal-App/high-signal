@@ -414,6 +414,13 @@ export function hasBriefNewsTopic(record: NewsRecord): boolean {
   return tokens.some((token) => BRIEF_NEWS_TOPICS.has(token));
 }
 
+function headlineAmount(title: string | null): string | null {
+  const match = title?.match(/([$£€₹])\s*(\d+(?:\.\d+)?)\s*(million|billion|trillion|[mbt]\b)?/i);
+  if (!match) return null;
+  const scale = { m: 1e6, b: 1e9, t: 1e12 }[match[3]?.[0].toLowerCase() ?? ''] ?? 1;
+  return `${match[1]}${Number(match[2]) * scale}`;
+}
+
 export function clusterNewsRecords(
   records: readonly NewsRecord[],
   { editorial = false }: { editorial?: boolean } = {}
@@ -447,6 +454,9 @@ export function clusterNewsRecords(
   const headlineSubjects = records.map((record) =>
     (record.title ?? '').match(/^[A-Z][A-Za-z0-9]+/)?.[0].toLowerCase()
   );
+  const headlineAmounts = records.map((record) =>
+    editorial ? headlineAmount(record.title) : null
+  );
   const sameEvent = (i: number, j: number) => {
     if (urls[i] && urls[i] === urls[j]) return true;
     // Front-edition grouping may join differently phrased accounts. It grants
@@ -462,6 +472,13 @@ export function clusterNewsRecords(
     const entityI = records[i].primaryEntityId?.trim();
     const entityJ = records[j].primaryEntityId?.trim();
     if (entityI && entityJ && entityI !== entityJ) return false;
+    if (
+      editorial &&
+      headlineAmounts[i] &&
+      headlineAmounts[j] &&
+      headlineAmounts[i] !== headlineAmounts[j]
+    )
+      return false;
     // Topic words and a shared investor are not the subject of a news event.
     // Ambiguous titles stay separate rather than acquire unrelated citations.
     const strictSubject = subjects[i] && subjects[i] === subjects[j];
@@ -477,11 +494,13 @@ export function clusterNewsRecords(
     if (!setsIntersect(eventTokens[i], eventTokens[j])) {
       // Distinct explicit events (e.g. an acquisition and a launch) stay apart.
       // Missing event verbs need stronger distinctive headline overlap.
+      const sameAmount = headlineAmounts[i] && headlineAmounts[i] === headlineAmounts[j];
+      const sharedTerms = [...tokens[i]].filter((token) => tokens[j].has(token));
       return Boolean(
         headlineSubject &&
           !(eventTokens[i].size && eventTokens[j].size) &&
-          sharedContext.length >= 3 &&
-          jaccard(tokens[i], tokens[j]) >= 0.25
+          ((sharedContext.length >= 3 && jaccard(tokens[i], tokens[j]) >= 0.25) ||
+            (sharedContext.length >= 1 && sharedTerms.length >= 2 && sameAmount))
       );
     }
     return jaccard(tokens[i], tokens[j]) >= JACCARD_THRESHOLD || sharedContext.length >= 2;

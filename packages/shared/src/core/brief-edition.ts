@@ -14,10 +14,36 @@ const CONSEQUENCE =
 const CHANGE =
   /\b(?:launch(?:es|ed)?|releas(?:e|es|ed)|ships?|acquir(?:e|es|ed)|acquisition|merger|earnings|profit|revenue|ipo|raises?|funding|rates?|tariffs?|regulat(?:ion|or))\b/i;
 const FUNDING = /\b(?:raises?|funding|series [a-f]|venture fund)\b/i;
+const ROUTINE_RECORD =
+  /^(?:Congress:|CFTC CoT:|(?:small craft|weather|wind|flood|thunderstorm|tornado|winter storm) (?:advisory|warning|watch)\b)/i;
+const HEADLINE_STOP = new Set(
+  'the a an and or for from with into that this these those what why how who its are was were has have had will would could should says said new now more most after before during about their they them than then also while here there does can not our your you his her but on off out over under per'.split(
+    ' '
+  )
+);
+const GENERIC_ANCHOR = new Set(
+  'ai api model models open weight weights company companies software technology tech data security cloud market markets revenue report reports'.split(
+    ' '
+  )
+);
+
+function headlineTerms(value: string): string[] {
+  return [...new Set(value.toLowerCase().match(/[a-z0-9]+/g) ?? [])].filter(
+    (word) => word.length > 2 && !HEADLINE_STOP.has(word)
+  );
+}
+
+/** Reject off-topic scraped navigation/digest intros even when the URL is valid. */
+function hasAlignedExcerpt(item: BriefNewsItem): boolean {
+  const title = headlineTerms(item.title);
+  const body = new Set(headlineTerms(item.summary));
+  const matched = title.filter((word) => body.has(word));
+  return matched.length >= 2 && matched.some((word) => !GENERIC_ANCHOR.has(word));
+}
 // The raw collection is intentionally broad. Front-page selection requires an
 // explicit technology, startup or finance hook in the headline itself.
 const LENS =
-  /\b(?:ai|api|apps?|software|database|cloud|data|security|breach|cyber|vulnerabilit(?:y|ies)|chips?|semiconductors?|robots?|robotics|gpu|cpu|model|models|internet|startup|founders?|funding|raises?|venture|ipo|shares?|stocks?|markets?|earnings|profit|revenue|economy|economic|treasury|tariffs?|rates?|bank|banking|finance|financial|fintech|trade|investment|investors?|openai|anthropic|nvidia|intel|apple|google|microsoft|meta|spacex)\b/i;
+  /\b(?:ai|api|apps?|software|database|cloud|data|security|breach|cyber|vulnerabilit(?:y|ies)|chips?|semiconductors?|robots?|robotics|gpu|cpu|model|models|internet|startup|founders?|funding|raises?|venture|ipo|shares?|stocks?|markets?|earnings|profit|revenue|economy|economic|treasury|tariffs?|rates?|banking|finance|financial|fintech|trade|investment|investors?|openai|anthropic|nvidia|apple|google|microsoft|spacex)\b/i;
 
 export interface BriefEditionStory {
   story: BriefNewsItem;
@@ -57,8 +83,10 @@ export function selectBriefEdition(brief: BriefSnapshot) {
       Number.isFinite(at) &&
       at <= editionEnd &&
       editionEnd - at <= MAX_AGE_MS &&
-      LENS.test(item.title) &&
-      !PROMOTION.test(item.title)
+      (LENS.test(item.title) || /\b(?:Intel|Meta)\b/.test(item.title)) &&
+      !PROMOTION.test(item.title) &&
+      !ROUTINE_RECORD.test(item.title) &&
+      hasAlignedExcerpt(item)
     );
   });
   const byId = new Map(eligible.map((item) => [item.id, item]));
