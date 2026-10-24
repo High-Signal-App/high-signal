@@ -62,13 +62,9 @@ function exactKeys(value: unknown, keys: string[]): value is Record<string, unkn
   );
 }
 
-function validState(value: unknown): value is ReceiptState {
-  if (!exactKeys(value, ['event', 'document'])) return false;
-  const state = value as unknown as ReceiptState;
-  if (!exactKeys(state.event, EVENT_KEYS) || !exactKeys(state.document, DOCUMENT_KEYS))
-    return false;
-  const e = state.event;
-  const d = state.document;
+function validEvent(value: unknown): value is ReceiptState['event'] {
+  if (!exactKeys(value, EVENT_KEYS)) return false;
+  const e = value as unknown as ReceiptState['event'];
   return (
     typeof e.id === 'string' &&
     typeof e.source === 'string' &&
@@ -79,7 +75,14 @@ function validState(value: unknown): value is ReceiptState {
     (e.primaryEntityId === null || typeof e.primaryEntityId === 'string') &&
     typeof e.rawHash === 'string' &&
     (e.fetchRunId === null || typeof e.fetchRunId === 'string') &&
-    typeof e.sourceDocumentId === 'string' &&
+    typeof e.sourceDocumentId === 'string'
+  );
+}
+
+function validDocument(value: unknown): value is ReceiptState['document'] {
+  if (!exactKeys(value, DOCUMENT_KEYS)) return false;
+  const d = value as unknown as ReceiptState['document'];
+  return (
     typeof d.id === 'string' &&
     typeof d.source === 'string' &&
     typeof d.canonicalUrl === 'string' &&
@@ -90,6 +93,14 @@ function validState(value: unknown): value is ReceiptState {
     (d.rawText === null || typeof d.rawText === 'string') &&
     (d.rawJson === null || typeof d.rawJson === 'string') &&
     (d.parsedFields === null || typeof d.parsedFields === 'string')
+  );
+}
+
+function validState(value: unknown): value is ReceiptState {
+  return (
+    exactKeys(value, ['event', 'document']) &&
+    validEvent(value['event']) &&
+    validDocument(value['document'])
   );
 }
 
