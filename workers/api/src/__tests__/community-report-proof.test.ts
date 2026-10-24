@@ -84,8 +84,18 @@ describe('community report retained proof', () => {
     );
     const missingPassage = reportFixture();
     missingPassage.citations[0].passageId = 'missing-passage';
-    expect(communityReportProof(missingPassage, verificationFixture(), documents())).toEqual({
+    const verification = verificationFixture();
+    verification.evidence[0].passageId = 'missing-passage';
+    expect(communityReportProof(missingPassage, verification, documents())).toEqual({
       error: 'invalid_passage',
+    });
+  });
+
+  it('withholds an assessment for a different passage even within the same retained document', () => {
+    const verification = verificationFixture();
+    verification.evidence[0].passageId = 'P1';
+    expect(communityReportProof(reportFixture(), verification, documents())).toEqual({
+      error: 'unverified_passage',
     });
   });
 
