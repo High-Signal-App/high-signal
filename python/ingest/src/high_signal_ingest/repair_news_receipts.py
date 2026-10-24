@@ -19,7 +19,7 @@ import httpx
 
 from . import audit
 from .sources import news, registered_feeds
-from .types import Event
+from .types import Event, SourceDocument
 from .utils import event_hash
 
 
@@ -99,23 +99,145 @@ async def prepare_repairs(ids: list[str], api_base: str, client: httpx.AsyncClie
     return events
 
 
-def preview_payload(events: list[Event]) -> dict:
-    return {
-        "events": [
-            {
-                "source": event.source,
-                "sourceUrl": event.source_url,
-                "publishedAt": event.published_at.isoformat(),
-                "title": event.title,
-                "content": event.content,
-                "primaryEntityId": event.primary_entity_id,
-                "rawHash": event.raw_hash,
-                "fetchRunId": None,
-                "sourceDocument": audit._source_document_payload(event),
-            }
-            for event in events
-        ]
+MAX_PREPARED_BYTES = 60_000
+
+
+def _prepared_object(value: object, keys: set[str]) -> dict:
+    if not isinstance(value, dict) or set(value) != keys:
+        raise ValueError("Prepared replay has unexpected fields")
+    return value
+
+
+def _prepared_time(value: object) -> datetime:
+    if not isinstance(value, str):
+        raise ValueError("Prepared receipt date is required")
+    parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    if parsed.tzinfo is None:
+        raise ValueError("Prepared receipt date must include a timezone")
+    return parsed.astimezone(timezone.utc)
+
+
+def _prepared_provenance(document: dict, record: dict) -> dict:
+    fields = _prepared_object(
+        document["parsedFields"],
+        {
+            "documentKind",
+            "retrievedFrom",
+            "receiptRepairEventId",
+            "retrievedUrl",
+            "previousDocumentFetchedAt",
+        },
+    )
+    expected = {
+        "documentKind": "news_article",
+        "retrievedFrom": "public_article_page",
+        "receiptRepairEventId": record["id"],
+        "previousDocumentFetchedAt": record.get("documentFetchedAt"),
     }
+    if any(fields[key] != value for key, value in expected.items()):
+        raise ValueError("Prepared receipt provenance mismatch")
+    registered_feeds.public_url(fields["retrievedUrl"])
+    if document["rawJson"] != {"previousPublicRecord": record}:
+        raise ValueError("Prepared receipt audit snapshot is stale or mismatched")
+    return fields
+
+
+def _prepared_receipt(document: object, record: dict, published: datetime) -> SourceDocument:
+    fields = _prepared_object(
+        document,
+        {
+            "canonicalUrl",
+            "documentKey",
+            "fetchedAt",
+            "publishedAt",
+            "rawHash",
+            "rawText",
+            "rawJson",
+            "parsedFields",
+        },
+    )
+    if (
+        fields["canonicalUrl"] != (record.get("canonicalUrl") or record["url"])
+        or fields["documentKey"] is not None
+    ):
+        raise ValueError("Prepared receipt canonical identity mismatch")
+    if _prepared_time(fields["publishedAt"]) != published:
+        raise ValueError("Prepared receipt publication date mismatch")
+    body = fields["rawText"]
+    if not isinstance(body, str):
+        raise ValueError("Prepared receipt article text is required")
+    receipt = news._article_receipt(body, record["title"], fields["canonicalUrl"], published)
+    if receipt is None or receipt.raw_text != body or receipt.raw_hash != fields["rawHash"]:
+        raise ValueError("Prepared receipt article or content hash is invalid")
+    fetched = _prepared_time(fields["fetchedAt"])
+    if (
+        fetched.timestamp() < (record.get("documentFetchedAt") or 0)
+        or fetched.timestamp() > datetime.now(timezone.utc).timestamp() + 300
+    ):
+        raise ValueError("Prepared receipt retrieval date is invalid")
+    receipt.fetched_at = fetched
+    receipt.parsed_fields = _prepared_provenance(fields, record)
+    receipt.raw_json = fields["rawJson"]
+    return receipt
+
+
+def _prepared_event(item: dict, record: dict) -> Event:
+    raw_hash = original_event_hash(record)
+    registered_feeds.public_url(record["url"])
+    published = datetime.fromtimestamp(record["publishedAt"], tz=timezone.utc)
+    expected = {
+        "source": record["source"],
+        "sourceUrl": record["url"],
+        "publishedAt": published.isoformat(),
+        "title": record["title"],
+        "content": record["content"],
+        "primaryEntityId": record.get("entity"),
+        "rawHash": raw_hash,
+        "fetchRunId": None,
+    }
+    _prepared_object(item, {*expected, "sourceDocument"})
+    if any(item[key] != value for key, value in expected.items()):
+        raise ValueError("Prepared replay changed an original event field")
+    receipt = _prepared_receipt(item["sourceDocument"], record, published)
+    return Event(
+        id=record["id"],
+        source=record["source"],
+        source_url=record["url"],
+        published_at=published,
+        title=record["title"],
+        content=record["content"],
+        primary_entity_id=record.get("entity"),
+        raw_hash=raw_hash,
+        source_document=receipt,
+    )
+
+
+async def prepared_repairs(
+    ids: list[str], api_base: str, client: httpx.AsyncClient, path: Path
+) -> list[Event]:
+    ids = event_ids(",".join(ids))
+    with path.open("rb") as stream:
+        encoded = stream.read(MAX_PREPARED_BYTES + 1)
+    if len(encoded) > MAX_PREPARED_BYTES:
+        raise ValueError("Prepared replay exceeds the 60000-byte limit")
+    payload = _prepared_object(json.loads(encoded), {"events"})
+    items = payload["events"]
+    if not isinstance(items, list) or len(items) != len(ids):
+        raise ValueError("Prepared replay must match the explicit event allowlist")
+    by_id: dict[str, dict] = {}
+    for item in items:
+        if not isinstance(item, dict) or not isinstance(item.get("rawHash"), str):
+            raise ValueError("Prepared replay requires original event identities")
+        identity = hashlib.sha256(item["rawHash"].encode()).hexdigest()[:16]
+        if identity not in ids or identity in by_id:
+            raise ValueError("Prepared replay has an unlisted or duplicate event")
+        by_id[identity] = item
+    records = [await public_record(client, api_base, identity) for identity in ids]
+    return [_prepared_event(by_id[record["id"]], record) for record in records]
+
+
+def preview_payload(events: list[Event]) -> dict:
+    return {"events": [audit._event_payload(event, None) for event in events]}
 
 
 def main() -> None:
@@ -126,9 +248,18 @@ def main() -> None:
     )
     parser.add_argument("--preview-file", type=Path, required=True)
     parser.add_argument(
+        "--prepared-file",
+        type=Path,
+        help="Validate a prior public article preview instead of refetching publishers",
+    )
+    parser.add_argument(
         "--apply", action="store_true", help="Use the normal authenticated audit ingest API"
     )
     args = parser.parse_args()
+    if args.apply and (
+        not audit._enabled() or (audit._api_base() or "").rstrip("/") != args.api_base.rstrip("/")
+    ):
+        raise SystemExit("Authenticated ingest must target the same API as the public preview")
 
     async def prepare() -> list[Event]:
         async with httpx.AsyncClient(
@@ -136,6 +267,10 @@ def main() -> None:
             timeout=20,
             follow_redirects=False,
         ) as client:
+            if args.prepared_file:
+                return await prepared_repairs(
+                    args.event_ids, args.api_base, client, args.prepared_file
+                )
             return await prepare_repairs(args.event_ids, args.api_base, client)
 
     events = asyncio.run(prepare())
@@ -160,8 +295,6 @@ def main() -> None:
         )
     )
     if args.apply:
-        if not audit._enabled():
-            raise SystemExit("Authenticated ingest persistence is unavailable")
         acknowledged = audit.push_events(events, None)
         print(json.dumps({"acknowledged": acknowledged, "expected": len(events)}))
         if acknowledged != len(events):

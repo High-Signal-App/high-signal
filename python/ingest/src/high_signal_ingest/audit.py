@@ -103,6 +103,20 @@ def fetch_related_evidence(title: str) -> dict[str, Any] | None:
     return result
 
 
+def _event_payload(event: Event, fetch_run_id: str | None) -> dict:
+    return {
+        "source": event.source,
+        "sourceUrl": event.source_url,
+        "publishedAt": event.published_at.isoformat(),
+        "title": event.title,
+        "content": event.content,
+        "primaryEntityId": event.primary_entity_id,
+        "rawHash": event.raw_hash,
+        "fetchRunId": fetch_run_id,
+        "sourceDocument": _source_document_payload(event),
+    }
+
+
 def push_events(events: Iterable[Event], fetch_run_id: str | None) -> int:
     """Return server-acknowledged events, including already-stored duplicates.
 
@@ -111,20 +125,7 @@ def push_events(events: Iterable[Event], fetch_run_id: str | None) -> int:
     """
     if not _enabled():
         return 0
-    payload = [
-        {
-            "source": e.source,
-            "sourceUrl": e.source_url,
-            "publishedAt": e.published_at.isoformat(),
-            "title": e.title,
-            "content": e.content,
-            "primaryEntityId": e.primary_entity_id,
-            "rawHash": e.raw_hash,
-            "fetchRunId": fetch_run_id,
-            "sourceDocument": _source_document_payload(e),
-        }
-        for e in events
-    ]
+    payload = [_event_payload(event, fetch_run_id) for event in events]
     if not payload:
         return 0
     # Each event performs sequential document/entity/event operations. Keep
