@@ -273,6 +273,20 @@ describe('guarded CFTC per-contract receipt replay', () => {
               .first()
           ).toEqual(receipt);
           expect(await database.binding.prepare('SELECT * FROM events').first()).toEqual(after);
+          await push({
+            ...repaired,
+            sourceDocument: {
+              ...repaired.sourceDocument,
+              rawText: 'Unrelated malformed receipt',
+              parsedFields: {},
+            },
+          });
+          expect(
+            await database.binding
+              .prepare('SELECT canonical_url,raw_text FROM source_documents WHERE id = ?')
+              .bind(after?.['source_document_id'])
+              .first()
+          ).toEqual(receipt);
         }
         const old = await database.binding
           .prepare('SELECT raw_text FROM source_documents WHERE id = ?')

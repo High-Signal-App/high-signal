@@ -318,7 +318,11 @@ adminRoute.post('/events', async (c) => {
     };
     try {
       const legacyUrls = cftcReceiptRepairUrls(e);
-      if (legacyUrls) {
+      if (e.source === 'us-gov-api:cftc-cot') {
+        if (e.sourceDocument && !legacyUrls) {
+          inserted++;
+          continue;
+        }
         const [existing] = await db(c.env.DB)
           .select()
           .from(schema.events)

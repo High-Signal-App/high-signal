@@ -33,7 +33,7 @@ outage stays visible without blocking verified news or hiding prior proven repor
 A guarded CFTC replay repairs only an unchanged observation's legacy shared
 URL/document association; event identity and copy remain intact.
 
-Production refreshes retained 1,823 news records and 1,723 government records
+Production refreshes acknowledged 1,823 news events and 1,723 government events
 without unacknowledged writes. Thirteen repaired/new named publications have
 156 retained records in the 28-day check. The Batch and the ten previously
 missing newsletters still returned HTTP 403; Social Growth Engineers supplies
