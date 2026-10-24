@@ -2,6 +2,15 @@
 
 Last updated: 2026-10-24
 
+October 24 reader/MCP parity and navigation consistency — implementation:
+
+REST and MCP Brief responses include an additive `readerEdition` using the same
+shared selection as the web and compiled reader, while retaining full `news`
+and `stocks` collections. The public footer uses one shared full presentation
+across routes and publication states; Sources remains available there and beside
+the Brief's edition metadata. Footer ownership is the Next root layout or the
+compiled reader layout, with no per-edition switch.
+
 October 24 finite front edition — implementation:
 
 The default Next and compiled reader Brief selects up to eight recent news

@@ -5,7 +5,6 @@ import { AnalyticsProvider } from '@/components/posthog-provider';
 import { AppHealthAnalytics } from '@/components/AppHealthAnalytics';
 import { VitalsReporter } from '@/components/VitalsReporter';
 import { SiteHeader } from '@saas-maker/ui/blocks/site-header';
-import { InteriorFooter } from '@/components/system/InteriorFooter';
 import { SiteFooter } from '@/components/system/SiteFooter';
 import {
   clampDescription,
@@ -109,9 +108,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         ]}
       />
       {children}
-      <InteriorFooter>
-        <SiteFooter mode="compact" />
-      </InteriorFooter>
+      <SiteFooter />
       <VitalsReporter />
       <AppHealthAnalytics />
     </AnalyticsProvider>

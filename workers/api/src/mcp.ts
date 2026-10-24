@@ -198,7 +198,7 @@ function createHighSignalMcpServer(dependencies: HighSignalMcpDependencies) {
     {
       title: 'Get Daily Brief',
       description:
-        'Return the High Signal brief for today or yesterday in India Standard Time. Summarize data.news first (ranked stories from retained records; not market signals). data.news is independent of empty or pending stocks/ideas/trends. Then at most two lines of system-quality commentary (source coverage, publishStatus, nextExpectedPublishAt). Preserve source_references and evidence_status (official, reported, unverified). Do not recast news as directional market calls. Signals remain restricted to the requested IST publication day. When pending, retry after nextExpectedPublishAt.',
+        'Return the High Signal brief for today or yesterday in India Standard Time. Start with data.readerEdition: its news contains the same short, grouped selection as the website (each story has separately attributed related reports); signals contains up to three verified signals. data.news and data.stocks retain the full collection for deeper reads. Fall back to data.news on older responses. News is independent of empty or pending stocks/ideas/trends. Keep source coverage and publication commentary to two lines. Preserve source_references and evidence_status. Related reporting grants no corroboration credit; never recast news as directional market calls. Signals remain restricted to the requested IST publication day. When pending, retry after nextExpectedPublishAt.',
       inputSchema: z.object({
         day: z
           .enum(['today', 'yesterday'])

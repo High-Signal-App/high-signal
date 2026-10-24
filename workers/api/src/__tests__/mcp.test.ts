@@ -153,7 +153,26 @@ describe('High Signal MCP', () => {
       }
       return {
         status: 200,
-        body: { generatedAt: '2026-08-26T20:00:00.000Z', path },
+        body: {
+          generatedAt: '2026-08-26T20:00:00.000Z',
+          path,
+          news: [{ id: 'full-collection-story' }],
+          readerEdition: {
+            news: [
+              {
+                story: {
+                  id: 'selected-story',
+                  source_references: [{ url: 'https://source.example/story', recordId: 'record' }],
+                },
+                related: [{ id: 'related-account' }],
+              },
+            ],
+            signals: [],
+            totalNews: 10,
+            totalSignals: 0,
+            newsReadingMinutes: 4,
+          },
+        },
         cacheStatus: 'API-HIT',
       };
     });
@@ -180,6 +199,21 @@ describe('High Signal MCP', () => {
       tool: 'get_daily_brief',
       snapshotId: 'hs-2026-08-27',
       reportingWindow: { date: '2026-08-27', timeZone: 'Asia/Kolkata' },
+      data: {
+        readerEdition: {
+          news: [
+            {
+              story: {
+                id: 'selected-story',
+                source_references: [{ url: 'https://source.example/story', recordId: 'record' }],
+              },
+              related: [{ id: 'related-account' }],
+            },
+          ],
+          totalNews: 10,
+        },
+        news: [{ id: 'full-collection-story' }],
+      },
     });
     expect(result(yesterday.body)['isError']).not.toBe(true);
   });

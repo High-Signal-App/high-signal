@@ -5,8 +5,8 @@ import { SiteFooter } from '@/components/system/SiteFooter';
 import { SiteOrganizationJsonLd } from '@/components/seo/structured-data';
 import { SITE_URL, SITE_TWITTER } from '@/lib/site';
 
-interface Props { title: string; description: string; pathname: string; index?: boolean; footerMode?: 'full' | 'compact' }
-const { title, description, pathname, index = true, footerMode = 'compact' } = Astro.props;
+interface Props { title: string; description: string; pathname: string; index?: boolean }
+const { title, description, pathname, index = true } = Astro.props;
 const canonical = new URL(pathname, SITE_URL).href;
 ---
 <!doctype html>
@@ -40,7 +40,7 @@ const canonical = new URL(pathname, SITE_URL).href;
   <body class="min-h-dvh font-sans antialiased">
     <ReaderHeader />
     <slot />
-    <SiteFooter mode={footerMode} />
+    <SiteFooter />
     <script src="/studio-footer/14712fdf622b5a02cb1cedb481356b6ad00a5132/footer.js" type="module" is:inline></script>
     <script>
       import '../browser';

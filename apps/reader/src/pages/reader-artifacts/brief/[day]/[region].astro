@@ -1,5 +1,4 @@
 ---
-import { briefFooterMode } from '@/lib/brief-footer';
 import ReaderLayout from '../../../../layouts/ReaderLayout.astro';
 import { BriefContent } from '../../../../components/BriefContent';
 import { briefInput } from '../../../../input';
@@ -12,6 +11,6 @@ export function getStaticPaths() {
 }
 const { entry, capturedAt } = Astro.props;
 ---
-<ReaderLayout title="High Signal — Technology, startups and finance brief" description="Read the daily technology, startup and finance brief with attributed news, evidence-qualified signals, source links, uncertainties and permanent signal history." pathname="/" footerMode={briefFooterMode(entry.brief)}>
+<ReaderLayout title="High Signal — Technology, startups and finance brief" description="Read the daily technology, startup and finance brief with attributed news, evidence-qualified signals, source links, uncertainties and permanent signal history." pathname="/">
   <BriefContent brief={entry.brief} day={entry.day} capturedAt={capturedAt} />
 </ReaderLayout>

@@ -26,6 +26,7 @@ import {
   pruneUnpublishableBriefItems,
   sanitizeBriefNewsItems,
   summarizeBriefDiscovery,
+  withReaderEdition,
   type BriefCategoryStates,
   type BriefSnapshot,
   type Region,
@@ -222,7 +223,7 @@ async function serveDailyBrief(
           : ('pending' as const),
       };
       setServerTiming(c, timings, diagnostics);
-      return c.json(body, cached.status);
+      return c.json(withReaderEdition(body), cached.status);
     }
     setServerTiming(c, timings, diagnostics);
     return c.json(cached.body, cached.status);
@@ -238,14 +239,16 @@ async function serveDailyBrief(
   // Mark it pending so agents don't mistake stale content for today's edition.
   if (!protectedHistory) {
     setServerTiming(c, timings, diagnostics);
-    return c.json({
-      ...snapshot,
-      publishStatus: 'pending' as const,
-      nextExpectedPublishAt: nextExpectedPublishAt(),
-    });
+    return c.json(
+      withReaderEdition({
+        ...snapshot,
+        publishStatus: 'pending' as const,
+        nextExpectedPublishAt: nextExpectedPublishAt(),
+      })
+    );
   }
   setServerTiming(c, timings, diagnostics);
-  return c.json(snapshot);
+  return c.json(withReaderEdition(snapshot));
 }
 
 type SharedDailyBrief = {

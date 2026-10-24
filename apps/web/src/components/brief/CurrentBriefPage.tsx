@@ -1,6 +1,4 @@
 import Link from 'next/link';
-import { SiteFooter } from '@/components/system/SiteFooter';
-import { briefFooterMode } from '@/lib/brief-footer';
 import type { Route } from 'next';
 import { BriefEnding, NewsFeed, SignalFeed } from '@/components/brief/BriefSections';
 import { DailyBriefHero } from '@/components/brief/DailyBriefHero';
@@ -30,58 +28,55 @@ export async function CurrentBriefPage({
         : 'earlier';
 
   return (
-    <>
-      <PageShell>
-        <HomeJsonLd />
-        <nav
-          aria-label="Daily Brief date"
-          className="mb-6 flex flex-wrap items-center gap-x-5 gap-y-2 border-b border-[var(--color-line)] pb-4 font-mono text-[10px] tracking-[0.16em]"
+    <PageShell>
+      <HomeJsonLd />
+      <nav
+        aria-label="Daily Brief date"
+        className="mb-6 flex flex-wrap items-center gap-x-5 gap-y-2 border-b border-[var(--color-line)] pb-4 font-mono text-[10px] tracking-[0.16em]"
+      >
+        <Link
+          href={(region === 'global' ? '/' : `/?region=${region}`) as Route}
+          aria-current={selectedDay === 'today' ? 'page' : undefined}
+          className={
+            selectedDay === 'today'
+              ? 'inline-flex min-h-11 items-center text-[var(--color-accent)]'
+              : 'inline-flex min-h-11 items-center text-[var(--color-muted)] hover:text-[var(--color-fg)]'
+          }
         >
-          <Link
-            href={(region === 'global' ? '/' : `/?region=${region}`) as Route}
-            aria-current={selectedDay === 'today' ? 'page' : undefined}
-            className={
-              selectedDay === 'today'
-                ? 'inline-flex min-h-11 items-center text-[var(--color-accent)]'
-                : 'inline-flex min-h-11 items-center text-[var(--color-muted)] hover:text-[var(--color-fg)]'
-            }
-          >
-            today
-          </Link>
-          <Link
-            href={
-              `/?${new URLSearchParams({ ...(region === 'global' ? {} : { region }), day: 'yesterday' }).toString()}` as Route
-            }
-            aria-current={selectedDay === 'yesterday' ? 'page' : undefined}
-            className={
-              selectedDay === 'yesterday'
-                ? 'inline-flex min-h-11 items-center text-[var(--color-accent)]'
-                : 'inline-flex min-h-11 items-center text-[var(--color-muted)] hover:text-[var(--color-fg)]'
-            }
-          >
-            yesterday
-          </Link>
-        </nav>
-        <DailyBriefHero
+          today
+        </Link>
+        <Link
+          href={
+            `/?${new URLSearchParams({ ...(region === 'global' ? {} : { region }), day: 'yesterday' }).toString()}` as Route
+          }
+          aria-current={selectedDay === 'yesterday' ? 'page' : undefined}
+          className={
+            selectedDay === 'yesterday'
+              ? 'inline-flex min-h-11 items-center text-[var(--color-accent)]'
+              : 'inline-flex min-h-11 items-center text-[var(--color-muted)] hover:text-[var(--color-fg)]'
+          }
+        >
+          yesterday
+        </Link>
+      </nav>
+      <DailyBriefHero
+        brief={brief}
+        region={region}
+        editionDate={editionDate}
+        editionDay={editionDay}
+        signalOnly
+      />
+      <div className="brief-edition">
+        <NewsFeed brief={brief} pagination={{ page: params.news_page, day: selectedDay }} />
+        <SignalFeed
           brief={brief}
-          region={region}
-          editionDate={editionDate}
           editionDay={editionDay}
-          signalOnly
+          concise={params.news_page === undefined}
         />
-        <div className="brief-edition">
-          <NewsFeed brief={brief} pagination={{ page: params.news_page, day: selectedDay }} />
-          <SignalFeed
-            brief={brief}
-            editionDay={editionDay}
-            concise={params.news_page === undefined}
-          />
-          {params.news_page === undefined && brief.publishStatus === 'published' ? (
-            <BriefEnding brief={brief} day={selectedDay} />
-          ) : null}
-        </div>
-      </PageShell>
-      <SiteFooter mode={briefFooterMode(brief)} />
-    </>
+        {params.news_page === undefined && brief.publishStatus === 'published' ? (
+          <BriefEnding brief={brief} day={selectedDay} />
+        ) : null}
+      </div>
+    </PageShell>
   );
 }

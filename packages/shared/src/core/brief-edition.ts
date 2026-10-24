@@ -1,6 +1,6 @@
 /** A bounded front edition over the complete retained news collection. */
-import type { BriefNewsItem, BriefSnapshot } from './brief';
-import { clusterNewsRecords } from './brief-news';
+import type { BriefNewsItem, BriefSnapshot, BriefStockItem } from './brief';
+import { clusterNewsRecords, sanitizeBriefNewsItems } from './brief-news';
 import { istDayRange } from './history-access';
 import { sourceDomain } from './signal-intelligence';
 
@@ -49,6 +49,35 @@ export interface BriefEditionStory {
   story: BriefNewsItem;
   /** Separate attributed accounts, never additional support credit for the lead claim. */
   related: BriefNewsItem[];
+}
+
+export interface BriefReaderEdition {
+  news: BriefEditionStory[];
+  signals: BriefStockItem[];
+  totalNews: number;
+  totalSignals: number;
+  newsReadingMinutes: number;
+}
+
+/** The same finite edition for web, REST, and MCP, alongside the full collection. */
+export function buildReaderEdition(brief: BriefSnapshot): BriefReaderEdition {
+  const selection = selectBriefEdition({
+    ...brief,
+    news: sanitizeBriefNewsItems(brief.news ?? []).filter((item) =>
+      Number.isFinite(Date.parse(item.event_at))
+    ),
+  });
+  return {
+    news: selection.items,
+    signals: brief.stocks.slice(0, 3),
+    totalNews: selection.total,
+    totalSignals: brief.stocks.length,
+    newsReadingMinutes: selection.readingMinutes,
+  };
+}
+
+export function withReaderEdition(brief: BriefSnapshot): BriefSnapshot {
+  return { ...brief, readerEdition: buildReaderEdition(brief) };
 }
 
 function publishers(item: BriefNewsItem): string[] {
