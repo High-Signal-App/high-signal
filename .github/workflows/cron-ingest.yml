@@ -24,6 +24,14 @@ on:
         description: optional exact public receipt preview JSON (max 60000 bytes); requires repair_event_ids
         type: string
         default: ""
+      repair_mode:
+        description: receipt repair operation (standard replay is unchanged)
+        type: choice
+        options:
+          - standard
+          - metadata-only-apply
+          - metadata-only-rollback
+        default: standard
       repair_cftc_receipts:
         description: repair unchanged historical CFTC receipt associations instead of source ingestion
         type: boolean
@@ -53,14 +61,16 @@ jobs:
         env:
           REPAIR_EVENT_IDS: ${{ inputs.repair_event_ids }}
           REPAIR_PREVIEW_JSON: ${{ inputs.repair_preview_json }}
+          REPAIR_MODE: ${{ inputs.repair_mode || 'standard' }}
         run: |
           uv run python - <<'PYTHON'
           import os
-          if os.environ["REPAIR_EVENT_IDS"] or os.environ["REPAIR_PREVIEW_JSON"]:
+          if (os.environ["REPAIR_EVENT_IDS"] or os.environ["REPAIR_PREVIEW_JSON"]
+              or os.environ["REPAIR_MODE"] != "standard"):
               raise SystemExit("CFTC replay cannot be combined with news receipt replay")
           PYTHON
       - name: Validate optional prepared receipt input
-        if: ${{ inputs.repair_preview_json != '' }}
+        if: ${{ (inputs.repair_mode || 'standard') == 'standard' && inputs.repair_preview_json != '' }}
         env:
           REPAIR_PREVIEW_JSON: ${{ inputs.repair_preview_json }}
           REPAIR_EVENT_IDS: ${{ inputs.repair_event_ids }}
@@ -74,6 +84,26 @@ jobs:
           if len(value.encode()) > MAX_PREPARED_BYTES:
               raise SystemExit("Prepared receipt input exceeds 60000 bytes")
           Path("receipt-repair-prepared.json").write_text(value)
+          PYTHON
+      - name: Validate saved metadata-only recovery preview
+        if: ${{ (inputs.repair_mode || 'standard') != 'standard' }}
+        env:
+          REPAIR_MODE: ${{ inputs.repair_mode }}
+          REPAIR_EVENT_IDS: ${{ inputs.repair_event_ids }}
+          REPAIR_PREVIEW_JSON: ${{ inputs.repair_preview_json }}
+        run: |
+          uv run python - <<'PYTHON'
+          import os
+          from pathlib import Path
+          from high_signal_ingest.repair_news_receipts import validate_metadata_dispatch_input
+          validate_metadata_dispatch_input(
+              os.environ["REPAIR_MODE"],
+              os.environ["REPAIR_EVENT_IDS"],
+              os.environ["REPAIR_PREVIEW_JSON"],
+          )
+          Path("receipt-repair-metadata-preview.json").write_text(
+              os.environ["REPAIR_PREVIEW_JSON"]
+          )
           PYTHON
       - name: Fetch canonical Reddit event export
         if: ${{ inputs.repair_cftc_receipts != true && inputs.repair_event_ids == '' && ((inputs.source || 'all') == 'all' || (inputs.source || 'all') == 'reddit') }}
@@ -173,18 +203,33 @@ jobs:
         if: ${{ inputs.repair_event_ids != '' }}
         env:
           REPAIR_EVENT_IDS: ${{ inputs.repair_event_ids }}
+          REPAIR_MODE: ${{ inputs.repair_mode || 'standard' }}
           ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
           API_BASE: ${{ secrets.API_BASE }}
         run: |
-          args=()
-          if [ -f receipt-repair-prepared.json ]; then
-            args+=(--prepared-file receipt-repair-prepared.json)
+          if [ "$REPAIR_MODE" = "standard" ]; then
+            args=()
+            if [ -f receipt-repair-prepared.json ]; then
+              args+=(--prepared-file receipt-repair-prepared.json)
+            fi
+            uv run python -m high_signal_ingest.repair_news_receipts \
+              --event-ids "$REPAIR_EVENT_IDS" \
+              --preview-file receipt-repair-preview.json "${args[@]}" --apply
+          else
+            action=--apply
+            if [ "$REPAIR_MODE" = "metadata-only-rollback" ]; then
+              action=--rollback
+            elif [ "$REPAIR_MODE" != "metadata-only-apply" ]; then
+              echo "Unsupported repair mode" >&2
+              exit 2
+            fi
+            uv run python -m high_signal_ingest.repair_news_receipts \
+              --event-ids "$REPAIR_EVENT_IDS" \
+              --preview-file receipt-repair-metadata-preview.json \
+              --metadata-only-recovery "$action"
           fi
-          uv run python -m high_signal_ingest.repair_news_receipts \
-            --event-ids "$REPAIR_EVENT_IDS" \
-            --preview-file receipt-repair-preview.json "${args[@]}" --apply
       - name: Preserve exact receipt replay preview
-        if: ${{ always() && inputs.repair_event_ids != '' }}
+        if: ${{ always() && inputs.repair_event_ids != '' && (inputs.repair_mode || 'standard') == 'standard' }}
         uses: actions/upload-artifact@v7
         with:
           name: receipt-repair-${{ github.run_id }}-${{ github.run_attempt }}

@@ -123,6 +123,75 @@ def test_explicit_id_input_is_bounded(value):
         repair.event_ids(value)
 
 
+def metadata_dispatch_preview(event_id="a" * 16):
+    event = {"id": event_id, "source": "news:publisher", "content": None}
+    document = {"id": "doc", "rawText": None, "rawJson": None}
+    before = {"event": event, "document": document}
+    after = {
+        "fetchedAt": 1792638003,
+        "rawHash": "b" * 64,
+        "rawText": "public article body",
+        "rawJson": "{}",
+        "parsedFields": "{}",
+    }
+    recovery = {
+        "eventId": event_id,
+        "source": "news:publisher",
+        "sourceUrl": "https://publisher.example/story",
+        "title": "A public news story",
+        "publishedAt": "2026-10-21T13:26:00+00:00",
+        "pagePublicationDates": ["2026-10-21T00:00:00+00:00"],
+        "retrievedUrl": "https://publisher.example/story",
+        "articleChars": len(after["rawText"]),
+        "articleHash": after["rawHash"],
+        "alignedToTitle": True,
+        "originalRawHash": "c" * 64,
+        "before": before,
+        "beforeFingerprint": repair._state_fingerprint(before),
+        "after": after,
+    }
+    result = {
+        "recovery": recovery,
+        "applyPlan": None,
+        "appliedFingerprint": None,
+        "applied": False,
+        "rollbackFingerprint": None,
+    }
+    result["applyPlan"] = repair._recovery_plan(recovery)
+    return result
+
+
+@pytest.mark.parametrize("mode", ["metadata-only-apply", "metadata-only-rollback"])
+def test_metadata_dispatch_input_accepts_single_saved_preview(mode):
+    preview = json.dumps(metadata_dispatch_preview())
+    result = repair.validate_metadata_dispatch_input(mode, "a" * 16, preview)
+    assert result["recovery"]["eventId"] == "a" * 16
+
+
+@pytest.mark.parametrize(
+    ("mode", "ids", "mutate", "message"),
+    [
+        ("standard", "a" * 16, None, "Unsupported"),
+        ("metadata-only-apply", "a" * 16 + "," + "b" * 16, None, "one event"),
+        ("metadata-only-apply", "b" * 16, None, "explicit event ID"),
+        ("metadata-only-apply", "a" * 16, "applied", "unapplied"),
+    ],
+)
+def test_metadata_dispatch_input_rejects_unreviewable_requests(mode, ids, mutate, message):
+    preview = metadata_dispatch_preview()
+    if mutate == "applied":
+        preview["applied"] = True
+    with pytest.raises((ValueError, argparse.ArgumentTypeError), match=message):
+        repair.validate_metadata_dispatch_input(mode, ids, json.dumps(preview))
+
+
+def test_metadata_dispatch_input_rejects_oversized_or_missing_preview():
+    with pytest.raises(ValueError, match="60000-byte"):
+        repair.validate_metadata_dispatch_input("metadata-only-apply", "a" * 16, " " * 60_001)
+    with pytest.raises(ValueError, match="saved preview"):
+        repair.validate_metadata_dispatch_input("metadata-only-rollback", "a" * 16, "")
+
+
 @pytest.mark.parametrize("apply", [False, True])
 def test_cli_previews_before_optional_normal_persistence(monkeypatch, tmp_path, apply):
     original, raw = record()

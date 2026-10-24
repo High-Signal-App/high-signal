@@ -219,7 +219,29 @@ def _load_metadata_preview(path: Path, event_id: str) -> dict:
         encoded = stream.read(MAX_METADATA_PREVIEW_BYTES + 1)
     if len(encoded) > MAX_METADATA_PREVIEW_BYTES:
         raise ValueError("Metadata recovery preview exceeds its 60000-byte limit")
-    item = json.loads(encoded)
+    return _validate_metadata_preview(json.loads(encoded), event_id)
+
+
+def validate_metadata_dispatch_input(mode: str, ids_value: str, preview_json: str) -> dict:
+    if mode not in {"metadata-only-apply", "metadata-only-rollback"}:
+        raise ValueError("Unsupported metadata-only repair mode")
+    ids = event_ids(ids_value)
+    if len(ids) != 1 or not preview_json:
+        raise ValueError("Metadata-only repair requires one event ID and a saved preview")
+    encoded = preview_json.encode()
+    if len(encoded) > MAX_METADATA_PREVIEW_BYTES:
+        raise ValueError("Metadata recovery preview exceeds its 60000-byte limit")
+    item = _validate_metadata_preview(json.loads(encoded), ids[0])
+    if mode == "metadata-only-apply" and (
+        item["applied"] or item["applyPlan"] != _recovery_plan(item["recovery"])
+    ):
+        raise ValueError("Apply requires an unapplied, reviewed preview with a valid recovery plan")
+    if mode == "metadata-only-rollback" and item["applyPlan"] != _recovery_plan(item["recovery"]):
+        raise ValueError("Rollback requires a reviewed preview with a valid recovery plan")
+    return item
+
+
+def _validate_metadata_preview(item: dict, event_id: str) -> dict:
     if not isinstance(item, dict) or set(item) != {
         "recovery",
         "applyPlan",
@@ -253,6 +275,8 @@ def _load_metadata_preview(path: Path, event_id: str) -> dict:
         raise ValueError("Metadata recovery preview does not match the explicit event ID")
     if not isinstance(item["applied"], bool):
         raise TypeError("Metadata recovery preview status is invalid")
+    if not isinstance(item["applyPlan"], dict):
+        raise ValueError("Metadata recovery preview plan is invalid")
     return item
 
 
