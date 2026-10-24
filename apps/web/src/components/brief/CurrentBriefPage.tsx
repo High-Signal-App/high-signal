@@ -1,6 +1,11 @@
 import Link from 'next/link';
 import type { Route } from 'next';
-import { BriefEnding, NewsFeed, SignalFeed } from '@/components/brief/BriefSections';
+import {
+  BriefEnding,
+  CommunitySections,
+  NewsFeed,
+  SignalFeed,
+} from '@/components/brief/BriefSections';
 import { DailyBriefHero } from '@/components/brief/DailyBriefHero';
 import { HomeJsonLd } from '@/components/seo/structured-data';
 import { PageShell } from '@/components/system/HighSignalUI';
@@ -73,6 +78,7 @@ export async function CurrentBriefPage({
           editionDay={editionDay}
           concise={params.news_page === undefined}
         />
+        <CommunitySections brief={brief} />
         {params.news_page === undefined && brief.publishStatus === 'published' ? (
           <BriefEnding brief={brief} day={selectedDay} />
         ) : null}

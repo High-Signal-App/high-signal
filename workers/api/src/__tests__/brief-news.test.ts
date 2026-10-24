@@ -640,6 +640,53 @@ describe('composeNewsStories', () => {
 });
 
 describe('sanitizeBriefNewsItems', () => {
+  it('withholds cached cross-story and navigation summaries from the full collection', () => {
+    const stories = [
+      {
+        title: 'IBM CEO says open weight models are now good and cheap on-prem',
+        summary:
+          'AI - Nvidia woos Europeans with open weight models. - Jensen demonstrates robots. - Nvidia builds trailer parks.',
+        url: 'https://publisher.test/ibm-ceo-open-weight-models',
+      },
+      {
+        title: 'Infosys AI revenue jumps 29%; Apple foldable phone pre-orders rise',
+        summary:
+          'Dear Reader, Cybercriminals exploited a software disclosure. Cloudflare detected millions of attempts to exploit PHP vulnerabilities.',
+        url: 'https://publisher.test/infosys-ai-revenue-jumps',
+      },
+      {
+        title: 'CFTC CoT: ZCASH PERP STYLE - COINBASE DERIVATIVES, LLC (2026-10-20)',
+        summary:
+          'CFTC CoT GULF 6 FUEL OIL CRACK for 2026-06-23. Non-commercial long: 1655, short: 2282, net: -627.',
+        url: 'https://www.cftc.gov/MarketReports/CommitmentsofTraders/index.htm',
+      },
+      {
+        title: 'Small Craft Advisory: Stellwagen Bank National Marine Sanctuary',
+        summary:
+          'Severe Thunderstorm Warning — Buena Vista, IA. The storm that prompted the warning has moved out of the area.',
+        url: 'http://www.weather.gov',
+      },
+    ].map(({ title, summary, url }, index) => ({
+      id: `contaminated-${index}`,
+      title,
+      summary,
+      event_at: '2026-09-12T08:00:00Z',
+      what_changed: '',
+      source_references: [{ url, source: 'news' }],
+      evidence_status: 'reported' as const,
+    }));
+    expect(sanitizeBriefNewsItems(stories)).toEqual([]);
+    expect(
+      sanitizeBriefNewsItems([
+        {
+          ...stories[0],
+          summary:
+            'The company is bringing smaller language models to customer hardware, with local deployment replacing hosted inference.',
+        },
+      ])
+    ).toHaveLength(1);
+  });
+
   it('repairs the observed cached model-launch and funding associations', () => {
     const recursive =
       'https://techcrunch.com/2026/10/21/recursive-launches-flint-a-laptop-coding-model-it-says-was-largely-built-by-ai/';
@@ -795,6 +842,125 @@ describe('sanitizeBriefNewsItems', () => {
       },
     ]);
     expect(story?.what_changed).toBe('');
+  });
+});
+
+describe('retained excerpt identity regressions', () => {
+  it('keeps historical agency entries separate and uses each event-local body', () => {
+    const first = record({
+      id: 'stellwagen',
+      source: 'us-gov-api:noaa-weather',
+      sourceUrl: 'http://www.weather.gov',
+      title: 'Small Craft Advisory: Stellwagen Bank National Marine Sanctuary',
+      content:
+        'Small Craft Advisory — Stellwagen Bank National Marine Sanctuary. North winds and high seas will remain hazardous to small vessels until Saturday evening.',
+      retainedText:
+        'Severe Thunderstorm Warning — Buena Vista, IA. The storm that prompted the warning has moved out of the area.',
+    });
+    const second = record({
+      ...first,
+      id: 'buena-vista',
+      title: 'Severe Thunderstorm Warning: Buena Vista, IA',
+      content: first.retainedText,
+    });
+    expect(clusterNewsRecords([first, second])).toHaveLength(2);
+    const stories = composeNewsStories([first, second], WINDOW);
+    // The unrelated storm remains a distinct raw observation; the existing
+    // technology/finance topic gate need not admit it into the publication.
+    expect(stories).toHaveLength(1);
+    expect(stories.find((story) => story.title === first.title)?.summary).toContain(
+      'Stellwagen Bank'
+    );
+    expect(stories.find((story) => story.title === first.title)?.summary).not.toContain(
+      'Buena Vista'
+    );
+
+    const contract = record({
+      id: 'zcash',
+      source: 'us-gov-api:cftc-cot',
+      primaryEntityId: 'COINBASE',
+      sourceUrl: 'https://www.cftc.gov/MarketReports/CommitmentsofTraders/index.htm',
+      title: 'CFTC CoT: ZCASH PERP STYLE - COINBASE DERIVATIVES, LLC (2026-10-20)',
+      content:
+        'CFTC CoT ZCASH PERP STYLE - COINBASE DERIVATIVES, LLC for 2026-10-20. Non-commercial long: 8518, short: 7216, net: 1302.',
+      retainedText:
+        'CFTC CoT GULF 6 FUEL OIL CRACK for 2026-06-23. Non-commercial long: 1655, short: 2282, net: -627.',
+    });
+    const [story] = composeNewsStories([contract], WINDOW);
+    expect(story.summary).toContain('ZCASH');
+    expect(story.summary).toContain('1302');
+    expect(story.summary).not.toContain('GULF');
+  });
+
+  it('preserves negation and qualifiers before a digest subject match', () => {
+    const sentence =
+      'It is false that Infosys reported a 29% increase in AI revenue; the company has not disclosed that figure.';
+    const stories = composeNewsStories(
+      [
+        record({
+          id: 'qualified-digest',
+          title: 'Infosys AI revenue jumps 29%',
+          sourceUrl: 'https://publisher.example/qualified-digest',
+          retainedText:
+            'Apple reported a new phone launch with sales starting next month. '.repeat(24) +
+            sentence,
+        }),
+      ],
+      WINDOW
+    );
+    expect(stories).toHaveLength(1);
+    expect(stories[0].summary).toBe(sentence);
+  });
+
+  it('does not treat later editorial discussion of a paywall as a blocked article', () => {
+    const stories = composeNewsStories(
+      [
+        record({
+          id: 'late-paywall-mention',
+          title: 'Acme launches a new cloud service',
+          sourceUrl: 'https://publisher.example/cloud-service',
+          retainedText:
+            'Acme launched a new cloud service for enterprise customers on Monday. ' +
+            'The company documented deployment options and operating costs for its customers. '.repeat(
+              24
+            ) +
+            'The publisher separately discussed how its paywall supports independent reporting.',
+        }),
+      ],
+      WINDOW
+    );
+    expect(stories).toHaveLength(1);
+    expect(stories[0].summary).toContain('Acme launched a new cloud service');
+  });
+
+  it('selects a subject-led digest sentence beyond the intro and withholds navigation', () => {
+    const digest = record({
+      id: 'digest',
+      title: 'Infosys AI revenue jumps 29%; Apple foldable phone pre-orders rise',
+      sourceUrl: 'https://publisher.test/infosys-ai-revenue-jumps',
+      retainedText:
+        'Dear Reader, Cybercriminals exploited a software disclosure. ' +
+        'Cloudflare detected attempts to exploit PHP vulnerabilities. '.repeat(30) +
+        'In today’s newsletter: Infosys sees growth. Here is your trivia. ' +
+        'Infosys reported steady growth in the quarter, with AI emerging as a key revenue driver amid macroeconomic uncertainty. ' +
+        'In other news, Canva discussed creative tools.',
+    });
+    const navigation = record({
+      id: 'navigation',
+      primaryEntityId: 'IBM',
+      title: 'IBM CEO says open weight models are good and cheap on-prem',
+      sourceUrl: 'https://publisher.test/ibm-ceo-open-weight-models',
+      retainedText:
+        'AI - Nvidia woos Europeans with open weight models. - Jensen demonstrates robots. - Nvidia builds trailer parks. '.repeat(
+          5
+        ),
+    });
+    const stories = composeNewsStories([digest, navigation], WINDOW);
+    expect(stories).toHaveLength(1);
+    expect(stories[0].summary).toBe(
+      'Infosys reported steady growth in the quarter, with AI emerging as a key revenue driver amid macroeconomic uncertainty.'
+    );
+    expect(stories[0].source_references[0].recordId).toBe('digest');
   });
 });
 

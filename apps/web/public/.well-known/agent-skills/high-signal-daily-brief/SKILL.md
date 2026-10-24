@@ -44,8 +44,11 @@ history may be withheld by the public verification boundary.
 - Start with `data.readerEdition.news`: this is the same finite, grouped selection
   as the website, with the lead account under `story` and separately attributed
   accounts under `related`. Its `signals` list contains up to three verified
-  signals. The full collection remains in `data.news` and `data.stocks`; use
-  `data.news` as a fallback on older responses. Keep system-quality commentary (coverage,
+  signals. Its `ideas` and `trends` contain up to two proof-qualified reports each;
+  retain `whyNow`, `uncertainty` and claim `provenance`. Community discussions are
+  investigation context and do not count as supporting evidence. The full collections
+  remain in `data.news`, `data.stocks`, `data.ideas` and `data.trends`; use those
+  arrays as a fallback on older responses. Keep system-quality commentary (coverage,
   `publishStatus`, pending publish time) to two lines after the news.
 - Preserve `source_references` and `evidence_status` (`official`, `reported`,
   `unverified`). Do not recast news as buy/sell calls.

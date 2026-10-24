@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import re
 from html.parser import HTMLParser
+from html import escape
 from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
 from typing import Iterator
@@ -18,7 +20,7 @@ from ..seed import load_sources
 from .. import audit
 from ..types import Event
 from ..utils import event_hash
-from . import registered_feeds
+from . import public_archives, registered_feeds
 
 
 USER_AGENT = "high-signal/0.1 (+https://github.com/sarthakagrawal927)"
@@ -77,7 +79,95 @@ def _parse_iso(s: str) -> datetime | None:
         return None
 
 
-def _extract_article_text(html: str) -> str:
+class _ArticleMarkup(HTMLParser):
+    """Keep article markup while removing semantic site-navigation containers."""
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=False)
+        self.parts: list[str] = []
+        self.hidden: list[str] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if self.hidden:
+            if tag == self.hidden[-1]:
+                self.hidden.append(tag)
+            return
+        if (
+            tag in {"nav", "aside", "footer", "script", "style"}
+            or dict(attrs).get("role") == "navigation"
+        ):
+            self.hidden.append(tag)
+            return
+        self.parts.append(self.get_starttag_text())
+
+    def handle_endtag(self, tag: str) -> None:
+        if self.hidden:
+            if tag == self.hidden[-1]:
+                self.hidden.pop()
+            return
+        self.parts.append(f"</{tag}>")
+
+    def handle_data(self, data: str) -> None:
+        if not self.hidden:
+            self.parts.append(escape(data, quote=False))
+
+    def handle_entityref(self, name: str) -> None:
+        if not self.hidden:
+            self.parts.append(f"&{name};")
+
+    def handle_charref(self, name: str) -> None:
+        if not self.hidden:
+            self.parts.append(f"&#{name};")
+
+
+_GENERIC_LEADS = set(
+    "the a an its it this that these those we our you your dear new how why what when where "
+    "who after before according researchers officials company report reports ai api open "
+    "security technology tech software cloud market markets news latest exclusive breaking "
+    "developers developer launch launches guide top best".split()
+)
+_SUBJECT_CONTEXT = set(
+    "announces announced launches launched releases released ships shipped reports reported "
+    "confirms confirmed says said raises raised lowers lowered unveils unveiled discloses "
+    "disclosed acquires acquired closes closed cuts wins builds woos ceo ai revenue shares "
+    "profit earnings model chip safety".split()
+)
+
+
+def _headline_subject(title: str) -> str | None:
+    first = re.match(r"[A-Z][A-Za-z0-9]+", title.strip())
+    if not first or len(first[0]) < 3 or first[0].lower() in _GENERIC_LEADS:
+        return None
+    following = title.strip()[first.end() :]
+    second = re.match(r"\s+([A-Za-z]+)", following)
+    if not second or second[1].lower() not in _SUBJECT_CONTEXT:
+        if not first[0].isupper() and not re.search(r"[A-Z]", first[0][1:]):
+            return None
+    return first[0].lower()
+
+
+def article_text_is_aligned(text: str, title: str) -> bool:
+    """Reject clear wrong-page/navigation bodies, not ordinary paraphrases.
+
+    A missing proper-name headline anchor is suspicious when the body leads
+    with a different named subject or site/digest navigation. Pronoun-led
+    single-subject articles remain valid without a title-token quota.
+    """
+    subject = _headline_subject(title)
+    if not subject or re.search(rf"\b{re.escape(subject)}\b", text, re.I):
+        return True
+    if re.match(r"\s*(?:dear reader\b|(?:ai|infosec|foss)\s*[-•])", text, re.I):
+        return False
+    if len(re.findall(r"(?:^|\s)[-•]\s", text[:1500])) >= 3:
+        return False
+    body_subject = _headline_subject(text.lstrip())
+    return body_subject is None
+
+
+def _extract_article_text(html: str, title: str = "") -> str:
+    markup = _ArticleMarkup()
+    markup.feed(html)
+    html = "".join(markup.parts)
     try:
         import trafilatura
 
@@ -90,14 +180,15 @@ def _extract_article_text(html: str) -> str:
             )
             or ""
         )
-        if len(text) >= 500:
+        if len(text) >= 500 and article_text_is_aligned(text, title):
             return text[:30_000]
     except Exception as exc:
         LOGGER.debug("trafilatura extraction failed: %s", exc)
     try:
         from newspaper import fulltext
 
-        return (fulltext(html) or "")[:30_000]
+        text = (fulltext(html) or "")[:30_000]
+        return text if article_text_is_aligned(text, title) else ""
     except Exception as exc:
         LOGGER.debug("newspaper extraction failed: %s", exc)
         return ""
@@ -149,7 +240,12 @@ async def _fetch_text(client: httpx.AsyncClient, url: str) -> str:
 
 
 async def _extract_body(
-    client: httpx.AsyncClient, url: str, semaphore: asyncio.Semaphore, *, public_only: bool = False
+    client: httpx.AsyncClient,
+    url: str,
+    semaphore: asyncio.Semaphore,
+    *,
+    public_only: bool = False,
+    title: str = "",
 ) -> str | None:
     async with semaphore:
         if public_only:
@@ -163,7 +259,41 @@ async def _extract_body(
             html = await _fetch_text(client, url)
     if not html:
         return ""
-    return await asyncio.to_thread(_extract_article_text, html)
+    return await asyncio.to_thread(_extract_article_text, html, title)
+
+
+def _feed_candidates(
+    items: list[dict], since: datetime, diagnostics: dict | None
+) -> list[tuple[dict, datetime]]:
+    """Validate public article links/dates and retain a bounded newest-first window."""
+    candidates: list[tuple[dict, datetime]] = []
+    dates: list[datetime] = []
+    for it in items:
+        try:
+            registered_feeds.public_url(it["link"])
+        except registered_feeds.UnsafeFeedUrl:
+            continue
+        pub_raw = it["pub"]
+        pub = _parse_rfc822(pub_raw) or _parse_iso(pub_raw)
+        if pub is None:
+            continue
+        if pub > datetime.now(timezone.utc) + timedelta(minutes=15):
+            continue
+        dates.append(pub)
+        if pub < since:
+            continue
+        candidates.append((it, pub))
+
+    if diagnostics is not None:
+        diagnostics.update(
+            {
+                "itemsParsed": len(items),
+                "latestPublishedAt": max(dates).isoformat() if dates else None,
+            }
+        )
+    candidates = sorted(candidates, key=lambda item: item[1], reverse=True)[:50]
+
+    return candidates
 
 
 async def fetch_rss_async(
@@ -172,38 +302,19 @@ async def fetch_rss_async(
     client: httpx.AsyncClient,
     body_semaphore: asyncio.Semaphore,
     fetch_body: bool = False,
+    diagnostics: dict | None = None,
 ) -> list[Event]:
     """Pull a single RSS source. `source` is one entry from sources.yaml."""
     url = source.get("rss")
     if not url:
         return []
-    registered = bool(source.get("_registry_id"))
     async with body_semaphore:
-        if registered:
-            document = await registered_feeds.fetch_public_document(client, url)
-            xml_text, url = document.text, document.url
-        else:
-            xml_text = await _fetch_text(client, url)
-    if not xml_text:
-        return []
-    items = _parse_feed(xml_text, base_url=url, require_feed=registered)
-    candidates: list[tuple[dict, datetime]] = []
-    for it in items:
-        if registered:
-            try:
-                registered_feeds.public_url(it["link"])
-            except registered_feeds.UnsafeFeedUrl:
-                continue
-        pub_raw = it["pub"]
-        pub = _parse_rfc822(pub_raw) or _parse_iso(pub_raw)
-        if pub is None:
-            continue
-        if pub < since:
-            continue
-        candidates.append((it, pub))
-
-    if registered:
-        candidates = sorted(candidates, key=lambda item: item[1], reverse=True)[:50]
+        document = await registered_feeds.fetch_public_document(
+            client, url, max_bytes=source.get("feed_max_bytes", 2 * 1024 * 1024)
+        )
+        xml_text, url = document.text, document.url
+    items = _parse_feed(xml_text, base_url=url, require_feed=True)
+    candidates = _feed_candidates(items, since, diagnostics)
 
     body_tasks: dict[str, asyncio.Task[str | None]] = {}
     if fetch_body:
@@ -211,7 +322,13 @@ async def fetch_rss_async(
             link = it["link"]
             if link not in body_tasks:
                 body_tasks[link] = asyncio.create_task(
-                    _extract_body(client, link, body_semaphore, public_only=registered)
+                    _extract_body(
+                        client,
+                        link,
+                        body_semaphore,
+                        public_only=True,
+                        title=it.get("title") or "",
+                    )
                 )
     out: list[Event] = []
     for it, pub in candidates:
@@ -219,6 +336,9 @@ async def fetch_rss_async(
         body = await body_tasks[link] if fetch_body else ""
         if body is None:
             continue
+        retained = it.get("content") or ""
+        if retained and not article_text_is_aligned(retained, it.get("title") or ""):
+            retained = ""
         raw_hash = event_hash(source["id"], link)
         out.append(
             Event(
@@ -227,7 +347,7 @@ async def fetch_rss_async(
                 source_url=link,
                 published_at=pub,
                 title=it.get("title") or None,
-                content=body or it.get("content") or None,
+                content=body or retained or None,
                 primary_entity_id=None,  # filled later by entity extractor
                 raw_hash=raw_hash,
             )
@@ -250,20 +370,68 @@ def fetch_rss(source: dict, since: datetime, fetch_body: bool = False) -> Iterat
     yield from asyncio.run(_run())
 
 
+def configured_source_ids() -> set[str]:
+    """Curated publication IDs eligible for the normal daily news collector."""
+    return {source["id"] for source in registered_feeds.merge_sources(load_sources(), [], 2)}
+
+
+def _unselected_receipts(requested: set[str], selected: set[str], since: datetime) -> list[dict]:
+    now = datetime.now(timezone.utc)
+    return [
+        {
+            "source": f"news:{source_id}",
+            "startedAt": now.isoformat(),
+            "finishedAt": now.isoformat(),
+            "days": max(1, (now - since).days),
+            "eventsFetched": 0,
+            "errors": 0,
+            "notes": json.dumps(
+                {
+                    "collector": "publication_selection",
+                    "status": "not_selected",
+                    "reason": "disabled_or_not_eligible",
+                    "requestedSourceId": source_id,
+                }
+            ),
+        }
+        for source_id in sorted(requested - selected)
+    ]
+
+
 async def fetch_all_async(
     days: int = 1,
     tier_max: int = 2,
     fetch_body: bool = True,
     concurrency: int = DEFAULT_CONCURRENCY,
+    source_ids: list[str] | None = None,
 ) -> list[Event]:
     since = datetime.now(timezone.utc) - timedelta(days=days)
     registry = await asyncio.to_thread(audit.fetch_feed_sources)
-    sources = registered_feeds.merge_sources(load_sources(), registry, tier_max)
+    seeds = load_sources()
+    sources = registered_feeds.merge_sources(seeds, registry, tier_max)
+    selection_receipts: list[dict] = []
+    if source_ids is not None:
+        selected_ids = set(source_ids)
+        known_ids = {source["id"] for source in seeds} | {row["id"] for row in registry or []}
+        if unknown := selected_ids - known_ids:
+            raise registered_feeds.PublicFeedFetchError(
+                f"Unknown publication source: {', '.join(sorted(unknown))}"
+            )
+        sources = [source for source in sources if source["id"] in selected_ids]
+        selection_receipts = _unselected_receipts(
+            selected_ids, {source["id"] for source in sources}, since
+        )
+        for receipt in selection_receipts:
+            LOGGER.info(
+                "publication_source_not_fetched source=%s reason=disabled_or_not_eligible",
+                receipt["source"],
+            )
 
     timeout = httpx.Timeout(20.0, connect=10.0)
     limits = httpx.Limits(max_connections=concurrency, max_keepalive_connections=concurrency)
     headers = {"User-Agent": USER_AGENT}
     body_semaphore = asyncio.Semaphore(concurrency)
+    receipts: list[dict] = selection_receipts
     async with httpx.AsyncClient(
         headers=headers,
         follow_redirects=True,
@@ -271,10 +439,17 @@ async def fetch_all_async(
         limits=limits,
     ) as client:
         tasks = [
-            _fetch_source(src, since, client, body_semaphore, fetch_body=fetch_body)
+            _fetch_source(
+                src, since, client, body_semaphore, fetch_body=fetch_body, receipts=receipts
+            )
             for src in sources
         ]
         batches = await asyncio.gather(*tasks)
+    # The existing run schema distinguishes a quiet/stale source from an HTTP,
+    # format, or bounded-download failure. These are fetch receipts, not proof
+    # that the later event-delivery or publication steps succeeded.
+    for offset in range(0, len(receipts), 100):
+        await asyncio.to_thread(audit.push_ingest_runs, receipts[offset : offset + 100])
     return [event for batch in batches for event in batch]
 
 
@@ -285,27 +460,82 @@ async def _fetch_source(
     semaphore: asyncio.Semaphore,
     *,
     fetch_body: bool,
+    receipts: list[dict] | None = None,
 ) -> list[Event]:
-    if not source.get("_registry_id"):
-        return await fetch_rss_async(source, since, client, semaphore, fetch_body=fetch_body)
-    fetched_at = int(datetime.now(timezone.utc).timestamp())
+    started_at = datetime.now(timezone.utc)
+    fetched_at = int(started_at.timestamp())
     events: list[Event] = []
     error = None
+    diagnostics: dict = {"collector": "public_archive" if source.get("archive") else "public_rss"}
     try:
-        events = await fetch_rss_async(source, since, client, semaphore, fetch_body=fetch_body)
+        if source.get("archive"):
+            result = await public_archives.fetch_archive(
+                source, since, client, semaphore, _extract_article_text
+            )
+            if result.errors:
+                error = result.errors[0]
+            diagnostics.update(
+                {
+                    "articlesDated": result.dated,
+                    "latestPublishedAt": result.latest.isoformat() if result.latest else None,
+                }
+            )
+            for item in result.items:
+                raw_hash = event_hash(source["id"], item["link"])
+                events.append(
+                    Event(
+                        id=raw_hash[:16],
+                        source=f"news:{source['id']}",
+                        source_url=item["link"],
+                        published_at=item["published"],
+                        title=item["title"],
+                        content=item["content"],
+                        primary_entity_id=None,
+                        raw_hash=raw_hash,
+                    )
+                )
+        else:
+            events = await fetch_rss_async(
+                source, since, client, semaphore, fetch_body=fetch_body, diagnostics=diagnostics
+            )
     except registered_feeds.PublicFeedFetchError as exc:
         error = str(exc)
     except (httpx.HTTPError, TimeoutError) as exc:
         error = f"Feed fetch failed ({type(exc).__name__})"
-    await registered_feeds.report_fetch(
-        source,
-        fetched_at=fetched_at,
-        count=len(events),
-        error=error,
-        published_at=max((int(event.published_at.timestamp()) for event in events), default=None),
-    )
+    if error:
+        LOGGER.warning("publication_source_fetch source=news:%s error=%s", source["id"], error)
+    if receipts is not None:
+        receipts.append(
+            {
+                "source": f"news:{source['id']}",
+                "startedAt": started_at.isoformat(),
+                "finishedAt": datetime.now(timezone.utc).isoformat(),
+                "days": max(1, (started_at - since).days),
+                "eventsFetched": len(events),
+                "errors": int(error is not None),
+                "errorSample": error,
+                "notes": json.dumps(diagnostics),
+            }
+        )
+    if source.get("_registry_id"):
+        await registered_feeds.report_fetch(
+            source,
+            fetched_at=fetched_at,
+            count=len(events),
+            error=error,
+            published_at=max(
+                (int(event.published_at.timestamp()) for event in events), default=None
+            ),
+        )
     return events
 
 
-def fetch_all(days: int = 1, tier_max: int = 2, fetch_body: bool = True) -> list[Event]:
-    return asyncio.run(fetch_all_async(days=days, tier_max=tier_max, fetch_body=fetch_body))
+def fetch_all(
+    days: int = 1,
+    tier_max: int = 2,
+    fetch_body: bool = True,
+    source_ids: list[str] | None = None,
+) -> list[Event]:
+    return asyncio.run(
+        fetch_all_async(days=days, tier_max=tier_max, fetch_body=fetch_body, source_ids=source_ids)
+    )

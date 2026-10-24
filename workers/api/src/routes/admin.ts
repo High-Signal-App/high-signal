@@ -34,6 +34,7 @@ import { diggAdminRoute } from './admin-digg';
 import { mtsAdminRoute } from './admin-mts';
 import { scheduledDataAdminRoute } from './admin-scheduled-data';
 import { feedSourcesAdminRoute } from './admin-feed-sources';
+import { communityReportingAdminRoute } from './admin-community-reporting';
 import { precomputeBriefSnapshots } from './brief';
 import { enrichSignals, serializeClaimEvidenceLink } from '../lib/signal-quality';
 import { retainedEvidenceCandidates } from '../lib/attention-admin';
@@ -42,6 +43,7 @@ import { syncSignal, type SignalUpsert } from '../lib/signal-sync';
 type Env = {
   DB: D1Database;
   ADMIN_TOKEN?: string;
+  FREE_AI?: Fetcher;
   // Community digest generation calls the free-AI gateway.
   HIGH_SIGNAL_AI_ENDPOINT_URL?: string;
   HIGH_SIGNAL_AI_API_KEY?: string;
@@ -63,6 +65,7 @@ adminRoute.route('/digg', diggAdminRoute);
 adminRoute.route('/mts', mtsAdminRoute);
 adminRoute.route('/scheduled-data', scheduledDataAdminRoute);
 adminRoute.route('/feed-sources', feedSourcesAdminRoute);
+adminRoute.route('/communities/research', communityReportingAdminRoute);
 
 /** Read-only, bounded corpus lookup for issuer-announcement verification. */
 adminRoute.post('/evidence/related', async (c) => {

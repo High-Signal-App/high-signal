@@ -130,6 +130,7 @@ export interface BriefIdeaItem {
   surfacedAt: string;
   /** Grounded reader-value statement; optional on legacy cached snapshots. */
   whyNow?: string;
+  uncertainty?: string;
   /** Optional decision-grade payload. Missing on legacy cached snapshots. */
   opportunity?: OpportunityBriefPayload;
 }
@@ -145,6 +146,7 @@ export interface BriefTrendItem {
   surfacedAt: string;
   /** Grounded reader-value statement; optional on legacy cached snapshots. */
   whyNow?: string;
+  uncertainty?: string;
 }
 
 export type DiggAttentionState = 'matched_signal' | 'investigation_lead';

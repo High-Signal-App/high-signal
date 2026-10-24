@@ -14,7 +14,8 @@ const DEFAULT_NEWS_WINDOW_MS = 24 * 60 * 60 * 1000;
 const JACCARD_THRESHOLD = 0.72;
 const TITLE_ONLY_MAX = 80;
 const SUMMARY_MAX_SENTENCES = 3;
-const EXCERPT_MAX = 1200;
+const EXCERPT_MAX = 30_000;
+const RETAINED_BLOCKER_SCAN_MAX = 1_200;
 
 export function paginateBriefNews({
   news,
@@ -564,9 +565,26 @@ export function composeNewsStories(
   return ranked.map((story) => story.item);
 }
 
-function newsCanonicalUrl(record: Pick<NewsRecord, 'sourceUrl' | 'content'>): string {
+function newsCanonicalUrl(record: NewsRecord): string {
   const embedded = record.content ? LINK_RE.exec(record.content)?.[1] : null;
-  return canonicalizeNewsUrl(embedded ?? record.sourceUrl);
+  const canonical = canonicalizeNewsUrl(embedded ?? record.sourceUrl);
+  // Historical structured observations shared agency landing URLs. Those
+  // URLs identify a collection, not an alert/contract, and cannot join rows.
+  return hasSharedStructuredUrl(record) ? `${canonical}::${record.id}` : canonical;
+}
+
+function hasSharedStructuredUrl(record: Pick<NewsRecord, 'source' | 'sourceUrl'>): boolean {
+  if (!['us-gov-api:noaa-weather', 'us-gov-api:cftc-cot'].includes(record.source)) return false;
+  try {
+    const url = new URL(record.sourceUrl);
+    return (
+      (record.source.endsWith(':noaa-weather') && url.pathname.replace(/\/$/, '') === '') ||
+      (record.source.endsWith(':cftc-cot') &&
+        /\/CommitmentsofTraders\/index.htm$/i.test(url.pathname))
+    );
+  } catch {
+    return false;
+  }
 }
 
 function canonicalizeNewsUrl(value: string | null | undefined): string {
@@ -589,11 +607,16 @@ function canonicalizeNewsUrl(value: string | null | undefined): string {
 }
 
 export function hasUsableRetainedText(
-  record: Pick<NewsRecord, 'title' | 'content' | 'retainedText'>
+  record: Pick<NewsRecord, 'title' | 'content' | 'retainedText'> &
+    Partial<Pick<NewsRecord, 'source'>>
 ): boolean {
   const retained = retainedBody(record);
   if (!retained) return false;
-  if (RETAINED_TEXT_BLOCKERS.some((marker) => retained.toLowerCase().includes(marker))) {
+  if (
+    RETAINED_TEXT_BLOCKERS.some((marker) =>
+      retained.slice(0, RETAINED_BLOCKER_SCAN_MAX).toLowerCase().includes(marker)
+    )
+  ) {
     return false;
   }
   const title = (record.title ?? '').trim();
@@ -683,9 +706,17 @@ function trendStrength(
 }
 
 function retainedBody(
-  record: Pick<NewsRecord, 'title' | 'content' | 'retainedText'>
+  record: Pick<NewsRecord, 'title' | 'content' | 'retainedText'> &
+    Partial<Pick<NewsRecord, 'source'>>
 ): string | null {
-  const raw = (record.retainedText ?? record.content ?? '').replace(/\s+/g, ' ').trim();
+  // Old agency records can point at a document shared by unrelated alerts or
+  // report contracts. The event-local structured payload retains its identity.
+  const eventLocal = ['us-gov-api:noaa-weather', 'us-gov-api:cftc-cot'].includes(
+    record.source ?? ''
+  );
+  const raw = ((eventLocal ? record.content : null) ?? record.retainedText ?? record.content ?? '')
+    .replace(/\s+/g, ' ')
+    .trim();
   if (!raw) return null;
   return raw.slice(0, EXCERPT_MAX);
 }
@@ -801,17 +832,91 @@ function cleanRetainedText(excerpt: string, title: string): string {
 
 function summarizeRetained(excerpt: string, title: string): string | null {
   const cleaned = cleanRetainedText(excerpt, title);
-  if (RETAINED_TEXT_BLOCKERS.some((marker) => cleaned.toLowerCase().includes(marker))) return null;
-  const sentences = cleaned
-    .split(/(?<=[.!?])\s+(?=[A-Z0-9“"'])/)
-    .map((sentence) => sentence.trim())
-    .filter((sentence) => sentence.length >= 24 && sentence !== title);
-  const picked = (sentences.length ? sentences : [cleaned])
-    .slice(0, SUMMARY_MAX_SENTENCES)
-    .join(' ')
-    .trim();
+  if (
+    RETAINED_TEXT_BLOCKERS.some((marker) =>
+      cleaned.slice(0, RETAINED_BLOCKER_SCAN_MAX).toLowerCase().includes(marker)
+    )
+  )
+    return null;
+  let picked = summarySentences(cleaned, SUMMARY_MAX_SENTENCES);
+  if (!excerptMatchesHeadline(title, picked)) {
+    // A digest may open with another story. Take a complete subject-bearing
+    // reporting sentence from its retained body, never the unrelated intro or
+    // a contents/navigation heading. With no such sentence, withhold it.
+    const subject = excerptSubject(title);
+    const leadPattern = subject
+      ? new RegExp(
+          `\\b${subject}\\s+(?:reported|announced|confirmed|said|released|launched|posted|lowered|raised|unveiled|disclosed)\\b`,
+          'i'
+        )
+      : null;
+    const sentence = leadPattern
+      ? cleaned.split(/(?<=[.!?])\s+(?=[A-Z0-9“"'])/).find((span) => leadPattern.test(span))
+      : null;
+    if (!sentence || sentence.length > 480) return null;
+    // Retain the entire original span: prefixes such as "It is false that"
+    // and "According to an unconfirmed report" change the claim's meaning.
+    picked = sentence.trim();
+    if (!excerptMatchesHeadline(title, picked)) return null;
+  }
   if (picked.length < 24) return null;
   return picked.length > 480 ? `${picked.slice(0, 477).replace(/\s+\S*$/, '')}…` : picked;
+}
+
+function summarySentences(text: string, limit: number): string {
+  const sentences = text
+    .split(/(?<=[.!?])\s+(?=[A-Z0-9“"'])/)
+    .map((sentence) => sentence.trim())
+    .filter((sentence) => sentence.length >= 24);
+  return (sentences.length ? sentences : [text]).slice(0, limit).join(' ').trim();
+}
+
+const GENERIC_EXCERPT_LEADS = new Set(
+  'the a an its it this that these those we our you your dear new how why what when where who after before according researchers officials company report reports ai api open security technology tech software cloud market markets news latest exclusive breaking developers developer launch launches guide top best'.split(
+    ' '
+  )
+);
+const EXCERPT_SUBJECT_CONTEXT = new Set(
+  'announces announced launches launched releases released ships shipped reports reported confirms confirmed says said raises raised lowers lowered unveils unveiled discloses disclosed acquires acquired closes closed cuts wins builds woos ceo ai revenue shares profit earnings model chip safety'.split(
+    ' '
+  )
+);
+
+function excerptSubject(title: string): string | null {
+  const first = title.trim().match(/^[A-Z][A-Za-z0-9]+/)?.[0];
+  if (!first || first.length < 3 || GENERIC_EXCERPT_LEADS.has(first.toLowerCase())) return null;
+  const second = title
+    .trim()
+    .slice(first.length)
+    .match(/^\s+([A-Za-z]+)/)?.[1];
+  if (!second || !EXCERPT_SUBJECT_CONTEXT.has(second.toLowerCase())) {
+    if (first !== first.toUpperCase() && !/[A-Z]/.test(first.slice(1))) return null;
+  }
+  return first.toLowerCase();
+}
+
+/** Detect clear cross-story/navigation excerpts without requiring verbatim paraphrases. */
+function excerptMatchesHeadline(title: string, summary: string): boolean {
+  if (/^CFTC CoT:/i.test(title)) {
+    const contract = title.replace(/^CFTC CoT:\s*/i, '').replace(/\s*\([^)]*\)\s*$/, '');
+    const normalized = (value: string) =>
+      value
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, ' ')
+        .trim();
+    return normalized(summary).includes(normalized(contract));
+  }
+  const weather = title.match(
+    /^((?:(?:severe )?thunderstorm|small craft|tornado|flood|winter storm|heat|wind|weather) (?:advisory|warning|watch))\b/i
+  );
+  if (weather && !summary.toLowerCase().startsWith(weather[1].toLowerCase())) return false;
+  const subject = excerptSubject(title);
+  if (!subject || new RegExp(`\\b${subject}\\b`, 'i').test(summary)) return true;
+  if (/^(?:dear reader\b|(?:ai|infosec|foss)\s*[-•])/i.test(summary)) return false;
+  if ((summary.match(/(?:^|\s)[-•]\s/g)?.length ?? 0) >= 3) return false;
+  // "The company..." is a legitimate paraphrase. A different explicit named
+  // lead, such as Nvidia under an IBM headline, is not.
+  return excerptSubject(summary) === null;
 }
 
 /** Re-apply current reader-quality rules when an incremental rebuild has no new story. */
@@ -825,7 +930,8 @@ export function sanitizeBriefNewsItems(items: readonly BriefNewsItem[]): BriefNe
     const summary = cleanRetainedText(item.summary, title);
     if (
       summary.length < 24 ||
-      RETAINED_TEXT_BLOCKERS.some((marker) => summary.toLowerCase().includes(marker))
+      RETAINED_TEXT_BLOCKERS.some((marker) => summary.toLowerCase().includes(marker)) ||
+      !excerptMatchesHeadline(title, summary)
     ) {
       continue;
     }

@@ -20,7 +20,7 @@ from urllib.parse import urlsplit
 import httpx
 
 from . import audit
-from .sources.news import _extract_article_text
+from .sources.news import _extract_article_text, article_text_is_aligned
 from .types import Event, SourceDocument
 from .utils import event_hash
 
@@ -254,11 +254,15 @@ def retrieve_events(
                 response.raise_for_status()
             except httpx.HTTPError:
                 continue
-            text = _extract_article_text(response.text)
+            text = _extract_article_text(
+                response.text, str(article.get("title") or request.get("title") or "")
+            )
             canonical = _allowed_original_url(str(response.url)) or ""
             if not canonical:
                 continue
-        if len(text) < 500:
+        if len(text) < 500 or not article_text_is_aligned(
+            text, str(article.get("title") or request.get("title") or "")
+        ):
             continue
         host = (urlsplit(canonical).hostname or "unknown").lower().removeprefix("www.")
         published_at = _published_at(article.get("seendate"), fetched_at)

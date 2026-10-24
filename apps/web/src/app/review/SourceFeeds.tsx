@@ -169,7 +169,8 @@ export default function SourceFeeds({ request = fetch }: { request?: FeedRequest
         className="mt-2 max-w-2xl text-sm leading-relaxed text-zinc-400"
       >
         Add a public feed or publication URL to High Signal’s existing sources. RSS, Atom and public
-        Substack feeds are checked here and collected during the daily news refresh.
+        Substack feeds and supported public archives are checked here and collected during the daily
+        news refresh.
       </p>
       <SourceFeedForm
         url={url}

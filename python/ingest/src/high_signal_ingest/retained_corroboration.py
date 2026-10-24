@@ -2,19 +2,36 @@
 
 from __future__ import annotations
 
+import re
 from datetime import datetime, timedelta, timezone
 from urllib.parse import urlsplit
 
 from . import audit
 from .dedupe import canonical_url
 from .digg_verify import title_alignment
-from .extract.entities import gazetteer_match
+from .extract.entities import event_entity_ids
 from .types import Event, SourceDocument
 from .story_match import match_story
 from .utils import event_hash
 
 MAX_LOOKUPS = 24
 MAX_STORY_MATCHES = 6
+_ROUTINE_EARNINGS_NOTICE = re.compile(
+    r"\bto (?:report|release|announce)\b.*\b(?:results|earnings)\b"
+    r"|\bannounces?\b.*\b(?:timing|availability|schedule)\b.*\b(?:results|earnings)\b"
+    r"|\b(?:schedules?|announces?)\b.*\b(?:earnings|results)\s+(?:call|conference|date)\b"
+    r"|\bto (?:host|hold|webcast)\b.*\b(?:conference|earnings|results)\s+call\b"
+    r"|\b(?:earnings|results)\s+(?:\d{4}\s+)?date\s*(?:&(?:amp;)?|and)\s*time\b"
+    r"|\b(?:earnings|results)\s+(?:preview|announcement\s+schedule)\b",
+    re.I,
+)
+_MATCH_FAILURES = {
+    "model_unavailable",
+    "audit_unavailable",
+    "invalid_response",
+    "invalid_event_description",
+    "invalid_passage_selection",
+}
 
 
 def _retained_event(row: object, title: str, now: datetime) -> Event | None:
@@ -55,11 +72,49 @@ def _retained_event(row: object, title: str, now: datetime) -> Event | None:
     )
 
 
+def _issuer_compatible(announcement: Event, candidate: Event) -> bool:
+    # Research for one issuer must not spend its budget on another company's
+    # earnings merely because both titles contain "quarter" and "results".
+    # Use the title and tight lead, as entity attribution does; distant related
+    # article rails and spillover companies do not establish issuer relevance.
+    return announcement.primary_entity_id in event_entity_ids(candidate.title, candidate.content)
+
+
+def _admit_retained_rows(
+    rows: list[object],
+    event: Event,
+    now: datetime,
+    candidates: dict[tuple[str, str], tuple[float, Event, Event]],
+    metrics: dict[str, int],
+) -> None:
+    """Admit issuer-relevant rows and keep the fullest record for each URL pair."""
+    announcement_url = canonical_url(event.source_url)
+    for row in rows:
+        retained = _retained_event(row, event.title, now)
+        if not retained:
+            continue
+        candidate_url = canonical_url(retained.source_url)
+        if candidate_url == announcement_url:
+            continue
+        if not _issuer_compatible(event, retained):
+            metrics["related_candidates_rejected_entity"] += 1
+            continue
+        pair = (announcement_url, candidate_url)
+        candidate = (title_alignment(event.title, retained.title or ""), event, retained)
+        previous = candidates.get(pair)
+        if previous:
+            metrics["related_candidate_pairs_deduplicated"] += 1
+        # Several feeds can retain one URL. Compare that pair once, using
+        # its fullest eligible retained body rather than the first wrapper.
+        if not previous or len(retained.content or "") > len(previous[2].content or ""):
+            candidates[pair] = candidate
+
+
 def _research_candidates(
-    events: list[Event], seen_urls: set[str], metrics: dict[str, int]
+    events: list[Event], metrics: dict[str, int]
 ) -> list[tuple[float, Event, Event]]:
     seen_announcements: set[str] = set()
-    candidates: list[tuple[float, Event, Event]] = []
+    candidates: dict[tuple[str, str], tuple[float, Event, Event]] = {}
     now = datetime.now(timezone.utc)
     for event in sorted(events, key=lambda item: item.published_at, reverse=True):
         metadata = event.source_document.parsed_fields if event.source_document else {}
@@ -70,6 +125,10 @@ def _research_candidates(
             continue
         if not event.title or not 20 <= len(event.title) <= 400:
             continue
+        if _ROUTINE_EARNINGS_NOTICE.search(event.title):
+            metrics["related_seed_notices_skipped"] += 1
+            seen_announcements.add(announcement_url)
+            continue
         if metrics["related_evidence_lookups"] >= MAX_LOOKUPS:
             break
         seen_announcements.add(announcement_url)
@@ -78,44 +137,54 @@ def _research_candidates(
         if payload is None or not isinstance(payload.get("evidence"), list):
             metrics["related_evidence_failures"] += 1
             continue
-        for row in payload["evidence"][:50]:
-            retained = _retained_event(row, event.title, now)
-            if retained and canonical_url(retained.source_url) not in seen_urls:
-                candidates.append(
-                    (title_alignment(event.title, retained.title or ""), event, retained)
-                )
-    return candidates
+        _admit_retained_rows(payload["evidence"][:50], event, now, candidates, metrics)
+    return list(candidates.values())
 
 
 def load_retained_corroboration(events: list[Event]) -> tuple[list[Event], dict[str, int]]:
+    """Associate research on existing representatives, returning only new URLs.
+
+    Callers supply the exact-URL-deduplicated events and partition by entity
+    afterwards. Research anchors grant no semantic proof or origin credit.
+    """
     metrics = {
         "related_evidence_lookups": 0,
         "related_evidence_failures": 0,
         "related_events_loaded": 0,
+        "related_existing_events_associated": 0,
         "related_story_match_requests": 0,
         "related_story_match_failures": 0,
+        "related_seed_notices_skipped": 0,
+        "related_candidates_rejected_entity": 0,
+        "related_candidate_pairs_deduplicated": 0,
     }
-    seen_urls = {canonical_url(event.source_url) for event in events}
-    candidates = _research_candidates(events, seen_urls, metrics)
+    existing = {canonical_url(event.source_url): event for event in events}
+    candidates = _research_candidates(events, metrics)
     related: list[Event] = []
+    associated_urls: set[str] = set()
     for _, event, retained in sorted(candidates, key=lambda pair: pair[0], reverse=True):
         url = canonical_url(retained.source_url)
-        if url in seen_urls:
+        representative = existing.get(url)
+        if url in associated_urls or (representative and representative.research_story_anchor):
             continue
         if metrics["related_story_match_requests"] >= MAX_STORY_MATCHES:
             break
         metrics["related_story_match_requests"] += 1
         matched, reason = match_story(event, retained)
-        if reason in {"model_unavailable", "audit_unavailable"}:
+        if reason in _MATCH_FAILURES:
             metrics["related_story_match_failures"] += 1
         if not matched:
             continue
-        if event.primary_entity_id in gazetteer_match(
-            f"{retained.title or ''} {(retained.content or '')[:5000]}"
-        ):
-            retained.primary_entity_id = event.primary_entity_id
-        retained.research_story_anchor = event.source_url
-        seen_urls.add(url)
-        related.append(retained)
+        # Reuse the actual fetched representative without changing its retained
+        # text, document receipt or identity. Partitioning afterwards keeps a
+        # joint-company report with its accepted issuer research anchor.
+        target = representative or retained
+        target.primary_entity_id = event.primary_entity_id
+        target.research_story_anchor = event.source_url
+        associated_urls.add(url)
+        if representative:
+            metrics["related_existing_events_associated"] += 1
+        else:
+            related.append(retained)
     metrics["related_events_loaded"] = len(related)
     return related, metrics

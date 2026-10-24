@@ -249,6 +249,12 @@ function IdeaItem({ item }: { item: BriefIdeaItem }) {
               <span className="font-medium text-[var(--color-fg)]">Why now:</span> {item.whyNow}
             </p>
           ) : null}
+          {item.uncertainty ? (
+            <p className="mt-3 max-w-[70ch] text-sm leading-6 text-[var(--color-muted)]">
+              <span className="font-medium text-[var(--color-fg)]">Uncertainty:</span>{' '}
+              {item.uncertainty}
+            </p>
+          ) : null}
         </div>
         {item.opportunity ? (
           <div className="border-t border-[var(--color-line)] pt-3 font-mono text-[10px] tracking-[0.12em] text-[var(--color-muted)] lg:border-t-0 lg:border-l lg:pl-5 lg:pt-0">
@@ -297,16 +303,23 @@ function TrendItem({ item }: { item: BriefTrendItem }) {
           <span className="font-medium text-[var(--color-fg)]">Why now:</span> {item.whyNow}
         </p>
       ) : null}
-      {item.evidenceUrls[0] ? (
+      {item.uncertainty ? (
+        <p className="mt-3 max-w-[70ch] text-sm leading-6 text-[var(--color-muted)]">
+          <span className="font-medium text-[var(--color-fg)]">Uncertainty:</span>{' '}
+          {item.uncertainty}
+        </p>
+      ) : null}
+      {item.evidenceUrls.map((citation) => (
         <a
-          href={item.evidenceUrls[0].url}
+          key={citation.url}
+          href={citation.url}
           target="_blank"
           rel="noreferrer"
           className="mt-5 inline-flex min-h-11 items-center border-t border-[var(--color-line)] pt-3 font-mono text-[10px] tracking-[0.12em] text-[var(--color-muted)] hover:text-[var(--color-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-accent)]"
         >
-          source · {item.evidenceUrls[0].source ?? sourceHost(item.evidenceUrls[0].url)} ↗
+          source · {citation.source ?? sourceHost(citation.url)} ↗
         </a>
-      ) : null}
+      ))}
     </article>
   );
 }
@@ -604,20 +617,37 @@ export function BriefEnding({ brief, day }: { brief: BriefSnapshot; day: 'today'
   );
 }
 
+export function CommunitySections({ brief }: { brief: BriefSnapshot }) {
+  const edition = brief.readerEdition ?? buildReaderEdition(brief);
+  return (
+    <BriefSections
+      brief={{
+        ...brief,
+        ideas: edition.ideas ?? brief.ideas.slice(0, 2),
+        trends: edition.trends ?? brief.trends.slice(0, 2),
+      }}
+      sections={['ideas', 'trends']}
+      includeNews={false}
+    />
+  );
+}
+
 export function BriefSections({
   brief,
   marketContext,
   sections = ['stocks', 'ideas', 'trends'],
+  includeNews = true,
 }: {
   brief: BriefSnapshot;
   marketContext?: ReactNode;
   sections?: BriefPublicSectionKey[];
+  includeNews?: boolean;
 }) {
   const states = categoryStatesForSnapshot(brief);
 
   return (
     <>
-      <NewsFeed brief={brief} />
+      {includeNews ? <NewsFeed brief={brief} /> : null}
       {sections.includes('stocks') ? (
         <SectionShell
           id="markets-companies"

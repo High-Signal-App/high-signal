@@ -24,12 +24,13 @@ import {
   type BriefTrendItem,
   type ClaimEvidenceLink,
   type ClaimWithEvidence,
-  type OpportunityBriefPayload,
   type Region,
   type SignalFamily,
 } from '@high-signal/shared';
 import { db, schema } from '../../db';
 import { d1QueryChunks, serializeClaimEvidenceLink } from '../../lib/signal-quality';
+import { assertCommunityResearchAvailable } from '../../lib/community-reporting';
+import { communityAssertion } from '../../lib/community-report-proof';
 import { timeServerStage, type ServerTimingEntry } from '../../lib/server-timing';
 import {
   COMMUNITY_DIGEST_LOOKBACK_DAYS,
@@ -550,7 +551,17 @@ async function loadBriefProvenanceBySignalId(
   database: BriefDatabase,
   signalIds: string[]
 ): Promise<Map<string, NonNullable<BriefStockItem['provenance']>>> {
-  const uniqueIds = Array.from(new Set(signalIds));
+  return loadBriefProvenance(database, signalIds, 'signal');
+}
+
+async function loadBriefProvenance(
+  database: BriefDatabase,
+  itemIds: string[],
+  surface: 'signal' | 'brief'
+): Promise<Map<string, NonNullable<BriefStockItem['provenance']>>> {
+  const uniqueIds = Array.from(new Set(itemIds));
+  const column =
+    surface === 'signal' ? schema.claimRecords.signalId : schema.claimRecords.briefItemId;
   if (uniqueIds.length === 0) return new Map();
   const claimRows: (typeof schema.claimRecords.$inferSelect)[] = [];
   for (const ids of d1QueryChunks(uniqueIds)) {
@@ -558,9 +569,7 @@ async function loadBriefProvenanceBySignalId(
       ...(await database
         .select()
         .from(schema.claimRecords)
-        .where(
-          and(inArray(schema.claimRecords.signalId, ids), eq(schema.claimRecords.surface, 'signal'))
-        )
+        .where(and(inArray(column, ids), eq(schema.claimRecords.surface, surface)))
         .orderBy(desc(schema.claimRecords.createdAt)))
     );
   }
@@ -583,8 +592,9 @@ async function loadBriefProvenanceBySignalId(
   }
   const claimsBySignal = new Map<string, ClaimWithEvidence[]>();
   for (const claim of claimRows) {
-    if (!claim.signalId) continue;
-    const claims = claimsBySignal.get(claim.signalId) ?? [];
+    const itemId = surface === 'signal' ? claim.signalId : claim.briefItemId;
+    if (!itemId) continue;
+    const claims = claimsBySignal.get(itemId) ?? [];
     claims.push({
       id: claim.id,
       signalId: claim.signalId,
@@ -608,7 +618,7 @@ async function loadBriefProvenanceBySignalId(
       claimTupleKey: claim.claimTupleKey ?? null,
       evidence: linksByClaim.get(claim.id) ?? [],
     });
-    claimsBySignal.set(claim.signalId, claims);
+    claimsBySignal.set(itemId, claims);
   }
   const out = new Map<string, NonNullable<BriefStockItem['provenance']>>();
   for (const [signalId, claims] of claimsBySignal) {
@@ -665,14 +675,9 @@ async function loadHitRateStats(
   return { byType, byFamily };
 }
 
-export async function buildIdeas(
-  database: BriefDatabase,
-  region: Region,
-  countries: string[]
-): Promise<BriefIdeaItem[]> {
+async function recentPublicDigests(database: BriefDatabase) {
   const sinceMs = Date.now() - COMMUNITY_DIGEST_LOOKBACK_DAYS * 24 * 60 * 60 * 1000;
-  // Source A: community digests' key_action items across public digests.
-  const digestRows = await database
+  return database
     .select({
       id: schema.communityDigestSnapshots.id,
       subreddit: schema.communityDigestSnapshots.subreddit,
@@ -693,17 +698,47 @@ export async function buildIdeas(
     )
     .orderBy(desc(schema.communityDigestSnapshots.snapshotDate))
     .limit(60);
+}
 
+export async function buildIdeas(
+  database: BriefDatabase,
+  region: Region,
+  countries: string[]
+): Promise<BriefIdeaItem[]> {
+  await assertCommunityResearchAvailable(database.$client);
+  if (region !== 'global') return [];
+  const digestRows = await recentPublicDigests(database);
+
+  const provenanceByItem = await loadBriefProvenance(
+    database,
+    digestRows.map((digest) => `community:${digest.id}:idea`),
+    'brief'
+  );
   const ideas: BriefIdeaItem[] = [];
   for (const digest of digestRows) {
     const summary = normalizeCommunitySummary(digest.summary);
     const action = summary?.keyAction;
     if (!action || !isPublicSourceLink(action.link)) continue;
-    const evidenceUrl = action.link.trim();
+    const provenance = provenanceByItem.get(`community:${digest.id}:idea`);
+    if (
+      !provenance ||
+      !action.whyNow ||
+      !action.uncertainty ||
+      provenance.assertion !==
+        communityAssertion({
+          title: action.title,
+          description: action.desc,
+          whyNow: action.whyNow,
+          uncertainty: action.uncertainty,
+        })
+    )
+      continue;
     ideas.push({
       title: action.title,
-      description: action.desc || digest.summaryText.slice(0, 240),
-      whyNow: action.desc || digest.summaryText.slice(0, 240),
+      description: action.desc,
+      whyNow: action.whyNow,
+      uncertainty: action.uncertainty,
+      provenance,
       source: 'community',
       region,
       subreddit: digest.subreddit,
@@ -711,14 +746,7 @@ export async function buildIdeas(
         ? digest.snapshotDate
         : new Date(digest.snapshotDate as unknown as string)
       ).toISOString(),
-      evidenceUrls: [{ url: evidenceUrl }],
-      opportunity: communityActionToOpportunity({
-        title: action.title,
-        description: action.desc || digest.summaryText.slice(0, 240),
-        region,
-        subreddit: digest.subreddit,
-        evidenceCount: 1,
-      }),
+      evidenceUrls: provenance.evidenceUrls.map((url) => ({ url })),
     });
     if (ideas.length >= IDEAS_LIMIT) break;
   }
@@ -730,99 +758,20 @@ export async function buildIdeas(
   return ideas;
 }
 
-function communityActionToOpportunity(input: {
-  title: string;
-  description: string;
-  region: Region;
-  subreddit: string;
-  evidenceCount: number;
-}): OpportunityBriefPayload {
-  const hasEvidence = input.evidenceCount > 0;
-  return {
-    verdict: hasEvidence ? 'test' : 'watch',
-    confidence: 'low',
-    targetUser: inferDigestTargetUser(`${input.title} ${input.description}`),
-    problem: input.description || input.title,
-    marketTimingReasons: [
-      `r/${input.subreddit} surfaced this as a current key action in the community digest.`,
-      input.region === 'global'
-        ? 'Treat the first validation pass as ICP-specific before assuming broad demand.'
-        : `The brief is scoped to ${input.region}, so interviews should start with that region's buyers.`,
-    ],
-    evidenceMix: [
-      {
-        kind: 'demand',
-        label: 'community demand',
-        summary: hasEvidence
-          ? 'The digest included a cited source thread for the demand signal.'
-          : 'The digest surfaced demand, but no source link was attached.',
-        strength: 'low',
-        sourceCount: input.evidenceCount,
-      },
-    ],
-    competitorNotes: [
-      'Competitor density is not extracted from this digest yet; validate substitutes manually.',
-    ],
-    pricingNotes: [
-      'Price sensitivity is unknown; test willingness to pay before treating this as an entry call.',
-    ],
-    agentVisibilityNotes: [
-      'Run an agent-answer snapshot for this category to see whether recommendations are generic, incumbent-led, or empty.',
-    ],
-    risks: [
-      'Community demand can overstate urgency; confirm repeated pain outside the source thread.',
-    ],
-    nextValidationStep:
-      'Turn the complaint into one landing page promise and interview 10 users from the source community.',
-    priorHitRate: null,
-  };
-}
-
-function inferDigestTargetUser(text: string): string {
-  const normalized = text.toLowerCase();
-  if (normalized.includes('founder')) return 'founders evaluating a new category';
-  if (
-    normalized.includes('dev') ||
-    normalized.includes('code') ||
-    normalized.includes('engineer')
-  ) {
-    return 'technical operators with repeated workflow friction';
-  }
-  if (normalized.includes('smb') || normalized.includes('business')) {
-    return 'SMB operators trying to remove manual work';
-  }
-  if (normalized.includes('invest')) return 'retail investors comparing fragmented options';
-  return 'users actively describing an unmet job';
-}
-
 export async function buildTrends(
   database: BriefDatabase,
   region: Region,
   countries: string[]
 ): Promise<BriefTrendItem[]> {
-  const sinceMs = Date.now() - COMMUNITY_DIGEST_LOOKBACK_DAYS * 24 * 60 * 60 * 1000;
-  const digestRows = await database
-    .select({
-      id: schema.communityDigestSnapshots.id,
-      subreddit: schema.communityDigestSnapshots.subreddit,
-      snapshotDate: schema.communityDigestSnapshots.snapshotDate,
-      summary: schema.communityDigestSnapshots.summary,
-      summaryText: schema.communityDigestSnapshots.summaryText,
-    })
-    .from(schema.communityDigestSnapshots)
-    .innerJoin(
-      schema.trackedCommunities,
-      eq(schema.trackedCommunities.id, schema.communityDigestSnapshots.trackedCommunityId)
-    )
-    .where(
-      and(
-        eq(schema.trackedCommunities.isPublic, true),
-        gte(schema.communityDigestSnapshots.snapshotDate, new Date(sinceMs))
-      )
-    )
-    .orderBy(desc(schema.communityDigestSnapshots.snapshotDate))
-    .limit(40);
+  await assertCommunityResearchAvailable(database.$client);
+  if (region !== 'global') return [];
+  const digestRows = await recentPublicDigests(database);
 
+  const provenanceByItem = await loadBriefProvenance(
+    database,
+    digestRows.map((digest) => `community:${digest.id}:trend`),
+    'brief'
+  );
   const trends: BriefTrendItem[] = [];
   const seenSubs = new Set<string>();
   for (const digest of digestRows) {
@@ -830,14 +779,29 @@ export async function buildTrends(
     const summary = normalizeCommunitySummary(digest.summary);
     const trend = summary?.keyTrend;
     if (!trend || !isPublicSourceLink(trend.link)) continue;
-    const evidenceUrl = trend.link.trim();
+    const provenance = provenanceByItem.get(`community:${digest.id}:trend`);
+    if (
+      !provenance ||
+      !trend.whyNow ||
+      !trend.uncertainty ||
+      provenance.assertion !==
+        communityAssertion({
+          title: trend.title,
+          description: trend.desc,
+          whyNow: trend.whyNow,
+          uncertainty: trend.uncertainty,
+        })
+    )
+      continue;
     trends.push({
       title: trend.title,
-      description: trend.desc || digest.summaryText.slice(0, 240),
-      whyNow: trend.desc || digest.summaryText.slice(0, 240),
+      description: trend.desc,
+      whyNow: trend.whyNow,
+      uncertainty: trend.uncertainty,
+      provenance,
       subreddit: digest.subreddit,
       region,
-      evidenceUrls: [{ url: evidenceUrl }],
+      evidenceUrls: provenance.evidenceUrls.map((url) => ({ url })),
       surfacedAt: (digest.snapshotDate instanceof Date
         ? digest.snapshotDate
         : new Date(digest.snapshotDate as unknown as string)

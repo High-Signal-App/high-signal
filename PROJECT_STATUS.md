@@ -2,6 +2,25 @@
 
 Last updated: 2026-10-24
 
+October 24 reading-pipeline completion — implementation, live qualification pending:
+
+Known public newsletter archives now share the RSS/Atom add/pause/resume path.
+The fixed 0031 schema upgrade preserves sources, pauses and fetch diagnostics.
+The news adapter repairs stale feed endpoints, collects bounded dated public
+archives, records per-publication fetch receipts and supports targeted retries.
+Future earnings notices and other issuers cannot consume retained-corroboration
+match slots; current-batch matching preserves delivery identity and exact proof.
+Cached and full-collection news enforce title-aligned complete excerpts; NOAA
+alerts and CFTC contract reports receive distinct source identities.
+
+Community reporting now researches retained attention leads against recent
+retained original documents through the existing free-AI gateway. Supporting
+passages, independently checked visible copy, origin checks and an atomic claim
+and audit gate protect publication. Ideas and culture reports appear in both
+reader implementations and `readerEdition`, including uncertainty and proof.
+No subscriptions have been removed; blocked, stale and email-only sources still
+require explicit coverage qualification before treating email as replaceable.
+
 October 24 reader/MCP parity and navigation consistency — implementation:
 
 REST and MCP Brief responses include an additive `readerEdition` using the same
@@ -74,9 +93,9 @@ October 24 release qualification:
 
 The initial API release attempt `40003960732` stopped before deployment because
 its Workers token lacks D1 management access (Cloudflare 7403). The release now
-uses the deployed API's existing D1 binding for exactly migration
-`0030_feed_sources.sql`, behind the existing operator authorization. Callers
-cannot supply SQL or select another migration. Initialization validates schema,
+uses the deployed API's existing D1 binding for the fixed publication-source
+migrations 0030 and0031, behind the existing operator authorization. Callers
+cannot supply SQL or select arbitrary migrations. Initialization validates schema,
 records the standard Wrangler migration receipt atomically, preserves existing
 rows on retry, and fails closed if a recorded registry is missing. Manual
 Wrangler migrations remain compatible. No credentials, bindings, or token scopes

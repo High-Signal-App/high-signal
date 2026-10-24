@@ -273,7 +273,29 @@ def _with_backoff(
             time.sleep(sleep_for)
 
 
+def _parse_source(value: str) -> Source:
+    """Retain strict family names while allowing one curated publication retry."""
+    if value in source_catalog.by_id() or value in source_catalog.PIPELINE_SOURCE_GROUPS:
+        return cast(Source, value)
+    if value.startswith("news:") and value.removeprefix("news:") in news.configured_source_ids():
+        return cast(Source, value)
+    raise argparse.ArgumentTypeError(
+        f"Unknown source {value!r}; use a source family or news:<configured-publication-id>"
+    )
+
+
 def _fetch_tasks(source: Source, days: int) -> list[tuple[str, str, Callable[[], list[Event]]]]:
+    if source.startswith("news:"):
+        source_id = _parse_source(source).removeprefix("news:")
+        return [
+            (
+                source,
+                _host_key("https://newsapi.org"),
+                lambda: news.fetch_all(
+                    days=days, tier_max=2, fetch_body=True, source_ids=[source_id]
+                ),
+            )
+        ]
     grouped = source_catalog.PIPELINE_SOURCE_GROUPS.get(source)
     if grouped is None:
         return _fetch_single_source_tasks(source, days)
@@ -1051,9 +1073,17 @@ def run(source: Source, days: int, *, generate_signals: bool = True) -> dict:
     deduped = dedupe_exact(events)
     duplicates_collapsed = len(events) - len(deduped)
 
+    # Semantic research also associates differently worded reports already in
+    # this batch. Reuse deduped representatives and partition after association
+    # so accepted joint-company stories do not land in different entity buckets.
+    related: list[Event] = []
+    retrieval_metrics: dict[str, int] = {}
+    if generate_signals:
+        related, retrieval_metrics = load_retained_corroboration(deduped)
+
     by_entity: dict[str, list[Event]] = defaultdict(list)
     no_entity_events: list[Event] = []
-    for ev in deduped:
+    for ev in [*deduped, *related]:
         eid = _event_entity(ev)
         if eid:
             by_entity[eid].append(ev)
@@ -1093,12 +1123,6 @@ def run(source: Source, days: int, *, generate_signals: bool = True) -> dict:
             "errors": errors,
             "paths": [],
         }
-
-    related, retrieval_metrics = load_retained_corroboration(events)
-    for retained in related:
-        entity_id = _event_entity(retained)
-        if entity_id:
-            by_entity[entity_id].append(retained)
 
     written: list[str] = []
     delivery_failures: list[SignalDeliveryError] = []
@@ -1261,10 +1285,9 @@ def main() -> None:
     p = argparse.ArgumentParser()
     p.add_argument(
         "--source",
-        choices=[
-            *sorted(source_catalog.by_id()),
-            *sorted(source_catalog.PIPELINE_SOURCE_GROUPS),
-        ],
+        type=_parse_source,
+        metavar="FAMILY|news:PUBLICATION_ID",
+        help="Source family/group or one configured publication ID (preserves registry pauses).",
         default="all",
     )
     p.add_argument("--days", type=int, default=1)

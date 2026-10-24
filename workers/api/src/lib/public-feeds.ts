@@ -1,5 +1,6 @@
 import { XMLParser, XMLValidator } from 'fast-xml-parser';
 import { z } from 'zod';
+import { knownPublicArchive, validatePublicArchive } from './public-archives';
 
 const MAX_BYTES = 2 * 1024 * 1024;
 type FeedFetch = (url: string, init: RequestInit) => Promise<Response>;
@@ -110,7 +111,7 @@ async function checkPublicHost(
   }
 }
 
-async function boundedText(response: Response): Promise<string> {
+async function boundedText(response: Response, allowPrefix = false): Promise<string> {
   const reader = response.body?.getReader();
   if (!reader) return '';
   const decoder = new TextDecoder();
@@ -120,11 +121,12 @@ async function boundedText(response: Response): Promise<string> {
     while (true) {
       const chunk = await reader.read();
       if (chunk.done) return text + decoder.decode();
-      bytes += chunk.value.byteLength;
-      if (bytes > MAX_BYTES) {
+      if (bytes + chunk.value.byteLength > MAX_BYTES) {
         await reader.cancel();
-        throw new PublicFeedError('The feed exceeds the 2 MB download limit.');
+        if (!allowPrefix) throw new PublicFeedError('The feed exceeds the 2 MB download limit.');
+        return text + decoder.decode(chunk.value.subarray(0, MAX_BYTES - bytes)) + decoder.decode();
       }
+      bytes += chunk.value.byteLength;
       text += decoder.decode(chunk.value, { stream: true });
     }
   } finally {
@@ -132,7 +134,12 @@ async function boundedText(response: Response): Promise<string> {
   }
 }
 
-async function fetchPublicDocument(input: URL, request: FeedFetch, signal: AbortSignal) {
+async function fetchPublicDocument(
+  input: URL,
+  request: FeedFetch,
+  signal: AbortSignal,
+  allowPrefix = false
+) {
   let url = input;
   for (let redirect = 0; redirect <= 4; redirect++) {
     await checkPublicHost(url.hostname, request, signal);
@@ -155,7 +162,7 @@ async function fetchPublicDocument(input: URL, request: FeedFetch, signal: Abort
       await response.body?.cancel();
       throw new PublicFeedError(`The publisher returned HTTP ${response.status}.`);
     }
-    return { url, text: await boundedText(response) };
+    return { url, text: await boundedText(response, allowPrefix) };
   }
   throw new PublicFeedError('The publisher redirected too many times.');
 }
@@ -256,9 +263,32 @@ export async function discoverPublicFeed(input: string, request: FeedFetch = fet
     ? publicFeedUrl(new URL('/feed', submitted).href)
     : submitted;
   const signal = AbortSignal.timeout(15_000);
-  const document = await fetchPublicDocument(firstUrl, request, signal);
+  const archive = knownPublicArchive(submitted.href);
+  let document;
+  try {
+    document = await fetchPublicDocument(firstUrl, request, signal);
+  } catch (error) {
+    if (!archive) throw error;
+    document = await fetchPublicDocument(publicFeedUrl(archive.url), request, signal, true);
+  }
   const direct = parseFeedDocument(document.text, document.url.href);
   if (direct) return { ...direct, url: submitted.href };
+  if (archive) {
+    const listing =
+      publicFeedIdentity(document.url.href) === publicFeedIdentity(archive.url)
+        ? document
+        : await fetchPublicDocument(publicFeedUrl(archive.url), request, signal, true);
+    try {
+      return {
+        ...(await validatePublicArchive(listing.text, listing.url.href, archive)),
+        url: submitted.href,
+      };
+    } catch (error) {
+      throw new PublicFeedError(
+        error instanceof Error ? error.message : 'Unsupported public archive.'
+      );
+    }
+  }
   const links = await discoverLinks(document.text, document.url);
   let lastError: unknown;
   for (const url of links) {

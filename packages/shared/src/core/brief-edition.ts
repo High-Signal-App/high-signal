@@ -1,5 +1,11 @@
 /** A bounded front edition over the complete retained news collection. */
-import type { BriefNewsItem, BriefSnapshot, BriefStockItem } from './brief';
+import type {
+  BriefIdeaItem,
+  BriefNewsItem,
+  BriefSnapshot,
+  BriefStockItem,
+  BriefTrendItem,
+} from './brief';
 import { clusterNewsRecords, sanitizeBriefNewsItems } from './brief-news';
 import { istDayRange } from './history-access';
 import { sourceDomain } from './signal-intelligence';
@@ -54,6 +60,8 @@ export interface BriefEditionStory {
 export interface BriefReaderEdition {
   news: BriefEditionStory[];
   signals: BriefStockItem[];
+  ideas: BriefIdeaItem[];
+  trends: BriefTrendItem[];
   totalNews: number;
   totalSignals: number;
   newsReadingMinutes: number;
@@ -70,6 +78,8 @@ export function buildReaderEdition(brief: BriefSnapshot): BriefReaderEdition {
   return {
     news: selection.items,
     signals: brief.stocks.slice(0, 3),
+    ideas: brief.ideas.slice(0, 2),
+    trends: brief.trends.slice(0, 2),
     totalNews: selection.total,
     totalSignals: brief.stocks.length,
     newsReadingMinutes: selection.readingMinutes,
