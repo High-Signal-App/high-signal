@@ -2,7 +2,29 @@
 
 Last updated: 2026-10-24
 
-October 24 reading-pipeline completion — implementation, live qualification pending:
+October 24 reading-pipeline completion — implementation and live qualification:
+
+The first proof-qualified culture report is live in the public Brief and MCP
+reader edition, citing independent Ars and Atlassian reporting with visible
+uncertainty. Other researched leads were withheld; the current normal news
+candidate run also returned no Signal rather than filling a quota. Positive
+live Signal qualification remains open in issue #283. Two explicitly reviewed
+news receipts now retain the correct IBM and Infosys article bodies while
+preserving their original event observations.
+Historical weather records whose shared document belongs to another alert keep
+their original extract, but the public permalink withholds the misassociated
+body and explains that the exact alert link was not retained. The original
+stored audit data is preserved; current alerts retain their distinct public IDs.
+
+HN discovery searches keyword alternatives separately and includes a bounded
+recent-story catch-up. It retrieves at most twenty public linked originals per
+refresh through the existing public-fetch and complete-article gates. An
+explicit current publisher date is required; an HN submission date cannot make
+an old article new. Publisher failures preserve discussion observations.
+Original articles discovered through HN or X attention remain eligible for
+attributed news even when they cannot satisfy Signal corroboration. News
+citations may carry a validated HN/X discussion link as context, with no extra
+evidence origin or confidence credit.
 
 Known public newsletter archives now share the RSS/Atom add/pause/resume path.
 Social Growth Engineers uses its advertised public RSS; Startups.fyi and

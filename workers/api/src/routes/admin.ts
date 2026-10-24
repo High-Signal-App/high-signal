@@ -5,7 +5,7 @@
  * CI / local sync-signals.ts POSTs frontmatter+body to /admin/sync to keep D1 in step with the git-versioned signals/ tree.
  */
 import { Hono } from 'hono';
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import {
   buildHistoricalClaimBackfill,
   canonicalSourceUrl,
@@ -303,6 +303,7 @@ adminRoute.post('/events', async (c) => {
     const id = await sha16(e.rawHash);
     const sourceDocument = normalizeSourceDocument(e);
     const sourceDocumentId = await sha16(`source-document:${sourceDocument.documentKey}`);
+    const parsedFields = JSON.stringify(sourceDocument.parsedFields);
     const sourceDocumentUpdate = {
       canonicalUrl: sourceDocument.canonicalUrl,
       ...(sourceDocument.explicit
@@ -312,7 +313,18 @@ adminRoute.post('/events', async (c) => {
             rawHash: sourceDocument.rawHash,
             rawText: sourceDocument.rawText,
             rawJson: sourceDocument.rawJson,
-            parsedFields: sourceDocument.parsedFields,
+            // An article refresh can omit its earlier discovery discussion.
+            // Retain only those context fields, never stale evidence metadata.
+            parsedFields: sql`case
+              when json_valid(${schema.sourceDocuments.parsedFields})
+                and ${schema.sourceDocuments.canonicalUrl} = ${sourceDocument.canonicalUrl}
+              then case when json_type(${parsedFields}) = 'object' then
+                json_patch(json_patch('{}', json_object(
+                  'discussionUrl', json_extract(${schema.sourceDocuments.parsedFields}, '$.discussionUrl'),
+                  'discussionUrls', json_extract(${schema.sourceDocuments.parsedFields}, '$.discussionUrls')
+                )), ${parsedFields})
+              else ${parsedFields} end
+              else ${parsedFields} end`,
           }
         : {}),
     };

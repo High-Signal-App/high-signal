@@ -349,6 +349,7 @@ export interface DataRecordResponse {
   content: string | null;
   retainedText: string | null;
   retainedTextTruncated: boolean;
+  retainedTextUnavailableReason?: 'legacy_shared_document_mismatch';
   entity: string | null;
   entityName: string | null;
   publishedAt: number | null;

@@ -47,6 +47,14 @@ of scope as of 2026-05-25.)
 The front edition is a finite read: up to eight recent news stories and three
 verified signals. Selection favors consequential developments in technology,
 startups, and finance, with limits on repeated publishers and funding rounds.
+The reader goal is fewer habitual checks of X, Hacker News, and newsletter
+inboxes, with confidence that important developments have been covered. Those
+three are the primary reading inputs; other sources add reporting and proof.
+Readers can still visit the original discussions for exploration. Success is a
+dependable catch-up with less fear of missing out, rather than mirroring every
+post or increasing the amount a reader must consume. Newsletter coverage uses
+public feeds and archives; private and paid email content is outside this public
+publication.
 Overlapping accounts share a story with separately attributed excerpts; grouping
 does not grant corroboration credit or upgrade a news item into a verified signal.
 The complete qualified news collection remains available through “all stories,”

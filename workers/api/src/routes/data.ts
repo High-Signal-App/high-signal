@@ -1032,23 +1032,37 @@ dataRoute.get('/records/:id', async (c) => {
   }
   if (!row) return c.json({ error: 'not_found', id }, 404);
 
-  const retainedText = row.retainedText;
+  // Legacy weather.gov rows shared one document despite describing distinct
+  // alerts. Preserve the original observation, but do not attribute another
+  // alert's retained body to it when its exact public identifier was lost.
+  const sharedWeatherMismatch =
+    row.source === 'us-gov-api:noaa-weather' &&
+    /^https?:\/\/(?:www\.)?weather\.gov\/?$/i.test(row.url) &&
+    row.content !== null &&
+    row.retainedText !== null &&
+    row.content.trim().length > 0 &&
+    row.retainedText.trim().length > 0 &&
+    row.content.replace(/\s+/g, ' ').trim() !== row.retainedText.replace(/\s+/g, ' ').trim();
+  const retainedText = sharedWeatherMismatch ? null : row.retainedText;
   return c.json(
     {
       id: row.id,
       source: row.source,
       family: family(row.source),
       url: row.url,
-      canonicalUrl: row.canonicalUrl,
+      canonicalUrl: sharedWeatherMismatch ? null : row.canonicalUrl,
       title: row.title,
       content: row.content,
       retainedText: retainedText ? retainedText.slice(0, RETAINED_TEXT_MAX) : null,
       retainedTextTruncated: retainedText !== null && retainedText.length > RETAINED_TEXT_MAX,
+      ...(sharedWeatherMismatch
+        ? { retainedTextUnavailableReason: 'legacy_shared_document_mismatch' }
+        : {}),
       entity: row.entity,
       entityName: row.entityName,
       publishedAt: epochSeconds(row.publishedAt),
       ingestedAt: epochSeconds(row.ingestedAt),
-      documentFetchedAt: epochSeconds(row.documentFetchedAt),
+      documentFetchedAt: sharedWeatherMismatch ? null : epochSeconds(row.documentFetchedAt),
       available: true,
     },
     200,

@@ -82,4 +82,37 @@ describe('GET /data/records/:id', () => {
     expect(status).toBe(404);
     expect(body['error']).toBe('not_found');
   });
+
+  it('withholds a misassociated legacy weather document while preserving the observation and audit data', async () => {
+    d1.exec(
+      `UPDATE events SET source = 'us-gov-api:noaa-weather', source_url = 'http://www.weather.gov', title = 'Small Craft Advisory — Stellwagen Bank', content = 'Small Craft Advisory — Stellwagen Bank. North winds and hazardous seas.' WHERE id = 'ev-1'`
+    );
+    d1.exec(
+      `UPDATE source_documents SET raw_text = 'Severe Thunderstorm Warning — Buena Vista, Iowa' WHERE id = 'doc-1'`
+    );
+    const { body } = await get('/data/records/ev-1');
+    expect(body).toMatchObject({
+      content: 'Small Craft Advisory — Stellwagen Bank. North winds and hazardous seas.',
+      retainedText: null,
+      canonicalUrl: null,
+      documentFetchedAt: null,
+      retainedTextUnavailableReason: 'legacy_shared_document_mismatch',
+    });
+    expect(
+      await d1.binding
+        .prepare('SELECT raw_text FROM source_documents WHERE id = ?')
+        .bind('doc-1')
+        .first()
+    ).toEqual({ raw_text: 'Severe Thunderstorm Warning — Buena Vista, Iowa' });
+    d1.exec(
+      `UPDATE source_documents SET raw_text = 'Small Craft Advisory — Stellwagen Bank.\n  North winds and hazardous seas.' WHERE id = 'doc-1'`
+    );
+    const sameObservation = await get('/data/records/ev-1');
+    expect(sameObservation.body).not.toHaveProperty('retainedTextUnavailableReason');
+    d1.exec(
+      `UPDATE events SET source_url = 'https://api.weather.gov/alerts/urn:uuid:specific-alert' WHERE id = 'ev-1'`
+    );
+    const specific = await get('/data/records/ev-1');
+    expect(specific.body).not.toHaveProperty('retainedTextUnavailableReason');
+  });
 });

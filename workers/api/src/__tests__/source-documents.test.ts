@@ -55,6 +55,57 @@ describe('source document normalization', () => {
 });
 
 describe('retained article receipt repair through actual SQLite upserts', () => {
+  it('preserves discovery context across explicit refreshes without retaining stale proof metadata', async () => {
+    const database = createSqliteD1();
+    try {
+      applyMigrations(database);
+      const event = {
+        source: 'news:mts-verification:example.com',
+        sourceUrl: 'https://publisher.example/article',
+        publishedAt: '2026-10-24T08:00:00Z',
+        rawHash: 'same-article',
+        title: 'Acme launches a new enterprise API',
+      };
+      async function push(parsedFields: unknown) {
+        const response = await adminRoute.request(
+          '/events',
+          {
+            method: 'POST',
+            headers: { Authorization: 'Bearer test', 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              events: [
+                {
+                  ...event,
+                  sourceDocument: { rawText: 'Refreshed public article body', parsedFields },
+                },
+              ],
+            }),
+          },
+          { DB: database.binding, ADMIN_TOKEN: 'test' }
+        );
+        expect(await response.json()).toEqual({ inserted: 1 });
+        return database.binding
+          .prepare('SELECT parsed_fields FROM source_documents')
+          .first<{ parsed_fields: string }>();
+      }
+      const discussionUrl = 'https://x.com/acme/status/123';
+      await push({ discussionUrl, discussionUrls: [discussionUrl], oldEvidence: true });
+      const refreshed = await push({ documentKind: 'news_article' });
+      expect(JSON.parse(refreshed!.parsed_fields)).toEqual({
+        discussionUrl,
+        discussionUrls: [discussionUrl],
+        documentKind: 'news_article',
+      });
+      const newer = await push({ discussionUrl: 'https://x.com/acme/status/456' });
+      expect(JSON.parse(newer!.parsed_fields).discussionUrl).toBe('https://x.com/acme/status/456');
+      database.exec("UPDATE source_documents SET parsed_fields = 'invalid historical JSON'");
+      const repaired = await push({ documentKind: 'news_article' });
+      expect(JSON.parse(repaired!.parsed_fields)).toEqual({ documentKind: 'news_article' });
+    } finally {
+      database.close();
+    }
+  });
+
   it.each([null, 'AI - unrelated navigation text retained by an older extraction'])(
     'repairs an existing receipt while preserving its original event observation: %s',
     async (initialText) => {

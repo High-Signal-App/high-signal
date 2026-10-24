@@ -98,7 +98,9 @@ function RecordText({ record }: { record: DataRecordResponse }) {
           </pre>
         ) : (
           <p className="mt-3 text-sm text-zinc-500">
-            No document body was retained for this record — only its metadata was stored.
+            {record.retainedTextUnavailableReason === 'legacy_shared_document_mismatch'
+              ? 'The historical document was shared with another weather alert and cannot be attributed to this record. The original extract is preserved above; the exact alert link was not retained.'
+              : 'No document body was retained for this record — only its metadata was stored.'}
           </p>
         )}
         {record.documentFetchedAt ? (

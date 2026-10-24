@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import httpx
+import pytest
 
 from high_signal_ingest import digg_verify
 from high_signal_ingest.digg_verify import (
@@ -182,6 +183,7 @@ def test_mts_discovery_uses_the_same_original_source_gate() -> None:
         "shortId": "situation-1",
         "attentionSource": "mts",
         "title": "OpenAI launches infrastructure change",
+        "sourceUrls": ["https://twitter.com/OpenAI/status/123?s=20"],
     }
     articles = [
         {
@@ -196,6 +198,58 @@ def test_mts_discovery_uses_the_same_original_source_gate() -> None:
     assert events[0].source == "news:mts-verification:reuters.com"
     assert events[0].source_document is not None
     assert events[0].source_document.parsed_fields["attentionSource"] == "mts"
+    assert (
+        events[0].source_document.parsed_fields["discussionUrl"]
+        == "https://x.com/OpenAI/status/123"
+    )
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "javascript:alert(1)",
+        "https://x.com.evil.org/u/status/1",
+        "https://u:p@x.com/u/status/1",
+        "https://x.com/u",
+        "https://x.com:8443/u/status/1",
+    ],
+)
+def test_invalid_social_context_is_not_retained(value):
+    assert digg_verify._discussion_url({"sourceUrls": [value]}) is None
+
+
+@pytest.mark.parametrize(
+    "acknowledged,expected_status", [(1, "insufficient_evidence"), (0, "failed")]
+)
+def test_single_original_is_retained_before_signal_gate(monkeypatch, acknowledged, expected_status):
+    from high_signal_ingest.types import Event
+    from datetime import datetime, timezone
+
+    event = Event(
+        id="original",
+        source="news:mts-verification:reuters.com",
+        source_url="https://reuters.com/acme-api",
+        published_at=datetime.now(timezone.utc),
+        title="Acme launches API",
+        content="Retained original reporting",
+        raw_hash="hash",
+    )
+    monkeypatch.setattr(digg_verify, "discover_articles", lambda *_: [{"url": event.source_url}])
+    monkeypatch.setattr(digg_verify, "retrieve_events", lambda *_: [event])
+    calls = []
+
+    def push(events, batch_id):
+        calls.append((events, batch_id))
+        return acknowledged
+
+    monkeypatch.setattr(digg_verify.audit, "push_events", push)
+    with httpx.Client() as client:
+        result = digg_verify.verify_request({"shortId": "abc", "attentionSource": "mts"}, client)
+    assert calls == [([event], "mts-abc")]
+    assert result["status"] == expected_status
+    assert "candidateSlug" not in result
+    if not acknowledged:
+        assert result["error"] == "original_article_retention_unacknowledged"
 
 
 def test_retained_evidence_is_reused_without_refetching() -> None:
