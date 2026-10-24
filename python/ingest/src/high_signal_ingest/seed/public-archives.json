@@ -1,0 +1,50 @@
+[
+  {
+    "id": "ml-the-batch",
+    "title": "The Batch (DeepLearning.AI)",
+    "kind": "batch",
+    "url": "https://www.deeplearning.ai/the-batch",
+    "aliases": [
+      "https://www.deeplearning.ai/the-batch/feed/"
+    ]
+  },
+  {
+    "id": "ml-stratechery-weekly",
+    "title": "Stratechery Weekly Articles (free)",
+    "kind": "stratechery",
+    "url": "https://stratechery.com/category/articles/",
+    "aliases": [
+      "https://stratechery.com/category/articles/feed/"
+    ]
+  },
+  {
+    "id": "ml-bay-area-times",
+    "title": "Bay Area Times",
+    "kind": "beehiiv",
+    "url": "https://www.bayareatimes.com/",
+    "aliases": []
+  },
+  {
+    "id": "ml-vc-unfiltered",
+    "title": "VC Unfiltered",
+    "kind": "beehiiv",
+    "url": "https://vcunfiltered.beehiiv.com/",
+    "aliases": []
+  },
+  {
+    "id": "ml-internet-is-beautiful",
+    "title": "Internet Is Beautiful",
+    "kind": "beehiiv",
+    "url": "https://archive.internetisbeautiful.com/",
+    "aliases": [
+      "https://internetisbeautiful.beehiiv.com/"
+    ]
+  },
+  {
+    "id": "ml-cerebras-blog",
+    "title": "Cerebras Blog",
+    "kind": "cerebras",
+    "url": "https://www.cerebras.ai/blog",
+    "aliases": []
+  }
+]

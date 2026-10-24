@@ -33,6 +33,7 @@ import logging
 import os
 from datetime import datetime, timedelta, timezone
 from typing import Any
+from urllib.parse import urlencode, urlsplit
 from xml.etree import ElementTree as ET
 
 import httpx
@@ -119,6 +120,10 @@ def _fetch_cftc_cot(days: int) -> list[Event]:
         except ValueError:
             pass
         raw_hash = event_hash("us-gov-api:cftc-cot", market, report_date)
+        # The report landing page is shared by every contract and week. Use a
+        # public, exact dataset query so URL deduplication/document retention
+        # cannot replace one contract's positioning with another's.
+        source_url = f"{CFTC_COT_URL}?{urlencode({'market_and_exchange_names': market, 'report_date_as_yyyy_mm_dd': report_date})}"
         content = _cap(
             f"CFTC CoT {market} for {report_date}.\n"
             f"Non-commercial long: {long_pos}, short: {short_pos}, net: {net}."
@@ -127,7 +132,7 @@ def _fetch_cftc_cot(days: int) -> list[Event]:
             Event(
                 id=raw_hash[:16],
                 source="us-gov-api:cftc-cot",
-                source_url="https://www.cftc.gov/MarketReports/CommitmentsofTraders/index.htm",
+                source_url=source_url,
                 published_at=published,
                 title=f"CFTC CoT: {market} ({report_date})",
                 content=content,
@@ -545,14 +550,16 @@ def _noaa_alert_url(web: object, alert_id: str) -> str:
     URL). `properties.id` is the alert's own api.weather.gov URI, so use it.
     """
     web_url = str(web or "").strip()
-    if web_url:
-        return web_url
     identifier = alert_id.strip()
-    if not identifier:
-        return "https://www.weather.gov/"
-    if identifier.startswith(("http://", "https://")):
-        return identifier
-    return f"https://api.weather.gov/alerts/{identifier}"
+    if identifier:
+        if identifier.startswith(("http://", "https://")):
+            return identifier
+        return f"https://api.weather.gov/alerts/{identifier}"
+    # Some responses explicitly set `web` to the weather.gov homepage. That
+    # value has no alert identity, just like an absent web field.
+    if web_url and urlsplit(web_url).path.rstrip("/"):
+        return web_url
+    return ""
 
 
 def _fetch_noaa_weather(days: int) -> list[Event]:
@@ -596,11 +603,14 @@ def _fetch_noaa_weather(days: int) -> list[Event]:
         raw_hash = event_hash(
             "us-gov-api:noaa-weather", alert_id or f"{event}|{area}|{published.isoformat()}"
         )
+        source_url = _noaa_alert_url(props.get("web"), alert_id)
+        if not source_url:
+            continue
         out.append(
             Event(
                 id=raw_hash[:16],
                 source="us-gov-api:noaa-weather",
-                source_url=_noaa_alert_url(props.get("web"), alert_id),
+                source_url=source_url,
                 published_at=published,
                 title=title,
                 content=content,

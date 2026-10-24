@@ -44,8 +44,18 @@ def test_feed_retains_full_article_text_without_html_or_script() -> None:
 
 def test_curated_newsletters_reach_intake_and_keep_feed_text_when_page_fails(monkeypatch) -> None:
     sources = [
-        {"id": "newsletter", "type": "mailing_list", "tier": 3, "rss": "https://writer.test/feed"},
-        {"id": "outlet", "type": "news_outlet", "tier": 2, "rss": "https://outlet.test/feed"},
+        {
+            "id": "newsletter",
+            "type": "mailing_list",
+            "tier": 3,
+            "rss": "https://writer.example.org/feed",
+        },
+        {
+            "id": "outlet",
+            "type": "news_outlet",
+            "tier": 2,
+            "rss": "https://outlet.example.org/feed",
+        },
         {"id": "low-tier", "type": "news_outlet", "tier": 3, "rss": "https://skip.test/feed"},
         {"id": "unranked", "type": "mailing_list", "rss": "https://unranked.test/feed"},
         {"id": "forum", "type": "forum", "tier": 1, "rss": "https://forum.test/feed"},
@@ -68,6 +78,11 @@ def test_curated_newsletters_reach_intake_and_keep_feed_text_when_page_fails(mon
             </item></channel></rss>""",
         )
 
+    async def public_dns(_url):
+        return None
+
+    monkeypatch.setattr(news.registered_feeds, "check_public_host", public_dns)
+    monkeypatch.setattr(news.audit, "push_ingest_runs", lambda _runs: True)
     client = httpx.AsyncClient
     monkeypatch.setattr(news, "load_sources", lambda: sources)
     monkeypatch.setattr(
@@ -75,11 +90,14 @@ def test_curated_newsletters_reach_intake_and_keep_feed_text_when_page_fails(mon
         "AsyncClient",
         lambda **kwargs: client(transport=httpx.MockTransport(respond), **kwargs),
     )
-    events = asyncio.run(news.fetch_all_async())
+    events = asyncio.run(news.fetch_all_async(source_ids=["newsletter", "outlet"]))
     assert {event.source for event in events} == {"news:newsletter", "news:outlet"}
     assert all(event.content == body for event in events)
     assert all(event.source_url.endswith("/article") for event in events)
-    assert {httpx.URL(url).host for url in requested} == {"writer.test", "outlet.test"}
+    assert {httpx.URL(url).host for url in requested} == {
+        "writer.example.org",
+        "outlet.example.org",
+    }
 
 
 def test_scmp_feeds_are_targeted_china_feeds() -> None:
@@ -104,3 +122,145 @@ def test_china_news_feeds_are_live_china_business_and_tech_feeds() -> None:
         "https://www.cgtn.com/subscribe/rss/section/china.xml",
         "https://www.cgtn.com/subscribe/rss/section/business.xml",
     }
+
+
+def test_curated_failures_and_stale_success_have_distinct_named_fetch_receipts(monkeypatch) -> None:
+    sources = [
+        {"id": key, "type": "blog", "tier": 2, "rss": f"https://{key}.example.org/feed"}
+        for key in ["blocked", "html", "quiet"]
+    ]
+    receipts: list[dict] = []
+
+    def respond(request: httpx.Request) -> httpx.Response:
+        if request.url.host == "blocked.example.org":
+            return httpx.Response(403)
+        if request.url.host == "html.example.org":
+            return httpx.Response(200, text="<html>Not a feed</html>")
+        return httpx.Response(
+            200,
+            text="""<rss version="2.0"><channel><item>
+            <title>Old release</title><link>https://quiet.example.org/article</link>
+            <pubDate>Wed, 23 Sep 2026 10:00:00 GMT</pubDate></item></channel></rss>""",
+        )
+
+    async def public_dns(_url):
+        return None
+
+    client = httpx.AsyncClient
+    monkeypatch.setattr(news, "load_sources", lambda: sources)
+    monkeypatch.setattr(news.audit, "fetch_feed_sources", lambda: [])
+    monkeypatch.setattr(news.audit, "push_ingest_runs", lambda runs: receipts.extend(runs) or True)
+    monkeypatch.setattr(news.registered_feeds, "check_public_host", public_dns)
+    monkeypatch.setattr(
+        news.httpx,
+        "AsyncClient",
+        lambda **kwargs: client(transport=httpx.MockTransport(respond), **kwargs),
+    )
+    assert asyncio.run(news.fetch_all_async()) == []
+    by_source = {r["source"]: r for r in receipts}
+    assert by_source["news:blocked"]["errors"] == 1
+    assert by_source["news:blocked"]["errorSample"] == "Publisher returned HTTP 403"
+    assert by_source["news:html"]["errors"] == 1
+    assert by_source["news:quiet"]["errors"] == 0
+    assert "2026-09-23" in by_source["news:quiet"]["notes"]
+
+
+def test_archive_seed_runs_through_normal_news_collection_and_pause(monkeypatch) -> None:
+    source = {
+        "id": "public-archive",
+        "type": "mailing_list",
+        "tier": 3,
+        "archive": {"url": "https://publisher.example.org/", "kind": "beehiiv"},
+        "feed_aliases": ["https://publisher.example.org/old-feed"],
+    }
+    requested: list[str] = []
+    published = datetime.now(timezone.utc).isoformat()
+
+    def respond(request: httpx.Request) -> httpx.Response:
+        requested.append(str(request.url))
+        if request.url.path == "/":
+            return httpx.Response(200, text='<a href="/p/current">Current</a>')
+        return httpx.Response(
+            200,
+            text=f'''<h1>Publisher launches tools</h1>
+            <meta property="article:published_time" content="{published}">
+            <article><p>{"Publisher launched verified infrastructure tools for deployment. " * 20}</p></article>''',
+        )
+
+    async def public_dns(_url):
+        return None
+
+    client = httpx.AsyncClient
+    monkeypatch.setattr(news, "load_sources", lambda: [source])
+    monkeypatch.setattr(news.audit, "fetch_feed_sources", lambda: [])
+    monkeypatch.setattr(news.audit, "push_ingest_runs", lambda _runs: True)
+    monkeypatch.setattr(news.registered_feeds, "check_public_host", public_dns)
+    monkeypatch.setattr(
+        news.httpx,
+        "AsyncClient",
+        lambda **kwargs: client(transport=httpx.MockTransport(respond), **kwargs),
+    )
+    events = asyncio.run(news.fetch_all_async())
+    assert len(events) == 1 and events[0].source == "news:public-archive"
+    requested.clear()
+    monkeypatch.setattr(
+        news.audit,
+        "fetch_feed_sources",
+        lambda: [{"id": "paused", "feedUrl": source["feed_aliases"][0], "enabled": False}],
+    )
+    assert asyncio.run(news.fetch_all_async(source_ids=["public-archive"])) == []
+    assert requested == []
+
+
+def test_extraction_excludes_navigation_and_preserves_paraphrased_article() -> None:
+    article = "The company is bringing smaller language models to customer hardware. " * 12
+    html = (
+        "<html><body><nav><p>Nvidia woos Europeans with open models.</p></nav>"
+        f"<article><h1>IBM CEO backs on-prem models</h1><p>{article}</p></article>"
+        "<aside>Related stories about Nvidia</aside></body></html>"
+    )
+    text = news._extract_article_text(html, "IBM CEO backs on-prem models")
+    assert "customer hardware" in text
+    assert "Nvidia" not in text
+    assert news.article_text_is_aligned(article, "IBM CEO backs on-prem models")
+
+
+def test_mismatched_scrape_falls_back_to_aligned_feed_body(monkeypatch) -> None:
+    title = "IBM CEO backs open weight models on customer hardware"
+    feed_body = (
+        "IBM is bringing open weight language models to customer hardware for local deployment."
+    )
+    navigation = (
+        "AI - Nvidia woos Europeans. - Jensen shows robots. - Nvidia builds trailer parks. " * 20
+    )
+
+    def respond(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/feed":
+            return httpx.Response(
+                200,
+                text=f"""<rss version="2.0"><channel><item>
+              <title>{title}</title><link>https://publisher.example.org/article</link>
+              <pubDate>Sat, 24 Oct 2026 08:00:00 GMT</pubDate>
+              <description>{feed_body}</description></item></channel></rss>""",
+            )
+        return httpx.Response(200, text=f"<html><article><p>{navigation}</p></article></html>")
+
+    async def public_dns(_url):
+        return None
+
+    monkeypatch.setattr(news.registered_feeds, "check_public_host", public_dns)
+
+    async def run():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(respond)) as client:
+            return await news.fetch_rss_async(
+                {"id": "publisher", "rss": "https://publisher.example.org/feed"},
+                datetime(2026, 10, 23, tzinfo=timezone.utc),
+                client,
+                asyncio.Semaphore(2),
+                fetch_body=True,
+            )
+
+    [event] = asyncio.run(run())
+    assert event.content == feed_body
+    assert not news.article_text_is_aligned(navigation, title)
+    assert not news.article_text_is_aligned("Microsoft announced an unrelated product.", title)

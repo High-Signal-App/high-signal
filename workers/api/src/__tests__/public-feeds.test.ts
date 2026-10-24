@@ -1,4 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi, afterEach } from 'vitest';
+import { FixtureHTMLRewriter } from '../../test/html-rewriter-fixture';
+import { knownPublicArchive } from '../lib/public-archives';
+afterEach(() => vi.unstubAllGlobals());
 import {
   discoverPublicFeed,
   isPublicFeedAddress,
@@ -138,5 +141,70 @@ describe('public feed discovery', () => {
     await expect(
       discoverPublicFeed('https://publisher.example.org/feed', transport)
     ).rejects.toThrow('2 MB');
+  });
+});
+
+describe('known public archive discovery', () => {
+  it.each([
+    [
+      'https://www.deeplearning.ai/the-batch',
+      '/the-batch/issue-400',
+      'The Batch (DeepLearning.AI)',
+    ],
+    [
+      'https://stratechery.com/category/articles/',
+      '/2026/a-free-article/',
+      'Stratechery Weekly Articles (free)',
+    ],
+    ['https://www.bayareatimes.com/', '/p/a-public-issue', 'Bay Area Times'],
+    ['https://vcunfiltered.beehiiv.com/', '/p/a-public-issue', 'VC Unfiltered'],
+    ['https://archive.internetisbeautiful.com/', '/p/a-public-issue', 'Internet Is Beautiful'],
+    ['https://www.cerebras.ai/blog', '/blog/a-public-article', 'Cerebras Blog'],
+  ])('validates only supported listing links: %s', async (url, path, title) => {
+    vi.stubGlobal('HTMLRewriter', FixtureHTMLRewriter);
+    const html = `<html><li class="category-articles"><a href="${path}">Article</a></li>
+      <a href="https://unrelated.example.org/p/offsite">Offsite</a><a href="/account">Account</a></html>`;
+    const result = await discoverPublicFeed(url, feedTransport(html));
+    expect(result).toMatchObject({
+      format: 'archive',
+      title,
+      articleCount: 1,
+      lastPublishedAt: null,
+    });
+  });
+
+  it('resolves a known retired feed alias, keeps the canonical listing identity, and excludes paid Stratechery sections', async () => {
+    vi.stubGlobal('HTMLRewriter', FixtureHTMLRewriter);
+    const html =
+      '<a href="/2026/paid-update/">Paid</a><li class="category-articles"><a href="/2026/free-article/">Free</a></li>';
+    const result = await discoverPublicFeed(
+      'https://stratechery.com/category/articles/feed/',
+      feedTransport(html)
+    );
+    expect(result).toMatchObject({
+      format: 'archive',
+      feedUrl: 'https://stratechery.com/category/articles/',
+      articleCount: 1,
+    });
+    expect(knownPublicArchive('https://stratechery.com/')).toBeNull();
+    expect(knownPublicArchive('https://unlisted.beehiiv.com/')).toBeNull();
+    expect(knownPublicArchive('https://www.cerebras.ai/blog/private-area')).toBeNull();
+    await expect(
+      discoverPublicFeed('https://unlisted.beehiiv.com/', feedTransport(html))
+    ).rejects.toThrow('No RSS or Atom');
+  });
+
+  it('does not replace a valid explicit RSS feed with an archive or accept an empty listing', async () => {
+    vi.stubGlobal('HTMLRewriter', FixtureHTMLRewriter);
+    expect(
+      (await discoverPublicFeed('https://www.deeplearning.ai/the-batch/feed/', feedTransport()))
+        .format
+    ).toBe('rss');
+    await expect(
+      discoverPublicFeed(
+        'https://www.deeplearning.ai/the-batch',
+        feedTransport('<html>No articles</html>')
+      )
+    ).rejects.toThrow('no supported article links');
   });
 });

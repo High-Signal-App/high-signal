@@ -40,7 +40,7 @@ export const feedSources = sqliteTable('feed_sources', {
   url: text('url').notNull(),
   feedUrl: text('feed_url').notNull().unique(),
   title: text('title').notNull(),
-  format: text('format', { enum: ['rss', 'atom'] }).notNull(),
+  format: text('format', { enum: ['rss', 'atom', 'archive'] }).notNull(),
   enabled: integer('enabled', { mode: 'boolean' }).notNull().default(true),
   sourceKey: text('source_key').notNull(),
   lastValidatedAt: integer('last_validated_at', { mode: 'timestamp' }).notNull(),

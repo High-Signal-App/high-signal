@@ -1931,7 +1931,12 @@
   name: The Batch (DeepLearning.AI)
   type: mailing_list
   url: https://www.deeplearning.ai/the-batch/
-  rss: https://www.deeplearning.ai/the-batch/feed/
+  rss: null
+  archive:
+    kind: batch
+    url: https://www.deeplearning.ai/the-batch
+  feed_aliases:
+  - https://www.deeplearning.ai/the-batch/feed/
   paywall: none
   tier: 3
   topic_tags:
@@ -1955,7 +1960,12 @@
   name: Stratechery Weekly Articles (free)
   type: mailing_list
   url: https://stratechery.com/category/articles/
-  rss: https://stratechery.com/category/articles/feed/
+  rss: null
+  archive:
+    kind: stratechery
+    url: https://stratechery.com/category/articles/
+  feed_aliases:
+  - https://stratechery.com/category/articles/feed/
   paywall: none
   tier: 3
   topic_tags:
@@ -2641,6 +2651,115 @@
   extraction_strategy: trafilatura
   notes: Indian AI / data science / tech
 
+# Public archives and direct publisher feeds (no account or subscriber retrieval)
+- id: blog-stack-overflow
+  name: Stack Overflow Blog
+  type: blog
+  url: https://stackoverflow.blog/
+  rss: https://stackoverflow.blog/feed/
+  paywall: none
+  tier: 2
+  topic_tags: [software, engineering, culture]
+  extraction_strategy: trafilatura
+  notes: Public publisher reporting and original developer surveys
+- id: blog-atlassian-development
+  name: Atlassian Development Blog
+  type: blog
+  url: https://www.atlassian.com/blog/development
+  rss: https://www.atlassian.com/blog/development/feed
+  paywall: none
+  tier: 2
+  topic_tags: [software, engineering, culture]
+  extraction_strategy: trafilatura
+  notes: Public publisher reporting and original developer-experience surveys
+- id: ml-bay-area-times
+  name: Bay Area Times
+  type: mailing_list
+  url: https://www.bayareatimes.com/
+  rss: null
+  archive:
+    kind: beehiiv
+    url: https://www.bayareatimes.com/
+  paywall: none
+  tier: 3
+  topic_tags: [tech, business]
+  extraction_strategy: trafilatura
+  notes: Bounded public issue archive; source links are reporting leads, not independent proof
+- id: ml-vc-unfiltered
+  name: VC Unfiltered
+  type: mailing_list
+  url: https://vcunfiltered.beehiiv.com/
+  rss: null
+  archive:
+    kind: beehiiv
+    url: https://vcunfiltered.beehiiv.com/
+  paywall: none
+  tier: 3
+  topic_tags: [startups, vc]
+  extraction_strategy: trafilatura
+  notes: Bounded public issue archive; no subscriber-only retrieval
+- id: ml-internet-is-beautiful
+  name: Internet Is Beautiful
+  type: mailing_list
+  url: https://archive.internetisbeautiful.com/
+  rss: null
+  archive:
+    kind: beehiiv
+    url: https://archive.internetisbeautiful.com/
+  feed_aliases:
+  - https://internetisbeautiful.beehiiv.com/
+  paywall: none
+  tier: 3
+  topic_tags: [culture, software]
+  extraction_strategy: trafilatura
+  notes: Bounded public issue archive; no subscriber-only retrieval
+- id: ml-cerebras-blog
+  name: Cerebras Blog
+  type: blog
+  url: https://www.cerebras.ai/blog
+  rss: null
+  archive:
+    kind: cerebras
+    url: https://www.cerebras.ai/blog
+  paywall: none
+  tier: 2
+  topic_tags: [ai, inference, chips]
+  extraction_strategy: trafilatura
+  notes: Bounded public blog archive; publisher claims need independent corroboration
+- id: ml-lovable-blog
+  name: Lovable Blog
+  type: blog
+  url: https://lovable.dev/blog
+  rss: https://lovable.dev/blog/rss.xml
+  paywall: none
+  tier: 2
+  topic_tags: [software, ai]
+  extraction_strategy: trafilatura
+  notes: Direct public publisher RSS avoids oversized homepage discovery
+- id: ml-posthog-blog
+  name: PostHog Blog
+  type: blog
+  url: https://posthog.com/blog
+  rss: https://posthog.com/rss.xml
+  feed_aliases:
+  - https://posthog.com/blog/rss.xml
+  feed_max_bytes: 4194304
+  paywall: none
+  tier: 2
+  topic_tags: [software, engineering]
+  extraction_strategy: trafilatura
+  notes: Public RSS has a feed-specific 4 MiB cap; article fetches keep the default bound
+- id: ml-zed-blog
+  name: Zed Blog
+  type: blog
+  url: https://zed.dev/blog
+  rss: https://zed.dev/blog.rss
+  paywall: none
+  tier: 2
+  topic_tags: [software, engineering]
+  extraction_strategy: trafilatura
+  notes: Public publisher feed; freshness depends on publisher updates, not HTTP success
+
 # Public publication and developer-update feeds
 - id: ml-1-minute-news
   name: 1 minute news
@@ -2953,8 +3072,10 @@
 - id: ml-daily-dose-of-data-science
   name: Daily Dose of Data Science
   type: mailing_list
-  url: https://www.dailydoseofds.com/
-  rss: https://www.dailydoseofds.com/newsletter/rss/
+  url: https://blog.dailydoseofds.com/
+  rss: https://blog.dailydoseofds.com/feed
+  feed_aliases:
+  - https://www.dailydoseofds.com/newsletter/rss/
   paywall: partial
   tier: 3
   topic_tags:

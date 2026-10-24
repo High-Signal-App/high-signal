@@ -126,7 +126,7 @@ def test_unavailable_match_records_structured_diagnostics_without_raw_provider_b
 @pytest.mark.parametrize(
     "payload", [{"matched": True}, {"sameEvent": None}, {"sameEvent": 0}, {"sameEvent": "false"}]
 )
-def test_wrong_shape_comparison_is_model_unavailable_not_a_negative(monkeypatch, payload):
+def test_wrong_shape_comparison_is_invalid_response_not_a_negative(monkeypatch, payload):
     """A completion missing the required sameEvent field is malformed — an
     operational failure, not a legitimate non-match."""
     import httpx
@@ -162,6 +162,25 @@ def test_wrong_shape_comparison_is_model_unavailable_not_a_negative(monkeypatch,
     monkeypatch.setattr(httpx, "post", _post)
 
     matched, reason = story_match.match_story(event(LEFT, "left"), event(RIGHT, "right"))
-    assert (matched, reason) == (False, "model_unavailable")
+    assert (matched, reason) == (False, "invalid_response")
     assert receipts[0]["accepted"] is False
     assert receipts[0]["response_json"]["failureClass"] == "invalid_response"
+
+
+@pytest.mark.parametrize(
+    "response,expected",
+    [
+        (decision(sameEvent=False), "not_matched"),
+        (decision(leftPassageId="invented"), "invalid_passage_selection"),
+        (decision(rightPassageId="L0"), "invalid_passage_selection"),
+        (decision(event="vague"), "invalid_event_description"),
+        ({"sameEvent": "true"}, "invalid_response"),
+    ],
+)
+def test_audit_distinguishes_valid_negatives_from_invalid_matches(monkeypatch, response, expected):
+    receipts = []
+    monkeypatch.setattr(story_match, "_ai_complete", lambda *_, **__: (response, {}))
+    monkeypatch.setattr(story_match.audit, "push_llm_run", lambda **kw: receipts.append(kw) or True)
+    assert story_match.match_story(event(LEFT, "left"), event(RIGHT, "right")) == (False, expected)
+    assert receipts[0]["reason"] == expected
+    assert receipts[0]["accepted"] is False

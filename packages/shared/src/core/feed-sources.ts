@@ -5,7 +5,7 @@ export const feedSourceSchema = z.object({
   url: z.string().url(),
   feedUrl: z.string().url(),
   title: z.string(),
-  format: z.enum(['rss', 'atom']),
+  format: z.enum(['rss', 'atom', 'archive']),
   enabled: z.boolean(),
   sourceKey: z.string(),
   createdAt: z.number().int(),

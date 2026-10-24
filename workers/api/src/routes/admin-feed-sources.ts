@@ -9,7 +9,11 @@ import {
 } from '@high-signal/shared';
 import { db, schema } from '../db';
 import { sha16 } from '../lib/ids';
-import { FEED_SOURCE_MIGRATION, initializeFeedSourceSchema } from '../lib/feed-source-migration';
+import {
+  FEED_SOURCE_MIGRATION,
+  FEED_SOURCE_ARCHIVE_MIGRATION,
+  initializeFeedSourceSchema,
+} from '../lib/feed-source-migration';
 import { discoverPublicFeed, publicFeedIdentity, PublicFeedError } from '../lib/public-feeds';
 
 type Env = { DB: D1Database };
@@ -44,15 +48,17 @@ feedSourcesAdminRoute.use('*', async (c, next) => {
   await next();
 });
 
-const initializationInput = z.object({ migration: z.literal(FEED_SOURCE_MIGRATION.name) }).strict();
+const initializationInput = z
+  .object({ migration: z.enum([FEED_SOURCE_MIGRATION.name, FEED_SOURCE_ARCHIVE_MIGRATION.name]) })
+  .strict();
 
-// Fixed release operation: no SQL, resource names, or migration choices come from callers.
+// Fixed release operations: callers select only a compiled, named feed-registry migration.
 feedSourcesAdminRoute.post('/initialize', async (c) => {
   const parsed = initializationInput.safeParse(await c.req.json().catch(() => null));
   if (!parsed.success) return c.json({ error: 'invalid_feed_initialization' }, 400);
   try {
-    const applied = await initializeFeedSourceSchema(c.env.DB);
-    return c.json({ ok: true, migration: FEED_SOURCE_MIGRATION.name, applied });
+    const applied = await initializeFeedSourceSchema(c.env.DB, parsed.data.migration);
+    return c.json({ ok: true, migration: parsed.data.migration, applied });
   } catch {
     return c.json({ error: 'feed_initialization_failed' }, 503);
   }
@@ -91,7 +97,9 @@ feedSourcesAdminRoute.post('/', async (c) => {
       title: feed.title,
       format: feed.format,
       lastValidatedAt: now,
-      lastPublishedAt: feed.lastPublishedAt === null ? null : new Date(feed.lastPublishedAt * 1000),
+      ...(feed.lastPublishedAt === null
+        ? {}
+        : { lastPublishedAt: new Date(feed.lastPublishedAt * 1000) }),
     };
     const [inserted] = await database
       .insert(schema.feedSources)

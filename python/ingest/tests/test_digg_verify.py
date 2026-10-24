@@ -242,3 +242,25 @@ def test_verification_batch_is_bounded_to_six_requests(monkeypatch) -> None:
 
     assert seen == [f"cluster-{index}" for index in range(6)]
     assert len(results) == 6
+
+
+def test_retrieval_never_admits_navigation_as_article_evidence() -> None:
+    navigation = (
+        "AI - Nvidia woos Europeans. - Jensen shows robots. - Nvidia builds trailer parks. " * 20
+    )
+    request = {"shortId": "ibm", "title": "IBM CEO backs open weight models"}
+    articles = [
+        {
+            "url": "https://publisher.test/ibm-models",
+            "title": request["title"],
+        }
+    ]
+    with httpx.Client(
+        transport=httpx.MockTransport(
+            lambda request: httpx.Response(200, text=f"<article><p>{navigation}</p></article>")
+        )
+    ) as client:
+        assert retrieve_events(request, articles, client) == []
+        assert (
+            retrieve_events(request, [{**articles[0], "retainedContent": navigation}], client) == []
+        )

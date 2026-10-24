@@ -183,9 +183,46 @@ def test_noaa_alerts_have_distinct_urls() -> None:
         us_gov_api._noaa_alert_url(None, "urn:oid:2.49.0.1.840.b")
         == "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.b"
     )
-    # An explicit `web` link still wins, and a payload with no identity at all
-    # keeps the old landing page rather than inventing one.
+    # Alert identity wins even when the feed explicitly supplies a homepage.
+    assert us_gov_api._noaa_alert_url("http://www.weather.gov", "alert-a") == (
+        "https://api.weather.gov/alerts/alert-a"
+    )
+    assert us_gov_api._noaa_alert_url("https://www.weather.gov/", "alert-b") == (
+        "https://api.weather.gov/alerts/alert-b"
+    )
     assert us_gov_api._noaa_alert_url("https://www.weather.gov/xyz", "") == (
         "https://www.weather.gov/xyz"
     )
-    assert us_gov_api._noaa_alert_url(None, "") == "https://www.weather.gov/"
+    assert us_gov_api._noaa_alert_url(None, "") == ""
+    assert us_gov_api._noaa_alert_url("http://www.weather.gov", "") == ""
+
+
+def test_cftc_contracts_and_weeks_survive_url_deduplication(monkeypatch) -> None:
+    from high_signal_ingest.dedupe import dedupe_exact
+
+    class Response:
+        def raise_for_status(self) -> None:
+            pass
+
+        def json(self) -> list[dict[str, str]]:
+            return [
+                {
+                    "market_and_exchange_names": market,
+                    "report_date_as_yyyy_mm_dd": day,
+                    "noncomm_positions_long_all": "100",
+                    "noncomm_positions_short_all": "20",
+                }
+                for market, day in [
+                    ("ZCASH PERP STYLE - COINBASE DERIVATIVES, LLC", "2026-10-20"),
+                    ("GULF # 6 FUEL OIL CRACK - NEW YORK MERCANTILE EXCHANGE", "2026-10-20"),
+                    ("ZCASH PERP STYLE - COINBASE DERIVATIVES, LLC", "2026-10-13"),
+                ]
+            ]
+
+    monkeypatch.setattr(us_gov_api, "_now", lambda: datetime(2026, 10, 24, tzinfo=timezone.utc))
+    monkeypatch.setattr(us_gov_api.httpx, "get", lambda *args, **kwargs: Response())
+    events = us_gov_api._fetch_cftc_cot(30)
+    assert len(dedupe_exact(events)) == 3
+    assert len(_urls(events)) == 3
+    assert all("market_and_exchange_names=" in event.source_url for event in events)
+    assert all("report_date_as_yyyy_mm_dd=" in event.source_url for event in events)

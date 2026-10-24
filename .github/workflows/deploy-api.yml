@@ -26,7 +26,7 @@ jobs:
           curl --fail --silent --show-error --max-time 60 \
             --header "Authorization: Bearer $ADMIN_TOKEN" \
             --header "Content-Type: application/json" \
-            --data '{"migration":"0030_feed_sources.sql"}' \
+            --data '{"migration":"0031_feed_source_archives.sql"}' \
             https://api.highsignal.app/admin/feed-sources/initialize
           curl --fail --silent --show-error --max-time 30 \
             --header "Authorization: Bearer $ADMIN_TOKEN" \

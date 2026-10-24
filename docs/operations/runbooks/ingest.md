@@ -37,6 +37,9 @@ Current production cadence:
 Open `/review` with operator Access and paste a website or direct RSS/Atom URL
 under **publication sources**. The API discovers advertised feeds (or Substack's
 public feed), validates the XML, and saves the source without a code change.
+Known public Batch, free Stratechery, Beehiiv and Cerebras archive listings use
+the same controls. Archive validation checks article discovery; recurring
+collection additionally requires an actual publication date and public body.
 The next daily news refresh collects it; **refresh sources** reloads collection
 status, not the publisher. **Inspect collected records** opens its retained
 source evidence. Pausing stops future fetches, including a matching curated seed;
@@ -52,15 +55,30 @@ preserve operator pauses; repair the registry/API and retry `source=news`.
 Public feed excerpts can substitute for inaccessible linked pages. This does not
 supply paid email-only text or bypass a publisher's private feed credentials.
 
-API releases initialize migration `0030_feed_sources.sql` through the deployed
+For a bounded repair, use `source=news:<curated-source-id>` with the required
+lookback and `fetch_only=true`; it honors managed overrides and pauses while
+recording the individual publication's fetch receipt.
+
+API releases initialize migration `0031_feed_source_archives.sql` through the deployed
 Worker's existing D1 binding and operator authorization. This fixed operation
-accepts only that migration's name, checks schema, and records the usual Wrangler
+accepts only the compiled 0030/0031 registry migrations, applies 0030 first when
+needed, checks schema, and records the usual Wrangler
 migration receipt in the same batch. Repeated releases preserve sources and
 pauses. A recorded migration with a missing/incompatible table fails closed;
 it does not recreate an empty registry. The deployment workflow reads the
 registry back before reporting success. General remote migrations retain the
 manual Wrangler path; no new D1 management token permission is required for this
 one publication-source table.
+
+Before Brief precomputation, a bounded operator research pass uses leads from
+the canonical retained Reddit archive and recent retained primary reporting.
+Community leads never count as proof. A generated report needs an independent
+verification of every visible factual field, exact retained passage references,
+and the existing primary-plus-independent-origin publication gate. Digest,
+published claim, supporting links and model audit commit atomically. Insufficient
+proof stays quiet; model/storage failures are recorded as unavailable. The
+gateway uses the existing free-AI binding with model `auto`. No private mailbox
+or alternate Reddit collection is introduced.
 
 ## Diagnosing a zero-draft day
 

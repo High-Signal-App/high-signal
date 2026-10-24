@@ -60,6 +60,25 @@ def _valid_match(result: object, left: str, right: str) -> bool:
     return True
 
 
+def _decision_reason(result: object, accepted: bool, meta: dict) -> str:
+    if accepted:
+        return "same_event"
+    if result is None:
+        return (
+            "invalid_response"
+            if meta.get("failure_class") == "invalid_response"
+            else "model_unavailable"
+        )
+    if not isinstance(result, dict) or not isinstance(result.get("sameEvent"), bool):
+        return "invalid_response"
+    if result["sameEvent"] is False:
+        return "not_matched"
+    event = result.get("event")
+    if not isinstance(event, str) or not 20 <= len(event.strip()) <= 500:
+        return "invalid_event_description"
+    return "invalid_passage_selection"
+
+
 def match_story(left: Event, right: Event) -> tuple[bool, str]:
     """Return a traceable research match or a classified failure, with no proof credit."""
     left_text, right_text = (left.content or "")[:TEXT_LIMIT], (right.content or "")[:TEXT_LIMIT]
@@ -79,9 +98,7 @@ def match_story(left: Event, right: Event) -> tuple[bool, str]:
     )
     result = _resolve_passages(result, left_passages, right_passages)
     accepted = _valid_match(result, left_text, right_text)
-    reason = "same_event" if accepted else "not_matched"
-    if result is None:
-        reason = "model_unavailable"
+    reason = _decision_reason(result, accepted, meta)
     recorded = audit.push_llm_run(
         signal_slug=None,
         model=meta.get("model") or "unavailable",

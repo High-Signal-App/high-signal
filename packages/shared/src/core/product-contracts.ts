@@ -19,6 +19,8 @@ export interface TrackedCommunity {
 export interface CommunitySummaryItem {
   title: string;
   desc: string;
+  whyNow?: string;
+  uncertainty?: string;
   sourceId?: CommunitySourceId;
   link?: string;
 }
@@ -71,6 +73,8 @@ function normalizeSummaryItem(value: unknown): CommunitySummaryItem | null {
   return {
     title: title || 'Untitled signal',
     desc,
+    ...(typeof raw['whyNow'] === 'string' ? { whyNow: raw['whyNow'] } : {}),
+    ...(typeof raw['uncertainty'] === 'string' ? { uncertainty: raw['uncertainty'] } : {}),
     sourceId,
     link: /^https?:\/\//i.test(link) ? link : undefined,
   };

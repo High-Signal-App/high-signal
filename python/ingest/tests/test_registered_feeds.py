@@ -42,6 +42,28 @@ def test_unavailable_or_malformed_registry_cannot_resume_paused_sources() -> Non
         feeds.merge_sources([SEED], [{**ROW, "enabled": "false"}], 2)
 
 
+def test_legacy_and_archive_pauses_suppress_replacement_and_explicit_overrides() -> None:
+    source = {
+        **SEED,
+        "rss": None,
+        "archive": {"url": "https://publisher.example.org/archive", "kind": "beehiiv"},
+        "feed_aliases": [SEED["rss"]],
+    }
+    assert feeds.merge_sources([source], [], 2) == [source]
+    pause = {**ROW, "enabled": False}
+    assert feeds.merge_sources([source], [pause], 2) == []
+    assert feeds.merge_sources([source], [{**pause, "feedUrl": source["archive"]["url"]}], 2) == []
+    override = {**ROW, "id": source["id"], "feedUrl": "https://writer.example.org/atom"}
+    assert "archive" not in feeds.merge_sources([source], [override], 2)[0]
+    assert feeds.merge_sources([source], [pause, override], 2) == []
+    changed = {
+        **SEED,
+        "rss": "https://publisher.example.org/new-feed",
+        "feed_aliases": [SEED["rss"]],
+    }
+    assert feeds.merge_sources([changed], [pause], 2) == []
+
+
 @pytest.mark.parametrize(
     "url",
     [
@@ -99,6 +121,35 @@ def test_redirects_and_compressed_bodies_cannot_bypass_public_fetch_bounds(monke
 
     asyncio.run(run())
     assert all("169.254" not in url for url in requested)
+
+
+def test_feed_specific_cap_and_archive_prefix_do_not_expand_article_default(monkeypatch) -> None:
+    async def public_dns(_url):
+        return None
+
+    monkeypatch.setattr(feeds, "check_public_host", public_dns)
+    data = b"x" * (3 * 1024 * 1024)
+
+    async def run():
+        async with httpx.AsyncClient(
+            transport=httpx.MockTransport(lambda _r: httpx.Response(200, content=data))
+        ) as client:
+            document = await feeds.fetch_public_document(
+                client, "https://publisher.example.org/feed", max_bytes=4 * 1024 * 1024
+            )
+            assert len(document.text) == len(data) and not document.truncated
+            prefix = await feeds.fetch_public_document(
+                client, "https://publisher.example.org/archive", allow_prefix=True
+            )
+            assert len(prefix.text) == 2 * 1024 * 1024 and prefix.truncated
+            with pytest.raises(feeds.PublicFeedFetchError, match="2 MB"):
+                await feeds.fetch_public_document(client, "https://publisher.example.org/article")
+            with pytest.raises(feeds.PublicFeedFetchError, match="Invalid"):
+                await feeds.fetch_public_document(
+                    client, "https://publisher.example.org/feed", max_bytes=5 * 1024 * 1024
+                )
+
+    asyncio.run(run())
 
 
 def test_registered_source_collects_relative_links_and_reports_real_fetch_result(
@@ -187,7 +238,102 @@ def test_registry_read_retries_and_distinguishes_empty_from_unavailable(monkeypa
     monkeypatch.setattr(audit.httpx, "get", respond)
     assert audit.fetch_feed_sources() == []
     assert len(attempts) == 2
-    monkeypatch.setattr(audit.httpx, "get", lambda url, **kwargs: httpx.Response(200, json={}, request=httpx.Request("GET", url)))
+    monkeypatch.setattr(
+        audit.httpx,
+        "get",
+        lambda url, **kwargs: httpx.Response(200, json={}, request=httpx.Request("GET", url)),
+    )
     assert audit.fetch_feed_sources() is None
     monkeypatch.delenv("ADMIN_TOKEN")
     assert audit.fetch_feed_sources() == []
+
+
+def test_managed_known_archive_uses_collector_and_pause_survives_aliases() -> None:
+    seed = {
+        "id": "ml-the-batch",
+        "type": "mailing_list",
+        "tier": 3,
+        "rss": None,
+        "archive": {"url": "https://www.deeplearning.ai/the-batch", "kind": "batch"},
+        "feed_aliases": ["https://www.deeplearning.ai/the-batch/feed/"],
+    }
+    row = {
+        "id": "feed-batch",
+        "feedUrl": seed["archive"]["url"],
+        "enabled": True,
+        "format": "archive",
+    }
+    [source] = feeds.merge_sources([seed], [row], 2)
+    assert source["id"] == seed["id"]
+    assert source["archive"] == seed["archive"] and source["rss"] is None
+    assert source["_registry_id"] == "feed-batch"
+    assert feeds.merge_sources([seed], [{**row, "enabled": False}], 2) == []
+    alias = {**row, "feedUrl": seed["feed_aliases"][0]}
+    assert feeds.merge_sources([seed], [alias], 2)[0]["archive"] == seed["archive"]
+    assert feeds.merge_sources([seed], [{**alias, "enabled": False}, row], 2) == []
+    override = {
+        **row,
+        "id": seed["id"],
+        "format": "rss",
+        "feedUrl": "https://publisher.example.org/explicit.xml",
+    }
+    selected = feeds.merge_sources([seed], [override], 2)
+    assert len(selected) == 1 and "archive" not in selected[0]
+    assert selected[0]["rss"].endswith("explicit.xml")
+    assert feeds.merge_sources([seed], [{**alias, "enabled": False}, override], 2) == []
+
+
+def test_archive_registry_rejects_unknown_hosts_and_keeps_legacy_feed_rows() -> None:
+    with pytest.raises(feeds.PublicFeedFetchError, match="Unsupported public archive"):
+        feeds.registry_rows(
+            [{**ROW, "format": "archive", "feedUrl": "https://unknown.beehiiv.com/"}]
+        )
+    assert feeds.registry_rows([ROW])[0].format == "rss"
+    source = feeds.merge_sources(
+        [], [{**ROW, "format": "archive", "feedUrl": "https://www.cerebras.ai/blog"}], 2
+    )[0]
+    assert source["archive"] == {"kind": "cerebras", "url": "https://www.cerebras.ai/blog"}
+    assert source["_registry_id"] == ROW["id"]
+
+
+def test_registered_archive_fetches_and_reports_with_standard_receipts(monkeypatch) -> None:
+    from high_signal_ingest.sources.public_archives import ArchiveResult
+
+    row = {**ROW, "format": "archive", "feedUrl": "https://www.cerebras.ai/blog"}
+    receipts = []
+
+    async def archive(source, since, client, semaphore, extract):
+        assert source["archive"]["kind"] == "cerebras"
+        return ArchiveResult(
+            items=[
+                {
+                    "title": "Cerebras releases inference improvements",
+                    "link": "https://www.cerebras.ai/blog/inference",
+                    "published": datetime.now(timezone.utc),
+                    "content": "A public dated article describes the released inference changes.",
+                }
+            ],
+            dated=1,
+        )
+
+    async def report(source, **kwargs):
+        receipts.append((source["_registry_id"], kwargs))
+
+    monkeypatch.setattr(news.public_archives, "fetch_archive", archive)
+    monkeypatch.setattr(feeds, "report_fetch", report)
+    [source] = feeds.merge_sources([], [row], 2)
+
+    async def run():
+        async with httpx.AsyncClient() as client:
+            return await news._fetch_source(
+                source,
+                datetime(2026, 1, 1, tzinfo=timezone.utc),
+                client,
+                asyncio.Semaphore(2),
+                fetch_body=True,
+            )
+
+    [event] = asyncio.run(run())
+    assert event.source == "news:feed-managed"
+    assert receipts[0][0] == row["id"] and receipts[0][1]["count"] == 1
+    assert receipts[0][1]["error"] is None
