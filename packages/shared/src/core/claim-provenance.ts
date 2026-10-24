@@ -9,6 +9,13 @@ export type ClaimSurface = 'signal' | 'brief' | 'agent_eval';
 
 export type ClaimReviewStatus = 'draft' | 'held' | 'published' | 'killed' | 'corrected';
 
+export function isContextOnlyEvidenceSource(source?: string | null, text?: string | null): boolean {
+  return (
+    source?.trim().toLowerCase().split(':', 1)[0] === 'techmeme' ||
+    /^\s*Techmeme permalink:/i.test(text ?? '')
+  );
+}
+
 export type ClaimEvidenceRole = 'primary' | 'corroboration' | 'contradiction' | 'context';
 
 export type ClaimTimelineKind =

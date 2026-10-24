@@ -160,6 +160,58 @@ try {
   assert.throws(() => apply(parsed.front, 'Partial write attempt'), /injected proof failure/);
   assert.deepEqual(snapshot(), beforeFailure, 'Failed import must roll back all candidate writes');
   database.exec('DROP TRIGGER fail_proof');
+  database.exec(`INSERT INTO source_documents
+    (id, source, canonical_url, document_key, fetched_at, raw_hash, raw_text, created_at)
+    VALUES ('rss-only','techmeme','https://www.forbes.com/report','rss-receipt',1,'rss','RSS metadata',1),
+    ('original','news:hackernews-original:publisher.example','https://publisher.example/report','original-receipt',1,'article','Fetched original',1)`);
+  for (const [slug, sourceType, documentKey, expected] of [
+    ['rss-masked', 'news', 'rss-receipt', 'unverified'],
+    ['rss-category', 'techmeme', 'original-receipt', 'unverified'],
+    ['original-publisher', 'news', 'original-receipt', 'verified'],
+  ]) {
+    apply({
+      ...parsed.front,
+      slug,
+      evidence_urls: ['https://www.forbes.com/report'],
+      evidence_source_types: [sourceType],
+      proof_roles: ['primary'],
+      proof_semantic_alignments: ['verified'],
+      proof_originating_evidence_ids: ['report'],
+      proof_source_document_keys: [documentKey],
+    });
+    const link = database
+      .prepare(`SELECT l.semantic_alignment FROM claim_evidence_links l
+      JOIN claim_records c ON c.id=l.claim_id JOIN signals s ON s.id=c.signal_id WHERE s.slug=?`)
+      .get(slug);
+    assert.equal(link?.semantic_alignment, expected, slug);
+  }
+
+  database.exec(`INSERT INTO source_documents
+    (id,source,canonical_url,document_key,fetched_at,raw_hash,raw_text,created_at)
+    VALUES ('rss-first','techmeme','https://forbes.com/ambiguous','first-receipt',1,'first','RSS metadata',1),
+    ('news-second','news','https://forbes.com/ambiguous','second-receipt',1,'second','Original report',1),
+    ('masked-marker','news','https://forbes.com/masked','masked-receipt',1,'marker','Techmeme permalink: https://www.techmeme.com/261024/p1',1)`);
+  for (const [slug, url, documentKey, expectedDoc] of [
+    ['same-url-exact-receipt', 'https://www.forbes.com/ambiguous', '', 'rss-first'],
+    ['explicit-marker-masked', 'https://www.forbes.com/masked', 'masked-receipt', 'masked-marker'],
+  ]) {
+    apply({
+      ...parsed.front,
+      slug,
+      evidence_urls: [url],
+      evidence_source_types: ['news'],
+      proof_roles: ['primary'],
+      proof_semantic_alignments: ['verified'],
+      proof_originating_evidence_ids: ['report'],
+      proof_source_document_keys: [documentKey],
+    });
+    const link = database
+      .prepare(`SELECT l.source_document_id,l.semantic_alignment FROM claim_evidence_links l
+      JOIN claim_records c ON c.id=l.claim_id JOIN signals s ON s.id=c.signal_id WHERE s.slug=?`)
+      .get(slug);
+    assert.equal(link?.source_document_id, expectedDoc, slug);
+    assert.equal(link?.semantic_alignment, 'unverified', slug);
+  }
   apply(
     { ...parsed.front, slug: 'nvda-correction', review_status: 'corrected' },
     'A new correction'

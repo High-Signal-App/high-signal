@@ -17,7 +17,11 @@ from typing import Callable, Iterable, cast
 
 import httpx
 
-from .evidence_origins import coalesce_copied_origins, distinct_generation_events
+from .evidence_origins import (
+    coalesce_copied_origins,
+    distinct_generation_events,
+    is_context_only_source,
+)
 from .extract.entities import event_supports_entity
 from .seed import signal_type_ids
 from .types import Confidence, Direction, Event, EvidenceItem, SignalCandidate
@@ -696,7 +700,9 @@ def _proof_evidence(output: dict, cited_events: list[Event]) -> list[EvidenceIte
     for event, origin in zip(cited_events, origins):
         assessment = assessments.get(event.source_url, {})
         aligned = assessment.get("aligned") is True
-        verified = aligned and bool(origin)
+        verified = (
+            aligned and bool(origin) and not is_context_only_source(event.source, event.content)
+        )
         role = "context"
         if verified and origin not in seen_origins:
             role = "primary" if not seen_origins else "corroboration"

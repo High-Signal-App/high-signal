@@ -37,7 +37,11 @@ import { scheduledDataAdminRoute } from './admin-scheduled-data';
 import { feedSourcesAdminRoute } from './admin-feed-sources';
 import { communityReportingAdminRoute } from './admin-community-reporting';
 import { precomputeBriefSnapshots } from './brief';
-import { enrichSignals, serializeClaimEvidenceLink } from '../lib/signal-quality';
+import {
+  enrichSignals,
+  serializeClaimEvidenceLink,
+  sourceAwareEvidenceLinks,
+} from '../lib/signal-quality';
 import { retainedEvidenceCandidates } from '../lib/attention-admin';
 import { syncSignal, type SignalUpsert } from '../lib/signal-sync';
 
@@ -218,10 +222,13 @@ adminRoute.patch('/signals/:slug', async (c) => {
           .from(schema.claimEvidenceLinks)
           .where(inArray(schema.claimEvidenceLinks.claimId, claimIds))
       : [];
+    const sourceAwareLinks = await sourceAwareEvidenceLinks(db(c.env.DB), links);
     const claimVerdicts = claimIds.map((claimId) =>
       judgePublishability(
         rollupEvidence(
-          links.filter((link) => link.claimId === claimId).map(serializeClaimEvidenceLink)
+          sourceAwareLinks
+            .filter((link) => link.claimId === claimId)
+            .map(serializeClaimEvidenceLink)
         )
       )
     );
@@ -1100,19 +1107,7 @@ adminRoute.post('/claims/:id/status', async (c) => {
       .from(schema.claimEvidenceLinks)
       .where(eq(schema.claimEvidenceLinks.claimId, claimId));
     const rollup = rollupEvidence(
-      links.map((l) => ({
-        id: l.id,
-        claimId: l.claimId,
-        evidenceUrl: l.evidenceUrl,
-        sourceDocumentId: l.sourceDocumentId ?? null,
-        originatingEvidenceId: l.originatingEvidenceId ?? null,
-        semanticAlignment: l.semanticAlignment,
-        role: l.role,
-        weight: l.weight,
-        notes: l.notes ?? null,
-        addedAt: l.addedAt.toISOString(),
-        addedBy: l.addedBy ?? null,
-      }))
+      (await sourceAwareEvidenceLinks(db(c.env.DB), links)).map(serializeClaimEvidenceLink)
     );
     const verdict = judgePublishability(rollup);
     if (!verdict.publishable) {

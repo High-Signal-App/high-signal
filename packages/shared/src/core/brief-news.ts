@@ -177,6 +177,8 @@ const COMPANYISH_STOP = new Set([
   'holdings',
 ]);
 
+const TECHMEME_METADATA_RE = /\btechmeme permalink\s*:/i;
+
 const ATTENTION_SOURCE_FAMILIES = new Set([
   'bluesky',
   'digg',
@@ -185,6 +187,7 @@ const ATTENTION_SOURCE_FAMILIES = new Set([
   'mts',
   'producthunt',
   'reddit',
+  'techmeme',
 ]);
 
 const BRIEF_NEWS_TOPICS = new Set([
@@ -318,7 +321,7 @@ const SOURCE_RANK: Record<string, number> = {
 };
 
 const PREFIX_RE = /^([A-Za-z .]+(\[[^\]]*\])?\s*[—:]\s*)+/;
-const LINK_RE = /Link:\s*(https?:\/\/\S+)/i;
+const LINK_RE = /\bLink:\s*(https?:\/\/\S+)/i;
 
 export interface NewsRecord {
   id: string;
@@ -388,19 +391,21 @@ export function selectNewsRecords(
     const fresh = members.filter((record) => inWindow(toDate(record.ingestedAt)));
     if (fresh.length === 0) continue;
     const older = members.filter(
-      (record) => toDate(record.ingestedAt).getTime() < window.start.getTime()
+      (record) =>
+        isPublisherRecord(record) && toDate(record.ingestedAt).getTime() < window.start.getTime()
     );
     if (older.length === 0) {
-      selected.push(...fresh.filter(hasUsableRetainedText));
+      selected.push(...fresh.filter(hasRetainedNewsContext));
       continue;
     }
     const priorUrls = new Set(older.map((record) => newsCanonicalUrl(record)).filter(Boolean));
     const newEvidence = fresh.some((record) => {
+      if (!isPublisherRecord(record)) return false;
       const url = newsCanonicalUrl(record);
       return url ? !priorUrls.has(url) : true;
     });
     if (!newEvidence) continue;
-    selected.push(...members.filter(hasUsableRetainedText));
+    selected.push(...members.filter(hasRetainedNewsContext));
   }
   return selected;
 }
@@ -612,8 +617,16 @@ export function hasUsableRetainedText(
   record: Pick<NewsRecord, 'title' | 'content' | 'retainedText'> &
     Partial<Pick<NewsRecord, 'source'>>
 ): boolean {
+  return retainedTextIsUsable(record);
+}
+
+function retainedTextIsUsable(
+  record: Pick<NewsRecord, 'title' | 'content' | 'retainedText'> &
+    Partial<Pick<NewsRecord, 'source'>>,
+  allowAttentionMetadata = false
+): boolean {
   const retained = retainedBody(record);
-  if (!retained) return false;
+  if (!retained || (!allowAttentionMetadata && TECHMEME_METADATA_RE.test(retained))) return false;
   if (
     RETAINED_TEXT_BLOCKERS.some((marker) =>
       retained.slice(0, RETAINED_BLOCKER_SCAN_MAX).toLowerCase().includes(marker)
@@ -630,8 +643,25 @@ export function hasUsableRetainedText(
   return retained.length >= 80;
 }
 
+function hasRetainedNewsContext(record: NewsRecord): boolean {
+  return retainedTextIsUsable(record, ATTENTION_SOURCE_FAMILIES.has(sourceFamily(record.source)));
+}
+
+function isPublisherRecord(record: NewsRecord): boolean {
+  return (
+    !ATTENTION_SOURCE_FAMILIES.has(sourceFamily(record.source)) &&
+    !TECHMEME_METADATA_RE.test(retainedBody(record) ?? '')
+  );
+}
+
+function isRetainedPublisher(record: NewsRecord): boolean {
+  return isPublisherRecord(record) && hasUsableRetainedText(record);
+}
+
 function storyFromCluster(members: NewsRecord[], window: NewsReportingWindow): RankedNews | null {
-  const usable = members.filter(hasUsableRetainedText);
+  const retained = members.filter(hasRetainedNewsContext);
+  // Aggregator text can rank a development, never supply its reporting.
+  const usable = retained.filter(isRetainedPublisher);
   if (usable.length === 0) return null;
   const representative = usable.reduce((best, record) =>
     rankRecord(record) > rankRecord(best) ? record : best
@@ -647,7 +677,7 @@ function storyFromCluster(members: NewsRecord[], window: NewsReportingWindow): R
   const evidenceStatus = evidenceStatusFor(usable, references);
   const eventAt = earliestPublished(usable);
   const whatChanged = whatChangedInWindow(usable, window, summary);
-  const trend = trendStrength(usable);
+  const trend = trendStrength(retained);
   const item: BriefNewsItem = {
     id: clusterId(usable),
     title,
@@ -925,6 +955,16 @@ function excerptMatchesHeadline(title: string, summary: string): boolean {
 export function sanitizeBriefNewsItems(items: readonly BriefNewsItem[]): BriefNewsItem[] {
   const sanitized: BriefNewsItem[] = [];
   for (const item of items) {
+    // Cached copy lacks member-level provenance: rebuild any story that may
+    // have selected aggregator metadata, even when its link names a publisher.
+    if (
+      item.source_references.some((citation) =>
+        ATTENTION_SOURCE_FAMILIES.has(sourceFamily(citation.source ?? ''))
+      ) ||
+      TECHMEME_METADATA_RE.test(`${item.summary} ${item.what_changed}`)
+    ) {
+      continue;
+    }
     const title = item.title.trim();
     if (!title || ROUTINE_IR_SNAPSHOT_RE.test(title) || LOW_VALUE_NEWS_TITLE_RE.test(title)) {
       continue;
@@ -1040,14 +1080,8 @@ function evidenceStatusFor(
     ].includes(family)
   );
   if (classes.has('official') || officialFamily) return 'official';
-  const reported =
-    classes.has('news') ||
-    families.has('news') ||
-    families.has('guardian') ||
-    families.has('techmeme');
-  const attentionOnly = [...families].every((family) =>
-    ['hackernews', 'reddit', 'digg', 'mts', 'lobsters', 'producthunt', 'bluesky'].includes(family)
-  );
+  const reported = classes.has('news') || families.has('news') || families.has('guardian');
+  const attentionOnly = [...families].every((family) => ATTENTION_SOURCE_FAMILIES.has(family));
   if (reported && !attentionOnly) return 'reported';
   return 'unverified';
 }

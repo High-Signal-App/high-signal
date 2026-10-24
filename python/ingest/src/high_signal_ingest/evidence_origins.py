@@ -6,6 +6,13 @@ from urllib.parse import urlparse
 from .types import Event
 
 
+def is_context_only_source(source: str, text: str | None = None) -> bool:
+    """Techmeme RSS metadata discovers reporting but never supplies its text."""
+    return source.strip().lower().split(":", 1)[0] == "techmeme" or bool(
+        re.match(r"\s*Techmeme permalink:", text or "", re.I)
+    )
+
+
 def _shingles(text: str) -> set[tuple[str, ...]]:
     words = re.findall(r"\w+", text.casefold())[:5000]
     return {tuple(words[i : i + 5]) for i in range(len(words) - 4)}

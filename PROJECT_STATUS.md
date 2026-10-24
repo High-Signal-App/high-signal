@@ -31,6 +31,13 @@ Recovery is limited to recently retrieved discoveries and the existing bounded
 poll budget. Lifetime attempt counts remain intact, each attempt records its
 actual start, and verified candidates are never automatically requeued.
 
+Techmeme RSS supplies attention context only. Publisher records supply news
+copy, dates, citations and evidence status; cached aggregator copy is withheld
+until recomposed. A publisher URL alone cannot turn an aggregator excerpt into
+retained reporting. Signal generation, synchronization, publication and public
+claim receipts enforce the same provenance boundary, including existing stored
+links, without rewriting published Signals or their audit history.
+
 Known public newsletter archives now share the RSS/Atom add/pause/resume path.
 Social Growth Engineers uses its advertised public RSS; Startups.fyi and
 StrictlyVC use their dated written archives. StrictlyVC's former podcast feed

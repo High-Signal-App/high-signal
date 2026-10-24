@@ -1,5 +1,5 @@
 import { hasValidPublishReceipt, type VerdictResult } from './auto-publish-rules';
-import { classifySource, type SourceClass } from '@high-signal/shared';
+import { classifySource, isContextOnlyEvidenceSource, type SourceClass } from '@high-signal/shared';
 
 export interface JudgeEvidence {
   url: string;
@@ -41,6 +41,7 @@ export function retainedSourceClasses(evidence: JudgeEvidence[]): SourceClass[] 
   return [
     ...new Set(
       evidence.map((item): SourceClass => {
+        if (isContextOnlyEvidenceSource(item.sourceType, item.excerpt)) return 'other';
         if (item.sourceType === 'ir' || item.sourceType === 'sec') return 'official';
         if (item.sourceType === 'news') return 'news';
         return classifySource(item.url);
@@ -90,7 +91,11 @@ export function groundJudgeVerdict(
       reason: 'publish receipt must assess each cited URL exactly once',
     };
   }
-  const visible = new Set(evidence.filter((item) => item.excerpt).map((item) => item.url));
+  const visible = new Set(
+    evidence
+      .filter((item) => item.excerpt && !isContextOnlyEvidenceSource(item.sourceType, item.excerpt))
+      .map((item) => item.url)
+  );
   const aligned = verdict.evidenceAssessments?.filter((item) => item.aligned) ?? [];
   if (
     new Set(aligned.map((item) => item.url)).size < 2 ||
