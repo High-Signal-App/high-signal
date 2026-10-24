@@ -46,5 +46,25 @@
     "kind": "cerebras",
     "url": "https://www.cerebras.ai/blog",
     "aliases": []
+  },
+  {
+    "id": "ml-startups-fyi",
+    "title": "Startups.fyi",
+    "kind": "beehiiv",
+    "url": "https://startupsfyi.beehiiv.com/",
+    "aliases": [
+      "https://www.startups.fyi/"
+    ]
+  },
+  {
+    "id": "strictlyvc",
+    "title": "StrictlyVC",
+    "kind": "beehiiv",
+    "url": "https://newsletter.strictlyvc.com/",
+    "aliases": [
+      "https://strictlyvc.com/",
+      "https://strictlyvc.com/newsletter/",
+      "https://newsletter.strictlyvc.com/subscribe"
+    ]
   }
 ]

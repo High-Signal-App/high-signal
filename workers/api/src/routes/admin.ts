@@ -304,11 +304,11 @@ adminRoute.post('/events', async (c) => {
     const sourceDocumentId = await sha16(`source-document:${sourceDocument.documentKey}`);
     const sourceDocumentUpdate = {
       canonicalUrl: sourceDocument.canonicalUrl,
-      fetchedAt: sourceDocument.fetchedAt,
-      publishedAt: sourceDocument.publishedAt,
-      rawHash: sourceDocument.rawHash,
       ...(sourceDocument.explicit
         ? {
+            fetchedAt: sourceDocument.fetchedAt,
+            publishedAt: sourceDocument.publishedAt,
+            rawHash: sourceDocument.rawHash,
             rawText: sourceDocument.rawText,
             rawJson: sourceDocument.rawJson,
             parsedFields: sourceDocument.parsedFields,

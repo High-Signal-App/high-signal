@@ -47,6 +47,7 @@ export const communityVerificationSchema = z
         z
           .object({
             documentId: z.string(),
+            passageId: z.string(),
             aligned: z.boolean(),
             role: z.enum(['primary', 'corroboration', 'context', 'contradiction']),
             origin: z.string().min(3).max(200),
@@ -175,6 +176,8 @@ export function communityReportProof(
   );
   if (assessments.some((items) => items.length !== 1))
     return { error: 'missing_or_duplicate_assessment' };
+  if (assessments.some(([item], index) => item.passageId !== report.citations[index].passageId))
+    return { error: 'unverified_passage' };
   if (assessments.some(([item]) => !item.aligned || !item.supports.includes('description')))
     return { error: 'unverified_assertion' };
   if (!assessments.some(([item]) => item.supports.includes('whyNow')))

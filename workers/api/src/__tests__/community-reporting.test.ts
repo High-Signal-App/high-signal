@@ -167,6 +167,11 @@ describe('public community retained source to reader', () => {
     // These titles contain Marigold, not the static community prompt tokens.
     // The actual SQL must use the lead's anchor to retrieve both studies.
     expect(complete).toHaveBeenCalledTimes(2);
+    const verificationInput = JSON.parse(complete.mock.calls[1][0].messages[1].content);
+    expect(verificationInput.selected[0].document.passage).toBe(
+      researchDocument('primary').passages['P0']
+    );
+    expect(verificationInput.selected[0].document.passages).toBeUndefined();
     for (const [options] of complete.mock.calls) {
       expect(options.config).toMatchObject({ gateway: freeGateway, model: 'auto' });
       expect(options.config.endpointUrl).toBeUndefined();

@@ -67,6 +67,7 @@ export function verificationFixture(): Parameters<typeof communityReportProof>[1
     copyAligned: true,
     evidence: ['primary', 'corroboration'].map((documentId, index) => ({
       documentId,
+      passageId: 'P0',
       aligned: true,
       role: index === 0 ? 'primary' : 'corroboration',
       origin: `independently-collected-${documentId}-study`,

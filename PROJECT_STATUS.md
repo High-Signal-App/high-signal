@@ -5,6 +5,9 @@ Last updated: 2026-10-24
 October 24 reading-pipeline completion — implementation, live qualification pending:
 
 Known public newsletter archives now share the RSS/Atom add/pause/resume path.
+Social Growth Engineers uses its advertised public RSS; Startups.fyi and
+StrictlyVC use their dated written archives. StrictlyVC's former podcast feed
+is replaced under the same source identity, and its existing pause aliases hold.
 The fixed 0031 schema upgrade preserves sources, pauses and fetch diagnostics.
 The news adapter repairs stale feed endpoints, collects bounded dated public
 archives, records per-publication fetch receipts and supports targeted retries.
@@ -12,6 +15,11 @@ Future earnings notices and other issuers cannot consume retained-corroboration
 match slots; current-batch matching preserves delivery identity and exact proof.
 Cached and full-collection news enforce title-aligned complete excerpts; NOAA
 alerts and CFTC contract reports receive distinct source identities.
+Successful public article fetches can repair an existing retained body without
+changing event identity. Failed/preview retries preserve the last substantive
+body and its hash; evidence lookup reads that repaired document before legacy
+event text. Explicit subscriber-only metadata excludes page extraction while
+leaving public feed previews available.
 
 Community reporting now researches retained attention leads against recent
 retained original documents through the existing free-AI gateway. Supporting

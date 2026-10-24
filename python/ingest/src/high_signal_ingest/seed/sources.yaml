@@ -2461,8 +2461,15 @@
 - id: strictlyvc
   name: StrictlyVC
   type: blog
-  url: https://strictlyvc.com/
-  rss: https://feeds.buzzsprout.com/850276.rss
+  url: https://newsletter.strictlyvc.com/
+  rss: null
+  archive:
+    kind: beehiiv
+    url: https://newsletter.strictlyvc.com/
+  feed_aliases:
+  - https://feeds.buzzsprout.com/850276.rss
+  - https://strictlyvc.com/
+  - https://strictlyvc.com/newsletter/
   paywall: none
   tier: 2
   topic_tags:
@@ -2470,7 +2477,7 @@
   - vc
   - funding
   extraction_strategy: trafilatura
-  notes: VC news / deal flow (podcast RSS)
+  notes: Public written daily newsletter archive; the former podcast feed is retired
 - id: fortune-termsheet
   name: Fortune Term Sheet
   type: blog
@@ -2652,6 +2659,31 @@
   notes: Indian AI / data science / tech
 
 # Public archives and direct publisher feeds (no account or subscriber retrieval)
+- id: ml-social-growth-engineers
+  name: Social Growth Engineers
+  type: mailing_list
+  url: https://www.socialgrowthengineers.com/
+  rss: https://www.socialgrowthengineers.com/rss.xml
+  paywall: partial
+  tier: 3
+  topic_tags: [culture, software, marketing]
+  extraction_strategy: trafilatura
+  notes: Advertised public RSS and public article excerpts only; no subscriber-only retrieval
+- id: ml-startups-fyi
+  name: Startups.fyi
+  type: mailing_list
+  url: https://startupsfyi.beehiiv.com/
+  rss: null
+  archive:
+    kind: beehiiv
+    url: https://startupsfyi.beehiiv.com/
+  feed_aliases:
+  - https://www.startups.fyi/
+  paywall: none
+  tier: 3
+  topic_tags: [startups, software]
+  extraction_strategy: trafilatura
+  notes: Public written newsletter archive linked from the official directory
 - id: blog-stack-overflow
   name: Stack Overflow Blog
   type: blog
