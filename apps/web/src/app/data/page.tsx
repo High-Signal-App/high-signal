@@ -135,7 +135,10 @@ function SourceSummary({
       <code className="min-w-0 flex-1 truncate font-mono text-sm text-zinc-100 sm:w-40 sm:flex-none">
         {source.id}
       </code>
-      <span className="hidden w-48 shrink-0 truncate text-xs text-[var(--color-muted)] sm:block">
+      <span
+        className="hidden min-w-0 w-48 truncate text-xs text-[var(--color-muted)] sm:block"
+        title={source.provider}
+      >
         {source.provider}
       </span>
       <span
@@ -159,7 +162,7 @@ function SourceSummary({
         {TEMPORAL_META[source.temporal]?.icon}
       </span>
       <span
-        className={`ml-auto hidden shrink-0 font-mono text-[10px] sm:block ${runStatus === 'failed' ? 'text-rose-400' : 'text-zinc-500'}`}
+        className={`ml-auto hidden min-w-0 truncate font-mono text-[10px] sm:block ${runStatus === 'failed' ? 'text-rose-400' : 'text-zinc-500'}`}
         title={statusLabel}
       >
         {statusLabel}
