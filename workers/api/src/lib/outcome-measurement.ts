@@ -63,14 +63,14 @@ export async function buildSignalMeasurementReceipt(input: {
   };
 }
 
-export type MeasurementState = 'pending' | 'resolved' | 'unresolved' | 'unscorable';
-export type MeasurementReason =
+type MeasurementState = 'pending' | 'resolved' | 'unresolved' | 'unscorable';
+type MeasurementReason =
   | 'due_without_score'
   | 'forward_return_unavailable'
   | 'missing_ticker'
   | 'invalid_receipt';
 
-export interface MeasurementCohortRow {
+interface MeasurementCohortRow {
   signalSlug: string | null;
   claimId: string;
   claimSha256: string | null;
@@ -93,7 +93,7 @@ export interface MeasurementCohortSummary {
   records: MeasurementCohortRow[];
 }
 
-export function parseSignalMeasurementReceipt(payload: string): SignalMeasurementReceipt | null {
+function parseSignalMeasurementReceipt(payload: string): SignalMeasurementReceipt | null {
   let value: unknown;
   try {
     value = JSON.parse(payload);
