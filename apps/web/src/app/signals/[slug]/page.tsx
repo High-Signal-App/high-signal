@@ -426,7 +426,7 @@ export default async function SignalDetail({ params }: { params: Promise<{ slug:
       </Interpretation>
 
       {claims.length > 0 && (
-        <section className="mt-12 border-t border-zinc-800 pt-6">
+        <section id="claim-proofs" className="mt-12 border-t border-zinc-800 pt-6">
           <h2 className="font-mono text-[10px] tracking-[0.2em] text-[var(--color-muted)]">
             {sample ? 'stored claim annotations — not trend verification' : 'claim proofs'}
           </h2>

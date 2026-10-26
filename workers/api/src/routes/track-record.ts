@@ -1,4 +1,8 @@
 import { Hono } from 'hono';
+import {
+  SIGNAL_MEASUREMENT_PUBLISHED,
+  summarizeMeasurementCohort,
+} from '../lib/outcome-measurement';
 
 type Env = { DB: D1Database };
 
@@ -138,10 +142,47 @@ trackRecordRoute.get('/cohorts', async (c) => {
       ...b,
       hitRate: b.hit + b.miss > 0 ? b.hit / (b.hit + b.miss) : null,
     }));
+  const measurementRows = (await c.env.DB.prepare(
+    `SELECT e.claim_id AS claimId,
+            e.payload,
+            s.slug AS signalSlug,
+            sr.outcome,
+            sr.notes
+     FROM claim_timeline_events e
+     LEFT JOIN signals s ON s.id = json_extract(e.payload, '$.signalId')
+     LEFT JOIN score_runs sr ON sr.id = (
+       SELECT latest.id
+       FROM score_runs latest
+       WHERE latest.signal_id = json_extract(e.payload, '$.signalId')
+         AND latest.window_days = json_extract(e.payload, '$.resolutionRule.windowDays')
+       ORDER BY latest.run_at DESC
+       LIMIT 1
+     )
+     WHERE e.kind = '${SIGNAL_MEASUREMENT_PUBLISHED}'
+     ORDER BY e.created_at DESC`
+  ).all()) as {
+    results: Array<{
+      claimId: string;
+      payload: string;
+      signalSlug: string | null;
+      outcome: string | null;
+      notes: string | null;
+    }>;
+  };
+  const measurement = summarizeMeasurementCohort(
+    (measurementRows.results ?? []).map((row) => ({
+      claimId: row.claimId,
+      payload: row.payload,
+      signalSlug: row.signalSlug,
+      outcome: row.outcome,
+      notes: row.notes,
+    }))
+  );
   return c.json({
     live: toBuckets(acc.live),
     backfill: toBuckets(acc.backfill),
     all: toBuckets(acc.all),
+    measurement,
   });
 });
 

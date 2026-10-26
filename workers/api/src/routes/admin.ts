@@ -45,6 +45,11 @@ import {
 } from '../lib/signal-quality';
 import { retainedEvidenceCandidates } from '../lib/attention-admin';
 import { syncSignal, type SignalUpsert } from '../lib/signal-sync';
+import {
+  buildSignalMeasurementReceipt,
+  SIGNAL_MEASUREMENT_INTENT,
+  SIGNAL_MEASUREMENT_PUBLISHED,
+} from '../lib/outcome-measurement';
 
 type Env = {
   DB: D1Database;
@@ -212,7 +217,11 @@ adminRoute.patch('/signals/:slug', async (c) => {
       );
     }
     const claims = await db(c.env.DB)
-      .select({ id: schema.claimRecords.id, reviewStatus: schema.claimRecords.reviewStatus })
+      .select({
+        id: schema.claimRecords.id,
+        assertion: schema.claimRecords.assertion,
+        reviewStatus: schema.claimRecords.reviewStatus,
+      })
       .from(schema.claimRecords)
       .where(eq(schema.claimRecords.signalId, signal.id));
     const claimIds = claims
@@ -225,18 +234,20 @@ adminRoute.patch('/signals/:slug', async (c) => {
           .where(inArray(schema.claimEvidenceLinks.claimId, claimIds))
       : [];
     const sourceAwareLinks = await sourceAwareEvidenceLinks(db(c.env.DB), links);
-    const claimVerdicts = claimIds.map((claimId) =>
-      judgePublishability(
+    const claimVerdicts = claimIds.map((claimId) => ({
+      claimId,
+      verdict: judgePublishability(
         rollupEvidence(
           sourceAwareLinks
             .filter((link) => link.claimId === claimId)
             .map(serializeClaimEvidenceLink)
         )
-      )
-    );
+      ),
+    }));
+    const eligibleClaim = claimVerdicts.find(({ verdict }) => verdict.publishable);
     const claimVerdict =
-      claimVerdicts.find((verdict) => verdict.publishable) ??
-      claimVerdicts[0] ??
+      eligibleClaim?.verdict ??
+      claimVerdicts[0]?.verdict ??
       ({ publishable: false, reason: 'no_structured_claim' } as const);
     const mandatory = publishability({
       evidenceUrls: signal.evidenceUrls as string[],
@@ -250,6 +261,94 @@ adminRoute.patch('/signals/:slug', async (c) => {
         409
       );
     }
+
+    const measurementClaim = eligibleClaim
+      ? claims.find((claim) => claim.id === eligibleClaim.claimId)
+      : undefined;
+    const intent = measurementClaim
+      ? await db(c.env.DB)
+          .select({ id: schema.claimTimelineEvents.id })
+          .from(schema.claimTimelineEvents)
+          .where(
+            and(
+              eq(schema.claimTimelineEvents.claimId, measurementClaim.id),
+              eq(schema.claimTimelineEvents.kind, SIGNAL_MEASUREMENT_INTENT)
+            )
+          )
+          .limit(1)
+      : [];
+    const now = new Date(Math.floor(Date.now() / 1000) * 1000);
+    const receipt =
+      intent.length && measurementClaim
+        ? await buildSignalMeasurementReceipt({
+            signalId: signal.id,
+            claimId: measurementClaim.id,
+            claimAssertion: measurementClaim.assertion,
+            direction: signal.direction,
+            windowDays: signal.predictedWindowDays,
+            firstPublishedAt: now,
+          })
+        : null;
+    if (intent.length && !receipt) {
+      return c.json({ error: 'measurement_contract_unavailable' }, 409);
+    }
+
+    const writeNow = receipt ? new Date(receipt.firstPublishedAt) : new Date();
+    const assignments: string[] = [];
+    const values: (string | null)[] = [];
+    if (body.reviewStatus) {
+      assignments.push('review_status = ?');
+      values.push(body.reviewStatus);
+    }
+    if ('supersedesSignalId' in body) {
+      assignments.push('supersedes_signal_id = ?');
+      values.push(body.supersedesSignalId ?? null);
+    }
+    const writes: D1PreparedStatement[] = [
+      c.env.DB.prepare(`UPDATE signals SET ${assignments.join(', ')} WHERE id = ?`).bind(
+        ...values,
+        signal.id
+      ),
+    ];
+    if (receipt && measurementClaim) {
+      const receiptId = await sha16(`signal-measurement:${signal.id}:v1`);
+      writes.push(
+        c.env.DB.prepare(
+          `INSERT OR IGNORE INTO claim_timeline_events
+            (id, claim_id, kind, payload, actor, created_at)
+           SELECT ?, ?, ?, ?, ?, ?
+           WHERE EXISTS (
+             SELECT 1 FROM signals WHERE id = ? AND review_status = 'published'
+           )
+             AND EXISTS (
+               SELECT 1 FROM claim_timeline_events WHERE id = ? AND kind = ?
+             )
+             AND changes() > 0`
+        ).bind(
+          receiptId,
+          measurementClaim.id,
+          SIGNAL_MEASUREMENT_PUBLISHED,
+          JSON.stringify(receipt),
+          actorFromHeaders(c),
+          Math.floor(writeNow.getTime() / 1000),
+          signal.id,
+          intent[0]!.id,
+          SIGNAL_MEASUREMENT_INTENT
+        )
+      );
+    }
+    await c.env.DB.batch(writes);
+    const [updated] = await db(c.env.DB)
+      .select({
+        id: schema.signals.id,
+        slug: schema.signals.slug,
+        reviewStatus: schema.signals.reviewStatus,
+      })
+      .from(schema.signals)
+      .where(eq(schema.signals.id, signal.id))
+      .limit(1);
+    if (!updated) return c.json({ error: 'not_found' }, 404);
+    return c.json({ updated });
   }
   const result = await db(c.env.DB)
     .update(schema.signals)
@@ -716,10 +815,19 @@ adminRoute.get('/audit/summary', async (c) => {
 adminRoute.get('/pending-scores', async (c) => {
   // Signals whose predicted window has elapsed and no score_run exists yet for that window.
   const rows = (await c.env.DB.prepare(
-    `SELECT s.id, s.slug, s.primary_entity_id, s.direction, s.confidence, s.predicted_window_days, s.published_at
+    `WITH measurement AS (
+       SELECT json_extract(payload, '$.signalId') AS signal_id,
+              unixepoch(json_extract(payload, '$.firstPublishedAt')) AS published_at,
+              unixepoch(json_extract(payload, '$.dueAt')) AS due_at
+       FROM claim_timeline_events
+       WHERE kind = '${SIGNAL_MEASUREMENT_PUBLISHED}'
+     )
+     SELECT s.id, s.slug, s.primary_entity_id, s.direction, s.confidence, s.predicted_window_days,
+            COALESCE(m.published_at, s.published_at) AS published_at
      FROM signals s
+     LEFT JOIN measurement m ON m.signal_id = s.id
      WHERE s.review_status = 'published'
-       AND (s.published_at + s.predicted_window_days * 86400) <= unixepoch()
+       AND COALESCE(m.due_at, s.published_at + s.predicted_window_days * 86400) <= unixepoch()
        AND NOT EXISTS (
          SELECT 1 FROM score_runs sr
          WHERE sr.signal_id = s.id AND sr.window_days = s.predicted_window_days
@@ -1124,27 +1232,92 @@ adminRoute.post('/claims/:id/status', async (c) => {
 
   const now = new Date();
   const actor = actorFromHeaders(c);
-  const updates: Partial<typeof schema.claimRecords.$inferInsert> = {
-    reviewStatus: body.status,
-  };
-  if (body.status === 'published') {
-    updates.publishedAt = now;
-    updates.publishReason = body.reason ?? null;
-  }
-  await db(c.env.DB)
-    .update(schema.claimRecords)
-    .set(updates)
-    .where(eq(schema.claimRecords.id, claimId));
-  await db(c.env.DB)
-    .insert(schema.claimTimelineEvents)
-    .values({
-      id: await sha16(`tl:${claimId}:status:${body.status}:${now.getTime()}`),
+  const publishedAt = Math.floor(now.getTime() / 1000);
+  const priorPublishedAt = claim.publishedAt
+    ? Math.floor(claim.publishedAt.getTime() / 1000)
+    : null;
+  const priorPublishReason = claim.publishReason ?? null;
+  const writes: D1PreparedStatement[] = [
+    c.env.DB.prepare(
+      `UPDATE claim_records
+       SET review_status = ?, published_at = ?, publish_reason = ?
+       WHERE id = ? AND review_status = ?`
+    ).bind(
+      body.status,
+      body.status === 'published' ? publishedAt : priorPublishedAt,
+      body.status === 'published' ? (body.reason ?? null) : priorPublishReason,
       claimId,
-      kind: 'status_change',
-      payload: { from: claim.reviewStatus, to: body.status, reason: body.reason ?? null },
+      claim.reviewStatus
+    ),
+    c.env.DB.prepare(
+      `INSERT OR IGNORE INTO claim_timeline_events
+         (id, claim_id, kind, payload, actor, created_at)
+       SELECT ?, ?, 'status_change', ?, ?, ?
+       WHERE changes() > 0
+         AND NOT EXISTS (
+           SELECT 1 FROM claim_timeline_events
+           WHERE claim_id = ? AND kind = 'status_change'
+             AND json_extract(payload, '$.from') = ?
+             AND json_extract(payload, '$.to') = ?
+         )
+         AND EXISTS (
+           SELECT 1 FROM claim_records
+           WHERE id = ? AND review_status = ? AND published_at IS ?
+         )`
+    ).bind(
+      await sha16(`tl:${claimId}:status:${body.status}:${now.getTime()}`),
+      claimId,
+      JSON.stringify({ from: claim.reviewStatus, to: body.status, reason: body.reason ?? null }),
       actor,
-      createdAt: now,
-    });
+      publishedAt,
+      claimId,
+      claim.reviewStatus,
+      body.status,
+      claimId,
+      body.status,
+      body.status === 'published' ? publishedAt : priorPublishedAt
+    ),
+  ];
+  const [signal] =
+    claim.surface === 'signal' && claim.signalId
+      ? await db(c.env.DB)
+          .select({ id: schema.signals.id, reviewStatus: schema.signals.reviewStatus })
+          .from(schema.signals)
+          .where(eq(schema.signals.id, claim.signalId))
+          .limit(1)
+      : [];
+  if (body.status === 'published' && signal?.reviewStatus === 'draft') {
+    const intentId = await sha16(`signal-measurement-intent:${claimId}:v1`);
+    writes.push(
+      c.env.DB.prepare(
+        `INSERT OR IGNORE INTO claim_timeline_events
+           (id, claim_id, kind, payload, actor, created_at)
+         SELECT ?, ?, ?, ?, ?, ?
+         WHERE changes() > 0
+           AND EXISTS (
+           SELECT 1 FROM claim_records
+           WHERE id = ? AND review_status = 'published' AND published_at = ?
+         )
+           AND EXISTS (
+             SELECT 1 FROM signals WHERE id = ? AND review_status = 'draft'
+           )`
+      ).bind(
+        intentId,
+        claimId,
+        SIGNAL_MEASUREMENT_INTENT,
+        JSON.stringify({ schemaVersion: 1, signalId: signal.id }),
+        actor,
+        publishedAt,
+        claimId,
+        publishedAt,
+        signal.id
+      )
+    );
+  }
+  const results = await c.env.DB.batch(writes);
+  if ((results[0]?.meta.changes ?? 0) !== 1) {
+    return c.json({ error: 'status_changed_concurrently' }, 409);
+  }
   return c.json({ id: claimId, status: body.status });
 });
 

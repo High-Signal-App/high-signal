@@ -672,7 +672,15 @@ export const claimTimelineEvents = sqliteTable(
       .notNull()
       .references(() => claimRecords.id),
     kind: text('kind', {
-      enum: ['created', 'evidence_added', 'evidence_removed', 'status_change', 'correction_filed'],
+      enum: [
+        'created',
+        'evidence_added',
+        'evidence_removed',
+        'status_change',
+        'correction_filed',
+        'signal_measurement_intent',
+        'signal_measurement_published',
+      ],
     }).notNull(),
     payload: text('payload', { mode: 'json' }).notNull().default('{}'),
     actor: text('actor'),

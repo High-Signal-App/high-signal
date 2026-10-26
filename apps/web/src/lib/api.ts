@@ -180,6 +180,54 @@ export interface TrackBucket {
   hitRate: number | null;
 }
 
+export interface MeasurementCohort {
+  denominator: number;
+  pending: number;
+  resolved: number;
+  unresolved: number;
+  unscorable: number;
+  unresolvedReasons: Partial<
+    Record<
+      'due_without_score' | 'forward_return_unavailable' | 'missing_ticker' | 'invalid_receipt',
+      number
+    >
+  >;
+  unscorableReasons: Partial<
+    Record<
+      'due_without_score' | 'forward_return_unavailable' | 'missing_ticker' | 'invalid_receipt',
+      number
+    >
+  >;
+  records: Array<{
+    signalSlug: string | null;
+    claimId: string;
+    claimSha256: string | null;
+    firstPublishedAt: string | null;
+    dueAt: string | null;
+    resolutionRule: {
+      id: 'market-direction-forward-return';
+      version: 1;
+      metric: 'forward_return_percent';
+      priceSource: 'shared_equities_close_adapter';
+      startClosePolicy: 'first_available_on_or_after_publication_date';
+      targetCloseIndexPolicy: 'min(windowDays, available_close_count_minus_one)';
+      calendarEndBufferMultiplier: 1.6;
+      direction: Direction;
+      windowDays: number;
+      pushBandPercent: 0.5;
+      neutralPushBandPercent: 2;
+    } | null;
+    outcome: Outcome | null;
+    state: 'pending' | 'resolved' | 'unresolved' | 'unscorable';
+    reason:
+      | 'due_without_score'
+      | 'forward_return_unavailable'
+      | 'missing_ticker'
+      | 'invalid_receipt'
+      | null;
+  }>;
+}
+
 export interface SourceAccuracyBucket {
   sourceType: string;
   hit: number;
@@ -436,9 +484,12 @@ export const api = {
       baseline: { n: number; hits: number; rate: number };
     }>('/track-record/labels'),
   trackRecordCohorts: () =>
-    fetchJson<{ live: TrackBucket[]; backfill: TrackBucket[]; all: TrackBucket[] }>(
-      '/track-record/cohorts'
-    ),
+    fetchJson<{
+      live: TrackBucket[];
+      backfill: TrackBucket[];
+      all: TrackBucket[];
+      measurement: MeasurementCohort;
+    }>('/track-record/cohorts'),
   sourceAccuracy: () =>
     fetchJson<{ live: SourceAccuracyBucket[]; backfill: SourceAccuracyBucket[] }>(
       '/track-record/source-accuracy'

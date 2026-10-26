@@ -12,6 +12,16 @@ export async function GET(request: Request) {
     live: [],
     backfill: [],
     all: [],
+    measurement: {
+      denominator: 0,
+      pending: 0,
+      resolved: 0,
+      unresolved: 0,
+      unscorable: 0,
+      unresolvedReasons: {},
+      unscorableReasons: {},
+      records: [],
+    },
   };
   try {
     cohorts = await api.trackRecordCohorts();
