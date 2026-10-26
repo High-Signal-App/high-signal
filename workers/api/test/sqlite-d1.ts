@@ -94,14 +94,22 @@ const MIGRATIONS = join(dirname(fileURLToPath(import.meta.url)), '../../../packa
  * by exactly the statements production runs — including the migration under
  * test stacking on top of the twenty-five before it.
  */
-export function applyMigrations(d1: TestD1) {
+export function applyMigrations(d1: TestD1, stopBefore?: string) {
   for (const file of readdirSync(MIGRATIONS)
     .filter((name) => name.endsWith('.sql'))
     .sort()) {
+    if (file === stopBefore) break;
     const sql = readFileSync(join(MIGRATIONS, file), 'utf8');
     for (const statement of sql.split('--> statement-breakpoint')) {
       if (statement.trim()) d1.exec(statement);
     }
+  }
+}
+
+export function applyMigration(d1: TestD1, file: string) {
+  const sql = readFileSync(join(MIGRATIONS, file), 'utf8');
+  for (const statement of sql.split('--> statement-breakpoint')) {
+    if (statement.trim()) d1.exec(statement);
   }
 }
 

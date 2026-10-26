@@ -130,6 +130,8 @@ export async function syncSignal(d1: D1Database, signal: SignalUpsert) {
       slug: signal.slug,
       primary_entity_id: signal.primaryEntityId,
       review_status: 'draft',
+      measurement_eligible:
+        signal.reviewStatus === undefined || signal.reviewStatus === 'draft' ? 1 : 0,
       ...content,
     },
     'slug',

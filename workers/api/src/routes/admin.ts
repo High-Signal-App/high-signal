@@ -5,7 +5,7 @@
  * CI / local sync-signals.ts POSTs frontmatter+body to /admin/sync to keep D1 in step with the git-versioned signals/ tree.
  */
 import { Hono } from 'hono';
-import { and, eq, inArray, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 import {
   buildHistoricalClaimBackfill,
   canonicalSourceUrl,
@@ -45,6 +45,11 @@ import {
 } from '../lib/signal-quality';
 import { retainedEvidenceCandidates } from '../lib/attention-admin';
 import { syncSignal, type SignalUpsert } from '../lib/signal-sync';
+import {
+  buildSignalMeasurementReceipt,
+  SIGNAL_MEASUREMENT_INTENT,
+  SIGNAL_MEASUREMENT_PUBLISHED,
+} from '../lib/outcome-measurement';
 
 type Env = {
   DB: D1Database;
@@ -182,6 +187,7 @@ adminRoute.patch('/signals/:slug', async (c) => {
   const updates: Record<string, unknown> = {};
   if (body.reviewStatus) updates['reviewStatus'] = body.reviewStatus;
   if ('supersedesSignalId' in body) updates['supersedesSignalId'] = body.supersedesSignalId;
+  if (body.reviewStatus === 'corrected') updates['measurementEligible'] = false;
   if (Object.keys(updates).length === 0) {
     return c.json({ error: 'no_updates' }, 400);
   }
@@ -201,7 +207,8 @@ adminRoute.patch('/signals/:slug', async (c) => {
           inArray(schema.signals.reviewStatus, ['draft', 'published'])
         )
       );
-    const enriched = enrichSignals(peers).find((candidate) => candidate.id === signal.id);
+    const candidates = signal.reviewStatus === 'killed' ? [...peers, signal] : peers;
+    const enriched = enrichSignals(candidates).find((candidate) => candidate.id === signal.id);
     if (!enriched?.publishable) {
       return c.json(
         {
@@ -212,7 +219,11 @@ adminRoute.patch('/signals/:slug', async (c) => {
       );
     }
     const claims = await db(c.env.DB)
-      .select({ id: schema.claimRecords.id, reviewStatus: schema.claimRecords.reviewStatus })
+      .select({
+        id: schema.claimRecords.id,
+        assertion: schema.claimRecords.assertion,
+        reviewStatus: schema.claimRecords.reviewStatus,
+      })
       .from(schema.claimRecords)
       .where(eq(schema.claimRecords.signalId, signal.id));
     const claimIds = claims
@@ -225,18 +236,20 @@ adminRoute.patch('/signals/:slug', async (c) => {
           .where(inArray(schema.claimEvidenceLinks.claimId, claimIds))
       : [];
     const sourceAwareLinks = await sourceAwareEvidenceLinks(db(c.env.DB), links);
-    const claimVerdicts = claimIds.map((claimId) =>
-      judgePublishability(
+    const claimVerdicts = claimIds.map((claimId) => ({
+      claimId,
+      verdict: judgePublishability(
         rollupEvidence(
           sourceAwareLinks
             .filter((link) => link.claimId === claimId)
             .map(serializeClaimEvidenceLink)
         )
-      )
-    );
+      ),
+    }));
+    const eligibleClaim = claimVerdicts.find(({ verdict }) => verdict.publishable);
     const claimVerdict =
-      claimVerdicts.find((verdict) => verdict.publishable) ??
-      claimVerdicts[0] ??
+      eligibleClaim?.verdict ??
+      claimVerdicts[0]?.verdict ??
       ({ publishable: false, reason: 'no_structured_claim' } as const);
     const mandatory = publishability({
       evidenceUrls: signal.evidenceUrls as string[],
@@ -250,6 +263,120 @@ adminRoute.patch('/signals/:slug', async (c) => {
         409
       );
     }
+
+    const measurementCandidate = signal.measurementEligible && !signal.measurementFirstPublishedAt;
+    const intentEligibleClaimIds = measurementCandidate
+      ? claims
+          .filter(
+            (claim) =>
+              claim.reviewStatus === 'published' &&
+              claimVerdicts.some(
+                ({ claimId, verdict }) => claimId === claim.id && verdict.publishable
+              )
+          )
+          .map((claim) => claim.id)
+      : [];
+    const intent = intentEligibleClaimIds.length
+      ? await db(c.env.DB)
+          .select({
+            id: schema.claimTimelineEvents.id,
+            claimId: schema.claimTimelineEvents.claimId,
+          })
+          .from(schema.claimTimelineEvents)
+          .where(
+            and(
+              inArray(schema.claimTimelineEvents.claimId, intentEligibleClaimIds),
+              eq(schema.claimTimelineEvents.kind, SIGNAL_MEASUREMENT_INTENT)
+            )
+          )
+          .orderBy(asc(schema.claimTimelineEvents.createdAt), asc(schema.claimTimelineEvents.id))
+          .limit(1)
+      : [];
+    const measurementClaim = intent[0]
+      ? claims.find((claim) => claim.id === intent[0]!.claimId)
+      : undefined;
+    const now = new Date(Math.floor(Date.now() / 1000) * 1000);
+    const receipt =
+      measurementCandidate && intent.length && measurementClaim
+        ? await buildSignalMeasurementReceipt({
+            signalId: signal.id,
+            claimId: measurementClaim.id,
+            claimAssertion: measurementClaim.assertion,
+            direction: signal.direction,
+            windowDays: signal.predictedWindowDays,
+            firstPublishedAt: now,
+          })
+        : null;
+    if (measurementCandidate && intent.length && !receipt) {
+      return c.json({ error: 'measurement_contract_unavailable' }, 409);
+    }
+
+    const writeNow = receipt ? new Date(receipt.firstPublishedAt) : new Date();
+    const assignments: string[] = [];
+    const values: (string | number | null)[] = [];
+    if (body.reviewStatus) {
+      assignments.push('review_status = ?');
+      values.push(body.reviewStatus);
+    }
+    if (body.reviewStatus === 'published' && signal.measurementEligible) {
+      assignments.push(
+        'measurement_first_published_at = COALESCE(measurement_first_published_at, ?)'
+      );
+      values.push(Math.floor(now.getTime() / 1000));
+      assignments.push('measurement_eligible = 0');
+    }
+    if ('supersedesSignalId' in body) {
+      assignments.push('supersedes_signal_id = ?');
+      values.push(body.supersedesSignalId ?? null);
+    }
+    const writes: D1PreparedStatement[] = [
+      c.env.DB.prepare(`UPDATE signals SET ${assignments.join(', ')} WHERE id = ?`).bind(
+        ...values,
+        signal.id
+      ),
+    ];
+    if (receipt && measurementClaim) {
+      const receiptId = await sha16(`signal-measurement:${signal.id}:v1`);
+      writes.push(
+        c.env.DB.prepare(
+          `INSERT OR IGNORE INTO claim_timeline_events
+            (id, claim_id, kind, payload, actor, created_at)
+           SELECT ?, ?, ?, ?, ?, ?
+           WHERE EXISTS (
+             SELECT 1 FROM signals
+             WHERE id = ? AND review_status = 'published'
+               AND measurement_first_published_at = ? AND measurement_eligible = 0
+           )
+             AND EXISTS (
+               SELECT 1 FROM claim_timeline_events WHERE id = ? AND kind = ?
+             )
+             AND changes() > 0`
+        ).bind(
+          receiptId,
+          measurementClaim.id,
+          SIGNAL_MEASUREMENT_PUBLISHED,
+          JSON.stringify(receipt),
+          actorFromHeaders(c),
+          Math.floor(writeNow.getTime() / 1000),
+          signal.id,
+          Math.floor(writeNow.getTime() / 1000),
+          intent[0]!.id,
+          SIGNAL_MEASUREMENT_INTENT
+        )
+      );
+    }
+    await c.env.DB.batch(writes);
+    const [updated] = await db(c.env.DB)
+      .select({
+        id: schema.signals.id,
+        slug: schema.signals.slug,
+        reviewStatus: schema.signals.reviewStatus,
+      })
+      .from(schema.signals)
+      .where(eq(schema.signals.id, signal.id))
+      .limit(1);
+    if (!updated) return c.json({ error: 'not_found' }, 404);
+    return c.json({ updated });
   }
   const result = await db(c.env.DB)
     .update(schema.signals)
@@ -716,10 +843,23 @@ adminRoute.get('/audit/summary', async (c) => {
 adminRoute.get('/pending-scores', async (c) => {
   // Signals whose predicted window has elapsed and no score_run exists yet for that window.
   const rows = (await c.env.DB.prepare(
-    `SELECT s.id, s.slug, s.primary_entity_id, s.direction, s.confidence, s.predicted_window_days, s.published_at
+    `WITH measurement AS (
+       SELECT json_extract(payload, '$.signalId') AS signal_id,
+              unixepoch(json_extract(payload, '$.firstPublishedAt')) AS published_at,
+              unixepoch(json_extract(payload, '$.dueAt')) AS due_at
+       FROM claim_timeline_events
+       WHERE kind = '${SIGNAL_MEASUREMENT_PUBLISHED}'
+     )
+     SELECT s.id, s.slug, s.primary_entity_id, s.direction, s.confidence, s.predicted_window_days,
+            COALESCE(m.published_at, s.measurement_first_published_at, s.published_at) AS published_at
      FROM signals s
+     LEFT JOIN measurement m ON m.signal_id = s.id
      WHERE s.review_status = 'published'
-       AND (s.published_at + s.predicted_window_days * 86400) <= unixepoch()
+       AND COALESCE(
+         m.due_at,
+         s.measurement_first_published_at + s.predicted_window_days * 86400,
+         s.published_at + s.predicted_window_days * 86400
+       ) <= unixepoch()
        AND NOT EXISTS (
          SELECT 1 FROM score_runs sr
          WHERE sr.signal_id = s.id AND sr.window_days = s.predicted_window_days
@@ -1124,27 +1264,101 @@ adminRoute.post('/claims/:id/status', async (c) => {
 
   const now = new Date();
   const actor = actorFromHeaders(c);
-  const updates: Partial<typeof schema.claimRecords.$inferInsert> = {
-    reviewStatus: body.status,
-  };
-  if (body.status === 'published') {
-    updates.publishedAt = now;
-    updates.publishReason = body.reason ?? null;
-  }
-  await db(c.env.DB)
-    .update(schema.claimRecords)
-    .set(updates)
-    .where(eq(schema.claimRecords.id, claimId));
-  await db(c.env.DB)
-    .insert(schema.claimTimelineEvents)
-    .values({
-      id: await sha16(`tl:${claimId}:status:${body.status}:${now.getTime()}`),
+  const publishedAt = Math.floor(now.getTime() / 1000);
+  const priorPublishedAt = claim.publishedAt
+    ? Math.floor(claim.publishedAt.getTime() / 1000)
+    : null;
+  const priorPublishReason = claim.publishReason ?? null;
+  const statusEventId = await sha16(
+    `tl:${claimId}:status:${body.status}:${now.getTime()}:${crypto.randomUUID()}`
+  );
+  const writes: D1PreparedStatement[] = [
+    c.env.DB.prepare(
+      `UPDATE claim_records
+       SET review_status = ?, published_at = ?, publish_reason = ?
+       WHERE id = ? AND review_status = ?`
+    ).bind(
+      body.status,
+      body.status === 'published' ? publishedAt : priorPublishedAt,
+      body.status === 'published' ? (body.reason ?? null) : priorPublishReason,
       claimId,
-      kind: 'status_change',
-      payload: { from: claim.reviewStatus, to: body.status, reason: body.reason ?? null },
+      claim.reviewStatus
+    ),
+    c.env.DB.prepare(
+      `INSERT OR IGNORE INTO claim_timeline_events
+         (id, claim_id, kind, payload, actor, created_at)
+       SELECT ?, ?, 'status_change', ?, ?, ?
+       WHERE changes() > 0
+         AND EXISTS (
+           SELECT 1 FROM claim_records
+           WHERE id = ? AND review_status = ? AND published_at IS ?
+         )`
+    ).bind(
+      statusEventId,
+      claimId,
+      JSON.stringify({ from: claim.reviewStatus, to: body.status, reason: body.reason ?? null }),
       actor,
-      createdAt: now,
-    });
+      publishedAt,
+      claimId,
+      body.status,
+      body.status === 'published' ? publishedAt : priorPublishedAt
+    ),
+  ];
+  const [signal] =
+    claim.surface === 'signal' && claim.signalId
+      ? await db(c.env.DB)
+          .select({
+            id: schema.signals.id,
+            reviewStatus: schema.signals.reviewStatus,
+            measurementEligible: schema.signals.measurementEligible,
+            measurementFirstPublishedAt: schema.signals.measurementFirstPublishedAt,
+          })
+          .from(schema.signals)
+          .where(eq(schema.signals.id, claim.signalId))
+          .limit(1)
+      : [];
+  if (
+    body.status === 'published' &&
+    (signal?.reviewStatus === 'draft' || signal?.reviewStatus === 'killed') &&
+    signal.measurementEligible &&
+    !signal.measurementFirstPublishedAt
+  ) {
+    const intentId = await sha16(`signal-measurement-intent:${claimId}:v1`);
+    writes.push(
+      c.env.DB.prepare(
+        `INSERT OR IGNORE INTO claim_timeline_events
+           (id, claim_id, kind, payload, actor, created_at)
+         SELECT ?, ?, ?, ?, ?, ?
+         WHERE EXISTS (
+           SELECT 1 FROM claim_timeline_events WHERE id = ? AND kind = 'status_change'
+         )
+           AND EXISTS (
+             SELECT 1 FROM claim_records
+             WHERE id = ? AND review_status = 'published' AND published_at = ?
+           )
+           AND EXISTS (
+             SELECT 1 FROM signals
+             WHERE id = ? AND review_status IN ('draft', 'killed')
+               AND measurement_eligible = 1 AND measurement_first_published_at IS NULL
+           )`
+      ).bind(
+        intentId,
+        claimId,
+        SIGNAL_MEASUREMENT_INTENT,
+        JSON.stringify({ schemaVersion: 1, signalId: signal.id }),
+        actor,
+        publishedAt,
+        statusEventId,
+        claimId,
+        publishedAt,
+        signal.id
+      )
+    );
+  }
+  const results = await c.env.DB.batch(writes);
+  if ((results[0]?.meta.changes ?? 0) !== 1) {
+    return c.json({ error: 'status_changed_concurrently' }, 409);
+  }
   return c.json({ id: claimId, status: body.status });
 });
 
