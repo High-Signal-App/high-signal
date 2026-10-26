@@ -42,18 +42,21 @@ def test_publication_dispatch_is_bounded_and_keeps_exact_requested_lookback(
     monkeypatch.setattr(news, "fetch_all", lambda **kwargs: calls.append(kwargs) or [])
     tasks = pipeline._fetch_tasks("news:test-publication", 28)
     assert len(tasks) == 1 and tasks[0][0] == "news:test-publication"
-    assert tasks[0][2]() == []
+    assert tasks[0][2]().events == []
     assert calls == [
         {
             "days": 28,
             "tier_max": 2,
             "fetch_body": True,
             "source_ids": ["test-publication"],
+            "failures": [],
         }
     ]
     calls.clear()
     pipeline._fetch_tasks("news", 1)[0][2]()
-    assert calls == [{"days": 1, "tier_max": 2, "fetch_body": True}]
+    assert calls == [
+        {"days": 1, "tier_max": 2, "fetch_body": True, "source_ids": None, "failures": []}
+    ]
 
 
 def test_selected_paused_publication_records_explicit_no_fetch_without_other_sources(
