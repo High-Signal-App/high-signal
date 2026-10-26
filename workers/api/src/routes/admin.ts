@@ -187,6 +187,7 @@ adminRoute.patch('/signals/:slug', async (c) => {
   const updates: Record<string, unknown> = {};
   if (body.reviewStatus) updates['reviewStatus'] = body.reviewStatus;
   if ('supersedesSignalId' in body) updates['supersedesSignalId'] = body.supersedesSignalId;
+  if (body.reviewStatus === 'corrected') updates['measurementEligible'] = false;
   if (Object.keys(updates).length === 0) {
     return c.json({ error: 'no_updates' }, 400);
   }
@@ -203,7 +204,7 @@ adminRoute.patch('/signals/:slug', async (c) => {
       .where(
         and(
           eq(schema.signals.primaryEntityId, signal.primaryEntityId),
-          inArray(schema.signals.reviewStatus, ['draft', 'published'])
+          inArray(schema.signals.reviewStatus, ['draft', 'published', 'killed'])
         )
       );
     const enriched = enrichSignals(peers).find((candidate) => candidate.id === signal.id);
@@ -1317,7 +1318,7 @@ adminRoute.post('/claims/:id/status', async (c) => {
       : [];
   if (
     body.status === 'published' &&
-    signal?.reviewStatus === 'draft' &&
+    (signal?.reviewStatus === 'draft' || signal?.reviewStatus === 'killed') &&
     signal.measurementEligible &&
     !signal.measurementFirstPublishedAt
   ) {
@@ -1336,7 +1337,7 @@ adminRoute.post('/claims/:id/status', async (c) => {
            )
            AND EXISTS (
              SELECT 1 FROM signals
-             WHERE id = ? AND review_status = 'draft'
+             WHERE id = ? AND review_status IN ('draft', 'killed')
                AND measurement_eligible = 1 AND measurement_first_published_at IS NULL
            )`
       ).bind(

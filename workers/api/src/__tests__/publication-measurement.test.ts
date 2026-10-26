@@ -243,6 +243,39 @@ describe('first-publication measurement receipts', () => {
     expect(receipt.claim_id).toBe(laterClaimId);
   });
 
+  it('records a first publication after an eligible draft was temporarily killed', async () => {
+    const signal = fixtureSignal();
+    const synced = await request('/admin/sync', 'POST', { signals: [signal] });
+    expect(synced.status).toBe(200);
+    const { id: signalId } = (await database.binding
+      .prepare('SELECT id FROM signals WHERE slug = ?')
+      .bind(signal.slug)
+      .first()) as { id: string };
+    const { id: claimId } = (await database.binding
+      .prepare('SELECT id FROM claim_records WHERE signal_id = ?')
+      .bind(signalId)
+      .first()) as { id: string };
+    const killed = await request(`/admin/signals/${signal.slug}`, 'PATCH', {
+      reviewStatus: 'killed',
+    });
+    expect(killed.status).toBe(200);
+    const claimPublished = await request(`/admin/claims/${claimId}/status`, 'POST', {
+      status: 'published',
+      reason: 'retry_killed_today',
+    });
+    expect(claimPublished.status).toBe(200);
+    expect((await events('signal_measurement_intent')).results).toHaveLength(1);
+    const signalPublished = await request(`/admin/signals/${signal.slug}`, 'PATCH', {
+      reviewStatus: 'published',
+    });
+    expect(signalPublished.status).toBe(200);
+    const receipts = (await events('signal_measurement_published')).results as Array<{
+      claim_id: string;
+    }>;
+    expect(receipts).toHaveLength(1);
+    expect(receipts[0]!.claim_id).toBe(claimId);
+  });
+
   it('freezes the claim and rule only with successful signal publication, then feeds the due cohort', async () => {
     const { signal, claimId } = await createDraftAndPublishClaim();
     expect((await events('signal_measurement_intent')).results).toHaveLength(1);

@@ -89,7 +89,6 @@ function parseSignalMeasurementReceipt(payload: string): SignalMeasurementReceip
   }
   if (!value || typeof value !== 'object') return null;
   const row = value as Partial<SignalMeasurementReceipt>;
-  const rule = row.resolutionRule;
   if (
     row.schemaVersion !== 1 ||
     typeof row.signalId !== 'string' ||
@@ -100,23 +99,32 @@ function parseSignalMeasurementReceipt(payload: string): SignalMeasurementReceip
     !Number.isFinite(Date.parse(row.firstPublishedAt)) ||
     typeof row.dueAt !== 'string' ||
     !Number.isFinite(Date.parse(row.dueAt)) ||
-    !rule ||
-    rule.id !== 'market-direction-forward-return' ||
-    rule.version !== 1 ||
-    rule.metric !== 'forward_return_percent' ||
-    rule.priceSource !== 'shared_equities_close_adapter' ||
-    rule.startClosePolicy !== 'first_available_on_or_after_publication_date' ||
-    rule.targetCloseIndexPolicy !== 'min(windowDays, available_close_count_minus_one)' ||
-    rule.calendarEndBufferMultiplier !== 1.6 ||
-    !['up', 'down', 'neutral'].includes(rule.direction) ||
-    !Number.isSafeInteger(rule.windowDays) ||
-    rule.windowDays <= 0 ||
-    rule.pushBandPercent !== 0.5 ||
-    rule.neutralPushBandPercent !== 2
+    !isValidSignalMeasurementRule(row.resolutionRule)
   ) {
     return null;
   }
   return row as SignalMeasurementReceipt;
+}
+
+function isValidSignalMeasurementRule(
+  value: unknown
+): value is SignalMeasurementReceipt['resolutionRule'] {
+  if (!value || typeof value !== 'object') return false;
+  const rule = value as SignalMeasurementReceipt['resolutionRule'];
+  return (
+    rule.id === 'market-direction-forward-return' &&
+    rule.version === 1 &&
+    rule.metric === 'forward_return_percent' &&
+    rule.priceSource === 'shared_equities_close_adapter' &&
+    rule.startClosePolicy === 'first_available_on_or_after_publication_date' &&
+    rule.targetCloseIndexPolicy === 'min(windowDays, available_close_count_minus_one)' &&
+    rule.calendarEndBufferMultiplier === 1.6 &&
+    ['up', 'down', 'neutral'].includes(rule.direction) &&
+    Number.isSafeInteger(rule.windowDays) &&
+    rule.windowDays > 0 &&
+    rule.pushBandPercent === 0.5 &&
+    rule.neutralPushBandPercent === 2
+  );
 }
 
 export function summarizeMeasurementCohort(
