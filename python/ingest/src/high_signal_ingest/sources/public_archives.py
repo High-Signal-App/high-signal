@@ -86,10 +86,33 @@ def _same_origin_link(base: str, value: str) -> str | None:
     return url
 
 
+def _article_link_matches(node: _Node, markup: _Markup, kind: str, path: str) -> bool:
+    if kind == "batch":
+        return bool(re.fullmatch(r"/the-batch/issue-\d+/?", path))
+    elif kind == "stratechery":
+        return any(
+            ancestor.tag == "li"
+            and "category-articles" in (ancestor.attrs.get("class") or "").split()
+            and _under(node, ancestor)
+            for ancestor in markup.nodes
+        ) and bool(re.fullmatch(r"/\d{4}/[^/]+/?", path))
+    elif kind == "firstround":
+        return any(
+            ancestor.tag == "article"
+            and "data-post-card-wrapper" in ancestor.attrs
+            and _under(node, ancestor)
+            for ancestor in markup.nodes
+        ) and bool(re.fullmatch(r"/[^/]+/?", path))
+    elif kind == "beehiiv":
+        return bool(re.fullmatch(r"/p/[^/]+/?", path))
+    else:
+        return bool(re.fullmatch(r"/blog/[^/]+/?", path))
+
+
 def archive_links(html: str, url: str, kind: str) -> list[str]:
     """Select only article links from the configured publisher's listing."""
     markup = _Markup(html)
-    if kind not in {"batch", "stratechery", "beehiiv", "cerebras"}:
+    if kind not in {"batch", "stratechery", "beehiiv", "cerebras", "firstround"}:
         raise registered_feeds.PublicFeedFetchError("Unsupported public archive")
     links: list[str] = []
     for node in markup.nodes:
@@ -99,19 +122,7 @@ def archive_links(html: str, url: str, kind: str) -> list[str]:
         if not link:
             continue
         path = urlsplit(link).path
-        if kind == "batch":
-            accepted = bool(re.fullmatch(r"/the-batch/issue-\d+/?", path))
-        elif kind == "stratechery":
-            accepted = any(
-                ancestor.tag == "li"
-                and "category-articles" in (ancestor.attrs.get("class") or "").split()
-                and _under(node, ancestor)
-                for ancestor in markup.nodes
-            ) and bool(re.fullmatch(r"/\d{4}/[^/]+/?", path))
-        elif kind == "beehiiv":
-            accepted = bool(re.fullmatch(r"/p/[^/]+/?", path))
-        else:
-            accepted = bool(re.fullmatch(r"/blog/[^/]+/?", path))
+        accepted = _article_link_matches(node, markup, kind, path)
         if accepted and link not in links:
             links.append(link)
         if len(links) == MAX_ARTICLES:

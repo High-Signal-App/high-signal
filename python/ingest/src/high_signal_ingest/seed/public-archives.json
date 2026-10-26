@@ -66,5 +66,14 @@
       "https://strictlyvc.com/newsletter/",
       "https://newsletter.strictlyvc.com/subscribe"
     ]
+  },
+  {
+    "id": "firstround-review",
+    "title": "First Round Review",
+    "kind": "firstround",
+    "url": "https://review.firstround.com/articles/",
+    "aliases": [
+      "https://review.firstround.com/rss"
+    ]
   }
 ]
