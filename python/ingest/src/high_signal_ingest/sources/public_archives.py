@@ -89,7 +89,7 @@ def _same_origin_link(base: str, value: str) -> str | None:
 def archive_links(html: str, url: str, kind: str) -> list[str]:
     """Select only article links from the configured publisher's listing."""
     markup = _Markup(html)
-    if kind not in {"batch", "stratechery", "beehiiv", "cerebras"}:
+    if kind not in {"batch", "stratechery", "beehiiv", "cerebras", "firstround"}:
         raise registered_feeds.PublicFeedFetchError("Unsupported public archive")
     links: list[str] = []
     for node in markup.nodes:
@@ -108,6 +108,13 @@ def archive_links(html: str, url: str, kind: str) -> list[str]:
                 and _under(node, ancestor)
                 for ancestor in markup.nodes
             ) and bool(re.fullmatch(r"/\d{4}/[^/]+/?", path))
+        elif kind == "firstround":
+            accepted = any(
+                ancestor.tag == "article"
+                and "data-post-card-wrapper" in ancestor.attrs
+                and _under(node, ancestor)
+                for ancestor in markup.nodes
+            ) and bool(re.fullmatch(r"/[^/]+/?", path))
         elif kind == "beehiiv":
             accepted = bool(re.fullmatch(r"/p/[^/]+/?", path))
         else:

@@ -167,3 +167,18 @@ def test_archive_listing_caps_the_number_of_article_fetches() -> None:
         archives.archive_links(
             '<a href="/subscribe">Subscribe</a>', "https://publisher.example.org/", "beehiiv"
         )
+
+
+def test_firstround_selects_article_cards_not_navigation_or_glossary() -> None:
+    html = """<a href="/about/">About</a>
+    <article><a href="/unmarked/">Unmarked</a></article>
+    <article data-post-card-wrapper>
+      <a href="/inside-thiel-fellowship/">Read</a>
+      <a href="/inside-thiel-fellowship/">Title</a>
+      <a href="/glossary/moat/">Glossary</a>
+      <a href="https://other.example.org/offsite/">Offsite</a>
+      <a href="/private/?subscriber=123">Private</a>
+    </article>"""
+    assert archives.archive_links(
+        html, "https://review.firstround.com/articles/", "firstround"
+    ) == ["https://review.firstround.com/inside-thiel-fellowship/"]

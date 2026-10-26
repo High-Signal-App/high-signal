@@ -337,3 +337,21 @@ def test_registered_archive_fetches_and_reports_with_standard_receipts(monkeypat
     assert event.source == "news:feed-managed"
     assert receipts[0][0] == row["id"] and receipts[0][1]["count"] == 1
     assert receipts[0][1]["error"] is None
+
+
+def test_firstround_retired_rss_uses_archive_and_keeps_existing_pause() -> None:
+    seed = next(source for source in news.load_sources() if source["id"] == "firstround-review")
+    row = {**ROW, "feedUrl": "https://review.firstround.com/rss", "format": "rss"}
+    [source] = feeds.merge_sources([seed], [row], 2)
+    assert source["id"] == "firstround-review"
+    assert source["rss"] is None
+    assert source["archive"] == {
+        "kind": "firstround",
+        "url": "https://review.firstround.com/articles/",
+    }
+    assert feeds.merge_sources([seed], [{**row, "enabled": False}], 2) == []
+
+    override = {**row, "id": seed["id"], "feedUrl": "https://review.firstround.com/custom.xml"}
+    [source] = feeds.merge_sources([seed], [override], 2)
+    assert source["rss"] == override["feedUrl"]
+    assert "archive" not in source

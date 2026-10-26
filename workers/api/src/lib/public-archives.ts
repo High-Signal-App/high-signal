@@ -32,12 +32,18 @@ export async function validatePublicArchive(html: string, listingUrl: string, ar
   }
   const base = new URL(listingUrl);
   const links = new Set<string>();
-  const selector = archive.kind === 'stratechery' ? 'li.category-articles a' : 'a';
+  const selector =
+    archive.kind === 'stratechery'
+      ? 'li.category-articles a'
+      : archive.kind === 'firstround'
+        ? 'article[data-post-card-wrapper] a'
+        : 'a';
   const patterns: Record<string, RegExp> = {
     batch: /^\/the-batch\/issue-\d+\/?$/,
     stratechery: /^\/\d{4}\/[^/]+\/?$/,
     beehiiv: /^\/p\/[^/]+\/?$/,
     cerebras: /^\/blog\/[^/]+\/?$/,
+    firstround: /^\/[^/]+\/?$/,
   };
   await new HTMLRewriter()
     .on(selector, {

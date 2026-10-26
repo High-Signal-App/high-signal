@@ -196,6 +196,22 @@ describe('known public archive discovery', () => {
     ).rejects.toThrow('No RSS or Atom');
   });
 
+  it('recovers First Round’s retired feed using public article cards, excluding glossary and navigation', async () => {
+    vi.stubGlobal('HTMLRewriter', FixtureHTMLRewriter);
+    const html = `<a href="/about/">About</a><article><a href="/unmarked/">No</a></article>
+      <article data-post-card-wrapper><a href="/inside-thiel-fellowship/">Read</a>
+      <a href="/inside-thiel-fellowship/">Title</a><a href="/glossary/moat/">Glossary</a>
+      <a href="https://other.example.org/offsite/">Other</a></article>`;
+    expect(
+      await discoverPublicFeed('https://review.firstround.com/rss', feedTransport(html))
+    ).toMatchObject({
+      format: 'archive',
+      feedUrl: 'https://review.firstround.com/articles/',
+      articleCount: 1,
+    });
+    expect(knownPublicArchive('https://review.firstround.com/glossary/rss/')).toBeNull();
+  });
+
   it('does not replace a valid explicit RSS feed with an archive or accept an empty listing', async () => {
     vi.stubGlobal('HTMLRewriter', FixtureHTMLRewriter);
     expect(
