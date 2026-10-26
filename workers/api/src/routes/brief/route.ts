@@ -131,9 +131,10 @@ const PRECOMPUTED_REGIONS: Region[] = [
 ];
 
 /**
- * Limit shared-response retention between publications. Publication invalidates
- * the affected region/day; already cached edge responses retain their own TTL.
- * KV propagation and layered caches do not imply a strict combined age bound.
+ * Limit shared-response retention between publications. Publication invalidation
+ * is best-effort: an in-flight older read can repopulate KV after deletion, and
+ * already cached edge responses retain their own TTL. KV propagation and layered
+ * caches do not imply a strict combined age or convergence bound.
  */
 export const DAILY_BRIEF_CACHE_TTL_SECONDS = 300;
 
