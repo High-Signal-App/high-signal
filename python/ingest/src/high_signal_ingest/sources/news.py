@@ -482,6 +482,7 @@ async def fetch_all_async(
     fetch_body: bool = True,
     concurrency: int = DEFAULT_CONCURRENCY,
     source_ids: list[str] | None = None,
+    failures: list[str] | None = None,
 ) -> list[Event]:
     since = datetime.now(timezone.utc) - timedelta(days=days)
     registry = await asyncio.to_thread(audit.fetch_feed_sources)
@@ -528,6 +529,12 @@ async def fetch_all_async(
     # that the later event-delivery or publication steps succeeded.
     for offset in range(0, len(receipts), 100):
         await asyncio.to_thread(audit.push_ingest_runs, receipts[offset : offset + 100])
+    if failures is not None:
+        failures.extend(
+            f"{receipt['source']}: {receipt['errorSample']}"
+            for receipt in receipts
+            if receipt["errors"]
+        )
     return [event for batch in batches for event in batch]
 
 
@@ -613,7 +620,14 @@ def fetch_all(
     tier_max: int = 2,
     fetch_body: bool = True,
     source_ids: list[str] | None = None,
+    failures: list[str] | None = None,
 ) -> list[Event]:
     return asyncio.run(
-        fetch_all_async(days=days, tier_max=tier_max, fetch_body=fetch_body, source_ids=source_ids)
+        fetch_all_async(
+            days=days,
+            tier_max=tier_max,
+            fetch_body=fetch_body,
+            source_ids=source_ids,
+            failures=failures,
+        )
     )
