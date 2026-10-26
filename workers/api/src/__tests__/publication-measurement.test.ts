@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { applyMigrations, createSqliteD1, type TestD1 } from '../../test/sqlite-d1';
+import { applyMigration, applyMigrations, createSqliteD1, type TestD1 } from '../../test/sqlite-d1';
 import app from '../index';
 import { summarizeMeasurementCohort } from '../lib/outcome-measurement';
 
@@ -90,6 +90,11 @@ async function createDraftAndPublishClaim() {
   const signal = fixtureSignal();
   const synced = await request('/admin/sync', 'POST', { signals: [signal] });
   expect(synced.status).toBe(200);
+  const syncedSignal = (await database.binding
+    .prepare('SELECT measurement_eligible FROM signals WHERE slug = ?')
+    .bind(signal.slug)
+    .first()) as { measurement_eligible: number };
+  expect(syncedSignal.measurement_eligible).toBe(1);
   const claim = (await database.binding
     .prepare('SELECT id FROM claim_records LIMIT 1')
     .first()) as {
@@ -111,8 +116,46 @@ async function events(kind: string) {
 }
 
 describe('first-publication measurement receipts', () => {
+  it('keeps pre-feature published rows ineligible when the additive migration lands', () => {
+    const legacyDatabase = createSqliteD1();
+    try {
+      applyMigrations(legacyDatabase, '0032_first_publication_measurement_eligibility.sql');
+      legacyDatabase.exec(`
+        INSERT INTO entities (id, name, type, created_at, updated_at)
+        VALUES ('NVDA', 'NVIDIA', 'company', 1, 1);
+        INSERT INTO signals
+          (id, slug, signal_type, primary_entity_id, direction, confidence,
+           predicted_window_days, published_at, evidence_urls, review_status, body_md)
+        VALUES ('legacy-signal', 'legacy-published', 'capacity_change', 'NVDA',
+                'up', 'high', 30, 1, '[]', 'published', 'legacy');
+      `);
+      applyMigration(legacyDatabase, '0032_first_publication_measurement_eligibility.sql');
+      const row = legacyDatabase.binding
+        .prepare(
+          'SELECT measurement_eligible, measurement_first_published_at FROM signals WHERE id = ?'
+        )
+        .bind('legacy-signal');
+      return row
+        .first()
+        .then((result) => {
+          expect(result).toEqual({
+            measurement_eligible: 0,
+            measurement_first_published_at: null,
+          });
+        })
+        .finally(() => legacyDatabase.close());
+    } catch (error) {
+      legacyDatabase.close();
+      throw error;
+    }
+  });
+
   it('does not append a publication intent when another writer wins the claim status race', async () => {
-    const { claimId } = await createDraftAndPublishClaim();
+    await request('/admin/sync', 'POST', { signals: [fixtureSignal()] });
+    const claim = (await database.binding
+      .prepare('SELECT id FROM claim_records LIMIT 1')
+      .first()) as { id: string };
+    const claimId = claim.id;
     const racingBinding = {
       prepare: database.binding.prepare.bind(database.binding),
       batch: async (statements: D1PreparedStatement[]) => {
@@ -132,8 +175,72 @@ describe('first-publication measurement receipts', () => {
       racingBinding
     );
     expect(result.status).toBe(409);
+    expect((await events('signal_measurement_intent')).results).toHaveLength(0);
+    expect((await events('status_change')).results).toHaveLength(0);
+  });
+
+  it('keeps distinct status cycles instead of suppressing repeated transitions', async () => {
+    await request('/admin/sync', 'POST', { signals: [fixtureSignal()] });
+    const claim = (await database.binding
+      .prepare('SELECT id FROM claim_records LIMIT 1')
+      .first()) as { id: string };
+    for (const status of ['held', 'draft', 'held', 'draft'] as const) {
+      const response = await request(`/admin/claims/${claim.id}/status`, 'POST', { status });
+      expect(response.status).toBe(200);
+    }
+    expect((await events('status_change')).results).toHaveLength(4);
+  });
+
+  it('chooses a published claim that actually has a measurement intent', async () => {
+    const { signal, claimId: earlierClaimId } = await createDraftAndPublishClaim();
+    await database.binding
+      .prepare('DELETE FROM claim_timeline_events WHERE claim_id = ? AND kind = ?')
+      .bind(earlierClaimId, 'signal_measurement_intent')
+      .run();
+    const laterClaimResponse = await request('/admin/claims', 'POST', {
+      surface: 'signal',
+      signalSlug: signal.slug,
+      assertion: 'A second independently recorded claim for this signal.',
+      claimTuple: {
+        entity: 'NVDA',
+        event: 'secondary capacity impact',
+        amount: null,
+        date: '2026-10-25',
+        direction: 'up',
+      },
+      evidence: [
+        {
+          url: 'https://one.example/a',
+          role: 'primary',
+          sourceDocumentId: 'retained-0',
+          originatingEvidenceId: 'announcement-1',
+          semanticAlignment: 'verified',
+        },
+        {
+          url: 'https://two.example/b',
+          role: 'corroboration',
+          sourceDocumentId: 'retained-1',
+          originatingEvidenceId: 'filing-2',
+          semanticAlignment: 'verified',
+        },
+      ],
+    });
+    expect(laterClaimResponse.status).toBe(200);
+    const { id: laterClaimId } = (await laterClaimResponse.json()) as { id: string };
+    const laterStatus = await request(`/admin/claims/${laterClaimId}/status`, 'POST', {
+      status: 'published',
+    });
+    expect(laterStatus.status).toBe(200);
     expect((await events('signal_measurement_intent')).results).toHaveLength(1);
-    expect((await events('status_change')).results).toHaveLength(1);
+
+    const publishedSignal = await request(`/admin/signals/${signal.slug}`, 'PATCH', {
+      reviewStatus: 'published',
+    });
+    expect(publishedSignal.status).toBe(200);
+    const receipt = (await events('signal_measurement_published')).results[0] as {
+      claim_id: string;
+    };
+    expect(receipt.claim_id).toBe(laterClaimId);
   });
 
   it('freezes the claim and rule only with successful signal publication, then feeds the due cohort', async () => {
@@ -190,13 +297,13 @@ describe('first-publication measurement receipts', () => {
       publicClaim.claim.timeline.some((event) => event.kind === 'signal_measurement_published')
     ).toBe(true);
     const initialCohort = (await (await request('/track-record/cohorts')).json()) as {
-      measurement: { denominator: number; pending: number; records: Array<{ state: string }> };
+      measurement: { denominator: number; pending: number; records?: unknown };
     };
     expect(initialCohort.measurement).toMatchObject({
       denominator: 1,
       pending: 1,
-      records: [{ state: 'pending' }],
     });
+    expect(initialCohort.measurement).not.toHaveProperty('records');
 
     await database.binding
       .prepare('UPDATE signals SET published_at = 1 WHERE slug = ?')
@@ -237,7 +344,7 @@ describe('first-publication measurement receipts', () => {
         pending: number;
         unscorable: number;
         unscorableReasons: Record<string, number>;
-        records: Array<{ state: string; reason: string | null }>;
+        records?: unknown;
       };
     };
     expect(cohort.measurement).toMatchObject({
@@ -245,14 +352,24 @@ describe('first-publication measurement receipts', () => {
       pending: 0,
       unscorable: 1,
       unscorableReasons: { missing_ticker: 1 },
-      records: [{ state: 'unscorable', reason: 'missing_ticker' }],
     });
+    expect(cohort.measurement).not.toHaveProperty('records');
 
     const repeated = await request(`/admin/signals/${signal.slug}`, 'PATCH', {
       reviewStatus: 'published',
     });
     expect(repeated.status).toBe(200);
     expect((await events('signal_measurement_published')).results).toHaveLength(1);
+    const firstPublished = (await database.binding
+      .prepare(
+        'SELECT measurement_first_published_at, measurement_eligible FROM signals WHERE slug = ?'
+      )
+      .bind(signal.slug)
+      .first()) as { measurement_first_published_at: number; measurement_eligible: number };
+    expect(firstPublished.measurement_first_published_at).toBe(
+      Math.floor(Date.parse(receipt.firstPublishedAt) / 1000)
+    );
+    expect(firstPublished.measurement_eligible).toBe(0);
   });
 
   it('does not backfill already-published claims or count a failed signal publish', async () => {
@@ -271,6 +388,49 @@ describe('first-publication measurement receipts', () => {
       reviewStatus: 'published',
     });
     expect(historicalPublish.status).toBe(200);
+    expect((await events('signal_measurement_published')).results).toHaveLength(0);
+
+    const legacy = fixtureSignal();
+    legacy.slug = 'legacy-already-published';
+    legacy.publishedAt = new Date().toISOString();
+    await request('/admin/sync', 'POST', { signals: [legacy] });
+    await database.binding
+      .prepare(
+        "UPDATE signals SET review_status = 'published', published_at = 1, measurement_eligible = 0 WHERE slug = ?"
+      )
+      .bind(legacy.slug)
+      .run();
+    await request('/admin/sync', 'POST', { signals: [legacy] });
+    const afterResync = (await database.binding
+      .prepare('SELECT measurement_eligible FROM signals WHERE slug = ?')
+      .bind(legacy.slug)
+      .first()) as { measurement_eligible: number };
+    expect(afterResync.measurement_eligible).toBe(0);
+    const legacyClaim = (await database.binding
+      .prepare(
+        'SELECT id FROM claim_records WHERE signal_id = (SELECT id FROM signals WHERE slug = ?)'
+      )
+      .bind(legacy.slug)
+      .first()) as { id: string };
+    await request(`/admin/claims/${legacyClaim.id}/status`, 'POST', { status: 'published' });
+    await database.binding
+      .prepare("UPDATE signals SET review_status = 'draft' WHERE slug = ?")
+      .bind(legacy.slug)
+      .run();
+    const republishedLegacy = await request(`/admin/signals/${legacy.slug}`, 'PATCH', {
+      reviewStatus: 'published',
+    });
+    expect(republishedLegacy.status).toBe(200);
+    const legacyMarker = (await database.binding
+      .prepare(
+        'SELECT measurement_eligible, measurement_first_published_at FROM signals WHERE slug = ?'
+      )
+      .bind(legacy.slug)
+      .first()) as { measurement_eligible: number; measurement_first_published_at: number | null };
+    expect(legacyMarker).toEqual({
+      measurement_eligible: 0,
+      measurement_first_published_at: null,
+    });
     expect((await events('signal_measurement_published')).results).toHaveLength(0);
 
     const second = fixtureSignal();
@@ -323,16 +483,14 @@ describe('first-publication measurement receipts', () => {
     });
     const summary = summarizeMeasurementCohort(
       [
-        { signalSlug: 'one', claimId: 'claim-1', payload, outcome: null, notes: null },
+        { claimId: 'claim-1', payload, outcome: null, notes: null },
         {
-          signalSlug: 'two',
           claimId: 'claim-2',
           payload: payload.replace('claim-1', 'claim-2').replace('signal-1', 'signal-2'),
           outcome: 'pending',
           notes: 'TICKER pub=2026-09-01',
         },
         {
-          signalSlug: 'three',
           claimId: 'claim-3',
           payload: payload
             .replace('claim-1', 'claim-3')

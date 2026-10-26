@@ -1,7 +1,7 @@
 import { EmptyState } from '@saas-maker/ui/components/empty-state';
 import { ErrorState } from '@saas-maker/ui/components/error-state';
 import { hasAdminSession } from '@/lib/admin-guard';
-import { api, type MeasurementCohort, type TrackBucket } from '@/lib/api';
+import { api, type TrackBucket } from '@/lib/api';
 import { TrackRecordDatasetJsonLd } from '@/components/seo/structured-data';
 import { HorizontalScrollRegion } from '@/components/HorizontalScrollRegion';
 
@@ -21,7 +21,6 @@ interface Cohorts {
   live: TrackBucket[];
   backfill: TrackBucket[];
   all: TrackBucket[];
-  measurement: MeasurementCohort;
 }
 
 function formatHitRate(value: number | null) {
@@ -125,10 +124,6 @@ export default async function TrackRecordPage() {
         />
       </section>
 
-      <section className="mt-10">
-        <MeasurementBlock measurement={cohorts.measurement} />
-      </section>
-
       {isAdmin ? (
         <section className="mt-12">
           <div className="flex flex-col gap-2 border-b border-zinc-800 pb-3 sm:flex-row sm:items-baseline sm:justify-between">
@@ -157,120 +152,6 @@ function GuideItem({ label, value, body }: { label: string; value: string; body:
       <div className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">{label}</div>
       <div className="mt-3 text-lg font-medium text-zinc-100">{value}</div>
       <p className="mt-2 text-sm leading-6 text-zinc-500">{body}</p>
-    </div>
-  );
-}
-
-function MeasurementBlock({ measurement }: { measurement: MeasurementCohort }) {
-  const reasonLabels: Record<string, string> = {
-    due_without_score: 'window elapsed; no score recorded',
-    forward_return_unavailable: 'scorer returned no forward return',
-    missing_ticker: 'no ticker mapping for this entity',
-    invalid_receipt: 'publication receipt failed validation',
-  };
-  return (
-    <section
-      className="border border-zinc-800 bg-zinc-950/40 p-5"
-      aria-labelledby="measured-cohort"
-    >
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-baseline sm:justify-between">
-        <h2
-          id="measured-cohort"
-          className="font-mono text-[10px] tracking-[0.2em] text-[var(--color-accent)]"
-        >
-          first-publication measurement cohort
-        </h2>
-        <span className="font-mono text-[10px] tracking-[0.18em] text-zinc-600">
-          no historical backfill
-        </span>
-      </div>
-      <p className="mt-3 text-sm leading-6 text-zinc-400">
-        New signals enter only after the existing publication gate succeeds. Each receipt freezes
-        the exact claim hash, scoring rule, first-publication time, and due date. Earlier signals do
-        not receive reconstructed timestamps.
-      </p>
-      <dl className="mt-5 grid grid-cols-2 gap-3 text-sm sm:grid-cols-5">
-        <MeasurementStat label="eligible" value={measurement.denominator} />
-        <MeasurementStat label="resolved" value={measurement.resolved} />
-        <MeasurementStat label="pending" value={measurement.pending} />
-        <MeasurementStat label="unresolved" value={measurement.unresolved} />
-        <MeasurementStat label="unscorable" value={measurement.unscorable} />
-      </dl>
-      {Object.entries(measurement.unresolvedReasons).map(([reason, count]) => (
-        <p key={`unresolved-${reason}`} className="mt-3 text-xs text-amber-200">
-          {reasonLabels[reason] ?? reason}: {count}
-        </p>
-      ))}
-      {Object.entries(measurement.unscorableReasons).map(([reason, count]) => (
-        <p key={`unscorable-${reason}`} className="mt-2 text-xs text-amber-200">
-          {reasonLabels[reason] ?? reason}: {count}
-        </p>
-      ))}
-      {measurement.records.length === 0 ? (
-        <p className="mt-5 border-t border-zinc-900 pt-4 text-sm text-zinc-500">
-          No first-publication receipts have been recorded yet.
-        </p>
-      ) : (
-        <ul className="mt-5 space-y-3 border-t border-zinc-900 pt-4">
-          {measurement.records.map((record) => (
-            <li key={record.claimId} className="border border-zinc-900 p-3">
-              <div className="flex flex-wrap items-baseline justify-between gap-2">
-                {record.signalSlug ? (
-                  <a
-                    className="text-sm text-[var(--color-accent)] hover:underline"
-                    href={`/signals/${record.signalSlug}#claim-proofs`}
-                  >
-                    {record.signalSlug}
-                  </a>
-                ) : (
-                  <span className="text-sm text-zinc-400">signal unavailable</span>
-                )}
-                <span className="font-mono text-[10px] tracking-[0.16em] text-zinc-300">
-                  {record.outcome && record.outcome !== 'pending'
-                    ? `${record.state} · ${record.outcome}`
-                    : record.state}
-                </span>
-              </div>
-              {record.reason ? (
-                <p className="mt-2 text-xs text-amber-200">
-                  {reasonLabels[record.reason] ?? record.reason}
-                </p>
-              ) : null}
-              {record.resolutionRule ? (
-                <div>
-                  <p className="mt-2 break-words text-xs leading-5 text-zinc-500">
-                    Published {record.firstPublishedAt} · due {record.dueAt} ·{' '}
-                    {record.resolutionRule.direction}, {record.resolutionRule.windowDays} days
-                  </p>
-                  <p className="mt-1 text-xs leading-5 text-zinc-500">
-                    {record.resolutionRule.id} v{record.resolutionRule.version} ·{' '}
-                    {record.resolutionRule.metric.replaceAll('_', ' ')} · shared equity closes ·{' '}
-                    {record.resolutionRule.direction === 'neutral'
-                      ? `neutral push under ${record.resolutionRule.neutralPushBandPercent}%`
-                      : `push under ${record.resolutionRule.pushBandPercent}%`}
-                    {' · '}
-                    first close on/after publication to close index min(window, available − 1), with
-                    a {record.resolutionRule.calendarEndBufferMultiplier}× calendar-day fetch buffer
-                  </p>
-                </div>
-              ) : null}
-              <p className="mt-1 break-all font-mono text-[10px] text-zinc-600">
-                claim {record.claimId}
-                {record.claimSha256 ? ` · SHA-256 ${record.claimSha256}` : ''}
-              </p>
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
-  );
-}
-
-function MeasurementStat({ label, value }: { label: string; value: number }) {
-  return (
-    <div>
-      <dt className="font-mono text-[10px] tracking-[0.16em] text-zinc-500">{label}</dt>
-      <dd className="nums mt-1 text-xl text-zinc-100">{value}</dd>
     </div>
   );
 }

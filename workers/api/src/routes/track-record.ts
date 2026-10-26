@@ -145,11 +145,9 @@ trackRecordRoute.get('/cohorts', async (c) => {
   const measurementRows = (await c.env.DB.prepare(
     `SELECT e.claim_id AS claimId,
             e.payload,
-            s.slug AS signalSlug,
             sr.outcome,
             sr.notes
      FROM claim_timeline_events e
-     LEFT JOIN signals s ON s.id = json_extract(e.payload, '$.signalId')
      LEFT JOIN score_runs sr ON sr.id = (
        SELECT latest.id
        FROM score_runs latest
@@ -164,7 +162,6 @@ trackRecordRoute.get('/cohorts', async (c) => {
     results: Array<{
       claimId: string;
       payload: string;
-      signalSlug: string | null;
       outcome: string | null;
       notes: string | null;
     }>;
@@ -173,7 +170,6 @@ trackRecordRoute.get('/cohorts', async (c) => {
     (measurementRows.results ?? []).map((row) => ({
       claimId: row.claimId,
       payload: row.payload,
-      signalSlug: row.signalSlug,
       outcome: row.outcome,
       notes: row.notes,
     }))

@@ -70,18 +70,6 @@ type MeasurementReason =
   | 'missing_ticker'
   | 'invalid_receipt';
 
-interface MeasurementCohortRow {
-  signalSlug: string | null;
-  claimId: string;
-  claimSha256: string | null;
-  firstPublishedAt: string | null;
-  dueAt: string | null;
-  resolutionRule: SignalMeasurementReceipt['resolutionRule'] | null;
-  outcome: 'hit' | 'miss' | 'push' | 'pending' | null;
-  state: MeasurementState;
-  reason: MeasurementReason | null;
-}
-
 export interface MeasurementCohortSummary {
   denominator: number;
   pending: number;
@@ -90,7 +78,6 @@ export interface MeasurementCohortSummary {
   unscorable: number;
   unresolvedReasons: Partial<Record<MeasurementReason, number>>;
   unscorableReasons: Partial<Record<MeasurementReason, number>>;
-  records: MeasurementCohortRow[];
 }
 
 function parseSignalMeasurementReceipt(payload: string): SignalMeasurementReceipt | null {
@@ -134,7 +121,6 @@ function parseSignalMeasurementReceipt(payload: string): SignalMeasurementReceip
 
 export function summarizeMeasurementCohort(
   input: Array<{
-    signalSlug: string | null;
     claimId: string;
     payload: string;
     outcome: string | null;
@@ -150,7 +136,6 @@ export function summarizeMeasurementCohort(
     unscorable: 0,
     unresolvedReasons: {},
     unscorableReasons: {},
-    records: [],
   };
   for (const row of input) {
     const receipt = parseSignalMeasurementReceipt(row.payload);
@@ -158,21 +143,10 @@ export function summarizeMeasurementCohort(
       summary.unscorable++;
       summary.unscorableReasons['invalid_receipt'] =
         (summary.unscorableReasons['invalid_receipt'] ?? 0) + 1;
-      summary.records.push({
-        signalSlug: row.signalSlug,
-        claimId: row.claimId,
-        claimSha256: null,
-        firstPublishedAt: null,
-        dueAt: null,
-        resolutionRule: null,
-        outcome: null,
-        state: 'unscorable',
-        reason: 'invalid_receipt',
-      });
       continue;
     }
     const outcome = ['hit', 'miss', 'push', 'pending'].includes(row.outcome ?? '')
-      ? (row.outcome as MeasurementCohortRow['outcome'])
+      ? (row.outcome as 'hit' | 'miss' | 'push' | 'pending')
       : null;
     let state: MeasurementState;
     let reason: MeasurementReason | null = null;
@@ -196,17 +170,6 @@ export function summarizeMeasurementCohort(
       state = 'pending';
     }
     summary[state]++;
-    summary.records.push({
-      signalSlug: row.signalSlug,
-      claimId: receipt.claimId,
-      claimSha256: receipt.claimSha256,
-      firstPublishedAt: receipt.firstPublishedAt,
-      dueAt: receipt.dueAt,
-      resolutionRule: receipt.resolutionRule,
-      outcome,
-      state,
-      reason,
-    });
   }
   return summary;
 }

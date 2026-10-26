@@ -5,7 +5,7 @@
  * CI / local sync-signals.ts POSTs frontmatter+body to /admin/sync to keep D1 in step with the git-versioned signals/ tree.
  */
 import { Hono } from 'hono';
-import { and, eq, inArray, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 import {
   buildHistoricalClaimBackfill,
   canonicalSourceUrl,
@@ -262,24 +262,40 @@ adminRoute.patch('/signals/:slug', async (c) => {
       );
     }
 
-    const measurementClaim = eligibleClaim
-      ? claims.find((claim) => claim.id === eligibleClaim.claimId)
-      : undefined;
-    const intent = measurementClaim
+    const measurementCandidate = signal.measurementEligible && !signal.measurementFirstPublishedAt;
+    const intentEligibleClaimIds = measurementCandidate
+      ? claims
+          .filter(
+            (claim) =>
+              claim.reviewStatus === 'published' &&
+              claimVerdicts.some(
+                ({ claimId, verdict }) => claimId === claim.id && verdict.publishable
+              )
+          )
+          .map((claim) => claim.id)
+      : [];
+    const intent = intentEligibleClaimIds.length
       ? await db(c.env.DB)
-          .select({ id: schema.claimTimelineEvents.id })
+          .select({
+            id: schema.claimTimelineEvents.id,
+            claimId: schema.claimTimelineEvents.claimId,
+          })
           .from(schema.claimTimelineEvents)
           .where(
             and(
-              eq(schema.claimTimelineEvents.claimId, measurementClaim.id),
+              inArray(schema.claimTimelineEvents.claimId, intentEligibleClaimIds),
               eq(schema.claimTimelineEvents.kind, SIGNAL_MEASUREMENT_INTENT)
             )
           )
+          .orderBy(asc(schema.claimTimelineEvents.createdAt), asc(schema.claimTimelineEvents.id))
           .limit(1)
       : [];
+    const measurementClaim = intent[0]
+      ? claims.find((claim) => claim.id === intent[0]!.claimId)
+      : undefined;
     const now = new Date(Math.floor(Date.now() / 1000) * 1000);
     const receipt =
-      intent.length && measurementClaim
+      measurementCandidate && intent.length && measurementClaim
         ? await buildSignalMeasurementReceipt({
             signalId: signal.id,
             claimId: measurementClaim.id,
@@ -289,16 +305,23 @@ adminRoute.patch('/signals/:slug', async (c) => {
             firstPublishedAt: now,
           })
         : null;
-    if (intent.length && !receipt) {
+    if (measurementCandidate && intent.length && !receipt) {
       return c.json({ error: 'measurement_contract_unavailable' }, 409);
     }
 
     const writeNow = receipt ? new Date(receipt.firstPublishedAt) : new Date();
     const assignments: string[] = [];
-    const values: (string | null)[] = [];
+    const values: (string | number | null)[] = [];
     if (body.reviewStatus) {
       assignments.push('review_status = ?');
       values.push(body.reviewStatus);
+    }
+    if (body.reviewStatus === 'published' && signal.measurementEligible) {
+      assignments.push(
+        'measurement_first_published_at = COALESCE(measurement_first_published_at, ?)'
+      );
+      values.push(Math.floor(now.getTime() / 1000));
+      assignments.push('measurement_eligible = 0');
     }
     if ('supersedesSignalId' in body) {
       assignments.push('supersedes_signal_id = ?');
@@ -318,7 +341,9 @@ adminRoute.patch('/signals/:slug', async (c) => {
             (id, claim_id, kind, payload, actor, created_at)
            SELECT ?, ?, ?, ?, ?, ?
            WHERE EXISTS (
-             SELECT 1 FROM signals WHERE id = ? AND review_status = 'published'
+             SELECT 1 FROM signals
+             WHERE id = ? AND review_status = 'published'
+               AND measurement_first_published_at = ? AND measurement_eligible = 0
            )
              AND EXISTS (
                SELECT 1 FROM claim_timeline_events WHERE id = ? AND kind = ?
@@ -332,6 +357,7 @@ adminRoute.patch('/signals/:slug', async (c) => {
           actorFromHeaders(c),
           Math.floor(writeNow.getTime() / 1000),
           signal.id,
+          Math.floor(writeNow.getTime() / 1000),
           intent[0]!.id,
           SIGNAL_MEASUREMENT_INTENT
         )
@@ -823,11 +849,15 @@ adminRoute.get('/pending-scores', async (c) => {
        WHERE kind = '${SIGNAL_MEASUREMENT_PUBLISHED}'
      )
      SELECT s.id, s.slug, s.primary_entity_id, s.direction, s.confidence, s.predicted_window_days,
-            COALESCE(m.published_at, s.published_at) AS published_at
+            COALESCE(m.published_at, s.measurement_first_published_at, s.published_at) AS published_at
      FROM signals s
      LEFT JOIN measurement m ON m.signal_id = s.id
      WHERE s.review_status = 'published'
-       AND COALESCE(m.due_at, s.published_at + s.predicted_window_days * 86400) <= unixepoch()
+       AND COALESCE(
+         m.due_at,
+         s.measurement_first_published_at + s.predicted_window_days * 86400,
+         s.published_at + s.predicted_window_days * 86400
+       ) <= unixepoch()
        AND NOT EXISTS (
          SELECT 1 FROM score_runs sr
          WHERE sr.signal_id = s.id AND sr.window_days = s.predicted_window_days
@@ -1237,6 +1267,9 @@ adminRoute.post('/claims/:id/status', async (c) => {
     ? Math.floor(claim.publishedAt.getTime() / 1000)
     : null;
   const priorPublishReason = claim.publishReason ?? null;
+  const statusEventId = await sha16(
+    `tl:${claimId}:status:${body.status}:${now.getTime()}:${crypto.randomUUID()}`
+  );
   const writes: D1PreparedStatement[] = [
     c.env.DB.prepare(
       `UPDATE claim_records
@@ -1254,25 +1287,16 @@ adminRoute.post('/claims/:id/status', async (c) => {
          (id, claim_id, kind, payload, actor, created_at)
        SELECT ?, ?, 'status_change', ?, ?, ?
        WHERE changes() > 0
-         AND NOT EXISTS (
-           SELECT 1 FROM claim_timeline_events
-           WHERE claim_id = ? AND kind = 'status_change'
-             AND json_extract(payload, '$.from') = ?
-             AND json_extract(payload, '$.to') = ?
-         )
          AND EXISTS (
            SELECT 1 FROM claim_records
            WHERE id = ? AND review_status = ? AND published_at IS ?
          )`
     ).bind(
-      await sha16(`tl:${claimId}:status:${body.status}:${now.getTime()}`),
+      statusEventId,
       claimId,
       JSON.stringify({ from: claim.reviewStatus, to: body.status, reason: body.reason ?? null }),
       actor,
       publishedAt,
-      claimId,
-      claim.reviewStatus,
-      body.status,
       claimId,
       body.status,
       body.status === 'published' ? publishedAt : priorPublishedAt
@@ -1281,25 +1305,39 @@ adminRoute.post('/claims/:id/status', async (c) => {
   const [signal] =
     claim.surface === 'signal' && claim.signalId
       ? await db(c.env.DB)
-          .select({ id: schema.signals.id, reviewStatus: schema.signals.reviewStatus })
+          .select({
+            id: schema.signals.id,
+            reviewStatus: schema.signals.reviewStatus,
+            measurementEligible: schema.signals.measurementEligible,
+            measurementFirstPublishedAt: schema.signals.measurementFirstPublishedAt,
+          })
           .from(schema.signals)
           .where(eq(schema.signals.id, claim.signalId))
           .limit(1)
       : [];
-  if (body.status === 'published' && signal?.reviewStatus === 'draft') {
+  if (
+    body.status === 'published' &&
+    signal?.reviewStatus === 'draft' &&
+    signal.measurementEligible &&
+    !signal.measurementFirstPublishedAt
+  ) {
     const intentId = await sha16(`signal-measurement-intent:${claimId}:v1`);
     writes.push(
       c.env.DB.prepare(
         `INSERT OR IGNORE INTO claim_timeline_events
            (id, claim_id, kind, payload, actor, created_at)
          SELECT ?, ?, ?, ?, ?, ?
-         WHERE changes() > 0
-           AND EXISTS (
-           SELECT 1 FROM claim_records
-           WHERE id = ? AND review_status = 'published' AND published_at = ?
+         WHERE EXISTS (
+           SELECT 1 FROM claim_timeline_events WHERE id = ? AND kind = 'status_change'
          )
            AND EXISTS (
-             SELECT 1 FROM signals WHERE id = ? AND review_status = 'draft'
+             SELECT 1 FROM claim_records
+             WHERE id = ? AND review_status = 'published' AND published_at = ?
+           )
+           AND EXISTS (
+             SELECT 1 FROM signals
+             WHERE id = ? AND review_status = 'draft'
+               AND measurement_eligible = 1 AND measurement_first_published_at IS NULL
            )`
       ).bind(
         intentId,
@@ -1308,6 +1346,7 @@ adminRoute.post('/claims/:id/status', async (c) => {
         JSON.stringify({ schemaVersion: 1, signalId: signal.id }),
         actor,
         publishedAt,
+        statusEventId,
         claimId,
         publishedAt,
         signal.id

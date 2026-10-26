@@ -193,6 +193,12 @@ export const signals = sqliteTable(
     })
       .notNull()
       .default('draft'),
+    measurementEligible: integer('measurement_eligible', { mode: 'boolean' })
+      .notNull()
+      .default(false),
+    measurementFirstPublishedAt: integer('measurement_first_published_at', {
+      mode: 'timestamp',
+    }),
     supersedesSignalId: text('supersedes_signal_id'),
     bodyMd: text('body_md').notNull(),
     observedEvent: text('observed_event'),
