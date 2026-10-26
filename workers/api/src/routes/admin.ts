@@ -204,10 +204,11 @@ adminRoute.patch('/signals/:slug', async (c) => {
       .where(
         and(
           eq(schema.signals.primaryEntityId, signal.primaryEntityId),
-          inArray(schema.signals.reviewStatus, ['draft', 'published', 'killed'])
+          inArray(schema.signals.reviewStatus, ['draft', 'published'])
         )
       );
-    const enriched = enrichSignals(peers).find((candidate) => candidate.id === signal.id);
+    const candidates = signal.reviewStatus === 'killed' ? [...peers, signal] : peers;
+    const enriched = enrichSignals(candidates).find((candidate) => candidate.id === signal.id);
     if (!enriched?.publishable) {
       return c.json(
         {

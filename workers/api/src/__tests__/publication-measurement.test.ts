@@ -276,6 +276,25 @@ describe('first-publication measurement receipts', () => {
     expect(receipts[0]!.claim_id).toBe(claimId);
   });
 
+  it('does not let an unrelated killed opposite-direction signal block draft publication', async () => {
+    const { signal } = await createDraftAndPublishClaim();
+    const opposite = fixtureSignal();
+    opposite.slug = 'nvda-capacity-decrease';
+    opposite.direction = 'down';
+    opposite.claim.direction = 'down';
+    const synced = await request('/admin/sync', 'POST', { signals: [opposite] });
+    expect(synced.status).toBe(200);
+    const killed = await request(`/admin/signals/${opposite.slug}`, 'PATCH', {
+      reviewStatus: 'killed',
+    });
+    expect(killed.status).toBe(200);
+
+    const published = await request(`/admin/signals/${signal.slug}`, 'PATCH', {
+      reviewStatus: 'published',
+    });
+    expect(published.status).toBe(200);
+  });
+
   it('freezes the claim and rule only with successful signal publication, then feeds the due cohort', async () => {
     const { signal, claimId } = await createDraftAndPublishClaim();
     expect((await events('signal_measurement_intent')).results).toHaveLength(1);
