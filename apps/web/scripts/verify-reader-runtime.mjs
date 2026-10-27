@@ -45,9 +45,23 @@ try {
   });
   assert.equal(canonical.status, 308);
   assert.equal(canonical.headers.get('location'), 'https://highsignal.app/case-studies/openai');
-  const md = await read('/case-studies/openai.md');
+  // OpenAI's compiled page is noindex under the corpus policy.
+  assert.equal((await read('/case-studies/openai.md')).response.status, 404);
+  const profilePath = `/case-studies/${READER_BUILD.indexableProfiles[0]}`;
+  const md = await read(`${profilePath}.md`);
   assert.equal(md.response.headers.get('content-type'), 'text/markdown; charset=utf-8');
-  assert.match(md.body, /OpenAI/);
+  assert.equal(md.response.status, 200);
+  assert.ok(md.body.includes(`Canonical: https://highsignal.app${profilePath}`));
+  assert.match(md.body, /artifact cache/);
+  for (const [path, headers] of [
+    [profilePath, { Accept: 'text/markdown' }],
+    [`/api/md${profilePath}`, {}],
+  ]) {
+    const equivalent = await read(path, headers);
+    assert.equal(equivalent.response.status, 200, path);
+    assert.equal(equivalent.body, md.body, path);
+  }
+  assert.equal((await read('/api/md/admin')).response.status, 404);
   const flight = await read('/case-studies/openai?_rsc=local-test', { RSC: '1' });
   assert.equal(flight.response.headers.get('x-reader-renderer'), null);
   const history = await read('/brief/2026-10-01');
