@@ -10,11 +10,13 @@ source = source.replace(/from '([^']+)'/g, (_, path) => {
   const url =
     path === './.open-next/worker.js'
       ? renderer
-      : path === './.open-next/cache-build-id.mjs'
-        ? dataUrl("export const CACHE_BUILD_ID='test-build'")
-        : path === './app-health.mjs'
-          ? dataUrl('export function observeWebRequest() {}')
-          : new URL(`../apps/web/${path}`, import.meta.url).href;
+      : path === './.open-next/reader-build.mjs'
+        ? dataUrl('export const READER_BUILD={}')
+        : path === './.open-next/cache-build-id.mjs'
+          ? dataUrl("export const CACHE_BUILD_ID='test-build'")
+          : path === './app-health.mjs'
+            ? dataUrl('export function observeWebRequest() {}')
+            : new URL(`../apps/web/${path}`, import.meta.url).href;
   return `from '${url}'`;
 });
 const { default: worker } = await import(dataUrl(source));
