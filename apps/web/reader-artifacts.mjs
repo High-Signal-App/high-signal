@@ -1,4 +1,4 @@
-import { agentDiscoveryLinkHeader, isBulkAiCrawler, wantsMarkdown } from './agent-edge.mjs';
+import { agentDiscoveryLinkHeader, wantsMarkdown } from './agent-edge.mjs';
 import { hasAuthCookie, isTrackingParameter } from './worker-cache-policy.mjs';
 
 export const READER_MANIFEST_KEY = 'reader/v1/current.json';
@@ -42,17 +42,15 @@ function readerQuery(url, profile) {
 }
 
 export function readerSelection(request) {
-  if (!publicReaderRequest(request)) return null;
+  if (!publicReaderRequest(request) || wantsMarkdown(request)) return null;
   const url = new URL(request.url);
-  const profile = url.pathname.match(/^\/case-studies\/([a-z0-9][a-z0-9-]*)(\.md)?\/?$/);
+  const profile = url.pathname.match(/^\/case-studies\/([a-z0-9][a-z0-9-]*)\/?$/);
   if (!readerQuery(url, Boolean(profile))) return null;
-  const bulk = isBulkAiCrawler(request) && !url.search;
   if (profile && profile[1] !== 'search')
     return {
       kind: 'profile',
       slug: profile[1],
-      markdown: Boolean(profile[2]) || wantsMarkdown(request),
-      bulk,
+      markdown: false,
     };
   if (url.pathname !== '/' || wantsMarkdown(request)) return null;
   const day = url.searchParams.get('day') ?? 'today';
@@ -137,8 +135,8 @@ export async function serveReaderArtifact(request, env, ctx, build, cache, now =
   let root = false;
   if (selected.kind === 'profile') {
     if (!build.profiles) return null;
-    const file = `${PRIVATE_READER_PREFIX}profiles/${selected.slug}.${selected.markdown ? 'md' : 'reader'}`;
-    key = `profile/${selected.slug}/${selected.markdown ? 'markdown' : 'html'}`;
+    const file = `${PRIVATE_READER_PREFIX}profiles/${selected.slug}.reader`;
+    key = `profile/${selected.slug}/html`;
     canonical = `/case-studies/${selected.slug}`;
     load = () => env.ASSETS.fetch(new Request(`https://assets.local${file}`));
   } else {
@@ -171,10 +169,7 @@ export async function serveReaderArtifact(request, env, ctx, build, cache, now =
   const response = cached ?? (await load().catch(() => null));
   if (!response || response.status !== 200) return null;
   const headers = new Headers(response.headers);
-  headers.set(
-    'Content-Type',
-    selected.markdown ? 'text/markdown; charset=utf-8' : 'text/html; charset=utf-8'
-  );
+  headers.set('Content-Type', 'text/html; charset=utf-8');
   headers.set('Cache-Control', root ? 'private, no-cache' : 'public, max-age=60, s-maxage=3600');
   headers.set('x-reader-renderer', 'astro');
   headers.set('x-edge-cache', cached ? 'HIT' : 'MISS');
@@ -182,10 +177,6 @@ export async function serveReaderArtifact(request, env, ctx, build, cache, now =
   headers.set('Vary', 'Accept, User-Agent');
   if (selected.kind === 'profile' && !indexableProfile(build, selected.slug))
     headers.set('X-Robots-Tag', 'noindex, follow');
-  if (selected.bulk && selected.markdown) {
-    headers.set('Content-Location', `${canonical}.md`);
-    headers.set('x-high-signal-crawler-view', 'markdown');
-  }
   const result = new Response(request.method === 'HEAD' ? null : response.body, { headers });
   if (request.method === 'HEAD') await response.body?.cancel();
   if (!cached && request.method === 'GET') {
@@ -245,7 +236,9 @@ export async function loadPublishedBriefMarkdown(
   if (
     !markdown.startsWith('# ') ||
     !markdown.includes('Canonical: https://highsignal.app/') ||
-    !markdown.includes(`data-edition-date="${clockDay(now)}"`) ||
+    ![clockDay(now), clockDay(now, -1)].some((day) =>
+      markdown.includes(`data-edition-date="${day}"`)
+    ) ||
     !markdown.includes('data-region="global"')
   )
     throw new Error('Invalid published brief Markdown');

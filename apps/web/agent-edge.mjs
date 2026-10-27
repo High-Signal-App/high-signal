@@ -480,7 +480,7 @@ export async function handleRenderedMarkdown(request, renderSource) {
 }
 
 /**
- * Cache the canonical `.md` form without changing the underlying renderer.
+ * Cache explicit `.md` and `/api/md` requests under the canonical `.md` key.
  *
  * The Worker passes `cacheEnabled: false` for authenticated requests. Query
  * variants, HEAD requests, and Accept-negotiated HTML URLs also bypass this
@@ -496,7 +496,7 @@ export async function handleCachedRenderedMarkdown(
   const canCache =
     cacheEnabled &&
     request.method === 'GET' &&
-    target?.suffixRequest === true &&
+    (target?.suffixRequest === true || target?.direct === true) &&
     url.search === '' &&
     cache &&
     typeof cache.match === 'function' &&
@@ -505,6 +505,7 @@ export async function handleCachedRenderedMarkdown(
   if (!canCache) return handleRenderedMarkdown(request, renderHtml);
 
   const cacheUrl = new URL(url);
+  cacheUrl.pathname = target.markdownPath;
   cacheUrl.searchParams.set('__hs_agent_build', cacheBuildId);
   cacheUrl.searchParams.set('__hs_agent_format', 'source-v1');
   const cacheKey = new Request(cacheUrl.toString(), { method: 'GET' });
@@ -522,9 +523,8 @@ export async function handleCachedRenderedMarkdown(
 }
 
 /**
- * Keep bulk AI training crawlers and headless automation useful without sending them through the
- * browser-oriented Next.js/RSC prefetch graph. Search crawlers and user-driven
- * assistants continue to receive normal HTML.
+ * Compatibility hook: crawler identity never changes the requested representation.
+ * Explicit Markdown requests use the build-keyed cache and public burst guard.
  */
 export async function handleCachedCrawlerMarkdown() {
   // Format is selected by Accept or the URL, never by crawler identity.

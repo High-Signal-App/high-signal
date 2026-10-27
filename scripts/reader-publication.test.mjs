@@ -141,11 +141,10 @@ function runtime(objects) {
 
 test('reader variants preserve selectors and bypass private or framework requests', () => {
   assert.equal(readerSelection(request('/?day=yesterday&region=europe')).day, 'yesterday');
-  assert.equal(readerSelection(request('/case-studies/openai.md')).markdown, true);
+  assert.equal(readerSelection(request('/case-studies/openai.md')), null);
   assert.equal(
-    readerSelection(request('/case-studies/openai', { headers: { Accept: 'text/markdown' } }))
-      .markdown,
-    true
+    readerSelection(request('/case-studies/openai', { headers: { Accept: 'text/markdown' } })),
+    null
   );
   for (const path of [
     '/?day=2026-10-10',
@@ -453,4 +452,29 @@ test('published Markdown matches the HTML source version and fails closed for an
       /Markdown/
     );
   }
+});
+
+test('published today slot accepts the paired yesterday fallback edition', async () => {
+  const objects = publication().objects;
+  const pointer = JSON.parse(objects.get(READER_MANIFEST_KEY));
+  const entry = pointer.briefs.find((entry) => entry.day === 'today' && entry.region === 'global');
+  const yesterday = new Date(now + 19_800_000 - 86_400_000).toISOString().slice(0, 10);
+  for (const format of ['html', 'markdown']) {
+    const body = objects
+      .get(entry[format].key)
+      .replace(/data-edition-date="[^"]+"/, `data-edition-date="${yesterday}"`);
+    objects.set(entry[format].key, body);
+    entry[format].sha256 = hash(body);
+  }
+  objects.set(READER_MANIFEST_KEY, JSON.stringify(pointer));
+  const run = runtime(objects);
+  const body = await loadPublishedBriefMarkdown(
+    request('/api/public-markdown'),
+    run.env,
+    run.ctx,
+    build,
+    run.cache,
+    now
+  );
+  assert.ok(body.includes(`data-edition-date="${yesterday}"`));
 });

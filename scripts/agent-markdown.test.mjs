@@ -200,6 +200,13 @@ const hit = await handleCachedRenderedMarkdown(
 assert.equal(hit.headers.get('x-edge-cache'), 'AGENT-HIT');
 assert.equal(calls, beforeHit);
 assert.equal(await hit.text(), await miss.text());
+const directHit = await handleCachedRenderedMarkdown(
+  markdownRequest('/api/md/markets'),
+  loader,
+  cacheOptions
+);
+assert.equal(directHit.headers.get('x-edge-cache'), 'AGENT-HIT');
+assert.equal(calls, beforeHit);
 const history = await handleCachedRenderedMarkdown(
   markdownRequest('/signals/public.md'),
   async () => Response.json(source('/signals/public')),

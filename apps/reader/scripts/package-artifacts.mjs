@@ -27,13 +27,12 @@ for (const file of files.filter((name) => name.endsWith('.html'))) {
     ? `https://highsignal.app/case-studies/${profile[1]}`
     : 'https://highsignal.app/';
   const indexable = !htmlDisallowsIndexing(html);
-  const markdownFile = profile
-    ? file.replace(/\.reader\.html$/, '.md')
-    : file.replace(/\.html$/, '.md');
-  const markdown = indexable ? readFileSync(markdownFile, 'utf8') : null;
+  // Profiles use the same public source projection for all three Markdown forms.
+  // Only published brief HTML needs a paired artifact in the R2 snapshot.
+  const markdown = brief ? readFileSync(file.replace(/\.html$/, '.md'), 'utf8') : null;
   if (
     !html.includes('<main') ||
-    (indexable && (!markdown?.startsWith('# ') || !markdown.includes(`Canonical: ${canonical}`)))
+    (brief && (!markdown?.startsWith('# ') || !markdown.includes(`Canonical: ${canonical}`)))
   )
     throw new Error(`Incomplete reader source output: ${path}`);
   if (profile && !html.includes('company-profile-v1'))

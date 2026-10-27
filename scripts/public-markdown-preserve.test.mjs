@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
+const { hashes } = JSON.parse(
+  readFileSync(new URL('./public-markdown-preserve-baseline.json', import.meta.url), 'utf8')
+);
+const sha = (value) => createHash('sha256').update(value).digest('hex');
 import { createRequire } from 'node:module';
 const ts = createRequire(new URL('../apps/web/package.json', import.meta.url))('typescript');
 const registry = readFileSync('apps/web/src/lib/public-source-pages.ts', 'utf8');
@@ -39,20 +43,15 @@ function defaultBody(source, filename) {
   return nodes;
 }
 for (const filename of files) {
-  const original = execFileSync('git', ['show', `HEAD:${filename}`], { encoding: 'utf8' });
   const current = readFileSync(filename, 'utf8');
   assert.deepEqual(
-    defaultBody(current, filename),
-    defaultBody(original, filename),
+    sha(JSON.stringify(defaultBody(current, filename))),
+    hashes[filename],
     `Public HTML component behavior changed: ${filename}`
   );
 }
 const layout = 'apps/reader/src/layouts/ReaderLayout.astro';
-const original = execFileSync('git', ['show', `HEAD:${layout}`], { encoding: 'utf8' });
-assert.equal(
-  readFileSync(layout, 'utf8').match(/<body[\s\S]*<\/body>/)?.[0],
-  original.match(/<body[\s\S]*<\/body>/)?.[0]
-);
+assert.equal(sha(readFileSync(layout, 'utf8').match(/<body[\s\S]*<\/body>/)?.[0]), hashes[layout]);
 const copy = readFileSync('apps/web/src/components/history/history-gate-copy.ts', 'utf8');
 for (const phrase of [
   'protected history',
