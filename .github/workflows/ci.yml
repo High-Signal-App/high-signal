@@ -48,6 +48,8 @@ jobs:
           trap - EXIT
           CACHE_GUARD_BASH
       - run: pnpm quality
+      - name: Install locked docs presentation dependencies
+        run: pnpm --dir docs-site install --frozen-lockfile --ignore-workspace --node-linker=hoisted
       - name: Build High Signal with the reader overlay
         run: pnpm --filter @high-signal/web cf:build
       - name: Compile bounded reader publication fixture

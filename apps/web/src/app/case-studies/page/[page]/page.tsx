@@ -1,3 +1,4 @@
+import { withAgentMetadata } from '@/lib/agent-page-metadata';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { BackLink, HeroHeader, PageShell, Panel, StatGrid } from '@/components/system/HighSignalUI';
@@ -25,7 +26,7 @@ export function generateStaticParams() {
   }));
 }
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+async function pageMetadata({ params }: PageProps): Promise<Metadata> {
   const page = Number((await params).page);
   if (!Number.isInteger(page) || page < 2 || page > CASE_STUDIES_TOTAL_PAGES) {
     return {};
@@ -82,4 +83,10 @@ export default async function PaginatedCaseStudiesPage({ params }: PageProps) {
       <CompanyUniverseList companies={companies} page={page} />
     </PageShell>
   );
+}
+
+export async function generateMetadata(props: Parameters<typeof pageMetadata>[0]) {
+  const metadata = await pageMetadata(props);
+  const params = await props.params;
+  return withAgentMetadata(metadata, '/case-studies/page/' + encodeURIComponent(params['page']));
 }

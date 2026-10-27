@@ -1,3 +1,4 @@
+import { withAgentMetadata } from '@/lib/agent-page-metadata';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -14,7 +15,7 @@ function normalizeTicker(raw: string): string {
   return raw.trim().toUpperCase();
 }
 
-export async function generateMetadata({
+async function pageMetadata({
   params,
 }: {
   params: Promise<{ ticker: string }>;
@@ -96,4 +97,10 @@ function TickerUnavailable({ ticker }: { ticker: string }) {
       </section>
     </main>
   );
+}
+
+export async function generateMetadata(props: Parameters<typeof pageMetadata>[0]) {
+  const metadata = await pageMetadata(props);
+  const params = await props.params;
+  return withAgentMetadata(metadata, '/markets/' + encodeURIComponent(params['ticker']));
 }

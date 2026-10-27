@@ -40,8 +40,6 @@ assert.ok(
 const requiredAssetBypasses = [
   '!/_next/static/*',
   '!/_astro/*',
-  '!/docs',
-  '!/docs/*',
   '!/.well-known/security.txt',
   '!/apple-touch-icon.png',
   '!/favicon-32.png',
@@ -137,7 +135,7 @@ assert.doesNotMatch(
 assert.match(
   workerSource,
   /handleCachedCrawlerMarkdown/,
-  'bulk AI crawlers must use the cached agent-readable representation'
+  'legacy caller retains the explicit no-op crawler-format compatibility hook'
 );
 
 // The three primary destinations use automatic loading-boundary prefetch.
@@ -174,7 +172,7 @@ for (const route of requiredAssetBypasses) {
   );
 }
 
-for (const route of ['/api-ai.json', '/llms.txt', '/llms-full.txt']) {
+for (const route of ['/docs', '/docs/*', '/api-ai.json', '/llms.txt', '/llms-full.txt']) {
   assert.ok(
     !workerFirstRoutes.includes(`!${route}`),
     `${route} must remain Worker-first so the generated agent contract is authoritative`

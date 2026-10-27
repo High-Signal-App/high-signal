@@ -1,3 +1,4 @@
+import { withAgentMetadata } from '@/lib/agent-page-metadata';
 import { EmptyState } from '@saas-maker/ui/components/empty-state';
 import { ErrorState } from '@saas-maker/ui/components/error-state';
 import type { Metadata, Route } from 'next';
@@ -13,12 +14,15 @@ import { istDay, isProtectedHistoryDay } from '@high-signal/shared';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = {
-  title: 'Signals',
-  description:
-    'The chronological High Signal record. Open any signal to inspect its reasoning, evidence, corroboration, and uncertainty.',
-  alternates: { canonical: '/signals' },
-};
+export const metadata: Metadata = withAgentMetadata(
+  {
+    title: 'Signals',
+    description:
+      'The chronological High Signal record. Open any signal to inspect its reasoning, evidence, corroboration, and uncertainty.',
+    alternates: { canonical: '/signals' },
+  },
+  '/signals'
+);
 
 const HISTORY_PAGE_SIZE = 20;
 

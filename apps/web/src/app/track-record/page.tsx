@@ -1,3 +1,4 @@
+import { withAgentMetadata } from '@/lib/agent-page-metadata';
 import { EmptyState } from '@saas-maker/ui/components/empty-state';
 import { ErrorState } from '@saas-maker/ui/components/error-state';
 import { hasAdminSession } from '@/lib/admin-guard';
@@ -8,14 +9,17 @@ import { HorizontalScrollRegion } from '@/components/HorizontalScrollRegion';
 import { SITE_URL } from '@/lib/site';
 import { summarizeTrackBuckets } from '@/lib/track-record-summary';
 export const dynamic = 'force-dynamic';
-export const metadata = {
-  // Self-canonical: the root layout deliberately sets none (a site-wide
-  // canonical de-indexes the corpus), so a route without this ships none.
-  alternates: { canonical: `${SITE_URL}/track-record` },
-  title: 'Public hit-rate ledger',
-  description:
-    'Recorded market-scoring outcomes, including pending observations. Records marked as live and historical replay are shown separately; these observations do not establish predictive reliability.',
-};
+export const metadata = withAgentMetadata(
+  {
+    // Self-canonical: the root layout deliberately sets none (a site-wide
+    // canonical de-indexes the corpus), so a route without this ships none.
+    alternates: { canonical: `${SITE_URL}/track-record` },
+    title: 'Public hit-rate ledger',
+    description:
+      'Recorded market-scoring outcomes, including pending observations. Records marked as live and historical replay are shown separately; these observations do not establish predictive reliability.',
+  },
+  '/track-record'
+);
 
 interface Cohorts {
   live: TrackBucket[];

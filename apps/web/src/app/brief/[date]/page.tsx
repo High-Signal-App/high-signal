@@ -1,3 +1,4 @@
+import { withAgentMetadata } from '@/lib/agent-page-metadata';
 import type { Metadata } from 'next';
 import { EmptyState } from '@saas-maker/ui/components/empty-state';
 import Link from 'next/link';
@@ -30,7 +31,7 @@ interface BriefDatePageProps {
   searchParams?: Promise<{ region?: string }>;
 }
 
-export async function generateMetadata({ params }: BriefDatePageProps): Promise<Metadata> {
+async function pageMetadata({ params }: BriefDatePageProps): Promise<Metadata> {
   const { date } = await params;
   if (!DATE_REGEX.test(date)) return { title: 'Brief not found' };
   if (isProtectedHistoryDay(date)) {
@@ -173,4 +174,10 @@ export default async function BriefDatePage({ params, searchParams }: BriefDateP
       )}
     </PageShell>
   );
+}
+
+export async function generateMetadata(props: Parameters<typeof pageMetadata>[0]) {
+  const metadata = await pageMetadata(props);
+  const params = await props.params;
+  return withAgentMetadata(metadata, '/brief/' + encodeURIComponent(params['date']));
 }

@@ -70,10 +70,20 @@ export async function seedReaderBrief(mf, directory) {
   if (manifest.briefs.length !== 20) throw new Error('Compile all twenty brief variants first');
   const bucket = await mf.getR2Bucket('NEXT_INC_CACHE_R2_BUCKET');
   const briefs = [];
-  for (const { day, region, html } of manifest.briefs) {
+  for (const { day, region, html, markdown } of manifest.briefs) {
     const key = `reader/v1/slots/0/${day}/${region}.html`;
     await bucket.put(key, readFileSync(resolve(directory, 'reader-artifacts', html.path)));
-    briefs.push({ day, region, html: { ...html, key } });
+    const markdownKey = `reader/v1/slots/0/${day}/${region}.md`;
+    await bucket.put(
+      markdownKey,
+      readFileSync(resolve(directory, 'reader-artifacts', markdown.path))
+    );
+    briefs.push({
+      day,
+      region,
+      html: { ...html, key },
+      markdown: { ...markdown, key: markdownKey },
+    });
   }
   // Test fixture freshness is measured at local publication, not compiler start.
   const pointer = {

@@ -1,13 +1,17 @@
+import { withAgentMetadata } from '@/lib/agent-page-metadata';
 import type { Metadata } from 'next';
 import { BackLink, MetricGrid, PageShell, SectionHeader } from '@/components/system/HighSignalUI';
 import { buildMarketWatchSnapshot, formatMarketPct, marketDirectionTone } from '@/lib/market-watch';
 import { SITE_URL } from '@/lib/site';
 
 export const revalidate = 3600;
-export const metadata: Metadata = {
-  title: 'Market History',
-  alternates: { canonical: `${SITE_URL}/markets/history` },
-};
+export const metadata: Metadata = withAgentMetadata(
+  {
+    title: 'Market History',
+    alternates: { canonical: `${SITE_URL}/markets/history` },
+  },
+  '/markets/history'
+);
 
 function formatTimestamp(value: string) {
   return value.slice(0, 16).replace('T', ' ');

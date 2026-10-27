@@ -1,3 +1,10 @@
+import { SITE_NAME, SITE_URL, SITE_DESCRIPTION } from './src/lib/site.ts';
+import { createAgentSurfaceHandler, discoveryLinkHeader } from './agent-surfaces/handler.mjs';
+import {
+  wantsMarkdown as prefersMarkdown,
+  markdownResponse,
+  htmlPathFromMarkdown,
+} from './agent-surfaces/http.mjs';
 import {
   PUBLIC_DYNAMIC_ROUTE_TEMPLATES,
   PUBLIC_STATIC_ROUTES,
@@ -5,12 +12,7 @@ import {
   normalizePublicPath,
 } from './public-route-registry.mjs';
 
-const PRODUCT = {
-  name: 'High Signal',
-  url: 'https://highsignal.app',
-  summary:
-    'Daily synthesized brief on technology, startups, and finance with cited evidence and a public hit-rate ledger.',
-};
+const PRODUCT = { name: SITE_NAME, url: SITE_URL, summary: SITE_DESCRIPTION };
 
 const AGENT_CACHE_CONTROL = 'public, max-age=300, s-maxage=86400';
 
@@ -39,105 +41,6 @@ const BULK_AI_CRAWLER_USER_AGENTS = [
   'lightpanda/',
   'meta-externalagent',
 ];
-
-const INDEX_MARKDOWN = `# High Signal
-
-High Signal turns noisy public evidence into one daily synthesized brief across
-technology, startups, and finance.
-
-## Evidence contract
-
-- Published signals require at least two cited sources.
-- Predictions carry direction, confidence, and a maturity window.
-- Matured calls feed a public hit-rate ledger.
-- Corrections are additive and cite the prior signal.
-- Prediction-market probabilities are context, not equity prices.
-
-## Main product surfaces
-
-- [Daily Brief](https://highsignal.app/brief)
-- [How the Daily Brief works](https://highsignal.app/daily-intelligence-brief)
-- [Startup intelligence platform](https://highsignal.app/startup-intelligence-platform)
-- [Market intelligence for founders](https://highsignal.app/market-intelligence-for-founders)
-- [Technology trend intelligence](https://highsignal.app/technology-trend-intelligence)
-- [Published signals](https://highsignal.app/signals)
-- [Track record](https://highsignal.app/track-record)
-- [Methodology](https://highsignal.app/methodology)
-- [Company universe](https://highsignal.app/case-studies)
-- [Markets](https://highsignal.app/markets)
-- [Changelog](https://highsignal.app/changelog)
-
-## Machine surfaces
-
-- [Agent catalog](https://highsignal.app/api/ai)
-- [Short agent index](https://highsignal.app/llms.txt)
-- [Full agent brief](https://highsignal.app/llms-full.txt)
-- [Canonical sitemap](https://highsignal.app/sitemap.xml)
-- [Signals RSS](https://highsignal.app/signals/rss)
-`;
-
-const LLMS_MARKDOWN = `# High Signal
-
-> ${PRODUCT.summary}
-
-## Start here
-
-- [Daily Brief](https://highsignal.app/brief)
-- [Daily intelligence guide](https://highsignal.app/daily-intelligence-brief)
-- [Startup intelligence guide](https://highsignal.app/startup-intelligence-platform)
-- [Founder market-intelligence workflow](https://highsignal.app/market-intelligence-for-founders)
-- [Technology trend-intelligence guide](https://highsignal.app/technology-trend-intelligence)
-- [Signals](https://highsignal.app/signals)
-- [Track record](https://highsignal.app/track-record)
-- [Methodology](https://highsignal.app/methodology)
-- [Agent catalog](https://highsignal.app/api/ai)
-
-## When to use High Signal
-
-Use High Signal when an operator wants a concise daily read across technology,
-startups, and finance where every published signal has at least two cited
-sources and matured calls feed a public hit-rate ledger. Use the public MCP for
-today's or yesterday's structured brief and signal proofs. Do not use High
-Signal as a real-time price feed, personalized news service, or investment
-adviser; the separately labeled attention layer is context, not evidence.
-
-## Agent skill and MCP
-
-- [High Signal Daily Brief skill](https://highsignal.app/.well-known/agent-skills/high-signal-daily-brief/SKILL.md)
-- [Agent Skills index](https://highsignal.app/.well-known/agent-skills/index.json)
-- [ARD catalog](https://highsignal.app/.well-known/ard.json)
-- [Public read-only MCP](https://api.highsignal.app/mcp)
-- [MCP Server Card](https://api.highsignal.app/mcp/server-card)
-
-Every index-eligible public HTML route has a Markdown alternate. Large dynamic
-corpora use the templates declared by the agent catalog and the same eligibility
-policy as the canonical sitemap.
-`;
-
-const LLMS_FULL_MARKDOWN = `${INDEX_MARKDOWN}
-
-## Dynamic public corpora
-
-- Dated Daily Brief records
-- Published signal detail pages
-- Entity and entity-month archives
-- Signal-type taxonomies
-- Qualified company-universe profiles
-
-These Markdown responses are rendered from the same server-side product output
-as the human page. Private review, admin, delivery, and JSON machinery is
-excluded.
-
-## Data resources
-
-- https://highsignal.app/signals/rss
-- https://highsignal.app/signals/atom
-- https://highsignal.app/signals.json
-- https://highsignal.app/entities.json
-- https://highsignal.app/data/hit-rate.json
-- https://api.highsignal.app/data/daily
-- https://api.highsignal.app/mcp (Streamable HTTP MCP)
-`;
 
 function catalogForOrigin(origin) {
   const staticSurfaces = PUBLIC_STATIC_ROUTES.map((route) => ({
@@ -431,15 +334,6 @@ export function handleAgentEdge(request) {
     });
   }
 
-  if (path === '/llms.txt') {
-    return text(request, LLMS_MARKDOWN, 'text/plain; charset=utf-8');
-  }
-  if (path === '/llms-full.txt') {
-    return text(request, LLMS_FULL_MARKDOWN, 'text/plain; charset=utf-8');
-  }
-  if (path === '/index.md') {
-    return text(request, INDEX_MARKDOWN, 'text/markdown; charset=utf-8');
-  }
   if (path === '/api/ai' || path === '/api-ai.json') {
     return json(request, catalogForOrigin(url.origin));
   }
@@ -447,20 +341,12 @@ export function handleAgentEdge(request) {
     return json(request, openapiSpecForOrigin(url.origin));
   }
 
-  if (path === '/' && wantsMarkdown(request)) {
-    return text(request, INDEX_MARKDOWN, 'text/markdown; charset=utf-8', {
-      Link: '</index.md>; rel="alternate"; type="text/markdown"',
-      Vary: 'Accept',
-    });
-  }
-
   return null;
 }
 
-export function agentDiscoveryLinkHeader(origin, publicPath) {
-  const markdownPath = publicPath === '/' ? '/index.md' : `${publicPath}.md`;
+export function agentDiscoveryLinkHeader(origin) {
   return [
-    `<${markdownPath}>; rel="alternate"; type="text/markdown"`,
+    discoveryLinkHeader(SITE_URL),
     '</sitemap.xml>; rel="sitemap"; type="application/xml"',
     '</openapi.json>; rel="service-desc"; type="application/vnd.oai.openapi+json"',
     '</api/ai>; rel="service-desc"; type="application/json"',
@@ -470,78 +356,131 @@ export function agentDiscoveryLinkHeader(origin, publicPath) {
 }
 
 export function resolvePublicMarkdownTarget(request) {
-  if (request.method !== 'GET' && request.method !== 'HEAD') return null;
-  const url = new URL(request.url);
-  const normalized = normalizePublicPath(url.pathname);
-  let publicPath = normalized;
-  let suffixRequest = false;
-
-  if (normalized.endsWith('.md')) {
-    publicPath = normalizePublicPath(normalized.slice(0, -3));
-    suffixRequest = true;
-  } else if (!wantsMarkdown(request)) {
-    return null;
-  }
-
-  if (!isPublicHtmlPath(publicPath)) return null;
+  if (!['GET', 'HEAD', 'OPTIONS'].includes(request.method)) return null;
+  const pathname = new URL(request.url).pathname;
+  const direct = pathname === '/api/md' || pathname.startsWith('/api/md/');
+  if (!direct && /^\/(?:api|_next|_astro|\.well-known)(?:\/|$)/.test(pathname)) return null;
+  const suffixRequest = pathname.endsWith('.md');
+  if (!direct && !suffixRequest && !wantsMarkdown(request)) return null;
+  const publicPath = normalizePublicPath(
+    direct
+      ? '/' + pathname.replace(/^\/api\/md\/?/, '')
+      : suffixRequest
+        ? htmlPathFromMarkdown(pathname)
+        : pathname
+  );
+  if (!direct && !suffixRequest && !isPublicHtmlPath(publicPath)) return null;
   return {
     publicPath,
     suffixRequest,
+    direct,
     markdownPath: publicPath === '/' ? '/index.md' : `${publicPath}.md`,
   };
 }
 
-export async function handleRenderedMarkdown(request, renderHtml) {
-  const target = resolvePublicMarkdownTarget(request);
-  if (!target) return null;
-
-  const htmlUrl = new URL(request.url);
-  htmlUrl.pathname = target.publicPath;
-  const headers = new Headers(request.headers);
-  headers.set('Accept', 'text/html');
-  headers.set('x-high-signal-agent-render', 'markdown');
-  const htmlRequest = new Request(htmlUrl, {
-    method: 'GET',
-    headers,
-  });
-  const rendered = await renderHtml(htmlRequest);
-  const contentType = rendered.headers.get('content-type') ?? '';
-
-  if (!rendered.ok || !contentType.includes('text/html')) {
-    return new Response(request.method === 'HEAD' ? null : rendered.body, {
-      status: rendered.status,
-      statusText: rendered.statusText,
-      headers: rendered.headers,
-    });
-  }
-
-  const html = await rendered.text();
-  if (htmlDisallowsIndexing(html)) {
-    return new Response('This public route is not part of the agent discovery corpus.\n', {
-      status: 404,
-      headers: { 'Content-Type': 'text/plain; charset=utf-8' },
-    });
-  }
-
-  const markdown = htmlDocumentToMarkdown(
-    html,
-    new URL(target.publicPath, htmlUrl.origin).toString()
+function unavailableMarkdown(request, path, status = 404) {
+  const canonical = new URL(path, SITE_URL).href;
+  const response = markdownResponse(
+    status === 404
+      ? '# Not found\n\nNo public Markdown page exists at this path.\n'
+      : '# Temporarily unavailable\n\nThe public source could not be loaded.\n',
+    request,
+    {
+      'Content-Location': canonical,
+      Link: `<${canonical}>; rel="canonical", ${discoveryLinkHeader(SITE_URL)}`,
+      'Cache-Control': 'no-store',
+      'CDN-Cache-Control': 'no-store',
+      'Cloudflare-CDN-Cache-Control': 'no-store',
+    }
   );
-  if (!markdown) {
-    return new Response('Public page rendered without readable content.\n', {
-      status: 502,
-      headers: { 'Content-Type': 'text/plain; charset=utf-8' },
-    });
-  }
-
-  return text(request, markdown, 'text/markdown; charset=utf-8', {
-    Link: `<${target.publicPath}>; rel="canonical"; type="text/html"`,
-    Vary: 'Accept',
+  return new Response(request.method === 'HEAD' ? null : response.body, {
+    status,
+    headers: response.headers,
   });
 }
 
+export async function handleRenderedMarkdown(request, renderSource) {
+  const target = resolvePublicMarkdownTarget(request);
+  if (!target) return null;
+  if (request.method === 'OPTIONS')
+    return new Response(null, {
+      status: 204,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
+        'Access-Control-Allow-Headers': 'Accept',
+      },
+    });
+  if (!isPublicHtmlPath(target.publicPath)) return unavailableMarkdown(request, target.publicPath);
+  // A fresh request prevents authenticated history, cookies, query filters and RSC state from entering public content.
+  const sourceUrl = new URL(
+    '/api/public-markdown' + (target.publicPath === '/' ? '' : target.publicPath),
+    request.url
+  );
+  let response;
+  try {
+    response = await renderSource(
+      new Request(sourceUrl, { headers: { Accept: 'application/json' } })
+    );
+  } catch {
+    return unavailableMarkdown(request, target.publicPath, 503);
+  }
+  if (response.status === 404) return unavailableMarkdown(request, target.publicPath);
+  if (!response.ok || !(response.headers.get('content-type') ?? '').includes('application/json'))
+    return unavailableMarkdown(request, target.publicPath, 503);
+  let source;
+  try {
+    source = await response.json();
+  } catch {
+    return unavailableMarkdown(request, target.publicPath, 503);
+  }
+  let canonicalPath;
+  try {
+    if (
+      typeof source?.markdown !== 'string' ||
+      !source.markdown.startsWith('# ') ||
+      typeof source.url !== 'string'
+    )
+      throw new Error('Invalid source');
+    const canonical = new URL(source.url);
+    if (canonical.origin !== SITE_URL || !isPublicHtmlPath(canonical.pathname))
+      throw new Error('Invalid canonical');
+    canonicalPath = canonical.pathname;
+  } catch {
+    return unavailableMarkdown(request, target.publicPath, 503);
+  }
+  const manifest = {
+    name: SITE_NAME,
+    origin: SITE_URL,
+    summary: SITE_DESCRIPTION,
+    pages: {},
+    negotiation: true,
+    catalog: catalogForOrigin(SITE_URL),
+  };
+  const handle = createAgentSurfaceHandler({
+    manifest,
+    listMarkdownRoutes: () => [
+      {
+        path: canonicalPath,
+        title: source.title,
+        description: source.description,
+        aliases: [new URL(request.url).pathname],
+      },
+    ],
+    loadMarkdown: () => source.markdown,
+  });
+  const result = await handle(request);
+  // Public history expires at the day boundary; never keep a cached representation after its access policy changes.
+  if (/^\/(?:signals|brief|embed)(?:\/|$)/.test(target.publicPath) || target.publicPath === '/') {
+    result.headers.set('Cache-Control', 'no-store');
+    result.headers.set('CDN-Cache-Control', 'no-store');
+    result.headers.set('Cloudflare-CDN-Cache-Control', 'no-store');
+  }
+  return result;
+}
+
 /**
- * Cache the canonical `.md` form without changing the underlying renderer.
+ * Cache explicit `.md` and `/api/md` requests under the canonical `.md` key.
  *
  * The Worker passes `cacheEnabled: false` for authenticated requests. Query
  * variants, HEAD requests, and Accept-negotiated HTML URLs also bypass this
@@ -557,7 +496,7 @@ export async function handleCachedRenderedMarkdown(
   const canCache =
     cacheEnabled &&
     request.method === 'GET' &&
-    target?.suffixRequest === true &&
+    (target?.suffixRequest === true || target?.direct === true) &&
     url.search === '' &&
     cache &&
     typeof cache.match === 'function' &&
@@ -566,7 +505,9 @@ export async function handleCachedRenderedMarkdown(
   if (!canCache) return handleRenderedMarkdown(request, renderHtml);
 
   const cacheUrl = new URL(url);
+  cacheUrl.pathname = target.markdownPath;
   cacheUrl.searchParams.set('__hs_agent_build', cacheBuildId);
+  cacheUrl.searchParams.set('__hs_agent_format', 'source-v1');
   const cacheKey = new Request(cacheUrl.toString(), { method: 'GET' });
   const cached = await cache.match(cacheKey);
   if (cached) return withEdgeCacheStatus(cached, 'AGENT-HIT');
@@ -582,46 +523,12 @@ export async function handleCachedRenderedMarkdown(
 }
 
 /**
- * Keep bulk AI training crawlers and headless automation useful without sending them through the
- * browser-oriented Next.js/RSC prefetch graph. Search crawlers and user-driven
- * assistants continue to receive normal HTML.
+ * Compatibility hook: crawler identity never changes the requested representation.
+ * Explicit Markdown requests use the build-keyed cache and public burst guard.
  */
-export async function handleCachedCrawlerMarkdown(
-  request,
-  renderHtml,
-  { cache, waitUntil, cacheEnabled = true, cacheBuildId = 'unversioned' } = {}
-) {
-  if (!cacheEnabled || !isBulkAiCrawler(request) || request.method !== 'GET') return null;
-  if (request.headers.get('rsc') === '1') return null;
-
-  const url = new URL(request.url);
-  const publicPath = normalizePublicPath(url.pathname);
-  if (url.search !== '' || !isPublicHtmlPath(publicPath)) return null;
-
-  const markdownUrl = new URL(url);
-  markdownUrl.pathname = publicPath === '/' ? '/index.md' : `${publicPath}.md`;
-  const headers = new Headers(request.headers);
-  headers.set('Accept', 'text/markdown');
-  const markdownRequest = new Request(markdownUrl, { method: 'GET', headers });
-  const response =
-    handleAgentEdge(markdownRequest) ??
-    (await handleCachedRenderedMarkdown(markdownRequest, renderHtml, {
-      cache,
-      waitUntil,
-      cacheEnabled: true,
-      cacheBuildId,
-    }));
-  if (!response) return null;
-
-  const responseHeaders = new Headers(response.headers);
-  responseHeaders.set('Content-Location', markdownUrl.pathname);
-  responseHeaders.set('x-high-signal-crawler-view', 'markdown');
-  responseHeaders.set('Vary', mergeVary(responseHeaders.get('Vary'), 'User-Agent'));
-  return new Response(response.body, {
-    status: response.status,
-    statusText: response.statusText,
-    headers: responseHeaders,
-  });
+export async function handleCachedCrawlerMarkdown() {
+  // Format is selected by Accept or the URL, never by crawler identity.
+  return null;
 }
 
 export function isBulkAiCrawler(request) {
@@ -631,7 +538,12 @@ export function isBulkAiCrawler(request) {
 }
 
 function isCacheableRenderedMarkdown(response) {
-  if (response?.status !== 200 || response.headers.has('set-cookie')) return false;
+  if (
+    response?.status !== 200 ||
+    response.headers.has('set-cookie') ||
+    /no-store|private/i.test(response.headers.get('cache-control') ?? '')
+  )
+    return false;
   return isMarkdownContentType(response.headers.get('content-type') ?? '');
 }
 
@@ -639,7 +551,7 @@ function withEdgeCacheStatus(response, status) {
   const headers = new Headers(response.headers);
   // Cloudflare may apply a zone Browser Cache TTL to a Cache API hit. Keep the
   // public contract identical to a freshly rendered agent response.
-  headers.set('Cache-Control', AGENT_CACHE_CONTROL);
+  if (!headers.has('Cache-Control')) headers.set('Cache-Control', AGENT_CACHE_CONTROL);
   headers.set('x-edge-cache', status);
   return new Response(response.body, {
     status: response.status,
@@ -651,15 +563,6 @@ function withEdgeCacheStatus(response, status) {
 function isMarkdownContentType(contentType) {
   const normalized = contentType.toLowerCase();
   return normalized.includes('text/markdown') || normalized.includes('text/plain');
-}
-
-function mergeVary(current, value) {
-  const values = (current ?? '')
-    .split(',')
-    .map((entry) => entry.trim())
-    .filter(Boolean);
-  if (!values.some((entry) => entry.toLowerCase() === value.toLowerCase())) values.push(value);
-  return values.join(', ');
 }
 
 const HTML_META_TAG_PATTERN = compilePattern(String.raw`<meta\b[^>]*>`, 'gi');
@@ -683,153 +586,8 @@ export function htmlDisallowsIndexing(html) {
   return false;
 }
 
-// React's pending Suspense boundary contains temporary HTML. The completed
-// segment appears later in the stream; consuming the body does not execute $RC.
-function withoutSuspenseFallbacks(html) {
-  const stack = [];
-  let source = '';
-  let cursor = 0;
-  let fallbackStart = null;
-  for (const marker of html.matchAll(/<!--\$(?:\?|!)?-->|<!--\/\$-->/g)) {
-    if (marker[0] !== '<!--/$-->') {
-      const pending = marker[0] === '<!--$?-->';
-      stack.push(pending);
-      if (pending && fallbackStart === null) fallbackStart = marker.index;
-    } else {
-      stack.pop();
-      if (fallbackStart !== null && !stack.includes(true)) {
-        source += html.slice(cursor, fallbackStart);
-        cursor = marker.index + marker[0].length;
-        fallbackStart = null;
-      }
-    }
-  }
-  return source + html.slice(cursor, fallbackStart ?? html.length);
-}
-
-export function htmlDocumentToMarkdown(html, canonicalUrl) {
-  const hadMain = /<main\b/i.test(html);
-  html = withoutSuspenseFallbacks(html.replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi, ''));
-  const main = html.match(/<main\b[^>]*>([\s\S]*?)<\/main>/i);
-  if (hadMain && !main) return '';
-  const body = html.match(/<body\b[^>]*>([\s\S]*?)<\/body>/i);
-  let source = main?.[1] ?? body?.[1] ?? html;
-  const codeBlocks = [];
-
-  source = replaceHtmlWithMarkdown(source, canonicalUrl, codeBlocks);
-  source = normalizeMarkdownSource(source);
-
-  for (const [index, block] of codeBlocks.entries()) {
-    source = source.replace(`@@CODE_BLOCK_${index}@@`, block);
-  }
-
-  if (!source) return '';
-  return `${source}\n\n---\n\nCanonical HTML: ${canonicalUrl}\n`;
-}
-
-function replaceHtmlWithMarkdown(source, canonicalUrl, codeBlocks) {
-  return replaceRichHtml(source, canonicalUrl, codeBlocks)
-    .replace(/<li\b[^>]*>/gi, '\n- ')
-    .replace(/<\/li>/gi, '\n')
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<\/(p|div|section|article|header|footer|aside|nav|ul|ol|table|tr)>/gi, '\n\n')
-    .replace(/<(p|div|section|article|header|footer|aside|nav|ul|ol|table|tr)\b[^>]*>/gi, '\n\n')
-    .replace(/<\/(td|th)>/gi, ' | ')
-    .replace(/<(td|th)\b[^>]*>/gi, '')
-    .replace(/<[^>]+>/g, '');
-}
-
-function normalizeMarkdownSource(source) {
-  return decodeHtml(source)
-    .split('\n')
-    .map((line) => line.replace(/[ \t]+/g, ' ').trim())
-    .join('\n')
-    .replace(/\n{3,}/g, '\n\n')
-    .replace(/(?:^|\n)-\s*(?=\n|$)/g, '')
-    .trim();
-}
-
-function replaceRichHtml(source, canonicalUrl, codeBlocks) {
-  return source
-    .replace(/<!--[\s\S]*?-->/g, '')
-    .replace(/<(script|style|svg|noscript|template)\b[^>]*>[\s\S]*?<\/\1>/gi, '')
-    .replace(/<pre\b[^>]*>([\s\S]*?)<\/pre>/gi, (_, block) => {
-      const decoded = decodeHtml(stripTags(block)).trim();
-      const token = `\n\n@@CODE_BLOCK_${codeBlocks.length}@@\n\n`;
-      codeBlocks.push(`\`\`\`\n${decoded}\n\`\`\``);
-      return token;
-    })
-    .replace(/<h([1-6])\b[^>]*>([\s\S]*?)<\/h\1>/gi, (_, level, content) => {
-      return `\n\n${'#'.repeat(Number(level))} ${inlineText(content)}\n\n`;
-    })
-    .replace(/<a\b[^>]*href=(['"])(.*?)\1[^>]*>([\s\S]*?)<\/a>/gi, (_, _quote, href, content) => {
-      const label = inlineText(content);
-      if (!label) return '';
-      const target = absoluteLink(href, canonicalUrl);
-      return target ? `[${label}](${target})` : label;
-    })
-    .replace(/<img\b[^>]*alt=(['"])(.*?)\1[^>]*>/gi, (_, _quote, alt) => decodeHtml(alt))
-    .replace(/<(strong|b)\b[^>]*>([\s\S]*?)<\/\1>/gi, (_, _tag, content) => {
-      const value = inlineText(content);
-      return value ? `**${value}**` : '';
-    })
-    .replace(/<(em|i)\b[^>]*>([\s\S]*?)<\/\1>/gi, (_, _tag, content) => {
-      const value = inlineText(content);
-      return value ? `*${value}*` : '';
-    })
-    .replace(/<code\b[^>]*>([\s\S]*?)<\/code>/gi, (_, content) => {
-      const value = decodeHtml(stripTags(content)).trim();
-      return value ? `\`${value}\`` : '';
-    });
-}
-
-function inlineText(value) {
-  return decodeHtml(stripTags(value)).replace(/\s+/g, ' ').trim();
-}
-
-function stripTags(value) {
-  return String(value).replace(/<[^>]+>/g, '');
-}
-
-function absoluteLink(href, canonicalUrl) {
-  if (!href || href.startsWith('#') || href.startsWith('javascript:')) return '';
-  if (href.startsWith('mailto:') || href.startsWith('tel:')) return href;
-  try {
-    return new URL(href, canonicalUrl).toString();
-  } catch {
-    return '';
-  }
-}
-
-function decodeHtml(value) {
-  return String(value)
-    .replace(/&#(\d+);/g, (_, number) => String.fromCodePoint(Number(number)))
-    .replace(/&#x([0-9a-f]+);/gi, (_, number) => String.fromCodePoint(Number.parseInt(number, 16)))
-    .replaceAll('&nbsp;', ' ')
-    .replaceAll('&amp;', '&')
-    .replaceAll('&lt;', '<')
-    .replaceAll('&gt;', '>')
-    .replaceAll('&quot;', '"')
-    .replaceAll('&#39;', "'")
-    .replaceAll('&apos;', "'");
-}
-
 export function wantsMarkdown(request) {
-  const accept = (request.headers.get('accept') || '').toLowerCase();
-  if (!accept.includes('text/markdown')) return false;
-  if (!accept.includes('text/html')) return true;
-  return accept.indexOf('text/markdown') < accept.indexOf('text/html');
-}
-
-function text(request, body, type, extra = {}) {
-  return new Response(request.method === 'HEAD' ? null : body, {
-    status: 200,
-    headers: {
-      'Content-Type': type,
-      'Cache-Control': AGENT_CACHE_CONTROL,
-      ...extra,
-    },
-  });
+  return prefersMarkdown(request);
 }
 
 function json(request, data, extra = {}) {

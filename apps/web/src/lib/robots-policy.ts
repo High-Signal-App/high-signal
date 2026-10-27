@@ -22,6 +22,8 @@ const PUBLIC_ALLOW = [
   '/llms-full.txt',
   '/index.md',
   '/api/ai',
+  '/api/md',
+  '/ai.txt',
   '/openapi.json',
   '/.well-known/',
 ];
@@ -33,19 +35,26 @@ const PRIVATE_DISALLOW = [
   '/personal',
   '/api/',
   '/backtest-workbench',
-  '/data/',
+  '/_private',
+  '/brief/archive',
   '/*.json',
 ];
 
 const AI_CRAWLERS = [
+  'OAI-SearchBot',
+  'ChatGPT-User',
+  'Claude-SearchBot',
+  'Claude-User',
+  'PerplexityBot',
+  'Perplexity-User',
   'GPTBot',
   'ClaudeBot',
-  'anthropic-ai',
   'Google-Extended',
-  'PerplexityBot',
+  'Applebot-Extended',
   'CCBot',
-  'Amazonbot',
   'Bytespider',
+  'anthropic-ai',
+  'Amazonbot',
 ];
 
 /**

@@ -1,3 +1,4 @@
+import { withAgentMetadata } from '@/lib/agent-page-metadata';
 import {
   BackLink,
   PageShell,
@@ -18,7 +19,7 @@ import {
 } from '@/lib/equities';
 
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'Equities Snapshot' };
+export const metadata = withAgentMetadata({ title: 'Equities Snapshot' }, '/equities');
 
 const SORT_KEYS = new Set<SortKey>([
   'ticker',

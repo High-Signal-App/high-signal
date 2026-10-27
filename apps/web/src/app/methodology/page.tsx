@@ -1,3 +1,4 @@
+import { withAgentMetadata } from '@/lib/agent-page-metadata';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import {
@@ -11,12 +12,15 @@ import { BreadcrumbJsonLd, FaqJsonLd, MethodologyJsonLd } from '@/components/seo
 import { SITE_NAME, SITE_URL } from '@/lib/site';
 
 export const dynamic = 'force-static';
-export const metadata: Metadata = {
-  title: 'Methodology — how High Signal works',
-  description:
-    'The complete pipeline behind the Daily Brief: cite-or-kill, source classes, signal families, hit-rate computation, the auto-publish judge, and the public ledger. Citable verbatim by any AI assistant.',
-  alternates: { canonical: `${SITE_URL}/methodology` },
-};
+export const metadata: Metadata = withAgentMetadata(
+  {
+    title: 'Methodology — how High Signal works',
+    description:
+      'The complete pipeline behind the Daily Brief: cite-or-kill, source classes, signal families, hit-rate computation, the auto-publish judge, and the public ledger. Citable verbatim by any AI assistant.',
+    alternates: { canonical: `${SITE_URL}/methodology` },
+  },
+  '/methodology'
+);
 
 /**
  * Steps and FAQ items are deliberately the *exact* policy statements that

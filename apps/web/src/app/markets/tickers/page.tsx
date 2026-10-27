@@ -1,3 +1,4 @@
+import { withAgentMetadata } from '@/lib/agent-page-metadata';
 import { EmptyState } from '@saas-maker/ui/components/empty-state';
 import { ErrorState } from '@saas-maker/ui/components/error-state';
 import type { Metadata } from 'next';
@@ -8,12 +9,15 @@ import { SITE_URL } from '@/lib/site';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = {
-  title: 'Tickers — markets',
-  description:
-    'Ticker-first index of every tracked public company in High Signal: signals, price context, spillover map, and prediction-market consensus.',
-  alternates: { canonical: `${SITE_URL}/markets/tickers` },
-};
+export const metadata: Metadata = withAgentMetadata(
+  {
+    title: 'Tickers — markets',
+    description:
+      'Ticker-first index of every tracked public company in High Signal: signals, price context, spillover map, and prediction-market consensus.',
+    alternates: { canonical: `${SITE_URL}/markets/tickers` },
+  },
+  '/markets/tickers'
+);
 
 const PAGE_SIZE = 120;
 

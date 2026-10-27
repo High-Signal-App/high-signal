@@ -1,3 +1,4 @@
+import { withAgentMetadata } from '@/lib/agent-page-metadata';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import type { Route } from 'next';
@@ -10,12 +11,15 @@ import { SITE_URL } from '@/lib/site';
 
 export const dynamic = 'force-static';
 
-export const metadata: Metadata = {
-  title: 'Articles — evidence-first research practice',
-  description:
-    'Long-form High Signal articles on evidence standards, source mix, spillover mapping, signal memory, and the design of an accountable daily brief.',
-  alternates: { canonical: `${SITE_URL}/articles` },
-};
+export const metadata: Metadata = withAgentMetadata(
+  {
+    title: 'Articles — evidence-first research practice',
+    description:
+      'Long-form High Signal articles on evidence standards, source mix, spillover mapping, signal memory, and the design of an accountable daily brief.',
+    alternates: { canonical: `${SITE_URL}/articles` },
+  },
+  '/articles'
+);
 
 export default function ArticlesPage() {
   return (

@@ -36,7 +36,8 @@ export function createPublicRequestGuard(now = Date.now) {
     if (
       clientIp &&
       (request.method === 'GET' || request.method === 'HEAD') &&
-      !url.pathname.startsWith('/api/') &&
+      (!url.pathname.startsWith('/api/') ||
+        /^\/api\/(?:md|public-markdown)(?:\/|$)/.test(url.pathname)) &&
       !url.pathname.startsWith('/_next/') &&
       !/\.(?:css|js|png|jpg|jpeg|webp|svg|ico|woff2?)$/i.test(url.pathname)
     ) {

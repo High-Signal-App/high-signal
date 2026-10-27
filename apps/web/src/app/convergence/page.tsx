@@ -1,13 +1,17 @@
+import { withAgentMetadata } from '@/lib/agent-page-metadata';
 import { api } from '@/lib/api';
 
 import { SITE_URL } from '@/lib/site';
 export const dynamic = 'force-dynamic';
-export const metadata = {
-  // Self-canonical: the root layout deliberately sets none (a site-wide
-  // canonical de-indexes the corpus), so a route without this ships none.
-  alternates: { canonical: `${SITE_URL}/convergence` },
-  title: 'Cross-Source Convergence',
-};
+export const metadata = withAgentMetadata(
+  {
+    // Self-canonical: the root layout deliberately sets none (a site-wide
+    // canonical de-indexes the corpus), so a route without this ships none.
+    alternates: { canonical: `${SITE_URL}/convergence` },
+    title: 'Cross-Source Convergence',
+  },
+  '/convergence'
+);
 
 interface Props {
   searchParams: Promise<{ hours?: string; min_sources?: string }>;

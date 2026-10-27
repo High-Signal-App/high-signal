@@ -1,4 +1,4 @@
-import { agentDiscoveryLinkHeader, isBulkAiCrawler, wantsMarkdown } from './agent-edge.mjs';
+import { agentDiscoveryLinkHeader, wantsMarkdown } from './agent-edge.mjs';
 import { hasAuthCookie, isTrackingParameter } from './worker-cache-policy.mjs';
 
 export const READER_MANIFEST_KEY = 'reader/v1/current.json';
@@ -42,19 +42,17 @@ function readerQuery(url, profile) {
 }
 
 export function readerSelection(request) {
-  if (!publicReaderRequest(request)) return null;
+  if (!publicReaderRequest(request) || wantsMarkdown(request)) return null;
   const url = new URL(request.url);
-  const profile = url.pathname.match(/^\/case-studies\/([a-z0-9][a-z0-9-]*)(\.md)?\/?$/);
+  const profile = url.pathname.match(/^\/case-studies\/([a-z0-9][a-z0-9-]*)\/?$/);
   if (!readerQuery(url, Boolean(profile))) return null;
-  const bulk = isBulkAiCrawler(request) && !url.search;
   if (profile && profile[1] !== 'search')
     return {
       kind: 'profile',
       slug: profile[1],
-      markdown: Boolean(profile[2]) || wantsMarkdown(request) || bulk,
-      bulk,
+      markdown: false,
     };
-  if (url.pathname !== '/' || wantsMarkdown(request) || bulk) return null;
+  if (url.pathname !== '/' || wantsMarkdown(request)) return null;
   const day = url.searchParams.get('day') ?? 'today';
   if (day !== 'today' && day !== 'yesterday') return null;
   return {
@@ -109,15 +107,15 @@ async function currentManifest(env, cache, buildId, ctx, origin) {
   return value;
 }
 
-async function readPublishedBody(bucket, entry) {
-  const object = await bucket.get(entry.html.key);
+async function readPublishedBody(bucket, entry, format = 'html') {
+  const object = await bucket.get(entry[format].key);
   if (!object) return null;
   const bytes = await object.arrayBuffer();
   const digest = [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))]
     .map((value) => value.toString(16).padStart(2, '0'))
     .join('');
   // Slots are reused. A pointer cached during rotation must never read another generation.
-  if (digest !== entry.html.sha256) return null;
+  if (digest !== entry[format].sha256) return null;
   return new Response(bytes, { headers: { ETag: object.httpEtag } });
 }
 
@@ -137,8 +135,8 @@ export async function serveReaderArtifact(request, env, ctx, build, cache, now =
   let root = false;
   if (selected.kind === 'profile') {
     if (!build.profiles) return null;
-    const file = `${PRIVATE_READER_PREFIX}profiles/${selected.slug}.${selected.markdown ? 'md' : 'reader'}`;
-    key = `profile/${selected.slug}/${selected.markdown ? 'markdown' : 'html'}`;
+    const file = `${PRIVATE_READER_PREFIX}profiles/${selected.slug}.reader`;
+    key = `profile/${selected.slug}/html`;
     canonical = `/case-studies/${selected.slug}`;
     load = () => env.ASSETS.fetch(new Request(`https://assets.local${file}`));
   } else {
@@ -171,10 +169,7 @@ export async function serveReaderArtifact(request, env, ctx, build, cache, now =
   const response = cached ?? (await load().catch(() => null));
   if (!response || response.status !== 200) return null;
   const headers = new Headers(response.headers);
-  headers.set(
-    'Content-Type',
-    selected.markdown ? 'text/markdown; charset=utf-8' : 'text/html; charset=utf-8'
-  );
+  headers.set('Content-Type', 'text/html; charset=utf-8');
   headers.set('Cache-Control', root ? 'private, no-cache' : 'public, max-age=60, s-maxage=3600');
   headers.set('x-reader-renderer', 'astro');
   headers.set('x-edge-cache', cached ? 'HIT' : 'MISS');
@@ -182,10 +177,6 @@ export async function serveReaderArtifact(request, env, ctx, build, cache, now =
   headers.set('Vary', 'Accept, User-Agent');
   if (selected.kind === 'profile' && !indexableProfile(build, selected.slug))
     headers.set('X-Robots-Tag', 'noindex, follow');
-  if (selected.bulk) {
-    headers.set('Content-Location', `${canonical}.md`);
-    headers.set('x-high-signal-crawler-view', 'markdown');
-  }
   const result = new Response(request.method === 'HEAD' ? null : response.body, { headers });
   if (request.method === 'HEAD') await response.body?.cancel();
   if (!cached && request.method === 'GET') {
@@ -194,4 +185,71 @@ export async function serveReaderArtifact(request, env, ctx, build, cache, now =
     ctx.waitUntil(cache?.put(cacheKey, stored) ?? Promise.resolve());
   }
   return result;
+}
+
+/** Match the public homepage's published HTML generation, never scrape its body. */
+export async function loadPublishedBriefMarkdown(
+  request,
+  env,
+  ctx,
+  build,
+  cache,
+  now = Date.now()
+) {
+  if (!publicReaderRequest(request) || new URL(request.url).search) return undefined;
+  const origin = new URL(request.url).origin;
+  let manifest;
+  try {
+    manifest = await currentManifest(env, cache, build.source, ctx, origin);
+  } catch {
+    return undefined;
+  }
+  if (!freshReaderManifest(manifest, build.source, now)) return undefined;
+  const entry = manifest.briefs.find((item) => item.day === 'today' && item.region === 'global');
+  if (
+    ![0, 1].includes(manifest.slot) ||
+    entry?.html?.key !== `reader/v1/slots/${manifest.slot}/today/global.html`
+  )
+    return undefined;
+  const htmlKey = cacheRequest(origin, build.source, `brief/${entry.html.sha256}`);
+  const html =
+    (await cache?.match(htmlKey)) ??
+    (await readPublishedBody(env.NEXT_INC_CACHE_R2_BUCKET, entry).catch(() => null));
+  if (!html) return undefined; // The HTML route also delegates when this generation is unavailable.
+  await html.body?.cancel();
+  if (
+    entry.markdown?.key !== `reader/v1/slots/${manifest.slot}/today/global.md` ||
+    !/^[a-f0-9]{64}$/.test(entry.markdown?.sha256 ?? '')
+  )
+    throw new Error('Published brief has no paired Markdown');
+  const markdownKey = cacheRequest(
+    origin,
+    build.source,
+    `brief-markdown/${entry.html.sha256}/${entry.markdown.sha256}`
+  );
+  const cached = await cache?.match(markdownKey);
+  const response =
+    cached ?? (await readPublishedBody(env.NEXT_INC_CACHE_R2_BUCKET, entry, 'markdown'));
+  if (!response)
+    throw new Error('Published brief Markdown is unavailable or from another generation');
+  const markdown = await response.text();
+  if (
+    !markdown.startsWith('# ') ||
+    !markdown.includes('Canonical: https://highsignal.app/') ||
+    ![clockDay(now), clockDay(now, -1)].some((day) =>
+      markdown.includes(`data-edition-date="${day}"`)
+    ) ||
+    !markdown.includes('data-region="global"')
+  )
+    throw new Error('Invalid published brief Markdown');
+  if (!cached)
+    ctx.waitUntil(
+      cache?.put(
+        markdownKey,
+        new Response(markdown, {
+          headers: { 'Content-Type': 'text/markdown', 'Cache-Control': 'public, max-age=3600' },
+        })
+      ) ?? Promise.resolve()
+    );
+  return markdown;
 }

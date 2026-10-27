@@ -1,3 +1,4 @@
+import { withAgentMetadata } from '@/lib/agent-page-metadata';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import {
@@ -16,7 +17,7 @@ import { evaluateCollection, robotsForVerdict } from '../../../../../public-corp
 
 export const revalidate = 3600;
 
-export async function generateMetadata({
+async function pageMetadata({
   params,
 }: {
   params: Promise<{ id: string; period: string }>;
@@ -123,5 +124,14 @@ export default async function EntityMonthPage({
         }))}
       />
     </PageShell>
+  );
+}
+
+export async function generateMetadata(props: Parameters<typeof pageMetadata>[0]) {
+  const metadata = await pageMetadata(props);
+  const params = await props.params;
+  return withAgentMetadata(
+    metadata,
+    '/entities/' + encodeURIComponent(params['id']) + '/' + encodeURIComponent(params['period'])
   );
 }

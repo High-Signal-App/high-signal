@@ -1,7 +1,9 @@
+import { isSourceDiscovery } from './source-discovery.mjs';
+import { handlePublicDocs } from './public-docs-edge.mjs';
 import { READER_BUILD } from './.open-next/reader-build.mjs';
 import { serveReaderArtifact } from './reader-artifacts.mjs';
 import { guardPublicRequest } from './abuse-guard.mjs';
-import { handleAgentEdge } from './agent-edge.mjs';
+import { handleAgentEdge, resolvePublicMarkdownTarget } from './agent-edge.mjs';
 import { observeWebRequest } from './app-health.mjs';
 import { createCacheSummary } from './cache-summary.mjs';
 import { withTiming } from './timing.mjs';
@@ -32,8 +34,15 @@ const serve = withTiming(async (request, env, ctx, state) => {
   if (url.pathname === '/api/reader-build' && request.method === 'GET') {
     return Response.json(READER_BUILD, { headers: { 'Cache-Control': 'no-store' } });
   }
+  const docs = await handlePublicDocs(request, env.ASSETS);
+  if (docs) return docs;
   const agent = handleAgentEdge(request);
   if (agent) return agent;
+  if (isSourceDiscovery(request) || resolvePublicMarkdownTarget(request)) {
+    const { default: legacy } = await import('./legacy-worker.mjs');
+    state.delegated = true;
+    return legacy.fetch(request, env, ctx, { guardHandled: true });
+  }
   const response = await serveReaderArtifact(request, env, ctx, READER_BUILD, caches.default);
   if (response) return response;
   // Legacy pages, RSC, protected history and unavailable/expired artifacts remain operable.

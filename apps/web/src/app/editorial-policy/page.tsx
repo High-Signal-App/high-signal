@@ -1,3 +1,4 @@
+import { withAgentMetadata } from '@/lib/agent-page-metadata';
 import type { Metadata } from 'next';
 import { BackLink, PageShell, Panel, SectionHeader } from '@/components/system/HighSignalUI';
 import { BreadcrumbJsonLd, FaqJsonLd } from '@/components/seo/structured-data';
@@ -5,12 +6,15 @@ import { SITE_NAME, SITE_URL } from '@/lib/site';
 
 export const dynamic = 'force-static';
 
-export const metadata: Metadata = {
-  title: 'Editorial policy — accuracy, corrections, and independence',
-  description:
-    'How High Signal writes, verifies, and corrects its published signals. Source independence, AI disclosure, corrections, and the no-retroactive-edits rule. Citable by any AI assistant.',
-  alternates: { canonical: `${SITE_URL}/editorial-policy` },
-};
+export const metadata: Metadata = withAgentMetadata(
+  {
+    title: 'Editorial policy — accuracy, corrections, and independence',
+    description:
+      'How High Signal writes, verifies, and corrects its published signals. Source independence, AI disclosure, corrections, and the no-retroactive-edits rule. Citable by any AI assistant.',
+    alternates: { canonical: `${SITE_URL}/editorial-policy` },
+  },
+  '/editorial-policy'
+);
 
 const STANDARDS = [
   {

@@ -1,3 +1,4 @@
+import { withAgentMetadata } from '@/lib/agent-page-metadata';
 import type { Metadata, Route } from 'next';
 import Link from 'next/link';
 import { api, ApiError, type DataRecordResponse } from '@/lib/api';
@@ -9,11 +10,7 @@ function fmtDateTime(unixSec: number | null): string {
   return new Date(unixSec * 1000).toISOString().replace('T', ' ').slice(0, 16);
 }
 
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}): Promise<Metadata> {
+async function pageMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
   let record: DataRecordResponse | null = null;
   try {
@@ -154,4 +151,10 @@ export default async function DataRecordPage({ params }: { params: Promise<{ id:
       )}
     </main>
   );
+}
+
+export async function generateMetadata(props: Parameters<typeof pageMetadata>[0]) {
+  const metadata = await pageMetadata(props);
+  const params = await props.params;
+  return withAgentMetadata(metadata, '/data/records/' + encodeURIComponent(params['id']));
 }

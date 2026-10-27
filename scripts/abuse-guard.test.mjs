@@ -70,3 +70,12 @@ time = 60_000;
 assert.equal(guard(burst()), null, 'expired budgets recover');
 
 console.log('abuse guard tests passed');
+
+for (const path of ['/api/md', '/api/md/markets', '/api/public-markdown']) {
+  const guard = createPublicRequestGuard(() => 1);
+  const request = new Request('https://highsignal.app' + path, {
+    headers: { 'cf-connecting-ip': '192.0.2.77' },
+  });
+  for (let i = 0; i < 120; i++) assert.equal(guard(request), null);
+  assert.equal(guard(request).status, 429, path);
+}
