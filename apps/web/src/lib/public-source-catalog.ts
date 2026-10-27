@@ -21,7 +21,7 @@ type Cursor = {
   offset?: number;
   cursor?: string;
 };
-export type MarkdownRoute = {
+type MarkdownRoute = {
   path: string;
   url: string;
   md: string;
