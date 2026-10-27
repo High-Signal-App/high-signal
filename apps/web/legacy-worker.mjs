@@ -111,6 +111,33 @@ function postProcessResponse(request, url, response) {
   return response;
 }
 
+const markdownTitlePattern = /^# (.+)$/m;
+const markdownDescriptionPattern = /^> (.+)$/m;
+
+async function renderPublishedSource(sourceRequest, env, ctx) {
+  if (new URL(sourceRequest.url).pathname === '/api/public-markdown') {
+    const markdown = await loadPublishedBriefMarkdown(
+      sourceRequest,
+      env,
+      ctx,
+      READER_BUILD,
+      caches.default
+    );
+    if (markdown !== undefined)
+      return Response.json(
+        {
+          path: '/',
+          url: 'https://highsignal.app/',
+          title: markdown.match(markdownTitlePattern)?.[1],
+          description: markdown.match(markdownDescriptionPattern)?.[1] ?? '',
+          markdown,
+        },
+        { headers: { 'Cache-Control': 'no-store' } }
+      );
+  }
+  return openNext.fetch(sourceRequest, env, ctx);
+}
+
 const timedFetch = withTiming(async function fetch(request, env, ctx, options = {}) {
   const url = new URL(request.url);
   if (url.pathname.startsWith(PRIVATE_ASSET_PREFIX)) {
@@ -124,29 +151,7 @@ const timedFetch = withTiming(async function fetch(request, env, ctx, options = 
   const guarded = options.guardHandled ? null : guardPublicRequest(request);
   if (guarded) return guarded;
 
-  const renderPublicSource = async (sourceRequest) => {
-    if (new URL(sourceRequest.url).pathname === '/api/public-markdown') {
-      const markdown = await loadPublishedBriefMarkdown(
-        sourceRequest,
-        env,
-        ctx,
-        READER_BUILD,
-        caches.default
-      );
-      if (markdown !== undefined)
-        return Response.json(
-          {
-            path: '/',
-            url: 'https://highsignal.app/',
-            title: markdown.match(/^# (.+)$/m)?.[1],
-            description: markdown.match(/^> (.+)$/m)?.[1] ?? '',
-            markdown,
-          },
-          { headers: { 'Cache-Control': 'no-store' } }
-        );
-    }
-    return openNext.fetch(sourceRequest, env, ctx);
-  };
+  const renderPublicSource = (sourceRequest) => renderPublishedSource(sourceRequest, env, ctx);
 
   const discovery = await handleSourceDiscovery(request, renderPublicSource, {
     assets: env.ASSETS,

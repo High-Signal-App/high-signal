@@ -34,6 +34,89 @@ const ignored = new Set([
   'textarea',
 ]);
 
+function formatBlock(
+  type: string,
+  body: string,
+  preserve: (text: string) => string
+): string | undefined {
+  if (/^h[1-6]$/.test(type)) return `\n\n${'#'.repeat(Number(type[1]))} ${body.trim()}\n\n`;
+  if (type === 'p' || block.has(type)) return `\n\n${body.trim()}\n\n`;
+  if (type === 'br') return '\n';
+  if (type === 'hr') return '\n\n---\n\n';
+  if (type === 'strong' || type === 'b') return `**${body}**`;
+  if (type === 'em' || type === 'i') return `*${body}*`;
+  if (type === 'code') return '`' + body + '`';
+  if (type === 'pre') return preserve('\n\n```\n' + body.replace(/^`|`$/g, '') + '\n```\n\n');
+  if (type === 'blockquote')
+    return (
+      '\n\n' +
+      body
+        .trim()
+        .split('\n')
+        .map((line) => '> ' + line)
+        .join('\n') +
+      '\n\n'
+    );
+}
+
+function formatInline(
+  type: string,
+  props: Record<string, unknown>,
+  body: string,
+  href: (value: unknown) => string
+): string | undefined {
+  if (type === 'a') {
+    const target = href(props['href']);
+    return target ? `[${body.trim() || target}](${target})` : body;
+  }
+  if (type === 'img')
+    return props['alt'] && props['src'] ? `![${String(props['alt'])}](${href(props['src'])})` : '';
+  if (
+    type === 'span' ||
+    type === 'small' ||
+    type === 'time' ||
+    type === 'label' ||
+    type === 'button'
+  )
+    return body + ' ';
+}
+
+function formatTable(type: string, body: string): string | undefined {
+  if (type === 'li') return `\n- ${body.trim().replaceAll('\n', '\n  ')}\n`;
+  if (type === 'ul' || type === 'ol') return `\n\n${body.trim()}\n\n`;
+  if (type === 'td' || type === 'th')
+    return ` ${body.trim().replaceAll('|', '\\|').replaceAll('\n', ' ')} |`;
+  if (type === 'tr') return `|${body}\n`;
+  if (type === 'thead') {
+    const lines = body.trim().split('\n');
+    const columns = (lines[0]?.match(/\|/g)?.length ?? 1) - 1;
+    return body + '|' + ' --- |'.repeat(columns) + '\n';
+  }
+  if (type === 'table') return `\n\n${body.trim()}\n\n`;
+}
+
+function hiddenElement(type: string, props: Record<string, unknown>) {
+  return (
+    ignored.has(type) ||
+    props['hidden'] ||
+    props['aria-hidden'] === true ||
+    props['aria-hidden'] === 'true' ||
+    (type === 'nav' && props['aria-label'] === 'Breadcrumb')
+  );
+}
+
+function selectedOption(props: Record<string, unknown>) {
+  const options = Array.isArray(props['children']) ? props['children'] : [props['children']];
+  const active = props['value'] ?? props['defaultValue'];
+  return options.find(
+    (option) =>
+      option &&
+      typeof option === 'object' &&
+      'props' in option &&
+      (option as Element).props['value'] === active
+  );
+}
+
 export async function publicSourceTree(
   node: ReactNode | unknown,
   options: SourceTreeOptions
@@ -67,74 +150,19 @@ export async function publicSourceTree(
       return visit(props['children'], depth + 1);
     if (typeof type !== 'string')
       throw new Error('Public component requires an explicit source adapter');
-    if (
-      ignored.has(type) ||
-      props['hidden'] ||
-      props['aria-hidden'] === true ||
-      props['aria-hidden'] === 'true'
-    )
-      return '';
-    if (type === 'nav' && props['aria-label'] === 'Breadcrumb') return '';
+    if (hiddenElement(type, props)) return '';
     if (props['dangerouslySetInnerHTML'])
       throw new Error('Public source must use authored Markdown, not serialized HTML');
     if (type === 'select') {
-      const options = Array.isArray(props['children']) ? props['children'] : [props['children']];
-      const active = props['value'] ?? props['defaultValue'];
-      const selected = options.find(
-        (option) =>
-          option &&
-          typeof option === 'object' &&
-          'props' in option &&
-          (option as Element).props['value'] === active
-      );
+      const selected = selectedOption(props);
       return selected ? visit(selected, depth + 1) : '';
     }
     const body = await visit(props['children'], depth + 1);
-    if (/^h[1-6]$/.test(type)) return `\n\n${'#'.repeat(Number(type[1]))} ${body.trim()}\n\n`;
-    if (type === 'p' || block.has(type)) return `\n\n${body.trim()}\n\n`;
-    if (type === 'br') return '\n';
-    if (type === 'hr') return '\n\n---\n\n';
-    if (type === 'strong' || type === 'b') return `**${body}**`;
-    if (type === 'em' || type === 'i') return `*${body}*`;
-    if (type === 'code') return '`' + body + '`';
-    if (type === 'pre') return preserve('\n\n```\n' + body.replace(/^`|`$/g, '') + '\n```\n\n');
-    if (type === 'blockquote')
-      return (
-        '\n\n' +
-        body
-          .trim()
-          .split('\n')
-          .map((line) => '> ' + line)
-          .join('\n') +
-        '\n\n'
-      );
-    if (type === 'a') {
-      const target = href(props['href']);
-      return target ? `[${body.trim() || target}](${target})` : body;
-    }
-    if (type === 'img')
-      return props['alt'] && props['src']
-        ? `![${String(props['alt'])}](${href(props['src'])})`
-        : '';
-    if (type === 'li') return `\n- ${body.trim().replaceAll('\n', '\n  ')}\n`;
-    if (type === 'ul' || type === 'ol') return `\n\n${body.trim()}\n\n`;
-    if (type === 'td' || type === 'th')
-      return ` ${body.trim().replaceAll('|', '\\|').replaceAll('\n', ' ')} |`;
-    if (type === 'tr') return `|${body}\n`;
-    if (type === 'thead') {
-      const lines = body.trim().split('\n');
-      const columns = (lines[0]?.match(/\|/g)?.length ?? 1) - 1;
-      return body + '|' + ' --- |'.repeat(columns) + '\n';
-    }
-    if (type === 'table') return `\n\n${body.trim()}\n\n`;
-    if (
-      type === 'span' ||
-      type === 'small' ||
-      type === 'time' ||
-      type === 'label' ||
-      type === 'button'
-    )
-      return body + ' ';
+    const formatted =
+      formatBlock(type, body, preserve) ??
+      formatInline(type, props, body, href) ??
+      formatTable(type, body);
+    if (formatted !== undefined) return formatted;
     return body;
   }
   let rendered =

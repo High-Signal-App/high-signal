@@ -20,16 +20,16 @@ import { publicSourcePage } from './public-source-pages';
 import { publicSourceTree, type SourceTreeOptions } from './public-source-tree';
 import { SITE_URL, SITE_NAME, SITE_DESCRIPTION } from './site';
 
-export async function publicSourceDocument(path: string) {
-  const selected = publicSourcePage(path);
-  if (!selected) return null;
-  const { page, props } = selected;
+async function eligiblePublicPage(
+  path: string,
+  page: NonNullable<ReturnType<typeof publicSourcePage>>['page']
+) {
   if (path.startsWith('/embed/')) {
     try {
       const { signal } = await api.signal(path.split('/').at(-1)!);
-      if (signal.reviewStatus !== 'published' || isBackfillSignal(signal)) return null;
+      if (signal.reviewStatus !== 'published' || isBackfillSignal(signal)) return false;
     } catch (error) {
-      if (error instanceof ApiError && [403, 404].includes(error.status)) return null;
+      if (error instanceof ApiError && [403, 404].includes(error.status)) return false;
       throw error;
     }
   }
@@ -38,7 +38,7 @@ export async function publicSourceDocument(path: string) {
       const record = await api.dataRecord(path.split('/').at(-1)!);
       if (!record.available) throw new Error('Public record unavailable');
     } catch (error) {
-      if (error instanceof ApiError && error.status === 404) return null;
+      if (error instanceof ApiError && error.status === 404) return false;
       throw error;
     }
   } else if (/^\/data\/[^/]+$/.test(path) && page.generateStaticParams) {
@@ -46,29 +46,13 @@ export async function publicSourceDocument(path: string) {
     if (!page.generateStaticParams().some((params) => params['source'] === source)) {
       const sources = await api.dataSources();
       if (!sources.available) throw new Error('Public source inventory unavailable');
-      if (!sources.sources.some((item) => item.id === source)) return null;
+      if (!sources.sources.some((item) => item.id === source)) return false;
     }
   }
-  const metadata = page.generateMetadata
-    ? await page.generateMetadata(props)
-    : (page.metadata ?? {});
-  if (!isIndexableMetadata(metadata)) return null;
-  const declared = metadata.alternates?.canonical;
-  const canonicalValue =
-    typeof declared === 'string' || declared instanceof URL ? declared : declared?.url;
-  const canonical = new URL(canonicalValue ?? path, SITE_URL).href;
-  if (new URL(canonical).origin !== SITE_URL)
-    throw new Error('Public source canonical must belong to this site');
-  const titleValue = metadata.title;
-  const title =
-    typeof titleValue === 'string'
-      ? titleValue
-      : titleValue && 'absolute' in titleValue
-        ? titleValue.absolute
-        : titleValue && 'default' in titleValue
-          ? titleValue.default
-          : SITE_NAME;
-  const description = metadata.description ?? SITE_DESCRIPTION;
+  return true;
+}
+
+function sourceOptions(canonical: string): SourceTreeOptions {
   const adapters: NonNullable<SourceTreeOptions['adapters']> = new Map();
   const options: SourceTreeOptions = { canonical, adapters };
   // Share controls are navigation chrome; never execute their browser hooks or clipboard actions.
@@ -102,6 +86,35 @@ export async function publicSourceDocument(path: string) {
     const copy = companySearchCopy(Number(props['companyCount']), String(props['lastUpdatedAt']));
     return `\n\n${copy.label}\n\n${copy.freshness}\n\n`;
   });
+  return options;
+}
+
+export async function publicSourceDocument(path: string) {
+  const selected = publicSourcePage(path);
+  if (!selected) return null;
+  const { page, props } = selected;
+  if (!(await eligiblePublicPage(path, page))) return null;
+  const metadata = page.generateMetadata
+    ? await page.generateMetadata(props)
+    : (page.metadata ?? {});
+  if (!isIndexableMetadata(metadata)) return null;
+  const declared = metadata.alternates?.canonical;
+  const canonicalValue =
+    typeof declared === 'string' || declared instanceof URL ? declared : declared?.url;
+  const canonical = new URL(canonicalValue ?? path, SITE_URL).href;
+  if (new URL(canonical).origin !== SITE_URL)
+    throw new Error('Public source canonical must belong to this site');
+  const titleValue = metadata.title;
+  const title =
+    typeof titleValue === 'string'
+      ? titleValue
+      : titleValue && 'absolute' in titleValue
+        ? titleValue.absolute
+        : titleValue && 'default' in titleValue
+          ? titleValue.default
+          : SITE_NAME;
+  const description = metadata.description ?? SITE_DESCRIPTION;
+  const options = sourceOptions(canonical);
   const body = await publicSourceTree(await page.default(props), options);
   if (!body.trim()) throw new Error('Public source page has no content');
   return {
