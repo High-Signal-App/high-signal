@@ -15,6 +15,13 @@ function publicationBodies(directory, objects, editionDay) {
     bytes += body.length;
     if (bytes > 8 * 1024 * 1024) throw new Error('Reader publication exceeds its storage bound');
     if (hash(body) !== file.sha256) throw new Error('Reader artifact checksum mismatch');
+    if (
+      file.path.endsWith('.md') &&
+      (!body.toString().startsWith('# ') ||
+        !body.includes('Canonical: https://highsignal.app/') ||
+        !body.includes(`data-region="${file.path.split('/').at(-1).replace(/\.md$/, '')}"`))
+    )
+      throw new Error('Reader Markdown lacks canonical edition content');
     const date = body.toString().match(/data-edition-date="([0-9-]+)"/)?.[1];
     if (
       !body.includes('data-high-signal-reader="brief-v1"') ||
@@ -78,20 +85,26 @@ export async function publishArtifacts({
     freshReaderManifest(current, manifest.source, now()) &&
     current.briefs.length === 20 &&
     [0, 1].includes(current.slot) &&
-    now() - Date.parse(current.capturedAt) < 120_000
+    now() - Date.parse(current.capturedAt) < 120_000 &&
+    current.briefs.every(
+      (entry) =>
+        entry.markdown?.key === `reader/v1/slots/${current.slot}/${entry.day}/${entry.region}.md` &&
+        /^[a-f0-9]{64}$/.test(entry.markdown?.sha256 ?? '')
+    )
   )
     return 0;
   const slot = current?.slot === 0 ? 1 : 0;
-  const briefs = manifest.briefs.map(({ day, region, html }) => ({
+  const briefs = manifest.briefs.map(({ day, region, html, markdown }) => ({
     day,
     region,
     html: { ...html, key: `reader/v1/slots/${slot}/${day}/${region}.html` },
+    markdown: { ...markdown, key: `reader/v1/slots/${slot}/${day}/${region}.md` },
   }));
-  // Two slots bound storage across refreshes and renderer releases. Only HTML
-  // is published; root Markdown remains the existing agent catalog.
+  // Publish both representations before atomically promoting their shared pointer.
+  // The two slots and combined byte bound still limit retained storage.
   const objects = publicationBodies(
     directory,
-    briefs.map((entry) => entry.html),
+    briefs.flatMap((entry) => [entry.html, entry.markdown]),
     manifest.editionDay
   );
   let index = 0;

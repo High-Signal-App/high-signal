@@ -8,7 +8,14 @@
 
 // Relative path (not the @/ alias) so this module is importable from the
 // repo root for unit testing without an apps/web build context.
-import { SITE_ALTERNATE_NAMES, SITE_DESCRIPTION, SITE_NAME, SITE_URL } from '../../lib/site';
+import {
+  SITE_ALTERNATE_NAMES,
+  SITE_DESCRIPTION,
+  SITE_NAME,
+  SITE_URL,
+  SITE_LOGO,
+  SITE_SAME_AS,
+} from '../../lib/site';
 
 export interface JsonLdBlock {
   '@context': string;
@@ -121,8 +128,8 @@ export function buildOrganizationJsonLd(): JsonLdBlock[] {
       alternateName: SITE_ALTERNATE_NAMES,
       url: SITE_URL,
       description: SITE_DESCRIPTION,
-      logo: `${SITE_URL}/icon.svg`,
-      sameAs: ['https://github.com/High-Signal-App/high-signal'],
+      logo: SITE_LOGO,
+      sameAs: SITE_SAME_AS,
     },
     {
       '@context': 'https://schema.org',

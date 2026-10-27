@@ -6,6 +6,7 @@ import { LoaderCircle, Search } from 'lucide-react';
 import type { FormEvent } from 'react';
 import { useTransition } from 'react';
 import { companySearchHref } from './company-search-url';
+import { companySearchCopy } from './company-search-copy';
 
 interface CompanySearchFormProps {
   companyCount: number;
@@ -18,7 +19,7 @@ export function CompanySearchForm({
   defaultQuery = '',
   lastUpdatedAt,
 }: CompanySearchFormProps) {
-  const updatedAt = lastUpdatedAt.slice(0, 19).replace('T', ' ');
+  const copy = companySearchCopy(companyCount, lastUpdatedAt);
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -39,7 +40,7 @@ export function CompanySearchForm({
       >
         <label htmlFor="company-universe-query" className="block">
           <span className="font-mono text-[10px] tracking-[0.14em] text-zinc-500">
-            search {companyCount.toLocaleString()} companies
+            {copy.label}
           </span>
           <div className="mt-2 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
             <input
@@ -70,9 +71,7 @@ export function CompanySearchForm({
           {isPending ? 'Searching companies' : ''}
         </span>
       </form>
-      <p className="mt-3 font-mono text-[10px] tracking-[0.12em] text-zinc-600">
-        manually refreshed snapshot · last updated {updatedAt} utc
-      </p>
+      <p className="mt-3 font-mono text-[10px] tracking-[0.12em] text-zinc-600">{copy.freshness}</p>
     </section>
   );
 }

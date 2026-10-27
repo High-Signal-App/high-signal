@@ -1,3 +1,4 @@
+import { withAgentMetadata } from '@/lib/agent-page-metadata';
 import { EmptyState } from '@saas-maker/ui/components/empty-state';
 import type { Metadata } from 'next';
 import { BackLink, PageShell, SectionHeader } from '@/components/system/HighSignalUI';
@@ -7,12 +8,15 @@ import { familyForSignalType, familyLabel, type SignalFamily } from '@high-signa
 import { SITE_URL } from '@/lib/site';
 
 export const revalidate = 600;
-export const metadata: Metadata = {
-  title: 'Signal types — taxonomy of every call we publish',
-  description:
-    'Every signal type High Signal publishes, grouped by family with the all-time count. Click into a type for its definition, recent examples, and public hit-rate.',
-  alternates: { canonical: `${SITE_URL}/signals/types` },
-};
+export const metadata: Metadata = withAgentMetadata(
+  {
+    title: 'Signal types — taxonomy of every call we publish',
+    description:
+      'Every signal type High Signal publishes, grouped by family with the all-time count. Click into a type for its definition, recent examples, and public hit-rate.',
+    alternates: { canonical: `${SITE_URL}/signals/types` },
+  },
+  '/signals/types'
+);
 
 interface TypeRow {
   type: string;

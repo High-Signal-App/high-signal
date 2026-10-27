@@ -51,10 +51,10 @@ export function readerSelection(request) {
     return {
       kind: 'profile',
       slug: profile[1],
-      markdown: Boolean(profile[2]) || wantsMarkdown(request) || bulk,
+      markdown: Boolean(profile[2]) || wantsMarkdown(request),
       bulk,
     };
-  if (url.pathname !== '/' || wantsMarkdown(request) || bulk) return null;
+  if (url.pathname !== '/' || wantsMarkdown(request)) return null;
   const day = url.searchParams.get('day') ?? 'today';
   if (day !== 'today' && day !== 'yesterday') return null;
   return {
@@ -109,15 +109,15 @@ async function currentManifest(env, cache, buildId, ctx, origin) {
   return value;
 }
 
-async function readPublishedBody(bucket, entry) {
-  const object = await bucket.get(entry.html.key);
+async function readPublishedBody(bucket, entry, format = 'html') {
+  const object = await bucket.get(entry[format].key);
   if (!object) return null;
   const bytes = await object.arrayBuffer();
   const digest = [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))]
     .map((value) => value.toString(16).padStart(2, '0'))
     .join('');
   // Slots are reused. A pointer cached during rotation must never read another generation.
-  if (digest !== entry.html.sha256) return null;
+  if (digest !== entry[format].sha256) return null;
   return new Response(bytes, { headers: { ETag: object.httpEtag } });
 }
 
@@ -182,7 +182,7 @@ export async function serveReaderArtifact(request, env, ctx, build, cache, now =
   headers.set('Vary', 'Accept, User-Agent');
   if (selected.kind === 'profile' && !indexableProfile(build, selected.slug))
     headers.set('X-Robots-Tag', 'noindex, follow');
-  if (selected.bulk) {
+  if (selected.bulk && selected.markdown) {
     headers.set('Content-Location', `${canonical}.md`);
     headers.set('x-high-signal-crawler-view', 'markdown');
   }
@@ -194,4 +194,69 @@ export async function serveReaderArtifact(request, env, ctx, build, cache, now =
     ctx.waitUntil(cache?.put(cacheKey, stored) ?? Promise.resolve());
   }
   return result;
+}
+
+/** Match the public homepage's published HTML generation, never scrape its body. */
+export async function loadPublishedBriefMarkdown(
+  request,
+  env,
+  ctx,
+  build,
+  cache,
+  now = Date.now()
+) {
+  if (!publicReaderRequest(request) || new URL(request.url).search) return undefined;
+  const origin = new URL(request.url).origin;
+  let manifest;
+  try {
+    manifest = await currentManifest(env, cache, build.source, ctx, origin);
+  } catch {
+    return undefined;
+  }
+  if (!freshReaderManifest(manifest, build.source, now)) return undefined;
+  const entry = manifest.briefs.find((item) => item.day === 'today' && item.region === 'global');
+  if (
+    ![0, 1].includes(manifest.slot) ||
+    entry?.html?.key !== `reader/v1/slots/${manifest.slot}/today/global.html`
+  )
+    return undefined;
+  const htmlKey = cacheRequest(origin, build.source, `brief/${entry.html.sha256}`);
+  const html =
+    (await cache?.match(htmlKey)) ??
+    (await readPublishedBody(env.NEXT_INC_CACHE_R2_BUCKET, entry).catch(() => null));
+  if (!html) return undefined; // The HTML route also delegates when this generation is unavailable.
+  await html.body?.cancel();
+  if (
+    entry.markdown?.key !== `reader/v1/slots/${manifest.slot}/today/global.md` ||
+    !/^[a-f0-9]{64}$/.test(entry.markdown?.sha256 ?? '')
+  )
+    throw new Error('Published brief has no paired Markdown');
+  const markdownKey = cacheRequest(
+    origin,
+    build.source,
+    `brief-markdown/${entry.html.sha256}/${entry.markdown.sha256}`
+  );
+  const cached = await cache?.match(markdownKey);
+  const response =
+    cached ?? (await readPublishedBody(env.NEXT_INC_CACHE_R2_BUCKET, entry, 'markdown'));
+  if (!response)
+    throw new Error('Published brief Markdown is unavailable or from another generation');
+  const markdown = await response.text();
+  if (
+    !markdown.startsWith('# ') ||
+    !markdown.includes('Canonical: https://highsignal.app/') ||
+    !markdown.includes(`data-edition-date="${clockDay(now)}"`) ||
+    !markdown.includes('data-region="global"')
+  )
+    throw new Error('Invalid published brief Markdown');
+  if (!cached)
+    ctx.waitUntil(
+      cache?.put(
+        markdownKey,
+        new Response(markdown, {
+          headers: { 'Content-Type': 'text/markdown', 'Cache-Control': 'public, max-age=3600' },
+        })
+      ) ?? Promise.resolve()
+    );
+  return markdown;
 }

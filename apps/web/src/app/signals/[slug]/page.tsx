@@ -1,3 +1,4 @@
+import { withAgentMetadata } from '@/lib/agent-page-metadata';
 import type { Metadata, Route } from 'next';
 import { notFound } from 'next/navigation';
 import { ApiError, api } from '@/lib/api';
@@ -71,11 +72,7 @@ function evidenceDataHref(sourceType: string, publishedAt: number | string | nul
   return `/data/${encodeURIComponent(source)}?date=${day}` as Route;
 }
 
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}): Promise<Metadata> {
+async function pageMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   try {
     const { signal } = await api.signal(slug);
@@ -617,4 +614,10 @@ export default async function SignalDetail({ params }: { params: Promise<{ slug:
       )}
     </main>
   );
+}
+
+export async function generateMetadata(props: Parameters<typeof pageMetadata>[0]) {
+  const metadata = await pageMetadata(props);
+  const params = await props.params;
+  return withAgentMetadata(metadata, '/signals/' + encodeURIComponent(params['slug']));
 }

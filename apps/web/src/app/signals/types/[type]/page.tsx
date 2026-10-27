@@ -1,3 +1,4 @@
+import { withAgentMetadata } from '@/lib/agent-page-metadata';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import {
@@ -17,11 +18,7 @@ import { evaluateCollection, robotsForVerdict } from '../../../../../public-corp
 
 export const revalidate = 600;
 
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ type: string }>;
-}): Promise<Metadata> {
+async function pageMetadata({ params }: { params: Promise<{ type: string }> }): Promise<Metadata> {
   const { type } = await params;
   const family = familyForSignalType(type);
   const human = type.replaceAll('_', ' ');
@@ -163,4 +160,10 @@ export default async function SignalTypePage({ params }: { params: Promise<{ typ
       />
     </PageShell>
   );
+}
+
+export async function generateMetadata(props: Parameters<typeof pageMetadata>[0]) {
+  const metadata = await pageMetadata(props);
+  const params = await props.params;
+  return withAgentMetadata(metadata, '/signals/types/' + encodeURIComponent(params['type']));
 }

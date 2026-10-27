@@ -1,5 +1,6 @@
 'use client';
 
+import { promoteIdleLabel } from './promote-copy';
 import { useState } from 'react';
 import { api } from '@/lib/api';
 
@@ -46,7 +47,7 @@ export function PromoteButton({ token }: Props) {
         ? `copied${name ? ` (${name})` : ''}`
         : phase === 'error'
           ? 'failed'
-          : '→ copy CSV row';
+          : promoteIdleLabel;
 
   return (
     <button

@@ -6,6 +6,7 @@ import { resolve } from 'node:path';
 import { test } from 'node:test';
 import {
   freshReaderManifest,
+  loadPublishedBriefMarkdown,
   readerSelection,
   serveReaderArtifact,
   READER_MANIFEST_KEY,
@@ -57,7 +58,7 @@ function publication() {
         const body =
           format === 'html'
             ? `<main data-high-signal-reader="brief-v1" data-edition-date="2026-10-${day === 'today' ? '12' : '11'}">${day}/${region}</main>`
-            : `# ${day}/${region}`;
+            : `# ${day}/${region}\n\nCanonical: https://highsignal.app/\n\n<!-- data-high-signal-reader="brief-v1" data-edition-date="2026-10-${day === 'today' ? '12' : '11'}" data-region="${region}" -->\n\n${day}/${region} paired source`;
         const sha256 = hash(body);
         const path = `brief/${day}/${region}.${extension}`;
         const key = `reader/v1/${source}/${sha256}.${extension}`;
@@ -75,15 +76,19 @@ function publication() {
     briefs: manifest.briefs.map((entry) => ({
       ...entry,
       html: { ...entry.html, key: `reader/v1/slots/0/${entry.day}/${entry.region}.html` },
+      markdown: { ...entry.markdown, key: `reader/v1/slots/0/${entry.day}/${entry.region}.md` },
     })),
   };
   for (const entry of pointer.briefs)
-    objects.set(
-      entry.html.key,
-      objects.get(
-        manifest.briefs.find((old) => old.day === entry.day && old.region === entry.region).html.key
-      )
-    );
+    for (const format of ['html', 'markdown'])
+      objects.set(
+        entry[format].key,
+        objects.get(
+          manifest.briefs.find((old) => old.day === entry.day && old.region === entry.region)[
+            format
+          ].key
+        )
+      );
   objects.set(READER_MANIFEST_KEY, JSON.stringify(pointer));
   return { directory, manifest, objects };
 }
@@ -161,7 +166,7 @@ test('reader variants preserve selectors and bypass private or framework request
   assert.equal(
     readerSelection(request('/', { headers: { Accept: 'text/markdown' } })),
     null,
-    'Root Markdown remains the agent catalog'
+    'Root Markdown uses the shared public-source handler'
   );
 });
 
@@ -262,12 +267,12 @@ test('publisher promotes only after all variants and a deployment recheck', asyn
     now: () => now,
     put: async (key) => writes.push(key),
     recheck: async () => {
-      assert.equal(writes.length, 20);
+      assert.equal(writes.length, 40);
       return build;
     },
   });
-  assert.equal(count, 20);
-  assert.equal(writes.length, 21);
+  assert.equal(count, 40);
+  assert.equal(writes.length, 41);
   assert.equal(writes.at(-1), READER_MANIFEST_KEY);
 });
 
@@ -346,14 +351,14 @@ test('rotating publications remain bounded and duplicate events do not write aga
   for (const slot of [0, 1, 0]) {
     manifest.capturedAt = new Date(clock).toISOString();
     writeFileSync(resolve(directory, 'reader-manifest.json'), JSON.stringify(manifest));
-    assert.equal(await publishArtifacts(options), 20);
+    assert.equal(await publishArtifacts(options), 40);
     assert.equal((await options.getCurrent()).slot, slot);
     const before = new Map(stored);
     assert.equal(await publishArtifacts(options), 0);
     assert.deepEqual(stored, before);
     clock += 120_000;
   }
-  assert.equal(stored.size, 41, 'Only two sets of twenty HTML variants plus the pointer');
+  assert.equal(stored.size, 81, 'Only two paired sets of twenty variants plus the pointer');
 });
 
 test('a corrupted reused slot cannot enter the body cache', async () => {
@@ -399,4 +404,53 @@ test('publisher refuses historical bodies and concurrent pointer promotion', asy
     }),
     /public edition/
   );
+});
+
+test('published Markdown matches the HTML source version and fails closed for an incomplete pair', async () => {
+  const { objects } = publication();
+  const run = runtime(objects);
+  const read = (clock = now, sourceBuild = build) =>
+    loadPublishedBriefMarkdown(
+      request('/api/public-markdown'),
+      run.env,
+      run.ctx,
+      sourceBuild,
+      run.cache,
+      clock
+    );
+  assert.match(await read(), /today\/global paired source/);
+  await run.settle();
+  assert.match(
+    await (await serveReaderArtifact(request('/'), run.env, run.ctx, build, run.cache, now)).text(),
+    /today\/global/
+  );
+  assert.equal(await read(now + 300_000), undefined, 'Expired cached pairs delegate together');
+  assert.equal(
+    await read(now, { ...build, source: 'b'.repeat(40) }),
+    undefined,
+    'Another renderer version cannot supply Markdown'
+  );
+  for (const failure of ['missing', 'checksum', 'pointer']) {
+    const fresh = publication().objects;
+    if (failure === 'missing') fresh.delete('reader/v1/slots/0/today/global.md');
+    if (failure === 'checksum')
+      fresh.set('reader/v1/slots/0/today/global.md', '# another generation');
+    if (failure === 'pointer') {
+      const pointer = JSON.parse(fresh.get(READER_MANIFEST_KEY));
+      delete pointer.briefs[0].markdown;
+      fresh.set(READER_MANIFEST_KEY, JSON.stringify(pointer));
+    }
+    const state = runtime(fresh);
+    await assert.rejects(
+      loadPublishedBriefMarkdown(
+        request('/api/public-markdown'),
+        state.env,
+        state.ctx,
+        build,
+        state.cache,
+        now
+      ),
+      /Markdown/
+    );
+  }
 });

@@ -1,3 +1,4 @@
+import { withAgentMetadata } from '@/lib/agent-page-metadata';
 import { ErrorState } from '@saas-maker/ui/components/error-state';
 import type { Metadata, Route } from 'next';
 import { unstable_cache } from 'next/cache';
@@ -15,12 +16,15 @@ const readDataSources = unstable_cache(() => api.dataSources(), ['data-sources']
   revalidate: DATA_CACHE_SECONDS,
 });
 
-export const metadata: Metadata = {
-  title: 'Sources',
-  description:
-    'Every public data source High Signal ingests, with its cadence, freshness, latest run state, stored volume, and latest collected data.',
-  alternates: { canonical: `${SITE_URL}/data` },
-};
+export const metadata: Metadata = withAgentMetadata(
+  {
+    title: 'Sources',
+    description:
+      'Every public data source High Signal ingests, with its cadence, freshness, latest run state, stored volume, and latest collected data.',
+    alternates: { canonical: `${SITE_URL}/data` },
+  },
+  '/data'
+);
 
 interface CatalogEntry {
   id: string;

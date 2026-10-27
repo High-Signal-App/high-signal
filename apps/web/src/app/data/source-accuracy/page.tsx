@@ -1,3 +1,4 @@
+import { withAgentMetadata } from '@/lib/agent-page-metadata';
 import { EmptyState } from '@saas-maker/ui/components/empty-state';
 import { ErrorState } from '@saas-maker/ui/components/error-state';
 import type { Metadata } from 'next';
@@ -7,12 +8,15 @@ import { SITE_URL } from '@/lib/site';
 
 export const revalidate = 3600;
 
-export const metadata: Metadata = {
-  title: 'Source accuracy — data',
-  description:
-    'Per-source accuracy for High Signal evidence classes. Live forward predictions and backfill calibration scored against subsequent market moves.',
-  alternates: { canonical: `${SITE_URL}/data/source-accuracy` },
-};
+export const metadata: Metadata = withAgentMetadata(
+  {
+    title: 'Source accuracy — data',
+    description:
+      'Per-source accuracy for High Signal evidence classes. Live forward predictions and backfill calibration scored against subsequent market moves.',
+    alternates: { canonical: `${SITE_URL}/data/source-accuracy` },
+  },
+  '/data/source-accuracy'
+);
 
 function fmtRate(value: number | null) {
   return value != null ? `${(value * 100).toFixed(0)}%` : '—';

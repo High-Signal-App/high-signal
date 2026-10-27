@@ -1,3 +1,4 @@
+import { withAgentMetadata } from '@/lib/agent-page-metadata';
 import { notFound } from 'next/navigation';
 
 import { ConfidenceBadge } from '@/components/atoms/ConfidenceBadge';
@@ -66,4 +67,9 @@ export default async function EmbedSignal({ params }: { params: Promise<{ slug: 
       </article>
     </main>
   );
+}
+
+export async function generateMetadata(props: { params: Promise<{ slug: string }> }) {
+  const params = await props.params;
+  return withAgentMetadata({}, '/embed/' + encodeURIComponent(params['slug']));
 }

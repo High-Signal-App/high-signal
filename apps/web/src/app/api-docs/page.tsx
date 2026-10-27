@@ -1,15 +1,19 @@
+import { withAgentMetadata } from '@/lib/agent-page-metadata';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
 import { SITE_URL } from '@/lib/site';
-export const metadata: Metadata = {
-  // Self-canonical: the root layout deliberately sets none (a site-wide
-  // canonical de-indexes the corpus), so a route without this ships none.
-  alternates: { canonical: `${SITE_URL}/api-docs` },
-  title: 'API & feeds',
-  description:
-    'The small public High Signal interface: MCP tools, daily data, signal feeds, and discovery.',
-};
+export const metadata: Metadata = withAgentMetadata(
+  {
+    // Self-canonical: the root layout deliberately sets none (a site-wide
+    // canonical de-indexes the corpus), so a route without this ships none.
+    alternates: { canonical: `${SITE_URL}/api-docs` },
+    title: 'API & feeds',
+    description:
+      'The small public High Signal interface: MCP tools, daily data, signal feeds, and discovery.',
+  },
+  '/api-docs'
+);
 
 interface Endpoint {
   path: string;

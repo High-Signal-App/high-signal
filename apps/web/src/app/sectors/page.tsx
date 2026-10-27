@@ -1,15 +1,19 @@
+import { withAgentMetadata } from '@/lib/agent-page-metadata';
 import { EmptyState } from '@saas-maker/ui/components/empty-state';
 import { ErrorState } from '@saas-maker/ui/components/error-state';
 import { api } from '@/lib/api';
 
 import { SITE_URL } from '@/lib/site';
 export const dynamic = 'force-dynamic';
-export const metadata = {
-  // Self-canonical: the root layout deliberately sets none (a site-wide
-  // canonical de-indexes the corpus), so a route without this ships none.
-  alternates: { canonical: `${SITE_URL}/sectors` },
-  title: 'Sectors',
-};
+export const metadata = withAgentMetadata(
+  {
+    // Self-canonical: the root layout deliberately sets none (a site-wide
+    // canonical de-indexes the corpus), so a route without this ships none.
+    alternates: { canonical: `${SITE_URL}/sectors` },
+    title: 'Sectors',
+  },
+  '/sectors'
+);
 
 interface Props {
   searchParams: Promise<{ days?: string }>;

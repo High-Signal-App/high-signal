@@ -1,3 +1,4 @@
+import { withAgentMetadata } from '@/lib/agent-page-metadata';
 import type { Metadata } from 'next';
 
 import { ArticlePage } from '@/components/content/ArticlePage';
@@ -8,11 +9,14 @@ const ARTICLE = articleBySlug('versioned-signal-memory-for-accountable-research'
 
 export const dynamic = 'force-static';
 
-export const metadata: Metadata = {
-  title: ARTICLE.metaTitle,
-  description: ARTICLE.metaDescription,
-  alternates: { canonical: `${SITE_URL}${ARTICLE.path}` },
-};
+export const metadata: Metadata = withAgentMetadata(
+  {
+    title: ARTICLE.metaTitle,
+    description: ARTICLE.metaDescription,
+    alternates: { canonical: `${SITE_URL}${ARTICLE.path}` },
+  },
+  '/articles/versioned-signal-memory-for-accountable-research'
+);
 
 export default function Page() {
   return <ArticlePage article={ARTICLE} />;

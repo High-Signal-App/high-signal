@@ -1,3 +1,4 @@
+import { withAgentMetadata } from '@/lib/agent-page-metadata';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { ApiError, fetchJson } from '@/lib/api';
@@ -44,7 +45,7 @@ async function getLiveCompany(slug: string): Promise<LiveCompany | null> {
   }
 }
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+async function pageMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
   const study = getCaseStudy(slug) ?? (await getLiveCompany(slug));
   if (!study) {
@@ -79,4 +80,10 @@ export default async function CaseStudyDetailPage({ params }: PageProps) {
   return (
     <CompanyProfileContent study={study} sourceMode={liveStudy ? 'D1 lookup' : 'artifact cache'} />
   );
+}
+
+export async function generateMetadata(props: Parameters<typeof pageMetadata>[0]) {
+  const metadata = await pageMetadata(props);
+  const params = await props.params;
+  return withAgentMetadata(metadata, '/case-studies/' + encodeURIComponent(params['slug']));
 }

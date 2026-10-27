@@ -1,16 +1,20 @@
+import { withAgentMetadata } from '@/lib/agent-page-metadata';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import type { Route } from 'next';
 
 import { SITE_URL } from '@/lib/site';
-export const metadata: Metadata = {
-  // Self-canonical: the root layout deliberately sets none (a site-wide
-  // canonical de-indexes the corpus), so a route without this ships none.
-  alternates: { canonical: `${SITE_URL}/about` },
-  title: 'About',
-  description:
-    'High Signal extracts actionable signals from public information streams. Evidence-first, hit-rate-tracked, no retroactive edits.',
-};
+export const metadata: Metadata = withAgentMetadata(
+  {
+    // Self-canonical: the root layout deliberately sets none (a site-wide
+    // canonical de-indexes the corpus), so a route without this ships none.
+    alternates: { canonical: `${SITE_URL}/about` },
+    title: 'About',
+    description:
+      'High Signal extracts actionable signals from public information streams. Evidence-first, hit-rate-tracked, no retroactive edits.',
+  },
+  '/about'
+);
 
 export default function AboutPage() {
   return (

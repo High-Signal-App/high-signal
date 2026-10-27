@@ -1,3 +1,4 @@
+import { withAgentMetadata } from '@/lib/agent-page-metadata';
 import { EmptyState } from '@saas-maker/ui/components/empty-state';
 import { ErrorState } from '@saas-maker/ui/components/error-state';
 import type { Metadata, Route } from 'next';
@@ -71,7 +72,7 @@ export function generateStaticParams() {
   }));
 }
 
-export async function generateMetadata({
+async function pageMetadata({
   params,
 }: {
   params: Promise<{ source: string }>;
@@ -417,4 +418,10 @@ export default async function DataSourcePage({
       )}
     </main>
   );
+}
+
+export async function generateMetadata(props: Parameters<typeof pageMetadata>[0]) {
+  const metadata = await pageMetadata(props);
+  const params = await props.params;
+  return withAgentMetadata(metadata, '/data/' + encodeURIComponent(params['source']));
 }
