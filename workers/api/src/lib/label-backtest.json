@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-27T14:59:26.825064+00:00",
+  "generatedAt": "2026-10-28T15:34:23.574151+00:00",
   "backtestDays": 14,
   "labels": {
     "breakout": {
@@ -9,19 +9,19 @@
       "lift": null
     },
     "divergence": {
-      "n": 23,
+      "n": 22,
       "hits": 0,
       "rate": 0.0,
       "lift": null
     }
   },
   "unlabeled": {
-    "n": 26,
+    "n": 24,
     "hits": 0,
     "rate": 0.0
   },
   "baseline": {
-    "n": 58,
+    "n": 55,
     "hits": 0,
     "rate": 0.0
   }
