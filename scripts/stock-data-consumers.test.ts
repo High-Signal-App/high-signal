@@ -125,6 +125,19 @@ async function main() {
     exchange: 'NSE',
     series: 'N0',
   });
+  for (const invalid of [
+    { symbol: 'GONE', deleted: true },
+    { symbol: 'DUMY', testInstrument: true },
+    { symbol: 'MISS', identifierValid: false },
+  ]) {
+    limitedManifest.rows.push({
+      ...limitedManifest.rows[0],
+      ...invalid,
+      ticker: invalid.symbol + '.NS',
+      exchange: 'NSE',
+      series: 'EQ',
+    });
+  }
   await writeFile(input, JSON.stringify(limitedManifest));
   const limited = spawnSync(resolve('node_modules/.bin/tsx'), ['scripts/build-known-tickers.ts'], {
     encoding: 'utf8',
