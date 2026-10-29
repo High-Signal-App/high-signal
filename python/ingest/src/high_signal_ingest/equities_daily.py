@@ -2,16 +2,14 @@
 
     uv run python -m high_signal_ingest.equities_daily [--limit N] [--batch B]
 
-Builds the universe → fetches closes via yfinance → computes Tier 1 snapshot →
-writes a JSONL artifact under ``data/equities-snapshot.jsonl``. The snapshot
-is a compatibility projection. Price observations, actions and revisions are
-retained by the shared stock-data store only during the explicit bounded pilot.
-Scheduled compatibility runs publish identity metadata while price rights and
-history retention remain unqualified.
+Builds the universe → routes NSE to official bulk files and other markets to yfinance →
+writes canonical projections. Full NSE CM master/bhavcopy originals and all-series
+observations are retained daily in the private stock-data archive, without a
+company-count or historical-duration cap. Non-NSE compatibility prices still use
+the existing yfinance route and bounded optional D1 retention.
 
-This module is the only stock-price ingress. Other workflows should consume
-``data/equities-snapshot.jsonl`` or the future D1 ``closes`` /
-``ticker_snapshot`` tables, not add their own Yahoo/Stooq/etc. fetchers.
+This module is the only stock-price ingress. Other workflows consume its
+versioned contracts and retained archives rather than fetching equity prices.
 
 Tier 2 (FX, dividend yield, Wikipedia pageviews) and Tier 3 (SEC XBRL,
 Form 4, 13F, FINRA short interest, mentions joins) fields are left as
@@ -126,9 +124,10 @@ def run_daily(
     batch_size: int = 50,
     retain_history: bool = False,
 ) -> Path:
-    """Run the sole price ingress; retained history is a bounded, explicit pilot."""
+    """Non-NSE branch of the canonical ingress; NSE uses full bulk archive retention."""
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
-    universe = build_universe()
+    # NSE is owned by the official bulk branch of this same ingress.
+    universe = [spec for spec in build_universe() if not spec.ticker.endswith(".NS")]
     if universe_limit is not None:
         if universe_limit < 1:
             raise ValueError("universe limit must be positive")
@@ -198,7 +197,23 @@ def main(argv: Optional[list[str]] = None) -> int:
         action="store_true",
         help="bounded pilot only: <=20 tickers, --period 1mo",
     )
+    p.add_argument("--market", choices=("global", "nse"), default="global")
+    p.add_argument(
+        "--session",
+        help="NSE YYYY-MM-DD; default latest expected closed session (no silent fallback)",
+    )
+    p.add_argument("--archive", type=Path, default=_find_data_dir() / "stock-data" / "nse")
     args = p.parse_args(argv)
+    if args.market == "nse":
+        if args.limit is not None or args.retain_history:
+            p.error("NSE always collects the full market; limits/pilot retention do not apply")
+        from datetime import date
+        from .stock_data_collectors.nse import collect, expected_session
+
+        day = date.fromisoformat(args.session) if args.session else expected_session()
+        path = collect(args.archive, day)
+        print(path)
+        return 0
     run_daily(
         universe_limit=args.limit,
         period=args.period,

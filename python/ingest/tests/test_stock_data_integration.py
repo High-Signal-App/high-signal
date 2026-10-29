@@ -360,13 +360,13 @@ def test_scheduled_prices_do_not_implicitly_retain_six_years(tmp_path, monkeypat
     import json
     from high_signal_ingest import equities_daily
 
-    spec = TickerSpec("BHEL.NS", "BHEL", "NS", "equity", currency="INR", country="IN")
+    spec = TickerSpec("AAPL.US", "AAPL", "US", "equity", currency="USD", country="US")
     monkeypatch.setattr(equities_daily, "build_universe", lambda: [spec])
     monkeypatch.setattr(
         equities_daily,
         "yf_fetch_many",
         lambda *args, **kwargs: {
-            "BHEL.NS": [Close(20261028, 10)],
+            "AAPL.US": [Close(20261028, 10)],
             "SPY.US": [Close(20261028, 100)],
         },
     )
@@ -393,7 +393,7 @@ def test_conflicting_listing_cannot_abort_other_pilot_tickers(tmp_path, monkeypa
     from high_signal_ingest.stock_data import Entity, Security
 
     nvda = TickerSpec("NVDA.US", "NVDA", "US", "equity", currency="USD", country="US")
-    bhel = TickerSpec("BHEL.NS", "BHEL", "NS", "equity", currency="INR", country="IN")
+    bhel = TickerSpec("AAPL.US", "AAPL", "US", "equity", currency="USD", country="US")
     with StockStore(tmp_path / "stock-data/stock-data.sqlite") as store:
         store.put_entity(Entity("old-NVDA", "Earlier mapping", "US"))
         store.put_security(Security("security:NVDA.US", "old-NVDA", "NVDA.US", "USD"))
@@ -402,13 +402,13 @@ def test_conflicting_listing_cannot_abort_other_pilot_tickers(tmp_path, monkeypa
         equities_daily,
         "yf_fetch_many",
         lambda *args, **kwargs: {
-            symbol: [Close(20261028, 10)] for symbol in ("NVDA.US", "BHEL.NS", "SPY.US")
+            symbol: [Close(20261028, 10)] for symbol in ("NVDA.US", "AAPL.US", "SPY.US")
         },
     )
     equities_daily.run_daily(period="1mo", retain_history=True, out_path=tmp_path / "prices.jsonl")
     rows = json.loads((tmp_path / "stock-data-prices.json").read_text())["rows"]
     assert next(row for row in rows if row["ticker"] == "NVDA.US")["identityStatus"] == "conflict"
-    assert next(row for row in rows if row["ticker"] == "BHEL.NS")["last_close"] == 10
+    assert next(row for row in rows if row["ticker"] == "AAPL.US")["last_close"] == 10
 
 
 def test_replication_accounts_for_restored_history_before_adding_new_records(tmp_path, monkeypatch):

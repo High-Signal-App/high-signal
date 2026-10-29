@@ -1,12 +1,12 @@
 name: cron-equities
 
-# Daily after US close: this is the only scheduled public stock-price ingress.
-# Pull universe + closes via yfinance, compute the Tier 1 snapshot, regenerate
-# derived bundles, and commit the artifacts.
+# Canonical ingress: official full NSE cash-market files plus non-NSE yfinance.
+# NSE originals and normalized history stay in private R2, never Git.
 # Dispatch deploy-web.yml when the accumulated web changes are ready to ship.
 
 on:
   schedule:
+    - cron: "30 13 * * 1-5"  # 19:00 India: NSE final files
     - cron: "30 21 * * 1-5"  # 9:30pm UTC weekdays = ~16:30 ET, post-close
   workflow_dispatch:
     inputs:
@@ -15,8 +15,17 @@ on:
         required: false
         default: ""
 
-      stock_data_pilot:
-        description: "Run the bounded private stock-data pilot (requires migrated API)."
+      market:
+        description: "Market to refresh. NSE always uses the entire cash-market dump."
+        type: choice
+        options: [both, nse, global]
+        default: both
+      session:
+        description: "Optional NSE session YYYY-MM-DD (defaults to latest expected closed session)."
+        required: false
+        default: ""
+      retain_global_history:
+        description: "Retain bounded non-NSE history in the existing D1 ledger (requires migrated API)."
         type: boolean
         default: false
 
@@ -28,7 +37,49 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  nse:
+    if: github.event_name == 'schedule' || inputs.market != 'global'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: astral-sh/setup-uv@v8.1.0
+      - uses: actions/setup-python@v6
+        with: { python-version: "3.11" }
+      - uses: actions/setup-node@v6
+        with: { node-version: "22" }
+      - name: Download and validate entire NSE security master and final bhavcopy
+        env:
+          NSE_SESSION: ${{ inputs.session }}
+        run: |
+          args=()
+          if [[ -n "$NSE_SESSION" ]]; then args=(--session "$NSE_SESSION"); fi
+          uv run --project python/ingest python -m high_signal_ingest.equities_daily \
+            --market nse --archive artifacts/nse "${args[@]}"
+      - name: Retain full history and advance latest only after verified R2 receipts
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_R2_API_TOKEN || secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          uv run --project python/ingest python -m high_signal_ingest.nse_archive publish \
+            --root artifacts/nse --out data/stock-data-nse-prices.json
+      - name: Consume canonical NSE facts and evidence in High Signal research
+        env:
+          NSE_ARCHIVE_ROOT: ${{ github.workspace }}/artifacts/nse
+          ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
+          API_BASE: ${{ secrets.API_BASE || 'https://api.highsignal.app' }}
+        run: uv run --project python/ingest python -m high_signal_ingest.pipeline --source stock-data --days 7 --strict
+      - name: Report archive status
+        if: always()
+        run: |
+          if [[ "${{ job.status }}" != success ]]; then
+            echo "NSE refresh or downstream consumption failed. Inspect the failing step; no missing session is labelled current." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Full NSE CM files retained privately, receipt verified, canonical inputs consumed." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
   equities:
+    if: (github.event_name == 'schedule' && github.event.schedule == '30 21 * * 1-5') || (github.event_name == 'workflow_dispatch' && inputs.market != 'nse')
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -45,7 +96,7 @@ jobs:
         working-directory: python/ingest
         run: uv sync
       - name: restore private canonical stock history
-        if: github.event_name == 'workflow_dispatch' && inputs.stock_data_pilot
+        if: github.event_name == 'workflow_dispatch' && inputs.retain_global_history
         working-directory: python/ingest
         env:
           ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
@@ -54,7 +105,7 @@ jobs:
       - name: equities daily snapshot
         working-directory: python/ingest
         env:
-          PILOT: ${{ github.event_name == 'workflow_dispatch' && inputs.stock_data_pilot && 'true' || 'false' }}
+          PILOT: ${{ github.event_name == 'workflow_dispatch' && inputs.retain_global_history && 'true' || 'false' }}
           TICKER_LIMIT: ${{ github.event.inputs.limit }}
         run: |
           if [ "$PILOT" = true ]; then
@@ -66,35 +117,35 @@ jobs:
           fi
       # ── Node: regenerate the web data bundles that depend on JSONL ──────
       - uses: actions/setup-node@v6
-        if: github.event_name != 'workflow_dispatch' || inputs.stock_data_pilot != true
+        if: github.event_name != 'workflow_dispatch' || inputs.retain_global_history != true
         with:
           node-version: "22"
       - uses: pnpm/action-setup@v6
-        if: github.event_name != 'workflow_dispatch' || inputs.stock_data_pilot != true
+        if: github.event_name != 'workflow_dispatch' || inputs.retain_global_history != true
         # Reads version from package.json `packageManager` field — keep this
         # action invocation minimal so the two never drift.
       - name: pnpm install
-        if: github.event_name != 'workflow_dispatch' || inputs.stock_data_pilot != true
+        if: github.event_name != 'workflow_dispatch' || inputs.retain_global_history != true
         run: pnpm install --frozen-lockfile
       - name: build equities-snapshot.json
-        if: github.event_name != 'workflow_dispatch' || inputs.stock_data_pilot != true
+        if: github.event_name != 'workflow_dispatch' || inputs.retain_global_history != true
         run: pnpm equities:snapshot
       - name: build price-context.json
-        if: github.event_name != 'workflow_dispatch' || inputs.stock_data_pilot != true
+        if: github.event_name != 'workflow_dispatch' || inputs.retain_global_history != true
         run: pnpm price:snapshot
       - name: refresh market context from the canonical equities snapshot
-        if: github.event_name != 'workflow_dispatch' || inputs.stock_data_pilot != true
+        if: github.event_name != 'workflow_dispatch' || inputs.retain_global_history != true
         run: pnpm market:refresh
       - name: build market-refreshes.json
-        if: github.event_name != 'workflow_dispatch' || inputs.stock_data_pilot != true
+        if: github.event_name != 'workflow_dispatch' || inputs.retain_global_history != true
         run: pnpm market:snapshot
       - name: bundle known-tickers.json for Worker
-        if: github.event_name != 'workflow_dispatch' || inputs.stock_data_pilot != true
+        if: github.event_name != 'workflow_dispatch' || inputs.retain_global_history != true
         run: pnpm tickers:bundle
 
       # ── Commit + push for the next manual web deploy ────────────────────
       - name: commit refreshed artifacts
-        if: github.event_name != 'workflow_dispatch' || inputs.stock_data_pilot != true
+        if: github.event_name != 'workflow_dispatch' || inputs.retain_global_history != true
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -117,27 +168,27 @@ jobs:
           fi
 
       - name: refresh retained financial facts through the shared collector
-        if: github.event_name == 'workflow_dispatch' && inputs.stock_data_pilot
+        if: github.event_name == 'workflow_dispatch' && inputs.retain_global_history
         working-directory: python/ingest
         env:
           ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
           API_BASE: ${{ secrets.API_BASE || 'https://api.highsignal.app' }}
         run: uv run python -m high_signal_ingest.pipeline --source sec-xbrl --days 120 --fetch-only
       - name: refresh attributed free reference FX
-        if: github.event_name == 'workflow_dispatch' && inputs.stock_data_pilot
+        if: github.event_name == 'workflow_dispatch' && inputs.retain_global_history
         working-directory: python/ingest
         run: uv run python -m high_signal_ingest.stock_data_collectors.ecb
       - name: materialize display and permitted-export contracts
-        if: github.event_name == 'workflow_dispatch' && inputs.stock_data_pilot
+        if: github.event_name == 'workflow_dispatch' && inputs.retain_global_history
         run: uv run --project python/ingest python -m high_signal_ingest.stock_data_refresh --out data/stock-data/publications.json
       - name: retain private inputs and publish permitted snapshots
-        if: github.event_name == 'workflow_dispatch' && inputs.stock_data_pilot
+        if: github.event_name == 'workflow_dispatch' && inputs.retain_global_history
         env:
           ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
           API_BASE: ${{ secrets.API_BASE || 'https://api.highsignal.app' }}
         run: uv run --project python/ingest python -m high_signal_ingest.stock_data_sync publish --snapshot data/stock-data/publications.json
       - name: consume validated stock facts in High Signal research
-        if: github.event_name == 'workflow_dispatch' && inputs.stock_data_pilot
+        if: github.event_name == 'workflow_dispatch' && inputs.retain_global_history
         working-directory: python/ingest
         env:
           ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}

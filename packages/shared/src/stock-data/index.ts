@@ -9,7 +9,7 @@ export interface StockPriceRow {
   inputSnapshotIds: string[];
   sourceRefs: { sourceId: string; url: string }[];
   completeness: Coverage;
-  priceBasis: 'total_return_adjusted';
+  priceBasis: 'total_return_adjusted' | 'unadjusted';
   symbol?: string;
   name?: string | null;
   exchange?: string;
@@ -69,7 +69,7 @@ function validateStockPriceRow(row: StockPriceRow) {
     (row.last_close != null && !row.inputSnapshotIds.length) ||
     !Array.isArray(row.sourceRefs) ||
     !row.sourceRefs.length ||
-    row.priceBasis !== 'total_return_adjusted'
+    !['total_return_adjusted', 'unadjusted'].includes(row.priceBasis)
   )
     throw new Error('Untraceable stock price row');
   for (const metric of ['last_close', 'ret_1d', 'ret_30d', 'ret_90d']) {

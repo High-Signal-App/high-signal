@@ -64,23 +64,48 @@ The local SQLite ledger is a replay index. Migration `0033_stock_data.sql` store
 its immutable canonical records privately in D1 through `/admin/stock-data`.
 Evidence bytes use content-addressed chunks; authenticated restore verifies their
 original hashes. No raw-data artifact is uploaded to this public repository.
-The scheduled compatibility collector continues without retaining unbounded
-history. A manual `stock_data_pilot` refresh restores first, retains at most 20 company tickers plus the benchmark
-over one month, validates inputs, and persists new private records before
-publishing separate display/export projections. Replication preflights a
-100,000-record/100 MiB total pilot inventory ceiling before its first remote append.
-Both restore and publication use the same conservative serialized-record accounting.
-Restored chunks persist across separate restore/publish processes, including orphan
-chunks from interrupted writes. Scoring traverses pending work with keyset pagination;
-public Track Record projections count one current measurement per signal/window.
-Deploy the migrated API before enabling that job. The compatibility bundles
-are committed before optional filing/FX collection.
+NSE collection is the entire daily CM security master and UDiFF final bhavcopy,
+including SME and non-EQ series. `equities_daily --market nse` is the NSE branch
+of the existing canonical ingress; its non-NSE branch excludes `.NS` tickers.
+There is no 20-company or one-month NSE collection limit. Original compressed
+files, every normalized master/observation row, and a versioned price contract
+stay in the existing private R2 bucket under `stock-data/nse/v1/`. Deleted and
+test records remain identified rather than being counted as active companies.
+Master records without a daily observation retain null prices. Raw closes never
+stand in for corporate-action-adjusted history or supported valuations.
+
+`cron-equities` collects NSE files at 13:30 UTC on weekdays and retries at 21:30
+UTC. The requested session must match the file's own trade date. A missing file,
+network error, conflicting identifier or failed R2 receipt fails the job; it never
+relabels yesterday's prices as today. Weekday expectations do not claim an
+exchange holiday calendar; an unpublished holiday session is an explicit failed
+attempt, with the prior snapshot visibly dated. Operator job summaries expose
+failures. Every object is downloaded and hash-verified before the latest pointer
+advances. Identical-input retries preserve the first observed availability time;
+revisions receive immutable separate manifests. Historical downloads are first
+available at observation time, not retrospectively on their economic date.
+
+`nse_archive restore --root <private-dir> --out <canonical-prices.json>` verifies
+and hydrates the same underlying inputs for High Signal. The daily refresh
+calls research with `NSE_ARCHIVE_ROOT`; explicit stock-data research jobs restore
+that archive instead of collecting prices. Public Event creation remains gated
+by usage rights. Private full-market history does not create per-security daily
+D1 rows or inherit the D1 replication inventory ceiling. Historical objects can
+be read using a retained manifest and an `as_of` cutoff; a Worker R2 binding and
+public historical API are not implemented.
+
+Non-NSE compatibility collection retains its existing optional bounded D1 mode
+(`retain_global_history` dispatch input). Its 100,000-record/100 MiB replication
+budget protects the separate small financial-fact ledger, not NSE coverage.
+Restored chunks persist across separate processes, including interrupted writes.
+Scoring traverses pending work with keyset pagination and counts one current
+measurement per signal/window. A not-yet-provisioned history endpoint skips
+scoring with an operator notice; other restore failures fail the job. Temporary
+score gaps remain eligible for retry. NSE adjusted returns remain unavailable
+until corporate actions are normalized. Rollback preserves private R2 objects,
+additive tables and the local ledger; do not delete history.
 A per-issuer SEC failure returns successful events with a partial-result error.
-Remote replication and research delivery run only for the explicit pilot. A
-not-yet-provisioned history endpoint skips scoring with an operator notice;
-other restore failures fail the job. Temporary score gaps remain eligible for retry; unsupported
-public price rights leave new outcomes pending. Rollback to the prior API/job
-pair preserves the additive tables and local ledger; do not delete history.
+Deploy the migrated API before enabling D1 financial publication.
 
 Materialized publications and their change-detection baselines stay private.
 Restore obtains the prior publication from the authenticated API; no financial
@@ -114,7 +139,8 @@ reported date for each concept, unit and accounting scope. Earlier periods stay
 in the ledger for as-of queries; the current research payload does not repeat a
 company's full filing history.
 
-The initial India pilot remains unqualified. Unknown rights and missing values
+Full NSE universe/price collection is separate from financial/ownership coverage.
+Unknown rights and missing values
 remain unavailable; carrying values are not market valuations. Partial NAV/SOTP
 models cannot receive definitive discounts or rankings. Free access does not by
 itself establish permission for public display or export.

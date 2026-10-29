@@ -37,6 +37,8 @@ cache.bin
 data/equities-snapshot.jsonl
 data/stock-data/
 data/stock-data-prices.json
+data/stock-data-nse-prices.json
+artifacts/nse/
 
 # CF Pages build output
 apps/web/.cf-pages-bundle/

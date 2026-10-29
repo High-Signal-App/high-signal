@@ -3,19 +3,22 @@
 Last updated: 2026-10-29
 
 October 29 equity ownership and valuation foundation — implemented on the feature
-branch, not released or qualified as the initial pilot:
+branch; production activation and broader valuation qualification remain open:
 
 The stock-data module retains immutable evidence, dated facts, corporate actions
-and price revisions. The existing yfinance refresh remains the single price
-ingress; track-record scoring reads retained history. SEC companyfacts collection
+and price revisions. The existing canonical price ingress routes NSE to official full-market
+files and other markets to yfinance; track-record scoring reads retained history. SEC companyfacts collection
 has moved behind the same boundary. A dated review of the SEC reuse policy
 qualifies numeric companyfacts; ECB reference FX also has a documented free
 reuse policy. Private canonical records replicate through operator-authenticated
 D1 routes; permitted display and export snapshots are separate from raw evidence.
 The public repository no longer receives raw equity JSONL or materialized stock
-facts from refresh jobs. Scheduled compatibility collection remains independent;
-private retention/publication is an explicit 20-ticker, one-month pilot with
-preflight transfer budgets. Company profiles load current stock facts outside ISR.
+facts from refresh jobs. NSE uses the entire daily CM master and final bhavcopy, including SME and non-EQ
+series, with immutable raw/normalized history in private R2 and verified latest
+promotion. There is no NSE company-count or duration cap. Non-NSE compatibility
+retention keeps its separate bounded D1 mode. Company profiles load current
+stock facts outside ISR. The workflow includes daily collection, a late retry and
+canonical research consumption; this feature-branch schedule is not active on main.
 
 The valuation engine supports listed coverage, holding NAV and SOTP with explicit
 ownership, accounting, corporate-action, freshness and completeness checks.
@@ -33,8 +36,11 @@ fall back to bundled stock facts. These reader changes are unreleased.
 The free-source constraint and remaining delivery work are tracked in
 [issue #306](https://github.com/High-Signal-App/high-signal/issues/306).
 
-The 20-company manually verified India pilot, an openly reusable Indian financial
-and ownership cohort, qualified public price rights, historical screener models,
+The owner replaced the 20-company pilot with full daily NSE collection. A real
+28 October live canonical ingress retained 38,240 master records and 3,682 daily observations;
+these include inactive/test instruments and are not a count of listed companies.
+An openly reusable Indian financial/ownership cohort, qualified public price
+rights, historical screener models,
 and a positive real-filing-to-research acceptance remain unfinished. A real BHEL
 report replay validated five standalone figures and reconciled its balance sheet;
 unsupported valuation and reuse permissions correctly withheld publication. This
