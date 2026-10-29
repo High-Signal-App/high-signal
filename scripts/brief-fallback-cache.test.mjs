@@ -124,6 +124,21 @@ test('the legacy worker shares only a qualified current public fallback', async 
       }
     }
 
+    entries.clear();
+    globalThis.__briefFixture = {
+      html: '0:{"status":"pending"}',
+      headers: { ...middlewareHeaders, 'content-type': 'text/x-component' },
+    };
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const result = await fetch(request('/?_rsc=state', { headers: { rsc: '1' } }));
+      assert.equal(result.body, globalThis.__briefFixture.html);
+      assert.equal(result.response.headers.get('x-edge-cache'), null);
+      assert.equal(entries.size, 0);
+    }
+    const otherRsc = request('/data?_rsc=state', { headers: { rsc: '1' } });
+    assert.equal((await fetch(otherRsc)).response.headers.get('x-edge-cache'), 'RSC-MISS');
+    assert.equal((await fetch(otherRsc)).response.headers.get('x-edge-cache'), 'RSC-HIT');
+
     for (const [input, fixture] of [
       [request(), { html: '<main>Pending or unavailable edition</main>' }],
       [request(), { html: html('2026-10-02') }],

@@ -82,9 +82,9 @@ export function isCacheableDocumentRequest(request) {
   // the detail renderer is still an HTTP 200, so response headers cannot
   // reliably prevent the Worker from sharing that stale result.
   if (isSignalDetailPath(pathname)) return false;
-  // Profile Flight responses can contain streamed not-found shells. ISR still
-  // serves valid profiles; only completed HTML enters the outer response cache.
-  if (isCompanyProfilePath(pathname)) {
+  // Root Flight lacks HTML edition attestation; profiles can stream not-found
+  // shells. Only their completed HTML enters the outer response cache.
+  if (pathname === '/' || isCompanyProfilePath(pathname)) {
     if (request.headers.get('rsc') === '1') return false;
   }
 
