@@ -1,4 +1,5 @@
 import { isSourceDiscovery } from './source-discovery.mjs';
+import { qualifyPublicSitemap } from './public-sitemap.mjs';
 import { handlePublicDocs } from './public-docs-edge.mjs';
 import { READER_BUILD } from './.open-next/reader-build.mjs';
 import { serveReaderArtifact } from './reader-artifacts.mjs';
@@ -48,7 +49,10 @@ const serve = withTiming(async (request, env, ctx, state) => {
   // Legacy pages, RSC, protected history and unavailable/expired artifacts remain operable.
   const { default: legacy } = await import('./legacy-worker.mjs');
   state.delegated = true;
-  return legacy.fetch(request, env, ctx, { guardHandled: true });
+  return qualifyPublicSitemap(
+    request,
+    await legacy.fetch(request, env, ctx, { guardHandled: true })
+  );
 });
 
 export default {

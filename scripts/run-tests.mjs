@@ -65,6 +65,8 @@ const NODE_SUITES = [
   ['verify-mcp-consumer', 'scripts/verify-mcp-consumer.test.mjs'],
   ['verify-daily-brief', 'scripts/verify-daily-brief.test.mjs'],
   ['public-corpus', 'scripts/public-corpus-policy.test.mjs'],
+  ['public-sitemap', 'scripts/public-sitemap.test.mjs'],
+  ['articles-discovery', 'apps/web/scripts/articles-discovery.test.mjs'],
   ['review-sample', 'scripts/review-sample.test.mjs'],
   ['public-corpus-receipt', 'scripts/public-corpus-receipt.test.mjs'],
   ['reddit-daily-archive', 'scripts/reddit-daily-archive.test.mjs'],

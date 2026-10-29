@@ -46,6 +46,18 @@ assert.equal(first.tier, 'substantive');
 assert.equal(first.policyRevision, PUBLIC_CORPUS_POLICY_REVISION);
 assert.equal(robotsForVerdict(first), undefined);
 
+for (const sourceEvidence of [
+  [provenance, { ...provenance, title: 'Example.' }],
+  [provenance, { ...provenance, sourceUrl: '' }],
+  [provenance, { ...provenance, sourceUrl: '   ' }],
+  [provenance, { ...provenance, sourceUrl: null }],
+]) {
+  const duplicateSources = evaluateCompany({ ...qualifiedCompany, sourceEvidence });
+  assert.equal(duplicateSources.eligible, false, 'two rows must not count one source twice');
+  assert.deepEqual(duplicateSources.reasons, ['fewer-than-two-official-sources']);
+  assert.deepEqual(robotsForVerdict(duplicateSources), { index: false, follow: true });
+}
+
 const affiliationOnly = evaluateCompany({
   ...qualifiedCompany,
   competitors: [

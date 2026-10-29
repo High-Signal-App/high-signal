@@ -1,6 +1,6 @@
 import { reviewSample } from './review-sample.mjs';
 
-export const PUBLIC_CORPUS_POLICY_REVISION = '2026-09-07.1';
+export const PUBLIC_CORPUS_POLICY_REVISION = '2026-10-30.1';
 
 export const PUBLIC_CORPUS_ROUTE_FAMILIES = Object.freeze([
   'company',
@@ -36,7 +36,14 @@ function count(value) {
 
 export function evaluateCompany(company) {
   const reasons = [];
-  if (count(company?.sourceEvidence) < 2) reasons.push('fewer-than-two-official-sources');
+  const sourceUrls = new Set(
+    (Array.isArray(company?.sourceEvidence) ? company.sourceEvidence : [])
+      .map((evidence) =>
+        typeof evidence?.sourceUrl === 'string' ? evidence.sourceUrl.trim() : null
+      )
+      .filter(Boolean)
+  );
+  if (sourceUrls.size < 2) reasons.push('fewer-than-two-official-sources');
   if (textLength(company?.description) < 160) reasons.push('description-under-160');
   if (count(company?.entities) < 2) reasons.push('fewer-than-two-product-facets');
   if (!company?.competitors?.some((edge) => PRODUCT_OVERLAP.test(edge?.reason ?? ''))) {
