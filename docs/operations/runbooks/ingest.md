@@ -41,6 +41,24 @@ only for this local development mode. Freshness is recomputed on each render
 using the canonical weekday deadline; exchange holidays remain unconfirmed.
 Local inspection does not qualify public display or TechData redistribution.
 
+The reported-net-assets adapter replays retained NSE integrated-filing indexes
+and XML into the same canonical fact/evidence ledger. Repeat `--index` for each
+retained page. Default replay performs no source requests:
+
+```bash
+uv run --project python/ingest python -m high_signal_ingest.stock_data_collectors.nse_financials --root /path/to/retained-nse-archive --index /path/to/index.json --xml-cache .fleet-local/nse-financials/xml --store .fleet-local/reported-net-assets.sqlite --out .fleet-local/reported-net-assets.json
+uv run --project python/ingest python scripts/prepare-stock-dashboard-preview.py --root /path/to/retained-nse-archive --financials .fleet-local/reported-net-assets.json --out .fleet-local/stock-preview.json
+```
+
+`--fetch --from-date YYYY-MM-DD --to-date YYYY-MM-DD` explicitly collects both
+boards without a company cap. Access-denied/rate-limited responses stop further
+downloads. Index duplicates, missing or unsupported statements, share-count
+mismatches and unavailable prices remain coverage failures. No recurring filing
+job is activated by this command. Reported assets less external liabilities can
+include noncontrolling interests; keep that ratio separate from parent-common
+price-to-book and investment NAV. The drawer retains original units, dates,
+source hashes, fact IDs and model/snapshot versions.
+
 Launch policy lives in `docs/operations/source-coverage.md`.
 
 Current production cadence:

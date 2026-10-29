@@ -37,6 +37,21 @@ function amount(value: string | null) {
 function price(value: string | null) {
   return value === null ? 'Unavailable' : currency.format(Number(value));
 }
+const compactINR = new Intl.NumberFormat('en-IN', {
+  style: 'currency',
+  currency: 'INR',
+  notation: 'compact',
+  maximumFractionDigits: 2,
+});
+function balance(value: string | null | undefined) {
+  return value == null ? 'Unavailable' : compactINR.format(Number(value));
+}
+function ratio(value: string | null | undefined) {
+  return value == null ? 'Unavailable' : `${number.format(Number(value))}×`;
+}
+function reason(value: string | null | undefined) {
+  return value ? value.replaceAll('_', ' ') : 'Financial filing unavailable';
+}
 function day(value: string) {
   return new Date(value).toLocaleDateString('en-IN', {
     day: 'numeric',
@@ -59,6 +74,64 @@ const columns: DataColumn<StockExplorerRow>[] = [
         <div className="mt-1 max-w-72 truncate text-xs text-muted-foreground">{row.name}</div>
       </div>
     ),
+  },
+  {
+    id: 'ratio',
+    header: 'Market cap / reported net assets',
+    value: (row) => (row.financials?.ratio == null ? null : Number(row.financials.ratio)),
+    align: 'right',
+    minWidth: '15rem',
+    cell: (row) => (
+      <div>
+        <span className="font-mono tabular-nums">{ratio(row.financials?.ratio)}</span>
+        <div className="mt-1 max-w-64 text-xs text-muted-foreground">
+          {row.financials?.ratio == null
+            ? reason(row.financials?.reason)
+            : row.financials.rankingEligible
+              ? 'Ratio available'
+              : 'Historical inputs'}
+        </div>
+      </div>
+    ),
+  },
+  {
+    id: 'marketCap',
+    header: 'Market cap (INR)',
+    value: (row) => (row.financials?.marketCap == null ? null : Number(row.financials.marketCap)),
+    align: 'right',
+    minWidth: '11rem',
+    cell: (row) => (
+      <span className="font-mono tabular-nums">{balance(row.financials?.marketCap)}</span>
+    ),
+  },
+  {
+    id: 'reportedNetAssets',
+    header: 'Reported net assets (INR)',
+    value: (row) =>
+      row.financials?.reportedNetAssets == null ? null : Number(row.financials.reportedNetAssets),
+    align: 'right',
+    minWidth: '13rem',
+    cell: (row) => (
+      <span className="font-mono tabular-nums">{balance(row.financials?.reportedNetAssets)}</span>
+    ),
+  },
+  {
+    id: 'statement',
+    header: 'Balance sheet',
+    value: (row) => row.financials?.statementDate ?? null,
+    sortable: false,
+    minWidth: '10rem',
+    cell: (row) =>
+      row.financials?.statementDate ? (
+        <div className="text-xs">
+          <span>{day(row.financials.statementDate)}</span>
+          <div className="mt-1 capitalize text-muted-foreground">
+            {row.financials.statementBasis}
+          </div>
+        </div>
+      ) : (
+        <span className="text-xs text-muted-foreground">Unavailable</span>
+      ),
   },
   {
     id: 'series',
@@ -115,56 +188,7 @@ export function StockMarketExplorer({ summary, view }: { summary: Summary; view:
     <>
       <ExplorerHeader summary={summary} />
       <StockPanel eyebrow="security explorer" title="Explore the retained market">
-        <form
-          method="get"
-          action="/equities/preview"
-          className="mb-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-[minmax(12rem,1.4fr)_1fr_1fr_1fr_auto]"
-        >
-          <input type="hidden" name="sort" value={view.sort[0]?.id ?? 'symbol'} />
-          <input type="hidden" name="dir" value={view.sort[0]?.desc ? 'desc' : 'asc'} />
-          <div className="grid gap-2">
-            <Label htmlFor="security-search" className="text-xs text-muted-foreground">
-              Company, symbol or ISIN
-            </Label>
-            <Input
-              id="security-search"
-              type="search"
-              name="q"
-              defaultValue={view.filters.q}
-              placeholder="Search the full master"
-            />
-          </div>
-          <StockSelect
-            name="series"
-            label="Series"
-            value={view.filters.series}
-            allValue="all"
-            allLabel="All series"
-            options={view.series}
-          />
-          <StockSelect
-            name="prices"
-            label="Price coverage"
-            value={view.filters.prices}
-            allValue="all"
-            allLabel="All price states"
-            options={[
-              { value: 'reported', label: 'Reported close' },
-              { value: 'missing', label: 'No reported close' },
-            ]}
-          />
-          <StockSelect
-            name="listing"
-            label="Master records"
-            value={view.filters.listing}
-            allValue="all"
-            allLabel="All retained records"
-            options={[{ value: 'current', label: 'Exclude deleted / test' }]}
-          />
-          <Button type="submit" variant="outline" className="self-end">
-            Apply
-          </Button>
-        </form>
+        <ExplorerFilters view={view} />
         <DataTable
           data={view.rows}
           columns={columns}
@@ -199,6 +223,76 @@ export function StockMarketExplorer({ summary, view }: { summary: Summary; view:
   );
 }
 
+function ExplorerFilters({ view }: { view: View }) {
+  return (
+    <form
+      method="get"
+      action="/equities/preview"
+      className="mb-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+    >
+      <input type="hidden" name="sort" value={view.sort[0]?.id ?? 'symbol'} />
+      <input type="hidden" name="dir" value={view.sort[0]?.desc ? 'desc' : 'asc'} />
+      <div className="grid gap-2">
+        <Label htmlFor="security-search" className="text-xs text-muted-foreground">
+          Company, symbol or ISIN
+        </Label>
+        <Input
+          id="security-search"
+          type="search"
+          name="q"
+          defaultValue={view.filters.q}
+          placeholder="Search the full master"
+        />
+      </div>
+      <StockSelect
+        name="series"
+        label="Series"
+        value={view.filters.series}
+        allValue="all"
+        allLabel="All series"
+        options={[
+          { value: 'stocks', label: 'All stocks (incl. BE / SME)' },
+          ...view.series.map((value) => ({ value, label: value })),
+        ]}
+      />
+      <StockSelect
+        name="prices"
+        label="Price coverage"
+        value={view.filters.prices}
+        allValue="all"
+        allLabel="All price states"
+        options={[
+          { value: 'reported', label: 'Reported close' },
+          { value: 'missing', label: 'No reported close' },
+        ]}
+      />
+      <StockSelect
+        name="ratios"
+        label="Net-assets ratio"
+        value={view.filters.ratios}
+        allValue="all"
+        allLabel="All financial states"
+        options={[
+          { value: 'available', label: 'Ratio available' },
+          { value: 'missing', label: 'Ratio unavailable' },
+          { value: 'low', label: 'Positive ratio below 1×' },
+        ]}
+      />
+      <StockSelect
+        name="listing"
+        label="Master records"
+        value={view.filters.listing}
+        allValue="all"
+        allLabel="All retained records"
+        options={[{ value: 'current', label: 'Exclude deleted / test' }]}
+      />
+      <Button type="submit" variant="outline" className="self-end">
+        Apply
+      </Button>
+    </form>
+  );
+}
+
 function ExplorerHeader({ summary }: { summary: Summary }) {
   return (
     <>
@@ -210,7 +304,7 @@ function ExplorerHeader({ summary }: { summary: Summary }) {
         <h1 className="mt-4 text-3xl sm:text-4xl">Equity data, with the evidence.</h1>
         <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">
           The full retained NSE security master and daily market report. Inspect source-backed
-          prices now; ownership and valuation models remain separately qualified.
+          prices and reported balance-sheet net assets, with unsupported inputs kept visible.
         </p>
         <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted-foreground">
           <span>
@@ -230,25 +324,36 @@ function ExplorerHeader({ summary }: { summary: Summary }) {
           {
             label: 'MASTER RECORDS',
             value: number.format(summary.counts.securities),
-            sub: 'Every source series retained',
+            sub: 'All series and instrument types',
           },
           {
-            label: 'DAILY OBSERVATIONS',
-            value: number.format(summary.counts.observations),
-            sub: 'From the final CM bhavcopy',
+            label: 'LISTED EQUITY COVERAGE',
+            value: summary.universeAudit
+              ? `${number.format(summary.universeAudit.matched)} / ${number.format(summary.universeAudit.listedEquityEntries)}`
+              : 'Unaudited',
+            sub: 'Official mainboard + SME references',
           },
           {
             label: 'NO DAILY OBSERVATION',
             value: number.format(summary.counts.withoutObservation),
             sub: 'Missing prices stay unavailable',
           },
-          { label: 'NAV COVERAGE', value: 'Pending', sub: 'Ownership and net assets unqualified' },
+          {
+            label: 'NET-ASSETS RATIOS',
+            value: summary.financialCoverage
+              ? number.format(summary.financialCoverage.supportedRatios)
+              : 'Not prepared',
+            sub: summary.financialCoverage
+              ? `${number.format(summary.financialCoverage.statementIdentities)} supported filing identities · partial coverage`
+              : 'No financial projection loaded',
+          },
         ]}
       />
       <p className="text-xs leading-5 text-muted-foreground">
-        Master records include inactive, test and non-company instruments. This is not a count of
-        active listed companies. Prices below are unadjusted; no action-adjusted returns or NAV
-        rankings are inferred.
+        Listed equity coverage includes mainboard and SME entries listed by the price session.
+        Ratios use reported assets minus external liabilities and verified issued shares, with
+        partial coverage. Consolidated net assets can include noncontrolling interests; this is not
+        investment NAV or parent-common P/B.
       </p>
     </>
   );
@@ -283,6 +388,65 @@ function StockEvidence({
         {selected ? (
           <div className="space-y-5 px-4 pb-8">
             <Ledger
+              title="Reported net assets"
+              variant="paper"
+              rows={[
+                {
+                  label: 'Market cap / reported net assets',
+                  value: ratio(selected.financials?.ratio),
+                },
+                {
+                  label: 'Ratio status',
+                  value:
+                    selected.financials?.ratio == null
+                      ? reason(selected.financials?.reason)
+                      : selected.financials.rankingEligible && summary.freshness.status !== 'stale'
+                        ? 'Qualified inputs'
+                        : 'Historical inputs; excluded from positive screening',
+                },
+                {
+                  label: 'Market cap (INR)',
+                  value: selected.financials?.marketCap ?? 'Unavailable',
+                },
+                {
+                  label: 'Verified issued shares',
+                  value: selected.financials?.verifiedShares ?? 'Unavailable',
+                },
+                {
+                  label: 'Total assets (INR)',
+                  value: selected.financials?.assets ?? 'Unavailable',
+                },
+                {
+                  label: 'External liabilities (INR)',
+                  value: selected.financials?.externalLiabilities ?? 'Unavailable',
+                },
+                {
+                  label: 'Reported net assets (INR)',
+                  value: selected.financials?.reportedNetAssets ?? 'Unavailable',
+                },
+                {
+                  label: 'Reported total equity (INR)',
+                  value: selected.financials?.reportedEquity ?? 'Unavailable',
+                },
+                {
+                  label: 'Parent equity (INR)',
+                  value: selected.financials?.parentEquity ?? 'Unavailable',
+                },
+                {
+                  label: 'Noncontrolling interests (INR)',
+                  value: selected.financials?.noncontrollingInterests ?? 'Unavailable',
+                },
+                {
+                  label: 'Statement date / basis',
+                  value: selected.financials?.statementDate
+                    ? `${day(selected.financials.statementDate)} / ${selected.financials.statementBasis}`
+                    : 'Unavailable',
+                },
+                { label: 'Price date', value: day(summary.tradeDate) },
+              ]}
+              footer={`Assets minus external liabilities, reconciled to reported equity. This is not investment NAV. ${(selected.financials?.warnings ?? []).join(' ')}`}
+            />
+            <Ledger
               title="Price and activity"
               variant="paper"
               rows={[
@@ -311,7 +475,7 @@ function StockEvidence({
                   label: 'Identity',
                   value: 'Provisional listing identity; legal issuer mapping not qualified',
                 },
-                { label: 'NAV / ownership', value: 'Unavailable in the daily market dump' },
+                { label: 'Investment NAV / ownership', value: 'Separately unqualified' },
               ]}
             />
             <div className="space-y-3">
@@ -323,6 +487,13 @@ function StockEvidence({
                   </a>
                 </Button>
               ))}
+              {selected.financials?.evidence ? (
+                <Button asChild variant="outline" className="w-full justify-start">
+                  <a href={selected.financials.evidence.url} target="_blank" rel="noreferrer">
+                    Original financial filing ↗
+                  </a>
+                </Button>
+              ) : null}
               <p className="text-xs text-muted-foreground">
                 Publicly observed {day(summary.availableAt)}. Local inspection does not grant public
                 display or export permission.
@@ -331,6 +502,21 @@ function StockEvidence({
                 <p>Snapshot {summary.snapshotId}</p>
                 <p>Retained row {selected.inputSnapshotId}</p>
                 <p>Extractor {summary.extractorVersion}</p>
+                {selected.financials?.evidence ? (
+                  <p>Filing SHA-256 {selected.financials.evidence.sha256}</p>
+                ) : null}
+                {selected.financials?.availableAt ? (
+                  <p>Filing bytes first observed {selected.financials.availableAt}</p>
+                ) : null}
+                {selected.financials?.asOf ? (
+                  <p>Calculation as of {selected.financials.asOf}</p>
+                ) : null}
+                {selected.financials?.resultId ? (
+                  <p>Calculation {selected.financials.resultId}</p>
+                ) : null}
+                {selected.financials?.inputIds?.map((id) => (
+                  <p key={id}>Input {id}</p>
+                ))}
                 {Object.entries(summary.sourceSha256).map(([name, hash]) => (
                   <p key={name}>
                     {name} SHA-256 {hash}

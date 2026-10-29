@@ -44,7 +44,7 @@ test('preview authorization, filtering, sorting and pagination', () => {
     symbol: 'ZERO',
     name: 'Zero test',
     series: 'EQ',
-    isin: 'IN-TEST-ZERO',
+    isin: 'INE-TEST-ZERO',
     instrumentId: '1',
     deleted: false,
     testInstrument: false,
@@ -61,24 +61,29 @@ test('preview authorization, filtering, sorting and pagination', () => {
   };
   const rows = [
     base,
-    { ...base, id: 'missing', symbol: 'MISSING', close: null },
-    { ...base, id: 'ten', symbol: 'TEN', close: '10' },
-    { ...base, id: 'two', symbol: 'TWO', close: '2' },
+    { ...base, id: 'missing', isin: 'INE-MISSING', symbol: 'MISSING', close: null },
+    { ...base, id: 'ten', isin: 'INE-TEN', symbol: 'TEN', close: '10' },
+    { ...base, id: 'two', isin: 'INE-TWO', symbol: 'TWO', close: '2' },
     { ...base, id: 'deleted', deleted: true },
     { ...base, id: 'test', testInstrument: true },
     { ...base, id: 'invalid', identifierValid: false },
-    { ...base, id: 'sme', series: 'SM' },
+    { ...base, id: 'sme', isin: 'INE-SME', series: 'SM' },
   ];
   const packet = { rows };
   assert.deepEqual(
-    stockExplorerPage(packet, {}).rows.map((row) => row.id),
+    stockExplorerPage(packet, { series: 'EQ', prices: 'reported' }).rows.map((row) => row.id),
     ['ten', 'two', 'zero']
   );
   assert.deepEqual(
     stockExplorerPage(packet, { prices: 'missing' }).rows.map((row) => row.id),
     ['missing']
   );
-  assert.equal(stockExplorerPage(packet, { q: ['IN-TEST-ZERO', 'ignored'] }).rowCount, 3);
+  assert.equal(stockExplorerPage(packet, { q: ['INE-', 'ignored'] }).rowCount, 5);
+  assert.equal(
+    stockExplorerPage(packet, {}).rowCount,
+    5,
+    'defaults include SME and missing prices'
+  );
   const all = { series: 'all', prices: 'all', listing: 'all' };
   assert.equal(
     stockExplorerPage(packet, all).rowCount,
@@ -86,13 +91,13 @@ test('preview authorization, filtering, sorting and pagination', () => {
     'full master remains discoverable'
   );
   assert.deepEqual(
-    stockExplorerPage(packet, { sort: 'close', dir: 'asc', prices: 'all' }).rows.map(
+    stockExplorerPage(packet, { sort: 'close', dir: 'asc', prices: 'all', series: 'EQ' }).rows.map(
       (row) => row.id
     ),
     ['zero', 'two', 'ten', 'missing']
   );
   assert.deepEqual(
-    stockExplorerPage(packet, { sort: 'close', dir: 'desc', prices: 'all' }).rows.map(
+    stockExplorerPage(packet, { sort: 'close', dir: 'desc', prices: 'all', series: 'EQ' }).rows.map(
       (row) => row.id
     ),
     ['ten', 'two', 'zero', 'missing']
@@ -101,6 +106,7 @@ test('preview authorization, filtering, sorting and pagination', () => {
     rows: Array.from({ length: 121 }, (_, i) => ({
       ...base,
       id: String(i),
+      isin: `INE${i}`,
       symbol: String(i).padStart(3, '0'),
     })),
   };
@@ -111,4 +117,96 @@ test('preview authorization, filtering, sorting and pagination', () => {
   assert.equal(stockExplorerPage(packet, { q: 'not-a-company' }).rowCount, 0);
   assert.equal(packet.rows.length, rows.length, 'view sorting never mutates retained inputs');
   console.log('stock-explorer.test.mjs: ok');
+});
+
+test('reported net-assets ratios sort numerically and missing values stay last', () => {
+  const base = {
+    isin: 'INE-TEST',
+    id: 'base',
+    symbol: 'BASE',
+    name: 'Base',
+    series: 'EQ',
+    deleted: false,
+    testInstrument: false,
+    identifierValid: true,
+    close: '10',
+  };
+  const financials = (ratio, rankingEligible = true) => ({
+    ratio,
+    marketCap: '100',
+    reportedNetAssets: '50',
+    rankingEligible,
+    reason: null,
+  });
+  const rows = [
+    { ...base, id: 'ten', financials: financials('10') },
+    { ...base, id: 'two', financials: financials('2') },
+    { ...base, id: 'half', financials: financials('0.5') },
+    { ...base, id: 'negative', financials: financials('-1') },
+    { ...base, id: 'zero', financials: financials('0') },
+    { ...base, id: 'historical', financials: financials('0.25', false) },
+    { ...base, id: 'missing', financials: financials(null) },
+    { ...base, id: 'unprepared', financials: null },
+    { ...base, id: 'sme', isin: 'INE-SME', series: 'SM', financials: financials('0.75') },
+  ];
+  const packet = {
+    rows: rows.map((row) => ({ ...row, isin: `INE${row.id}` })),
+    freshness: { status: 'fresh' },
+  };
+  assert.deepEqual(
+    stockExplorerPage(packet, { sort: 'ratio', dir: 'asc' }).rows.map((r) => r.id),
+    ['negative', 'zero', 'historical', 'half', 'sme', 'two', 'ten', 'missing', 'unprepared']
+  );
+  assert.deepEqual(
+    stockExplorerPage(packet, { sort: 'ratio', dir: 'desc' }).rows.map((r) => r.id),
+    ['ten', 'two', 'sme', 'half', 'historical', 'zero', 'negative', 'missing', 'unprepared']
+  );
+  assert.deepEqual(
+    stockExplorerPage(packet, { ratios: 'missing' }).rows.map((r) => r.id),
+    ['missing', 'unprepared']
+  );
+  assert.equal(stockExplorerPage(packet, { ratios: 'available' }).rowCount, 7);
+  assert.deepEqual(
+    stockExplorerPage(packet, { ratios: 'low' }).rows.map((r) => r.id),
+    ['half', 'sme']
+  );
+  assert.equal(
+    stockExplorerPage({ ...packet, freshness: { status: 'stale' } }, { ratios: 'low' }).rowCount,
+    0
+  );
+});
+
+test('all stocks shows one listing per ISIN and all retained series preserves source rows', () => {
+  const base = {
+    id: '1',
+    symbol: 'ISSUER',
+    name: 'Issuer',
+    isin: 'INE123',
+    series: 'BE',
+    close: '100',
+    deleted: false,
+    testInstrument: false,
+    identifierValid: true,
+  };
+  const packet = {
+    rows: [
+      base,
+      { ...base, id: '2', series: 'EQ', close: null },
+      { ...base, id: '3', series: 'EQ', financials: { ratio: '1.2', rankingEligible: true } },
+      { ...base, id: '4', isin: 'INE456', series: 'SM' },
+      { ...base, id: '5', isin: 'INE789', series: 'N1' },
+    ],
+  };
+  assert.deepEqual(
+    stockExplorerPage(packet, {}).rows.map((row) => row.id),
+    ['3', '4']
+  );
+  assert.equal(stockExplorerPage(packet, { series: 'all' }).rowCount, 5);
+  assert.equal(stockExplorerPage(packet, { series: 'EQ' }).rowCount, 2);
+  assert.equal(stockExplorerPage(packet, { prices: 'missing' }).rowCount, 0);
+  assert.deepEqual(
+    stockExplorerPage(packet, { ratios: 'missing' }).rows.map((row) => row.id),
+    ['4'],
+    'an alternate unquoted series cannot make a supported stock appear unavailable'
+  );
 });

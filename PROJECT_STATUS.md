@@ -33,6 +33,19 @@ master on the server, and keeps unknown display/export rights explicit. It is
 denied before streaming in production; local preview analytics are disabled.
 Desktop, tablet and phone checks cover search, missing quotes and source evidence.
 
+The local screener also shows market cap divided by reported assets less external
+liabilities, separately from investment NAV. The NSE integrated-filing adapter
+retains original XML and dated facts in the canonical ledger. It requires a
+reconciled statement, matching symbol/ISIN, consistent units and a filing capital
+cross-check of the master share quantity. The full local replay supports 1,315
+ratios across 1,948 filing identities; coverage remains partial after archive
+access denials and unsupported statements. The 28 October price input is stale,
+so ratios are historical and excluded from positive low-ratio screening.
+An audit against main-board and SME references matched all 3,199 equity entries
+listed by that price session. Alternate trading series share one default stock
+row; the full retained dump remains available. Filing collection is not scheduled
+or deployed, and public financial-data reuse remains unqualified.
+
 Public price display is intentionally withheld while Yahoo usage rights remain
 unqualified. Existing numeric bundles are retained for verification, never
 replaced by empty successful refreshes; `/equities`, `/markets`, their exports
