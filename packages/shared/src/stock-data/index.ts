@@ -35,6 +35,8 @@ export interface StockPriceDataset {
   completeness: Coverage;
   historyAvailable: boolean;
   universeComplete?: boolean;
+  nonNseUniverseComplete?: boolean;
+  nseUniverseComplete?: boolean;
   coverage: Record<string, string>;
   rights: {
     publicDisplay: 'permitted' | 'prohibited' | 'unknown';

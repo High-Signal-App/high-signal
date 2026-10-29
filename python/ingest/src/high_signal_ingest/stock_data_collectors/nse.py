@@ -24,7 +24,7 @@ import httpx
 BASE = "https://nsearchives.nseindia.com/content/cm"
 POLICY = "https://www.nseindia.com/static/market-data/nse-data-policy"
 VERSION = "stock-data.nse-daily.v1"
-EXTRACTOR_VERSION = "nse-cm.v2"
+EXTRACTOR_VERSION = "nse-cm.v3"
 PREFIX = "stock-data/nse/v1"
 MAX_BYTES = 80_000_000
 
@@ -159,7 +159,8 @@ def _price_row(
         "priceStatus": "reported" if close is not None else "not_reported",
         "traded": Decimal(volume) > 0 if volume is not None else False,
         "completeness": "partial" if price else "unavailable",
-        "effectiveAt": f"{day.isoformat()}T15:30:00+05:30",
+        "effectiveAt": f"{day.isoformat()}T00:00:00+05:30",
+        "effectiveDatePrecision": "day",
         "availableAt": observed,
         "ingestedAt": observed,
         "inputSnapshotIds": [snapshot],
@@ -287,9 +288,30 @@ def _download(client: httpx.Client, url: str) -> bytes:
     return bytes(body)
 
 
+def _download_pair(client: httpx.Client, day: date, allow_unpublished_weekend: bool) -> dict | None:
+    bodies, missing = {}, []
+    for name, url in urls(day).items():
+        try:
+            bodies[name] = _download(client, url)
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code != 404:
+                raise
+            missing.append(exc)
+    if not missing:
+        return bodies
+    if len(missing) == 2 and day.weekday() > 4 and allow_unpublished_weekend:
+        return None  # explicit unpublished session, never a fabricated holiday
+    raise missing[0]
+
+
 def collect(
-    root: Path, day: date, *, client: httpx.Client | None = None, observed: str | None = None
-) -> Path:
+    root: Path,
+    day: date,
+    *,
+    client: httpx.Client | None = None,
+    observed: str | None = None,
+    allow_unpublished_weekend: bool = False,
+) -> Path | None:
     observed = observed or datetime.now(timezone.utc).isoformat()
     if day > datetime.fromisoformat(observed).date():
         raise ValueError("Future NSE session requested")
@@ -300,13 +322,28 @@ def collect(
         headers={"User-Agent": "Mozilla/5.0"},
     )
     try:
-        sources = urls(day)
-        master = _download(client, sources["securities"])
-        bhavcopy = _download(client, sources["bhavcopy"])
+        bodies = _download_pair(client, day, allow_unpublished_weekend)
     finally:
         if owns_client:
             client.close()
-    manifest, objects = build_archive(master, bhavcopy, day, observed)
+    if bodies is None:
+        root.mkdir(parents=True, exist_ok=True)
+        (root / "no-session.json").write_bytes(
+            encoded(
+                {
+                    "status": "unpublished_weekend",
+                    "session": day.isoformat(),
+                    "observedAt": observed,
+                    "sourceUrls": urls(day),
+                    "reason": "both official reports returned HTTP 404; no holiday inferred",
+                }
+            )
+        )
+        # An older local candidate must not be mistaken for this attempt.
+        if (root / "candidate.json").exists():
+            (root / "candidate.json").replace(root / "previous-candidate.json")
+        return None
+    manifest, objects = build_archive(bodies["securities"], bodies["bhavcopy"], day, observed)
     if manifest["counts"]["securities"] < 1000 or manifest["counts"]["observations"] < 1000:
         raise ValueError("Suspiciously small full NSE file; preserve last good archive")
     path = write_archive(root, manifest, objects)
@@ -321,6 +358,8 @@ def collect(
     }
     root.mkdir(parents=True, exist_ok=True)
     (root / "candidate.json").write_bytes(encoded(candidate))
+    if (root / "no-session.json").exists():
+        (root / "no-session.json").replace(root / "previous-no-session.json")
     return path
 
 

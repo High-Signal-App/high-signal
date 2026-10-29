@@ -70,7 +70,7 @@ Legend used in the notes:
 - [x] **yfinance closes** — daily EOD via batched download — `python/ingest/sources/equities/yf.py`
 - [x] **Tier 1 derivations** — ret_1d/30d/90d/1y/5y (local + USD), volatility, 52-week, SMA50/200, golden/death cross, beta vs SPY — `python/ingest/sources/equities/snapshot.py`
 - [x] **Page** — sortable / filterable table at `/equities`
-- [x] **Cron implementation** — `cron-equities.yml` collects the complete NSE dump daily, including potential special weekend sessions, with a weekday late retry; the non-NSE branch retains its after-US-close schedule. Feature-branch schedules activate on main.
+- [x] **Cron implementation** — `cron-equities.yml` collects the complete NSE dump daily, including potential special weekend sessions, with a late retry; the non-NSE branch retains its after-US-close schedule. Feature-branch schedules activate on main.
 - [x] **Tier 2 macro/context** — ECB FX daily + optional-key FRED DGS3MO/DGS10; Wikipedia pageviews and Wikidata enrichment are already wired. Dividend yield remains intentionally out until the single market-data service owns it. — `python/ingest/sources/macro_rates.py`
 - [x] **Tier 3 foundations** — SEC XBRL fundamentals (US), wider-window Form 4 / 13F raw filings, and mention-count inputs from existing events. Market cap must be derived by joining XBRL shares/fundamentals to the single equities snapshot source; FINRA short interest and holder summaries remain downstream analytics, not new source fetchers. — `python/ingest/sources/sec_xbrl.py`, `python/ingest/sources/edgar.py`
 

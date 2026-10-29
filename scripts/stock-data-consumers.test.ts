@@ -100,14 +100,18 @@ async function main() {
     ['NVDA'],
     'internal identity matching is independent of display rights'
   );
-  await writeFile(tickers, JSON.stringify(['AMD', 'INFY', 'NVDA']));
+  await writeFile(tickers, JSON.stringify(['AMD', 'BAD', 'INFY', 'NVDA']));
   const limitedManifest = JSON.parse(await readFile(input, 'utf8'));
   limitedManifest.universeComplete = false;
+  limitedManifest.nonNseUniverseComplete = true;
+  limitedManifest.nseUniverseComplete = true;
   limitedManifest.rows.push({
     ...limitedManifest.rows[0],
     ticker: 'TCS.NS',
     symbol: 'TCS',
     securityId: 'security:nse:TCS',
+    exchange: 'NSE',
+    series: 'EQ',
     priceBasis: 'unadjusted',
   });
   limitedManifest.rows.push({
@@ -115,6 +119,13 @@ async function main() {
     ticker: 'BAD.NS',
     symbol: 'BAD',
     deleted: true,
+  });
+  limitedManifest.rows.push({
+    ...limitedManifest.rows[0],
+    ticker: 'BOND.N0.NS',
+    symbol: 'BOND',
+    exchange: 'NSE',
+    series: 'N0',
   });
   await writeFile(input, JSON.stringify(limitedManifest));
   const limited = spawnSync(resolve('node_modules/.bin/tsx'), ['scripts/build-known-tickers.ts'], {

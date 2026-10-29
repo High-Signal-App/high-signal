@@ -12,6 +12,7 @@ import { dirname, resolve } from 'node:path';
 
 const ROOT = resolve(__dirname, '..');
 import { loadStockPrices } from './stock-data-read';
+import type { StockPriceRow } from '../packages/shared/src/stock-data';
 const OUT_PATH =
   process.env['KNOWN_TICKERS_OUTPUT'] ?? resolve(ROOT, 'workers/api/src/lib/known-tickers.json');
 
@@ -36,18 +37,43 @@ async function main() {
         throw error;
     }
   }
-  const symbols = new Set<string>(previous);
-  for (const row of snap.rows ?? []) {
-    if (row.deleted || row.testInstrument || row.identifierValid === false) continue;
-    const sym = (row.symbol ?? row.ticker ?? '').toUpperCase().trim();
-    if (/^[A-Z]{2,5}$/.test(sym)) symbols.add(sym);
-  }
-
-  const sorted = Array.from(symbols).sort();
+  const sorted = matchingSymbols(
+    snap.rows,
+    previous,
+    Boolean(snap.nonNseUniverseComplete && snap.nseUniverseComplete)
+  );
   await mkdir(dirname(OUT_PATH), { recursive: true });
   await writeFile(OUT_PATH, `${JSON.stringify(sorted, null, 0)}\n`);
   const { size } = await stat(OUT_PATH);
   console.log(JSON.stringify({ out: OUT_PATH, symbols: sorted.length, bytes: size }));
+}
+
+function isInactive(row: StockPriceRow) {
+  return row.deleted || row.testInstrument || row.identifierValid === false;
+}
+
+function matchingSymbols(rows: StockPriceRow[], previous: string[], prune: boolean) {
+  const symbols = new Set<string>(previous);
+  const inactive = new Set<string>();
+  const active = new Set<string>();
+  for (const row of rows) {
+    const sym = (row.symbol ?? row.ticker ?? '').toUpperCase().trim();
+    if (!/^[A-Z]{2,5}$/.test(sym)) continue;
+    if (isInactive(row)) {
+      inactive.add(sym);
+      continue;
+    }
+    // Full NSE data stays in the shared dataset. Bare English-token promotion
+    // uses ordinary equity series only; other series need explicit context.
+    if (row.exchange === 'NSE' && row['series'] !== 'EQ') continue;
+    active.add(sym);
+    symbols.add(sym);
+  }
+
+  if (prune) {
+    for (const sym of inactive) if (!active.has(sym)) symbols.delete(sym);
+  }
+  return Array.from(symbols).sort();
 }
 
 main().catch((error) => {

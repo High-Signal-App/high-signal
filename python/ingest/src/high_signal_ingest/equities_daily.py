@@ -166,6 +166,7 @@ def run_daily(
     # A configured non-NSE universe is not a complete global replacement. Keep
     # earlier allowlist entries even when the optional NSE archive is unavailable.
     manifest["universeComplete"] = False
+    manifest["nonNseUniverseComplete"] = universe_limit is None and not retain_history
     manifest = merge_nse_inputs(manifest, out_path.parent)
     temporary = out_path.with_suffix(".tmp")
     temporary.write_text("".join(json.dumps(row) + "\n" for row in rows))
@@ -195,6 +196,7 @@ def merge_nse_inputs(manifest: dict, data_dir: Path) -> dict:
     )
     manifest["coverage"]["scope"] = "configured non-NSE universe plus entire retained NSE CM master"
     manifest["nseInputSnapshotId"] = nse["snapshotId"]
+    manifest["nseUniverseComplete"] = nse["marketUniverseComplete"]
     manifest["completeness"] = "partial"
     # Root permissions remain conservative across both providers. Per-source
     # rights must be checked before any future mixed-dataset display grant.
@@ -238,6 +240,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         help="NSE YYYY-MM-DD; default latest expected closed session (no silent fallback)",
     )
     p.add_argument("--archive", type=Path, default=_find_data_dir() / "stock-data" / "nse")
+    p.add_argument("--allow-unpublished-weekend", action="store_true")
     args = p.parse_args(argv)
     if args.market == "nse":
         if args.limit is not None or args.retain_history:
@@ -246,8 +249,12 @@ def main(argv: Optional[list[str]] = None) -> int:
         from .stock_data_collectors.nse import collect, expected_session
 
         day = date.fromisoformat(args.session) if args.session else expected_session()
-        path = collect(args.archive, day)
-        print(path)
+        path = collect(args.archive, day, allow_unpublished_weekend=args.allow_unpublished_weekend)
+        print(
+            path
+            if path
+            else f"NSE weekend session {day}: neither official report published; latest unchanged"
+        )
         return 0
     run_daily(
         universe_limit=args.limit,

@@ -116,6 +116,7 @@ def test_every_master_and_series_retained_without_inventing_prices(tmp_path):
     )
     assert manifest["counts"] == {"securities": 4, "observations": 3, "withoutObservation": 1}
     assert dataset["rights"]["publicDisplay"] == "unknown"
+    assert all(r["effectiveDatePrecision"] == "day" for r in dataset["rows"])
 
 
 @pytest.mark.parametrize(
@@ -309,3 +310,52 @@ def test_nse_cli_rejects_partial_company_limits():
     with pytest.raises(SystemExit) as error:
         main(["--market", "nse", "--limit", "20"])
     assert error.value.code == 2
+
+
+def test_unpublished_weekend_requires_two_404s_and_explicit_scheduled_mode(tmp_path):
+    weekend = date(2026, 10, 31)
+    requests = []
+
+    def missing(request):
+        requests.append(str(request.url))
+        return httpx.Response(404)
+
+    client = httpx.Client(transport=httpx.MockTransport(missing))
+    _, pointer = candidate(tmp_path)
+    (tmp_path / "latest.json").write_bytes(encoded(pointer))
+    assert (
+        collect(
+            tmp_path,
+            weekend,
+            client=client,
+            observed="2026-10-31T15:00:00+00:00",
+            allow_unpublished_weekend=True,
+        )
+        is None
+    )
+    assert len(requests) == 2
+    assert json.loads((tmp_path / "latest.json").read_bytes()) == pointer
+    assert not (tmp_path / "candidate.json").exists()
+    assert (
+        json.loads((tmp_path / "no-session.json").read_bytes())["status"] == "unpublished_weekend"
+    )
+    with pytest.raises(httpx.HTTPStatusError):
+        collect(tmp_path, weekend, client=client, observed="2026-10-31T15:00:00+00:00")
+
+
+def test_weekday_or_one_missing_weekend_file_remains_a_failed_refresh(tmp_path):
+    client = httpx.Client(transport=httpx.MockTransport(lambda req: httpx.Response(404)))
+    with pytest.raises(httpx.HTTPStatusError):
+        collect(tmp_path, DAY, client=client, observed=OBSERVED, allow_unpublished_weekend=True)
+
+    def one_missing(req):
+        return httpx.Response(404 if str(req.url).endswith(".zip") else 200, content=b"present")
+
+    with pytest.raises(httpx.HTTPStatusError):
+        collect(
+            tmp_path,
+            date(2026, 10, 31),
+            client=httpx.Client(transport=httpx.MockTransport(one_missing)),
+            observed="2026-10-31T15:00:00+00:00",
+            allow_unpublished_weekend=True,
+        )

@@ -75,9 +75,11 @@ Master records without a daily observation retain null prices. Raw closes never
 stand in for corporate-action-adjusted history or supported valuations.
 
 `cron-equities` collects NSE files daily, including potential weekend special
-sessions, and retries late on weekdays. The requested session must match the file's own trade date. A missing file,
+sessions, with a late retry. The requested session must match the file's own trade date. A missing file,
 network error, conflicting identifier or failed R2 receipt fails the job; it never
-relabels yesterday's prices as today. Weekday expectations do not claim an
+relabels yesterday's prices as today. Scheduled weekend attempts treat two
+verified HTTP 404 responses as explicitly unpublished, leave latest unchanged,
+and retry later; a single missing file, weekday miss or network failure stays red. Weekday expectations do not claim an
 exchange holiday calendar; an unpublished holiday session is an explicit failed
 attempt, with the prior snapshot visibly dated. Operator job summaries expose
 failures. Every object is downloaded and hash-verified before the latest pointer

@@ -29,6 +29,9 @@ const nseJob = equitiesWorkflow.split('  nse:')[1]?.split('  equities:')[0];
 assert.ok(nseJob, 'the canonical equities workflow must own full NSE collection');
 assert.ok(equitiesWorkflow.includes('30 13 * * *'), 'NSE must refresh after India close');
 assert.ok(nseJob.includes('--market nse'));
+assert.ok(nseJob.includes('elif [[ "$RUN_KIND" == schedule ]]'));
+assert.ok(nseJob.includes('--allow-unpublished-weekend'));
+assert.ok(nseJob.includes("hashFiles('artifacts/nse/candidate.json')"));
 assert.ok(!nseJob.includes('--limit'), 'daily NSE collection must not have a company cap');
 assert.ok(nseJob.includes('nse_archive publish'), 'daily originals must survive the runner');
 assert.ok(
