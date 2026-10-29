@@ -9,7 +9,7 @@ from pathlib import Path
 
 import httpx
 
-from .stock_data.replication import replicate, restore
+from .stock_data.replication import HistoryNotProvisioned, replicate, restore
 from .stock_data.store import StockStore
 from .stock_data_prices import stock_store_path
 
@@ -61,4 +61,8 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except HistoryNotProvisioned as exc:
+        print(str(exc))
+        raise SystemExit(78) from exc

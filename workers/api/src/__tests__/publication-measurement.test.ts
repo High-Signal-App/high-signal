@@ -377,7 +377,6 @@ describe('first-publication measurement receipts', () => {
       slug: signal.slug,
       published_at: Math.floor(Date.parse(receipt.firstPublishedAt) / 1000),
     });
-
     const score = await request('/admin/scores', 'POST', {
       runs: [
         {
@@ -422,6 +421,40 @@ describe('first-publication measurement receipts', () => {
       Math.floor(Date.parse(receipt.firstPublishedAt) / 1000)
     );
     expect(firstPublished.measurement_eligible).toBe(0);
+  });
+
+  it('retries a temporary missing-return score without changing the published signal', async () => {
+    const { signal } = await createDraftAndPublishClaim();
+    await request(`/admin/signals/${signal.slug}`, 'PATCH', { reviewStatus: 'published' });
+    await database.binding
+      .prepare(
+        "UPDATE claim_timeline_events SET payload=json_set(payload,'$.dueAt','2000-01-01T00:00:00.000Z') WHERE kind='signal_measurement_published'"
+      )
+      .run();
+    const scoredSignal = await database.binding
+      .prepare('SELECT id FROM signals WHERE slug=?')
+      .bind(signal.slug)
+      .first<{ id: string }>();
+    await database.binding
+      .prepare(
+        "INSERT INTO score_runs(id,signal_id,run_at,window_days,outcome) VALUES(?,?,unixepoch(),30,'pending')"
+      )
+      .bind('temporary-pending-score', scoredSignal!.id)
+      .run();
+    const eligibleAgain = (await (await request('/admin/pending-scores')).json()) as {
+      pending: Array<{ slug: string }>;
+    };
+    expect(eligibleAgain.pending.some((row) => row.slug === signal.slug)).toBe(true);
+    await database.binding
+      .prepare(
+        "INSERT INTO score_runs(id,signal_id,run_at,window_days,outcome) VALUES(?,?,unixepoch(),30,'hit')"
+      )
+      .bind('completed-score', scoredSignal!.id)
+      .run();
+    const completed = (await (await request('/admin/pending-scores')).json()) as {
+      pending: Array<{ slug: string }>;
+    };
+    expect(completed.pending.some((row) => row.slug === signal.slug)).toBe(false);
   });
 
   it('does not backfill already-published claims or count a failed signal publish', async () => {

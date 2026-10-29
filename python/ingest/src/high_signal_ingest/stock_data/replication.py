@@ -16,6 +16,14 @@ MAX_RECORDS = 100_000
 MAX_TRANSFER_BYTES = 100 * 1024 * 1024
 
 
+class HistoryNotProvisioned(RuntimeError):
+    pass
+
+
+def _record_cost(record: dict) -> int:
+    return len(json.dumps(record, ensure_ascii=True).encode()) + 256
+
+
 def records(store: StockStore) -> Iterator[dict]:
     for row in store.connection.execute(
         "SELECT kind,version_id,payload FROM identities ORDER BY sequence"
@@ -25,6 +33,15 @@ def records(store: StockStore) -> Iterator[dict]:
         "SELECT version_id,payload FROM source_rights ORDER BY sequence"
     ):
         yield {"kind": "rights", "id": row["version_id"], "payload": json.loads(row["payload"])}
+    if store.connection.execute(
+        "SELECT 1 FROM sqlite_temp_master WHERE name='replication_chunks'"
+    ).fetchone():
+        for row in store.connection.execute("SELECT id,body FROM replication_chunks ORDER BY id"):
+            yield {
+                "kind": "blob",
+                "id": row["id"],
+                "payload": {"base64": base64.b64encode(bytes(row["body"])).decode()},
+            }
     for row in store.connection.execute("SELECT * FROM evidence ORDER BY rowid"):
         chunks = []
         body = bytes(row["body"])
@@ -112,16 +129,18 @@ def restore(store: StockStore, client) -> set[str]:
     transferred = 0
     while True:
         response = client.get(f"/admin/stock-data/records?after={cursor}")
+        if response.status_code == 404 and cursor == 0:
+            raise HistoryNotProvisioned("Canonical history endpoint is not provisioned (HTTP 404)")
         response.raise_for_status()
         batch = response.json()
         if not batch["records"]:
             return identities
-        transferred += len(json.dumps(batch).encode())
-        if (
-            len(identities) + len(batch["records"]) > MAX_RECORDS
-            or transferred > MAX_TRANSFER_BYTES
-        ):
-            raise ValueError("Private restore exceeds the qualified pilot transfer budget")
+        new_records = {
+            record["id"]: record for record in batch["records"] if record["id"] not in identities
+        }
+        transferred += sum(_record_cost(record) for record in new_records.values())
+        if len(identities) + len(new_records) > MAX_RECORDS or transferred > MAX_TRANSFER_BYTES:
+            raise ValueError("Private restore exceeds the qualified pilot inventory budget")
         with store.transaction():
             for record in batch["records"]:
                 import_record(store, record)
@@ -132,13 +151,15 @@ def restore(store: StockStore, client) -> set[str]:
 
 
 def replicate(store: StockStore, client, known: set[str]) -> int:
-    pending, transferred = 0, 0
+    inventory, transferred = set(), 0
     for record in records(store):
-        if record["id"] not in known:
-            pending += 1
-            transferred += len(json.dumps(record, ensure_ascii=False).encode())
-            if pending > MAX_RECORDS or transferred > MAX_TRANSFER_BYTES:
-                raise ValueError("Private replication exceeds the qualified pilot transfer budget")
+        if record["id"] not in inventory:
+            inventory.add(record["id"])
+            transferred += _record_cost(record)
+            if len(inventory) > MAX_RECORDS or transferred > MAX_TRANSFER_BYTES:
+                raise ValueError("Private replication exceeds the qualified pilot inventory budget")
+    if not known.issubset(inventory):
+        raise ValueError("Local replay is missing restored inventory; replication withheld")
     count, batch, size = 0, [], 0
 
     def send() -> None:

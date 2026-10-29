@@ -68,12 +68,14 @@ The scheduled compatibility collector continues without retaining unbounded
 history. A manual `stock_data_pilot` refresh restores first, retains at most 20 company tickers plus the benchmark
 over one month, validates inputs, and persists new private records before
 publishing separate display/export projections. Replication preflights a
-100,000-record/100 MiB pilot transfer ceiling before its first remote append.
+100,000-record/100 MiB total pilot inventory ceiling before its first remote append.
+Both restore and publication use the same conservative serialized-record accounting.
 Deploy the migrated API before enabling that job. The compatibility bundles
 are committed before optional filing/FX collection.
 A per-issuer SEC failure returns successful events with a partial-result error.
 Remote replication and research delivery run only for the explicit pilot. A
-missing scoring restore skips scoring with an operator warning; unsupported
+not-yet-provisioned history endpoint skips scoring with an operator notice;
+other restore failures fail the job. Temporary score gaps remain eligible for retry; unsupported
 public price rights leave new outcomes pending. Rollback to the prior API/job
 pair preserves the additive tables and local ledger; do not delete history.
 

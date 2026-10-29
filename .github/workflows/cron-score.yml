@@ -20,16 +20,24 @@ jobs:
       - run: uv sync
       - name: restore private canonical price history
         id: restore
-        continue-on-error: true
         env:
           ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
           API_BASE: ${{ secrets.API_BASE || 'https://api.highsignal.app' }}
-        run: uv run python -m high_signal_ingest.stock_data_sync restore
-      - name: report unavailable canonical history
-        if: steps.restore.outcome != 'success'
-        run: echo "::warning::Scoring skipped. Canonical history is unavailable; apply migration 0033 and qualify the bounded stock-data pilot before scoring. Existing outcomes are preserved."
+        run: |
+          if uv run python -m high_signal_ingest.stock_data_sync restore; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            stock_restore_exit=$?
+            if [ "$stock_restore_exit" -eq 78 ]; then
+              echo "::notice::Canonical history endpoint is not provisioned (HTTP 404); scoring skipped. Existing outcomes are preserved."
+              echo "ready=false" >> "$GITHUB_OUTPUT"
+            else
+              echo "::error::Canonical history restore failed; see the actual error above. Scoring did not run."
+              exit "$stock_restore_exit"
+            fi
+          fi
       - name: score matured signals
-        if: steps.restore.outcome == 'success'
+        if: steps.restore.outputs.ready == 'true'
         env:
           ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
           API_BASE: ${{ secrets.API_BASE }}

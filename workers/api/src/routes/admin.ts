@@ -864,7 +864,7 @@ adminRoute.get('/pending-scores', async (c) => {
        ) <= unixepoch()
        AND NOT EXISTS (
          SELECT 1 FROM score_runs sr
-         WHERE sr.signal_id = s.id AND sr.window_days = s.predicted_window_days
+         WHERE sr.signal_id = s.id AND sr.window_days = s.predicted_window_days AND (sr.outcome != 'pending' OR sr.notes LIKE 'no ticker for entity %')
        )
      LIMIT 200`
   ).all()) as {

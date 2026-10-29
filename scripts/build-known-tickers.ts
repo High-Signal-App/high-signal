@@ -7,7 +7,7 @@
 // The shape is intentionally minimal — just an array of symbols — so the
 // JSON stays well under 50KB and TypeScript can `import` it directly.
 
-import { mkdir, stat, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, stat, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 
 const ROOT = resolve(__dirname, '..');
@@ -27,7 +27,16 @@ async function main() {
   // is missing (older rows). Then keep only pure-alpha 2-5 char codes —
   // anything with digits/dashes is either crypto or international and
   // won't appear as a bare token in English-language event text.
-  const symbols = new Set<string>();
+  let previous: string[] = [];
+  if (snap.universeComplete !== true) {
+    try {
+      previous = JSON.parse(await readFile(OUT_PATH, 'utf8')) as string[];
+    } catch (error) {
+      if (!error || typeof error !== 'object' || !('code' in error) || error.code !== 'ENOENT')
+        throw error;
+    }
+  }
+  const symbols = new Set<string>(previous);
   for (const row of snap.rows ?? []) {
     const sym = (row.symbol ?? row.ticker ?? '').toUpperCase().trim();
     if (/^[A-Z]{2,5}$/.test(sym)) symbols.add(sym);

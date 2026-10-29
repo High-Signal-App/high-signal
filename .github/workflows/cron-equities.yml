@@ -66,26 +66,35 @@ jobs:
           fi
       # ── Node: regenerate the web data bundles that depend on JSONL ──────
       - uses: actions/setup-node@v6
+        if: github.event_name != 'workflow_dispatch' || inputs.stock_data_pilot != true
         with:
           node-version: "22"
       - uses: pnpm/action-setup@v6
+        if: github.event_name != 'workflow_dispatch' || inputs.stock_data_pilot != true
         # Reads version from package.json `packageManager` field — keep this
         # action invocation minimal so the two never drift.
       - name: pnpm install
+        if: github.event_name != 'workflow_dispatch' || inputs.stock_data_pilot != true
         run: pnpm install --frozen-lockfile
       - name: build equities-snapshot.json
+        if: github.event_name != 'workflow_dispatch' || inputs.stock_data_pilot != true
         run: pnpm equities:snapshot
       - name: build price-context.json
+        if: github.event_name != 'workflow_dispatch' || inputs.stock_data_pilot != true
         run: pnpm price:snapshot
       - name: refresh market context from the canonical equities snapshot
+        if: github.event_name != 'workflow_dispatch' || inputs.stock_data_pilot != true
         run: pnpm market:refresh
       - name: build market-refreshes.json
+        if: github.event_name != 'workflow_dispatch' || inputs.stock_data_pilot != true
         run: pnpm market:snapshot
       - name: bundle known-tickers.json for Worker
+        if: github.event_name != 'workflow_dispatch' || inputs.stock_data_pilot != true
         run: pnpm tickers:bundle
 
       # ── Commit + push for the next manual web deploy ────────────────────
       - name: commit refreshed artifacts
+        if: github.event_name != 'workflow_dispatch' || inputs.stock_data_pilot != true
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"

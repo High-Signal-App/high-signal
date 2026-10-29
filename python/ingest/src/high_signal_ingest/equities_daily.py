@@ -164,6 +164,7 @@ def run_daily(
             history_available=retain_history,
             rights=store.rights("yahoo-finance") if retain_history else None,
         )
+    manifest["universeComplete"] = universe_limit is None and not retain_history
     temporary = out_path.with_suffix(".tmp")
     temporary.write_text("".join(json.dumps(row) + "\n" for row in rows))
     temporary.replace(out_path)

@@ -1,7 +1,7 @@
 """Forward-return scoring runner.
 
-Pulls /admin/pending-scores from the worker API, computes forward returns via
-yfinance for each signal whose window has elapsed, then POSTs the resulting
+Pulls /admin/pending-scores from the worker API, computes forward returns from
+retained canonical inputs for each signal whose window has elapsed, then POSTs the resulting
 score_run rows back to /admin/scores.
 
 Auth: bearer token from env ADMIN_TOKEN.
@@ -65,6 +65,9 @@ def score_one(row: dict[str, Any]) -> dict[str, Any] | None:
         }
     pub_at = datetime.fromtimestamp(int(row["published_at"]), tz=timezone.utc)
     ret = forward_return(ticker, pub_at, int(row["predicted_window_days"]))
+    if ret is None:
+        LOGGER.info("Score remains eligible: %s has no permitted complete return window", ticker)
+        return None
     outcome = classify(row["direction"], ret)
     return {
         "signalId": row["id"],
@@ -94,7 +97,7 @@ def run() -> dict[str, Any]:
     with httpx.Client(timeout=60.0) as client:
         pending = fetch_pending(client)
         runs = [r for r in (score_one(p) for p in pending) if r is not None]
-        result = submit_runs(client, runs)
+        result = submit_runs(client, runs) if runs else {"inserted": 0}
     return {
         "pending": len(pending),
         "runs_submitted": len(runs),

@@ -355,7 +355,7 @@ def test_replication_budget_fails_before_the_first_remote_append(tmp_path, monke
     with StockStore(tmp_path / "stock.sqlite") as store:
         normalize_companyfacts("issuer", "0000000001", companyfacts(), store, ingested_at=NOW)
         monkeypatch.setattr(replication, "MAX_RECORDS", 1)
-        with pytest.raises(ValueError, match="pilot transfer budget"):
+        with pytest.raises(ValueError, match="pilot inventory budget"):
             replication.replicate(store, NoWrites(), set())
 
 
@@ -412,3 +412,47 @@ def test_conflicting_listing_cannot_abort_other_pilot_tickers(tmp_path, monkeypa
     rows = json.loads((tmp_path / "stock-data-prices.json").read_text())["rows"]
     assert next(row for row in rows if row["ticker"] == "NVDA.US")["identityStatus"] == "conflict"
     assert next(row for row in rows if row["ticker"] == "BHEL.NS")["last_close"] == 10
+
+
+def test_replication_accounts_for_restored_history_before_adding_new_records(tmp_path, monkeypatch):
+    from high_signal_ingest.stock_data import replication
+
+    class NoWrites:
+        def post(self, *args, **kwargs):
+            raise AssertionError("total inventory exceeds budget before a new append")
+
+    with StockStore(tmp_path / "stock.sqlite") as store:
+        normalize_companyfacts("issuer", "0000000001", companyfacts(), store, ingested_at=NOW)
+        inventory = {record["id"]: record for record in replication.records(store)}
+        known = set(list(inventory)[:-1])
+        monkeypatch.setattr(replication, "MAX_RECORDS", len(inventory) - 1)
+        with pytest.raises(ValueError, match="pilot inventory budget"):
+            replication.replicate(store, NoWrites(), known)
+        monkeypatch.setattr(replication, "MAX_RECORDS", 100000)
+        monkeypatch.setattr(
+            replication,
+            "MAX_TRANSFER_BYTES",
+            sum(replication._record_cost(record) for record in inventory.values()) - 1,
+        )
+        with pytest.raises(ValueError, match="pilot inventory budget"):
+            replication.replicate(store, NoWrites(), known)
+
+
+def test_restore_distinguishes_unprovisioned_history_from_operational_failures(tmp_path):
+    import httpx
+    from high_signal_ingest.stock_data import replication
+
+    for status in (404, 401, 500):
+
+        class Client:
+            def get(self, path):
+                return httpx.Response(
+                    status, request=httpx.Request("GET", "https://example.org" + path)
+                )
+
+        with StockStore(tmp_path / f"{status}.sqlite") as store:
+            exception = (
+                replication.HistoryNotProvisioned if status == 404 else httpx.HTTPStatusError
+            )
+            with pytest.raises(exception):
+                replication.restore(store, Client())
