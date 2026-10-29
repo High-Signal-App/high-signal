@@ -272,10 +272,11 @@ type SharedDailyBrief = {
 };
 
 /**
- * Published public editions (today and yesterday) share KV. A miss in one
- * colo's edge cache costs one KV read instead of ~5 D1 round trips (snapshot, stocks,
- * news window/query). Diagnostics stay SQL-only unless they opt in with
- * `cache=observe`, matching `/data/sources`. KV failures fall back to D1.
+ * Cache-eligible public editions (today and yesterday) share KV rather than
+ * repeating the snapshot, stocks and news D1 reads. Explicit no-cache/no-store
+ * requests, including fresh web renders, bypass both KV reads and writes.
+ * Diagnostics stay SQL-only unless they opt in with `cache=observe`; explicit
+ * freshness directives still take precedence. KV failures fall back to D1.
  */
 async function readSharedDailyBrief(
   c: Context<{ Bindings: Env }>,
