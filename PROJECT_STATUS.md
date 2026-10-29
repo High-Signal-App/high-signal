@@ -2,8 +2,9 @@
 
 Last updated: 2026-10-29
 
-October 29 equity ownership and valuation foundation — implemented on the feature
-branch; production activation and broader valuation qualification remain open:
+October 29 equity ownership and valuation foundation — merged; broader valuation
+qualification remains open. Release verification is recorded in
+[PR #307](https://github.com/High-Signal-App/high-signal/pull/307):
 
 The stock-data module retains immutable evidence, dated facts, corporate actions
 and price revisions. The existing canonical price ingress routes NSE to official full-market
@@ -18,13 +19,18 @@ series, with immutable raw/normalized history in private R2 and verified latest
 promotion. There is no NSE company-count or duration cap. Non-NSE compatibility
 retention keeps its separate bounded D1 mode. Company profiles load current
 stock facts outside ISR. The workflow includes daily full-market collection (including weekend probes),
-a late retry and canonical price-contract merging for existing consumers; this feature-branch schedule is not active on main.
+a late retry and canonical price-contract merging for existing consumers. The
+schedule is active on main. A live 29 October run exposed differing master and
+trading-day symbols for 12 SBI ETFs. The collector now joins by instrument, ISIN
+and series, keeps the trading-day symbol, and retains both source labels without
+inventing a rename effective date. True identity conflicts still fail closed.
 
 The valuation engine supports listed coverage, holding NAV and SOTP with explicit
 ownership, accounting, corporate-action, freshness and completeness checks.
 Read-only contracts feed the existing equity/company views and research adapter.
-Migration 0033 and the API release must precede the changed refresh workflow.
-No production migration or deployment has run for this work.
+Production migration 0033 is applied. Both append-only tables, indexes and all
+four immutability triggers were read back successfully. Exact Worker deployment
+and live-refresh verification are retained with the release record linked above.
 
 The equities UI now uses the existing `@saas-maker/ui` cards, filters, tables,
 pagination, badges, accordions and evidence drawers. A development-only loopback
@@ -51,7 +57,8 @@ unqualified. Existing numeric bundles are retained for verification, never
 replaced by empty successful refreshes; `/equities`, `/markets`, their exports
 and price context show an unavailable/withheld state. Internal ticker matching
 uses the canonical universe independently. A failed current-rights check cannot
-fall back to bundled stock facts. These reader changes are unreleased.
+fall back to bundled stock facts. The raw NSE ratio preview remains local;
+releasing the reader code does not qualify public numerical reuse.
 
 The free-source constraint and remaining delivery work are tracked in
 [issue #306](https://github.com/High-Signal-App/high-signal/issues/306).

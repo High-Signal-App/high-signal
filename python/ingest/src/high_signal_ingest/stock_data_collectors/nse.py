@@ -24,7 +24,7 @@ import httpx
 BASE = "https://nsearchives.nseindia.com/content/cm"
 POLICY = "https://www.nseindia.com/static/market-data/nse-data-policy"
 VERSION = "stock-data.nse-daily.v1"
-EXTRACTOR_VERSION = "nse-cm.v3"
+EXTRACTOR_VERSION = "nse-cm.v4"
 PREFIX = "stock-data/nse/v1"
 MAX_BYTES = 80_000_000
 
@@ -89,7 +89,7 @@ def parse_files(master: bytes, bhavcopy: bytes, day: date) -> tuple[list[dict], 
         if row["TradDt"] != day.isoformat() or row["Src"] != "NSE" or row["Sgmt"] != "CM":
             raise ValueError("NSE trade date, exchange or segment mismatch")
         parent = master_by_id.get(row["FinInstrmId"])
-        if parent is None or any(parent[k] != row[k] for k in ("ISIN", "TckrSymb", "SctySrs")):
+        if parent is None or any(parent[k] != row[k] for k in ("ISIN", "SctySrs")):
             raise ValueError("NSE bhavcopy instrument missing or conflicting in dated master")
         for field in (
             "ClsPric",
@@ -109,7 +109,7 @@ def _unique(rows: list[dict]) -> dict[str, dict]:
     result = {}
     for row in rows:
         key = row["FinInstrmId"]
-        if not key or not row["TckrSymb"] or not row["SctySrs"] or key in result:
+        if not key or not row["ISIN"] or not row["TckrSymb"] or not row["SctySrs"] or key in result:
             raise ValueError("Duplicate or empty NSE instrument identity")
         result[key] = row
     return result
@@ -130,13 +130,38 @@ def _number(value: str) -> str | None:
 def _price_row(
     master: dict, price: dict | None, day: date, snapshot: str, refs: list, observed: str
 ) -> dict:
-    symbol, series = master["TckrSymb"], master["SctySrs"]
+    symbol = price["TckrSymb"] if price else master["TckrSymb"]
+    series = master["SctySrs"]
+    effective = f"{day.isoformat()}T00:00:00+05:30"
+    # Dated master labels can lead the trading session. Only bhavcopy establishes
+    # the session's symbol; the master report does not establish a rename date.
+    aliases = [
+        {
+            "symbol": master["TckrSymb"],
+            "source": "security_master",
+            "reportDate": day.isoformat(),
+            "observedAt": observed,
+            "effectiveAt": None,
+        }
+    ]
+    if price:
+        aliases.append(
+            {
+                "symbol": symbol,
+                "source": "bhavcopy",
+                "reportDate": day.isoformat(),
+                "observedAt": observed,
+                "effectiveAt": effective,
+            }
+        )
     close = _number(price["ClsPric"]) if price else None
     # A zero-volume official close is retained, but is not an executed trade.
     volume = _number(price["TtlTradgVol"]) if price else None
     row = {
         "ticker": f"{symbol}.NS" if series == "EQ" else f"{symbol}.{series}.NS",
         "symbol": symbol,
+        "symbolSource": "bhavcopy" if price else "security_master",
+        "symbolAliases": aliases,
         "series": series,
         "exchange": "NSE",
         "country": "IN",
@@ -159,7 +184,7 @@ def _price_row(
         "priceStatus": "reported" if close is not None else "not_reported",
         "traded": Decimal(volume) > 0 if volume is not None else False,
         "completeness": "partial" if price else "unavailable",
-        "effectiveAt": f"{day.isoformat()}T00:00:00+05:30",
+        "effectiveAt": effective,
         "effectiveDatePrecision": "day",
         "availableAt": observed,
         "ingestedAt": observed,
