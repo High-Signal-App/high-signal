@@ -228,7 +228,7 @@ export const INTELLIGENCE_GUIDES: Record<IntelligenceGuideKey, IntelligenceGuide
     eyebrow: 'startup intelligence',
     title: 'Startup intelligence platform built on public evidence',
     metaDescription:
-      "Explore High Signal's evidence-backed startup intelligence platform: 12,964 companies, qualified profiles, product facets, and links to current signals.",
+      "Explore High Signal's evidence-backed startup intelligence platform: source-backed companies, qualified profiles, product facets, and links to current signals.",
     summary:
       'A startup intelligence platform should help an operator move from a broad market question to inspectable companies, products, demand signals, and evidence. High Signal combines a daily brief with a public company universe and evidence-backed signal archive. It is designed for discovery and follow-up research, not as a private-company database with unverifiable completeness claims.',
     schemaKind: 'dataset',
@@ -267,13 +267,13 @@ export const INTELLIGENCE_GUIDES: Record<IntelligenceGuideKey, IntelligenceGuide
     evidence: [
       {
         href: '/case-studies',
-        label: '12,964 source-backed companies',
+        label: 'Source-backed company universe',
         detail: 'Built from official YC, Antler, a16z, and Techstars directory evidence.',
         verifiedAt: '2026-08-05',
       },
       {
         href: '/case-studies',
-        label: '5,178 discovery-eligible profiles',
+        label: 'Evidence-qualified company profiles',
         detail: 'Profiles clear description, product-facet, provenance, and similarity thresholds.',
         verifiedAt: '2026-08-05',
       },
