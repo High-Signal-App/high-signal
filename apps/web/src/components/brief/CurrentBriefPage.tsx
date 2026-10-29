@@ -10,7 +10,7 @@ import { DailyBriefHero } from '@/components/brief/DailyBriefHero';
 import { HomeJsonLd } from '@/components/seo/structured-data';
 import { PageShell } from '@/components/system/HighSignalUI';
 import { api } from '@/lib/api';
-import { resolveCurrentBrief } from '@/lib/current-brief';
+import { canShareCurrentBrief, resolveCurrentBrief } from '@/lib/current-brief';
 import { istDay, isRegion, type Region } from '@high-signal/shared';
 
 export async function CurrentBriefPage({
@@ -83,6 +83,14 @@ export async function CurrentBriefPage({
           <BriefEnding brief={brief} day={selectedDay} />
         ) : null}
       </div>
+      {canShareCurrentBrief(brief, region, selectedDay, now) ? (
+        <span
+          hidden
+          data-high-signal-public-cache="current-brief-v1"
+          data-edition-date={editionDate}
+          data-region="global"
+        />
+      ) : null}
     </PageShell>
   );
 }

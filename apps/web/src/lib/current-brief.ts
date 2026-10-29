@@ -1,5 +1,6 @@
 import {
   buildBriefEditionReceipt,
+  buildReaderEdition,
   istDay,
   istDayFromTimestamp,
   istDayRange,
@@ -34,6 +35,20 @@ function qualifiedEdition(brief: BriefSnapshot, date: string, region: Region): b
     (receipt.publishable || news.length > 0) &&
     sanitizeBriefNewsItems(news).length === news.length &&
     news.every((item) => Number.isFinite(Date.parse(item.event_at)))
+  );
+}
+
+export function canShareCurrentBrief(
+  brief: BriefSnapshot,
+  region: Region,
+  day: 'today' | 'yesterday',
+  now = new Date()
+): boolean {
+  if (region !== 'global' || day !== 'today' || !qualifiedEdition(brief, istDay(now), region))
+    return false;
+  const edition = brief.readerEdition ?? buildReaderEdition(brief);
+  return [edition.news, edition.signals, edition.ideas, edition.trends].some(
+    (items) => items.length > 0
   );
 }
 

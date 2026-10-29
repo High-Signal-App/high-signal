@@ -64,7 +64,7 @@ assert.match(
 );
 assert.match(
   cachePolicySource,
-  /ROOT_CACHE_SCHEMA\s*=\s*['"]daily-brief-v2['"]/,
+  /ROOT_CACHE_SCHEMA\s*=\s*['"]daily-brief-v3['"]/,
   'the Daily Brief root cache key must be versioned away from prior documents'
 );
 assert.match(

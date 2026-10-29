@@ -12,11 +12,15 @@ type PublicApiCacheOptions = {
   waitUntil?: (promise: Promise<unknown>) => void;
 };
 
+export function requestsCacheBypass(request: Request) {
+  const directive = request.headers.get('cache-control')?.toLowerCase() ?? '';
+  return directive.includes('no-cache') || directive.includes('no-store');
+}
+
 export function isPublicCacheRequest(request: Request) {
   if (request.method !== 'GET' && request.method !== 'HEAD') return false;
   if (request.headers.has('authorization') || request.headers.has('cookie')) return false;
-  const cacheDirective = request.headers.get('cache-control')?.toLowerCase() ?? '';
-  if (cacheDirective.includes('no-cache') || cacheDirective.includes('no-store')) return false;
+  if (requestsCacheBypass(request)) return false;
 
   const url = new URL(request.url);
   if (
