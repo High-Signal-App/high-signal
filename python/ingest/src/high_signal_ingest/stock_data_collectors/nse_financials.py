@@ -36,7 +36,7 @@ from ..stock_data.store import StockStore
 from .nse import MAX_BYTES, expected_session, parse_files
 
 API = "https://www.nseindia.com/api/integrated-filing-results"
-EXTRACTOR = "nse-integrated-financials.v1"
+EXTRACTOR = "nse-integrated-financials.v2"
 MAX_XML_BYTES = 12_000_000
 XBRL = "http://www.xbrl.org/2003/instance"
 TAXONOMIES = {
@@ -211,6 +211,13 @@ def parse_statement(
     return statement
 
 
+@dataclass(frozen=True)
+class FilingExpectations:
+    period_end: str
+    basis: str
+    publication: dict[str, str]
+
+
 def retain_statement(
     store: StockStore,
     body: bytes,
@@ -219,7 +226,7 @@ def retain_statement(
     symbol: str,
     isin: str,
     observed: str,
-    publication: dict[str, str] | None = None,
+    expectations: FilingExpectations | None = None,
 ) -> tuple[Statement, list[str], dict]:
     evidence = store.retain_evidence(
         source_id="nse-integrated-financials",
@@ -232,6 +239,10 @@ def retain_statement(
     statement = parse_statement(
         body, symbol=symbol, isin=isin, evidence_id=evidence.id, available_at=observed
     )
+    if expectations is not None and statement.period_end != expectations.period_end:
+        raise ValueError("index_and_statement_date_mismatch")
+    if expectations is not None and statement.basis != expectations.basis:
+        raise ValueError("index_and_filing_basis_mismatch")
     entity_id = f"issuer:nse-symbol:{symbol}"
     store.put_entity(Entity(entity_id, symbol, "IN", {"nse_symbol": symbol, "isin": isin}))
     facts = []
@@ -256,7 +267,7 @@ def retain_statement(
                         "period_end": statement.period_end,
                         "context": value.context,
                         "rounding_tolerance": str(value.tolerance),
-                        **(publication or {}),
+                        **(expectations.publication if expectations else {}),
                     },
                     extractor_version=EXTRACTOR,
                 )
@@ -285,9 +296,42 @@ def publication_dates(row: dict) -> dict[str, str]:
 def cache_metadata(path: Path) -> dict:
     metadata = path.with_suffix(path.suffix + ".meta.json")
     meta = json.loads(metadata.read_text()) if metadata.exists() else {}
-    if meta.get("sha256") and hashlib.sha256(path.read_bytes()).hexdigest() != meta["sha256"]:
+    if not meta.get("observedAt") or not re.fullmatch(r"[a-f0-9]{64}", str(meta.get("sha256", ""))):
+        raise ValueError("retained_cache_provenance_missing")
+    instant(meta["observedAt"])
+    if hashlib.sha256(path.read_bytes()).hexdigest() != meta["sha256"]:
         raise ValueError("retained_cache_hash_mismatch")
     return meta
+
+
+def write_cache(path: Path, body: bytes, url: str) -> None:
+    path.write_bytes(body)
+    path.chmod(0o600)
+    path.with_suffix(path.suffix + ".meta.json").write_text(
+        canonical_json(
+            {
+                "observedAt": datetime.now(timezone.utc).isoformat(),
+                "url": url,
+                "sha256": hashlib.sha256(body).hexdigest(),
+                "bytes": len(body),
+            }
+        )
+    )
+
+
+def index_order(row: dict) -> tuple:
+    return (
+        filing_date(str(row.get("qe_Date", ""))),
+        str(row.get("consolidated", "")).lower() == "consolidated",
+        filing_date(
+            str(
+                row.get("broadcast_Date")
+                or row.get("creation_Date")
+                or row.get("revised_Date")
+                or row["qe_Date"]
+            )
+        ),
+    )
 
 
 def filing_url(row: dict) -> str | None:
@@ -362,10 +406,7 @@ def fetch_indexes(cache: Path, start: date, end: date, client: httpx.Client) -> 
             if not rows and received < total:
                 raise ValueError("truncated_index_pagination")
             path = cache / f"index-{board}-{page}.json"
-            path.write_bytes(body)
-            path.with_suffix(path.suffix + ".meta.json").write_text(
-                canonical_json({"observedAt": datetime.now(timezone.utc).isoformat(), "url": url})
-            )
+            write_cache(path, body, url)
             paths.append(path)
             received += len(rows)
             page += 1
@@ -404,7 +445,7 @@ def _market_inputs(root: Path, store: StockStore, as_of: str) -> tuple[dict, dic
 
 def _index_filings(indexes: list[Path], store: StockStore, as_of: str) -> tuple[dict, list, dict]:
     filings, index_evidence = defaultdict(list), []
-    raw_index_rows, unique_index_rows = 0, set()
+    raw_index_rows, unique_index_rows, invalid_rows = 0, set(), 0
     for path in indexes:
         body = path.read_bytes()
         payload = json.loads(body)
@@ -425,26 +466,28 @@ def _index_filings(indexes: list[Path], store: StockStore, as_of: str) -> tuple[
         index_evidence.append(evidence.id)
         raw_index_rows += len(payload["data"])
         for row in payload["data"]:
-            if isinstance(row, dict) and row.get("symbol") and filing_url(row):
+            if (
+                isinstance(row, dict)
+                and isinstance(row.get("symbol"), str)
+                and row["symbol"].strip()
+                and filing_url(row)
+            ):
+                try:
+                    index_order(row)
+                    publication_dates(row)
+                except (ValueError, KeyError):
+                    invalid_rows += 1
+                    continue
                 unique_index_rows.add((str(row.get("seq_Id", "")), filing_url(row)))
                 filings[row["symbol"]].append(row)
+            else:
+                invalid_rows += 1
     for symbol in filings:
         unique = {filing_url(r): r for r in filings[symbol]}
         # Newer balance sheet first; prefer consolidated for the same report date.
         filings[symbol] = sorted(
             unique.values(),
-            key=lambda r: (
-                filing_date(str(r.get("qe_Date", ""))),
-                str(r.get("consolidated", "")).lower() == "consolidated",
-                filing_date(
-                    str(
-                        r.get("broadcast_Date")
-                        or r.get("creation_Date")
-                        or r.get("revised_Date")
-                        or r["qe_Date"]
-                    )
-                ),
-            ),
+            key=index_order,
             reverse=True,
         )
     return (
@@ -454,6 +497,7 @@ def _index_filings(indexes: list[Path], store: StockStore, as_of: str) -> tuple[
             "indexPages": len(indexes),
             "indexRows": raw_index_rows,
             "uniqueIndexRows": len(unique_index_rows),
+            "invalidIndexRows": invalid_rows,
             "duplicateIndexRows": raw_index_rows - len(unique_index_rows),
         },
     )
@@ -481,15 +525,7 @@ class FilingProjection:
         if not path.exists():
             if self.client is None or self.downloads_blocked:
                 raise ValueError("filing_bytes_not_retained")
-            path.write_bytes(_download(self.client, url, MAX_XML_BYTES))
-            path.with_suffix(path.suffix + ".meta.json").write_text(
-                canonical_json(
-                    {
-                        "observedAt": datetime.now(timezone.utc).isoformat(),
-                        "url": url,
-                    }
-                )
-            )
+            write_cache(path, _download(self.client, url, MAX_XML_BYTES), url)
             time.sleep(0.15)
         meta = cache_metadata(path)
         observed = meta.get("observedAt", self.now)
@@ -506,14 +542,13 @@ class FilingProjection:
             symbol=symbol,
             isin=isin,
             observed=observed,
-            publication=publication,
+            expectations=FilingExpectations(
+                filing_date(str(filing["qe_Date"])).date().isoformat(),
+                str(filing.get("consolidated", "")).lower(),
+                publication,
+            ),
         )
         evidence["declaredPublicationDates"] = publication
-        if statement.period_end != filing_date(str(filing.get("qe_Date", ""))).date().isoformat():
-            raise ValueError("index_and_statement_date_mismatch")
-        expected_basis = str(filing.get("consolidated", "")).lower()
-        if expected_basis in {"consolidated", "standalone"} and statement.basis != expected_basis:
-            raise ValueError("index_and_filing_basis_mismatch")
         return statement, ids, evidence
 
     def statement_for(self, symbol: str, isin: str) -> tuple | None:

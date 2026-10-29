@@ -139,10 +139,7 @@ function matchesRatio(row: StockExplorerRow, filter: string, priceStale: boolean
   return true;
 }
 function matches(row: StockExplorerRow, filters: Filters, priceStale: boolean) {
-  if (
-    filters.series === 'stocks' &&
-    (!EQUITY_SERIES.has(row.series) || !row.isin.startsWith('INE'))
-  )
+  if (filters.series === 'stocks' && (!EQUITY_SERIES.has(row.series) || !/^IN[E9]/.test(row.isin)))
     return false;
   if (!['all', 'stocks'].includes(filters.series) && row.series !== filters.series) return false;
   if (filters.listing === 'current' && (row.deleted || row.testInstrument || !row.identifierValid))
@@ -204,7 +201,13 @@ export function stockExplorerPage(packet: StockExplorerPacket, query: StockExplo
       )
     : 0;
   return {
-    rows: filtered.slice(page * STOCK_PAGE_SIZE, (page + 1) * STOCK_PAGE_SIZE),
+    rows: filtered
+      .slice(page * STOCK_PAGE_SIZE, (page + 1) * STOCK_PAGE_SIZE)
+      .map((row) =>
+        packet.freshness?.status === 'stale' && row.financials
+          ? { ...row, financials: { ...row.financials, rankingEligible: false } }
+          : row
+      ),
     rowCount: filtered.length,
     page,
     filters,

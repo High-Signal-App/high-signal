@@ -59,6 +59,21 @@ include noncontrolling interests; keep that ratio separate from parent-common
 price-to-book and investment NAV. The drawer retains original units, dates,
 source hashes, fact IDs and model/snapshot versions.
 
+Regenerate the listed-equity coverage audit from the retained official main-board
+and SME CSV files. The audit excludes listings after the price session and keeps
+each reference URL and SHA-256:
+
+```bash
+uv run --project python/ingest python -m high_signal_ingest.stock_data.listing_audit --root /path/to/retained-nse-archive --mainboard .fleet-local/nse-financials/mainboard-listed.csv --sme .fleet-local/nse-financials/sme-listed.csv --out .fleet-local/nse-financials/listing-coverage.json
+```
+
+Pass `--universe-audit .fleet-local/nse-financials/listing-coverage.json` to the
+preview preparation command. It validates the snapshot, counts and source
+references before displaying coverage. Downloaded financial cache sidecars must
+include the observation timestamp and matching SHA-256; missing or altered
+provenance is rejected. Rejected filing date/basis checks retain the original
+evidence while keeping its facts out of the ledger.
+
 Launch policy lives in `docs/operations/source-coverage.md`.
 
 Current production cadence:

@@ -10,6 +10,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "python/ingest/src"))
 from high_signal_ingest.nse_archive import consume, load_manifest
 from high_signal_ingest.stock_data_collectors.nse import parse_files
+from high_signal_ingest.stock_data.listing_audit import validate_audit
 
 
 def financial_projection(path: Path | None, manifest: dict) -> dict | None:
@@ -116,13 +117,7 @@ def prepare(
         payload["financialAsOf"] = financial_packet["asOf"]
     if universe_audit:
         audit = json.loads(universe_audit.read_text())
-        if (
-            audit.get("priceSnapshotId") != manifest["snapshotId"]
-            or audit.get("tradeDate") != manifest["tradeDate"]
-        ):
-            raise ValueError(
-                "Universe audit does not match the retained price snapshot"
-            )
+        validate_audit(audit, manifest)
         payload["universeAudit"] = audit
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(payload, separators=(",", ":"), allow_nan=False))

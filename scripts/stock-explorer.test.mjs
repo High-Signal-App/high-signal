@@ -195,18 +195,34 @@ test('all stocks shows one listing per ISIN and all retained series preserves so
       { ...base, id: '3', series: 'EQ', financials: { ratio: '1.2', rankingEligible: true } },
       { ...base, id: '4', isin: 'INE456', series: 'SM' },
       { ...base, id: '5', isin: 'INE789', series: 'N1' },
+      { ...base, id: '6', isin: 'IN9123', series: 'EQ' },
     ],
   };
   assert.deepEqual(
     stockExplorerPage(packet, {}).rows.map((row) => row.id),
-    ['3', '4']
+    ['3', '4', '6']
   );
-  assert.equal(stockExplorerPage(packet, { series: 'all' }).rowCount, 5);
-  assert.equal(stockExplorerPage(packet, { series: 'EQ' }).rowCount, 2);
+  assert.equal(stockExplorerPage(packet, { series: 'all' }).rowCount, 6);
+  assert.equal(stockExplorerPage(packet, { series: 'EQ' }).rowCount, 3);
   assert.equal(stockExplorerPage(packet, { prices: 'missing' }).rowCount, 0);
   assert.deepEqual(
     stockExplorerPage(packet, { ratios: 'missing' }).rows.map((row) => row.id),
-    ['4'],
+    ['4', '6'],
     'an alternate unquoted series cannot make a supported stock appear unavailable'
   );
+});
+
+test('render-time staleness overrides a previously eligible table row', () => {
+  const row = {
+    id: '1',
+    symbol: 'TEST',
+    isin: 'INE123',
+    series: 'EQ',
+    close: '1',
+    identifierValid: true,
+    financials: { ratio: '0.5', rankingEligible: true },
+  };
+  const view = stockExplorerPage({ rows: [row], freshness: { status: 'stale' } }, {});
+  assert.equal(view.rows[0].financials.rankingEligible, false);
+  assert.equal(row.financials.rankingEligible, true);
 });

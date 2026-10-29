@@ -237,6 +237,19 @@ def test_retained_projection_joins_identity_preserves_missing_rows_and_gates_ava
         "xbrl": "https://nsearchives.nseindia.com/corporate/xbrl/test.xml",
     }
     index.write_text(json.dumps({"data": [filing], "totalCount": 1}))
+
+    def bind_index():
+        index.with_suffix(".json.meta.json").write_text(
+            json.dumps(
+                {
+                    "observedAt": NOW,
+                    "url": "https://www.nseindia.com/api/integrated-filing-results",
+                    "sha256": hashlib.sha256(index.read_bytes()).hexdigest(),
+                }
+            )
+        )
+
+    bind_index()
     with StockStore(tmp_path / "store.sqlite") as store:
         output = project(root=archive, indexes=[index], xml_cache=cache, store=store, as_of=NOW)
         assert len(output["rows"]) == len(master)
@@ -253,6 +266,7 @@ def test_retained_projection_joins_identity_preserves_missing_rows_and_gates_ava
         assert output["coverage"]["status"] == "partial"
         filing["broadcast_Date"] = "30-Oct-2026 12:00:00"
         index.write_text(json.dumps({"data": [filing], "totalCount": 1}))
+        bind_index()
         future = project(root=archive, indexes=[index], xml_cache=cache, store=store, as_of=NOW)
         assert future["coverage"]["supportedRatios"] == 0
         assert any(
@@ -261,6 +275,74 @@ def test_retained_projection_joins_identity_preserves_missing_rows_and_gates_ava
         source.write_bytes(xml(amount="2000", equity="1600"))
         corrupt = project(root=archive, indexes=[index], xml_cache=cache, store=store, as_of=NOW)
         assert any(f["reason"] == "retained_cache_hash_mismatch" for f in corrupt["failures"])
+
+
+def test_rejected_index_cross_checks_never_enter_the_fact_ledger(tmp_path):
+    from high_signal_ingest.stock_data.store import StockStore
+    from high_signal_ingest.stock_data_collectors.nse_financials import (
+        retain_statement,
+        FilingExpectations,
+    )
+
+    for expected, reason in [
+        (FilingExpectations("2026-06-30", "consolidated", {}), "date_mismatch"),
+        (FilingExpectations("2026-09-30", "standalone", {}), "basis_mismatch"),
+    ]:
+        with StockStore(tmp_path / (reason + ".sqlite")) as store:
+            with pytest.raises(ValueError, match=reason):
+                retain_statement(
+                    store,
+                    xml(),
+                    "https://nsearchives.nseindia.com/corporate/xbrl/test.xml",
+                    symbol="TEST",
+                    isin="INE123456789",
+                    observed=NOW,
+                    expectations=expected,
+                )
+            assert store.facts(as_of=NOW) == []
+            assert store.connection.execute("SELECT COUNT(*) FROM evidence").fetchone()[0] == 1
+
+
+def test_cache_writer_binds_bytes_and_missing_or_tampered_metadata_is_rejected(tmp_path):
+    from high_signal_ingest.stock_data_collectors.nse_financials import cache_metadata, write_cache
+
+    path = tmp_path / "filing.xml"
+    path.write_bytes(xml())
+    with pytest.raises(ValueError, match="provenance_missing"):
+        cache_metadata(path)
+    write_cache(path, xml(), "https://nsearchives.nseindia.com/corporate/xbrl/test.xml")
+    assert cache_metadata(path)["bytes"] == len(xml())
+    path.write_bytes(xml(amount="2000"))
+    with pytest.raises(ValueError, match="hash_mismatch"):
+        cache_metadata(path)
+
+
+def test_invalid_index_row_is_a_coverage_failure_not_a_batch_failure(tmp_path):
+    import json
+    from high_signal_ingest.stock_data.store import StockStore
+    from high_signal_ingest.stock_data_collectors.nse_financials import (
+        _index_filings,
+        write_cache,
+        cache_metadata,
+    )
+
+    index = tmp_path / "index.json"
+    rows = [
+        {
+            "symbol": "TEST",
+            "xbrl": "https://nsearchives.nseindia.com/corporate/xbrl/test.xml",
+            "qe_Date": "",
+        }
+    ]
+    write_cache(
+        index,
+        json.dumps({"data": rows}).encode(),
+        "https://www.nseindia.com/api/integrated-filing-results",
+    )
+    with StockStore(tmp_path / "store.sqlite") as store:
+        filings, _, counts = _index_filings([index], store, cache_metadata(index)["observedAt"])
+        assert not filings
+        assert counts["invalidIndexRows"] == 1
 
 
 def test_preview_financial_contract_rejects_other_price_snapshots_dates_and_security_identity(
