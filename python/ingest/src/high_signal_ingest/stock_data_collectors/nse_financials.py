@@ -300,7 +300,8 @@ def cache_metadata(path: Path) -> dict:
     meta = json.loads(metadata.read_text()) if metadata.exists() else {}
     if (
         not isinstance(meta, dict)
-        or not meta.get("observedAt")
+        or not isinstance(meta.get("observedAt"), str)
+        or not meta["observedAt"]
         or not re.fullmatch(r"[a-f0-9]{64}", str(meta.get("sha256", "")))
     ):
         raise ValueError("retained_cache_provenance_missing")
@@ -311,14 +312,19 @@ def cache_metadata(path: Path) -> dict:
 
 
 def _atomic_cache_file(path: Path, body: bytes) -> None:
-    with tempfile.NamedTemporaryFile(
-        dir=path.parent, prefix=path.name + ".", suffix=".pending", delete=False
-    ) as temporary:
-        temporary.write(body)
-        temporary.flush()
-        os.fsync(temporary.fileno())
-        pending = Path(temporary.name)
-    os.replace(pending, path)
+    pending = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            dir=path.parent, prefix=path.name + ".", suffix=".pending", delete=False
+        ) as temporary:
+            pending = Path(temporary.name)
+            temporary.write(body)
+            temporary.flush()
+            os.fsync(temporary.fileno())
+        os.replace(pending, path)
+    finally:
+        if pending is not None:
+            pending.unlink(missing_ok=True)
 
 
 def write_cache(path: Path, body: bytes, url: str) -> None:
@@ -534,15 +540,26 @@ class FilingProjection:
     failures: list[dict] = field(default_factory=list)
     statements: dict = field(default_factory=dict)
     downloads_blocked: bool = False
+    integrity_events: list[dict] = field(default_factory=list)
 
     def cached_filing(self, path: Path, url: str) -> dict:
         try:
             return cache_metadata(path)
-        except (FileNotFoundError, ValueError):
+        except (FileNotFoundError, ValueError) as exc:
             if self.client is None or self.downloads_blocked:
                 if not path.exists():
                     raise ValueError("filing_bytes_not_retained") from None
                 raise
+            if path.exists():
+                event = {
+                    "type": "stock-data.cache-integrity.v1",
+                    "url": url,
+                    "reason": str(exc),
+                    "observedAt": datetime.now(timezone.utc).isoformat(),
+                    "cacheBodySha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+                }
+                event["snapshotId"] = self.store.save_snapshot(event)
+                self.integrity_events.append(event)
         write_cache(path, _download(self.client, url, MAX_XML_BYTES), url)
         time.sleep(0.15)
         return cache_metadata(path)
@@ -690,6 +707,7 @@ def project(
             "status": "partial",
             "indexCompleteness": "unqualified; page counts and duplicates require source audit",
             "downloadsBlocked": projection.downloads_blocked,
+            "cacheIntegrityEvents": len(projection.integrity_events),
             "records": len(results),
             "supportedRatios": sum(r["financials"]["ratio"] is not None for r in results),
             "rankingEligible": sum(r["financials"]["rankingEligible"] for r in results),
@@ -699,6 +717,7 @@ def project(
             "reasons": dict(Counter(r["financials"]["reason"] or "available" for r in results)),
         },
         "failures": projection.failures,
+        "cacheIntegrityEvents": projection.integrity_events,
         "rows": results,
     }
     output["snapshotId"] = store.save_snapshot(output)

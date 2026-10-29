@@ -346,7 +346,7 @@ def test_invalid_index_row_is_a_coverage_failure_not_a_batch_failure(tmp_path):
         assert counts["duplicateIndexRows"] == 0
 
 
-@pytest.mark.parametrize("state", ["interrupted", "tampered"])
+@pytest.mark.parametrize("state", ["interrupted", "tampered", "invalid_timestamp"])
 def test_online_refresh_recovers_incomplete_or_invalid_cache(tmp_path, state):
     import httpx
     from datetime import datetime, timezone
@@ -359,9 +359,16 @@ def test_online_refresh_recovers_incomplete_or_invalid_cache(tmp_path, state):
 
     url = "https://nsearchives.nseindia.com/corporate/xbrl/test.xml"
     path = tmp_path / "test.xml"
-    if state == "tampered":
+    if state in {"tampered", "invalid_timestamp"}:
         write_cache(path, xml(), url)
     path.write_bytes(b"interrupted-or-altered-body")
+    if state == "invalid_timestamp":
+        import json
+
+        meta_path = path.with_suffix(".xml.meta.json")
+        meta = json.loads(meta_path.read_text())
+        meta["observedAt"] = 123
+        meta_path.write_text(json.dumps(meta))
     requests = []
 
     def respond(request):
@@ -383,6 +390,27 @@ def test_online_refresh_recovers_incomplete_or_invalid_cache(tmp_path, state):
         assert requests == [url]
         assert path.read_bytes() == xml()
         assert cache_metadata(path)["bytes"] == len(xml())
+        assert len(projection.integrity_events) == 1
+        assert projection.integrity_events[0]["url"] == url
+        assert projection.integrity_events[0]["snapshotId"].startswith("snapshot:")
+
+
+def test_failed_atomic_replacement_preserves_old_body_and_cleans_its_temporary_file(
+    tmp_path, monkeypatch
+):
+    from high_signal_ingest.stock_data_collectors import nse_financials
+
+    path = tmp_path / "filing.xml"
+    path.write_bytes(b"old")
+
+    def fail(*_):
+        raise OSError("simulated replace failure")
+
+    monkeypatch.setattr(nse_financials.os, "replace", fail)
+    with pytest.raises(OSError, match="simulated"):
+        nse_financials._atomic_cache_file(path, b"new")
+    assert path.read_bytes() == b"old"
+    assert list(tmp_path.glob("*.pending")) == []
 
 
 def test_preview_financial_contract_rejects_other_price_snapshots_dates_and_security_identity(

@@ -83,6 +83,9 @@ acquisition history, not independent timestamp attestation. Later collection
 uses the tracked adapter above. Cache writes replace each file atomically and
 commit the hash sidecar last; an interrupted or invalid cache is refetched only
 when explicit online collection is enabled. Offline replay fails closed.
+Recovery records an append-only cache-integrity event before refetching. A
+replacement has a new observation time and cannot satisfy an earlier `--as-of`
+replay; historical availability is never backdated to repair a broken cache.
 
 Launch policy lives in `docs/operations/source-coverage.md`.
 
