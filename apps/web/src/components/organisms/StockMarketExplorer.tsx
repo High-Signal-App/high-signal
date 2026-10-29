@@ -31,6 +31,19 @@ const currency = new Intl.NumberFormat('en-IN', {
   minimumFractionDigits: 2,
   maximumFractionDigits: 6,
 });
+const rupees = new Intl.NumberFormat('en-IN', {
+  style: 'currency',
+  currency: 'INR',
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+const wholeNumber = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 });
+function money(value: string | null | undefined) {
+  return value == null ? 'Unavailable' : rupees.format(Number(value));
+}
+function shares(value: string | null | undefined) {
+  return value == null ? 'Unavailable' : wholeNumber.format(Number(value));
+}
 function amount(value: string | null) {
   return value === null ? 'Unavailable' : number.format(Number(value));
 }
@@ -406,35 +419,35 @@ function StockEvidence({
                 },
                 {
                   label: 'Market cap (INR)',
-                  value: selected.financials?.marketCap ?? 'Unavailable',
+                  value: money(selected.financials?.marketCap),
                 },
                 {
                   label: 'Verified issued shares',
-                  value: selected.financials?.verifiedShares ?? 'Unavailable',
+                  value: shares(selected.financials?.verifiedShares),
                 },
                 {
                   label: 'Total assets (INR)',
-                  value: selected.financials?.assets ?? 'Unavailable',
+                  value: money(selected.financials?.assets),
                 },
                 {
                   label: 'External liabilities (INR)',
-                  value: selected.financials?.externalLiabilities ?? 'Unavailable',
+                  value: money(selected.financials?.externalLiabilities),
                 },
                 {
                   label: 'Reported net assets (INR)',
-                  value: selected.financials?.reportedNetAssets ?? 'Unavailable',
+                  value: money(selected.financials?.reportedNetAssets),
                 },
                 {
                   label: 'Reported total equity (INR)',
-                  value: selected.financials?.reportedEquity ?? 'Unavailable',
+                  value: money(selected.financials?.reportedEquity),
                 },
                 {
                   label: 'Parent equity (INR)',
-                  value: selected.financials?.parentEquity ?? 'Unavailable',
+                  value: money(selected.financials?.parentEquity),
                 },
                 {
                   label: 'Noncontrolling interests (INR)',
-                  value: selected.financials?.noncontrollingInterests ?? 'Unavailable',
+                  value: money(selected.financials?.noncontrollingInterests),
                 },
                 {
                   label: 'Statement date / basis',
@@ -455,7 +468,7 @@ function StockEvidence({
                 { label: 'High / low', value: `${price(selected.high)} / ${price(selected.low)}` },
                 { label: 'Previous close', value: price(selected.previousClose) },
                 { label: 'Volume', value: amount(selected.volume) },
-                { label: 'Turnover (INR)', value: amount(selected.turnover) },
+                { label: 'Turnover (INR)', value: money(selected.turnover) },
                 { label: 'Trade count', value: amount(selected.trades) },
               ]}
               footer="No reported observation means unavailable, never zero. A reported close does not establish an executed trade or an adjusted return."
