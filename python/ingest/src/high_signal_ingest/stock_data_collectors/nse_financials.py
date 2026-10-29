@@ -10,8 +10,10 @@ import argparse
 import hashlib
 import io
 import json
+import os
 import re
 import time
+import tempfile
 import xml.etree.ElementTree as ET
 from collections import Counter, defaultdict
 from dataclasses import asdict, dataclass, field
@@ -296,7 +298,11 @@ def publication_dates(row: dict) -> dict[str, str]:
 def cache_metadata(path: Path) -> dict:
     metadata = path.with_suffix(path.suffix + ".meta.json")
     meta = json.loads(metadata.read_text()) if metadata.exists() else {}
-    if not meta.get("observedAt") or not re.fullmatch(r"[a-f0-9]{64}", str(meta.get("sha256", ""))):
+    if (
+        not isinstance(meta, dict)
+        or not meta.get("observedAt")
+        or not re.fullmatch(r"[a-f0-9]{64}", str(meta.get("sha256", "")))
+    ):
         raise ValueError("retained_cache_provenance_missing")
     instant(meta["observedAt"])
     if hashlib.sha256(path.read_bytes()).hexdigest() != meta["sha256"]:
@@ -304,10 +310,21 @@ def cache_metadata(path: Path) -> dict:
     return meta
 
 
+def _atomic_cache_file(path: Path, body: bytes) -> None:
+    with tempfile.NamedTemporaryFile(
+        dir=path.parent, prefix=path.name + ".", suffix=".pending", delete=False
+    ) as temporary:
+        temporary.write(body)
+        temporary.flush()
+        os.fsync(temporary.fileno())
+        pending = Path(temporary.name)
+    os.replace(pending, path)
+
+
 def write_cache(path: Path, body: bytes, url: str) -> None:
-    path.write_bytes(body)
-    path.chmod(0o600)
-    path.with_suffix(path.suffix + ".meta.json").write_text(
+    _atomic_cache_file(path, body)
+    _atomic_cache_file(
+        path.with_suffix(path.suffix + ".meta.json"),
         canonical_json(
             {
                 "observedAt": datetime.now(timezone.utc).isoformat(),
@@ -315,7 +332,7 @@ def write_cache(path: Path, body: bytes, url: str) -> None:
                 "sha256": hashlib.sha256(body).hexdigest(),
                 "bytes": len(body),
             }
-        )
+        ).encode(),
     )
 
 
@@ -498,7 +515,7 @@ def _index_filings(indexes: list[Path], store: StockStore, as_of: str) -> tuple[
             "indexRows": raw_index_rows,
             "uniqueIndexRows": len(unique_index_rows),
             "invalidIndexRows": invalid_rows,
-            "duplicateIndexRows": raw_index_rows - len(unique_index_rows),
+            "duplicateIndexRows": raw_index_rows - invalid_rows - len(unique_index_rows),
         },
     )
 
@@ -518,16 +535,23 @@ class FilingProjection:
     statements: dict = field(default_factory=dict)
     downloads_blocked: bool = False
 
+    def cached_filing(self, path: Path, url: str) -> dict:
+        try:
+            return cache_metadata(path)
+        except (FileNotFoundError, ValueError):
+            if self.client is None or self.downloads_blocked:
+                if not path.exists():
+                    raise ValueError("filing_bytes_not_retained") from None
+                raise
+        write_cache(path, _download(self.client, url, MAX_XML_BYTES), url)
+        time.sleep(0.15)
+        return cache_metadata(path)
+
     def read_filing(self, filing: dict, symbol: str, isin: str) -> tuple:
         url = filing_url(filing)
         assert url is not None
         path = self.xml_cache / Path(urlparse(url).path).name
-        if not path.exists():
-            if self.client is None or self.downloads_blocked:
-                raise ValueError("filing_bytes_not_retained")
-            write_cache(path, _download(self.client, url, MAX_XML_BYTES), url)
-            time.sleep(0.15)
-        meta = cache_metadata(path)
+        meta = self.cached_filing(path, url)
         observed = meta.get("observedAt", self.now)
         if self.as_of is not None and instant(observed) > instant(self.as_of):
             raise ValueError("statement_not_yet_available")

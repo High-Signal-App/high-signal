@@ -343,6 +343,46 @@ def test_invalid_index_row_is_a_coverage_failure_not_a_batch_failure(tmp_path):
         filings, _, counts = _index_filings([index], store, cache_metadata(index)["observedAt"])
         assert not filings
         assert counts["invalidIndexRows"] == 1
+        assert counts["duplicateIndexRows"] == 0
+
+
+@pytest.mark.parametrize("state", ["interrupted", "tampered"])
+def test_online_refresh_recovers_incomplete_or_invalid_cache(tmp_path, state):
+    import httpx
+    from datetime import datetime, timezone
+    from high_signal_ingest.stock_data.store import StockStore
+    from high_signal_ingest.stock_data_collectors.nse_financials import (
+        FilingProjection,
+        write_cache,
+        cache_metadata,
+    )
+
+    url = "https://nsearchives.nseindia.com/corporate/xbrl/test.xml"
+    path = tmp_path / "test.xml"
+    if state == "tampered":
+        write_cache(path, xml(), url)
+    path.write_bytes(b"interrupted-or-altered-body")
+    requests = []
+
+    def respond(request):
+        requests.append(str(request.url))
+        return httpx.Response(200, content=xml())
+
+    now = datetime.now(timezone.utc).isoformat()
+    with (
+        httpx.Client(transport=httpx.MockTransport(respond)) as client,
+        StockStore(tmp_path / "store.sqlite") as store,
+    ):
+        projection = FilingProjection(store, {}, tmp_path, {}, [], [], None, now, client)
+        statement, _, _ = projection.read_filing(
+            {"xbrl": url, "qe_Date": "30-SEP-2026", "consolidated": "Consolidated"},
+            "TEST",
+            "INE123456789",
+        )
+        assert statement.assets.value == 1000
+        assert requests == [url]
+        assert path.read_bytes() == xml()
+        assert cache_metadata(path)["bytes"] == len(xml())
 
 
 def test_preview_financial_contract_rejects_other_price_snapshots_dates_and_security_identity(

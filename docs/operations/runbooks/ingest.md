@@ -74,6 +74,16 @@ include the observation timestamp and matching SHA-256; missing or altered
 provenance is rejected. Rejected filing date/basis checks retain the original
 evidence while keeping its facts out of the ledger.
 
+The initial October 29 corpus used a bounded session bootstrap before the
+tracked collector was complete. Its sidecars recorded SHA-256 directly from
+the HTTP response bytes at download time; hashes were not backfilled. The exact
+bootstrap sources and hashes are retained in the private canonical ledger and
+`.fleet-local/nse-financials/acquisition-receipt.json`. This is operator-attested
+acquisition history, not independent timestamp attestation. Later collection
+uses the tracked adapter above. Cache writes replace each file atomically and
+commit the hash sidecar last; an interrupted or invalid cache is refetched only
+when explicit online collection is enabled. Offline replay fails closed.
+
 Launch policy lives in `docs/operations/source-coverage.md`.
 
 Current production cadence:
