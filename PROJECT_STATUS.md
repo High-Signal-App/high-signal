@@ -1,6 +1,30 @@
 # high-signal — PROJECT STATUS
 
-Last updated: 2026-10-24
+Last updated: 2026-10-29
+
+October 29 equity ownership and valuation foundation — implemented on the feature
+branch, not released or qualified as the initial pilot:
+
+The stock-data module retains immutable evidence, dated facts, corporate actions
+and price revisions. The existing yfinance refresh remains the single price
+ingress; track-record scoring reads retained history. SEC companyfacts collection
+has moved behind the same boundary, and ECB reference FX has a documented free
+reuse policy. Private canonical records replicate through operator-authenticated
+D1 routes; permitted display and export snapshots are separate from raw evidence.
+The public repository no longer receives the raw equity JSONL from refresh jobs.
+
+The valuation engine supports listed coverage, holding NAV and SOTP with explicit
+ownership, accounting, corporate-action, freshness and completeness checks.
+Read-only contracts feed the existing equity/company views and research adapter.
+Migration 0032 and the API release must precede the changed refresh workflow.
+No production migration or deployment has run for this work.
+
+The 20-company manually verified India pilot, an openly reusable Indian financial
+and ownership cohort, qualified public price rights, historical screener models,
+and a positive real-filing-to-research acceptance remain unfinished. A real BHEL
+report replay validated five standalone figures and reconciled its balance sheet;
+unsupported valuation and reuse permissions correctly withheld publication. This
+is a negative-gate replay, not completion of the initial release.
 
 October 24 reading-pipeline completion — implementation and live qualification:
 

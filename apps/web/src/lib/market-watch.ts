@@ -53,7 +53,6 @@ export function resolveMarketRefreshRecord(
   return (
     sorted.find((record) => refreshDate(record) === preferredDate) ??
     sorted.find((record) => refreshDate(record) < preferredDate) ??
-    sorted.at(-1) ??
     null
   );
 }
@@ -64,24 +63,40 @@ export function marketDirectionTone(direction: string) {
   return 'text-zinc-300';
 }
 
-export function formatMarketPct(value: number) {
+export function formatMarketPct(value: number | null) {
+  if (value === null) return 'unavailable';
   return `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`;
 }
 
 export function buildMarketWatchSnapshot(
   now = new Date(),
-  preferredDate?: string | null
+  preferredDate?: string | null,
+  records = bundledMarketRefreshes as MarketRefreshRecord[]
 ): MarketWatchSnapshot {
   const config = marketWatchConfig as MarketWatchConfig;
-  const history = (bundledMarketRefreshes as MarketRefreshRecord[])
+  const history = records
     .slice()
+    .filter((record) => Date.parse(record.createdAt) <= now.getTime())
     .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
   const latest = latestMarketRefresh(history);
   const selected = resolveMarketRefreshRecord(history, preferredDate);
   const latestRefreshAt = latest?.createdAt ?? null;
   const selectedRefreshAt = selected?.createdAt ?? null;
   const selectedRefreshDate = selectedRefreshAt?.slice(0, 10) ?? null;
-  const freshnessHours = hoursSince(now, latestRefreshAt);
+  const refreshHours = hoursSince(now, latestRefreshAt);
+  const priceDates =
+    latest?.groups.flatMap((group) => group.quotes.map((quote) => `${quote.date}T00:00:00Z`)) ?? [];
+  const datesValid =
+    priceDates.length > 0 &&
+    priceDates.every(
+      (date) => Number.isFinite(Date.parse(date)) && Date.parse(date) <= now.getTime()
+    );
+  const oldestPriceAt = datesValid
+    ? new Date(Math.min(...priceDates.map(Date.parse))).toISOString()
+    : null;
+  const priceHours = hoursSince(now, oldestPriceAt);
+  const freshnessHours =
+    refreshHours === null || priceHours === null ? null : Math.max(refreshHours, priceHours);
   const groups = selected?.groups ?? [];
   return {
     generatedAt: now.toISOString(),

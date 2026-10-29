@@ -18,6 +18,11 @@ jobs:
       - uses: actions/setup-python@v6
         with: { python-version: "3.11" }
       - run: uv sync
+      - name: restore private canonical price history
+        env:
+          ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
+          API_BASE: ${{ secrets.API_BASE || 'https://api.highsignal.app' }}
+        run: uv run python -m high_signal_ingest.stock_data_sync restore
       - name: score matured signals
         env:
           ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}

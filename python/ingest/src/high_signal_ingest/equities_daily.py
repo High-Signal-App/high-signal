@@ -4,8 +4,8 @@
 
 Builds the universe → fetches closes via yfinance → computes Tier 1 snapshot →
 writes a JSONL artifact under ``data/equities-snapshot.jsonl``. The snapshot
-is the only persisted artifact; daily closes are held in memory and discarded
-after compute (the snapshot row carries all derived fields we need).
+is a compatibility projection. Price observations, actions and revisions are
+retained by the shared stock-data store before projections are generated.
 
 This module is the only stock-price ingress. Other workflows should consume
 ``data/equities-snapshot.jsonl`` or the future D1 ``closes`` /
@@ -23,12 +23,21 @@ import dataclasses
 import json
 import logging
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
 from .sources.equities.snapshot import Tier1Snapshot, compute_tier1
 from .sources.equities.universe import TickerSpec, build_universe
-from .sources.equities.yf import fetch_closes as yf_fetch, fetch_many as yf_fetch_many
+from .sources.equities.yf import fetch_many as yf_fetch_many
+from .stock_data.store import StockStore
+from .stock_data_prices import (
+    issuer_id,
+    persist_prices,
+    price_inputs,
+    stock_store_path,
+    versioned_prices,
+)
 
 
 LOGGER = logging.getLogger(__name__)
@@ -76,30 +85,61 @@ def run_daily(
     out_path = out_path or (_find_data_dir() / "equities-snapshot.jsonl")
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
-    # SPY anchors beta + relative strength.
-    spy_closes = yf_fetch("SPY.US", period=period)
-    if not spy_closes:
-        LOGGER.warning("could not fetch SPY closes — beta/rel-strength will be None")
-
     # Batch-fetch closes for the rest of the universe (yf.download with threads).
     # Crypto handled by yfinance too (BTC-USD form already canonical).
-    tickers_to_fetch = [s.ticker for s in universe]
+    tickers_to_fetch = list(dict.fromkeys(["SPY.US", *(s.ticker for s in universe)]))
     LOGGER.info("fetching closes for %d tickers (batch=%d)…", len(tickers_to_fetch), batch_size)
     closes_by_ticker = yf_fetch_many(tickers_to_fetch, period=period, batch_size=batch_size)
+    if not any(closes_by_ticker.get(spec.ticker) for spec in universe):
+        raise RuntimeError(
+            "Canonical equity refresh returned no company prices; previous snapshots are preserved"
+        )
+    spy_closes = closes_by_ticker.get("SPY.US", [])
+    generated_at = datetime.now(timezone.utc).isoformat()
+    store = StockStore(stock_store_path(out_path.parent))
+    with store.transaction():
+        persist_prices(
+            store,
+            TickerSpec("SPY.US", "SPY", "US", "etf", currency="USD", country="US"),
+            spy_closes,
+            ingested_at=generated_at,
+        )
 
     n_written = 0
     n_with_data = 0
+    rows = []
     with out_path.open("w") as f:
         for spec in universe:
             closes = closes_by_ticker.get(spec.ticker, [])
+            with store.transaction():
+                persist_prices(store, spec, closes, ingested_at=generated_at)
             if closes:
                 snap = compute_tier1(spec.ticker, closes, spy_closes=spy_closes or None)
                 n_with_data += 1
             else:
                 snap = Tier1Snapshot(ticker=spec.ticker)
-            f.write(json.dumps(_snapshot_to_dict(spec, snap)) + "\n")
+            row = _snapshot_to_dict(spec, snap)
+            row["entityId"] = issuer_id(store, spec)
+            row["inputSnapshotIds"] = (
+                [price_inputs(store, spec.ticker, closes, spy_closes, as_of=generated_at)]
+                if closes
+                else []
+            )
+            rows.append(row)
+            f.write(json.dumps(row) + "\n")
             n_written += 1
 
+    manifest = versioned_prices(
+        rows,
+        generated_at=generated_at,
+        history_available=True,
+        rights=store.rights("yahoo-finance"),
+    )
+    manifest_path = out_path.parent / "stock-data-prices.json"
+    temporary = manifest_path.with_suffix(".tmp")
+    temporary.write_text(json.dumps(manifest, allow_nan=False) + "\n")
+    temporary.replace(manifest_path)
+    store.close()
     LOGGER.info(
         "wrote %d rows (%d with price data) to %s",
         n_written,

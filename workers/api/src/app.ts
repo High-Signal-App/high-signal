@@ -17,6 +17,7 @@ import { sectorsRoute } from './routes/sectors';
 import { signalsRoute } from './routes/signals';
 import { trackRecordRoute } from './routes/track-record';
 import { unmappedRoute } from './routes/unmapped';
+import { stockDataRoute } from './routes/stock-data';
 
 export type Env = {
   DB: D1Database;
@@ -67,6 +68,7 @@ app.get('/', (c) => c.json({ name: 'high-signal-api', env: c.env.ENVIRONMENT }))
 app.get('/health', (c) => c.json({ ok: true, ts: Date.now() }));
 
 app.route('/signals', signalsRoute);
+app.route('/v1/stock-data', stockDataRoute);
 app.route('/entities', entitiesRoute);
 app.route('/track-record', trackRecordRoute);
 app.route('/admin', adminRoute);

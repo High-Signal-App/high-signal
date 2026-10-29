@@ -35,6 +35,8 @@ cache.bin
 
 # Python equities pipeline intermediate (rebuilt by scripts; derived JSON in apps/web/src/data is the tracked artifact)
 data/equities-snapshot.jsonl
+data/stock-data/
+data/stock-data-prices.json
 
 # CF Pages build output
 apps/web/.cf-pages-bundle/

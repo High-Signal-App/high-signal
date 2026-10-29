@@ -37,6 +37,7 @@ import { newsReceiptAdminRoute } from './admin-news-receipts';
 import { scheduledDataAdminRoute } from './admin-scheduled-data';
 import { feedSourcesAdminRoute } from './admin-feed-sources';
 import { communityReportingAdminRoute } from './admin-community-reporting';
+import { stockDataAdminRoute } from './admin-stock-data';
 import { precomputeBriefSnapshots } from './brief';
 import {
   enrichSignals,
@@ -73,6 +74,7 @@ adminRoute.route('/news-receipts', newsReceiptAdminRoute);
 adminRoute.route('/scheduled-data', scheduledDataAdminRoute);
 adminRoute.route('/feed-sources', feedSourcesAdminRoute);
 adminRoute.route('/communities/research', communityReportingAdminRoute);
+adminRoute.route('/stock-data', stockDataAdminRoute);
 
 /** Read-only, bounded corpus lookup for issuer-announcement verification. */
 adminRoute.post('/evidence/related', async (c) => {

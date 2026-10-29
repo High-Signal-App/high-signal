@@ -18,6 +18,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: canonical-stock-data-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   equities:
     runs-on: ubuntu-latest
@@ -35,12 +39,40 @@ jobs:
       - name: uv sync
         working-directory: python/ingest
         run: uv sync
+      - name: restore private canonical stock history
+        working-directory: python/ingest
+        env:
+          ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
+          API_BASE: ${{ secrets.API_BASE || 'https://api.highsignal.app' }}
+        run: uv run python -m high_signal_ingest.stock_data_sync restore
       - name: equities daily snapshot
         working-directory: python/ingest
         env:
           LIMIT_FLAG: ${{ github.event.inputs.limit && format('--limit {0}', github.event.inputs.limit) || '' }}
         run: |
           uv run python -m high_signal_ingest.equities_daily --batch 50 $LIMIT_FLAG
+      - name: refresh retained financial facts through the shared collector
+        working-directory: python/ingest
+        env:
+          ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
+          API_BASE: ${{ secrets.API_BASE || 'https://api.highsignal.app' }}
+        run: uv run python -m high_signal_ingest.pipeline --source sec-xbrl --days 120 --fetch-only --strict
+      - name: refresh attributed free reference FX
+        working-directory: python/ingest
+        run: uv run python -m high_signal_ingest.stock_data_collectors.ecb
+      - name: materialize display and permitted-export contracts
+        run: uv run --project python/ingest python -m high_signal_ingest.stock_data_refresh --out packages/shared/src/stock-data/snapshot.json
+      - name: retain private inputs and publish permitted snapshots
+        env:
+          ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
+          API_BASE: ${{ secrets.API_BASE || 'https://api.highsignal.app' }}
+        run: uv run --project python/ingest python -m high_signal_ingest.stock_data_sync publish --snapshot packages/shared/src/stock-data/snapshot.json
+      - name: consume validated stock facts in High Signal research
+        working-directory: python/ingest
+        env:
+          ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
+          API_BASE: ${{ secrets.API_BASE || 'https://api.highsignal.app' }}
+        run: uv run python -m high_signal_ingest.pipeline --source stock-data --days 550 --strict
 
       # ── Node: regenerate the web data bundles that depend on JSONL ──────
       - uses: actions/setup-node@v6
@@ -67,12 +99,12 @@ jobs:
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/equities-snapshot.jsonl \
-                  apps/web/src/data/equities-snapshot.json \
+          git add apps/web/src/data/equities-snapshot.json \
                   apps/web/src/data/price-context.json \
                   data/personal-market-refresh.jsonl \
                   apps/web/src/data/market-refreshes.json \
                   workers/api/src/lib/known-tickers.json
+          git add packages/shared/src/stock-data/snapshot.json
           if git diff --staged --quiet; then
             echo "no changes to commit"
           else
@@ -84,13 +116,3 @@ jobs:
             # code-lint hook (biome check). Lint is gated by CI, not by data crons.
             git push --no-verify
           fi
-
-      # ── Always upload the JSONL as an artifact for debugging ────────────
-      - name: upload snapshot artifact
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: equities-snapshot
-          path: data/equities-snapshot.jsonl
-          if-no-files-found: warn
-          retention-days: 14

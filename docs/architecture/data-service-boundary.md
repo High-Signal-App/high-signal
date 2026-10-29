@@ -49,6 +49,41 @@ The data substrate owns:
 
 ## Current Repo Reality
 
+### Stock-data consolidation
+
+`python/ingest/src/high_signal_ingest/stock_data/` owns retained equity facts,
+rights and deterministic valuation rules. `stock_data_collectors/` owns the
+extracted SEC companyfacts collector, reviewed PDF extraction and attributed ECB
+reference rates. The existing `equities_daily` job remains the sole equity-price
+ingress. It retains return-adjusted prices separately from provider closes,
+volumes and actions, then materializes `stock-data.prices.v1` for existing price,
+market-context and equity-bundle consumers. Scoring reads retained history and
+leaves incomplete forward windows pending.
+
+The local SQLite ledger is a replay index. Migration `0032_stock_data.sql` stores
+its immutable canonical records privately in D1 through `/admin/stock-data`.
+Evidence bytes use content-addressed chunks; authenticated restore verifies their
+original hashes. No raw-data artifact is uploaded to this public repository.
+The refreshed job restores first, retains and validates inputs, persists every
+new private record, and only then publishes separate display/export projections.
+Deploy the migrated API before enabling that job. Rollback to the prior API/job
+pair preserves the additive tables and local ledger; do not delete history.
+
+`GET /v1/stock-data` reads the current permitted projection without a deployment
+per data refresh. `?entity=...` retains the valuation's supporting entity facts;
+`?export=1` applies independent export permissions. `?snapshot=...` pins the current
+publication ID and returns a conflict for another version. Historical snapshot
+reads and the external TechData consumer are not yet qualified. Current source
+rights are checked again on reads, including revocation before a new publication.
+The research adapter receives facts, dates, source references, snapshot IDs and
+numerical changes. Editorial selection and existing publication gates stay in
+High Signal. One source document never becomes multiple corroborating origins.
+
+The initial India pilot remains unqualified. Unknown rights and missing values
+remain unavailable; carrying values are not market valuations. Partial NAV/SOTP
+models cannot receive definitive discounts or rankings. Free access does not by
+itself establish permission for public display or export.
+
 Today, `python/ingest/src/high_signal_ingest/sources/` does both fetch and
 normalization. Every adapter flattens source-specific data into the shared
 `Event` shape:

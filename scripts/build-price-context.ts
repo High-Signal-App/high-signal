@@ -11,12 +11,19 @@
 import { mkdir, readFile, stat, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 
+import {
+  publicStockPrices,
+  stockPriceDate,
+  stockPriceFreshness,
+} from '../packages/shared/src/stock-data';
+import { loadStockPrices } from './stock-data-read';
+
 const ROOT = resolve(__dirname, '..');
 const ENTITIES_PATH = resolve(
   ROOT,
   'python/ingest/src/high_signal_ingest/seed/ai_infra_entities.csv'
 );
-const SNAPSHOT_PATH = resolve(ROOT, 'data/equities-snapshot.jsonl');
+
 const OUT_PATH = resolve(ROOT, 'apps/web/src/data/price-context.json');
 
 type CsvRow = Record<string, string>;
@@ -35,10 +42,15 @@ interface PriceContextRow {
   move45d: number | null;
   move90d: number | null;
   historyDays: number;
+  inputSnapshotId?: string;
+  freshness: 'fresh' | 'stale' | 'unavailable';
 }
 
 interface SnapshotRow {
   ticker: string;
+  entityId?: string;
+  inputSnapshotId?: string;
+  sourceRefs?: { sourceId: string; url: string }[];
   name?: string | null;
   last_close?: number | null;
   last_date?: number | null;
@@ -80,21 +92,6 @@ function parseCsvLine(line: string) {
   }
   out.push(current);
   return out.map((value) => value.trim());
-}
-
-function parseJsonl(raw: string): SnapshotRow[] {
-  return raw
-    .split('\n')
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line) => {
-      try {
-        return JSON.parse(line) as SnapshotRow;
-      } catch {
-        return null;
-      }
-    })
-    .filter((row): row is SnapshotRow => Boolean(row) && Boolean(row.ticker));
 }
 
 function round(value: number | null): number | null {
@@ -142,7 +139,7 @@ function buildSnapshotLookup(rows: SnapshotRow[]): Map<string, SnapshotRow> {
 
 function buildPriceRow(entity: CsvRow, snap: SnapshotRow): PriceContextRow | null {
   const currentPrice = round(snap.last_close ?? null);
-  if (currentPrice === null) return null;
+  if (currentPrice === null || !stockPriceDate(snap)) return null;
   return {
     entityId: entity.id,
     ticker: entity.ticker,
@@ -159,6 +156,8 @@ function buildPriceRow(entity: CsvRow, snap: SnapshotRow): PriceContextRow | nul
     move45d: null,
     move90d: toPctRounded(snap.ret_90d),
     historyDays: estimateHistoryDays(snap),
+    inputSnapshotId: snap.inputSnapshotId,
+    freshness: stockPriceFreshness(snap),
   };
 }
 
@@ -168,13 +167,8 @@ async function main() {
     .filter((entity) => entity.type === 'public' && entity.ticker)
     .slice(0, Number(process.env['PRICE_CONTEXT_LIMIT'] ?? 120));
 
-  let snapshotRaw = '';
-  try {
-    snapshotRaw = await readFile(SNAPSHOT_PATH, 'utf8');
-  } catch {
-    console.log(`- no snapshot at ${SNAPSHOT_PATH}; writing empty price-context`);
-  }
-  const lookup = buildSnapshotLookup(parseJsonl(snapshotRaw));
+  const dataset = await loadStockPrices();
+  const lookup = buildSnapshotLookup(publicStockPrices(dataset));
 
   const rows: PriceContextRow[] = [];
   const misses: string[] = [];
@@ -195,7 +189,9 @@ async function main() {
 
   const payload = {
     source: 'yahoo',
-    generatedAt: new Date().toISOString(),
+    generatedAt: dataset.generatedAt,
+    inputSnapshotId: dataset.snapshotId,
+    rights: dataset.rights,
     rows: rows.sort((a, b) => a.entityId.localeCompare(b.entityId)),
   };
   await mkdir(dirname(OUT_PATH), { recursive: true });

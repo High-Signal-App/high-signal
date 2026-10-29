@@ -23,7 +23,8 @@ export const metadata: Metadata = {
   alternates: { canonical: `${SITE_URL}/markets` },
 };
 
-function formatNumber(value: number) {
+function formatNumber(value: number | null) {
+  if (value === null) return 'unavailable';
   return new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(value);
 }
 
@@ -205,9 +206,14 @@ export default async function MarketsPage({
                       {quote.role}
                     </div>
                     <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 font-mono text-[10px] tracking-[0.16em] text-[var(--color-muted)]">
-                      <span>close {quote.close}</span>
-                      <span>open {quote.open}</span>
-                      <span>volume {formatNumber(quote.volume)}</span>
+                      <span>
+                        {quote.priceBasis ? 'adjusted close' : 'close'} {quote.close}
+                      </span>
+                      <span>open {quote.open ?? 'unavailable'}</span>
+                      <span>
+                        volume {quote.volumeBasis ? '30d avg ' : ''}
+                        {formatNumber(quote.volume)}
+                      </span>
                       <span>{quote.date}</span>
                     </div>
                   </div>

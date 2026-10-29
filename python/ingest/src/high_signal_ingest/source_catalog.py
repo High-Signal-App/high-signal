@@ -65,7 +65,6 @@ DAILY_SOURCES = frozenset(
         "reddit",
         "regulations",
         "scmp",
-        "sec-xbrl",
         "techmeme",
         "us-gov-api",
         "us-gov-rss",
@@ -88,6 +87,7 @@ WEEKLY_SOURCES = frozenset(
 )
 MONTHLY_SOURCES = frozenset({"bls", "eia", "global-macro"})
 ON_DEMAND_SOURCES = frozenset({"gdelt", "semantic-scholar", "stackexchange", "substack", "youtube"})
+EQUITIES_SOURCES = frozenset({"sec-xbrl", "stock-data"})
 MANUAL_SOURCES = frozenset({"companies-house", "wikidata"})
 PARKED_SOURCES = frozenset(
     {
@@ -109,6 +109,7 @@ SOURCE_CADENCE_GROUPS = {
     "on_demand": ON_DEMAND_SOURCES,
     "manual": MANUAL_SOURCES,
     "parked": PARKED_SOURCES,
+    "equities": EQUITIES_SOURCES,
 }
 
 # Named pipeline selectors. `all` intentionally means the bounded Daily Brief
@@ -173,7 +174,7 @@ def expected_run_cadence_hours(entry: CatalogEntry) -> int | None:
     cadence = _cadence(entry)
     if entry.id == "markets":
         return 4
-    if cadence in {"daily", "context"}:
+    if cadence in {"daily", "context", "equities"}:
         return 24
     if cadence == "weekly":
         return 24 * 7
@@ -217,6 +218,10 @@ def _retention(entry: CatalogEntry) -> str:
 
 
 CATALOG: list[CatalogEntry] = [
+    CatalogEntry(
+        "stock-data", "Shared stock-data contracts", "finance", "keyless", False,
+        7, "numeric", "versioned facts, input snapshots, evidence, coverage and freshness", "series",
+    ),
     # --- Capital & filings -------------------------------------------------
     CatalogEntry(
         "edgar",

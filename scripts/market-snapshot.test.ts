@@ -20,9 +20,9 @@ assert.ok(
 );
 const latestRecord = records.slice().sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0]!;
 
-const snapshot = buildMarketWatchSnapshot(new Date('2026-05-22T08:00:00.000Z'));
+const currentTime = new Date(Date.parse(latestRecord.createdAt) + 3_600_000);
+const snapshot = buildMarketWatchSnapshot(currentTime);
 assert.equal(snapshot.source, 'yahoo');
-assert.equal(snapshot.freshnessStatus, 'fresh');
 assert.equal(snapshot.nationalGroupCount, 2);
 assert.equal(snapshot.internationalGroupCount, 1);
 assert.ok(snapshot.quoteCount >= 10);
@@ -34,12 +34,25 @@ const dates = marketRefreshDates(records);
 assert.equal(dates[0], latestRecord.createdAt.slice(0, 10));
 assert.ok(dates.includes(latestRecord.createdAt.slice(0, 10)));
 
-const fallback = buildMarketWatchSnapshot(new Date('2026-05-22T08:00:00.000Z'), '1900-01-01');
-assert.equal(fallback.selectedRefreshDate, dates.at(-1));
-assert.equal(fallback.sourceDateShifted, true);
+const fallback = buildMarketWatchSnapshot(currentTime, '1900-01-01');
+assert.equal(fallback.selectedRefreshDate, null);
+assert.equal(fallback.quoteCount, 0);
+assert.equal(fallback.sourceDateShifted, false);
 assert.equal(
   resolveMarketRefreshRecord(records, latestRecord.createdAt.slice(0, 10))?.createdAt,
   latestRecord.createdAt
 );
 
 console.log('market-snapshot.test.ts: ok');
+
+const fixture = structuredClone(latestRecord);
+fixture.createdAt = '2026-10-29T10:00:00Z';
+for (const group of fixture.groups) for (const quote of group.quotes) quote.date = '2026-10-29';
+const now = new Date('2026-10-29T11:00:00Z');
+assert.equal(buildMarketWatchSnapshot(now, null, [fixture]).freshnessStatus, 'fresh');
+for (const group of fixture.groups) for (const quote of group.quotes) quote.date = '2026-10-01';
+assert.equal(buildMarketWatchSnapshot(now, null, [fixture]).freshnessStatus, 'stale');
+assert.equal(
+  buildMarketWatchSnapshot(new Date('2026-10-28T00:00:00Z'), null, [fixture]).quoteCount,
+  0
+);

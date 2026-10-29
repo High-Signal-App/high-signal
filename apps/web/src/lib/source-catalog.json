@@ -282,7 +282,7 @@
       "role": "entity",
       "keeps": "fundamental metric + value",
       "temporal": "series",
-      "cadence": "daily",
+      "cadence": "equities",
       "expectedRunCadenceHours": 24,
       "accessBasis": "Public endpoint; no project credential required.",
       "contentDepth": "structured payload",
@@ -387,6 +387,23 @@
       "cadence": "context",
       "expectedRunCadenceHours": 24,
       "accessBasis": "Optional credential enables this adapter or additional depth.",
+      "contentDepth": "metadata or bounded excerpt",
+      "retention": "D1 event history with canonical source link and deduplication metadata.",
+      "termsRisk": "not-reviewed"
+    },
+    {
+      "id": "stock-data",
+      "provider": "Shared stock-data contracts",
+      "domains": "finance",
+      "access": "keyless",
+      "official": false,
+      "windowDays": 7,
+      "role": "numeric",
+      "keeps": "versioned facts, input snapshots, evidence, coverage and freshness",
+      "temporal": "series",
+      "cadence": "equities",
+      "expectedRunCadenceHours": 24,
+      "accessBasis": "Public endpoint; no project credential required.",
       "contentDepth": "metadata or bounded excerpt",
       "retention": "D1 event history with canonical source link and deduplication metadata.",
       "termsRisk": "not-reviewed"
@@ -936,5 +953,5 @@
       "termsRisk": "unofficial-transcript"
     }
   ],
-  "count": 55
+  "count": 56
 }

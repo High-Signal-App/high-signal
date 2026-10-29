@@ -126,6 +126,7 @@ Source = Literal[
     "podcast-index",
     "macro-rates",
     "sec-xbrl",
+    "stock-data",
     "scmp",
     "legistar",
     "courtlistener",
@@ -322,6 +323,11 @@ def _fetch_single_source_tasks(
 
     def add(name: str, host: str, fn: Callable[[], list[Event]]) -> None:
         tasks.append((name, _host_key(host), fn))
+
+    if source == "stock-data":
+        from .stock_data_refresh import fetch_research_inputs
+
+        add("stock-data", "https://api.highsignal.app", lambda: fetch_research_inputs(days=days))
 
     if source in {"edgar", "all"}:
 
@@ -1305,6 +1311,9 @@ def main() -> None:
     )
     p.add_argument("--days", type=int, default=1)
     p.add_argument(
+        "--strict", action="store_true", help="Fail on any source or event-delivery error."
+    )
+    p.add_argument(
         "--fetch-only",
         action="store_true",
         help="Persist source events and receipts without drafting signal candidates.",
@@ -1320,6 +1329,8 @@ def main() -> None:
         print(json.dumps(out, default=str))
     else:
         print(out)
+    if args.strict and (out.get("errors", 0) or out.get("events_unacknowledged", 0)):
+        sys.exit(2)
     alert = zero_draft_alert(out)
     if alert:
         print(alert, file=sys.stderr)

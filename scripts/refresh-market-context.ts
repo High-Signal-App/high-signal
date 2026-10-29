@@ -9,8 +9,16 @@ import {
   type MarketWatchGroup,
 } from '@high-signal/shared';
 
+import {
+  publicStockPrices,
+  stockPriceDate,
+  stockPriceFreshness,
+} from '../packages/shared/src/stock-data';
+import { loadStockPrices } from './stock-data-read';
+
 type EquitySnapshotRow = {
   ticker: string;
+  inputSnapshotId?: string;
   symbol?: string | null;
   last_close?: number | null;
   last_date?: number | null;
@@ -21,28 +29,18 @@ type EquitySnapshotRow = {
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const MARKET_WATCH_PATH = resolve(ROOT, 'data/personal-market-watch.json');
 const MARKET_REFRESH_PATH = resolve(ROOT, 'data/personal-market-refresh.jsonl');
-const EQUITIES_SNAPSHOT_PATH = resolve(ROOT, 'data/equities-snapshot.jsonl');
-
-function dateFromSnapshot(value: number | null | undefined) {
-  if (!value) return new Date().toISOString().slice(0, 10);
-  const raw = String(value);
-  return `${raw.slice(0, 4)}-${raw.slice(4, 6)}-${raw.slice(6, 8)}`;
-}
+const EQUITIES_SNAPSHOT_PATH = resolve(ROOT, 'data/stock-data-prices.json');
 
 async function readEquitiesSnapshot() {
-  const raw = await readFile(EQUITIES_SNAPSHOT_PATH, 'utf8');
-  const rows = raw
-    .split('\n')
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line) => JSON.parse(line) as EquitySnapshotRow);
+  const dataset = await loadStockPrices();
+  const rows = publicStockPrices(dataset);
   const byTicker = new Map<string, EquitySnapshotRow>();
   const bySymbol = new Map<string, EquitySnapshotRow>();
   for (const row of rows) {
     if (row.ticker) byTicker.set(row.ticker, row);
     if (row.symbol && !bySymbol.has(row.symbol)) bySymbol.set(row.symbol, row);
   }
-  return { byTicker, bySymbol };
+  return { byTicker, bySymbol, dataset };
 }
 
 function quoteFromSnapshot(
@@ -50,23 +48,31 @@ function quoteFromSnapshot(
   snapshots: Awaited<ReturnType<typeof readEquitiesSnapshot>>
 ): MarketQuote | null {
   const row = snapshots.byTicker.get(ticker.ticker) ?? snapshots.bySymbol.get(ticker.symbol);
-  if (!row || typeof row.last_close !== 'number') return null;
-  const changePct = typeof row.ret_1d === 'number' ? row.ret_1d * 100 : 0;
-  const open =
-    typeof row.ret_1d === 'number' && row.ret_1d > -1
-      ? row.last_close / (1 + row.ret_1d)
-      : row.last_close;
+  if (
+    !row ||
+    typeof row.last_close !== 'number' ||
+    typeof row.ret_1d !== 'number' ||
+    stockPriceFreshness(row) !== 'fresh'
+  )
+    return null;
+  const changePct = row.ret_1d * 100;
+  const previousClose =
+    typeof row.ret_1d === 'number' && row.ret_1d > -1 ? row.last_close / (1 + row.ret_1d) : null;
   return {
     symbol: ticker.symbol,
     name: ticker.name,
     role: ticker.role,
     ticker: ticker.ticker,
-    date: dateFromSnapshot(row.last_date),
+    date: stockPriceDate(row)!,
+    inputSnapshotId: row.inputSnapshotId,
     time: 'eod',
-    open,
+    open: null,
+    previousClose,
+    priceBasis: 'total_return_adjusted',
     close: row.last_close,
     changePct,
-    volume: row.volume_avg_30d ?? 0,
+    volume: row.volume_avg_30d ?? null,
+    volumeBasis: 'average_30d',
   };
 }
 
@@ -81,9 +87,18 @@ async function main() {
       .filter((quote): quote is MarketQuote => Boolean(quote));
     const averageChangePct = quotes.length
       ? quotes.reduce((sum, quote) => sum + quote.changePct, 0) / quotes.length
-      : 0;
+      : null;
     return {
       id: group.id,
+      coverage:
+        quotes.length === 0
+          ? ('unavailable' as const)
+          : quotes.length === group.tickers.length
+            ? ('complete' as const)
+            : ('partial' as const),
+      missingTickers: group.tickers
+        .filter((ticker) => !quotes.some((quote) => quote.ticker === ticker.ticker))
+        .map((ticker) => ticker.ticker),
       title: group.title,
       region: group.region,
       thesis: group.thesis,
@@ -96,6 +111,8 @@ async function main() {
   const record: MarketRefreshRecord = {
     source: 'yahoo',
     createdAt: new Date().toISOString(),
+    inputSnapshotId: snapshots.dataset.snapshotId,
+    coverage: snapshots.dataset.completeness,
     groups,
   };
   const dryRun = process.argv.includes('--dry-run');

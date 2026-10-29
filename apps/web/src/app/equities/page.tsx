@@ -16,6 +16,7 @@ import {
   type SortDir,
   type SortKey,
 } from '@/lib/equities';
+import { StockDataPanel } from '@/components/organisms/StockDataPanel';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Equities Snapshot' };
@@ -72,6 +73,9 @@ function indicator(sortKey: SortKey, thisKey: SortKey, dir: SortDir) {
 }
 
 interface SearchParams {
+  company?: string;
+  coverage?: string;
+  freshness?: string;
   sort?: string;
   dir?: string;
   country?: string;
@@ -140,6 +144,12 @@ export default async function EquitiesPage({
             sub: filterActive(preserve) ? 'filtered' : 'all rows',
           },
         ]}
+      />
+
+      <StockDataPanel
+        company={params.company}
+        coverage={params.coverage}
+        freshness={params.freshness}
       />
 
       <Panel eyebrow="filter" title="filter">

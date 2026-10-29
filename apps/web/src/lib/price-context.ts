@@ -65,6 +65,16 @@ export function pricedInContext(entityId: string, direction: Direction): PricedI
     };
   }
 
+  const age = Date.now() - Date.parse(`${row.asOf}T00:00:00Z`);
+  if (!Number.isFinite(age) || age < 0 || age > 7 * 86_400_000) {
+    return {
+      status: 'unknown',
+      label: 'price stale',
+      reason: 'The retained price is unavailable or more than seven days old.',
+      price: null,
+    };
+  }
+
   const move = strongestMove(row, direction);
   if (move === null) {
     return {

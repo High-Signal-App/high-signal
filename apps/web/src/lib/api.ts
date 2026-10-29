@@ -56,6 +56,7 @@ export async function fetchApiResponse(path: string, init?: RequestInit): Promis
   // here bought nothing at runtime while forcing every API-driven page to
   // classify as fully dynamic at build. A revalidate window keeps those pages
   // eligible for the incremental cache.
+  if (init?.cache === 'no-store') return fetch(`${API_BASE}${path}`, init);
   return fetch(`${API_BASE}${path}`, { ...init, next: { revalidate: 300 } });
 }
 
