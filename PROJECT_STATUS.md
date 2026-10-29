@@ -17,8 +17,8 @@ facts from refresh jobs. NSE uses the entire daily CM master and final bhavcopy,
 series, with immutable raw/normalized history in private R2 and verified latest
 promotion. There is no NSE company-count or duration cap. Non-NSE compatibility
 retention keeps its separate bounded D1 mode. Company profiles load current
-stock facts outside ISR. The workflow includes daily collection, a late retry and
-canonical research consumption; this feature-branch schedule is not active on main.
+stock facts outside ISR. The workflow includes daily full-market collection (including weekend probes),
+a late retry and canonical price-contract merging for existing consumers; this feature-branch schedule is not active on main.
 
 The valuation engine supports listed coverage, holding NAV and SOTP with explicit
 ownership, accounting, corporate-action, freshness and completeness checks.
@@ -39,6 +39,10 @@ The free-source constraint and remaining delivery work are tracked in
 The owner replaced the 20-company pilot with full daily NSE collection. A real
 28 October live canonical ingress retained 38,240 master records and 3,682 daily observations;
 these include inactive/test instruments and are not a count of listed companies.
+A manual feature-branch Actions run completed the private R2 upload/read-back and
+canonical contract validation successfully; it did not qualify research Event or
+valuation assembly. Independent review caught ticker-loss and late-backfill gaps;
+follow-up consumer, supersession and pointer rollback checks cover the fixes.
 An openly reusable Indian financial/ownership cohort, qualified public price
 rights, historical screener models,
 and a positive real-filing-to-research acceptance remain unfinished. A real BHEL

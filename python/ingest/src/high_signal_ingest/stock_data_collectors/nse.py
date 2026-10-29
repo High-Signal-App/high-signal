@@ -24,6 +24,7 @@ import httpx
 BASE = "https://nsearchives.nseindia.com/content/cm"
 POLICY = "https://www.nseindia.com/static/market-data/nse-data-policy"
 VERSION = "stock-data.nse-daily.v1"
+EXTRACTOR_VERSION = "nse-cm.v2"
 PREFIX = "stock-data/nse/v1"
 MAX_BYTES = 80_000_000
 
@@ -45,7 +46,9 @@ def urls(day: date) -> dict[str, str]:
 
 def _csv(body: bytes, required: set[str]) -> list[dict[str, str]]:
     reader = csv.DictReader(io.StringIO(body.decode("utf-8-sig")))
-    if not required.issubset(reader.fieldnames or []):
+    if not required.issubset(reader.fieldnames or []) or len(reader.fieldnames or []) != len(
+        set(reader.fieldnames or [])
+    ):
         raise ValueError("NSE schema changed or response is not the expected CSV")
     rows = list(reader)
     if not rows or any(None in r or any(v is None for v in r.values()) for r in rows):
@@ -145,6 +148,7 @@ def _price_row(
         "isin": master["ISIN"],
         "instrumentId": master["FinInstrmId"],
         "deleted": master["DelFlg"] == "Y",
+        "testInstrument": "NSETEST" in symbol.upper() or "DUMMY" in master["ISIN"].upper(),
         "identifierValid": bool(re.fullmatch(r"[A-Z]{2}[A-Z0-9]{9}[0-9]", master["ISIN"])),
         "priceBasis": "unadjusted",
         "adjustedClose": None,
@@ -174,7 +178,9 @@ def build_archive(
     source_hashes = {"securities": digest(master), "bhavcopy": digest(bhavcopy)}
     # Same bytes + extractor => same numerical snapshot. Availability is the first
     # observed time of this version, not a guessed historical publication time.
-    snapshot = "nse:" + digest(encoded([VERSION, day.isoformat(), source_hashes]))
+    snapshot = "nse:" + digest(
+        encoded([VERSION, EXTRACTOR_VERSION, day.isoformat(), source_hashes])
+    )
     refs = [{"sourceId": "nse-cm", "url": url} for url in sources.values()]
     prices = {r["FinInstrmId"]: r for r in price_rows}
     rows = [
@@ -224,7 +230,7 @@ def build_archive(
         "availableAt": observed,
         "ingestedAt": observed,
         "availabilityBasis": "first_observed_not_historical_publication",
-        "extractorVersion": VERSION,
+        "extractorVersion": EXTRACTOR_VERSION,
         "sourceUrls": sources,
         "sourceSha256": source_hashes,
         "counts": {

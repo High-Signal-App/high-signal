@@ -100,9 +100,22 @@ async function main() {
     ['NVDA'],
     'internal identity matching is independent of display rights'
   );
-  await writeFile(tickers, JSON.stringify(['AMD', 'NVDA']));
+  await writeFile(tickers, JSON.stringify(['AMD', 'INFY', 'NVDA']));
   const limitedManifest = JSON.parse(await readFile(input, 'utf8'));
   limitedManifest.universeComplete = false;
+  limitedManifest.rows.push({
+    ...limitedManifest.rows[0],
+    ticker: 'TCS.NS',
+    symbol: 'TCS',
+    securityId: 'security:nse:TCS',
+    priceBasis: 'unadjusted',
+  });
+  limitedManifest.rows.push({
+    ...limitedManifest.rows[0],
+    ticker: 'BAD.NS',
+    symbol: 'BAD',
+    deleted: true,
+  });
   await writeFile(input, JSON.stringify(limitedManifest));
   const limited = spawnSync(resolve('node_modules/.bin/tsx'), ['scripts/build-known-tickers.ts'], {
     encoding: 'utf8',
@@ -111,8 +124,8 @@ async function main() {
   assert.equal(limited.status, 0, limited.stderr);
   assert.deepEqual(
     JSON.parse(await readFile(tickers, 'utf8')),
-    ['AMD', 'NVDA'],
-    'a pilot must not shrink internal matching'
+    ['AMD', 'INFY', 'NVDA', 'TCS'],
+    'partial global inputs must preserve NSE identities and consume retained raw-close rows'
   );
   const missingStatus = join(directory, 'missing-status.json');
   for (const script of [
@@ -133,7 +146,7 @@ async function main() {
     assert.equal(result.status, 0, result.stderr);
   }
   assert.deepEqual(await Promise.all(paths.map((path) => readFile(path, 'utf8'))), before);
-  assert.deepEqual(JSON.parse(await readFile(tickers, 'utf8')), ['AMD', 'NVDA']);
+  assert.deepEqual(JSON.parse(await readFile(tickers, 'utf8')), ['AMD', 'INFY', 'NVDA', 'TCS']);
   assert.equal(JSON.parse(await readFile(missingStatus, 'utf8')).publicDisplay, 'unknown');
   console.log('stock-data-consumers.test.ts: ok');
 }

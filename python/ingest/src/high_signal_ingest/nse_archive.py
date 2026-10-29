@@ -84,8 +84,13 @@ def validate_pointer(pointer: dict) -> None:
         r"[a-f0-9]{64}", pointer.get("manifestSha256", "")
     ):
         raise ValueError("Invalid NSE pointer contract or manifest hash")
-    checked_key(pointer["manifestKey"])
-    datetime.fromisoformat(pointer["availableAt"])
+    key = checked_key(pointer["manifestKey"])
+    instant = datetime.fromisoformat(pointer["availableAt"])
+    if instant.tzinfo is None:
+        raise ValueError("NSE availability requires an explicit timezone")
+    parts = key.split("/")
+    if parts[4] != pointer["tradeDate"] or pointer["snapshotId"] != f"nse:{parts[5]}":
+        raise ValueError("NSE pointer session or snapshot does not match object key")
 
 
 def load_manifest(root: Path, pointer: dict) -> dict:
@@ -129,25 +134,16 @@ def restore(root: Path, transport: R2, *, optional: bool = False) -> dict | None
     return manifest
 
 
-def publish(root: Path, transport: R2) -> dict:
-    pointer = json.loads((root / "candidate.json").read_bytes())
-    manifest = load_manifest(root, pointer)
-    previous_file = root / "previous-latest.json"
-    if transport.get(f"{PREFIX}/latest.json", previous_file, optional=True):
-        previous = json.loads(previous_file.read_bytes())
-        validate_pointer(previous)
-        if previous["tradeDate"] > pointer["tradeDate"]:
-            raise ValueError("Historical backfill cannot replace latest NSE session")
-        if (
-            previous["tradeDate"] == pointer["tradeDate"]
-            and previous["snapshotId"] != pointer["snapshotId"]
-            and datetime.fromisoformat(previous["availableAt"])
-            > datetime.fromisoformat(pointer["availableAt"])
-        ):
-            raise ValueError("Older NSE revision cannot replace a newer observed version")
-        if previous["snapshotId"] == pointer["snapshotId"]:
-            # Retry of identical inputs must retain first-observed availability.
-            return previous
+def _previous_pointer(root: Path, transport: R2) -> dict | None:
+    path = root / "previous-latest.json"
+    if not transport.get(f"{PREFIX}/latest.json", path, optional=True):
+        return None
+    pointer = json.loads(path.read_bytes())
+    validate_pointer(pointer)
+    return pointer
+
+
+def _upload_session(root: Path, transport: R2, pointer: dict, manifest: dict) -> None:
     receipt = root / "receipts"
     for name, ref in manifest["objects"].items():
         local = root / ref["key"]
@@ -163,11 +159,51 @@ def publish(root: Path, transport: R2) -> dict:
     transport.get(key, receipt / "manifest.json")
     if digest((receipt / "manifest.json").read_bytes()) != pointer["manifestSha256"]:
         raise ValueError("NSE uploaded manifest receipt mismatch")
-    transport.put(f"{PREFIX}/latest.json", root / "candidate.json")
-    transport.get(f"{PREFIX}/latest.json", receipt / "latest.json")
-    if json.loads((receipt / "latest.json").read_bytes()) != pointer:
-        raise ValueError("NSE latest pointer receipt mismatch")
+
+
+def _promote(root: Path, transport: R2, pointer: dict, previous: dict | None) -> dict:
+    path = root / "promotion.json"
+    path.write_bytes(encoded(pointer))
+    try:
+        transport.put(f"{PREFIX}/latest.json", path)
+        remote = root / "receipts" / "latest.json"
+        transport.get(f"{PREFIX}/latest.json", remote)
+        if json.loads(remote.read_bytes()) != pointer:
+            raise ValueError("NSE latest pointer receipt mismatch")
+    except Exception:
+        # Data objects were already verified. Restore the acknowledged prior
+        # pointer if final pointer acknowledgement fails; never delete history.
+        if previous is not None:
+            transport.put(f"{PREFIX}/latest.json", root / "previous-latest.json")
+        raise
     return pointer
+
+
+def publish(root: Path, transport: R2) -> dict:
+    pointer = json.loads((root / "candidate.json").read_bytes())
+    manifest = load_manifest(root, pointer)
+    previous = _previous_pointer(root, transport)
+    if previous and previous["snapshotId"] == pointer["snapshotId"]:
+        return previous  # preserve first-observed availability on current retries
+    # Backfills always persist. Only promotion is skipped for older sessions or
+    # previously superseded versions. Known writers serialize across branches.
+    _upload_session(root, transport, pointer, manifest)
+    if previous:
+        if previous["tradeDate"] > pointer["tradeDate"]:
+            return previous
+        if previous["tradeDate"] == pointer["tradeDate"]:
+            prior = previous.get("priorVersions", [])
+            if any(item["snapshotId"] == pointer["snapshotId"] for item in prior):
+                return previous
+            if datetime.fromisoformat(previous["availableAt"]) > datetime.fromisoformat(
+                pointer["availableAt"]
+            ):
+                return previous
+            pointer["priorVersions"] = [
+                *prior,
+                {k: v for k, v in previous.items() if k != "priorVersions"},
+            ]
+    return _promote(root, transport, pointer, previous)
 
 
 def consume(root: Path, *, as_of: str | None = None, allow_stale: bool = False) -> dict:
@@ -201,6 +237,11 @@ def main() -> None:
     parser.add_argument("--root", type=Path, required=True)
     parser.add_argument("--out", type=Path)
     parser.add_argument("--optional", action="store_true")
+    parser.add_argument(
+        "--allow-stale",
+        action="store_true",
+        help="retain/query dated inputs without claiming freshness",
+    )
     args = parser.parse_args()
     if args.operation == "publish":
         pointer = publish(args.root, R2())
@@ -211,7 +252,7 @@ def main() -> None:
         if restore(args.root, R2(), optional=args.optional) is None:
             print("NSE archive not initialized")
             return
-    dataset = consume(args.root)
+    dataset = consume(args.root, allow_stale=args.allow_stale or args.operation == "publish")
     if args.out:
         args.out.parent.mkdir(parents=True, exist_ok=True)
         temporary = args.out.with_suffix(".tmp")
@@ -224,6 +265,7 @@ def main() -> None:
                 "tradeDate": dataset["economicDate"],
                 "securities": len(dataset["rows"]),
                 "reportedPrices": sum(r["rawClose"] is not None for r in dataset["rows"]),
+                "freshness": dataset["freshness"],
             }
         )
     )

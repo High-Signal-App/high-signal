@@ -4,8 +4,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import logging
-import os
 from dataclasses import asdict
 from datetime import datetime, timezone
 from pathlib import Path
@@ -114,25 +112,8 @@ def materialize(
 
 def fetch_research_inputs(days: int = 3) -> list[Event]:
     """Existing editorial orchestrator calls this adapter; there is no external fetch."""
-    archive_root = os.environ.get("NSE_ARCHIVE_ROOT")
-    if archive_root:
-        from .nse_archive import consume
-
-        # Research receives the underlying versioned rows/evidence references.
-        # Collection is broader than permitted numerical publication. NSE rights
-        # are unresolved; no price-derived public Event is fabricated here.
-        prices = consume(Path(archive_root))
-        logging.getLogger(__name__).info(
-            "Research consumed NSE input %s: %d securities; display=%s; ownership/financials=%s",
-            prices["snapshotId"],
-            len(prices["rows"]),
-            prices["rights"]["publicDisplay"],
-            prices["coverage"]["financials"],
-        )
     path = stock_store_path()
     if not path.exists():
-        if archive_root:
-            return []
         raise RuntimeError("canonical stock ledger unavailable; run the equities refresh first")
     now = datetime.now(timezone.utc).isoformat()
     with StockStore(path) as store:

@@ -35,7 +35,7 @@ def csv_bytes(rows):
     return stream.getvalue().encode()
 
 
-def files(count=4, traded=3):
+def files(count=4, traded=3, day=DAY):
     master = [
         {
             "FinInstrmId": str(i),
@@ -50,7 +50,7 @@ def files(count=4, traded=3):
     prices = [
         {
             **{k: v for k, v in row.items() if k not in ("DelFlg", "FinInstrmNm")},
-            "TradDt": DAY.isoformat(),
+            "TradDt": day.isoformat(),
             "Src": "NSE",
             "Sgmt": "CM",
             "ClsPric": "12.30",
@@ -61,22 +61,24 @@ def files(count=4, traded=3):
     return master, prices
 
 
-def compressed(master, prices):
+def compressed(master, prices, day=DAY):
     zipped = io.BytesIO()
     with zipfile.ZipFile(zipped, "w", zipfile.ZIP_DEFLATED) as archive:
-        archive.writestr(f"BhavCopy_NSE_CM_0_0_0_{DAY:%Y%m%d}_F_0000.csv", csv_bytes(prices))
+        archive.writestr(f"BhavCopy_NSE_CM_0_0_0_{day:%Y%m%d}_F_0000.csv", csv_bytes(prices))
     return gzip.compress(csv_bytes(master), mtime=0), zipped.getvalue()
 
 
-def candidate(root, observed=OBSERVED, count=4, traded=3):
-    master, prices = compressed(*files(count, traded))
-    manifest, objects = build_archive(master, prices, DAY, observed)
+def candidate(root, observed=OBSERVED, count=4, traded=3, close="12.30", day=DAY):
+    master_rows, price_rows = files(count, traded, day=day)
+    price_rows[0]["ClsPric"] = close
+    master, prices = compressed(master_rows, price_rows, day=day)
+    manifest, objects = build_archive(master, prices, day, observed)
     path = write_archive(root, manifest, objects)
     pointer = {
         "contractVersion": manifest["contractVersion"],
         "manifestKey": str(path.relative_to(root)),
         "manifestSha256": digest(path.read_bytes()),
-        "tradeDate": DAY.isoformat(),
+        "tradeDate": day.isoformat(),
         "snapshotId": manifest["snapshotId"],
         "availableAt": observed,
     }
@@ -201,22 +203,69 @@ def test_failed_refresh_preserves_candidate_and_latest(tmp_path):
     assert json.loads((tmp_path / "latest.json").read_bytes()) == pointer
 
 
-def test_research_reads_canonical_full_dataset_without_fetching_or_publishing(
-    tmp_path, monkeypatch, caplog
-):
-    from high_signal_ingest import stock_data_refresh
+def test_existing_price_consumers_receive_underlying_nse_rows(tmp_path):
+    from high_signal_ingest.equities_daily import merge_nse_inputs
 
-    _, pointer = candidate(tmp_path)
-    (tmp_path / "latest.json").write_bytes(encoded(pointer))
-    monkeypatch.setenv("NSE_ARCHIVE_ROOT", str(tmp_path))
-    monkeypatch.setattr(stock_data_refresh, "stock_store_path", lambda: tmp_path / "absent.sqlite")
-    from high_signal_ingest import nse_archive
+    root = tmp_path / "stock-data" / "nse"
+    _, pointer = candidate(root)
+    (root / "latest.json").write_bytes(encoded(pointer))
+    base = {
+        "rows": [],
+        "snapshotId": "non-nse:1",
+        "coverage": {},
+        "rights": {"publicDisplay": "permitted", "export": "permitted"},
+    }
+    result = merge_nse_inputs(base, tmp_path)
+    assert len(result["rows"]) == 4
+    observed = next(r for r in result["rows"] if r["rawClose"] is not None)
+    assert observed["rawClose"] == "12.30" and observed["sourceRefs"]
+    assert result["nseInputSnapshotId"] == pointer["snapshotId"]
+    assert result["rights"]["publicDisplay"] == "unknown"
 
-    original = nse_archive.consume
-    monkeypatch.setattr(nse_archive, "consume", lambda root: original(root, allow_stale=True))
-    with caplog.at_level("INFO"):
-        assert stock_data_refresh.fetch_research_inputs() == []
-    assert "4 securities; display=unknown" in caplog.text
+
+def test_backfill_is_retained_even_after_a_later_session(tmp_path):
+    transport = MemoryR2()
+    # A newer session pointer exists. The old archive must still be uploaded.
+    _, newer = candidate(tmp_path / "newer", "2026-10-28T15:00:00+00:00", day=date(2026, 10, 28))
+    transport.objects[f"{PREFIX}/latest.json"] = encoded(newer)
+    manifest, _ = candidate(tmp_path / "backfill")
+    assert publish(tmp_path / "backfill", transport) == newer
+    assert all(ref["key"] in transport.objects for ref in manifest["objects"].values())
+    assert json.loads(transport.objects[f"{PREFIX}/latest.json"]) == newer
+
+
+def test_superseded_bytes_cannot_reassert_after_same_day_correction(tmp_path):
+    transport = MemoryR2()
+    _, original = candidate(tmp_path / "original")
+    publish(tmp_path / "original", transport)
+    _, revised = candidate(tmp_path / "revised", "2026-10-27T16:00:00+00:00", close="12.31")
+    promoted = publish(tmp_path / "revised", transport)
+    assert promoted["snapshotId"] == revised["snapshotId"]
+    candidate(tmp_path / "reappearance", "2026-10-27T17:00:00+00:00")
+    assert publish(tmp_path / "reappearance", transport) == promoted
+    assert promoted["priorVersions"][0]["snapshotId"] == original["snapshotId"]
+
+
+def test_failed_pointer_acknowledgement_restores_previous_pointer(tmp_path):
+    transport = MemoryR2()
+    _, previous = candidate(tmp_path / "first")
+    publish(tmp_path / "first", transport)
+    candidate(tmp_path / "next", "2026-10-27T16:00:00+00:00", close="12.31")
+    original_get = transport.get
+    reads = 0
+
+    def get(key, target, **kwargs):
+        nonlocal reads
+        if key == f"{PREFIX}/latest.json":
+            reads += 1
+            if reads == 2:
+                raise RuntimeError("pointer receipt network failure")
+        return original_get(key, target, **kwargs)
+
+    transport.get = get
+    with pytest.raises(RuntimeError, match="receipt network failure"):
+        publish(tmp_path / "next", transport)
+    assert json.loads(transport.objects[f"{PREFIX}/latest.json"]) == previous
 
 
 def test_schedule_uses_closed_indian_session_for_late_utc_retry():

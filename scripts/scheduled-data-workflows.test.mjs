@@ -27,11 +27,14 @@ assert.ok(publishWorkflow.includes('node scripts/verify-daily-brief.mjs'));
 const equitiesWorkflow = await readFile('.github/workflows/cron-equities.yml', 'utf8');
 const nseJob = equitiesWorkflow.split('  nse:')[1]?.split('  equities:')[0];
 assert.ok(nseJob, 'the canonical equities workflow must own full NSE collection');
-assert.ok(equitiesWorkflow.includes('30 13 * * 1-5'), 'NSE must refresh after India close');
+assert.ok(equitiesWorkflow.includes('30 13 * * *'), 'NSE must refresh after India close');
 assert.ok(nseJob.includes('--market nse'));
 assert.ok(!nseJob.includes('--limit'), 'daily NSE collection must not have a company cap');
 assert.ok(nseJob.includes('nse_archive publish'), 'daily originals must survive the runner');
-assert.ok(nseJob.includes('--source stock-data'), 'research must consume the canonical inputs');
+assert.ok(
+  equitiesWorkflow.includes('Restore canonical NSE inputs into the shared price projection')
+);
+assert.ok(nseJob.includes('nse_archive consume'), 'retained inputs must pass a canonical read');
 assert.ok(!nseJob.includes('git add'), 'raw NSE snapshots must never enter public Git');
 
 console.log('scheduled-data-workflows.test.mjs: ok');

@@ -74,8 +74,8 @@ test records remain identified rather than being counted as active companies.
 Master records without a daily observation retain null prices. Raw closes never
 stand in for corporate-action-adjusted history or supported valuations.
 
-`cron-equities` collects NSE files at 13:30 UTC on weekdays and retries at 21:30
-UTC. The requested session must match the file's own trade date. A missing file,
+`cron-equities` collects NSE files daily, including potential weekend special
+sessions, and retries late on weekdays. The requested session must match the file's own trade date. A missing file,
 network error, conflicting identifier or failed R2 receipt fails the job; it never
 relabels yesterday's prices as today. Weekday expectations do not claim an
 exchange holiday calendar; an unpublished holiday session is an explicit failed
@@ -86,13 +86,23 @@ revisions receive immutable separate manifests. Historical downloads are first
 available at observation time, not retrospectively on their economic date.
 
 `nse_archive restore --root <private-dir> --out <canonical-prices.json>` verifies
-and hydrates the same underlying inputs for High Signal. The daily refresh
-calls research with `NSE_ARCHIVE_ROOT`; explicit stock-data research jobs restore
-that archive instead of collecting prices. Public Event creation remains gated
-by usage rights. Private full-market history does not create per-security daily
-D1 rows or inherit the D1 replication inventory ceiling. Historical objects can
-be read using a retained manifest and an `as_of` cutoff; a Worker R2 binding and
-public historical API are not implemented.
+and hydrates the underlying input contract. The non-NSE job waits for the NSE
+job, restores that dataset and merges its versioned rows into the shared price
+contract consumed by existing market/company builders and ticker matching.
+Unknown rights keep numeric display withheld. A missing NSE archive explicitly
+marks partial coverage without dropping old ticker identities or blocking other
+markets. Stale inputs retain their original dates and a freshness status.
+NSE public research Event/model assembly remains open; validating a readable
+archive is not claimed as completed research migration.
+
+Private full-market history does not create per-security daily D1 rows or inherit
+the D1 inventory ceiling. Backfills upload and verify all objects while leaving a
+newer latest pointer unchanged. Prior same-session versions cannot reassert as
+current on a stale re-download. Writers serialize across workflow branches; failed
+pointer acknowledgement attempts restore the previous pointer. Consumers verify
+all object hashes independently. Historical objects can be read using a retained
+manifest and an `as_of` cutoff; a Worker R2 binding/public historical API are not
+implemented.
 
 Non-NSE compatibility collection retains its existing optional bounded D1 mode
 (`retain_global_history` dispatch input). Its 100,000-record/100 MiB replication

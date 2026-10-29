@@ -163,7 +163,10 @@ def run_daily(
             history_available=retain_history,
             rights=store.rights("yahoo-finance") if retain_history else None,
         )
-    manifest["universeComplete"] = universe_limit is None and not retain_history
+    # A configured non-NSE universe is not a complete global replacement. Keep
+    # earlier allowlist entries even when the optional NSE archive is unavailable.
+    manifest["universeComplete"] = False
+    manifest = merge_nse_inputs(manifest, out_path.parent)
     temporary = out_path.with_suffix(".tmp")
     temporary.write_text("".join(json.dumps(row) + "\n" for row in rows))
     temporary.replace(out_path)
@@ -173,6 +176,38 @@ def run_daily(
     temporary.replace(manifest_path)
     LOGGER.info("wrote %d rows; retained-history pilot=%s", len(rows), retain_history)
     return out_path
+
+
+def merge_nse_inputs(manifest: dict, data_dir: Path) -> dict:
+    """Existing market/company consumers read the same retained NSE input rows."""
+    from .nse_archive import consume
+    from .stock_data.models import content_id
+
+    root = data_dir / "stock-data" / "nse"
+    if not (root / "latest.json").exists():
+        manifest["coverage"]["nse"] = "unavailable; prior ticker identities retained"
+        return manifest
+    nse = consume(root, allow_stale=True)
+    manifest["rows"].extend(nse["rows"])
+    manifest["snapshotId"] = content_id("prices", [manifest["snapshotId"], nse["snapshotId"]])
+    manifest["coverage"]["nse"] = (
+        f"entire CM master/bhavcopy; session={nse['economicDate']}; freshness={nse['freshness']['status']}"
+    )
+    manifest["coverage"]["scope"] = "configured non-NSE universe plus entire retained NSE CM master"
+    manifest["nseInputSnapshotId"] = nse["snapshotId"]
+    manifest["completeness"] = "partial"
+    # Root permissions remain conservative across both providers. Per-source
+    # rights must be checked before any future mixed-dataset display grant.
+    for audience in ("publicDisplay", "export"):
+        statuses = {manifest["rights"][audience], nse["rights"][audience]}
+        manifest["rights"][audience] = (
+            "permitted"
+            if statuses == {"permitted"}
+            else "prohibited"
+            if "prohibited" in statuses
+            else "unknown"
+        )
+    return manifest
 
 
 def main(argv: Optional[list[str]] = None) -> int:

@@ -38,6 +38,7 @@ async function main() {
   }
   const symbols = new Set<string>(previous);
   for (const row of snap.rows ?? []) {
+    if (row.deleted || row.testInstrument || row.identifierValid === false) continue;
     const sym = (row.symbol ?? row.ticker ?? '').toUpperCase().trim();
     if (/^[A-Z]{2,5}$/.test(sym)) symbols.add(sym);
   }

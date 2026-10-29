@@ -6,7 +6,7 @@ name: cron-equities
 
 on:
   schedule:
-    - cron: "30 13 * * 1-5"  # 19:00 India: NSE final files
+    - cron: "30 13 * * *"  # 19:00 India: NSE final files
     - cron: "30 21 * * 1-5"  # 9:30pm UTC weekdays = ~16:30 ET, post-close
   workflow_dispatch:
     inputs:
@@ -33,7 +33,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: canonical-stock-data-${{ github.ref }}
+  group: canonical-stock-data
   cancel-in-progress: false
 
 jobs:
@@ -53,7 +53,10 @@ jobs:
           NSE_SESSION: ${{ inputs.session }}
         run: |
           args=()
-          if [[ -n "$NSE_SESSION" ]]; then args=(--session "$NSE_SESSION"); fi
+          # UTC date identifies the session even at the 21:30 UTC retry,
+          # which is already the following date in India. Probe weekends too:
+          # NSE may hold special sessions; absent files never imply a holiday.
+          args=(--session "${NSE_SESSION:-$(date -u +%F)}")
           uv run --project python/ingest python -m high_signal_ingest.equities_daily \
             --market nse --archive artifacts/nse "${args[@]}"
       - name: Retain full history and advance latest only after verified R2 receipts
@@ -63,23 +66,20 @@ jobs:
         run: |
           uv run --project python/ingest python -m high_signal_ingest.nse_archive publish \
             --root artifacts/nse --out data/stock-data-nse-prices.json
-      - name: Consume canonical NSE facts and evidence in High Signal research
-        env:
-          NSE_ARCHIVE_ROOT: ${{ github.workspace }}/artifacts/nse
-          ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
-          API_BASE: ${{ secrets.API_BASE || 'https://api.highsignal.app' }}
-        run: uv run --project python/ingest python -m high_signal_ingest.pipeline --source stock-data --days 7 --strict
+      - name: Validate the canonical NSE dataset for existing input consumers
+        run: uv run --project python/ingest python -m high_signal_ingest.nse_archive consume --root artifacts/nse --allow-stale
       - name: Report archive status
         if: always()
         run: |
           if [[ "${{ job.status }}" != success ]]; then
             echo "NSE refresh or downstream consumption failed. Inspect the failing step; no missing session is labelled current." >> "$GITHUB_STEP_SUMMARY"
           else
-            echo "Full NSE CM files retained privately, receipt verified, canonical inputs consumed." >> "$GITHUB_STEP_SUMMARY"
+            echo "Full NSE CM files retained privately and the canonical dataset verified." >> "$GITHUB_STEP_SUMMARY"
           fi
 
   equities:
-    if: (github.event_name == 'schedule' && github.event.schedule == '30 21 * * 1-5') || (github.event_name == 'workflow_dispatch' && inputs.market != 'nse')
+    needs: nse
+    if: always() && ((github.event_name == 'schedule' && github.event.schedule == '30 21 * * 1-5') || (github.event_name == 'workflow_dispatch' && inputs.market != 'nse'))
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -102,6 +102,22 @@ jobs:
           ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
           API_BASE: ${{ secrets.API_BASE || 'https://api.highsignal.app' }}
         run: uv run python -m high_signal_ingest.stock_data_sync restore --snapshot ../../data/stock-data/publications.json
+      - uses: actions/setup-node@v6
+        with: { node-version: "22" }
+      - name: Restore canonical NSE inputs into the shared price projection
+        id: nse_inputs
+        continue-on-error: true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_R2_API_TOKEN || secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          uv run --project python/ingest python -m high_signal_ingest.nse_archive restore \
+            --root data/stock-data/nse --out data/stock-data-nse-prices.json --optional --allow-stale
+      - name: Report unavailable NSE inputs without stopping other markets
+        if: steps.nse_inputs.outcome == 'failure'
+        run: |
+          echo "::warning::NSE archive unavailable. Global projection marks NSE missing and preserves previous ticker identities."
+          echo "NSE archive unavailable; non-NSE collection continues with explicit partial coverage." >> "$GITHUB_STEP_SUMMARY"
       - name: equities daily snapshot
         working-directory: python/ingest
         env:

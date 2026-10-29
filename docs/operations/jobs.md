@@ -38,7 +38,7 @@ The daily cycle is sequenced so each stage consumes the previous stage's output:
 | 09:00 / 03:30 | `cron-publish.yml` | Mandatory shared publishability gate plus semantic/origin-aware claim judge; then authenticated brief rebuild and reader-facing freshness verification. The workflow cannot stay green with an empty public edition. |
 | 09:30 / 04:00 | `cron-validate-brief.yml` | Assert the edition is dated today in IST and its newest material evidence is under two hours old. |
 | 14:30 / 09:00 | `cron-backtest.yml` | Read a bounded event/signal window through the operator API, replay convergence labels → next-24h hit-rates → `workers/api/src/lib/label-backtest.json`. Well clear of `cron-equities` (21:30 UTC). The commit ships with the next manual API deploy. |
-| 21:30 (Mon–Fri) | `cron-equities.yml` | The **only** scheduled public stock-price ingress. yfinance EOD after US close → `data/equities-snapshot.jsonl`, market context, and derived web bundles. The commit ships with the next manual web deploy. |
+| NSE after close + late retry; other markets after US close | `cron-equities.yml` | Canonical equity ingress: complete NSE CM master/bhavcopy → verified private archive; non-NSE yfinance + retained NSE rows → shared consumer projection. Exact schedules live in the workflow. A missing session stays explicitly missing. Feature-branch schedule awaits main activation; derived web commits ship with the next manual deploy. |
 | 22:30 | `cron-score.yml` | Daily scoring for matured signal windows (after US market close). |
 
 ## High-frequency

@@ -137,16 +137,6 @@ jobs:
           zstd -q -d -f "$compressed" -o "$events"
           echo "REDDIT_ARCHIVE_EVENTS_PATH=$GITHUB_WORKSPACE/$events" >> "$GITHUB_ENV"
           echo "REDDIT_ARCHIVE_LATEST_PATH=$GITHUB_WORKSPACE/$latest" >> "$GITHUB_ENV"
-      - name: Restore full canonical NSE inputs for research
-        if: ${{ inputs.repair_cftc_receipts != true && inputs.repair_event_ids == '' && inputs.source == 'stock-data' }}
-        working-directory: .
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_R2_API_TOKEN || secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          uv run --project python/ingest python -m high_signal_ingest.nse_archive restore \
-            --root artifacts/nse --out data/stock-data-nse-prices.json
-          echo "NSE_ARCHIVE_ROOT=$GITHUB_WORKSPACE/artifacts/nse" >> "$GITHUB_ENV"
       - name: source availability diagnostic
         if: ${{ inputs.repair_cftc_receipts != true && inputs.repair_event_ids == '' }}
         env:

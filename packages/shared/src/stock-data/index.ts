@@ -10,6 +10,9 @@ export interface StockPriceRow {
   sourceRefs: { sourceId: string; url: string }[];
   completeness: Coverage;
   priceBasis: 'total_return_adjusted' | 'unadjusted';
+  deleted?: boolean;
+  testInstrument?: boolean;
+  identifierValid?: boolean;
   symbol?: string;
   name?: string | null;
   exchange?: string;
