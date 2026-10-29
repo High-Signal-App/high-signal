@@ -84,3 +84,22 @@ def test_pagination_reaches_a_scorable_signal_after_200_temporary_gaps(monkeypat
     )
     assert runner.run() == {"pending": 201, "runs_submitted": 1, "inserted": 1}
     assert [run["signalId"] for run in posted] == ["valid"]
+
+
+def test_score_writes_are_bounded_for_a_large_backlog(monkeypatch):
+    import json
+    import httpx
+
+    batch_sizes = []
+
+    def response(request):
+        rows = json.loads(request.content)["runs"]
+        batch_sizes.append(len(rows))
+        return httpx.Response(200, json={"inserted": len(rows)})
+
+    monkeypatch.setattr(runner, "_admin_token", lambda: "unit-test")
+    with httpx.Client(transport=httpx.MockTransport(response)) as client:
+        assert runner.submit_runs(client, [{"signalId": str(index)} for index in range(201)]) == {
+            "inserted": 201
+        }
+    assert batch_sizes == [50, 50, 50, 50, 1]

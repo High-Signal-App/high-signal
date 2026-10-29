@@ -92,16 +92,19 @@ def score_one(row: dict[str, Any]) -> dict[str, Any] | None:
 def submit_runs(client: httpx.Client, runs: list[dict[str, Any]]) -> dict[str, Any]:
     if not runs:
         return {"inserted": 0}
-    r = client.post(
-        f"{_api_base()}/admin/scores",
-        headers={
-            "Authorization": f"Bearer {_admin_token()}",
-            "Content-Type": "application/json",
-        },
-        json={"runs": runs},
-    )
-    r.raise_for_status()
-    return dict(r.json())
+    inserted = 0
+    for offset in range(0, len(runs), 50):
+        response = client.post(
+            f"{_api_base()}/admin/scores",
+            headers={
+                "Authorization": f"Bearer {_admin_token()}",
+                "Content-Type": "application/json",
+            },
+            json={"runs": runs[offset : offset + 50]},
+        )
+        response.raise_for_status()
+        inserted += int(response.json().get("inserted", 0))
+    return {"inserted": inserted}
 
 
 def run() -> dict[str, Any]:
