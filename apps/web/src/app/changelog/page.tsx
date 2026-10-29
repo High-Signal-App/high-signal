@@ -1,3 +1,4 @@
+import { withAgentMetadata } from '@/lib/agent-page-metadata';
 import type { Metadata } from 'next';
 
 import { BackLink, HeroHeader, PageShell } from '@/components/system/HighSignalUI';
@@ -37,11 +38,14 @@ const entries = [
   },
 ] as const;
 
-export const metadata: Metadata = {
-  alternates: { canonical: `${SITE_URL}/changelog` },
-  title: 'Changelog',
-  description: 'Verified, user-visible improvements shipped by High Signal.',
-};
+export const metadata: Metadata = withAgentMetadata(
+  {
+    alternates: { canonical: `${SITE_URL}/changelog` },
+    title: 'Changelog',
+    description: 'Verified, user-visible improvements shipped by High Signal.',
+  },
+  '/changelog'
+);
 
 export default function ChangelogPage() {
   return (

@@ -810,6 +810,8 @@ describe('GET /daily shared KV edition cache (#198)', () => {
 describe('brief precompute', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.insertBriefSnapshot.mockResolvedValue(undefined);
+    mocks.tryGetPrecomputedSnapshot.mockResolvedValue(null);
     mocks.buildStocks.mockResolvedValue([]);
     mocks.buildIdeas.mockResolvedValue([]);
     mocks.buildTrends.mockResolvedValue([]);
@@ -838,6 +840,81 @@ describe('brief precompute', () => {
     expect(mocks.buildStocks).toHaveBeenCalledTimes(5);
     expect(mocks.buildNews.mock.calls.every((call) => call.length === 3)).toBe(true);
     for (const call of mocks.buildStocks.mock.calls) expect(call[2]).toBe(result.date);
+  });
+
+  it('reads the newly published edition after an older shared response was cached', async () => {
+    const day = istDay();
+    const old = {
+      generatedAt: new Date(Date.now() - 60_000).toISOString(),
+      region: 'global',
+      stocks: [],
+      ideas: [],
+      trends: [],
+      news: (await mocks.buildNews()).map((item) => ({
+        ...item,
+        title: 'Previously cached headline',
+      })),
+      publishStatus: 'published',
+    };
+    const stored = new Map([[dailyBriefCacheKey('global', day), JSON.stringify(old)]]);
+    const cache = {
+      get: vi.fn(async (key: string) => JSON.parse(stored.get(key) ?? 'null')),
+      put: vi.fn(async (key: string, value: string) => {
+        stored.set(key, value);
+      }),
+      delete: vi.fn(async (key: string) => {
+        stored.delete(key);
+      }),
+    };
+    const snapshots = new Map<string, BriefSnapshot>();
+    mocks.insertBriefSnapshot.mockImplementation(async ({ set }) => {
+      const snapshot = JSON.parse(set.briefJson) as BriefSnapshot;
+      snapshots.set(snapshot.region, snapshot);
+    });
+    mocks.tryGetPrecomputedSnapshot.mockImplementation(
+      async (_db, _day, region) => snapshots.get(region) ?? null
+    );
+    const kvEnv = { ...env, BRIEF_CACHE: cache as unknown as KVNamespace };
+    const before = await briefRoute.request('http://test/daily', {}, kvEnv);
+    expect(((await before.json()) as BriefSnapshot).generatedAt).toBe(old.generatedAt);
+    const result = await precomputeBriefSnapshots(kvEnv);
+    expect(result.globalPublished).toBe(true);
+    const after = await briefRoute.request('http://test/daily', {}, kvEnv);
+    const body = (await after.json()) as BriefSnapshot;
+    expect(body.generatedAt).toBe(snapshots.get('global')?.generatedAt);
+    expect(body.news?.[0]?.title).toBe('Regulator publishes a retained daily update');
+    mocks.insertBriefSnapshot.mockResolvedValue(undefined);
+  });
+
+  it('preserves the previous cached edition when publication is rejected or persistence fails', async () => {
+    const cache = { delete: vi.fn(async () => undefined) };
+    const kvEnv = { ...env, BRIEF_CACHE: cache as unknown as KVNamespace };
+    mocks.buildIdeas.mockRejectedValue(new Error('D1 read failed'));
+    expect((await precomputeBriefSnapshots(kvEnv)).globalPublished).toBe(false);
+    expect(cache.delete).not.toHaveBeenCalled();
+    mocks.buildIdeas.mockResolvedValue([]);
+    mocks.insertBriefSnapshot.mockRejectedValue(new Error('D1 write failed'));
+    expect((await precomputeBriefSnapshots(kvEnv)).globalPublished).toBe(false);
+    expect(cache.delete).not.toHaveBeenCalled();
+  });
+
+  it('reports cache invalidation failure without pretending the persisted edition was rolled back', async () => {
+    const cache = {
+      delete: vi.fn(async () => {
+        throw new Error('KV unavailable');
+      }),
+    };
+    const result = await precomputeBriefSnapshots({
+      ...env,
+      BRIEF_CACHE: cache as unknown as KVNamespace,
+    });
+    expect(result.globalPublished).toBe(true);
+    expect(result.regions).toHaveLength(5);
+    expect(
+      result.regions.every(
+        (region) => region.status === 'published' && region.cacheInvalidation === 'failed'
+      )
+    ).toBe(true);
   });
 
   it('publishes valid news while preserving an optional research outage', async () => {

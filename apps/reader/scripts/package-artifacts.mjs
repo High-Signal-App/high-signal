@@ -3,7 +3,7 @@ import { execFileSync } from 'node:child_process';
 import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { htmlDocumentToMarkdown, htmlDisallowsIndexing } from '../../web/agent-edge.mjs';
+import { htmlDisallowsIndexing } from '../../web/agent-edge.mjs';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const dist = resolve(root, 'dist');
@@ -26,19 +26,22 @@ for (const file of files.filter((name) => name.endsWith('.html'))) {
   const canonical = profile
     ? `https://highsignal.app/case-studies/${profile[1]}`
     : 'https://highsignal.app/';
-  const markdown = htmlDocumentToMarkdown(html, canonical);
-  if (!markdown || !html.includes('<main')) throw new Error(`Incomplete reader output: ${path}`);
+  const indexable = !htmlDisallowsIndexing(html);
+  // Profiles use the same public source projection for all three Markdown forms.
+  // Only published brief HTML needs a paired artifact in the R2 snapshot.
+  const markdown = brief ? readFileSync(file.replace(/\.html$/, '.md'), 'utf8') : null;
+  if (
+    !html.includes('<main') ||
+    (brief && (!markdown?.startsWith('# ') || !markdown.includes(`Canonical: ${canonical}`)))
+  )
+    throw new Error(`Incomplete reader source output: ${path}`);
   if (profile && !html.includes('company-profile-v1'))
     throw new Error(`Missing completed profile: ${path}`);
   // A non-HTML extension avoids redirects inside the Static Assets binding.
   writeFileSync(profile ? file.replace(/\.html$/, '') : file.replace(/\.html$/, '.reader'), html);
-  writeFileSync(
-    profile ? file.replace(/\.reader\.html$/, '.md') : file.replace(/\.html$/, '.md'),
-    markdown
-  );
   if (profile) {
     profiles++;
-    if (!htmlDisallowsIndexing(html)) indexableProfiles.push(profile[1]);
+    if (indexable) indexableProfiles.push(profile[1]);
   } else
     briefs.push({
       day: brief[1],

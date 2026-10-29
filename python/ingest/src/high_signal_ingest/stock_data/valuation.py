@@ -148,9 +148,9 @@ def ownership_exposure(
     return result
 
 
-def _ancestors_overlap(assets: list[str], edges: tuple[OwnershipEdge, ...]) -> bool:
+def _ancestors_overlap(assets: list[str], request: ValuationRequest) -> bool:
     graph: dict[str, set[str]] = {}
-    for edge in edges:
+    for edge in (*request.ownership, *request.holdings):
         graph.setdefault(edge.owner_entity_id, set()).add(edge.asset_entity_id)
     selected = set(assets)
     for asset in assets:
@@ -311,9 +311,7 @@ def _validate_scope(request: ValuationRequest):
         raise UnsupportedValuation(
             "asset selected more than once; consolidate share classes explicitly"
         )
-    if request.parent_entity_id in selected_assets or _ancestors_overlap(
-        selected_assets, request.ownership
-    ):
+    if request.parent_entity_id in selected_assets or _ancestors_overlap(selected_assets, request):
         raise UnsupportedValuation("intermediate holding and underlying economic assets overlap")
     return interest_ids
 
@@ -373,6 +371,11 @@ def _component_line(
             raise UnsupportedValuation("enterprise value needs matching business net debt")
         if component.net_debt.entity_id != component.asset_entity_id:
             raise UnsupportedValuation("business debt belongs to a different entity")
+        if (
+            component.net_debt.metric != "net_debt"
+            or component.net_debt.dimensions.get("accounting_basis") != "standalone"
+        ):
+            raise UnsupportedValuation("enterprise value requires standalone business net debt")
         amount -= decimal_value(component.net_debt.value)
     elif component.value_basis == "equity":
         if component.net_debt is not None:

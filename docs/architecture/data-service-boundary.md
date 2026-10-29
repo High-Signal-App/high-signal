@@ -60,7 +60,7 @@ volumes and actions, then materializes `stock-data.prices.v1` for existing price
 market-context and equity-bundle consumers. Scoring reads retained history and
 leaves incomplete forward windows pending.
 
-The local SQLite ledger is a replay index. Migration `0032_stock_data.sql` stores
+The local SQLite ledger is a replay index. Migration `0033_stock_data.sql` stores
 its immutable canonical records privately in D1 through `/admin/stock-data`.
 Evidence bytes use content-addressed chunks; authenticated restore verifies their
 original hashes. No raw-data artifact is uploaded to this public repository.

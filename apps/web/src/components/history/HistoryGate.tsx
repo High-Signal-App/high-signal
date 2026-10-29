@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { historyGateCopy } from './history-gate-copy';
 import { ErrorState } from '@saas-maker/ui/components/error-state';
 import { Skeleton } from '@saas-maker/ui/components/skeleton';
 import { useRouter } from 'next/navigation';
@@ -12,8 +13,8 @@ const TURNSTILE_SITE_KEY =
   process.env['NEXT_PUBLIC_TURNSTILE_SITE_KEY'] ?? '0x4AAAAAAECKL9dzkPASkdm0';
 
 export function HistoryGate({
-  title = 'verify to read earlier signals',
-  description = 'Today and yesterday stay open and fast. A quick human check unlocks older briefs and their signal proof pages for 12 hours.',
+  title = historyGateCopy.title,
+  description = historyGateCopy.description,
 }: {
   title?: string;
   description?: string;
@@ -60,7 +61,7 @@ export function HistoryGate({
       aria-labelledby="history-gate-title"
     >
       <div className="font-mono text-[10px] tracking-[0.2em] text-[var(--color-accent)]">
-        protected history
+        {historyGateCopy.eyebrow}
       </div>
       <h2 id="history-gate-title" className="mt-3 text-3xl font-medium tracking-tight">
         {title}
@@ -76,7 +77,7 @@ export function HistoryGate({
         />
       </div>
       <p className="mt-4 font-mono text-[10px] tracking-[0.14em] text-[var(--color-muted)]">
-        {pending ? 'verifying…' : 'one check · 12 hours of access'}
+        {pending ? 'verifying…' : historyGateCopy.duration}
       </p>
       {error ? (
         <ErrorState

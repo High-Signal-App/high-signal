@@ -11,6 +11,32 @@ export const SITE_TAGLINE = 'Evidence-first intelligence brief';
 export const SITE_DESCRIPTION =
   'High Signal is evidence-first intelligence on technology, startups, and finance. ' +
   'Every published signal cites two independent sources and enters a public hit-rate ledger.';
+export const SITE_LOGO = `${SITE_URL}/icon.svg`;
+export const SITE_SAME_AS = ['https://github.com/High-Signal-App/high-signal'];
+export const SITE_IDENTITY = {
+  name: SITE_NAME,
+  url: SITE_URL,
+  summary: SITE_DESCRIPTION,
+  description: SITE_DESCRIPTION,
+  logo: SITE_LOGO,
+  sameAs: SITE_SAME_AS,
+  trainingAllowed: true,
+  openapi: `${SITE_URL}/openapi.json`,
+  excludedPaths: [
+    '/review',
+    '/admin',
+    '/backtest-workbench',
+    '/api/admin',
+    '/api/history/access',
+    '/api/company-universe/lookup',
+    '/communities',
+    '/personal',
+    '/_private',
+  ],
+  notes: [
+    'Protected history and noindex pages are excluded. Public live content requires a fresh credential-free source lookup.',
+  ],
+};
 export const SITE_PUBLISHER = 'High Signal';
 export const SITE_LOCALE = 'en';
 export const SITE_TWITTER = '@sarthakagrawal';

@@ -1,15 +1,19 @@
+import { withAgentMetadata } from '@/lib/agent-page-metadata';
 import { EmptyState } from '@saas-maker/ui/components/empty-state';
 import { ErrorState } from '@saas-maker/ui/components/error-state';
 import { api, type EntityRow } from '@/lib/api';
 import { SITE_URL } from '@/lib/site';
 
 export const revalidate = 3600;
-export const metadata = {
-  title: 'Entities',
-  // Self-canonical: the root layout deliberately sets none (a site-wide
-  // canonical de-indexes the corpus), so a route without this ships none.
-  alternates: { canonical: `${SITE_URL}/entities` },
-};
+export const metadata = withAgentMetadata(
+  {
+    title: 'Entities',
+    // Self-canonical: the root layout deliberately sets none (a site-wide
+    // canonical de-indexes the corpus), so a route without this ships none.
+    alternates: { canonical: `${SITE_URL}/entities` },
+  },
+  '/entities'
+);
 
 // Public: the entity corpus is part of the signal context that consumers
 // of /signals need to navigate the spillover graph.

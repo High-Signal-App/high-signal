@@ -120,7 +120,12 @@ def _source_urls(source: dict) -> list[str]:
     archive = source.get("archive") or {}
     return [
         value
-        for value in [source.get("rss"), archive.get("url"), *source.get("feed_aliases", [])]
+        for value in [
+            source.get("rss"),
+            archive.get("url"),
+            *source.get("feed_aliases", []),
+            *source.get("retired_feed_aliases", []),
+        ]
         if value
     ]
 
@@ -138,11 +143,16 @@ def _eligible(source: dict, tier_max: int, paused: set[str]) -> bool:
 
 def _registered_source(seed: dict | None, row: RegisteredFeed, url: str) -> dict:
     base = {
-        k: v for k, v in (seed or {"id": row.id}).items() if k not in {"archive", "feed_aliases"}
+        k: v
+        for k, v in (seed or {"id": row.id}).items()
+        if k not in {"archive", "feed_aliases", "retired_feed_aliases"}
     }
     if seed and feed_key(url) not in {feed_key(u) for u in _source_urls(seed)}:
         base.pop("feed_max_bytes", None)
-    if row.format == "archive":
+    retired = bool(seed and seed.get("archive")) and feed_key(url) in {
+        feed_key(alias) for alias in (seed or {}).get("retired_feed_aliases", [])
+    }
+    if row.format == "archive" or retired:
         archive = known_public_archive(url)
         if archive is None:
             raise PublicFeedFetchError("Unsupported public archive in publication registry")

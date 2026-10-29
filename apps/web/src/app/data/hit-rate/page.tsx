@@ -1,3 +1,4 @@
+import { withAgentMetadata } from '@/lib/agent-page-metadata';
 import { EmptyState } from '@saas-maker/ui/components/empty-state';
 import { ErrorState } from '@saas-maker/ui/components/error-state';
 import type { Metadata } from 'next';
@@ -8,12 +9,15 @@ import { SITE_URL } from '@/lib/site';
 
 export const revalidate = 3600;
 
-export const metadata: Metadata = {
-  title: 'Public hit-rate ledger — data',
-  description:
-    'Downloadable, public hit-rate ledger for every High Signal market call. Live forward predictions and backfill calibration by signal type, scored against subsequent market moves. CC-BY-4.0.',
-  alternates: { canonical: `${SITE_URL}/data/hit-rate` },
-};
+export const metadata: Metadata = withAgentMetadata(
+  {
+    title: 'Public hit-rate ledger — data',
+    description:
+      'Downloadable, public hit-rate ledger for every High Signal market call. Live forward predictions and backfill calibration by signal type, scored against subsequent market moves. CC-BY-4.0.',
+    alternates: { canonical: `${SITE_URL}/data/hit-rate` },
+  },
+  '/data/hit-rate'
+);
 
 function summarize(buckets: TrackBucket[]) {
   return buckets.reduce(

@@ -2540,7 +2540,12 @@
   name: First Round Review
   type: blog
   url: https://review.firstround.com/
-  rss: https://review.firstround.com/rss
+  rss: null
+  archive:
+    kind: firstround
+    url: https://review.firstround.com/articles/
+  retired_feed_aliases:
+  - https://review.firstround.com/rss
   paywall: none
   tier: 2
   topic_tags:

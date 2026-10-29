@@ -1,3 +1,4 @@
+import { withAgentMetadata } from '@/lib/agent-page-metadata';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { api } from '@/lib/api';
@@ -8,11 +9,7 @@ import { evaluateEntity, robotsForVerdict } from '../../../../public-corpus-poli
 
 export const revalidate = 3600;
 
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}): Promise<Metadata> {
+async function pageMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
   const base: Metadata = { alternates: { canonical: `${SITE_URL}/entities/${id}` } };
   try {
@@ -52,4 +49,10 @@ export default async function EntityPage({ params }: { params: Promise<{ id: str
       stockData={data.entity.type === 'public' ? <StockDataPanel company={id} /> : undefined}
     />
   );
+}
+
+export async function generateMetadata(props: Parameters<typeof pageMetadata>[0]) {
+  const metadata = await pageMetadata(props);
+  const params = await props.params;
+  return withAgentMetadata(metadata, '/entities/' + encodeURIComponent(params['id']));
 }

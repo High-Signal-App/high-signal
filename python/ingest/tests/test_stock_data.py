@@ -191,6 +191,44 @@ def test_intermediate_and_underlying_not_counted_twice():
     assert any("duplicate" in issue for issue in duplicate.issues)
 
 
+def test_disclosed_holdings_also_prevent_intermediate_double_counting():
+    result = evaluate(
+        request(
+            ownership=(edge(),),
+            holdings=(
+                holding(asset="sub", security="sub"),
+                holding(owner="sub", asset="leaf", security="leaf"),
+            ),
+        )
+    )
+    assert result.value is None
+    assert any("overlap" in issue for issue in result.issues)
+
+
+def test_enterprise_debt_requires_the_matching_metric_and_scope():
+    component = ValuationComponent(
+        "business:sub",
+        "sub",
+        fact("enterprise_value", "1000", "sub", dimensions={"accounting_basis": "standalone"}),
+        "enterprise",
+        fact("assets", "200", "sub", dimensions={"accounting_basis": "standalone"}),
+    )
+    for debt in (
+        component.net_debt,
+        fact("net_debt", "200", "sub", dimensions={"accounting_basis": "consolidated"}),
+    ):
+        result = evaluate(
+            request(
+                method="sotp",
+                holdings=(),
+                components=(replace(component, net_debt=debt),),
+                ownership=(edge(),),
+            )
+        )
+        assert result.value is None
+        assert any("standalone business net debt" in issue for issue in result.issues)
+
+
 def test_accounting_and_debt_boundaries():
     result = evaluate(request(accounting_basis="consolidated"))
     assert result.value is None
@@ -199,7 +237,7 @@ def test_accounting_and_debt_boundaries():
         "sub",
         fact("enterprise_value", "1000", "sub", dimensions={"accounting_basis": "standalone"}),
         "enterprise",
-        fact("net_debt", "200", "sub"),
+        fact("net_debt", "200", "sub", dimensions={"accounting_basis": "standalone"}),
     )
     result = evaluate(
         request(method="sotp", holdings=(), components=(component,), ownership=(edge(),))

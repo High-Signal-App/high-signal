@@ -167,6 +167,16 @@ class FetchReceipt:
     error_sample: str | None = None
 
 
+@dataclass(frozen=True)
+class FetchBatch:
+    events: list[Event]
+    failures: list[str]
+
+
+FetchOutput = list[Event] | FetchBatch
+FetchTask = tuple[str, str, Callable[[], FetchOutput]]
+
+
 FALLBACK_DRAFT_LIMIT = 3
 DEFAULT_DAILY_EDGAR_TICKER_LIMIT = 25
 DEFAULT_SIGNAL_CLUSTER_LIMIT = 40
@@ -233,7 +243,7 @@ class _HostGate:
                 self._sems[host] = sem
             return sem
 
-    def run(self, host: str, fn: Callable[[], list[Event]]) -> list[Event]:
+    def run(self, host: str, fn: Callable[[], FetchOutput]) -> FetchOutput:
         sem = self._sem(host)
         with sem:
             return fn()
@@ -241,13 +251,13 @@ class _HostGate:
 
 def _with_backoff(
     name: str,
-    fn: Callable[[], list[Event]],
+    fn: Callable[[], FetchOutput],
     *,
     retries: int,
     base: float,
     cap: float,
     failures: list[str],
-) -> list[Event]:
+) -> FetchOutput:
     """Run ``fn`` with bounded retries and exponential full-jitter backoff.
 
     Stdlib-only (tenacity is not a dependency of this package). The final
@@ -288,31 +298,35 @@ def _parse_source(value: str) -> Source:
     )
 
 
-def _fetch_tasks(source: Source, days: int) -> list[tuple[str, str, Callable[[], list[Event]]]]:
+def _fetch_news(days: int, source_ids: list[str] | None = None) -> FetchBatch:
+    failures: list[str] = []
+    events = news.fetch_all(
+        days=days, tier_max=2, fetch_body=True, source_ids=source_ids, failures=failures
+    )
+    return FetchBatch(events=events, failures=failures)
+
+
+def _fetch_tasks(source: Source, days: int) -> list[FetchTask]:
     if source.startswith("news:"):
         source_id = _parse_source(source).removeprefix("news:")
         return [
             (
                 source,
                 _host_key("https://newsapi.org"),
-                lambda: news.fetch_all(
-                    days=days, tier_max=2, fetch_body=True, source_ids=[source_id]
-                ),
+                lambda: _fetch_news(days, [source_id]),
             )
         ]
     grouped = source_catalog.PIPELINE_SOURCE_GROUPS.get(source)
     if grouped is None:
         return _fetch_single_source_tasks(source, days)
 
-    tasks: list[tuple[str, str, Callable[[], list[Event]]]] = []
+    tasks: list[FetchTask] = []
     for source_id in sorted(grouped):
         tasks.extend(_fetch_single_source_tasks(cast(Source, source_id), days))
     return tasks
 
 
-def _fetch_single_source_tasks(
-    source: Source, days: int
-) -> list[tuple[str, str, Callable[[], list[Event]]]]:
+def _fetch_single_source_tasks(source: Source, days: int) -> list[FetchTask]:
     if source == "stock-data":
         from .stock_data_refresh import fetch_research_inputs
 
@@ -326,9 +340,7 @@ def _fetch_single_source_tasks(
     return _fetch_external_source_tasks(source, days)
 
 
-def _fetch_external_source_tasks(
-    source: Source, days: int
-) -> list[tuple[str, str, Callable[[], list[Event]]]]:
+def _fetch_external_source_tasks(source: Source, days: int) -> list[FetchTask]:
     """Build ``(name, host_key, callable)`` descriptors for the selected sources.
 
     Each callable encapsulates the per-source window/cap logic so the executor
@@ -337,7 +349,7 @@ def _fetch_external_source_tasks(
     """
     tasks = []
 
-    def add(name: str, host: str, fn: Callable[[], list[Event]]) -> None:
+    def add(name: str, host: str, fn: Callable[[], FetchOutput]) -> None:
         tasks.append((name, _host_key(host), fn))
 
     if source in {"edgar", "all"}:
@@ -355,7 +367,7 @@ def _fetch_external_source_tasks(
         add(
             "news",
             "https://newsapi.org",
-            lambda: news.fetch_all(days=days, tier_max=2, fetch_body=True),
+            lambda: _fetch_news(days),
         )
     if source in {"reddit", "all"}:
         add("reddit", "https://www.reddit.com", lambda: reddit.fetch_all(days=days))
@@ -616,11 +628,11 @@ def fetch(
     out: list[Event] = []
 
     def _run(
-        name: str, host: str, fn: Callable[[], list[Event]]
+        name: str, host: str, fn: Callable[[], FetchOutput]
     ) -> tuple[list[Event], FetchReceipt, list[str]]:
         started_at = datetime.now(timezone.utc)
         local_failures: list[str] = []
-        events = gate.run(
+        result = gate.run(
             host,
             lambda: _with_backoff(
                 name,
@@ -631,6 +643,11 @@ def fetch(
                 failures=local_failures,
             ),
         )
+        if isinstance(result, FetchBatch):
+            events = result.events
+            local_failures.extend(result.failures)
+        else:
+            events = result
         receipt = FetchReceipt(
             source=name,
             started_at=started_at,

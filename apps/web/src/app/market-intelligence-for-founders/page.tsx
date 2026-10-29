@@ -1,3 +1,4 @@
+import { withAgentMetadata } from '@/lib/agent-page-metadata';
 import type { Metadata } from 'next';
 
 import { IntelligenceGuidePage } from '@/components/content/IntelligenceGuidePage';
@@ -6,11 +7,14 @@ import { SITE_URL } from '@/lib/site';
 
 const GUIDE = intelligenceGuide('market-intelligence-for-founders');
 
-export const metadata: Metadata = {
-  title: GUIDE.title,
-  description: GUIDE.metaDescription,
-  alternates: { canonical: `${SITE_URL}${GUIDE.slug}` },
-};
+export const metadata: Metadata = withAgentMetadata(
+  {
+    title: GUIDE.title,
+    description: GUIDE.metaDescription,
+    alternates: { canonical: `${SITE_URL}${GUIDE.slug}` },
+  },
+  '/market-intelligence-for-founders'
+);
 
 export default function MarketIntelligenceForFoundersPage() {
   return <IntelligenceGuidePage guide={GUIDE} />;

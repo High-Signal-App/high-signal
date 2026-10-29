@@ -1,18 +1,15 @@
 #!/usr/bin/env node
-
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { existsSync, readFileSync } from 'node:fs';
-
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { relative, resolve } from 'node:path';
 import {
   agentDiscoveryLinkHeader,
   handleAgentEdge,
   handleCachedCrawlerMarkdown,
   handleCachedRenderedMarkdown,
   handleRenderedMarkdown,
-  htmlDocumentToMarkdown,
   htmlDisallowsIndexing,
-  isBulkAiCrawler,
   resolvePublicMarkdownTarget,
 } from '../apps/web/agent-edge.mjs';
 import {
@@ -20,386 +17,235 @@ import {
   PUBLIC_STATIC_ROUTES,
   isPublicHtmlPath,
 } from '../apps/web/public-route-registry.mjs';
-
+import { publicSourceTree } from '../apps/web/src/lib/public-source-tree.ts';
 const markdownRequest = (path, headers = {}) =>
   new Request(`https://highsignal.app${path}`, { headers });
-
-const discoveryLinks = agentDiscoveryLinkHeader('https://highsignal.app', '/markets');
-assert.match(discoveryLinks, /<\/markets\.md>; rel="alternate"; type="text\/markdown"/);
-assert.match(discoveryLinks, /<\/\.well-known\/ard\.json>; rel="ard"/);
-
-assert.equal(PUBLIC_STATIC_ROUTES.length, 39, 'static public route count must be deliberate');
-assert.ok(
-  !PUBLIC_STATIC_ROUTES.some((route) => route.path === '/brief'),
-  'the /brief compatibility redirect must not compete with the canonical root in the agent catalog'
-);
-assert.equal(
-  PUBLIC_DYNAMIC_ROUTE_TEMPLATES.length,
-  9,
-  'dynamic route templates must be deliberate'
-);
-
-for (const route of PUBLIC_STATIC_ROUTES) {
-  assert.ok(isPublicHtmlPath(route.path), `${route.path} must be recognized as public HTML`);
-  const pageSource =
-    route.path === '/' ? 'apps/web/src/app/page.tsx' : `apps/web/src/app${route.path}/page.tsx`;
-  assert.ok(existsSync(pageSource), `${route.path} must have a page source`);
-  assert.match(
-    readFileSync(pageSource, 'utf8'),
-    /alternates\s*:\s*\{\s*canonical\s*:/u,
-    `${route.path} must declare a self-canonical before entering the sitemap`
+const discoveryLinks = agentDiscoveryLinkHeader('https://highsignal.app');
+for (const path of ['/llms.txt', '/llms-full.txt', '/ai.txt'])
+  assert.ok(discoveryLinks.includes(`<https://highsignal.app${path}>; rel="describedby"`));
+assert.match(discoveryLinks, /rel="ard"/);
+assert.equal(PUBLIC_STATIC_ROUTES.length, 42);
+assert.equal(PUBLIC_DYNAMIC_ROUTE_TEMPLATES.length, 11);
+const shape = (path) => path.replace(/\[[^\]]+\]|\{[^}]+\}/g, '{}').replace(/\/$/, '');
+const skipped = new Map([
+  ['/brief', 'compatibility redirect'],
+  ['/explore', 'compatibility redirect'],
+  ['/review', 'operator review'],
+  ['/backtest-workbench', 'operator execution'],
+  ['/communities', 'explicit noindex'],
+  ['/communities/{}/{}', 'explicit noindex'],
+  ['/case-studies/search', 'explicit noindex'],
+  ['/brief/archive', 'human-verified protected history'],
+]);
+const walk = (dir) =>
+  readdirSync(dir, { withFileTypes: true }).flatMap((entry) =>
+    entry.isDirectory()
+      ? walk(resolve(dir, entry.name))
+      : entry.name === 'page.tsx'
+        ? [resolve(dir, entry.name)]
+        : []
   );
-  const markdownPath = route.path === '/' ? '/index.md' : `${route.path}.md`;
-  if (route.path !== '/') {
-    assert.equal(
-      resolvePublicMarkdownTarget(markdownRequest(markdownPath))?.publicPath,
-      route.path,
-      `${markdownPath} must resolve to its canonical HTML route`
+const app = resolve('apps/web/src/app');
+for (const file of walk(app)) {
+  const path = '/' + relative(app, file).replace(/(?:^|\/)page\.tsx$/, '');
+  const registered =
+    PUBLIC_STATIC_ROUTES.some((route) => route.path === path) ||
+    PUBLIC_DYNAMIC_ROUTE_TEMPLATES.some((route) => shape(route.html) === shape(path));
+  assert.ok(
+    registered || skipped.has(shape(path)),
+    `Public page needs renderer or explicit exclusion: ${path}`
+  );
+  if (registered)
+    assert.match(
+      readFileSync(file, 'utf8'),
+      /withAgentMetadata/,
+      `${path} needs head discovery metadata`
     );
-  }
 }
-
-const allowedDynamic = [
-  ['/data/nvd.md', '/data/nvd'],
-  ['/brief/2026-07-30.md', '/brief/2026-07-30'],
-  ['/markets/NVDA.md', '/markets/NVDA'],
-  ['/signals/market-shift.md', '/signals/market-shift'],
-  ['/signals/types/demand_shift.md', '/signals/types/demand_shift'],
-  ['/entities/apple.md', '/entities/apple'],
-  ['/entities/apple/2026-07.md', '/entities/apple/2026-07'],
-  ['/case-studies/page/2.md', '/case-studies/page/2'],
-  ['/case-studies/acme.md', '/case-studies/acme'],
-];
-for (const [requested, expected] of allowedDynamic) {
-  assert.equal(resolvePublicMarkdownTarget(markdownRequest(requested))?.publicPath, expected);
-}
-
-for (const denied of [
-  '/review.md',
-  '/admin/delivery.md',
-  '/personal.md',
-  '/signals/rss.md',
-  '/signals/atom.md',
-  '/signals/today.md',
-  '/entities/random.md',
-  '/case-studies/search.md',
-  '/api/ai.md',
-]) {
+for (const route of PUBLIC_STATIC_ROUTES) {
+  assert.ok(isPublicHtmlPath(route.path));
   assert.equal(
-    resolvePublicMarkdownTarget(markdownRequest(denied)),
-    null,
-    `${denied} must stay private or non-HTML`
+    resolvePublicMarkdownTarget(
+      markdownRequest(route.path === '/' ? '/index.md' : route.path + '.md')
+    )?.publicPath,
+    route.path
   );
 }
-
-assert.equal(
-  resolvePublicMarkdownTarget(
-    markdownRequest('/markets', { Accept: 'text/markdown, text/html;q=0.5' })
-  )?.publicPath,
-  '/markets',
-  'Accept negotiation must use the same public route boundary'
-);
-assert.equal(
-  resolvePublicMarkdownTarget(markdownRequest('/markets', { Accept: 'text/html' })),
-  null,
-  'ordinary HTML requests must remain with the application'
-);
-
-const converted = htmlDocumentToMarkdown(
-  `<!doctype html><html><body><nav>skip me</nav><main>
-    <h1>Evidence &amp; calls</h1>
-    <p>Two cited sources support <strong>this read</strong>.</p>
-    <ul><li><a href="/signals/one">First signal</a></li><li>Second signal</li></ul>
-    <script>privateData = true</script>
-  </main></body></html>`,
-  'https://highsignal.app/signals'
-);
-assert.match(converted, /^# Evidence & calls/m);
-assert.match(converted, /\*\*this read\*\*/);
-assert.match(converted, /\[First signal\]\(https:\/\/highsignal\.app\/signals\/one\)/);
-assert.doesNotMatch(converted, /skip me|privateData/);
-assert.match(converted.trim(), /Canonical HTML: https:\/\/highsignal\.app\/signals$/);
-
-const rendered = await handleRenderedMarkdown(markdownRequest('/markets.md'), async (request) => {
-  assert.equal(new URL(request.url).pathname, '/markets');
-  assert.equal(request.headers.get('accept'), 'text/html');
-  return new Response(
-    '<html><body><main><h1>Markets</h1><p>Current cited market evidence.</p></main></body></html>',
-    {
-      status: 200,
-      headers: { 'Content-Type': 'text/html; charset=utf-8' },
-    }
-  );
+const source = (path) => ({
+  path,
+  url: `https://highsignal.app${path}`,
+  title: 'Public evidence',
+  description: 'A source-backed page.',
+  markdown: `# Public evidence\n\nCanonical: https://highsignal.app${path}\n\nCurrent cited evidence.\n`,
 });
-assert.equal(rendered.status, 200);
-assert.match(rendered.headers.get('content-type') ?? '', /text\/markdown/);
-assert.match(await rendered.text(), /Current cited market evidence/);
-
-// Next.js streams the route loading main before the completed page segment.
-const streamedHtml = `<html><body><nav>Navigation</nav><!--$?--><template id="B:0"></template><main><div role="status">Loading page…<!--$--><p>Nested fallback</p><!--/$--></div></main><!--/$--><footer>Footer</footer><div hidden id="S:0"><main><h1>Methodology</h1><p>Every published claim clears the evidence gates.</p></main></div><script>$RC("B:0","S:0")</script></body></html>`;
-const streamedMarkdown = await handleRenderedMarkdown(
-  markdownRequest('/methodology.md'),
-  async () => new Response(streamedHtml, { headers: { 'Content-Type': 'text/html' } })
+let calls = 0;
+const loader = async (request) => {
+  calls++;
+  assert.equal(request.headers.get('cookie'), null);
+  assert.equal(request.headers.get('authorization'), null);
+  assert.equal(new URL(request.url).search, '');
+  assert.equal(request.headers.get('accept'), 'application/json');
+  return Response.json(source('/markets'));
+};
+for (const path of ['/markets.md', '/api/md/markets', '/markets']) {
+  const response = await handleRenderedMarkdown(
+    markdownRequest(path + '?ignored=1', {
+      Accept: 'text/markdown;q=1, text/html;q=0.5',
+      Cookie: 'private=not-forwarded',
+      Authorization: 'Bearer not-forwarded',
+    }),
+    loader
+  );
+  assert.equal(response.status, 200);
+  assert.match(response.headers.get('content-type'), /text\/markdown/);
+  assert.equal(response.headers.get('content-location'), 'https://highsignal.app/markets');
+  assert.equal(response.headers.get('access-control-allow-origin'), '*');
+  assert.match(response.headers.get('x-robots-tag'), /noindex/);
+  assert.ok(Number(response.headers.get('x-markdown-tokens')) > 0);
+  assert.match(await response.text(), /Current cited evidence/);
+}
+const head = await handleRenderedMarkdown(
+  new Request('https://highsignal.app/markets.md', { method: 'HEAD' }),
+  loader
 );
-assert.equal(streamedMarkdown.status, 200);
-const streamedText = await streamedMarkdown.text();
-assert.match(streamedText, /# Methodology/);
-assert.match(streamedText, /Every published claim clears the evidence gates/);
-assert.doesNotMatch(streamedText, /Loading page|Nested fallback|Navigation|Footer|\$RC/);
-const incompleteMarkdown = await handleRenderedMarkdown(
-  markdownRequest('/markets.md'),
-  async () =>
-    new Response(
-      '<html><body><!--$?--><template id="B:0"></template><main>Loading page…</main><!--/$--><footer>Footer</footer></body></html>',
-      { headers: { 'Content-Type': 'text/html' } }
+assert.equal(head.status, 200);
+assert.equal(await head.text(), '');
+const options = await handleRenderedMarkdown(
+  new Request('https://highsignal.app/api/md/markets', { method: 'OPTIONS' }),
+  loader
+);
+assert.equal(options.status, 204);
+for (const accept of [
+  '',
+  '*/*',
+  'text/html',
+  'text/markdown;q=0.5,text/html;q=0.5',
+  'text/markdown;q=0.1,text/html;q=1',
+])
+  assert.equal(resolvePublicMarkdownTarget(markdownRequest('/markets', { Accept: accept })), null);
+const beforeDenied = calls;
+for (const path of [
+  '/does-not-exist.md',
+  '/review.md',
+  '/admin/account.md',
+  '/auth.md',
+  '/api/md/admin',
+  '/case-studies/search.md',
+]) {
+  const response = await handleRenderedMarkdown(markdownRequest(path), loader);
+  assert.equal(response.status, 404, path);
+  assert.match(response.headers.get('content-type'), /text\/markdown/);
+}
+assert.equal(calls, beforeDenied, 'Private and unknown paths never invoke a source renderer');
+for (const path of [
+  '/api/ai.md',
+  '/.well-known/agent-skills/high-signal-daily-brief/SKILL.md',
+  '/_next/static/main.js',
+])
+  assert.equal(resolvePublicMarkdownTarget(markdownRequest(path)), null);
+assert.equal(
+  (
+    await handleRenderedMarkdown(markdownRequest('/signals/missing.md'), async () =>
+      Response.json({}, { status: 404 })
     )
+  ).status,
+  404
 );
 assert.equal(
-  incompleteMarkdown.status,
-  502,
-  'an incomplete stream must not become cacheable Markdown'
+  (
+    await handleRenderedMarkdown(
+      markdownRequest('/markets.md'),
+      async () =>
+        new Response('<html>not a source</html>', { headers: { 'Content-Type': 'text/html' } })
+    )
+  ).status,
+  503
 );
-
-const cacheEntries = new Map();
-const cacheWrites = [];
-const markdownCache = {
+assert.equal(
+  (
+    await handleRenderedMarkdown(markdownRequest('/markets.md'), async () => {
+      throw new Error('source unavailable');
+    })
+  ).status,
+  503
+);
+const entries = new Map();
+const pending = [];
+const cache = {
   async match(request) {
-    const response = cacheEntries.get(request.url)?.clone();
-    if (response) response.headers.set('Cache-Control', 'public, max-age=14400, s-maxage=3600');
-    return response;
+    return entries.get(request.url)?.clone();
   },
   async put(request, response) {
-    cacheEntries.set(request.url, response.clone());
+    entries.set(request.url, response.clone());
   },
-};
-let cachedRenderCount = 0;
-const renderCachedMarkets = async () => {
-  cachedRenderCount += 1;
-  return new Response(
-    '<html><body><main><h1>Markets</h1><p>Cached cited market evidence.</p></main></body></html>',
-    { headers: { 'Content-Type': 'text/html; charset=utf-8' } }
-  );
 };
 const cacheOptions = {
-  cache: markdownCache,
-  waitUntil(promise) {
-    cacheWrites.push(promise);
-  },
+  cache,
+  cacheBuildId: 'source-proof',
+  waitUntil: (promise) => pending.push(promise),
 };
-const cacheMiss = await handleCachedRenderedMarkdown(
+const miss = await handleCachedRenderedMarkdown(
   markdownRequest('/markets.md'),
-  renderCachedMarkets,
+  loader,
   cacheOptions
 );
-assert.equal(cacheMiss.headers.get('x-edge-cache'), 'AGENT-MISS');
-assert.equal(cachedRenderCount, 1);
-const missBody = await cacheMiss.text();
-await Promise.all(cacheWrites);
-
-const cacheHit = await handleCachedRenderedMarkdown(
+assert.equal(miss.headers.get('x-edge-cache'), 'AGENT-MISS');
+await Promise.all(pending);
+const beforeHit = calls;
+const hit = await handleCachedRenderedMarkdown(
   markdownRequest('/markets.md'),
-  renderCachedMarkets,
+  loader,
   cacheOptions
 );
-assert.equal(cacheHit.headers.get('x-edge-cache'), 'AGENT-HIT');
-assert.equal(
-  cacheHit.headers.get('cache-control'),
-  'public, max-age=300, s-maxage=86400',
-  'cache hits must preserve the public agent TTL even when the edge mutates browser max-age'
-);
-assert.equal(cachedRenderCount, 1, 'cache hit must not invoke OpenNext');
-assert.equal(await cacheHit.text(), missBody, 'cache hit must preserve the rendered Markdown body');
-
-const newBuildMiss = await handleCachedRenderedMarkdown(
-  markdownRequest('/markets.md'),
-  renderCachedMarkets,
-  { ...cacheOptions, cacheBuildId: 'next-release' }
-);
-assert.equal(newBuildMiss.headers.get('x-edge-cache'), 'AGENT-MISS');
-assert.equal(cachedRenderCount, 2, 'new releases must not reuse an old loading-shell entry');
-await Promise.all(cacheWrites);
-
-const bulkCrawlerRequest = markdownRequest('/markets/NVDA', {
-  'User-Agent':
-    'meta-externalagent/1.1 (+https://developers.facebook.com/docs/sharing/webmasters/crawler)',
-});
-assert.equal(isBulkAiCrawler(bulkCrawlerRequest), true);
-assert.equal(
-  isBulkAiCrawler(markdownRequest('/markets/NVDA', { 'User-Agent': 'Lightpanda/1.0' })),
-  true,
-  'bulk headless automation uses the existing cached text representation'
-);
-assert.equal(
-  isBulkAiCrawler(markdownRequest('/markets/NVDA', { 'User-Agent': 'OAI-SearchBot/1.0' })),
-  false,
-  'AI search crawlers must keep the normal HTML experience'
-);
-const verifiedAiCrawlerRequest = markdownRequest('/markets/NVDA', {
-  'User-Agent': 'unknown-crawler/1.0',
-});
-Object.defineProperty(verifiedAiCrawlerRequest, 'cf', {
-  value: { verifiedBotCategory: 'AI Crawler' },
-});
-assert.equal(isBulkAiCrawler(verifiedAiCrawlerRequest), true);
-
-let crawlerRenderCount = 0;
-const renderCrawlerMarket = async (htmlRequest) => {
-  crawlerRenderCount += 1;
-  assert.equal(new URL(htmlRequest.url).pathname, '/markets/NVDA');
-  assert.equal(htmlRequest.headers.get('accept'), 'text/html');
-  return new Response(
-    '<html><body><main><h1>NVDA</h1><p>Cached market evidence for agents.</p></main></body></html>',
-    { headers: { 'Content-Type': 'text/html; charset=utf-8' } }
-  );
-};
-const crawlerMiss = await handleCachedCrawlerMarkdown(
-  bulkCrawlerRequest,
-  renderCrawlerMarket,
+assert.equal(hit.headers.get('x-edge-cache'), 'AGENT-HIT');
+assert.equal(calls, beforeHit);
+assert.equal(await hit.text(), await miss.text());
+const directHit = await handleCachedRenderedMarkdown(
+  markdownRequest('/api/md/markets'),
+  loader,
   cacheOptions
 );
-assert.ok(crawlerMiss);
-assert.equal(crawlerMiss.headers.get('x-edge-cache'), 'AGENT-MISS');
-assert.equal(crawlerMiss.headers.get('x-high-signal-crawler-view'), 'markdown');
-assert.equal(crawlerMiss.headers.get('content-location'), '/markets/NVDA.md');
-assert.match(crawlerMiss.headers.get('content-type') ?? '', /text\/markdown/);
-assert.match(crawlerMiss.headers.get('vary') ?? '', /User-Agent/i);
-await crawlerMiss.text();
-await Promise.all(cacheWrites);
-
-const crawlerHit = await handleCachedCrawlerMarkdown(
-  bulkCrawlerRequest,
-  renderCrawlerMarket,
+assert.equal(directHit.headers.get('x-edge-cache'), 'AGENT-HIT');
+assert.equal(calls, beforeHit);
+const history = await handleCachedRenderedMarkdown(
+  markdownRequest('/signals/public.md'),
+  async () => Response.json(source('/signals/public')),
   cacheOptions
 );
-assert.ok(crawlerHit);
-assert.equal(crawlerHit.headers.get('x-edge-cache'), 'AGENT-HIT');
-assert.equal(crawlerRenderCount, 1, 'bulk crawler cache hit must not invoke OpenNext');
-assert.match(await crawlerHit.text(), /Cached market evidence for agents/);
-
-const headlessHit = await handleCachedCrawlerMarkdown(
-  markdownRequest('/markets/NVDA', { 'User-Agent': 'Lightpanda/1.0' }),
-  renderCrawlerMarket,
-  cacheOptions
-);
-assert.equal(headlessHit?.headers.get('x-edge-cache'), 'AGENT-HIT');
-assert.match(await headlessHit.text(), /Cached market evidence for agents/);
-assert.equal(crawlerRenderCount, 1, 'headless crawlers reuse the text cache without rendering');
-
-for (const userAgent of ['Lightpanda/1.0', 'GPTBot/1.0']) {
-  const homepage = await handleCachedCrawlerMarkdown(
-    markdownRequest('/', { 'User-Agent': userAgent }),
-    () => assert.fail('the crawler homepage must use the static index without rendering'),
-    cacheOptions
-  );
-  assert.ok(homepage);
-  assert.equal(homepage.headers.get('content-location'), '/index.md');
-  assert.equal(homepage.headers.get('x-high-signal-crawler-view'), 'markdown');
-  assert.match(homepage.headers.get('vary') ?? '', /User-Agent/i);
-  assert.equal(await homepage.text(), await handleAgentEdge(markdownRequest('/index.md')).text());
-}
-
-for (const bypassed of [
-  markdownRequest('/', { 'User-Agent': 'Googlebot/2.1' }),
-  markdownRequest('/markets/NVDA', { 'User-Agent': 'OAI-SearchBot/1.0' }),
-  markdownRequest('/markets/NVDA?preview=1', { 'User-Agent': 'meta-externalagent/1.1' }),
-  markdownRequest('/markets/NVDA?_rsc=state', {
-    RSC: '1',
-    'User-Agent': 'meta-externalagent/1.1',
-  }),
-]) {
+assert.equal(history.headers.get('cache-control'), 'no-store');
+assert.ok(![...entries.keys()].some((key) => key.includes('/signals/public')));
+for (const agent of ['GPTBot', 'ClaudeBot', 'Bytespider', 'Lightpanda'])
   assert.equal(
-    await handleCachedCrawlerMarkdown(bypassed, renderCrawlerMarket, cacheOptions),
-    null,
-    `${bypassed.url} must retain the normal application path`
+    await handleCachedCrawlerMarkdown(markdownRequest('/markets', { 'User-Agent': agent })),
+    null
   );
-}
-
-for (const request of [
-  markdownRequest('/markets.md?view=compact'),
-  new Request('https://highsignal.app/markets.md', { method: 'HEAD' }),
-]) {
-  await handleCachedRenderedMarkdown(request, renderCachedMarkets, cacheOptions);
-}
-await handleCachedRenderedMarkdown(markdownRequest('/markets.md'), renderCachedMarkets, {
-  ...cacheOptions,
-  cacheEnabled: false,
-});
-assert.equal(cachedRenderCount, 5, 'query, HEAD, and authenticated paths must bypass the cache');
-
-let errorCacheWrites = 0;
-const errorResponse = await handleCachedRenderedMarkdown(
-  markdownRequest('/signals/missing.md'),
-  async () =>
-    new Response('not found', {
-      status: 404,
-      headers: { 'Content-Type': 'text/plain; charset=utf-8' },
-    }),
-  {
-    cache: {
-      async match() {
-        return undefined;
-      },
-      async put() {
-        errorCacheWrites += 1;
-      },
-    },
-  }
+assert.equal(htmlDisallowsIndexing('<meta name="robots" content="noindex, follow">'), true);
+const element = (type, props) => ({ type, props });
+const rendered = await publicSourceTree(
+  element('main', {
+    children: [
+      element('h1', { children: 'Evidence' }),
+      element('p', { children: ['Public ', element('strong', { children: 'facts' }), '.'] }),
+      element('section', { hidden: true, children: 'hidden content' }),
+      element('pre', { children: element('code', { children: 'a\n\n\nb' }) }),
+    ],
+  }),
+  { canonical: 'https://highsignal.app/markets' }
 );
-assert.equal(errorResponse.status, 404);
-assert.equal(errorCacheWrites, 0, 'error responses must not enter the public Markdown cache');
-
-let personalizedCacheWrites = 0;
-const personalizedResponse = await handleCachedRenderedMarkdown(
-  markdownRequest('/markets.md'),
-  async () =>
-    new Response('# Personalized markets\n', {
-      headers: {
-        'Content-Type': 'text/markdown; charset=utf-8',
-        'Set-Cookie': 'session=private',
-      },
-    }),
-  {
-    cache: {
-      async match() {
-        return undefined;
-      },
-      async put() {
-        personalizedCacheWrites += 1;
-      },
-    },
-  }
+assert.match(rendered, /# Evidence/);
+assert.match(rendered, /\*\*facts\*\*/);
+assert.doesNotMatch(rendered, /hidden content/);
+assert.match(rendered, /a\n\n\nb/);
+await assert.rejects(
+  publicSourceTree(element({}, {}), { canonical: 'https://highsignal.app/' }),
+  /explicit source adapter/
 );
-assert.equal(personalizedResponse.status, 200);
-assert.equal(
-  personalizedCacheWrites,
-  0,
-  'responses carrying Set-Cookie must not enter the public Markdown cache'
+await assert.rejects(
+  publicSourceTree(element('div', { dangerouslySetInnerHTML: { __html: '<p>rendered</p>' } }), {
+    canonical: 'https://highsignal.app/',
+  }),
+  /not serialized HTML/
 );
-
-const missing = await handleRenderedMarkdown(markdownRequest('/signals/missing.md'), async () => {
-  return new Response('not found', {
-    status: 404,
-    headers: { 'Content-Type': 'text/plain; charset=utf-8' },
-  });
-});
-assert.equal(missing.status, 404, 'missing dynamic content must not become a fake Markdown 200');
-
-assert.equal(
-  htmlDisallowsIndexing(
-    '<html><head><meta content="follow, noindex" name="robots"></head><body></body></html>'
-  ),
-  true,
-  'robots attributes may appear in any order'
-);
-const withheld = await handleRenderedMarkdown(
-  markdownRequest('/case-studies/page/2.md'),
-  async () =>
-    new Response(
-      '<html><head><meta name="robots" content="noindex, follow"></head><body><main><h1>Page 2</h1></main></body></html>',
-      { headers: { 'Content-Type': 'text/html; charset=utf-8' } }
-    )
-);
-assert.equal(withheld.status, 404, 'noindex HTML must not receive an agent Markdown alternate');
 
 const catalogResponse = handleAgentEdge(markdownRequest('/api/ai'));
 assert.ok(catalogResponse);

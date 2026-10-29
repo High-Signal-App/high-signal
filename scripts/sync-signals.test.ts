@@ -132,10 +132,46 @@ const snapshot = () =>
   );
 try {
   apply();
+  assert.equal(
+    database.prepare('SELECT measurement_eligible FROM signals').get()!.measurement_eligible,
+    1,
+    'new draft candidate enters the post-rollout measurement cohort'
+  );
   apply(parsed.front, 'A newer unreviewed draft');
   assert.equal(
     database.prepare('SELECT body_md FROM signals').get()!.body_md,
     'A newer unreviewed draft'
+  );
+  database.prepare('UPDATE signals SET measurement_eligible = 0').run();
+  apply(parsed.front, 'A resynced draft');
+  assert.equal(
+    database.prepare('SELECT measurement_eligible FROM signals').get()!.measurement_eligible,
+    0,
+    'resync cannot opt an existing row into measurement'
+  );
+  apply(
+    { ...parsed.front, slug: 'known-published-import', review_status: 'published' },
+    'A known previously published source'
+  );
+  const knownPublishedImport = database
+    .prepare('SELECT review_status, measurement_eligible FROM signals WHERE slug = ?')
+    .get('known-published-import');
+  assert.equal(knownPublishedImport?.review_status, 'draft');
+  assert.equal(
+    knownPublishedImport?.measurement_eligible,
+    0,
+    'known pre-published source stays ineligible while still passing the normal publish gate'
+  );
+  apply(
+    { ...parsed.front, slug: 'known-corrected-import', review_status: 'corrected' },
+    'A known correction source'
+  );
+  assert.equal(
+    database
+      .prepare('SELECT measurement_eligible FROM signals WHERE slug = ?')
+      .get('known-corrected-import')?.measurement_eligible,
+    0,
+    'known corrected source has no trustworthy first-publication timestamp'
   );
   for (const status of ['published', 'corrected', 'killed']) {
     database.prepare('UPDATE signals SET review_status = ?').run(status);

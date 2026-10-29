@@ -131,9 +131,10 @@ const PRECOMPUTED_REGIONS: Region[] = [
 ];
 
 /**
- * Matches the public edge cache's `s-maxage=300`: a published edition read
- * from KV is never older than one edge-cache lifetime, so stock and news
- * refreshes reach readers on the same bound as before.
+ * Limit shared-response retention between publications. Publication invalidation
+ * is best-effort: an in-flight older read can repopulate KV after deletion, and
+ * already cached edge responses retain their own TTL. KV propagation and layered
+ * caches do not imply a strict combined age or convergence bound.
  */
 export const DAILY_BRIEF_CACHE_TTL_SECONDS = 300;
 
@@ -471,6 +472,7 @@ async function composeDailyBrief(
 interface BriefPrecomputeRegionResult {
   region: Region;
   status: 'published' | 'rejected' | 'failed';
+  cacheInvalidation?: 'invalidated' | 'failed';
   counts?: { news: number; stocks: number; ideas: number; trends: number };
   issues?: Array<{ section: string; item: number | null; reason: string }>;
 }
@@ -555,13 +557,24 @@ async function precomputeBriefRegion(
 
 export async function precomputeBriefSnapshots(env: {
   DB: D1Database;
+  BRIEF_CACHE?: KVNamespace;
 }): Promise<BriefPrecomputeResult> {
   const database = db(env.DB);
   const date = istDay();
   const nowIso = new Date().toISOString();
   const regions: BriefPrecomputeRegionResult[] = [];
   for (const region of PRECOMPUTED_REGIONS) {
-    regions.push(await precomputeBriefRegion(database, region, date, nowIso));
+    const result = await precomputeBriefRegion(database, region, date, nowIso);
+    if (result.status === 'published' && env.BRIEF_CACHE) {
+      try {
+        await env.BRIEF_CACHE.delete(dailyBriefCacheKey(region, date));
+        result.cacheInvalidation = 'invalidated';
+      } catch (error) {
+        result.cacheInvalidation = 'failed';
+        console.error(`[brief-precompute] ${region} shared cache invalidation failed`, error);
+      }
+    }
+    regions.push(result);
   }
   return {
     date,

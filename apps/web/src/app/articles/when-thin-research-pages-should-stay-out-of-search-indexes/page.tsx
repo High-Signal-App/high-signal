@@ -1,3 +1,4 @@
+import { withAgentMetadata } from '@/lib/agent-page-metadata';
 import type { Metadata } from 'next';
 
 import { ArticlePage } from '@/components/content/ArticlePage';
@@ -8,11 +9,14 @@ const ARTICLE = articleBySlug('when-thin-research-pages-should-stay-out-of-searc
 
 export const dynamic = 'force-static';
 
-export const metadata: Metadata = {
-  title: ARTICLE.metaTitle,
-  description: ARTICLE.metaDescription,
-  alternates: { canonical: `${SITE_URL}${ARTICLE.path}` },
-};
+export const metadata: Metadata = withAgentMetadata(
+  {
+    title: ARTICLE.metaTitle,
+    description: ARTICLE.metaDescription,
+    alternates: { canonical: `${SITE_URL}${ARTICLE.path}` },
+  },
+  '/articles/when-thin-research-pages-should-stay-out-of-search-indexes'
+);
 
 export default function Page() {
   return <ArticlePage article={ARTICLE} />;

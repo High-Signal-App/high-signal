@@ -1,8 +1,9 @@
+import { withAgentMetadata } from '@/lib/agent-page-metadata';
 import { EmptyState } from '@saas-maker/ui/components/empty-state';
 import { api } from '@/lib/api';
 
 export const revalidate = 3600;
-export const metadata = { title: 'Label hit-rates' };
+export const metadata = withAgentMetadata({ title: 'Label hit-rates' }, '/track-record/labels');
 
 type Stats = { n: number; hits: number; rate: number; lift?: number | null };
 

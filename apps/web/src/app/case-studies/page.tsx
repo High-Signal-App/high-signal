@@ -1,3 +1,4 @@
+import { withAgentMetadata } from '@/lib/agent-page-metadata';
 import type { Metadata } from 'next';
 import { BackLink, HeroHeader, PageShell, Panel, StatGrid } from '@/components/system/HighSignalUI';
 import { SITE_URL } from '@/lib/site';
@@ -14,12 +15,15 @@ import {
 
 export const dynamic = 'force-static';
 
-export const metadata: Metadata = {
-  title: 'Company universe',
-  description:
-    'Generated High Signal company universe with source-backed companies and competitor mappings.',
-  alternates: { canonical: `${SITE_URL}/case-studies` },
-};
+export const metadata: Metadata = withAgentMetadata(
+  {
+    title: 'Company universe',
+    description:
+      'Generated High Signal company universe with source-backed companies and competitor mappings.',
+    alternates: { canonical: `${SITE_URL}/case-studies` },
+  },
+  '/case-studies'
+);
 
 export default function CaseStudiesPage() {
   const withCompetitors = CASE_STUDIES.filter((item) => item.competitors.length > 0).length;

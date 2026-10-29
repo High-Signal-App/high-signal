@@ -1,3 +1,4 @@
+import { withAgentMetadata } from '@/lib/agent-page-metadata';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import {
@@ -9,12 +10,15 @@ import {
 import { PageShell } from '@/components/system/HighSignalUI';
 import { SITE_URL } from '@/lib/site';
 
-export const metadata: Metadata = {
-  title: 'Public-data parity methodology',
-  description:
-    'How High Signal verifies public-data capability coverage against referenced intelligence tools while disclosing premium and restricted gaps.',
-  alternates: { canonical: `${SITE_URL}/methodology/data-parity` },
-};
+export const metadata: Metadata = withAgentMetadata(
+  {
+    title: 'Public-data parity methodology',
+    description:
+      'How High Signal verifies public-data capability coverage against referenced intelligence tools while disclosing premium and restricted gaps.',
+    alternates: { canonical: `${SITE_URL}/methodology/data-parity` },
+  },
+  '/methodology/data-parity'
+);
 
 function statusTone(status: DataParityStatus) {
   if (status === 'covered') return 'text-emerald-300';

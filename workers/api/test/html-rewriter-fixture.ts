@@ -26,6 +26,15 @@ export class FixtureHTMLRewriter {
               .map((match) => match[1])
               .join('');
           }
+          if (selector === 'article[data-post-card-wrapper] a') {
+            scope = [
+              ...html.matchAll(
+                /<article\b[^>]*\bdata-post-card-wrapper(?:\s|>)[\s\S]*?<\/article>/gi
+              ),
+            ]
+              .map((match) => match[0])
+              .join('');
+          }
           const tag = selector === 'link' ? 'link' : 'a';
           for (const match of scope.matchAll(new RegExp(`<${tag}\\b([^>]*)>`, 'gi'))) {
             handler.element({

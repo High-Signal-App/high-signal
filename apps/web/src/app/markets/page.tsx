@@ -1,4 +1,5 @@
 import { stockPriceDisplayStatus } from '../../../../../packages/shared/src/stock-data/price-status';
+import { withAgentMetadata } from '@/lib/agent-page-metadata';
 import { EmptyState } from '@saas-maker/ui/components/empty-state';
 import type { Metadata } from 'next';
 import {
@@ -19,10 +20,13 @@ import {
 import { SITE_URL } from '@/lib/site';
 
 export const dynamic = 'force-dynamic';
-export const metadata: Metadata = {
-  title: 'Market Intelligence',
-  alternates: { canonical: `${SITE_URL}/markets` },
-};
+export const metadata: Metadata = withAgentMetadata(
+  {
+    title: 'Market Intelligence',
+    alternates: { canonical: `${SITE_URL}/markets` },
+  },
+  '/markets'
+);
 
 function formatNumber(value: number | null) {
   if (value === null) return 'unavailable';

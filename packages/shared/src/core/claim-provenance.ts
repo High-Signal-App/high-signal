@@ -23,7 +23,9 @@ export type ClaimTimelineKind =
   | 'evidence_added'
   | 'evidence_removed'
   | 'status_change'
-  | 'correction_filed';
+  | 'correction_filed'
+  | 'signal_measurement_intent'
+  | 'signal_measurement_published';
 
 export interface ClaimEvidenceLink {
   id: string;

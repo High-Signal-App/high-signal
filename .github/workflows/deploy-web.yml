@@ -13,6 +13,8 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Install locked docs-site dependencies
+        run: pnpm --dir docs-site install --frozen-lockfile --ignore-workspace --node-linker=hoisted
       - run: pnpm cf:build
         working-directory: apps/web
         env:

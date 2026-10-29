@@ -17,7 +17,7 @@ The public repository no longer receives the raw equity JSONL from refresh jobs.
 The valuation engine supports listed coverage, holding NAV and SOTP with explicit
 ownership, accounting, corporate-action, freshness and completeness checks.
 Read-only contracts feed the existing equity/company views and research adapter.
-Migration 0032 and the API release must precede the changed refresh workflow.
+Migration 0033 and the API release must precede the changed refresh workflow.
 No production migration or deployment has run for this work.
 
 Public price display is intentionally withheld while Yahoo usage rights remain

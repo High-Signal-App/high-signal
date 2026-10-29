@@ -3,6 +3,7 @@ import '../styles/reader.css';
 import { ReaderHeader } from '../components/ReaderHeader';
 import { SiteFooter } from '@/components/system/SiteFooter';
 import { SiteOrganizationJsonLd } from '@/components/seo/structured-data';
+import { markdownPathFor } from '@web-root/agent-surfaces/http.mjs';
 import { SITE_URL, SITE_TWITTER } from '@/lib/site';
 
 interface Props { title: string; description: string; pathname: string; index?: boolean }
@@ -16,6 +17,8 @@ const canonical = new URL(pathname, SITE_URL).href;
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
     <meta name="description" content={description} />
+    {index && <meta name="ai-summary" content={description} />}
+    {index && <link rel="alternate" type="text/markdown" href={new URL(markdownPathFor(pathname), SITE_URL).href} />}
     <SiteOrganizationJsonLd />
     <meta name="robots" content={index ? 'index, follow, max-image-preview:large' : 'noindex, follow'} />
     <link rel="canonical" href={canonical} />

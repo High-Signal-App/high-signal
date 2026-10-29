@@ -1,5 +1,29 @@
 export const PUBLIC_STATIC_ROUTES = [
   {
+    path: '/unmapped',
+    title: 'Gazetteer Candidates',
+    description:
+      'Public entity candidates, mentions, and source evidence awaiting gazetteer mapping.',
+    changeFrequency: 'daily',
+    priority: 0.2,
+  },
+  {
+    path: '/equities',
+    title: 'Equities snapshot',
+    description:
+      'The existing public daily price snapshot with returns, volatility, and source freshness.',
+    changeFrequency: 'daily',
+    priority: 0.5,
+  },
+  {
+    path: '/track-record/labels',
+    title: 'Label hit-rate ledger',
+    description:
+      'Published backtest calibration for convergence labels, including baseline and missing-data states.',
+    changeFrequency: 'daily',
+    priority: 0.5,
+  },
+  {
     path: '/',
     title: 'Daily Brief',
     description:
@@ -294,6 +318,21 @@ export const PUBLIC_STATIC_ROUTES = [
 ];
 
 export const PUBLIC_DYNAMIC_ROUTE_TEMPLATES = [
+  {
+    id: 'data-record',
+    html: '/data/records/{id}',
+    markdown: '/data/records/{id}.md',
+    description:
+      'One publicly retained source record with its original provenance and availability limits.',
+    pattern: /^\/data\/records\/[^/]+$/,
+  },
+  {
+    id: 'embed',
+    html: '/embed/{slug}',
+    markdown: '/embed/{slug}.md',
+    description: 'The public compact signal card with a link to its evidence page.',
+    pattern: /^\/embed\/[^/]+$/,
+  },
   {
     id: 'data-source',
     html: '/data/{source}',
