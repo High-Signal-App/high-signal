@@ -52,7 +52,7 @@ export const INTELLIGENCE_GUIDES: Record<IntelligenceGuideKey, IntelligenceGuide
       {
         title: 'What the brief answers',
         paragraphs: [
-          'The public brief is organized around three operator questions: which stocks are worth watching for a boom, which business ideas are emerging from real demand, and which lifestyle or behavior shifts are becoming visible. When a user connects a brand, two additional sections focus on how the market perceives that product and which agent-readiness gaps could become product improvements. Region is a filter, not a paid gate.',
+          'The public brief brings technology, startup, and finance coverage into one edition with cited evidence and visible uncertainty. Readers can inspect the sources behind a story and the public record of measured outcomes. No reader account is required. Region is a filter, not a paid gate.',
         ],
       },
       {
@@ -236,7 +236,7 @@ export const INTELLIGENCE_GUIDES: Record<IntelligenceGuideKey, IntelligenceGuide
       {
         title: 'What High Signal covers',
         paragraphs: [
-          "High Signal's company universe is built from official YC, Antler, a16z, and Techstars directories. The underlying corpus contains 12,964 unique companies. The public discovery policy does not index every generated profile: it currently marks 5,178 company pages eligible only when the description, product facets, and similarity evidence clear the published threshold. Pages below that threshold remain available where appropriate but are withheld from search discovery until their evidence improves.",
+          "High Signal's company universe is built from official YC, Antler, a16z, and Techstars directories. The public discovery policy does not index every generated profile: pages qualify only when their official sources, description, product facets, and similarity evidence clear the published threshold. Pages below that threshold remain available where appropriate but are withheld from search discovery until their evidence improves. Browse the live company universe to inspect the available profiles and their provenance.",
         ],
       },
       {
@@ -438,27 +438,27 @@ export const INTELLIGENCE_GUIDES: Record<IntelligenceGuideKey, IntelligenceGuide
       {
         title: 'Explore without losing provenance',
         paragraphs: [
-          'The qualified public corpus currently includes 199 cited signal pages, 34 evidence-qualified entity pages, 26 entity-month archives, 14 populated signal taxonomies, and 38 dated briefs. Thin or under-supported candidates are withheld from discovery. The goal is not the largest index; it is a connected, inspectable record of meaningful change.',
+          'The public discovery corpus includes only pages that clear the evidence rubric. Signals need substantive cited evidence; entity pages, monthly archives, and signal taxonomies qualify from their underlying public records. Thin or under-supported candidates remain withheld from discovery. Open the live signals, sources, and track record to inspect the available evidence and measured outcomes.',
         ],
       },
     ],
     evidence: [
       {
         href: '/signals',
-        label: '199 qualified signal pages',
+        label: 'Evidence-qualified signal pages',
         detail: 'Published signal pages retain cited evidence and substantive signal content.',
         verifiedAt: '2026-08-05',
       },
       {
         href: '/entities',
-        label: '34 qualified entities and 26 monthly archives',
+        label: 'Qualified entities and monthly archives',
         detail:
           'Entity surfaces qualify from eligible signals or substantive relationship evidence.',
         verifiedAt: '2026-08-05',
       },
       {
         href: '/signals/types',
-        label: '14 populated signal taxonomies',
+        label: 'Populated signal taxonomies',
         detail: 'A taxonomy enters discovery only after enough eligible child signals exist.',
         verifiedAt: '2026-08-05',
       },
