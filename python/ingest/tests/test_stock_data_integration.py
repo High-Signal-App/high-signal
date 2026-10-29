@@ -240,3 +240,45 @@ def test_filing_amendment_replaces_one_economic_series_and_retains_both_proofs(t
             change["before"]["evidence_id"] in evidence
             and change["after"]["evidence_id"] in evidence
         )
+
+
+def test_price_and_filing_facts_use_the_existing_company_identity(tmp_path):
+    spec = TickerSpec("NVDA.US", "NVDA", "US", "equity", currency="USD", country="US")
+    with StockStore(tmp_path / "stock.sqlite") as store:
+        persist_prices(store, spec, [Close(20261028, 11, provider_close=13)], ingested_at=NOW)
+        normalize_companyfacts("NVDA", "0000000001", companyfacts(), store, ingested_at=NOW)
+        facts = store.facts(as_of=NOW, entity_id="NVDA")
+        assert {f.metric for f in facts} >= {"adjusted_close", "assets", "shares_outstanding"}
+        assert store.identities("security")[0]["entity_id"] == "NVDA"
+        persist_prices(store, spec, [Close(20261029, 12)], ingested_at="2026-10-30T20:00:00Z")
+        assert store.identities()[0]["identifiers"]["cik"] == "0000000001"
+        assert (
+            store.connection.execute(
+                "SELECT count(*) FROM evidence WHERE source_id='yahoo-finance'"
+            ).fetchone()[0]
+            == 2
+        )
+
+
+def test_rights_reversion_needs_a_new_dated_decision(tmp_path):
+    from dataclasses import replace
+    from high_signal_ingest.stock_data.replication import import_record
+
+    initial = SourceRights("test", "https://example.org/terms")
+    allowed = replace(initial, public_display="permitted", reviewed_at=NOW)
+    with StockStore(tmp_path / "stock.sqlite") as store:
+        store.put_rights(initial)
+        store.put_rights(allowed)
+        with pytest.raises(ValueError, match="newly dated"):
+            store.put_rights(initial)
+        assert store.rights("test") == allowed
+        # Retrying historical replication must not reorder the rights log.
+        from dataclasses import asdict
+
+        import_record(
+            store, {"kind": "rights", "id": initial.version_id, "payload": asdict(initial)}
+        )
+        assert store.rights("test") == allowed
+        revoked = replace(initial, reviewed_at="2026-10-30T00:00:00Z")
+        store.put_rights(revoked)
+        assert not store.rights("test").allows("display")

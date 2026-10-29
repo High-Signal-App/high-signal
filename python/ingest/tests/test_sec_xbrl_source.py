@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 
 from high_signal_ingest import pipeline
 from high_signal_ingest.sources import sec_xbrl
-from high_signal_ingest.stock_data import SourceRights, StockStore
+from high_signal_ingest.stock_data import StockStore
 
 
 def test_ticker_cik_map() -> None:
@@ -49,14 +49,6 @@ def test_event_from_companyfacts(tmp_path) -> None:
     }
 
     store = StockStore(tmp_path / "facts.sqlite")
-    store.put_rights(
-        SourceRights(
-            "sec-xbrl",
-            "https://example.org/test-licence",
-            public_display="permitted",
-            reviewed_at="2026-10-29T00:00:00Z",
-        )
-    )
     event = sec_xbrl.event_from_companyfacts(
         "NVDA",
         "NVDA",
@@ -65,6 +57,8 @@ def test_event_from_companyfacts(tmp_path) -> None:
         datetime(2026, 1, 1, tzinfo=timezone.utc),
         store=store,
     )
+    assert store.rights("sec-xbrl").allows("display")
+    assert store.rights("sec-xbrl").allows("export")
     store.close()
 
     assert event is not None
@@ -84,3 +78,46 @@ def test_pipeline_fetch_includes_sec_xbrl(monkeypatch) -> None:
 
     assert pipeline.fetch("sec-xbrl", days=1) == []
     assert calls == [120]
+
+
+def test_mismatched_issuer_does_not_skip_remaining_issuers(monkeypatch):
+    import httpx
+    import pytest
+    from types import SimpleNamespace
+    from high_signal_ingest import seed
+    from high_signal_ingest.stock_data_collectors import sec_xbrl as collector
+
+    monkeypatch.setattr(
+        seed,
+        "load_entities",
+        lambda: [
+            SimpleNamespace(ticker=ticker, id=ticker, type="public") for ticker in ("NVDA", "AMD")
+        ],
+    )
+    original_client = httpx.Client
+
+    def response(request):
+        if request.url.path.endswith("company_tickers.json"):
+            return httpx.Response(
+                200,
+                json={"0": {"ticker": "NVDA", "cik_str": 1}, "1": {"ticker": "AMD", "cik_str": 2}},
+            )
+        return httpx.Response(200, json={"cik": 3})
+
+    monkeypatch.setattr(
+        collector.httpx,
+        "Client",
+        lambda **kwargs: original_client(transport=httpx.MockTransport(response), **kwargs),
+    )
+    calls = []
+
+    def extract(ticker, *args):
+        calls.append(ticker)
+        if ticker == "NVDA":
+            raise ValueError("issuer mismatch")
+        return None
+
+    monkeypatch.setattr(collector, "event_from_companyfacts", extract)
+    with pytest.raises(RuntimeError, match="1 issuers"):
+        collector.fetch_all()
+    assert calls == ["NVDA", "AMD"]

@@ -16,7 +16,7 @@ import {
   stockPriceDate,
   stockPriceFreshness,
 } from '../packages/shared/src/stock-data';
-import { loadStockPrices } from './stock-data-read';
+import { loadStockPrices, publishStockPriceStatus } from './stock-data-read';
 
 const ROOT = resolve(__dirname, '..');
 const ENTITIES_PATH = resolve(
@@ -168,6 +168,7 @@ async function main() {
     .slice(0, Number(process.env['PRICE_CONTEXT_LIMIT'] ?? 120));
 
   const dataset = await loadStockPrices();
+  if (!(await publishStockPriceStatus(dataset))) return;
   const lookup = buildSnapshotLookup(publicStockPrices(dataset));
 
   const rows: PriceContextRow[] = [];

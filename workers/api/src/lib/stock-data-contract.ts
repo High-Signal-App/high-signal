@@ -1,6 +1,6 @@
 import type { StockDataset } from '../../../../packages/shared/src/stock-data/public';
 
-export function canonicalJson(value: unknown): string {
+function canonicalJson(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
   if (value && typeof value === 'object') {
     return `{${Object.entries(value)
@@ -11,7 +11,7 @@ export function canonicalJson(value: unknown): string {
   return JSON.stringify(value);
 }
 
-export async function digest(bytes: Uint8Array): Promise<string> {
+async function digest(bytes: Uint8Array): Promise<string> {
   const result = await crypto.subtle.digest('SHA-256', bytes as Uint8Array<ArrayBuffer>);
   return Array.from(new Uint8Array(result), (byte) => byte.toString(16).padStart(2, '0')).join('');
 }

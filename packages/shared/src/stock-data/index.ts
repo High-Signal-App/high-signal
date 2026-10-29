@@ -1,4 +1,4 @@
-export type Coverage = 'complete' | 'partial' | 'unavailable';
+type Coverage = 'complete' | 'partial' | 'unavailable';
 export type Freshness = 'fresh' | 'stale' | 'unavailable';
 
 export interface StockPriceRow {
@@ -54,27 +54,29 @@ export function readStockPriceDataset(value: unknown): StockPriceDataset {
   ) {
     throw new Error('Unsupported or invalid stock-data contract');
   }
-  for (const row of dataset.rows) {
-    if (
-      !row.ticker ||
-      !row.entityId ||
-      !row.securityId ||
-      !row.inputSnapshotId ||
-      !Array.isArray(row.inputSnapshotIds) ||
-      (row.last_close != null && !row.inputSnapshotIds.length) ||
-      !Array.isArray(row.sourceRefs) ||
-      !row.sourceRefs.length ||
-      row.priceBasis !== 'total_return_adjusted'
-    )
-      throw new Error('Untraceable stock price row');
-    for (const metric of ['last_close', 'ret_1d', 'ret_30d', 'ret_90d']) {
-      const number = row[metric];
-      if (number != null && (typeof number !== 'number' || !Number.isFinite(number))) {
-        throw new Error(`Invalid stock-data metric: ${metric}`);
-      }
+  for (const row of dataset.rows) validateStockPriceRow(row);
+  return dataset;
+}
+
+function validateStockPriceRow(row: StockPriceRow) {
+  if (
+    !row.ticker ||
+    !row.entityId ||
+    !row.securityId ||
+    !row.inputSnapshotId ||
+    !Array.isArray(row.inputSnapshotIds) ||
+    (row.last_close != null && !row.inputSnapshotIds.length) ||
+    !Array.isArray(row.sourceRefs) ||
+    !row.sourceRefs.length ||
+    row.priceBasis !== 'total_return_adjusted'
+  )
+    throw new Error('Untraceable stock price row');
+  for (const metric of ['last_close', 'ret_1d', 'ret_30d', 'ret_90d']) {
+    const number = row[metric];
+    if (number != null && (typeof number !== 'number' || !Number.isFinite(number))) {
+      throw new Error(`Invalid stock-data metric: ${metric}`);
     }
   }
-  return dataset;
 }
 
 export function stockPriceDate(row: Pick<StockPriceRow, 'last_date'>): string | null {

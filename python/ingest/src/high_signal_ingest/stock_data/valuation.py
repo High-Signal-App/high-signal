@@ -210,6 +210,12 @@ def listed_holding_value(holding: ListedHolding, currency: str, as_of: str) -> D
     quantity = decimal_value(shares.value)
     if quantity < 0 or decimal_value(price.value) <= 0:
         raise UnsupportedValuation("negative holding quantity or nonpositive price")
+    quantity = _reconcile_shares(holding, quantity, as_of)
+    return quantity * decimal_value(price.value) * _fx(price, currency, holding.fx, as_of)
+
+
+def _reconcile_shares(holding: ListedHolding, quantity: Decimal, as_of: str) -> Decimal:
+    shares, price = holding.shares, holding.price
     share_basis = shares.dimensions.get("share_basis")
     price_basis = price.dimensions.get("share_basis")
     if not share_basis or not price_basis:
@@ -240,7 +246,7 @@ def listed_holding_value(holding: ListedHolding, currency: str, as_of: str) -> D
         share_basis = action.dimensions.get("to_basis")
     if share_basis != price_basis:
         raise UnsupportedValuation("corporate actions do not reconcile holding shares with price")
-    return quantity * decimal_value(price.value) * _fx(price, currency, holding.fx, as_of)
+    return quantity
 
 
 def _inputs(request: ValuationRequest) -> list[Fact]:
@@ -260,6 +266,198 @@ def _inputs(request: ValuationRequest) -> list[Fact]:
     return facts
 
 
+def _validate_inputs(request: ValuationRequest, facts: list[Fact], as_of: str):
+    stale = False
+    if not request.input_snapshot_ids or any(not value for value in request.input_snapshot_ids):
+        raise UnsupportedValuation("versioned input snapshot IDs are required")
+    _available(request.market_cap, as_of)
+    assert request.market_cap is not None
+    if (
+        request.market_cap.entity_id != request.parent_entity_id
+        or request.market_cap.metric != "market_cap"
+    ):
+        raise UnsupportedValuation("parent market-cap fact mismatch")
+    if request.market_cap.unit != request.currency:
+        raise UnsupportedValuation("parent market cap is not in valuation currency")
+    market_cap = decimal_value(request.market_cap.value)
+    if market_cap <= 0:
+        raise UnsupportedValuation("parent market cap must be positive")
+    for fact in facts:
+        _available(fact, as_of)
+        budget = (
+            request.max_price_age_days
+            if fact.metric in {"raw_close", "market_cap", "fx_rate"}
+            else request.max_filing_age_days
+        )
+        if instant(fact.effective_at) < instant(as_of) - timedelta(days=budget):
+            stale = True
+    return market_cap, stale
+
+
+def _validate_scope(request: ValuationRequest):
+    interest_ids = [f"listed:{h.owner_entity_id}:{h.security_id}" for h in request.holdings]
+    interest_ids.extend(c.interest_id for c in request.components)
+    interest_ids.extend(a.interest_id for a in request.adjustments)
+    if len(interest_ids) != len(set(interest_ids)):
+        raise UnsupportedValuation("duplicate economic interest")
+    _validate_adjustment_overlap(request.adjustments)
+    if request.method == "listed_coverage" and (request.components or request.adjustments):
+        raise UnsupportedValuation("listed coverage cannot include other assets or adjustments")
+    if request.accounting_basis != "standalone" and (request.holdings or request.components):
+        raise UnsupportedValuation("investment look-through requires standalone parent accounting")
+    selected_assets = [h.asset_entity_id for h in request.holdings]
+    selected_assets.extend(c.asset_entity_id for c in request.components)
+    if len(selected_assets) != len(set(selected_assets)):
+        raise UnsupportedValuation(
+            "asset selected more than once; consolidate share classes explicitly"
+        )
+    if request.parent_entity_id in selected_assets or _ancestors_overlap(
+        selected_assets, request.ownership
+    ):
+        raise UnsupportedValuation("intermediate holding and underlying economic assets overlap")
+    return interest_ids
+
+
+def _validate_adjustment_overlap(adjustments: tuple[FinancialAdjustment, ...]):
+    adjustment_ids = [a.value.id for a in adjustments]
+    if len(adjustment_ids) != len(set(adjustment_ids)):
+        raise UnsupportedValuation("one financial fact cannot be adjusted twice")
+    adjustment_metrics = {item.value.metric for item in adjustments}
+    if "net_debt" in adjustment_metrics and adjustment_metrics & {
+        "cash",
+        "cash_equivalents",
+        "debt",
+        "borrowings",
+        "lease_liabilities",
+    }:
+        raise UnsupportedValuation("net debt overlaps cash or gross-debt adjustments")
+
+
+def _holding_line(holding: ListedHolding, request: ValuationRequest, exposure: dict, as_of: str):
+    owner_exposure = exposure.get(holding.owner_entity_id)
+    if owner_exposure is None:
+        raise UnsupportedValuation("holding owner has no supported path from parent")
+    amount = listed_holding_value(holding, request.currency, as_of) * owner_exposure
+    return {
+        "interest_id": f"listed:{holding.owner_entity_id}:{holding.security_id}",
+        "asset_entity_id": holding.asset_entity_id,
+        "amount": str(amount),
+        "kind": "derived",
+        "input_fact_ids": sorted(
+            f.id
+            for f in (
+                holding.shares,
+                holding.price,
+                *holding.corporate_actions,
+                *((holding.fx,) if holding.fx else ()),
+            )
+        ),
+    }
+
+
+def _component_line(
+    component: ValuationComponent, request: ValuationRequest, exposure: dict, as_of: str
+):
+    multiplier = exposure.get(component.asset_entity_id)
+    if multiplier is None:
+        raise UnsupportedValuation("valued business has no supported ownership path")
+    if component.value.entity_id != component.asset_entity_id:
+        raise UnsupportedValuation("component valuation belongs to a different entity")
+    if component.value.dimensions.get("accounting_basis") != "standalone":
+        raise UnsupportedValuation("component accounting basis must be explicitly standalone")
+    amount = decimal_value(component.value.value)
+    if component.value_basis == "enterprise":
+        if component.value.metric != "enterprise_value":
+            raise UnsupportedValuation("enterprise component requires an enterprise-value fact")
+        if component.net_debt is None or component.net_debt.unit != component.value.unit:
+            raise UnsupportedValuation("enterprise value needs matching business net debt")
+        if component.net_debt.entity_id != component.asset_entity_id:
+            raise UnsupportedValuation("business debt belongs to a different entity")
+        amount -= decimal_value(component.net_debt.value)
+    elif component.value_basis == "equity":
+        if component.net_debt is not None:
+            raise UnsupportedValuation("debt is already reflected in equity value")
+        if component.value.metric not in {"equity_value", "fair_value"}:
+            raise UnsupportedValuation("equity component requires a supported equity-value fact")
+    else:
+        raise UnsupportedValuation("unsupported component value basis")
+    amount *= multiplier * _fx(component.value, request.currency, component.fx, as_of)
+    return {
+        "interest_id": component.interest_id,
+        "asset_entity_id": component.asset_entity_id,
+        "amount": str(amount),
+        "kind": "estimate" if component.value.kind == "estimate" else "derived",
+        "input_fact_ids": sorted(
+            f.id
+            for f in (
+                component.value,
+                *((component.net_debt,) if component.net_debt else ()),
+                *((component.fx,) if component.fx else ()),
+            )
+        ),
+    }
+
+
+def _adjustment_line(adjustment: FinancialAdjustment, request: ValuationRequest):
+    fact = adjustment.value
+    metrics = {
+        "other_net_assets": {
+            "cash",
+            "cash_equivalents",
+            "other_net_assets",
+            "net_assets",
+        },
+        "parent_obligation": {
+            "debt",
+            "net_debt",
+            "borrowings",
+            "lease_liabilities",
+            "parent_obligation",
+            "guarantee_obligation",
+        },
+        "tax": {"tax", "tax_liability", "tax_adjustment"},
+        "minority_interest": {"minority_interest"},
+    }
+    if fact.metric not in metrics.get(adjustment.role, set()):
+        raise UnsupportedValuation(
+            "financial adjustment metric does not support its valuation role"
+        )
+    if fact.entity_id != request.parent_entity_id or fact.unit != request.currency:
+        raise UnsupportedValuation("only same-currency parent-level adjustments are supported")
+    if fact.dimensions.get("accounting_basis") != request.accounting_basis:
+        raise UnsupportedValuation("mixed standalone and consolidated adjustments")
+    amount = decimal_value(fact.value)
+    if adjustment.role in {"parent_obligation", "tax", "minority_interest"}:
+        if amount < 0:
+            raise UnsupportedValuation("obligation must be a nonnegative disclosed amount")
+        amount = -amount
+    elif adjustment.role != "other_net_assets":
+        raise UnsupportedValuation("unknown financial adjustment")
+    return {
+        "interest_id": adjustment.interest_id,
+        "asset_entity_id": request.parent_entity_id,
+        "amount": str(amount),
+        "kind": fact.kind,
+        "input_fact_ids": [fact.id],
+    }
+
+
+def _scope_complete(request: ValuationRequest, interest_ids: list[str]):
+    declaration = request.completeness
+    return bool(
+        declaration
+        and declaration.entity_id == request.parent_entity_id
+        and declaration.metric == "valuation_scope_complete"
+        and decimal_value(declaration.value) == 1
+        and declaration.kind == "observed"
+        and declaration.unit == "boolean"
+        and declaration.dimensions.get("method") == request.method
+        and declaration.dimensions.get("accounting_basis") == request.accounting_basis
+        and request.expected_interest_ids
+        and set(request.expected_interest_ids) == set(interest_ids)
+    )
+
+
 def evaluate(request: ValuationRequest) -> ValuationResult:
     """Withhold unsupported numerical results; incomplete NAV never receives a discount rank."""
     if request.method not in {"listed_coverage", "holding_nav", "sotp"}:
@@ -269,225 +467,31 @@ def evaluate(request: ValuationRequest) -> ValuationResult:
     if request.max_price_age_days < 0 or request.max_filing_age_days < 0:
         raise ValueError("freshness limits must be nonnegative")
     as_of = utc(request.as_of)
-    facts = _inputs(request)
-    fact_ids = tuple(sorted({f.id for f in facts}))
-    issues: list[str] = []
-    lines: list[dict] = []
-    stale = False
-    total: Decimal | None = None
-    market_cap: Decimal | None = None
-    coverage_ratio: Decimal | None = None
-    discount: Decimal | None = None
-    complete = False
+    issues, lines = [], []
+    total = market_cap = coverage_ratio = discount = None
+    complete = stale = False
     try:
-        if not request.input_snapshot_ids or any(not value for value in request.input_snapshot_ids):
-            raise UnsupportedValuation("versioned input snapshot IDs are required")
-        _available(request.market_cap, as_of)
-        assert request.market_cap is not None
-        if (
-            request.market_cap.entity_id != request.parent_entity_id
-            or request.market_cap.metric != "market_cap"
-        ):
-            raise UnsupportedValuation("parent market-cap fact mismatch")
-        if request.market_cap.unit != request.currency:
-            raise UnsupportedValuation("parent market cap is not in valuation currency")
-        market_cap = decimal_value(request.market_cap.value)
-        if market_cap <= 0:
-            raise UnsupportedValuation("parent market cap must be positive")
-        for fact in facts:
-            _available(fact, as_of)
-            budget = (
-                request.max_price_age_days
-                if fact.metric in {"raw_close", "market_cap", "fx_rate"}
-                else request.max_filing_age_days
-            )
-            if instant(fact.effective_at) < instant(as_of) - timedelta(days=budget):
-                stale = True
+        market_cap, stale = _validate_inputs(request, _inputs(request), as_of)
         exposure = ownership_exposure(request.parent_entity_id, request.ownership, as_of)
-        interest_ids = [f"listed:{h.owner_entity_id}:{h.security_id}" for h in request.holdings]
-        interest_ids.extend(c.interest_id for c in request.components)
-        interest_ids.extend(a.interest_id for a in request.adjustments)
-        if len(interest_ids) != len(set(interest_ids)):
-            raise UnsupportedValuation("duplicate economic interest")
-        adjustment_ids = [a.value.id for a in request.adjustments]
-        if len(adjustment_ids) != len(set(adjustment_ids)):
-            raise UnsupportedValuation("one financial fact cannot be adjusted twice")
-        adjustment_metrics = {item.value.metric for item in request.adjustments}
-        if "net_debt" in adjustment_metrics and adjustment_metrics & {
-            "cash",
-            "cash_equivalents",
-            "debt",
-            "borrowings",
-            "lease_liabilities",
-        }:
-            raise UnsupportedValuation("net debt overlaps cash or gross-debt adjustments")
-        if request.method == "listed_coverage" and (request.components or request.adjustments):
-            raise UnsupportedValuation("listed coverage cannot include other assets or adjustments")
-        if request.accounting_basis != "standalone" and (request.holdings or request.components):
-            raise UnsupportedValuation(
-                "investment look-through requires standalone parent accounting"
-            )
-        selected_assets = [h.asset_entity_id for h in request.holdings]
-        selected_assets.extend(c.asset_entity_id for c in request.components)
-        if len(selected_assets) != len(set(selected_assets)):
-            raise UnsupportedValuation(
-                "asset selected more than once; consolidate share classes explicitly"
-            )
-        if request.parent_entity_id in selected_assets or _ancestors_overlap(
-            selected_assets, request.ownership
-        ):
-            raise UnsupportedValuation(
-                "intermediate holding and underlying economic assets overlap"
-            )
+        interest_ids = _validate_scope(request)
         with localcontext() as context:
             context.prec = 40
-            total = Decimal(0)
             for holding in sorted(
                 request.holdings, key=lambda h: (h.owner_entity_id, h.security_id)
             ):
-                owner_exposure = exposure.get(holding.owner_entity_id)
-                if owner_exposure is None:
-                    raise UnsupportedValuation("holding owner has no supported path from parent")
-                amount = listed_holding_value(holding, request.currency, as_of) * owner_exposure
-                total += amount
-                lines.append(
-                    {
-                        "interest_id": f"listed:{holding.owner_entity_id}:{holding.security_id}",
-                        "asset_entity_id": holding.asset_entity_id,
-                        "amount": str(amount),
-                        "kind": "derived",
-                        "input_fact_ids": sorted(
-                            f.id
-                            for f in (
-                                holding.shares,
-                                holding.price,
-                                *holding.corporate_actions,
-                                *((holding.fx,) if holding.fx else ()),
-                            )
-                        ),
-                    }
-                )
+                lines.append(_holding_line(holding, request, exposure, as_of))
             for component in sorted(request.components, key=lambda c: c.interest_id):
-                multiplier = exposure.get(component.asset_entity_id)
-                if multiplier is None:
-                    raise UnsupportedValuation("valued business has no supported ownership path")
-                if component.value.entity_id != component.asset_entity_id:
-                    raise UnsupportedValuation("component valuation belongs to a different entity")
-                if component.value.dimensions.get("accounting_basis") != "standalone":
-                    raise UnsupportedValuation(
-                        "component accounting basis must be explicitly standalone"
-                    )
-                amount = decimal_value(component.value.value)
-                if component.value_basis == "enterprise":
-                    if component.value.metric != "enterprise_value":
-                        raise UnsupportedValuation(
-                            "enterprise component requires an enterprise-value fact"
-                        )
-                    if (
-                        component.net_debt is None
-                        or component.net_debt.unit != component.value.unit
-                    ):
-                        raise UnsupportedValuation(
-                            "enterprise value needs matching business net debt"
-                        )
-                    if component.net_debt.entity_id != component.asset_entity_id:
-                        raise UnsupportedValuation("business debt belongs to a different entity")
-                    amount -= decimal_value(component.net_debt.value)
-                elif component.value_basis == "equity":
-                    if component.net_debt is not None:
-                        raise UnsupportedValuation("debt is already reflected in equity value")
-                    if component.value.metric not in {"equity_value", "fair_value"}:
-                        raise UnsupportedValuation(
-                            "equity component requires a supported equity-value fact"
-                        )
-                else:
-                    raise UnsupportedValuation("unsupported component value basis")
-                amount *= multiplier * _fx(component.value, request.currency, component.fx, as_of)
-                total += amount
-                lines.append(
-                    {
-                        "interest_id": component.interest_id,
-                        "asset_entity_id": component.asset_entity_id,
-                        "amount": str(amount),
-                        "kind": component.value.kind,
-                        "input_fact_ids": sorted(
-                            f.id
-                            for f in (
-                                component.value,
-                                *((component.net_debt,) if component.net_debt else ()),
-                                *((component.fx,) if component.fx else ()),
-                            )
-                        ),
-                    }
-                )
+                lines.append(_component_line(component, request, exposure, as_of))
             for adjustment in sorted(request.adjustments, key=lambda a: a.interest_id):
-                fact = adjustment.value
-                metrics = {
-                    "other_net_assets": {
-                        "cash",
-                        "cash_equivalents",
-                        "other_net_assets",
-                        "net_assets",
-                    },
-                    "parent_obligation": {
-                        "debt",
-                        "net_debt",
-                        "borrowings",
-                        "lease_liabilities",
-                        "parent_obligation",
-                        "guarantee_obligation",
-                    },
-                    "tax": {"tax", "tax_liability", "tax_adjustment"},
-                    "minority_interest": {"minority_interest"},
-                }
-                if fact.metric not in metrics.get(adjustment.role, set()):
-                    raise UnsupportedValuation(
-                        "financial adjustment metric does not support its valuation role"
-                    )
-                if fact.entity_id != request.parent_entity_id or fact.unit != request.currency:
-                    raise UnsupportedValuation(
-                        "only same-currency parent-level adjustments are supported"
-                    )
-                if fact.dimensions.get("accounting_basis") != request.accounting_basis:
-                    raise UnsupportedValuation("mixed standalone and consolidated adjustments")
-                amount = decimal_value(fact.value)
-                if adjustment.role in {"parent_obligation", "tax", "minority_interest"}:
-                    if amount < 0:
-                        raise UnsupportedValuation(
-                            "obligation must be a nonnegative disclosed amount"
-                        )
-                    amount = -amount
-                elif adjustment.role != "other_net_assets":
-                    raise UnsupportedValuation("unknown financial adjustment")
-                total += amount
-                lines.append(
-                    {
-                        "interest_id": adjustment.interest_id,
-                        "asset_entity_id": request.parent_entity_id,
-                        "amount": str(amount),
-                        "kind": fact.kind,
-                        "input_fact_ids": [fact.id],
-                    }
-                )
+                lines.append(_adjustment_line(adjustment, request))
             if not lines:
                 raise UnsupportedValuation("no supported valuation components")
+            total = sum((Decimal(line["amount"]) for line in lines), Decimal(0))
             if request.expected_interest_ids and set(request.expected_interest_ids) != set(
                 interest_ids
             ):
                 issues.append("valuation scope is incomplete or includes undeclared interests")
-            declaration = request.completeness
-            complete = bool(
-                declaration
-                and declaration.entity_id == request.parent_entity_id
-                and declaration.metric == "valuation_scope_complete"
-                and decimal_value(declaration.value) == 1
-                and declaration.kind == "observed"
-                and declaration.unit == "boolean"
-                and declaration.dimensions.get("method") == request.method
-                and declaration.dimensions.get("accounting_basis") == request.accounting_basis
-                and request.expected_interest_ids
-                and set(request.expected_interest_ids) == set(interest_ids)
-            )
+            complete = _scope_complete(request, interest_ids)
             if request.method == "listed_coverage":
                 coverage_ratio = total / market_cap
             elif complete and not stale and total > 0:
@@ -498,17 +502,26 @@ def evaluate(request: ValuationRequest) -> ValuationResult:
                 issues.append("stale valuation input")
     except (UnsupportedValuation, ValueError) as exc:
         issues.append(str(exc))
-        total, coverage_ratio, discount = None, None, None
-        complete = False
-        lines = []
+        total = coverage_ratio = discount = None
+        complete, lines = False, []
+    return _result(
+        request, (total, market_cap, coverage_ratio, discount), (complete, stale), lines, issues
+    )
+
+
+def _result(
+    request: ValuationRequest, amounts: tuple, status: tuple, lines: list, issues: list
+) -> ValuationResult:
+    total, market_cap, coverage_ratio, discount = amounts
+    complete, stale = status
     payload = {
         "model_version": MODEL_VERSION,
         "parent_entity_id": request.parent_entity_id,
         "method": request.method,
         "currency": request.currency,
-        "as_of": as_of,
+        "as_of": utc(request.as_of),
         "input_snapshot_ids": tuple(sorted(set(request.input_snapshot_ids))),
-        "input_fact_ids": fact_ids,
+        "input_fact_ids": tuple(sorted({f.id for f in _inputs(request)})),
         "coverage": "unavailable" if total is None else "complete" if complete else "partial",
         "freshness": "unavailable" if total is None else "stale" if stale else "fresh",
         "value": str(total) if total is not None else None,

@@ -61,7 +61,6 @@ def normalize_companyfacts(
     source_url = FACTS_URL.format(cik=cik)
     if str(payload.get("cik", "")).zfill(10) != str(cik).zfill(10):
         raise ValueError("SEC companyfacts issuer does not match the requested CIK")
-    now = instant(ingested_at)
     evidence = store.retain_evidence(
         source_id="sec-xbrl",
         url=source_url,
@@ -77,8 +76,12 @@ def normalize_companyfacts(
         store.put_rights(
             SourceRights(
                 "sec-xbrl",
-                "https://www.sec.gov/about/developer-resources",
-                note="Original structured filings. Public display and export rights not yet qualified.",
+                "https://www.sec.gov/about/webmaster-frequently-asked-questions",
+                internal_use="permitted",
+                public_display="permitted",
+                export="permitted",
+                reviewed_at="2026-10-29T00:00:00Z",
+                note="SEC Website Dissemination and Webmaster FAQ permit reuse of public filings. Scope: numeric companyfacts and attribution; excludes logos, stock art and third-party datasets such as licensed CUSIP lists.",
             )
         )
     namespaces = payload.get("facts", {})
@@ -91,46 +94,68 @@ def normalize_companyfacts(
                 if (label == "shares_outstanding") != (unit == "shares"):
                     continue
                 for row in rows:
-                    if (
-                        row.get("val") is None
-                        or not row.get("end")
-                        or not row.get("filed")
-                        or not row.get("accn")
-                    ):
-                        continue
-                    try:
-                        # The SEC gives a filing day, not its exact acceptance time.
-                        # Availability starts at the end of that day to avoid same-day lookahead.
-                        available_at = f"{row['filed']}T23:59:59Z"
-                        if instant(available_at) > now:
-                            continue
-                        fact = Fact(
-                            entity_id=entity_id,
-                            metric=label,
-                            value=str(row["val"]),
-                            unit=unit,
-                            effective_at=f"{row['end']}T00:00:00Z",
-                            available_at=available_at,
-                            ingested_at=ingested_at,
-                            evidence_id=evidence.id,
-                            locator=f"/facts/{namespace}/{concept}/units/{unit}/accession={row['accn']}/period={row.get('start', '')}:{row['end']}",
-                            dimensions={
-                                "concept": concept,
-                                "namespace": namespace,
-                                "period_start": str(row.get("start") or ""),
-                                "period_end": row["end"],
-                                "accession": row["accn"],
-                                "form": str(row.get("form") or ""),
-                                "accounting_basis": "unspecified",
-                            },
-                            extractor_version="sec-companyfacts.v1",
-                        )
+                    fact = _company_fact(
+                        entity_id, label, (namespace, concept, unit), row, evidence.id, ingested_at
+                    )
+                    if fact:
                         output.append(fact)
-                    except (ValueError, TypeError):
-                        LOGGER.warning("invalid SEC fact: entity=%s concept=%s", entity_id, concept)
-    # Facts are historically public on the filing date, while the fetched API
-    # response is first observed now. Derived extraction receipts retain each
-    # fact's accession/locator and link back to that exact retained API response.
+    retained = _retain_extractions(output, store, source_url, ingested_at)
+    store.put_facts(retained)
+    store.save_snapshot(
+        {
+            "response_evidence_id": evidence.id,
+            "input_fact_ids": sorted(f.id for f in retained),
+            "extractor_version": "sec-companyfacts.v1",
+        }
+    )
+    return retained
+
+
+def _company_fact(
+    entity_id: str, label: str, concept_key: tuple, row: dict, evidence_id: str, ingested_at: str
+) -> Fact | None:
+    namespace, concept, unit = concept_key
+    now = instant(ingested_at)
+    if row.get("val") is None or not row.get("end") or not row.get("filed") or not row.get("accn"):
+        return None
+    try:
+        # The SEC gives a filing day, not its exact acceptance time.
+        # Availability starts at the end of that day to avoid same-day lookahead.
+        available_at = f"{row['filed']}T23:59:59Z"
+        if instant(available_at) > now:
+            return None
+        fact = Fact(
+            entity_id=entity_id,
+            metric=label,
+            value=str(row["val"]),
+            unit=unit,
+            effective_at=f"{row['end']}T00:00:00Z",
+            available_at=available_at,
+            ingested_at=ingested_at,
+            evidence_id=evidence_id,
+            locator=f"/facts/{namespace}/{concept}/units/{unit}/accession={row['accn']}/period={row.get('start', '')}:{row['end']}",
+            dimensions={
+                "concept": concept,
+                "namespace": namespace,
+                "period_start": str(row.get("start") or ""),
+                "period_end": row["end"],
+                "accession": row["accn"],
+                "form": str(row.get("form") or ""),
+                "accounting_basis": "unspecified",
+            },
+            extractor_version="sec-companyfacts.v1",
+        )
+        return fact
+    except (ValueError, TypeError):
+        LOGGER.warning("invalid SEC fact: entity=%s concept=%s", entity_id, concept)
+    return None
+
+
+def _retain_extractions(
+    output: list[Fact], store: StockStore, source_url: str, ingested_at: str
+) -> list[Fact]:
+    # Receipts preserve historical filing dates; their parent snapshot retains the
+    # API response observed now, rather than claiming historical response bytes.
     retained = []
     for fact in output:
         row_evidence = store.retain_evidence(
@@ -150,14 +175,6 @@ def normalize_companyfacts(
             ingested_at=ingested_at,
         )
         retained.append(replace(fact, evidence_id=row_evidence.id))
-    store.put_facts(retained)
-    store.save_snapshot(
-        {
-            "response_evidence_id": evidence.id,
-            "input_fact_ids": sorted(f.id for f in retained),
-            "extractor_version": "sec-companyfacts.v1",
-        }
-    )
     return retained
 
 
@@ -217,13 +234,14 @@ def fetch_all(days: int = 120, limit: int = 25) -> list[Event]:
                 response = client.get(FACTS_URL.format(cik=cik))
                 response.raise_for_status()
                 payload = response.json()
-            except (httpx.HTTPError, ValueError):
-                failures.append(ticker)
-                continue
-            if isinstance(payload, dict):
+                if not isinstance(payload, dict):
+                    raise ValueError("Invalid SEC companyfacts response")
                 event = event_from_companyfacts(ticker, entity_id, cik, payload, since)
                 if event:
                     out.append(event)
+            except (httpx.HTTPError, ValueError):
+                failures.append(ticker)
+                continue
         if failures:
             raise RuntimeError(f"SEC companyfacts refresh failed for {len(failures)} issuers")
     return out

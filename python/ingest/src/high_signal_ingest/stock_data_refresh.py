@@ -32,34 +32,37 @@ def valuation_snapshots(dataset: dict) -> list[dict]:
         if f.metric == "ownership_fraction" and "asset_entity_id" in f.dimensions
     )
     prices = {f.dimensions.get("security_id"): f for f in facts if f.metric == "raw_close"}
-    values = []
     parents = sorted({f.entity_id for f in facts if f.metric == "shares_owned"})
-    for parent in parents:
-        cap = next((f for f in facts if f.entity_id == parent and f.metric == "market_cap"), None)
-        holdings = []
-        missing = []
-        for shares in (f for f in facts if f.metric == "shares_owned" and f.entity_id == parent):
-            security_id = shares.dimensions.get("security_id")
-            asset = shares.dimensions.get("asset_entity_id")
-            if not security_id or not asset or security_id not in prices:
-                missing.append(shares.id)
-                continue
-            holdings.append(ListedHolding(parent, asset, security_id, shares, prices[security_id]))
-        result = evaluate(
-            ValuationRequest(
-                parent_entity_id=parent,
-                currency=cap.unit if cap else "INR",
-                as_of=dataset["as_of"],
-                input_snapshot_ids=(dataset["snapshot_id"],),
-                market_cap=cap,
-                holdings=tuple(holdings),
-                ownership=edges,
-            )
-        ).to_dict()
-        # Excluding unsupported holdings is an explicitly partial calculation.
-        result["missing_holding_fact_ids"] = missing
-        values.append(result)
-    return values
+    return [_parent_valuation(parent, facts, prices, edges, dataset) for parent in parents]
+
+
+def _parent_valuation(
+    parent: str, facts: list[Fact], prices: dict, edges: tuple, dataset: dict
+) -> dict:
+    cap = next((f for f in facts if f.entity_id == parent and f.metric == "market_cap"), None)
+    holdings = []
+    missing = []
+    for shares in (f for f in facts if f.metric == "shares_owned" and f.entity_id == parent):
+        security_id = shares.dimensions.get("security_id")
+        asset = shares.dimensions.get("asset_entity_id")
+        if not security_id or not asset or security_id not in prices:
+            missing.append(shares.id)
+            continue
+        holdings.append(ListedHolding(parent, asset, security_id, shares, prices[security_id]))
+    result = evaluate(
+        ValuationRequest(
+            parent_entity_id=parent,
+            currency=cap.unit if cap else "INR",
+            as_of=dataset["as_of"],
+            input_snapshot_ids=(dataset["snapshot_id"],),
+            market_cap=cap,
+            holdings=tuple(holdings),
+            ownership=edges,
+        )
+    ).to_dict()
+    # Excluding unsupported holdings is an explicitly partial calculation.
+    result["missing_holding_fact_ids"] = missing
+    return result
 
 
 def materialize(

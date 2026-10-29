@@ -1,3 +1,4 @@
+import { stockPriceDisplayStatus } from '../../../../packages/shared/src/stock-data/price-status';
 import marketWatchConfig from '../../../../data/personal-market-watch.json';
 import bundledMarketRefreshes from '../data/market-refreshes.json';
 import { countBy, hoursSince } from '@high-signal/shared';
@@ -31,6 +32,12 @@ export type MarketWatchSnapshot = {
   history: MarketRefreshRecord[];
 };
 
+function publicMarketRefreshes(): MarketRefreshRecord[] {
+  return stockPriceDisplayStatus().permitted
+    ? (bundledMarketRefreshes as MarketRefreshRecord[])
+    : [];
+}
+
 function latestMarketRefresh(records: MarketRefreshRecord[]) {
   return records.slice().sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0] ?? null;
 }
@@ -39,7 +46,7 @@ function refreshDate(record: MarketRefreshRecord) {
   return record.createdAt.slice(0, 10);
 }
 
-export function marketRefreshDates(records = bundledMarketRefreshes as MarketRefreshRecord[]) {
+export function marketRefreshDates(records = publicMarketRefreshes()) {
   return Array.from(new Set(records.map(refreshDate))).sort((a, b) => b.localeCompare(a));
 }
 
@@ -71,7 +78,7 @@ export function formatMarketPct(value: number | null) {
 export function buildMarketWatchSnapshot(
   now = new Date(),
   preferredDate?: string | null,
-  records = bundledMarketRefreshes as MarketRefreshRecord[]
+  records = publicMarketRefreshes()
 ): MarketWatchSnapshot {
   const config = marketWatchConfig as MarketWatchConfig;
   const history = records

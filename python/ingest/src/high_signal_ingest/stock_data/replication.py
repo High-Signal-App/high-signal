@@ -67,7 +67,11 @@ def _import_record(store: StockStore, record: dict) -> None:
     elif kind == "security":
         result = store.put_security(Security(**value))
     elif kind == "rights":
-        result = store.put_rights(SourceRights(**value))
+        rights = SourceRights(**value)
+        existing = store.connection.execute(
+            "SELECT 1 FROM source_rights WHERE version_id=?", (rights.version_id,)
+        ).fetchone()
+        result = rights.version_id if existing else store.put_rights(rights)
     elif kind == "evidence":
         parts = []
         for chunk in value["body_chunk_ids"]:

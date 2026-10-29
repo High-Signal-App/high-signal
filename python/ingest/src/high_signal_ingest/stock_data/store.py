@@ -143,6 +143,14 @@ class StockStore:
 
     def put_rights(self, rights: SourceRights) -> str:
         with self.transaction():
+            current = self.rights(rights.id)
+            historical = self.connection.execute(
+                "SELECT 1 FROM source_rights WHERE version_id=?", (rights.version_id,)
+            ).fetchone()
+            if historical and current and current.version_id != rights.version_id:
+                raise ValueError(
+                    "Restating historical rights requires a newly dated rights decision"
+                )
             self.connection.execute(
                 "INSERT OR IGNORE INTO source_rights(source_id,version_id,payload) VALUES(?,?,?)",
                 (rights.id, rights.version_id, canonical_json(asdict(rights))),
@@ -371,18 +379,7 @@ class StockStore:
         required = sorted(set(required_metrics))
         present = {f.metric for f in retained if f.value is not None}
         missing = sorted(set(required) - present)
-        stale = sorted(
-            f.id
-            for f in retained
-            if instant(f.effective_at)
-            < instant(as_of)
-            - timedelta(
-                days=min(7, freshness_days)
-                if f.metric
-                in {"raw_close", "adjusted_close", "provider_close", "market_cap", "fx_rate"}
-                else freshness_days
-            )
-        )
+        stale = _stale_fact_ids(retained, as_of, freshness_days)
         payload = {
             "contract_version": CONTRACT_VERSION,
             "as_of": utc(as_of),
@@ -409,3 +406,16 @@ class StockStore:
 
 
 Store = StockStore
+
+
+def _stale_fact_ids(facts: list[Fact], as_of: str, freshness_days: int) -> list[str]:
+    market_metrics = {"raw_close", "adjusted_close", "provider_close", "market_cap", "fx_rate"}
+    return sorted(
+        fact.id
+        for fact in facts
+        if instant(fact.effective_at)
+        < instant(as_of)
+        - timedelta(
+            days=min(7, freshness_days) if fact.metric in market_metrics else freshness_days
+        )
+    )

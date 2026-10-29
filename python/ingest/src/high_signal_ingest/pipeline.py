@@ -313,6 +313,22 @@ def _fetch_tasks(source: Source, days: int) -> list[tuple[str, str, Callable[[],
 def _fetch_single_source_tasks(
     source: Source, days: int
 ) -> list[tuple[str, str, Callable[[], list[Event]]]]:
+    if source == "stock-data":
+        from .stock_data_refresh import fetch_research_inputs
+
+        return [
+            (
+                "stock-data",
+                _host_key("https://api.highsignal.app"),
+                lambda: fetch_research_inputs(days=days),
+            )
+        ]
+    return _fetch_external_source_tasks(source, days)
+
+
+def _fetch_external_source_tasks(
+    source: Source, days: int
+) -> list[tuple[str, str, Callable[[], list[Event]]]]:
     """Build ``(name, host_key, callable)`` descriptors for the selected sources.
 
     Each callable encapsulates the per-source window/cap logic so the executor
@@ -323,11 +339,6 @@ def _fetch_single_source_tasks(
 
     def add(name: str, host: str, fn: Callable[[], list[Event]]) -> None:
         tasks.append((name, _host_key(host), fn))
-
-    if source == "stock-data":
-        from .stock_data_refresh import fetch_research_inputs
-
-        add("stock-data", "https://api.highsignal.app", lambda: fetch_research_inputs(days=days))
 
     if source in {"edgar", "all"}:
 

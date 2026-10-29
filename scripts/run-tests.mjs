@@ -34,6 +34,7 @@ const TSX_SUITES = [
   ['access-jwt', 'apps/web/scripts/access-jwt.test.ts'],
   ['seo', 'scripts/seo-json-ld.test.ts'],
   ['feed-data-parity', 'scripts/feed-data-parity.test.ts'],
+  ['stock-data-consumers', 'scripts/stock-data-consumers.test.ts'],
   ['market-snapshot', 'scripts/market-snapshot.test.ts'],
   ['claim-provenance', 'scripts/claim-provenance.test.ts'],
   ['publishability', 'scripts/publishability.test.ts'],

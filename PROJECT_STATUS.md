@@ -8,7 +8,8 @@ branch, not released or qualified as the initial pilot:
 The stock-data module retains immutable evidence, dated facts, corporate actions
 and price revisions. The existing yfinance refresh remains the single price
 ingress; track-record scoring reads retained history. SEC companyfacts collection
-has moved behind the same boundary, and ECB reference FX has a documented free
+has moved behind the same boundary. A dated review of the SEC reuse policy
+qualifies numeric companyfacts; ECB reference FX also has a documented free
 reuse policy. Private canonical records replicate through operator-authenticated
 D1 routes; permitted display and export snapshots are separate from raw evidence.
 The public repository no longer receives the raw equity JSONL from refresh jobs.
@@ -18,6 +19,16 @@ ownership, accounting, corporate-action, freshness and completeness checks.
 Read-only contracts feed the existing equity/company views and research adapter.
 Migration 0032 and the API release must precede the changed refresh workflow.
 No production migration or deployment has run for this work.
+
+Public price display is intentionally withheld while Yahoo usage rights remain
+unqualified. Existing numeric bundles are retained for verification, never
+replaced by empty successful refreshes; `/equities`, `/markets`, their exports
+and price context show an unavailable/withheld state. Internal ticker matching
+uses the canonical universe independently. A failed current-rights check cannot
+fall back to bundled stock facts. These reader changes are unreleased.
+
+The free-source constraint and remaining delivery work are tracked in
+[issue #306](https://github.com/High-Signal-App/high-signal/issues/306).
 
 The 20-company manually verified India pilot, an openly reusable Indian financial
 and ownership cohort, qualified public price rights, historical screener models,

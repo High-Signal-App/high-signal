@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from datetime import datetime
 from pathlib import Path
+from functools import lru_cache
 
 from .sources.equities.snapshot import Close
 from .sources.equities.universe import TickerSpec
@@ -20,13 +21,28 @@ def stock_store_path(data_dir: Path | None = None) -> Path:
     return data_dir / "stock-data" / "stock-data.sqlite"
 
 
+@lru_cache(maxsize=1)
+def _seed_issuer_ids() -> dict[str, str]:
+    from .seed import load_entities
+
+    return {entity.ticker: entity.id for entity in load_entities() if entity.ticker}
+
+
 def issuer_id(store: StockStore, spec: TickerSpec) -> str:
     existing = store.connection.execute(
         "SELECT payload FROM identities WHERE kind='security' AND id=? ORDER BY sequence DESC LIMIT 1",
         (f"security:{spec.ticker}",),
     ).fetchone()
+    seed = _seed_issuer_ids().get(spec.ticker.removesuffix(".US")) or _seed_issuer_ids().get(
+        spec.ticker
+    )
     if existing:
-        return json.loads(existing["payload"])["entity_id"]
+        retained = json.loads(existing["payload"])["entity_id"]
+        if seed and seed != retained:
+            raise ValueError("Listing identity conflicts with the canonical company mapping")
+        return retained
+    if seed:
+        return seed
     return f"issuer:{spec.wikidata_id or ('cik:' + spec.cik if spec.cik else spec.ticker)}"
 
 
@@ -41,15 +57,19 @@ def persist_prices(
     """
     entity_id = issuer_id(store, spec)
     security_id = f"security:{spec.ticker}"
-    store.put_entity(Entity(entity_id, spec.name or spec.ticker, spec.country or "unknown"))
+    if not store.connection.execute(
+        "SELECT 1 FROM identities WHERE kind='entity' AND id=?", (entity_id,)
+    ).fetchone():
+        store.put_entity(Entity(entity_id, spec.name or spec.ticker, spec.country or "unknown"))
     store.put_security(Security(security_id, entity_id, spec.ticker, spec.currency or "unknown"))
-    store.put_rights(
-        SourceRights(
-            "yahoo-finance",
-            "https://legal.yahoo.com/us/en/yahoo/terms/product-atos/apiforydn/index.html",
-            note="Existing provider. Display, export and internal-use permissions require review; not inferred from fetchability.",
+    if store.rights("yahoo-finance") is None:
+        store.put_rights(
+            SourceRights(
+                "yahoo-finance",
+                "https://legal.yahoo.com/us/en/yahoo/terms/product-atos/apiforydn/index.html",
+                note="Existing provider. Display, export and internal-use permissions require review; not inferred from fetchability.",
+            )
         )
-    )
     if not closes:
         return []
     # Reuse unchanged evidence so a daily retry does not duplicate six years of facts.
@@ -58,18 +78,10 @@ def persist_prices(
         for f in store.facts(as_of=ingested_at, entity_id=entity_id)
         if f.dimensions.get("ticker") == spec.ticker
     }
-    facts: list[Fact] = []
+    observations = []
     for close in closes:
         day = datetime.strptime(str(close.date), "%Y%m%d").date().isoformat()
-        values = {
-            "adjusted_close": close.close,
-            "provider_close": close.provider_close,
-            "volume": close.volume,
-        }
-        if close.split_ratio:
-            values["split_ratio"] = close.split_ratio
-        if close.dividend:
-            values["dividend"] = close.dividend
+        values = _close_values(close)
         for metric, value in values.items():
             if value is None:
                 continue
@@ -77,42 +89,60 @@ def persist_prices(
             prior = existing.get((day, metric))
             if prior is not None and prior.value == value_string:
                 continue
-            body = json.dumps(
-                {"ticker": spec.ticker, "date": day, metric: value_string}, sort_keys=True
-            ).encode()
-            evidence = store.retain_evidence(
-                source_id="yahoo-finance",
-                url=f"https://finance.yahoo.com/quote/{spec.ticker}/history/",
-                body=body,
+            observations.append({"date": day, "metric": metric, "value": value_string})
+    if not observations:
+        return []
+    evidence = store.retain_evidence(
+        source_id="yahoo-finance",
+        url=f"https://finance.yahoo.com/quote/{spec.ticker}/history/",
+        body=json.dumps(
+            {"ticker": spec.ticker, "observations": observations}, sort_keys=True
+        ).encode(),
+        available_at=ingested_at,
+        ingested_at=ingested_at,
+    )
+    facts = []
+    for index, observation in enumerate(observations):
+        day, metric, value_string = observation["date"], observation["metric"], observation["value"]
+        facts.append(
+            Fact(
+                entity_id=entity_id,
+                metric=metric,
+                value=value_string,
+                unit="ratio"
+                if metric == "split_ratio"
+                else "units"
+                if metric == "volume"
+                else (spec.currency or "unknown"),
+                effective_at=f"{day}T00:00:00Z",
                 available_at=ingested_at,
                 ingested_at=ingested_at,
+                evidence_id=evidence.id,
+                locator=f"/observations/{index}/{day}/{metric}",
+                dimensions={
+                    "ticker": spec.ticker,
+                    "security_id": security_id,
+                    "price_basis": "total_return_adjusted"
+                    if metric == "adjusted_close"
+                    else "provider_split_adjusted",
+                },
+                extractor_version="canonical-equities.v1",
             )
-            facts.append(
-                Fact(
-                    entity_id=entity_id,
-                    metric=metric,
-                    value=value_string,
-                    unit="ratio"
-                    if metric == "split_ratio"
-                    else "units"
-                    if metric == "volume"
-                    else (spec.currency or "unknown"),
-                    effective_at=f"{day}T00:00:00Z",
-                    available_at=ingested_at,
-                    ingested_at=ingested_at,
-                    evidence_id=evidence.id,
-                    locator=f"{day}/{metric}",
-                    dimensions={
-                        "ticker": spec.ticker,
-                        "security_id": security_id,
-                        "price_basis": "total_return_adjusted"
-                        if metric == "adjusted_close"
-                        else "provider_split_adjusted",
-                    },
-                    extractor_version="canonical-equities.v1",
-                )
-            )
+        )
     return store.put_facts(facts)
+
+
+def _close_values(close: Close) -> dict:
+    values = {
+        "adjusted_close": close.close,
+        "provider_close": close.provider_close,
+        "volume": close.volume,
+    }
+    if close.split_ratio:
+        values["split_ratio"] = close.split_ratio
+    if close.dividend:
+        values["dividend"] = close.dividend
+    return values
 
 
 def price_inputs(

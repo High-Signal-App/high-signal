@@ -1,3 +1,4 @@
+import { stockPriceDisplayStatus } from '../../../../packages/shared/src/stock-data/price-status';
 import priceContext from '../data/price-context.json';
 import type { Direction } from './api';
 
@@ -55,6 +56,13 @@ export function pricedInTone(status: PricedInStatus) {
 }
 
 export function pricedInContext(entityId: string, direction: Direction): PricedInContext {
+  if (!stockPriceDisplayStatus().permitted)
+    return {
+      status: 'unknown',
+      label: 'price withheld',
+      reason: stockPriceDisplayStatus().reason ?? 'Price usage rights unresolved.',
+      price: null,
+    };
   const row = byEntity.get(entityId);
   if (!row) {
     return {

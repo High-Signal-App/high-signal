@@ -21,7 +21,7 @@ assert.ok(
 const latestRecord = records.slice().sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0]!;
 
 const currentTime = new Date(Date.parse(latestRecord.createdAt) + 3_600_000);
-const snapshot = buildMarketWatchSnapshot(currentTime);
+const snapshot = buildMarketWatchSnapshot(currentTime, null, records);
 assert.equal(snapshot.source, 'yahoo');
 assert.equal(snapshot.nationalGroupCount, 2);
 assert.equal(snapshot.internationalGroupCount, 1);
@@ -34,7 +34,7 @@ const dates = marketRefreshDates(records);
 assert.equal(dates[0], latestRecord.createdAt.slice(0, 10));
 assert.ok(dates.includes(latestRecord.createdAt.slice(0, 10)));
 
-const fallback = buildMarketWatchSnapshot(currentTime, '1900-01-01');
+const fallback = buildMarketWatchSnapshot(currentTime, '1900-01-01', records);
 assert.equal(fallback.selectedRefreshDate, null);
 assert.equal(fallback.quoteCount, 0);
 assert.equal(fallback.sourceDateShifted, false);
@@ -55,4 +55,10 @@ assert.equal(buildMarketWatchSnapshot(now, null, [fixture]).freshnessStatus, 'st
 assert.equal(
   buildMarketWatchSnapshot(new Date('2026-10-28T00:00:00Z'), null, [fixture]).quoteCount,
   0
+);
+
+assert.equal(
+  buildMarketWatchSnapshot(currentTime).quoteCount,
+  0,
+  'unresolved display rights withhold retained historical quotes'
 );

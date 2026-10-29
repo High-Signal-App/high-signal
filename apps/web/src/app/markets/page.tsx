@@ -1,3 +1,4 @@
+import { stockPriceDisplayStatus } from '../../../../../packages/shared/src/stock-data/price-status';
 import { EmptyState } from '@saas-maker/ui/components/empty-state';
 import type { Metadata } from 'next';
 import {
@@ -57,6 +58,12 @@ export default async function MarketsPage({
         Broad market movement that may affect product timing, buyer mood, or infrastructure spend.
         This is not investment advice or deep single-stock research.
       </SectionHeader>
+
+      {!stockPriceDisplayStatus().permitted ? (
+        <p className="my-5 border-l-2 border-amber-700 pl-4 text-sm text-amber-300">
+          {stockPriceDisplayStatus().reason} Historical bundles are retained for verification.
+        </p>
+      ) : null}
 
       <StatGrid
         items={[

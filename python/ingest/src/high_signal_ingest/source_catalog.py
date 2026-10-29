@@ -219,8 +219,15 @@ def _retention(entry: CatalogEntry) -> str:
 
 CATALOG: list[CatalogEntry] = [
     CatalogEntry(
-        "stock-data", "Shared stock-data contracts", "finance", "keyless", False,
-        7, "numeric", "versioned facts, input snapshots, evidence, coverage and freshness", "series",
+        "stock-data",
+        "Shared stock-data contracts",
+        "finance",
+        "keyless",
+        False,
+        7,
+        "numeric",
+        "versioned facts, input snapshots, evidence, coverage and freshness",
+        "series",
     ),
     # --- Capital & filings -------------------------------------------------
     CatalogEntry(

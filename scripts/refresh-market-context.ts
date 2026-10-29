@@ -14,7 +14,7 @@ import {
   stockPriceDate,
   stockPriceFreshness,
 } from '../packages/shared/src/stock-data';
-import { loadStockPrices } from './stock-data-read';
+import { loadStockPrices, publishStockPriceStatus } from './stock-data-read';
 
 type EquitySnapshotRow = {
   ticker: string;
@@ -81,6 +81,7 @@ async function main() {
     readFile(MARKET_WATCH_PATH, 'utf8').then((raw) => JSON.parse(raw) as MarketWatchConfig),
     readEquitiesSnapshot(),
   ]);
+  if (!(await publishStockPriceStatus(snapshots.dataset))) return;
   const groups = config.groups.map((group) => {
     const quotes = group.tickers
       .map((ticker) => quoteFromSnapshot(ticker, snapshots))

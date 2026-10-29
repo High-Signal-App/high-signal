@@ -51,29 +51,6 @@ jobs:
           LIMIT_FLAG: ${{ github.event.inputs.limit && format('--limit {0}', github.event.inputs.limit) || '' }}
         run: |
           uv run python -m high_signal_ingest.equities_daily --batch 50 $LIMIT_FLAG
-      - name: refresh retained financial facts through the shared collector
-        working-directory: python/ingest
-        env:
-          ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
-          API_BASE: ${{ secrets.API_BASE || 'https://api.highsignal.app' }}
-        run: uv run python -m high_signal_ingest.pipeline --source sec-xbrl --days 120 --fetch-only --strict
-      - name: refresh attributed free reference FX
-        working-directory: python/ingest
-        run: uv run python -m high_signal_ingest.stock_data_collectors.ecb
-      - name: materialize display and permitted-export contracts
-        run: uv run --project python/ingest python -m high_signal_ingest.stock_data_refresh --out packages/shared/src/stock-data/snapshot.json
-      - name: retain private inputs and publish permitted snapshots
-        env:
-          ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
-          API_BASE: ${{ secrets.API_BASE || 'https://api.highsignal.app' }}
-        run: uv run --project python/ingest python -m high_signal_ingest.stock_data_sync publish --snapshot packages/shared/src/stock-data/snapshot.json
-      - name: consume validated stock facts in High Signal research
-        working-directory: python/ingest
-        env:
-          ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
-          API_BASE: ${{ secrets.API_BASE || 'https://api.highsignal.app' }}
-        run: uv run python -m high_signal_ingest.pipeline --source stock-data --days 550 --strict
-
       # ── Node: regenerate the web data bundles that depend on JSONL ──────
       - uses: actions/setup-node@v6
         with:
@@ -94,6 +71,17 @@ jobs:
       - name: bundle known-tickers.json for Worker
         run: pnpm tickers:bundle
 
+      - name: refresh retained financial facts through the shared collector
+        working-directory: python/ingest
+        env:
+          ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
+          API_BASE: ${{ secrets.API_BASE || 'https://api.highsignal.app' }}
+        run: uv run python -m high_signal_ingest.pipeline --source sec-xbrl --days 120 --fetch-only
+      - name: refresh attributed free reference FX
+        working-directory: python/ingest
+        run: uv run python -m high_signal_ingest.stock_data_collectors.ecb
+      - name: materialize display and permitted-export contracts
+        run: uv run --project python/ingest python -m high_signal_ingest.stock_data_refresh --out packages/shared/src/stock-data/snapshot.json
       # ── Commit + push for the next manual web deploy ────────────────────
       - name: commit refreshed artifacts
         run: |
@@ -104,7 +92,7 @@ jobs:
                   data/personal-market-refresh.jsonl \
                   apps/web/src/data/market-refreshes.json \
                   workers/api/src/lib/known-tickers.json
-          git add packages/shared/src/stock-data/snapshot.json
+          git add packages/shared/src/stock-data/snapshot.json packages/shared/src/stock-data/price-status.json
           if git diff --staged --quiet; then
             echo "no changes to commit"
           else
@@ -116,3 +104,15 @@ jobs:
             # code-lint hook (biome check). Lint is gated by CI, not by data crons.
             git push --no-verify
           fi
+
+      - name: retain private inputs and publish permitted snapshots
+        env:
+          ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
+          API_BASE: ${{ secrets.API_BASE || 'https://api.highsignal.app' }}
+        run: uv run --project python/ingest python -m high_signal_ingest.stock_data_sync publish --snapshot packages/shared/src/stock-data/snapshot.json
+      - name: consume validated stock facts in High Signal research
+        working-directory: python/ingest
+        env:
+          ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
+          API_BASE: ${{ secrets.API_BASE || 'https://api.highsignal.app' }}
+        run: uv run python -m high_signal_ingest.pipeline --source stock-data --days 550 --strict

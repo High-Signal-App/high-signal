@@ -10,7 +10,7 @@ import { mkdir, stat, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 
 import { publicStockPrices } from '../packages/shared/src/stock-data';
-import { loadStockPrices } from './stock-data-read';
+import { loadStockPrices, publishStockPriceStatus } from './stock-data-read';
 
 const ROOT = resolve(__dirname, '..');
 
@@ -61,6 +61,7 @@ interface EquityRow {
 
 async function main() {
   const dataset = await loadStockPrices();
+  if (!(await publishStockPriceStatus(dataset))) return;
   const allRows = publicStockPrices(dataset) as EquityRow[];
   const withData = allRows.filter((row) => row.last_close != null);
 

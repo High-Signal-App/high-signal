@@ -1,6 +1,4 @@
-import snapshot from './snapshot.json';
-
-export interface StockFact {
+interface StockFact {
   id: string;
   entity_id: string;
   metric: string;
@@ -75,13 +73,6 @@ export interface StockDataset {
   rights_versions: Record<string, string>;
 }
 
-export function getPublicStockData(
-  audience: 'display' | 'export' = 'display',
-  now = new Date()
-): StockDataset {
-  return currentStockData(structuredClone(snapshot[audience]) as StockDataset, now);
-}
-
 export function currentStockData(dataset: StockDataset, now = new Date()): StockDataset {
   const age = now.getTime() - Date.parse(dataset.as_of);
   if (!Number.isFinite(age) || age < 0 || age > 86_400_000) {
@@ -94,4 +85,16 @@ export function currentStockData(dataset: StockDataset, now = new Date()): Stock
     }));
   }
   return dataset;
+}
+
+export async function fetchCurrentStockData(
+  fetchResponse: () => Promise<Response>
+): Promise<StockDataset | null> {
+  try {
+    const response = await fetchResponse();
+    if (!response.ok) return null;
+    return currentStockData((await response.json()) as StockDataset);
+  } catch {
+    return null;
+  }
 }

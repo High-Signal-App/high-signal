@@ -104,6 +104,9 @@ describe('private canonical ledger and public stock contracts', () => {
     expect(
       ((await (await request('/v1/stock-data?export=1')).json()) as StockDataset).facts
     ).toEqual([]);
+    expect(
+      (await request(`/v1/stock-data?snapshot=${encodeURIComponent(scoped.snapshot_id)}`)).status
+    ).toBe(200);
     expect((await request('/v1/stock-data?snapshot=unknown')).status).toBe(409);
     expect((await request('/v1/stock-data', { action: 'write' })).status).toBe(404);
   });

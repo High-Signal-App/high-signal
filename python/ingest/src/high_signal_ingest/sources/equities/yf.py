@@ -143,6 +143,7 @@ def _dataframe_to_closes(df: Optional[pd.DataFrame]) -> list[Close]:
                 volume = None if math.isnan(vol_f) else vol_f
         except (TypeError, ValueError):
             volume = None
+
         def finite_field(name: str) -> float | None:
             try:
                 value = float(row.get(name))
@@ -150,12 +151,16 @@ def _dataframe_to_closes(df: Optional[pd.DataFrame]) -> list[Close]:
             except (TypeError, ValueError):
                 return None
 
-        rows.append(Close(
-            date=d, close=close_f, volume=volume,
-            provider_close=finite_field("Close"),
-            split_ratio=finite_field("Stock Splits"),
-            dividend=finite_field("Dividends"),
-        ))
+        rows.append(
+            Close(
+                date=d,
+                close=close_f,
+                volume=volume,
+                provider_close=finite_field("Close"),
+                split_ratio=finite_field("Stock Splits"),
+                dividend=finite_field("Dividends"),
+            )
+        )
     rows.sort(key=lambda r: r.date)
     return rows
 

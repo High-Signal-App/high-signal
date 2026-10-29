@@ -1,7 +1,7 @@
 # Data Service Boundary
 
 Status: phase 1 started
-Updated: 2026-08-26
+Updated: 2026-10-29
 
 High Signal should remain the insight product, not the long-term data warehouse.
 The current source adapters are useful and should stay working, but they are an
@@ -66,18 +66,32 @@ Evidence bytes use content-addressed chunks; authenticated restore verifies thei
 original hashes. No raw-data artifact is uploaded to this public repository.
 The refreshed job restores first, retains and validates inputs, persists every
 new private record, and only then publishes separate display/export projections.
-Deploy the migrated API before enabling that job. Rollback to the prior API/job
+Deploy the migrated API before enabling that job. The existing price bundles
+are built before the filing refresh; a per-issuer SEC failure is recorded without
+aborting other issuers. Remote replication and research delivery run after the
+bundle commit, with failures still failing the monitored job. Rollback to the prior API/job
 pair preserves the additive tables and local ledger; do not delete history.
 
 `GET /v1/stock-data` reads the current permitted projection without a deployment
 per data refresh. `?entity=...` retains the valuation's supporting entity facts;
 `?export=1` applies independent export permissions. `?snapshot=...` pins the current
-publication ID and returns a conflict for another version. Historical snapshot
+input snapshot ID and returns a conflict for another version. Historical snapshot
 reads and the external TechData consumer are not yet qualified. Current source
 rights are checked again on reads, including revocation before a new publication.
 The research adapter receives facts, dates, source references, snapshot IDs and
 numerical changes. Editorial selection and existing publication gates stay in
 High Signal. One source document never becomes multiple corroborating origins.
+
+The free-source registry qualifies numeric SEC companyfacts under the
+[SEC reuse policy](https://www.sec.gov/about/webmaster-frequently-asked-questions)
+and ECB reference FX under its
+[statistics usage policy](https://www.ecb.europa.eu/stats/ecb_statistics/governance_and_quality_framework/html/usage_policy.en.html).
+The scope excludes SEC artwork, trademarks and third-party licensed datasets.
+A rights reversal needs a new dated decision; historical versions cannot silently
+become current again. Public price display is withheld while Yahoo rights are
+unknown. Previous numerical bundles remain retained verification inputs, while
+public consumers honor the separate price-display status. Internal ticker
+matching remains available from the canonical universe.
 
 The initial India pilot remains unqualified. Unknown rights and missing values
 remain unavailable; carrying values are not market valuations. Partial NAV/SOTP

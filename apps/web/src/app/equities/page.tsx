@@ -1,3 +1,4 @@
+import { stockPriceDisplayStatus } from '../../../../../packages/shared/src/stock-data/price-status';
 import {
   BackLink,
   PageShell,
@@ -126,6 +127,12 @@ export default async function EquitiesPage({
         international, ETF, index, and crypto tickers. Refreshed nightly after US close.
       </SectionHeader>
 
+      {!stockPriceDisplayStatus().permitted ? (
+        <p className="my-5 border-l-2 border-amber-700 pl-4 text-sm text-amber-300">
+          {stockPriceDisplayStatus().reason} Historical bundles are retained for verification.
+        </p>
+      ) : null}
+
       <StatGrid
         items={[
           {
@@ -195,7 +202,7 @@ export default async function EquitiesPage({
       <Panel eyebrow="data" title={`Snapshot (${rows.length})`}>
         {rows.length === 0 ? (
           <p className="text-sm text-[var(--color-muted)]">
-            No snapshot data yet. The first <code>cron-equities</code> run will populate this view.
+            No publicly permitted price snapshot is available.
           </p>
         ) : (
           <div className="overflow-x-auto">

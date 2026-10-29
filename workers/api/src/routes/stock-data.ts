@@ -29,7 +29,7 @@ stockDataRoute.get('/', async (c) => {
   const dataset = currentStockData(retained);
   const requestedSnapshot = c.req.query('snapshot');
   c.header('Cache-Control', 'no-store');
-  if (requestedSnapshot && requestedSnapshot !== dataset.publication_id) {
+  if (requestedSnapshot && requestedSnapshot !== dataset.snapshot_id) {
     return c.json({ error: 'snapshot_unavailable', snapshotId: dataset.snapshot_id }, 409);
   }
   const entity = c.req.query('entity');
