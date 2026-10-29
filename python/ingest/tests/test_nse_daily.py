@@ -6,7 +6,6 @@ import io
 import json
 import zipfile
 from datetime import date
-from pathlib import Path
 
 import httpx
 import pytest
@@ -120,10 +119,22 @@ def test_every_master_and_series_retained_without_inventing_prices(tmp_path):
 
 
 @pytest.mark.parametrize(
-    "fault", ["date", "exchange", "orphan", "identity", "duplicate", "negative", "nan"]
+    "fault",
+    [
+        "date",
+        "exchange",
+        "orphan",
+        "identity",
+        "missing_isin",
+        "series",
+        "duplicate",
+        "negative",
+        "nan",
+    ],
 )
 def test_bad_exchange_files_rejected(fault):
     master, prices = files()
+    master[0]["TckrSymb"] = "RENAMED"
     if fault == "date":
         prices[0]["TradDt"] = "2026-10-26"
     if fault == "exchange":
@@ -132,6 +143,10 @@ def test_bad_exchange_files_rejected(fault):
         prices[0]["FinInstrmId"] = "9999"
     if fault == "identity":
         prices[0]["ISIN"] = "DIFFERENT"
+    if fault == "missing_isin":
+        master[0]["ISIN"] = prices[0]["ISIN"] = ""
+    if fault == "series":
+        prices[0]["SctySrs"] = "BE"
     if fault == "duplicate":
         prices.append(dict(prices[0]))
     if fault == "negative":
@@ -140,6 +155,67 @@ def test_bad_exchange_files_rejected(fault):
         prices[0]["ClsPric"] = "NaN"
     with pytest.raises(ValueError):
         parse_files(*compressed(master, prices), DAY)
+
+
+def test_symbol_change_retains_trade_day_label_and_source_scoped_aliases():
+    master, prices = files()
+    prices[0]["TckrSymb"] = "OLD"
+    master[0]["TckrSymb"] = "NEW"
+    manifest, objects = build_archive(*compressed(master, prices), DAY, OBSERVED)
+    row = json.loads(gzip.decompress(objects["prices.json.gz"]))["rows"][0]
+    assert row["symbol"] == "OLD" and row["ticker"] == "OLD.NS"
+    assert row["symbolSource"] == "bhavcopy"
+    assert row["rawClose"] == "12.30" and row["last_date"] == 20261027
+    assert row["effectiveAt"] == "2026-10-27T00:00:00+05:30"
+    assert row["symbolAliases"] == [
+        {
+            "symbol": "NEW",
+            "source": "security_master",
+            "reportDate": DAY.isoformat(),
+            "observedAt": OBSERVED,
+            "effectiveAt": None,
+        },
+        {
+            "symbol": "OLD",
+            "source": "bhavcopy",
+            "reportDate": DAY.isoformat(),
+            "observedAt": OBSERVED,
+            "effectiveAt": row["effectiveAt"],
+        },
+    ]
+    normalized = json.loads(gzip.decompress(objects["normalized.json.gz"]))
+    assert normalized["securities"][0]["TckrSymb"] == "NEW"
+    assert normalized["observations"][0]["TckrSymb"] == "OLD"
+    next_day = date(2026, 10, 28)
+    for price in prices:
+        price["TradDt"] = next_day.isoformat()
+    prices[0]["TckrSymb"] = "NEW"
+    _, renamed_objects = build_archive(
+        *compressed(master, prices, day=next_day), next_day, "2026-10-28T15:00:00+00:00"
+    )
+    renamed_row = json.loads(gzip.decompress(renamed_objects["prices.json.gz"]))["rows"][0]
+    assert renamed_row["ticker"] == "NEW.NS"
+    assert renamed_row["last_date"] == 20261028
+    assert renamed_row["securityId"] == row["securityId"] == "security:nse:0:INE000000010"
+    assert renamed_row["inputSnapshotId"] != row["inputSnapshotId"]
+    assert manifest["extractorVersion"] == "nse-cm.v4"
+
+
+def test_master_only_label_has_no_inferred_symbol_effective_date():
+    _, objects = build_archive(*compressed(*files(traded=1)), DAY, OBSERVED)
+    row = json.loads(gzip.decompress(objects["prices.json.gz"]))["rows"][1]
+    assert row["symbol"] == "CO1" and row["ticker"] == "CO1.SM.NS"
+    assert row["symbolSource"] == "security_master"
+    assert row["symbolAliases"] == [
+        {
+            "symbol": "CO1",
+            "source": "security_master",
+            "reportDate": DAY.isoformat(),
+            "observedAt": OBSERVED,
+            "effectiveAt": None,
+        }
+    ]
+    assert row["rawClose"] is None
 
 
 def test_same_version_and_values_are_reproducible():
