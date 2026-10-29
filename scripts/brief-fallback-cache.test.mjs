@@ -97,6 +97,33 @@ test('the legacy worker shares only a qualified current public fallback', async 
     assert.equal(entries.size, 2);
     assert.notEqual([...entries.keys()].at(-1), firstKey);
 
+    const middlewareHeaders = {
+      'cache-control': 'public, max-age=60, s-maxage=300, stale-while-revalidate=600',
+    };
+    entries.clear();
+    globalThis.__briefFixture = { html: html('2026-10-03'), headers: middlewareHeaders };
+    assert.equal((await fetch(request())).response.headers.get('x-edge-cache'), 'MISS');
+    assert.equal((await fetch(request())).response.headers.get('x-edge-cache'), 'HIT');
+    for (const body of [
+      '<main>Pending edition</main>',
+      '<main>Unavailable edition</main>',
+      '<main>Empty selected edition</main>',
+      html('2026-10-02'),
+      html('2026-10-04'),
+      html('2026-10-03').replace('global', 'europe'),
+      html('2026-10-03').replaceAll('<', '&lt;'),
+    ]) {
+      entries.clear();
+      globalThis.__briefFixture = { html: body, headers: middlewareHeaders };
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const result = await fetch(request());
+        assert.equal(result.body, body);
+        assert.equal(result.response.headers.get('x-edge-cache'), null, body);
+        assert.equal(result.response.headers.get('cache-control'), 'private, no-store', body);
+        assert.equal(entries.size, 0, body);
+      }
+    }
+
     for (const [input, fixture] of [
       [request(), { html: '<main>Pending or unavailable edition</main>' }],
       [request(), { html: html('2026-10-02') }],

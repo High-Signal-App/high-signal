@@ -187,9 +187,9 @@ const NEXT_DYNAMIC_CACHE_CONTROL = 'private,no-cache,no-store,max-age=0,must-rev
 const PUBLIC_RENDER_SCAN_LIMIT = 262_144;
 
 /**
- * Next marks searchParams-driven pages private even when they render only
- * public data. Only these successful page renders opt in explicitly.
- * Error/loading shells and every other private response keep their policy.
+ * Homepage middleware can mark incomplete fallback HTML public, so root renders
+ * always need current-edition attestation. Other query pages opt in only from
+ * Next's dynamic private policy.
  */
 export async function qualifyPublicQueryResponse(request, response) {
   if (!isCacheableDocumentRequest(request) || isRscRequest(request)) return response;
@@ -207,7 +207,11 @@ export async function qualifyPublicQueryResponse(request, response) {
     return new Response(response.body, { status: response.status, headers });
   }
   const policy = (response.headers.get('cache-control') ?? '').toLowerCase().replace(/\s/g, '');
-  if (policy !== NEXT_DYNAMIC_CACHE_CONTROL) return response;
+  if (
+    policy !== NEXT_DYNAMIC_CACHE_CONTROL &&
+    (pathname !== '/' || !isCacheableDocumentResponse(request, response))
+  )
+    return response;
   const marker =
     pathname === '/'
       ? new RegExp(
@@ -218,9 +222,11 @@ export async function qualifyPublicQueryResponse(request, response) {
         : pathname === '/case-studies/search'
           ? /<span\b[^>]*\bdata-high-signal-public-cache="company-search-v1"/
           : null;
-  if (!marker || !(await hasPublicRenderMarker(response, marker))) return response;
+  if (!marker) return response;
+  const qualified = await hasPublicRenderMarker(response, marker);
+  if (!qualified && pathname !== '/') return response;
   const headers = new Headers(response.headers);
-  headers.set('Cache-Control', cacheControlForRequest(request));
+  headers.set('Cache-Control', qualified ? cacheControlForRequest(request) : 'private, no-store');
   return new Response(response.body, { status: response.status, headers });
 }
 
