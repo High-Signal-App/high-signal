@@ -33,15 +33,12 @@ def records(store: StockStore) -> Iterator[dict]:
         "SELECT version_id,payload FROM source_rights ORDER BY sequence"
     ):
         yield {"kind": "rights", "id": row["version_id"], "payload": json.loads(row["payload"])}
-    if store.connection.execute(
-        "SELECT 1 FROM sqlite_temp_master WHERE name='replication_chunks'"
-    ).fetchone():
-        for row in store.connection.execute("SELECT id,body FROM replication_chunks ORDER BY id"):
-            yield {
-                "kind": "blob",
-                "id": row["id"],
-                "payload": {"base64": base64.b64encode(bytes(row["body"])).decode()},
-            }
+    for row in store.connection.execute("SELECT id,body FROM replication_chunks ORDER BY id"):
+        yield {
+            "kind": "blob",
+            "id": row["id"],
+            "payload": {"base64": base64.b64encode(bytes(row["body"])).decode()},
+        }
     for row in store.connection.execute("SELECT * FROM evidence ORDER BY rowid"):
         chunks = []
         body = bytes(row["body"])
@@ -121,9 +118,6 @@ def _import_record(store: StockStore, record: dict) -> None:
 
 
 def restore(store: StockStore, client) -> set[str]:
-    store.connection.execute(
-        "CREATE TEMP TABLE IF NOT EXISTS replication_chunks(id TEXT PRIMARY KEY,body BLOB NOT NULL)"
-    )
     cursor = 0
     identities: set[str] = set()
     transferred = 0

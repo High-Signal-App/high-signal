@@ -194,9 +194,6 @@ def test_private_replication_rehydrates_evidence_and_rolls_back_bad_records(tmp_
         original = Fact("issuer", "assets", "100", "USD", THEN, THEN, NOW, document.id, "/assets")
         source.put_fact(original)
         packet = list(records(source))
-        target.connection.execute(
-            "CREATE TEMP TABLE replication_chunks(id TEXT PRIMARY KEY,body BLOB NOT NULL)"
-        )
         for record in packet:
             import_record(target, record)
         assert target.evidence_bytes(document.id) == b"x" * 600_000
@@ -456,3 +453,44 @@ def test_restore_distinguishes_unprovisioned_history_from_operational_failures(t
             )
             with pytest.raises(exception):
                 replication.restore(store, Client())
+
+
+def test_orphan_evidence_chunks_survive_restore_close_and_reopen(tmp_path):
+    import base64
+    import hashlib
+    import httpx
+    import json
+    from high_signal_ingest.stock_data import Entity, replication
+
+    body = b"chunk uploaded before an interrupted evidence batch"
+    orphan = {
+        "kind": "blob",
+        "id": "blob:" + hashlib.sha256(body).hexdigest(),
+        "payload": {"base64": base64.b64encode(body).decode()},
+    }
+
+    class Client:
+        def get(self, path):
+            return httpx.Response(
+                200,
+                json={"records": [orphan] if path.endswith("=0") else [], "cursor": 1},
+                request=httpx.Request("GET", "https://example.org" + path),
+            )
+
+        def post(self, path, *, json):
+            return httpx.Response(
+                200,
+                json={"accepted": [record["id"] for record in json["records"]]},
+                request=httpx.Request("POST", "https://example.org" + path),
+            )
+
+    path = tmp_path / "restored.sqlite"
+    known_file = tmp_path / "known.json"
+    with StockStore(path) as store:
+        known_file.write_text(json.dumps(sorted(replication.restore(store, Client()))))
+    with StockStore(path) as store:
+        known = set(json.loads(known_file.read_text()))
+        assert orphan in list(replication.records(store))
+        store.put_entity(Entity("new-company", "New company", "IN"))
+        assert replication.replicate(store, Client(), known) == 1
+        assert orphan["id"] in known

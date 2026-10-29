@@ -70,6 +70,9 @@ over one month, validates inputs, and persists new private records before
 publishing separate display/export projections. Replication preflights a
 100,000-record/100 MiB total pilot inventory ceiling before its first remote append.
 Both restore and publication use the same conservative serialized-record accounting.
+Restored chunks persist across separate restore/publish processes, including orphan
+chunks from interrupted writes. Scoring traverses pending work with keyset pagination;
+public Track Record projections count one current measurement per signal/window.
 Deploy the migrated API before enabling that job. The compatibility bundles
 are committed before optional filing/FX collection.
 A per-issuer SEC failure returns successful events with a partial-result error.

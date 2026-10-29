@@ -44,12 +44,23 @@ def _ticker_for_entity(entity_id: str) -> str | None:
 
 
 def fetch_pending(client: httpx.Client) -> list[dict[str, Any]]:
-    r = client.get(
-        f"{_api_base()}/admin/pending-scores",
-        headers={"Authorization": f"Bearer {_admin_token()}"},
-    )
-    r.raise_for_status()
-    return list(r.json().get("pending", []))
+    pending: list[dict[str, Any]] = []
+    after = ""
+    while True:
+        response = client.get(
+            f"{_api_base()}/admin/pending-scores",
+            params={"after": after},
+            headers={"Authorization": f"Bearer {_admin_token()}"},
+        )
+        response.raise_for_status()
+        payload = response.json()
+        pending.extend(payload.get("pending", []))
+        cursor = payload.get("nextCursor")
+        if not cursor:
+            return pending
+        if not isinstance(cursor, str) or cursor <= after:
+            raise ValueError("Pending-score cursor failed to advance")
+        after = cursor
 
 
 def score_one(row: dict[str, Any]) -> dict[str, Any] | None:

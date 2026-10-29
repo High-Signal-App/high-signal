@@ -36,3 +36,51 @@ def test_unmapped_entity_keeps_the_existing_unscorable_classification(monkeypatc
     )
     assert result["outcome"] == "pending"
     assert result["notes"] == "no ticker for entity unknown"
+
+
+def test_pagination_reaches_a_scorable_signal_after_200_temporary_gaps(monkeypatch):
+    import json
+    import httpx
+
+    row = {
+        "id": "stuck",
+        "primary_entity_id": "STUCK",
+        "predicted_window_days": 30,
+        "published_at": 1,
+        "direction": "up",
+    }
+    posted = []
+
+    def response(request):
+        if request.method == "POST":
+            posted.extend(json.loads(request.content)["runs"])
+            return httpx.Response(200, json={"inserted": len(posted)})
+        if not request.url.params.get("after"):
+            return httpx.Response(
+                200,
+                json={
+                    "pending": [{**row, "id": f"stuck-{index:03}"} for index in range(200)],
+                    "nextCursor": "stuck-199",
+                },
+            )
+        return httpx.Response(
+            200,
+            json={
+                "pending": [{**row, "id": "valid", "primary_entity_id": "VALID"}],
+                "nextCursor": None,
+            },
+        )
+
+    original = httpx.Client
+    monkeypatch.setattr(
+        runner.httpx,
+        "Client",
+        lambda **kwargs: original(transport=httpx.MockTransport(response), **kwargs),
+    )
+    monkeypatch.setattr(runner, "_admin_token", lambda: "unit-test")
+    monkeypatch.setattr(runner, "_ticker_for_entity", lambda entity: entity)
+    monkeypatch.setattr(
+        runner, "forward_return", lambda ticker, *args: 10.0 if ticker == "VALID" else None
+    )
+    assert runner.run() == {"pending": 201, "runs_submitted": 1, "inserted": 1}
+    assert [run["signalId"] for run in posted] == ["valid"]

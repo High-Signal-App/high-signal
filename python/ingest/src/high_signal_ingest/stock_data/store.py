@@ -75,12 +75,23 @@ class StockStore:
             CREATE INDEX IF NOT EXISTS facts_entity_metric ON facts(entity_id,metric,effective_at);
             CREATE INDEX IF NOT EXISTS facts_ticker_metric ON facts(ticker,metric,effective_at);
             CREATE INDEX IF NOT EXISTS facts_available ON facts(available_at);
+            CREATE TABLE IF NOT EXISTS replication_chunks (
+                id TEXT PRIMARY KEY,
+                body BLOB NOT NULL
+            );
             CREATE TABLE IF NOT EXISTS snapshots (
                 id TEXT PRIMARY KEY,
                 payload TEXT NOT NULL
             );
         """)
-        for table in ("identities", "source_rights", "evidence", "facts", "snapshots"):
+        for table in (
+            "identities",
+            "source_rights",
+            "evidence",
+            "facts",
+            "snapshots",
+            "replication_chunks",
+        ):
             for operation in ("UPDATE", "DELETE"):
                 self.connection.execute(f"""
                     CREATE TRIGGER IF NOT EXISTS {table}_no_{operation.lower()}
