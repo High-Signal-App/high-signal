@@ -42,6 +42,24 @@ export interface StockExplorerQuery {
   page?: string | string[];
 }
 export const STOCK_PAGE_SIZE = 50;
+/** Same conservative weekday publication deadline as the canonical NSE collector. */
+export function stockPreviewFreshness(tradeDate: string, now = new Date()) {
+  const local = new Date(now.getTime() + 330 * 60_000);
+  const today = local.toISOString().slice(0, 10);
+  const expected = new Date(local);
+  if ([0, 6].includes(local.getUTCDay()) || local.getUTCHours() < 19) {
+    do {
+      expected.setUTCDate(expected.getUTCDate() - 1);
+    } while ([0, 6].includes(expected.getUTCDay()));
+  }
+  const expectedSession = expected.toISOString().slice(0, 10);
+  return {
+    status: expectedSession <= tradeDate && tradeDate <= today ? 'fresh' : 'stale',
+    expectedSession,
+    observedSession: tradeDate,
+    basis: 'weekday publication deadline; holidays unconfirmed; never relabel a prior session',
+  };
+}
 function first(value: string | string[] | undefined) {
   return (Array.isArray(value) ? value[0] : value) ?? '';
 }

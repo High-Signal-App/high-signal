@@ -120,6 +120,8 @@ export function StockMarketExplorer({ summary, view }: { summary: Summary; view:
           action="/equities/preview"
           className="mb-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-[minmax(12rem,1.4fr)_1fr_1fr_1fr_auto]"
         >
+          <input type="hidden" name="sort" value={view.sort[0]?.id ?? 'symbol'} />
+          <input type="hidden" name="dir" value={view.sort[0]?.desc ? 'desc' : 'asc'} />
           <div className="grid gap-2">
             <Label htmlFor="security-search" className="text-xs text-muted-foreground">
               Company, symbol or ISIN

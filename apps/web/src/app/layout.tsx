@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Fragment } from 'react';
+import { localStockPreviewEnabled } from '@/lib/stock-preview-access';
 import Script from 'next/script';
 import './globals.css';
 import { AnalyticsProvider } from '@/components/posthog-provider';
@@ -96,8 +97,11 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   // No reader auth provider: High Signal is fully public. Cloudflare Access
   // protects only the bounded operator paths.
-  const localStockPreview =
-    process.env['NODE_ENV'] === 'development' && Boolean(process.env['NSE_DASHBOARD_PREVIEW_ROOT']);
+  const localStockPreview = localStockPreviewEnabled(
+    process.env['NODE_ENV'],
+    process.env['NSE_DASHBOARD_PREVIEW_FILE'],
+    process.env['NSE_DASHBOARD_PREVIEW_BINDING']
+  );
   const AnalyticsBoundary = localStockPreview ? Fragment : AnalyticsProvider;
   const monitoring = localStockPreview ? null : (
     <>

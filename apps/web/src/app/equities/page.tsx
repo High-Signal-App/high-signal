@@ -15,6 +15,7 @@ import {
   StockSelect,
 } from '@/components/organisms/StockDataUI';
 import { StockDataCoverage } from '@/components/organisms/StockDataCoverage';
+import { localStockPreviewEnabled } from '@/lib/stock-preview-access';
 import { stockPriceDisplayStatus } from '../../../../../packages/shared/src/stock-data/price-status';
 import { withAgentMetadata } from '@/lib/agent-page-metadata';
 import { BackLink, PageShell, SectionHeader } from '@/components/system/HighSignalUI';
@@ -168,7 +169,11 @@ export default async function EquitiesPage({
       />
 
       <StockDataCoverage />
-      {process.env['NODE_ENV'] === 'development' && process.env['NSE_DASHBOARD_PREVIEW_ROOT'] ? (
+      {localStockPreviewEnabled(
+        process.env['NODE_ENV'],
+        process.env['NSE_DASHBOARD_PREVIEW_FILE'],
+        process.env['NSE_DASHBOARD_PREVIEW_BINDING']
+      ) ? (
         <Button asChild variant="outline">
           <a href="/equities/preview">Open local NSE data preview</a>
         </Button>

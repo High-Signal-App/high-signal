@@ -12,6 +12,10 @@ from high_signal_ingest.stock_data_collectors.nse import parse_files
 
 
 def prepare(root: Path, out: Path) -> None:
+    private_dir = Path(__file__).resolve().parents[1] / ".fleet-local"
+    out = out.resolve()
+    if not out.is_relative_to(private_dir):
+        raise ValueError("Preview output must stay under the ignored .fleet-local directory")
     pointer = json.loads((root / "latest.json").read_text())
     manifest = load_manifest(root, pointer)
     dataset = consume(root, allow_stale=True)

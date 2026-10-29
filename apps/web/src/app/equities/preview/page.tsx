@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { localStockPreviewAllowed } from '@/lib/stock-preview-access';
 import {
   stockExplorerPage,
+  stockPreviewFreshness,
   type StockExplorerPacket,
   type StockExplorerQuery,
 } from '@/lib/stock-explorer';
@@ -21,10 +22,15 @@ export default async function StockPreview({
 }: {
   searchParams: Promise<StockExplorerQuery>;
 }) {
-  const input = process.env['NSE_DASHBOARD_PREVIEW_ROOT'];
+  const input = process.env['NSE_DASHBOARD_PREVIEW_FILE'];
   if (
     !input ||
-    !localStockPreviewAllowed(process.env['NODE_ENV'], (await headers()).get('host'), input)
+    !localStockPreviewAllowed(
+      process.env['NODE_ENV'],
+      (await headers()).get('host'),
+      input,
+      process.env['NSE_DASHBOARD_PREVIEW_BINDING']
+    )
   )
     notFound();
   // Filesystem access is unreachable in production and never accepts a URL/path query parameter.
@@ -36,6 +42,7 @@ export default async function StockPreview({
     packet.counts.securities !== packet.rows.length
   )
     throw new Error('Invalid local stock-data preview');
+  packet.freshness = stockPreviewFreshness(packet.tradeDate);
   const view = stockExplorerPage(packet, await searchParams);
   const { rows: _rows, ...summary } = packet;
   return (

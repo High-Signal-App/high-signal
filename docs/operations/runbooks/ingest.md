@@ -20,6 +20,27 @@ and *what blew up?*.
 
 ## Generation scope
 
+### Private NSE dashboard preview
+
+Prepare a read-only projection of an already retained archive; this performs no
+network collection. The output must stay in the repository's ignored `.fleet-local/`
+directory so it cannot accidentally become a public asset:
+
+```bash
+uv run --project python/ingest python scripts/prepare-stock-dashboard-preview.py --root /path/to/retained-nse-archive --out .fleet-local/stock-preview.json
+pnpm stock:preview --file .fleet-local/stock-preview.json --port 4317
+```
+
+Open `http://127.0.0.1:4317/equities/preview`. The dedicated launcher binds Next
+to `127.0.0.1` and sets its server-only binding marker and JSON **file** path.
+Setting only `NSE_DASHBOARD_PREVIEW_FILE` on the regular development server does
+not enable the preview. Do not set its binding marker on another server.
+The Host check also rejects non-loopback hostnames. Production rejects this
+route before streaming, even with both variables set; analytics are disabled
+only for this local development mode. Freshness is recomputed on each render
+using the canonical weekday deadline; exchange holidays remain unconfirmed.
+Local inspection does not qualify public display or TechData redistribution.
+
 Launch policy lives in `docs/operations/source-coverage.md`.
 
 Current production cadence:
