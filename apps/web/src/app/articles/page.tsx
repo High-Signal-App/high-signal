@@ -7,9 +7,21 @@ import { ReadableMutedTheme } from '@/components/content/ReadableMutedTheme';
 import { BreadcrumbJsonLd } from '@/components/seo/structured-data';
 import { PageShell, SectionHeader } from '@/components/system/HighSignalUI';
 import { ARTICLES } from '@/data/articles';
+import { INTELLIGENCE_GUIDE_LINKS } from '@/data/intelligence-guides';
 import { SITE_URL } from '@/lib/site';
 
 export const dynamic = 'force-static';
+
+const reading = [
+  ...ARTICLES,
+  ...INTELLIGENCE_GUIDE_LINKS.map((guide) => ({
+    slug: guide.href,
+    path: guide.href,
+    eyebrow: 'guide',
+    title: guide.title,
+    metaDescription: guide.description,
+  })),
+];
 
 export const metadata: Metadata = withAgentMetadata(
   {
@@ -56,7 +68,7 @@ export default function ArticlesPage() {
         </SectionHeader>
 
         <div className="mt-8 divide-y divide-[var(--color-line)] border-y border-[var(--color-line)]">
-          {ARTICLES.map((article) => (
+          {reading.map((article) => (
             <Link
               key={article.slug}
               href={article.path as Route}

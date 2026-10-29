@@ -353,12 +353,12 @@ for (const path of [
   '/sitemap.xml',
 ]) {
   const key = cacheKeyForRequest(request(path), BUILD_A);
-  assert.equal(new URL(key.url).searchParams.get('__hs_presentation'), '2026-09-07.1');
+  assert.equal(new URL(key.url).searchParams.get('__hs_presentation'), '2026-10-30.1');
   assert.notEqual(key.url, request(path).url, 'old policy cache entries must not be reused');
 }
 const rscKey = cacheKeyForRequest(rsc, BUILD_A);
 assert.equal(new URL(rscKey.url).searchParams.get('_rsc'), 'route-state');
-assert.equal(new URL(rscKey.url).searchParams.get('__hs_presentation'), '2026-09-07.1');
+assert.equal(new URL(rscKey.url).searchParams.get('__hs_presentation'), '2026-10-30.1');
 assert.equal(rscKey.headers.get('Next-Router-State-Tree'), 'state');
 assert.equal(rscKey.headers.get('RSC'), '1');
 assert.notEqual(

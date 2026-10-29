@@ -26,10 +26,8 @@ const discoveryPresentation = {
 } as const;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const now = new Date();
   const staticRoutes: MetadataRoute.Sitemap = PUBLIC_STATIC_ROUTES.map((route) => ({
     url: `${SITE_URL}${route.path}`,
-    lastModified: now,
     changeFrequency: route.changeFrequency,
     priority: route.priority,
   }));
@@ -61,10 +59,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     .map((candidate) => {
       const presentation =
         discoveryPresentation[candidate.family as keyof typeof discoveryPresentation];
-      const observed = candidate.lastModified ? new Date(candidate.lastModified) : now;
+      const observed = candidate.lastModified ? new Date(candidate.lastModified) : null;
       return {
         url: `${SITE_URL}${candidate.path}`,
-        lastModified: Number.isFinite(observed.getTime()) ? observed : now,
+        lastModified: observed && Number.isFinite(observed.getTime()) ? observed : undefined,
         changeFrequency: presentation.changeFrequency,
         priority: presentation.priority,
       };
