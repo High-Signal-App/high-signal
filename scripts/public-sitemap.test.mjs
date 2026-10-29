@@ -10,6 +10,12 @@ const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <url><loc>https://highsignal.app/case-studies/example</loc><lastmod>2026-09-07T00:00:00.000Z</lastmod></url>
 <url><loc>https://highsignal.app/brief/2026-10-28</loc><lastmod>2026-10-28T18:00:00.000Z</lastmod></url>
 <url><loc>https://highsignal.app/brief/2026-10-29</loc></url>
+<url><loc>https://highsignal.app/signals/expired-signal</loc><lastmod>2026-10-28T18:29:59.000Z</lastmod></url>
+<url><loc>https://highsignal.app/signals/current-signal</loc><lastmod>2026-10-29T01:00:00.000Z</lastmod></url>
+<url><loc>https://highsignal.app/signals/malformed-date</loc><lastmod>unavailable</lastmod></url>
+<url><loc>https://highsignal.app/signals/missing-date</loc></url>
+<url><loc>https://highsignal.app/signals/types</loc><lastmod>2026-10-28T01:00:00.000Z</lastmod></url>
+<url><loc>https://highsignal.app/signals/types/demand_shift</loc><lastmod>2026-10-28T01:00:00.000Z</lastmod></url>
 </urlset>`;
 const cached = () =>
   new Response(xml, {
@@ -29,8 +35,27 @@ assert.equal(before.headers.get('cache-control'), 'public, max-age=1, s-maxage=1
 
 const after = await qualifyPublicSitemap(request, cached(), new Date('2026-10-29T18:30:00Z'));
 const publicXml = await after.text();
-assert.doesNotMatch(publicXml, /2026-10-28/, 'cached sitemap must drop newly protected history');
-for (const path of ['/', '/articles/source-mix', '/case-studies/example', '/brief/2026-10-29']) {
+assert.doesNotMatch(
+  publicXml,
+  /\/brief\/2026-10-28/,
+  'cached sitemap must drop newly protected history'
+);
+assert.doesNotMatch(
+  publicXml,
+  /expired-signal/,
+  'cached signal proof must expire at the same IST boundary'
+);
+for (const path of [
+  '/',
+  '/articles/source-mix',
+  '/case-studies/example',
+  '/brief/2026-10-29',
+  '/signals/current-signal',
+  '/signals/malformed-date',
+  '/signals/missing-date',
+  '/signals/types',
+  '/signals/types/demand_shift',
+]) {
   assert.ok(publicXml.includes(`<loc>https://highsignal.app${path}</loc>`), path);
 }
 assert.match(publicXml, /<lastmod>2026-09-07T00:00:00.000Z<\/lastmod>/);

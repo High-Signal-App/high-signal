@@ -1,4 +1,8 @@
-import { isProtectedHistoryDay } from '../../packages/shared/src/core/history-access.ts';
+import {
+  isProtectedHistoryDay,
+  istDayFromTimestamp,
+} from '../../packages/shared/src/core/history-access.ts';
+import { publicRouteDescriptor } from './public-route-registry.mjs';
 
 const IST_OFFSET_MS = 19_800_000;
 const DAY_MS = 86_400_000;
@@ -14,9 +18,13 @@ export async function qualifyPublicSitemap(request, response, now = new Date()) 
 
   const xml = await response.text();
   const publicXml = xml.replace(/<url>[\s\S]*?<\/url>/g, (entry) => {
-    const date = entry.match(
-      /<loc>https:\/\/highsignal\.app\/brief\/(\d{4}-\d{2}-\d{2})<\/loc>/
-    )?.[1];
+    const path = entry.match(/<loc>https:\/\/highsignal\.app([^<]*)<\/loc>/)?.[1];
+    const briefDay = path?.match(/^\/brief\/(\d{4}-\d{2}-\d{2})$/)?.[1];
+    const signalDay =
+      publicRouteDescriptor(path ?? '')?.route.id === 'signal'
+        ? istDayFromTimestamp(entry.match(/<lastmod>([^<]+)<\/lastmod>/)?.[1] ?? '')
+        : null;
+    const date = briefDay ?? signalDay;
     return date && isProtectedHistoryDay(date, now) ? '' : entry;
   });
   const dayTtl = Math.max(
