@@ -1,3 +1,4 @@
+import { stockPriceDisplayStatus } from '../../../../packages/shared/src/stock-data/price-status';
 import priceContext from '../data/price-context.json';
 import type { Direction } from './api';
 
@@ -55,12 +56,29 @@ export function pricedInTone(status: PricedInStatus) {
 }
 
 export function pricedInContext(entityId: string, direction: Direction): PricedInContext {
+  if (!stockPriceDisplayStatus().permitted)
+    return {
+      status: 'unknown',
+      label: 'price withheld',
+      reason: stockPriceDisplayStatus().reason ?? 'Price usage rights unresolved.',
+      price: null,
+    };
   const row = byEntity.get(entityId);
   if (!row) {
     return {
       status: 'unknown',
       label: 'price unknown',
       reason: 'No Yahoo price snapshot is bundled for this entity yet.',
+      price: null,
+    };
+  }
+
+  const age = Date.now() - Date.parse(`${row.asOf}T00:00:00Z`);
+  if (!Number.isFinite(age) || age < 0 || age > 7 * 86_400_000) {
+    return {
+      status: 'unknown',
+      label: 'price stale',
+      reason: 'The retained price is unavailable or more than seven days old.',
       price: null,
     };
   }

@@ -16,6 +16,7 @@
     "dev": "pnpm -r --parallel dev",
     "dev:web": "pnpm --filter @high-signal/web dev",
     "dev:api": "pnpm --filter @high-signal/api dev",
+    "stock:preview": "node scripts/stock-dashboard-preview.mjs",
     "build": "pnpm -r build",
     "typecheck": "pnpm -r typecheck",
     "test": "node scripts/run-tests.mjs",

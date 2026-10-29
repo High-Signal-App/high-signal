@@ -121,12 +121,12 @@ def _dataframe_to_closes(df: Optional[pd.DataFrame]) -> list[Close]:
         return []
     rows: list[Close] = []
     for idx, row in df.iterrows():
-        close_val = row.get("Close")
+        close_val = row.get("Adj Close", row.get("Close"))
         try:
             close_f = float(close_val)
         except (TypeError, ValueError):
             continue
-        if math.isnan(close_f):
+        if not math.isfinite(close_f) or close_f <= 0:
             continue
         # Normalize the index to a YYYYMMDD int.
         if hasattr(idx, "year"):
@@ -143,7 +143,24 @@ def _dataframe_to_closes(df: Optional[pd.DataFrame]) -> list[Close]:
                 volume = None if math.isnan(vol_f) else vol_f
         except (TypeError, ValueError):
             volume = None
-        rows.append(Close(date=d, close=close_f, volume=volume))
+
+        def finite_field(name: str) -> float | None:
+            try:
+                value = float(row.get(name))
+                return value if math.isfinite(value) else None
+            except (TypeError, ValueError):
+                return None
+
+        rows.append(
+            Close(
+                date=d,
+                close=close_f,
+                volume=volume,
+                provider_close=finite_field("Close"),
+                split_ratio=finite_field("Stock Splits"),
+                dividend=finite_field("Dividends"),
+            )
+        )
     rows.sort(key=lambda r: r.date)
     return rows
 
@@ -159,16 +176,15 @@ def fetch_closes(
 ) -> list[Close]:
     """Fetch daily closes for a single ticker.
 
-    Uses ``auto_adjust=True`` for split-and-dividend-adjusted closes (the
-    right default for return calculations).
+    Returns adjusted closes for returns alongside the provider close and actions.
     """
     yf_symbol = ticker_to_yfinance_symbol(ticker)
     try:
         t = yf.Ticker(yf_symbol)
         if start:
-            df = t.history(start=start, end=end, auto_adjust=True)
+            df = t.history(start=start, end=end, auto_adjust=False, actions=True)
         else:
-            df = t.history(period=period, auto_adjust=True)
+            df = t.history(period=period, auto_adjust=False, actions=True)
         return _dataframe_to_closes(df)
     except Exception as exc:  # noqa: BLE001 — yfinance raises many types
         LOGGER.warning("yfinance %s (%s) error: %s", ticker, yf_symbol, exc)
@@ -198,7 +214,8 @@ def _download_batch(
                 yf_symbols,
                 period=period,
                 group_by="ticker",
-                auto_adjust=True,
+                auto_adjust=False,
+                actions=True,
                 progress=False,
                 threads=True,
             )

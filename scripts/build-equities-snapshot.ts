@@ -6,11 +6,14 @@
 // and trims Tier 2/3 columns that are entirely null in the input (Phase 1 only
 // populates Tier 1 — keeping the JSON small is worth the trim).
 
-import { mkdir, readFile, stat, writeFile } from 'node:fs/promises';
+import { mkdir, stat, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 
+import { publicStockPrices } from '../packages/shared/src/stock-data';
+import { loadStockPrices, publishStockPriceStatus } from './stock-data-read';
+
 const ROOT = resolve(__dirname, '..');
-const SOURCE_PATH = resolve(ROOT, 'data/equities-snapshot.jsonl');
+
 const OUT_PATH = resolve(ROOT, 'apps/web/src/data/equities-snapshot.json');
 
 interface EquityRow {
@@ -56,35 +59,20 @@ interface EquityRow {
   dividend_yield?: number | null;
 }
 
-function parseJsonl(raw: string): EquityRow[] {
-  return raw
-    .split('\n')
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line) => {
-      try {
-        return JSON.parse(line) as EquityRow;
-      } catch {
-        return null;
-      }
-    })
-    .filter((row): row is EquityRow => Boolean(row) && Boolean(row.ticker));
-}
-
 async function main() {
-  let raw = '';
-  try {
-    raw = await readFile(SOURCE_PATH, 'utf8');
-  } catch {
-    console.log(`- no source JSONL at ${SOURCE_PATH}; writing empty bundle`);
-  }
-
-  const allRows = parseJsonl(raw);
+  const dataset = await loadStockPrices();
+  if (!(await publishStockPriceStatus(dataset))) return;
+  const allRows = publicStockPrices(dataset) as EquityRow[];
   const withData = allRows.filter((row) => row.last_close != null);
 
   const payload = {
-    source: 'equities-daily',
-    generatedAt: new Date().toISOString(),
+    source: 'stock-data.prices.v1',
+    snapshotId: dataset.snapshotId,
+    generatedAt: dataset.generatedAt,
+    rights: dataset.rights,
+    coverage: dataset.coverage,
+    completeness: dataset.completeness,
+    withheldRows: dataset.rows.length - allRows.length,
     universeSize: allRows.length,
     rowsWithData: withData.length,
     rows: withData.sort((a, b) => (b.ret_30d ?? -Infinity) - (a.ret_30d ?? -Infinity)),

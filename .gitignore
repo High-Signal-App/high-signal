@@ -35,6 +35,10 @@ cache.bin
 
 # Python equities pipeline intermediate (rebuilt by scripts; derived JSON in apps/web/src/data is the tracked artifact)
 data/equities-snapshot.jsonl
+data/stock-data/
+data/stock-data-prices.json
+data/stock-data-nse-prices.json
+artifacts/nse/
 
 # CF Pages build output
 apps/web/.cf-pages-bundle/
@@ -70,3 +74,6 @@ reports/
 
 # Undelivered candidates are operator recovery files, not published signals.
 signal-recovery/
+
+# Materialized stock facts and evidence stay private; public consumers use D1 heads.
+packages/shared/src/stock-data/snapshot.json

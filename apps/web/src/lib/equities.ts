@@ -1,3 +1,4 @@
+import { stockPriceDisplayStatus } from '../../../../packages/shared/src/stock-data/price-status';
 import equitiesSnapshot from '../data/equities-snapshot.json';
 
 export interface EquityRow {
@@ -126,7 +127,14 @@ export function uniqueValues(rows: EquityRow[], field: keyof EquityRow): string[
 }
 
 export function loadEquitiesBundle(): EquitiesSnapshotBundle {
-  return bundle;
+  return stockPriceDisplayStatus().permitted
+    ? bundle
+    : {
+        ...bundle,
+        universeSize: 0,
+        rowsWithData: 0,
+        rows: [],
+      };
 }
 
 export function formatPct(value: number | null | undefined, digits = 1): string {

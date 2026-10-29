@@ -126,6 +126,7 @@ Source = Literal[
     "podcast-index",
     "macro-rates",
     "sec-xbrl",
+    "stock-data",
     "scmp",
     "legistar",
     "courtlistener",
@@ -305,6 +306,12 @@ def _fetch_news(days: int, source_ids: list[str] | None = None) -> FetchBatch:
     return FetchBatch(events=events, failures=failures)
 
 
+def _fetch_sec_facts(days: int) -> FetchBatch:
+    failures: list[str] = []
+    events = sec_xbrl.fetch_all(days=max(days, 120), failures=failures)
+    return FetchBatch(events=events, failures=failures)
+
+
 def _fetch_tasks(source: Source, days: int) -> list[FetchTask]:
     if source.startswith("news:"):
         source_id = _parse_source(source).removeprefix("news:")
@@ -326,6 +333,20 @@ def _fetch_tasks(source: Source, days: int) -> list[FetchTask]:
 
 
 def _fetch_single_source_tasks(source: Source, days: int) -> list[FetchTask]:
+    if source == "stock-data":
+        from .stock_data_refresh import fetch_research_inputs
+
+        return [
+            (
+                "stock-data",
+                _host_key("https://api.highsignal.app"),
+                lambda: fetch_research_inputs(days=days),
+            )
+        ]
+    return _fetch_external_source_tasks(source, days)
+
+
+def _fetch_external_source_tasks(source: Source, days: int) -> list[FetchTask]:
     """Build ``(name, host_key, callable)`` descriptors for the selected sources.
 
     Each callable encapsulates the per-source window/cap logic so the executor
@@ -478,7 +499,7 @@ def _fetch_single_source_tasks(source: Source, days: int) -> list[FetchTask]:
         )
     if source in {"sec-xbrl", "all"}:
         # Shares the sec.gov host gate with `edgar` so the two never hammer SEC together.
-        add("sec-xbrl", "https://www.sec.gov", lambda: sec_xbrl.fetch_all(days=max(days, 120)))
+        add("sec-xbrl", "https://www.sec.gov", lambda: _fetch_sec_facts(days))
     if source in {"scmp", "all"}:
         add("scmp", "https://www.scmp.com", lambda: scmp.fetch_all(days=max(days, 3)))
     if source in {"legistar", "all"}:
@@ -1324,6 +1345,9 @@ def main() -> None:
     )
     p.add_argument("--days", type=int, default=1)
     p.add_argument(
+        "--strict", action="store_true", help="Fail on any source or event-delivery error."
+    )
+    p.add_argument(
         "--fetch-only",
         action="store_true",
         help="Persist source events and receipts without drafting signal candidates.",
@@ -1339,6 +1363,8 @@ def main() -> None:
         print(json.dumps(out, default=str))
     else:
         print(out)
+    if args.strict and (out.get("errors", 0) or out.get("events_unacknowledged", 0)):
+        sys.exit(2)
     alert = zero_draft_alert(out)
     if alert:
         print(alert, file=sys.stderr)

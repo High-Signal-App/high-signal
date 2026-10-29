@@ -480,13 +480,13 @@
         "retryMax": 0
       },
       "idempotency": {
-        "mechanism": "data/equities-snapshot.jsonl is date-bucketed; closes/ticker_snapshot use (ticker,date) unique keys",
-        "watermark": "data/equities-snapshot.jsonl date + closes.trade_date",
+        "mechanism": "Canonical observations have immutable fact IDs; private replication is opt-in and bounded to a 20-ticker, one-month pilot",
+        "watermark": "packages/shared/src/stock-data/price-status.json generatedAt + explicit publicDisplay status",
         "deduplicationEvidence": "packages/db/src/schema.ts closes unique (ticker,date); single-source ingress rule (AGENTS.md)"
       },
       "freshness": {
         "windowHours": 30,
-        "evidenceSource": "data/equities-snapshot.jsonl mtime; closes max(trade_date)"
+        "evidenceSource": "packages/shared/src/stock-data/price-status.json; unknown rights are withheld, never current prices"
       },
       "outputExpectation": {
         "minTickers": 1,

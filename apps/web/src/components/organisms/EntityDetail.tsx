@@ -3,15 +3,23 @@ import { SignalCard } from '@/components/molecules/SignalCard';
 import { ShareBar } from '@/components/molecules/ShareBar';
 import { SpilloverGraph } from '@/components/organisms/SpilloverGraph';
 import type { api } from '@/lib/api';
+import type { ReactNode } from 'react';
 
 interface EntityDetailProps {
   backHref: string;
   backLabel: string;
   canonicalPath: string;
   data: Awaited<ReturnType<typeof api.entity>>;
+  stockData?: ReactNode;
 }
 
-export function EntityDetail({ backHref, backLabel, canonicalPath, data }: EntityDetailProps) {
+export function EntityDetail({
+  backHref,
+  backLabel,
+  canonicalPath,
+  data,
+  stockData,
+}: EntityDetailProps) {
   const { entity, relationships, signals, marketQuotes = [] } = data;
 
   return (
@@ -36,6 +44,8 @@ export function EntityDetail({ backHref, backLabel, canonicalPath, data }: Entit
         </div>
         <ShareBar url={canonicalPath} title={entity.name} className="mt-6" />
       </header>
+
+      {stockData ? <div className="mt-8">{stockData}</div> : null}
 
       <section className="mt-10 grid gap-12 lg:grid-cols-[minmax(0,480px)_minmax(0,1fr)] md:gap-8">
         <div>

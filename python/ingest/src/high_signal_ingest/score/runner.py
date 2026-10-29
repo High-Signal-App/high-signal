@@ -1,7 +1,7 @@
 """Forward-return scoring runner.
 
-Pulls /admin/pending-scores from the worker API, computes forward returns via
-yfinance for each signal whose window has elapsed, then POSTs the resulting
+Pulls /admin/pending-scores from the worker API, computes forward returns from
+retained canonical inputs for each signal whose window has elapsed, then POSTs the resulting
 score_run rows back to /admin/scores.
 
 Auth: bearer token from env ADMIN_TOKEN.
@@ -44,12 +44,23 @@ def _ticker_for_entity(entity_id: str) -> str | None:
 
 
 def fetch_pending(client: httpx.Client) -> list[dict[str, Any]]:
-    r = client.get(
-        f"{_api_base()}/admin/pending-scores",
-        headers={"Authorization": f"Bearer {_admin_token()}"},
-    )
-    r.raise_for_status()
-    return list(r.json().get("pending", []))
+    pending: list[dict[str, Any]] = []
+    after = ""
+    while True:
+        response = client.get(
+            f"{_api_base()}/admin/pending-scores",
+            params={"after": after},
+            headers={"Authorization": f"Bearer {_admin_token()}"},
+        )
+        response.raise_for_status()
+        payload = response.json()
+        pending.extend(payload.get("pending", []))
+        cursor = payload.get("nextCursor")
+        if not cursor:
+            return pending
+        if not isinstance(cursor, str) or cursor <= after:
+            raise ValueError("Pending-score cursor failed to advance")
+        after = cursor
 
 
 def score_one(row: dict[str, Any]) -> dict[str, Any] | None:
@@ -65,6 +76,9 @@ def score_one(row: dict[str, Any]) -> dict[str, Any] | None:
         }
     pub_at = datetime.fromtimestamp(int(row["published_at"]), tz=timezone.utc)
     ret = forward_return(ticker, pub_at, int(row["predicted_window_days"]))
+    if ret is None:
+        LOGGER.info("Score remains eligible: %s has no permitted complete return window", ticker)
+        return None
     outcome = classify(row["direction"], ret)
     return {
         "signalId": row["id"],
@@ -78,23 +92,26 @@ def score_one(row: dict[str, Any]) -> dict[str, Any] | None:
 def submit_runs(client: httpx.Client, runs: list[dict[str, Any]]) -> dict[str, Any]:
     if not runs:
         return {"inserted": 0}
-    r = client.post(
-        f"{_api_base()}/admin/scores",
-        headers={
-            "Authorization": f"Bearer {_admin_token()}",
-            "Content-Type": "application/json",
-        },
-        json={"runs": runs},
-    )
-    r.raise_for_status()
-    return dict(r.json())
+    inserted = 0
+    for offset in range(0, len(runs), 50):
+        response = client.post(
+            f"{_api_base()}/admin/scores",
+            headers={
+                "Authorization": f"Bearer {_admin_token()}",
+                "Content-Type": "application/json",
+            },
+            json={"runs": runs[offset : offset + 50]},
+        )
+        response.raise_for_status()
+        inserted += int(response.json().get("inserted", 0))
+    return {"inserted": inserted}
 
 
 def run() -> dict[str, Any]:
     with httpx.Client(timeout=60.0) as client:
         pending = fetch_pending(client)
         runs = [r for r in (score_one(p) for p in pending) if r is not None]
-        result = submit_runs(client, runs)
+        result = submit_runs(client, runs) if runs else {"inserted": 0}
     return {
         "pending": len(pending),
         "runs_submitted": len(runs),

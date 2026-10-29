@@ -377,7 +377,6 @@ describe('first-publication measurement receipts', () => {
       slug: signal.slug,
       published_at: Math.floor(Date.parse(receipt.firstPublishedAt) / 1000),
     });
-
     const score = await request('/admin/scores', 'POST', {
       runs: [
         {
@@ -422,6 +421,79 @@ describe('first-publication measurement receipts', () => {
       Math.floor(Date.parse(receipt.firstPublishedAt) / 1000)
     );
     expect(firstPublished.measurement_eligible).toBe(0);
+  });
+
+  it('retries a temporary missing-return score without changing the published signal', async () => {
+    const { signal } = await createDraftAndPublishClaim();
+    await request(`/admin/signals/${signal.slug}`, 'PATCH', { reviewStatus: 'published' });
+    await database.binding
+      .prepare(
+        "UPDATE claim_timeline_events SET payload=json_set(payload,'$.dueAt','2000-01-01T00:00:00.000Z') WHERE kind='signal_measurement_published'"
+      )
+      .run();
+    const scoredSignal = await database.binding
+      .prepare('SELECT id FROM signals WHERE slug=?')
+      .bind(signal.slug)
+      .first<{ id: string }>();
+    await database.binding
+      .prepare(
+        "INSERT INTO score_runs(id,signal_id,run_at,window_days,outcome) VALUES(?,?,unixepoch(),30,'pending')"
+      )
+      .bind('temporary-pending-score', scoredSignal!.id)
+      .run();
+    const eligibleAgain = (await (await request('/admin/pending-scores')).json()) as {
+      pending: Array<{ slug: string }>;
+    };
+    expect(eligibleAgain.pending.some((row) => row.slug === signal.slug)).toBe(true);
+    await database.binding
+      .prepare(
+        "INSERT INTO score_runs(id,signal_id,run_at,window_days,outcome) VALUES(?,?,unixepoch(),30,'hit')"
+      )
+      .bind('completed-score', scoredSignal!.id)
+      .run();
+    const completed = (await (await request('/admin/pending-scores')).json()) as {
+      pending: Array<{ slug: string }>;
+    };
+    expect(completed.pending.some((row) => row.slug === signal.slug)).toBe(false);
+    const ledger = (await (await request('/track-record')).json()) as {
+      buckets: Array<{ total: number; hit: number; pending: number }>;
+    };
+    expect(ledger.buckets).toHaveLength(1);
+    expect(ledger.buckets[0]).toMatchObject({ total: 1, hit: 1, pending: 0 });
+    const cohorts = (await (await request('/track-record/cohorts')).json()) as {
+      all: Array<{ total: number; hit: number; pending: number }>;
+    };
+    expect(cohorts.all[0]).toMatchObject({ total: 1, hit: 1, pending: 0 });
+    const workbench = (await (await request('/track-record/workbench?cohort=all')).json()) as {
+      summary: { signals: number; pending: number };
+    };
+    expect(workbench.summary).toMatchObject({ signals: 1, pending: 0 });
+  });
+
+  it('paginates past 200 temporarily blocked signals', async () => {
+    database.exec(
+      "INSERT INTO entities(id,name,type,created_at,updated_at) VALUES('queue-company','Queue company','public',1,1)"
+    );
+    for (let index = 0; index < 201; index++) {
+      const id = index < 200 ? `blocked-${String(index).padStart(3, '0')}` : 'z-scorable';
+      await database.binding
+        .prepare(
+          "INSERT INTO signals(id,slug,signal_type,primary_entity_id,direction,confidence,predicted_window_days,published_at,evidence_urls,review_status,body_md) VALUES(?,?,'capacity_change','queue-company','up','high',30,1,'[]','published','fixture')"
+        )
+        .bind(id, id)
+        .run();
+    }
+    const first = (await (await request('/admin/pending-scores')).json()) as {
+      pending: Array<{ id: string }>;
+      nextCursor: string;
+    };
+    expect(first.pending).toHaveLength(200);
+    expect(first.nextCursor).toBe('blocked-199');
+    const second = (await (
+      await request(`/admin/pending-scores?after=${first.nextCursor}`)
+    ).json()) as { pending: Array<{ id: string }>; nextCursor: string | null };
+    expect(second.pending.map((row) => row.id)).toEqual(['z-scorable']);
+    expect(second.nextCursor).toBeNull();
   });
 
   it('does not backfill already-published claims or count a failed signal publish', async () => {

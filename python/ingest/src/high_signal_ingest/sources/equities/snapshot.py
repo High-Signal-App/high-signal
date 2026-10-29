@@ -24,6 +24,9 @@ class Close:
     date: int
     close: float
     volume: Optional[float] = None
+    provider_close: Optional[float] = None
+    split_ratio: Optional[float] = None
+    dividend: Optional[float] = None
 
 
 @dataclass

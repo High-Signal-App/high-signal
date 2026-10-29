@@ -99,7 +99,7 @@ Data service boundary: [`docs/architecture/data-service-boundary.md`](docs/archi
 
 ## Critical constraints (do not violate)
 
-- **No second stock-price ingress.** All public equity/ETF/index/crypto EOD prices enter through the single yfinance snapshot path (`python/ingest/.../equities_daily.py` → `data/equities-snapshot.jsonl`). Consume the artifact or D1 `closes` / `ticker_snapshot` — never add a parallel fetcher.
+- **No second stock-price ingress.** All equity/ETF/index/crypto EOD prices enter through `python/ingest/.../equities_daily.py`: full NSE CM bulk files enter its NSE branch; other markets use yfinance. NSE is excluded from yfinance. Consume the versioned shared contract or private canonical archive — never add a parallel fetcher or a company cap to NSE collection.
 - **Prediction markets are not equity prices.** `market_quotes` = Polymarket/Manifold/Kalshi probabilities (schema enum; `cron-markets.yml` runs `--source markets`). Metaculus is a separate forecast/events source, not a `market_quotes` row. Never use that table as equity-price evidence. Auto-publish KILLs prediction-market-only signals.
 - **Signals are append-only.** Never edit a published signal markdown; supersede with a new file citing the prior.
 - **No secrets in the repo.** No `.env`, keys, or production configs in commits. Cron secrets live in GitHub Actions secrets / Infisical.

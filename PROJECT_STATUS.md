@@ -1,6 +1,74 @@
 # high-signal — PROJECT STATUS
 
-Last updated: 2026-10-24
+Last updated: 2026-10-29
+
+October 29 equity ownership and valuation foundation — implemented on the feature
+branch; production activation and broader valuation qualification remain open:
+
+The stock-data module retains immutable evidence, dated facts, corporate actions
+and price revisions. The existing canonical price ingress routes NSE to official full-market
+files and other markets to yfinance; track-record scoring reads retained history. SEC companyfacts collection
+has moved behind the same boundary. A dated review of the SEC reuse policy
+qualifies numeric companyfacts; ECB reference FX also has a documented free
+reuse policy. Private canonical records replicate through operator-authenticated
+D1 routes; permitted display and export snapshots are separate from raw evidence.
+The public repository no longer receives raw equity JSONL or materialized stock
+facts from refresh jobs. NSE uses the entire daily CM master and final bhavcopy, including SME and non-EQ
+series, with immutable raw/normalized history in private R2 and verified latest
+promotion. There is no NSE company-count or duration cap. Non-NSE compatibility
+retention keeps its separate bounded D1 mode. Company profiles load current
+stock facts outside ISR. The workflow includes daily full-market collection (including weekend probes),
+a late retry and canonical price-contract merging for existing consumers; this feature-branch schedule is not active on main.
+
+The valuation engine supports listed coverage, holding NAV and SOTP with explicit
+ownership, accounting, corporate-action, freshness and completeness checks.
+Read-only contracts feed the existing equity/company views and research adapter.
+Migration 0033 and the API release must precede the changed refresh workflow.
+No production migration or deployment has run for this work.
+
+The equities UI now uses the existing `@saas-maker/ui` cards, filters, tables,
+pagination, badges, accordions and evidence drawers. A development-only loopback
+preview reads a hash-verified local archive projection, paginates the full NSE
+master on the server, and keeps unknown display/export rights explicit. It is
+denied before streaming in production; local preview analytics are disabled.
+Desktop, tablet and phone checks cover search, missing quotes and source evidence.
+
+The local screener also shows market cap divided by reported assets less external
+liabilities, separately from investment NAV. The NSE integrated-filing adapter
+retains original XML and dated facts in the canonical ledger. It requires a
+reconciled statement, matching symbol/ISIN, consistent units and a filing capital
+cross-check of the master share quantity. The full local replay supports 1,315
+ratios across 1,948 filing identities; coverage remains partial after archive
+access denials and unsupported statements. The 28 October price input is stale,
+so ratios are historical and excluded from positive low-ratio screening.
+An audit against main-board and SME references matched all 3,199 equity entries
+listed by that price session. Alternate trading series share one default stock
+row; the full retained dump remains available. Filing collection is not scheduled
+or deployed, and public financial-data reuse remains unqualified.
+
+Public price display is intentionally withheld while Yahoo usage rights remain
+unqualified. Existing numeric bundles are retained for verification, never
+replaced by empty successful refreshes; `/equities`, `/markets`, their exports
+and price context show an unavailable/withheld state. Internal ticker matching
+uses the canonical universe independently. A failed current-rights check cannot
+fall back to bundled stock facts. These reader changes are unreleased.
+
+The free-source constraint and remaining delivery work are tracked in
+[issue #306](https://github.com/High-Signal-App/high-signal/issues/306).
+
+The owner replaced the 20-company pilot with full daily NSE collection. A real
+28 October live canonical ingress retained 38,240 master records and 3,682 daily observations;
+these include inactive/test instruments and are not a count of listed companies.
+A manual feature-branch Actions run completed the private R2 upload/read-back and
+canonical contract validation successfully; it did not qualify research Event or
+valuation assembly. Independent review caught ticker-loss and late-backfill gaps;
+follow-up consumer, supersession and pointer rollback checks cover the fixes.
+An openly reusable Indian financial/ownership cohort, qualified public price
+rights, historical screener models,
+and a positive real-filing-to-research acceptance remain unfinished. A real BHEL
+report replay validated five standalone figures and reconciled its balance sheet;
+unsupported valuation and reuse permissions correctly withheld publication. This
+is a negative-gate replay, not completion of the initial release.
 
 October 24 reading-pipeline completion — implementation and live qualification:
 

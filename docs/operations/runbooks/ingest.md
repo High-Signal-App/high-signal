@@ -20,6 +20,73 @@ and *what blew up?*.
 
 ## Generation scope
 
+### Private NSE dashboard preview
+
+Prepare a read-only projection of an already retained archive; this performs no
+network collection. The output must stay in the repository's ignored `.fleet-local/`
+directory so it cannot accidentally become a public asset:
+
+```bash
+uv run --project python/ingest python scripts/prepare-stock-dashboard-preview.py --root /path/to/retained-nse-archive --out .fleet-local/stock-preview.json
+pnpm stock:preview --file .fleet-local/stock-preview.json --port 4317
+```
+
+Open `http://127.0.0.1:4317/equities/preview`. The dedicated launcher binds Next
+to `127.0.0.1` and sets its server-only binding marker and JSON **file** path.
+Setting only `NSE_DASHBOARD_PREVIEW_FILE` on the regular development server does
+not enable the preview. Do not set its binding marker on another server.
+The Host check also rejects non-loopback hostnames. Production rejects this
+route before streaming, even with both variables set; analytics are disabled
+only for this local development mode. Freshness is recomputed on each render
+using the canonical weekday deadline; exchange holidays remain unconfirmed.
+Local inspection does not qualify public display or TechData redistribution.
+
+The reported-net-assets adapter replays retained NSE integrated-filing indexes
+and XML into the same canonical fact/evidence ledger. Repeat `--index` for each
+retained page. Default replay performs no source requests:
+
+```bash
+uv run --project python/ingest python -m high_signal_ingest.stock_data_collectors.nse_financials --root /path/to/retained-nse-archive --index /path/to/index.json --xml-cache .fleet-local/nse-financials/xml --store .fleet-local/reported-net-assets.sqlite --out .fleet-local/reported-net-assets.json
+uv run --project python/ingest python scripts/prepare-stock-dashboard-preview.py --root /path/to/retained-nse-archive --financials .fleet-local/reported-net-assets.json --out .fleet-local/stock-preview.json
+```
+
+`--fetch --from-date YYYY-MM-DD --to-date YYYY-MM-DD` explicitly collects both
+boards without a company cap. Access-denied/rate-limited responses stop further
+downloads. Index duplicates, missing or unsupported statements, share-count
+mismatches and unavailable prices remain coverage failures. No recurring filing
+job is activated by this command. Reported assets less external liabilities can
+include noncontrolling interests; keep that ratio separate from parent-common
+price-to-book and investment NAV. The drawer retains original units, dates,
+source hashes, fact IDs and model/snapshot versions.
+
+Regenerate the listed-equity coverage audit from the retained official main-board
+and SME CSV files. The audit excludes listings after the price session and keeps
+each reference URL and SHA-256:
+
+```bash
+uv run --project python/ingest python -m high_signal_ingest.stock_data.listing_audit --root /path/to/retained-nse-archive --mainboard .fleet-local/nse-financials/mainboard-listed.csv --sme .fleet-local/nse-financials/sme-listed.csv --out .fleet-local/nse-financials/listing-coverage.json
+```
+
+Pass `--universe-audit .fleet-local/nse-financials/listing-coverage.json` to the
+preview preparation command. It validates the snapshot, counts and source
+references before displaying coverage. Downloaded financial cache sidecars must
+include the observation timestamp and matching SHA-256; missing or altered
+provenance is rejected. Rejected filing date/basis checks retain the original
+evidence while keeping its facts out of the ledger.
+
+The initial October 29 corpus used a bounded session bootstrap before the
+tracked collector was complete. Its sidecars recorded SHA-256 directly from
+the HTTP response bytes at download time; hashes were not backfilled. The exact
+bootstrap sources and hashes are retained in the private canonical ledger and
+`.fleet-local/nse-financials/acquisition-receipt.json`. This is operator-attested
+acquisition history, not independent timestamp attestation. Later collection
+uses the tracked adapter above. Cache writes replace each file atomically and
+commit the hash sidecar last; an interrupted or invalid cache is refetched only
+when explicit online collection is enabled. Offline replay fails closed.
+Recovery records an append-only cache-integrity event before refetching. A
+replacement has a new observation time and cannot satisfy an earlier `--as-of`
+replay; historical availability is never backdated to repair a broken cache.
+
 Launch policy lives in `docs/operations/source-coverage.md`.
 
 Current production cadence:

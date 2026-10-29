@@ -37,6 +37,7 @@ import { newsReceiptAdminRoute } from './admin-news-receipts';
 import { scheduledDataAdminRoute } from './admin-scheduled-data';
 import { feedSourcesAdminRoute } from './admin-feed-sources';
 import { communityReportingAdminRoute } from './admin-community-reporting';
+import { stockDataAdminRoute } from './admin-stock-data';
 import { precomputeBriefSnapshots } from './brief';
 import {
   enrichSignals,
@@ -78,6 +79,7 @@ adminRoute.route('/news-receipts', newsReceiptAdminRoute);
 adminRoute.route('/scheduled-data', scheduledDataAdminRoute);
 adminRoute.route('/feed-sources', feedSourcesAdminRoute);
 adminRoute.route('/communities/research', communityReportingAdminRoute);
+adminRoute.route('/stock-data', stockDataAdminRoute);
 
 /** Read-only, bounded corpus lookup for issuer-announcement verification. */
 adminRoute.post('/evidence/related', async (c) => {
@@ -841,7 +843,9 @@ adminRoute.get('/audit/summary', async (c) => {
 });
 
 adminRoute.get('/pending-scores', async (c) => {
-  // Signals whose predicted window has elapsed and no score_run exists yet for that window.
+  // Keyset pagination lets a run traverse temporary data gaps without starving later signals.
+  const after = c.req.query('after') ?? '';
+  if (after.length > 128) return c.json({ error: 'invalid_cursor' }, 400);
   const rows = (await c.env.DB.prepare(
     `WITH measurement AS (
        SELECT json_extract(payload, '$.signalId') AS signal_id,
@@ -854,7 +858,7 @@ adminRoute.get('/pending-scores', async (c) => {
             COALESCE(m.published_at, s.measurement_first_published_at, s.published_at) AS published_at
      FROM signals s
      LEFT JOIN measurement m ON m.signal_id = s.id
-     WHERE s.review_status = 'published'
+     WHERE s.review_status = 'published' AND s.id > ?
        AND COALESCE(
          m.due_at,
          s.measurement_first_published_at + s.predicted_window_days * 86400,
@@ -862,10 +866,13 @@ adminRoute.get('/pending-scores', async (c) => {
        ) <= unixepoch()
        AND NOT EXISTS (
          SELECT 1 FROM score_runs sr
-         WHERE sr.signal_id = s.id AND sr.window_days = s.predicted_window_days
+         WHERE sr.signal_id = s.id AND sr.window_days = s.predicted_window_days AND (sr.outcome != 'pending' OR sr.notes LIKE 'no ticker for entity %')
        )
+     ORDER BY s.id
      LIMIT 200`
-  ).all()) as {
+  )
+    .bind(after)
+    .all()) as {
     results: Array<{
       id: string;
       slug: string;
@@ -876,7 +883,11 @@ adminRoute.get('/pending-scores', async (c) => {
       published_at: number;
     }>;
   };
-  return c.json({ pending: rows.results ?? [] });
+  const pending = rows.results ?? [];
+  return c.json({
+    pending,
+    nextCursor: pending.length === 200 ? pending[pending.length - 1]!.id : null,
+  });
 });
 
 // ─── Claim provenance writes (plan 0008) ──────────────────────────────────

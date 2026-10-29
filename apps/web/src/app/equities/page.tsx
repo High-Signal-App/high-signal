@@ -1,11 +1,24 @@
-import { withAgentMetadata } from '@/lib/agent-page-metadata';
+import { Button } from '@saas-maker/ui/components/button';
+import { Input } from '@saas-maker/ui/components/input';
+import { EmptyState } from '@saas-maker/ui/components/empty-state';
 import {
-  BackLink,
-  PageShell,
-  Panel,
-  SectionHeader,
-  StatGrid,
-} from '@/components/system/HighSignalUI';
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from '@saas-maker/ui/components/table';
+import {
+  StockPanel as Panel,
+  StockStats as StatGrid,
+  StockSelect,
+} from '@/components/organisms/StockDataUI';
+import { StockDataCoverage } from '@/components/organisms/StockDataCoverage';
+import { localStockPreviewEnabled } from '@/lib/stock-preview-access';
+import { stockPriceDisplayStatus } from '../../../../../packages/shared/src/stock-data/price-status';
+import { withAgentMetadata } from '@/lib/agent-page-metadata';
+import { BackLink, PageShell, SectionHeader } from '@/components/system/HighSignalUI';
 import {
   filterRows,
   formatPct,
@@ -17,6 +30,7 @@ import {
   type SortDir,
   type SortKey,
 } from '@/lib/equities';
+import { StockDataPanel } from '@/components/organisms/StockDataPanel';
 
 export const dynamic = 'force-dynamic';
 export const metadata = withAgentMetadata({ title: 'Equities Snapshot' }, '/equities');
@@ -73,6 +87,9 @@ function indicator(sortKey: SortKey, thisKey: SortKey, dir: SortDir) {
 }
 
 interface SearchParams {
+  company?: string;
+  coverage?: string;
+  freshness?: string;
   sort?: string;
   dir?: string;
   country?: string;
@@ -119,20 +136,28 @@ export default async function EquitiesPage({
     <PageShell>
       <BackLink />
       <SectionHeader eyebrow="market context" title="equities snapshot">
-        Daily returns, volatility, and 52-week context across the working universe of US,
-        international, ETF, index, and crypto tickers. Refreshed nightly after US close.
+        Prices, ownership and valuation inputs from the shared stock-data layer. NSE cash-market
+        files cover every source series; company models remain separately qualified.
       </SectionHeader>
+
+      {!stockPriceDisplayStatus().permitted ? (
+        <p className="my-5 border-l-2 border-amber-700 pl-4 text-sm text-amber-300">
+          {stockPriceDisplayStatus().reason} Historical bundles are retained for verification.
+        </p>
+      ) : null}
 
       <StatGrid
         items={[
           {
             label: 'Generated',
             value: generatedDisplay,
-            sub: 'from yfinance via equities_daily',
+            sub: 'canonical equities pipeline',
           },
           {
             label: 'Universe',
-            value: String(bundle.universeSize),
+            value: stockPriceDisplayStatus().permitted
+              ? String(bundle.universeSize)
+              : 'Unavailable',
             sub: `${bundle.rowsWithData} with price data`,
           },
           {
@@ -141,6 +166,22 @@ export default async function EquitiesPage({
             sub: filterActive(preserve) ? 'filtered' : 'all rows',
           },
         ]}
+      />
+
+      <StockDataCoverage />
+      {localStockPreviewEnabled(
+        process.env['NODE_ENV'],
+        process.env['NSE_DASHBOARD_PREVIEW_FILE'],
+        process.env['NSE_DASHBOARD_PREVIEW_BINDING']
+      ) ? (
+        <Button asChild variant="outline">
+          <a href="/equities/preview">Open local NSE data preview</a>
+        </Button>
+      ) : null}
+      <StockDataPanel
+        company={params.company}
+        coverage={params.coverage}
+        freshness={params.freshness}
       />
 
       <Panel eyebrow="filter" title="filter">
@@ -155,7 +196,7 @@ export default async function EquitiesPage({
           />
           <label className="flex flex-col gap-1">
             <span className="text-[var(--color-muted)]">search</span>
-            <input
+            <Input
               type="text"
               name="q"
               defaultValue={params.q ?? ''}
@@ -166,12 +207,9 @@ export default async function EquitiesPage({
           {/* preserve current sort across filter submits */}
           {params.sort ? <input type="hidden" name="sort" value={params.sort} /> : null}
           {params.dir ? <input type="hidden" name="dir" value={params.dir} /> : null}
-          <button
-            type="submit"
-            className="self-end rounded border border-zinc-700 px-3 py-1 text-zinc-200 hover:border-zinc-500"
-          >
-            apply
-          </button>
+          <Button type="submit" variant="outline" className="self-end">
+            Apply
+          </Button>
           {filterActive(preserve) ? (
             <a
               href="/equities"
@@ -185,14 +223,15 @@ export default async function EquitiesPage({
 
       <Panel eyebrow="data" title={`Snapshot (${rows.length})`}>
         {rows.length === 0 ? (
-          <p className="text-sm text-[var(--color-muted)]">
-            No snapshot data yet. The first <code>cron-equities</code> run will populate this view.
-          </p>
+          <EmptyState
+            title="Price display unavailable"
+            description="The private source archive is retained. Public prices are withheld until display permissions and freshness checks pass."
+          />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[1100px] border-collapse text-sm">
-              <thead className="text-xs tracking-wide text-[var(--color-muted)]">
-                <tr className="border-b border-zinc-800">
+            <Table className="w-full min-w-[1100px] border-collapse text-sm">
+              <TableHeader className="text-xs tracking-wide text-[var(--color-muted)]">
+                <TableRow className="border-b border-zinc-800">
                   <Th
                     label="Ticker"
                     thisKey="ticker"
@@ -301,53 +340,62 @@ export default async function EquitiesPage({
                     preserve={preserve}
                     align="right"
                   />
-                </tr>
-              </thead>
-              <tbody>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {rows.map((r) => (
-                  <tr key={r.ticker} className="border-b border-zinc-900 hover:bg-zinc-900/50">
-                    <td className="py-1.5 pr-3 font-mono text-zinc-100">{r.ticker}</td>
-                    <td className="py-1.5 pr-3 text-zinc-300">{r.name ?? '—'}</td>
-                    <td className="py-1.5 pr-3 text-zinc-400">{r.sector ?? '—'}</td>
-                    <td className="py-1.5 pr-3 text-zinc-400">{r.country ?? '—'}</td>
-                    <td className="py-1.5 pr-3 text-right font-mono text-zinc-200">
+                  <TableRow
+                    key={r.ticker}
+                    className="border-b border-zinc-900 hover:bg-zinc-900/50"
+                  >
+                    <TableCell className="py-1.5 pr-3 font-mono text-zinc-100">
+                      {r.ticker}
+                    </TableCell>
+                    <TableCell className="py-1.5 pr-3 text-zinc-300">{r.name ?? '—'}</TableCell>
+                    <TableCell className="py-1.5 pr-3 text-zinc-400">{r.sector ?? '—'}</TableCell>
+                    <TableCell className="py-1.5 pr-3 text-zinc-400">{r.country ?? '—'}</TableCell>
+                    <TableCell className="py-1.5 pr-3 text-right font-mono text-zinc-200">
                       {formatPrice(r.last_close)}
-                    </td>
-                    <td className={`py-1.5 pr-3 text-right font-mono ${moveTone(r.ret_1d)}`}>
+                    </TableCell>
+                    <TableCell className={`py-1.5 pr-3 text-right font-mono ${moveTone(r.ret_1d)}`}>
                       {formatPct(r.ret_1d)}
-                    </td>
-                    <td className={`py-1.5 pr-3 text-right font-mono ${moveTone(r.ret_30d)}`}>
+                    </TableCell>
+                    <TableCell
+                      className={`py-1.5 pr-3 text-right font-mono ${moveTone(r.ret_30d)}`}
+                    >
                       {formatPct(r.ret_30d)}
-                    </td>
-                    <td className={`py-1.5 pr-3 text-right font-mono ${moveTone(r.ret_90d)}`}>
+                    </TableCell>
+                    <TableCell
+                      className={`py-1.5 pr-3 text-right font-mono ${moveTone(r.ret_90d)}`}
+                    >
                       {formatPct(r.ret_90d)}
-                    </td>
-                    <td className={`py-1.5 pr-3 text-right font-mono ${moveTone(r.ret_1y)}`}>
+                    </TableCell>
+                    <TableCell className={`py-1.5 pr-3 text-right font-mono ${moveTone(r.ret_1y)}`}>
                       {formatPct(r.ret_1y)}
-                    </td>
-                    <td className={`py-1.5 pr-3 text-right font-mono ${moveTone(r.ret_5y)}`}>
+                    </TableCell>
+                    <TableCell className={`py-1.5 pr-3 text-right font-mono ${moveTone(r.ret_5y)}`}>
                       {formatPct(r.ret_5y)}
-                    </td>
-                    <td className="py-1.5 pr-3 text-right font-mono text-zinc-400">
+                    </TableCell>
+                    <TableCell className="py-1.5 pr-3 text-right font-mono text-zinc-400">
                       {formatPct(r.volatility_30d, 0)}
-                    </td>
-                    <td
+                    </TableCell>
+                    <TableCell
                       className={`py-1.5 pr-3 text-right font-mono ${moveTone(r.dist_to_52w_high)}`}
                     >
                       {formatPct(r.dist_to_52w_high)}
-                    </td>
-                    <td
+                    </TableCell>
+                    <TableCell
                       className={`py-1.5 pr-3 text-right font-mono ${moveTone(r.max_drawdown_1y)}`}
                     >
                       {formatPct(r.max_drawdown_1y)}
-                    </td>
-                    <td className="py-1.5 pr-3 text-right font-mono text-zinc-400">
+                    </TableCell>
+                    <TableCell className="py-1.5 pr-3 text-right font-mono text-zinc-400">
                       {r.beta_vs_spy == null ? '—' : r.beta_vs_spy.toFixed(2)}
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         )}
       </Panel>
@@ -361,34 +409,8 @@ function filterActive(preserve: Record<string, string | undefined>): boolean {
   );
 }
 
-function FilterSelect({
-  name,
-  label,
-  value,
-  options,
-}: {
-  name: string;
-  label: string;
-  value?: string;
-  options: string[];
-}) {
-  return (
-    <label className="flex flex-col gap-1">
-      <span className="text-[var(--color-muted)]">{label}</span>
-      <select
-        name={name}
-        defaultValue={value ?? ''}
-        className="rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-zinc-100"
-      >
-        <option value="">all</option>
-        {options.map((opt) => (
-          <option key={opt} value={opt}>
-            {opt}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
+function FilterSelect(props: { name: string; label: string; value?: string; options: string[] }) {
+  return <StockSelect {...props} />;
 }
 
 function Th({
@@ -407,11 +429,13 @@ function Th({
   align?: 'right';
 }) {
   return (
-    <th className={`py-2 pr-3 font-medium ${align === 'right' ? 'text-right' : 'text-left'}`}>
+    <TableHead
+      className={`py-2 pr-3 font-medium ${align === 'right' ? 'text-right' : 'text-left'}`}
+    >
       <a href={sortLink(sortKey, thisKey, dir, preserve)} className="hover:text-zinc-200">
         {label}
         {indicator(sortKey, thisKey, dir)}
       </a>
-    </th>
+    </TableHead>
   );
 }

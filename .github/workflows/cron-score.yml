@@ -18,7 +18,26 @@ jobs:
       - uses: actions/setup-python@v6
         with: { python-version: "3.11" }
       - run: uv sync
+      - name: restore private canonical price history
+        id: restore
+        env:
+          ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
+          API_BASE: ${{ secrets.API_BASE || 'https://api.highsignal.app' }}
+        run: |
+          if uv run python -m high_signal_ingest.stock_data_sync restore; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            stock_restore_exit=$?
+            if [ "$stock_restore_exit" -eq 78 ]; then
+              echo "::notice::Canonical history endpoint is not provisioned (HTTP 404); scoring skipped. Existing outcomes are preserved."
+              echo "ready=false" >> "$GITHUB_OUTPUT"
+            else
+              echo "::error::Canonical history restore failed; see the actual error above. Scoring did not run."
+              exit "$stock_restore_exit"
+            fi
+          fi
       - name: score matured signals
+        if: steps.restore.outputs.ready == 'true'
         env:
           ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
           API_BASE: ${{ secrets.API_BASE }}

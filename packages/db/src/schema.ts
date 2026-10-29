@@ -19,6 +19,25 @@ function mutableTimestamps() {
   };
 }
 
+export const stockDataRecords = sqliteTable('stock_data_records', {
+  sequence: integer('sequence').primaryKey({ autoIncrement: true }),
+  kind: text('kind').notNull(),
+  id: text('id').notNull().unique(),
+  payloadJson: text('payload_json').notNull(),
+});
+
+export const stockDataPublications = sqliteTable(
+  'stock_data_publications',
+  {
+    publicationId: text('publication_id').primaryKey(),
+    snapshotId: text('snapshot_id').notNull(),
+    audience: text('audience', { enum: ['display', 'export'] }).notNull(),
+    asOf: text('as_of').notNull(),
+    payloadJson: text('payload_json').notNull(),
+  },
+  (table) => [index('stock_data_publications_current').on(table.audience, table.asOf)]
+);
+
 export const entities = sqliteTable(
   'entities',
   {

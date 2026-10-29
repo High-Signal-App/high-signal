@@ -9,9 +9,10 @@ const fetcher = app as unknown as {
 
 describe('data source directory contract', () => {
   it('ships the complete generated catalog with explicit cadence', () => {
-    expect(sourceCatalog.count).toBe(55);
-    expect(sourceCatalog.sources).toHaveLength(55);
-    expect(sourceCatalog.sources.filter((source) => source.cadence === 'daily')).toHaveLength(28);
+    expect(sourceCatalog.count).toBe(56);
+    expect(sourceCatalog.sources).toHaveLength(56);
+    expect(sourceCatalog.sources.filter((source) => source.cadence === 'daily')).toHaveLength(27);
+    expect(sourceCatalog.sources.filter((source) => source.cadence === 'equities')).toHaveLength(2);
     expect(sourceCatalog.sources.filter((source) => source.cadence === 'context')).toHaveLength(3);
     expect(sourceCatalog.sources.filter((source) => source.cadence === 'weekly')).toHaveLength(7);
     expect(sourceCatalog.sources.filter((source) => source.cadence === 'monthly')).toHaveLength(3);

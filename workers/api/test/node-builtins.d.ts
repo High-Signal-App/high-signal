@@ -35,3 +35,21 @@ declare module 'node:path' {
 declare module 'node:url' {
   export function fileURLToPath(url: string): string;
 }
+
+declare module 'node:process' {
+  export const env: Record<string, string | undefined>;
+}
+
+declare module 'node:child_process' {
+  export function execFileSync(
+    command: string,
+    args: string[],
+    options: {
+      cwd: string;
+      env: Record<string, string | undefined>;
+      encoding: 'utf8';
+      timeout: number;
+      maxBuffer: number;
+    }
+  ): string;
+}

@@ -49,6 +49,13 @@ export interface WorkbenchBucket {
 
 export const trackRecordRoute = new Hono<{ Bindings: Env }>();
 
+const CURRENT_SCORE_RUNS = `(SELECT * FROM (
+  SELECT score_runs.*, ROW_NUMBER() OVER (
+    PARTITION BY signal_id, window_days
+    ORDER BY CASE WHEN outcome = 'pending' THEN 0 ELSE 1 END DESC, run_at DESC, rowid DESC
+  ) AS current_rank FROM score_runs
+) WHERE current_rank = 1)`;
+
 function cohortFilter(cohort: Cohort): string {
   if (cohort === 'live') return "AND s.slug NOT LIKE 'bf-%'";
   if (cohort === 'backfill') return "AND s.slug LIKE 'bf-%'";
@@ -65,7 +72,7 @@ trackRecordRoute.get('/', async (c) => {
             sr.window_days as windowDays,
             sr.forward_return as forwardReturn,
             CASE WHEN s.slug LIKE 'bf-%' THEN 1 ELSE 0 END as is_backfill
-     FROM score_runs sr
+     FROM ${CURRENT_SCORE_RUNS} sr
      JOIN signals s ON s.id = sr.signal_id
      WHERE 1=1 ${filter}`
   ).all()) as {
@@ -108,7 +115,7 @@ trackRecordRoute.get('/cohorts', async (c) => {
                               THEN 'backfill'
                               ELSE 'live'
                             END as cohort
-                     FROM score_runs sr
+                     FROM ${CURRENT_SCORE_RUNS} sr
                      JOIN signals s ON s.id = sr.signal_id`;
   const rows = (await c.env.DB.prepare(baseQuery).all()) as {
     results: Array<{
@@ -150,7 +157,7 @@ trackRecordRoute.get('/cohorts', async (c) => {
      FROM claim_timeline_events e
      LEFT JOIN score_runs sr ON sr.id = (
        SELECT latest.id
-       FROM score_runs latest
+       FROM ${CURRENT_SCORE_RUNS} latest
        WHERE latest.signal_id = json_extract(e.payload, '$.signalId')
          AND latest.window_days = json_extract(e.payload, '$.resolutionRule.windowDays')
        ORDER BY latest.run_at DESC
@@ -187,7 +194,7 @@ trackRecordRoute.get('/series', async (c) => {
   const filter = cohortFilter(cohort);
   const rows = (await c.env.DB.prepare(
     `SELECT date(sr.run_at, 'unixepoch') as d, sr.outcome, count(*) as n
-     FROM score_runs sr JOIN signals s ON s.id = sr.signal_id
+     FROM ${CURRENT_SCORE_RUNS} sr JOIN signals s ON s.id = sr.signal_id
      WHERE sr.outcome != 'pending' ${filter}
      GROUP BY d, sr.outcome ORDER BY d`
   ).all()) as { results: Array<{ d: string; outcome: string; n: number }> };
@@ -203,7 +210,7 @@ trackRecordRoute.get('/source-accuracy', async (c) => {
        e.source_type as sourceType,
        sr.outcome,
        CASE WHEN s.slug LIKE 'bf-%' THEN 'backfill' ELSE 'live' END as cohort
-     FROM score_runs sr
+     FROM ${CURRENT_SCORE_RUNS} sr
      JOIN signals s ON s.id = sr.signal_id
      JOIN evidence e ON e.signal_id = s.id
      WHERE sr.outcome IN ('hit', 'miss', 'push')`
@@ -270,7 +277,7 @@ trackRecordRoute.get('/workbench', async (c) => {
             sr.forward_return as forwardReturn,
             sr.window_days as windowDays,
             CASE WHEN s.slug LIKE 'bf-%' THEN 1 ELSE 0 END as isBackfill
-     FROM score_runs sr
+     FROM ${CURRENT_SCORE_RUNS} sr
      JOIN signals s ON s.id = sr.signal_id
      WHERE 1=1 ${filter}
      ORDER BY sr.run_at DESC, s.published_at DESC

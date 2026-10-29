@@ -1,3 +1,4 @@
+import { stockPriceDisplayStatus } from '../../../../../packages/shared/src/stock-data/price-status';
 import { withAgentMetadata } from '@/lib/agent-page-metadata';
 import { EmptyState } from '@saas-maker/ui/components/empty-state';
 import type { Metadata } from 'next';
@@ -27,7 +28,8 @@ export const metadata: Metadata = withAgentMetadata(
   '/markets'
 );
 
-function formatNumber(value: number) {
+function formatNumber(value: number | null) {
+  if (value === null) return 'unavailable';
   return new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(value);
 }
 
@@ -60,6 +62,12 @@ export default async function MarketsPage({
         Broad market movement that may affect product timing, buyer mood, or infrastructure spend.
         This is not investment advice or deep single-stock research.
       </SectionHeader>
+
+      {!stockPriceDisplayStatus().permitted ? (
+        <p className="my-5 border-l-2 border-amber-700 pl-4 text-sm text-amber-300">
+          {stockPriceDisplayStatus().reason} Historical bundles are retained for verification.
+        </p>
+      ) : null}
 
       <StatGrid
         items={[
@@ -209,9 +217,14 @@ export default async function MarketsPage({
                       {quote.role}
                     </div>
                     <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 font-mono text-[10px] tracking-[0.16em] text-[var(--color-muted)]">
-                      <span>close {quote.close}</span>
-                      <span>open {quote.open}</span>
-                      <span>volume {formatNumber(quote.volume)}</span>
+                      <span>
+                        {quote.priceBasis ? 'adjusted close' : 'close'} {quote.close}
+                      </span>
+                      <span>open {quote.open ?? 'unavailable'}</span>
+                      <span>
+                        volume {quote.volumeBasis ? '30d avg ' : ''}
+                        {formatNumber(quote.volume)}
+                      </span>
                       <span>{quote.date}</span>
                     </div>
                   </div>
