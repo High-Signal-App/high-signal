@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { istDay, type BriefSnapshot, type Region } from '@high-signal/shared';
+import { buildReaderEdition, istDay, type BriefSnapshot, type Region } from '@high-signal/shared';
 import { canShareCurrentBrief, resolveCurrentBrief } from '../src/lib/current-brief';
 
 const now = new Date('2026-10-01T18:30:00Z');
@@ -82,12 +82,70 @@ test('published current edition needs no fallback', async () => {
 test('only a qualified current global edition can attest to shared fallback caching', () => {
   const current = edition('2026-10-02');
   assert.equal(canShareCurrentBrief(current, 'global', 'today', now), true);
+  assert.equal(
+    canShareCurrentBrief(
+      {
+        ...current,
+        stocks: [],
+        news: [
+          {
+            id: 'selected-technology',
+            title: 'Acme launches Alpha Beta cloud model',
+            summary:
+              'Acme announced the Alpha Beta cloud model with an enterprise rollout this week.',
+            event_at: '2026-10-02T04:00:00Z',
+            what_changed: '',
+            evidence_status: 'reported',
+            source_references: [{ url: 'https://reporter.example/acme-alpha-beta-model' }],
+          },
+        ],
+      },
+      'global',
+      'today',
+      now
+    ),
+    true
+  );
   const rejected: Array<[BriefSnapshot, Region, 'today' | 'yesterday']> = [
     [edition('2026-10-02', 'pending'), 'global', 'today'],
     [edition('2026-10-01'), 'global', 'today'],
     [current, 'global', 'yesterday'],
     [{ ...current, region: 'europe' }, 'europe', 'today'],
     [{ ...current, stocks: [] }, 'global', 'today'],
+    [
+      {
+        ...current,
+        stocks: [],
+        news: [
+          {
+            id: 'outside-front-edition',
+            title: 'Example launches a production facility',
+            summary:
+              'Example announced a production facility with increased manufacturing capacity.',
+            event_at: '2026-10-02T04:00:00Z',
+            what_changed: '',
+            evidence_status: 'reported',
+            source_references: [{ url: 'https://example.com/production-facility' }],
+          },
+        ],
+      },
+      'global',
+      'today',
+    ],
+    [
+      {
+        ...current,
+        readerEdition: {
+          ...buildReaderEdition(current),
+          news: [],
+          signals: [],
+          ideas: [],
+          trends: [],
+        },
+      },
+      'global',
+      'today',
+    ],
     [{ ...current, stocks: [{ ...current.stocks[0]!, evidenceUrls: [] }] }, 'global', 'today'],
   ];
   for (const [brief, region, day] of rejected) {
