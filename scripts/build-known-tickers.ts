@@ -37,11 +37,7 @@ async function main() {
         throw error;
     }
   }
-  const sorted = matchingSymbols(
-    snap.rows,
-    previous,
-    Boolean(snap.nonNseUniverseComplete && snap.nseUniverseComplete)
-  );
+  const sorted = matchingSymbols(snap.rows, previous);
   await mkdir(dirname(OUT_PATH), { recursive: true });
   await writeFile(OUT_PATH, `${JSON.stringify(sorted, null, 0)}\n`);
   const { size } = await stat(OUT_PATH);
@@ -52,27 +48,22 @@ function isInactive(row: StockPriceRow) {
   return row.deleted || row.testInstrument || row.identifierValid === false;
 }
 
-function matchingSymbols(rows: StockPriceRow[], previous: string[], prune: boolean) {
+function matchingSymbols(rows: StockPriceRow[], previous: string[]) {
   const symbols = new Set<string>(previous);
-  const inactive = new Set<string>();
-  const active = new Set<string>();
   for (const row of rows) {
     const sym = (row.symbol ?? row.ticker ?? '').toUpperCase().trim();
     if (!/^[A-Z]{2,5}$/.test(sym)) continue;
     if (isInactive(row)) {
-      inactive.add(sym);
       continue;
     }
     // Full NSE data stays in the shared dataset. Bare English-token promotion
     // uses ordinary equity series only; other series need explicit context.
     if (row.exchange === 'NSE' && row['series'] !== 'EQ') continue;
-    active.add(sym);
     symbols.add(sym);
   }
 
-  if (prune) {
-    for (const sym of inactive) if (!active.has(sym)) symbols.delete(sym);
-  }
+  // The legacy list has no provider provenance. An inactive NSE row cannot
+  // invalidate an existing symbol from another market or a historical alias.
   return Array.from(symbols).sort();
 }
 

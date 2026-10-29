@@ -103,8 +103,6 @@ async function main() {
   await writeFile(tickers, JSON.stringify(['AMD', 'BAD', 'INFY', 'NVDA']));
   const limitedManifest = JSON.parse(await readFile(input, 'utf8'));
   limitedManifest.universeComplete = false;
-  limitedManifest.nonNseUniverseComplete = true;
-  limitedManifest.nseUniverseComplete = true;
   limitedManifest.rows.push({
     ...limitedManifest.rows[0],
     ticker: 'TCS.NS',
@@ -135,7 +133,7 @@ async function main() {
   assert.equal(limited.status, 0, limited.stderr);
   assert.deepEqual(
     JSON.parse(await readFile(tickers, 'utf8')),
-    ['AMD', 'INFY', 'NVDA', 'TCS'],
+    ['AMD', 'BAD', 'INFY', 'NVDA', 'TCS'],
     'partial global inputs must preserve NSE identities and consume retained raw-close rows'
   );
   const missingStatus = join(directory, 'missing-status.json');
@@ -157,7 +155,13 @@ async function main() {
     assert.equal(result.status, 0, result.stderr);
   }
   assert.deepEqual(await Promise.all(paths.map((path) => readFile(path, 'utf8'))), before);
-  assert.deepEqual(JSON.parse(await readFile(tickers, 'utf8')), ['AMD', 'INFY', 'NVDA', 'TCS']);
+  assert.deepEqual(JSON.parse(await readFile(tickers, 'utf8')), [
+    'AMD',
+    'BAD',
+    'INFY',
+    'NVDA',
+    'TCS',
+  ]);
   assert.equal(JSON.parse(await readFile(missingStatus, 'utf8')).publicDisplay, 'unknown');
   console.log('stock-data-consumers.test.ts: ok');
 }

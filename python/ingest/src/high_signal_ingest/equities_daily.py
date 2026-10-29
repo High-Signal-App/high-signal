@@ -166,7 +166,6 @@ def run_daily(
     # A configured non-NSE universe is not a complete global replacement. Keep
     # earlier allowlist entries even when the optional NSE archive is unavailable.
     manifest["universeComplete"] = False
-    manifest["nonNseUniverseComplete"] = universe_limit is None and not retain_history
     manifest = merge_nse_inputs(manifest, out_path.parent)
     temporary = out_path.with_suffix(".tmp")
     temporary.write_text("".join(json.dumps(row) + "\n" for row in rows))
@@ -196,7 +195,6 @@ def merge_nse_inputs(manifest: dict, data_dir: Path) -> dict:
     )
     manifest["coverage"]["scope"] = "configured non-NSE universe plus entire retained NSE CM master"
     manifest["nseInputSnapshotId"] = nse["snapshotId"]
-    manifest["nseUniverseComplete"] = nse["marketUniverseComplete"]
     manifest["completeness"] = "partial"
     # Root permissions remain conservative across both providers. Per-source
     # rights must be checked before any future mixed-dataset display grant.
