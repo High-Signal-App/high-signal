@@ -11,7 +11,7 @@ stockDataRoute.get('/', async (c) => {
   c.header('Cache-Control', 'no-store');
   const audience = c.req.query('export') === '1' ? 'export' : 'display';
   const row = await c.env.DB.prepare(
-    'SELECT payload_json FROM stock_data_publications WHERE audience=? ORDER BY as_of DESC,publication_id DESC LIMIT 1'
+    'SELECT payload_json FROM stock_data_publications WHERE audience=? ORDER BY julianday(as_of) DESC,as_of DESC,publication_id DESC LIMIT 1'
   )
     .bind(audience)
     .first<{ payload_json: string }>();
@@ -39,6 +39,10 @@ stockDataRoute.get('/', async (c) => {
     dataset.facts = dataset.facts.filter(
       (fact) => fact.entity_id === entity || inputs.has(fact.id)
     );
+    if (!dataset.facts.length) {
+      dataset.coverage = 'unavailable';
+      dataset.freshness = 'unavailable';
+    }
     dataset.changes = dataset.changes.filter((change) => change.entity_id === entity);
     const entities = new Set([entity, ...dataset.facts.map((fact) => fact.entity_id)]);
     dataset.entities = dataset.entities.filter((row) => entities.has(row.id));

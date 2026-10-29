@@ -72,3 +72,6 @@ reports/
 
 # Undelivered candidates are operator recovery files, not published signals.
 signal-recovery/
+
+# Materialized stock facts and evidence stay private; public consumers use D1 heads.
+packages/shared/src/stock-data/snapshot.json

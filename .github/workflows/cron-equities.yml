@@ -15,6 +15,11 @@ on:
         required: false
         default: ""
 
+      stock_data_pilot:
+        description: "Run the bounded private stock-data pilot (requires migrated API)."
+        type: boolean
+        default: false
+
 permissions:
   contents: write
 
@@ -40,17 +45,25 @@ jobs:
         working-directory: python/ingest
         run: uv sync
       - name: restore private canonical stock history
+        if: github.event_name == 'workflow_dispatch' && inputs.stock_data_pilot
         working-directory: python/ingest
         env:
           ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
           API_BASE: ${{ secrets.API_BASE || 'https://api.highsignal.app' }}
-        run: uv run python -m high_signal_ingest.stock_data_sync restore
+        run: uv run python -m high_signal_ingest.stock_data_sync restore --snapshot ../../data/stock-data/publications.json
       - name: equities daily snapshot
         working-directory: python/ingest
         env:
-          LIMIT_FLAG: ${{ github.event.inputs.limit && format('--limit {0}', github.event.inputs.limit) || '' }}
+          PILOT: ${{ github.event_name == 'workflow_dispatch' && inputs.stock_data_pilot && 'true' || 'false' }}
+          TICKER_LIMIT: ${{ github.event.inputs.limit }}
         run: |
-          uv run python -m high_signal_ingest.equities_daily --batch 50 $LIMIT_FLAG
+          if [ "$PILOT" = true ]; then
+            uv run python -m high_signal_ingest.equities_daily --batch 50 --limit "${TICKER_LIMIT:-20}" --period 1mo --retain-history
+          elif [ -n "$TICKER_LIMIT" ]; then
+            uv run python -m high_signal_ingest.equities_daily --batch 50 --limit "$TICKER_LIMIT"
+          else
+            uv run python -m high_signal_ingest.equities_daily --batch 50
+          fi
       # ── Node: regenerate the web data bundles that depend on JSONL ──────
       - uses: actions/setup-node@v6
         with:
@@ -71,17 +84,6 @@ jobs:
       - name: bundle known-tickers.json for Worker
         run: pnpm tickers:bundle
 
-      - name: refresh retained financial facts through the shared collector
-        working-directory: python/ingest
-        env:
-          ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
-          API_BASE: ${{ secrets.API_BASE || 'https://api.highsignal.app' }}
-        run: uv run python -m high_signal_ingest.pipeline --source sec-xbrl --days 120 --fetch-only
-      - name: refresh attributed free reference FX
-        working-directory: python/ingest
-        run: uv run python -m high_signal_ingest.stock_data_collectors.ecb
-      - name: materialize display and permitted-export contracts
-        run: uv run --project python/ingest python -m high_signal_ingest.stock_data_refresh --out packages/shared/src/stock-data/snapshot.json
       # ── Commit + push for the next manual web deploy ────────────────────
       - name: commit refreshed artifacts
         run: |
@@ -92,7 +94,7 @@ jobs:
                   data/personal-market-refresh.jsonl \
                   apps/web/src/data/market-refreshes.json \
                   workers/api/src/lib/known-tickers.json
-          git add packages/shared/src/stock-data/snapshot.json packages/shared/src/stock-data/price-status.json
+          git add packages/shared/src/stock-data/price-status.json
           if git diff --staged --quiet; then
             echo "no changes to commit"
           else
@@ -105,12 +107,28 @@ jobs:
             git push --no-verify
           fi
 
-      - name: retain private inputs and publish permitted snapshots
+      - name: refresh retained financial facts through the shared collector
+        if: github.event_name == 'workflow_dispatch' && inputs.stock_data_pilot
+        working-directory: python/ingest
         env:
           ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
           API_BASE: ${{ secrets.API_BASE || 'https://api.highsignal.app' }}
-        run: uv run --project python/ingest python -m high_signal_ingest.stock_data_sync publish --snapshot packages/shared/src/stock-data/snapshot.json
+        run: uv run python -m high_signal_ingest.pipeline --source sec-xbrl --days 120 --fetch-only
+      - name: refresh attributed free reference FX
+        if: github.event_name == 'workflow_dispatch' && inputs.stock_data_pilot
+        working-directory: python/ingest
+        run: uv run python -m high_signal_ingest.stock_data_collectors.ecb
+      - name: materialize display and permitted-export contracts
+        if: github.event_name == 'workflow_dispatch' && inputs.stock_data_pilot
+        run: uv run --project python/ingest python -m high_signal_ingest.stock_data_refresh --out data/stock-data/publications.json
+      - name: retain private inputs and publish permitted snapshots
+        if: github.event_name == 'workflow_dispatch' && inputs.stock_data_pilot
+        env:
+          ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
+          API_BASE: ${{ secrets.API_BASE || 'https://api.highsignal.app' }}
+        run: uv run --project python/ingest python -m high_signal_ingest.stock_data_sync publish --snapshot data/stock-data/publications.json
       - name: consume validated stock facts in High Signal research
+        if: github.event_name == 'workflow_dispatch' && inputs.stock_data_pilot
         working-directory: python/ingest
         env:
           ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}

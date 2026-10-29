@@ -306,6 +306,12 @@ def _fetch_news(days: int, source_ids: list[str] | None = None) -> FetchBatch:
     return FetchBatch(events=events, failures=failures)
 
 
+def _fetch_sec_facts(days: int) -> FetchBatch:
+    failures: list[str] = []
+    events = sec_xbrl.fetch_all(days=max(days, 120), failures=failures)
+    return FetchBatch(events=events, failures=failures)
+
+
 def _fetch_tasks(source: Source, days: int) -> list[FetchTask]:
     if source.startswith("news:"):
         source_id = _parse_source(source).removeprefix("news:")
@@ -493,7 +499,7 @@ def _fetch_external_source_tasks(source: Source, days: int) -> list[FetchTask]:
         )
     if source in {"sec-xbrl", "all"}:
         # Shares the sec.gov host gate with `edgar` so the two never hammer SEC together.
-        add("sec-xbrl", "https://www.sec.gov", lambda: sec_xbrl.fetch_all(days=max(days, 120)))
+        add("sec-xbrl", "https://www.sec.gov", lambda: _fetch_sec_facts(days))
     if source in {"scmp", "all"}:
         add("scmp", "https://www.scmp.com", lambda: scmp.fetch_all(days=max(days, 3)))
     if source in {"legistar", "all"}:

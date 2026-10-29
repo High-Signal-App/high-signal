@@ -207,7 +207,9 @@ def event_from_companyfacts(
             store.close()
 
 
-def fetch_all(days: int = 120, limit: int = 25) -> list[Event]:
+def fetch_all(
+    days: int = 120, limit: int = 25, *, failures: list[str] | None = None
+) -> list[Event]:
     from ..seed import load_entities
 
     since = datetime.now(timezone.utc) - timedelta(days=days)
@@ -218,6 +220,8 @@ def fetch_all(days: int = 120, limit: int = 25) -> list[Event]:
         if entity.ticker and entity.type == "public" and "." not in entity.ticker
     ][:limit]
     out: list[Event] = []
+    errors = failures if failures is not None else []
+    successful = 0
     with httpx.Client(headers=headers, timeout=20.0, follow_redirects=True) as client:
         try:
             ticker_response = client.get(TICKERS_URL)
@@ -225,7 +229,6 @@ def fetch_all(days: int = 120, limit: int = 25) -> list[Event]:
             ticker_map = ticker_cik_map(ticker_response.json())
         except (httpx.HTTPError, ValueError) as exc:
             raise RuntimeError("SEC ticker map unavailable") from exc
-        failures = []
         for ticker, entity_id in tickers:
             cik = ticker_map.get(ticker)
             if not cik:
@@ -237,11 +240,13 @@ def fetch_all(days: int = 120, limit: int = 25) -> list[Event]:
                 if not isinstance(payload, dict):
                     raise ValueError("Invalid SEC companyfacts response")
                 event = event_from_companyfacts(ticker, entity_id, cik, payload, since)
+                successful += 1
                 if event:
                     out.append(event)
             except (httpx.HTTPError, ValueError):
-                failures.append(ticker)
+                errors.append(f"sec-xbrl:{ticker}: companyfacts unavailable or invalid")
+                LOGGER.warning("SEC issuer refresh failed: %s", ticker)
                 continue
-        if failures:
-            raise RuntimeError(f"SEC companyfacts refresh failed for {len(failures)} issuers")
+        if errors and not successful:
+            raise RuntimeError(f"SEC companyfacts refresh failed for all {len(errors)} issuers")
     return out

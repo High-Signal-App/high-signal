@@ -64,13 +64,22 @@ The local SQLite ledger is a replay index. Migration `0033_stock_data.sql` store
 its immutable canonical records privately in D1 through `/admin/stock-data`.
 Evidence bytes use content-addressed chunks; authenticated restore verifies their
 original hashes. No raw-data artifact is uploaded to this public repository.
-The refreshed job restores first, retains and validates inputs, persists every
-new private record, and only then publishes separate display/export projections.
-Deploy the migrated API before enabling that job. The existing price bundles
-are built before the filing refresh; a per-issuer SEC failure is recorded without
-aborting other issuers. Remote replication and research delivery run after the
-bundle commit, with failures still failing the monitored job. Rollback to the prior API/job
+The scheduled compatibility collector continues without retaining unbounded
+history. A manual `stock_data_pilot` refresh restores first, retains at most 20 company tickers plus the benchmark
+over one month, validates inputs, and persists new private records before
+publishing separate display/export projections. Replication preflights a
+100,000-record/100 MiB pilot transfer ceiling before its first remote append.
+Deploy the migrated API before enabling that job. The compatibility bundles
+are committed before optional filing/FX collection.
+A per-issuer SEC failure returns successful events with a partial-result error.
+Remote replication and research delivery run only for the explicit pilot. A
+missing scoring restore skips scoring with an operator warning; unsupported
+public price rights leave new outcomes pending. Rollback to the prior API/job
 pair preserves the additive tables and local ledger; do not delete history.
+
+Materialized publications and their change-detection baselines stay private.
+Restore obtains the prior publication from the authenticated API; no financial
+snapshot is committed to public Git before or after the live rights gate.
 
 `GET /v1/stock-data` reads the current permitted projection without a deployment
 per data refresh. `?entity=...` retains the valuation's supporting entity facts;
@@ -78,7 +87,9 @@ per data refresh. `?entity=...` retains the valuation's supporting entity facts;
 input snapshot ID and returns a conflict for another version. Historical snapshot
 reads and the external TechData consumer are not yet qualified. Current source
 rights are checked again on reads, including revocation before a new publication.
-The research adapter receives facts, dates, source references, snapshot IDs and
+Company profiles load stock facts in the browser through a no-store proxy, so
+ISR never retains numerical stock data or a prior rights decision. The research
+adapter receives facts, dates, source references, snapshot IDs and
 numerical changes. Editorial selection and existing publication gates stay in
 High Signal. One source document never becomes multiple corroborating origins.
 

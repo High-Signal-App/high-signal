@@ -12,7 +12,10 @@ has moved behind the same boundary. A dated review of the SEC reuse policy
 qualifies numeric companyfacts; ECB reference FX also has a documented free
 reuse policy. Private canonical records replicate through operator-authenticated
 D1 routes; permitted display and export snapshots are separate from raw evidence.
-The public repository no longer receives the raw equity JSONL from refresh jobs.
+The public repository no longer receives raw equity JSONL or materialized stock
+facts from refresh jobs. Scheduled compatibility collection remains independent;
+private retention/publication is an explicit 20-ticker, one-month pilot with
+preflight transfer budgets. Company profiles load current stock facts outside ISR.
 
 The valuation engine supports listed coverage, holding NAV and SOTP with explicit
 ownership, accounting, corporate-action, freshness and completeness checks.

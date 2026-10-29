@@ -100,6 +100,27 @@ async function main() {
     ['NVDA'],
     'internal identity matching is independent of display rights'
   );
+  const missingStatus = join(directory, 'missing-status.json');
+  for (const script of [
+    'build-equities-snapshot',
+    'build-price-context',
+    'refresh-market-context',
+    'build-known-tickers',
+  ]) {
+    const result = spawnSync(resolve('node_modules/.bin/tsx'), [`scripts/${script}.ts`], {
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        STOCK_PRICE_INPUT: join(directory, 'missing.json'),
+        STOCK_PRICE_STATUS_OUTPUT: missingStatus,
+        KNOWN_TICKERS_OUTPUT: tickers,
+      },
+    });
+    assert.equal(result.status, 0, result.stderr);
+  }
+  assert.deepEqual(await Promise.all(paths.map((path) => readFile(path, 'utf8'))), before);
+  assert.deepEqual(JSON.parse(await readFile(tickers, 'utf8')), ['NVDA']);
+  assert.equal(JSON.parse(await readFile(missingStatus, 'utf8')).publicDisplay, 'unknown');
   console.log('stock-data-consumers.test.ts: ok');
 }
 main().catch((error) => {

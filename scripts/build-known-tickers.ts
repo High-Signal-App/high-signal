@@ -17,6 +17,10 @@ const OUT_PATH =
 
 async function main() {
   const snap = await loadStockPrices();
+  if (!snap.rows.length && snap.completeness === 'unavailable') {
+    console.log('Canonical universe unavailable; retaining the last known ticker allowlist.');
+    return;
+  }
 
   // Symbol is the bare equity ticker without yfinance suffixes ("BRK"
   // not "BRK-B", "NVDA" not "NVDA"). Fall back to `ticker` if `symbol`

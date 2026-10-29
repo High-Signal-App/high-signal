@@ -70,7 +70,7 @@ def test_event_from_companyfacts(tmp_path) -> None:
 def test_pipeline_fetch_includes_sec_xbrl(monkeypatch) -> None:
     calls: list[int] = []
 
-    def fake_fetch_all(days: int):
+    def fake_fetch_all(days: int, *, failures=None):
         calls.append(days)
         return []
 
@@ -82,7 +82,6 @@ def test_pipeline_fetch_includes_sec_xbrl(monkeypatch) -> None:
 
 def test_mismatched_issuer_does_not_skip_remaining_issuers(monkeypatch):
     import httpx
-    import pytest
     from types import SimpleNamespace
     from high_signal_ingest import seed
     from high_signal_ingest.stock_data_collectors import sec_xbrl as collector
@@ -115,9 +114,11 @@ def test_mismatched_issuer_does_not_skip_remaining_issuers(monkeypatch):
         calls.append(ticker)
         if ticker == "NVDA":
             raise ValueError("issuer mismatch")
-        return None
+        return SimpleNamespace(id=ticker)
 
     monkeypatch.setattr(collector, "event_from_companyfacts", extract)
-    with pytest.raises(RuntimeError, match="1 issuers"):
-        collector.fetch_all()
+    failures = []
+    events = collector.fetch_all(failures=failures)
+    assert [event.id for event in events] == ["AMD"]
     assert calls == ["NVDA", "AMD"]
+    assert len(failures) == 1 and "NVDA" in failures[0]

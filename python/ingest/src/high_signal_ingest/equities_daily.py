@@ -5,7 +5,9 @@
 Builds the universe → fetches closes via yfinance → computes Tier 1 snapshot →
 writes a JSONL artifact under ``data/equities-snapshot.jsonl``. The snapshot
 is a compatibility projection. Price observations, actions and revisions are
-retained by the shared stock-data store before projections are generated.
+retained by the shared stock-data store only during the explicit bounded pilot.
+Scheduled compatibility runs publish identity metadata while price rights and
+history retention remain unqualified.
 
 This module is the only stock-price ingress. Other workflows should consume
 ``data/equities-snapshot.jsonl`` or the future D1 ``closes`` /
@@ -62,90 +64,114 @@ def _snapshot_to_dict(t: TickerSpec, s: Tier1Snapshot) -> dict:
     return row
 
 
+def _snapshot_row(
+    store: StockStore, spec: TickerSpec, closes: list, spy: list, now: str, retain: bool
+) -> dict:
+    snap = (
+        compute_tier1(spec.ticker, closes, spy_closes=spy or None)
+        if closes
+        else Tier1Snapshot(ticker=spec.ticker)
+    )
+    row = _snapshot_to_dict(spec, snap)
+    row["inputSnapshotIds"] = []
+    try:
+        row["entityId"] = issuer_id(store, spec)
+        if retain:
+            with store.transaction():
+                persist_prices(store, spec, closes, ingested_at=now)
+                if closes:
+                    row["inputSnapshotIds"] = [
+                        price_inputs(store, spec.ticker, closes, spy, as_of=now)
+                    ]
+    except ValueError as exc:
+        LOGGER.warning("Listing withheld: %s: %s", spec.ticker, exc)
+        row["entityId"] = f"unresolved:{spec.ticker}"
+        row["identityStatus"] = "conflict"
+        row["inputIssue"] = str(exc)
+        for field in dataclasses.fields(Tier1Snapshot):
+            if field.name != "ticker":
+                row[field.name] = None
+    return row
+
+
+def _price_manifest_rows(rows: list[dict], retain: bool) -> list[dict]:
+    if retain:
+        return rows
+    # The scheduled compatibility computation continues, but unretained numerical
+    # inputs cannot masquerade as a versioned, publicly qualified dataset.
+    return [
+        {
+            key: row[key]
+            for key in (
+                "ticker",
+                "symbol",
+                "name",
+                "currency",
+                "country",
+                "entityId",
+                "inputSnapshotIds",
+                "identityStatus",
+                "inputIssue",
+            )
+            if key in row
+        }
+        for row in rows
+    ]
+
+
 def run_daily(
     universe_limit: Optional[int] = None,
     period: str = "6y",
     out_path: Optional[Path] = None,
     batch_size: int = 50,
+    retain_history: bool = False,
 ) -> Path:
-    """Build universe, fetch closes, compute snapshots, write JSONL artifact.
-
-    Returns the output path.
-    """
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s %(levelname)s %(message)s",
-    )
-
+    """Run the sole price ingress; retained history is a bounded, explicit pilot."""
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     universe = build_universe()
     if universe_limit is not None:
+        if universe_limit < 1:
+            raise ValueError("universe limit must be positive")
         universe = universe[:universe_limit]
-    LOGGER.info("universe: %d tickers", len(universe))
-
+    if retain_history and (len(universe) > 20 or period != "1mo"):
+        raise ValueError("Retained-history pilot requires at most 20 tickers and --period 1mo")
     out_path = out_path or (_find_data_dir() / "equities-snapshot.jsonl")
     out_path.parent.mkdir(parents=True, exist_ok=True)
-
-    # Batch-fetch closes for the rest of the universe (yf.download with threads).
-    # Crypto handled by yfinance too (BTC-USD form already canonical).
-    tickers_to_fetch = list(dict.fromkeys(["SPY.US", *(s.ticker for s in universe)]))
-    LOGGER.info("fetching closes for %d tickers (batch=%d)…", len(tickers_to_fetch), batch_size)
-    closes_by_ticker = yf_fetch_many(tickers_to_fetch, period=period, batch_size=batch_size)
-    if not any(closes_by_ticker.get(spec.ticker) for spec in universe):
+    tickers = list(dict.fromkeys(["SPY.US", *(spec.ticker for spec in universe)]))
+    closes = yf_fetch_many(tickers, period=period, batch_size=batch_size)
+    if not any(closes.get(spec.ticker) for spec in universe):
         raise RuntimeError(
             "Canonical equity refresh returned no company prices; previous snapshots are preserved"
         )
-    spy_closes = closes_by_ticker.get("SPY.US", [])
-    generated_at = datetime.now(timezone.utc).isoformat()
-    store = StockStore(stock_store_path(out_path.parent))
-    with store.transaction():
-        persist_prices(
-            store,
-            TickerSpec("SPY.US", "SPY", "US", "etf", currency="USD", country="US"),
-            spy_closes,
-            ingested_at=generated_at,
-        )
-
-    n_written = 0
-    n_with_data = 0
-    rows = []
-    with out_path.open("w") as f:
-        for spec in universe:
-            closes = closes_by_ticker.get(spec.ticker, [])
+    spy = closes.get("SPY.US", [])
+    now = datetime.now(timezone.utc).isoformat()
+    with StockStore(stock_store_path(out_path.parent)) as store:
+        if retain_history:
             with store.transaction():
-                persist_prices(store, spec, closes, ingested_at=generated_at)
-            if closes:
-                snap = compute_tier1(spec.ticker, closes, spy_closes=spy_closes or None)
-                n_with_data += 1
-            else:
-                snap = Tier1Snapshot(ticker=spec.ticker)
-            row = _snapshot_to_dict(spec, snap)
-            row["entityId"] = issuer_id(store, spec)
-            row["inputSnapshotIds"] = (
-                [price_inputs(store, spec.ticker, closes, spy_closes, as_of=generated_at)]
-                if closes
-                else []
-            )
-            rows.append(row)
-            f.write(json.dumps(row) + "\n")
-            n_written += 1
-
-    manifest = versioned_prices(
-        rows,
-        generated_at=generated_at,
-        history_available=True,
-        rights=store.rights("yahoo-finance"),
-    )
+                persist_prices(
+                    store,
+                    TickerSpec("SPY.US", "SPY", "US", "etf", currency="USD", country="US"),
+                    spy,
+                    ingested_at=now,
+                )
+        rows = [
+            _snapshot_row(store, spec, closes.get(spec.ticker, []), spy, now, retain_history)
+            for spec in universe
+        ]
+        manifest = versioned_prices(
+            _price_manifest_rows(rows, retain_history),
+            generated_at=now,
+            history_available=retain_history,
+            rights=store.rights("yahoo-finance") if retain_history else None,
+        )
+    temporary = out_path.with_suffix(".tmp")
+    temporary.write_text("".join(json.dumps(row) + "\n" for row in rows))
+    temporary.replace(out_path)
     manifest_path = out_path.parent / "stock-data-prices.json"
     temporary = manifest_path.with_suffix(".tmp")
     temporary.write_text(json.dumps(manifest, allow_nan=False) + "\n")
     temporary.replace(manifest_path)
-    store.close()
-    LOGGER.info(
-        "wrote %d rows (%d with price data) to %s",
-        n_written,
-        n_with_data,
-        out_path,
-    )
+    LOGGER.info("wrote %d rows; retained-history pilot=%s", len(rows), retain_history)
     return out_path
 
 
@@ -166,12 +192,18 @@ def main(argv: Optional[list[str]] = None) -> int:
         help="output JSONL path (default: <repo>/data/equities-snapshot.jsonl)",
     )
     p.add_argument("--batch", type=int, default=50, help="batch size for yf.download (default 50)")
+    p.add_argument(
+        "--retain-history",
+        action="store_true",
+        help="bounded pilot only: <=20 tickers, --period 1mo",
+    )
     args = p.parse_args(argv)
     run_daily(
         universe_limit=args.limit,
         period=args.period,
         out_path=args.out,
         batch_size=args.batch,
+        retain_history=args.retain_history,
     )
     return 0
 

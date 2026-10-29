@@ -34,17 +34,18 @@ def retain_rates(store: StockStore, body: bytes, *, ingested_at: str) -> list[Fa
     store.put_entity(
         Entity("currency:EUR", "Euro reference rates", "global", {"asset_type": "currency"})
     )
-    store.put_rights(
-        SourceRights(
-            "ecb-fx",
-            POLICY,
-            "permitted",
-            "permitted",
-            "permitted",
-            reviewed_at="2026-10-29T00:00:00Z",
-            note="Source: ECB statistics. Original reference rates and metadata are retained unchanged; no third-party statistics.",
+    if store.rights("ecb-fx") is None:
+        store.put_rights(
+            SourceRights(
+                "ecb-fx",
+                POLICY,
+                "permitted",
+                "permitted",
+                "permitted",
+                reviewed_at="2026-10-29T00:00:00Z",
+                note="Source: ECB statistics. Original reference rates and metadata are retained unchanged; no third-party statistics.",
+            )
         )
-    )
     facts = []
     for rate in node:
         currency, value = rate.get("currency"), rate.get("rate")

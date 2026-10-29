@@ -27,6 +27,9 @@ def forward_return(ticker: str, published_at: datetime, window_days: int) -> flo
             else f"{ticker}.US"
         )
         with StockStore(path) as store:
+            rights = store.rights("yahoo-finance")
+            if rights is None or not rights.allows("display"):
+                return None
             closes = store.historical_closes(
                 canonical, published_at.date().isoformat(), target_end.isoformat()
             )

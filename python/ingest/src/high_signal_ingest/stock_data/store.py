@@ -268,11 +268,11 @@ class StockStore:
         entity_id: str | None = None,
         metric: str | None = None,
     ) -> list[Fact]:
-        terms = ["effective_at<=?", "available_at<=?"]
-        args = [utc(as_of), utc(as_of)]
+        terms = ["substr(effective_at,1,19)<=?", "substr(available_at,1,19)<=?"]
+        args = [utc(as_of)[:19], utc(as_of)[:19]]
         if known_at is not None:
-            terms.append("ingested_at<=?")
-            args.append(utc(known_at))
+            terms.append("substr(ingested_at,1,19)<=?")
+            args.append(utc(known_at)[:19])
         for column, value in (("entity_id", entity_id), ("metric", metric)):
             if value is not None:
                 terms.append(f"{column}=?")
@@ -283,7 +283,17 @@ class StockStore:
             + " ORDER BY effective_at,available_at,ingested_at,id",
             args,
         )
-        return [Fact(**json.loads(r["payload"])) for r in rows]
+        facts = [Fact(**json.loads(row["payload"])) for row in rows]
+        return sorted(
+            (
+                fact
+                for fact in facts
+                if instant(fact.effective_at) <= instant(as_of)
+                and instant(fact.available_at) <= instant(as_of)
+                and (known_at is None or instant(fact.ingested_at) <= instant(known_at))
+            ),
+            key=lambda fact: (*_fact_time_key(fact), fact.id),
+        )
 
     def latest_facts(self, **kwargs: object) -> list[Fact]:
         chosen: dict[str, Fact] = {}
@@ -292,8 +302,7 @@ class StockStore:
             previous = chosen.get(key)
             if (
                 previous
-                and (previous.effective_at, previous.available_at, previous.ingested_at)
-                == (fact.effective_at, fact.available_at, fact.ingested_at)
+                and _fact_time_key(previous) == _fact_time_key(fact)
                 and previous.value != fact.value
             ):
                 raise ValueError(
@@ -309,11 +318,16 @@ class StockStore:
         # is an automatically supported historical nominal valuation price.
         start_at = utc(start + "T00:00:00Z" if len(start) == 10 else start)
         end_at = utc(end + "T00:00:00Z" if len(end) == 10 else end)
-        terms = ["ticker=?", "metric='adjusted_close'", "effective_at>=?", "effective_at<?"]
-        args = [ticker, start_at, end_at]
+        terms = [
+            "ticker=?",
+            "metric='adjusted_close'",
+            "substr(effective_at,1,19)>=?",
+            "substr(effective_at,1,19)<=?",
+        ]
+        args = [ticker, start_at[:19], end_at[:19]]
         if known_at:
-            terms.append("ingested_at<=?")
-            args.append(utc(known_at))
+            terms.append("substr(ingested_at,1,19)<=?")
+            args.append(utc(known_at)[:19])
         rows = self.connection.execute(
             "SELECT payload FROM facts WHERE "
             + " AND ".join(terms)
@@ -321,9 +335,13 @@ class StockStore:
             args,
         )
         prices: dict[int, dict] = {}
-        for row in rows:
-            fact = Fact(**json.loads(row["payload"]))
-            if fact.value is None:
+        facts = [Fact(**json.loads(row["payload"])) for row in rows]
+        for fact in sorted(facts, key=lambda fact: (*_fact_time_key(fact), fact.id)):
+            if fact.value is None or not instant(start_at) <= instant(fact.effective_at) < instant(
+                end_at
+            ):
+                continue
+            if known_at and instant(fact.ingested_at) > instant(known_at):
                 continue
             date = int(instant(fact.effective_at).strftime("%Y%m%d"))
             prices[date] = {"date": date, "close": float(fact.value), "volume": None}
@@ -452,3 +470,9 @@ def _current_period_facts(facts: list[Fact]) -> list[Fact]:
     return [
         fact for fact in facts if fact.id not in keys or fact.effective_at == latest[keys[fact.id]]
     ]
+
+
+def _fact_time_key(fact: Fact) -> tuple:
+    return tuple(
+        instant(value) for value in (fact.effective_at, fact.available_at, fact.ingested_at)
+    )

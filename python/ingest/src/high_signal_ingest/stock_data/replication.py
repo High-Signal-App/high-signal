@@ -12,6 +12,8 @@ from .models import Entity, Fact, Security, SourceRights
 from .store import StockStore
 
 CHUNK_BYTES = 256 * 1024
+MAX_RECORDS = 100_000
+MAX_TRANSFER_BYTES = 100 * 1024 * 1024
 
 
 def records(store: StockStore) -> Iterator[dict]:
@@ -107,12 +109,19 @@ def restore(store: StockStore, client) -> set[str]:
     )
     cursor = 0
     identities: set[str] = set()
+    transferred = 0
     while True:
         response = client.get(f"/admin/stock-data/records?after={cursor}")
         response.raise_for_status()
         batch = response.json()
         if not batch["records"]:
             return identities
+        transferred += len(json.dumps(batch).encode())
+        if (
+            len(identities) + len(batch["records"]) > MAX_RECORDS
+            or transferred > MAX_TRANSFER_BYTES
+        ):
+            raise ValueError("Private restore exceeds the qualified pilot transfer budget")
         with store.transaction():
             for record in batch["records"]:
                 import_record(store, record)
@@ -123,6 +132,13 @@ def restore(store: StockStore, client) -> set[str]:
 
 
 def replicate(store: StockStore, client, known: set[str]) -> int:
+    pending, transferred = 0, 0
+    for record in records(store):
+        if record["id"] not in known:
+            pending += 1
+            transferred += len(json.dumps(record, ensure_ascii=False).encode())
+            if pending > MAX_RECORDS or transferred > MAX_TRANSFER_BYTES:
+                raise ValueError("Private replication exceeds the qualified pilot transfer budget")
     count, batch, size = 0, [], 0
 
     def send() -> None:

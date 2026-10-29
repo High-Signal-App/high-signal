@@ -80,11 +80,19 @@ describe('private canonical ledger and public stock contracts', () => {
       (await request('/admin/stock-data/publications', fixture.publication, false)).status
     ).toBe(401);
     expect((await request('/v1/stock-data')).status).toBe(503);
+    expect((await request('/admin/stock-data/publications/current', undefined, false)).status).toBe(
+      401
+    );
   });
 
   it('retains actual Python records, publishes reproducible ratios and withholds exports', async () => {
     await retain();
     expect((await request('/admin/stock-data/publications', fixture.publication)).status).toBe(200);
+    const privateBaseline = await request('/admin/stock-data/publications/current');
+    expect(privateBaseline.headers.get('Cache-Control')).toBe('private, no-store');
+    expect(
+      ((await privateBaseline.json()) as { display: StockDataset }).display.publication_id
+    ).toBe(fixture.publication.display.publication_id);
     const response = await request('/v1/stock-data');
     const data = (await response.json()) as StockDataset;
     expect(response.headers.get('cache-control')).toBe('no-store');

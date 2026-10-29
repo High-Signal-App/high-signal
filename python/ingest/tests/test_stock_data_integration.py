@@ -167,6 +167,9 @@ def test_backtest_requires_complete_retained_window(tmp_path, monkeypatch):
     with StockStore(path) as store:
         persist_prices(store, spec, [Close(20260101, 10), Close(20260102, 11)], ingested_at=NOW)
     assert backtest.forward_return("BHEL.NS", datetime(2026, 1, 1, tzinfo=timezone.utc), 3) is None
+    assert backtest.forward_return("BHEL.NS", datetime(2026, 1, 1, tzinfo=timezone.utc), 1) is None
+    with StockStore(path) as store:
+        permit(store, "yahoo-finance")
     assert backtest.forward_return(
         "BHEL.NS", datetime(2026, 1, 1, tzinfo=timezone.utc), 1
     ) == pytest.approx(10)
@@ -327,3 +330,85 @@ def test_current_projection_preserves_distinct_reporting_durations(tmp_path):
         normalize_companyfacts("issuer", "0000000001", payload, store, ingested_at=NOW)
         current = store.dataset(as_of=NOW, audience="display", freshness_days=550)
         assert {f["value"] for f in current["facts"] if f["metric"] == "revenue"} == {"10", "30"}
+
+
+def test_ecb_refresh_preserves_a_newer_operator_rights_decision(tmp_path):
+    from high_signal_ingest.stock_data_collectors.ecb import retain_rates, POLICY
+
+    body = b'<Envelope><Cube><Cube time="2026-10-29"><Cube currency="INR" rate="100"/></Cube></Cube></Envelope>'
+    with StockStore(tmp_path / "stock.sqlite") as store:
+        retain_rates(store, body, ingested_at=NOW)
+        revoked = SourceRights("ecb-fx", POLICY, public_display="prohibited", reviewed_at=NOW)
+        store.put_rights(revoked)
+        retain_rates(store, body, ingested_at="2026-10-30T20:00:00Z")
+        assert store.rights("ecb-fx") == revoked
+        assert store.dataset(as_of=NOW, audience="display")["facts"] == []
+
+
+def test_replication_budget_fails_before_the_first_remote_append(tmp_path, monkeypatch):
+    from high_signal_ingest.stock_data import replication
+
+    class NoWrites:
+        def post(self, *args, **kwargs):
+            raise AssertionError("budget exceeded before any append was permitted")
+
+    with StockStore(tmp_path / "stock.sqlite") as store:
+        normalize_companyfacts("issuer", "0000000001", companyfacts(), store, ingested_at=NOW)
+        monkeypatch.setattr(replication, "MAX_RECORDS", 1)
+        with pytest.raises(ValueError, match="pilot transfer budget"):
+            replication.replicate(store, NoWrites(), set())
+
+
+def test_scheduled_prices_do_not_implicitly_retain_six_years(tmp_path, monkeypatch):
+    import json
+    from high_signal_ingest import equities_daily
+
+    spec = TickerSpec("BHEL.NS", "BHEL", "NS", "equity", currency="INR", country="IN")
+    monkeypatch.setattr(equities_daily, "build_universe", lambda: [spec])
+    monkeypatch.setattr(
+        equities_daily,
+        "yf_fetch_many",
+        lambda *args, **kwargs: {
+            "BHEL.NS": [Close(20261028, 10)],
+            "SPY.US": [Close(20261028, 100)],
+        },
+    )
+    equities_daily.run_daily(out_path=tmp_path / "prices.jsonl")
+    with StockStore(tmp_path / "stock-data/stock-data.sqlite") as store:
+        assert store.facts(as_of="2099-01-01T00:00:00Z") == []
+    manifest = json.loads((tmp_path / "stock-data-prices.json").read_text())
+    assert not manifest["historyAvailable"] and manifest["completeness"] == "unavailable"
+    assert manifest["rows"][0].get("last_close") is None
+    with pytest.raises(ValueError, match="at most 20"):
+        equities_daily.run_daily(
+            period="6y", retain_history=True, out_path=tmp_path / "prices.jsonl"
+        )
+    monkeypatch.setattr(equities_daily, "build_universe", lambda: [spec] * 21)
+    with pytest.raises(ValueError, match="at most 20"):
+        equities_daily.run_daily(
+            period="1mo", retain_history=True, out_path=tmp_path / "prices.jsonl"
+        )
+
+
+def test_conflicting_listing_cannot_abort_other_pilot_tickers(tmp_path, monkeypatch):
+    import json
+    from high_signal_ingest import equities_daily
+    from high_signal_ingest.stock_data import Entity, Security
+
+    nvda = TickerSpec("NVDA.US", "NVDA", "US", "equity", currency="USD", country="US")
+    bhel = TickerSpec("BHEL.NS", "BHEL", "NS", "equity", currency="INR", country="IN")
+    with StockStore(tmp_path / "stock-data/stock-data.sqlite") as store:
+        store.put_entity(Entity("old-NVDA", "Earlier mapping", "US"))
+        store.put_security(Security("security:NVDA.US", "old-NVDA", "NVDA.US", "USD"))
+    monkeypatch.setattr(equities_daily, "build_universe", lambda: [nvda, bhel])
+    monkeypatch.setattr(
+        equities_daily,
+        "yf_fetch_many",
+        lambda *args, **kwargs: {
+            symbol: [Close(20261028, 10)] for symbol in ("NVDA.US", "BHEL.NS", "SPY.US")
+        },
+    )
+    equities_daily.run_daily(period="1mo", retain_history=True, out_path=tmp_path / "prices.jsonl")
+    rows = json.loads((tmp_path / "stock-data-prices.json").read_text())["rows"]
+    assert next(row for row in rows if row["ticker"] == "NVDA.US")["identityStatus"] == "conflict"
+    assert next(row for row in rows if row["ticker"] == "BHEL.NS")["last_close"] == 10

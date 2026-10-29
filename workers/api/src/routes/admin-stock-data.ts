@@ -47,6 +47,19 @@ stockDataAdminRoute.get('/records', async (c) => {
   });
 });
 
+stockDataAdminRoute.get('/publications/current', async (c) => {
+  const publications: Record<string, StockDataset | null> = {};
+  for (const audience of ['display', 'export']) {
+    const row = await c.env.DB.prepare(
+      'SELECT payload_json FROM stock_data_publications WHERE audience=? ORDER BY julianday(as_of) DESC,as_of DESC,publication_id DESC LIMIT 1'
+    )
+      .bind(audience)
+      .first<{ payload_json: string }>();
+    publications[audience] = row ? JSON.parse(row.payload_json) : null;
+  }
+  return c.json(publications);
+});
+
 stockDataAdminRoute.post('/records', async (c) => {
   const raw = await boundedBody(c.req.raw, MAX_BYTES);
   if (raw === null) return c.json({ error: 'batch_too_large' }, 413);

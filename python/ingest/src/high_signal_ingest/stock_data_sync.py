@@ -37,6 +37,11 @@ def main() -> None:
                 )
             known = restore(store, client)
             known_path.write_text(json.dumps(sorted(known)))
+            if args.snapshot:
+                response = client.get("/admin/stock-data/publications/current")
+                response.raise_for_status()
+                args.snapshot.parent.mkdir(parents=True, exist_ok=True)
+                args.snapshot.write_text(json.dumps(response.json()))
             print(json.dumps({"restored_records": len(known)}))
         else:
             if not args.snapshot or not known_path.exists():

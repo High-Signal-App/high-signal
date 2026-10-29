@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { api } from '@/lib/api';
 import { EntityDetail } from '@/components/organisms/EntityDetail';
-import { StockDataPanel } from '@/components/organisms/StockDataPanel';
+import { StockDataClient } from '@/components/organisms/StockDataClient';
 import { SITE_URL } from '@/lib/site';
 import { evaluateEntity, robotsForVerdict } from '../../../../public-corpus-policy.mjs';
 
@@ -46,7 +46,7 @@ export default async function EntityPage({ params }: { params: Promise<{ id: str
       backLabel="entities"
       canonicalPath={`${SITE_URL}/entities/${id}`}
       data={data}
-      stockData={data.entity.type === 'public' ? <StockDataPanel company={id} /> : undefined}
+      stockData={data.entity.type === 'public' ? <StockDataClient company={id} /> : undefined}
     />
   );
 }

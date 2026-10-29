@@ -505,3 +505,19 @@ def test_price_history_never_fetches_network_and_preserves_days(store):
         {"date": 20261027, "close": 22.0, "volume": None},
     ]
     assert store.historical_closes("MISSING.NS", "2026-10-26", "2026-10-28") == []
+
+
+def test_public_availability_handles_whole_and_fractional_seconds_exactly(store):
+    document = evidence(store, available_at=OLD, ingested_at=OLD)
+    first = fact(
+        "assets",
+        "100",
+        effective_at=OLD,
+        available_at=DAY,
+        ingested_at=NOW,
+        evidence_id=document.id,
+    )
+    second = replace(first, value="110", available_at="2026-10-29T00:00:00.1Z")
+    store.put_facts([first, second])
+    assert [f.value for f in store.latest_facts(as_of=DAY)] == ["100"]
+    assert [f.value for f in store.latest_facts(as_of="2026-10-29T00:00:00.2Z")] == ["110"]

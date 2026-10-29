@@ -192,7 +192,7 @@ def versioned_prices(
         row["entityId"] = row.get("entityId") or (
             f"issuer:{row.get('wikidata_id') or ('cik:' + row['cik'] if row.get('cik') else row['ticker'])}"
         )
-        row["identityStatus"] = (
+        row["identityStatus"] = row.get("identityStatus") or (
             "verified_identifier"
             if row.get("wikidata_id") or row.get("cik")
             else "provisional_listing_identity"
