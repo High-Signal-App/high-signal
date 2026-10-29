@@ -31,6 +31,7 @@ const skipped = new Map([
   ['/brief', 'compatibility redirect'],
   ['/explore', 'compatibility redirect'],
   ['/review', 'operator review'],
+  ['/equities/preview', 'local-only operator preview; production returns 404'],
   ['/backtest-workbench', 'operator execution'],
   ['/communities', 'explicit noindex'],
   ['/communities/{}/{}', 'explicit noindex'],

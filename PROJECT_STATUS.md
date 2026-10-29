@@ -26,6 +26,13 @@ Read-only contracts feed the existing equity/company views and research adapter.
 Migration 0033 and the API release must precede the changed refresh workflow.
 No production migration or deployment has run for this work.
 
+The equities UI now uses the existing `@saas-maker/ui` cards, filters, tables,
+pagination, badges, accordions and evidence drawers. A development-only loopback
+preview reads a hash-verified local archive projection, paginates the full NSE
+master on the server, and keeps unknown display/export rights explicit. It is
+denied before streaming in production; local preview analytics are disabled.
+Desktop, tablet and phone checks cover search, missing quotes and source evidence.
+
 Public price display is intentionally withheld while Yahoo usage rights remain
 unqualified. Existing numeric bundles are retained for verification, never
 replaced by empty successful refreshes; `/equities`, `/markets`, their exports

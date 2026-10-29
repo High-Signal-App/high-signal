@@ -2,7 +2,7 @@
   "baseline": "e15e5a52971ce4a3606057c1f7d30c0db5841ada",
   "hashes": {
     "apps/web/src/app/unmapped/page.tsx": "419e86a4ba9cb65682e4a7e35c83271ea22bed77428be3ff30d637a026991f3f",
-    "apps/web/src/app/equities/page.tsx": "e0846e41afe1e1040c98b1d1830d9b95ad45dd40fe427b48fa51b04d305b1c56",
+    "apps/web/src/app/equities/page.tsx": "625ee88d21faae8738cf99e868e7d03c465e1f96e9d13167e51ef43e18f612ba",
     "apps/web/src/app/track-record/labels/page.tsx": "5119dbf41eace41d6597082da46469635db110415fa787e6eee62c7ebcb73196",
     "apps/web/src/app/page.tsx": "635ca3b2c20d601885653c7940425b7e23e2acbecac45a942947436c35e06717",
     "apps/web/src/app/daily-intelligence-brief/page.tsx": "897905fe1eaa8bdac0f16e28f59d2e09cfab718f1567ead73a729e857c6be46d",

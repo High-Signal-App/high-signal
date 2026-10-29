@@ -1,4 +1,21 @@
-import { Panel } from '@/components/system/HighSignalUI';
+import { StockPanel as Panel, StockSelect } from './StockDataUI';
+import { Button } from '@saas-maker/ui/components/button';
+import { Badge } from '@saas-maker/ui/components/badge';
+import { EmptyState } from '@saas-maker/ui/components/empty-state';
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from '@saas-maker/ui/components/table';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@saas-maker/ui/components/accordion';
 import type {
   StockDataset,
   StockValuation,
@@ -51,49 +68,33 @@ export function StockDataView({
       </div>
       <form action="/equities" className="mb-5 flex flex-wrap items-end gap-3 text-sm">
         {company ? <input type="hidden" name="company" value={company} /> : null}
-        <label className="grid gap-1">
-          Coverage
-          <select
-            name="coverage"
-            defaultValue={coverage ?? ''}
-            className="border border-zinc-700 bg-zinc-900 p-2"
-          >
-            <option value="">All coverage</option>
-            <option value="complete">Complete</option>
-            <option value="partial">Partial</option>
-            <option value="unavailable">Unavailable</option>
-          </select>
-        </label>
-        <label className="grid gap-1">
-          Freshness
-          <select
-            name="freshness"
-            defaultValue={freshness ?? ''}
-            className="border border-zinc-700 bg-zinc-900 p-2"
-          >
-            <option value="">All dates</option>
-            <option value="fresh">Fresh</option>
-            <option value="stale">Stale</option>
-            <option value="unavailable">Unavailable</option>
-          </select>
-        </label>
-        <button type="submit" className="border border-zinc-700 px-4 py-2 hover:border-zinc-500">
+        <StockSelect
+          name="coverage"
+          label="Coverage"
+          value={coverage}
+          options={['complete', 'partial', 'unavailable']}
+        />
+        <StockSelect
+          name="freshness"
+          label="Freshness"
+          value={freshness}
+          options={['fresh', 'stale', 'unavailable']}
+        />
+        <Button type="submit" variant="outline">
           Apply
-        </button>
+        </Button>
       </form>
       {rows.length ? (
         <ValuationTable rows={rows} names={names} />
       ) : (
-        <div className="border-l-2 border-amber-700 pl-4 text-sm leading-6">
-          <p>
-            No qualified valuations
-            {coverage || freshness ? ' match these filters' : ' are available'}.
-          </p>
-          <p className="mt-2 text-[var(--color-muted)]">
-            Prices, ownership, accounting scope and usage rights must be supported together. Missing
-            inputs remain unavailable.
-          </p>
-        </div>
+        <EmptyState
+          title={
+            coverage || freshness
+              ? 'No qualified valuations match these filters'
+              : 'No qualified valuations available'
+          }
+          description="Prices, ownership, accounting scope and usage rights must be supported together. Missing inputs remain unavailable."
+        />
       )}
       {dataset.withheld_sources.length ? (
         <p className="mt-4 text-sm text-amber-300">
@@ -111,19 +112,19 @@ export function StockDataView({
 function ValuationTable({ rows, names }: { rows: StockValuation[]; names: Map<string, string> }) {
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[660px] text-left text-sm">
-        <thead className="border-b border-zinc-800 text-xs text-[var(--color-muted)]">
-          <tr>
-            <th className="py-3">Company / model</th>
-            <th>Listed coverage</th>
-            <th>NAV discount</th>
-            <th>Coverage / freshness</th>
-          </tr>
-        </thead>
-        <tbody>
+      <Table className="w-full min-w-[660px] text-left text-sm">
+        <TableHeader className="border-b border-zinc-800 text-xs text-[var(--color-muted)]">
+          <TableRow>
+            <TableHead className="py-3">Company / model</TableHead>
+            <TableHead>Listed coverage</TableHead>
+            <TableHead>NAV discount</TableHead>
+            <TableHead>Coverage / freshness</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {rows.map((value: StockValuation) => (
-            <tr key={value.snapshot_id} className="border-b border-zinc-800">
-              <td className="py-3">
+            <TableRow key={value.snapshot_id} className="border-b border-zinc-800">
+              <TableCell className="py-3">
                 <a
                   className="underline underline-offset-4"
                   href={`/equities?company=${encodeURIComponent(value.parent_entity_id)}`}
@@ -133,16 +134,18 @@ function ValuationTable({ rows, names }: { rows: StockValuation[]; names: Map<st
                 <div className="mt-1 text-xs text-zinc-500">
                   {value.method.replaceAll('_', ' ')}
                 </div>
-              </td>
-              <td>{ratio(value.listed_investment_coverage)}</td>
-              <td>{value.ranking_eligible ? ratio(value.discount_to_nav) : 'withheld'}</td>
-              <td>
+              </TableCell>
+              <TableCell>{ratio(value.listed_investment_coverage)}</TableCell>
+              <TableCell>
+                {value.ranking_eligible ? ratio(value.discount_to_nav) : 'withheld'}
+              </TableCell>
+              <TableCell>
                 {value.coverage} / {value.freshness}
-              </td>
-            </tr>
+              </TableCell>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
     </div>
   );
 }
@@ -170,16 +173,16 @@ function CompanyEvidence({
           Underlying facts are unavailable for public display.
         </p>
       ) : null}
-      <div className="mt-3 space-y-3">
+      <Accordion type="multiple" className="mt-3">
         {facts.map((fact) => {
           const source = evidence.get(fact.evidence_id);
           return (
-            <details key={fact.id} className="border border-zinc-800 p-3 text-sm">
-              <summary className="cursor-pointer">
+            <AccordionItem key={fact.id} value={fact.id}>
+              <AccordionTrigger>
                 {fact.metric.replaceAll('_', ' ')}: {fact.value ?? 'unavailable'} {fact.unit}{' '}
-                <span className="text-zinc-500">/ {fact.kind}</span>
-              </summary>
-              <div className="mt-3 space-y-2 break-words text-xs leading-5 text-zinc-400">
+                <Badge variant="outline">{fact.kind}</Badge>
+              </AccordionTrigger>
+              <AccordionContent className="space-y-2 break-words text-xs leading-5 text-muted-foreground">
                 <p>
                   Effective {fact.effective_at.slice(0, 10)} · public{' '}
                   {fact.available_at.slice(0, 10)} · retained {fact.ingested_at.slice(0, 10)}
@@ -196,11 +199,11 @@ function CompanyEvidence({
                   </a>
                 ) : null}
                 <p className="break-all">Fact {fact.id}</p>
-              </div>
-            </details>
+              </AccordionContent>
+            </AccordionItem>
           );
         })}
-      </div>
+      </Accordion>
     </div>
   );
 }

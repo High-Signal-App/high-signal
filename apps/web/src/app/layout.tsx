@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Fragment } from 'react';
 import Script from 'next/script';
 import './globals.css';
 import { AnalyticsProvider } from '@/components/posthog-provider';
@@ -95,8 +96,17 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   // No reader auth provider: High Signal is fully public. Cloudflare Access
   // protects only the bounded operator paths.
+  const localStockPreview =
+    process.env['NODE_ENV'] === 'development' && Boolean(process.env['NSE_DASHBOARD_PREVIEW_ROOT']);
+  const AnalyticsBoundary = localStockPreview ? Fragment : AnalyticsProvider;
+  const monitoring = localStockPreview ? null : (
+    <>
+      <VitalsReporter />
+      <AppHealthAnalytics />
+    </>
+  );
   const app = (
-    <AnalyticsProvider>
+    <AnalyticsBoundary>
       <SiteHeader
         variant="bar"
         className="bg-background border-border backdrop-blur-none"
@@ -109,9 +119,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       />
       {children}
       <SiteFooter />
-      <VitalsReporter />
-      <AppHealthAnalytics />
-    </AnalyticsProvider>
+      {monitoring}
+    </AnalyticsBoundary>
   );
 
   return (
@@ -142,9 +151,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-dvh font-sans antialiased">
         {app}
         {/* Microsoft Clarity — session replay + heatmaps (additive; PostHog stays) */}
-        <Script id="microsoft-clarity" strategy="afterInteractive">
-          {`(function(c,l,a,r,i){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};var done=false;var events=["pointerdown","keydown","scroll","touchstart"];function go(){if(done)return;done=true;events.forEach(function(event){c.removeEventListener(event,go)});var t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;var y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y)}events.forEach(function(event){c.addEventListener(event,go,{passive:true,once:true})})})(window,document,"clarity","script","ybcgyx9ugh");window.clarity("set","project_id","high-signal");`}
-        </Script>
+        {!localStockPreview ? (
+          <Script id="microsoft-clarity" strategy="afterInteractive">
+            {`(function(c,l,a,r,i){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};var done=false;var events=["pointerdown","keydown","scroll","touchstart"];function go(){if(done)return;done=true;events.forEach(function(event){c.removeEventListener(event,go)});var t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;var y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y)}events.forEach(function(event){c.addEventListener(event,go,{passive:true,once:true})})})(window,document,"clarity","script","ybcgyx9ugh");window.clarity("set","project_id","high-signal");`}
+          </Script>
+        ) : null}
         <Script
           src="/studio-footer/14712fdf622b5a02cb1cedb481356b6ad00a5132/footer.js"
           type="module"

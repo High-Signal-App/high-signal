@@ -1,6 +1,7 @@
 @import "@saas-maker/ui/theme.css";
 @import "@saas-maker/ui/source-shell.css";
-@source "../../node_modules/@saas-maker/ui/src/components/{skeleton,empty-state,error-state,button}.tsx";
+@source "../../node_modules/@saas-maker/ui/src/components/{skeleton,empty-state,error-state,button,card,badge,input,label,select,table,data-table,checkbox,pagination,dropdown-menu,sheet,accordion,popover,command,slider,separator}.tsx";
+@source "../../node_modules/@saas-maker/ui/src/blocks/{filter-bar,proof}.tsx";
 @plugin "@tailwindcss/typography";
 @import "../styles/high-signal-theme.css";
 
