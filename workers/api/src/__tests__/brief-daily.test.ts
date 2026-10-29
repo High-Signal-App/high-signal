@@ -627,6 +627,38 @@ describe('GET /daily shared KV edition cache (#198)', () => {
     expect(mocks.buildNews).not.toHaveBeenCalled();
   });
 
+  it.each(['no-cache', 'no-store', 'max-age=0, NO-CACHE'])(
+    'honors explicit freshness directive %s without reading or replacing a shared edition',
+    async (directive) => {
+      const cache = kv();
+      const kvEnv = { ...env, BRIEF_CACHE: cache as unknown as KVNamespace };
+      const first = await briefRoute.request('http://test/daily', {}, kvEnv);
+      expect(first.status).toBe(200);
+      const stale = await first.json();
+      const stored = cache.stored.get(dailyBriefCacheKey('global', day));
+      const freshNews = [
+        { ...news[0]!, id: 'news-fresh', title: 'Issuer revises its expansion timetable' },
+      ];
+      mocks.buildNews.mockResolvedValue(freshNews);
+      vi.clearAllMocks();
+
+      const response = await briefRoute.request(
+        'http://test/daily',
+        { headers: { 'Cache-Control': directive } },
+        kvEnv
+      );
+      const body = (await response.json()) as BriefSnapshot;
+      expect(response.status).toBe(200);
+      expect(body.publishStatus).toBe('published');
+      expect(body.news).toEqual(freshNews);
+      expect(body).not.toEqual(stale);
+      expect(mocks.tryGetPrecomputedSnapshot).toHaveBeenCalled();
+      expect(cache.get).not.toHaveBeenCalled();
+      expect(cache.put).not.toHaveBeenCalled();
+      expect(cache.stored.get(dailyBriefCacheKey('global', day))).toBe(stored);
+    }
+  );
+
   it('exposes the shared reader edition alongside the complete collection on REST and KV reads', async () => {
     const article = {
       ...news[0]!,

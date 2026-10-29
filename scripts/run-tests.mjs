@@ -51,6 +51,7 @@ const NODE_SUITES = [
   ['reader-publication', 'scripts/reader-publication.test.mjs'],
   ['worker-health-runtime', 'apps/web/scripts/worker-health-runtime.test.mjs'],
   ['cache-workload', 'scripts/cache-workload.test.mjs'],
+  ['brief-fallback-cache', 'scripts/brief-fallback-cache.test.mjs'],
   ['abuse-guard', 'scripts/abuse-guard.test.mjs'],
   ['footer-contract', 'apps/web/scripts/footer-contract.test.mjs'],
   ['agent-markdown', 'scripts/agent-markdown.test.mjs'],

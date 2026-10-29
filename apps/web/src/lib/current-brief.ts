@@ -37,6 +37,15 @@ function qualifiedEdition(brief: BriefSnapshot, date: string, region: Region): b
   );
 }
 
+export function canShareCurrentBrief(
+  brief: BriefSnapshot,
+  region: Region,
+  day: 'today' | 'yesterday',
+  now = new Date()
+): boolean {
+  return region === 'global' && day === 'today' && qualifiedEdition(brief, istDay(now), region);
+}
+
 function isChallenge(error: unknown): boolean {
   const status = (error as { status?: number } | null)?.status;
   return status === 401 || status === 403;

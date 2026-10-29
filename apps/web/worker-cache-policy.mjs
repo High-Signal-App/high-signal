@@ -10,7 +10,7 @@ const RSC_CACHE_CONTROL = 'public, max-age=0, s-maxage=3600';
 const FEED_CACHE_CONTROL = 'public, max-age=300, s-maxage=300';
 const DATA_CACHE_CONTROL = 'public, max-age=300, s-maxage=3600';
 const OG_IMAGE_CACHE_CONTROL = 'public, max-age=86400, s-maxage=86400';
-const ROOT_CACHE_SCHEMA = 'daily-brief-v2';
+const ROOT_CACHE_SCHEMA = 'daily-brief-v3';
 const DATA_CACHE_SCHEMA = 'source-data-v2';
 const TRACK_RECORD_CACHE_SCHEMA = 'track-record-v2';
 
@@ -48,6 +48,7 @@ const QUERY_KEYED_DATA_PATHS = new Map([
 // grant must never be served from, or written to, the shared edge cache —
 // both unlock personalized content that must not leak to anonymous traffic.
 const AUTH_COOKIE_FRAGMENTS = ['CF_Authorization', 'high-signal-history'];
+const currentEditionDay = () => new Date(Date.now() + 19_800_000).toISOString().slice(0, 10);
 
 export function isTrackingParameter(key) {
   return /^utm_[a-z0-9_]+$/i.test(key) || ['gclid', 'fbclid', 'msclkid'].includes(key);
@@ -116,6 +117,7 @@ export function cacheKeyForRequest(request, buildId) {
   url.searchParams.sort();
   if (!isRscRequest(request) && pathname === '/') {
     url.searchParams.set('__hs_cache_schema', ROOT_CACHE_SCHEMA);
+    url.searchParams.set('__hs_edition_day', currentEditionDay());
   } else if (!isRscRequest(request) && (pathname === '/data' || pathname.startsWith('/data/'))) {
     url.searchParams.set('__hs_cache_schema', DATA_CACHE_SCHEMA);
   } else if (pathname === '/track-record') {
@@ -186,7 +188,7 @@ const PUBLIC_RENDER_SCAN_LIMIT = 262_144;
 
 /**
  * Next marks searchParams-driven pages private even when they render only
- * public data. Only these two successful page renders opt in explicitly.
+ * public data. Only these successful page renders opt in explicitly.
  * Error/loading shells and every other private response keep their policy.
  */
 export async function qualifyPublicQueryResponse(request, response) {
@@ -206,11 +208,16 @@ export async function qualifyPublicQueryResponse(request, response) {
   }
   const policy = (response.headers.get('cache-control') ?? '').toLowerCase().replace(/\s/g, '');
   if (policy !== NEXT_DYNAMIC_CACHE_CONTROL) return response;
-  const marker = /^\/data\/[^/]+$/.test(pathname)
-    ? /<main\b[^>]*\bdata-high-signal-public-cache="source-detail-v1"/
-    : pathname === '/case-studies/search'
-      ? /<span\b[^>]*\bdata-high-signal-public-cache="company-search-v1"/
-      : null;
+  const marker =
+    pathname === '/'
+      ? new RegExp(
+          `<span\\b(?=[^>]*\\bdata-high-signal-public-cache="current-brief-v1")(?=[^>]*\\bdata-edition-date="${currentEditionDay()}")(?=[^>]*\\bdata-region="global")[^>]*>`
+        )
+      : /^\/data\/[^/]+$/.test(pathname)
+        ? /<main\b[^>]*\bdata-high-signal-public-cache="source-detail-v1"/
+        : pathname === '/case-studies/search'
+          ? /<span\b[^>]*\bdata-high-signal-public-cache="company-search-v1"/
+          : null;
   if (!marker || !(await hasPublicRenderMarker(response, marker))) return response;
   const headers = new Headers(response.headers);
   headers.set('Cache-Control', cacheControlForRequest(request));

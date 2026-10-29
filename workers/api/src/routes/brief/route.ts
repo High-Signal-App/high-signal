@@ -43,6 +43,7 @@ import {
   tryGetPrecomputedSnapshot,
 } from './query';
 import { bearerGrant, verifyHistoryGrant } from '../../lib/history-access';
+import { requestsCacheBypass } from '../../public-cache';
 import {
   observeStages,
   setServerTiming,
@@ -287,7 +288,7 @@ async function readSharedDailyBrief(
   const sharedCache = c.env.BRIEF_CACHE;
   const now = new Date();
   const publicDay = editionDate === istDay(now) || editionDate === istDay(now, -1);
-  const eligible = publicDay && (!diagnostics || observeCache);
+  const eligible = publicDay && (!diagnostics || observeCache) && !requestsCacheBypass(c.req.raw);
   const key = dailyBriefCacheKey(request.region, editionDate);
   const mark = (status: InnerCacheStatus) => {
     observeStages(c.req.raw, timings, status);

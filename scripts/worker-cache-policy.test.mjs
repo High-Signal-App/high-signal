@@ -161,7 +161,7 @@ assert.equal(
 );
 
 const rootKey = cacheKeyForRequest(request('/'), BUILD_A);
-assert.equal(new URL(rootKey.url).searchParams.get('__hs_cache_schema'), 'daily-brief-v2');
+assert.equal(new URL(rootKey.url).searchParams.get('__hs_cache_schema'), 'daily-brief-v3');
 const dataKey = cacheKeyForRequest(request('/data'), BUILD_A);
 assert.equal(new URL(dataKey.url).searchParams.get('__hs_cache_schema'), 'source-data-v2');
 const dataSourceKey = cacheKeyForRequest(request('/data/nvd'), BUILD_A);

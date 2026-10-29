@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { istDay, type BriefSnapshot } from '@high-signal/shared';
-import { resolveCurrentBrief } from '../src/lib/current-brief';
+import { istDay, type BriefSnapshot, type Region } from '@high-signal/shared';
+import { canShareCurrentBrief, resolveCurrentBrief } from '../src/lib/current-brief';
 
 const now = new Date('2026-10-01T18:30:00Z');
 
@@ -77,6 +77,22 @@ test('published current edition needs no fallback', async () => {
   const source = reader({ '2026-10-02': current });
   assert.equal(await resolveCurrentBrief(source, 'global', 'today', now), current);
   assert.deepEqual(source.calls, ['2026-10-02']);
+});
+
+test('only a qualified current global edition can attest to shared fallback caching', () => {
+  const current = edition('2026-10-02');
+  assert.equal(canShareCurrentBrief(current, 'global', 'today', now), true);
+  const rejected: Array<[BriefSnapshot, Region, 'today' | 'yesterday']> = [
+    [edition('2026-10-02', 'pending'), 'global', 'today'],
+    [edition('2026-10-01'), 'global', 'today'],
+    [current, 'global', 'yesterday'],
+    [{ ...current, region: 'europe' }, 'europe', 'today'],
+    [{ ...current, stocks: [] }, 'global', 'today'],
+    [{ ...current, stocks: [{ ...current.stocks[0]!, evidenceUrls: [] }] }, 'global', 'today'],
+  ];
+  for (const [brief, region, day] of rejected) {
+    assert.equal(canShareCurrentBrief(brief, region, day, now), false);
+  }
 });
 
 test('today uses the current refresh while yesterday retains its explicit date', async () => {
