@@ -45,6 +45,16 @@ const PRIVATE_ASSET_PREFIX = '/_private/';
  */
 function postProcessResponse(request, url, response) {
   const pathname = url.pathname;
+  const normalizedPath = normalizePublicPath(pathname);
+  if (normalizedPath === '/' && request.headers.get('rsc') === '1') {
+    const headers = new Headers(response.headers);
+    headers.set('Cache-Control', 'private, no-store');
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers,
+    });
+  }
 
   // JSON error for unknown /api/* paths
   if (pathname.startsWith('/api/') && response.status === 404) {
@@ -82,7 +92,6 @@ function postProcessResponse(request, url, response) {
   }
 
   // Add Vary: Accept for HTML pages that have markdown alternates
-  const normalizedPath = normalizePublicPath(pathname);
   const contentType = response.headers.get('content-type') ?? '';
   if (
     response.status === 200 &&

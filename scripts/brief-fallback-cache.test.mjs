@@ -133,6 +133,7 @@ test('the legacy worker shares only a qualified current public fallback', async 
       const result = await fetch(request('/?_rsc=state', { headers: { rsc: '1' } }));
       assert.equal(result.body, globalThis.__briefFixture.html);
       assert.equal(result.response.headers.get('x-edge-cache'), null);
+      assert.equal(result.response.headers.get('cache-control'), 'private, no-store');
       assert.equal(entries.size, 0);
     }
     const otherRsc = request('/data?_rsc=state', { headers: { rsc: '1' } });
