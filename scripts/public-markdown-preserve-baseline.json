@@ -2,7 +2,7 @@
   "baseline": "e15e5a52971ce4a3606057c1f7d30c0db5841ada",
   "hashes": {
     "apps/web/src/app/unmapped/page.tsx": "419e86a4ba9cb65682e4a7e35c83271ea22bed77428be3ff30d637a026991f3f",
-    "apps/web/src/app/equities/page.tsx": "60f06630aef33cc626b5493adc24620961b17b3f99ae48759a59c5f05351c21a",
+    "apps/web/src/app/equities/page.tsx": "e0846e41afe1e1040c98b1d1830d9b95ad45dd40fe427b48fa51b04d305b1c56",
     "apps/web/src/app/track-record/labels/page.tsx": "5119dbf41eace41d6597082da46469635db110415fa787e6eee62c7ebcb73196",
     "apps/web/src/app/page.tsx": "635ca3b2c20d601885653c7940425b7e23e2acbecac45a942947436c35e06717",
     "apps/web/src/app/daily-intelligence-brief/page.tsx": "897905fe1eaa8bdac0f16e28f59d2e09cfab718f1567ead73a729e857c6be46d",
@@ -12,7 +12,7 @@
     "apps/web/src/app/technology-trend-intelligence/page.tsx": "897905fe1eaa8bdac0f16e28f59d2e09cfab718f1567ead73a729e857c6be46d",
     "apps/web/src/app/track-record/page.tsx": "1ed65b6c3b8a9d792f6080e8b600b02f031783bcdd956e340cae218c8bd030b4",
     "apps/web/src/app/signals/page.tsx": "8181c4d9295f0646000756f1797bc43e96be1324ab677fa978a5d290ab3f7853",
-    "apps/web/src/app/markets/page.tsx": "eacd60e0981b08de102cdba6b3d7b221e1959383db6ec54bbb6b2cf4e49e5386",
+    "apps/web/src/app/markets/page.tsx": "d4fc1671d926b3f613e25cbe54815a74161ec2b8480f58cb83580762d04830f1",
     "apps/web/src/app/entities/page.tsx": "2599d52e171c3076554a3b46a4cecc3fa610953ebb3208184850bf19b00f6549",
     "apps/web/src/app/sectors/page.tsx": "d3528c754e3b626700c200cd1367b36f1f68f512f55153b657959956b83ebe34",
     "apps/web/src/app/methodology/page.tsx": "a7432e01526f289c124a714b6bd5e85ea31630654dcf86c2bfce0598aa9c226e",
@@ -51,7 +51,7 @@
     "apps/web/src/app/signals/[slug]/page.tsx": "305ad190a2102c82f9c959520b646973394b6682a7be71901aed7671c9fede7a",
     "apps/web/src/app/entities/[id]/[period]/page.tsx": "41bc4190e936a915b5bd29adee30fd5badb4cae07416355bfff92e9d2d5595c0",
     "apps/web/src/app/markets/[ticker]/page.tsx": "140d1759bd86fd2dac92603f7074458aa7f2e873f1f0238d6407a7576bf38668",
-    "apps/web/src/app/entities/[id]/page.tsx": "ab37b155391d9bb643dd199b205bf876d4e300a4f9896aa48c7443c33e48ae69",
+    "apps/web/src/app/entities/[id]/page.tsx": "0132abc09c9b08262ab406fdabb2ba0264f694e52f5551798c04668426e77710",
     "apps/web/src/app/case-studies/page/[page]/page.tsx": "67d2832abae4d3d75f1b52d96c60991feb9c8b8288f38aa9d7e7abe91215ec54",
     "apps/web/src/app/case-studies/[slug]/page.tsx": "05f7800f3921fe854db88fbef3578f1203025e083438f946bf7fae6b5798eee5",
     "apps/reader/src/layouts/ReaderLayout.astro": "0ce42244356134faa00f76175434cedc863fe6b71c7f2bc19a4d8b1b7548e8eb"

@@ -358,7 +358,9 @@ class StockStore:
             raise ValueError("unknown dataset audience")
         if freshness_days < 0:
             raise ValueError("freshness_days must be nonnegative")
-        facts = self.latest_facts(as_of=as_of, known_at=known_at, entity_id=entity_id)
+        facts = _current_period_facts(
+            self.latest_facts(as_of=as_of, known_at=known_at, entity_id=entity_id)
+        )
         retained: list[Fact] = []
         documents: dict[str, dict] = {}
         rights_versions: dict[str, str] = {}
@@ -382,6 +384,7 @@ class StockStore:
         stale = _stale_fact_ids(retained, as_of, freshness_days)
         payload = {
             "contract_version": CONTRACT_VERSION,
+            "period_scope": "latest_reported_end_per_concept",
             "as_of": utc(as_of),
             "known_at": utc(known_at) if known_at else None,
             "entity_id": entity_id,
@@ -419,3 +422,33 @@ def _stale_fact_ids(facts: list[Fact], as_of: str, freshness_days: int) -> list[
             days=min(7, freshness_days) if fact.metric in market_metrics else freshness_days
         )
     )
+
+
+def _current_period_facts(facts: list[Fact]) -> list[Fact]:
+    """Current projections retain all durations ending at the latest reported date.
+
+    The ledger retains older periods for as-of queries and replay. A companyfacts
+    history must not become an unbounded current-publication or research payload.
+    """
+    keys = {
+        fact.id: series_id(
+            fact.entity_id,
+            fact.metric,
+            fact.unit,
+            {
+                key: value
+                for key, value in fact.dimensions.items()
+                if key not in {"period_start", "period_end"}
+            },
+        )
+        for fact in facts
+        if "period_end" in fact.dimensions
+    }
+    latest = {}
+    for fact in facts:
+        if fact.id in keys:
+            key = keys[fact.id]
+            latest[key] = max(latest.get(key, fact.effective_at), fact.effective_at)
+    return [
+        fact for fact in facts if fact.id not in keys or fact.effective_at == latest[keys[fact.id]]
+    ]

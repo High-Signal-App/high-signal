@@ -282,3 +282,48 @@ def test_rights_reversion_needs_a_new_dated_decision(tmp_path):
         revoked = replace(initial, reviewed_at="2026-10-30T00:00:00Z")
         store.put_rights(revoked)
         assert not store.rights("test").allows("display")
+
+
+def test_current_contract_is_bounded_by_reported_period_but_history_remains(tmp_path):
+    payload = companyfacts()
+    rows = payload["facts"]["us-gaap"]["Assets"]["units"]["USD"]
+    rows.append(
+        {**rows[0], "val": 80, "end": "2026-06-30", "filed": "2026-07-30", "accn": "0001-26-000000"}
+    )
+    with StockStore(tmp_path / "stock.sqlite") as store:
+        normalize_companyfacts("issuer", "0000000001", payload, store, ingested_at=NOW)
+        current = store.dataset(as_of=NOW, audience="display", freshness_days=550)
+        assert [f["value"] for f in current["facts"] if f["metric"] == "assets"] == ["100"]
+        historical = store.dataset(
+            as_of="2026-08-01T00:00:00Z", audience="display", freshness_days=550
+        )
+        assert [f["value"] for f in historical["facts"] if f["metric"] == "assets"] == ["80"]
+        assert len(store.facts(as_of=NOW, metric="assets")) == 2
+
+
+def test_current_projection_preserves_distinct_reporting_durations(tmp_path):
+    payload = companyfacts()
+    payload["facts"]["us-gaap"]["Revenues"] = {
+        "units": {
+            "USD": [
+                {
+                    "val": 10,
+                    "start": "2026-07-01",
+                    "end": "2026-09-30",
+                    "filed": "2026-10-28",
+                    "accn": "0001-26-000001",
+                },
+                {
+                    "val": 30,
+                    "start": "2026-01-01",
+                    "end": "2026-09-30",
+                    "filed": "2026-10-28",
+                    "accn": "0001-26-000001",
+                },
+            ]
+        }
+    }
+    with StockStore(tmp_path / "stock.sqlite") as store:
+        normalize_companyfacts("issuer", "0000000001", payload, store, ingested_at=NOW)
+        current = store.dataset(as_of=NOW, audience="display", freshness_days=550)
+        assert {f["value"] for f in current["facts"] if f["metric"] == "revenue"} == {"10", "30"}

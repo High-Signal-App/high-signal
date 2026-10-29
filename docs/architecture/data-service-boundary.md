@@ -93,6 +93,11 @@ unknown. Previous numerical bundles remain retained verification inputs, while
 public consumers honor the separate price-display status. Internal ticker
 matching remains available from the canonical universe.
 
+Current financial projections retain all reporting durations ending at the latest
+reported date for each concept, unit and accounting scope. Earlier periods stay
+in the ledger for as-of queries; the current research payload does not repeat a
+company's full filing history.
+
 The initial India pilot remains unqualified. Unknown rights and missing values
 remain unavailable; carrying values are not market valuations. Partial NAV/SOTP
 models cannot receive definitive discounts or rankings. Free access does not by
