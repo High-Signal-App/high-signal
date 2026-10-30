@@ -62,6 +62,7 @@ import { dailySignalEdition, precomputeBriefSnapshots } from '../routes/brief/ro
 import { buildReaderEdition, istDay, type BriefSnapshot } from '@high-signal/shared';
 import { createHistoryGrant } from '../lib/history-access';
 import { app as apiApp } from '../app';
+import * as signalQuality from '../lib/signal-quality';
 
 const env = { DB: {} as D1Database, ENVIRONMENT: 'test' };
 
@@ -322,6 +323,72 @@ describe('GET /daily', () => {
     expect(mocks.buildStocks).toHaveBeenCalledWith(expect.anything(), [], day);
   });
 
+  it.each(['today', 'yesterday'] as const)(
+    'starts independent %s reads before evidence refresh settles and still gates the result',
+    async (selectedDay) => {
+      const day = istDay(new Date(), selectedDay === 'yesterday' ? -1 : 0);
+      const news = {
+        id: 'fresh-news',
+        title: 'Issuer announces a capacity expansion',
+        summary: 'The retained report records the expansion and its announced timetable.',
+        event_at: `${day}T02:00:00.000Z`,
+        what_changed: '',
+        source_references: [{ url: 'https://news.example/expansion', source: 'news' }],
+        evidence_status: 'reported' as const,
+      };
+      const snapshot: BriefSnapshot = {
+        generatedAt: `${day}T03:30:00.000Z`,
+        editionDate: day,
+        timeZone: 'Asia/Kolkata',
+        region: 'global',
+        stocks: [],
+        ideas: [],
+        trends: [],
+        news: [{ ...news, id: 'cached-news' }],
+      };
+      mocks.tryGetPrecomputedSnapshot.mockResolvedValue(snapshot);
+      mocks.buildNews.mockResolvedValue([news]);
+      let releaseEvidence!: (value: BriefSnapshot) => void;
+      const evidence = new Promise<BriefSnapshot>((resolve) => {
+        releaseEvidence = resolve;
+      });
+      const refresh = vi
+        .spyOn(signalQuality, 'refreshBriefSnapshotEvidence')
+        .mockReturnValueOnce(evidence);
+      const responsePromise = briefRoute.request(
+        `http://test/daily${selectedDay === 'yesterday' ? `?date=${day}` : ''}`,
+        {},
+        env
+      );
+      let response: Response;
+      try {
+        await vi.waitFor(() => expect(refresh).toHaveBeenCalledTimes(1));
+        expect(mocks.buildStocks).toHaveBeenCalledWith(expect.anything(), [], day);
+        expect(mocks.buildNews).toHaveBeenCalledWith(expect.anything(), 'global', day);
+      } finally {
+        releaseEvidence({
+          ...snapshot,
+          trends: [
+            {
+              title: 'Unsupported cached trend',
+              description: 'A cached claim without independently retained support.',
+              whyNow: 'The cached source contains no qualifying evidence.',
+              evidenceUrls: [],
+            },
+          ] as never,
+        });
+        response = await responsePromise;
+        refresh.mockRestore();
+      }
+      expect(response.status).toBe(200);
+      const body = (await response.json()) as BriefSnapshot;
+      expect(body.news).toEqual([news]);
+      expect(body.trends).toEqual([]);
+      expect(body.categoryStates?.trends.reason).toBe('items_withheld_by_publish_gate');
+      expect(body.publishStatus).toBe('published');
+    }
+  );
+
   it('does not reuse cached signals when the public ledger read fails', async () => {
     const day = istDay(new Date(), -1);
     mocks.tryGetPrecomputedSnapshot.mockResolvedValue({
@@ -336,6 +403,33 @@ describe('GET /daily', () => {
     const body = (await response.json()) as BriefSnapshot;
     expect(body.stocks).toEqual([]);
     expect(body.categoryStates?.stocks.status).toBe('unavailable');
+  });
+
+  it('does not publish a public snapshot when its evidence refresh fails', async () => {
+    const day = istDay(new Date(), -1);
+    mocks.tryGetPrecomputedSnapshot.mockResolvedValue({
+      generatedAt: `${day}T03:30:00Z`,
+      region: 'global',
+      stocks: [],
+      ideas: [],
+      trends: [],
+    });
+    const refresh = vi
+      .spyOn(signalQuality, 'refreshBriefSnapshotEvidence')
+      .mockRejectedValueOnce(new Error('retained evidence unavailable'));
+    try {
+      const response = await apiApp.fetch(
+        new Request(`http://test/brief/daily?date=${day}&timing=1`, {
+          headers: { 'Cache-Control': 'no-cache' },
+        }),
+        env
+      );
+      expect(response.status).toBe(500);
+      expect(response.headers.get('cache-control')).toBe('private, no-store');
+      await expect(response.json()).resolves.toEqual({ error: 'Internal Server Error' });
+    } finally {
+      refresh.mockRestore();
+    }
   });
 
   it('does not call a cached edition published after its only section becomes empty', async () => {

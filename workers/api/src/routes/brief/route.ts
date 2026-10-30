@@ -188,12 +188,15 @@ async function serveDailyBrief(
   );
   if (cached) {
     if (cached.status === 200) {
-      let snapshot = await refreshBriefSnapshotEvidence(database, cached.body);
+      let snapshot = cached.body;
       // The public two-day signal ledger stays current when publication happens
       // after a region snapshot was computed. Never substitute a stale cached
       // stock section if this authoritative read fails.
       if (!protectedHistory) {
-        const [stocks, refreshedSnapshot] = await Promise.all([
+        // These authoritative reads are independent. Keep the final publication
+        // gates after all three settle instead of serializing evidence and news.
+        const [evidencedSnapshot, stocks, refreshedSnapshot] = await Promise.all([
+          refreshBriefSnapshotEvidence(database, snapshot),
           safeCategory(
             () =>
               timeServerStage(timings, 'stocks', () =>
@@ -212,11 +215,16 @@ async function serveDailyBrief(
           ),
         ]);
         snapshot = pruneUnpublishableBriefItems({
-          ...snapshot,
+          ...evidencedSnapshot,
           stocks: stocks.items,
-          categoryStates: { ...categoryStatesForSnapshot(snapshot), stocks: stocks.state },
+          categoryStates: {
+            ...categoryStatesForSnapshot(evidencedSnapshot),
+            stocks: stocks.state,
+          },
         }).snapshot;
         snapshot = { ...snapshot, news: refreshedSnapshot.news };
+      } else {
+        snapshot = await refreshBriefSnapshotEvidence(database, snapshot);
       }
       snapshot = dailySignalEdition(pruneUnpublishableBriefItems(snapshot).snapshot, editionDate);
       if (protectedHistory) {
