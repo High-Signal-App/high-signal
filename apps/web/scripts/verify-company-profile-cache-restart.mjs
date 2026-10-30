@@ -14,6 +14,30 @@ async function readProfile() {
   });
   return { status: response.status, headers: response.headers, body: await response.text() };
 }
+async function verifyFontPreloads(html) {
+  const links = [...html.matchAll(/<link\b[^>]*>/g)].map(([tag]) => tag);
+  const fonts = links
+    .filter((tag) => tag.includes('rel="preload"') && tag.includes('as="font"'))
+    .map((tag) => tag.match(/href="([^"]+)"/)?.[1]);
+  const stylesheets = links
+    .filter((tag) => tag.includes('rel="stylesheet"'))
+    .map((tag) => tag.match(/href="([^"]+)"/)?.[1]);
+  const referencedFonts = new Set();
+  for (const path of stylesheets) {
+    const url = new URL(path, 'https://highsignal.app');
+    const response = await runtime.dispatchFetch(url.toString());
+    assert.equal(response.status, 200, `Reader stylesheet ${path} must be available`);
+    for (const [, asset] of (await response.text()).matchAll(/url\(["']?([^"')]+)["']?\)/g)) {
+      referencedFonts.add(new URL(asset, url).pathname);
+    }
+  }
+  for (const family of ['geist-latin-normal', 'geist-mono-latin-normal']) {
+    const path = fonts.find((font) => font?.includes(`${family}.`));
+    assert.match(path ?? '', /^\/_next\/static\/media\/.+\.woff2$/);
+    assert.ok(referencedFonts.has(path), `${family} preload must reuse the stylesheet asset`);
+    assert.equal((await runtime.dispatchFetch(`https://highsignal.app${path}`)).status, 200);
+  }
+}
 try {
   runtime = await createReaderRuntime(WEB_ROOT, storage);
   const first = await readProfile();
@@ -22,6 +46,7 @@ try {
   assert.equal(first.headers.get('x-reader-renderer'), null);
   assert.equal(first.headers.get('x-edge-cache'), null, 'Outer cache must be bypassed');
   assert.equal(first.headers.get('x-nextjs-cache'), 'MISS');
+  await verifyFontPreloads(first.body);
   await new Promise((done) => setTimeout(done, 2_000));
   await runtime.dispose();
   runtime = await createReaderRuntime(WEB_ROOT, storage);
