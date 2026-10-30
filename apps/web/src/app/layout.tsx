@@ -17,6 +17,12 @@ import {
   SITE_URL,
 } from '@/lib/site';
 
+// Resolve the same assets as theme.css so preload and @font-face share one request.
+const geistSansPath = new URL('@saas-maker/ui/fonts/geist-latin-normal.woff2', import.meta.url)
+  .pathname;
+const geistMonoPath = new URL('@saas-maker/ui/fonts/geist-mono-latin-normal.woff2', import.meta.url)
+  .pathname;
+
 export const metadata: Metadata = {
   icons: {
     icon: [
@@ -136,6 +142,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       suppressHydrationWarning
     >
       <head>
+        <link
+          rel="preload"
+          href={geistSansPath}
+          as="font"
+          type="font/woff2"
+          crossOrigin="anonymous"
+        />
+        <link
+          rel="preload"
+          href={geistMonoPath}
+          as="font"
+          type="font/woff2"
+          crossOrigin="anonymous"
+        />
         <script
           // biome-ignore lint/security/noDangerouslySetInnerHtml: guarded local-only preference prevents a layout flash
           dangerouslySetInnerHTML={{
