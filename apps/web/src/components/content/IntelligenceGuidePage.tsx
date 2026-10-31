@@ -60,8 +60,8 @@ export function IntelligenceGuidePage({ guide }: { guide: IntelligenceGuide }) {
                 evidence receipt
               </h2>
               <p className="text-sm leading-6 text-[var(--color-muted)]">
-                Public facts used on this page. Open any row to inspect the corresponding High
-                Signal surface.
+                Public facts used on this page. Open a source to check the description and its
+                context.
               </p>
             </div>
             <div className="divide-y divide-[var(--color-line)] border-t border-[var(--color-line)]">

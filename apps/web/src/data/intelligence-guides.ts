@@ -134,64 +134,67 @@ export const INTELLIGENCE_GUIDES: Record<IntelligenceGuideKey, IntelligenceGuide
     key: 'daily-briefs-compared',
     slug: '/compared',
     eyebrow: 'comparison',
-    title: 'Daily technology, startup, and finance briefs compared',
+    title: 'TLDR, Techmeme, or High Signal: choosing a daily tech brief',
     metaDescription:
-      'Compare daily intelligence briefs for founders who want concise, source-backed technology, startup, and finance signals.',
+      'Compare TLDR, Techmeme, and High Signal by reading format, source links, coverage, and evidence checks. Choose a daily tech news routine that fits your work.',
     summary:
-      'Founders comparing daily briefs usually care about three things: will this save time, can a claim be trusted, and can the source be re-checked later. This comparison focuses on sourcing contracts and auditability rather than marketing scores.',
+      'TLDR delivers a daily tech email. Techmeme groups coverage of developing stories. High Signal offers a public brief across technology, startups, and finance, with a separate verified-signal record. Choose by reading format and the evidence you need. This comparison is written by High Signal.',
     schemaKind: 'article',
     sections: [
       {
-        title: 'Decision criteria',
+        title: 'Start with the job you need done',
         paragraphs: [
-          'Evaluate any daily brief on five axes: the sourcing contract (one link, many links, or a hard multi-source gate), scope (startups only, markets only, or a mixed founder brief), length (skimmable morning read versus long-form digest), auditability (public samples, track record, stable URLs), and failure mode (what the product refuses to publish).',
+          'For a quick catch-up, check whether the current edition covers your field and links to the reporting behind each summary. For an important claim, open those sources and check who originated the information. Several articles repeating one announcement do not amount to independent confirmation.',
+          'Email delivery, a live news page, and an evidence ledger are different features. Pick the reading format you will use, then decide which stories deserve a deeper source check. A source link alone does not prove a claim is correct.',
         ],
       },
       {
-        title: 'How High Signal positions',
+        title: 'TLDR: a daily email digest',
         paragraphs: [
-          'High Signal is an evidence-first daily brief across technology, startups, and finance. A published claim needs at least two independent public sources, or it does not ship. The product keeps the brief short, preserves dated archives, and publishes a track-record ledger for matured directional calls.',
-          'That contract trades coverage for trust. Single-source viral stories may be delayed or dropped. High Signal is not a real-time market terminal and is not investment advice.',
+          'TLDR describes its flagship as a free daily email covering startups, technology, and programming. Its public site shows summaries with links to the source articles, so you can inspect the format before subscribing.',
+          'Choose this format when inbox delivery helps you keep a daily reading habit. The public issue and signup pages are the basis for this description; we have not tested its email delivery or audited its editorial verification process.',
         ],
       },
       {
-        title: 'How to read adjacent products',
+        title: 'Techmeme: follow coverage of a developing story',
         paragraphs: [
-          'Products such as Cusp (https://readcusp.com) and Discovery Daily (https://www.discovery-daily.com) appear in the same buyer conversation. Treat public competitor descriptions as starting points only: re-check each live site for citation depth, sample archives, and whether claims link to primary sources.',
-          'A newsletter can be excellent writing without a multi-source publication gate. A discovery feed can maximize idea volume without a public hit-rate ledger. Choose based on the contract you need, not brand heat.',
+          'Techmeme groups a leading technology story with related coverage and discussion. Its public page also offers a time-based archive. That makes it a useful format when you want to see how several outlets are covering the same event.',
+          'Choose this format for a developing-story overview rather than a fixed daily stopping point. Related coverage is a navigation aid; inspect the originating sources before treating those reports as independent corroboration.',
         ],
       },
       {
-        title: 'Where High Signal is behind',
+        title: 'High Signal: a daily brief with a separate signal record',
         paragraphs: [
-          'Domain authority and third-party reviews are still early—judge samples and the public ledger, not domain rating. Coverage can lag headlines that only have one source. Operators who need Bloomberg-depth market data, full newsroom coverage, or maximum story count should pick a different product.',
+          'The public Daily Brief groups attributed reporting across technology, startups, and finance without requiring a reader account. A news item can carry an attributed single-source report. The stricter publication gate applies to verified signals: a claim needs an aligned primary source and independently originating corroboration. The methodology explains which evidence qualifies.',
+          'Choose High Signal when you want to scan one edition, then inspect the evidence behind a signal. Check the edition date and available signal history first: a day can have no newly published verified signals. The public outcome ledger is early and does not establish predictive reliability. High Signal is not a real-time market terminal or investment advice. Its update emails cover product changes; the Daily Brief itself is read on the website.',
         ],
       },
       {
-        title: 'When High Signal is the better fit',
+        title: 'Try one story before choosing a routine',
         paragraphs: [
-          'Choose High Signal when you want a short daily founder brief and care more about multi-source claims and inspectable outcomes than maximum story count. Start with the category guide, then open today’s brief and the track record.',
+          'Open the current issue or homepage of each service. Find one story relevant to your work, follow its source link, and check the original date, scope, and evidence. Then choose the format that helps you understand that story with the fewest unnecessary steps. You may prefer an email for the daily skim and a grouped news page for follow-up research.',
+          'The linked public pages were checked on 31 October 2026. This comparison does not claim that any service is more accurate, faster to read, or more comprehensive than another; those claims would require a matched study.',
         ],
       },
     ],
     evidence: [
       {
+        href: 'https://signup.tldr.tech/',
+        label: 'TLDR public issue and signup',
+        detail: 'Published description, email format, summaries, and source links.',
+        verifiedAt: '2026-10-31',
+      },
+      {
+        href: 'https://www.techmeme.com/',
+        label: 'Techmeme live news page',
+        detail: 'Grouped reporting, discussion links, and time-based archive.',
+        verifiedAt: '2026-10-31',
+      },
+      {
         href: '/methodology',
         label: 'Cite-or-kill rules',
-        detail: 'At least two independent sources per published claim.',
-        verifiedAt: '2026-08-07',
-      },
-      {
-        href: '/track-record',
-        label: 'Public track record',
-        detail: 'Matured calls remain inspectable as hit, miss, or push.',
-        verifiedAt: '2026-08-07',
-      },
-      {
-        href: '/daily-intelligence-brief',
-        label: 'Category guide',
-        detail: 'What a useful daily intelligence brief requires.',
-        verifiedAt: '2026-08-07',
+        detail: 'Verified signals require aligned primary evidence and independent corroboration.',
+        verifiedAt: '2026-10-31',
       },
     ],
     related: [
@@ -201,7 +204,7 @@ export const INTELLIGENCE_GUIDES: Record<IntelligenceGuideKey, IntelligenceGuide
         description: 'What a source-backed daily brief needs.',
       },
       {
-        href: '/brief',
+        href: '/',
         title: "Today's Daily Brief",
         description: 'Read the current compressed view.',
       },
@@ -217,7 +220,7 @@ export const INTELLIGENCE_GUIDES: Record<IntelligenceGuideKey, IntelligenceGuide
       },
     ],
     cta: {
-      href: '/brief',
+      href: '/',
       title: "Open today's brief",
       description: 'Judge the product from a real sample, then inspect sources on any signal.',
     },
