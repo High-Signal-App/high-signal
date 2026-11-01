@@ -11,6 +11,15 @@ const workerSource = readFileSync(resolve(root, 'apps/web/legacy-worker.mjs'), '
 const readerWorker = readFileSync(resolve(root, 'apps/web/worker.mjs'), 'utf8');
 assert.match(
   readerWorker,
+  /import \{ CACHE_BUILD_ID \} from '\.\/\.open-next\/cache-build-id\.mjs'/
+);
+assert.match(
+  readerWorker,
+  /handlePublicRecordMarkdown\(request, env, ctx, \{\s*cache: caches\.default,\s*cacheBuildId: CACHE_BUILD_ID,/,
+  'Record Markdown must use the per-build cache namespace'
+);
+assert.match(
+  readerWorker,
   /await import\('\.\/legacy-worker\.mjs'\)/,
   'Next must remain a lazy fallback'
 );

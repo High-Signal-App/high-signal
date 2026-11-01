@@ -10,11 +10,19 @@ const ts = createRequire(new URL('../apps/web/package.json', import.meta.url))('
 const registry = readFileSync('apps/web/src/lib/public-source-pages.ts', 'utf8');
 const files = [
   ...new Set(
-    [...registry.matchAll(/from ['"]@\/app\/(.*?)['"]/g)].map(
+    [...registry.matchAll(/(?:from\s+|import\(\s*)['"]@\/app\/(.*?)['"]/g)].map(
       (match) => `apps/web/src/app/${match[1]}.tsx`
     )
   ),
 ];
+assert.deepEqual(
+  [...files].sort(),
+  Object.keys(hashes)
+    .filter((file) => file.startsWith('apps/web/src/app/'))
+    .sort(),
+  'Every authored public page must remain covered after registry loading changes'
+);
+assert.equal(files.length, 53, 'HTML preservation must cover all public page modules');
 function defaultBody(source, filename) {
   const parsed = ts.createSourceFile(
     filename,

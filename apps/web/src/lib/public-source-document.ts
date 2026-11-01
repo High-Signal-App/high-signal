@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import type { Metadata } from 'next';
 import { ShareBar } from '@/components/molecules/ShareBar';
 import { PromoteButton } from '@/components/unmapped/PromoteButton';
 import { promoteIdleLabel } from '@/components/unmapped/promote-copy';
@@ -19,10 +20,11 @@ import { MarkdownView } from '@/components/system/MarkdownView';
 import { publicSourcePage } from './public-source-pages';
 import { publicSourceTree, type SourceTreeOptions } from './public-source-tree';
 import { SITE_URL, SITE_NAME, SITE_DESCRIPTION } from './site';
+import { publicRecordDocument } from '../../public-record-document.mjs';
 
 async function eligiblePublicPage(
   path: string,
-  page: NonNullable<ReturnType<typeof publicSourcePage>>['page']
+  page: NonNullable<Awaited<ReturnType<typeof publicSourcePage>>>['page']
 ) {
   if (path.startsWith('/embed/')) {
     try {
@@ -33,15 +35,7 @@ async function eligiblePublicPage(
       throw error;
     }
   }
-  if (/^\/data\/records\/[^/]+$/.test(path)) {
-    try {
-      const record = await api.dataRecord(path.split('/').at(-1)!);
-      if (!record.available) throw new Error('Public record unavailable');
-    } catch (error) {
-      if (error instanceof ApiError && error.status === 404) return false;
-      throw error;
-    }
-  } else if (/^\/data\/[^/]+$/.test(path) && page.generateStaticParams) {
+  if (/^\/data\/[^/]+$/.test(path) && page.generateStaticParams) {
     const source = path.split('/').at(-1)!;
     if (!page.generateStaticParams().some((params) => params['source'] === source)) {
       const sources = await api.dataSources();
@@ -89,8 +83,32 @@ function sourceOptions(canonical: string): SourceTreeOptions {
   return options;
 }
 
+async function recordSourceDocument(path: string) {
+  const id = path.split('/').at(-1)!;
+  try {
+    return await publicRecordDocument(
+      `/data/records/${encodeURIComponent(id)}`,
+      await api.dataRecord(id)
+    );
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) return null;
+    throw error;
+  }
+}
+
+function sourceTitle(title: Metadata['title']) {
+  return typeof title === 'string'
+    ? title
+    : title && 'absolute' in title
+      ? title.absolute
+      : title && 'default' in title
+        ? title.default
+        : SITE_NAME;
+}
+
 export async function publicSourceDocument(path: string) {
-  const selected = publicSourcePage(path);
+  if (/^\/data\/records\/[^/]+$/.test(path)) return recordSourceDocument(path);
+  const selected = await publicSourcePage(path);
   if (!selected) return null;
   const { page, props } = selected;
   if (!(await eligiblePublicPage(path, page))) return null;
@@ -104,15 +122,7 @@ export async function publicSourceDocument(path: string) {
   const canonical = new URL(canonicalValue ?? path, SITE_URL).href;
   if (new URL(canonical).origin !== SITE_URL)
     throw new Error('Public source canonical must belong to this site');
-  const titleValue = metadata.title;
-  const title =
-    typeof titleValue === 'string'
-      ? titleValue
-      : titleValue && 'absolute' in titleValue
-        ? titleValue.absolute
-        : titleValue && 'default' in titleValue
-          ? titleValue.default
-          : SITE_NAME;
+  const title = sourceTitle(metadata.title);
   const description = metadata.description ?? SITE_DESCRIPTION;
   const options = sourceOptions(canonical);
   const body = await publicSourceTree(await page.default(props), options);
