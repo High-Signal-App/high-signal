@@ -8,7 +8,11 @@ import { fileURLToPath } from 'node:url';
 export const WEB_ROOT = fileURLToPath(new URL('..', import.meta.url));
 
 /** Real deploy bundle, workerd, Static Assets and local R2. No remote resources. */
-export async function createReaderRuntime(webRoot = WEB_ROOT, storage = undefined) {
+export async function createReaderRuntime(
+  webRoot = WEB_ROOT,
+  storage = undefined,
+  { api, inspectorPort } = {}
+) {
   const directory = mkdtempSync(join(tmpdir(), 'high-signal-reader-bundle-'));
   execFileSync('pnpm', ['exec', 'wrangler', 'deploy', '--dry-run', '--outdir', directory], {
     cwd: webRoot,
@@ -36,6 +40,7 @@ export async function createReaderRuntime(webRoot = WEB_ROOT, storage = undefine
       modulesRoot: directory,
       compatibilityDate: '2024-09-23',
       compatibilityFlags: ['nodejs_compat'],
+      ...(inspectorPort === undefined ? {} : { inspectorPort }),
       assets: {
         directory: resolve(webRoot, '.open-next/assets'),
         binding: 'ASSETS',
@@ -53,10 +58,12 @@ export async function createReaderRuntime(webRoot = WEB_ROOT, storage = undefine
       // Known artifact profiles and published brief checks use real compiled bytes.
       serviceBindings: {
         WORKER_SELF_REFERENCE: kCurrentWorker,
-        API: async (request) =>
-          new Response('unavailable', {
-            status: new URL(request.url).pathname.startsWith('/case-studies/') ? 404 : 503,
-          }),
+        API:
+          api ??
+          (async (request) =>
+            new Response('unavailable', {
+              status: new URL(request.url).pathname.startsWith('/case-studies/') ? 404 : 503,
+            })),
       },
       outboundService: () =>
         new Response('External services disabled in runtime checks', { status: 503 }),
