@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import type { Metadata } from 'next';
 import { ShareBar } from '@/components/molecules/ShareBar';
 import { PromoteButton } from '@/components/unmapped/PromoteButton';
 import { promoteIdleLabel } from '@/components/unmapped/promote-copy';
@@ -95,6 +96,16 @@ async function recordSourceDocument(path: string) {
   }
 }
 
+function sourceTitle(title: Metadata['title']) {
+  return typeof title === 'string'
+    ? title
+    : title && 'absolute' in title
+      ? title.absolute
+      : title && 'default' in title
+        ? title.default
+        : SITE_NAME;
+}
+
 export async function publicSourceDocument(path: string) {
   if (/^\/data\/records\/[^/]+$/.test(path)) return recordSourceDocument(path);
   const selected = await publicSourcePage(path);
@@ -111,15 +122,7 @@ export async function publicSourceDocument(path: string) {
   const canonical = new URL(canonicalValue ?? path, SITE_URL).href;
   if (new URL(canonical).origin !== SITE_URL)
     throw new Error('Public source canonical must belong to this site');
-  const titleValue = metadata.title;
-  const title =
-    typeof titleValue === 'string'
-      ? titleValue
-      : titleValue && 'absolute' in titleValue
-        ? titleValue.absolute
-        : titleValue && 'default' in titleValue
-          ? titleValue.default
-          : SITE_NAME;
+  const title = sourceTitle(metadata.title);
   const description = metadata.description ?? SITE_DESCRIPTION;
   const options = sourceOptions(canonical);
   const body = await publicSourceTree(await page.default(props), options);
