@@ -82,19 +82,21 @@ function sourceOptions(canonical: string): SourceTreeOptions {
   return options;
 }
 
-export async function publicSourceDocument(path: string) {
-  if (/^\/data\/records\/[^/]+$/.test(path)) {
-    const id = path.split('/').at(-1)!;
-    try {
-      return await publicRecordDocument(
-        `/data/records/${encodeURIComponent(id)}`,
-        await api.dataRecord(id)
-      );
-    } catch (error) {
-      if (error instanceof ApiError && error.status === 404) return null;
-      throw error;
-    }
+async function recordSourceDocument(path: string) {
+  const id = path.split('/').at(-1)!;
+  try {
+    return await publicRecordDocument(
+      `/data/records/${encodeURIComponent(id)}`,
+      await api.dataRecord(id)
+    );
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) return null;
+    throw error;
   }
+}
+
+export async function publicSourceDocument(path: string) {
+  if (/^\/data\/records\/[^/]+$/.test(path)) return recordSourceDocument(path);
   const selected = await publicSourcePage(path);
   if (!selected) return null;
   const { page, props } = selected;

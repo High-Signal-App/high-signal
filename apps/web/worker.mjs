@@ -2,6 +2,7 @@ import { isSourceDiscovery } from './source-discovery.mjs';
 import { qualifyPublicSitemap } from './public-sitemap.mjs';
 import { handlePublicDocs } from './public-docs-edge.mjs';
 import { READER_BUILD } from './.open-next/reader-build.mjs';
+import { CACHE_BUILD_ID } from './.open-next/cache-build-id.mjs';
 import { serveReaderArtifact } from './reader-artifacts.mjs';
 import { guardPublicRequest } from './abuse-guard.mjs';
 import { handleAgentEdge, resolvePublicMarkdownTarget } from './agent-edge.mjs';
@@ -42,7 +43,7 @@ const serve = withTiming(async (request, env, ctx, state) => {
   if (agent) return agent;
   const record = await handlePublicRecordMarkdown(request, env, ctx, {
     cache: caches.default,
-    cacheBuildId: READER_BUILD.source,
+    cacheBuildId: CACHE_BUILD_ID,
   });
   if (record) return record;
   if (isSourceDiscovery(request) || resolvePublicMarkdownTarget(request)) {
