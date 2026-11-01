@@ -1,6 +1,18 @@
 # high-signal — PROJECT STATUS
 
-Last updated: 2026-10-29
+Last updated: 2026-11-01
+
+November 1 record Markdown CPU correction — implementation:
+
+Public record Markdown uses one sanitized API read and a framework-free document
+projection before the legacy Worker loads. Other public page modules load only
+when selected. Record content, provenance, encoded canonical IDs, per-build cache
+invalidation, authored HTML, protected history and brief freshness are preserved.
+Compiled Worker replay, authored-page parity and persisted-cache restart checks
+pass. Local wall-time improvement is not a billed-CPU result. Release evidence is
+tracked in [PR #313](https://github.com/High-Signal-App/high-signal/pull/313);
+production cost and population acceptance remain separate in
+[issue #238](https://github.com/High-Signal-App/high-signal/issues/238).
 
 October 29 equity ownership and valuation foundation — merged; broader valuation
 qualification remains open. Release verification is recorded in
