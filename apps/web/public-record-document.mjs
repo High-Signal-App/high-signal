@@ -39,7 +39,7 @@ export async function publicRecordDocument(path, record) {
   const id = publicRecordId(path);
   if (!id) throw new Error('Invalid public record path');
   validateRecord(record, id);
-  const publicPath = `/data/records/${id}`;
+  const publicPath = `/data/records/${encodeURIComponent(id)}`;
   const canonical = new URL(publicPath, SITE_URL).href;
   const title = record.title ? `${record.title} — retained record` : `Retained record ${id}`;
   const description = `Retained ${record.family} record from ${record.source}.`;

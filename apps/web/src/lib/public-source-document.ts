@@ -19,7 +19,7 @@ import { MarkdownView } from '@/components/system/MarkdownView';
 import { publicSourcePage } from './public-source-pages';
 import { publicSourceTree, type SourceTreeOptions } from './public-source-tree';
 import { SITE_URL, SITE_NAME, SITE_DESCRIPTION } from './site';
-import { publicRecordDocument, publicRecordId } from '../../public-record-document.mjs';
+import { publicRecordDocument } from '../../public-record-document.mjs';
 
 async function eligiblePublicPage(
   path: string,
@@ -84,10 +84,12 @@ function sourceOptions(canonical: string): SourceTreeOptions {
 
 export async function publicSourceDocument(path: string) {
   if (/^\/data\/records\/[^/]+$/.test(path)) {
-    const id = publicRecordId(path);
-    if (!id) return null;
+    const id = path.split('/').at(-1)!;
     try {
-      return await publicRecordDocument(path, await api.dataRecord(id));
+      return await publicRecordDocument(
+        `/data/records/${encodeURIComponent(id)}`,
+        await api.dataRecord(id)
+      );
     } catch (error) {
       if (error instanceof ApiError && error.status === 404) return null;
       throw error;

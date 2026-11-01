@@ -131,6 +131,27 @@ test('new IDs stay one-read misses while canonical aliases reuse completed conte
   assert.ok((await alias.text()).includes('Retained evidence record-0000'));
 });
 
+test('encoded record IDs are decoded once and retain an encoded canonical URL', async () => {
+  for (const id of ['literal%2F', 'literal%', 'space here', 'name:part']) {
+    const calls = [];
+    const state = context();
+    const response = await handlePublicRecordMarkdown(
+      request(`/data/records/${encodeURIComponent(id)}.md`),
+      { API: { fetch: recordFixtureApi(calls) } },
+      state.ctx,
+      state.options
+    );
+    assert.equal(response.status, 200, id);
+    assert.equal(calls.length, 1);
+    assert.equal(
+      response.headers.get('content-location'),
+      `https://highsignal.app/data/records/${encodeURIComponent(id)}`
+    );
+    assert.ok((await response.text()).includes(`Retained evidence ${id}`));
+    await Promise.all(state.pending);
+  }
+});
+
 test('missing and unavailable records preserve their errors and never enter response cache', async () => {
   for (const [api, expected] of [
     [async () => Response.json({ error: 'not_found' }, { status: 404 }), 404],
