@@ -9,6 +9,12 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const wranglerConfig = readFileSync(resolve(root, 'apps/web/wrangler.toml'), 'utf8');
 const workerSource = readFileSync(resolve(root, 'apps/web/legacy-worker.mjs'), 'utf8');
 const readerWorker = readFileSync(resolve(root, 'apps/web/worker.mjs'), 'utf8');
+assert.match(readerWorker, /import \{ CACHE_BUILD_ID \} from '\.\/\.open-next\/cache-build-id\.mjs'/);
+assert.match(
+  readerWorker,
+  /handlePublicRecordMarkdown\(request, env, ctx, \{\s*cache: caches\.default,\s*cacheBuildId: CACHE_BUILD_ID,/,
+  'Record Markdown must use the per-build cache namespace'
+);
 assert.match(
   readerWorker,
   /await import\('\.\/legacy-worker\.mjs'\)/,
