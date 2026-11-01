@@ -8,8 +8,54 @@ import { fileURLToPath } from 'node:url';
 import { publicRecordDocument } from '../apps/web/public-record-document.mjs';
 import { handlePublicRecordMarkdown } from '../apps/web/public-record-markdown.mjs';
 import { recordFixture, recordFixtureApi } from '../apps/web/scripts/public-record-fixture.mjs';
+import { publicSourceTree } from '../apps/web/src/lib/public-source-tree.ts';
+import { absoluteMarkdownLinks } from '../apps/web/agent-surfaces/format.mjs';
+import * as site from '../apps/web/src/lib/site.ts';
+import * as routes from '../apps/web/public-route-registry.mjs';
+import * as http from '../apps/web/agent-surfaces/http.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const webRequire = createRequire(resolve(root, 'apps/web/package.json'));
+const ts = webRequire('typescript');
+function authoredModule(path, imports) {
+  const compiled = ts.transpileModule(readFileSync(resolve(root, path), 'utf8'), {
+    compilerOptions: {
+      module: ts.ModuleKind.CommonJS,
+      jsx: ts.JsxEmit.ReactJSX,
+      esModuleInterop: true,
+    },
+  });
+  const exports = {};
+  new Function('require', 'exports', compiled.outputText)((name) => {
+    assert.ok(Object.hasOwn(imports, name), `Unexpected authored page import: ${name}`);
+    return imports[name];
+  }, exports);
+  return exports;
+}
+function nativeImports(source, filename) {
+  const dependencies = [];
+  const parsed = ts.createSourceFile(filename, source, ts.ScriptTarget.Latest, true);
+  function visit(node) {
+    assert.ok(
+      !ts.isCallExpression(node) || node.expression.kind !== ts.SyntaxKind.ImportKeyword,
+      'Native record path must not dynamically load code'
+    );
+    if (
+      (ts.isImportDeclaration(node) && !node.importClause?.isTypeOnly) ||
+      (ts.isExportDeclaration(node) && node.moduleSpecifier && !node.isTypeOnly)
+    ) {
+      const dependency = node.moduleSpecifier.text;
+      assert.ok(
+        dependency.startsWith('.'),
+        `Native record path must not load runtime package ${dependency}`
+      );
+      dependencies.push(resolve(dirname(filename), dependency));
+    }
+    ts.forEachChild(node, visit);
+  }
+  visit(parsed);
+  return dependencies;
+}
 const request = (path, options) => new Request(`https://highsignal.app${path}`, options);
 function context() {
   const pending = [];
@@ -53,6 +99,53 @@ test('record projection preserves the compiled baseline and provenance disclosur
     });
     assert.ok(projected.markdown.includes(expected), expected);
     assert.ok(!projected.markdown.includes(absent), absent);
+  }
+});
+
+test('native Markdown follows the actual authored page content and metadata', async () => {
+  const Link = Symbol('authored-next-link');
+  const metadata = authoredModule('apps/web/src/lib/agent-page-metadata.ts', {
+    './site': site,
+    '../../public-route-registry.mjs': routes,
+    '../../agent-surfaces/http.mjs': http,
+  });
+  for (const fields of [
+    {},
+    { publishedAt: 0, ingestedAt: 0 },
+    { publishedAt: null, ingestedAt: null },
+    { retainedText: null, retainedTextTruncated: false },
+    { retainedText: null, retainedTextUnavailableReason: 'legacy_shared_document_mismatch' },
+    { content: null, title: null, entity: null },
+    { title: 'A [title] & evidence', content: 'Text with <tags>, [links] and `code`.' },
+    { url: 'javascript:alert(1)', canonicalUrl: null },
+  ]) {
+    const id = 'record-0000';
+    const record = { ...recordFixture(id), ...fields };
+    const page = authoredModule('apps/web/src/app/data/records/[id]/page.tsx', {
+      '@/lib/agent-page-metadata': metadata,
+      'react/jsx-runtime': webRequire('react/jsx-runtime'),
+      'next/link': { __esModule: true, default: Link },
+      '@/lib/api': { api: { dataRecord: async () => record } },
+    });
+    const props = { params: Promise.resolve({ id }) };
+    const declared = await page.generateMetadata(props);
+    const canonical = declared.alternates.canonical;
+    const body = await publicSourceTree(await page.default(props), {
+      canonical,
+      adapters: new Map([
+        [
+          Link,
+          async (values) =>
+            `[${(await publicSourceTree(values.children, { canonical })).trim()}](${new URL(values.href, canonical).href})`,
+        ],
+      ]),
+    });
+    const expected = absoluteMarkdownLinks(
+      `# ${declared.title}\n\n> ${declared.description}\n\nCanonical: ${canonical}\n\n${body.replace(/^# [^\n]*\n/m, '').trim()}\n`,
+      canonical
+    );
+    const actual = await publicRecordDocument(`/data/records/${id}`, record);
+    assert.equal(actual.markdown, expected, JSON.stringify(fields));
   }
 });
 
@@ -228,29 +321,27 @@ test('HEAD, OPTIONS, invalid IDs and unrelated routes retain their HTTP boundari
 });
 
 test('the native import graph excludes Next, React runtime and the public page registry', () => {
-  const ts = createRequire(resolve(root, 'apps/web/package.json'))('typescript');
   const visited = new Set();
   function visit(path) {
     if (visited.has(path)) return;
     visited.add(path);
-    const source = ts.createSourceFile(
-      path,
-      readFileSync(path, 'utf8'),
-      ts.ScriptTarget.Latest,
-      true
-    );
-    for (const node of source.statements) {
-      if (!ts.isImportDeclaration(node) || node.importClause?.isTypeOnly) continue;
-      const dependency = node.moduleSpecifier.text;
-      assert.ok(
-        dependency.startsWith('.'),
-        `Native record path must not load runtime package ${dependency}`
-      );
-      const next = resolve(dirname(path), dependency);
+    for (const next of nativeImports(readFileSync(path, 'utf8'), path)) {
       assert.doesNotMatch(next, /public-source-pages|legacy-worker|case-studies|company-universe/);
       visit(next);
     }
   }
   visit(resolve(root, 'apps/web/public-record-markdown.mjs'));
   assert.ok(visited.size > 3, 'the dependency graph check must traverse the actual handler');
+  assert.throws(
+    () => nativeImports("export * from 'next/server';", 'fixture.mjs'),
+    /runtime package/
+  );
+  assert.throws(
+    () =>
+      nativeImports(
+        "async function load() { return import('./legacy-worker.mjs'); }",
+        'fixture.mjs'
+      ),
+    /dynamically load/
+  );
 });
