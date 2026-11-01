@@ -6,7 +6,7 @@ const SourceLink = Symbol('public-record-link');
 const element = (type, children, props = {}) => ({ type, props: { ...props, children } });
 const link = (href, children) => element(SourceLink, children, { href });
 const formatDate = (value) =>
-  value === null ? '—' : new Date(value * 1000).toISOString().replace('T', ' ').slice(0, 16);
+  !value ? '—' : new Date(value * 1000).toISOString().replace('T', ' ').slice(0, 16);
 
 export function publicRecordId(path) {
   const match = path.match(/^\/data\/records\/([^/]+)$/);
@@ -34,7 +34,7 @@ function validateRecord(record, id) {
     throw new Error('Invalid public record truncation');
 }
 
-/** Same authored record content, without importing page modules or the Next runtime. */
+/** Framework-free projection checked against the authored page by the parity test. */
 export async function publicRecordDocument(path, record) {
   const id = publicRecordId(path);
   if (!id) throw new Error('Invalid public record path');
