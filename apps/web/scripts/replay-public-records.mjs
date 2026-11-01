@@ -66,6 +66,13 @@ for (let sample = 0; sample < samples; sample++) {
   const mf = await createReaderRuntime(WEB_ROOT, undefined, {
     api: recordFixtureApi(calls),
     ...(process.argv.includes('--profile') ? { inspectorPort: 0 } : {}),
+    ...(process.argv.includes('--reuse-bundle-manifest')
+      ? { reuseBundleManifest: argument('--reuse-bundle-manifest') }
+      : process.argv.includes('--bundle-manifest')
+        ? sample === 0
+          ? { bundleManifest: argument('--bundle-manifest') }
+          : { reuseBundleManifest: argument('--bundle-manifest') }
+        : {}),
   });
   const wall = [];
   const handlerWall = [];
@@ -140,6 +147,19 @@ for (let sample = 0; sample < samples; sample++) {
 }
 const report = {
   source: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
+  bundle:
+    process.argv.includes('--reuse-bundle-manifest') || process.argv.includes('--bundle-manifest')
+      ? JSON.parse(
+          readFileSync(
+            argument(
+              process.argv.includes('--reuse-bundle-manifest')
+                ? '--reuse-bundle-manifest'
+                : '--bundle-manifest'
+            ),
+            'utf8'
+          )
+        )
+      : null,
   workload:
     'compiled workerd, isolated empty cache per sample, distinct public record IDs, fixed bounded API responses',
   cpuMeasured: false,

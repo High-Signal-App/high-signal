@@ -1,5 +1,6 @@
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, readdirSync, readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -11,23 +12,46 @@ export const WEB_ROOT = fileURLToPath(new URL('..', import.meta.url));
 export async function createReaderRuntime(
   webRoot = WEB_ROOT,
   storage = undefined,
-  { api, inspectorPort } = {}
+  { api, inspectorPort, bundleManifest, reuseBundleManifest } = {}
 ) {
-  const directory = mkdtempSync(join(tmpdir(), 'high-signal-reader-bundle-'));
-  execFileSync('pnpm', ['exec', 'wrangler', 'deploy', '--dry-run', '--outdir', directory], {
-    cwd: webRoot,
-    env: { ...process.env, OPEN_NEXT_DEPLOY: 'true' },
-    stdio: 'pipe',
-  });
+  let manifest;
+  const digest = (path) => createHash('sha256').update(readFileSync(path)).digest('hex');
+  if (reuseBundleManifest) {
+    manifest = JSON.parse(readFileSync(reuseBundleManifest, 'utf8'));
+    if (manifest.schema !== 1) throw new Error('Unsupported replay bundle manifest');
+    for (const [name, hash] of Object.entries(manifest.hashes))
+      if (digest(join(manifest.directory, name)) !== hash)
+        throw new Error(`Replay bundle changed: ${name}`);
+  } else {
+    const directory = mkdtempSync(join(tmpdir(), 'high-signal-reader-bundle-'));
+    execFileSync('pnpm', ['exec', 'wrangler', 'deploy', '--dry-run', '--outdir', directory], {
+      cwd: webRoot,
+      env: { ...process.env, OPEN_NEXT_DEPLOY: 'true' },
+      stdio: 'pipe',
+    });
+    const files = [
+      'worker.js',
+      ...readdirSync(directory).filter((name) => /\.(wasm|bin)$/.test(name)),
+    ];
+    manifest = {
+      schema: 1,
+      source: execFileSync('git', ['rev-parse', 'HEAD'], { cwd: webRoot, encoding: 'utf8' }).trim(),
+      directory,
+      files,
+      hashes: Object.fromEntries(files.map((name) => [name, digest(join(directory, name))])),
+      assetsDirectory: resolve(webRoot, '.open-next/assets'),
+      assetsNote:
+        'Assets remain in the build checkout. Record replay URLs have no static artifact and use only the fixed API fixture.',
+    };
+    if (bundleManifest) writeFileSync(bundleManifest, JSON.stringify(manifest, null, 2) + '\n');
+  }
+  const directory = manifest.directory;
   const require = createRequire(resolve(webRoot, 'package.json'));
   const { Miniflare, convertV4MiniflareOptions, kCurrentWorker } = createRequire(
     require.resolve('wrangler')
   )('miniflare');
   // The entry must precede binary modules in Miniflare's module manifest.
-  const files = [
-    'worker.js',
-    ...readdirSync(directory).filter((name) => /\.(wasm|bin)$/.test(name)),
-  ];
+  const files = manifest.files;
   const modules = files.map((name) => ({
     type: name.endsWith('.wasm') ? 'CompiledWasm' : name.endsWith('.bin') ? 'Data' : 'ESModule',
     path: join(directory, name),
@@ -42,7 +66,7 @@ export async function createReaderRuntime(
       compatibilityFlags: ['nodejs_compat'],
       ...(inspectorPort === undefined ? {} : { inspectorPort }),
       assets: {
-        directory: resolve(webRoot, '.open-next/assets'),
+        directory: manifest.assetsDirectory,
         binding: 'ASSETS',
         run_worker_first: ['/*', '!/_astro/*', '!/_next/static/*', '!/favicon.svg'],
         routerConfig: { has_user_worker: true },
