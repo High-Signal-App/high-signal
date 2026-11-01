@@ -9,6 +9,7 @@ import { observeWebRequest } from './app-health.mjs';
 import { createCacheSummary } from './cache-summary.mjs';
 import { withTiming } from './timing.mjs';
 import { isCacheableDocumentRequest } from './worker-cache-policy.mjs';
+import { handlePublicRecordMarkdown } from './public-record-markdown.mjs';
 
 // Export the existing resources without loading Next's routing/rendering modules.
 export { DOQueueHandler } from './.open-next/.build/durable-objects/queue.js';
@@ -39,6 +40,11 @@ const serve = withTiming(async (request, env, ctx, state) => {
   if (docs) return docs;
   const agent = handleAgentEdge(request);
   if (agent) return agent;
+  const record = await handlePublicRecordMarkdown(request, env, ctx, {
+    cache: caches.default,
+    cacheBuildId: READER_BUILD.source,
+  });
+  if (record) return record;
   if (isSourceDiscovery(request) || resolvePublicMarkdownTarget(request)) {
     const { default: legacy } = await import('./legacy-worker.mjs');
     state.delegated = true;

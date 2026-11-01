@@ -19,10 +19,11 @@ import { MarkdownView } from '@/components/system/MarkdownView';
 import { publicSourcePage } from './public-source-pages';
 import { publicSourceTree, type SourceTreeOptions } from './public-source-tree';
 import { SITE_URL, SITE_NAME, SITE_DESCRIPTION } from './site';
+import { publicRecordDocument, publicRecordId } from '../../public-record-document.mjs';
 
 async function eligiblePublicPage(
   path: string,
-  page: NonNullable<ReturnType<typeof publicSourcePage>>['page']
+  page: NonNullable<Awaited<ReturnType<typeof publicSourcePage>>>['page']
 ) {
   if (path.startsWith('/embed/')) {
     try {
@@ -33,15 +34,7 @@ async function eligiblePublicPage(
       throw error;
     }
   }
-  if (/^\/data\/records\/[^/]+$/.test(path)) {
-    try {
-      const record = await api.dataRecord(path.split('/').at(-1)!);
-      if (!record.available) throw new Error('Public record unavailable');
-    } catch (error) {
-      if (error instanceof ApiError && error.status === 404) return false;
-      throw error;
-    }
-  } else if (/^\/data\/[^/]+$/.test(path) && page.generateStaticParams) {
+  if (/^\/data\/[^/]+$/.test(path) && page.generateStaticParams) {
     const source = path.split('/').at(-1)!;
     if (!page.generateStaticParams().some((params) => params['source'] === source)) {
       const sources = await api.dataSources();
@@ -90,7 +83,17 @@ function sourceOptions(canonical: string): SourceTreeOptions {
 }
 
 export async function publicSourceDocument(path: string) {
-  const selected = publicSourcePage(path);
+  if (/^\/data\/records\/[^/]+$/.test(path)) {
+    const id = publicRecordId(path);
+    if (!id) return null;
+    try {
+      return await publicRecordDocument(path, await api.dataRecord(id));
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 404) return null;
+      throw error;
+    }
+  }
+  const selected = await publicSourcePage(path);
   if (!selected) return null;
   const { page, props } = selected;
   if (!(await eligiblePublicPage(path, page))) return null;

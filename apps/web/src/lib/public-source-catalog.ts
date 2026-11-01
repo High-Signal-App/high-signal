@@ -65,7 +65,7 @@ async function initialRoutes() {
   const sources = await api.dataSources();
   if (!sources.available) throw new Error('Public source catalog unavailable');
   for (const source of sources.sources) {
-    const selected = publicSourcePage(`/data/${source.id}`);
+    const selected = await publicSourcePage(`/data/${source.id}`);
     if (!selected) continue;
     const metadata = await selected.page.generateMetadata!(selected.props);
     routes.push(
@@ -127,7 +127,7 @@ async function liveCompanyRoutes(cursor: Cursor) {
     examined++;
     if (known.has(company.slug)) continue;
     const path = `/case-studies/${company.slug}`;
-    const selected = publicSourcePage(path)!;
+    const selected = (await publicSourcePage(path))!;
     const metadata = await selected.page.generateMetadata!(selected.props);
     fetched++;
     if (isIndexableMetadata(metadata))
@@ -159,7 +159,7 @@ async function entityRoutes(cursor: Cursor) {
       `/entities/${entity.id}`,
       ...(entity.ticker ? [`/markets/${entity.ticker}`] : []),
     ]) {
-      const selected = publicSourcePage(path)!;
+      const selected = (await publicSourcePage(path))!;
       const metadata = await selected.page.generateMetadata!(selected.props);
       if (metadata.robots && typeof metadata.robots === 'object' && metadata.robots.index === false)
         continue;
@@ -238,7 +238,7 @@ async function liveRoutes() {
       dates.map((day) => `/brief/${day.date}`)
     );
   for (const path of candidates) {
-    const selected = publicSourcePage(path)!;
+    const selected = (await publicSourcePage(path))!;
     const metadata = await selected.page.generateMetadata!(selected.props);
     if (metadata.robots && typeof metadata.robots === 'object' && metadata.robots.index === false)
       continue;
