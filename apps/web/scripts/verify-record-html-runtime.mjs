@@ -33,6 +33,9 @@ const cases = {
   },
   leading: { retainedText: '\nFirst retained line\nSecond retained line' },
   retainedUnsafe: { retainedText: '<script>alert(1)</script>\n&copy; &lt;' },
+  sameSource: { source: 'fixture' },
+  nullTitle: { title: null, content: null, entity: null, documentFetchedAt: null },
+  emptyTitle: { title: '' },
   wrong: { id: 'sibling-record' },
 };
 const mf = await createReaderRuntime(undefined, undefined, {
@@ -106,7 +109,7 @@ try {
     { ...recordFixture('entities'), ...cases.entities },
     'entities'
   );
-  for (const id of ['leading', 'retainedUnsafe']) {
+  for (const id of ['leading', 'retainedUnsafe', 'sameSource', 'nullTitle', 'emptyTitle']) {
     const result = await read(id);
     assertRecordHtmlContract(result.body, { ...recordFixture(id), ...cases[id] }, id);
   }

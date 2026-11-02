@@ -169,7 +169,11 @@ function rewriteRecord(shell, selected, state, record, headers) {
       element: (element) => {
         const value = fields[element.getAttribute('data-record-text')];
         if (value === null || value === undefined) element.remove();
-        else element.setInnerContent(value); // Text is escaped by HTMLRewriter.
+        else {
+          // Match React's pre serializer: HTML parsers discard the first leading LF.
+          const text = element.tagName === 'pre' && value.startsWith('\n') ? `\n${value}` : value;
+          element.setInnerContent(text); // Text is escaped by HTMLRewriter.
+        }
       },
     })
     .on('[data-record-link]', {
