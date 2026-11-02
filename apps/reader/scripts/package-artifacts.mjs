@@ -20,6 +20,18 @@ const briefs = [];
 for (const file of files.filter((name) => name.endsWith('.html'))) {
   const path = relative(resolve(dist, 'reader-artifacts'), file).replaceAll('\\', '/');
   const html = readFileSync(file, 'utf8');
+  if (path === 'record-shell.html') {
+    if (
+      !html.includes('data-record-reader="v1"') ||
+      !['available', 'missing', 'unavailable'].every((state) =>
+        html.includes(`data-record-state="${state}"`)
+      )
+    )
+      throw new Error('Incomplete compiled record shell');
+    if (html.length > 262_144) throw new Error('Record shell exceeds the bounded template budget');
+    writeFileSync(file.replace(/\.html$/, '.reader'), html);
+    continue;
+  }
   const profile = path.match(/^profiles\/([^/]+)\.reader\.html$/);
   const brief = path.match(/^brief\/(today|yesterday)\/([^/]+)\.html$/);
   if (!profile && !brief) throw new Error(`Unexpected reader output: ${path}`);

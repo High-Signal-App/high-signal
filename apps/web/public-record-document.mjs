@@ -1,12 +1,15 @@
 import { absoluteMarkdownLinks } from './agent-surfaces/format.mjs';
 import { publicSourceTree } from './src/lib/public-source-tree.ts';
 import { SITE_URL } from './src/lib/site.ts';
+import {
+  recordDateTime,
+  recordMetadata,
+  retainedTextExplanation,
+} from './src/lib/retained-record.ts';
 
 const SourceLink = Symbol('public-record-link');
 const element = (type, children, props = {}) => ({ type, props: { ...props, children } });
 const link = (href, children) => element(SourceLink, children, { href });
-const formatDate = (value) =>
-  !value ? '—' : new Date(value * 1000).toISOString().replace('T', ' ').slice(0, 16);
 
 export function publicRecordId(path) {
   const match = path.match(/^\/data\/records\/([^/]+)$/);
@@ -19,7 +22,7 @@ export function publicRecordId(path) {
   }
 }
 
-function validateRecord(record, id) {
+export function validateRecord(record, id) {
   if (!record || record.available !== true || record.id !== id)
     throw new Error('Public record unavailable');
   for (const key of ['source', 'family', 'url'])
@@ -41,8 +44,7 @@ export async function publicRecordDocument(path, record) {
   validateRecord(record, id);
   const publicPath = `/data/records/${encodeURIComponent(id)}`;
   const canonical = new URL(publicPath, SITE_URL).href;
-  const title = record.title ? `${record.title} — retained record` : `Retained record ${id}`;
-  const description = `Retained ${record.family} record from ${record.source}.`;
+  const { title, description } = recordMetadata(record, id);
   const header = element('header', [
     element('h1', record.title ?? record.url),
     element('div', [
@@ -52,8 +54,8 @@ export async function publicRecordDocument(path, record) {
         link(`/data/${encodeURIComponent(record.family)}`, record.family),
         record.source !== record.family && element('span', [' (', record.source, ')']),
       ]),
-      element('span', ['published ', formatDate(record.publishedAt)]),
-      element('span', ['ingested ', formatDate(record.ingestedAt)]),
+      element('span', ['published ', recordDateTime(record.publishedAt)]),
+      element('span', ['ingested ', recordDateTime(record.ingestedAt)]),
     ]),
     element('div', [
       record.entity &&
@@ -69,16 +71,11 @@ export async function publicRecordDocument(path, record) {
       element('h2', ['retained text', record.retainedTextTruncated ? ' (truncated)' : '']),
       record.retainedText
         ? element('pre', record.retainedText)
-        : element(
-            'p',
-            record.retainedTextUnavailableReason === 'legacy_shared_document_mismatch'
-              ? 'The historical document was shared with another weather alert and cannot be attributed to this record. The original extract is preserved above; the exact alert link was not retained.'
-              : 'No document body was retained for this record — only its metadata was stored.'
-          ),
+        : element('p', retainedTextExplanation(record.retainedTextUnavailableReason)),
       record.documentFetchedAt
         ? element('p', [
             'document fetched ',
-            formatDate(record.documentFetchedAt),
+            recordDateTime(record.documentFetchedAt),
             record.canonicalUrl && record.canonicalUrl !== record.url
               ? ` · canonical ${record.canonicalUrl}`
               : '',

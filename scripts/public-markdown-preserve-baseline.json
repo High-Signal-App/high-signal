@@ -43,7 +43,7 @@
     "apps/web/src/app/changelog/page.tsx": "b0e8797aab9d0a8109c642d9d9fc1107b2dfadc0ff01075cab001b48e9f4213a",
     "apps/web/src/app/privacy/page.tsx": "ab78edc4cbdd0e93bb16c203dc9c00842784b7df379a742736655f865400d41a",
     "apps/web/src/app/terms/page.tsx": "8d0f634f9e8997f978487f3265da5e39b8741e900e3c579647cd3cf987698b22",
-    "apps/web/src/app/data/records/[id]/page.tsx": "3292b5de451cf12e7383b4f140a45a24cd3fd087a654d4bf005cdd62b7f3f2e1",
+    "apps/web/src/app/data/records/[id]/page.tsx": "019c3b41e0c704d00690583064f333db0d1b1b2c50567868ebf40c4af14460af",
     "apps/web/src/app/embed/[slug]/page.tsx": "5fe6779c76fd0140ebf068119f4c7f08a85b472b31e44edd4e887f7e8fd0049c",
     "apps/web/src/app/data/[source]/page.tsx": "9c8fdc446ea9060e37c22cc2c103bcd0fc0f0b6a74e75e3058b859744ead79e1",
     "apps/web/src/app/brief/[date]/page.tsx": "d11de9f092099bdcc302545302dbf2b7a0b8ed16d620eb0d890ab77a7ab1570c",
@@ -54,6 +54,11 @@
     "apps/web/src/app/entities/[id]/page.tsx": "19490dd1184593c1bb530e1ae5f17b80abb93d5b4a7171160f348c199b33d2d6",
     "apps/web/src/app/case-studies/page/[page]/page.tsx": "67d2832abae4d3d75f1b52d96c60991feb9c8b8288f38aa9d7e7abe91215ec54",
     "apps/web/src/app/case-studies/[slug]/page.tsx": "05f7800f3921fe854db88fbef3578f1203025e083438f946bf7fae6b5798eee5",
-    "apps/reader/src/layouts/ReaderLayout.astro": "0ce42244356134faa00f76175434cedc863fe6b71c7f2bc19a4d8b1b7548e8eb"
+    "apps/reader/src/layouts/ReaderLayout.astro": "0ce42244356134faa00f76175434cedc863fe6b71c7f2bc19a4d8b1b7548e8eb",
+    "apps/web/src/components/data/RecordContent.tsx": "1f9b6af50021206ac6dfbd564b564c3f2b11a23db1b76ecbb2834a1129b87a80"
+  },
+  "recordHtmlExtraction": {
+    "source": "71dc3eeeec01845a1d4516adecca34e339066ef4",
+    "scope": "Record page now delegates its unchanged visible body to the shared compiled-reader component. Other52page component baselines and the reader layout remain unchanged. Compiled HTML replay separately checks content, links, title and canonical against pre-change bytes."
   }
 }

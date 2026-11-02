@@ -58,6 +58,12 @@ for (const filename of files) {
     `Public HTML component behavior changed: ${filename}`
   );
 }
+const recordComponent = 'apps/web/src/components/data/RecordContent.tsx';
+assert.equal(
+  sha(readFileSync(recordComponent)),
+  hashes[recordComponent],
+  'Shared record reader markup must remain covered'
+);
 const layout = 'apps/reader/src/layouts/ReaderLayout.astro';
 assert.equal(sha(readFileSync(layout, 'utf8').match(/<body[\s\S]*<\/body>/)?.[0]), hashes[layout]);
 const copy = readFileSync('apps/web/src/components/history/history-gate-copy.ts', 'utf8');
@@ -69,5 +75,5 @@ for (const phrase of [
 ])
   assert.ok(copy.includes(phrase));
 console.log(
-  `HTML behavior preserved in ${files.length} page component bodies and reader layout; public history copy unchanged.`
+  `Current HTML contract covered in ${files.length} pages, the shared record component and reader layout; public history copy unchanged.`
 );

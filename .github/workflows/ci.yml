@@ -58,6 +58,8 @@ jobs:
           READER_BUILD_MODE=brief pnpm --filter @high-signal/reader build
       - name: Verify real reader runtime and protected fallbacks
         run: node apps/web/scripts/verify-reader-runtime.mjs apps/reader/dist
+      - name: Verify native record HTML runtime and cache isolation
+        run: node apps/web/scripts/verify-record-html-runtime.mjs
       - name: Verify fallback ISR survives runtime restart
         run: node apps/web/scripts/verify-company-profile-cache-restart.mjs
       - name: Build High Signal Storybook

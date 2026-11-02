@@ -13,6 +13,7 @@ import { absoluteMarkdownLinks } from '../apps/web/agent-surfaces/format.mjs';
 import * as site from '../apps/web/src/lib/site.ts';
 import * as routes from '../apps/web/public-route-registry.mjs';
 import * as http from '../apps/web/agent-surfaces/http.mjs';
+import * as recordView from '../apps/web/src/lib/retained-record.ts';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const webRequire = createRequire(resolve(root, 'apps/web/package.json'));
@@ -123,6 +124,14 @@ test('native Markdown follows the actual authored page content and metadata', as
     const record = { ...recordFixture(id), ...fields };
     const page = authoredModule('apps/web/src/app/data/records/[id]/page.tsx', {
       '@/lib/agent-page-metadata': metadata,
+      '@/lib/retained-record': recordView,
+      '@/components/data/RecordContent': authoredModule(
+        'apps/web/src/components/data/RecordContent.tsx',
+        {
+          'react/jsx-runtime': webRequire('react/jsx-runtime'),
+          '@/lib/retained-record': recordView,
+        }
+      ),
       'react/jsx-runtime': webRequire('react/jsx-runtime'),
       'next/link': { __esModule: true, default: Link },
       '@/lib/api': { api: { dataRecord: async () => record } },
@@ -331,6 +340,7 @@ test('the native import graph excludes Next, React runtime and the public page r
     }
   }
   visit(resolve(root, 'apps/web/public-record-markdown.mjs'));
+  visit(resolve(root, 'apps/web/public-record-html.mjs'));
   assert.ok(visited.size > 3, 'the dependency graph check must traverse the actual handler');
   assert.throws(
     () => nativeImports("export * from 'next/server';", 'fixture.mjs'),
@@ -344,4 +354,23 @@ test('the native import graph excludes Next, React runtime and the public page r
       ),
     /dynamically load/
   );
+});
+
+test('an Access JWT alone bypasses the public record Markdown cache', async () => {
+  const calls = [];
+  const state = context();
+  for (let repeat = 0; repeat < 2; repeat++) {
+    const response = await handlePublicRecordMarkdown(
+      request('/data/records/record-0000.md', { headers: { 'cf-access-jwt-assertion': 'test' } }),
+      { API: { fetch: recordFixtureApi(calls) } },
+      state.ctx,
+      state.options
+    );
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get('x-edge-cache'), null);
+  }
+  await Promise.all(state.pending);
+  assert.equal(calls.length, 2);
+  assert.equal(state.entries.size, 0);
+  assert.ok(calls.every((call) => !call.access));
 });
