@@ -27,7 +27,10 @@ export async function handlePublicRecordMarkdown(request, env, ctx, { cache, cac
     {
       cache,
       cacheBuildId,
-      cacheEnabled: !request.headers.has('authorization') && !hasAuthCookie(request),
+      cacheEnabled:
+        !request.headers.has('authorization') &&
+        !request.headers.has('cf-access-jwt-assertion') &&
+        !hasAuthCookie(request),
       waitUntil: (promise) => ctx.waitUntil(promise),
     }
   );

@@ -45,7 +45,7 @@
         "tailwindcss",
         "wrangler"
       ],
-      "ignoreBinaries": ["wrangler"]
+      "ignoreBinaries": ["wrangler", "python3"]
     },
     "apps/reader": {
       "entry": ["astro.config.mjs", "src/pages/**/*.astro", "scripts/*.{ts,mjs}"],

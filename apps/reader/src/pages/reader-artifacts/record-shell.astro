@@ -1,0 +1,12 @@
+---
+import ReaderLayout from '../../layouts/ReaderLayout.astro';
+import { RecordContent } from '@/components/data/RecordContent';
+import { recordFixture } from '@web-root/scripts/public-record-fixture.mjs';
+
+// Build-only sentinel fields. The private asset is never a public record page.
+// HTMLRewriter replaces or removes every marked field before serving it.
+const record = recordFixture('__record_template__');
+---
+<ReaderLayout title="Retained record" description="Retained High Signal record." pathname="/data/records/__record_template__">
+  <RecordContent record={record} template />
+</ReaderLayout>

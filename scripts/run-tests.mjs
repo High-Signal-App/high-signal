@@ -51,6 +51,7 @@ const NODE_SUITES = [
   ['public-discovery', 'scripts/public-discovery.test.mjs'],
   ['public-markdown-preserve', 'scripts/public-markdown-preserve.test.mjs'],
   ['public-record-markdown', 'scripts/public-record-markdown.test.mjs'],
+  ['public-record-html', 'scripts/public-record-html.test.mjs'],
   ['reader-publication', 'scripts/reader-publication.test.mjs'],
   ['worker-health-runtime', 'apps/web/scripts/worker-health-runtime.test.mjs'],
   ['cache-workload', 'scripts/cache-workload.test.mjs'],

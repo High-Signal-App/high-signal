@@ -19,6 +19,8 @@ jobs:
         working-directory: apps/web
         env:
           SKIP_NEXT_APP_BUILD: "false"
+      - name: Verify native record HTML runtime and cache isolation
+        run: node apps/web/scripts/verify-record-html-runtime.mjs
       - name: Verify persisted company-profile cache after Worker restart
         run: node apps/web/scripts/verify-company-profile-cache-restart.mjs
       # `opennextjs-cloudflare deploy` populates R2 through a temporary
