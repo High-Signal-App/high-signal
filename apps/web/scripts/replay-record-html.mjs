@@ -101,7 +101,10 @@ for (let sample = 0; sample < samples; sample++) {
       const timing = response.headers.get('server-timing')?.match(/dur=([\d.]+)/);
       assert.ok(timing, 'actual deployed handler must supply timing');
       handlerWall.push(Number(timing[1]));
-      const main = body.match(/<main\b[^>]*>([\s\S]*?)<\/main>/)?.[1];
+      // Next streams a loading <main> before the completed record. Compare the record itself.
+      const main = [...body.matchAll(/<main\b[^>]*>([\s\S]*?)<\/main>/g)]
+        .map((match) => match[1])
+        .find((content) => content.includes(`Retained evidence ${id}`));
       assert.ok(main, 'record HTML must include completed main content');
       const semantics = {
         text: main
