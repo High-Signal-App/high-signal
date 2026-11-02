@@ -48,9 +48,35 @@ async function recordState(env, id) {
   }
 }
 
+async function cachedResponse(cache, key) {
+  try {
+    return await cache?.match(key);
+  } catch {
+    return undefined;
+  }
+}
+
+function storeResponse(cache, key, response, ctx) {
+  if (cache)
+    ctx.waitUntil(
+      Promise.resolve()
+        .then(() => cache.put(key, response))
+        .catch(() => undefined)
+    );
+}
+
+// HTMLRewriter quotes attributes, but leaves ampersand character references intact.
+// Encode them before serialization so metadata and links retain their literal values.
+function setRecordAttribute(element, name, value) {
+  element.setAttribute(
+    name,
+    value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
+  );
+}
+
 async function recordShell(env, cache, ctx, origin, buildId) {
   const key = new Request(`${origin}/_private/reader-cache/${buildId}/record-shell`);
-  const cached = await cache?.match(key);
+  const cached = await cachedResponse(cache, key);
   const response =
     cached ?? (await env.ASSETS.fetch(new Request(`https://assets.local${SHELL_PATH}`)));
   if (response.status !== 200) return null;
@@ -58,13 +84,13 @@ async function recordShell(env, cache, ctx, origin, buildId) {
   // Fixed build output, never a live reader page or a fallback asset document.
   if (shell.length > 262_144 || !shell.includes('data-record-reader="v1"')) return null;
   if (!cached)
-    ctx.waitUntil(
-      cache?.put(
-        key,
-        new Response(shell, {
-          headers: { 'Cache-Control': 'public, max-age=86400' },
-        })
-      ) ?? Promise.resolve()
+    storeResponse(
+      cache,
+      key,
+      new Response(shell, {
+        headers: { 'Cache-Control': 'public, max-age=86400' },
+      }),
+      ctx
     );
   return shell;
 }
@@ -114,18 +140,20 @@ function rewriteRecord(shell, selected, state, record, headers) {
     .on(
       'meta[name="description"], meta[name="ai-summary"], meta[property="og:description"], meta[name="twitter:description"]',
       {
-        element: (element) => element.setAttribute('content', description),
+        element: (element) => setRecordAttribute(element, 'content', description),
       }
     )
     .on('meta[property="og:title"], meta[name="twitter:title"]', {
-      element: (element) => element.setAttribute('content', `${title} — ${SITE_NAME}`),
+      element: (element) => setRecordAttribute(element, 'content', `${title} — ${SITE_NAME}`),
     })
     .on('meta[property="og:url"]', {
-      element: (element) => element.setAttribute('content', canonical),
+      element: (element) => setRecordAttribute(element, 'content', canonical),
     })
-    .on('link[rel="canonical"]', { element: (element) => element.setAttribute('href', canonical) })
+    .on('link[rel="canonical"]', {
+      element: (element) => setRecordAttribute(element, 'href', canonical),
+    })
     .on('link[rel="alternate"][type="text/markdown"]', {
-      element: (element) => element.setAttribute('href', `${canonical}.md`),
+      element: (element) => setRecordAttribute(element, 'href', `${canonical}.md`),
     })
     .on('[data-record-state]', {
       element: (element) => {
@@ -147,7 +175,7 @@ function rewriteRecord(shell, selected, state, record, headers) {
     .on('[data-record-link]', {
       element: (element) => {
         const href = links[element.getAttribute('data-record-link')];
-        if (href) element.setAttribute('href', href);
+        if (href) setRecordAttribute(element, 'href', href);
         else element.removeAttribute('href');
       },
     })
@@ -164,7 +192,7 @@ export async function handlePublicRecordHtml(request, env, ctx, { cache, cacheBu
   const key = new Request(
     `${origin}/_private/reader-cache/${cacheBuildId}/record/${encodeURIComponent(selected.id)}`
   );
-  const cached = await cache?.match(key);
+  const cached = await cachedResponse(cache, key);
   if (cached) {
     const headers = new Headers(cached.headers);
     headers.set('x-edge-cache', 'HIT');
@@ -187,6 +215,6 @@ export async function handlePublicRecordHtml(request, env, ctx, { cache, cacheBu
   // Those states must never enter the public response cache.
   if (request.method === 'HEAD') return new Response(null, { headers });
   const response = rewriteRecord(shell, selected, state, record, headers);
-  if (state === 'available') ctx.waitUntil(cache?.put(key, response.clone()) ?? Promise.resolve());
+  if (state === 'available') storeResponse(cache, key, response.clone(), ctx);
   return response;
 }

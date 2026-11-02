@@ -121,3 +121,21 @@ test('a new build cannot reuse a previous record HTML cache entry', async () => 
     null
   );
 });
+
+test('cache lookup rejection preserves the existing renderer when the shell is unavailable', async () => {
+  const cache = {
+    match: async () => {
+      throw new Error('Cache unavailable');
+    },
+  };
+  const env = { ASSETS: { fetch: async () => new Response('missing', { status: 404 }) } };
+  assert.equal(
+    await handlePublicRecordHtml(
+      request('/data/records/record-0000'),
+      env,
+      {},
+      { cache, cacheBuildId: 'build' }
+    ),
+    null
+  );
+});

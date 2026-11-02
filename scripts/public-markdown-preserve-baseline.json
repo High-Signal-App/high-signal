@@ -59,6 +59,6 @@
   },
   "recordHtmlExtraction": {
     "source": "71dc3eeeec01845a1d4516adecca34e339066ef4",
-    "scope": "Record page now delegates its unchanged visible body to the shared compiled-reader component. Other52page component baselines and the reader layout remain unchanged. Compiled HTML replay separately checks content, links, title and canonical against pre-change bytes."
+    "scope": "Record page delegates its visible body to the shared compiled-reader component. Other52page component baselines and the reader layout remain unchanged. CI compares the rewriter with the actual shared component for fixture variants; pre-change compiled HTML replay is a separate local qualification."
   }
 }

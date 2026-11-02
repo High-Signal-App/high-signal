@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { createReaderRuntime } from './reader-runtime.mjs';
 import { recordFixture, recordFixtureApi } from './public-record-fixture.mjs';
+import { assertRecordHtmlContract } from './record-html-contract.mjs';
 
 const calls = [];
 const normalApi = recordFixtureApi(calls);
@@ -20,11 +21,18 @@ const cases = {
   },
   identical: { content: recordFixture('identical').retainedText },
   unsafe: {
-    title: '<script>alert(1)</script>',
+    title: '<script>alert(1)</script>" &lt; &amp; &copy;',
     content: '<img src=x onerror=alert(1)>',
     url: 'javascript:alert(1)',
     canonicalUrl: '<script>canonical</script>',
   },
+  entities: {
+    title: 'Literal &lt; and &#34; entities',
+    url: 'https://example.com/?left=1&copy;=literal&right=2',
+    source: 'fixture &lt; source',
+  },
+  leading: { retainedText: '\nFirst retained line\nSecond retained line' },
+  retainedUnsafe: { retainedText: '<script>alert(1)</script>\n&copy; &lt;' },
   wrong: { id: 'sibling-record' },
 };
 const mf = await createReaderRuntime(undefined, undefined, {
@@ -50,6 +58,7 @@ async function read(id, options = {}) {
 }
 try {
   const first = await read('record-0000');
+  assertRecordHtmlContract(first.body, recordFixture('record-0000'), 'record-0000');
   assert.equal(first.response.status, 200);
   assert.equal(first.response.headers.get('x-reader-renderer'), 'astro-record');
   assert.equal(first.response.headers.get('x-edge-cache'), 'MISS');
@@ -66,6 +75,7 @@ try {
   assert.equal(head.body, '');
   assert.equal(calls.length, 1, 'cached GET and HEAD cannot read the API');
   const empty = await read('empty');
+  assertRecordHtmlContract(empty.body, { ...recordFixture('empty'), ...cases.empty }, 'empty');
   assert.match(empty.body, /only its metadata was stored/);
   assert.doesNotMatch(
     empty.body,
@@ -74,11 +84,32 @@ try {
   assert.match(empty.body, /published —/);
   assert.match(empty.body, /ingested —/);
   const mismatch = await read('mismatch');
+  assertRecordHtmlContract(
+    mismatch.body,
+    { ...recordFixture('mismatch'), ...cases.mismatch },
+    'mismatch'
+  );
   assert.match(mismatch.body, /cannot be attributed to this record/);
   assert.doesNotMatch(mismatch.body, /<pre/);
   const identical = await read('identical');
+  assertRecordHtmlContract(
+    identical.body,
+    { ...recordFixture('identical'), ...cases.identical },
+    'identical'
+  );
   assert.doesNotMatch(identical.body, /data-record-group="extract"/);
   const unsafe = await read('unsafe');
+  assertRecordHtmlContract(unsafe.body, { ...recordFixture('unsafe'), ...cases.unsafe }, 'unsafe');
+  const entities = await read('entities');
+  assertRecordHtmlContract(
+    entities.body,
+    { ...recordFixture('entities'), ...cases.entities },
+    'entities'
+  );
+  for (const id of ['leading', 'retainedUnsafe']) {
+    const result = await read(id);
+    assertRecordHtmlContract(result.body, { ...recordFixture(id), ...cases[id] }, id);
+  }
   assert.match(unsafe.body, /&lt;script&gt;alert/);
   assert.match(unsafe.body, /&lt;img src=x onerror/);
   assert.doesNotMatch(unsafe.body, /<script>alert|<img src=x|href="javascript:/);
@@ -86,6 +117,7 @@ try {
     const before = calls.length;
     for (let repeat = 0; repeat < 2; repeat++) {
       const failed = await read(id);
+      assertRecordHtmlContract(failed.body, null, id, id === 'missing');
       assert.equal(failed.response.status, 200, 'preserve current HTML error status');
       assert.equal(failed.response.headers.get('cache-control'), 'private, no-store');
       assert.match(
@@ -102,6 +134,7 @@ try {
   for (const id of ['literal%2F', 'literal%', 'space here', 'name:part']) {
     const encoded = encodeURIComponent(id);
     const result = await read(encoded);
+    assertRecordHtmlContract(result.body, recordFixture(id), id);
     assert.equal(result.response.status, 200);
     assert.ok(result.body.includes(`https://highsignal.app/data/records/${encoded}`));
     assert.ok(result.body.includes(`Retained evidence ${id}`));

@@ -21,4 +21,15 @@ for (const slug of ['openai', 'index']) {
   assert.doesNotMatch(body, /_next\/static|__next_f/);
 }
 assert.equal((await read('/_private/reader/profiles/openai.reader')).status, 404);
-console.log(`Reader source ${source}: compiled profiles and internal-asset boundary verified.`);
+const recordPath = '/data/records/ef27707f4acce1c2';
+const record = await read(`${recordPath}?utm_source=reader-smoke-${source}`);
+assert.equal(record.status, 200);
+assert.equal(record.headers.get('x-reader-renderer'), 'astro-record');
+const recordBody = await record.text();
+assert.match(recordBody, /data-record-state="available"/);
+assert.ok(recordBody.includes(`https://highsignal.app${recordPath}`));
+assert.doesNotMatch(recordBody, /__record_template__|_next\/static|__next_f/);
+assert.equal((await read('/_private/reader/record-shell.reader')).status, 404);
+console.log(
+  `Reader source ${source}: compiled profiles, record HTML and internal-asset boundaries verified.`
+);
