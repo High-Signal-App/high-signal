@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { execFileSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import {
   handlePublicRecordHtml,
   publicRecordHtmlSelection,
@@ -138,4 +140,30 @@ test('cache lookup rejection preserves the existing renderer when the shell is u
     ),
     null
   );
+});
+
+test('record parity detects unsafe actual URLs and changed inline spacing', () => {
+  const parse = (expected, actual) =>
+    JSON.parse(
+      execFileSync(
+        'python3',
+        [fileURLToPath(new URL('../apps/web/scripts/record_html_contract.py', import.meta.url))],
+        { input: JSON.stringify([expected, actual]), encoding: 'utf8' }
+      )
+    );
+  const unsafe = '<main><a href="javascript:alert(1)">source</a></main>';
+  const [expected, actual] = parse(unsafe, unsafe);
+  assert.deepEqual(expected.unsafeUrls, []);
+  assert.deepEqual(actual.unsafeUrls, ['javascript:alert(1)']);
+  assert.notDeepEqual(actual.main, expected.main);
+  const [spaced, joined] = parse(
+    '<main>Read <a>source</a> here</main>',
+    '<main>Read<a>source</a>here</main>'
+  );
+  assert.notDeepEqual(spaced.main, joined.main);
+  const [pre, trimmed] = parse(
+    '<main><pre>\n body \n</pre></main>',
+    '<main><pre>body</pre></main>'
+  );
+  assert.notDeepEqual(pre.main, trimmed.main);
 });

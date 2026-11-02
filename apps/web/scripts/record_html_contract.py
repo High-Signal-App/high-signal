@@ -9,8 +9,10 @@ VOID = {"area", "base", "br", "col", "embed", "hr", "img", "input", "link", "met
 
 
 class ContractParser(HTMLParser):
-    def __init__(self):
+    def __init__(self, expected=False):
         super().__init__(convert_charrefs=True)
+        self.expected = expected
+        self.unsafe_urls = []
         self.main = None
         self.stack = []
         self.title = ""
@@ -35,8 +37,11 @@ class ContractParser(HTMLParser):
         if tag == "main" or self.stack:
             kept = {key: value for key, value in attrs.items() if not key.startswith("data-record-")}
             # React replaces javascript hrefs with a throwing URL; the native reader removes them.
-            if (kept.get("href") or "").lower().startswith("javascript:"):
-                kept.pop("href")
+            if re.sub(r"[\x00-\x20]", "", kept.get("href") or "").lower().startswith("javascript:"):
+                if self.expected:
+                    kept.pop("href")
+                else:
+                    self.unsafe_urls.append(kept["href"])
             node = {"tag": tag, "attrs": sorted(kept.items()), "children": []}
             if self.stack:
                 self.stack[-1]["children"].append(node)
@@ -77,7 +82,7 @@ def normalize(node, pre=False):
     children = []
     for child in node["children"]:
         if isinstance(child, str):
-            value = child if pre else re.sub(r"\s+", " ", child).strip()
+            value = child if pre else re.sub(r"\s+", " ", child)
             if value:
                 children.append(value)
         else:
@@ -85,12 +90,12 @@ def normalize(node, pre=False):
     return {**node, "children": children}
 
 
-def inspect(source):
-    parser = ContractParser()
+def inspect(source, expected=False):
+    parser = ContractParser(expected)
     parser.feed(source)
     parser.close()
     return {"main": normalize(parser.main), "title": parser.title, "meta": parser.meta,
-            "canonical": parser.canonical, "unsafeScripts": parser.unsafe_scripts}
+            "canonical": parser.canonical, "unsafeScripts": parser.unsafe_scripts, "unsafeUrls": parser.unsafe_urls}
 
 
-print(json.dumps([inspect(source) for source in json.load(sys.stdin)]))
+print(json.dumps([inspect(source, expected=index == 0) for index, source in enumerate(json.load(sys.stdin))]))

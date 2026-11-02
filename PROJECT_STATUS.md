@@ -1,6 +1,18 @@
 # high-signal — PROJECT STATUS
 
-Last updated: 2026-11-01
+Last updated: 2026-11-02
+
+November 2 public record HTML CPU correction — implementation:
+
+Anonymous record HTML now uses the compiled reader shell with the existing shared
+record component, one sanitized API read and build-scoped public caching. Protected
+requests and router requests retain the existing renderer. Missing and unavailable
+records retain their visible explanations and remain uncached. Real compiled
+Worker checks compare content, links, metadata, escaping and cache isolation with
+the shared component. The previous Next record response is also retained as the
+local replay baseline. Release and natural-traffic CPU verification are separate;
+no monthly billed saving is established. Scheduled homepage artifact publication
+can lag and remains a separate operational gap in issue #238.
 
 November 1 record Markdown CPU correction — implementation:
 

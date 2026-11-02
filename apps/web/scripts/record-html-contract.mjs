@@ -46,4 +46,5 @@ export function assertRecordHtmlContract(actual, record, id, missing = false) {
     assert.equal(right.meta[name], metadata.description, name);
   for (const name of ['og:title', 'twitter:title']) assert.equal(right.meta[name], title, name);
   assert.deepEqual(right.unsafeScripts, []);
+  assert.deepEqual(right.unsafeUrls, []);
 }
