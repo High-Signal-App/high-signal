@@ -78,7 +78,7 @@ class ContractParser(HTMLParser):
 def normalize(node, pre=False):
     if node is None:
         return None
-    pre = pre or node["tag"] == "pre"
+    pre = pre or node["tag"] == "pre" or "whitespace-pre-wrap" in dict(node["attrs"]).get("class", "").split()
     children = []
     for child in node["children"]:
         if isinstance(child, str):

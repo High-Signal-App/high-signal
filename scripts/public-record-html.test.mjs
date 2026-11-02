@@ -166,4 +166,9 @@ test('record parity detects unsafe actual URLs and changed inline spacing', () =
     '<main><pre>body</pre></main>'
   );
   assert.notDeepEqual(pre.main, trimmed.main);
+  const [multiline, flattened] = parse(
+    '<main><p class="whitespace-pre-wrap">line one\n  line two</p></main>',
+    '<main><p class="whitespace-pre-wrap">line one line two</p></main>'
+  );
+  assert.notDeepEqual(multiline.main, flattened.main);
 });
