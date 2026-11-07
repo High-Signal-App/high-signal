@@ -31,7 +31,7 @@ jobs:
       - name: Install dependencies
         run: |
           if [ -f pnpm-lock.yaml ]; then
-            pnpm install --frozen-lockfile --ignore-scripts
+            pnpm install --frozen-lockfile
           elif [ -f package-lock.json ]; then
             npm ci --ignore-scripts
           elif [ -f yarn.lock ]; then
