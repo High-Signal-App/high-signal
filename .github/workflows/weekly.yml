@@ -71,10 +71,11 @@ jobs:
 
       - name: Diagnose API test failures
         if: failure()
+        working-directory: workers/api
         shell: bash
         run: |
           set +e
-          pnpm --dir workers/api exec vitest run --reporter=json \
+          pnpm run test --reporter=json \
             --outputFile="$RUNNER_TEMP/api-test-results.json" \
             > "$RUNNER_TEMP/api-test-console.txt" 2>&1
           test_status=$?
