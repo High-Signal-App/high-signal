@@ -12,8 +12,8 @@
  *             noise. The draft gets review_status='killed'.
  *   HOLD    — only for genuine uncertainty. The script biases against this.
  *
- * Auth: bearer ADMIN_TOKEN against API_BASE. Reads drafts via the public
- *       /signals?status=draft endpoint, writes via /admin/signals/<slug>.
+ * Auth: bearer ADMIN_TOKEN against API_BASE. Reads drafts and retained proof
+ *       via /admin/signals-review, writes via /admin/signals/<slug>.
  *
  *   pnpm tsx scripts/auto-publish-drafts.ts --remote        # production
  *   pnpm tsx scripts/auto-publish-drafts.ts --remote --dry  # plan-only
@@ -117,9 +117,14 @@ async function fetchSignalsByStatus(
 }
 
 async function fetchClaimsBySignal(slug: string): Promise<ClaimWithEvidence[]> {
-  const url = `${API_BASE}/claims/by-signal/${encodeURIComponent(slug)}`;
+  const url = ADMIN_TOKEN
+    ? `${API_BASE}/admin/signals-review/${encodeURIComponent(slug)}`
+    : `${API_BASE}/claims/by-signal/${encodeURIComponent(slug)}`;
   try {
-    const response = await fetch(url, { cache: 'no-store' } as RequestInit);
+    const response = await fetch(url, {
+      cache: 'no-store',
+      headers: ADMIN_TOKEN ? { Authorization: `Bearer ${ADMIN_TOKEN}` } : undefined,
+    } as RequestInit);
     if (!response.ok) {
       console.warn(
         `[auto-publish] claim lookup ${response.status} for ${slug}; using legacy evidence`
@@ -404,8 +409,12 @@ async function aiVerdict(signal: SignalRow): Promise<VerdictResult | null> {
       reason: 'body exceeds full-prose semantic review limit; shorten before publication',
     };
   }
-  const response = await fetch(`${API_BASE}/signals/${encodeURIComponent(signal.slug)}`, {
+  const evidenceUrl = ADMIN_TOKEN
+    ? `${API_BASE}/admin/signals-review/${encodeURIComponent(signal.slug)}`
+    : `${API_BASE}/signals/${encodeURIComponent(signal.slug)}`;
+  const response = await fetch(evidenceUrl, {
     cache: 'no-store',
+    headers: ADMIN_TOKEN ? { Authorization: `Bearer ${ADMIN_TOKEN}` } : undefined,
     signal: AbortSignal.timeout(10_000),
   } as RequestInit);
   if (!response.ok) throw new Error(`retained evidence lookup failed (${response.status})`);

@@ -100,7 +100,13 @@ globalThis.fetch = async (input, init) => {
     signals: url.searchParams.get('status') === 'draft' ? [signal, {...signal, id:'other', slug:'other'}] : []
     });
   }
-  if (url.pathname === '/claims/by-signal/fixture') return Response.json({
+  if (url.pathname === '/claims/by-signal/fixture' || url.pathname === '/signals/fixture') {
+    return Response.json({error:'history_verification_required'}, {status:403});
+  }
+  if (url.pathname === '/admin/signals-review/fixture') {
+    if (init.headers?.Authorization !== 'Bearer synthetic-admin') throw new Error('Protected review credential missing');
+    if (mode === 'lookup-failed') return new Response('', {status:503});
+    return Response.json({
     claims: mode === 'prose' || mode === 'oversized' ? [{
       id: 'claim', reviewStatus: 'draft', evidence: signal.evidenceUrls.map((evidenceUrl, index) => ({
         id: 'link-' + index, claimId: 'claim', evidenceUrl,
@@ -108,11 +114,8 @@ globalThis.fetch = async (input, init) => {
         role: index === 0 ? 'primary' : 'corroboration', weight: 1,
         notes: 'alignment:verified'
       }))
-    }] : []
-  });
-  if (url.pathname === '/signals/fixture') {
-    if (mode === 'lookup-failed') return new Response('', {status: 503});
-    return Response.json({evidence: mode === 'no-text' ? [] : signal.evidenceUrls.map((url, index) => ({
+    }] : [],
+    evidence: mode === 'no-text' ? [] : signal.evidenceUrls.map((url, index) => ({
       url, excerpt: 'Retained public source excerpt for ' + url, sourceType: index === 0 ? 'ir' : 'news'
     }))});
   }
