@@ -84,18 +84,58 @@ jobs:
           const fs = require('node:fs');
           const path = require('node:path');
           const reportPath = path.join(process.env.RUNNER_TEMP, 'api-test-results.json');
+          const maxOutputCodeUnits = 6000;
+          const truncationMarker = '[diagnostics truncated; output capped at 6000 characters]';
+          let report;
+          let reportError;
           if (!fs.existsSync(reportPath)) {
-            console.log('API tests ended without a JSON report.');
-            console.log(fs.readFileSync(path.join(process.env.RUNNER_TEMP, 'api-test-console.txt'), 'utf8').slice(-6000));
+            reportError = 'API tests ended without a JSON report.';
           } else {
-            const report = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
-            console.log(JSON.stringify({passed: report.numPassedTests, failed: report.numFailedTests}));
+            try {
+              report = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
+              if (!report || typeof report !== 'object' || Array.isArray(report) || !Array.isArray(report.testResults)) {
+                throw new Error('Expected a Vitest JSON report object with testResults.');
+              }
+            } catch (error) {
+              reportError = `API test JSON report is invalid: ${error.message}`;
+            }
+          }
+          if (reportError) {
+            const consoleOutput = fs.readFileSync(path.join(process.env.RUNNER_TEMP, 'api-test-console.txt'), 'utf8');
+            const header = `${reportError}\n`;
+            const excerptLimit = maxOutputCodeUnits - header.length - truncationMarker.length - 1;
+            process.stdout.write(header + (header.length + consoleOutput.length > maxOutputCodeUnits
+              ? `${consoleOutput.slice(-excerptLimit)}\n${truncationMarker}`
+              : consoleOutput));
+          } else {
+            let output = '';
+            const appendDiagnostic = (line) => {
+              const prefix = output.length > 0 ? '\n' : '';
+              const candidate = `${output}${prefix}${line}`;
+              if (candidate.length <= maxOutputCodeUnits) {
+                output = candidate;
+                return true;
+              }
+              const excerptLimit = maxOutputCodeUnits - truncationMarker.length - 1;
+              output = `${candidate.slice(0, excerptLimit)}\n${truncationMarker}`;
+              return false;
+            };
+            appendDiagnostic(JSON.stringify({passed: report.numPassedTests, failed: report.numFailedTests}));
+            let truncated = false;
             for (const suite of report.testResults ?? []) {
               for (const test of suite.assertionResults ?? []) {
-                if (test.status === 'failed') console.log(JSON.stringify({name: test.fullName, failures: test.failureMessages}));
+                if (test.status === 'failed' && !appendDiagnostic(JSON.stringify({name: test.fullName, failures: test.failureMessages}))) {
+                  truncated = true;
+                  break;
+                }
               }
-              if (suite.message) console.log(suite.message);
+              if (truncated) break;
+              if (suite.message && !appendDiagnostic(suite.message)) {
+                truncated = true;
+                break;
+              }
             }
+            process.stdout.write(output);
           }
           NODE
           exit "$test_status"
