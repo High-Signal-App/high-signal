@@ -12,8 +12,8 @@
  *             noise. The draft gets review_status='killed'.
  *   HOLD    — only for genuine uncertainty. The script biases against this.
  *
- * Auth: bearer ADMIN_TOKEN against API_BASE. Reads drafts via the public
- *       /signals?status=draft endpoint, writes via /admin/signals/<slug>.
+ * Auth: bearer ADMIN_TOKEN against API_BASE. Reads drafts and retained proof
+ *       via /admin/signals-review, writes via /admin/signals/<slug>.
  *
  *   pnpm tsx scripts/auto-publish-drafts.ts --remote        # production
  *   pnpm tsx scripts/auto-publish-drafts.ts --remote --dry  # plan-only
@@ -116,10 +116,22 @@ async function fetchSignalsByStatus(
   return data.signals;
 }
 
+/** Both proof reads use the same existing operator authority and bounded request. */
+function fetchSignalReview(
+  slug: string,
+  publicRoute: 'claims/by-signal' | 'signals'
+): Promise<Response> {
+  const route = ADMIN_TOKEN ? 'admin/signals-review' : publicRoute;
+  return fetch(`${API_BASE}/${route}/${encodeURIComponent(slug)}`, {
+    cache: 'no-store',
+    headers: ADMIN_TOKEN ? { Authorization: `Bearer ${ADMIN_TOKEN}` } : undefined,
+    signal: AbortSignal.timeout(10_000),
+  } as RequestInit);
+}
+
 async function fetchClaimsBySignal(slug: string): Promise<ClaimWithEvidence[]> {
-  const url = `${API_BASE}/claims/by-signal/${encodeURIComponent(slug)}`;
   try {
-    const response = await fetch(url, { cache: 'no-store' } as RequestInit);
+    const response = await fetchSignalReview(slug, 'claims/by-signal');
     if (!response.ok) {
       console.warn(
         `[auto-publish] claim lookup ${response.status} for ${slug}; using legacy evidence`
@@ -404,10 +416,7 @@ async function aiVerdict(signal: SignalRow): Promise<VerdictResult | null> {
       reason: 'body exceeds full-prose semantic review limit; shorten before publication',
     };
   }
-  const response = await fetch(`${API_BASE}/signals/${encodeURIComponent(signal.slug)}`, {
-    cache: 'no-store',
-    signal: AbortSignal.timeout(10_000),
-  } as RequestInit);
+  const response = await fetchSignalReview(signal.slug, 'signals');
   if (!response.ok) throw new Error(`retained evidence lookup failed (${response.status})`);
   const evidence = retainedJudgeEvidence(signal.evidenceUrls, await response.json());
   if (evidence.filter((item) => item.excerpt).length < 2) {

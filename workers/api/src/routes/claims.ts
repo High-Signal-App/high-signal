@@ -7,6 +7,7 @@ import { and, asc, desc, eq, inArray } from 'drizzle-orm';
 import {
   rollupEvidence,
   type ClaimDetail,
+  type ClaimWithEvidence,
   type ClaimRecord,
   type ClaimEvidenceLink,
   type ClaimTimelineEvent,
@@ -130,34 +131,40 @@ claimsRoute.get('/by-signal/:slug', async (c) => {
     c.header('Cache-Control', 'private, no-store');
     if (!historyGranted) return c.json({ error: 'history_verification_required' }, 403);
   }
-  const rows = await db(c.env.DB)
+  return c.json({ claims: await loadSignalClaims(c.env.DB, signal.id) });
+});
+
+/** Shared ledger serialization; callers own their public-history or operator authorization. */
+export async function loadSignalClaims(
+  d1: D1Database,
+  signalId: string
+): Promise<ClaimWithEvidence[]> {
+  const rows = await db(d1)
     .select()
     .from(schema.claimRecords)
     .where(
-      and(eq(schema.claimRecords.signalId, signal.id), eq(schema.claimRecords.surface, 'signal'))
+      and(eq(schema.claimRecords.signalId, signalId), eq(schema.claimRecords.surface, 'signal'))
     )
     .orderBy(desc(schema.claimRecords.createdAt));
-  if (rows.length === 0) return c.json({ claims: [] });
+  if (rows.length === 0) return [];
   const ids = rows.map((r) => r.id);
-  const links = await db(c.env.DB)
+  const links = await db(d1)
     .select()
     .from(schema.claimEvidenceLinks)
     .where(inArray(schema.claimEvidenceLinks.claimId, ids))
     .orderBy(asc(schema.claimEvidenceLinks.addedAt));
   const evidenceByClaim = new Map<string, ClaimEvidenceLink[]>();
-  for (const row of await sourceAwareEvidenceLinks(db(c.env.DB), links)) {
+  for (const row of await sourceAwareEvidenceLinks(db(d1), links)) {
     const list = evidenceByClaim.get(row.claimId) ?? [];
     list.push(toEvidence(row));
     evidenceByClaim.set(row.claimId, list);
   }
-  return c.json({
-    claims: rows.map((r) => {
-      const list = evidenceByClaim.get(r.id) ?? [];
-      return {
-        ...toClaim(r),
-        evidence: list,
-        rollup: rollupEvidence(list),
-      };
-    }),
+  return rows.map((r) => {
+    const list = evidenceByClaim.get(r.id) ?? [];
+    return {
+      ...toClaim(r),
+      evidence: list,
+      rollup: rollupEvidence(list),
+    };
   });
-});
+}

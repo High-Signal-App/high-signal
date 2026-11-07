@@ -46,6 +46,7 @@ import {
 } from '../lib/signal-quality';
 import { retainedEvidenceCandidates } from '../lib/attention-admin';
 import { syncSignal, type SignalUpsert } from '../lib/signal-sync';
+import { loadSignalClaims } from './claims';
 import {
   buildSignalMeasurementReceipt,
   SIGNAL_MEASUREMENT_INTENT,
@@ -178,6 +179,39 @@ adminRoute.get('/signals-review', async (c) => {
     .orderBy(desc(schema.signals.publishedAt))
     .limit(500);
   return c.json({ signals: enrichSignals(rows) });
+});
+
+/** Historical drafts need operator reads, not a reader's temporary history grant. */
+adminRoute.get('/signals-review/:slug', async (c) => {
+  c.header('Cache-Control', 'private, no-store');
+  const database = db(c.env.DB);
+  const [signal] = await database
+    .select({ id: schema.signals.id })
+    .from(schema.signals)
+    .where(eq(schema.signals.slug, c.req.param('slug')))
+    .limit(1);
+  if (!signal) return c.json({ error: 'not_found' }, 404);
+  const claims = await loadSignalClaims(c.env.DB, signal.id);
+  const metadataUrls = new Set(
+    claims
+      .flatMap((claim) => claim.evidence)
+      .filter((link) => link.notes?.includes('source:techmeme'))
+      .map((link) => link.evidenceUrl)
+  );
+  const retained = await database
+    .select({
+      url: schema.evidence.url,
+      excerpt: schema.evidence.excerpt,
+      sourceType: schema.evidence.sourceType,
+    })
+    .from(schema.evidence)
+    .where(eq(schema.evidence.signalId, signal.id));
+  return c.json({
+    claims,
+    evidence: retained.map((item) =>
+      metadataUrls.has(item.url) ? { ...item, sourceType: 'techmeme' } : item
+    ),
+  });
 });
 
 adminRoute.patch('/signals/:slug', async (c) => {
