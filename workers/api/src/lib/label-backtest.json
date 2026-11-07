@@ -1,9 +1,9 @@
 {
-  "generatedAt": "2026-11-06T16:25:37.046130+00:00",
+  "generatedAt": "2026-11-07T15:15:05.749555+00:00",
   "backtestDays": 14,
   "labels": {
     "breakout": {
-      "n": 19,
+      "n": 18,
       "hits": 0,
       "rate": 0.0,
       "lift": null
@@ -16,12 +16,12 @@
     }
   },
   "unlabeled": {
-    "n": 30,
+    "n": 28,
     "hits": 0,
     "rate": 0.0
   },
   "baseline": {
-    "n": 68,
+    "n": 65,
     "hits": 0,
     "rate": 0.0
   }
