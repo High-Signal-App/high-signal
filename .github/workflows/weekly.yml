@@ -62,3 +62,33 @@ jobs:
           run_script typecheck
           run_script test
           run_script build
+
+      - name: Diagnose API test failures
+        if: failure()
+        shell: bash
+        run: |
+          set +e
+          pnpm --dir workers/api exec vitest run --reporter=json \
+            --outputFile="$RUNNER_TEMP/api-test-results.json" \
+            > "$RUNNER_TEMP/api-test-console.txt" 2>&1
+          test_status=$?
+          set -e
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const reportPath = path.join(process.env.RUNNER_TEMP, 'api-test-results.json');
+          if (!fs.existsSync(reportPath)) {
+            console.log('API tests ended without a JSON report.');
+            console.log(fs.readFileSync(path.join(process.env.RUNNER_TEMP, 'api-test-console.txt'), 'utf8').slice(-6000));
+          } else {
+            const report = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
+            console.log(JSON.stringify({passed: report.numPassedTests, failed: report.numFailedTests}));
+            for (const suite of report.testResults ?? []) {
+              for (const test of suite.assertionResults ?? []) {
+                if (test.status === 'failed') console.log(JSON.stringify({name: test.fullName, failures: test.failureMessages}));
+              }
+              if (suite.message) console.log(suite.message);
+            }
+          }
+          NODE
+          exit "$test_status"
