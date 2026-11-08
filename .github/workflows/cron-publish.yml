@@ -4,6 +4,10 @@ on:
   # Scheduled by the API Worker's Cloudflare cron dispatcher at 03:30 UTC.
   workflow_dispatch:
     inputs:
+      retry_slug:
+        description: re-judge one previously killed signal through all existing evidence gates
+        type: string
+        default: ""
       inspect_slug:
         description: read-only retained-evidence counts for one signal; skips publishing
         type: string
@@ -35,6 +39,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: auto-publish drafts
         env:
+          RETRY_SLUG: ${{ inputs.retry_slug }}
           INSPECT_SLUG: ${{ inputs.inspect_slug }}
           API_BASE: ${{ secrets.API_BASE || 'https://api.highsignal.app' }}
           ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
@@ -45,6 +50,12 @@ jobs:
         run: |
           if [ -n "$INSPECT_SLUG" ]; then
             node scripts/inspect-signal-evidence.mjs
+          elif [ -n "$RETRY_SLUG" ]; then
+            retry_flags=(--remote --retry-killed "--slug=$RETRY_SLUG")
+            if [ "${{ inputs.dry }}" = "true" ]; then
+              retry_flags+=(--dry)
+            fi
+            pnpm exec tsx scripts/auto-publish-drafts.ts "${retry_flags[@]}"
           elif [ "${{ inputs.dry }}" = "true" ]; then
             pnpm signals:auto-publish:dry
           elif [ "${{ inputs.reapply }}" = "true" ]; then

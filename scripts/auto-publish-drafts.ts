@@ -85,6 +85,18 @@ const LOCAL = !REMOTE;
 const REAPPLY_PUBLISHED = args.has('--reapply');
 /** Re-judge only killed rows whose signal date is today in IST. */
 const RETRY_KILLED_TODAY = args.has('--retry-killed-today');
+const RETRY_KILLED = args.has('--retry-killed');
+if (
+  RETRY_KILLED &&
+  (!TARGET_SLUG ||
+    !/^[a-z0-9][a-z0-9-]{0,199}$/.test(TARGET_SLUG) ||
+    RETRY_KILLED_TODAY ||
+    REAPPLY_PUBLISHED)
+) {
+  throw new Error(
+    '--retry-killed requires one valid --slug and cannot combine with bulk retry/reapply'
+  );
+}
 
 const API_BASE =
   process.env['API_BASE'] ?? (LOCAL ? 'http://127.0.0.1:8787' : 'https://api.highsignal.app');
@@ -490,23 +502,25 @@ async function main(): Promise<void> {
   );
   const drafts = await fetchSignalsByStatus('draft');
   const published = await fetchSignalsByStatus('published');
-  const killedRows = RETRY_KILLED_TODAY ? await fetchSignalsByStatus('killed') : [];
+  const killedRows = RETRY_KILLED_TODAY || RETRY_KILLED ? await fetchSignalsByStatus('killed') : [];
   const todayIst = dateKeyInTimeZone(new Date());
-  const killedToday = killedRows.filter(
-    (signal) => todayIst && dateKeyInTimeZone(signal.publishedAt) === todayIst
+  const killedForRetry = killedRows.filter((signal) =>
+    RETRY_KILLED
+      ? signal.slug === TARGET_SLUG
+      : todayIst && dateKeyInTimeZone(signal.publishedAt) === todayIst
   );
   const candidates = REAPPLY_PUBLISHED
     ? [...drafts, ...published]
-    : RETRY_KILLED_TODAY
-      ? [...drafts, ...killedToday]
+    : RETRY_KILLED_TODAY || RETRY_KILLED
+      ? [...drafts, ...killedForRetry]
       : drafts;
   const toJudge = TARGET_SLUG
     ? candidates.filter((signal) => signal.slug === TARGET_SLUG)
     : candidates;
-  const conflicts = oppositeDirectionConflictIds([...drafts, ...published, ...killedToday]);
+  const conflicts = oppositeDirectionConflictIds([...drafts, ...published, ...killedForRetry]);
   for (const signal of toJudge) signal.oppositeDirectionConflict = conflicts.has(signal.id);
   console.log(
-    `[auto-publish] judging ${drafts.length} drafts${REAPPLY_PUBLISHED ? ` + ${published.length} already-published (reapply)` : ''}${RETRY_KILLED_TODAY ? ` + ${killedToday.length} killed today in IST (retry)` : ''}`
+    `[auto-publish] judging ${drafts.length} drafts${REAPPLY_PUBLISHED ? ` + ${published.length} already-published (reapply)` : ''}${RETRY_KILLED_TODAY || RETRY_KILLED ? ` + ${killedForRetry.length} killed rows (bounded retry)` : ''}`
   );
   if (toJudge.length === 0) return;
   const isPublished = new Set(published.map((s) => s.slug));

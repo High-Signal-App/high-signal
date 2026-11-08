@@ -56,7 +56,7 @@ const mode = process.env.TEST_JUDGE_MODE;
 const signal = {
   id: 'fixture', slug: 'fixture', signalType: 'product', primaryEntityId: 'fixture',
   direction: 'up', confidence: 'medium', predictedWindowDays: 30,
-  publishedAt: new Date().toISOString(), publishable: true, independentSourceCount: 1,
+  publishedAt: mode.startsWith('retry') ? '2020-01-01T00:00:00Z' : new Date().toISOString(), publishable: true, independentSourceCount: 1,
   evidenceUrls: mode === 'deterministic' ? ['https://a.example/report'] :
     ['https://a.example/report', 'https://b.example/report'],
   bodyMd: 'Evidence https://a.example/report and https://b.example/report'
@@ -97,7 +97,7 @@ globalThis.fetch = async (input, init) => {
   if (url.pathname === '/admin/signals-review') {
     if (init.headers.Authorization !== 'Bearer synthetic-admin') throw new Error('Admin credential whitespace not normalized');
     return Response.json({
-    signals: url.searchParams.get('status') === 'draft' ? [signal, {...signal, id:'other', slug:'other'}] : []
+    signals: url.searchParams.get('status') === (mode.startsWith('retry') ? 'killed' : 'draft') ? [signal, {...signal, id:'other', slug:'other'}] : []
     });
   }
   if (url.pathname === '/claims/by-signal/fixture' || url.pathname === '/signals/fixture') {
@@ -115,7 +115,7 @@ globalThis.fetch = async (input, init) => {
         notes: 'alignment:verified'
       }))
     }] : [],
-    evidence: mode === 'no-text' ? [] : signal.evidenceUrls.map((url, index) => ({
+    evidence: mode === 'no-text' || mode.startsWith('retry') ? [] : signal.evidenceUrls.map((url, index) => ({
       url, excerpt: 'Retained public source excerpt for ' + url, sourceType: index === 0 ? 'ir' : 'news'
     }))});
   }
@@ -140,6 +140,8 @@ process.on('exit', () => console.log('judge requests=' + requests));
       ['lookup-failed', 1, 0],
       ['prose', 0, 1],
       ['oversized', 0, 0],
+      ['retry', 0, 0],
+      ['retry-dry', 0, 0],
     ] as const) {
       const child = spawnSync(
         process.execPath,
@@ -151,6 +153,8 @@ process.on('exit', () => console.log('judge requests=' + requests));
           'scripts/auto-publish-drafts.ts',
           '--local',
           '--slug=fixture',
+          ...(mode.startsWith('retry') ? ['--retry-killed'] : []),
+          ...(mode === 'retry-dry' ? ['--dry'] : []),
         ],
         {
           cwd: process.cwd(),
@@ -167,10 +171,40 @@ process.on('exit', () => console.log('judge requests=' + requests));
         }
       );
       assert.equal(child.status, exit, mode + ': ' + child.stdout + child.stderr);
-      assert.equal(child.stdout.includes('fixture withheld'), mode !== 'lookup-failed');
+      assert.equal(
+        child.stdout.includes('fixture withheld'),
+        mode !== 'lookup-failed' && mode !== 'retry-dry'
+      );
       assert.ok(child.stdout.includes('judge requests=' + attempts));
       assert.ok(child.stdout.includes(exit === 1 ? '1 errors' : '0 errors'));
       assert.ok(!child.stderr.includes('PRIVATE_PROVIDER_DETAIL'));
+      if (mode.startsWith('retry'))
+        assert.ok(child.stdout.includes('1 killed rows (bounded retry)'));
+    }
+    for (const invalid of [
+      ['--retry-killed'],
+      ['--retry-killed', '--slug=../other'],
+      ['--retry-killed', '--slug=fixture', '--reapply'],
+      ['--retry-killed', '--slug=fixture', '--retry-killed-today'],
+    ]) {
+      const child = spawnSync(
+        process.execPath,
+        ['--import', 'tsx', '--import', preload, 'scripts/auto-publish-drafts.ts', ...invalid],
+        {
+          cwd: process.cwd(),
+          encoding: 'utf8',
+          timeout: 10_000,
+          env: {
+            ...process.env,
+            TEST_JUDGE_MODE: 'reject-options',
+            API_BASE: 'https://fixture.invalid',
+          },
+        }
+      );
+      assert.equal(child.status, 1);
+      assert.match(child.stderr, /requires one valid --slug/);
+      assert.doesNotMatch(child.stdout, /fixture withheld/);
+      assert.ok(child.stdout.includes('judge requests=0'));
     }
   } finally {
     rmSync(directory, { recursive: true, force: true });
