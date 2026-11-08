@@ -192,12 +192,42 @@ it('never substitutes text from a document whose canonical URL differs from the 
     .run();
   const response = await request('/admin/signals-review/aged-draft', `Bearer ${token}`);
   const payload = (await response.json()) as {
+    evidenceCoverage: {
+      url: string;
+      linked: boolean;
+      documentPresent: boolean;
+      canonicalMatch: boolean;
+      retainedText: boolean;
+      legacyText: boolean;
+    }[];
+    claims: { evidence: { evidenceUrl: string; semanticAlignment: string; role: string }[] }[];
     evidence: { url: string; excerpt: string | null }[];
   };
   expect(payload.evidence.find((item) => item.url === urls[0])?.excerpt).toBe(
     'Retained source text'
   );
   expect(payload.evidence.find((item) => item.url === urls[1])?.excerpt).toBeNull();
+  expect(payload.claims[0]?.evidence.find((link) => link.evidenceUrl === urls[1])).toMatchObject({
+    semanticAlignment: 'unverified',
+    role: 'context',
+  });
+  expect(payload.evidenceCoverage.find((item) => item.url === urls[1])).toEqual({
+    url: urls[1],
+    legacyText: false,
+    linked: true,
+    documentPresent: true,
+    canonicalMatch: false,
+    retainedText: false,
+  });
+  expect(
+    await database.binding
+      .prepare('SELECT semantic_alignment, role FROM claim_evidence_links WHERE evidence_url = ?')
+      .bind(urls[1])
+      .first()
+  ).toEqual({
+    semantic_alignment: 'verified',
+    role: 'corroboration',
+  });
 });
 
 it('keeps missing retained text unavailable and caps recovered excerpts', async () => {
@@ -211,10 +241,15 @@ it('keeps missing retained text unavailable and caps recovered excerpts', async 
     .run();
   const response = await request('/admin/signals-review/aged-draft', `Bearer ${token}`);
   const payload = (await response.json()) as {
+    evidenceCoverage: { url: string; canonicalMatch: boolean; retainedText: boolean }[];
     evidence: { url: string; excerpt: string | null }[];
   };
   expect(payload.evidence.find((item) => item.url === urls[0])?.excerpt).toBe('x'.repeat(1500));
   expect(payload.evidence.find((item) => item.url === urls[1])?.excerpt).toBeNull();
+  expect(payload.evidenceCoverage.find((item) => item.url === urls[1])).toMatchObject({
+    canonicalMatch: true,
+    retainedText: false,
+  });
 });
 
 it('reviews 101 linked documents within the production D1 parameter limit', async () => {
@@ -258,4 +293,39 @@ it('reviews 101 linked documents within the production D1 parameter limit', asyn
   const payload = (await response.json()) as { evidence: { excerpt: string }[] };
   expect(payload.evidence).toHaveLength(101);
   expect(payload.evidence.every((item) => item.excerpt === 'Retained source text')).toBe(true);
+});
+
+it('distinguishes an unlinked citation from a missing linked document without source text', async () => {
+  await database.binding.prepare('UPDATE evidence SET excerpt = NULL').run();
+  await database.binding
+    .prepare('UPDATE claim_evidence_links SET source_document_id = NULL WHERE evidence_url = ?')
+    .bind(urls[0])
+    .run();
+  await database.binding
+    .prepare('UPDATE claim_evidence_links SET source_document_id = ? WHERE evidence_url = ?')
+    .bind('missing-document', urls[1])
+    .run();
+  const response = await request('/admin/signals-review/aged-draft', `Bearer ${token}`);
+  expect(response.status).toBe(200);
+  const payload = (await response.json()) as { evidenceCoverage: unknown[] };
+  expect(payload.evidenceCoverage).toEqual(
+    expect.arrayContaining([
+      {
+        url: urls[0],
+        legacyText: false,
+        linked: false,
+        documentPresent: false,
+        canonicalMatch: false,
+        retainedText: false,
+      },
+      {
+        url: urls[1],
+        legacyText: false,
+        linked: true,
+        documentPresent: false,
+        canonicalMatch: false,
+        retainedText: false,
+      },
+    ])
+  );
 });

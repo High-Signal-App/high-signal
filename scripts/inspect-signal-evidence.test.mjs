@@ -70,3 +70,48 @@ test('operator denial stays explicit without logging response data', async () =>
     /inspection failed \(HTTP 401\)/
   );
 });
+
+test('coverage reports only bounded gap counts, not retained documents', async () => {
+  const coverage = [
+    { linked: false, documentPresent: false, canonicalMatch: false, retainedText: false },
+    { linked: true, documentPresent: false, canonicalMatch: false, retainedText: false },
+    { linked: true, documentPresent: true, canonicalMatch: false, retainedText: false },
+    { linked: true, documentPresent: true, canonicalMatch: true, retainedText: false },
+    { linked: true, documentPresent: true, canonicalMatch: true, retainedText: true },
+  ];
+  const result = await inspectSignalEvidence({
+    ...config,
+    fetchImpl: async () =>
+      Response.json({
+        claims: [
+          {
+            evidence: coverage
+              .filter((item) => item.linked)
+              .map((_, i) => ({
+                evidenceUrl: `https://source-${i + 1}.example`,
+                sourceDocumentId: `document-${i}`,
+              })),
+          },
+        ],
+        evidence: coverage.map((item, i) => ({
+          url: `https://source-${i}.example`,
+          excerpt: item.retainedText ? 'retained private excerpt' : null,
+          sourceType: 'news',
+        })),
+        evidenceCoverage: coverage.map((item, i) => ({
+          ...item,
+          url: `https://source-${i}.example`,
+          legacyText: false,
+        })),
+      }),
+  });
+  assert.equal(result.retainedTextSources, 1);
+  assert.deepEqual(result.textGaps, {
+    unlinked: 1,
+    documentMissing: 1,
+    citationMismatch: 1,
+    textMissing: 1,
+    recovered: 1,
+  });
+  assert.doesNotMatch(JSON.stringify(result), /retained private excerpt|document-/);
+});
