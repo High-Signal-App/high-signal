@@ -21,6 +21,7 @@ import {
 export { canonicalSourceUrl } from '@high-signal/shared';
 import { buildPatterns, matchEntity, type GazetteerEntity } from '../lib/gazetteer';
 import { sha16 } from '../lib/ids';
+import { loadSignalReviewEvidence } from '../lib/signal-review';
 import { cftcReceiptRepairUrls, isSameCftcObservation } from '../lib/cftc-receipt-repair';
 import { generateCommunityDigest } from '../lib/community-research';
 import {
@@ -192,25 +193,9 @@ adminRoute.get('/signals-review/:slug', async (c) => {
     .limit(1);
   if (!signal) return c.json({ error: 'not_found' }, 404);
   const claims = await loadSignalClaims(c.env.DB, signal.id);
-  const metadataUrls = new Set(
-    claims
-      .flatMap((claim) => claim.evidence)
-      .filter((link) => link.notes?.includes('source:techmeme'))
-      .map((link) => link.evidenceUrl)
-  );
-  const retained = await database
-    .select({
-      url: schema.evidence.url,
-      excerpt: schema.evidence.excerpt,
-      sourceType: schema.evidence.sourceType,
-    })
-    .from(schema.evidence)
-    .where(eq(schema.evidence.signalId, signal.id));
   return c.json({
     claims,
-    evidence: retained.map((item) =>
-      metadataUrls.has(item.url) ? { ...item, sourceType: 'techmeme' } : item
-    ),
+    evidence: await loadSignalReviewEvidence(c.env.DB, signal.id, claims),
   });
 });
 

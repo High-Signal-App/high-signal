@@ -35,6 +35,11 @@ type ResearchResult = {
   status: 'published' | 'already_published' | 'withheld' | 'unavailable';
   reason: string;
   claimId?: string;
+  failure?: {
+    stage: string;
+    kind: 'invalid_json' | 'request_or_storage_error';
+    statusCode: number | null;
+  };
 };
 
 // These already belong to the canonical public archive. Existing curation,
@@ -478,21 +483,22 @@ export async function researchPublicCommunity(
       }
     }
   } catch (error) {
-    response = {
-      output: response,
-      failure: {
-        stage,
-        kind: error instanceof SyntaxError ? 'invalid_json' : 'request_or_storage_error',
-        statusCode:
-          error &&
-          typeof error === 'object' &&
-          'statusCode' in error &&
-          typeof error.statusCode === 'number'
-            ? error.statusCode
-            : null,
-      },
+    const failure = {
+      stage,
+      kind:
+        error instanceof SyntaxError
+          ? ('invalid_json' as const)
+          : ('request_or_storage_error' as const),
+      statusCode:
+        error &&
+        typeof error === 'object' &&
+        'statusCode' in error &&
+        typeof error.statusCode === 'number'
+          ? error.statusCode
+          : null,
     };
-    result = { status: 'unavailable', reason: failureReason };
+    response = { output: response, failure };
+    result = { status: 'unavailable', reason: failureReason, failure };
   }
   if (result.status !== 'published' && result.status !== 'already_published')
     await researchAudit(env.DB, community, lead, result, request, response).run();

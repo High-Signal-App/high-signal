@@ -145,6 +145,10 @@ it('keeps retained aggregator documents context-only for the publisher', async (
     .prepare('UPDATE source_documents SET source = ? WHERE id = ?')
     .bind('techmeme', 'source-1')
     .run();
+  await database.binding
+    .prepare('UPDATE evidence SET excerpt = NULL WHERE url = ?')
+    .bind(urls[1])
+    .run();
   const response = await request('/admin/signals-review/aged-draft', `Bearer ${token}`);
   expect(response.status).toBe(200);
   const payload = (await response.json()) as {
@@ -162,7 +166,51 @@ it('keeps retained aggregator documents context-only for the publisher', async (
   );
   expect(payload.evidence).toEqual(
     expect.arrayContaining([
-      { url: urls[1], excerpt: 'Retained excerpt 1', sourceType: 'techmeme' },
+      { url: urls[1], excerpt: 'Retained source text', sourceType: 'techmeme' },
     ])
   );
+});
+
+it('recovers blank legacy excerpts from the exact linked retained document', async () => {
+  await database.binding.prepare("UPDATE evidence SET excerpt = '  '").run();
+  const response = await request('/admin/signals-review/aged-draft', `Bearer ${token}`);
+  const payload = (await response.json()) as { evidence: { excerpt: string }[] };
+  expect(payload.evidence.map((item) => item.excerpt)).toEqual([
+    'Retained source text',
+    'Retained source text',
+  ]);
+});
+
+it('never substitutes text from a document whose canonical URL differs from the citation', async () => {
+  await database.binding.prepare('UPDATE evidence SET excerpt = NULL').run();
+  await database.binding
+    .prepare(
+      "UPDATE source_documents SET canonical_url = 'https://different.example/report' WHERE id = 'source-1'"
+    )
+    .run();
+  const response = await request('/admin/signals-review/aged-draft', `Bearer ${token}`);
+  const payload = (await response.json()) as {
+    evidence: { url: string; excerpt: string | null }[];
+  };
+  expect(payload.evidence.find((item) => item.url === urls[0])?.excerpt).toBe(
+    'Retained source text'
+  );
+  expect(payload.evidence.find((item) => item.url === urls[1])?.excerpt).toBeNull();
+});
+
+it('keeps missing retained text unavailable and caps recovered excerpts', async () => {
+  await database.binding.prepare('UPDATE evidence SET excerpt = NULL').run();
+  await database.binding
+    .prepare('UPDATE source_documents SET raw_text = ? WHERE id = ?')
+    .bind('x'.repeat(3000), 'source-0')
+    .run();
+  await database.binding
+    .prepare("UPDATE source_documents SET raw_text = NULL WHERE id = 'source-1'")
+    .run();
+  const response = await request('/admin/signals-review/aged-draft', `Bearer ${token}`);
+  const payload = (await response.json()) as {
+    evidence: { url: string; excerpt: string | null }[];
+  };
+  expect(payload.evidence.find((item) => item.url === urls[0])?.excerpt).toBe('x'.repeat(1500));
+  expect(payload.evidence.find((item) => item.url === urls[1])?.excerpt).toBeNull();
 });
