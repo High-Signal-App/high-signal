@@ -565,7 +565,11 @@ describe('public community retained source to reader', () => {
         communityId,
         leadId
       )
-    ).toMatchObject({ status: 'unavailable', reason: 'research_or_model_unavailable' });
+    ).toEqual({
+      status: 'unavailable',
+      reason: 'research_or_model_unavailable',
+      failure: { stage: 'generation', kind: 'request_or_storage_error', statusCode: 503 },
+    });
     const audit = await database.binding
       .prepare('SELECT response_json FROM llm_runs')
       .first<{ response_json: string }>();

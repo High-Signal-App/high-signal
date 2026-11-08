@@ -28,7 +28,12 @@ export async function researchCommunityBrief({ api, token, fetchImpl = fetch }) 
   for (const attempt of attempts.slice(0, 6)) {
     const result = await read('', attempt);
     if (result.status === 'unavailable') {
-      unavailable.push(result.reason ?? 'invalid response');
+      const failure = result.failure;
+      const detail =
+        failure && ['generation', 'verification', 'publication'].includes(failure.stage)
+          ? ` (${failure.stage}, ${failure.kind === 'invalid_json' ? 'invalid_json' : 'request_or_storage_error'}, HTTP ${Number.isInteger(failure.statusCode) ? failure.statusCode : 'unknown'})`
+          : '';
+      unavailable.push(`${result.reason ?? 'invalid response'}${detail}`);
       continue;
     }
     if (!(result.status in counts))

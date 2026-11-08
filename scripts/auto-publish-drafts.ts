@@ -62,6 +62,7 @@ interface SignalRow {
   confidence: 'low' | 'medium' | 'high';
   predictedWindowDays: number;
   publishedAt: string;
+  reviewStatus?: string;
   evidenceUrls: string[];
   bodyMd: string;
   qualityScore?: number;
@@ -85,6 +86,7 @@ const LOCAL = !REMOTE;
 const REAPPLY_PUBLISHED = args.has('--reapply');
 /** Re-judge only killed rows whose signal date is today in IST. */
 const RETRY_KILLED_TODAY = args.has('--retry-killed-today');
+const RETRY_KILLED = args.has('--retry-killed');
 
 const API_BASE =
   process.env['API_BASE'] ?? (LOCAL ? 'http://127.0.0.1:8787' : 'https://api.highsignal.app');
@@ -93,6 +95,19 @@ const AI_BASE_URL = process.env['AI_BASE_URL'] ?? 'https://api.deepseek.com/v1';
 const AI_API_KEY = (process.env['AI_API_KEY'] ?? '').trim();
 const AI_MODEL = process.env['AI_MODEL'] ?? 'deepseek-chat';
 const AI_PROJECT_ID = process.env['AI_PROJECT_ID'] ?? 'high-signal';
+
+if (
+  RETRY_KILLED &&
+  (!ADMIN_TOKEN ||
+    !TARGET_SLUG ||
+    !/^[a-z0-9][a-z0-9-]{0,199}$/.test(TARGET_SLUG) ||
+    RETRY_KILLED_TODAY ||
+    REAPPLY_PUBLISHED)
+) {
+  throw new Error(
+    '--retry-killed requires one valid --slug and cannot combine with bulk retry/reapply'
+  );
+}
 
 const MAX_BODY_CHARS = 16_000;
 const MAX_AI_RESPONSE_TOKENS = 800;
@@ -127,6 +142,21 @@ function fetchSignalReview(
     headers: ADMIN_TOKEN ? { Authorization: `Bearer ${ADMIN_TOKEN}` } : undefined,
     signal: AbortSignal.timeout(10_000),
   } as RequestInit);
+}
+
+async function fetchKilledRetryRows(): Promise<SignalRow[]> {
+  if (!RETRY_KILLED) return RETRY_KILLED_TODAY ? fetchSignalsByStatus('killed') : [];
+  const response = await fetchSignalReview(TARGET_SLUG!, 'signals');
+  if (!response.ok) throw new Error(`Retry target lookup failed (HTTP ${response.status})`);
+  const payload = (await response.json()) as { signal?: SignalRow };
+  if (
+    !payload.signal ||
+    payload.signal.slug !== TARGET_SLUG ||
+    payload.signal.reviewStatus !== 'killed'
+  ) {
+    throw new Error('Retry target is not a rejected signal');
+  }
+  return [payload.signal];
 }
 
 async function fetchClaimsBySignal(slug: string): Promise<ClaimWithEvidence[]> {
@@ -490,23 +520,25 @@ async function main(): Promise<void> {
   );
   const drafts = await fetchSignalsByStatus('draft');
   const published = await fetchSignalsByStatus('published');
-  const killedRows = RETRY_KILLED_TODAY ? await fetchSignalsByStatus('killed') : [];
+  const killedRows = await fetchKilledRetryRows();
   const todayIst = dateKeyInTimeZone(new Date());
-  const killedToday = killedRows.filter(
-    (signal) => todayIst && dateKeyInTimeZone(signal.publishedAt) === todayIst
+  const killedForRetry = killedRows.filter((signal) =>
+    RETRY_KILLED
+      ? signal.slug === TARGET_SLUG
+      : todayIst && dateKeyInTimeZone(signal.publishedAt) === todayIst
   );
   const candidates = REAPPLY_PUBLISHED
     ? [...drafts, ...published]
-    : RETRY_KILLED_TODAY
-      ? [...drafts, ...killedToday]
+    : RETRY_KILLED_TODAY || RETRY_KILLED
+      ? [...drafts, ...killedForRetry]
       : drafts;
   const toJudge = TARGET_SLUG
     ? candidates.filter((signal) => signal.slug === TARGET_SLUG)
     : candidates;
-  const conflicts = oppositeDirectionConflictIds([...drafts, ...published, ...killedToday]);
+  const conflicts = oppositeDirectionConflictIds([...drafts, ...published, ...killedForRetry]);
   for (const signal of toJudge) signal.oppositeDirectionConflict = conflicts.has(signal.id);
   console.log(
-    `[auto-publish] judging ${drafts.length} drafts${REAPPLY_PUBLISHED ? ` + ${published.length} already-published (reapply)` : ''}${RETRY_KILLED_TODAY ? ` + ${killedToday.length} killed today in IST (retry)` : ''}`
+    `[auto-publish] judging ${drafts.length} drafts${REAPPLY_PUBLISHED ? ` + ${published.length} already-published (reapply)` : ''}${RETRY_KILLED_TODAY || RETRY_KILLED ? ` + ${killedForRetry.length} killed rows (bounded retry)` : ''}`
   );
   if (toJudge.length === 0) return;
   const isPublished = new Set(published.map((s) => s.slug));

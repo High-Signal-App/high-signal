@@ -89,9 +89,11 @@ it('reads retained historical draft evidence only through the protected review r
   expect(response.status).toBe(200);
   expect(response.headers.get('cache-control')).toBe('private, no-store');
   const payload = (await response.json()) as {
+    signal: { slug: string; reviewStatus: string };
     claims: { reviewStatus: string; evidence: unknown[] }[];
     evidence: unknown[];
   };
+  expect(payload.signal).toMatchObject({ slug: 'aged-draft', reviewStatus: 'draft' });
   expect(payload.claims).toHaveLength(1);
   expect(payload.claims[0]).toMatchObject({
     reviewStatus: 'draft',
@@ -145,6 +147,10 @@ it('keeps retained aggregator documents context-only for the publisher', async (
     .prepare('UPDATE source_documents SET source = ? WHERE id = ?')
     .bind('techmeme', 'source-1')
     .run();
+  await database.binding
+    .prepare('UPDATE evidence SET excerpt = NULL WHERE url = ?')
+    .bind(urls[1])
+    .run();
   const response = await request('/admin/signals-review/aged-draft', `Bearer ${token}`);
   expect(response.status).toBe(200);
   const payload = (await response.json()) as {
@@ -162,7 +168,94 @@ it('keeps retained aggregator documents context-only for the publisher', async (
   );
   expect(payload.evidence).toEqual(
     expect.arrayContaining([
-      { url: urls[1], excerpt: 'Retained excerpt 1', sourceType: 'techmeme' },
+      { url: urls[1], excerpt: 'Retained source text', sourceType: 'techmeme' },
     ])
   );
+});
+
+it('recovers blank legacy excerpts from the exact linked retained document', async () => {
+  await database.binding.prepare("UPDATE evidence SET excerpt = '  '").run();
+  const response = await request('/admin/signals-review/aged-draft', `Bearer ${token}`);
+  const payload = (await response.json()) as { evidence: { excerpt: string }[] };
+  expect(payload.evidence.map((item) => item.excerpt)).toEqual([
+    'Retained source text',
+    'Retained source text',
+  ]);
+});
+
+it('never substitutes text from a document whose canonical URL differs from the citation', async () => {
+  await database.binding.prepare('UPDATE evidence SET excerpt = NULL').run();
+  await database.binding
+    .prepare(
+      "UPDATE source_documents SET canonical_url = 'https://different.example/report' WHERE id = 'source-1'"
+    )
+    .run();
+  const response = await request('/admin/signals-review/aged-draft', `Bearer ${token}`);
+  const payload = (await response.json()) as {
+    evidence: { url: string; excerpt: string | null }[];
+  };
+  expect(payload.evidence.find((item) => item.url === urls[0])?.excerpt).toBe(
+    'Retained source text'
+  );
+  expect(payload.evidence.find((item) => item.url === urls[1])?.excerpt).toBeNull();
+});
+
+it('keeps missing retained text unavailable and caps recovered excerpts', async () => {
+  await database.binding.prepare('UPDATE evidence SET excerpt = NULL').run();
+  await database.binding
+    .prepare('UPDATE source_documents SET raw_text = ? WHERE id = ?')
+    .bind('x'.repeat(3000), 'source-0')
+    .run();
+  await database.binding
+    .prepare("UPDATE source_documents SET raw_text = NULL WHERE id = 'source-1'")
+    .run();
+  const response = await request('/admin/signals-review/aged-draft', `Bearer ${token}`);
+  const payload = (await response.json()) as {
+    evidence: { url: string; excerpt: string | null }[];
+  };
+  expect(payload.evidence.find((item) => item.url === urls[0])?.excerpt).toBe('x'.repeat(1500));
+  expect(payload.evidence.find((item) => item.url === urls[1])?.excerpt).toBeNull();
+});
+
+it('reviews 101 linked documents within the production D1 parameter limit', async () => {
+  const claim = await database.binding
+    .prepare('SELECT id, signal_id FROM claim_records LIMIT 1')
+    .first<{ id: string; signal_id: string }>();
+  expect(claim).not.toBeNull();
+  for (let index = 2; index < 101; index++) {
+    const url = `https://source-${index}.example/report`;
+    await database.binding
+      .prepare(`INSERT INTO source_documents
+      (id, source, canonical_url, document_key, fetched_at, raw_hash, raw_text, created_at)
+      VALUES (?, 'news', ?, ?, 1, 'fixture-hash', 'Retained source text', 1)`)
+      .bind(`source-${index}`, url, `news:fixture:${url}`)
+      .run();
+    await database.binding
+      .prepare(`INSERT INTO claim_evidence_links
+      (id, claim_id, evidence_url, source_document_id, role, added_at)
+      VALUES (?, ?, ?, ?, 'corroboration', 1)`)
+      .bind(`link-${index}`, claim!.id, url, `source-${index}`)
+      .run();
+    await database.binding
+      .prepare(`INSERT INTO evidence (id, signal_id, url, source_type)
+      VALUES (?, ?, ?, 'news')`)
+      .bind(`evidence-${index}`, claim!.signal_id, url)
+      .run();
+  }
+  await database.binding.prepare('UPDATE evidence SET excerpt = NULL').run();
+  const prepare = database.binding.prepare.bind(database.binding);
+  database.binding.prepare = (sql: string) => {
+    const statement = prepare(sql);
+    const bind = statement.bind.bind(statement);
+    statement.bind = (...values: unknown[]) => {
+      if (values.length > 100) throw new Error('D1 bound-parameter limit exceeded');
+      return bind(...values);
+    };
+    return statement;
+  };
+  const response = await request('/admin/signals-review/aged-draft', `Bearer ${token}`);
+  expect(response.status).toBe(200);
+  const payload = (await response.json()) as { evidence: { excerpt: string }[] };
+  expect(payload.evidence).toHaveLength(101);
+  expect(payload.evidence.every((item) => item.excerpt === 'Retained source text')).toBe(true);
 });

@@ -63,7 +63,11 @@ def files(count=4, traded=3, day=DAY):
 def compressed(master, prices, day=DAY):
     zipped = io.BytesIO()
     with zipfile.ZipFile(zipped, "w", zipfile.ZIP_DEFLATED) as archive:
-        archive.writestr(f"BhavCopy_NSE_CM_0_0_0_{day:%Y%m%d}_F_0000.csv", csv_bytes(prices))
+        member = zipfile.ZipInfo(
+            f"BhavCopy_NSE_CM_0_0_0_{day:%Y%m%d}_F_0000.csv",
+            date_time=(day.year, day.month, day.day, 0, 0, 0),
+        )
+        archive.writestr(member, csv_bytes(prices), compress_type=zipfile.ZIP_DEFLATED)
     return gzip.compress(csv_bytes(master), mtime=0), zipped.getvalue()
 
 

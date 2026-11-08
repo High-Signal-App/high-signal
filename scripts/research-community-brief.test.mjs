@@ -91,3 +91,36 @@ test('one unavailable lead does not starve the other bounded research attempts',
   );
   assert.equal(attempts, 2);
 });
+
+test('operator failures expose bounded stage and HTTP status without provider secrets', async () => {
+  await assert.rejects(
+    () =>
+      researchCommunityBrief({
+        api: 'https://api.example.org',
+        token: 'test-only',
+        fetchImpl: async (url, init) => {
+          if (url.endsWith('/initialize')) return Response.json({ ok: true });
+          if (init.method === 'GET')
+            return Response.json({ communities: [{ id: 'a', leads: [{ id: 'a0' }] }] });
+          return Response.json(
+            {
+              status: 'unavailable',
+              reason: 'research_or_model_unavailable',
+              failure: {
+                stage: 'generation',
+                kind: 'request_or_storage_error',
+                statusCode: 429,
+                message: 'private provider detail',
+              },
+            },
+            { status: 503 }
+          );
+        },
+      }),
+    (error) => {
+      assert.match(error.message, /generation, request_or_storage_error, HTTP 429/);
+      assert.doesNotMatch(error.message, /private provider detail/);
+      return true;
+    }
+  );
+});
