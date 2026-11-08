@@ -333,13 +333,17 @@ async function resolveSourceDocument(
   const [sourceDocument] = await db(d1)
     .select({
       id: schema.sourceDocuments.id,
+      canonicalUrl: schema.sourceDocuments.canonicalUrl,
       source: schema.sourceDocuments.source,
       rawText: schema.sourceDocuments.rawText,
     })
     .from(schema.sourceDocuments)
     .where(where)
     .limit(1);
-  return sourceDocument ?? null;
+  return sourceDocument &&
+    canonicalSourceUrl(sourceDocument.canonicalUrl) === canonicalSourceUrl(url)
+    ? sourceDocument
+    : null;
 }
 
 function inferSourceType(url: string): string {

@@ -41,25 +41,40 @@ export async function loadSignalReviewEvidence(
     })
     .from(schema.evidence)
     .where(eq(schema.evidence.signalId, signalId));
-  return retained.map((item) => {
+  const reviewed = retained.map((item) => {
     const matching = links.filter(
       (link) => canonicalSourceUrl(link.evidenceUrl) === canonicalSourceUrl(item.url)
     );
-    const document = matching
-      .map((link) => byId.get(link.sourceDocumentId ?? ''))
-      .find(
-        (candidate) =>
-          candidate?.rawText?.trim() &&
-          canonicalSourceUrl(candidate.canonicalUrl) === canonicalSourceUrl(item.url)
-      );
+    const documents = matching.flatMap((link) => {
+      const document = byId.get(link.sourceDocumentId ?? '');
+      return document ? [document] : [];
+    });
+    const matchingDocuments = documents.filter(
+      (candidate) => canonicalSourceUrl(candidate.canonicalUrl) === canonicalSourceUrl(item.url)
+    );
+    const document = matchingDocuments.find((candidate) => candidate.rawText?.trim());
     return {
-      ...item,
-      excerpt: item.excerpt?.trim()
-        ? item.excerpt
-        : document?.rawText?.trim().slice(0, 1_500) || null,
-      sourceType: matching.some((link) => link.notes?.includes('source:techmeme'))
-        ? 'techmeme'
-        : item.sourceType,
+      evidence: {
+        ...item,
+        excerpt: item.excerpt?.trim()
+          ? item.excerpt
+          : document?.rawText?.trim().slice(0, 1_500) || null,
+        sourceType: matching.some((link) => link.notes?.includes('source:techmeme'))
+          ? 'techmeme'
+          : item.sourceType,
+      },
+      coverage: {
+        url: item.url,
+        legacyText: Boolean(item.excerpt?.trim()),
+        linked: matching.some((link) => link.sourceDocumentId),
+        documentPresent: documents.length > 0,
+        canonicalMatch: matchingDocuments.length > 0,
+        retainedText: Boolean(document),
+      },
     };
   });
+  return {
+    evidence: reviewed.map((item) => item.evidence),
+    evidenceCoverage: reviewed.map((item) => item.coverage),
+  };
 }

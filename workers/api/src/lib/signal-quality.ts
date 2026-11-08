@@ -1,5 +1,6 @@
 import {
   assessSignalQuality,
+  canonicalSourceUrl,
   isContextOnlyEvidenceSource,
   judgePublishability,
   oppositeDirectionConflictIds,
@@ -54,30 +55,37 @@ export async function sourceAwareEvidenceLinks(
     ...new Set(links.flatMap((link) => (link.sourceDocumentId ? [link.sourceDocumentId] : []))),
   ];
   const contextIds = new Set<string>();
+  const canonicalUrls = new Map<string, string>();
   for (const chunk of d1QueryChunks(ids)) {
     const documents = await database
       .select({
         id: schema.sourceDocuments.id,
+        canonicalUrl: schema.sourceDocuments.canonicalUrl,
         source: schema.sourceDocuments.source,
         rawText: schema.sourceDocuments.rawText,
       })
       .from(schema.sourceDocuments)
       .where(inArray(schema.sourceDocuments.id, chunk));
     for (const document of documents) {
+      canonicalUrls.set(document.id, document.canonicalUrl);
       if (isContextOnlyEvidenceSource(document.source, document.rawText))
         contextIds.add(document.id);
     }
   }
-  return links.map((link) =>
-    contextIds.has(link.sourceDocumentId ?? '')
-      ? {
-          ...link,
-          role: 'context' as const,
-          semanticAlignment: 'unverified' as const,
-          notes: `${link.notes ?? ''} alignment:unverified source:techmeme`,
-        }
-      : link
-  );
+  return links.map((link) => {
+    const contextOnly = contextIds.has(link.sourceDocumentId ?? '');
+    const canonical = canonicalUrls.get(link.sourceDocumentId ?? '');
+    const mismatched =
+      typeof canonical === 'string' &&
+      canonicalSourceUrl(canonical) !== canonicalSourceUrl(link.evidenceUrl);
+    if (!contextOnly && !mismatched) return link;
+    return {
+      ...link,
+      role: 'context' as const,
+      semanticAlignment: 'unverified' as const,
+      notes: `${link.notes ?? ''} alignment:unverified ${contextOnly ? 'source:techmeme' : 'citation:url_mismatch'}`,
+    };
+  });
 }
 
 /** Recheck cached provenance, including protected history, against retained source owners. */

@@ -196,7 +196,7 @@ adminRoute.get('/signals-review/:slug', async (c) => {
   return c.json({
     signal: enrichSignals([signal])[0],
     claims,
-    evidence: await loadSignalReviewEvidence(c.env.DB, signal.id, claims),
+    ...(await loadSignalReviewEvidence(c.env.DB, signal.id, claims)),
   });
 });
 

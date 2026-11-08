@@ -13,6 +13,8 @@ export async function inspectSignalEvidence({ api, token, slug, fetchImpl = fetc
   if (!Array.isArray(payload.claims) || !Array.isArray(payload.evidence))
     throw new Error('Invalid signal evidence response');
   const links = payload.claims.flatMap((claim) => claim.evidence ?? []);
+  const coverage = Array.isArray(payload.evidenceCoverage) ? payload.evidenceCoverage : null;
+
   return {
     slug,
     claims: payload.claims.length,
@@ -22,6 +24,23 @@ export async function inspectSignalEvidence({ api, token, slug, fetchImpl = fetc
       links.filter((link) => link.sourceDocumentId).map((link) => link.evidenceUrl)
     ).size,
     contextOnlySources: payload.evidence.filter((item) => item.sourceType === 'techmeme').length,
+    ...(coverage
+      ? {
+          textGaps: {
+            unlinked: coverage.filter((item) => !item.legacyText && !item.linked).length,
+            documentMissing: coverage.filter(
+              (item) => !item.legacyText && item.linked && !item.documentPresent
+            ).length,
+            citationMismatch: coverage.filter(
+              (item) => !item.legacyText && item.documentPresent && !item.canonicalMatch
+            ).length,
+            textMissing: coverage.filter(
+              (item) => !item.legacyText && item.canonicalMatch && !item.retainedText
+            ).length,
+            recovered: coverage.filter((item) => !item.legacyText && item.retainedText).length,
+          },
+        }
+      : {}),
   };
 }
 
