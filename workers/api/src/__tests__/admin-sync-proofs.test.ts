@@ -139,6 +139,35 @@ describe('POST /admin/sync proof receipts', () => {
     expect(links.every((link) => link['source_document_id'] === null)).toBe(true);
   });
 
+  it('does not verify a citation using a different document selected by key', async () => {
+    retainDocuments();
+    const signal = proofSignal();
+    signal.evidence[1]!.sourceDocumentKey = signal.evidence[0]!.sourceDocumentKey;
+    expect((await sync(signal)).status).toBe(200);
+    const links = await rows('claim_evidence_links');
+    expect(links.find((link) => link['evidence_url'] === signal.evidenceUrls[0])).toMatchObject({
+      source_document_id: 'retained-0',
+      semantic_alignment: 'verified',
+    });
+    expect(links.find((link) => link['evidence_url'] === signal.evidenceUrls[1])).toMatchObject({
+      source_document_id: null,
+      semantic_alignment: 'unverified',
+    });
+  });
+
+  it('keeps verified receipts for equivalent canonical citation URLs', async () => {
+    retainDocuments();
+    const signal = proofSignal();
+    signal.evidence[0]!.url = 'https://www.one.example/a?utm_source=fixture#section';
+    signal.evidenceUrls[0] = signal.evidence[0]!.url;
+    expect((await sync(signal)).status).toBe(200);
+    expect(
+      (await rows('claim_evidence_links')).every(
+        (link) => link['semantic_alignment'] === 'verified'
+      )
+    ).toBe(true);
+  });
+
   it.each(['published', 'corrected', 'killed'])(
     'preserves the entire %s signal and its proof history on replay',
     async (status) => {

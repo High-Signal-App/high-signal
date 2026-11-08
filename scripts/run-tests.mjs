@@ -67,6 +67,8 @@ const NODE_SUITES = [
   ['worker-routing', 'scripts/worker-routing.test.mjs'],
   ['verify-mcp-consumer', 'scripts/verify-mcp-consumer.test.mjs'],
   ['verify-daily-brief', 'scripts/verify-daily-brief.test.mjs'],
+  ['inspect-signal-evidence', 'scripts/inspect-signal-evidence.test.mjs'],
+  ['research-community-brief', 'scripts/research-community-brief.test.mjs'],
   ['public-corpus', 'scripts/public-corpus-policy.test.mjs'],
   ['public-sitemap', 'scripts/public-sitemap.test.mjs'],
   ['articles-discovery', 'apps/web/scripts/articles-discovery.test.mjs'],
