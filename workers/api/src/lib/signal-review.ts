@@ -1,6 +1,7 @@
 import { canonicalSourceUrl, type ClaimWithEvidence } from '@high-signal/shared';
 import { eq, inArray } from 'drizzle-orm';
 import { db, schema } from '../db';
+import { d1QueryChunks } from './signal-quality';
 
 /** Recover legacy excerpt gaps only from the citation's linked, retained original. */
 export async function loadSignalReviewEvidence(
@@ -13,17 +14,25 @@ export async function loadSignalReviewEvidence(
   const ids = [
     ...new Set(links.flatMap((link) => (link.sourceDocumentId ? [link.sourceDocumentId] : []))),
   ];
-  const documents = ids.length
-    ? await database
-        .select({
-          id: schema.sourceDocuments.id,
-          canonicalUrl: schema.sourceDocuments.canonicalUrl,
-          rawText: schema.sourceDocuments.rawText,
-        })
-        .from(schema.sourceDocuments)
-        .where(inArray(schema.sourceDocuments.id, ids))
-    : [];
-  const byId = new Map(documents.map((document) => [document.id, document]));
+  const byId = new Map<
+    string,
+    {
+      id: string;
+      canonicalUrl: string;
+      rawText: string | null;
+    }
+  >();
+  for (const chunk of d1QueryChunks(ids)) {
+    const documents = await database
+      .select({
+        id: schema.sourceDocuments.id,
+        canonicalUrl: schema.sourceDocuments.canonicalUrl,
+        rawText: schema.sourceDocuments.rawText,
+      })
+      .from(schema.sourceDocuments)
+      .where(inArray(schema.sourceDocuments.id, chunk));
+    for (const document of documents) byId.set(document.id, document);
+  }
   const retained = await database
     .select({
       url: schema.evidence.url,
