@@ -4,6 +4,10 @@ on:
   # Scheduled by the API Worker's Cloudflare cron dispatcher at 03:30 UTC.
   workflow_dispatch:
     inputs:
+      inspect_slug:
+        description: read-only retained-evidence counts for one signal; skips publishing
+        type: string
+        default: ""
       dry:
         description: dry-run (judge but don't PATCH)
         type: boolean
@@ -31,6 +35,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: auto-publish drafts
         env:
+          INSPECT_SLUG: ${{ inputs.inspect_slug }}
           API_BASE: ${{ secrets.API_BASE || 'https://api.highsignal.app' }}
           ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
           AI_BASE_URL: ${{ secrets.AI_BASE_URL || 'https://api.deepseek.com/v1' }}
@@ -38,7 +43,9 @@ jobs:
           AI_MODEL: ${{ secrets.AI_MODEL || 'deepseek-chat' }}
           AI_PROJECT_ID: high-signal
         run: |
-          if [ "${{ inputs.dry }}" = "true" ]; then
+          if [ -n "$INSPECT_SLUG" ]; then
+            node scripts/inspect-signal-evidence.mjs
+          elif [ "${{ inputs.dry }}" = "true" ]; then
             pnpm signals:auto-publish:dry
           elif [ "${{ inputs.reapply }}" = "true" ]; then
             pnpm signals:auto-publish:reapply
@@ -48,13 +55,13 @@ jobs:
             pnpm signals:auto-publish:remote
           fi
       - name: rebuild current daily brief
-        if: ${{ inputs.dry != true }}
+        if: ${{ inputs.dry != true && !inputs.inspect_slug }}
         env:
           API_BASE: ${{ secrets.API_BASE || 'https://api.highsignal.app' }}
           ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
         run: node scripts/precompute-daily-brief.mjs
       - name: verify reader-facing brief and evidence freshness
-        if: ${{ inputs.dry != true }}
+        if: ${{ inputs.dry != true && !inputs.inspect_slug }}
         env:
           HIGH_SIGNAL_API: ${{ secrets.API_BASE || 'https://api.highsignal.app' }}
           BRIEF_REGIONS: global
