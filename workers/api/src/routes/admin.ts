@@ -187,13 +187,14 @@ adminRoute.get('/signals-review/:slug', async (c) => {
   c.header('Cache-Control', 'private, no-store');
   const database = db(c.env.DB);
   const [signal] = await database
-    .select({ id: schema.signals.id })
+    .select()
     .from(schema.signals)
     .where(eq(schema.signals.slug, c.req.param('slug')))
     .limit(1);
   if (!signal) return c.json({ error: 'not_found' }, 404);
   const claims = await loadSignalClaims(c.env.DB, signal.id);
   return c.json({
+    signal: enrichSignals([signal])[0],
     claims,
     evidence: await loadSignalReviewEvidence(c.env.DB, signal.id, claims),
   });

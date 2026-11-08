@@ -89,9 +89,11 @@ it('reads retained historical draft evidence only through the protected review r
   expect(response.status).toBe(200);
   expect(response.headers.get('cache-control')).toBe('private, no-store');
   const payload = (await response.json()) as {
+    signal: { slug: string; reviewStatus: string };
     claims: { reviewStatus: string; evidence: unknown[] }[];
     evidence: unknown[];
   };
+  expect(payload.signal).toMatchObject({ slug: 'aged-draft', reviewStatus: 'draft' });
   expect(payload.claims).toHaveLength(1);
   expect(payload.claims[0]).toMatchObject({
     reviewStatus: 'draft',

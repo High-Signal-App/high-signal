@@ -95,6 +95,7 @@ globalThis.fetch = async (input, init) => {
   }
   if (url.hostname !== 'fixture.invalid') throw new Error('Unexpected network destination');
   if (url.pathname === '/admin/signals-review') {
+    if (mode.startsWith('retry') && url.searchParams.get('status') === 'killed') throw new Error('Historical retry used capped list');
     if (init.headers.Authorization !== 'Bearer synthetic-admin') throw new Error('Admin credential whitespace not normalized');
     return Response.json({
     signals: url.searchParams.get('status') === (mode.startsWith('retry') ? 'killed' : 'draft') ? [signal, {...signal, id:'other', slug:'other'}] : []
@@ -106,7 +107,9 @@ globalThis.fetch = async (input, init) => {
   if (url.pathname === '/admin/signals-review/fixture') {
     if (init.headers?.Authorization !== 'Bearer synthetic-admin') throw new Error('Protected review credential missing');
     if (mode === 'lookup-failed') return new Response('', {status:503});
+    if (mode === 'retry-missing') return new Response('', {status:404});
     return Response.json({
+    signal: {...signal, reviewStatus: mode === 'retry-published' ? 'published' : 'killed'},
     claims: mode === 'prose' || mode === 'oversized' ? [{
       id: 'claim', reviewStatus: 'draft', evidence: signal.evidenceUrls.map((evidenceUrl, index) => ({
         id: 'link-' + index, claimId: 'claim', evidenceUrl,
@@ -181,6 +184,38 @@ process.on('exit', () => console.log('judge requests=' + requests));
       if (mode.startsWith('retry'))
         assert.ok(child.stdout.includes('1 killed rows (bounded retry)'));
     }
+    for (const mode of ['retry-missing', 'retry-published']) {
+      const child = spawnSync(
+        process.execPath,
+        [
+          '--import',
+          'tsx',
+          '--import',
+          preload,
+          'scripts/auto-publish-drafts.ts',
+          '--retry-killed',
+          '--slug=fixture',
+        ],
+        {
+          cwd: process.cwd(),
+          encoding: 'utf8',
+          timeout: 10_000,
+          env: {
+            ...process.env,
+            TEST_JUDGE_MODE: mode,
+            API_BASE: 'https://fixture.invalid',
+            ADMIN_TOKEN: 'synthetic-admin',
+          },
+        }
+      );
+      assert.equal(child.status, 1);
+      assert.match(
+        child.stderr,
+        /Retry target lookup failed \(HTTP 404\)|Retry target is not a rejected signal/
+      );
+      assert.doesNotMatch(child.stdout, /fixture withheld/);
+      assert.ok(child.stdout.includes('judge requests=0'));
+    }
     for (const invalid of [
       ['--retry-killed'],
       ['--retry-killed', '--slug=../other'],
@@ -197,6 +232,7 @@ process.on('exit', () => console.log('judge requests=' + requests));
           env: {
             ...process.env,
             TEST_JUDGE_MODE: 'reject-options',
+            ADMIN_TOKEN: 'synthetic-admin',
             API_BASE: 'https://fixture.invalid',
           },
         }
