@@ -7,8 +7,12 @@ import {
   WEB_ARTIFACT_PATH,
   buildWebCompanyUniverseArtifact,
 } from './company-universe-web-artifact';
+import { isSupplementEvidence, loadCompanySupplements } from './company-universe-supplements';
 
-const expected = buildWebCompanyUniverseArtifact(fullArtifact as CompanyUniverseArtifact);
+const expected = buildWebCompanyUniverseArtifact(fullArtifact as CompanyUniverseArtifact, {
+  supplements: loadCompanySupplements(),
+  asOf: (webArtifact as CompanyUniverseArtifact).supplementReview?.asOf ?? fullArtifact.generatedAt,
+});
 assert.deepEqual(webArtifact, expected);
 assert.equal(webArtifact.companies.length, fullArtifact.companies.length);
 assert.equal(
@@ -18,7 +22,7 @@ assert.equal(
 assert.equal(
   webArtifact.companies.every(
     (company) =>
-      company.sourceEvidenceCount ===
+      company.sourceEvidence.filter((item) => !isSupplementEvidence(item)).length ===
       fullArtifact.companies.find(({ slug }) => slug === company.slug)?.sourceEvidence.length
   ),
   true
@@ -29,7 +33,7 @@ assert.equal(
       (evidence) =>
         evidence.source.length > 0 &&
         evidence.sourceUrl.startsWith('https://') &&
-        evidence.fund.length > 0 &&
+        (isSupplementEvidence(evidence) ? evidence.excerpt.length > 0 : evidence.fund.length > 0) &&
         evidence.title.length > 0 &&
         evidence.description === ''
     )

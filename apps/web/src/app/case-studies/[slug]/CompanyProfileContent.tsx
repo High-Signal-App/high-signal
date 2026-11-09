@@ -134,15 +134,32 @@ function CompanyEvidence({ study, eligible }: { study: ProfileCompany; eligible:
           )}
           {study.sourceEvidence.map((item) => (
             <div
-              key={`${item.source}-${item.position}-${item.title}`}
+              key={
+                'evidenceKind' in item
+                  ? item.evidenceId
+                  : `${item.source}-${item.position}-${item.title}`
+              }
               className="border-t border-[var(--color-line)] pt-4"
             >
               <div className="flex flex-wrap items-baseline justify-between gap-3">
-                <h2 className="text-base font-medium text-zinc-100">{item.fund}</h2>
+                <h2 className="text-base font-medium text-zinc-100">
+                  {'evidenceKind' in item ? item.sourceCompanyName : item.fund}
+                </h2>
                 <span className="font-mono text-[10px] tracking-[0.14em] text-zinc-500">
-                  {item.source} #{item.position}
+                  {'evidenceKind' in item
+                    ? `company statement · observed ${item.fetchedAt.slice(0, 10)}`
+                    : `${item.source} #${item.position}`}
                 </span>
               </div>
+              {'evidenceKind' in item && (
+                <div className="mt-2 text-sm leading-6 text-[var(--color-muted)]">
+                  <p>{item.claim}</p>
+                  <blockquote className="mt-2 border-l border-[var(--color-line)] pl-3">
+                    “{item.excerpt}”
+                  </blockquote>
+                  <p className="mt-2 text-xs">Company-owned source; supports this product claim.</p>
+                </div>
+              )}
               {item.description && (
                 <p className="mt-2 text-sm leading-6 text-[var(--color-muted)]">
                   {item.description}
@@ -154,7 +171,7 @@ function CompanyEvidence({ study, eligible }: { study: ProfileCompany; eligible:
                 target="_blank"
                 rel="noreferrer"
               >
-                official source
+                {'evidenceKind' in item ? 'official company page' : 'official source'}
               </a>
             </div>
           ))}

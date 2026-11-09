@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "astro build && node scripts/package-artifacts.mjs",
+    "build": "pnpm -C ../.. company-universe:web-artifact && astro build && node scripts/package-artifacts.mjs",
     "dev": "astro dev",
     "preview": "astro preview",
     "capture": "tsx scripts/capture-brief.ts",

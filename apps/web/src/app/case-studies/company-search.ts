@@ -356,13 +356,11 @@ function buildCompanySearchDocument(company: UniverseCompany): CompanySearchDocu
   const evidence = normalize(
     [
       ...(company.searchMetadata ?? []),
-      ...company.sourceEvidence.flatMap((item) => [
-        item.cohort,
-        item.program,
-        item.location,
-        item.website,
-        item.status,
-      ]),
+      ...company.sourceEvidence.flatMap((item) =>
+        'evidenceKind' in item
+          ? []
+          : [item.cohort, item.program, item.location, item.website, item.status]
+      ),
     ]
       .filter(Boolean)
       .join(' ')
