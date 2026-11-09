@@ -53,6 +53,7 @@ export type SupplementOutcome = {
 
 export const SUPPLEMENTS_PATH = resolve(__dirname, '../data/company-universe-supplements.json');
 export const sha256 = (value: string): string => createHash('sha256').update(value).digest('hex');
+const WORD_SEPARATOR = /\s+/;
 
 function record(value: unknown, keys: string[]): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -133,8 +134,8 @@ function parseCapture(value: unknown): CompanySupplement['capture'] {
   hash(capture['contentSha256']);
   text(capture['claim']);
   text(capture['excerpt']);
-  if (capture['excerpt'].split(/\s+/).length > 25)
-    throw new Error('Supplement excerpt exceeds 25 words');
+  const excerptWords = capture['excerpt'].split(WORD_SEPARATOR);
+  if (excerptWords.length > 25) throw new Error('Supplement excerpt exceeds 25 words');
   const identity = record(capture['sourceCompanyIdentity'], [
     'name',
     'canonicalWebsite',
