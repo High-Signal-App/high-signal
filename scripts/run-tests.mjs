@@ -39,6 +39,8 @@ const TSX_SUITES = [
   ['claim-provenance', 'scripts/claim-provenance.test.ts'],
   ['publishability', 'scripts/publishability.test.ts'],
   ['evidence-ranking', 'scripts/evidence-ranking.test.ts'],
+  ['company-universe-web-artifact', 'scripts/company-universe-web-artifact.test.ts'],
+  ['company-universe-supplements', 'scripts/company-universe-supplements.test.ts'],
 ];
 
 const tsxBin = resolve(ROOT, 'node_modules/.bin/tsx');

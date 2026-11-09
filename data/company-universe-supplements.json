@@ -1,0 +1,150 @@
+{
+  "schemaVersion": 1,
+  "entries": [
+    {
+      "id": "official-site-20261109-10x",
+      "companySlug": "10x",
+      "expectedName": "10x",
+      "expectedDirectoryUrl": "https://www.ycombinator.com/companies/10x",
+      "expectedWebsiteHost": "10xdental.com",
+      "expectedDescriptionSha256": "dafbdd8f99c810aefa970e9ecfef6c681aa67482f92e547f94750f560e207a5d",
+      "capture": {
+        "sourceUrl": "https://www.10xdental.com/",
+        "finalUrl": "https://www.10xdental.com/",
+        "fetchedAt": "2026-11-09T15:10:23.863Z",
+        "contentSha256": "b991e8d007ee8277fb584860843541c9b40fc6c9fca76554d3e6f689087f6e29",
+        "claim": "10x offers call and text workflows for dental patient recall.",
+        "excerpt": "Two-way conversations by call and text, every day, so recall does not wait on a free moment at the front desk.",
+        "sourceCompanyIdentity": {
+          "name": "10x",
+          "canonicalWebsite": "https://www.10xdental.com/",
+          "identityBasis": "The current YC company record lists this website; the retained page identifies the same product."
+        }
+      },
+      "review": {
+        "state": "accepted",
+        "reviewedAt": "2026-11-09T15:15:23.942Z",
+        "reviewer": "codex-source-review",
+        "validUntil": "2026-12-09T15:15:23.942Z",
+        "supportRationale": "Company-owned page supports the stated core product capability. This does not independently verify adoption, financial, performance or other historical directory claims.",
+        "identityRationale": "Exact company name and website match the current YC company record; destination remains on the retained official host."
+      }
+    },
+    {
+      "id": "official-site-20261109-firecrawl",
+      "companySlug": "firecrawl",
+      "expectedName": "Firecrawl",
+      "expectedDirectoryUrl": "https://www.ycombinator.com/companies/firecrawl",
+      "expectedWebsiteHost": "firecrawl.dev",
+      "expectedDescriptionSha256": "43d2318342312cc073076fa257b23aecf1fca36900b32e3a9bd2678e2914fee0",
+      "capture": {
+        "sourceUrl": "https://www.firecrawl.dev",
+        "finalUrl": "https://www.firecrawl.dev",
+        "fetchedAt": "2026-11-09T15:10:25.206Z",
+        "contentSha256": "df819a986093ca34d97e169a930dd341acd60435ea2f6d8fe3ba260e86f5af61",
+        "claim": "Firecrawl provides web search and scraping data for AI applications.",
+        "excerpt": "The infrastructure layer that helps AI find, read, and act on the live web.",
+        "sourceCompanyIdentity": {
+          "name": "Firecrawl",
+          "canonicalWebsite": "https://www.firecrawl.dev",
+          "identityBasis": "The current YC company record lists this website; the retained page identifies the same product."
+        }
+      },
+      "review": {
+        "state": "accepted",
+        "reviewedAt": "2026-11-09T15:15:23.942Z",
+        "reviewer": "codex-source-review",
+        "validUntil": "2026-12-09T15:15:23.942Z",
+        "supportRationale": "Company-owned page supports the stated core product capability. This does not independently verify adoption, financial, performance or other historical directory claims.",
+        "identityRationale": "Exact company name and website match the current YC company record; destination remains on the retained official host."
+      }
+    },
+    {
+      "id": "official-site-20261109-langfuse",
+      "companySlug": "langfuse",
+      "expectedName": "Langfuse",
+      "expectedDirectoryUrl": "https://www.ycombinator.com/companies/langfuse",
+      "expectedWebsiteHost": "langfuse.com",
+      "expectedDescriptionSha256": "2a81efe49dff93d46975b600ae262fc08e18db94056d904760fde089f144774c",
+      "capture": {
+        "sourceUrl": "https://langfuse.com",
+        "finalUrl": "https://langfuse.com",
+        "fetchedAt": "2026-11-09T15:10:25.463Z",
+        "contentSha256": "16ef36665c8cd2437319bca26339b32550add1745dc8410a28768be7f07092cc",
+        "claim": "Langfuse provides LLM tracing, prompt management and evaluation workflows.",
+        "excerpt": "One integrated platform to trace, manage prompts, evaluate, and experiment from prototype to production scale.",
+        "sourceCompanyIdentity": {
+          "name": "Langfuse",
+          "canonicalWebsite": "https://langfuse.com",
+          "identityBasis": "The current YC company record lists this website; the retained page identifies the same product."
+        }
+      },
+      "review": {
+        "state": "accepted",
+        "reviewedAt": "2026-11-09T15:15:23.942Z",
+        "reviewer": "codex-source-review",
+        "validUntil": "2026-12-09T15:15:23.942Z",
+        "supportRationale": "Company-owned page supports the stated core product capability. This does not independently verify adoption, financial, performance or other historical directory claims.",
+        "identityRationale": "Exact company name and website match the current YC company record; destination remains on the retained official host."
+      }
+    },
+    {
+      "id": "official-site-20261109-supabase",
+      "companySlug": "supabase",
+      "expectedName": "Supabase",
+      "expectedDirectoryUrl": "https://www.ycombinator.com/companies/supabase",
+      "expectedWebsiteHost": "supabase.com",
+      "expectedDescriptionSha256": "021b338d98626fab9be96272dbdb0325b216e170e38e966aa99cdd6e2e6f86b5",
+      "capture": {
+        "sourceUrl": "https://supabase.com",
+        "finalUrl": "https://supabase.com",
+        "fetchedAt": "2026-11-09T15:10:26.219Z",
+        "contentSha256": "5a4a637b5fb22e7e126e3eb632bd83f26c701dfa8be608b92649d3c87bbb62bc",
+        "claim": "Supabase combines Postgres with authentication, APIs and realtime application services.",
+        "excerpt": "Start your project with a Postgres database. Add Authentication, Data APIs, Edge Functions, Realtime Data, Storage, and Vector embeddings.",
+        "sourceCompanyIdentity": {
+          "name": "Supabase",
+          "canonicalWebsite": "https://supabase.com",
+          "identityBasis": "The current YC company record lists this website; the retained page identifies the same product."
+        }
+      },
+      "review": {
+        "state": "accepted",
+        "reviewedAt": "2026-11-09T15:15:23.942Z",
+        "reviewer": "codex-source-review",
+        "validUntil": "2026-12-09T15:15:23.942Z",
+        "supportRationale": "Company-owned page supports the stated core product capability. This does not independently verify adoption, financial, performance or other historical directory claims.",
+        "identityRationale": "Exact company name and website match the current YC company record; destination remains on the retained official host."
+      }
+    },
+    {
+      "id": "official-site-20261109-trigger-dev",
+      "companySlug": "trigger-dev",
+      "expectedName": "Trigger.dev",
+      "expectedDirectoryUrl": "https://www.ycombinator.com/companies/trigger-dev",
+      "expectedWebsiteHost": "trigger.dev",
+      "expectedDescriptionSha256": "ea10b6b14ef68a166523a8b5136e40e1bce458e20e6ea8e29e1085cf2a70599b",
+      "capture": {
+        "sourceUrl": "https://trigger.dev",
+        "finalUrl": "https://trigger.dev",
+        "fetchedAt": "2026-11-09T15:10:28.786Z",
+        "contentSha256": "af5fca7a05bb23b3bdee8fb2771b89dad0d97f2c43bfd0a439f00a83c1d7f90c",
+        "claim": "Trigger.dev runs durable AI tasks and workflows in TypeScript with retries and queues.",
+        "excerpt": "Trigger.dev is the open source platform for building AI agents in TypeScript. Long-running tasks with retries, queues, AI observability, and elastic scaling.",
+        "sourceCompanyIdentity": {
+          "name": "Trigger.dev",
+          "canonicalWebsite": "https://trigger.dev",
+          "identityBasis": "The current YC company record lists this website; the retained page identifies the same product."
+        }
+      },
+      "review": {
+        "state": "accepted",
+        "reviewedAt": "2026-11-09T15:15:23.942Z",
+        "reviewer": "codex-source-review",
+        "validUntil": "2026-12-09T15:15:23.942Z",
+        "supportRationale": "Company-owned page supports the stated core product capability. This does not independently verify adoption, financial, performance or other historical directory claims.",
+        "identityRationale": "Exact company name and website match the current YC company record; destination remains on the retained official host."
+      }
+    }
+  ]
+}

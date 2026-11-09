@@ -1,6 +1,23 @@
 # high-signal — PROJECT STATUS
 
-Last updated: 2026-11-02
+Last updated: 2026-11-09
+
+November 9 reviewed company-source supplements — implementation:
+
+Five captured, reviewed company-owned pages now project from a versioned registry
+into the shared web artifact. Exact identity and historical-description bindings,
+review dates, expiry, and duplicate checks gate publication. Public evidence keeps
+an explicit product claim, short excerpt, observation date and capture hash;
+company statements do not become investor affiliations. Fixed-input replay is
+idempotent. The full historical snapshot, directory statistics, descriptions,
+entities and competitor edges remain unchanged. Only 10x, Firecrawl, Langfuse,
+Supabase and Trigger.dev gain evidence; local corpus eligibility rises from 335
+to 340 under the unchanged policy. This is an admission result, not an indexing
+or traffic result. Deployment, rendered qualification and API parity require separate evidence.
+The sync projection is implemented but no D1 sync ran. Expiry is checked at build
+time only; a deployed artifact needs regeneration and release before the earliest
+December 9 validity deadline. Follow-up and revalidation are tracked in
+[issue #320](https://github.com/High-Signal-App/high-signal/issues/320).
 
 November 2 public record HTML CPU correction — implementation:
 

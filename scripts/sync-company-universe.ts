@@ -16,22 +16,12 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
 import { escSql as esc } from './sync-signals.lib';
-
-interface CompanyUniverseArtifact {
-  generatedAt: string;
-  generatedBy: string;
-  strictHighSignalOnly: boolean;
-  sourceInputs: Array<{ id: string; label: string; url: string }>;
-  companies: Array<{
-    slug: string;
-    name: string;
-    description: string;
-    category: string;
-    investors: string[];
-    sourceEvidence: unknown[];
-    competitors: Array<{ slug: string; name: string; score: number; reason: string }>;
-  }>;
-}
+import type { CompanyUniverseArtifact } from '../apps/web/src/app/case-studies/data';
+import {
+  applyCompanySupplements,
+  loadCompanySupplements,
+  publicSourceEvidence,
+} from './company-universe-supplements';
 
 const __root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const ARTIFACT_PATH = resolve(__root, 'apps/web/src/data/company-universe.json');
@@ -40,16 +30,20 @@ const TMP_SQL = resolve(TMP_DIR, 'company-universe-sync.sql');
 const flag = process.argv.includes('--remote') ? '--remote' : '--local';
 const dryRun = process.argv.includes('--dry-run');
 
-function runId(generatedAt: string): string {
-  return createHash('sha256').update(`company-universe:${generatedAt}`).digest('hex').slice(0, 16);
+export function companyUniverseRunId(artifact: CompanyUniverseArtifact): string {
+  return createHash('sha256')
+    .update(
+      `company-universe:${artifact.generatedAt}:${artifact.supplementReview?.registrySha256 ?? ''}:${artifact.supplementReview?.appliedIds.join(',') ?? ''}`
+    )
+    .digest('hex')
+    .slice(0, 16);
 }
 
 function parseArtifact(): CompanyUniverseArtifact {
   return JSON.parse(readFileSync(ARTIFACT_PATH, 'utf8')) as CompanyUniverseArtifact;
 }
 
-function main() {
-  const artifact = parseArtifact();
+export function buildCompanyUniverseSyncSql(artifact: CompanyUniverseArtifact): string {
   const generatedMs = Date.parse(artifact.generatedAt);
   if (Number.isNaN(generatedMs)) {
     throw new Error(`invalid generatedAt in ${ARTIFACT_PATH}: ${artifact.generatedAt}`);
@@ -64,14 +58,14 @@ function main() {
     'DELETE FROM company_universe_competitors;',
     'DELETE FROM company_universe_companies;',
     'DELETE FROM company_universe_runs;',
-    `INSERT INTO company_universe_runs (id, generated_at, source_inputs_json, company_count, competitor_count, created_at) VALUES (${esc(runId(artifact.generatedAt))}, ${esc(artifact.generatedAt)}, ${esc(JSON.stringify(artifact.sourceInputs))}, ${artifact.companies.length}, ${competitorCount}, ${generatedUnix});`,
+    `INSERT INTO company_universe_runs (id, generated_at, source_inputs_json, company_count, competitor_count, created_at) VALUES (${esc(companyUniverseRunId(artifact))}, ${esc(artifact.generatedAt)}, ${esc(JSON.stringify(artifact.sourceInputs))}, ${artifact.companies.length}, ${competitorCount}, ${generatedUnix});`,
   ];
 
   for (const company of artifact.companies) {
     sql.push(
       `INSERT INTO company_universe_companies (slug, name, description, category, investors_json, source_evidence_json, generated_at, updated_at, status) VALUES (` +
         `${esc(company.slug)}, ${esc(company.name)}, ${esc(company.description)}, ${esc(company.category)}, ` +
-        `${esc(JSON.stringify(company.investors))}, ${esc(JSON.stringify(company.sourceEvidence))}, ${esc(artifact.generatedAt)}, ${generatedUnix}, 'generated');`
+        `${esc(JSON.stringify(company.investors))}, ${esc(JSON.stringify(company.sourceEvidence.map((item) => publicSourceEvidence(item))))}, ${esc(artifact.generatedAt)}, ${generatedUnix}, 'generated');`
     );
   }
 
@@ -84,8 +78,20 @@ function main() {
     }
   }
 
+  return `${sql.join('\n')}\n`;
+}
+
+function main() {
+  const { artifact } = applyCompanySupplements(parseArtifact(), loadCompanySupplements(), {
+    asOf: new Date().toISOString(),
+  });
+  const sql = buildCompanyUniverseSyncSql(artifact);
+  const competitorCount = artifact.companies.reduce(
+    (sum, company) => sum + company.competitors.length,
+    0
+  );
   mkdirSync(TMP_DIR, { recursive: true });
-  writeFileSync(TMP_SQL, `${sql.join('\n')}\n`);
+  writeFileSync(TMP_SQL, sql);
   console.log(
     JSON.stringify(
       {
@@ -122,9 +128,11 @@ function main() {
   proc.on('close', (code) => process.exit(code ?? 0));
 }
 
-try {
-  main();
-} catch (error) {
-  console.error(error);
-  process.exit(1);
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  try {
+    main();
+  } catch (error) {
+    console.error(error);
+    process.exit(1);
+  }
 }

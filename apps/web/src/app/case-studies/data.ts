@@ -1,6 +1,6 @@
 import artifact from '@/data/company-universe-web.json';
 
-export interface SourceEvidence {
+export interface DirectorySourceEvidence {
   source: string;
   sourceUrl: string;
   fund: string;
@@ -13,6 +13,24 @@ export interface SourceEvidence {
   website?: string;
   status?: string;
 }
+
+export interface OfficialCompanyEvidence {
+  source: 'official-company-site';
+  evidenceKind: 'reviewed-company-claim';
+  supplementId: string;
+  evidenceId: string;
+  sourceUrl: string;
+  title: string;
+  description: '';
+  excerpt: string;
+  claim: string;
+  fetchedAt: string;
+  reviewedAt: string;
+  contentSha256: string;
+  sourceCompanyName: string;
+}
+
+export type SourceEvidence = DirectorySourceEvidence | OfficialCompanyEvidence;
 
 export interface CompetitorEdge {
   slug: string;
@@ -79,6 +97,12 @@ export interface CompanyUniverseArtifact {
     undirectedEdgeCount: number;
     companiesWithPeers: number;
     complete: boolean;
+  };
+  supplementReview?: {
+    schemaVersion: 1;
+    registrySha256: string;
+    appliedIds: string[];
+    asOf: string;
   };
   companies: UniverseCompany[];
 }
