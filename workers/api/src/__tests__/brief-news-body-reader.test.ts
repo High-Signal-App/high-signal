@@ -221,18 +221,31 @@ describe('composition-local retained body reuse', () => {
   });
 
   it('keeps reporting and trust gates intact after the body memo reaches its text budget', () => {
+    let earlyReads = 0;
     let lateReads = 0;
     const articles = Array.from({ length: 60 }, (_, index) => {
       const company = `Acorn${index}`;
-      return Object.freeze(
-        record({
-          id: `long-${index}`,
-          title: `${company} launches enterprise analytics software`,
-          primaryEntityId: company.toLowerCase(),
-          sourceUrl: `https://reuters.com/technology/acorn-${index}`,
-          retainedText: `${company} announced its enterprise analytics software launch. ${body.repeat(200)}`,
-        })
-      );
+      const text =
+        `${company} announced its enterprise analytics software launch. ${body.repeat(200)}`.slice(
+          0,
+          29_000
+        );
+      const article = record({
+        id: `long-${index}`,
+        title: `${company} launches enterprise analytics software`,
+        primaryEntityId: company.toLowerCase(),
+        sourceUrl: `https://reuters.com/technology/acorn-${index}`,
+        retainedText: text,
+      });
+      if (index === 0) {
+        Object.defineProperty(article, 'retainedText', {
+          get() {
+            earlyReads++;
+            return text;
+          },
+        });
+      }
+      return Object.freeze(article);
     });
     const excluded = record({ id: 'blocked-after-budget', title: 'Blocked launches software' });
     excluded.retainedText = 'Access denied. Verify you are human.';
@@ -245,7 +258,10 @@ describe('composition-local retained body reuse', () => {
     Object.defineProperty(late, 'retainedText', {
       get() {
         lateReads++;
-        return `Latecomer announced its enterprise analytics software launch. ${body.repeat(200)}`;
+        return `Latecomer announced its enterprise analytics software launch. ${body.repeat(200)}`.slice(
+          0,
+          29_000
+        );
       },
     });
 
@@ -256,6 +272,49 @@ describe('composition-local retained body reuse', () => {
     expect(news.find((story) => story.title === late.title)?.source_references).toEqual([
       expect.objectContaining({ url: late.sourceUrl }),
     ]);
+    expect(earlyReads).toBe(1);
     expect(lateReads).toBeGreaterThan(1);
   });
+
+  it.each([
+    { length: 24_997, admitted: true },
+    { length: 24_998, admitted: true },
+    { length: 24_999, admitted: false },
+  ])(
+    'accounts for trimmed-parent space at the exact memo budget: $length',
+    ({ length, admitted }) => {
+      const sizedBody = (company: string, size: number) => {
+        const lead = `${company} announced its enterprise analytics software launch. `;
+        return lead + 'x'.repeat(size - lead.length);
+      };
+      // Each shorter-than-excerpt body charges exactly 24,998 + 2 units.
+      // 39 such bodies leave exactly 25,000 units for the boundary article.
+      const articles = Array.from({ length: 39 }, (_, index) =>
+        record({
+          id: `budget-${index}`,
+          title: `Filler${index} launches enterprise analytics software`,
+          primaryEntityId: `filler${index}`,
+          sourceUrl: `https://reuters.com/technology/filler-${index}`,
+          retainedText: sizedBody(`Filler${index}`, 24_998),
+        })
+      );
+      let reads = 0;
+      const boundary = record({
+        id: 'boundary',
+        title: 'Boundary launches enterprise analytics software',
+        primaryEntityId: 'boundary',
+        sourceUrl: 'https://reuters.com/technology/boundary',
+      });
+      Object.defineProperty(boundary, 'retainedText', {
+        get() {
+          reads++;
+          return sizedBody('Boundary', length);
+        },
+      });
+
+      expect(composeNewsStories([...articles, boundary], window)).toHaveLength(40);
+      if (admitted) expect(reads).toBe(1);
+      else expect(reads).toBeGreaterThan(1);
+    }
+  );
 });
