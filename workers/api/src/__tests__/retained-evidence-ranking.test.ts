@@ -24,7 +24,7 @@ describe('retained evidence ranking against SQLite', () => {
     try {
       database.exec(
         `CREATE TABLE events (source_url TEXT, title TEXT, content TEXT, published_at INTEGER, source TEXT, source_document_id TEXT);
-         CREATE TABLE source_documents (id TEXT PRIMARY KEY,raw_text TEXT)`
+         CREATE TABLE source_documents (id TEXT PRIMARY KEY,raw_text TEXT,source TEXT,parsed_fields TEXT)`
       );
       const insert = database.prepare(
         'INSERT INTO events (source_url,title,content,published_at,source) VALUES (?, ?, ?, ?, ?)'

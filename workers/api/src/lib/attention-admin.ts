@@ -1,3 +1,5 @@
+import { isContextOnlyEvidenceSource } from '@high-signal/shared';
+
 type AttentionTable = 'digg_clusters' | 'mts_situations';
 type AttentionIdColumn = 'short_id' | 'situation_id';
 
@@ -243,7 +245,8 @@ export async function retainedEvidenceCandidates(
   const retainedText = "coalesce(nullif(s.raw_text,''),e.content)";
   const rows = await d1
     .prepare(
-      `SELECT e.source_url, e.title, ${retainedText} AS content, e.published_at, e.source FROM events e
+      `SELECT e.source_url, e.title, ${retainedText} AS content, e.published_at, e.source,
+         s.source AS document_source, s.parsed_fields FROM events e
        LEFT JOIN source_documents s ON s.id=e.source_document_id
        WHERE e.published_at >= ? AND e.published_at <= unixepoch() AND length(${retainedText}) >= 500
          ${exclusions ? `AND ${exclusions}` : ''}
@@ -263,14 +266,29 @@ export async function retainedEvidenceCandidates(
       content: string;
       published_at: number;
       source: string;
+      document_source: string | null;
+      parsed_fields: string | null;
     }>();
-  return (rows.results ?? []).map((row) => ({
-    url: row.source_url,
-    title: row.title,
-    retainedContent: row.content,
-    seendate: new Date(row.published_at * 1000).toISOString(),
-    retainedSource: row.source,
-  }));
+  return (rows.results ?? []).map((row) => {
+    let policy: unknown = null;
+    try {
+      policy = JSON.parse(row.parsed_fields ?? 'null');
+    } catch {
+      /* legacy metadata unavailable */
+    }
+    return {
+      url: row.source_url,
+      title: row.title,
+      retainedContent: row.content,
+      seendate: new Date(row.published_at * 1000).toISOString(),
+      retainedSource: row.source,
+      retainedContextOnly: isContextOnlyEvidenceSource(
+        row.document_source ?? row.source,
+        row.content,
+        policy
+      ),
+    };
+  });
 }
 
 export async function recentPublishedSignals(d1: D1Database, entityIds: string[], now: number) {
