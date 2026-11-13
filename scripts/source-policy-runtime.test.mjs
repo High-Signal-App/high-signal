@@ -24,10 +24,17 @@ const suites = [
   [
     'Retained Python policy reconstruction',
     'uv',
-    ['run', '--project', 'python/ingest', '--no-sync', 'pytest', '-q',
+    [
+      'run',
+      '--project',
+      'python/ingest',
+      '--no-sync',
+      'pytest',
+      '-q',
       'python/ingest/tests/test_evidence_origins.py',
       'python/ingest/tests/test_retained_corroboration.py',
-      'python/ingest/tests/test_digg_verify.py'],
+      'python/ingest/tests/test_digg_verify.py',
+    ],
     root,
   ],
 ];
