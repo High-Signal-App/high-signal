@@ -16,6 +16,8 @@ const JACCARD_THRESHOLD = 0.72;
 const TITLE_ONLY_MAX = 80;
 const SUMMARY_MAX_SENTENCES = 3;
 const EXCERPT_MAX = 30_000;
+// Bound retained derived text, not total heap or source inputs, to two MB of UTF-16.
+const RETAINED_BODY_MEMO_CODE_UNIT_LIMIT = 1_000_000;
 const RETAINED_BLOCKER_SCAN_MAX = 1_200;
 
 export function paginateBriefNews({
@@ -379,45 +381,62 @@ export function reportingWindowForEdition(
   return reportingWindow(previousSnapshotAt, end);
 }
 
+type RetainedBodyReader = typeof retainedBody;
+
 export function selectNewsRecords(
   records: readonly NewsRecord[],
   window: NewsReportingWindow
+): NewsRecord[] {
+  return selectNewsRecordsWithBody(records, window, retainedBody);
+}
+
+function selectNewsRecordsWithBody(
+  records: readonly NewsRecord[],
+  window: NewsReportingWindow,
+  readBody: RetainedBodyReader
 ): NewsRecord[] {
   const inWindow = (value: Date) =>
     value.getTime() >= window.start.getTime() && value.getTime() < window.end.getTime();
 
   const selected: NewsRecord[] = [];
-  for (const members of clusterNewsRecords(records.filter(hasBriefNewsTopic))) {
+  for (const members of clusterNewsRecords(
+    records.filter((record) => hasBriefNewsTopicWithBody(record, readBody))
+  )) {
     const fresh = members.filter((record) => inWindow(toDate(record.ingestedAt)));
     if (fresh.length === 0) continue;
     const older = members.filter(
       (record) =>
-        isPublisherRecord(record) && toDate(record.ingestedAt).getTime() < window.start.getTime()
+        isPublisherRecord(record, readBody) &&
+        toDate(record.ingestedAt).getTime() < window.start.getTime()
     );
     if (older.length === 0) {
-      selected.push(...fresh.filter(hasRetainedNewsContext));
+      selected.push(...fresh.filter((record) => hasRetainedNewsContext(record, readBody)));
       continue;
     }
     const priorUrls = new Set(older.map((record) => newsCanonicalUrl(record)).filter(Boolean));
     const newEvidence = fresh.some((record) => {
-      if (!isPublisherRecord(record)) return false;
+      if (!isPublisherRecord(record, readBody)) return false;
       const url = newsCanonicalUrl(record);
       return url ? !priorUrls.has(url) : true;
     });
     if (!newEvidence) continue;
-    selected.push(...members.filter(hasRetainedNewsContext));
+    selected.push(...members.filter((record) => hasRetainedNewsContext(record, readBody)));
   }
   return selected;
 }
 
 /** Keep the reader feed inside the product's technology/startup/finance scope. */
 export function hasBriefNewsTopic(record: NewsRecord): boolean {
+  return hasBriefNewsTopicWithBody(record, retainedBody);
+}
+
+function hasBriefNewsTopicWithBody(record: NewsRecord, readBody: RetainedBodyReader): boolean {
   if (record.source.startsWith('market:') || isPredictionMarketOnly([record.sourceUrl])) {
     return false;
   }
   if (record.primaryEntityId?.trim()) return true;
   if ((SOURCE_RANK[sourceFamily(record.source)] ?? 0) >= 7) return true;
-  const text = `${record.title ?? ''} ${retainedBody(record) ?? ''}`.slice(0, 800).toLowerCase();
+  const text = `${record.title ?? ''} ${readBody(record) ?? ''}`.slice(0, 800).toLowerCase();
   const tokens = text.match(/[a-z0-9]+/g) ?? [];
   return tokens.some((token) => BRIEF_NEWS_TOPICS.has(token));
 }
@@ -550,10 +569,27 @@ export function composeNewsStories(
   records: readonly NewsRecord[],
   window: NewsReportingWindow
 ): BriefNewsItem[] {
-  const selected = selectNewsRecords(records, window);
+  const bodies = new WeakMap<object, string | null>();
+  let retainedCodeUnits = 0;
+  const readBody: RetainedBodyReader = (record) => {
+    if (record == null || typeof record !== 'object') return retainedBody(record);
+    const cached = bodies.get(record);
+    if (cached !== undefined) return cached;
+    const body = retainedBody(record);
+    // A full excerpt may pin a much larger normalized parent through V8's slice.
+    if (body?.length === EXCERPT_MAX) return body;
+    // Before trim, normalized whitespace adds at most one space at either end.
+    const codeUnits = body == null ? 0 : body.length + 2;
+    if (codeUnits <= RETAINED_BODY_MEMO_CODE_UNIT_LIMIT - retainedCodeUnits) {
+      bodies.set(record, body);
+      retainedCodeUnits += codeUnits;
+    }
+    return body;
+  };
+  const selected = selectNewsRecordsWithBody(records, window, readBody);
   const clusters = clusterNewsRecords(selected);
   const ranked = clusters
-    .map((members) => storyFromCluster(members, window))
+    .map((members) => storyFromCluster(members, window, readBody))
     .filter((story): story is RankedNews => story != null)
     .sort((a, b) => {
       if (a.trendSources !== b.trendSources) return b.trendSources - a.trendSources;
@@ -617,15 +653,16 @@ export function hasUsableRetainedText(
   record: Pick<NewsRecord, 'title' | 'content' | 'retainedText'> &
     Partial<Pick<NewsRecord, 'source'>>
 ): boolean {
-  return retainedTextIsUsable(record);
+  return retainedTextIsUsable(record, false, retainedBody);
 }
 
 function retainedTextIsUsable(
   record: Pick<NewsRecord, 'title' | 'content' | 'retainedText'> &
     Partial<Pick<NewsRecord, 'source'>>,
-  allowAttentionMetadata = false
+  allowAttentionMetadata: boolean,
+  readBody: RetainedBodyReader
 ): boolean {
-  const retained = retainedBody(record);
+  const retained = readBody(record);
   if (!retained || (!allowAttentionMetadata && TECHMEME_METADATA_RE.test(retained))) return false;
   if (
     RETAINED_TEXT_BLOCKERS.some((marker) =>
@@ -643,32 +680,40 @@ function retainedTextIsUsable(
   return retained.length >= 80;
 }
 
-function hasRetainedNewsContext(record: NewsRecord): boolean {
-  return retainedTextIsUsable(record, ATTENTION_SOURCE_FAMILIES.has(sourceFamily(record.source)));
-}
-
-function isPublisherRecord(record: NewsRecord): boolean {
-  return (
-    !ATTENTION_SOURCE_FAMILIES.has(sourceFamily(record.source)) &&
-    !TECHMEME_METADATA_RE.test(retainedBody(record) ?? '')
+function hasRetainedNewsContext(record: NewsRecord, readBody: RetainedBodyReader): boolean {
+  return retainedTextIsUsable(
+    record,
+    ATTENTION_SOURCE_FAMILIES.has(sourceFamily(record.source)),
+    readBody
   );
 }
 
-function isRetainedPublisher(record: NewsRecord): boolean {
-  return isPublisherRecord(record) && hasUsableRetainedText(record);
+function isPublisherRecord(record: NewsRecord, readBody: RetainedBodyReader): boolean {
+  return (
+    !ATTENTION_SOURCE_FAMILIES.has(sourceFamily(record.source)) &&
+    !TECHMEME_METADATA_RE.test(readBody(record) ?? '')
+  );
 }
 
-function storyFromCluster(members: NewsRecord[], window: NewsReportingWindow): RankedNews | null {
-  const retained = members.filter(hasRetainedNewsContext);
+function isRetainedPublisher(record: NewsRecord, readBody: RetainedBodyReader): boolean {
+  return isPublisherRecord(record, readBody) && retainedTextIsUsable(record, false, readBody);
+}
+
+function storyFromCluster(
+  members: NewsRecord[],
+  window: NewsReportingWindow,
+  readBody: RetainedBodyReader
+): RankedNews | null {
+  const retained = members.filter((record) => hasRetainedNewsContext(record, readBody));
   // Aggregator text can rank a development, never supply its reporting.
-  const usable = retained.filter(isRetainedPublisher);
+  const usable = retained.filter((record) => isRetainedPublisher(record, readBody));
   if (usable.length === 0) return null;
   const representative = usable.reduce((best, record) =>
     rankRecord(record) > rankRecord(best) ? record : best
   );
   const title = decodeHtmlCharacterReferences(representative.title ?? '').trim();
   if (!title) return null;
-  const excerpt = retainedBody(representative);
+  const excerpt = readBody(representative);
   if (!excerpt) return null;
   const summary = summarizeRetained(excerpt, title);
   if (!summary) return null;
@@ -676,7 +721,7 @@ function storyFromCluster(members: NewsRecord[], window: NewsReportingWindow): R
   if (references.length === 0) return null;
   const evidenceStatus = evidenceStatusFor(usable, references);
   const eventAt = earliestPublished(usable);
-  const whatChanged = whatChangedInWindow(usable, window, summary);
+  const whatChanged = whatChangedInWindow(usable, window, summary, readBody);
   const trend = trendStrength(retained);
   const item: BriefNewsItem = {
     id: clusterId(usable),
@@ -1114,7 +1159,8 @@ function evidenceScore(excerpt: string, publisherSourceCount: number): number {
 function whatChangedInWindow(
   members: NewsRecord[],
   window: NewsReportingWindow,
-  summary: string
+  summary: string,
+  readBody: RetainedBodyReader
 ): string {
   const prior = members.filter(
     (member) => toDate(member.ingestedAt).getTime() < window.start.getTime()
@@ -1127,7 +1173,7 @@ function whatChangedInWindow(
   const latest = fresh.reduce((best, record) =>
     toDate(record.ingestedAt).getTime() >= toDate(best.ingestedAt).getTime() ? record : best
   );
-  const body = retainedBody(latest);
+  const body = readBody(latest);
   return body ? summarizeRetained(body, latest.title ?? '') || summary : summary;
 }
 
