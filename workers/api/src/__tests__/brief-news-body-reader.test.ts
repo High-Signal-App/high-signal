@@ -127,6 +127,59 @@ describe('composition-local retained body reuse', () => {
     expect(composeNewsStories([missingBody], window)).toEqual([]);
   });
 
+  it('keeps oversized normalized parents out of the memo without changing returned reporting', () => {
+    const oversized = `${body} ${'Additional details describe the software implementation. '.repeat(60_000)}`;
+    let reads = 0;
+    const article = record();
+    Object.defineProperty(article, 'retainedText', {
+      get() {
+        reads++;
+        return oversized;
+      },
+    });
+    const excerpt = oversized.replace(/\s+/g, ' ').trim().slice(0, 30_000);
+    const expected = composeNewsStories([record({ retainedText: excerpt })], window);
+
+    const news = composeNewsStories([article], window);
+
+    expect(JSON.stringify(news)).toBe(JSON.stringify(expected));
+    expect(news).toHaveLength(1);
+    expect(reads).toBeGreaterThan(1);
+  });
+
+  it.each([
+    { length: 29_999, filler: 'a', padding: '', memoized: true },
+    { length: 30_000, filler: 'a', padding: '', memoized: false },
+    { length: 29_999, filler: '界', padding: ' \n\t', memoized: true },
+    { length: 30_000, filler: '界', padding: ' \n\t', memoized: false },
+    { length: 30_001, filler: '界', padding: '', memoized: false },
+    { length: 20_000, filler: '界', padding: ' \n\t'.repeat(500_000), memoized: true },
+  ])(
+    'preserves reporting and safe admission at the excerpt boundary: $length / $memoized',
+    ({ length, filler, padding, memoized }) => {
+      const normalized = `${body} ${filler.repeat(length)}`.slice(0, length);
+      let reads = 0;
+      const article = record();
+      Object.defineProperty(article, 'retainedText', {
+        get() {
+          reads++;
+          return `${padding}${normalized}${padding}`;
+        },
+      });
+      const expected = composeNewsStories(
+        [record({ retainedText: normalized.slice(0, 30_000) })],
+        window
+      );
+
+      const news = composeNewsStories([article], window);
+
+      expect(news).toHaveLength(1);
+      expect(JSON.stringify(news)).toBe(JSON.stringify(expected));
+      if (memoized) expect(reads).toBe(1);
+      else expect(reads).toBeGreaterThan(1);
+    }
+  );
+
   it('preserves exported filter callbacks and original selected record identities', () => {
     const article = Object.freeze(record());
     const excluded = Object.freeze(record({ id: 'excluded', source: 'market:polymarket' }));

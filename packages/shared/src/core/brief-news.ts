@@ -16,7 +16,7 @@ const JACCARD_THRESHOLD = 0.72;
 const TITLE_ONLY_MAX = 80;
 const SUMMARY_MAX_SENTENCES = 3;
 const EXCERPT_MAX = 30_000;
-// At most two MB of extra UTF-16 body text; larger inputs keep the uncached path.
+// Bound retained derived text, not total heap or source inputs, to two MB of UTF-16.
 const RETAINED_BODY_MEMO_CODE_UNIT_LIMIT = 1_000_000;
 const RETAINED_BLOCKER_SCAN_MAX = 1_200;
 
@@ -576,7 +576,10 @@ export function composeNewsStories(
     const cached = bodies.get(record);
     if (cached !== undefined) return cached;
     const body = retainedBody(record);
-    const codeUnits = body?.length ?? 0;
+    // A full excerpt may pin a much larger normalized parent through V8's slice.
+    if (body?.length === EXCERPT_MAX) return body;
+    // Before trim, normalized whitespace adds at most one space at either end.
+    const codeUnits = body == null ? 0 : body.length + 2;
     if (codeUnits <= RETAINED_BODY_MEMO_CODE_UNIT_LIMIT - retainedCodeUnits) {
       bodies.set(record, body);
       retainedCodeUnits += codeUnits;
