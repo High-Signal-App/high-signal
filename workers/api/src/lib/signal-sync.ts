@@ -272,7 +272,7 @@ async function queueEvidenceLink(
   const sourceDocumentId = document?.id ?? null;
   const contextOnly =
     isContextOnlyEvidenceSource(item?.sourceType, item?.excerpt) ||
-    isContextOnlyEvidenceSource(document?.source, document?.rawText);
+    isContextOnlyEvidenceSource(document?.source, document?.rawText, document?.parsedFields);
   const rawOrigin = item?.originatingEvidenceId?.trim() || null;
   const verified =
     !contextOnly &&
@@ -326,7 +326,7 @@ async function resolveSourceDocument(
   d1: D1Database,
   item: SignalEvidenceUpsert | undefined,
   url: string
-): Promise<{ id: string; source: string; rawText: string | null } | null> {
+): Promise<{ id: string; source: string; rawText: string | null; parsedFields: unknown } | null> {
   const where = item?.sourceDocumentKey
     ? eq(schema.sourceDocuments.documentKey, item.sourceDocumentKey)
     : eq(schema.sourceDocuments.canonicalUrl, canonicalSourceUrl(url));
@@ -336,6 +336,7 @@ async function resolveSourceDocument(
       canonicalUrl: schema.sourceDocuments.canonicalUrl,
       source: schema.sourceDocuments.source,
       rawText: schema.sourceDocuments.rawText,
+      parsedFields: schema.sourceDocuments.parsedFields,
     })
     .from(schema.sourceDocuments)
     .where(where)

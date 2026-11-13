@@ -6,10 +6,15 @@ from urllib.parse import urlparse
 from .types import Event
 
 
-def is_context_only_source(source: str, text: str | None = None) -> bool:
-    """Techmeme RSS metadata discovers reporting but never supplies its text."""
-    return source.strip().lower().split(":", 1)[0] == "techmeme" or bool(
-        re.match(r"\s*Techmeme permalink:", text or "", re.I)
+def is_context_only_source(source: str, text: str | None = None, metadata: object = None) -> bool:
+    """Source-owned context policy cannot be overridden by a model's proof labels."""
+    policy = metadata if isinstance(metadata, dict) else {}
+    return (
+        source.strip().lower().split(":", 1)[0] == "techmeme"
+        or bool(re.match(r"\s*Techmeme permalink:", text or "", re.I))
+        or "attention_aggregator" in (policy.get("source_class"), policy.get("sourceClass"))
+        or "derived" in (policy.get("evidence_tier"), policy.get("evidenceTier"))
+        or "none" in (policy.get("confidence_contribution"), policy.get("confidenceContribution"))
     )
 
 

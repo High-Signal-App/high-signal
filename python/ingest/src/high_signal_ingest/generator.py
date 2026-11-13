@@ -701,7 +701,13 @@ def _proof_evidence(output: dict, cited_events: list[Event]) -> list[EvidenceIte
         assessment = assessments.get(event.source_url, {})
         aligned = assessment.get("aligned") is True
         verified = (
-            aligned and bool(origin) and not is_context_only_source(event.source, event.content)
+            aligned
+            and bool(origin)
+            and not is_context_only_source(
+                event.source,
+                event.content,
+                event.source_document.parsed_fields if event.source_document else None,
+            )
         )
         role = "context"
         if verified and origin not in seen_origins:

@@ -68,11 +68,23 @@ def test_explicit_source_policy_controls_proof_without_banning_discussion(contri
         parsed_fields={"confidence_contribution": contribution}
     )
     evidence = _proof_evidence(
-        {"proofs": [{"url": e.source_url, "aligned": True,
-                     "originating_evidence_id": e.id, "supports": ["observed_event"]}
-                    for e in events]}, events)
+        {
+            "proofs": [
+                {
+                    "url": e.source_url,
+                    "aligned": True,
+                    "originating_evidence_id": e.id,
+                    "supports": ["observed_event"],
+                }
+                for e in events
+            ]
+        },
+        events,
+    )
     assert evidence[1].role == ("context" if contribution == "none" else "corroboration")
-    assert evidence[1].semantic_alignment == ("unverified" if contribution == "none" else "verified")
+    assert evidence[1].semantic_alignment == (
+        "unverified" if contribution == "none" else "verified"
+    )
 
 
 def test_missing_origin_and_thin_text_cannot_gain_credit():

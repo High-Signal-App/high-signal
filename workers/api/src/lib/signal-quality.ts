@@ -46,7 +46,7 @@ export function serializeClaimEvidenceLink(
   };
 }
 
-/** Preserve stored audit rows while removing proof credit from Techmeme metadata. */
+/** Preserve stored audit rows while enforcing the linked document's evidence policy. */
 export async function sourceAwareEvidenceLinks(
   database: ReturnType<typeof db>,
   links: Array<typeof schema.claimEvidenceLinks.$inferSelect>
@@ -54,7 +54,7 @@ export async function sourceAwareEvidenceLinks(
   const ids = [
     ...new Set(links.flatMap((link) => (link.sourceDocumentId ? [link.sourceDocumentId] : []))),
   ];
-  const contextIds = new Set<string>();
+  const contextReasons = new Map<string, string>();
   const canonicalUrls = new Map<string, string>();
   for (const chunk of d1QueryChunks(ids)) {
     const documents = await database
@@ -63,27 +63,33 @@ export async function sourceAwareEvidenceLinks(
         canonicalUrl: schema.sourceDocuments.canonicalUrl,
         source: schema.sourceDocuments.source,
         rawText: schema.sourceDocuments.rawText,
+        parsedFields: schema.sourceDocuments.parsedFields,
       })
       .from(schema.sourceDocuments)
       .where(inArray(schema.sourceDocuments.id, chunk));
     for (const document of documents) {
       canonicalUrls.set(document.id, document.canonicalUrl);
-      if (isContextOnlyEvidenceSource(document.source, document.rawText))
-        contextIds.add(document.id);
+      if (isContextOnlyEvidenceSource(document.source, document.rawText, document.parsedFields))
+        contextReasons.set(
+          document.id,
+          isContextOnlyEvidenceSource(document.source, document.rawText)
+            ? 'source:techmeme'
+            : 'source:context_only'
+        );
     }
   }
   return links.map((link) => {
-    const contextOnly = contextIds.has(link.sourceDocumentId ?? '');
+    const contextReason = contextReasons.get(link.sourceDocumentId ?? '');
     const canonical = canonicalUrls.get(link.sourceDocumentId ?? '');
     const mismatched =
       typeof canonical === 'string' &&
       canonicalSourceUrl(canonical) !== canonicalSourceUrl(link.evidenceUrl);
-    if (!contextOnly && !mismatched) return link;
+    if (!contextReason && !mismatched) return link;
     return {
       ...link,
       role: 'context' as const,
       semanticAlignment: 'unverified' as const,
-      notes: `${link.notes ?? ''} alignment:unverified ${contextOnly ? 'source:techmeme' : 'citation:url_mismatch'}`,
+      notes: `${link.notes ?? ''} alignment:unverified ${contextReason ?? 'citation:url_mismatch'}`,
     };
   });
 }

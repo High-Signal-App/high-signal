@@ -168,7 +168,7 @@ it('keeps retained aggregator documents context-only for the publisher', async (
   );
   expect(payload.evidence).toEqual(
     expect.arrayContaining([
-      { url: urls[1], excerpt: 'Retained source text', sourceType: 'techmeme' },
+      { url: urls[1], excerpt: 'Retained source text', sourceType: 'techmeme', contextOnly: true },
     ])
   );
 });
@@ -190,7 +190,10 @@ it.each([
       .run();
     const response = await request('/admin/signals-review/aged-draft', `Bearer ${token}`);
     const payload = (await response.json()) as {
-      claims: { evidence: { evidenceUrl: string; role: string; semanticAlignment: string }[] }[];
+      claims: {
+        id: string;
+        evidence: { evidenceUrl: string; role: string; semanticAlignment: string }[];
+      }[];
       evidence: { url: string; excerpt: string; sourceType: string; contextOnly?: boolean }[];
     };
     expect(payload.claims[0]?.evidence.find((link) => link.evidenceUrl === urls[1])).toMatchObject({
@@ -201,6 +204,22 @@ it.each([
       excerpt: 'Retained excerpt 1',
       contextOnly: true,
     });
+    const publication = await fetcher.fetch(
+      new Request(`http://test/admin/claims/${payload.claims[0]!.id}/status`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'published', reason: 'Synthetic policy regression' }),
+      }),
+      { DB: database.binding, ADMIN_TOKEN: token }
+    );
+    expect(publication.status).toBe(409);
+    expect(await publication.json()).toMatchObject({ error: 'cite_or_kill' });
+    expect(
+      await database.binding
+        .prepare('SELECT review_status FROM claim_records WHERE id = ?')
+        .bind(payload.claims[0]!.id)
+        .first()
+    ).toEqual({ review_status: 'draft' });
     expect(
       await database.binding
         .prepare('SELECT role, semantic_alignment FROM claim_evidence_links WHERE evidence_url = ?')
