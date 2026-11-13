@@ -247,7 +247,9 @@ describe('retained article receipt repair through actual SQLite upserts', () => 
           .bind(
             now,
             'Acme manufacturing report. '.repeat(40),
-            contribution.startsWith('{') ? contribution : JSON.stringify({ confidence_contribution: contribution }),
+            contribution.startsWith('{')
+              ? contribution
+              : JSON.stringify({ confidence_contribution: contribution }),
             now
           )
           .run();

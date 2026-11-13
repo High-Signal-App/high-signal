@@ -21,6 +21,15 @@ const suites = [
   ],
   ['SQL import policy', tsx, ['scripts/sync-signals.test.ts'], root],
   ['Publisher policy grounding', tsx, ['scripts/auto-publish-transport.test.ts'], root],
+  [
+    'Retained Python policy reconstruction',
+    'uv',
+    ['run', '--project', 'python/ingest', '--no-sync', 'pytest', '-q',
+      'python/ingest/tests/test_evidence_origins.py',
+      'python/ingest/tests/test_retained_corroboration.py',
+      'python/ingest/tests/test_digg_verify.py'],
+    root,
+  ],
 ];
 
 for (const [name, command, args, cwd] of suites) {

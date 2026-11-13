@@ -14,10 +14,16 @@ export function isContextOnlyEvidenceSource(
   text?: string | null,
   metadata?: unknown
 ): boolean {
-  const policy =
-    metadata && typeof metadata === 'object' && !Array.isArray(metadata)
-      ? (metadata as Record<string, unknown>)
-      : {};
+  let decoded = metadata;
+  if (typeof decoded === 'string') {
+    try {
+      decoded = JSON.parse(decoded);
+    } catch {
+      return true;
+    }
+  }
+  if (decoded != null && (typeof decoded !== 'object' || Array.isArray(decoded))) return true;
+  const policy = (decoded ?? {}) as Record<string, unknown>;
   return (
     source?.trim().toLowerCase().split(':', 1)[0] === 'techmeme' ||
     /^\s*Techmeme permalink:/i.test(text ?? '') ||

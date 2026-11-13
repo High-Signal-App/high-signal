@@ -167,13 +167,25 @@ describe('POST /admin/sync proof receipts', () => {
 
   it('isolates malformed source policy while preserving permitted proof', async () => {
     retainDocuments();
-    await database.binding.prepare('UPDATE source_documents SET parsed_fields = ? WHERE id = ?')
-      .bind('{malformed policy', 'retained-1').run();
+    await database.binding
+      .prepare('UPDATE source_documents SET parsed_fields = ? WHERE id = ?')
+      .bind('{malformed policy', 'retained-1')
+      .run();
     expect((await sync()).status).toBe(200);
     const links = await rows('claim_evidence_links');
-    expect(links.find((link) => link['source_document_id'] === 'retained-1')).toMatchObject({ role: 'context', semantic_alignment: 'unverified' });
-    expect(links.find((link) => link['source_document_id'] === 'retained-0')).toMatchObject({ role: 'primary', semantic_alignment: 'verified' });
-    expect(await database.binding.prepare("SELECT parsed_fields FROM source_documents WHERE id = 'retained-1'").first()).toEqual({ parsed_fields: '{malformed policy' });
+    expect(links.find((link) => link['source_document_id'] === 'retained-1')).toMatchObject({
+      role: 'context',
+      semantic_alignment: 'unverified',
+    });
+    expect(links.find((link) => link['source_document_id'] === 'retained-0')).toMatchObject({
+      role: 'primary',
+      semantic_alignment: 'verified',
+    });
+    expect(
+      await database.binding
+        .prepare("SELECT parsed_fields FROM source_documents WHERE id = 'retained-1'")
+        .first()
+    ).toEqual({ parsed_fields: '{malformed policy' });
   });
 
   it('does not verify a citation using a different document selected by key', async () => {

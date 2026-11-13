@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import {
   canonicalSourceUrl,
   isContextOnlyEvidenceSource,
@@ -336,7 +336,7 @@ async function resolveSourceDocument(
       canonicalUrl: schema.sourceDocuments.canonicalUrl,
       source: schema.sourceDocuments.source,
       rawText: schema.sourceDocuments.rawText,
-      parsedFields: schema.sourceDocuments.parsedFields,
+      parsedFields: sql<string | null>`${schema.sourceDocuments.parsedFields}`,
     })
     .from(schema.sourceDocuments)
     .where(where)

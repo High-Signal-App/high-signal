@@ -270,12 +270,6 @@ export async function retainedEvidenceCandidates(
       parsed_fields: string | null;
     }>();
   return (rows.results ?? []).map((row) => {
-    let policy: unknown = null;
-    try {
-      policy = JSON.parse(row.parsed_fields ?? 'null');
-    } catch {
-      /* legacy metadata unavailable */
-    }
     return {
       url: row.source_url,
       title: row.title,
@@ -285,7 +279,7 @@ export async function retainedEvidenceCandidates(
       retainedContextOnly: isContextOnlyEvidenceSource(
         row.document_source ?? row.source,
         row.content,
-        policy
+        row.parsed_fields
       ),
     };
   });

@@ -35,7 +35,7 @@ function buildClaimEvidenceSql(front: SignalFront, claimId: string, now: number)
       ? `document_key=${esc(documentKey)}`
       : `canonical_url=${esc(canonicalSourceUrl(url))}`;
     const sourceDocumentId = `(SELECT id FROM source_documents WHERE ${documentWhere} LIMIT 1)`;
-    const policy = `(CASE WHEN json_valid(parsed_fields) THEN parsed_fields ELSE '{}' END)`;
+    const policy = `(CASE WHEN parsed_fields IS NULL THEN '{}' WHEN json_valid(parsed_fields) THEN CASE WHEN json_type(parsed_fields) IN ('object','null') THEN parsed_fields ELSE '{"confidence_contribution":"none"}' END ELSE '{"confidence_contribution":"none"}' END)`;
     const policyAllowsProof = [
       ['source_class', 'attention_aggregator'],
       ['sourceClass', 'attention_aggregator'],

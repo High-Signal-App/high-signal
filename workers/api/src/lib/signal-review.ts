@@ -3,7 +3,7 @@ import {
   isContextOnlyEvidenceSource,
   type ClaimWithEvidence,
 } from '@high-signal/shared';
-import { eq, inArray } from 'drizzle-orm';
+import { eq, inArray, sql } from 'drizzle-orm';
 import { db, schema } from '../db';
 import { d1QueryChunks } from './signal-quality';
 
@@ -35,7 +35,7 @@ export async function loadSignalReviewEvidence(
         canonicalUrl: schema.sourceDocuments.canonicalUrl,
         rawText: schema.sourceDocuments.rawText,
         source: schema.sourceDocuments.source,
-        parsedFields: schema.sourceDocuments.parsedFields,
+        parsedFields: sql<string | null>`${schema.sourceDocuments.parsedFields}`,
       })
       .from(schema.sourceDocuments)
       .where(inArray(schema.sourceDocuments.id, chunk));

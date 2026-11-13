@@ -8,7 +8,7 @@ import {
   type ClaimEvidenceLink,
   type BriefSnapshot,
 } from '@high-signal/shared';
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import { db, schema } from '../db';
 
 interface PublicationContext {
@@ -63,7 +63,7 @@ export async function sourceAwareEvidenceLinks(
         canonicalUrl: schema.sourceDocuments.canonicalUrl,
         source: schema.sourceDocuments.source,
         rawText: schema.sourceDocuments.rawText,
-        parsedFields: schema.sourceDocuments.parsedFields,
+        parsedFields: sql<string | null>`${schema.sourceDocuments.parsedFields}`,
       })
       .from(schema.sourceDocuments)
       .where(inArray(schema.sourceDocuments.id, chunk));
