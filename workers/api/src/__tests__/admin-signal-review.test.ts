@@ -173,6 +173,58 @@ it('keeps retained aggregator documents context-only for the publisher', async (
   );
 });
 
+it.each([
+  {
+    source_class: 'attention_aggregator',
+    evidence_tier: 'derived',
+    confidence_contribution: 'none',
+  },
+  { confidenceContribution: 'none' },
+  { evidenceTier: 'derived' },
+])(
+  'keeps retained source policy authoritative over model-certified proof: %j',
+  async (metadata) => {
+    await database.binding
+      .prepare('UPDATE source_documents SET source = ?, parsed_fields = ? WHERE id = ?')
+      .bind('reddit:ClaudeAI', JSON.stringify(metadata), 'source-1')
+      .run();
+    const response = await request('/admin/signals-review/aged-draft', `Bearer ${token}`);
+    const payload = (await response.json()) as {
+      claims: { evidence: { evidenceUrl: string; role: string; semanticAlignment: string }[] }[];
+      evidence: { url: string; excerpt: string; sourceType: string; contextOnly?: boolean }[];
+    };
+    expect(payload.claims[0]?.evidence.find((link) => link.evidenceUrl === urls[1])).toMatchObject({
+      role: 'context',
+      semanticAlignment: 'unverified',
+    });
+    expect(payload.evidence.find((item) => item.url === urls[1])).toMatchObject({
+      excerpt: 'Retained excerpt 1',
+      contextOnly: true,
+    });
+    expect(
+      await database.binding
+        .prepare('SELECT role, semantic_alignment FROM claim_evidence_links WHERE evidence_url = ?')
+        .bind(urls[1])
+        .first()
+    ).toEqual({ role: 'corroboration', semantic_alignment: 'verified' });
+  }
+);
+
+it('preserves supporting proof for a discussion document whose policy permits it', async () => {
+  await database.binding
+    .prepare('UPDATE source_documents SET source = ?, parsed_fields = ? WHERE id = ?')
+    .bind('reddit:ClaudeAI', JSON.stringify({ confidence_contribution: 'allowed' }), 'source-1')
+    .run();
+  const response = await request('/admin/signals-review/aged-draft', `Bearer ${token}`);
+  const payload = (await response.json()) as {
+    claims: { evidence: { evidenceUrl: string; role: string; semanticAlignment: string }[] }[];
+  };
+  expect(payload.claims[0]?.evidence.find((link) => link.evidenceUrl === urls[1])).toMatchObject({
+    role: 'corroboration',
+    semanticAlignment: 'verified',
+  });
+});
+
 it('recovers blank legacy excerpts from the exact linked retained document', async () => {
   await database.binding.prepare("UPDATE evidence SET excerpt = '  '").run();
   const response = await request('/admin/signals-review/aged-draft', `Bearer ${token}`);

@@ -9,7 +9,7 @@ from high_signal_ingest.pipeline import _proof_verdict
 
 from high_signal_ingest.evidence_origins import coalesce_copied_origins, distinct_generation_events
 from high_signal_ingest.generator import _proof_evidence
-from high_signal_ingest.types import Event
+from high_signal_ingest.types import Event, SourceDocument
 
 
 def event(name, text):
@@ -58,6 +58,21 @@ def test_reprint_with_wrapper_cannot_gain_independence_from_model_ids():
 def test_shared_topic_or_short_quote_does_not_merge_origins():
     events = [event("issuer", RELEASE), event("reporter", RELEASE[:160] + OTHER)]
     assert coalesce_copied_origins(events, ["a", "b"]) == ["a", "b"]
+
+
+@pytest.mark.parametrize("contribution", ["none", "allowed"])
+def test_explicit_source_policy_controls_proof_without_banning_discussion(contribution):
+    events = [event("issuer", RELEASE), event("firsthand", OTHER)]
+    events[1].source = "reddit:ClaudeAI"
+    events[1].source_document = SourceDocument(
+        parsed_fields={"confidence_contribution": contribution}
+    )
+    evidence = _proof_evidence(
+        {"proofs": [{"url": e.source_url, "aligned": True,
+                     "originating_evidence_id": e.id, "supports": ["observed_event"]}
+                    for e in events]}, events)
+    assert evidence[1].role == ("context" if contribution == "none" else "corroboration")
+    assert evidence[1].semantic_alignment == ("unverified" if contribution == "none" else "verified")
 
 
 def test_missing_origin_and_thin_text_cannot_gain_credit():
