@@ -67,7 +67,14 @@ def _retained_event(row: object, title: str, now: datetime) -> Event | None:
             canonical_url=url,
             published_at=published,
             raw_text=text[:30_000],
-            parsed_fields={"retrievedFrom": "retained_corpus"},
+            parsed_fields={
+                "retrievedFrom": "retained_corpus",
+                **(
+                    {"confidence_contribution": "none"}
+                    if row.get("retainedContextOnly") is True
+                    else {}
+                ),
+            },
         ),
     )
 

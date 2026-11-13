@@ -66,6 +66,31 @@ def test_bounds_lookup_count_by_distinct_announcement_url(monkeypatch):
     assert len(calls) == 24
 
 
+@pytest.mark.parametrize("excluded", [True, False])
+def test_retained_reconstruction_preserves_source_confidence_policy(excluded):
+    from high_signal_ingest.generator import _proof_evidence
+
+    value = retained._retained_event(
+        row(retainedContextOnly=excluded), TITLE, datetime.now(timezone.utc)
+    )
+    assert value is not None
+    evidence = _proof_evidence(
+        {
+            "proofs": [
+                {
+                    "url": value.source_url,
+                    "aligned": True,
+                    "originating_evidence_id": "model-assigned-origin",
+                    "supports": ["observed_event"],
+                }
+            ]
+        },
+        [value],
+    )
+    assert evidence[0].role == ("context" if excluded else "primary")
+    assert evidence[0].semantic_alignment == ("unverified" if excluded else "verified")
+
+
 def test_filters_irrelevant_undated_stale_future_thin_and_duplicate_results(monkeypatch):
     now = datetime.now(timezone.utc)
     rows = [

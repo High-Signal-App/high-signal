@@ -11,6 +11,7 @@ from high_signal_ingest.digg_verify import (
     retrieve_events,
     title_alignment,
 )
+from high_signal_ingest.evidence_origins import is_context_only_source
 
 
 def test_title_alignment_requires_semantic_overlap() -> None:
@@ -252,7 +253,11 @@ def test_single_original_is_retained_before_signal_gate(monkeypatch, acknowledge
         assert result["error"] == "original_article_retention_unacknowledged"
 
 
-def test_retained_evidence_is_reused_without_refetching() -> None:
+@pytest.mark.parametrize("context_only", [True, False])
+@pytest.mark.parametrize("attention_source", ["digg", "mts"])
+def test_retained_evidence_is_reused_without_refetching(
+    context_only: bool, attention_source: str
+) -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         if request.url.host == "api.gdeltproject.org":
             return httpx.Response(200, json={"articles": []})
@@ -261,6 +266,7 @@ def test_retained_evidence_is_reused_without_refetching() -> None:
     content = " ".join(["Keenable builds web search infrastructure for AI agents."] * 100)
     request = {
         "shortId": "keenable",
+        "attentionSource": attention_source,
         "title": "Conviction Backs KeenableAI AI Search Team",
         "sourceUrls": [],
         "retainedEvidence": [
@@ -268,6 +274,7 @@ def test_retained_evidence_is_reused_without_refetching() -> None:
                 "url": "https://techcrunch.com/keenable",
                 "title": "Accel-backed Keenable is indexing the web for AI agents",
                 "retainedContent": content,
+                "retainedContextOnly": context_only,
                 "seendate": "2026-08-25T12:00:00+00:00",
             }
         ],
@@ -279,6 +286,12 @@ def test_retained_evidence_is_reused_without_refetching() -> None:
     assert len(articles) == 1
     assert len(events) == 1
     assert events[0].source_url == "https://techcrunch.com/keenable"
+    assert (
+        is_context_only_source(
+            events[0].source, events[0].content, events[0].source_document.parsed_fields
+        )
+        is context_only
+    )
 
 
 def test_verification_batch_is_bounded_to_six_requests(monkeypatch) -> None:

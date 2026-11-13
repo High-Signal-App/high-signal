@@ -35,7 +35,19 @@ function buildClaimEvidenceSql(front: SignalFront, claimId: string, now: number)
       ? `document_key=${esc(documentKey)}`
       : `canonical_url=${esc(canonicalSourceUrl(url))}`;
     const sourceDocumentId = `(SELECT id FROM source_documents WHERE ${documentWhere} LIMIT 1)`;
-    const proofDocumentId = `(SELECT id FROM source_documents WHERE id=${sourceDocumentId} AND lower(ltrim(coalesce(raw_text,''), char(9)||char(10)||char(13)||' ')) NOT LIKE 'techmeme permalink:%' AND lower(source) <> 'techmeme' AND lower(source) NOT LIKE 'techmeme:%' LIMIT 1)`;
+    const policy = `(CASE WHEN parsed_fields IS NULL THEN '{}' WHEN json_valid(parsed_fields) THEN CASE WHEN json_type(parsed_fields) IN ('object','null') THEN parsed_fields ELSE '{"confidence_contribution":"none"}' END ELSE '{"confidence_contribution":"none"}' END)`;
+    const policyAllowsProof = [
+      ['source_class', 'attention_aggregator'],
+      ['sourceClass', 'attention_aggregator'],
+      ['evidence_tier', 'derived'],
+      ['evidenceTier', 'derived'],
+      ['confidence_contribution', 'none'],
+      ['confidenceContribution', 'none'],
+    ]
+      .map(([key, excluded]) => `coalesce(json_extract(${policy},'$.${key}'),'')<>${esc(excluded)}`)
+      .join(' AND ');
+    const proofDocumentId = `(SELECT id FROM source_documents WHERE id=${sourceDocumentId} AND lower(ltrim(coalesce(raw_text,''), char(9)||char(10)||char(13)||' ')) NOT LIKE 'techmeme permalink:%' AND lower(source) <> 'techmeme' AND lower(source) NOT LIKE 'techmeme:%' AND ${policyAllowsProof} LIMIT 1)`;
+    const storedRole = `CASE WHEN ${sourceDocumentId} IS NOT NULL AND ${proofDocumentId} IS NULL THEN 'context' ELSE ${esc(role)} END`;
     const eligibleForVerification =
       !contextOnly &&
       rawAlignment === 'verified' &&
@@ -56,11 +68,11 @@ function buildClaimEvidenceSql(front: SignalFront, claimId: string, now: number)
     const originId = rawOrigin ? hash16(`origin:${claimId}:${rawOrigin.toLowerCase()}`) : null;
     const linkId = hash16(`link:${claimId}:${canonicalSourceUrl(url)}`);
     statements.push(
-      `INSERT INTO claim_evidence_links (id,claim_id,evidence_url,source_document_id,originating_evidence_id,semantic_alignment,role,weight,notes,added_at,added_by) SELECT ${esc(linkId)},${esc(claimId)},${esc(url)},${sourceDocumentId},${esc(originId)},${alignment},${esc(role)},1,${notes},${now},'signal-extractor' WHERE ${guard} ON CONFLICT(id) DO UPDATE SET source_document_id=excluded.source_document_id,originating_evidence_id=excluded.originating_evidence_id,semantic_alignment=excluded.semantic_alignment,role=excluded.role,notes=excluded.notes;`
+      `INSERT INTO claim_evidence_links (id,claim_id,evidence_url,source_document_id,originating_evidence_id,semantic_alignment,role,weight,notes,added_at,added_by) SELECT ${esc(linkId)},${esc(claimId)},${esc(url)},${sourceDocumentId},${esc(originId)},${alignment},${storedRole},1,${notes},${now},'signal-extractor' WHERE ${guard} ON CONFLICT(id) DO UPDATE SET source_document_id=excluded.source_document_id,originating_evidence_id=excluded.originating_evidence_id,semantic_alignment=excluded.semantic_alignment,role=excluded.role,notes=excluded.notes;`
     );
     const evidenceTimelineId = hash16(`tl:${claimId}:add:${linkId}`);
     statements.push(
-      `INSERT OR IGNORE INTO claim_timeline_events (id,claim_id,kind,payload,actor,created_at) SELECT ${esc(evidenceTimelineId)},${esc(claimId)},'evidence_added',${esc(JSON.stringify({ linkId, url, role, source: 'signal-extractor' }))},'signal-extractor',${now} WHERE ${guard};`
+      `INSERT OR IGNORE INTO claim_timeline_events (id,claim_id,kind,payload,actor,created_at) SELECT ${esc(evidenceTimelineId)},${esc(claimId)},'evidence_added',json_object('linkId',${esc(linkId)},'url',${esc(url)},'role',${storedRole},'source','signal-extractor'),'signal-extractor',${now} WHERE ${guard};`
     );
   }
   return statements;

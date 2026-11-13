@@ -139,6 +139,55 @@ describe('POST /admin/sync proof receipts', () => {
     expect(links.every((link) => link['source_document_id'] === null)).toBe(true);
   });
 
+  it('does not persist proof credit forbidden by the linked document policy', async () => {
+    retainDocuments();
+    await database.binding
+      .prepare('UPDATE source_documents SET source = ?, parsed_fields = ? WHERE id = ?')
+      .bind(
+        'reddit:ClaudeAI',
+        JSON.stringify({
+          source_class: 'attention_aggregator',
+          evidence_tier: 'derived',
+          confidence_contribution: 'none',
+        }),
+        'retained-1'
+      )
+      .run();
+    expect((await sync()).status).toBe(200);
+    expect(
+      (await rows('claim_evidence_links')).find(
+        (link) => link['evidence_url'] === proofSignal().evidenceUrls[1]
+      )
+    ).toMatchObject({
+      role: 'context',
+      semantic_alignment: 'unverified',
+      source_document_id: 'retained-1',
+    });
+  });
+
+  it('isolates malformed source policy while preserving permitted proof', async () => {
+    retainDocuments();
+    await database.binding
+      .prepare('UPDATE source_documents SET parsed_fields = ? WHERE id = ?')
+      .bind('{malformed policy', 'retained-1')
+      .run();
+    expect((await sync()).status).toBe(200);
+    const links = await rows('claim_evidence_links');
+    expect(links.find((link) => link['source_document_id'] === 'retained-1')).toMatchObject({
+      role: 'context',
+      semantic_alignment: 'unverified',
+    });
+    expect(links.find((link) => link['source_document_id'] === 'retained-0')).toMatchObject({
+      role: 'primary',
+      semantic_alignment: 'verified',
+    });
+    expect(
+      await database.binding
+        .prepare("SELECT parsed_fields FROM source_documents WHERE id = 'retained-1'")
+        .first()
+    ).toEqual({ parsed_fields: '{malformed policy' });
+  });
+
   it('does not verify a citation using a different document selected by key', async () => {
     retainDocuments();
     const signal = proofSignal();

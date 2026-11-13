@@ -288,6 +288,11 @@ def retrieve_events(
                         "attentionSource": attention_source,
                         "attentionSourceId": source_id,
                         **(
+                            {"confidence_contribution": "none"}
+                            if article.get("retainedContextOnly") is True
+                            else {}
+                        ),
+                        **(
                             {"discussionUrl": discussion_url}
                             if (discussion_url := _discussion_url(request))
                             else {}

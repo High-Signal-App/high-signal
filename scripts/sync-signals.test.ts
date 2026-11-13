@@ -248,6 +248,55 @@ try {
     assert.equal(link?.source_document_id, expectedDoc, slug);
     assert.equal(link?.semantic_alignment, 'unverified', slug);
   }
+  for (const [slug, policy, excluded] of [
+    [
+      'policy-none',
+      {
+        source_class: 'attention_aggregator',
+        evidence_tier: 'derived',
+        confidence_contribution: 'none',
+      },
+      true,
+    ],
+    ['policy-camel', { confidenceContribution: 'none' }, true],
+    ['policy-permitted', { confidence_contribution: 'allowed' }, false],
+    ['policy-malformed', '{malformed policy', true],
+    ['policy-array', [], true],
+    ['policy-null', null, false],
+    ['policy-json-null', 'null', false],
+  ] as const) {
+    const url = `https://discussion.example/${slug}`;
+    database
+      .prepare(`INSERT INTO source_documents
+      (id,source,canonical_url,document_key,fetched_at,raw_hash,raw_text,parsed_fields,created_at)
+      VALUES(?, 'reddit:ClaudeAI', ?, ?, 1, 'policy', 'Firsthand demonstration', ?, 1)`)
+      .run(
+        slug,
+        url,
+        slug,
+        typeof policy === 'string' ? policy : policy === null ? null : JSON.stringify(policy)
+      );
+    apply({
+      ...parsed.front,
+      slug,
+      evidence_urls: [url],
+      evidence_source_types: ['news'],
+      proof_roles: ['primary'],
+      proof_semantic_alignments: ['verified'],
+      proof_originating_evidence_ids: ['model-assigned-origin'],
+      proof_source_document_keys: [slug],
+    });
+    const link = database
+      .prepare(`SELECT l.role,l.semantic_alignment FROM claim_evidence_links l
+      JOIN claim_records c ON c.id=l.claim_id JOIN signals s ON s.id=c.signal_id WHERE s.slug=?`)
+      .get(slug);
+    assert.equal(
+      link?.semantic_alignment,
+      excluded ? 'unverified' : 'verified',
+      `${slug} confidence policy`
+    );
+    assert.equal(link?.role, excluded ? 'context' : 'primary', `${slug} context policy`);
+  }
   apply(
     { ...parsed.front, slug: 'nvda-correction', review_status: 'corrected' },
     'A new correction'

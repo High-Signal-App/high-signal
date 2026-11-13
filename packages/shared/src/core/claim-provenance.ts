@@ -9,10 +9,27 @@ export type ClaimSurface = 'signal' | 'brief' | 'agent_eval';
 
 export type ClaimReviewStatus = 'draft' | 'held' | 'published' | 'killed' | 'corrected';
 
-export function isContextOnlyEvidenceSource(source?: string | null, text?: string | null): boolean {
+export function isContextOnlyEvidenceSource(
+  source?: string | null,
+  text?: string | null,
+  metadata?: unknown
+): boolean {
+  let decoded = metadata;
+  if (typeof decoded === 'string') {
+    try {
+      decoded = JSON.parse(decoded);
+    } catch {
+      return true;
+    }
+  }
+  if (decoded != null && (typeof decoded !== 'object' || Array.isArray(decoded))) return true;
+  const policy = (decoded ?? {}) as Record<string, unknown>;
   return (
     source?.trim().toLowerCase().split(':', 1)[0] === 'techmeme' ||
-    /^\s*Techmeme permalink:/i.test(text ?? '')
+    /^\s*Techmeme permalink:/i.test(text ?? '') ||
+    [policy['source_class'], policy['sourceClass']].includes('attention_aggregator') ||
+    [policy['evidence_tier'], policy['evidenceTier']].includes('derived') ||
+    [policy['confidence_contribution'], policy['confidenceContribution']].includes('none')
   );
 }
 

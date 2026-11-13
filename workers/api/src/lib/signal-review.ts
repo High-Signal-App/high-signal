@@ -1,5 +1,9 @@
-import { canonicalSourceUrl, type ClaimWithEvidence } from '@high-signal/shared';
-import { eq, inArray } from 'drizzle-orm';
+import {
+  canonicalSourceUrl,
+  isContextOnlyEvidenceSource,
+  type ClaimWithEvidence,
+} from '@high-signal/shared';
+import { eq, inArray, sql } from 'drizzle-orm';
 import { db, schema } from '../db';
 import { d1QueryChunks } from './signal-quality';
 
@@ -20,6 +24,8 @@ export async function loadSignalReviewEvidence(
       id: string;
       canonicalUrl: string;
       rawText: string | null;
+      source: string;
+      parsedFields: unknown;
     }
   >();
   for (const chunk of d1QueryChunks(ids)) {
@@ -28,6 +34,8 @@ export async function loadSignalReviewEvidence(
         id: schema.sourceDocuments.id,
         canonicalUrl: schema.sourceDocuments.canonicalUrl,
         rawText: schema.sourceDocuments.rawText,
+        source: schema.sourceDocuments.source,
+        parsedFields: sql<string | null>`${schema.sourceDocuments.parsedFields}`,
       })
       .from(schema.sourceDocuments)
       .where(inArray(schema.sourceDocuments.id, chunk));
@@ -53,9 +61,13 @@ export async function loadSignalReviewEvidence(
       (candidate) => canonicalSourceUrl(candidate.canonicalUrl) === canonicalSourceUrl(item.url)
     );
     const document = matchingDocuments.find((candidate) => candidate.rawText?.trim());
+    const contextOnly = matchingDocuments.some((candidate) =>
+      isContextOnlyEvidenceSource(candidate.source, candidate.rawText, candidate.parsedFields)
+    );
     return {
       evidence: {
         ...item,
+        ...(contextOnly ? { contextOnly: true } : {}),
         excerpt: item.excerpt?.trim()
           ? item.excerpt
           : document?.rawText?.trim().slice(0, 1_500) || null,

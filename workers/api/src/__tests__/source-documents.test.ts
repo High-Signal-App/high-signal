@@ -228,6 +228,50 @@ describe('retained article receipt repair through actual SQLite upserts', () => 
       database.close();
     }
   });
+
+  it.each([
+    ['none', true],
+    ['allowed', false],
+    ['{malformed policy', true],
+  ] as const)(
+    'preserves linked source confidence policy in retained lookup: %s',
+    async (contribution, excluded) => {
+      const database = createSqliteD1();
+      try {
+        applyMigrations(database);
+        const now = Math.floor(Date.now() / 1000);
+        await database.binding
+          .prepare(`INSERT INTO source_documents
+          (id,source,canonical_url,document_key,fetched_at,raw_hash,raw_text,parsed_fields,created_at)
+          VALUES('policy-doc','news:reporter','https://publisher.example/policy','policy',?,'policy',?,?,?)`)
+          .bind(
+            now,
+            'Acme manufacturing report. '.repeat(40),
+            contribution.startsWith('{')
+              ? contribution
+              : JSON.stringify({ confidence_contribution: contribution }),
+            now
+          )
+          .run();
+        await database.binding
+          .prepare(`INSERT INTO events
+          (id,source,source_url,published_at,title,raw_hash,source_document_id,ingested_at)
+          VALUES('policy-event','news:reporter','https://publisher.example/policy',?,'Acme manufacturing report','policy-event','policy-doc',?)`)
+          .bind(now - 60, now)
+          .run();
+        const rows = await retainedEvidenceCandidates(
+          database.binding,
+          'Acme manufacturing report',
+          now,
+          []
+        );
+        expect(rows).toHaveLength(1);
+        expect(rows[0]).toMatchObject({ retainedContextOnly: excluded });
+      } finally {
+        database.close();
+      }
+    }
+  );
 });
 
 describe('guarded CFTC per-contract receipt replay', () => {

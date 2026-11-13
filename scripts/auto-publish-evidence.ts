@@ -6,6 +6,7 @@ export interface JudgeEvidence {
   excerpt: string | null;
   textCoverage: 'retained_excerpt' | 'unavailable';
   sourceType?: string;
+  contextOnly?: boolean;
 }
 
 /** Only retained text from the owning API is evidence, never URL wording or draft prose. */
@@ -32,6 +33,7 @@ export function retainedJudgeEvidence(urls: string[], payload: unknown): JudgeEv
       excerpt,
       textCoverage: excerpt ? 'retained_excerpt' : 'unavailable',
       ...(typeof row?.sourceType === 'string' ? { sourceType: row.sourceType } : {}),
+      ...(row?.contextOnly === true ? { contextOnly: true } : {}),
     };
   });
 }
@@ -41,7 +43,8 @@ export function retainedSourceClasses(evidence: JudgeEvidence[]): SourceClass[] 
   return [
     ...new Set(
       evidence.map((item): SourceClass => {
-        if (isContextOnlyEvidenceSource(item.sourceType, item.excerpt)) return 'other';
+        if (item.contextOnly || isContextOnlyEvidenceSource(item.sourceType, item.excerpt))
+          return 'other';
         if (item.sourceType === 'ir' || item.sourceType === 'sec') return 'official';
         if (item.sourceType === 'news') return 'news';
         return classifySource(item.url);
@@ -93,7 +96,12 @@ export function groundJudgeVerdict(
   }
   const visible = new Set(
     evidence
-      .filter((item) => item.excerpt && !isContextOnlyEvidenceSource(item.sourceType, item.excerpt))
+      .filter(
+        (item) =>
+          item.excerpt &&
+          !item.contextOnly &&
+          !isContextOnlyEvidenceSource(item.sourceType, item.excerpt)
+      )
       .map((item) => item.url)
   );
   const aligned = verdict.evidenceAssessments?.filter((item) => item.aligned) ?? [];

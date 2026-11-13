@@ -168,9 +168,98 @@ it('keeps retained aggregator documents context-only for the publisher', async (
   );
   expect(payload.evidence).toEqual(
     expect.arrayContaining([
-      { url: urls[1], excerpt: 'Retained source text', sourceType: 'techmeme' },
+      { url: urls[1], excerpt: 'Retained source text', sourceType: 'techmeme', contextOnly: true },
     ])
   );
+});
+
+it.each([
+  {
+    source_class: 'attention_aggregator',
+    evidence_tier: 'derived',
+    confidence_contribution: 'none',
+  },
+  { confidenceContribution: 'none' },
+  { evidenceTier: 'derived' },
+  '{malformed policy',
+  '[]',
+])(
+  'keeps retained source policy authoritative over model-certified proof: %j',
+  async (metadata) => {
+    await database.binding
+      .prepare('UPDATE source_documents SET source = ?, parsed_fields = ? WHERE id = ?')
+      .bind(
+        'reddit:ClaudeAI',
+        typeof metadata === 'string' ? metadata : JSON.stringify(metadata),
+        'source-1'
+      )
+      .run();
+    const response = await request('/admin/signals-review/aged-draft', `Bearer ${token}`);
+    expect(response.status).toBe(200);
+    const payload = (await response.json()) as {
+      claims: {
+        id: string;
+        evidence: { evidenceUrl: string; role: string; semanticAlignment: string }[];
+      }[];
+      evidence: { url: string; excerpt: string; sourceType: string; contextOnly?: boolean }[];
+    };
+    expect(payload.claims[0]?.evidence.find((link) => link.evidenceUrl === urls[1])).toMatchObject({
+      role: 'context',
+      semanticAlignment: 'unverified',
+    });
+    expect(payload.claims[0]?.evidence.find((link) => link.evidenceUrl === urls[0])).toMatchObject({
+      role: 'primary',
+      semanticAlignment: 'verified',
+    });
+    expect(payload.evidence.find((item) => item.url === urls[1])).toMatchObject({
+      excerpt: 'Retained excerpt 1',
+      contextOnly: true,
+    });
+    const publication = await fetcher.fetch(
+      new Request(`http://test/admin/claims/${payload.claims[0]!.id}/status`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'published', reason: 'Synthetic policy regression' }),
+      }),
+      { DB: database.binding, ADMIN_TOKEN: token }
+    );
+    expect(
+      await database.binding
+        .prepare("SELECT parsed_fields FROM source_documents WHERE id = 'source-1'")
+        .first()
+    ).toEqual({
+      parsed_fields: typeof metadata === 'string' ? metadata : JSON.stringify(metadata),
+    });
+    expect(publication.status).toBe(409);
+    expect(await publication.json()).toMatchObject({ error: 'cite_or_kill' });
+    expect(
+      await database.binding
+        .prepare('SELECT review_status FROM claim_records WHERE id = ?')
+        .bind(payload.claims[0]!.id)
+        .first()
+    ).toEqual({ review_status: 'draft' });
+    expect(
+      await database.binding
+        .prepare('SELECT role, semantic_alignment FROM claim_evidence_links WHERE evidence_url = ?')
+        .bind(urls[1])
+        .first()
+    ).toEqual({ role: 'corroboration', semantic_alignment: 'verified' });
+  }
+);
+
+it('preserves supporting proof for a discussion document whose policy permits it', async () => {
+  await database.binding
+    .prepare('UPDATE source_documents SET source = ?, parsed_fields = ? WHERE id = ?')
+    .bind('reddit:ClaudeAI', JSON.stringify({ confidence_contribution: 'allowed' }), 'source-1')
+    .run();
+  const response = await request('/admin/signals-review/aged-draft', `Bearer ${token}`);
+  const payload = (await response.json()) as {
+    claims: { evidence: { evidenceUrl: string; role: string; semanticAlignment: string }[] }[];
+  };
+  expect(payload.claims[0]?.evidence.find((link) => link.evidenceUrl === urls[1])).toMatchObject({
+    role: 'corroboration',
+    semanticAlignment: 'verified',
+  });
 });
 
 it('recovers blank legacy excerpts from the exact linked retained document', async () => {

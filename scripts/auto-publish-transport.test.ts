@@ -292,6 +292,22 @@ async function main() {
     })),
   };
   assert.equal(groundJudgeVerdict(publish, evidence).verdict, 'publish');
+  const excludedDiscussion = retainedJudgeEvidence(urls, {
+    evidence: [
+      { url: urls[0], excerpt: 'Official announcement', sourceType: 'news' },
+      {
+        url: urls[1],
+        excerpt: 'Firsthand discussion retained only for attention',
+        sourceType: 'reddit',
+        contextOnly: true,
+      },
+    ],
+  });
+  assert.equal(
+    groundJudgeVerdict(publish, excludedDiscussion).verdict,
+    'kill',
+    'model alignment cannot override a retained no-confidence source policy'
+  );
   assert.equal(groundJudgeVerdict({ ...publish, claimTuple: undefined }, evidence).verdict, 'kill');
   assert.equal(
     groundJudgeVerdict(
