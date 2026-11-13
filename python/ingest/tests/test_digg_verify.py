@@ -252,7 +252,8 @@ def test_single_original_is_retained_before_signal_gate(monkeypatch, acknowledge
         assert result["error"] == "original_article_retention_unacknowledged"
 
 
-def test_retained_evidence_is_reused_without_refetching() -> None:
+@pytest.mark.parametrize('context_only', [True, False])
+def test_retained_evidence_is_reused_without_refetching(context_only: bool) -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         if request.url.host == "api.gdeltproject.org":
             return httpx.Response(200, json={"articles": []})
@@ -268,6 +269,7 @@ def test_retained_evidence_is_reused_without_refetching() -> None:
                 "url": "https://techcrunch.com/keenable",
                 "title": "Accel-backed Keenable is indexing the web for AI agents",
                 "retainedContent": content,
+                "retainedContextOnly": context_only,
                 "seendate": "2026-08-25T12:00:00+00:00",
             }
         ],
@@ -279,6 +281,8 @@ def test_retained_evidence_is_reused_without_refetching() -> None:
     assert len(articles) == 1
     assert len(events) == 1
     assert events[0].source_url == "https://techcrunch.com/keenable"
+    from high_signal_ingest.evidence_origins import is_context_only_source
+    assert is_context_only_source(events[0].source, events[0].content, events[0].source_document.parsed_fields) is context_only
 
 
 def test_verification_batch_is_bounded_to_six_requests(monkeypatch) -> None:

@@ -232,6 +232,7 @@ describe('retained article receipt repair through actual SQLite upserts', () => 
   it.each([
     ['none', true],
     ['allowed', false],
+    ['{malformed policy', true],
   ] as const)(
     'preserves linked source confidence policy in retained lookup: %s',
     async (contribution, excluded) => {
@@ -246,7 +247,7 @@ describe('retained article receipt repair through actual SQLite upserts', () => 
           .bind(
             now,
             'Acme manufacturing report. '.repeat(40),
-            JSON.stringify({ confidence_contribution: contribution }),
+            contribution.startsWith('{') ? contribution : JSON.stringify({ confidence_contribution: contribution }),
             now
           )
           .run();

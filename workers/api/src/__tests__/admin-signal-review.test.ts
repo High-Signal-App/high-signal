@@ -181,14 +181,17 @@ it.each([
   },
   { confidenceContribution: 'none' },
   { evidenceTier: 'derived' },
+  '{malformed policy',
+  [],
 ])(
   'keeps retained source policy authoritative over model-certified proof: %j',
   async (metadata) => {
     await database.binding
       .prepare('UPDATE source_documents SET source = ?, parsed_fields = ? WHERE id = ?')
-      .bind('reddit:ClaudeAI', JSON.stringify(metadata), 'source-1')
+      .bind('reddit:ClaudeAI', typeof metadata === 'string' ? metadata : JSON.stringify(metadata), 'source-1')
       .run();
     const response = await request('/admin/signals-review/aged-draft', `Bearer ${token}`);
+    expect(response.status).toBe(200);
     const payload = (await response.json()) as {
       claims: {
         id: string;
@@ -200,6 +203,7 @@ it.each([
       role: 'context',
       semanticAlignment: 'unverified',
     });
+    expect(payload.claims[0]?.evidence.find((link) => link.evidenceUrl === urls[0])).toMatchObject({ role: 'primary', semanticAlignment: 'verified' });
     expect(payload.evidence.find((item) => item.url === urls[1])).toMatchObject({
       excerpt: 'Retained excerpt 1',
       contextOnly: true,

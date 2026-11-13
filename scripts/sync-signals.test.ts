@@ -260,13 +260,16 @@ try {
     ],
     ['policy-camel', { confidenceContribution: 'none' }, true],
     ['policy-permitted', { confidence_contribution: 'allowed' }, false],
+    ['policy-malformed', '{malformed policy', true],
+    ['policy-array', [], true],
+    ['policy-null', null, false],
   ] as const) {
     const url = `https://discussion.example/${slug}`;
     database
       .prepare(`INSERT INTO source_documents
       (id,source,canonical_url,document_key,fetched_at,raw_hash,raw_text,parsed_fields,created_at)
       VALUES(?, 'reddit:ClaudeAI', ?, ?, 1, 'policy', 'Firsthand demonstration', ?, 1)`)
-      .run(slug, url, slug, JSON.stringify(policy));
+      .run(slug, url, slug, typeof policy === 'string' ? policy : policy === null ? null : JSON.stringify(policy));
     apply({
       ...parsed.front,
       slug,
