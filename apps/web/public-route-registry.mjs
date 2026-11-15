@@ -35,7 +35,7 @@ export const PUBLIC_STATIC_ROUTES = [
     path: '/daily-intelligence-brief',
     title: 'Daily intelligence brief',
     description:
-      'How High Signal builds one evidence-first brief across technology, startups, and finance.',
+      'How to read attributed news, inspect verified-signal proof, and check measured outcomes.',
     changeFrequency: 'monthly',
     priority: 0.85,
   },

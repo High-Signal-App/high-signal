@@ -101,7 +101,39 @@ export function DailyBriefHeroContent({
         {regionPicker}
       </div>
 
-      {!signalOnly ? (
+      {signalOnly ? (
+        <nav
+          aria-label="Read the brief"
+          className="mt-7 grid gap-x-8 border-t border-[var(--color-line)] sm:grid-cols-2"
+        >
+          {(brief.news?.length ?? 0) > 0 ? (
+            <a
+              href="#news"
+              className="py-4 hover:text-[var(--color-accent)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-accent)]"
+            >
+              <span className="block text-sm font-medium">Read the news ↓</span>
+              <span className="mt-1 block text-xs leading-5 text-[var(--color-muted)]">
+                Attributed reporting. Open the source and retained record to check each account.
+              </span>
+            </a>
+          ) : null}
+          <a
+            href="#signals"
+            className="py-4 hover:text-[var(--color-accent)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-accent)]"
+          >
+            <span className="block text-sm font-medium">Inspect verified signals ↓</span>
+            <span className="mt-1 block text-xs leading-5 text-[var(--color-muted)]">
+              Separate evidence gates, confidence and uncertainty. Check the publication status.
+            </span>
+          </a>
+          <a
+            href="/daily-intelligence-brief"
+            className="inline-flex min-h-11 items-center text-xs text-[var(--color-muted)] hover:text-[var(--color-accent)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-accent)] sm:col-span-2"
+          >
+            How to read the sources, signals and outcome record →
+          </a>
+        </nav>
+      ) : (
         <nav
           aria-label="Brief contents"
           className="mt-7 -mx-1 flex snap-x gap-2 overflow-x-auto px-1 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
@@ -121,7 +153,7 @@ export function DailyBriefHeroContent({
             </a>
           ))}
         </nav>
-      ) : null}
+      )}
     </header>
   );
 }
