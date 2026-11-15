@@ -44,34 +44,36 @@ export const INTELLIGENCE_GUIDES: Record<IntelligenceGuideKey, IntelligenceGuide
     eyebrow: 'daily intelligence',
     title: 'Daily intelligence brief for technology, startups, and finance',
     metaDescription:
-      'See how High Signal builds one evidence-first daily intelligence brief across technology, startups, and finance, with sources and a public track record.',
+      'Read the daily technology, startup and finance brief: distinguish attributed news from verified signals, inspect source records, and check measured outcomes.',
     summary:
-      'A daily intelligence brief should reduce the number of things an operator must inspect, not create another feed to clear. High Signal turns public evidence from technology, startup, and finance sources into one end-of-day brief. It keeps the source links, publishes the method, and records whether directional calls were right after their measurement window closes.',
+      'Use High Signal to catch up on technology, startups, and finance, then choose which developments deserve closer research. The Daily Brief separates attributed news from verified signals. This guide shows what to open, what each layer establishes, and where the evidence stops. No reader account is required.',
     schemaKind: 'article',
     sections: [
       {
-        title: 'What the brief answers',
+        title: '1. Read the news, then open its source',
         paragraphs: [
-          'The public brief brings technology, startup, and finance coverage into one edition with cited evidence and visible uncertainty. Readers can inspect the sources behind a story and the public record of measured outcomes. No reader account is required. Region is a filter, not a paid gate.',
+          'Start with the selected news in the current brief. Related reporting is grouped so you can follow one development without reading every repeated headline. Use the source links to read the original account. A report based on one source remains attributed to that source; its inclusion does not make it an independently verified market call.',
+          'Where a retained-record link is available beside a source, open it to inspect the captured material and provenance. A retained excerpt may be incomplete or unavailable. Compare it with the original page and its publication date before relying on a claim. Use “all stories” when you want the full retained collection rather than the short selection.',
         ],
       },
       {
-        title: 'From evidence to a published signal',
+        title: '2. Inspect a verified signal separately',
         paragraphs: [
-          'High Signal ingests a documented catalog of public sources across technology, startups, and finance. A candidate must survive curation, cleaning, de-duplication, and a cite-or-kill gate. A published claim needs at least two independent sources; a prediction-market quote cannot stand alone as evidence. Published signals carry confidence and a maturity window. When the window closes, the outcome is recorded as hit, miss, or push in the public track-record ledger.',
+          'The verified-signals section uses a separate publication gate. A signal needs at least two independent sources; a prediction-market probability cannot stand alone as equity-price evidence. Open the signal title for its full proof, source provenance, confidence and uncertainty. Separate the observed event from the inferred impact and check whether the evidence supports the exact claim.',
+          'For example, a company announcing a product establishes what that company said. Several sites repeating the announcement do not independently establish adoption, revenue or customer results. Those claims require their own evidence. When the section says no verified signals, no call cleared the gates for that edition. An unavailable or pending section has a different status; check its message before drawing a conclusion.',
         ],
       },
       {
-        title: 'Why the ledger matters',
+        title: '3. Read opportunities as research prompts',
         paragraphs: [
-          "Most brief products make today's summary easy to read and yesterday's judgment hard to inspect. High Signal preserves dated briefs, signal pages, evidence links, methodology, and the public hit-rate ledger. A reader can move from a claim to its sources, inspect earlier calls, and see where the available sample is still early. Missing evidence is not converted into confidence.",
+          'When business-opportunity or behavior-and-culture reports are present, inspect their supporting passages, citations and stated uncertainty. Community attention can identify a question worth investigating. It does not establish market size, willingness to pay or representative customer demand. Follow the evidence, then test the idea with people and conditions relevant to your decision.',
         ],
       },
       {
-        title: 'How to use High Signal',
+        title: '4. Check the outcome record before trusting a pattern',
         paragraphs: [
-          "Start with today's brief for the compressed view. Open a signal when you need the evidence and confidence behind a claim. Use the company universe to investigate a startup or product, the signal taxonomies to follow a recurring pattern, and the track record to inspect matured outcomes. The methodology page documents the rules used across these surfaces.",
-          'High Signal is free for now and the public brief does not require a signup. The product is an intelligence layer for deciding what deserves attention; it is not investment advice and does not replace primary research.',
+          'Use Signals to browse today and yesterday’s published calls, then open Track Record for measured directional outcomes. Earlier dated history requires a human check. A market call needs its measurement window to close before its outcome can be assessed. Read the hit, miss or push label together with the sample size and any fallback-rate attribution. News stories and unmeasured opportunity ideas are not successful predictions merely because they appeared in an edition.',
+          'Use today and yesterday to change editions, and the region selector to change the view. Check the edition date and publication status before assuming the page is current. Source availability and publication gates can leave sections pending, unavailable or empty. High Signal helps decide what deserves attention; it does not replace primary research or provide investment advice.',
         ],
       },
     ],
@@ -80,33 +82,33 @@ export const INTELLIGENCE_GUIDES: Record<IntelligenceGuideKey, IntelligenceGuide
         href: '/methodology',
         label: 'Publication contract',
         detail:
-          'Published claims require at least two independent sources and matured calls enter the public ledger.',
-        verifiedAt: '2026-08-05',
+          'Verified signals have a separate publication gate; attributed news is not a verified market call.',
+        verifiedAt: '2026-11-15',
       },
       {
         href: '/signals',
-        label: 'Dated signal record',
-        detail: 'Daily snapshots preserve what readers could see at the time.',
-        verifiedAt: '2026-08-05',
+        label: 'Published signal history',
+        detail: 'Today and yesterday are open; earlier dated history requires a human check.',
+        verifiedAt: '2026-11-15',
       },
       {
         href: '/track-record',
         label: 'Outcome record',
         detail:
           'Hits, misses, pushes, sample sizes, and attributed fallback rates remain inspectable.',
-        verifiedAt: '2026-08-05',
+        verifiedAt: '2026-11-15',
       },
     ],
     related: [
       {
-        href: '/brief',
+        href: '/',
         title: "Today's Daily Brief",
         description: 'Read the current compressed view.',
       },
       {
-        href: '/compared',
-        title: 'Daily briefs compared',
-        description: 'Compare sourcing contracts across daily brief products.',
+        href: '/data',
+        title: 'Source coverage and freshness',
+        description: 'Check which sources are available before drawing conclusions from absence.',
       },
       {
         href: '/methodology',
@@ -121,11 +123,11 @@ export const INTELLIGENCE_GUIDES: Record<IntelligenceGuideKey, IntelligenceGuide
       {
         href: '/signals',
         title: 'Signal history',
-        description: 'Return to a dated brief through the chronological record.',
+        description: 'Inspect published calls and their original proof.',
       },
     ],
     cta: {
-      href: '/brief',
+      href: '/',
       title: "Read today's Daily Brief",
       description: 'Then inspect the methodology and public track record behind it.',
     },

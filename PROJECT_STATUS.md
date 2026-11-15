@@ -1,6 +1,17 @@
 # high-signal — PROJECT STATUS
 
-Last updated: 2026-11-09
+Last updated: 2026-11-15
+
+November 15 public brief reading path — implementation:
+
+The shared Next and compiled Astro brief hero now links readers to attributed
+news, separately verified signals, and the existing daily-brief guide. The guide
+explains original sources, retained-record limits, proof, opportunity research,
+human-checked earlier history and measured outcomes without treating news as a
+verified market call. Publication gates and source collection are unchanged.
+Search discovery, clicks and referring-domain growth require later evidence.
+Release qualification is tracked in
+[issue #324](https://github.com/High-Signal-App/high-signal/issues/324).
 
 November 9 reviewed company-source supplements — implementation:
 
