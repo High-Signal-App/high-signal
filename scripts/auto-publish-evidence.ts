@@ -1,5 +1,9 @@
 import { hasValidPublishReceipt, type VerdictResult } from './auto-publish-rules';
-import { classifySource, isContextOnlyEvidenceSource, type SourceClass } from '@high-signal/shared';
+import {
+  classifyPublisherSource,
+  isContextOnlyEvidenceSource,
+  type SourceClass,
+} from '@high-signal/shared';
 
 export interface JudgeEvidence {
   url: string;
@@ -45,12 +49,50 @@ export function retainedSourceClasses(evidence: JudgeEvidence[]): SourceClass[] 
       evidence.map((item): SourceClass => {
         if (item.contextOnly || isContextOnlyEvidenceSource(item.sourceType, item.excerpt))
           return 'other';
-        if (item.sourceType === 'ir' || item.sourceType === 'sec') return 'official';
+        const urlClass = classifyPublisherSource(item.url);
+        if (item.sourceType === 'ir' || item.sourceType === 'sec' || urlClass === 'official')
+          return 'official';
         if (item.sourceType === 'news') return 'news';
-        return classifySource(item.url);
+        return urlClass;
       })
     ),
   ];
+}
+
+function usableJudgeEvidence(evidence: JudgeEvidence[]): JudgeEvidence[] {
+  return evidence.filter(
+    (item) =>
+      item.excerpt &&
+      !item.contextOnly &&
+      !isContextOnlyEvidenceSource(item.sourceType, item.excerpt)
+  );
+}
+
+// A news ingestion tag also covers issuer and government feeds. Only known
+// editorial publishers establish that every cited source is a news report.
+function hasOnlyEditorialNewsSources(evidence: JudgeEvidence[]): boolean {
+  return evidence.every((item) => {
+    if (item.sourceType === 'ir' || item.sourceType === 'sec') return false;
+    const sourceClass = classifyPublisherSource(item.url);
+    return sourceClass === 'news' || sourceClass === 'regional';
+  });
+}
+
+export function judgeEvidenceRejection(evidence: JudgeEvidence[]): VerdictResult | null {
+  const usable = usableJudgeEvidence(evidence);
+  if (usable.length < 2)
+    return {
+      verdict: 'kill',
+      source: 'rule',
+      reason: 'fewer than two cited sources have retained text for semantic review',
+    };
+  if (hasOnlyEditorialNewsSources(usable))
+    return {
+      verdict: 'kill',
+      source: 'rule',
+      reason: 'retained evidence consists only of news reports',
+    };
+  return null;
 }
 
 // Conservative publisher-independence gate: a credited wire reprint cannot
@@ -94,16 +136,8 @@ export function groundJudgeVerdict(
       reason: 'publish receipt must assess each cited URL exactly once',
     };
   }
-  const visible = new Set(
-    evidence
-      .filter(
-        (item) =>
-          item.excerpt &&
-          !item.contextOnly &&
-          !isContextOnlyEvidenceSource(item.sourceType, item.excerpt)
-      )
-      .map((item) => item.url)
-  );
+  const usable = usableJudgeEvidence(evidence);
+  const visible = new Set(usable.map((item) => item.url));
   const aligned = verdict.evidenceAssessments?.filter((item) => item.aligned) ?? [];
   if (
     new Set(aligned.map((item) => item.url)).size < 2 ||
@@ -135,6 +169,14 @@ export function groundJudgeVerdict(
         source: 'rule',
         reason: 'explicit wire attribution contradicts model-certified source independence',
       };
+  }
+  const alignedUrls = new Set(aligned.map((item) => item.url));
+  if (hasOnlyEditorialNewsSources(usable.filter((item) => alignedUrls.has(item.url)))) {
+    return {
+      verdict: 'kill',
+      source: 'rule',
+      reason: 'aligned retained evidence consists only of news reports',
+    };
   }
   return verdict;
 }

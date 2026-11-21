@@ -43,6 +43,7 @@ import {
 import { requestJudge } from './auto-publish-transport';
 import {
   groundJudgeVerdict,
+  judgeEvidenceRejection,
   retainedJudgeEvidence,
   retainedSourceClasses,
 } from './auto-publish-evidence';
@@ -449,13 +450,8 @@ async function aiVerdict(signal: SignalRow): Promise<VerdictResult | null> {
   const response = await fetchSignalReview(signal.slug, 'signals');
   if (!response.ok) throw new Error(`retained evidence lookup failed (${response.status})`);
   const evidence = retainedJudgeEvidence(signal.evidenceUrls, await response.json());
-  if (evidence.filter((item) => item.excerpt).length < 2) {
-    return {
-      verdict: 'kill',
-      source: 'rule',
-      reason: 'fewer than two cited sources have retained text for semantic review',
-    };
-  }
+  const rejection = judgeEvidenceRejection(evidence);
+  if (rejection) return rejection;
   const payload = {
     signalType: signal.signalType,
     primaryEntity: signal.primaryEntityId,

@@ -6,6 +6,7 @@ import { spawnSync } from 'node:child_process';
 import { requestJudge } from './auto-publish-transport';
 import {
   groundJudgeVerdict,
+  judgeEvidenceRejection,
   retainedJudgeEvidence,
   retainedSourceClasses,
 } from './auto-publish-evidence';
@@ -58,6 +59,7 @@ const signal = {
   direction: 'up', confidence: 'medium', predictedWindowDays: 30,
   publishedAt: mode.startsWith('retry') ? '2020-01-01T00:00:00Z' : new Date().toISOString(), publishable: true, independentSourceCount: 1,
   evidenceUrls: mode === 'deterministic' ? ['https://a.example/report'] :
+    mode === 'same-class' ? ['https://www.thehindu.com/report', 'https://analyticsindiamag.com/report'] :
     ['https://a.example/report', 'https://b.example/report'],
   bodyMd: 'Evidence https://a.example/report and https://b.example/report'
 };
@@ -119,7 +121,7 @@ globalThis.fetch = async (input, init) => {
       }))
     }] : [],
     evidence: mode === 'no-text' || mode.startsWith('retry') ? [] : signal.evidenceUrls.map((url, index) => ({
-      url, excerpt: 'Retained public source excerpt for ' + url, sourceType: index === 0 ? 'ir' : 'news'
+      url, excerpt: 'Retained public source excerpt for ' + url, sourceType: index === 0 && mode !== 'same-class' ? 'ir' : 'news'
     }))});
   }
   if (url.pathname === '/admin/signals/fixture' && init.method === 'PATCH') {
@@ -140,6 +142,7 @@ process.on('exit', () => console.log('judge requests=' + requests));
       ['absent', 0, 0],
       ['deterministic', 0, 0],
       ['no-text', 0, 0],
+      ['same-class', 0, 0],
       ['lookup-failed', 1, 0],
       ['prose', 0, 1],
       ['oversized', 0, 0],
@@ -292,6 +295,70 @@ async function main() {
     })),
   };
   assert.equal(groundJudgeVerdict(publish, evidence).verdict, 'publish');
+  const newsUrls = ['https://www.thehindu.com/report', 'https://analyticsindiamag.com/report'];
+  const sameClassEvidence = evidence.map((item, index) => ({
+    ...item,
+    url: newsUrls[index],
+    sourceType: 'news',
+  }));
+  const newsPublish = {
+    ...publish,
+    evidenceAssessments: publish.evidenceAssessments.map((item, index) => ({
+      ...item,
+      url: newsUrls[index],
+    })),
+  };
+  assert.equal(
+    groundJudgeVerdict(newsPublish, sameClassEvidence).verdict,
+    'kill',
+    'two news citations do not satisfy the final judge’s different-source-class rule'
+  );
+  const officialUrl = 'https://www.businesswire.com/release';
+  const official = {
+    url: officialUrl,
+    excerpt: 'Retained official announcement',
+    textCoverage: 'retained_excerpt' as const,
+    sourceType: 'news',
+  };
+  assert.equal(
+    groundJudgeVerdict(
+      {
+        ...publish,
+        evidenceAssessments: [
+          ...newsPublish.evidenceAssessments,
+          { url: officialUrl, aligned: false, originatingEvidenceId: 'unrelated-release' },
+        ],
+      },
+      [...sameClassEvidence, official]
+    ).verdict,
+    'kill',
+    'an unrelated official citation does not add an aligned source class'
+  );
+  assert.equal(
+    groundJudgeVerdict(
+      {
+        ...publish,
+        evidenceAssessments: [
+          newsPublish.evidenceAssessments[0],
+          { url: officialUrl, aligned: true, originatingEvidenceId: 'official-release' },
+        ],
+      },
+      [sameClassEvidence[0], official]
+    ).verdict,
+    'publish',
+    'aligned independent news and official evidence still pass'
+  );
+  assert.deepEqual(retainedSourceClasses([sameClassEvidence[0], official]), ['news', 'official']);
+  const issuerNewsroom = { ...official, url: 'https://news.microsoft.com/announcement' };
+  assert.equal(judgeEvidenceRejection([sameClassEvidence[0], issuerNewsroom]), null);
+  assert.deepEqual(
+    retainedSourceClasses([
+      sameClassEvidence[0],
+      { ...official, url: 'https://www.nextgov.com/report' },
+    ]),
+    ['news'],
+    'a gov substring cannot reclassify an editorial site as official'
+  );
   const excludedDiscussion = retainedJudgeEvidence(urls, {
     evidence: [
       { url: urls[0], excerpt: 'Official announcement', sourceType: 'news' },
@@ -368,21 +435,31 @@ async function main() {
     ],
   });
   assert.equal(
-    groundJudgeVerdict(wirePublish, wireEvidence).verdict,
-    'kill',
-    'wire reprint cannot be certified as independent'
+    groundJudgeVerdict(wirePublish, wireEvidence).reason,
+    'explicit wire attribution contradicts model-certified source independence'
   );
+  const businessWireUrl = 'https://www.businesswire.com/report';
   assert.equal(
     groundJudgeVerdict(
-      wirePublish,
-      wireEvidence.map((item, index) =>
-        index === 1
-          ? { ...item, excerpt: 'Our own investigation mentions Bloomberg in passing.' }
-          : item
-      )
+      {
+        ...wirePublish,
+        evidenceAssessments: [
+          wirePublish.evidenceAssessments[0],
+          { ...wirePublish.evidenceAssessments[1], url: businessWireUrl },
+        ],
+      },
+      [
+        wireEvidence[0],
+        {
+          ...wireEvidence[1],
+          url: businessWireUrl,
+          excerpt: 'A separate primary release mentions Bloomberg in passing.',
+          sourceType: 'news',
+        },
+      ]
     ).verdict,
     'publish',
-    'ordinary publisher mentions do not prove syndication'
+    'an ordinary wire mention is not a syndicated reprint'
   );
   const absent = retainedJudgeEvidence(urls, null);
   assert.equal(groundJudgeVerdict(publish, absent).verdict, 'kill');
