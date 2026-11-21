@@ -53,6 +53,22 @@ export function retainedSourceClasses(evidence: JudgeEvidence[]): SourceClass[] 
   ];
 }
 
+export function usableJudgeEvidence(evidence: JudgeEvidence[]): JudgeEvidence[] {
+  return evidence.filter(
+    (item) =>
+      item.excerpt &&
+      !item.contextOnly &&
+      !isContextOnlyEvidenceSource(item.sourceType, item.excerpt)
+  );
+}
+
+// Unclassified sources still require semantic review. A known single class
+// cannot satisfy the judge's existing different-source-class requirement.
+export function hasOnlyOneKnownSourceClass(evidence: JudgeEvidence[]): boolean {
+  const classes = retainedSourceClasses(evidence);
+  return classes.length === 1 && classes[0] !== 'other';
+}
+
 // Conservative publisher-independence gate: a credited wire reprint cannot
 // supply a second independent publisher beside that wire service. This does
 // not assert identical story identity; ambiguous assessments need review.
@@ -94,16 +110,8 @@ export function groundJudgeVerdict(
       reason: 'publish receipt must assess each cited URL exactly once',
     };
   }
-  const visible = new Set(
-    evidence
-      .filter(
-        (item) =>
-          item.excerpt &&
-          !item.contextOnly &&
-          !isContextOnlyEvidenceSource(item.sourceType, item.excerpt)
-      )
-      .map((item) => item.url)
-  );
+  const usable = usableJudgeEvidence(evidence);
+  const visible = new Set(usable.map((item) => item.url));
   const aligned = verdict.evidenceAssessments?.filter((item) => item.aligned) ?? [];
   if (
     new Set(aligned.map((item) => item.url)).size < 2 ||
@@ -114,6 +122,14 @@ export function groundJudgeVerdict(
       verdict: 'kill',
       source: 'rule',
       reason: 'semantic publish assessment lacks retained source text for aligned evidence',
+    };
+  }
+  const alignedUrls = new Set(aligned.map((item) => item.url));
+  if (hasOnlyOneKnownSourceClass(usable.filter((item) => alignedUrls.has(item.url)))) {
+    return {
+      verdict: 'kill',
+      source: 'rule',
+      reason: 'aligned retained evidence belongs to only one source class',
     };
   }
   for (const item of evidence) {

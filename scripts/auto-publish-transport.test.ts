@@ -119,7 +119,7 @@ globalThis.fetch = async (input, init) => {
       }))
     }] : [],
     evidence: mode === 'no-text' || mode.startsWith('retry') ? [] : signal.evidenceUrls.map((url, index) => ({
-      url, excerpt: 'Retained public source excerpt for ' + url, sourceType: index === 0 ? 'ir' : 'news'
+      url, excerpt: 'Retained public source excerpt for ' + url, sourceType: index === 0 && mode !== 'same-class' ? 'ir' : 'news'
     }))});
   }
   if (url.pathname === '/admin/signals/fixture' && init.method === 'PATCH') {
@@ -140,6 +140,7 @@ process.on('exit', () => console.log('judge requests=' + requests));
       ['absent', 0, 0],
       ['deterministic', 0, 0],
       ['no-text', 0, 0],
+      ['same-class', 0, 0],
       ['lookup-failed', 1, 0],
       ['prose', 0, 1],
       ['oversized', 0, 0],
@@ -292,6 +293,47 @@ async function main() {
     })),
   };
   assert.equal(groundJudgeVerdict(publish, evidence).verdict, 'publish');
+  const sameClassEvidence = evidence.map((item) => ({ ...item, sourceType: 'news' }));
+  assert.equal(
+    groundJudgeVerdict(publish, sameClassEvidence).verdict,
+    'kill',
+    'two news citations do not satisfy the final judge’s different-source-class rule'
+  );
+  const officialUrl = 'https://issuer.example/release';
+  const official = {
+    url: officialUrl,
+    excerpt: 'Retained official announcement',
+    textCoverage: 'retained_excerpt' as const,
+    sourceType: 'ir',
+  };
+  assert.equal(
+    groundJudgeVerdict(
+      {
+        ...publish,
+        evidenceAssessments: [
+          ...publish.evidenceAssessments,
+          { url: officialUrl, aligned: false, originatingEvidenceId: 'unrelated-release' },
+        ],
+      },
+      [...sameClassEvidence, official]
+    ).verdict,
+    'kill',
+    'an unrelated official citation does not add an aligned source class'
+  );
+  assert.equal(
+    groundJudgeVerdict(
+      {
+        ...publish,
+        evidenceAssessments: [
+          publish.evidenceAssessments[0],
+          { url: officialUrl, aligned: true, originatingEvidenceId: 'official-release' },
+        ],
+      },
+      [sameClassEvidence[0], official]
+    ).verdict,
+    'publish',
+    'aligned independent news and official evidence still pass'
+  );
   const excludedDiscussion = retainedJudgeEvidence(urls, {
     evidence: [
       { url: urls[0], excerpt: 'Official announcement', sourceType: 'news' },
