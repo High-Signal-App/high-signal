@@ -45,7 +45,7 @@ export function retainedSourceClasses(evidence: JudgeEvidence[]): SourceClass[] 
       evidence.map((item): SourceClass => {
         if (item.contextOnly || isContextOnlyEvidenceSource(item.sourceType, item.excerpt))
           return 'other';
-        const urlClass = classifySource(item.url);
+        const urlClass = classifySource(item.url, 'publisher');
         if (item.sourceType === 'ir' || item.sourceType === 'sec' || urlClass === 'official')
           return 'official';
         if (item.sourceType === 'news') return 'news';
@@ -55,7 +55,7 @@ export function retainedSourceClasses(evidence: JudgeEvidence[]): SourceClass[] 
   ];
 }
 
-export function usableJudgeEvidence(evidence: JudgeEvidence[]): JudgeEvidence[] {
+function usableJudgeEvidence(evidence: JudgeEvidence[]): JudgeEvidence[] {
   return evidence.filter(
     (item) =>
       item.excerpt &&
@@ -66,12 +66,29 @@ export function usableJudgeEvidence(evidence: JudgeEvidence[]): JudgeEvidence[] 
 
 // A news ingestion tag also covers issuer and government feeds. Only known
 // editorial publishers establish that every cited source is a news report.
-export function hasOnlyEditorialNewsSources(evidence: JudgeEvidence[]): boolean {
+function hasOnlyEditorialNewsSources(evidence: JudgeEvidence[]): boolean {
   return evidence.every((item) => {
     if (item.sourceType === 'ir' || item.sourceType === 'sec') return false;
-    const sourceClass = classifySource(item.url);
+    const sourceClass = classifySource(item.url, 'publisher');
     return sourceClass === 'news' || sourceClass === 'regional';
   });
+}
+
+export function judgeEvidenceRejection(evidence: JudgeEvidence[]): VerdictResult | null {
+  const usable = usableJudgeEvidence(evidence);
+  if (usable.length < 2)
+    return {
+      verdict: 'kill',
+      source: 'rule',
+      reason: 'fewer than two cited sources have retained text for semantic review',
+    };
+  if (hasOnlyEditorialNewsSources(usable))
+    return {
+      verdict: 'kill',
+      source: 'rule',
+      reason: 'retained evidence consists only of news reports',
+    };
+  return null;
 }
 
 // Conservative publisher-independence gate: a credited wire reprint cannot

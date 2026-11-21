@@ -198,15 +198,24 @@ function includesDomain(domain: string, needles: string[]) {
   return needles.some((needle) => domain === needle || domain.includes(needle));
 }
 
-export function classifySource(url: string): SourceClass {
+function includesPublisherDomain(domain: string, needles: string[]) {
+  return needles.some((needle) => {
+    if (needle === 'gov') return /(?:^|\.)gov(?:\.[a-z]{2})?$/u.test(domain);
+    if (needle.endsWith('.')) return domain.startsWith(needle);
+    return domain === needle || domain.endsWith(`.${needle}`);
+  });
+}
+
+export function classifySource(url: string, match: 'legacy' | 'publisher' = 'legacy'): SourceClass {
   const domain = sourceDomain(url);
-  if (includesDomain(domain, OFFICIAL_DOMAINS)) return 'official';
-  if (includesDomain(domain, MARKET_DOMAINS)) return 'market';
-  if (includesDomain(domain, COMMUNITY_DOMAINS)) return 'community';
-  if (includesDomain(domain, DEVELOPER_DOMAINS)) return 'developer';
-  if (includesDomain(domain, REVIEW_DOMAINS)) return 'review';
-  if (includesDomain(domain, REGIONAL_DOMAINS)) return 'regional';
-  if (includesDomain(domain, NEWS_DOMAINS)) return 'news';
+  const matches = match === 'publisher' ? includesPublisherDomain : includesDomain;
+  if (matches(domain, OFFICIAL_DOMAINS)) return 'official';
+  if (matches(domain, MARKET_DOMAINS)) return 'market';
+  if (matches(domain, COMMUNITY_DOMAINS)) return 'community';
+  if (matches(domain, DEVELOPER_DOMAINS)) return 'developer';
+  if (matches(domain, REVIEW_DOMAINS)) return 'review';
+  if (matches(domain, REGIONAL_DOMAINS)) return 'regional';
+  if (matches(domain, NEWS_DOMAINS)) return 'news';
   return 'other';
 }
 

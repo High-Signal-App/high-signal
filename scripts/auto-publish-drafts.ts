@@ -43,10 +43,9 @@ import {
 import { requestJudge } from './auto-publish-transport';
 import {
   groundJudgeVerdict,
-  hasOnlyEditorialNewsSources,
+  judgeEvidenceRejection,
   retainedJudgeEvidence,
   retainedSourceClasses,
-  usableJudgeEvidence,
 } from './auto-publish-evidence';
 import {
   judgePublishability,
@@ -451,21 +450,8 @@ async function aiVerdict(signal: SignalRow): Promise<VerdictResult | null> {
   const response = await fetchSignalReview(signal.slug, 'signals');
   if (!response.ok) throw new Error(`retained evidence lookup failed (${response.status})`);
   const evidence = retainedJudgeEvidence(signal.evidenceUrls, await response.json());
-  const usableEvidence = usableJudgeEvidence(evidence);
-  if (usableEvidence.length < 2) {
-    return {
-      verdict: 'kill',
-      source: 'rule',
-      reason: 'fewer than two cited sources have retained text for semantic review',
-    };
-  }
-  if (hasOnlyEditorialNewsSources(usableEvidence)) {
-    return {
-      verdict: 'kill',
-      source: 'rule',
-      reason: 'retained evidence consists only of news reports',
-    };
-  }
+  const rejection = judgeEvidenceRejection(evidence);
+  if (rejection) return rejection;
   const payload = {
     signalType: signal.signalType,
     primaryEntity: signal.primaryEntityId,

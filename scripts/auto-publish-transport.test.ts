@@ -6,6 +6,7 @@ import { spawnSync } from 'node:child_process';
 import { requestJudge } from './auto-publish-transport';
 import {
   groundJudgeVerdict,
+  judgeEvidenceRejection,
   retainedJudgeEvidence,
   retainedSourceClasses,
 } from './auto-publish-evidence';
@@ -348,6 +349,16 @@ async function main() {
     'aligned independent news and official evidence still pass'
   );
   assert.deepEqual(retainedSourceClasses([sameClassEvidence[0], official]), ['news', 'official']);
+  const issuerNewsroom = { ...official, url: 'https://news.microsoft.com/announcement' };
+  assert.equal(judgeEvidenceRejection([sameClassEvidence[0], issuerNewsroom]), null);
+  assert.deepEqual(
+    retainedSourceClasses([
+      sameClassEvidence[0],
+      { ...official, url: 'https://www.nextgov.com/report' },
+    ]),
+    ['news'],
+    'a gov substring cannot reclassify an editorial site as official'
+  );
   const excludedDiscussion = retainedJudgeEvidence(urls, {
     evidence: [
       { url: urls[0], excerpt: 'Official announcement', sourceType: 'news' },
