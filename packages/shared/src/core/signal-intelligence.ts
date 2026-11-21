@@ -149,6 +149,7 @@ const OFFICIAL_DOMAINS = [
 ];
 
 const NEWS_DOMAINS = [
+  'analyticsindiamag.com',
   'reuters.com',
   'bloomberg.com',
   'wsj.com',

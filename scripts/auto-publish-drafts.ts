@@ -43,7 +43,7 @@ import {
 import { requestJudge } from './auto-publish-transport';
 import {
   groundJudgeVerdict,
-  hasOnlyOneKnownSourceClass,
+  hasOnlyEditorialNewsSources,
   retainedJudgeEvidence,
   retainedSourceClasses,
   usableJudgeEvidence,
@@ -459,11 +459,11 @@ async function aiVerdict(signal: SignalRow): Promise<VerdictResult | null> {
       reason: 'fewer than two cited sources have retained text for semantic review',
     };
   }
-  if (hasOnlyOneKnownSourceClass(usableEvidence)) {
+  if (hasOnlyEditorialNewsSources(usableEvidence)) {
     return {
       verdict: 'kill',
       source: 'rule',
-      reason: 'retained evidence belongs to only one source class',
+      reason: 'retained evidence consists only of news reports',
     };
   }
   const payload = {

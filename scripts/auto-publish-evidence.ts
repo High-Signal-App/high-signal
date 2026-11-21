@@ -45,9 +45,11 @@ export function retainedSourceClasses(evidence: JudgeEvidence[]): SourceClass[] 
       evidence.map((item): SourceClass => {
         if (item.contextOnly || isContextOnlyEvidenceSource(item.sourceType, item.excerpt))
           return 'other';
-        if (item.sourceType === 'ir' || item.sourceType === 'sec') return 'official';
+        const urlClass = classifySource(item.url);
+        if (item.sourceType === 'ir' || item.sourceType === 'sec' || urlClass === 'official')
+          return 'official';
         if (item.sourceType === 'news') return 'news';
-        return classifySource(item.url);
+        return urlClass;
       })
     ),
   ];
@@ -62,11 +64,14 @@ export function usableJudgeEvidence(evidence: JudgeEvidence[]): JudgeEvidence[] 
   );
 }
 
-// Unclassified sources still require semantic review. A known single class
-// cannot satisfy the judge's existing different-source-class requirement.
-export function hasOnlyOneKnownSourceClass(evidence: JudgeEvidence[]): boolean {
-  const classes = retainedSourceClasses(evidence);
-  return classes.length === 1 && classes[0] !== 'other';
+// A news ingestion tag also covers issuer and government feeds. Only known
+// editorial publishers establish that every cited source is a news report.
+export function hasOnlyEditorialNewsSources(evidence: JudgeEvidence[]): boolean {
+  return evidence.every((item) => {
+    if (item.sourceType === 'ir' || item.sourceType === 'sec') return false;
+    const sourceClass = classifySource(item.url);
+    return sourceClass === 'news' || sourceClass === 'regional';
+  });
 }
 
 // Conservative publisher-independence gate: a credited wire reprint cannot
@@ -124,14 +129,6 @@ export function groundJudgeVerdict(
       reason: 'semantic publish assessment lacks retained source text for aligned evidence',
     };
   }
-  const alignedUrls = new Set(aligned.map((item) => item.url));
-  if (hasOnlyOneKnownSourceClass(usable.filter((item) => alignedUrls.has(item.url)))) {
-    return {
-      verdict: 'kill',
-      source: 'rule',
-      reason: 'aligned retained evidence belongs to only one source class',
-    };
-  }
   for (const item of evidence) {
     const wire = wireAttribution(item);
     const assessment = aligned.find((link) => link.url === item.url);
@@ -151,6 +148,14 @@ export function groundJudgeVerdict(
         source: 'rule',
         reason: 'explicit wire attribution contradicts model-certified source independence',
       };
+  }
+  const alignedUrls = new Set(aligned.map((item) => item.url));
+  if (hasOnlyEditorialNewsSources(usable.filter((item) => alignedUrls.has(item.url)))) {
+    return {
+      verdict: 'kill',
+      source: 'rule',
+      reason: 'aligned retained evidence consists only of news reports',
+    };
   }
   return verdict;
 }

@@ -58,6 +58,7 @@ const signal = {
   direction: 'up', confidence: 'medium', predictedWindowDays: 30,
   publishedAt: mode.startsWith('retry') ? '2020-01-01T00:00:00Z' : new Date().toISOString(), publishable: true, independentSourceCount: 1,
   evidenceUrls: mode === 'deterministic' ? ['https://a.example/report'] :
+    mode === 'same-class' ? ['https://www.thehindu.com/report', 'https://analyticsindiamag.com/report'] :
     ['https://a.example/report', 'https://b.example/report'],
   bodyMd: 'Evidence https://a.example/report and https://b.example/report'
 };
@@ -293,25 +294,37 @@ async function main() {
     })),
   };
   assert.equal(groundJudgeVerdict(publish, evidence).verdict, 'publish');
-  const sameClassEvidence = evidence.map((item) => ({ ...item, sourceType: 'news' }));
+  const newsUrls = ['https://www.thehindu.com/report', 'https://analyticsindiamag.com/report'];
+  const sameClassEvidence = evidence.map((item, index) => ({
+    ...item,
+    url: newsUrls[index],
+    sourceType: 'news',
+  }));
+  const newsPublish = {
+    ...publish,
+    evidenceAssessments: publish.evidenceAssessments.map((item, index) => ({
+      ...item,
+      url: newsUrls[index],
+    })),
+  };
   assert.equal(
-    groundJudgeVerdict(publish, sameClassEvidence).verdict,
+    groundJudgeVerdict(newsPublish, sameClassEvidence).verdict,
     'kill',
     'two news citations do not satisfy the final judge’s different-source-class rule'
   );
-  const officialUrl = 'https://issuer.example/release';
+  const officialUrl = 'https://www.businesswire.com/release';
   const official = {
     url: officialUrl,
     excerpt: 'Retained official announcement',
     textCoverage: 'retained_excerpt' as const,
-    sourceType: 'ir',
+    sourceType: 'news',
   };
   assert.equal(
     groundJudgeVerdict(
       {
         ...publish,
         evidenceAssessments: [
-          ...publish.evidenceAssessments,
+          ...newsPublish.evidenceAssessments,
           { url: officialUrl, aligned: false, originatingEvidenceId: 'unrelated-release' },
         ],
       },
@@ -325,7 +338,7 @@ async function main() {
       {
         ...publish,
         evidenceAssessments: [
-          publish.evidenceAssessments[0],
+          newsPublish.evidenceAssessments[0],
           { url: officialUrl, aligned: true, originatingEvidenceId: 'official-release' },
         ],
       },
@@ -334,6 +347,7 @@ async function main() {
     'publish',
     'aligned independent news and official evidence still pass'
   );
+  assert.deepEqual(retainedSourceClasses([sameClassEvidence[0], official]), ['news', 'official']);
   const excludedDiscussion = retainedJudgeEvidence(urls, {
     evidence: [
       { url: urls[0], excerpt: 'Official announcement', sourceType: 'news' },
@@ -410,21 +424,31 @@ async function main() {
     ],
   });
   assert.equal(
-    groundJudgeVerdict(wirePublish, wireEvidence).verdict,
-    'kill',
-    'wire reprint cannot be certified as independent'
+    groundJudgeVerdict(wirePublish, wireEvidence).reason,
+    'explicit wire attribution contradicts model-certified source independence'
   );
+  const businessWireUrl = 'https://www.businesswire.com/report';
   assert.equal(
     groundJudgeVerdict(
-      wirePublish,
-      wireEvidence.map((item, index) =>
-        index === 1
-          ? { ...item, excerpt: 'Our own investigation mentions Bloomberg in passing.' }
-          : item
-      )
+      {
+        ...wirePublish,
+        evidenceAssessments: [
+          wirePublish.evidenceAssessments[0],
+          { ...wirePublish.evidenceAssessments[1], url: businessWireUrl },
+        ],
+      },
+      [
+        wireEvidence[0],
+        {
+          ...wireEvidence[1],
+          url: businessWireUrl,
+          excerpt: 'A separate primary release mentions Bloomberg in passing.',
+          sourceType: 'news',
+        },
+      ]
     ).verdict,
     'publish',
-    'ordinary publisher mentions do not prove syndication'
+    'an ordinary wire mention is not a syndicated reprint'
   );
   const absent = retainedJudgeEvidence(urls, null);
   assert.equal(groundJudgeVerdict(publish, absent).verdict, 'kill');
