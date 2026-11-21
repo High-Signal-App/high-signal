@@ -206,9 +206,15 @@ function includesPublisherDomain(domain: string, needles: string[]) {
   });
 }
 
-export function classifySource(url: string, match: 'legacy' | 'publisher' = 'legacy'): SourceClass {
-  const domain = sourceDomain(url);
-  const matches = match === 'publisher' ? includesPublisherDomain : includesDomain;
+export function classifySource(url: string): SourceClass {
+  return classifyDomain(sourceDomain(url), includesDomain);
+}
+
+export function classifyPublisherSource(url: string): SourceClass {
+  return classifyDomain(sourceDomain(url), includesPublisherDomain);
+}
+
+function classifyDomain(domain: string, matches: typeof includesDomain): SourceClass {
   if (matches(domain, OFFICIAL_DOMAINS)) return 'official';
   if (matches(domain, MARKET_DOMAINS)) return 'market';
   if (matches(domain, COMMUNITY_DOMAINS)) return 'community';

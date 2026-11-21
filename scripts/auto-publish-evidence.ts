@@ -1,5 +1,9 @@
 import { hasValidPublishReceipt, type VerdictResult } from './auto-publish-rules';
-import { classifySource, isContextOnlyEvidenceSource, type SourceClass } from '@high-signal/shared';
+import {
+  classifyPublisherSource,
+  isContextOnlyEvidenceSource,
+  type SourceClass,
+} from '@high-signal/shared';
 
 export interface JudgeEvidence {
   url: string;
@@ -45,7 +49,7 @@ export function retainedSourceClasses(evidence: JudgeEvidence[]): SourceClass[] 
       evidence.map((item): SourceClass => {
         if (item.contextOnly || isContextOnlyEvidenceSource(item.sourceType, item.excerpt))
           return 'other';
-        const urlClass = classifySource(item.url, 'publisher');
+        const urlClass = classifyPublisherSource(item.url);
         if (item.sourceType === 'ir' || item.sourceType === 'sec' || urlClass === 'official')
           return 'official';
         if (item.sourceType === 'news') return 'news';
@@ -69,7 +73,7 @@ function usableJudgeEvidence(evidence: JudgeEvidence[]): JudgeEvidence[] {
 function hasOnlyEditorialNewsSources(evidence: JudgeEvidence[]): boolean {
   return evidence.every((item) => {
     if (item.sourceType === 'ir' || item.sourceType === 'sec') return false;
-    const sourceClass = classifySource(item.url, 'publisher');
+    const sourceClass = classifyPublisherSource(item.url);
     return sourceClass === 'news' || sourceClass === 'regional';
   });
 }
