@@ -48,11 +48,14 @@ class _Markup(HTMLParser):
         super().__init__()
         self.nodes: list[_Node] = []
         self.stack: list[_Node] = []
+        self.children: dict[int, list[_Node]] = {}
         self.feed(html)
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         node = _Node(tag, dict(attrs), self.stack[-1] if self.stack else None)
         self.nodes.append(node)
+        if node.parent:
+            self.children.setdefault(id(node.parent), []).append(node)
         if tag not in _VOID:
             self.stack.append(node)
 
@@ -79,6 +82,16 @@ def _under(node: _Node, ancestor: _Node) -> bool:
             return True
         current = current.parent
     return False
+
+
+def _descendants(markup: _Markup, node: _Node) -> list[_Node]:
+    result: list[_Node] = []
+    pending = list(reversed(markup.children.get(id(node), [])))
+    while pending:
+        child = pending.pop()
+        result.append(child)
+        pending.extend(reversed(markup.children.get(id(child), [])))
+    return result
 
 
 def _same_origin_link(base: str, value: str) -> str | None:
@@ -154,7 +167,7 @@ class ArchiveCard:
 
 def alphasignal_archive_cards(html: str, url: str) -> list[ArchiveCard]:
     """Bind AlphaSignal's date-only issue cards to their exact public permalinks."""
-    cards, _ = _alphasignal_cards(_Markup(html), url)
+    cards, _ = _parse_alphasignal_cards(html, url)
     if not cards:
         raise registered_feeds.PublicFeedFetchError(
             "Public archive contained no dated, supported AlphaSignal issue cards"
@@ -162,29 +175,31 @@ def alphasignal_archive_cards(html: str, url: str) -> list[ArchiveCard]:
     return cards
 
 
+def _parse_alphasignal_cards(html: str, url: str) -> tuple[list[ArchiveCard], int]:
+    return _alphasignal_cards(_Markup(html), url)
+
+
 def _alphasignal_cards(markup: _Markup, url: str) -> tuple[list[ArchiveCard], int]:
     cards: list[ArchiveCard] = []
     seen: set[str] = set()
     rejected = 0
-    for section in markup.nodes:
-        section_date = _alphasignal_section_date(section)
+    for card in markup.nodes:
+        if card.tag != "li":
+            continue
+        section_date = _alphasignal_card_section_date(card)
         if section_date is None:
             continue
+        descendants = _descendants(markup, card)
         month, year = section_date
-        for card in markup.nodes:
-            if card.tag != "li" or not _under(card, section) or _nested_issue_row(card, section):
-                continue
-            parsed = _alphasignal_card(card, markup, url, month, year)
-            if parsed is None:
-                if _is_alphasignal_issue_row(card, markup):
-                    rejected += 1
-                continue
-            if parsed.link in seen:
-                continue
-            cards.append(parsed)
-            seen.add(parsed.link)
-            if len(cards) == MAX_ARTICLES:
-                return cards, rejected
+        parsed = _alphasignal_card(card, descendants, url, month, year)
+        if parsed is None:
+            if _is_alphasignal_issue_row(descendants):
+                rejected += 1
+            continue
+        if parsed.link in seen:
+            continue
+        cards.append(parsed)
+        seen.add(parsed.link)
     return cards, rejected
 
 
@@ -210,10 +225,28 @@ def _alphasignal_section_date(section: _Node) -> tuple[int, int] | None:
     return (month, int(match.group(2))) if month else None
 
 
+def _alphasignal_card_section_date(card: _Node) -> tuple[int, int] | None:
+    ancestor = card.parent
+    while ancestor is not None:
+        section_date = _alphasignal_section_date(ancestor)
+        if section_date is not None:
+            return None if _has_list_ancestor(card, ancestor) else section_date
+        ancestor = ancestor.parent
+    return None
+
+
+def _has_list_ancestor(card: _Node, section: _Node) -> bool:
+    ancestor = card.parent
+    while ancestor is not None and ancestor is not section:
+        if ancestor.tag == "li":
+            return True
+        ancestor = ancestor.parent
+    return False
+
+
 def _alphasignal_card(
-    card: _Node, markup: _Markup, url: str, month: int, year: int
+    card: _Node, descendants: list[_Node], url: str, month: int, year: int
 ) -> ArchiveCard | None:
-    descendants = [node for node in markup.nodes if _under(node, card)]
     links, dates, titles = _alphasignal_card_fields(descendants, url)
     if len(links) != 1 or len(dates) != 1 or len(titles) != 1:
         return None
@@ -224,17 +257,7 @@ def _alphasignal_card(
     return ArchiveCard(links[0], title[:1000], published, "day")
 
 
-def _nested_issue_row(card: _Node, section: _Node) -> bool:
-    ancestor = card.parent
-    while ancestor is not None and ancestor is not section:
-        if ancestor.tag == "li":
-            return True
-        ancestor = ancestor.parent
-    return False
-
-
-def _is_alphasignal_issue_row(card: _Node, markup: _Markup) -> bool:
-    descendants = [node for node in markup.nodes if _under(node, card)]
+def _is_alphasignal_issue_row(descendants: list[_Node]) -> bool:
     return any(
         node.tag == "a"
         and bool(re.search(r"/email/[a-f0-9]{16}(?:$|[?#])", node.attrs.get("href") or ""))
@@ -420,6 +443,9 @@ class ArchiveResult:
     listed: int = 0
     latest_listed: datetime | None = None
     rejected_listed: int = 0
+    article_fetch_capped: bool = False
+    listing_errors: list[str] = field(default_factory=list)
+    article_errors: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -572,9 +598,13 @@ async def _fetch_archive_card(card: ArchiveCard, context: _ArchiveFetchContext) 
         if item is not None:
             result.items.append(item)
     except registered_feeds.PublicFeedFetchError as exc:
-        context.result.errors.append(str(exc))
+        error = str(exc)
+        context.result.article_errors.append(error)
+        context.result.errors.append(error)
     except (httpx.HTTPError, TimeoutError) as exc:
-        context.result.errors.append(f"Public archive article fetch failed ({type(exc).__name__})")
+        error = f"Public archive article fetch failed ({type(exc).__name__})"
+        context.result.article_errors.append(error)
+        context.result.errors.append(error)
 
 
 async def _archive_listing(
@@ -591,7 +621,9 @@ async def _archive_listing(
             "AlphaSignal archive redirected outside its approved listing URL"
         )
     if kind == "alphasignal":
-        cards, rejected = _alphasignal_cards(_Markup(document.text), document.url)
+        cards, rejected = await asyncio.to_thread(
+            _parse_alphasignal_cards, document.text, document.url
+        )
         if not cards:
             raise registered_feeds.PublicFeedFetchError(
                 "Public archive contained no dated, supported AlphaSignal issue cards"
@@ -622,7 +654,12 @@ def _select_archive_window(
         and card.published.date() >= since.astimezone(timezone.utc).date()
     ]
     _report_stale_archive(result)
-    return recent_cards, bool(recent_cards)
+    recent_cards.sort(
+        key=lambda card: card.published or datetime.min.replace(tzinfo=timezone.utc),
+        reverse=True,
+    )
+    result.article_fetch_capped = len(recent_cards) > MAX_ARTICLES
+    return recent_cards[:MAX_ARTICLES], bool(recent_cards)
 
 
 def _report_stale_archive(result: ArchiveResult) -> None:
@@ -630,14 +667,16 @@ def _report_stale_archive(result: ArchiveResult) -> None:
     stale_before = datetime.now(timezone.utc).date() - timedelta(days=ALPHASIGNAL_STALE_GRACE_DAYS)
     if latest is None or latest.date() >= stale_before:
         return
-    result.errors.append(
-        f"AlphaSignal archive appears stale; latest dated issue: {latest.date().isoformat()}"
-    )
+    error = f"AlphaSignal archive appears stale; latest dated issue: {latest.date().isoformat()}"
+    result.listing_errors.append(error)
+    result.errors.append(error)
 
 
 def _finish_archive_result(result: ArchiveResult, recent_cards: bool) -> ArchiveResult:
     if result.dated == 0 and not result.errors and (recent_cards or result.listed == 0):
-        result.errors.append("Public archive contained no dated, freely accessible articles")
+        error = "Public archive contained no dated, freely accessible articles"
+        result.listing_errors.append(error)
+        result.errors.append(error)
     result.items.sort(key=lambda item: item["published"], reverse=True)
     return result
 

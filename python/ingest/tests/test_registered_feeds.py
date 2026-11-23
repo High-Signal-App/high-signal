@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import gzip
+import json
 import socket
 from datetime import datetime, timezone
 
@@ -369,6 +370,8 @@ def test_registered_archive_fetches_and_reports_with_standard_receipts(monkeypat
                     "content": "A public dated article describes the released inference changes.",
                 }
             ],
+            errors=["AlphaSignal issue title did not match its archive card"],
+            article_errors=["AlphaSignal issue title did not match its archive card"],
             dated=1,
         )
 
@@ -387,12 +390,20 @@ def test_registered_archive_fetches_and_reports_with_standard_receipts(monkeypat
                 client,
                 asyncio.Semaphore(2),
                 fetch_body=True,
+                receipts=receipts,
             )
 
     [event] = asyncio.run(run())
     assert event.source == "news:feed-managed"
-    assert receipts[0][0] == row["id"] and receipts[0][1]["count"] == 1
-    assert receipts[0][1]["error"] is None
+    assert receipts[1][0] == row["id"] and receipts[1][1]["count"] == 1
+    assert receipts[1][1]["error"] is None
+    diagnostics = json.loads(receipts[0]["notes"])
+    assert diagnostics["issueErrorCount"] == 1
+    assert (
+        diagnostics["issueErrorSample"] == "AlphaSignal issue title did not match its archive card"
+    )
+    assert diagnostics["acceptedIssueCap"] == 12
+    assert diagnostics["issueFetchCapped"] is False
 
 
 def test_firstround_retired_rss_uses_archive_and_keeps_existing_pause() -> None:

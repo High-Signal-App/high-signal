@@ -356,6 +356,34 @@ def test_alphasignal_day_precision_includes_previous_calendar_day_at_0230z(monke
     )
 
 
+def test_alphasignal_archive_selects_newest_twelve_after_window_filter() -> None:
+    now = datetime.now(timezone.utc)
+    cards = [
+        archives.ArchiveCard(
+            f"https://alphasignal.ai/email/{day + 1:016x}",
+            f"Issue {day}",
+            datetime.combine(now.date() - timedelta(days=day), datetime.min.time(), timezone.utc),
+            "day",
+        )
+        for day in reversed(range(14))
+    ]
+    result = archives.ArchiveResult()
+
+    selected, recent = archives._select_archive_window(
+        cards, "alphasignal", now - timedelta(days=30), result
+    )
+
+    assert recent is True
+    assert result.listed == 14
+    assert result.latest_listed == datetime.combine(now.date(), datetime.min.time(), timezone.utc)
+    assert result.article_fetch_capped is True
+    assert len(selected) == 12
+    assert selected[0].published == result.latest_listed
+    assert selected[-1].published == datetime.combine(
+        now.date() - timedelta(days=11), datetime.min.time(), timezone.utc
+    )
+
+
 def test_alphasignal_archive_rejects_redirected_listing_and_skips_old_articles(monkeypatch) -> None:
     async def public_dns(_url):
         return None

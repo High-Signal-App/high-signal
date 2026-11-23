@@ -576,7 +576,9 @@ async def _fetch_source(
             result = await public_archives.fetch_archive(
                 source, since, client, semaphore, _extract_article_text
             )
-            if result.errors:
+            if result.listing_errors:
+                error = result.listing_errors[0]
+            elif not result.items and result.errors:
                 error = result.errors[0]
             diagnostics.update(
                 {
@@ -585,6 +587,11 @@ async def _fetch_source(
                     "listedIssues": result.listed,
                     "rejectedListedIssues": result.rejected_listed,
                     "acceptedIssueCap": public_archives.MAX_ARTICLES,
+                    "issueFetchCapped": result.article_fetch_capped,
+                    "issueErrorCount": len(result.article_errors),
+                    "issueErrorSample": (
+                        result.article_errors[0] if result.article_errors else None
+                    ),
                     "latestListedAt": (
                         result.latest_listed.isoformat() if result.latest_listed else None
                     ),
