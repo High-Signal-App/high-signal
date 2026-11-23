@@ -567,41 +567,56 @@ def _archive_before_window(kind: str, published: datetime, since: datetime) -> b
     return published < since
 
 
-async def _load_archive_card(
+async def _fetch_archive_document(
     card: ArchiveCard,
     client: httpx.AsyncClient,
     semaphore: asyncio.Semaphore,
-    document_url: str,
-    kind: str,
-    since: datetime,
-    extract_text: Callable[[str, str], str],
+    article_semaphore: asyncio.Semaphore,
+) -> registered_feeds.PublicFeedDocument:
+    async with article_semaphore, semaphore:
+        return await registered_feeds.fetch_public_document(client, card.link)
+
+
+async def _load_archive_card(
+    card: ArchiveCard,
+    context: _ArchiveFetchContext,
 ) -> tuple[datetime, dict | None] | None:
-    async with semaphore:
-        article = await registered_feeds.fetch_public_document(client, card.link)
-    publication = await _archive_article_publication(article, card, document_url, kind)
+    article = await _fetch_archive_document(
+        card, context.client, context.semaphore, context.article_semaphore
+    )
+    publication = await _archive_article_publication(
+        article, card, context.document.url, context.kind
+    )
     if publication is None:
         return None
     title, published = publication
-    if _archive_before_window(kind, published, since):
-        return published, None
-    item = await _archive_item_content(
-        article, card, kind, title, published, document_url, extract_text
-    )
+    item = await _archive_window_item(card, article, title, published, context)
     return published, item
+
+
+async def _archive_window_item(
+    card: ArchiveCard,
+    article: registered_feeds.PublicFeedDocument,
+    title: str,
+    published: datetime,
+    context: _ArchiveFetchContext,
+) -> dict | None:
+    if _archive_before_window(context.kind, published, context.since):
+        return None
+    return await _archive_item_content(
+        article,
+        card,
+        context.kind,
+        title,
+        published,
+        context.document.url,
+        context.extract_text,
+    )
 
 
 async def _fetch_archive_card(card: ArchiveCard, context: _ArchiveFetchContext) -> None:
     try:
-        async with context.article_semaphore:
-            outcome = await _load_archive_card(
-                card,
-                context.client,
-                context.semaphore,
-                context.document.url,
-                context.kind,
-                context.since,
-                context.extract_text,
-            )
+        outcome = await _load_archive_card(card, context)
         if outcome is None:
             return
         published, item = outcome
