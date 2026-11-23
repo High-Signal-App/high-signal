@@ -345,7 +345,7 @@ def test_alphasignal_day_precision_includes_previous_calendar_day_at_0230z(monke
                 since,
                 client,
                 asyncio.Semaphore(3),
-                lambda _html, title: title + ". " + "Documented details. " * 20,
+                lambda _html, title: title + ". " + "Documented details. " * 30,
             )
 
     result = asyncio.run(run())
@@ -377,11 +377,17 @@ def test_alphasignal_archive_selects_newest_twelve_after_window_filter() -> None
     assert result.listed == 14
     assert result.latest_listed == datetime.combine(now.date(), datetime.min.time(), timezone.utc)
     assert result.article_fetch_capped is True
+    assert result.listing_errors == []
     assert len(selected) == 12
     assert selected[0].published == result.latest_listed
     assert selected[-1].published == datetime.combine(
         now.date() - timedelta(days=11), datetime.min.time(), timezone.utc
     )
+
+
+def test_alphasignal_day_provenance_requires_receipt_length_body() -> None:
+    assert not archives._archive_body_is_public("A" * 499, "alphasignal")
+    assert archives._archive_body_is_public("A" * 500, "alphasignal")
 
 
 def test_alphasignal_archive_rejects_redirected_listing_and_skips_old_articles(monkeypatch) -> None:

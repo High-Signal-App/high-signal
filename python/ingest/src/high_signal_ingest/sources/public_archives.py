@@ -44,11 +44,12 @@ class _Node:
 
 
 class _Markup(HTMLParser):
-    def __init__(self, html: str) -> None:
+    def __init__(self, html: str, *, collect_span_text: bool = False) -> None:
         super().__init__()
         self.nodes: list[_Node] = []
         self.stack: list[_Node] = []
         self.children: dict[int, list[_Node]] = {}
+        self.collect_span_text = collect_span_text
         self.feed(html)
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
@@ -70,8 +71,11 @@ class _Markup(HTMLParser):
             if self.stack[-1].attrs.get("type") == "application/ld+json":
                 self.stack[-1].parts.append(data)
             return
+        text_tags = {"a", "h1", "h2", "h3", "p", "time"}
+        if self.collect_span_text:
+            text_tags.add("span")
         for node in self.stack:
-            if node.tag in {"a", "h1", "h2", "h3", "p", "span", "time"}:
+            if node.tag in text_tags:
                 node.parts.append(data)
 
 
@@ -176,7 +180,7 @@ def alphasignal_archive_cards(html: str, url: str) -> list[ArchiveCard]:
 
 
 def _parse_alphasignal_cards(html: str, url: str) -> tuple[list[ArchiveCard], int]:
-    return _alphasignal_cards(_Markup(html), url)
+    return _alphasignal_cards(_Markup(html, collect_span_text=True), url)
 
 
 def _alphasignal_cards(markup: _Markup, url: str) -> tuple[list[ArchiveCard], int]:
@@ -424,6 +428,10 @@ def article_title(html: str) -> str | None:
     accessible, _ = _structured_publication(markup)
     if not accessible:
         return None
+    return _article_title_from_markup(markup)
+
+
+def _article_title_from_markup(markup: _Markup) -> str | None:
     meta = {
         node.attrs.get("property") or node.attrs.get("name"): node.attrs.get("content") or ""
         for node in markup.nodes
@@ -460,7 +468,7 @@ class _ArchiveFetchContext:
     result: ArchiveResult
 
 
-def _archive_article_publication(
+async def _archive_article_publication(
     article: registered_feeds.PublicFeedDocument,
     card: ArchiveCard,
     document_url: str,
@@ -471,7 +479,7 @@ def _archive_article_publication(
             "Public archive article redirected off publisher"
         )
     if kind == "alphasignal":
-        publication = _alphasignal_article_publication(article, card)
+        publication = await asyncio.to_thread(_alphasignal_article_publication, article, card)
     else:
         publication = article_metadata(article.text, kind)
     if publication is None:
@@ -489,12 +497,13 @@ def _alphasignal_article_publication(
         raise registered_feeds.PublicFeedFetchError(
             "AlphaSignal issue redirected to a different permalink"
         )
-    accessible, _ = _structured_publication(_Markup(article.text))
+    markup = _Markup(article.text)
+    accessible, _ = _structured_publication(markup)
     if not accessible:
         raise registered_feeds.PublicFeedFetchError(
             "AlphaSignal issue is not declared publicly accessible"
         )
-    title, published = article_title(article.text), card.published
+    title, published = _article_title_from_markup(markup), card.published
     title_matches = (
         card.title is not None
         and title is not None
@@ -527,7 +536,8 @@ async def _archive_item_content(
 
 
 def _archive_body_is_public(content: str, kind: str) -> bool:
-    return len(content) >= 200 and not _contains_alpha_private_notice(content, kind)
+    minimum_length = 500 if kind == "alphasignal" else 200
+    return len(content) >= minimum_length and not _contains_alpha_private_notice(content, kind)
 
 
 def _contains_alpha_private_notice(content: str, kind: str) -> bool:
@@ -560,13 +570,15 @@ def _archive_before_window(kind: str, published: datetime, since: datetime) -> b
 async def _load_archive_card(
     card: ArchiveCard,
     client: httpx.AsyncClient,
+    semaphore: asyncio.Semaphore,
     document_url: str,
     kind: str,
     since: datetime,
     extract_text: Callable[[str, str], str],
 ) -> tuple[datetime, dict | None] | None:
-    article = await registered_feeds.fetch_public_document(client, card.link)
-    publication = _archive_article_publication(article, card, document_url, kind)
+    async with semaphore:
+        article = await registered_feeds.fetch_public_document(client, card.link)
+    publication = await _archive_article_publication(article, card, document_url, kind)
     if publication is None:
         return None
     title, published = publication
@@ -580,10 +592,11 @@ async def _load_archive_card(
 
 async def _fetch_archive_card(card: ArchiveCard, context: _ArchiveFetchContext) -> None:
     try:
-        async with context.article_semaphore, context.semaphore:
+        async with context.article_semaphore:
             outcome = await _load_archive_card(
                 card,
                 context.client,
+                context.semaphore,
                 context.document.url,
                 context.kind,
                 context.since,
@@ -653,7 +666,8 @@ def _select_archive_window(
         if card.published is not None
         and card.published.date() >= since.astimezone(timezone.utc).date()
     ]
-    _report_stale_archive(result)
+    if not recent_cards:
+        _report_stale_archive(result)
     recent_cards.sort(
         key=lambda card: card.published or datetime.min.replace(tzinfo=timezone.utc),
         reverse=True,

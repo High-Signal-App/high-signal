@@ -576,27 +576,36 @@ async def _fetch_source(
             result = await public_archives.fetch_archive(
                 source, since, client, semaphore, _extract_article_text
             )
-            if result.listing_errors:
-                error = result.listing_errors[0]
-            elif not result.items and result.errors:
+            archive_kind = source["archive"]["kind"]
+            if archive_kind == "alphasignal":
+                if result.listing_errors:
+                    error = result.listing_errors[0]
+                elif not result.items and result.errors:
+                    error = result.errors[0]
+            elif result.errors:
                 error = result.errors[0]
             diagnostics.update(
                 {
                     "articlesDated": result.dated,
                     "latestPublishedAt": result.latest.isoformat() if result.latest else None,
-                    "listedIssues": result.listed,
-                    "rejectedListedIssues": result.rejected_listed,
-                    "acceptedIssueCap": public_archives.MAX_ARTICLES,
-                    "issueFetchCapped": result.article_fetch_capped,
-                    "issueErrorCount": len(result.article_errors),
-                    "issueErrorSample": (
-                        result.article_errors[0] if result.article_errors else None
-                    ),
-                    "latestListedAt": (
-                        result.latest_listed.isoformat() if result.latest_listed else None
-                    ),
+                    "articleErrorCount": len(result.article_errors),
+                    "articleErrorSample": result.article_errors[0]
+                    if result.article_errors
+                    else None,
                 }
             )
+            if archive_kind == "alphasignal":
+                diagnostics.update(
+                    {
+                        "listedIssues": result.listed,
+                        "rejectedListedIssues": result.rejected_listed,
+                        "acceptedIssueCap": public_archives.MAX_ARTICLES,
+                        "issueFetchCapped": result.article_fetch_capped,
+                        "latestListedAt": (
+                            result.latest_listed.isoformat() if result.latest_listed else None
+                        ),
+                    }
+                )
             for item in result.items:
                 raw_hash = event_hash(source["id"], item["link"])
                 events.append(
