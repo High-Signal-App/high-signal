@@ -72,7 +72,8 @@ function storeResponse(cache, key, response, ctx, onPutOutcome) {
     .then(
       () => onPutOutcome?.('fulfilled'),
       () => onPutOutcome?.('rejected')
-    );
+    )
+    .catch(() => undefined);
   try {
     ctx.waitUntil(write);
   } catch {

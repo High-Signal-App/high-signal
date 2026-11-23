@@ -289,6 +289,25 @@ test('record cache diagnostics aggregate state, warm hits, HEAD misses, and put 
     assert.deepEqual(failedPutOutcomes, ['scheduled']);
     await Promise.all(failedPending);
     assert.deepEqual(failedPutOutcomes, ['scheduled', 'rejected']);
+
+    const observerPending = [];
+    await handlePublicRecordHtml(
+      request('/data/records/record-0000'),
+      env,
+      {
+        waitUntil(promise) {
+          observerPending.push(promise);
+        },
+      },
+      {
+        cache,
+        cacheBuildId: 'test-build',
+        onPutOutcome(outcome) {
+          if (outcome === 'fulfilled') throw new Error('diagnostic callback failed');
+        },
+      }
+    );
+    await assert.doesNotReject(Promise.all(observerPending));
   } finally {
     if (previousRewriter === undefined) delete globalThis.HTMLRewriter;
     else globalThis.HTMLRewriter = previousRewriter;

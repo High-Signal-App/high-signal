@@ -163,6 +163,23 @@ try {
   assert.equal(cacheSummaryProps({ ...aggregate, hits: Number.MAX_SAFE_INTEGER + 1 }), null);
   assert.equal(cacheSummaryProps({ ...aggregate, unknown_hits: -1 }), null);
   assert.equal(cacheSummaryProps({ ...aggregate, hits: 2 }), null);
+  const legacyAggregate = { ...aggregate };
+  for (const key of Object.keys(legacyAggregate))
+    if (key.startsWith('record_')) delete legacyAggregate[key];
+  const legacyProps = cacheSummaryProps(legacyAggregate);
+  assert.equal(legacyProps.hits, aggregate.hits);
+  assert.equal(legacyProps.eligible, aggregate.eligible);
+  assert.equal(
+    Object.keys(legacyProps).some((key) => key.startsWith('record_')),
+    false
+  );
+  const malformedDiagnostics = cacheSummaryProps({ ...aggregate, record_puts_scheduled: -1 });
+  assert.equal(malformedDiagnostics.hits, aggregate.hits);
+  assert.equal(malformedDiagnostics.eligible, aggregate.eligible);
+  assert.equal(
+    Object.keys(malformedDiagnostics).some((key) => key.startsWith('record_')),
+    false
+  );
   assert.equal(cacheSummaryProps(null), null);
   assert.equal(
     cacheSummaryProps({ ...aggregate, version_source: 'private-source' }).version,
@@ -211,6 +228,31 @@ try {
   assert.equal(requestWindow.started_at, 5_000);
   assert.equal(requestWindow.ended_at, 65_000);
   assert.equal(requestWindow.hits, 2);
+
+  let delayedPut;
+  const delayedWindows = [];
+  const delayedSummary = createCacheSummary(
+    () => clock,
+    (line) => delayedWindows.push(JSON.parse(line))
+  );
+  delayedSummary(new Response(null), false, null, {}, [
+    { type: 'cache', state: 'available', method: 'GET', hit: false },
+    { type: 'put', outcome: 'scheduled' },
+  ]);
+  clock += 60_000;
+  delayedSummary(new Response(null), false);
+  delayedPut = delayedSummary.recordPutOutcome;
+  clock += 60_000;
+  delayedPut('fulfilled');
+  clock += 60_000;
+  delayedSummary(new Response(null), false);
+  assert.equal(delayedWindows.length, 2);
+  assert.equal(delayedWindows[0].record_puts_scheduled, 1);
+  assert.equal(delayedWindows[0].record_puts_fulfilled, 0);
+  assert.equal(delayedWindows[1].record_puts_scheduled, 0);
+  assert.equal(delayedWindows[1].record_puts_fulfilled, 1);
+  assert.equal(cacheSummaryProps(delayedWindows[0]).record_puts_scheduled, 1);
+  assert.equal(cacheSummaryProps(delayedWindows[1]).record_puts_fulfilled, 1);
   console.log(
     `Public cache workload: ${hits} hits / ${hits + misses} requests (${(100 * hits) / (hits + misses)}%).`
   );

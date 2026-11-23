@@ -116,14 +116,13 @@ export function createCacheSummary(now = Date.now, emit = console.info) {
 // Whitelist bounded aggregate fields before forwarding through the existing SDK.
 export function cacheSummaryProps(record) {
   if (!record || record.event !== 'web.cache.summary') return null;
-  const keys = [
+  const baseKeys = [
     'started_at',
     'ended_at',
     ...countNames,
-    ...recordCountNames,
     ...OBSERVATION_COHORTS.flatMap((cohort) => countNames.map((name) => `${cohort}_${name}`)),
   ];
-  if (keys.some((key) => !Number.isSafeInteger(record[key]) || record[key] < 0)) return null;
+  if (baseKeys.some((key) => !Number.isSafeInteger(record[key]) || record[key] < 0)) return null;
   if (record.ended_at < record.started_at) return null;
   if (
     countNames.some(
@@ -133,16 +132,18 @@ export function cacheSummaryProps(record) {
     )
   )
     return null;
-  if (
-    record.record_available + record.record_missing + record.record_unavailable !==
-      record.record_cache_hits + record.record_cache_misses ||
-    record.record_cache_match_errors > record.record_cache_misses ||
-    record.record_head_cache_misses > record.record_head_requests ||
-    record.record_head_requests > record.record_cache_hits + record.record_cache_misses ||
-    record.record_puts_scheduled > record.record_available ||
-    record.record_puts_scheduled > record.record_cache_misses
-  )
-    return null;
+  const recordCountsValid =
+    recordCountNames.every((key) => Number.isSafeInteger(record[key]) && record[key] >= 0) &&
+    record.record_available + record.record_missing + record.record_unavailable ===
+      record.record_cache_hits + record.record_cache_misses &&
+    record.record_cache_match_errors <= record.record_cache_misses &&
+    record.record_head_cache_misses <= record.record_head_requests &&
+    record.record_head_requests <= record.record_cache_hits + record.record_cache_misses &&
+    record.record_puts_scheduled <= record.record_available &&
+    record.record_puts_scheduled <= record.record_cache_misses;
+  // These fields are additive. Legacy rows and malformed future diagnostic
+  // groups must not suppress the established cache summary counters.
+  const keys = [...baseKeys, ...(recordCountsValid ? recordCountNames : [])];
   const declaredSource = ['app_health_release', 'reader_source', 'cache_build'].includes(
     record.version_source
   )
