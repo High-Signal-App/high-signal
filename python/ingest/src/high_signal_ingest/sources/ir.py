@@ -10,6 +10,7 @@ from urllib.parse import urlsplit
 
 import httpx
 
+from ..dedupe import canonical_url
 from ..seed import load_entities, load_sources
 from ..types import Entity, Event, SourceDocument
 from ..utils import event_hash
@@ -58,6 +59,30 @@ def _public_host(url: str) -> str | None:
     return host.lower().rstrip(".").removeprefix("www.") if host else None
 
 
+def _merge_announcement_events(events: list[Event]) -> list[Event]:
+    """Deduplicate page and feed discoveries before applying the issuer cap."""
+    unique: dict[str, Event] = {}
+    for event in events:
+        key = canonical_url(event.source_url)
+        existing = unique.get(key)
+        event_has_page_date = (
+            event.source_document is not None
+            and event.source_document.parsed_fields.get("dateBasis")
+            == "explicit_publication_metadata"
+        )
+        existing_has_page_date = (
+            existing is not None
+            and existing.source_document is not None
+            and existing.source_document.parsed_fields.get("dateBasis")
+            == "explicit_publication_metadata"
+        )
+        if existing is None or (event_has_page_date and not existing_has_page_date):
+            unique[key] = event
+    return sorted(unique.values(), key=lambda event: event.published_at, reverse=True)[
+        :MAX_ANNOUNCEMENTS
+    ]
+
+
 async def _fetch_rss_announcements(
     entity_id: str,
     source: dict,
@@ -70,6 +95,7 @@ async def _fetch_rss_announcements(
         return []
     configured_feed_host = _public_host(feed_url)
     if not configured_feed_host:
+        LOGGER.warning("ir rss disabled entity=%s reason=invalid_or_non_https_url", entity_id)
         return []
     try:
         feed = await registered_feeds.fetch_public_document(
@@ -79,6 +105,7 @@ async def _fetch_rss_announcements(
         )
         feed_host = _public_host(feed.url)
         if feed_host != configured_feed_host:
+            LOGGER.warning("ir rss host mismatch entity=%s", entity_id)
             return []
         # Reuse the existing bounded public RSS parser/date validator. The
         # issuer article page remains the retained evidence document.
@@ -92,7 +119,7 @@ async def _fetch_rss_announcements(
         )
         candidates = news._feed_candidates(items, now - timedelta(days=3), None)
     except Exception as exc:
-        LOGGER.debug("ir rss fetch failed entity=%s error=%s", entity_id, type(exc).__name__)
+        LOGGER.warning("ir rss fetch failed entity=%s error=%s", entity_id, type(exc).__name__)
         return []
 
     events: list[Event] = []
@@ -122,7 +149,9 @@ async def _fetch_rss_announcements(
                 publication_feed_url=feed.url,
             )
         except Exception as exc:
-            LOGGER.debug("ir rss article failed entity=%s error=%s", entity_id, type(exc).__name__)
+            LOGGER.warning(
+                "ir rss article failed entity=%s error=%s", entity_id, type(exc).__name__
+            )
             continue
         if event is not None:
             events.append(event)
@@ -180,12 +209,16 @@ async def poll_ir_page_async(
                 "ir fetch failed entity=%s url=%s status=%s", entity_id, ir_url, r.status_code
             )
             return await rss_task if rss_task else []
-        announcements = await retrieve_announcements(entity_id, str(r.url), r.text, client)
+        try:
+            announcements = await retrieve_announcements(entity_id, str(r.url), r.text, client)
+        except Exception as exc:
+            LOGGER.warning(
+                "ir page announcements failed entity=%s error=%s", entity_id, type(exc).__name__
+            )
+            announcements = []
         if rss_task:
             announcements.extend(await rss_task)
-        announcements = list({event.source_url: event for event in announcements}.values())
-        announcements.sort(key=lambda event: event.published_at, reverse=True)
-        announcements = announcements[:MAX_ANNOUNCEMENTS]
+        announcements = _merge_announcement_events(announcements)
         text = await asyncio.to_thread(_extract_ir_text, r.text)
         if not text:
             return announcements

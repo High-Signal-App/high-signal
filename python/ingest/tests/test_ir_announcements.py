@@ -146,6 +146,28 @@ def test_configured_ir_rss_is_joined_only_by_unique_ir_page_url():
     assert ir._ir_source_by_entity([entity, duplicate], [source]) == {}
 
 
+def test_page_discovery_wins_canonical_duplicate_of_feed_date(extractor):
+    page_event = releases.announcement_event(
+        "NVDA",
+        "https://newsroom.example/releases/chip-launch/",
+        page("2026-09-09T10:00:00Z"),
+        NOW,
+    )
+    feed_event = releases.announcement_event(
+        "NVDA",
+        "https://www.newsroom.example/releases/chip-launch?utm_source=rss",
+        "<html><body>Release without article date</body></html>",
+        NOW,
+        published_at_hint=NOW,
+        publication_feed_url="https://newsroom.example/releases.xml",
+    )
+
+    merged = ir._merge_announcement_events([feed_event, page_event])
+
+    assert merged == [page_event]
+    assert merged[0].source_document.parsed_fields["dateBasis"] == "explicit_publication_metadata"
+
+
 @pytest.mark.asyncio
 async def test_poll_uses_configured_ir_rss_and_retains_exact_issuer_page(monkeypatch, extractor):
     published = datetime.now(timezone.utc).replace(microsecond=0)
@@ -235,6 +257,20 @@ async def test_poll_uses_configured_ir_rss_and_retains_exact_issuer_page(monkeyp
         "https://investors.example/news-releases/details/0",
         "https://investors.example/news-releases/details/1",
     ]
+
+    monkeypatch.setattr(
+        ir,
+        "retrieve_announcements",
+        AsyncMock(side_effect=RuntimeError("page extraction failed")),
+    )
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        rss_survives_page_error = await ir.poll_ir_page_async(
+            "NVDA",
+            "https://investors.example/",
+            client,
+            rss_source={"id": "ir-nvidia", "rss": "https://feed.example/releases.xml"},
+        )
+    assert any(event.source_url == article_url for event in rss_survives_page_error)
 
 
 @pytest.mark.asyncio
