@@ -169,6 +169,52 @@ def test_page_discovery_wins_canonical_duplicate_of_feed_date(extractor):
 
 
 @pytest.mark.asyncio
+async def test_fetch_all_skips_malformed_entity_url_without_aborting_roster(monkeypatch):
+    entities = [
+        Entity(id="BAD", name="Bad URL", type="public", ir_url="https://[bad"),
+        Entity(
+            id="NVDA",
+            ticker="NVDA",
+            name="NVIDIA Corporation",
+            type="public",
+            ir_url="https://investor.nvidia.com/",
+        ),
+    ]
+    source = {
+        "id": "ir-nvidia",
+        "type": "ir_page",
+        "url": "https://investor.nvidia.com/",
+        "rss": "https://nvidianews.nvidia.com/releases.xml",
+    }
+    polled: list[tuple[str, str, dict | None]] = []
+
+    class FakeAsyncClient:
+        def __init__(self, **_kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args):
+            return False
+
+    async def poll(entity_id, ir_url, _client, rss_source=None):
+        polled.append((entity_id, ir_url, rss_source))
+        return []
+
+    monkeypatch.setattr(ir, "load_entities", lambda: entities)
+    monkeypatch.setattr(ir, "load_sources", lambda: [source])
+    monkeypatch.setattr(ir.httpx, "AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr(ir, "poll_ir_page_async", poll)
+
+    assert await ir.fetch_all_async() == []
+    assert polled == [
+        ("BAD", "https://[bad", None),
+        ("NVDA", "https://investor.nvidia.com/", source),
+    ]
+
+
+@pytest.mark.asyncio
 async def test_poll_uses_configured_ir_rss_and_retains_exact_issuer_page(monkeypatch, extractor):
     published = datetime.now(timezone.utc).replace(microsecond=0)
     rss_date = format_datetime(published)

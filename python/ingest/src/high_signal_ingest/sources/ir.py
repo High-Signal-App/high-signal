@@ -27,6 +27,17 @@ MAX_RSS_BYTES = 2 * 1024 * 1024
 
 def _ir_source_by_entity(entities: list[Entity], sources: list[dict]) -> dict[str, dict]:
     """Join curated IR feeds to exactly one entity by its configured IR URL."""
+    entities_by_key: dict[str, list[Entity]] = {}
+    for entity in entities:
+        if not entity.ir_url:
+            continue
+        try:
+            entity_key = registered_feeds.feed_key(str(entity.ir_url))
+        except (TypeError, ValueError):
+            LOGGER.warning("ir source join skipped invalid entity url entity=%s", entity.id)
+            continue
+        entities_by_key.setdefault(entity_key, []).append(entity)
+
     source_matches: dict[str, list[dict]] = {}
     for source in sources:
         if source.get("type") != "ir_page" or not source.get("rss") or not source.get("url"):
@@ -35,11 +46,7 @@ def _ir_source_by_entity(entities: list[Entity], sources: list[dict]) -> dict[st
             source_key = registered_feeds.feed_key(str(source["url"]))
         except (KeyError, TypeError, ValueError):
             continue
-        matches = [
-            entity
-            for entity in entities
-            if entity.ir_url and registered_feeds.feed_key(str(entity.ir_url)) == source_key
-        ]
+        matches = entities_by_key.get(source_key, [])
         if len(matches) != 1:
             continue
         source_matches.setdefault(matches[0].id, []).append(source)
