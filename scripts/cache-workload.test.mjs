@@ -88,6 +88,43 @@ try {
   assert.equal(lines[0].version_source, 'unknown');
   assert.equal(lines[0].target_percent, 95);
 
+  const recordLines = [];
+  const recordSummary = createCacheSummary(
+    () => clock,
+    (line) => recordLines.push(JSON.parse(line))
+  );
+  recordSummary(new Response(null), false);
+  recordSummary.recordCacheOutcome({ state: 'available', method: 'GET', hit: false });
+  recordSummary.recordCacheOutcome({
+    state: 'missing',
+    method: 'HEAD',
+    hit: false,
+    matchError: true,
+  });
+  recordSummary.recordCacheOutcome({ state: 'available', method: 'GET', hit: true });
+  recordSummary.recordPutOutcome('scheduled');
+  recordSummary.recordPutOutcome('fulfilled');
+  clock = 120_000;
+  const recordWindow = recordSummary(new Response(null), false);
+  assert.equal(
+    recordWindow.eligible,
+    0,
+    'record diagnostics leave the established denominator alone'
+  );
+  assert.equal(recordWindow.record_available, 2);
+  assert.equal(recordWindow.record_missing, 1);
+  assert.equal(recordWindow.record_unavailable, 0);
+  assert.equal(recordWindow.record_cache_hits, 1);
+  assert.equal(recordWindow.record_cache_misses, 2);
+  assert.equal(recordWindow.record_cache_match_errors, 1);
+  assert.equal(recordWindow.record_head_requests, 1);
+  assert.equal(recordWindow.record_head_cache_misses, 1);
+  assert.equal(recordWindow.record_puts_scheduled, 1);
+  assert.equal(recordWindow.record_puts_fulfilled, 1);
+  assert.equal(recordWindow.record_puts_rejected, 0);
+  assert.equal(cacheSummaryProps(recordWindow).record_available, 2);
+  assert.doesNotMatch(JSON.stringify(recordWindow), /private-|Mozilla|secret=/);
+
   const release = 'a'.repeat(40);
   const windows = [];
   clock = 0;
@@ -126,6 +163,23 @@ try {
   assert.equal(cacheSummaryProps({ ...aggregate, hits: Number.MAX_SAFE_INTEGER + 1 }), null);
   assert.equal(cacheSummaryProps({ ...aggregate, unknown_hits: -1 }), null);
   assert.equal(cacheSummaryProps({ ...aggregate, hits: 2 }), null);
+  const legacyAggregate = { ...aggregate };
+  for (const key of Object.keys(legacyAggregate))
+    if (key.startsWith('record_')) delete legacyAggregate[key];
+  const legacyProps = cacheSummaryProps(legacyAggregate);
+  assert.equal(legacyProps.hits, aggregate.hits);
+  assert.equal(legacyProps.eligible, aggregate.eligible);
+  assert.equal(
+    Object.keys(legacyProps).some((key) => key.startsWith('record_')),
+    false
+  );
+  const malformedDiagnostics = cacheSummaryProps({ ...aggregate, record_puts_scheduled: -1 });
+  assert.equal(malformedDiagnostics.hits, aggregate.hits);
+  assert.equal(malformedDiagnostics.eligible, aggregate.eligible);
+  assert.equal(
+    Object.keys(malformedDiagnostics).some((key) => key.startsWith('record_')),
+    false
+  );
   assert.equal(cacheSummaryProps(null), null);
   assert.equal(
     cacheSummaryProps({ ...aggregate, version_source: 'private-source' }).version,
@@ -142,17 +196,21 @@ try {
     () => clock,
     (line) => changes.push(JSON.parse(line))
   );
-  versioned(hit, true, browser, { release });
+  versioned(hit, true, browser, { release }, [
+    { type: 'cache', state: 'available', method: 'GET', hit: true },
+  ]);
   clock = 1_000;
   const oldWindow = versioned(miss, true, browser, { release: 'b'.repeat(40) });
   assert.equal(oldWindow.version, release);
   assert.equal(oldWindow.hits, 1);
   assert.equal(oldWindow.misses, 0);
+  assert.equal(oldWindow.record_available, 1);
   clock = 61_000;
   const newWindow = versioned(hit, true, browser, { release: 'b'.repeat(40) });
   assert.equal(newWindow.version, 'b'.repeat(40));
   assert.equal(newWindow.hits, 1);
   assert.equal(newWindow.misses, 1);
+  assert.equal(newWindow.record_available, 0);
   assert.equal(
     changes.reduce((sum, window) => sum + window.eligible, 0),
     3
@@ -170,6 +228,31 @@ try {
   assert.equal(requestWindow.started_at, 5_000);
   assert.equal(requestWindow.ended_at, 65_000);
   assert.equal(requestWindow.hits, 2);
+
+  let delayedPut;
+  const delayedWindows = [];
+  const delayedSummary = createCacheSummary(
+    () => clock,
+    (line) => delayedWindows.push(JSON.parse(line))
+  );
+  delayedSummary(new Response(null), false, null, {}, [
+    { type: 'cache', state: 'available', method: 'GET', hit: false },
+    { type: 'put', outcome: 'scheduled' },
+  ]);
+  clock += 60_000;
+  delayedSummary(new Response(null), false);
+  delayedPut = delayedSummary.recordPutOutcome;
+  clock += 60_000;
+  delayedPut('fulfilled');
+  clock += 60_000;
+  delayedSummary(new Response(null), false);
+  assert.equal(delayedWindows.length, 2);
+  assert.equal(delayedWindows[0].record_puts_scheduled, 1);
+  assert.equal(delayedWindows[0].record_puts_fulfilled, 0);
+  assert.equal(delayedWindows[1].record_puts_scheduled, 0);
+  assert.equal(delayedWindows[1].record_puts_fulfilled, 1);
+  assert.equal(cacheSummaryProps(delayedWindows[0]).record_puts_scheduled, 1);
+  assert.equal(cacheSummaryProps(delayedWindows[1]).record_puts_fulfilled, 1);
   console.log(
     `Public cache workload: ${hits} hits / ${hits + misses} requests (${(100 * hits) / (hits + misses)}%).`
   );

@@ -142,6 +142,178 @@ test('cache lookup rejection preserves the existing renderer when the shell is u
   );
 });
 
+test('record cache diagnostics aggregate state, warm hits, HEAD misses, and put settlement', async () => {
+  const previousRewriter = globalThis.HTMLRewriter;
+  globalThis.HTMLRewriter = class {
+    on() {
+      return this;
+    }
+
+    transform(response) {
+      return response;
+    }
+  };
+  try {
+    const record = {
+      id: 'record-0000',
+      available: true,
+      source: 'wire',
+      family: 'news',
+      url: 'https://example.com/story',
+      canonicalUrl: null,
+      title: 'Example story',
+      content: null,
+      retainedText: null,
+      retainedTextTruncated: false,
+      retainedTextUnavailableReason: null,
+      entity: null,
+      entityName: null,
+      publishedAt: null,
+      ingestedAt: null,
+      documentFetchedAt: null,
+    };
+    const entries = new Map();
+    const cache = {
+      async match(key) {
+        return entries.get(key.url)?.clone();
+      },
+      async put(key, response) {
+        entries.set(key.url, response.clone());
+      },
+    };
+    const env = {
+      ASSETS: { fetch: async () => new Response('<html data-record-reader="v1"></html>') },
+      API: { fetch: async () => Response.json(record) },
+    };
+    const cacheOutcomes = [];
+    const putOutcomes = [];
+    const pending = [];
+    const ctx = {
+      waitUntil(promise) {
+        pending.push(promise);
+      },
+    };
+    const options = {
+      cache,
+      cacheBuildId: 'test-build',
+      onCacheOutcome: (outcome) => cacheOutcomes.push(outcome),
+      onPutOutcome: (outcome) => putOutcomes.push(outcome),
+    };
+    const cold = await handlePublicRecordHtml(
+      request('/data/records/record-0000'),
+      env,
+      ctx,
+      options
+    );
+    assert.equal(cold.headers.get('x-edge-cache'), 'MISS');
+    assert.equal(cold.headers.get('cache-control'), 'public, max-age=60, s-maxage=300');
+    assert.deepEqual(cacheOutcomes[0], {
+      state: 'available',
+      method: 'GET',
+      hit: false,
+      matchError: false,
+    });
+    assert.deepEqual(putOutcomes, ['scheduled']);
+    await Promise.all(pending);
+    assert.deepEqual(putOutcomes, ['scheduled', 'fulfilled']);
+
+    const warm = await handlePublicRecordHtml(
+      request('/data/records/record-0000'),
+      env,
+      ctx,
+      options
+    );
+    assert.equal(warm.headers.get('x-edge-cache'), 'HIT');
+    assert.equal(cacheOutcomes[1].state, 'available');
+    assert.equal(cacheOutcomes[1].hit, true);
+
+    const headOutcomes = [];
+    const missingEnv = {
+      ASSETS: env.ASSETS,
+      API: { fetch: async () => new Response(null, { status: 404 }) },
+    };
+    const head = await handlePublicRecordHtml(
+      request('/data/records/record-0001', { method: 'HEAD' }),
+      missingEnv,
+      ctx,
+      {
+        cache: {
+          async match() {
+            return undefined;
+          },
+          async put() {
+            throw new Error('HEAD misses must not write');
+          },
+        },
+        cacheBuildId: 'test-build',
+        onCacheOutcome: (outcome) => headOutcomes.push(outcome),
+        onPutOutcome: () => assert.fail('HEAD must not schedule a put'),
+      }
+    );
+    assert.equal(head.status, 200);
+    assert.equal(head.headers.get('cache-control'), 'private, no-store');
+    assert.deepEqual(headOutcomes[0], {
+      state: 'missing',
+      method: 'HEAD',
+      hit: false,
+      matchError: false,
+    });
+
+    const failedCacheOutcomes = [];
+    const failedPutOutcomes = [];
+    const failedPending = [];
+    const failed = await handlePublicRecordHtml(
+      request('/data/records/record-0000'),
+      env,
+      {
+        waitUntil(promise) {
+          failedPending.push(promise);
+        },
+      },
+      {
+        cache: {
+          async match() {
+            throw new Error('simulated cache read failure');
+          },
+          async put() {
+            throw new Error('simulated cache write failure');
+          },
+        },
+        cacheBuildId: 'test-build',
+        onCacheOutcome: (outcome) => failedCacheOutcomes.push(outcome),
+        onPutOutcome: (outcome) => failedPutOutcomes.push(outcome),
+      }
+    );
+    assert.equal(failed.status, 200);
+    assert.equal(failedCacheOutcomes[0].matchError, true);
+    assert.deepEqual(failedPutOutcomes, ['scheduled']);
+    await Promise.all(failedPending);
+    assert.deepEqual(failedPutOutcomes, ['scheduled', 'rejected']);
+
+    const observerPending = [];
+    await handlePublicRecordHtml(
+      request('/data/records/record-0000'),
+      env,
+      {
+        waitUntil(promise) {
+          observerPending.push(promise);
+        },
+      },
+      {
+        cache,
+        cacheBuildId: 'test-build',
+        onPutOutcome(outcome) {
+          if (outcome === 'fulfilled') throw new Error('diagnostic callback failed');
+        },
+      }
+    );
+    await assert.doesNotReject(Promise.all(observerPending));
+  } finally {
+    if (previousRewriter === undefined) delete globalThis.HTMLRewriter;
+    else globalThis.HTMLRewriter = previousRewriter;
+  }
+});
+
 test('record parity detects unsafe actual URLs and changed inline spacing', () => {
   const parse = (expected, actual) =>
     JSON.parse(
