@@ -42,6 +42,13 @@ for (const [schedule, createdAt, session] of [
 ]) {
   assert.equal(nseScheduledSession(schedule, createdAt), session);
 }
+// Exercise every schedule declared in the workflow. A new cadence must be
+// supported by the session resolver before it can run in production.
+const configuredSchedules = [...equitiesWorkflow.matchAll(/^\s*- cron: ["']([^"']+)["']/gm)];
+assert.ok(configuredSchedules.length > 0);
+for (const [, expression] of configuredSchedules) {
+  assert.match(nseScheduledSession(expression, '2026-11-23T01:55:32Z'), /^\d{4}-\d{2}-\d{2}$/);
+}
 assert.throws(() => nseScheduledSession('unknown', '2026-11-19T13:30:00Z'));
 assert.throws(() => nseScheduledSession('30 13 * * *', 'invalid'));
 assert.ok(nseJob.includes("hashFiles('artifacts/nse/candidate.json')"));
