@@ -88,6 +88,7 @@ const REAPPLY_PUBLISHED = args.has('--reapply');
 /** Re-judge only killed rows whose signal date is today in IST. */
 const RETRY_KILLED_TODAY = args.has('--retry-killed-today');
 const RETRY_KILLED = args.has('--retry-killed');
+const TARGET_DRAFT = args.has('--target-draft');
 
 const API_BASE =
   process.env['API_BASE'] ?? (LOCAL ? 'http://127.0.0.1:8787' : 'https://api.highsignal.app');
@@ -96,17 +97,35 @@ const AI_BASE_URL = process.env['AI_BASE_URL'] ?? 'https://api.deepseek.com/v1';
 const AI_API_KEY = (process.env['AI_API_KEY'] ?? '').trim();
 const AI_MODEL = process.env['AI_MODEL'] ?? 'deepseek-chat';
 const AI_PROJECT_ID = process.env['AI_PROJECT_ID'] ?? 'high-signal';
+const TARGET_SLUG_PATTERN = /^[a-z0-9][a-z0-9-]{0,199}$/;
 
 if (
   RETRY_KILLED &&
   (!ADMIN_TOKEN ||
     !TARGET_SLUG ||
-    !/^[a-z0-9][a-z0-9-]{0,199}$/.test(TARGET_SLUG) ||
+    !TARGET_SLUG_PATTERN.test(TARGET_SLUG) ||
     RETRY_KILLED_TODAY ||
     REAPPLY_PUBLISHED)
 ) {
   throw new Error(
     '--retry-killed requires one valid --slug and cannot combine with bulk retry/reapply'
+  );
+}
+
+if (
+  TARGET_DRAFT &&
+  (!REMOTE ||
+    DRY ||
+    !ADMIN_TOKEN ||
+    !TARGET_SLUG ||
+    !TARGET_SLUG_PATTERN.test(TARGET_SLUG) ||
+    process.argv.filter((arg) => arg.startsWith('--slug=')).length !== 1 ||
+    RETRY_KILLED ||
+    RETRY_KILLED_TODAY ||
+    REAPPLY_PUBLISHED)
+) {
+  throw new Error(
+    '--target-draft requires --remote, one valid --slug, ADMIN_TOKEN, and no dry/retry/reapply flags'
   );
 }
 
@@ -515,6 +534,12 @@ async function main(): Promise<void> {
     `[auto-publish] target=${API_BASE} dry=${DRY} ai=${AI_API_KEY ? 'yes' : 'no'} reapply=${REAPPLY_PUBLISHED} retryKilledToday=${RETRY_KILLED_TODAY}`
   );
   const drafts = await fetchSignalsByStatus('draft');
+  if (TARGET_DRAFT) {
+    const selected = drafts.find((signal) => signal.slug === TARGET_SLUG);
+    if (!selected || selected.reviewStatus !== 'draft') {
+      throw new Error('Targeted publisher requires the selected slug to be in draft status');
+    }
+  }
   const published = await fetchSignalsByStatus('published');
   const killedRows = await fetchKilledRetryRows();
   const todayIst = dateKeyInTimeZone(new Date());

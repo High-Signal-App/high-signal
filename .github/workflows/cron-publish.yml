@@ -8,6 +8,10 @@ on:
         description: re-judge one previously killed signal through all existing evidence gates
         type: string
         default: ""
+      publish_slug:
+        description: judge and publish at most one existing draft through the normal gates
+        type: string
+        default: ""
       inspect_slug:
         description: read-only retained-evidence counts for one signal; skips publishing
         type: string
@@ -31,6 +35,26 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v6
+      - name: Validate publisher mode inputs
+        env:
+          PUBLISH_SLUG: ${{ inputs.publish_slug }}
+          RETRY_SLUG: ${{ inputs.retry_slug }}
+          INSPECT_SLUG: ${{ inputs.inspect_slug }}
+          DRY: ${{ inputs.dry }}
+          REAPPLY: ${{ inputs.reapply }}
+          RETRY_KILLED_TODAY: ${{ inputs.retry_killed_today }}
+        run: |
+          set -euo pipefail
+          if [[ -n "$PUBLISH_SLUG" ]]; then
+            if [[ ! "$PUBLISH_SLUG" =~ ^[a-z0-9][a-z0-9-]{0,199}$ ]]; then
+              echo "publish_slug must be one lowercase signal slug"
+              exit 1
+            fi
+            if [[ -n "$RETRY_SLUG" || -n "$INSPECT_SLUG" || "$DRY" == "true" || "$REAPPLY" == "true" || "$RETRY_KILLED_TODAY" == "true" ]]; then
+              echo "publish_slug cannot be combined with inspect, killed retry, dry, reapply, or retry-killed-today inputs"
+              exit 1
+            fi
+          fi
       - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v6
         with:
@@ -40,6 +64,7 @@ jobs:
       - name: auto-publish drafts
         env:
           RETRY_SLUG: ${{ inputs.retry_slug }}
+          PUBLISH_SLUG: ${{ inputs.publish_slug }}
           INSPECT_SLUG: ${{ inputs.inspect_slug }}
           API_BASE: ${{ secrets.API_BASE || 'https://api.highsignal.app' }}
           ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
@@ -50,6 +75,8 @@ jobs:
         run: |
           if [ -n "$INSPECT_SLUG" ]; then
             node scripts/inspect-signal-evidence.mjs
+          elif [ -n "$PUBLISH_SLUG" ]; then
+            pnpm exec tsx scripts/auto-publish-drafts.ts --remote --target-draft "--slug=$PUBLISH_SLUG"
           elif [ -n "$RETRY_SLUG" ]; then
             retry_flags=(--remote --retry-killed "--slug=$RETRY_SLUG")
             if [ "${{ inputs.dry }}" = "true" ]; then
@@ -66,13 +93,13 @@ jobs:
             pnpm signals:auto-publish:remote
           fi
       - name: rebuild current daily brief
-        if: ${{ inputs.dry != true && !inputs.inspect_slug }}
+        if: ${{ inputs.dry != true && !inputs.inspect_slug && !inputs.publish_slug }}
         env:
           API_BASE: ${{ secrets.API_BASE || 'https://api.highsignal.app' }}
           ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
         run: node scripts/precompute-daily-brief.mjs
       - name: verify reader-facing brief and evidence freshness
-        if: ${{ inputs.dry != true && !inputs.inspect_slug }}
+        if: ${{ inputs.dry != true && !inputs.inspect_slug && !inputs.publish_slug }}
         env:
           HIGH_SIGNAL_API: ${{ secrets.API_BASE || 'https://api.highsignal.app' }}
           BRIEF_REGIONS: global
