@@ -419,9 +419,7 @@ async function refreshSnapshotNews(
   const cachedNews = sanitizeBriefNewsItems(snapshot.news ?? []);
   try {
     const refreshed = await timeServerStage(timings, 'news', () =>
-      diagnosticNewsTimings
-        ? buildNews(database, region, editionDate, undefined, diagnosticNewsTimings)
-        : buildNews(database, region, editionDate)
+      buildNews(database, region, editionDate, undefined, diagnosticNewsTimings ?? timings)
     );
     return withBriefNews(snapshot, refreshed.length > 0 ? refreshed : cachedNews);
   } catch (error) {
@@ -449,9 +447,13 @@ async function composeDailyBrief(
     safe(
       () =>
         timeServerStage(timings, 'news', () =>
-          diagnosticNewsTimings
-            ? buildNews(database, request.region, editionDate, undefined, diagnosticNewsTimings)
-            : buildNews(database, request.region, editionDate)
+          buildNews(
+            database,
+            request.region,
+            editionDate,
+            undefined,
+            diagnosticNewsTimings ?? timings
+          )
         ),
       'news'
     ),

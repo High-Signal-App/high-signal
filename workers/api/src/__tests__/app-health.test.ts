@@ -142,7 +142,9 @@ describe('API stage-timing logs (#198)', () => {
       request,
       [
         { name: 'snapshot', durationMs: 12.4 },
+        { name: 'news-window', durationMs: 4.2 },
         { name: 'news-query', durationMs: 80.6 },
+        { name: 'news-compose', durationMs: 6.1 },
         { name: 'Bad Name', durationMs: 1 },
       ],
       'MISS'
@@ -171,7 +173,9 @@ describe('API stage-timing logs (#198)', () => {
       total_ms: 640,
       request_variant: 'current',
       snapshot_ms: 12,
+      news_window_ms: 4,
       news_query_ms: 81,
+      news_compose_ms: 6,
     });
     expect(
       stageTimingProps(

@@ -200,7 +200,8 @@ describe('GET /daily', () => {
     expect(response.status).toBe(200);
     expect(response.headers.get('server-timing')).toBeNull();
     expect(response.headers.get('cache-control')).not.toBe('private, no-store');
-    expect(mocks.buildNews.mock.calls.at(-1)).toHaveLength(3);
+    expect(mocks.buildNews.mock.calls.at(-1)).toHaveLength(5);
+    expect(mocks.buildNews.mock.calls.at(-1)?.[4]).toEqual(expect.any(Array));
     const diagnosticResponse = await apiApp.fetch(
       new Request('http://test/brief/daily?region=north-america&timing=1'),
       env
@@ -364,7 +365,13 @@ describe('GET /daily', () => {
       try {
         await vi.waitFor(() => expect(refresh).toHaveBeenCalledTimes(1));
         expect(mocks.buildStocks).toHaveBeenCalledWith(expect.anything(), [], day);
-        expect(mocks.buildNews).toHaveBeenCalledWith(expect.anything(), 'global', day);
+        expect(mocks.buildNews).toHaveBeenCalledWith(
+          expect.anything(),
+          'global',
+          day,
+          undefined,
+          expect.any(Array)
+        );
       } finally {
         releaseEvidence({
           ...snapshot,
@@ -516,7 +523,13 @@ describe('GET /daily', () => {
     const body = (await response.json()) as BriefSnapshot & { publishStatus: string };
     expect(body.news).toEqual(news);
     expect(body.publishStatus).toBe('published');
-    expect(mocks.buildNews).toHaveBeenCalledWith(expect.anything(), 'global', day);
+    expect(mocks.buildNews).toHaveBeenCalledWith(
+      expect.anything(),
+      'global',
+      day,
+      undefined,
+      expect.any(Array)
+    );
 
     const diagnosticResponse = await briefRoute.request(
       `http://test/daily?date=${day}&timing=1`,
@@ -559,7 +572,7 @@ describe('GET /daily', () => {
     );
     expect(normalResponse.status).toBe(200);
     expect(normalResponse.headers.get('server-timing')).toBeNull();
-    expect(mocks.buildNews.mock.calls.at(-1)).toHaveLength(3);
+    expect(mocks.buildNews.mock.calls.at(-1)).toHaveLength(5);
 
     const diagnosticResponse = await apiApp.fetch(
       new Request('http://test/brief/daily?date=2020-01-01&timing=1', {
@@ -639,7 +652,7 @@ describe('GET /daily', () => {
     const body = (await response.json()) as BriefSnapshot;
     expect(body.news).toEqual(cachedNews);
     expect(response.headers.get('server-timing')).toBeNull();
-    expect(mocks.buildNews.mock.calls.at(-1)).toHaveLength(3);
+    expect(mocks.buildNews.mock.calls.at(-1)).toHaveLength(5);
 
     const diagnosticResponse = await briefRoute.request(
       `http://test/daily?date=${day}&timing=1`,
