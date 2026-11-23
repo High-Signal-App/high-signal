@@ -406,6 +406,9 @@ test('workflow exposes canonical dispatch and supports the side-machine runner',
   assert.match(redactionWorkflow, /confirmation/);
   assert.match(redactionWorkflow, /REDDIT_REDACT_POST_IDS/);
   assert.match(redactionWorkflow, /reddit-archive-redact\.mjs/);
+  const publisherRevision = '15d06e5eb499615702cf88fde9ca133ba3c55da0';
+  assert.match(workflow, new RegExp(`ref: ${publisherRevision}`));
+  assert.match(redactionWorkflow, new RegExp(`ref: ${publisherRevision}`));
 
   const ingestWorkflow = await readFile('.github/workflows/cron-ingest.yml', 'utf8');
   assert.match(ingestWorkflow, /Fetch canonical Reddit event export/);
