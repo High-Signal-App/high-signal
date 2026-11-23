@@ -39,6 +39,9 @@ concurrency:
 
 jobs:
   nse:
+    permissions:
+      actions: read
+      contents: read
     if: github.event_name == 'schedule' || inputs.market != 'global'
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -53,13 +56,16 @@ jobs:
         env:
           NSE_SESSION: ${{ inputs.session }}
           RUN_KIND: ${{ github.event_name }}
+          RUN_SCHEDULE: ${{ github.event.schedule }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           args=()
           if [[ -n "$NSE_SESSION" ]]; then
             args=(--session "$NSE_SESSION")
           elif [[ "$RUN_KIND" == schedule ]]; then
-            # UTC date remains the closed session at the late retry in India.
-            args=(--session "$(date -u +%F)" --allow-unpublished-weekend)
+            created_at=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" --jq .created_at)
+            session=$(node scripts/nse-scheduled-session.mjs "$RUN_SCHEDULE" "$created_at")
+            args=(--session "$session" --allow-unpublished-weekend)
           fi
           uv run --project python/ingest python -m high_signal_ingest.equities_daily \
             --market nse --archive artifacts/nse "${args[@]}"
