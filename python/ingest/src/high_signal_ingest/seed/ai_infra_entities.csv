@@ -283,6 +283,8 @@ LITHO,,EUV Lithography,sector,NL,semicap,extreme-ultraviolet-lithography,EUV|EUV
 GAAFET,,Gate-All-Around FET,sector,US,foundry,nanosheet-transistor,GAAFET|Nanosheet,https://en.wikipedia.org/wiki/Multigate_device,https://www.tsmc.com
 BACKSIDE,,Backside Power Delivery,sector,US,foundry,bspdn,Backside Power|BSPDN,https://en.wikipedia.org/wiki/Backside_power_delivery_network,https://www.intel.com
 PANW,PANW,Palo Alto Networks,public,US,security,network-security,Palo Alto Networks|PAN-OS,https://en.wikipedia.org/wiki/Palo_Alto_Networks,https://investors.paloaltonetworks.com
+CRWD,CRWD,CrowdStrike Holdings Inc.,public,US,security,endpoint-cloud-security,CrowdStrike|CrowdStrike Holdings,https://en.wikipedia.org/wiki/CrowdStrike,https://ir.crowdstrike.com
+ZS,ZS,Zscaler Inc.,public,US,security,cloud-security-sase,Zscaler|Zscaler Inc,https://en.wikipedia.org/wiki/Zscaler,https://ir.zscaler.com
 TRENDMICRO,4704.T,Trend Micro,public,JP,security,endpoint-security,Trend Micro|Apex One,https://en.wikipedia.org/wiki/Trend_Micro,https://www.trendmicro.com/en_us/about/investor-relations.html
 DRUPAL,,Drupal,product,BE,software,cms,Drupal|Drupal Core,https://en.wikipedia.org/wiki/Drupal,https://www.drupal.org
 LANGFLOW,,Langflow,product,US,software,ai-agent-workflow,Langflow,https://www.langflow.org,https://www.langflow.org

@@ -35,6 +35,16 @@ def test_promoted_unmapped_entities_are_seeded() -> None:
     } <= ids
 
 
+def test_crowdstrike_zscaler_curated_identity_and_aliases() -> None:
+    entities = load_entities()
+    by_id = {entity.id: entity for entity in entities}
+    assert {"CRWD", "ZS"} <= by_id.keys()
+    assert by_id["CRWD"].ticker == "CRWD"
+    assert by_id["ZS"].ticker == "ZS"
+    assert set(gazetteer_match("CrowdStrike to acquire Zscaler")) == {"CRWD", "ZS"}
+    assert gazetteer_match("Crowds gathered outside the venue") == []
+
+
 def test_generic_cursor_word_does_not_match_product() -> None:
     assert "CURSOR" not in gazetteer_match("Move the cursor to the next line")
     assert "CURSOR" in gazetteer_match("Anysphere released a new Cursor model")
