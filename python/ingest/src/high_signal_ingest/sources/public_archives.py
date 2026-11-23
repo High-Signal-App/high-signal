@@ -436,14 +436,20 @@ def _alphasignal_article_publication(
         )
     accessible, _ = _structured_publication(_Markup(article.text))
     if not accessible:
-        return None
+        raise registered_feeds.PublicFeedFetchError(
+            "AlphaSignal issue is not declared publicly accessible"
+        )
     title, published = article_title(article.text), card.published
     title_matches = (
         card.title is not None
         and title is not None
         and " ".join(title.split()).casefold() == " ".join(card.title.split()).casefold()
     )
-    return (title, published) if title_matches and published is not None else None
+    if not title_matches:
+        raise registered_feeds.PublicFeedFetchError(
+            "AlphaSignal issue title did not match its archive card"
+        )
+    return (title, published) if published is not None else None
 
 
 async def _archive_item_content(

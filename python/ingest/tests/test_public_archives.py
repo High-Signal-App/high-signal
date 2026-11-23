@@ -301,7 +301,9 @@ def test_alphasignal_archive_fetch_requires_public_matching_permalink_and_body(m
     assert result.latest_listed == since
     assert sorted(result.errors) == sorted(
         [
+            "AlphaSignal issue is not declared publicly accessible",
             "AlphaSignal issue redirected to a different permalink",
+            "AlphaSignal issue title did not match its archive card",
             "Public archive article contained no usable public body",
         ]
     )
@@ -454,4 +456,4 @@ def test_alphasignal_recent_subscriber_only_page_fails_closed(monkeypatch) -> No
     assert result.items == []
     assert result.dated == 0
     assert result.listed == 1
-    assert result.errors == ["Public archive contained no dated, freely accessible articles"]
+    assert result.errors == ["AlphaSignal issue is not declared publicly accessible"]
