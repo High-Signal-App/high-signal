@@ -155,3 +155,33 @@ def test_wire_reprints_cannot_supply_second_publisher_even_for_distinct_stories(
         "a",
         "c",
     ]
+
+
+@pytest.mark.parametrize("reverse", [False, True])
+def test_explicit_ft_headline_credit_cannot_corroborate_the_original(reverse):
+    original = event("financial-times", "Original reporting available as a short excerpt.")
+    original.source_url = "https://www.ft.com/content/report"
+    original.title = "Company nears acquisition of a startup"
+    summary = event("summary", None)
+    summary.source_url = "https://seekingalpha.com/news/123-reported-deal"
+    summary.title = "Company reportedly nearing deal to buy startup: FT"
+    independent = event("independent", "Independently sourced confirmation.")
+    events = [summary, original] if reverse else [original, summary]
+    assessments = {
+        "proofs": [
+            {
+                "url": item.source_url,
+                "aligned": True,
+                "originating_evidence_id": item.id,
+                "supports": ["observed_event"],
+            }
+            for item in events
+        ]
+    }
+
+    evidence = _proof_evidence(assessments, events)
+    assert _proof_verdict(SimpleNamespace(evidence=evidence)).reason == "single_evidentiary_origin"
+    assert distinct_generation_events([*events, independent]) == [original, independent]
+
+    summary.title = "Independent reporting confirms deal after FT coverage"
+    assert coalesce_copied_origins(events, ["a", "b"]) == ["a", "b"]
