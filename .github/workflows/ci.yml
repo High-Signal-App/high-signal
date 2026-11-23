@@ -87,7 +87,7 @@ jobs:
         run: |
           uv venv --python 3.11 .venv-attention
           uv pip sync --python .venv-attention/bin/python --require-hashes requirements-attention-collectors.txt
-          PYTHONPATH=src .venv-attention/bin/python -c 'from high_signal_ingest import pipeline'
+          PYTHONPATH=src .venv-attention/bin/python -c 'import high_signal_ingest.digg, high_signal_ingest.mts, high_signal_ingest.pipeline'
       - run: uv run ruff check --select E4,E7,E9,F src
       - run: uv run vulture src --min-confidence 90
       - run: uv run python -m high_signal_ingest.preflight
