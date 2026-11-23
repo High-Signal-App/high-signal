@@ -294,6 +294,34 @@ def test_retained_evidence_is_reused_without_refetching(
     )
 
 
+@pytest.mark.parametrize("attention_source", ["digg", "mts"])
+def test_publisher_unavailable_drops_unretained_candidate(attention_source: str) -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.host == "api.gdeltproject.org":
+            return httpx.Response(200, json={"articles": []})
+        raise httpx.ConnectError("publisher unavailable", request=request)
+
+    request = {
+        "shortId": "publisher-unavailable",
+        "attentionSource": attention_source,
+        "title": "Acme launches a new safety evaluation",
+        "retainedEvidence": [
+            {
+                "url": "https://publisher.example/acme-safety",
+                "title": "Acme launches a new safety evaluation",
+            }
+        ],
+    }
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        articles = discover_articles(request, client)
+        events = retrieve_events(request, articles, client)
+
+    assert [article["url"] for article in articles] == [
+        "https://publisher.example/acme-safety"
+    ]
+    assert events == []
+
+
 def test_verification_batch_is_bounded_to_six_requests(monkeypatch) -> None:
     seen: list[str] = []
 
