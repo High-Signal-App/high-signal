@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { nseScheduledSession } from './nse-scheduled-session.mjs';
 
 const backtestWorkflow = await readFile('.github/workflows/cron-backtest.yml', 'utf8');
 const publishWorkflow = await readFile('.github/workflows/cron-publish.yml', 'utf8');
@@ -31,6 +32,25 @@ assert.ok(equitiesWorkflow.includes('30 13 * * *'), 'NSE must refresh after Indi
 assert.ok(nseJob.includes('--market nse'));
 assert.ok(nseJob.includes('elif [[ "$RUN_KIND" == schedule ]]'));
 assert.ok(nseJob.includes('--allow-unpublished-weekend'));
+assert.ok(nseJob.includes('scripts/nse-scheduled-session.mjs "$RUN_SCHEDULE" "$created_at"'));
+for (const [schedule, createdAt, session] of [
+  ['30 21 * * 0,6', '2026-11-23T01:55:32Z', '2026-11-22'],
+  ['30 21 * * 1-5', '2026-11-20T02:28:39Z', '2026-11-19'],
+  ['30 13 * * *', '2026-11-19T13:30:00Z', '2026-11-19'],
+  ['30 13 * * *', '2026-11-19T02:42:51Z', '2026-11-18'],
+  ['30 21 * * 1-5', '2026-11-23T09:00:00Z', '2026-11-20'],
+]) {
+  assert.equal(nseScheduledSession(schedule, createdAt), session);
+}
+// Exercise every schedule declared in the workflow. A new cadence must be
+// supported by the session resolver before it can run in production.
+const configuredSchedules = [...equitiesWorkflow.matchAll(/^\s*- cron: ["']([^"']+)["']/gm)];
+assert.ok(configuredSchedules.length > 0);
+for (const [, expression] of configuredSchedules) {
+  assert.match(nseScheduledSession(expression, '2026-11-23T01:55:32Z'), /^\d{4}-\d{2}-\d{2}$/);
+}
+assert.throws(() => nseScheduledSession('unknown', '2026-11-19T13:30:00Z'));
+assert.throws(() => nseScheduledSession('30 13 * * *', 'invalid'));
 assert.ok(nseJob.includes("hashFiles('artifacts/nse/candidate.json')"));
 assert.ok(!nseJob.includes('--limit'), 'daily NSE collection must not have a company cap');
 assert.ok(nseJob.includes('nse_archive publish'), 'daily originals must survive the runner');
