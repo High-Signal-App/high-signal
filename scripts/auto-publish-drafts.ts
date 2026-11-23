@@ -88,6 +88,7 @@ const REAPPLY_PUBLISHED = args.has('--reapply');
 /** Re-judge only killed rows whose signal date is today in IST. */
 const RETRY_KILLED_TODAY = args.has('--retry-killed-today');
 const RETRY_KILLED = args.has('--retry-killed');
+const TARGET_DRAFT = args.has('--target-draft');
 
 const API_BASE =
   process.env['API_BASE'] ?? (LOCAL ? 'http://127.0.0.1:8787' : 'https://api.highsignal.app');
@@ -96,17 +97,35 @@ const AI_BASE_URL = process.env['AI_BASE_URL'] ?? 'https://api.deepseek.com/v1';
 const AI_API_KEY = (process.env['AI_API_KEY'] ?? '').trim();
 const AI_MODEL = process.env['AI_MODEL'] ?? 'deepseek-chat';
 const AI_PROJECT_ID = process.env['AI_PROJECT_ID'] ?? 'high-signal';
+const TARGET_SLUG_PATTERN = /^[a-z0-9][a-z0-9-]{0,199}$/;
 
 if (
   RETRY_KILLED &&
   (!ADMIN_TOKEN ||
     !TARGET_SLUG ||
-    !/^[a-z0-9][a-z0-9-]{0,199}$/.test(TARGET_SLUG) ||
+    !TARGET_SLUG_PATTERN.test(TARGET_SLUG) ||
     RETRY_KILLED_TODAY ||
     REAPPLY_PUBLISHED)
 ) {
   throw new Error(
     '--retry-killed requires one valid --slug and cannot combine with bulk retry/reapply'
+  );
+}
+
+if (
+  TARGET_DRAFT &&
+  (!REMOTE ||
+    DRY ||
+    !ADMIN_TOKEN ||
+    !TARGET_SLUG ||
+    !TARGET_SLUG_PATTERN.test(TARGET_SLUG) ||
+    process.argv.filter((arg) => arg.startsWith('--slug=')).length !== 1 ||
+    RETRY_KILLED ||
+    RETRY_KILLED_TODAY ||
+    REAPPLY_PUBLISHED)
+) {
+  throw new Error(
+    '--target-draft requires --remote, one valid --slug, ADMIN_TOKEN, and no dry/retry/reapply flags'
   );
 }
 
@@ -145,6 +164,37 @@ function fetchSignalReview(
   } as RequestInit);
 }
 
+async function fetchTargetDraft(slug: string): Promise<SignalRow> {
+  const response = await fetchSignalReview(slug, 'signals');
+  if (!response.ok) {
+    throw new Error(`Targeted publisher lookup failed (HTTP ${response.status})`);
+  }
+  const payload = (await response.json()) as { signal?: SignalRow };
+  if (!payload.signal || payload.signal.slug !== slug || payload.signal.reviewStatus !== 'draft') {
+    throw new Error('Targeted publisher requires the selected slug to be in draft status');
+  }
+  return payload.signal;
+}
+
+/** Fail closed if a targeted signal left draft while this review was running. */
+async function targetDraftStillCurrent(signal: SignalRow): Promise<boolean> {
+  if (!TARGET_DRAFT) return true;
+  try {
+    const current = await fetchTargetDraft(signal.slug);
+    if (current.id !== signal.id) {
+      console.error(`[auto-publish] target identity changed during review: ${signal.slug}`);
+      return false;
+    }
+    return true;
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('to be in draft status')) {
+      console.error(`[auto-publish] target is no longer the same draft: ${signal.slug}`);
+    }
+    console.error(`[auto-publish] target status recheck failed for ${signal.slug}:`, error);
+    return false;
+  }
+}
+
 async function fetchKilledRetryRows(): Promise<SignalRow[]> {
   if (!RETRY_KILLED) return RETRY_KILLED_TODAY ? fetchSignalsByStatus('killed') : [];
   const response = await fetchSignalReview(TARGET_SLUG!, 'signals');
@@ -178,15 +228,18 @@ async function fetchClaimsBySignal(slug: string): Promise<ClaimWithEvidence[]> {
 }
 
 async function patchReviewStatus(
-  slug: string,
+  signal: SignalRow,
   reviewStatus: 'published' | 'killed'
 ): Promise<boolean> {
   if (DRY) return true;
   if (!ADMIN_TOKEN) {
-    console.warn(`[auto-publish] dry-run: would PATCH ${slug} → ${reviewStatus} (no ADMIN_TOKEN)`);
+    console.warn(
+      `[auto-publish] dry-run: would PATCH ${signal.slug} → ${reviewStatus} (no ADMIN_TOKEN)`
+    );
     return false;
   }
-  const r = await fetch(`${API_BASE}/admin/signals/${encodeURIComponent(slug)}`, {
+  if (!(await targetDraftStillCurrent(signal))) return false;
+  const r = await fetch(`${API_BASE}/admin/signals/${encodeURIComponent(signal.slug)}`, {
     method: 'PATCH',
     headers: {
       Authorization: `Bearer ${ADMIN_TOKEN}`,
@@ -196,13 +249,16 @@ async function patchReviewStatus(
   });
   if (!r.ok) {
     const text = await r.text();
-    console.error(`[auto-publish] PATCH ${slug} → ${reviewStatus} FAILED (${r.status}): ${text}`);
+    console.error(
+      `[auto-publish] PATCH ${signal.slug} → ${reviewStatus} FAILED (${r.status}): ${text}`
+    );
     return false;
   }
   return true;
 }
 
 type EvidenceAssessment = NonNullable<VerdictResult['evidenceAssessments']>[number];
+type ClaimRows = ClaimWithEvidence[];
 type StructuredEvidence = {
   url: string;
   role: 'primary' | 'corroboration' | 'context';
@@ -239,6 +295,10 @@ function structuredEvidenceNotes(role: StructuredEvidence['role']): string {
   return role === 'primary' || role === 'corroboration'
     ? 'receipt:verified alignment:verified verifier:auto-publish-semantic-judge'
     : 'alignment:rejected verifier:auto-publish-semantic-judge';
+}
+
+async function claimCanBePublished(signal: SignalRow, claim: ClaimWithEvidence): Promise<boolean> {
+  return claim.reviewStatus === 'published' || DRY || (await targetDraftStillCurrent(signal));
 }
 
 function signalAssertion(signal: SignalRow): string {
@@ -309,7 +369,7 @@ async function createStructuredClaim(
   if (DRY || !ADMIN_TOKEN) return null;
   if (verdict.source !== 'ai' || !verdict.evidenceAssessments || !verdict.claimTuple) return null;
   const evidence = buildStructuredEvidence(signal, verdict);
-  if (distinctAlignedOrigins(evidence) < 2) return null;
+  if (distinctAlignedOrigins(evidence) < 2 || !(await targetDraftStillCurrent(signal))) return null;
   const assertion = signalAssertion(signal);
   const response = await fetch(`${API_BASE}/admin/claims`, {
     method: 'POST',
@@ -347,11 +407,11 @@ async function createStructuredClaim(
   return createdClaimReceipt({ id: payload.id, signal, verdict, assertion, evidence });
 }
 
-async function publishEligibleClaim(claims: ClaimWithEvidence[]): Promise<boolean> {
+async function publishEligibleClaim(signal: SignalRow, claims: ClaimRows): Promise<boolean> {
   const eligible = claims.find(
     (claim) => judgePublishability(rollupEvidence(claim.evidence)).publishable
   );
-  if (!eligible) return false;
+  if (!eligible || !(await claimCanBePublished(signal, eligible))) return false;
   if (eligible.reviewStatus === 'published' || DRY) return true;
   const response = await fetch(
     `${API_BASE}/admin/claims/${encodeURIComponent(eligible.id)}/status`,
@@ -515,6 +575,12 @@ async function main(): Promise<void> {
     `[auto-publish] target=${API_BASE} dry=${DRY} ai=${AI_API_KEY ? 'yes' : 'no'} reapply=${REAPPLY_PUBLISHED} retryKilledToday=${RETRY_KILLED_TODAY}`
   );
   const drafts = await fetchSignalsByStatus('draft');
+  if (TARGET_DRAFT) {
+    const selected = await fetchTargetDraft(TARGET_SLUG!);
+    const selectedIndex = drafts.findIndex((signal) => signal.slug === selected.slug);
+    if (selectedIndex === -1) drafts.push(selected);
+    else drafts[selectedIndex] = selected;
+  }
   const published = await fetchSignalsByStatus('published');
   const killedRows = await fetchKilledRetryRows();
   const todayIst = dateKeyInTimeZone(new Date());
@@ -576,7 +642,7 @@ async function main(): Promise<void> {
         tag = verdict.source === 'ai' ? 'AI ' : 'rul';
         provenanceTag = judgeable.provenanceSource === 'structured_claims' ? 'claims' : 'legacy';
         if (verdict.verdict !== 'publish') {
-          const ok = await patchReviewStatus(signal.slug, 'killed');
+          const ok = await patchReviewStatus(signal, 'killed');
           if (ok) killed++;
           else errors++;
           const label = wasPublished ? 'UNPUB' : 'KILL';
@@ -586,7 +652,7 @@ async function main(): Promise<void> {
           continue;
         }
       }
-      if (!DRY && !(await publishEligibleClaim(claims))) {
+      if (!DRY && !(await publishEligibleClaim(signal, claims))) {
         console.error(
           `  [${tag}/claims]    ERROR  ${signal.slug} — no publishable structured claim receipt`
         );
@@ -598,12 +664,12 @@ async function main(): Promise<void> {
         publishedCount++;
         continue;
       }
-      const ok = await patchReviewStatus(signal.slug, 'published');
+      const ok = await patchReviewStatus(signal, 'published');
       if (ok) publishedCount++;
       else errors++;
       console.log(`  [${tag}/${provenanceTag}]  PUBLISH  ${signal.slug}  — ${verdict.reason}`);
     } else if (verdict.verdict === 'kill') {
-      const ok = await patchReviewStatus(signal.slug, 'killed');
+      const ok = await patchReviewStatus(signal, 'killed');
       if (ok) killed++;
       else errors++;
       const label = wasPublished ? 'UNPUB' : 'KILL';

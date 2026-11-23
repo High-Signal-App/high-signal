@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -46,6 +46,67 @@ async function checkSequence(
   return result;
 }
 
+function checkPublishWorkflowDispatch() {
+  const workflow = readFileSync('.github/workflows/cron-publish.yml', 'utf8');
+  const start = workflow.indexOf('      - name: Validate publisher mode inputs\n');
+  assert.notEqual(start, -1, 'publisher input validation step is present');
+  const end = workflow.indexOf('\n      - uses:', start);
+  assert.notEqual(end, -1, 'publisher input validation step is bounded');
+  const block = workflow.slice(start, end);
+  const runMarker = '        run: |\n';
+  const runStart = block.indexOf(runMarker);
+  assert.notEqual(runStart, -1, 'publisher input validation has an executable shell block');
+  const validationScript = block
+    .slice(runStart + runMarker.length)
+    .split('\n')
+    .map((line) => (line.startsWith('          ') ? line.slice(10) : line))
+    .join('\n')
+    .trim();
+  const invoke = (inputs: Record<string, string>) =>
+    spawnSync('bash', ['-c', validationScript], {
+      cwd: process.cwd(),
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        PUBLISH_SLUG: '',
+        RETRY_SLUG: '',
+        INSPECT_SLUG: '',
+        DRY: 'false',
+        REAPPLY: 'false',
+        RETRY_KILLED_TODAY: 'false',
+        ...inputs,
+      },
+    });
+  assert.equal(invoke({}).status, 0, 'empty optional input preserves the scheduled default');
+  assert.equal(
+    invoke({ PUBLISH_SLUG: 'nvda-approved-draft' }).status,
+    0,
+    'a valid target slug is accepted'
+  );
+  assert.notEqual(invoke({ PUBLISH_SLUG: '../other' }).status, 0, 'invalid slugs fail closed');
+  for (const conflicting of [
+    { RETRY_SLUG: 'other' },
+    { INSPECT_SLUG: 'other' },
+    { DRY: 'true' },
+    { REAPPLY: 'true' },
+    { RETRY_KILLED_TODAY: 'true' },
+  ]) {
+    assert.notEqual(
+      invoke({ PUBLISH_SLUG: 'nvda-approved-draft', ...conflicting }).status,
+      0,
+      'targeted publishing rejects conflicting workflow inputs'
+    );
+  }
+  assert.match(workflow, /--target-draft "--slug=\$PUBLISH_SLUG"/);
+  assert.equal(
+    workflow.match(
+      /if: \$\{\{ inputs\.dry != true && !inputs\.inspect_slug && !inputs\.publish_slug \}\}/gu
+    )?.length,
+    2,
+    'targeted publication skips the full brief rebuild and reader verification batch'
+  );
+}
+
 function checkCli() {
   const directory = mkdtempSync(join(tmpdir(), 'high-signal-judge-test-'));
   const preload = join(directory, 'transport.mjs');
@@ -53,16 +114,27 @@ function checkCli() {
     preload,
     `
 let requests = 0;
+let fetchCalls = 0;
+let reviewReads = 0;
+const mutations = [];
 const mode = process.env.TEST_JUDGE_MODE;
 const signal = {
   id: 'fixture', slug: 'fixture', signalType: 'product', primaryEntityId: 'fixture',
   direction: 'up', confidence: 'medium', predictedWindowDays: 30,
   publishedAt: mode.startsWith('retry') ? '2020-01-01T00:00:00Z' : new Date().toISOString(), publishable: true, independentSourceCount: 1,
+  reviewStatus: mode === 'target-not-draft' ? 'killed' : 'draft',
   evidenceUrls: mode === 'deterministic' ? ['https://a.example/report'] :
     mode === 'same-class' ? ['https://www.thehindu.com/report', 'https://analyticsindiamag.com/report'] :
     ['https://a.example/report', 'https://b.example/report'],
   bodyMd: 'Evidence https://a.example/report and https://b.example/report'
 };
+if (mode.startsWith('target') && mode !== 'target-not-draft') {
+  signal.independentSourceCount = 2;
+  signal.bodyMd = '## What changed\\nThe company announced a manufacturing milestone and said its new production line is ready for broader commercial use.\\n' +
+    '## Why it matters\\nThis milestone signals progress toward commercial adoption, although it does not establish customer orders or revenue.\\n' +
+    '## Uncertainty\\nThe company did not disclose production volume, customer start dates or further commitments, so the financial impact remains uncertain.\\n' +
+    'Sources: https://a.example/report and https://b.example/report';
+}
 if (mode === 'prose' || mode === 'oversized') {
   signal.independentSourceCount = 2;
   signal.bodyMd = '## What changed\\nThe company announced a manufacturing milestone covering research, certification and selected production layers.\\n## Why it matters\\nThe announcement provides evidence of manufacturing progress, while the business implications depend on customer adoption.\\n## Uncertainty\\nFuture customer commitments, manufacturing costs and the timing of further deployments remain unverified.\\nSources: https://a.example/report and https://b.example/report\\n' +
@@ -70,6 +142,7 @@ if (mode === 'prose' || mode === 'oversized') {
     'Unsupported company roles at the end of the draft.';
 }
 globalThis.fetch = async (input, init) => {
+  fetchCalls++;
   const url = new URL(String(input));
   if (url.hostname === 'judge.invalid') {
     if (init.headers.Authorization !== 'Bearer synthetic-judge') throw new Error('Judge credential whitespace not normalized');
@@ -90,17 +163,32 @@ globalThis.fetch = async (input, init) => {
         verdict: 'kill', reason: 'Unsupported supplier roles in the body'
       })}}]});
     }
+    if (mode.startsWith('target')) {
+      return Response.json({choices: [{message: {content: JSON.stringify({
+        verdict: 'publish', reason: 'Issuer and independent retained evidence support the claim',
+        claimTuple: {entity: 'fixture', event: 'reinstatement', amount: null, date: '2026-11-23', direction: 'up'},
+        evidenceAssessments: signal.evidenceUrls.map((url, index) => ({
+          url, aligned: true, originatingEvidenceId: 'origin-' + index
+        }))
+      })}}]});
+    }
     if (mode === 'recover' && requests === 2) return Response.json({
       choices: [{message: {content: JSON.stringify({verdict: 'kill', reason: 'Not corroborated'})}}]
     });
     return new Response('Failed to validate JSON; PRIVATE_PROVIDER_DETAIL', {status: mode === 'auth' ? 401 : 400});
   }
   if (url.hostname !== 'fixture.invalid') throw new Error('Unexpected network destination');
+  if (url.pathname === '/signals') {
+    return Response.json({signals: url.searchParams.get('status') === 'draft' ? [signal] : []});
+  }
   if (url.pathname === '/admin/signals-review') {
     if (mode.startsWith('retry') && url.searchParams.get('status') === 'killed') throw new Error('Historical retry used capped list');
     if (init.headers.Authorization !== 'Bearer synthetic-admin') throw new Error('Admin credential whitespace not normalized');
+    const status = url.searchParams.get('status');
     return Response.json({
-    signals: url.searchParams.get('status') === (mode.startsWith('retry') ? 'killed' : 'draft') ? [signal, {...signal, id:'other', slug:'other'}] : []
+      signals: status === (mode.startsWith('retry') ? 'killed' : 'draft') && mode !== 'target-capped-list'
+        ? [signal, {...signal, id:'other', slug:'other', reviewStatus:'draft'}]
+        : []
     });
   }
   if (url.pathname === '/claims/by-signal/fixture' || url.pathname === '/signals/fixture') {
@@ -110,28 +198,50 @@ globalThis.fetch = async (input, init) => {
     if (init.headers?.Authorization !== 'Bearer synthetic-admin') throw new Error('Protected review credential missing');
     if (mode === 'lookup-failed') return new Response('', {status:503});
     if (mode === 'retry-missing') return new Response('', {status:404});
+    reviewReads++;
+    const staleTarget = mode.startsWith('target-stale') && reviewReads >= 3;
+    const changedTargetId = mode === 'target-stale-identity' && reviewReads >= 3;
+    const hasTargetClaim = ['targeted-publish', 'target-capped-list', 'target-stale-identity', 'target-stale-before-claim-publish', 'target-stale-before-signal-patch'].includes(mode);
     return Response.json({
-    signal: {...signal, reviewStatus: mode === 'retry-published' ? 'published' : 'killed'},
-    claims: mode === 'prose' || mode === 'oversized' ? [{
-      id: 'claim', reviewStatus: 'draft', evidence: signal.evidenceUrls.map((evidenceUrl, index) => ({
-        id: 'link-' + index, claimId: 'claim', evidenceUrl,
-        sourceDocumentId: 'origin-' + index,
-        role: index === 0 ? 'primary' : 'corroboration', weight: 1,
-        notes: 'alignment:verified'
-      }))
-    }] : [],
-    evidence: mode === 'no-text' || mode.startsWith('retry') ? [] : signal.evidenceUrls.map((url, index) => ({
-      url, excerpt: 'Retained public source excerpt for ' + url, sourceType: index === 0 && mode !== 'same-class' ? 'ir' : 'news'
-    }))});
+      signal: {...signal, id: changedTargetId ? 'replacement' : signal.id, reviewStatus: staleTarget ? 'killed' : mode === 'retry-published' ? 'published' : mode.startsWith('retry') ? 'killed' : signal.reviewStatus},
+      claims: mode === 'prose' || mode === 'oversized' || hasTargetClaim ? [{
+        id: hasTargetClaim ? 'claim-fixture' : 'claim',
+        signalId: 'fixture', surface: 'signal', assertion: 'fixture claim', confidenceBand: 'medium',
+        reviewStatus: mode === 'target-stale-before-signal-patch' ? 'published' : 'draft', evidence: signal.evidenceUrls.map((evidenceUrl, index) => ({
+          id: 'link-' + index, claimId: hasTargetClaim ? 'claim-fixture' : 'claim', evidenceUrl,
+          sourceDocumentId: 'source-doc-' + index,
+          originatingEvidenceId: 'origin-' + index,
+          semanticAlignment: 'verified', role: index === 0 ? 'primary' : 'corroboration', weight: 1,
+          notes: 'receipt:verified alignment:verified verifier:auto-publish-semantic-judge'
+        }))
+      }] : [],
+      evidence: mode === 'no-text' || mode.startsWith('retry') ? [] : signal.evidenceUrls.map((url, index) => ({
+        url, excerpt: 'Retained public source excerpt for ' + url, sourceType: index === 0 && mode !== 'same-class' ? 'ir' : 'news'
+      }))});
+  }
+  if (url.pathname === '/admin/claims' && init.method === 'POST') {
+    mutations.push('claim:create');
+    return Response.json({id: 'new-claim'});
+  }
+  if (url.pathname === '/admin/claims/claim-fixture/status' && init.method === 'POST') {
+    mutations.push('claim:fixture:' + JSON.parse(init.body).status);
+    return Response.json({ok: true});
   }
   if (url.pathname === '/admin/signals/fixture' && init.method === 'PATCH') {
-    if (JSON.parse(init.body).reviewStatus !== 'killed') throw new Error('Unexpected publish');
-    console.log('fixture withheld');
+    const status = JSON.parse(init.body).reviewStatus;
+    mutations.push('signal:fixture:' + status);
+    if (status === 'killed') console.log('fixture withheld');
+    else if (status === 'published') console.log('fixture published');
+    else throw new Error('Unexpected moderation status');
     return Response.json({ok: true});
   }
   throw new Error('Unexpected request');
 };
-process.on('exit', () => console.log('judge requests=' + requests));
+process.on('exit', () => {
+  console.log('judge requests=' + requests);
+  console.log('fetch calls=' + fetchCalls);
+  console.log('mutations=' + JSON.stringify(mutations));
+});
 `
   );
   try {
@@ -187,6 +297,132 @@ process.on('exit', () => console.log('judge requests=' + requests));
       if (mode.startsWith('retry'))
         assert.ok(child.stdout.includes('1 killed rows (bounded retry)'));
     }
+    const targeted = spawnSync(
+      process.execPath,
+      [
+        '--import',
+        'tsx',
+        '--import',
+        preload,
+        'scripts/auto-publish-drafts.ts',
+        '--remote',
+        '--target-draft',
+        '--slug=fixture',
+      ],
+      {
+        cwd: process.cwd(),
+        encoding: 'utf8',
+        timeout: 10_000,
+        env: {
+          ...process.env,
+          TEST_JUDGE_MODE: 'target-capped-list',
+          API_BASE: 'https://fixture.invalid',
+          AI_BASE_URL: 'https://judge.invalid',
+          AI_API_KEY: 'synthetic-judge',
+          ADMIN_TOKEN: 'synthetic-admin',
+        },
+      }
+    );
+    assert.equal(targeted.status, 0, targeted.stdout + targeted.stderr);
+    assert.match(targeted.stdout, /fixture published/);
+    assert.match(targeted.stdout, /judge requests=1/);
+    assert.match(
+      targeted.stdout,
+      /mutations=\["claim:fixture:published","signal:fixture:published"\]/
+    );
+    assert.doesNotMatch(targeted.stdout, /other/);
+
+    const noAdminToken = spawnSync(
+      process.execPath,
+      ['--import', 'tsx', '--import', preload, 'scripts/auto-publish-drafts.ts', '--local'],
+      {
+        cwd: process.cwd(),
+        encoding: 'utf8',
+        timeout: 10_000,
+        env: {
+          ...process.env,
+          TEST_JUDGE_MODE: 'no-admin-kill',
+          API_BASE: 'https://fixture.invalid',
+          AI_API_KEY: '',
+          ADMIN_TOKEN: '',
+        },
+      }
+    );
+    assert.equal(noAdminToken.status, 1, noAdminToken.stdout + noAdminToken.stderr);
+    assert.match(noAdminToken.stderr, /would PATCH fixture.*no ADMIN_TOKEN/);
+    assert.doesNotMatch(noAdminToken.stderr, /ReferenceError/);
+    assert.match(noAdminToken.stdout, /mutations=\[\]/);
+
+    for (const mode of [
+      'target-stale-identity',
+      'target-stale-before-claim-create',
+      'target-stale-before-claim-publish',
+      'target-stale-before-signal-patch',
+    ]) {
+      const stale = spawnSync(
+        process.execPath,
+        [
+          '--import',
+          'tsx',
+          '--import',
+          preload,
+          'scripts/auto-publish-drafts.ts',
+          '--remote',
+          '--target-draft',
+          '--slug=fixture',
+        ],
+        {
+          cwd: process.cwd(),
+          encoding: 'utf8',
+          timeout: 10_000,
+          env: {
+            ...process.env,
+            TEST_JUDGE_MODE: mode,
+            API_BASE: 'https://fixture.invalid',
+            AI_BASE_URL: 'https://judge.invalid',
+            AI_API_KEY: 'synthetic-judge',
+            ADMIN_TOKEN: 'synthetic-admin',
+          },
+        }
+      );
+      assert.equal(stale.status, 1, mode + ': ' + stale.stdout + stale.stderr);
+      assert.match(
+        stale.stderr,
+        /target (?:is no longer the same draft|identity changed during review)/
+      );
+      assert.match(stale.stdout, /mutations=\[\]/);
+      assert.match(stale.stdout, /judge requests=1/);
+    }
+
+    const notDraft = spawnSync(
+      process.execPath,
+      [
+        '--import',
+        'tsx',
+        '--import',
+        preload,
+        'scripts/auto-publish-drafts.ts',
+        '--remote',
+        '--target-draft',
+        '--slug=fixture',
+      ],
+      {
+        cwd: process.cwd(),
+        encoding: 'utf8',
+        timeout: 10_000,
+        env: {
+          ...process.env,
+          TEST_JUDGE_MODE: 'target-not-draft',
+          API_BASE: 'https://fixture.invalid',
+          ADMIN_TOKEN: 'synthetic-admin',
+        },
+      }
+    );
+    assert.equal(notDraft.status, 1);
+    assert.match(notDraft.stderr, /requires the selected slug to be in draft status/);
+    assert.match(notDraft.stdout, /judge requests=0/);
+    assert.match(notDraft.stdout, /mutations=\[\]/);
+
     for (const mode of ['retry-missing', 'retry-published']) {
       const child = spawnSync(
         process.execPath,
@@ -244,6 +480,36 @@ process.on('exit', () => console.log('judge requests=' + requests));
       assert.match(child.stderr, /requires one valid --slug/);
       assert.doesNotMatch(child.stdout, /fixture withheld/);
       assert.ok(child.stdout.includes('judge requests=0'));
+      assert.ok(child.stdout.includes('fetch calls=0'));
+    }
+    for (const invalid of [
+      ['--target-draft', '--remote'],
+      ['--target-draft', '--remote', '--slug=../other'],
+      ['--target-draft', '--remote', '--slug=fixture', '--dry'],
+      ['--target-draft', '--remote', '--slug=fixture', '--retry-killed'],
+      ['--target-draft', '--remote', '--slug=fixture', '--retry-killed-today'],
+      ['--target-draft', '--remote', '--slug=fixture', '--reapply'],
+      ['--target-draft', '--local', '--slug=fixture'],
+    ]) {
+      const child = spawnSync(
+        process.execPath,
+        ['--import', 'tsx', '--import', preload, 'scripts/auto-publish-drafts.ts', ...invalid],
+        {
+          cwd: process.cwd(),
+          encoding: 'utf8',
+          timeout: 10_000,
+          env: {
+            ...process.env,
+            TEST_JUDGE_MODE: 'reject-options',
+            ADMIN_TOKEN: 'synthetic-admin',
+            API_BASE: 'https://fixture.invalid',
+          },
+        }
+      );
+      assert.equal(child.status, 1);
+      assert.match(child.stderr, /--target-draft requires/);
+      assert.ok(child.stdout.includes('judge requests=0'));
+      assert.ok(child.stdout.includes('fetch calls=0'));
     }
   } finally {
     rmSync(directory, { recursive: true, force: true });
@@ -251,6 +517,7 @@ process.on('exit', () => console.log('judge requests=' + requests));
 }
 
 async function main() {
+  checkPublishWorkflowDispatch();
   const urls = ['https://a.example/report', 'https://b.example/report'];
   const evidence = retainedJudgeEvidence(urls, {
     evidence: [
