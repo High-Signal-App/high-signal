@@ -172,11 +172,12 @@ def _alphasignal_cards(markup: _Markup, url: str) -> tuple[list[ArchiveCard], in
             continue
         month, year = section_date
         for card in markup.nodes:
-            if card.tag != "li" or not _under(card, section):
+            if card.tag != "li" or not _under(card, section) or _nested_issue_row(card, section):
                 continue
             parsed = _alphasignal_card(card, markup, url, month, year)
             if parsed is None:
-                rejected += 1
+                if _is_alphasignal_issue_row(card, markup):
+                    rejected += 1
                 continue
             if parsed.link in seen:
                 continue
@@ -221,6 +222,29 @@ def _alphasignal_card(
     if published is None or not title:
         return None
     return ArchiveCard(links[0], title[:1000], published, "day")
+
+
+def _nested_issue_row(card: _Node, section: _Node) -> bool:
+    ancestor = card.parent
+    while ancestor is not None and ancestor is not section:
+        if ancestor.tag == "li":
+            return True
+        ancestor = ancestor.parent
+    return False
+
+
+def _is_alphasignal_issue_row(card: _Node, markup: _Markup) -> bool:
+    descendants = [node for node in markup.nodes if _under(node, card)]
+    return any(
+        node.tag == "a"
+        and bool(re.search(r"/email/[a-f0-9]{16}(?:$|[?#])", node.attrs.get("href") or ""))
+        or node.tag == "span"
+        and bool(
+            {"type-archive-date", "type-newsletter-card-title"}
+            & set((node.attrs.get("class") or "").split())
+        )
+        for node in descendants
+    )
 
 
 def _alphasignal_card_fields(
@@ -612,11 +636,6 @@ def _report_stale_archive(result: ArchiveResult) -> None:
 
 
 def _finish_archive_result(result: ArchiveResult, recent_cards: bool) -> ArchiveResult:
-    if result.rejected_listed:
-        result.errors.append(
-            "AlphaSignal archive rejected "
-            f"{result.rejected_listed} malformed or unsupported issue card(s)"
-        )
     if result.dated == 0 and not result.errors and (recent_cards or result.listed == 0):
         result.errors.append("Public archive contained no dated, freely accessible articles")
     result.items.sort(key=lambda item: item["published"], reverse=True)

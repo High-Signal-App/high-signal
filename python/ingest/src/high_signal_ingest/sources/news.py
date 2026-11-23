@@ -584,6 +584,7 @@ async def _fetch_source(
                     "latestPublishedAt": result.latest.isoformat() if result.latest else None,
                     "listedIssues": result.listed,
                     "rejectedListedIssues": result.rejected_listed,
+                    "acceptedIssueCap": public_archives.MAX_ARTICLES,
                     "latestListedAt": (
                         result.latest_listed.isoformat() if result.latest_listed else None
                     ),
