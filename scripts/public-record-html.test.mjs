@@ -188,14 +188,23 @@ test('record cache diagnostics aggregate state, warm hits, HEAD misses, and put 
     const cacheOutcomes = [];
     const putOutcomes = [];
     const pending = [];
-    const ctx = { waitUntil(promise) { pending.push(promise); } };
+    const ctx = {
+      waitUntil(promise) {
+        pending.push(promise);
+      },
+    };
     const options = {
       cache,
       cacheBuildId: 'test-build',
       onCacheOutcome: (outcome) => cacheOutcomes.push(outcome),
       onPutOutcome: (outcome) => putOutcomes.push(outcome),
     };
-    const cold = await handlePublicRecordHtml(request('/data/records/record-0000'), env, ctx, options);
+    const cold = await handlePublicRecordHtml(
+      request('/data/records/record-0000'),
+      env,
+      ctx,
+      options
+    );
     assert.equal(cold.headers.get('x-edge-cache'), 'MISS');
     assert.equal(cold.headers.get('cache-control'), 'public, max-age=60, s-maxage=300');
     assert.deepEqual(cacheOutcomes[0], {
@@ -208,7 +217,12 @@ test('record cache diagnostics aggregate state, warm hits, HEAD misses, and put 
     await Promise.all(pending);
     assert.deepEqual(putOutcomes, ['scheduled', 'fulfilled']);
 
-    const warm = await handlePublicRecordHtml(request('/data/records/record-0000'), env, ctx, options);
+    const warm = await handlePublicRecordHtml(
+      request('/data/records/record-0000'),
+      env,
+      ctx,
+      options
+    );
     assert.equal(warm.headers.get('x-edge-cache'), 'HIT');
     assert.equal(cacheOutcomes[1].state, 'available');
     assert.equal(cacheOutcomes[1].hit, true);
@@ -251,7 +265,11 @@ test('record cache diagnostics aggregate state, warm hits, HEAD misses, and put 
     const failed = await handlePublicRecordHtml(
       request('/data/records/record-0000'),
       env,
-      { waitUntil(promise) { failedPending.push(promise); } },
+      {
+        waitUntil(promise) {
+          failedPending.push(promise);
+        },
+      },
       {
         cache: {
           async match() {

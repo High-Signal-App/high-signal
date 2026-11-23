@@ -106,7 +106,11 @@ try {
   recordSummary.recordPutOutcome('fulfilled');
   clock = 120_000;
   const recordWindow = recordSummary(new Response(null), false);
-  assert.equal(recordWindow.eligible, 0, 'record diagnostics leave the established denominator alone');
+  assert.equal(
+    recordWindow.eligible,
+    0,
+    'record diagnostics leave the established denominator alone'
+  );
   assert.equal(recordWindow.record_available, 2);
   assert.equal(recordWindow.record_missing, 1);
   assert.equal(recordWindow.record_unavailable, 0);
