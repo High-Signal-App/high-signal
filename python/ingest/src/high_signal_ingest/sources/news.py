@@ -242,7 +242,13 @@ def _extract_article_text(html: str, title: str = "") -> str:
         return ""
 
 
-def _parse_feed(xml_text: str, *, base_url: str = "", require_feed: bool = False) -> list[dict]:
+def _parse_feed(
+    xml_text: str,
+    *,
+    base_url: str = "",
+    require_feed: bool = False,
+    require_publication_date: bool = False,
+) -> list[dict]:
     """Parse RSS/Atom into {title, link, pub} dicts."""
     out: list[dict] = []
     if require_feed:
@@ -260,13 +266,14 @@ def _parse_feed(xml_text: str, *, base_url: str = "", require_feed: bool = False
         raw_link = (entry.get("link") or "").strip()
         if not raw_link:
             continue
+        published = (entry.get("published") or "").strip()
+        if require_publication_date and not published:
+            continue
         link = urljoin(base_url, raw_link)
         item = {
             "title": (entry.get("title") or "").strip(),
             "link": link,
-            "pub": (
-                entry.get("published") or entry.get("updated") or entry.get("created") or ""
-            ).strip(),
+            "pub": (published or entry.get("updated") or entry.get("created") or "").strip(),
         }
         retained = _feed_text(entry)
         if retained:
