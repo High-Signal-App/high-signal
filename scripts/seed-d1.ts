@@ -105,24 +105,36 @@ export function assertNoRosterIdentityCollisions(
   roster: Array<Record<string, string>>
 ): void {
   const selectedIds = new Set(rows.map((row) => row.id));
-  const owners = new Map<string, string>();
+  const termsByOwner = new Map<string, Set<string>>();
   for (const row of rows) {
-    const terms = [row.id, row.ticker, row.name, ...(row.aliases || '').split('|')]
-      .map((term) => term.trim().toLowerCase())
-      .filter(Boolean);
-    for (const term of terms) {
-      const previous = owners.get(term);
-      if (previous && previous !== row.id) {
-        throw new Error(
-          `additive entity identity collision: ${term} maps to ${previous} and ${row.id}`
-        );
+    termsByOwner.set(
+      row.id,
+      new Set(
+        [row.id, row.ticker, row.name, ...(row.aliases || '').split('|')]
+          .map((term) => term.trim().toLowerCase())
+          .filter(Boolean)
+      )
+    );
+  }
+
+  const selectedTerms = Array.from(termsByOwner, ([id, terms]) => ({ id, terms }));
+  for (let i = 0; i < selectedTerms.length; i++) {
+    for (let j = i + 1; j < selectedTerms.length; j++) {
+      for (const left of selectedTerms[i].terms) {
+        for (const right of selectedTerms[j].terms) {
+          if (gazetteerTermsOverlap(left, right)) {
+            throw new Error(
+              `additive entity identity collision: ${left} (${selectedTerms[i].id}) overlaps ${right} (${selectedTerms[j].id})`
+            );
+          }
+        }
       }
-      owners.set(term, row.id);
     }
   }
+
   for (const existing of roster) {
     if (selectedIds.has(existing.id)) continue;
-    const terms = [
+    const existingTerms = [
       existing.id,
       existing.ticker,
       existing.name,
@@ -130,15 +142,43 @@ export function assertNoRosterIdentityCollisions(
     ]
       .map((term) => term.trim().toLowerCase())
       .filter(Boolean);
-    for (const term of terms) {
-      const selected = owners.get(term);
-      if (selected) {
-        throw new Error(
-          `additive entity identity collision: ${term} already belongs to ${existing.id}`
-        );
+    for (const selected of selectedTerms) {
+      for (const left of selected.terms) {
+        for (const right of existingTerms) {
+          if (gazetteerTermsOverlap(left, right)) {
+            throw new Error(
+              `additive entity identity collision: ${left} (${selected.id}) overlaps ${right} (${existing.id})`
+            );
+          }
+        }
       }
     }
   }
+}
+
+function gazetteerTermsOverlap(left: string, right: string): boolean {
+  if (left === right) return true;
+  if (left.length < 3 || right.length < 3) return false;
+  return containsGazetteerTerm(right, left) || containsGazetteerTerm(left, right);
+}
+
+function containsGazetteerTerm(text: string, term: string): boolean {
+  const haystack = text.toLowerCase();
+  const needle = term.toLowerCase();
+  let index = haystack.indexOf(needle);
+  while (index >= 0) {
+    const before = Array.from(haystack.slice(0, index)).at(-1);
+    const after = Array.from(haystack.slice(index + needle.length))[0];
+    if (!isGazetteerWordCharacter(before) && !isGazetteerWordCharacter(after)) return true;
+    index = haystack.indexOf(needle, index + 1);
+  }
+  return false;
+}
+
+const GAZETTEER_WORD_CHARACTER = /[\p{L}\p{N}_]/u;
+
+function isGazetteerWordCharacter(character: string | undefined): boolean {
+  return character !== undefined && GAZETTEER_WORD_CHARACTER.test(character);
 }
 
 export function wranglerSeedArgs(
@@ -183,6 +223,43 @@ export function requestedAddIds(args: string[]): string[] | null {
   return ids;
 }
 
+export function buildSeedStatements(
+  args: string[],
+  entities: Array<Record<string, string>>,
+  relationships: Array<Record<string, string>>
+): {
+  entityStatements: string[];
+  relationshipStatements: string[];
+  skippedRelationships: number;
+} {
+  const addIds = requestedAddIds(args);
+  if (addIds) {
+    const rows = addIds.map((id) => {
+      const matches = entities.filter((entity) => entity.id === id);
+      if (matches.length !== 1) {
+        throw new Error(`expected one CSV row for additive entity ${id}, found ${matches.length}`);
+      }
+      return matches[0];
+    });
+    assertNoRosterIdentityCollisions(rows, entities);
+    return {
+      entityStatements: [addEntitiesSql(rows)],
+      relationshipStatements: [],
+      skippedRelationships: 0,
+    };
+  }
+
+  const { sql: relationshipStatements, skipped } = relsSql(
+    relationships,
+    new Set(entities.map((entity) => entity.id))
+  );
+  return {
+    entityStatements: entitiesSql(entities),
+    relationshipStatements,
+    skippedRelationships: skipped,
+  };
+}
+
 function relsSql(
   rows: Array<Record<string, string>>,
   validIds: Set<string>
@@ -211,25 +288,11 @@ function run() {
   const entities = parseCsv(readFileSync(ENTITIES_CSV, 'utf-8'));
   console.log(`[seed] reading ${RELS_CSV}`);
   const rels = parseCsv(readFileSync(RELS_CSV, 'utf-8'));
-  const validIds = new Set(entities.map((e) => e.id));
-
-  const addIds = requestedAddIds(process.argv.slice(2));
-  const eSql = addIds
-    ? (() => {
-        const rows = addIds.map((id) => {
-          const matches = entities.filter((entity) => entity.id === id);
-          if (matches.length !== 1) {
-            throw new Error(
-              `expected one CSV row for additive entity ${id}, found ${matches.length}`
-            );
-          }
-          return matches[0];
-        });
-        assertNoRosterIdentityCollisions(rows, entities);
-        return [addEntitiesSql(rows)];
-      })()
-    : entitiesSql(entities);
-  const { sql: rSql, skipped } = addIds ? { sql: [], skipped: 0 } : relsSql(rels, validIds);
+  const {
+    entityStatements: eSql,
+    relationshipStatements: rSql,
+    skippedRelationships: skipped,
+  } = buildSeedStatements(process.argv.slice(2), entities, rels);
 
   console.log(`[seed] entities: ${eSql.length}`);
   console.log(`[seed] relationships: ${rSql.length} (skipped ${skipped} with missing FK)`);
