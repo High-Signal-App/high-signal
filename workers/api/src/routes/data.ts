@@ -238,22 +238,14 @@ async function readSourceTotalsFromRollup(
     )) END`;
   try {
     return await selectSourceRollup(database, id, inlineSources);
-  } catch (error) {
-    // Retry only when the optional resolution path cannot be prepared. Other
-    // database errors retain the endpoint's normal unavailable response.
-    if (!missingFamilyResolutionSchema(error)) throw error;
-    console.warn('[data/sources/:id] source resolution schema unavailable, scanning');
+  } catch {
+    // The combined statement cannot identify whether totals or the optional
+    // source lookup failed. Recover the original scan path if totals can still
+    // be read, without attempting the failed source lookup a second time.
+    console.warn('[data/sources/:id] combined source read failed, using totals and scan');
     const row = await selectSourceRollup(database, id, sql`NULL`);
     return row && { ...row, resolvedSources: null };
   }
-}
-
-function missingFamilyResolutionSchema(error: unknown): boolean {
-  if (!(error instanceof Error)) return false;
-  return (
-    /no such (?:index: events_ingested_at_idx|table: events_rollup_state)\b/i.test(error.message) ||
-    missingFamilyResolutionSchema(error.cause)
-  );
 }
 
 async function selectSourceRollup(database: DB, id: string, sources: SQL<string | null>) {

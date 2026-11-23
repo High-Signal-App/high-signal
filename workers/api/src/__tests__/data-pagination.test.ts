@@ -425,6 +425,31 @@ describe('GET /data/sources/:id response contract', () => {
     expect(reads.filter((query) => query.includes('events_ingested_at_idx'))).toHaveLength(1);
   });
 
+  it.each([true, false])(
+    'recovers an inline lookup failure only when totals are readable (%s)',
+    async (totalsReadable) => {
+      await refreshEventsSourceRollup(env(), db(d1.binding), new Date(NOW * 1000));
+      const prepare = d1.binding.prepare.bind(d1.binding);
+      const observed = vi.spyOn(d1.binding, 'prepare').mockImplementation((query) => {
+        if (
+          query.includes('events_ingested_at_idx') ||
+          (!totalsReadable && query.includes('sum('))
+        ) {
+          throw new Error('source read unavailable');
+        }
+        return prepare(query);
+      });
+      const { status, body } = await get('/data/sources/legistar?limit=200');
+      expect(status).toBe(200);
+      expect(body['available']).toBe(totalsReadable);
+      expect(body['total']).toBe(totalsReadable ? 5 : 0);
+      expect(body['events']).toHaveLength(totalsReadable ? 5 : 0);
+      expect(
+        observed.mock.calls.filter(([query]) => query.includes('events_ingested_at_idx'))
+      ).toHaveLength(1);
+    }
+  );
+
   it('serves rollup totals and live pages when the source resolution index is missing', async () => {
     await refreshEventsSourceRollup(env(), db(d1.binding), new Date(NOW * 1000));
     d1.exec('DROP INDEX events_ingested_at_idx');
