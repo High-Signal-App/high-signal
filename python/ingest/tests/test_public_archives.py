@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import httpx
 import pytest
@@ -296,7 +296,7 @@ def test_alphasignal_archive_fetch_requires_public_matching_permalink_and_body(m
     assert result.items[0]["published_evidence_url"] == "https://alphasignal.ai/archive"
     assert requested.count("https://alphasignal.ai/archive") == 1
     assert "https://alphasignal.ai/email/5555555555555555" in requested
-    assert result.dated == 2
+    assert result.dated == 1
     assert result.listed == 5
     assert result.latest_listed == since
     assert sorted(result.errors) == sorted(
@@ -304,6 +304,49 @@ def test_alphasignal_archive_fetch_requires_public_matching_permalink_and_body(m
             "AlphaSignal issue redirected to a different permalink",
             "Public archive article contained no usable public body",
         ]
+    )
+
+
+def test_alphasignal_day_precision_includes_previous_calendar_day_at_0230z(monkeypatch) -> None:
+    yesterday = datetime.now(timezone.utc).date() - timedelta(days=1)
+    since = datetime.combine(yesterday, datetime.min.time(), timezone.utc) + timedelta(
+        hours=2, minutes=30
+    )
+    requested: list[str] = []
+
+    async def public_dns(_url):
+        return None
+
+    monkeypatch.setattr(feeds, "check_public_host", public_dns)
+    listing = f'''<section aria-label="{yesterday.strftime("%B %Y")}"><ul>
+      <li><a href="/email/1111111111111111"><span class="type-archive-date">{yesterday.strftime("%b %d %a")}</span>
+        <span class="type-newsletter-card-title">Yesterday issue</span></a></li>
+    </ul></section>'''
+
+    def respond(request: httpx.Request) -> httpx.Response:
+        requested.append(request.url.path)
+        if request.url.path == "/archive":
+            return httpx.Response(200, text=listing)
+        return httpx.Response(
+            200,
+            text='<meta property="og:title" content="Yesterday issue"><article>Public article</article>',
+        )
+
+    async def run():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(respond)) as client:
+            return await archives.fetch_archive(
+                {"archive": {"url": "https://alphasignal.ai/archive", "kind": "alphasignal"}},
+                since,
+                client,
+                asyncio.Semaphore(3),
+                lambda _html, title: title + ". " + "Documented details. " * 20,
+            )
+
+    result = asyncio.run(run())
+    assert requested == ["/archive", "/email/1111111111111111"]
+    assert len(result.items) == 1
+    assert result.items[0]["published"] == datetime.combine(
+        yesterday, datetime.min.time(), timezone.utc
     )
 
 
@@ -337,7 +380,7 @@ def test_alphasignal_archive_rejects_redirected_listing_and_skips_old_articles(m
 
     stale = asyncio.run(run_stale())
     assert stale.items == []
-    assert stale.errors == []
+    assert stale.errors == ["AlphaSignal archive appears stale; latest dated issue: 2026-10-31"]
     assert stale.dated == 0
     assert stale.listed == 1
     assert requested == ["https://alphasignal.ai/archive"]
