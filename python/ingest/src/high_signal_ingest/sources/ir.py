@@ -84,14 +84,14 @@ async def _fetch_rss_announcements(
         # issuer article page remains the retained evidence document.
         from . import news
 
-        items = news._parse_feed(feed.text, base_url=feed.url, require_feed=True)
+        items = news._parse_feed(
+            feed.text,
+            base_url=feed.url,
+            require_feed=True,
+            require_publication_date=True,
+        )
         candidates = news._feed_candidates(items, now - timedelta(days=3), None)
-    except (
-        httpx.HTTPError,
-        TimeoutError,
-        ValueError,
-        registered_feeds.PublicFeedFetchError,
-    ) as exc:
+    except Exception as exc:
         LOGGER.debug("ir rss fetch failed entity=%s error=%s", entity_id, type(exc).__name__)
         return []
 
@@ -99,7 +99,9 @@ async def _fetch_rss_announcements(
     eligible = [
         (item, published)
         for item, published in candidates
-        if isinstance(item.get("link"), str) and _public_host(item["link"]) == feed_host
+        if published <= datetime.now(timezone.utc)
+        and isinstance(item.get("link"), str)
+        and _public_host(item["link"]) == feed_host
     ]
     for item, _published in eligible[:MAX_RSS_ANNOUNCEMENTS]:
         link = item.get("link")
@@ -119,12 +121,7 @@ async def _fetch_rss_announcements(
                 published_at_hint=_published,
                 publication_feed_url=feed.url,
             )
-        except (
-            httpx.HTTPError,
-            TimeoutError,
-            ValueError,
-            registered_feeds.PublicFeedFetchError,
-        ) as exc:
+        except Exception as exc:
             LOGGER.debug("ir rss article failed entity=%s error=%s", entity_id, type(exc).__name__)
             continue
         if event is not None:
@@ -173,41 +170,50 @@ async def poll_ir_page_async(
         else None
     )
     try:
-        r = await client.get(ir_url)
-    except httpx.HTTPError as exc:
-        LOGGER.debug("ir fetch failed entity=%s url=%s error=%s", entity_id, ir_url, exc)
-        return await rss_task if rss_task else []
-    if r.status_code != 200:
-        LOGGER.debug("ir fetch failed entity=%s url=%s status=%s", entity_id, ir_url, r.status_code)
-        return await rss_task if rss_task else []
-    announcements = await retrieve_announcements(entity_id, str(r.url), r.text, client)
-    if rss_task:
-        announcements.extend(await rss_task)
-    announcements = list({event.source_url: event for event in announcements}.values())
-    announcements.sort(key=lambda event: event.published_at, reverse=True)
-    announcements = announcements[:MAX_ANNOUNCEMENTS]
-    text = await asyncio.to_thread(_extract_ir_text, r.text)
-    if not text:
-        return announcements
-    raw_hash = event_hash("ir", entity_id, ir_url, str(datetime.now(timezone.utc).date()))
-    return [
-        *announcements,
-        Event(
-            id=raw_hash[:16],
-            source=f"ir:{entity_id}",
-            source_url=ir_url,
-            published_at=datetime.now(timezone.utc),
-            title=f"{entity_id} IR snapshot",
-            content=text[:20_000],
-            primary_entity_id=entity_id,
-            raw_hash=raw_hash,
-            source_document=SourceDocument(
-                canonical_url=str(r.url),
-                raw_text=text[:20_000],
-                parsed_fields={"documentKind": "issuer_index", "discoveryOnly": True},
+        try:
+            r = await client.get(ir_url)
+        except httpx.HTTPError as exc:
+            LOGGER.debug("ir fetch failed entity=%s url=%s error=%s", entity_id, ir_url, exc)
+            return await rss_task if rss_task else []
+        if r.status_code != 200:
+            LOGGER.debug(
+                "ir fetch failed entity=%s url=%s status=%s", entity_id, ir_url, r.status_code
+            )
+            return await rss_task if rss_task else []
+        announcements = await retrieve_announcements(entity_id, str(r.url), r.text, client)
+        if rss_task:
+            announcements.extend(await rss_task)
+        announcements = list({event.source_url: event for event in announcements}.values())
+        announcements.sort(key=lambda event: event.published_at, reverse=True)
+        announcements = announcements[:MAX_ANNOUNCEMENTS]
+        text = await asyncio.to_thread(_extract_ir_text, r.text)
+        if not text:
+            return announcements
+        raw_hash = event_hash("ir", entity_id, ir_url, str(datetime.now(timezone.utc).date()))
+        return [
+            *announcements,
+            Event(
+                id=raw_hash[:16],
+                source=f"ir:{entity_id}",
+                source_url=ir_url,
+                published_at=datetime.now(timezone.utc),
+                title=f"{entity_id} IR snapshot",
+                content=text[:20_000],
+                primary_entity_id=entity_id,
+                raw_hash=raw_hash,
+                source_document=SourceDocument(
+                    canonical_url=str(r.url),
+                    raw_text=text[:20_000],
+                    parsed_fields={"documentKind": "issuer_index", "discoveryOnly": True},
+                ),
             ),
-        ),
-    ]
+        ]
+    finally:
+        if rss_task and not rss_task.done():
+            try:
+                await rss_task
+            except Exception as exc:
+                LOGGER.debug("ir rss task failed entity=%s error=%s", entity_id, type(exc).__name__)
 
 
 def poll_ir_page(entity_id: str, ir_url: str) -> Iterator[Event]:

@@ -364,6 +364,65 @@ async def test_poll_rejects_rss_feed_redirect_to_another_host(monkeypatch, extra
     )
 
 
+@pytest.mark.asyncio
+async def test_poll_does_not_treat_atom_updated_as_publication_date(monkeypatch, extractor):
+    updated = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+    article_url = "https://feed.example/news/old-release-edited-today"
+    atom = f"""<?xml version="1.0"?>
+    <feed xmlns="http://www.w3.org/2005/Atom"><title>NVIDIA releases</title>
+      <entry><title>Old release edited today</title><link href="{article_url}" />
+        <updated>{updated}</updated></entry>
+    </feed>"""
+    calls: list[str] = []
+
+    async def no_dns(_url):
+        return None
+
+    def handler(request):
+        url = str(request.url)
+        calls.append(url)
+        if url == "https://investors.example/":
+            return httpx.Response(403)
+        if url == "https://feed.example/releases.xml":
+            return httpx.Response(200, text=atom, headers={"content-type": "application/atom+xml"})
+        return httpx.Response(404)
+
+    monkeypatch.setattr(ir.registered_feeds, "check_public_host", no_dns)
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        events = await ir.poll_ir_page_async(
+            "NVDA",
+            "https://investors.example/",
+            client,
+            rss_source={"id": "ir-nvidia", "rss": "https://feed.example/releases.xml"},
+        )
+
+    assert set(calls) == {"https://investors.example/", "https://feed.example/releases.xml"}
+    assert events == []
+
+
+@pytest.mark.asyncio
+async def test_poll_contains_unexpected_configured_feed_parser_errors(monkeypatch, extractor):
+    def handler(request):
+        if str(request.url) == "https://investors.example/":
+            return httpx.Response(403)
+        return httpx.Response(200, text="<rss><channel /></rss>")
+
+    monkeypatch.setattr(
+        ir.registered_feeds,
+        "fetch_public_document",
+        AsyncMock(side_effect=RuntimeError("parser fetch failed")),
+    )
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        events = await ir.poll_ir_page_async(
+            "NVDA",
+            "https://investors.example/",
+            client,
+            rss_source={"id": "ir-nvidia", "rss": "https://feed.example/releases.xml"},
+        )
+
+    assert events == []
+
+
 @pytest.mark.parametrize(
     "html",
     [
