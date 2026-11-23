@@ -1,6 +1,7 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from email.utils import format_datetime
 from types import SimpleNamespace
+from unittest.mock import AsyncMock
 from xml.sax.saxutils import escape
 
 import httpx
@@ -101,16 +102,27 @@ def test_configured_feed_date_fills_missing_page_metadata_and_rejects_conflicts(
         "dateBasis": "configured_official_feed_pub_date",
         "publicationFeedUrl": feed_url,
     }
+    conflict = releases.announcement_event(
+        "ISSUER",
+        url,
+        page("2026-09-07T00:00:00Z"),
+        NOW,
+        published_at_hint=NOW,
+        publication_feed_url=feed_url,
+    )
+    assert conflict is None
+
+    matching_page = releases.announcement_event(
+        "ISSUER",
+        url,
+        page("2026-09-09T00:00:00Z"),
+        NOW,
+        published_at_hint=NOW,
+        publication_feed_url=feed_url,
+    )
+    assert matching_page is not None
     assert (
-        releases.announcement_event(
-            "ISSUER",
-            url,
-            page("2026-08-01T00:00:00Z"),
-            NOW,
-            published_at_hint=NOW,
-            publication_feed_url=feed_url,
-        )
-        is None
+        matching_page.source_document.parsed_fields["dateBasis"] == "explicit_publication_metadata"
     )
 
 
@@ -150,6 +162,22 @@ async def test_poll_uses_configured_ir_rss_and_retains_exact_issuer_page(monkeyp
     async def no_dns(_url):
         return None
 
+    older_page_events = [
+        releases.announcement_event(
+            "NVDA",
+            f"https://investors.example/news-releases/details/{idx}",
+            page((published - age).isoformat()),
+            published,
+        )
+        for idx, age in enumerate((timedelta(hours=1), timedelta(hours=2), timedelta(days=1)))
+    ]
+    assert all(older_page_events)
+    monkeypatch.setattr(
+        ir,
+        "retrieve_announcements",
+        AsyncMock(return_value=older_page_events),
+    )
+
     def handler(request):
         url = str(request.url)
         calls.append(url)
@@ -181,11 +209,11 @@ async def test_poll_uses_configured_ir_rss_and_retains_exact_issuer_page(monkeyp
         if event.source_document
         and event.source_document.parsed_fields["documentKind"] == "issuer_announcement"
     )
-    assert calls == [
+    assert set(calls) == {
         "https://investors.example/",
         "https://feed.example/releases.xml",
         article_url,
-    ]
+    }
     assert release.source == "ir:NVDA"
     assert release.source_url == article_url
     assert release.primary_entity_id == "NVDA"
@@ -196,6 +224,17 @@ async def test_poll_uses_configured_ir_rss_and_retains_exact_issuer_page(monkeyp
         release.source_document.parsed_fields["publicationFeedUrl"]
         == "https://feed.example/releases.xml"
     )
+    retained_announcements = [
+        event
+        for event in events
+        if event.source_document
+        and event.source_document.parsed_fields["documentKind"] == "issuer_announcement"
+    ]
+    assert [event.source_url for event in retained_announcements] == [
+        article_url,
+        "https://investors.example/news-releases/details/0",
+        "https://investors.example/news-releases/details/1",
+    ]
 
 
 @pytest.mark.asyncio
@@ -232,6 +271,97 @@ async def test_poll_does_not_fetch_ir_rss_links_from_another_origin(monkeypatch,
         )
 
     assert "https://other.example/news/release" not in calls
+
+
+@pytest.mark.asyncio
+async def test_poll_fetches_rss_when_ir_index_fails_and_ignores_http_links(monkeypatch, extractor):
+    published = datetime.now(timezone.utc).replace(microsecond=0)
+    rss_date = format_datetime(published)
+    article_url = "https://feed.example/news/nvidia-board-release"
+    rss = f"""<?xml version="1.0"?>
+    <rss version="2.0"><channel><title>NVIDIA releases</title>
+      <item><title>Insecure</title><link>http://feed.example/news/insecure</link>
+        <pubDate>{rss_date}</pubDate></item>
+      <item><title>Valid release</title><link>{escape(article_url)}</link>
+        <pubDate>{rss_date}</pubDate></item>
+    </channel></rss>"""
+    calls: list[str] = []
+
+    async def no_dns(_url):
+        return None
+
+    def handler(request):
+        url = str(request.url)
+        calls.append(url)
+        if url == "https://investors.example/":
+            return httpx.Response(403)
+        if url == "https://feed.example/releases.xml":
+            return httpx.Response(200, text=rss, headers={"content-type": "application/rss+xml"})
+        if url == article_url:
+            return httpx.Response(
+                200,
+                text="<html><body>Release article</body></html>",
+                headers={"content-type": "text/html"},
+            )
+        return httpx.Response(404)
+
+    monkeypatch.setattr(ir.registered_feeds, "check_public_host", no_dns)
+    monkeypatch.setattr(ir, "_extract_ir_text", lambda _: "Issuer directory snapshot")
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        events = await ir.poll_ir_page_async(
+            "NVDA",
+            "https://investors.example/",
+            client,
+            rss_source={"id": "ir-nvidia", "rss": "https://feed.example/releases.xml"},
+        )
+
+    assert set(calls) == {
+        "https://investors.example/",
+        "https://feed.example/releases.xml",
+        article_url,
+    }
+    assert len(events) == 1
+    assert events[0].source_url == article_url
+
+
+@pytest.mark.asyncio
+async def test_poll_rejects_rss_feed_redirect_to_another_host(monkeypatch, extractor):
+    calls: list[str] = []
+
+    async def no_dns(_url):
+        return None
+
+    def handler(request):
+        url = str(request.url)
+        calls.append(url)
+        if url == "https://investors.example/":
+            return httpx.Response(200, text="<html><body>IR</body></html>")
+        if url == "https://feed.example/releases.xml":
+            return httpx.Response(
+                302, headers={"location": "https://redirect.example/releases.xml"}
+            )
+        if url == "https://redirect.example/releases.xml":
+            return httpx.Response(200, text="<rss><channel /></rss>")
+        return httpx.Response(404)
+
+    monkeypatch.setattr(ir.registered_feeds, "check_public_host", no_dns)
+    monkeypatch.setattr(ir, "_extract_ir_text", lambda _: "Issuer directory snapshot")
+    async with httpx.AsyncClient(
+        transport=httpx.MockTransport(handler), follow_redirects=True
+    ) as client:
+        events = await ir.poll_ir_page_async(
+            "NVDA",
+            "https://investors.example/",
+            client,
+            rss_source={"id": "ir-nvidia", "rss": "https://feed.example/releases.xml"},
+        )
+
+    assert "https://redirect.example/releases.xml" in calls
+    assert all(
+        not event.source_document
+        or event.source_document.parsed_fields.get("documentKind") != "issuer_announcement"
+        for event in events
+    )
 
 
 @pytest.mark.parametrize(

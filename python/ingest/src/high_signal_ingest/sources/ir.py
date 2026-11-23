@@ -14,7 +14,7 @@ from ..seed import load_entities, load_sources
 from ..types import Entity, Event, SourceDocument
 from ..utils import event_hash
 from . import registered_feeds
-from .ir_announcements import announcement_event, retrieve_announcements
+from .ir_announcements import MAX_ANNOUNCEMENTS, announcement_event, retrieve_announcements
 
 
 USER_AGENT = "high-signal/0.1 ir-ingest"
@@ -49,9 +49,12 @@ def _ir_source_by_entity(entities: list[Entity], sources: list[dict]) -> dict[st
 
 def _public_host(url: str) -> str | None:
     try:
-        host = urlsplit(registered_feeds.public_url(url)).hostname
+        parsed = urlsplit(registered_feeds.public_url(url))
     except (ValueError, registered_feeds.UnsafeFeedUrl):
         return None
+    if parsed.scheme != "https":
+        return None
+    host = parsed.hostname
     return host.lower().rstrip(".").removeprefix("www.") if host else None
 
 
@@ -65,6 +68,9 @@ async def _fetch_rss_announcements(
     feed_url = source.get("rss")
     if not isinstance(feed_url, str) or not feed_url:
         return []
+    configured_feed_host = _public_host(feed_url)
+    if not configured_feed_host:
+        return []
     try:
         feed = await registered_feeds.fetch_public_document(
             client,
@@ -72,7 +78,7 @@ async def _fetch_rss_announcements(
             max_bytes=int(source.get("feed_max_bytes") or MAX_RSS_BYTES),
         )
         feed_host = _public_host(feed.url)
-        if not feed_host:
+        if feed_host != configured_feed_host:
             return []
         # Reuse the existing bounded public RSS parser/date validator. The
         # issuer article page remains the retained evidence document.
@@ -90,10 +96,14 @@ async def _fetch_rss_announcements(
         return []
 
     events: list[Event] = []
-    for item, _published in candidates[:MAX_RSS_ANNOUNCEMENTS]:
+    eligible = [
+        (item, published)
+        for item, published in candidates
+        if isinstance(item.get("link"), str) and _public_host(item["link"]) == feed_host
+    ]
+    for item, _published in eligible[:MAX_RSS_ANNOUNCEMENTS]:
         link = item.get("link")
-        if not isinstance(link, str) or _public_host(link) != feed_host:
-            continue
+        assert isinstance(link, str)
         try:
             article = await registered_feeds.fetch_public_document(
                 client, link, max_bytes=MAX_RSS_BYTES
@@ -155,22 +165,27 @@ async def poll_ir_page_async(
     rss_source: dict | None = None,
 ) -> list[Event]:
     """Fetch an IR landing page and extract a text snapshot."""
+    rss_task = (
+        asyncio.create_task(
+            _fetch_rss_announcements(entity_id, rss_source, client, datetime.now(timezone.utc))
+        )
+        if rss_source
+        else None
+    )
     try:
         r = await client.get(ir_url)
     except httpx.HTTPError as exc:
         LOGGER.debug("ir fetch failed entity=%s url=%s error=%s", entity_id, ir_url, exc)
-        return []
+        return await rss_task if rss_task else []
     if r.status_code != 200:
         LOGGER.debug("ir fetch failed entity=%s url=%s status=%s", entity_id, ir_url, r.status_code)
-        return []
+        return await rss_task if rss_task else []
     announcements = await retrieve_announcements(entity_id, str(r.url), r.text, client)
-    if rss_source:
-        announcements.extend(
-            await _fetch_rss_announcements(
-                entity_id, rss_source, client, datetime.now(timezone.utc)
-            )
-        )
+    if rss_task:
+        announcements.extend(await rss_task)
     announcements = list({event.source_url: event for event in announcements}.values())
+    announcements.sort(key=lambda event: event.published_at, reverse=True)
+    announcements = announcements[:MAX_ANNOUNCEMENTS]
     text = await asyncio.to_thread(_extract_ir_text, r.text)
     if not text:
         return announcements
