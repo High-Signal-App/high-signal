@@ -9,7 +9,7 @@ on:
         type: string
         default: ""
       publish_slug:
-        description: judge and publish at most one existing draft through the normal gates
+        description: judge one existing draft through normal gates; Brief refreshes on next scheduled run
         type: string
         default: ""
       inspect_slug:

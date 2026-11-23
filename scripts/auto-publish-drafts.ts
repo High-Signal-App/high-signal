@@ -164,28 +164,32 @@ function fetchSignalReview(
   } as RequestInit);
 }
 
+async function fetchTargetDraft(slug: string): Promise<SignalRow> {
+  const response = await fetchSignalReview(slug, 'signals');
+  if (!response.ok) {
+    throw new Error(`Targeted publisher lookup failed (HTTP ${response.status})`);
+  }
+  const payload = (await response.json()) as { signal?: SignalRow };
+  if (!payload.signal || payload.signal.slug !== slug || payload.signal.reviewStatus !== 'draft') {
+    throw new Error('Targeted publisher requires the selected slug to be in draft status');
+  }
+  return payload.signal;
+}
+
 /** Fail closed if a targeted signal left draft while this review was running. */
 async function targetDraftStillCurrent(signal: SignalRow): Promise<boolean> {
   if (!TARGET_DRAFT) return true;
   try {
-    const response = await fetchSignalReview(signal.slug, 'signals');
-    if (!response.ok) {
-      console.error(
-        `[auto-publish] target status recheck failed (${response.status}) for ${signal.slug}`
-      );
-      return false;
-    }
-    const payload = (await response.json()) as { signal?: SignalRow };
-    if (
-      payload.signal?.id !== signal.id ||
-      payload.signal.slug !== signal.slug ||
-      payload.signal.reviewStatus !== 'draft'
-    ) {
-      console.error(`[auto-publish] target is no longer the same draft: ${signal.slug}`);
+    const current = await fetchTargetDraft(signal.slug);
+    if (current.id !== signal.id) {
+      console.error(`[auto-publish] target identity changed during review: ${signal.slug}`);
       return false;
     }
     return true;
   } catch (error) {
+    if (error instanceof Error && error.message.includes('to be in draft status')) {
+      console.error(`[auto-publish] target is no longer the same draft: ${signal.slug}`);
+    }
     console.error(`[auto-publish] target status recheck failed for ${signal.slug}:`, error);
     return false;
   }
@@ -252,6 +256,7 @@ async function patchReviewStatus(
 }
 
 type EvidenceAssessment = NonNullable<VerdictResult['evidenceAssessments']>[number];
+type ClaimRows = ClaimWithEvidence[];
 type StructuredEvidence = {
   url: string;
   role: 'primary' | 'corroboration' | 'context';
@@ -288,6 +293,10 @@ function structuredEvidenceNotes(role: StructuredEvidence['role']): string {
   return role === 'primary' || role === 'corroboration'
     ? 'receipt:verified alignment:verified verifier:auto-publish-semantic-judge'
     : 'alignment:rejected verifier:auto-publish-semantic-judge';
+}
+
+async function claimCanBePublished(signal: SignalRow, claim: ClaimWithEvidence): Promise<boolean> {
+  return claim.reviewStatus === 'published' || DRY || (await targetDraftStillCurrent(signal));
 }
 
 function signalAssertion(signal: SignalRow): string {
@@ -358,9 +367,8 @@ async function createStructuredClaim(
   if (DRY || !ADMIN_TOKEN) return null;
   if (verdict.source !== 'ai' || !verdict.evidenceAssessments || !verdict.claimTuple) return null;
   const evidence = buildStructuredEvidence(signal, verdict);
-  if (distinctAlignedOrigins(evidence) < 2) return null;
+  if (distinctAlignedOrigins(evidence) < 2 || !(await targetDraftStillCurrent(signal))) return null;
   const assertion = signalAssertion(signal);
-  if (!(await targetDraftStillCurrent(signal))) return null;
   const response = await fetch(`${API_BASE}/admin/claims`, {
     method: 'POST',
     headers: {
@@ -397,16 +405,12 @@ async function createStructuredClaim(
   return createdClaimReceipt({ id: payload.id, signal, verdict, assertion, evidence });
 }
 
-async function publishEligibleClaim(
-  signal: SignalRow,
-  claims: ClaimWithEvidence[]
-): Promise<boolean> {
+async function publishEligibleClaim(signal: SignalRow, claims: ClaimRows): Promise<boolean> {
   const eligible = claims.find(
     (claim) => judgePublishability(rollupEvidence(claim.evidence)).publishable
   );
-  if (!eligible) return false;
+  if (!eligible || !(await claimCanBePublished(signal, eligible))) return false;
   if (eligible.reviewStatus === 'published' || DRY) return true;
-  if (!(await targetDraftStillCurrent(signal))) return false;
   const response = await fetch(
     `${API_BASE}/admin/claims/${encodeURIComponent(eligible.id)}/status`,
     {
@@ -570,10 +574,10 @@ async function main(): Promise<void> {
   );
   const drafts = await fetchSignalsByStatus('draft');
   if (TARGET_DRAFT) {
-    const selected = drafts.find((signal) => signal.slug === TARGET_SLUG);
-    if (!selected || selected.reviewStatus !== 'draft') {
-      throw new Error('Targeted publisher requires the selected slug to be in draft status');
-    }
+    const selected = await fetchTargetDraft(TARGET_SLUG!);
+    const selectedIndex = drafts.findIndex((signal) => signal.slug === selected.slug);
+    if (selectedIndex === -1) drafts.push(selected);
+    else drafts[selectedIndex] = selected;
   }
   const published = await fetchSignalsByStatus('published');
   const killedRows = await fetchKilledRetryRows();

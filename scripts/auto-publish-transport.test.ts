@@ -183,7 +183,7 @@ globalThis.fetch = async (input, init) => {
     if (init.headers.Authorization !== 'Bearer synthetic-admin') throw new Error('Admin credential whitespace not normalized');
     const status = url.searchParams.get('status');
     return Response.json({
-      signals: status === (mode.startsWith('retry') ? 'killed' : 'draft')
+      signals: status === (mode.startsWith('retry') ? 'killed' : 'draft') && mode !== 'target-capped-list'
         ? [signal, {...signal, id:'other', slug:'other', reviewStatus:'draft'}]
         : []
     });
@@ -196,15 +196,16 @@ globalThis.fetch = async (input, init) => {
     if (mode === 'lookup-failed') return new Response('', {status:503});
     if (mode === 'retry-missing') return new Response('', {status:404});
     reviewReads++;
-    const staleTarget = mode.startsWith('target-stale') && reviewReads >= 2;
-    const hasTargetClaim = ['targeted-publish', 'target-stale-before-claim-publish', 'target-stale-before-signal-patch'].includes(mode);
+    const staleTarget = mode.startsWith('target-stale') && reviewReads >= 3;
+    const changedTargetId = mode === 'target-stale-identity' && reviewReads >= 3;
+    const hasTargetClaim = ['targeted-publish', 'target-capped-list', 'target-stale-identity', 'target-stale-before-claim-publish', 'target-stale-before-signal-patch'].includes(mode);
     return Response.json({
-      signal: {...signal, reviewStatus: staleTarget ? 'killed' : mode === 'retry-published' ? 'published' : mode.startsWith('retry') ? 'killed' : signal.reviewStatus},
+      signal: {...signal, id: changedTargetId ? 'replacement' : signal.id, reviewStatus: staleTarget ? 'killed' : mode === 'retry-published' ? 'published' : mode.startsWith('retry') ? 'killed' : signal.reviewStatus},
       claims: mode === 'prose' || mode === 'oversized' || hasTargetClaim ? [{
         id: hasTargetClaim ? 'claim-fixture' : 'claim',
         signalId: 'fixture', surface: 'signal', assertion: 'fixture claim', confidenceBand: 'medium',
         reviewStatus: mode === 'target-stale-before-signal-patch' ? 'published' : 'draft', evidence: signal.evidenceUrls.map((evidenceUrl, index) => ({
-          id: 'link-' + index, claimId: mode === 'targeted-publish' ? 'claim-fixture' : 'claim', evidenceUrl,
+          id: 'link-' + index, claimId: hasTargetClaim ? 'claim-fixture' : 'claim', evidenceUrl,
           sourceDocumentId: 'source-doc-' + index,
           originatingEvidenceId: 'origin-' + index,
           semanticAlignment: 'verified', role: index === 0 ? 'primary' : 'corroboration', weight: 1,
@@ -311,7 +312,7 @@ process.on('exit', () => {
         timeout: 10_000,
         env: {
           ...process.env,
-          TEST_JUDGE_MODE: 'targeted-publish',
+          TEST_JUDGE_MODE: 'target-capped-list',
           API_BASE: 'https://fixture.invalid',
           AI_BASE_URL: 'https://judge.invalid',
           AI_API_KEY: 'synthetic-judge',
@@ -329,6 +330,7 @@ process.on('exit', () => {
     assert.doesNotMatch(targeted.stdout, /other/);
 
     for (const mode of [
+      'target-stale-identity',
       'target-stale-before-claim-create',
       'target-stale-before-claim-publish',
       'target-stale-before-signal-patch',
@@ -360,7 +362,10 @@ process.on('exit', () => {
         }
       );
       assert.equal(stale.status, 1, mode + ': ' + stale.stdout + stale.stderr);
-      assert.match(stale.stderr, /target is no longer the same draft/);
+      assert.match(
+        stale.stderr,
+        /target (?:is no longer the same draft|identity changed during review)/
+      );
       assert.match(stale.stdout, /mutations=\[\]/);
       assert.match(stale.stdout, /judge requests=1/);
     }
