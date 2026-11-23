@@ -8,6 +8,8 @@ import {
   buildSeedStatements,
   parseCsv,
   requestedAddIds,
+  seedDatabaseMode,
+  validateSeedArgs,
   wranglerSeedArgs,
 } from './seed-d1.ts';
 
@@ -116,6 +118,21 @@ test('additive entity seed is idempotent, collision-safe, and isolated', () => {
     '--config=/tmp/wrangler.toml',
   ]);
   assert.deepEqual(requestedAddIds(['--remote', '--add-entities=CRWD,ZS']), ['CRWD', 'ZS']);
+  assert.equal(seedDatabaseMode([]), '--local');
+  assert.equal(validateSeedArgs(['--remote', '--add-entities=CRWD,ZS']), '--remote');
+  assert.throws(
+    () => buildSeedStatements(['--remote', '--add-entity=CRWD,ZS'], roster, []),
+    /unrecognized seed argument: --add-entity=CRWD,ZS/
+  );
+  assert.throws(
+    () => validateSeedArgs(['--remote', '--add_entities=CRWD']),
+    /unrecognized seed argument: --add_entities=CRWD/
+  );
+  assert.throws(() => validateSeedArgs(['--local', '--remote']), /may only be specified once/);
+  assert.throws(
+    () => validateSeedArgs(['--add-entities', '--remote']),
+    /requires a comma-separated entity ID list/
+  );
   assert.throws(
     () => requestedAddIds(['--add-entities', 'CRWD', '--add-entities', 'ZS']),
     /only be specified once/

@@ -21,8 +21,35 @@ const RELS_CSV = resolve(__root, 'python/ingest/src/high_signal_ingest/seed/rela
 const TMP_DIR = resolve(__root, '.tmp');
 const TMP_SQL = resolve(TMP_DIR, 'seed.sql');
 
-const flag = process.argv.includes('--remote') ? '--remote' : '--local';
 const MAX_ADDITIVE_ENTITIES = 25;
+
+export function seedDatabaseMode(args: string[]): '--local' | '--remote' {
+  const modes = args.filter((arg) => arg === '--local' || arg === '--remote');
+  if (modes.length > 1) throw new Error('--local and --remote may only be specified once');
+  return modes[0] === '--remote' ? '--remote' : '--local';
+}
+
+export function validateSeedArgs(args: string[]): '--local' | '--remote' {
+  const mode = seedDatabaseMode(args);
+  const addFlagIndexes = args.flatMap((arg, index) =>
+    arg === '--add-entities' || arg.startsWith('--add-entities=') ? [index] : []
+  );
+  const consumed = new Set<number>(addFlagIndexes);
+  for (const index of addFlagIndexes) {
+    if (args[index] === '--add-entities') {
+      if (!args[index + 1] || args[index + 1].startsWith('--')) {
+        throw new Error('--add-entities requires a comma-separated entity ID list');
+      }
+      consumed.add(index + 1);
+    }
+  }
+  const unknown = args.findIndex(
+    (arg, index) => !consumed.has(index) && arg !== '--local' && arg !== '--remote'
+  );
+  if (unknown !== -1) throw new Error(`unrecognized seed argument: ${args[unknown]}`);
+  requestedAddIds(args);
+  return mode;
+}
 
 export function parseCsv(s: string): Array<Record<string, string>> {
   const lines = s.split(/\r?\n/).filter(Boolean);
@@ -232,6 +259,7 @@ export function buildSeedStatements(
   relationshipStatements: string[];
   skippedRelationships: number;
 } {
+  validateSeedArgs(args);
   const addIds = requestedAddIds(args);
   if (addIds) {
     const rows = addIds.map((id) => {
@@ -284,6 +312,7 @@ function relsSql(
 }
 
 function run() {
+  const flag = validateSeedArgs(process.argv.slice(2));
   console.log(`[seed] reading ${ENTITIES_CSV}`);
   const entities = parseCsv(readFileSync(ENTITIES_CSV, 'utf-8'));
   console.log(`[seed] reading ${RELS_CSV}`);
