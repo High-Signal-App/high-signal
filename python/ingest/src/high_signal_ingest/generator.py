@@ -350,6 +350,10 @@ _AI_TIMEOUT = float(os.environ.get("AI_TIMEOUT", "60.0"))
 _AI_USER_CONTENT_LIMIT = 14_000
 _AI_MAX_COMPLETION_TOKENS = 2_000
 _AI_EXPANDED_COMPLETION_TOKENS = 8_000
+# The Free AI gateway's `auto` router selects among JSON-capable models without
+# filtering on requested max_tokens. Its current automatic JSON-capable catalog
+# has a 4,096-token minimum output limit.
+_AI_AUTO_JSON_COMPLETION_TOKENS = 4_096
 
 
 def _parse_json_message(message: str) -> dict | list:
@@ -431,13 +435,17 @@ def _completion_output(
     return parsed
 
 
-def _expanded_completion_budget(meta: dict, attempt: int, budget: int) -> int | None:
-    if (
-        meta.get("failure_class") == "output_truncated"
-        and attempt < _AI_RETRIES
-        and budget < _AI_EXPANDED_COMPLETION_TOKENS
-    ):
-        return _AI_EXPANDED_COMPLETION_TOKENS
+def _completion_budget_limit(model: str) -> int:
+    limit = _AI_EXPANDED_COMPLETION_TOKENS
+    if model.strip().lower() == "auto":
+        limit = min(limit, _AI_AUTO_JSON_COMPLETION_TOKENS)
+    return limit
+
+
+def _expanded_completion_budget(meta: dict, attempt: int, budget: int, model: str) -> int | None:
+    limit = _completion_budget_limit(model)
+    if meta.get("failure_class") == "output_truncated" and attempt < _AI_RETRIES and budget < limit:
+        return limit
     return None
 
 
@@ -491,7 +499,7 @@ def _ai_complete(
     started = time.monotonic()
     attempt = 0
     use_json_mode = True
-    completion_budget = min(max_completion_tokens, _AI_EXPANDED_COMPLETION_TOKENS)
+    completion_budget = min(max_completion_tokens, _completion_budget_limit(model))
     while True:
         attempt += 1
         meta["attempts"] = attempt
@@ -537,7 +545,7 @@ def _ai_complete(
             meta["failure_class"] = None  # success clears any prior retryable class
             meta["reason"] = None
             parsed = _completion_output(body, meta, expect)
-            expanded = _expanded_completion_budget(meta, attempt, completion_budget)
+            expanded = _expanded_completion_budget(meta, attempt, completion_budget, model)
             if expanded is not None:
                 completion_budget = expanded
                 continue
