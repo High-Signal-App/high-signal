@@ -56,13 +56,29 @@ async function cachedResponse(cache, key) {
   }
 }
 
-function storeResponse(cache, key, response, ctx) {
-  if (cache)
-    ctx.waitUntil(
-      Promise.resolve()
-        .then(() => cache.put(key, response))
-        .catch(() => undefined)
+async function cachedRecordResponse(cache, key) {
+  try {
+    return { response: await cache?.match(key), failed: false };
+  } catch {
+    return { response: undefined, failed: true };
+  }
+}
+
+function storeResponse(cache, key, response, ctx, onPutOutcome) {
+  if (!cache) return;
+  onPutOutcome?.('scheduled');
+  const write = Promise.resolve()
+    .then(() => cache.put(key, response))
+    .then(
+      () => onPutOutcome?.('fulfilled'),
+      () => onPutOutcome?.('rejected')
     );
+  try {
+    ctx.waitUntil(write);
+  } catch {
+    // Direct callers without an execution context still settle the write.
+    void write;
+  }
 }
 
 // HTMLRewriter quotes attributes, but leaves ampersand character references intact.
@@ -187,7 +203,12 @@ function rewriteRecord(shell, selected, state, record, headers) {
 }
 
 /** Compile the shared reader chrome once; project public record fields without Next. */
-export async function handlePublicRecordHtml(request, env, ctx, { cache, cacheBuildId } = {}) {
+export async function handlePublicRecordHtml(
+  request,
+  env,
+  ctx,
+  { cache, cacheBuildId, onCacheOutcome, onPutOutcome } = {}
+) {
   const selected = publicRecordHtmlSelection(request);
   if (!selected) return null;
   if (typeof cacheBuildId !== 'string' || !/^[A-Za-z0-9._-]{1,128}$/.test(cacheBuildId))
@@ -196,8 +217,9 @@ export async function handlePublicRecordHtml(request, env, ctx, { cache, cacheBu
   const key = new Request(
     `${origin}/_private/reader-cache/${cacheBuildId}/record/${encodeURIComponent(selected.id)}`
   );
-  const cached = await cachedResponse(cache, key);
+  const { response: cached, failed: matchError } = await cachedRecordResponse(cache, key);
   if (cached) {
+    onCacheOutcome?.({ state: 'available', method: request.method, hit: true, matchError });
     const headers = new Headers(cached.headers);
     headers.set('x-edge-cache', 'HIT');
     if (request.method === 'HEAD') await cached.body?.cancel();
@@ -206,6 +228,7 @@ export async function handlePublicRecordHtml(request, env, ctx, { cache, cacheBu
   const shell = await recordShell(env, cache, ctx, origin, cacheBuildId).catch(() => null);
   if (!shell) return null; // An incomplete deployment retains the existing reader.
   const { state, record } = await recordState(env, selected.id);
+  onCacheOutcome?.({ state, method: request.method, hit: false, matchError });
   const headers = new Headers({
     'Content-Type': 'text/html; charset=utf-8',
     'Cache-Control':
@@ -219,6 +242,6 @@ export async function handlePublicRecordHtml(request, env, ctx, { cache, cacheBu
   // Those states must never enter the public response cache.
   if (request.method === 'HEAD') return new Response(null, { headers });
   const response = rewriteRecord(shell, selected, state, record, headers);
-  if (state === 'available') storeResponse(cache, key, response.clone(), ctx);
+  if (state === 'available') storeResponse(cache, key, response.clone(), ctx, onPutOutcome);
   return response;
 }

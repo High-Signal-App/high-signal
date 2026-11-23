@@ -5,7 +5,21 @@ import {
 } from '../../packages/shared/observation-context.mjs';
 
 const countNames = ['hits', 'misses', 'bypasses', 'eligible'];
+const recordCountNames = [
+  'record_available',
+  'record_missing',
+  'record_unavailable',
+  'record_cache_hits',
+  'record_cache_misses',
+  'record_cache_match_errors',
+  'record_head_requests',
+  'record_head_cache_misses',
+  'record_puts_scheduled',
+  'record_puts_fulfilled',
+  'record_puts_rejected',
+];
 const emptyCounts = () => Object.fromEntries(countNames.map((name) => [name, 0]));
+const emptyRecordCounts = () => Object.fromEntries(recordCountNames.map((name) => [name, 0]));
 const emptyCohorts = () =>
   Object.fromEntries(OBSERVATION_COHORTS.map((cohort) => [cohort, emptyCounts()]));
 const increment = (counts, name) => {
@@ -17,6 +31,7 @@ export function createCacheSummary(now = Date.now, emit = console.info) {
   // Workers freeze the clock during module initialization; start in a request.
   let startedAt;
   let counts = emptyCounts();
+  let recordCounts = emptyRecordCounts();
   let cohorts = emptyCohorts();
   let version;
   const finish = (endedAt) => {
@@ -27,6 +42,7 @@ export function createCacheSummary(now = Date.now, emit = console.info) {
       ended_at: endedAt,
       ...version,
       ...counts,
+      ...recordCounts,
       ...Object.fromEntries(
         OBSERVATION_COHORTS.flatMap((cohort) =>
           countNames.map((name) => [`${cohort}_${name}`, cohorts[cohort][name]])
@@ -39,10 +55,11 @@ export function createCacheSummary(now = Date.now, emit = console.info) {
     emit(JSON.stringify(record));
     startedAt = endedAt;
     counts = emptyCounts();
+    recordCounts = emptyRecordCounts();
     cohorts = emptyCohorts();
     return record;
   };
-  return (response, eligible, request = null, versions = {}) => {
+  const summarize = (response, eligible, request = null, versions = {}, recordOutcomes = []) => {
     const context = observationContext(request, versions);
     const nextVersion = { version: context.version, version_source: context.version_source };
     const endedAt = now();
@@ -67,9 +84,33 @@ export function createCacheSummary(now = Date.now, emit = console.info) {
       increment(counts, 'eligible');
       increment(cohorts[context.traffic_cohort], 'eligible');
     }
+    for (const item of recordOutcomes) {
+      if (item?.type === 'cache') summarize.recordCacheOutcome(item);
+      else if (item?.type === 'put') summarize.recordPutOutcome(item.outcome);
+    }
     if (endedAt - startedAt >= 60_000) return finish(endedAt);
     return record;
   };
+  // Aggregate bounded record outcomes in the existing summary stream; never
+  // attach identifiers, paths, request headers, or per-request log events.
+  summarize.recordCacheOutcome = ({ state, method, hit, matchError = false } = {}) => {
+    if (!['available', 'missing', 'unavailable'].includes(state)) return;
+    increment(recordCounts, `record_${state}`);
+    increment(recordCounts, hit ? 'record_cache_hits' : 'record_cache_misses');
+    if (matchError) increment(recordCounts, 'record_cache_match_errors');
+    if (method === 'HEAD') {
+      increment(recordCounts, 'record_head_requests');
+      if (!hit) increment(recordCounts, 'record_head_cache_misses');
+    }
+  };
+  summarize.recordPutOutcome = (outcome) => {
+    // Writes are deliberately waitUntil work; completion counts land in the
+    // summary window in which settlement is observed, without delaying a page.
+    if (outcome === 'scheduled') increment(recordCounts, 'record_puts_scheduled');
+    else if (outcome === 'fulfilled') increment(recordCounts, 'record_puts_fulfilled');
+    else if (outcome === 'rejected') increment(recordCounts, 'record_puts_rejected');
+  };
+  return summarize;
 }
 
 // Whitelist bounded aggregate fields before forwarding through the existing SDK.
@@ -79,6 +120,7 @@ export function cacheSummaryProps(record) {
     'started_at',
     'ended_at',
     ...countNames,
+    ...recordCountNames,
     ...OBSERVATION_COHORTS.flatMap((cohort) => countNames.map((name) => `${cohort}_${name}`)),
   ];
   if (keys.some((key) => !Number.isSafeInteger(record[key]) || record[key] < 0)) return null;
@@ -89,6 +131,16 @@ export function cacheSummaryProps(record) {
         OBSERVATION_COHORTS.reduce((sum, cohort) => sum + record[`${cohort}_${name}`], 0) !==
         record[name]
     )
+  )
+    return null;
+  if (
+    record.record_available + record.record_missing + record.record_unavailable !==
+      record.record_cache_hits + record.record_cache_misses ||
+    record.record_cache_match_errors > record.record_cache_misses ||
+    record.record_head_cache_misses > record.record_head_requests ||
+    record.record_head_requests > record.record_cache_hits + record.record_cache_misses ||
+    record.record_puts_scheduled > record.record_available ||
+    record.record_puts_scheduled > record.record_cache_misses
   )
     return null;
   const declaredSource = ['app_health_release', 'reader_source', 'cache_build'].includes(

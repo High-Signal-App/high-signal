@@ -50,6 +50,11 @@ const serve = withTiming(async (request, env, ctx, state) => {
   const recordHtml = await handlePublicRecordHtml(request, env, ctx, {
     cache: caches.default,
     cacheBuildId: CACHE_BUILD_ID,
+    onCacheOutcome: (outcome) => state.recordOutcomes.push({ type: 'cache', ...outcome }),
+    onPutOutcome: (outcome) => {
+      if (state.summaryDone) summary.recordPutOutcome(outcome);
+      else state.recordOutcomes.push({ type: 'put', outcome });
+    },
   });
   if (recordHtml) return recordHtml;
   if (isSourceDiscovery(request) || resolvePublicMarkdownTarget(request)) {
@@ -71,7 +76,7 @@ const serve = withTiming(async (request, env, ctx, state) => {
 export default {
   async fetch(request, env, ctx) {
     const startedAt = Date.now();
-    const state = { delegated: false };
+    const state = { delegated: false, recordOutcomes: [], summaryDone: false };
     let response;
     try {
       response = await serve(request, env, ctx, state);
@@ -82,8 +87,10 @@ export default {
           response,
           isCacheableDocumentRequest(request) || response?.headers.has('x-reader-renderer'),
           request,
-          { release: env?.APP_HEALTH_RELEASE, readerSource: READER_BUILD.source }
+          { release: env?.APP_HEALTH_RELEASE, readerSource: READER_BUILD.source },
+          state.recordOutcomes
         );
+        state.summaryDone = true;
         observeWebRequest(request, response, startedAt, env, ctx, cacheSummary);
       }
     }

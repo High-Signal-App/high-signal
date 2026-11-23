@@ -88,6 +88,39 @@ try {
   assert.equal(lines[0].version_source, 'unknown');
   assert.equal(lines[0].target_percent, 95);
 
+  const recordLines = [];
+  const recordSummary = createCacheSummary(
+    () => clock,
+    (line) => recordLines.push(JSON.parse(line))
+  );
+  recordSummary(new Response(null), false);
+  recordSummary.recordCacheOutcome({ state: 'available', method: 'GET', hit: false });
+  recordSummary.recordCacheOutcome({
+    state: 'missing',
+    method: 'HEAD',
+    hit: false,
+    matchError: true,
+  });
+  recordSummary.recordCacheOutcome({ state: 'available', method: 'GET', hit: true });
+  recordSummary.recordPutOutcome('scheduled');
+  recordSummary.recordPutOutcome('fulfilled');
+  clock = 120_000;
+  const recordWindow = recordSummary(new Response(null), false);
+  assert.equal(recordWindow.eligible, 0, 'record diagnostics leave the established denominator alone');
+  assert.equal(recordWindow.record_available, 2);
+  assert.equal(recordWindow.record_missing, 1);
+  assert.equal(recordWindow.record_unavailable, 0);
+  assert.equal(recordWindow.record_cache_hits, 1);
+  assert.equal(recordWindow.record_cache_misses, 2);
+  assert.equal(recordWindow.record_cache_match_errors, 1);
+  assert.equal(recordWindow.record_head_requests, 1);
+  assert.equal(recordWindow.record_head_cache_misses, 1);
+  assert.equal(recordWindow.record_puts_scheduled, 1);
+  assert.equal(recordWindow.record_puts_fulfilled, 1);
+  assert.equal(recordWindow.record_puts_rejected, 0);
+  assert.equal(cacheSummaryProps(recordWindow).record_available, 2);
+  assert.doesNotMatch(JSON.stringify(recordWindow), /private-|Mozilla|secret=/);
+
   const release = 'a'.repeat(40);
   const windows = [];
   clock = 0;
@@ -142,17 +175,21 @@ try {
     () => clock,
     (line) => changes.push(JSON.parse(line))
   );
-  versioned(hit, true, browser, { release });
+  versioned(hit, true, browser, { release }, [
+    { type: 'cache', state: 'available', method: 'GET', hit: true },
+  ]);
   clock = 1_000;
   const oldWindow = versioned(miss, true, browser, { release: 'b'.repeat(40) });
   assert.equal(oldWindow.version, release);
   assert.equal(oldWindow.hits, 1);
   assert.equal(oldWindow.misses, 0);
+  assert.equal(oldWindow.record_available, 1);
   clock = 61_000;
   const newWindow = versioned(hit, true, browser, { release: 'b'.repeat(40) });
   assert.equal(newWindow.version, 'b'.repeat(40));
   assert.equal(newWindow.hits, 1);
   assert.equal(newWindow.misses, 1);
+  assert.equal(newWindow.record_available, 0);
   assert.equal(
     changes.reduce((sum, window) => sum + window.eligible, 0),
     3
