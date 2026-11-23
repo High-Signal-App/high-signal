@@ -442,7 +442,8 @@ def _completion_budget_limit(model: str) -> int:
     return limit
 
 
-def _expanded_completion_budget(meta: dict, attempt: int, budget: int, limit: int) -> int | None:
+def _expanded_completion_budget(meta: dict, attempt: int, budget: int, model: str) -> int | None:
+    limit = _completion_budget_limit(model)
     if meta.get("failure_class") == "output_truncated" and attempt < _AI_RETRIES and budget < limit:
         return limit
     return None
@@ -498,8 +499,7 @@ def _ai_complete(
     started = time.monotonic()
     attempt = 0
     use_json_mode = True
-    completion_limit = _completion_budget_limit(model)
-    completion_budget = min(max_completion_tokens, completion_limit)
+    completion_budget = min(max_completion_tokens, _completion_budget_limit(model))
     while True:
         attempt += 1
         meta["attempts"] = attempt
@@ -545,9 +545,7 @@ def _ai_complete(
             meta["failure_class"] = None  # success clears any prior retryable class
             meta["reason"] = None
             parsed = _completion_output(body, meta, expect)
-            expanded = _expanded_completion_budget(
-                meta, attempt, completion_budget, completion_limit
-            )
+            expanded = _expanded_completion_budget(meta, attempt, completion_budget, model)
             if expanded is not None:
                 completion_budget = expanded
                 continue
