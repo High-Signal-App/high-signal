@@ -178,6 +178,9 @@ globalThis.fetch = async (input, init) => {
     return new Response('Failed to validate JSON; PRIVATE_PROVIDER_DETAIL', {status: mode === 'auth' ? 401 : 400});
   }
   if (url.hostname !== 'fixture.invalid') throw new Error('Unexpected network destination');
+  if (url.pathname === '/signals') {
+    return Response.json({signals: url.searchParams.get('status') === 'draft' ? [signal] : []});
+  }
   if (url.pathname === '/admin/signals-review') {
     if (mode.startsWith('retry') && url.searchParams.get('status') === 'killed') throw new Error('Historical retry used capped list');
     if (init.headers.Authorization !== 'Bearer synthetic-admin') throw new Error('Admin credential whitespace not normalized');
@@ -328,6 +331,27 @@ process.on('exit', () => {
       /mutations=\["claim:fixture:published","signal:fixture:published"\]/
     );
     assert.doesNotMatch(targeted.stdout, /other/);
+
+    const noAdminToken = spawnSync(
+      process.execPath,
+      ['--import', 'tsx', '--import', preload, 'scripts/auto-publish-drafts.ts', '--local'],
+      {
+        cwd: process.cwd(),
+        encoding: 'utf8',
+        timeout: 10_000,
+        env: {
+          ...process.env,
+          TEST_JUDGE_MODE: 'no-admin-kill',
+          API_BASE: 'https://fixture.invalid',
+          AI_API_KEY: '',
+          ADMIN_TOKEN: '',
+        },
+      }
+    );
+    assert.equal(noAdminToken.status, 1, noAdminToken.stdout + noAdminToken.stderr);
+    assert.match(noAdminToken.stderr, /would PATCH fixture.*no ADMIN_TOKEN/);
+    assert.doesNotMatch(noAdminToken.stderr, /ReferenceError/);
+    assert.match(noAdminToken.stdout, /mutations=\[\]/);
 
     for (const mode of [
       'target-stale-identity',

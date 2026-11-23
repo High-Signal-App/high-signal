@@ -233,7 +233,9 @@ async function patchReviewStatus(
 ): Promise<boolean> {
   if (DRY) return true;
   if (!ADMIN_TOKEN) {
-    console.warn(`[auto-publish] dry-run: would PATCH ${slug} → ${reviewStatus} (no ADMIN_TOKEN)`);
+    console.warn(
+      `[auto-publish] dry-run: would PATCH ${signal.slug} → ${reviewStatus} (no ADMIN_TOKEN)`
+    );
     return false;
   }
   if (!(await targetDraftStillCurrent(signal))) return false;
