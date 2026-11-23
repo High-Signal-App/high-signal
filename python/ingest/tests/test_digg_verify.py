@@ -253,6 +253,42 @@ def test_single_original_is_retained_before_signal_gate(monkeypatch, acknowledge
         assert result["error"] == "original_article_retention_unacknowledged"
 
 
+def test_two_independent_originals_reach_signal_pipeline(monkeypatch) -> None:
+    from datetime import datetime, timezone
+
+    from high_signal_ingest import pipeline
+    from high_signal_ingest.types import Event
+
+    events = [
+        Event(
+            id=f"original-{host}",
+            source=f"news:digg-verification:{host}",
+            source_url=f"https://{host}/acme-api",
+            published_at=datetime.now(timezone.utc),
+            title="Acme launches API",
+            content="Independent retained reporting about Acme launching an API.",
+            raw_hash=f"hash-{host}",
+        )
+        for host in ("reuters.com", "techcrunch.com")
+    ]
+    monkeypatch.setattr(digg_verify, "discover_articles", lambda *_: [{"url": "fixture"}])
+    monkeypatch.setattr(digg_verify, "retrieve_events", lambda *_: events)
+    monkeypatch.setattr(digg_verify.audit, "push_events", lambda *_: len(events))
+    pipeline_calls = []
+    monkeypatch.setattr(
+        pipeline,
+        "cluster_and_generate",
+        lambda received, **kwargs: pipeline_calls.append((received, kwargs)) or ["pushed:acme.md"],
+    )
+
+    with httpx.Client() as client:
+        result = digg_verify.verify_request({"shortId": "acme"}, client)
+
+    assert result["status"] == "verified_candidate"
+    assert result["candidateSlug"] == "acme"
+    assert pipeline_calls == [(events, {"allow_fallback": False})]
+
+
 @pytest.mark.parametrize("context_only", [True, False])
 @pytest.mark.parametrize("attention_source", ["digg", "mts"])
 def test_retained_evidence_is_reused_without_refetching(
