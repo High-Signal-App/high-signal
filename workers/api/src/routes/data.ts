@@ -200,7 +200,7 @@ interface SourceTotals {
    */
   sourceCount?: number;
   allRows?: number;
-  resolvedSources?: string[];
+  resolvedSources?: string[] | null;
 }
 
 /** One family's stored-row totals, computed over `events`. */
@@ -238,11 +238,22 @@ async function readSourceTotalsFromRollup(
     )) END`;
   try {
     return await selectSourceRollup(database, id, inlineSources);
-  } catch {
-    // A missing watermark index can disable source resolution while the
-    // rollup still has valid totals. Preserve that older deployment's fallback.
-    return selectSourceRollup(database, id, sql`NULL`);
+  } catch (error) {
+    // Retry only when the optional resolution path cannot be prepared. Other
+    // database errors retain the endpoint's normal unavailable response.
+    if (!missingFamilyResolutionSchema(error)) throw error;
+    console.warn('[data/sources/:id] source resolution schema unavailable, scanning');
+    const row = await selectSourceRollup(database, id, sql`NULL`);
+    return row && { ...row, resolvedSources: null };
   }
+}
+
+function missingFamilyResolutionSchema(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  return (
+    /no such (?:index: events_ingested_at_idx|table: events_rollup_state)\b/i.test(error.message) ||
+    missingFamilyResolutionSchema(error.cause)
+  );
 }
 
 async function selectSourceRollup(database: DB, id: string, sources: SQL<string | null>) {
@@ -853,7 +864,7 @@ dataRoute.get('/sources/:id', async (c) => {
   let futureCount = 0;
   let sourceCount: number | null = null;
   let allRows: number | null = null;
-  let resolvedSources: string[] | undefined;
+  let resolvedSources: string[] | null | undefined;
   try {
     // Unfiltered totals come from the cron-maintained rollup (at most 30
     // minutes behind); a `?date=` or `?source=` request still asks `events`
@@ -910,8 +921,9 @@ dataRoute.get('/sources/:id', async (c) => {
     (total <= SEEK_PLAN_MAX_ROWS || sourceCount === null || sourceCount === 1 || preferKeyPage);
   if (worthResolving) {
     const resolved =
-      resolvedSources ??
-      (await stage('family_resolution', () => resolveFamilySources(database, id)));
+      resolvedSources === undefined
+        ? await stage('family_resolution', () => resolveFamilySources(database, id))
+        : resolvedSources;
     keyPage = preferKeyPage ? sourceKeyPagePlan(resolved, { limit, offset, range, cursor }) : null;
     candidates = keyPage ? resolved : seekPlanCandidates(resolved, total);
   }

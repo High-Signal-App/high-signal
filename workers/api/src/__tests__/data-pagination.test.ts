@@ -428,11 +428,15 @@ describe('GET /data/sources/:id response contract', () => {
   it('serves rollup totals and live pages when the source resolution index is missing', async () => {
     await refreshEventsSourceRollup(env(), db(d1.binding), new Date(NOW * 1000));
     d1.exec('DROP INDEX events_ingested_at_idx');
+    const prepare = vi.spyOn(d1.binding, 'prepare');
     const { status, body } = await get('/data/sources/legistar?limit=200');
     expect(status).toBe(200);
     expect(body['available']).toBe(true);
     expect(body['total']).toBe(5);
     expect((body['events'] as PageEvent[]).length).toBe(5);
+    expect(
+      prepare.mock.calls.filter(([query]) => query.includes('events_ingested_at_idx'))
+    ).toHaveLength(1);
   });
 });
 
