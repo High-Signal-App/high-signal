@@ -154,7 +154,7 @@ class ArchiveCard:
 
 def alphasignal_archive_cards(html: str, url: str) -> list[ArchiveCard]:
     """Bind AlphaSignal's date-only issue cards to their exact public permalinks."""
-    cards = _alphasignal_cards(_Markup(html), url)
+    cards, _ = _alphasignal_cards(_Markup(html), url)
     if not cards:
         raise registered_feeds.PublicFeedFetchError(
             "Public archive contained no dated, supported AlphaSignal issue cards"
@@ -162,9 +162,10 @@ def alphasignal_archive_cards(html: str, url: str) -> list[ArchiveCard]:
     return cards
 
 
-def _alphasignal_cards(markup: _Markup, url: str) -> list[ArchiveCard]:
+def _alphasignal_cards(markup: _Markup, url: str) -> tuple[list[ArchiveCard], int]:
     cards: list[ArchiveCard] = []
     seen: set[str] = set()
+    rejected = 0
     for section in markup.nodes:
         section_date = _alphasignal_section_date(section)
         if section_date is None:
@@ -174,13 +175,16 @@ def _alphasignal_cards(markup: _Markup, url: str) -> list[ArchiveCard]:
             if card.tag != "li" or not _under(card, section):
                 continue
             parsed = _alphasignal_card(card, markup, url, month, year)
-            if parsed is None or parsed.link in seen:
+            if parsed is None:
+                rejected += 1
+                continue
+            if parsed.link in seen:
                 continue
             cards.append(parsed)
             seen.add(parsed.link)
             if len(cards) == MAX_ARTICLES:
-                return cards
-    return cards
+                return cards, rejected
+    return cards, rejected
 
 
 def _alphasignal_section_date(section: _Node) -> tuple[int, int] | None:
@@ -391,6 +395,7 @@ class ArchiveResult:
     latest: datetime | None = None
     listed: int = 0
     latest_listed: datetime | None = None
+    rejected_listed: int = 0
 
 
 @dataclass
@@ -550,7 +555,7 @@ async def _fetch_archive_card(card: ArchiveCard, context: _ArchiveFetchContext) 
 
 async def _archive_listing(
     source: dict, client: httpx.AsyncClient, semaphore: asyncio.Semaphore
-) -> tuple[registered_feeds.PublicFeedDocument, str, list[ArchiveCard]]:
+) -> tuple[registered_feeds.PublicFeedDocument, str, list[ArchiveCard], int]:
     config = source["archive"]
     async with semaphore:
         document = await registered_feeds.fetch_public_document(
@@ -562,10 +567,15 @@ async def _archive_listing(
             "AlphaSignal archive redirected outside its approved listing URL"
         )
     if kind == "alphasignal":
-        cards = alphasignal_archive_cards(document.text, document.url)
+        cards, rejected = _alphasignal_cards(_Markup(document.text), document.url)
+        if not cards:
+            raise registered_feeds.PublicFeedFetchError(
+                "Public archive contained no dated, supported AlphaSignal issue cards"
+            )
     else:
         cards = [ArchiveCard(link) for link in archive_links(document.text, document.url, kind)]
-    return document, kind, cards
+        rejected = 0
+    return document, kind, cards, rejected
 
 
 def _select_archive_window(
@@ -602,6 +612,11 @@ def _report_stale_archive(result: ArchiveResult) -> None:
 
 
 def _finish_archive_result(result: ArchiveResult, recent_cards: bool) -> ArchiveResult:
+    if result.rejected_listed:
+        result.errors.append(
+            "AlphaSignal archive rejected "
+            f"{result.rejected_listed} malformed or unsupported issue card(s)"
+        )
     if result.dated == 0 and not result.errors and (recent_cards or result.listed == 0):
         result.errors.append("Public archive contained no dated, freely accessible articles")
     result.items.sort(key=lambda item: item["published"], reverse=True)
@@ -615,8 +630,9 @@ async def fetch_archive(
     semaphore: asyncio.Semaphore,
     extract_text: Callable[[str, str], str],
 ) -> ArchiveResult:
-    document, kind, cards = await _archive_listing(source, client, semaphore)
+    document, kind, cards, rejected_listed = await _archive_listing(source, client, semaphore)
     result = ArchiveResult()
+    result.rejected_listed = rejected_listed
     cards, recent_cards = _select_archive_window(cards, kind, since, result)
     context = _ArchiveFetchContext(
         client,

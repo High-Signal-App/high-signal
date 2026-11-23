@@ -583,6 +583,7 @@ async def _fetch_source(
                     "articlesDated": result.dated,
                     "latestPublishedAt": result.latest.isoformat() if result.latest else None,
                     "listedIssues": result.listed,
+                    "rejectedListedIssues": result.rejected_listed,
                     "latestListedAt": (
                         result.latest_listed.isoformat() if result.latest_listed else None
                     ),

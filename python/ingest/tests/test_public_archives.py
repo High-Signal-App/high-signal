@@ -247,6 +247,8 @@ def test_alphasignal_archive_fetch_requires_public_matching_permalink_and_body(m
         <span class="type-newsletter-card-title">Redirected issue</span></a></li>
       <li><a href="/email/6666666666666666"><span class="type-archive-date">{today_label}</span>
         <span class="type-newsletter-card-title">Login wall</span></a></li>
+      <li><a href="/email/7777777777777777"><span class="type-archive-date">unknown date</span>
+        <span class="type-newsletter-card-title">Undated card</span></a></li>
     </ul></section>"""
 
     def respond(request: httpx.Request) -> httpx.Response:
@@ -298,12 +300,14 @@ def test_alphasignal_archive_fetch_requires_public_matching_permalink_and_body(m
     assert "https://alphasignal.ai/email/5555555555555555" in requested
     assert result.dated == 1
     assert result.listed == 5
+    assert result.rejected_listed == 1
     assert result.latest_listed == since
     assert sorted(result.errors) == sorted(
         [
             "AlphaSignal issue is not declared publicly accessible",
             "AlphaSignal issue redirected to a different permalink",
             "AlphaSignal issue title did not match its archive card",
+            "AlphaSignal archive rejected 1 malformed or unsupported issue card(s)",
             "Public archive article contained no usable public body",
         ]
     )
