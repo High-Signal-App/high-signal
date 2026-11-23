@@ -115,6 +115,7 @@ function checkCli() {
     `
 let requests = 0;
 let fetchCalls = 0;
+let reviewReads = 0;
 const mutations = [];
 const mode = process.env.TEST_JUDGE_MODE;
 const signal = {
@@ -127,7 +128,7 @@ const signal = {
     ['https://a.example/report', 'https://b.example/report'],
   bodyMd: 'Evidence https://a.example/report and https://b.example/report'
 };
-if (mode === 'targeted-publish') {
+if (mode.startsWith('target') && mode !== 'target-not-draft') {
   signal.independentSourceCount = 2;
   signal.bodyMd = '## What changed\\nThe company announced a manufacturing milestone and said its new production line is ready for broader commercial use.\\n' +
     '## Why it matters\\nThis milestone signals progress toward commercial adoption, although it does not establish customer orders or revenue.\\n' +
@@ -162,7 +163,7 @@ globalThis.fetch = async (input, init) => {
         verdict: 'kill', reason: 'Unsupported supplier roles in the body'
       })}}]});
     }
-    if (mode === 'targeted-publish') {
+    if (mode.startsWith('target')) {
       return Response.json({choices: [{message: {content: JSON.stringify({
         verdict: 'publish', reason: 'Issuer and independent retained evidence support the claim',
         claimTuple: {entity: 'fixture', event: 'reinstatement', amount: null, date: '2026-11-23', direction: 'up'},
@@ -194,12 +195,15 @@ globalThis.fetch = async (input, init) => {
     if (init.headers?.Authorization !== 'Bearer synthetic-admin') throw new Error('Protected review credential missing');
     if (mode === 'lookup-failed') return new Response('', {status:503});
     if (mode === 'retry-missing') return new Response('', {status:404});
+    reviewReads++;
+    const staleTarget = mode.startsWith('target-stale') && reviewReads >= 2;
+    const hasTargetClaim = ['targeted-publish', 'target-stale-before-claim-publish', 'target-stale-before-signal-patch'].includes(mode);
     return Response.json({
-      signal: {...signal, reviewStatus: mode === 'retry-published' ? 'published' : mode.startsWith('retry') ? 'killed' : signal.reviewStatus},
-      claims: mode === 'prose' || mode === 'oversized' || mode === 'targeted-publish' ? [{
-        id: mode === 'targeted-publish' ? 'claim-fixture' : 'claim',
+      signal: {...signal, reviewStatus: staleTarget ? 'killed' : mode === 'retry-published' ? 'published' : mode.startsWith('retry') ? 'killed' : signal.reviewStatus},
+      claims: mode === 'prose' || mode === 'oversized' || hasTargetClaim ? [{
+        id: hasTargetClaim ? 'claim-fixture' : 'claim',
         signalId: 'fixture', surface: 'signal', assertion: 'fixture claim', confidenceBand: 'medium',
-        reviewStatus: 'draft', evidence: signal.evidenceUrls.map((evidenceUrl, index) => ({
+        reviewStatus: mode === 'target-stale-before-signal-patch' ? 'published' : 'draft', evidence: signal.evidenceUrls.map((evidenceUrl, index) => ({
           id: 'link-' + index, claimId: mode === 'targeted-publish' ? 'claim-fixture' : 'claim', evidenceUrl,
           sourceDocumentId: 'source-doc-' + index,
           originatingEvidenceId: 'origin-' + index,
@@ -210,6 +214,10 @@ globalThis.fetch = async (input, init) => {
       evidence: mode === 'no-text' || mode.startsWith('retry') ? [] : signal.evidenceUrls.map((url, index) => ({
         url, excerpt: 'Retained public source excerpt for ' + url, sourceType: index === 0 && mode !== 'same-class' ? 'ir' : 'news'
       }))});
+  }
+  if (url.pathname === '/admin/claims' && init.method === 'POST') {
+    mutations.push('claim:create');
+    return Response.json({id: 'new-claim'});
   }
   if (url.pathname === '/admin/claims/claim-fixture/status' && init.method === 'POST') {
     mutations.push('claim:fixture:' + JSON.parse(init.body).status);
@@ -319,6 +327,43 @@ process.on('exit', () => {
       /mutations=\["claim:fixture:published","signal:fixture:published"\]/
     );
     assert.doesNotMatch(targeted.stdout, /other/);
+
+    for (const mode of [
+      'target-stale-before-claim-create',
+      'target-stale-before-claim-publish',
+      'target-stale-before-signal-patch',
+    ]) {
+      const stale = spawnSync(
+        process.execPath,
+        [
+          '--import',
+          'tsx',
+          '--import',
+          preload,
+          'scripts/auto-publish-drafts.ts',
+          '--remote',
+          '--target-draft',
+          '--slug=fixture',
+        ],
+        {
+          cwd: process.cwd(),
+          encoding: 'utf8',
+          timeout: 10_000,
+          env: {
+            ...process.env,
+            TEST_JUDGE_MODE: mode,
+            API_BASE: 'https://fixture.invalid',
+            AI_BASE_URL: 'https://judge.invalid',
+            AI_API_KEY: 'synthetic-judge',
+            ADMIN_TOKEN: 'synthetic-admin',
+          },
+        }
+      );
+      assert.equal(stale.status, 1, mode + ': ' + stale.stdout + stale.stderr);
+      assert.match(stale.stderr, /target is no longer the same draft/);
+      assert.match(stale.stdout, /mutations=\[\]/);
+      assert.match(stale.stdout, /judge requests=1/);
+    }
 
     const notDraft = spawnSync(
       process.execPath,

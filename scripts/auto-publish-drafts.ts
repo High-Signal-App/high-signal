@@ -164,6 +164,33 @@ function fetchSignalReview(
   } as RequestInit);
 }
 
+/** Fail closed if a targeted signal left draft while this review was running. */
+async function targetDraftStillCurrent(signal: SignalRow): Promise<boolean> {
+  if (!TARGET_DRAFT) return true;
+  try {
+    const response = await fetchSignalReview(signal.slug, 'signals');
+    if (!response.ok) {
+      console.error(
+        `[auto-publish] target status recheck failed (${response.status}) for ${signal.slug}`
+      );
+      return false;
+    }
+    const payload = (await response.json()) as { signal?: SignalRow };
+    if (
+      payload.signal?.id !== signal.id ||
+      payload.signal.slug !== signal.slug ||
+      payload.signal.reviewStatus !== 'draft'
+    ) {
+      console.error(`[auto-publish] target is no longer the same draft: ${signal.slug}`);
+      return false;
+    }
+    return true;
+  } catch (error) {
+    console.error(`[auto-publish] target status recheck failed for ${signal.slug}:`, error);
+    return false;
+  }
+}
+
 async function fetchKilledRetryRows(): Promise<SignalRow[]> {
   if (!RETRY_KILLED) return RETRY_KILLED_TODAY ? fetchSignalsByStatus('killed') : [];
   const response = await fetchSignalReview(TARGET_SLUG!, 'signals');
@@ -197,7 +224,7 @@ async function fetchClaimsBySignal(slug: string): Promise<ClaimWithEvidence[]> {
 }
 
 async function patchReviewStatus(
-  slug: string,
+  signal: SignalRow,
   reviewStatus: 'published' | 'killed'
 ): Promise<boolean> {
   if (DRY) return true;
@@ -205,7 +232,8 @@ async function patchReviewStatus(
     console.warn(`[auto-publish] dry-run: would PATCH ${slug} → ${reviewStatus} (no ADMIN_TOKEN)`);
     return false;
   }
-  const r = await fetch(`${API_BASE}/admin/signals/${encodeURIComponent(slug)}`, {
+  if (!(await targetDraftStillCurrent(signal))) return false;
+  const r = await fetch(`${API_BASE}/admin/signals/${encodeURIComponent(signal.slug)}`, {
     method: 'PATCH',
     headers: {
       Authorization: `Bearer ${ADMIN_TOKEN}`,
@@ -215,7 +243,9 @@ async function patchReviewStatus(
   });
   if (!r.ok) {
     const text = await r.text();
-    console.error(`[auto-publish] PATCH ${slug} → ${reviewStatus} FAILED (${r.status}): ${text}`);
+    console.error(
+      `[auto-publish] PATCH ${signal.slug} → ${reviewStatus} FAILED (${r.status}): ${text}`
+    );
     return false;
   }
   return true;
@@ -330,6 +360,7 @@ async function createStructuredClaim(
   const evidence = buildStructuredEvidence(signal, verdict);
   if (distinctAlignedOrigins(evidence) < 2) return null;
   const assertion = signalAssertion(signal);
+  if (!(await targetDraftStillCurrent(signal))) return null;
   const response = await fetch(`${API_BASE}/admin/claims`, {
     method: 'POST',
     headers: {
@@ -366,12 +397,16 @@ async function createStructuredClaim(
   return createdClaimReceipt({ id: payload.id, signal, verdict, assertion, evidence });
 }
 
-async function publishEligibleClaim(claims: ClaimWithEvidence[]): Promise<boolean> {
+async function publishEligibleClaim(
+  signal: SignalRow,
+  claims: ClaimWithEvidence[]
+): Promise<boolean> {
   const eligible = claims.find(
     (claim) => judgePublishability(rollupEvidence(claim.evidence)).publishable
   );
   if (!eligible) return false;
   if (eligible.reviewStatus === 'published' || DRY) return true;
+  if (!(await targetDraftStillCurrent(signal))) return false;
   const response = await fetch(
     `${API_BASE}/admin/claims/${encodeURIComponent(eligible.id)}/status`,
     {
@@ -601,7 +636,7 @@ async function main(): Promise<void> {
         tag = verdict.source === 'ai' ? 'AI ' : 'rul';
         provenanceTag = judgeable.provenanceSource === 'structured_claims' ? 'claims' : 'legacy';
         if (verdict.verdict !== 'publish') {
-          const ok = await patchReviewStatus(signal.slug, 'killed');
+          const ok = await patchReviewStatus(signal, 'killed');
           if (ok) killed++;
           else errors++;
           const label = wasPublished ? 'UNPUB' : 'KILL';
@@ -611,7 +646,7 @@ async function main(): Promise<void> {
           continue;
         }
       }
-      if (!DRY && !(await publishEligibleClaim(claims))) {
+      if (!DRY && !(await publishEligibleClaim(signal, claims))) {
         console.error(
           `  [${tag}/claims]    ERROR  ${signal.slug} — no publishable structured claim receipt`
         );
@@ -623,12 +658,12 @@ async function main(): Promise<void> {
         publishedCount++;
         continue;
       }
-      const ok = await patchReviewStatus(signal.slug, 'published');
+      const ok = await patchReviewStatus(signal, 'published');
       if (ok) publishedCount++;
       else errors++;
       console.log(`  [${tag}/${provenanceTag}]  PUBLISH  ${signal.slug}  — ${verdict.reason}`);
     } else if (verdict.verdict === 'kill') {
-      const ok = await patchReviewStatus(signal.slug, 'killed');
+      const ok = await patchReviewStatus(signal, 'killed');
       if (ok) killed++;
       else errors++;
       const label = wasPublished ? 'UNPUB' : 'KILL';
