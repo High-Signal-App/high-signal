@@ -369,6 +369,10 @@ lxml-html-clean==0.4.6 \
     --hash=sha256:cc037270ba500a65e7235409dcddcae8ef37300f26dea826b61d917bf0236880 \
     --hash=sha256:ea9db067c3053854fd87f8d5a1cf01221dc893b54dbf6019c689052e05c64f22
     # via lxml
+networkx==3.6.1 \
+    --hash=sha256:26b7c357accc0c8cde558ad486283728b65b6a95d85ee1cd66bafab4c8168509 \
+    --hash=sha256:d47fbf302e7d9cbbb9e2555a0d267983d2aa476bac30e90dfbe5669bd57f3762
+    # via -r python/ingest/requirements-attention-collectors.in
 newspaper4k==0.9.6.1 \
     --hash=sha256:1a8353bc2b0ccd03bdbec52a06bfbf9fd6976d69b70550a8ad4d3d2defcb2a83 \
     --hash=sha256:c0ee6d39a2579ec5d9f48110ff30f43e9f4ef59b1aa369abf742ba0ba85a3457
