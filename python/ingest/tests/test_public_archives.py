@@ -495,3 +495,54 @@ def test_alphasignal_recent_subscriber_only_page_fails_closed(monkeypatch) -> No
     assert result.dated == 0
     assert result.listed == 1
     assert result.errors == ["AlphaSignal issue is not declared publicly accessible"]
+
+
+def test_cerebras_daily_window_preserves_day_precision_and_article_evidence(monkeypatch) -> None:
+    from high_signal_ingest.sources.news import _archive_article_receipt
+
+    async def public_dns(_url):
+        return None
+
+    monkeypatch.setattr(feeds, "check_public_host", public_dns)
+    base = "https://publisher.example.org/blog"
+    since = datetime(2026, 10, 19, 2, 30, tzinfo=timezone.utc)
+    title = "Cerebras releases a new processor"
+    body = title + ". " + "Cerebras releases a new processor for model inference. " * 20
+
+    def respond(request):
+        slug = request.url.path.rsplit("/", 1)[-1]
+        if slug == "blog":
+            return httpx.Response(
+                200,
+                text="".join(
+                    f'<a href="/blog/{name}">{name}</a>'
+                    for name in ("same-day", "previous", "exact")
+                ),
+            )
+        heading_date = "Oct 18 2026" if slug == "previous" else "Oct 19 2026"
+        exact = '<meta property="article:published_time" content="2026-10-19T00:00:00Z">'
+        return httpx.Response(
+            200,
+            text=(exact if slug == "exact" else "")
+            + f"<section><p>{heading_date}</p><h1>{title}</h1></section>",
+        )
+
+    async def run():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(respond)) as client:
+            return await archives.fetch_archive(
+                {"archive": {"url": base, "kind": "cerebras"}},
+                since,
+                client,
+                asyncio.Semaphore(3),
+                lambda _html, _title: body,
+            )
+
+    result = asyncio.run(run())
+    assert not result.errors
+    assert [item["link"] for item in result.items] == [base + "/same-day"]
+    receipt = _archive_article_receipt(result.items[0])
+    assert receipt is not None
+    assert receipt.published_at == datetime(2026, 10, 19, tzinfo=timezone.utc)
+    assert receipt.parsed_fields["publishedAtPrecision"] == "day"
+    assert receipt.parsed_fields["publishedAtEvidence"] == "first_party_article_heading"
+    assert receipt.parsed_fields["publishedAtEvidenceUrl"] == base + "/same-day"

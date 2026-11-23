@@ -399,7 +399,19 @@ def _cerebras_date(markup: _Markup, heading: _Node | None) -> datetime | None:
     return None
 
 
+@dataclass(frozen=True)
+class _Publication:
+    title: str
+    published: datetime
+    day_evidence: str | None = None
+
+
 def article_metadata(html: str, kind: str) -> tuple[str, datetime] | None:
+    publication = _article_publication(html, kind)
+    return (publication.title, publication.published) if publication else None
+
+
+def _article_publication(html: str, kind: str) -> _Publication | None:
     markup = _Markup(html)
     meta = {
         node.attrs.get("property") or node.attrs.get("name"): node.attrs.get("content") or ""
@@ -412,14 +424,16 @@ def article_metadata(html: str, kind: str) -> tuple[str, datetime] | None:
     published = _iso(meta.get("article:published_time", "")) or structured_date
     heading = next((node for node in markup.nodes if node.tag == "h1" and node.text), None)
     title = meta.get("og:title") or (heading.text if heading else "")
+    day_evidence = None
     if not published and kind == "cerebras" and heading:
         # The current publisher template has no publication metadata. Its
         # dedicated date paragraph directly precedes the heading; modified time
         # and incidental dates in the article must never substitute for it.
         published = _cerebras_date(markup, heading)
+        day_evidence = "first_party_article_heading"
     if not title or not published:
         return None
-    return title[:1000], published
+    return _Publication(title[:1000], published, day_evidence)
 
 
 def article_title(html: str) -> str | None:
@@ -473,7 +487,7 @@ async def _archive_article_publication(
     card: ArchiveCard,
     document_url: str,
     kind: str,
-) -> tuple[str, datetime] | None:
+) -> _Publication | None:
     if _same_origin_link(document_url, article.url) is None:
         raise registered_feeds.PublicFeedFetchError(
             "Public archive article redirected off publisher"
@@ -481,18 +495,17 @@ async def _archive_article_publication(
     if kind == "alphasignal":
         publication = await asyncio.to_thread(_alphasignal_article_publication, article, card)
     else:
-        publication = article_metadata(article.text, kind)
+        publication = _article_publication(article.text, kind)
     if publication is None:
         return None
-    title, published = publication
-    if published > datetime.now(timezone.utc) + timedelta(minutes=15):
+    if publication.published > datetime.now(timezone.utc) + timedelta(minutes=15):
         return None
-    return title, published
+    return publication
 
 
 def _alphasignal_article_publication(
     article: registered_feeds.PublicFeedDocument, card: ArchiveCard
-) -> tuple[str, datetime] | None:
+) -> _Publication | None:
     if urlsplit(article.url).path != urlsplit(card.link).path:
         raise registered_feeds.PublicFeedFetchError(
             "AlphaSignal issue redirected to a different permalink"
@@ -513,25 +526,36 @@ def _alphasignal_article_publication(
         raise registered_feeds.PublicFeedFetchError(
             "AlphaSignal issue title did not match its archive card"
         )
-    return (title, published) if published is not None else None
+    if published is None or title is None:
+        return None
+    return _Publication(title, published, "first_party_archive_card")
 
 
 async def _archive_item_content(
     article: registered_feeds.PublicFeedDocument,
-    card: ArchiveCard,
     kind: str,
-    title: str,
-    published: datetime,
+    publication: _Publication,
     document_url: str,
     extract_text: Callable[[str, str], str],
 ) -> dict:
-    content = await asyncio.to_thread(extract_text, article.text, title)
+    content = await asyncio.to_thread(extract_text, article.text, publication.title)
     if not _archive_body_is_public(content, kind):
         raise registered_feeds.PublicFeedFetchError(
             "Public archive article contained no usable public body"
         )
-    item = {"title": title, "link": article.url, "published": published, "content": content}
-    _add_alpha_date_evidence(item, card, kind, document_url)
+    item = {
+        "title": publication.title,
+        "link": article.url,
+        "published": publication.published,
+        "content": content,
+    }
+    if publication.day_evidence:
+        item.update(
+            published_precision="day",
+            published_normalization="date_only_at_00:00_utc",
+            published_evidence=publication.day_evidence,
+            published_evidence_url=document_url if kind == "alphasignal" else article.url,
+        )
     return item
 
 
@@ -546,25 +570,6 @@ def _contains_alpha_private_notice(content: str, kind: str) -> bool:
         r"create an account to continue|verify you are human|access denied"
     )
     return kind == "alphasignal" and bool(re.search(pattern, content[:500], re.I))
-
-
-def _add_alpha_date_evidence(item: dict, card: ArchiveCard, kind: str, document_url: str) -> None:
-    if kind != "alphasignal":
-        return
-    item.update(
-        {
-            "published_precision": card.precision,
-            "published_normalization": "date_only_at_00:00_utc",
-            "published_evidence": "first_party_archive_card",
-            "published_evidence_url": document_url,
-        }
-    )
-
-
-def _archive_before_window(kind: str, published: datetime, since: datetime) -> bool:
-    if kind == "alphasignal":
-        return published.date() < since.astimezone(timezone.utc).date()
-    return published < since
 
 
 async def _fetch_archive_document(
@@ -589,29 +594,17 @@ async def _load_archive_card(
     )
     if publication is None:
         return None
-    title, published = publication
-    item = await _archive_window_item(card, article, title, published, context)
-    return published, item
-
-
-async def _archive_window_item(
-    card: ArchiveCard,
-    article: registered_feeds.PublicFeedDocument,
-    title: str,
-    published: datetime,
-    context: _ArchiveFetchContext,
-) -> dict | None:
-    if _archive_before_window(context.kind, published, context.since):
-        return None
-    return await _archive_item_content(
-        article,
-        card,
-        context.kind,
-        title,
-        published,
-        context.document.url,
-        context.extract_text,
+    since = context.since
+    if publication.day_evidence:
+        before_window = publication.published.date() < since.astimezone(timezone.utc).date()
+    else:
+        before_window = publication.published < since
+    if before_window:
+        return publication.published, None
+    item = await _archive_item_content(
+        article, context.kind, publication, context.document.url, context.extract_text
     )
+    return publication.published, item
 
 
 async def _fetch_archive_card(card: ArchiveCard, context: _ArchiveFetchContext) -> None:
