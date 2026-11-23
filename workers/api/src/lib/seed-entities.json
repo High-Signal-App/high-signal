@@ -3298,5 +3298,29 @@
     "aliases": "ByteDance|TikTok",
     "wiki_url": "https://en.wikipedia.org/wiki/ByteDance",
     "ir_url": "https://www.bytedance.com"
+  },
+  {
+    "id": "CRWD",
+    "ticker": "CRWD",
+    "name": "CrowdStrike Holdings Inc.",
+    "type": "public",
+    "country": "US",
+    "sector": "security",
+    "subsector": "endpoint-cloud-security",
+    "aliases": "CrowdStrike|CrowdStrike Holdings",
+    "wiki_url": "https://en.wikipedia.org/wiki/CrowdStrike",
+    "ir_url": "https://ir.crowdstrike.com"
+  },
+  {
+    "id": "ZS",
+    "ticker": "ZS",
+    "name": "Zscaler Inc.",
+    "type": "public",
+    "country": "US",
+    "sector": "security",
+    "subsector": "cloud-security-sase",
+    "aliases": "Zscaler|Zscaler Inc",
+    "wiki_url": "https://en.wikipedia.org/wiki/Zscaler",
+    "ir_url": "https://ir.zscaler.com"
   }
 ]
