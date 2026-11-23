@@ -200,6 +200,7 @@ interface SourceTotals {
    */
   sourceCount?: number;
   allRows?: number;
+  resolvedSources?: string[];
 }
 
 /** One family's stored-row totals, computed over `events`. */
@@ -223,7 +224,28 @@ async function readSourceTotalsLive(database: DB, where: SQL | undefined) {
  * against the rollup's copy of the raw `source` values, so family membership
  * is decided by exactly the same predicate as the live query.
  */
-async function readSourceTotalsFromRollup(database: DB, id: string) {
+async function readSourceTotalsFromRollup(
+  database: DB,
+  id: string
+): Promise<SourceTotals | undefined> {
+  // Small families always need their current source values. Resolve them in
+  // the same read as totals, including arrivals beyond the rollup watermark.
+  const inlineSources = sql<string | null>`CASE
+    WHEN coalesce(sum(${schema.eventsSourceRollup.eventCount}), 0) <= ${SEEK_PLAN_MAX_ROWS}
+      AND count(*) <= ${SEEK_PLAN_MAX_SOURCES}
+    THEN (SELECT json_group_array(source) FROM (
+      SELECT DISTINCT source FROM (${familySourcesSql(id)}) LIMIT ${SEEK_PLAN_MAX_SOURCES + 1}
+    )) END`;
+  try {
+    return await selectSourceRollup(database, id, inlineSources);
+  } catch {
+    // A missing watermark index can disable source resolution while the
+    // rollup still has valid totals. Preserve that older deployment's fallback.
+    return selectSourceRollup(database, id, sql`NULL`);
+  }
+}
+
+async function selectSourceRollup(database: DB, id: string, sources: SQL<string | null>) {
   const [row] = await database
     .select({
       n: sql<number>`coalesce(sum(${schema.eventsSourceRollup.eventCount}), 0)`,
@@ -231,11 +253,17 @@ async function readSourceTotalsFromRollup(database: DB, id: string) {
       lastIngestedAt: sql<number | null>`max(${schema.eventsSourceRollup.lastIngestedAt})`,
       futureCount: sql<number>`coalesce(sum(${schema.eventsSourceRollup.futureCount}), 0)`,
       sourceCount: sql<number>`count(*)`,
+      sources,
       allRows: sql<number>`(SELECT coalesce(sum(event_count), 0) FROM events_source_rollup)`,
     })
     .from(schema.eventsSourceRollup)
     .where(sourceMatch(id, schema.eventsSourceRollup.source));
-  return row as SourceTotals | undefined;
+  if (!row) return undefined;
+  const { sources: encoded, ...totals } = row;
+  const resolved: (string | null)[] | null = encoded === null ? null : JSON.parse(encoded);
+  return resolved?.every((value): value is string => typeof value === 'string')
+    ? { ...totals, resolvedSources: resolved }
+    : totals;
 }
 
 // ─── Paginating the per-source event listing ──────────────────────────────
@@ -317,12 +345,8 @@ export function seekPlanCandidates(resolved: string[] | null, total: number): st
  * one definition rather than a re-derivation of it — the same discipline
  * migration 0025 established between the live aggregate and the rollup.
  */
-async function resolveFamilySources(database: DB, id: string): Promise<string[] | null> {
-  try {
-    // Keep the rollup and its post-watermark supplement in one D1 statement.
-    // The previous three sequential statements spent two extra D1 round trips;
-    // the state CTE lets both data arms share one readiness check and watermark.
-    const rows = await database.all<{ source: string | null }>(sql`
+function familySourcesSql(id: string) {
+  return sql`
       WITH state AS (
         SELECT max_ingested_at, rebuilt_at
         FROM events_rollup_state
@@ -339,7 +363,15 @@ async function resolveFamilySources(database: DB, id: string): Promise<string[] 
         AND ${sourceMatch(id, schema.events.source)}
       UNION ALL
       SELECT NULL AS source
-      WHERE NOT EXISTS (SELECT 1 FROM state WHERE rebuilt_at > 0)`);
+      WHERE NOT EXISTS (SELECT 1 FROM state WHERE rebuilt_at > 0)`;
+}
+
+async function resolveFamilySources(database: DB, id: string): Promise<string[] | null> {
+  try {
+    // Keep the rollup and its post-watermark supplement in one D1 statement.
+    // The previous three sequential statements spent two extra D1 round trips;
+    // the state CTE lets both data arms share one readiness check and watermark.
+    const rows = await database.all<{ source: string | null }>(familySourcesSql(id));
     if (rows.some((row) => row.source === null)) return null;
     return [...new Set(rows.map((row) => row.source!))];
   } catch (error) {
@@ -821,6 +853,7 @@ dataRoute.get('/sources/:id', async (c) => {
   let futureCount = 0;
   let sourceCount: number | null = null;
   let allRows: number | null = null;
+  let resolvedSources: string[] | undefined;
   try {
     // Unfiltered totals come from the cron-maintained rollup (at most 30
     // minutes behind); a `?date=` or `?source=` request still asks `events`
@@ -831,6 +864,7 @@ dataRoute.get('/sources/:id', async (c) => {
         ? readSourceTotalsFromRollup(database, id)
         : readSourceTotalsLive(database, where)
     );
+    resolvedSources = row?.resolvedSources;
     total = Number(row?.n ?? 0);
     latestObservedAt = Number(row?.latestObservedAt ?? 0);
     lastIngestedAt = Number(row?.lastIngestedAt ?? 0);
@@ -875,7 +909,9 @@ dataRoute.get('/sources/:id', async (c) => {
     !sourceFilter &&
     (total <= SEEK_PLAN_MAX_ROWS || sourceCount === null || sourceCount === 1 || preferKeyPage);
   if (worthResolving) {
-    const resolved = await stage('family_resolution', () => resolveFamilySources(database, id));
+    const resolved =
+      resolvedSources ??
+      (await stage('family_resolution', () => resolveFamilySources(database, id)));
     keyPage = preferKeyPage ? sourceKeyPagePlan(resolved, { limit, offset, range, cursor }) : null;
     candidates = keyPage ? resolved : seekPlanCandidates(resolved, total);
   }

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { istDayFromTimestamp } from '@high-signal/shared';
 import { applyMigrations, createSqliteD1, type TestD1 } from '../../test/sqlite-d1';
 import { app } from '../app';
@@ -410,14 +410,29 @@ describe('GET /data/sources/:id response contract', () => {
     expect((body['events'] as PageEvent[]).length).toBe(120);
   });
 
-  it('finds a source value that first appeared after the last rebuild', async () => {
+  it('reads small-family totals and post-watermark sources in one D1 statement', async () => {
     await refreshEventsSourceRollup(env(), db(d1.binding), new Date(NOW * 1000));
-    // A brand-new sub-source, so the rollup has never seen this `source` value.
     seedEvents(d1, tiedBatch('legistar:tucson', NOW - DAY, 2, 'lg-new'));
+    const prepare = vi.spyOn(d1.binding, 'prepare');
     const { body } = await get('/data/sources/legistar?limit=200');
     const sources = new Set((body['events'] as PageEvent[]).map((e) => e.source));
     expect(sources).toContain('legistar:tucson');
     expect((body['events'] as PageEvent[]).length).toBe(7);
+    expect(body['total']).toBe(5); // The rollup still predates the new arrivals.
+    const reads = prepare.mock.calls.map(([query]) => query.toLowerCase());
+    const totals = reads.find((query) => query.includes('sum(') && query.includes('future_count'));
+    expect(totals).toContain('events_ingested_at_idx');
+    expect(reads.filter((query) => query.includes('events_ingested_at_idx'))).toHaveLength(1);
+  });
+
+  it('serves rollup totals and live pages when the source resolution index is missing', async () => {
+    await refreshEventsSourceRollup(env(), db(d1.binding), new Date(NOW * 1000));
+    d1.exec('DROP INDEX events_ingested_at_idx');
+    const { status, body } = await get('/data/sources/legistar?limit=200');
+    expect(status).toBe(200);
+    expect(body['available']).toBe(true);
+    expect(body['total']).toBe(5);
+    expect((body['events'] as PageEvent[]).length).toBe(5);
   });
 });
 
