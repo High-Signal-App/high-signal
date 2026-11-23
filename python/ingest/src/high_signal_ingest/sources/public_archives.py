@@ -60,7 +60,7 @@ class _Markup(HTMLParser):
                 self.stack[-1].parts.append(data)
             return
         for node in self.stack:
-            if node.tag in {"a", "h1", "h2", "h3", "p", "time"}:
+            if node.tag in {"a", "h1", "h2", "h3", "p", "span", "time"}:
                 node.parts.append(data)
 
 
@@ -105,6 +105,8 @@ def _article_link_matches(node: _Node, markup: _Markup, kind: str, path: str) ->
         ) and bool(re.fullmatch(r"/[^/]+/?", path))
     elif kind == "beehiiv":
         return bool(re.fullmatch(r"/p/[^/]+/?", path))
+    elif kind == "alphasignal":
+        return bool(re.fullmatch(r"/email/[a-f0-9]{16}", path))
     else:
         return bool(re.fullmatch(r"/blog/[^/]+/?", path))
 
@@ -112,7 +114,7 @@ def _article_link_matches(node: _Node, markup: _Markup, kind: str, path: str) ->
 def archive_links(html: str, url: str, kind: str) -> list[str]:
     """Select only article links from the configured publisher's listing."""
     markup = _Markup(html)
-    if kind not in {"batch", "stratechery", "beehiiv", "cerebras", "firstround"}:
+    if kind not in {"batch", "stratechery", "beehiiv", "cerebras", "firstround", "alphasignal"}:
         raise registered_feeds.PublicFeedFetchError("Unsupported public archive")
     links: list[str] = []
     for node in markup.nodes:
@@ -132,6 +134,101 @@ def archive_links(html: str, url: str, kind: str) -> list[str]:
             "Public archive contained no supported article links"
         )
     return links
+
+
+@dataclass(frozen=True)
+class ArchiveCard:
+    link: str
+    title: str | None = None
+    published: datetime | None = None
+    precision: str | None = None
+
+
+def alphasignal_archive_cards(html: str, url: str) -> list[ArchiveCard]:
+    """Bind AlphaSignal's date-only issue cards to their exact public permalinks."""
+    markup = _Markup(html)
+    month_names = {
+        "January": 1,
+        "February": 2,
+        "March": 3,
+        "April": 4,
+        "May": 5,
+        "June": 6,
+        "July": 7,
+        "August": 8,
+        "September": 9,
+        "October": 10,
+        "November": 11,
+        "December": 12,
+    }
+    date_pattern = re.compile(
+        r"^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) (\d{1,2}) "
+        r"(Mon|Tue|Wed|Thu|Fri|Sat|Sun)$"
+    )
+    month_abbreviations = {name[:3]: number for name, number in month_names.items()}
+    cards: list[ArchiveCard] = []
+    seen: set[str] = set()
+    for section in markup.nodes:
+        if section.tag != "section":
+            continue
+        section_date = re.fullmatch(r"([A-Z][a-z]+) (\d{4})", section.attrs.get("aria-label") or "")
+        if not section_date or section_date.group(1) not in month_names:
+            continue
+        month = month_names[section_date.group(1)]
+        year = int(section_date.group(2))
+        for card in markup.nodes:
+            if card.tag != "li" or not _under(card, section):
+                continue
+            descendants = [node for node in markup.nodes if _under(node, card)]
+            article_links = [
+                _same_origin_link(url, node.attrs.get("href") or "")
+                for node in descendants
+                if node.tag == "a" and node.attrs.get("href")
+            ]
+            article_links = [
+                link
+                for link in article_links
+                if link and re.fullmatch(r"/email/[a-f0-9]{16}", urlsplit(link).path)
+            ]
+            dates = [
+                node.text
+                for node in descendants
+                if node.tag == "span"
+                and "type-archive-date" in (node.attrs.get("class") or "").split()
+            ]
+            titles = [
+                node.text
+                for node in descendants
+                if node.tag == "span"
+                and "type-newsletter-card-title" in (node.attrs.get("class") or "").split()
+            ]
+            if len(article_links) != 1 or len(dates) != 1 or len(titles) != 1:
+                continue
+            link = article_links[0]
+            date_match = date_pattern.fullmatch(dates[0])
+            title = titles[0].strip()
+            if not date_match or not title or link in seen:
+                continue
+            abbreviation = date_match.group(1)
+            day = int(date_match.group(2))
+            if month_abbreviations.get(abbreviation) != month:
+                continue
+            try:
+                # The publisher supplies a date only; UTC midnight is storage normalization.
+                published = datetime(year, month, day, tzinfo=timezone.utc)
+            except ValueError:
+                continue
+            if published.strftime("%a") != date_match.group(3):
+                continue
+            cards.append(ArchiveCard(link, title[:1000], published, "day"))
+            seen.add(link)
+            if len(cards) == MAX_ARTICLES:
+                return cards
+    if not cards:
+        raise registered_feeds.PublicFeedFetchError(
+            "Public archive contained no dated, supported AlphaSignal issue cards"
+        )
+    return cards
 
 
 def _iso(value: str) -> datetime | None:
@@ -223,12 +320,30 @@ def article_metadata(html: str, kind: str) -> tuple[str, datetime] | None:
     return title[:1000], published
 
 
+def article_title(html: str) -> str | None:
+    """Return only a free article's own title, without inferring its date."""
+    markup = _Markup(html)
+    accessible, _ = _structured_publication(markup)
+    if not accessible:
+        return None
+    meta = {
+        node.attrs.get("property") or node.attrs.get("name"): node.attrs.get("content") or ""
+        for node in markup.nodes
+        if node.tag == "meta"
+    }
+    heading = next((node for node in markup.nodes if node.tag == "h1" and node.text), None)
+    title = meta.get("og:title") or (heading.text if heading else "")
+    return title[:1000] if title else None
+
+
 @dataclass
 class ArchiveResult:
     items: list[dict] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
     dated: int = 0
     latest: datetime | None = None
+    listed: int = 0
+    latest_listed: datetime | None = None
 
 
 async def fetch_archive(
@@ -243,22 +358,61 @@ async def fetch_archive(
         document = await registered_feeds.fetch_public_document(
             client, config["url"], allow_prefix=True
         )
-    links = archive_links(document.text, document.url, config["kind"])
+    kind = config["kind"]
+    if kind == "alphasignal" and document.url != registered_feeds.public_url(config["url"]):
+        raise registered_feeds.PublicFeedFetchError(
+            "AlphaSignal archive redirected outside its approved listing URL"
+        )
+    cards = (
+        alphasignal_archive_cards(document.text, document.url)
+        if kind == "alphasignal"
+        else [ArchiveCard(link) for link in archive_links(document.text, document.url, kind)]
+    )
     result = ArchiveResult()
+    recent_cards = False
+    if kind == "alphasignal":
+        cutoff = datetime.now(timezone.utc) + timedelta(minutes=15)
+        dated_cards = [
+            card for card in cards if card.published is not None and card.published <= cutoff
+        ]
+        result.listed = len(dated_cards)
+        result.latest_listed = max(
+            (card.published for card in dated_cards if card.published is not None), default=None
+        )
+        cards = [
+            card for card in dated_cards if card.published is not None and card.published >= since
+        ]
+        recent_cards = bool(cards)
     article_semaphore = asyncio.Semaphore(2)
 
-    async def fetch_one(link: str) -> None:
+    async def fetch_one(card: ArchiveCard) -> None:
         try:
             async with article_semaphore, semaphore:
-                article = await registered_feeds.fetch_public_document(client, link)
+                article = await registered_feeds.fetch_public_document(client, card.link)
             if _same_origin_link(document.url, article.url) is None:
                 raise registered_feeds.PublicFeedFetchError(
                     "Public archive article redirected off publisher"
                 )
-            metadata = article_metadata(article.text, config["kind"])
-            if metadata is None:
-                return
-            title, published = metadata
+            if kind == "alphasignal":
+                if urlsplit(article.url).path != urlsplit(card.link).path:
+                    raise registered_feeds.PublicFeedFetchError(
+                        "AlphaSignal issue redirected to a different permalink"
+                    )
+                title = article_title(article.text)
+                if (
+                    not card.title
+                    or not title
+                    or " ".join(title.split()).casefold() != " ".join(card.title.split()).casefold()
+                ):
+                    return
+                published = card.published
+                if published is None:
+                    return
+            else:
+                metadata = article_metadata(article.text, kind)
+                if metadata is None:
+                    return
+                title, published = metadata
             if published > datetime.now(timezone.utc) + timedelta(minutes=15):
                 return
             result.dated += 1
@@ -266,19 +420,35 @@ async def fetch_archive(
             if published < since:
                 return
             content = await asyncio.to_thread(extract_text, article.text, title)
-            if len(content) < 200:
+            if len(content) < 200 or (
+                kind == "alphasignal"
+                and re.search(
+                    r"please log ?in|sign in to continue|subscribe to read|subscription required|"
+                    r"create an account to continue|verify you are human|access denied",
+                    content[:500],
+                    re.I,
+                )
+            ):
                 result.errors.append("Public archive article contained no usable public body")
                 return
-            result.items.append(
-                {"title": title, "link": article.url, "published": published, "content": content}
-            )
+            item = {"title": title, "link": article.url, "published": published, "content": content}
+            if kind == "alphasignal":
+                item.update(
+                    {
+                        "published_precision": card.precision,
+                        "published_normalization": "date_only_at_00:00_utc",
+                        "published_evidence": "first_party_archive_card",
+                        "published_evidence_url": document.url,
+                    }
+                )
+            result.items.append(item)
         except registered_feeds.PublicFeedFetchError as exc:
             result.errors.append(str(exc))
         except (httpx.HTTPError, TimeoutError) as exc:
             result.errors.append(f"Public archive article fetch failed ({type(exc).__name__})")
 
-    await asyncio.gather(*(fetch_one(link) for link in links))
-    if result.dated == 0 and not result.errors:
+    await asyncio.gather(*(fetch_one(card) for card in cards))
+    if result.dated == 0 and not result.errors and (recent_cards or result.listed == 0):
         result.errors.append("Public archive contained no dated, freely accessible articles")
     result.items.sort(key=lambda item: item["published"], reverse=True)
     return result

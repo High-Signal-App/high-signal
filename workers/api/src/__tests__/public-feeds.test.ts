@@ -159,6 +159,7 @@ describe('known public archive discovery', () => {
     ['https://www.bayareatimes.com/', '/p/a-public-issue', 'Bay Area Times'],
     ['https://vcunfiltered.beehiiv.com/', '/p/a-public-issue', 'VC Unfiltered'],
     ['https://archive.internetisbeautiful.com/', '/p/a-public-issue', 'Internet Is Beautiful'],
+    ['https://alphasignal.ai/archive', '/email/1b7a5d6be16510c2', 'AlphaSignal'],
     ['https://www.cerebras.ai/blog', '/blog/a-public-article', 'Cerebras Blog'],
     ['https://startupsfyi.beehiiv.com/', '/p/a-public-issue', 'Startups.fyi'],
     ['https://newsletter.strictlyvc.com/', '/p/a-public-issue', 'StrictlyVC'],
@@ -194,6 +195,44 @@ describe('known public archive discovery', () => {
     await expect(
       discoverPublicFeed('https://unlisted.beehiiv.com/', feedTransport(html))
     ).rejects.toThrow('No RSS or Atom');
+  });
+
+  it('recovers AlphaSignal’s retired RSS URL through only dated-archive issue permalinks', async () => {
+    vi.stubGlobal('HTMLRewriter', FixtureHTMLRewriter);
+    expect(knownPublicArchive('https://alphasignal.ai/feed.xml')).toMatchObject({
+      id: 'ml-alphasignal',
+      url: 'https://alphasignal.ai/archive',
+    });
+    const requests: string[] = [];
+    const html = `<section aria-label="November 2026"><ul><li>
+      <a href="/email/1b7a5d6be16510c2">Public issue</a>
+      <a href="/email/short">Short id</a>
+      <a href="/email/1b7a5d6be16510c2/">Trailing path</a>
+      <a href="/email/1b7a5d6be16510c2?subscriber_id=private">Private query</a>
+      <a href="https://outside.example.org/email/1b7a5d6be16510c2">Offsite</a>
+      </li></ul></section>`;
+    const transport = async (value: string) => {
+      const url = new URL(value);
+      requests.push(url.href);
+      if (url.hostname === 'cloudflare-dns.com') {
+        return Response.json({
+          Answer: url.searchParams.get('type') === 'A' ? [{ type: 1, data: '8.8.8.8' }] : [],
+        });
+      }
+      if (url.pathname === '/feed.xml') return new Response('Gone', { status: 410 });
+      return new Response(html, { headers: { 'Content-Type': 'text/html' } });
+    };
+
+    const result = await discoverPublicFeed('https://alphasignal.ai/feed.xml', transport);
+    expect(result).toMatchObject({
+      feedUrl: 'https://alphasignal.ai/archive',
+      title: 'AlphaSignal',
+      format: 'archive',
+      articleCount: 1,
+    });
+    expect(requests).toContain('https://alphasignal.ai/feed.xml');
+    expect(requests).toContain('https://alphasignal.ai/archive');
+    expect(requests.some((url) => url.includes('outside.example.org'))).toBe(false);
   });
 
   it('recovers First Round’s retired feed using public article cards, excluding glossary and navigation', async () => {

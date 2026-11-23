@@ -34,7 +34,7 @@ Retain the following launch adapters. The generated source catalog owns their
 execution cadence; only its 28-source `daily` group participates in the Daily
 Brief candidate run:
 
-- `news` — RSS plus article extraction from seeded AI-infra / semiconductor sources.
+- `news` — RSS and allowlisted public archives plus public article extraction from seeded AI-infra / semiconductor sources.
 - `edgar` — 8-K daily; 10-Q and 10-K on wider windows.
 - `ir` — company investor relations and press-release feeds.
 - `gov` — export controls, policy, standards, and regulator feeds.

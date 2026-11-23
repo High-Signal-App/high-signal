@@ -373,6 +373,25 @@ def _article_receipt(
     )
 
 
+def _archive_article_receipt(item: dict) -> SourceDocument | None:
+    if not item.get("published_evidence"):
+        return None
+    receipt = _article_receipt(item["content"], item["title"], item["link"], item["published"])
+    if receipt is None:
+        return receipt
+    parsed_fields = dict(receipt.parsed_fields or {})
+    parsed_fields.update(
+        {
+            "publishedAtPrecision": item["published_precision"],
+            "publishedAtNormalization": item["published_normalization"],
+            "publishedAtEvidence": item["published_evidence"],
+            "publishedAtEvidenceUrl": item["published_evidence_url"],
+        }
+    )
+    receipt.parsed_fields = parsed_fields
+    return receipt
+
+
 async def fetch_rss_async(
     source: dict,
     since: datetime,
@@ -563,6 +582,10 @@ async def _fetch_source(
                 {
                     "articlesDated": result.dated,
                     "latestPublishedAt": result.latest.isoformat() if result.latest else None,
+                    "listedIssues": result.listed,
+                    "latestListedAt": (
+                        result.latest_listed.isoformat() if result.latest_listed else None
+                    ),
                 }
             )
             for item in result.items:
@@ -577,6 +600,7 @@ async def _fetch_source(
                         content=item["content"],
                         primary_entity_id=None,
                         raw_hash=raw_hash,
+                        source_document=_archive_article_receipt(item),
                     )
                 )
         else:

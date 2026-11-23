@@ -1991,14 +1991,19 @@
   name: AlphaSignal
   type: mailing_list
   url: https://alphasignal.ai/
-  rss: https://alphasignal.ai/feed.xml
+  rss: null
+  archive:
+    kind: alphasignal
+    url: https://alphasignal.ai/archive
+  retired_feed_aliases:
+  - https://alphasignal.ai/feed.xml
   paywall: none
   tier: 3
   topic_tags:
   - software
   - ai
   extraction_strategy: trafilatura
-  notes: Public AI research and engineering newsletter feed
+  notes: Official public AI research and engineering newsletter archive; dated public issues only
 - id: ml-austin-kleon
   name: Austin Kleon
   type: mailing_list

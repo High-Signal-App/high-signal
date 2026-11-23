@@ -64,6 +64,62 @@ def test_legacy_and_archive_pauses_suppress_replacement_and_explicit_overrides()
     assert feeds.merge_sources([changed], [pause], 2) == []
 
 
+def test_alphasignal_retired_rss_alias_keeps_archive_pause_and_override_semantics() -> None:
+    source = next(item for item in news.load_sources() if item["id"] == "ml-alphasignal")
+    assert source["rss"] is None
+    assert source["archive"] == {
+        "kind": "alphasignal",
+        "url": "https://alphasignal.ai/archive",
+    }
+    legacy = {
+        "id": "ml-alphasignal",
+        "feedUrl": "https://alphasignal.ai/feed.xml",
+        "enabled": True,
+    }
+    merged = feeds.merge_sources([source], [legacy], 2)
+    assert len(merged) == 1
+    assert merged[0]["id"] == "ml-alphasignal"
+    assert merged[0]["_registry_id"] == "ml-alphasignal"
+    assert merged[0]["rss"] is None
+    assert merged[0]["archive"] == source["archive"]
+    assert feeds.merge_sources([source], [{**legacy, "enabled": False}], 2) == []
+
+    override = {**legacy, "feedUrl": "https://writer.example.org/atom"}
+    selected = feeds.merge_sources([source], [override], 2)
+    assert len(selected) == 1
+    assert selected[0]["id"] == "ml-alphasignal"
+    assert selected[0]["rss"] == "https://writer.example.org/atom"
+    assert "archive" not in selected[0]
+
+
+def test_alphasignal_publication_receipt_keeps_card_date_provenance() -> None:
+    published = datetime(2026, 11, 23, tzinfo=timezone.utc)
+    body = "OpenAI MedChemBench establishes a public research result. " * 20
+    receipt = news._archive_article_receipt(
+        {
+            "title": "OpenAI MedChemBench",
+            "link": "https://alphasignal.ai/email/1b7a5d6be16510c2",
+            "published": published,
+            "content": body,
+            "published_precision": "day",
+            "published_normalization": "date_only_at_00:00_utc",
+            "published_evidence": "first_party_archive_card",
+            "published_evidence_url": "https://alphasignal.ai/archive",
+        }
+    )
+    assert receipt is not None
+    assert receipt.canonical_url == "https://alphasignal.ai/email/1b7a5d6be16510c2"
+    assert receipt.published_at == published
+    assert receipt.parsed_fields == {
+        "documentKind": "news_article",
+        "retrievedFrom": "public_article_page",
+        "publishedAtPrecision": "day",
+        "publishedAtNormalization": "date_only_at_00:00_utc",
+        "publishedAtEvidence": "first_party_archive_card",
+        "publishedAtEvidenceUrl": "https://alphasignal.ai/archive",
+    }
+
+
 @pytest.mark.parametrize(
     "url",
     [
