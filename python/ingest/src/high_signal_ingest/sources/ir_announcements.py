@@ -98,10 +98,25 @@ def _published_date(html: str) -> datetime | None:
     return None
 
 
-def announcement_event(entity_id: str, url: str, html: str, now: datetime) -> Event | None:
+def announcement_event(
+    entity_id: str,
+    url: str,
+    html: str,
+    now: datetime,
+    *,
+    published_at_hint: datetime | None = None,
+    publication_feed_url: str | None = None,
+) -> Event | None:
     import trafilatura
 
     published = _published_date(html)
+    date_basis = "explicit_publication_metadata"
+    if published is not None and published_at_hint is not None:
+        if abs(published - published_at_hint) > timedelta(hours=36):
+            return None
+    elif published is None and published_at_hint is not None:
+        published = published_at_hint
+        date_basis = "configured_official_feed_pub_date"
     if published is None or not now - timedelta(days=3) <= published <= now:
         return None
     doc = trafilatura.bare_extraction(html, url=url, include_comments=False, with_metadata=True)
@@ -126,7 +141,8 @@ def announcement_event(entity_id: str, url: str, html: str, now: datetime) -> Ev
             raw_text=text,
             parsed_fields={
                 "documentKind": "issuer_announcement",
-                "dateBasis": "explicit_publication_metadata",
+                "dateBasis": date_basis,
+                **({"publicationFeedUrl": publication_feed_url} if publication_feed_url else {}),
             },
         ),
     )
