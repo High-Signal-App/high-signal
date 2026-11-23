@@ -514,7 +514,7 @@ CATALOG: list[CatalogEntry] = [
     # --- News --------------------------------------------------------------
     CatalogEntry(
         "news",
-        "NewsAPI + RSS",
+        "NewsAPI + RSS / public archives",
         "technology",
         "free-key:NEWSAPI_KEY",
         False,

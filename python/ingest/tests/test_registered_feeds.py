@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import gzip
+import json
 import socket
 from datetime import datetime, timezone
 
@@ -62,6 +63,62 @@ def test_legacy_and_archive_pauses_suppress_replacement_and_explicit_overrides()
         "feed_aliases": [SEED["rss"]],
     }
     assert feeds.merge_sources([changed], [pause], 2) == []
+
+
+def test_alphasignal_retired_rss_alias_keeps_archive_pause_and_override_semantics() -> None:
+    source = next(item for item in news.load_sources() if item["id"] == "ml-alphasignal")
+    assert source["rss"] is None
+    assert source["archive"] == {
+        "kind": "alphasignal",
+        "url": "https://alphasignal.ai/archive",
+    }
+    legacy = {
+        "id": "ml-alphasignal",
+        "feedUrl": "https://alphasignal.ai/feed.xml",
+        "enabled": True,
+    }
+    merged = feeds.merge_sources([source], [legacy], 2)
+    assert len(merged) == 1
+    assert merged[0]["id"] == "ml-alphasignal"
+    assert merged[0]["_registry_id"] == "ml-alphasignal"
+    assert merged[0]["rss"] is None
+    assert merged[0]["archive"] == source["archive"]
+    assert feeds.merge_sources([source], [{**legacy, "enabled": False}], 2) == []
+
+    override = {**legacy, "feedUrl": "https://writer.example.org/atom"}
+    selected = feeds.merge_sources([source], [override], 2)
+    assert len(selected) == 1
+    assert selected[0]["id"] == "ml-alphasignal"
+    assert selected[0]["rss"] == "https://writer.example.org/atom"
+    assert "archive" not in selected[0]
+
+
+def test_alphasignal_publication_receipt_keeps_card_date_provenance() -> None:
+    published = datetime(2026, 11, 23, tzinfo=timezone.utc)
+    body = "OpenAI MedChemBench establishes a public research result. " * 20
+    receipt = news._archive_article_receipt(
+        {
+            "title": "OpenAI MedChemBench",
+            "link": "https://alphasignal.ai/email/1b7a5d6be16510c2",
+            "published": published,
+            "content": body,
+            "published_precision": "day",
+            "published_normalization": "date_only_at_00:00_utc",
+            "published_evidence": "first_party_archive_card",
+            "published_evidence_url": "https://alphasignal.ai/archive",
+        }
+    )
+    assert receipt is not None
+    assert receipt.canonical_url == "https://alphasignal.ai/email/1b7a5d6be16510c2"
+    assert receipt.published_at == published
+    assert receipt.parsed_fields == {
+        "documentKind": "news_article",
+        "retrievedFrom": "public_article_page",
+        "publishedAtPrecision": "day",
+        "publishedAtNormalization": "date_only_at_00:00_utc",
+        "publishedAtEvidence": "first_party_archive_card",
+        "publishedAtEvidenceUrl": "https://alphasignal.ai/archive",
+    }
 
 
 @pytest.mark.parametrize(
@@ -313,6 +370,8 @@ def test_registered_archive_fetches_and_reports_with_standard_receipts(monkeypat
                     "content": "A public dated article describes the released inference changes.",
                 }
             ],
+            errors=["Publisher article fetch failed"],
+            article_errors=["Publisher article fetch failed"],
             dated=1,
         )
 
@@ -331,12 +390,75 @@ def test_registered_archive_fetches_and_reports_with_standard_receipts(monkeypat
                 client,
                 asyncio.Semaphore(2),
                 fetch_body=True,
+                receipts=receipts,
             )
 
     [event] = asyncio.run(run())
     assert event.source == "news:feed-managed"
-    assert receipts[0][0] == row["id"] and receipts[0][1]["count"] == 1
-    assert receipts[0][1]["error"] is None
+    assert receipts[1][0] == row["id"] and receipts[1][1]["count"] == 1
+    assert receipts[1][1]["error"] == "Publisher article fetch failed"
+    diagnostics = json.loads(receipts[0]["notes"])
+    assert diagnostics["articleErrorCount"] == 1
+    assert diagnostics["articleErrorSample"] == "Publisher article fetch failed"
+
+
+def test_alphasignal_partial_article_errors_remain_diagnostics(monkeypatch) -> None:
+    from high_signal_ingest.sources.public_archives import ArchiveResult
+
+    seed = next(source for source in news.load_sources() if source["id"] == "ml-alphasignal")
+    row = {**ROW, "feedUrl": "https://alphasignal.ai/feed.xml"}
+    [source] = feeds.merge_sources([seed], [row], 2)
+    receipt_log = []
+
+    async def archive(*_args):
+        return ArchiveResult(
+            items=[
+                {
+                    "title": "Public research issue",
+                    "link": "https://alphasignal.ai/email/1111111111111111",
+                    "published": datetime.now(timezone.utc),
+                    "content": "A public research issue with a matching title. " * 20,
+                    "published_precision": "day",
+                    "published_normalization": "date_only_at_00:00_utc",
+                    "published_evidence": "first_party_archive_card",
+                    "published_evidence_url": "https://alphasignal.ai/archive",
+                }
+            ],
+            errors=["AlphaSignal issue title did not match its archive card"],
+            article_errors=["AlphaSignal issue title did not match its archive card"],
+            dated=1,
+            listed=2,
+        )
+
+    async def report(_source, **kwargs):
+        receipt_log.append(kwargs)
+
+    monkeypatch.setattr(news.public_archives, "fetch_archive", archive)
+    monkeypatch.setattr(feeds, "report_fetch", report)
+
+    async def run():
+        async with httpx.AsyncClient() as client:
+            return await news._fetch_source(
+                source,
+                datetime(2026, 1, 1, tzinfo=timezone.utc),
+                client,
+                asyncio.Semaphore(2),
+                fetch_body=True,
+                receipts=receipt_log,
+            )
+
+    events = asyncio.run(run())
+    assert len(events) == 1
+    assert receipt_log[1]["error"] is None
+    diagnostics = json.loads(receipt_log[0]["notes"])
+    assert diagnostics["articleErrorCount"] == 1
+    assert (
+        diagnostics["articleErrorSample"]
+        == "AlphaSignal issue title did not match its archive card"
+    )
+    assert diagnostics["listedIssues"] == 2
+    assert diagnostics["acceptedIssueCap"] == 12
+    assert diagnostics["issueFetchCapped"] is False
 
 
 def test_firstround_retired_rss_uses_archive_and_keeps_existing_pause() -> None:

@@ -1,5 +1,14 @@
 [
   {
+    "id": "ml-alphasignal",
+    "title": "AlphaSignal",
+    "kind": "alphasignal",
+    "url": "https://alphasignal.ai/archive",
+    "aliases": [
+      "https://alphasignal.ai/feed.xml"
+    ]
+  },
+  {
     "id": "ml-the-batch",
     "title": "The Batch (DeepLearning.AI)",
     "kind": "batch",

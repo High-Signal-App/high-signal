@@ -42,6 +42,7 @@ export async function validatePublicArchive(html: string, listingUrl: string, ar
     batch: /^\/the-batch\/issue-\d+\/?$/,
     stratechery: /^\/\d{4}\/[^/]+\/?$/,
     beehiiv: /^\/p\/[^/]+\/?$/,
+    alphasignal: /^\/email\/[a-f0-9]{16}$/,
     cerebras: /^\/blog\/[^/]+\/?$/,
     firstround: /^\/[^/]+\/?$/,
   };

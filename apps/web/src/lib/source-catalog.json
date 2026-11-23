@@ -240,7 +240,7 @@
     },
     {
       "id": "news",
-      "provider": "NewsAPI + RSS",
+      "provider": "NewsAPI + RSS / public archives",
       "domains": "technology",
       "access": "free-key:NEWSAPI_KEY",
       "official": false,
