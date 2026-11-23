@@ -25,12 +25,16 @@ def _make_response(status: int, body: dict | str | None = None) -> httpx.Respons
 
 
 def _run_with_transport(
-    transport: httpx.MockTransport, monkeypatch, **completion_options
+    transport: httpx.MockTransport,
+    monkeypatch,
+    *,
+    model_name: str = "test-model",
+    **completion_options,
 ) -> tuple[dict | list | None, dict]:
     """Patch httpx.post to use the mock transport and run _ai_complete."""
     monkeypatch.setenv("AI_API_KEY", "test-key")
     monkeypatch.setenv("AI_BASE_URL", "https://test-gateway.example/v1")
-    monkeypatch.setenv("AI_MODEL", "test-model")
+    monkeypatch.setenv("AI_MODEL", model_name)
     monkeypatch.setenv("AI_RETRIES", "2")
     monkeypatch.setenv("AI_BACKOFF_BASE", "0.01")
     monkeypatch.setenv("AI_BACKOFF_CAP", "0.05")
@@ -317,6 +321,51 @@ def test_truncated_json_is_retried_with_bounded_output_space(monkeypatch, second
         with pytest.raises(generator.SignalGenerationUnavailable) as error:
             generator._raise_for_provider_failure(meta)
         assert error.value.failure_class == "output_truncated"
+
+
+@pytest.mark.parametrize(
+    ("initial_budget", "truncate_first", "expected_budgets"),
+    [(2000, True, [2000, 4096]), (8000, False, [4096])],
+)
+def test_auto_model_budget_respects_gateway_json_output_cap(
+    monkeypatch, initial_budget, truncate_first, expected_budgets
+):
+    requests = []
+
+    def handler(request):
+        payload = json.loads(request.content)
+        requests.append(payload)
+        if payload["max_tokens"] > 4096:
+            return _make_response(
+                400,
+                {
+                    "error": {
+                        "message": (
+                            "All providers failed: 400 too many tokens: max tokens must be "
+                            "less than or equal to 4096, the maximum output length for this "
+                            "model."
+                        )
+                    }
+                },
+            )
+        finish = "length" if truncate_first and len(requests) == 1 else "stop"
+        content = '{"publish":' if finish == "length" else '{"publish": false}'
+        return _make_response(
+            200,
+            {"choices": [{"finish_reason": finish, "message": {"content": content}}]},
+        )
+
+    out, meta = _run_with_transport(
+        httpx.MockTransport(handler),
+        monkeypatch,
+        model_name="auto",
+        max_completion_tokens=initial_budget,
+    )
+
+    assert out == {"publish": False}
+    assert [request["max_tokens"] for request in requests] == expected_budgets
+    assert meta["attempts"] == len(expected_budgets)
+    assert meta["failure_class"] is None
 
 
 def test_article_budget_survives_a_transport_retry(monkeypatch):
