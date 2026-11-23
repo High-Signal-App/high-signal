@@ -588,9 +588,7 @@ dataRoute.get('/sources', async (c) => {
         uncataloguedSources: [],
       },
       200,
-      {
-        'Cache-Control': diagnostics ? 'private, no-store' : 'public, max-age=60, s-maxage=3600',
-      }
+      { 'Cache-Control': 'private, no-store' }
     );
   }
 
@@ -841,18 +839,22 @@ dataRoute.get('/sources/:id', async (c) => {
     allRows = row?.allRows === undefined ? null : Number(row.allRows);
   } catch {
     setServerTiming(c, timings, diagnostics);
-    return c.json({
-      id,
-      date: range ? date : undefined,
-      total: 0,
-      latestObservedAt: 0,
-      lastIngestedAt: 0,
-      futureCount: 0,
-      events: [],
-      hasMore: false,
-      nextCursor: null,
-      available: false,
-    });
+    return c.json(
+      {
+        id,
+        date: range ? date : undefined,
+        total: 0,
+        latestObservedAt: 0,
+        lastIngestedAt: 0,
+        futureCount: 0,
+        events: [],
+        hasMore: false,
+        nextCursor: null,
+        available: false,
+      },
+      200,
+      { 'Cache-Control': 'private, no-store' }
+    );
   }
 
   // Plan choice. `?source=` is already a `source = ?` equality, so SQLite can
@@ -1028,7 +1030,7 @@ dataRoute.get('/records/:id', async (c) => {
       .where(eq(schema.events.id, id))
       .limit(1);
   } catch {
-    return c.json({ id, available: false });
+    return c.json({ id, available: false }, 200, { 'Cache-Control': 'private, no-store' });
   }
   if (!row) return c.json({ error: 'not_found', id }, 404);
 
@@ -1232,17 +1234,21 @@ async function attentionSourceEvents(
       available: true,
     });
   } catch {
-    return c.json({
-      id,
-      date: options.date,
-      total: 0,
-      latestObservedAt: 0,
-      lastIngestedAt: 0,
-      futureCount: 0,
-      events: [],
-      hasMore: false,
-      nextCursor: null,
-      available: false,
-    });
+    return c.json(
+      {
+        id,
+        date: options.date,
+        total: 0,
+        latestObservedAt: 0,
+        lastIngestedAt: 0,
+        futureCount: 0,
+        events: [],
+        hasMore: false,
+        nextCursor: null,
+        available: false,
+      },
+      200,
+      { 'Cache-Control': 'private, no-store' }
+    );
   }
 }
