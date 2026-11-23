@@ -181,7 +181,10 @@ def test_explicit_ft_headline_credit_cannot_corroborate_the_original(reverse):
 
     evidence = _proof_evidence(assessments, events)
     assert _proof_verdict(SimpleNamespace(evidence=evidence)).reason == "single_evidentiary_origin"
-    assert distinct_generation_events([*events, independent]) == [original, independent]
+    another_original = event("another-ft-story", "A separate Financial Times investigation.")
+    another_original.source_url = "https://www.ft.com/content/another-story"
+    generation_events = [*events, independent, another_original]
+    assert distinct_generation_events(generation_events) == generation_events
 
     summary.title = "Independent reporting confirms deal after FT coverage"
     assert coalesce_copied_origins(events, ["a", "b"]) == ["a", "b"]

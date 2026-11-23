@@ -23,12 +23,14 @@ def _shingles(text: str) -> set[tuple[str, ...]]:
     return {tuple(words[i : i + 5]) for i in range(len(words) - 4)}
 
 
-def _credited_publisher(event: Event) -> str | None:
+def _credited_publisher(event: Event, *, include_headlines: bool) -> str | None:
     match = re.match(r"\s*\((Bloomberg|Reuters)\)\s*(?:--|—|–)", event.content or "", re.I)
     if match:
         return match.group(1).lower()
-    if event.source.split(":", 1)[0] == "news" and re.search(
-        r":\s*(?:FT|Financial Times)\s*$", event.title or ""
+    if (
+        include_headlines
+        and event.source.split(":", 1)[0] == "news"
+        and re.search(r":\s*(?:FT|Financial Times)\s*$", event.title or "")
     ):
         return "ft"
     return None
@@ -46,7 +48,9 @@ def _original_publisher(event: Event) -> str | None:
     )
 
 
-def coalesce_copied_origins(events: list[Event], origins: list[str]) -> list[str]:
+def coalesce_copied_origins(
+    events: list[Event], origins: list[str], *, include_headline_credits: bool = True
+) -> list[str]:
     """Keep model-declared common origins and merge substantially copied articles.
 
     At least 80 distinct five-word sequences must match and cover 80 percent of
@@ -65,7 +69,9 @@ def coalesce_copied_origins(events: list[Event], origins: list[str]) -> list[str
         return i
 
     texts = [_shingles(event.content or "") for event in events]
-    credits = [_credited_publisher(event) for event in events]
+    credits = [
+        _credited_publisher(event, include_headlines=include_headline_credits) for event in events
+    ]
     publishers = [_original_publisher(event) for event in events]
     for i, origin in enumerate(origins):
         if not origin:
@@ -93,12 +99,15 @@ def coalesce_copied_origins(events: list[Event], origins: list[str]) -> list[str
 
 def distinct_generation_events(events: list[Event]) -> list[Event]:
     """Keep the first source per copied-text group, without declaring independence."""
-    origins = coalesce_copied_origins(events, [event.source_url for event in events])
-    selected: dict[str, Event] = {}
+    # A headline credit can rule out independence without proving that two
+    # inputs describe the same story. Keep both available to the generator.
+    origins = coalesce_copied_origins(
+        events, [event.source_url for event in events], include_headline_credits=False
+    )
+    selected: list[Event] = []
+    seen: set[str] = set()
     for event, origin in zip(events, origins):
-        current = selected.get(origin)
-        if current is None or (
-            (credit := _credited_publisher(current)) and credit == _original_publisher(event)
-        ):
-            selected[origin] = event
-    return list(selected.values())
+        if origin not in seen:
+            selected.append(event)
+            seen.add(origin)
+    return selected
