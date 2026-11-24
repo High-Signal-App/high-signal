@@ -454,7 +454,14 @@ class StockStore:
             snapshot = self._project_dataset(
                 facts, as_of=at, audience="display", freshness_days=freshness_days
             )
-            snapshot["ambiguous_holding_entities"] = sorted(ambiguous)
+            visible = {fact["id"] for fact in snapshot["facts"]}
+            withheld = {
+                fact.entity_id
+                for fact in _current_period_facts(facts)
+                if fact.metric == "shares_owned" and fact.id not in visible
+            }
+            # Internal-only holder IDs. Restricted facts never enter the snapshot.
+            snapshot["withheld_holding_entities"] = sorted(ambiguous | withheld)
             snapshots[at] = snapshot
         return snapshots
 

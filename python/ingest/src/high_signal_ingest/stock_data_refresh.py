@@ -160,11 +160,11 @@ def _with_research_valuations(dataset: dict, securities: dict[str, dict]) -> dic
     facts = {fact["id"]: fact for fact in dataset["facts"]}
     values = []
     if any(fact["metric"] == "shares_owned" for fact in facts.values()):
-        ambiguous = set(dataset.get("ambiguous_holding_entities", []))
+        withheld = set(dataset.get("withheld_holding_entities", []))
         values = [
             value
             for value in valuation_snapshots(dataset)
-            if value["parent_entity_id"] not in ambiguous
+            if value["parent_entity_id"] not in withheld
             and all(_registered_holding(line, facts, securities) for line in value["components"])
         ]
     dataset["valuations"] = values

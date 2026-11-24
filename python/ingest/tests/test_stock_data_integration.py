@@ -665,8 +665,12 @@ def test_research_carries_listed_coverage_for_one_changed_filing(
     assert withheld.source_document.document_key == event.source_document.document_key
 
 
-@pytest.mark.parametrize("simultaneous", [False, True])
-def test_multiple_filings_for_one_parent_use_their_own_cutoffs(tmp_path, monkeypatch, simultaneous):
+@pytest.mark.parametrize(
+    ("simultaneous", "restricted"), [(False, False), (True, False), (True, True)]
+)
+def test_multiple_filings_for_one_parent_use_their_own_cutoffs(
+    tmp_path, monkeypatch, simultaneous, restricted
+):
     from high_signal_ingest import stock_data_refresh
     from high_signal_ingest.stock_data import Entity, Fact, Security
 
@@ -690,6 +694,11 @@ def test_multiple_filings_for_one_parent_use_their_own_cutoffs(tmp_path, monkeyp
         store.put_entity(Entity("holder", "Fixture holder", "IN"))
         permit(store, "filing")
         permit(store, "quote")
+        store.put_rights(
+            SourceRights(
+                "restricted-filing", "https://example.org/restricted", public_display="prohibited"
+            )
+        )
         quote = store.retain_evidence(
             source_id="quote",
             url="https://example.org/quotes",
@@ -711,6 +720,7 @@ def test_multiple_filings_for_one_parent_use_their_own_cutoffs(tmp_path, monkeyp
             )
         )
         for i, (disclosure, revised) in enumerate(zip(disclosures, ("12", "13"))):
+            source_id = "restricted-filing" if restricted and i == 1 else "filing"
             issuer = f"issuer-{i}"
             security = f"security:{issuer}"
             store.put_entity(Entity(issuer, f"Fixture issuer {i}", "IN"))
@@ -732,7 +742,7 @@ def test_multiple_filings_for_one_parent_use_their_own_cutoffs(tmp_path, monkeyp
             )
             for shares, at in (("10", first), (revised, disclosure)):
                 filing = store.retain_evidence(
-                    source_id="filing",
+                    source_id=source_id,
                     url=f"https://example.org/filing-{i}",
                     body=f"{at}: {shares}".encode(),
                     available_at=at,
@@ -752,9 +762,20 @@ def test_multiple_filings_for_one_parent_use_their_own_cutoffs(tmp_path, monkeyp
                         {**basis, "asset_entity_id": issuer},
                     )
                 )
+                if source_id == "restricted-filing":
+                    restricted_evidence_id = filing.id
 
     events = stock_data_refresh.fetch_research_inputs()
     filings = [event for event in events if "/filing-" in event.source_url]
+    if restricted:
+        assert [event.source_url for event in filings] == ["https://example.org/filing-0"]
+        [visible_filing] = filings
+        payload = visible_filing.source_document.raw_json
+        assert payload["facts"][0]["value"] == "12"
+        assert "listedCoverageChange" not in payload
+        assert "restricted-filing" not in str(payload)
+        assert restricted_evidence_id not in str(payload)
+        return
     assert [event.source_url for event in filings] == [
         "https://example.org/filing-0",
         "https://example.org/filing-1",
