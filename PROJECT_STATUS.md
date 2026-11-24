@@ -1,6 +1,15 @@
 # high-signal — PROJECT STATUS
 
-Last updated: 2026-11-15
+Last updated: 2026-11-24
+
+## November 24 reviewed company-source refresh
+
+The web artifact renews the same five pilot sources and adds reviewed company
+evidence for Airweave and Exa. The existing publication policy admits 342
+profiles. The other 12,957 records and the full historical snapshot retain their
+previous contents. The new reviews expire December 24. Production verification,
+API parity, and future renewals are tracked in
+[issue #320](https://github.com/High-Signal-App/high-signal/issues/320).
 
 November 15 public brief reading path — implementation:
 
