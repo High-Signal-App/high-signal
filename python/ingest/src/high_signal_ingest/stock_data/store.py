@@ -518,10 +518,14 @@ class StockStore:
             for public_at, fact in holdings.get(entity_id, ())
             if public_at <= cutoff
         ]
+        latest_holdings, unresolved = _holdings_by_original_disclosure(selected, disclosure_times)
+        period_holdings, invalid_periods = _historical_reporting_periods(
+            latest_holdings, cutoff.date().isoformat()
+        )
         securities = {
             fact.dimensions["security_id"]
-            for fact in selected
-            if fact.metric == "shares_owned" and fact.dimensions.get("security_id")
+            for fact in period_holdings
+            if fact.dimensions.get("security_id")
         }
         selected_quotes = (
             fact
@@ -530,10 +534,8 @@ class StockStore:
             if public_at <= cutoff
         )
         selected_edges = (fact for public_at, fact in edges if public_at <= cutoff)
-        latest_holdings, unresolved = _holdings_by_original_disclosure(selected, disclosure_times)
         other = (fact for fact in selected if fact.metric != "shares_owned")
-        facts = self._choose_latest(chain(latest_holdings, other, selected_quotes, selected_edges))
-        facts, invalid_periods = _historical_reporting_periods(facts, cutoff.date().isoformat())
+        facts = self._choose_latest(chain(period_holdings, other, selected_quotes, selected_edges))
         reporting = _current_period_facts(facts)
         retained = {fact.id for fact in reporting}
         incomplete = {

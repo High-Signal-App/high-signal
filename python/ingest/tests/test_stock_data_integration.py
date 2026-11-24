@@ -1020,13 +1020,15 @@ def test_valuation_orders_eligible_holding_revisions_by_disclosure(
             )
         )
 
-        for issuer in ("first", "second"):
+        quote_fact_ids = {}
+        issuers = ("first", "second", "future-only") if future_period else ("first", "second")
+        for issuer in issuers:
             security = f"security:{issuer}"
             store.put_entity(Entity(issuer, f"Fixture issuer {issuer}", "IN"))
             store.put_security(Security(security, issuer, f"{issuer}.NS", "INR"))
             basis = {"security_id": security, "share_basis": "v1"}
             holding = {**basis, "asset_entity_id": issuer, "period_end": effective[:10]}
-            store.put_fact(
+            quote_fact_ids[issuer] = store.put_fact(
                 Fact(
                     issuer,
                     "raw_close",
@@ -1040,6 +1042,8 @@ def test_valuation_orders_eligible_holding_revisions_by_disclosure(
                     {**basis, "price_basis": "nominal"},
                 )
             )
+            if issuer == "future-only":
+                continue
             observations = [("10", earlier, earlier, "filing", f"https://example.org/{issuer}")]
             if issuer == "second":
                 amendment_source = "restricted-amendment" if restricted_newer else "filing"
@@ -1113,11 +1117,51 @@ def test_valuation_orders_eligible_holding_revisions_by_disclosure(
                 if source == "restricted-amendment":
                     restricted_id = doc.id
 
-    [event] = [
-        event
-        for event in stock_data_refresh.fetch_research_inputs()
-        if event.source_url == trigger_url
-    ]
+    def trigger_event():
+        [event] = [
+            event
+            for event in stock_data_refresh.fetch_research_inputs()
+            if event.source_url == trigger_url
+        ]
+        return event
+
+    event = trigger_event()
+    if future_period:
+        with StockStore(path) as store:
+            available_at = latest if future_period == "delayed" else newer
+            doc = store.retain_evidence(
+                source_id="restricted-amendment" if restricted_newer else "filing",
+                url="https://example.org/future-only",
+                body=b"fixture future-only holding",
+                available_at=newer,
+                ingested_at=available_at,
+            )
+            store.put_fact(
+                Fact(
+                    "holder",
+                    "shares_owned",
+                    "99",
+                    "shares",
+                    effective,
+                    available_at,
+                    available_at,
+                    doc.id,
+                    "/shares",
+                    {
+                        "security_id": "security:future-only",
+                        "share_basis": "v1",
+                        "asset_entity_id": "future-only",
+                        "period_end": "2026-11-30",
+                    },
+                )
+            )
+        with_future = trigger_event()
+        assert with_future.id == event.id
+        assert (
+            with_future.source_document.raw_json["listedCoverageChange"]
+            == event.source_document.raw_json["listedCoverageChange"]
+        )
+        event = with_future
     payload = event.source_document.raw_json
     if future_period:
         assert "https://example.org/future" not in str(payload)
@@ -1128,6 +1172,9 @@ def test_valuation_orders_eligible_holding_revisions_by_disclosure(
         change = payload["listedCoverageChange"]
         assert change["before"]["listedInvestmentCoverage"] == "6"
         assert change["after"]["listedInvestmentCoverage"] == "6.4"
+        expected_quotes = {quote_fact_ids["first"], quote_fact_ids["second"]}
+        for side in ("before", "after"):
+            assert expected_quotes <= set(change[side]["inputFactIds"])
 
 
 @pytest.mark.parametrize("second_period", ["2026-10-25", "2026-99-25"])
