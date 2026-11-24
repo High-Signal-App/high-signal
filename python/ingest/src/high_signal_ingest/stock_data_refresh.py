@@ -5,10 +5,10 @@ from __future__ import annotations
 import argparse
 import json
 from dataclasses import asdict
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from .stock_data.models import Fact, content_id
+from .stock_data.models import Fact, content_id, instant
 from .stock_data.store import StockStore
 from .stock_data.valuation import (
     ListedHolding,
@@ -116,11 +116,75 @@ def fetch_research_inputs(days: int = 3) -> list[Event]:
     if not path.exists():
         raise RuntimeError("canonical stock ledger unavailable; run the equities refresh first")
     now = datetime.now(timezone.utc).isoformat()
-    with StockStore(path) as store:
-        dataset = store.dataset(as_of=now, audience="display", freshness_days=max(days, 7))
+    with StockStore(path) as store, store.transaction():
+        freshness_days = max(days, 7)
+        cutoff = instant(now) - timedelta(days=freshness_days)
+        securities = {row["id"]: row for row in store.identities("security")}
+        dataset = store.dataset(as_of=now, audience="display", freshness_days=freshness_days)
+        filing_scopes = _research_filing_scopes(dataset, cutoff)
+        before_filing = {
+            at: (instant(at) - timedelta(microseconds=1)).isoformat() for at in filing_scopes
+        }
+        scopes: dict[str, set[str]] = {}
+        for at, before in before_filing.items():
+            for cutoff_at in (at, before):
+                scopes.setdefault(cutoff_at, set()).update(filing_scopes[at])
+        historical = {
+            at: _with_research_valuations(dataset, securities)
+            for at, dataset in store.valuation_history(
+                scopes, freshness_days=freshness_days, observed_at=now
+            ).items()
+        }
+        windows = {at: (historical[before], historical[at]) for at, before in before_filing.items()}
         # Stable event identities provide downstream idempotency. Delivery progress
         # belongs to existing audit acknowledgements, never a local pre-send cursor.
-        return research_events(None, dataset)
+        return research_events(None, dataset, valuation_windows=windows)
+
+
+def _research_filing_scopes(dataset: dict, cutoff: datetime) -> dict[str, set[str]]:
+    """Consider only holdings already eligible for the existing raw research events."""
+    stale = set(dataset["stale_fact_ids"])
+    evidence = {document["id"]: document for document in dataset["evidence"]}
+    scopes: dict[str, set[str]] = {}
+    for fact in dataset["facts"]:
+        if fact["metric"] != "shares_owned" or fact["status"] != "available" or fact["id"] in stale:
+            continue
+        at = fact["available_at"]
+        document = evidence[fact["evidence_id"]]
+        if at == document["available_at"] and instant(at) >= cutoff:
+            scopes.setdefault(at, set()).add(fact["entity_id"])
+    return scopes
+
+
+def _with_research_valuations(dataset: dict, securities: dict[str, dict]) -> dict:
+    facts = {fact["id"]: fact for fact in dataset["facts"]}
+    values = []
+    if any(fact["metric"] == "shares_owned" for fact in facts.values()):
+        withheld = set(dataset.get("withheld_holding_entities", []))
+        values = [
+            value
+            for value in valuation_snapshots(dataset)
+            if value["parent_entity_id"] not in withheld
+            and all(_registered_holding(line, facts, securities) for line in value["components"])
+        ]
+    dataset["valuations"] = values
+    return dataset
+
+
+def _registered_holding(line: dict, facts: dict[str, dict], securities: dict[str, dict]) -> bool:
+    inputs = {facts[fact_id]["metric"]: facts[fact_id] for fact_id in line["input_fact_ids"]}
+    holding, quote = inputs.get("shares_owned"), inputs.get("raw_close")
+    if not holding or not quote:
+        return False
+    security_id = holding["dimensions"].get("security_id")
+    security = securities.get(security_id)
+    return bool(
+        security
+        and security["entity_id"] == line["asset_entity_id"]
+        and security["entity_id"] == quote["entity_id"]
+        and security["currency"] == quote["unit"]
+        and security_id == quote["dimensions"].get("security_id")
+    )
 
 
 def main() -> None:

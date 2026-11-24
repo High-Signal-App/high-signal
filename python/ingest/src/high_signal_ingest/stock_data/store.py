@@ -7,7 +7,8 @@ import json
 import sqlite3
 from contextlib import contextmanager
 from dataclasses import asdict
-from datetime import timedelta
+from datetime import date, datetime, timedelta
+from itertools import chain
 from pathlib import Path
 from typing import Iterable, Iterator
 
@@ -20,6 +21,7 @@ from .models import (
     SourceRights,
     canonical_json,
     content_id,
+    decimal_value,
     instant,
     utc,
     series_id,
@@ -278,6 +280,9 @@ class StockStore:
         known_at: str | None = None,
         entity_id: str | None = None,
         metric: str | None = None,
+        entity_ids: tuple[str, ...] = (),
+        metrics: tuple[str, ...] = (),
+        security_ids: tuple[str, ...] = (),
     ) -> list[Fact]:
         terms = ["substr(effective_at,1,19)<=?", "substr(available_at,1,19)<=?"]
         args = [utc(as_of)[:19], utc(as_of)[:19]]
@@ -288,6 +293,15 @@ class StockStore:
             if value is not None:
                 terms.append(f"{column}=?")
                 args.append(value)
+        for column, values in (("entity_id", entity_ids), ("metric", metrics)):
+            if values:
+                terms.append(f"{column} IN ({','.join('?' for _ in values)})")
+                args.extend(values)
+        if security_ids:
+            terms.append(
+                "json_extract(payload,'$.dimensions.security_id') IN (SELECT value FROM json_each(?))"
+            )
+            args.append(canonical_json(security_ids))
         rows = self.connection.execute(
             "SELECT payload FROM facts WHERE "
             + " AND ".join(terms)
@@ -307,8 +321,12 @@ class StockStore:
         )
 
     def latest_facts(self, **kwargs: object) -> list[Fact]:
+        return self._choose_latest(self.facts(**kwargs))
+
+    @staticmethod
+    def _choose_latest(facts: Iterable[Fact]) -> list[Fact]:
         chosen: dict[str, Fact] = {}
-        for fact in self.facts(**kwargs):
+        for fact in facts:
             key = series_id(fact.entity_id, fact.metric, fact.unit, fact.dimensions)
             previous = chosen.get(key)
             if (
@@ -383,13 +401,165 @@ class StockStore:
         required_metrics: Iterable[str] = (),
         freshness_days: int = 7,
     ) -> dict:
+        return self._project_dataset(
+            self.latest_facts(as_of=as_of, known_at=known_at, entity_id=entity_id),
+            as_of=as_of,
+            entity_id=entity_id,
+            known_at=known_at,
+            audience=audience,
+            required_metrics=required_metrics,
+            freshness_days=freshness_days,
+        )
+
+    def valuation_history(
+        self, scopes: dict[str, set[str]], *, freshness_days: int, observed_at: str | None = None
+    ) -> dict[str, dict]:
+        """Read the relevant valuation series once for the requested display snapshots."""
+        if not scopes:
+            return {}
+        last = max(scopes, key=instant)
+        entities = sorted(set().union(*scopes.values()))
+        holdings: dict[str, list[tuple[datetime, Fact]]] = {}
+        security_ids: set[str] = set()
+        for offset in range(0, len(entities), 400):
+            for fact in self.facts(
+                as_of=observed_at or last,
+                entity_ids=tuple(entities[offset : offset + 400]),
+                metrics=("shares_owned", "market_cap"),
+            ):
+                public_at = max(instant(fact.effective_at), instant(fact.available_at))
+                holdings.setdefault(fact.entity_id, []).append((public_at, fact))
+                if fact.metric == "shares_owned" and fact.dimensions.get("security_id"):
+                    security_ids.add(fact.dimensions["security_id"])
+
+        quotes: dict[str, list[tuple[datetime, Fact]]] = {}
+        if security_ids:
+            for fact in self.facts(
+                as_of=last, metric="raw_close", security_ids=tuple(sorted(security_ids))
+            ):
+                public_at = max(instant(fact.effective_at), instant(fact.available_at))
+                quotes.setdefault(fact.dimensions["security_id"], []).append((public_at, fact))
+
+        # The valuation engine validates the full ownership graph. Reuse its history
+        # across filing cutoffs rather than narrowing it to the quoted entities.
+        edges = [
+            (max(instant(fact.effective_at), instant(fact.available_at)), fact)
+            for fact in self.facts(as_of=last, metric="ownership_fraction")
+        ]
+        disclosure_times, delayed = self._delayed_holding_disclosures(holdings)
+        snapshots = {}
+        for at, entity_ids in sorted(scopes.items()):
+            cutoff = instant(at)
+            facts, ambiguous = self._valuation_facts_at(
+                cutoff, entity_ids, holdings, quotes, edges, disclosure_times
+            )
+            snapshot = self._project_dataset(
+                facts, as_of=at, audience="display", freshness_days=freshness_days
+            )
+            visible = {fact["id"] for fact in snapshot["facts"]}
+            reporting = _current_period_facts(facts)
+            withheld = {
+                fact.entity_id
+                for fact in reporting
+                if fact.metric == "shares_owned" and fact.id not in visible
+            }
+            withheld |= _undernormalized_holding_entities(entity_ids, delayed, reporting, cutoff)
+            # Internal-only holder IDs. Restricted facts never enter the snapshot.
+            snapshot["withheld_holding_entities"] = sorted(ambiguous | withheld)
+            snapshots[at] = snapshot
+        return snapshots
+
+    def _delayed_holding_disclosures(
+        self, holdings: dict[str, list[tuple[datetime, Fact]]]
+    ) -> tuple[dict[str, datetime], dict[str, list[tuple[datetime, datetime, Fact]]]]:
+        """Collect disclosure gaps for withholding only, before any display rights filtering."""
+        document_times = self._holding_disclosure_times(
+            {
+                fact.evidence_id
+                for rows in holdings.values()
+                for _, fact in rows
+                if fact.metric == "shares_owned"
+            }
+        )
+        delayed: dict[str, list[tuple[datetime, datetime, Fact]]] = {}
+        for entity_id, rows in holdings.items():
+            for normalized_at, fact in rows:
+                if fact.metric != "shares_owned":
+                    continue
+                effective_at = instant(fact.effective_at)
+                # If historical metadata is missing, block the possible interval
+                # rather than assuming it was safe to use the older holding.
+                disclosed_at = max(document_times.get(fact.evidence_id, effective_at), effective_at)
+                if disclosed_at < normalized_at:
+                    delayed.setdefault(entity_id, []).append((disclosed_at, normalized_at, fact))
+        return document_times, delayed
+
+    def _holding_disclosure_times(self, evidence_ids: set[str]) -> dict[str, datetime]:
+        if not evidence_ids:
+            return {}
+        rows = self.connection.execute(
+            "SELECT id,available_at FROM evidence WHERE id IN (SELECT value FROM json_each(?))",
+            (canonical_json(sorted(evidence_ids)),),
+        )
+        return {row["id"]: instant(row["available_at"]) for row in rows}
+
+    def _valuation_facts_at(
+        self,
+        cutoff: datetime,
+        entity_ids: set[str],
+        holdings: dict[str, list[tuple[datetime, Fact]]],
+        quotes: dict[str, list[tuple[datetime, Fact]]],
+        edges: list[tuple[datetime, Fact]],
+        disclosure_times: dict[str, datetime],
+    ) -> tuple[list[Fact], set[str]]:
+        selected = [
+            fact
+            for entity_id in sorted(entity_ids)
+            for public_at, fact in holdings.get(entity_id, ())
+            if public_at <= cutoff
+        ]
+        latest_holdings, unresolved = _holdings_by_original_disclosure(selected, disclosure_times)
+        period_holdings, invalid_periods = _historical_reporting_periods(
+            latest_holdings, cutoff.date().isoformat()
+        )
+        securities = {
+            fact.dimensions["security_id"]
+            for fact in period_holdings
+            if fact.dimensions.get("security_id")
+        }
+        selected_quotes = (
+            fact
+            for security in sorted(securities)
+            for public_at, fact in quotes.get(security, ())
+            if public_at <= cutoff
+        )
+        selected_edges = (fact for public_at, fact in edges if public_at <= cutoff)
+        other = (fact for fact in selected if fact.metric != "shares_owned")
+        facts = self._choose_latest(chain(period_holdings, other, selected_quotes, selected_edges))
+        reporting = _current_period_facts(facts)
+        retained = {fact.id for fact in reporting}
+        incomplete = {
+            fact.entity_id for fact in facts if _is_tagged_holding(fact) and fact.id not in retained
+        }
+        ambiguous = _ambiguous_holding_entities(selected, reporting, disclosure_times)
+        return facts, unresolved | invalid_periods | incomplete | ambiguous
+
+    def _project_dataset(
+        self,
+        facts: list[Fact],
+        *,
+        as_of: str,
+        entity_id: str | None = None,
+        known_at: str | None = None,
+        audience: str,
+        required_metrics: Iterable[str] = (),
+        freshness_days: int,
+    ) -> dict:
         if audience not in {"internal", "display", "export"}:
             raise ValueError("unknown dataset audience")
         if freshness_days < 0:
             raise ValueError("freshness_days must be nonnegative")
-        facts = _current_period_facts(
-            self.latest_facts(as_of=as_of, known_at=known_at, entity_id=entity_id)
-        )
+        facts = _current_period_facts(facts)
         retained: list[Fact] = []
         documents: dict[str, dict] = {}
         rights_versions: dict[str, str] = {}
@@ -440,6 +610,147 @@ class StockStore:
 Store = StockStore
 
 
+def _holdings_by_original_disclosure(
+    eligible: list[Fact], disclosure_times: dict[str, datetime]
+) -> tuple[list[Fact], set[str]]:
+    """Use normalization for eligibility and the original disclosure for selection."""
+    chosen: dict[str, tuple[tuple, Fact]] = {}
+    unresolved = set()
+    for fact in eligible:
+        if fact.metric != "shares_owned":
+            continue
+        disclosed_at = disclosure_times.get(fact.evidence_id)
+        if disclosed_at is None:
+            unresolved.add(fact.entity_id)
+            continue
+        series, effective_order, _ = _holding_revision(fact, disclosure_times)
+        rank = (effective_order, disclosed_at, fact.available_at, fact.ingested_at, fact.id)
+        previous = chosen.get(series)
+        if previous is None or rank > previous[0]:
+            chosen[series] = (rank, fact)
+    return [fact for _, fact in chosen.values()], unresolved
+
+
+def _holding_revision(
+    fact: Fact, disclosure_times: dict[str, datetime]
+) -> tuple[str, str, datetime]:
+    series = series_id(fact.entity_id, fact.metric, fact.unit, fact.dimensions)
+    disclosed_at = disclosure_times.get(fact.evidence_id) or instant(fact.available_at)
+    # The canonical series contains the declared period. Effective time still
+    # bounds eligibility, but only untagged series use it to order revisions.
+    effective_order = "" if "period_end" in fact.dimensions else fact.effective_at
+    return series, effective_order, disclosed_at
+
+
+def _period_scope(fact: Fact) -> str:
+    dimensions = {
+        key: value
+        for key, value in fact.dimensions.items()
+        if key not in {"period_start", "period_end"}
+    }
+    return series_id(fact.entity_id, fact.metric, fact.unit, dimensions)
+
+
+def _holding_reporting_scope(fact: Fact) -> tuple[str, str]:
+    if "period_end" in fact.dimensions:
+        return "reporting_period", _period_scope(fact)
+    return "untagged_series", series_id(fact.entity_id, fact.metric, fact.unit, fact.dimensions)
+
+
+def _is_tagged_holding(fact: Fact) -> bool:
+    return fact.metric == "shares_owned" and "period_end" in fact.dimensions
+
+
+def _holding_scope_order(fact: Fact) -> str | None:
+    if not _is_tagged_holding(fact):
+        return fact.effective_at
+    declared = fact.dimensions["period_end"]
+    try:
+        return declared if date.fromisoformat(declared).isoformat() == declared else None
+    except ValueError:
+        return None
+
+
+def _historical_reporting_periods(
+    facts: list[Fact], cutoff_day: str
+) -> tuple[list[Fact], set[str]]:
+    """Select eligible tagged holding periods before checking display permissions."""
+    periods: dict[str, tuple[str, str | None]] = {}
+    latest: dict[str, str] = {}
+    invalid = set()
+    for fact in facts:
+        if not _is_tagged_holding(fact):
+            continue
+        period = _holding_scope_order(fact)
+        scope = _period_scope(fact)
+        periods[fact.id] = (scope, period)
+        if period is None:
+            invalid.add(fact.entity_id)
+        elif period <= cutoff_day:
+            latest[scope] = max(period, latest.get(scope, period))
+    selected = []
+    for fact in facts:
+        tagged = periods.get(fact.id)
+        if tagged is None or (tagged[1] is not None and tagged[1] == latest.get(tagged[0])):
+            selected.append(fact)
+    return selected, invalid
+
+
+def _undernormalized_holding_entities(
+    entity_ids: set[str],
+    delayed: dict[str, list[tuple[datetime, datetime, Fact]]],
+    reporting: list[Fact],
+    cutoff: datetime,
+) -> set[str]:
+    cutoff_day = cutoff.date().isoformat()
+    retained_periods = {
+        _holding_reporting_scope(fact): _holding_scope_order(fact)
+        for fact in reporting
+        if fact.metric == "shares_owned"
+    }
+    return {
+        entity_id
+        for entity_id in entity_ids
+        for disclosed_at, normalized_at, fact in delayed.get(entity_id, ())
+        if disclosed_at <= cutoff < normalized_at
+        and _holding_in_reporting_scope(fact, retained_periods, cutoff_day)
+    }
+
+
+def _holding_in_reporting_scope(
+    fact: Fact, retained: dict[tuple[str, str], str | None], cutoff_day: str
+) -> bool:
+    order = _holding_scope_order(fact)
+    if _is_tagged_holding(fact) and order is not None and order > cutoff_day:
+        return False
+    active = retained.get(_holding_reporting_scope(fact))
+    return order is None or active is None or order >= active
+
+
+def _ambiguous_holding_entities(
+    candidates: list[Fact], chosen: list[Fact], disclosure_times: dict[str, datetime]
+) -> set[str]:
+    """A later receipt time does not establish which same-disclosure filing supersedes another."""
+    revisions = {
+        _holding_revision(fact, disclosure_times): fact
+        for fact in chosen
+        if fact.metric == "shares_owned"
+    }
+    ambiguous = set()
+    for fact in candidates:
+        if fact.metric != "shares_owned":
+            continue
+        selected = revisions.get(_holding_revision(fact, disclosure_times))
+        if selected:
+            actual = decimal_value(fact.value) if fact.value is not None else None
+            expected = decimal_value(selected.value) if selected.value is not None else None
+            if actual != expected or (
+                fact.dimensions.get("share_basis") != selected.dimensions.get("share_basis")
+            ):
+                ambiguous.add(fact.entity_id)
+    return ambiguous
+
+
 def _stale_fact_ids(facts: list[Fact], as_of: str, freshness_days: int) -> list[str]:
     market_metrics = {"raw_close", "adjusted_close", "provider_close", "market_cap", "fx_rate"}
     return sorted(
@@ -459,20 +770,7 @@ def _current_period_facts(facts: list[Fact]) -> list[Fact]:
     The ledger retains older periods for as-of queries and replay. A companyfacts
     history must not become an unbounded current-publication or research payload.
     """
-    keys = {
-        fact.id: series_id(
-            fact.entity_id,
-            fact.metric,
-            fact.unit,
-            {
-                key: value
-                for key, value in fact.dimensions.items()
-                if key not in {"period_start", "period_end"}
-            },
-        )
-        for fact in facts
-        if "period_end" in fact.dimensions
-    }
+    keys = {fact.id: _period_scope(fact) for fact in facts if "period_end" in fact.dimensions}
     latest = {}
     for fact in facts:
         if fact.id in keys:
