@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from .stock_data.models import content_id, decimal_value
+from .stock_data.models import content_id, decimal_value, instant
 from .stock_data.valuation import detect_changes
 from .types import Event, SourceDocument
 
@@ -210,7 +210,7 @@ def _listed_coverage(dataset: dict, entity_id: str, permitted: set[str]) -> dict
     if input_ids & set(dataset["stale_fact_ids"]) or not input_ids <= facts.keys():
         return None
     selected = [facts[fact_id] for fact_id in input_ids]
-    evidence_ids = _supported_evidence_ids(selected, evidence, permitted)
+    evidence_ids = _supported_evidence_ids(selected, evidence, permitted, instant(dataset["as_of"]))
     if not evidence_ids:
         return None
     return {
@@ -227,7 +227,7 @@ def _listed_coverage(dataset: dict, entity_id: str, permitted: set[str]) -> dict
 
 
 def _supported_evidence_ids(
-    selected: list[dict], evidence: dict[str, dict], permitted: set[str]
+    selected: list[dict], evidence: dict[str, dict], permitted: set[str], cutoff: datetime
 ) -> list[str]:
     evidence_ids = {fact["evidence_id"] for fact in selected}
     if any(
@@ -235,8 +235,9 @@ def _supported_evidence_ids(
     ):
         return []
     if any(
-        fact["metric"] == "shares_owned"
-        and fact["available_at"] != evidence[fact["evidence_id"]]["available_at"]
+        instant(fact["available_at"]) > cutoff
+        or instant(fact["effective_at"]) > cutoff
+        or instant(evidence[fact["evidence_id"]]["available_at"]) > cutoff
         for fact in selected
     ):
         return []

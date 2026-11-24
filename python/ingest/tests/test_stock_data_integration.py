@@ -673,18 +673,29 @@ def test_research_carries_listed_coverage_for_one_changed_filing(
 
 
 @pytest.mark.parametrize(
-    ("simultaneous", "restricted", "delayed", "superseded", "missing_metadata"),
+    ("simultaneous", "restricted", "delayed", "superseded", "missing_metadata", "coholding_case"),
     [
-        (False, False, False, False, False),
-        (True, False, False, False, False),
-        (True, True, False, False, False),
-        (True, True, True, False, False),
-        (False, False, False, True, False),
-        (True, True, True, False, True),
+        (False, False, False, False, False, "normal"),
+        (True, False, False, False, False, "normal"),
+        (True, True, False, False, False, "normal"),
+        (True, True, True, False, False, "normal"),
+        (False, False, False, True, False, "normal"),
+        (True, True, True, False, True, "normal"),
+        (True, True, True, False, False, "tagged-before"),
+        (True, True, True, False, False, "tagged-after"),
+        (False, False, False, False, False, "normalized-before"),
+        (False, False, False, False, False, "shared-normalization"),
     ],
 )
 def test_multiple_filings_for_one_parent_use_their_own_cutoffs(
-    tmp_path, monkeypatch, simultaneous, restricted, delayed, superseded, missing_metadata
+    tmp_path,
+    monkeypatch,
+    simultaneous,
+    restricted,
+    delayed,
+    superseded,
+    missing_metadata,
+    coholding_case,
 ):
     from high_signal_ingest import stock_data_refresh
     from high_signal_ingest.stock_data import Entity, Fact, Security
@@ -740,6 +751,33 @@ def test_multiple_filings_for_one_parent_use_their_own_cutoffs(
             store.put_entity(Entity(issuer, f"Fixture issuer {i}", "IN"))
             store.put_security(Security(security, issuer, f"FIXTURE{i}.NS", "INR"))
             basis = {"security_id": security, "share_basis": "v1"}
+            if i == 1 and coholding_case == "shared-normalization":
+                earlier = store.retain_evidence(
+                    source_id="filing",
+                    url="https://example.org/old-basis",
+                    body=b"same shares disclosed earlier on a different basis",
+                    available_at="2026-10-26T12:00:00Z",
+                    ingested_at=first,
+                )
+                store.put_fact(
+                    Fact(
+                        "holder",
+                        "shares_owned",
+                        "10",
+                        "shares",
+                        first,
+                        first,
+                        first,
+                        earlier.id,
+                        "/shares",
+                        {
+                            **basis,
+                            "asset_entity_id": issuer,
+                            "period_end": first[:10],
+                            "share_basis": "v2",
+                        },
+                    )
+                )
             store.put_fact(
                 Fact(
                     issuer,
@@ -754,7 +792,9 @@ def test_multiple_filings_for_one_parent_use_their_own_cutoffs(
                     {**basis, "price_basis": "nominal"},
                 )
             )
-            observations = [("10", first, first), (revised, disclosure, first)]
+            mixed_tags = i == 1 and coholding_case in {"tagged-before", "tagged-after"}
+            reported = "2026-10-26T12:00:00Z" if mixed_tags else first
+            observations = [("10", first, first), (revised, disclosure, reported)]
             if superseded and i == 0:
                 older = "2026-10-25T12:00:00Z"
                 observations.append(("9", older, older))
@@ -767,13 +807,27 @@ def test_multiple_filings_for_one_parent_use_their_own_cutoffs(
                 )
                 if effective_at != first:
                     normalized_at = latest
+                ingested_at = (
+                    "2026-10-27T12:00:00.250000Z"
+                    if coholding_case == "shared-normalization" and i == 1 and at == first
+                    else normalized_at
+                )
+                disclosed_at = (
+                    "2026-10-26T12:00:00Z"
+                    if coholding_case == "normalized-before" and i == 1 and at == first
+                    else at
+                )
                 filing = store.retain_evidence(
                     source_id=source_id,
                     url=f"https://example.org/filing-{i}",
                     body=f"{at}: {shares}".encode(),
-                    available_at=at,
-                    ingested_at=normalized_at,
+                    available_at=disclosed_at,
+                    ingested_at=ingested_at,
                 )
+                dimensions = {**basis, "asset_entity_id": issuer}
+                untagged = mixed_tags and (at == first) == (coholding_case == "tagged-after")
+                if not untagged:
+                    dimensions["period_end"] = effective_at[:10]
                 store.put_fact(
                     Fact(
                         "holder",
@@ -782,10 +836,10 @@ def test_multiple_filings_for_one_parent_use_their_own_cutoffs(
                         "shares",
                         effective_at,
                         normalized_at,
-                        normalized_at,
+                        ingested_at,
                         filing.id,
                         "/shares",
-                        {**basis, "asset_entity_id": issuer, "period_end": effective_at[:10]},
+                        dimensions,
                     )
                 )
                 if source_id == "restricted-filing":
@@ -805,8 +859,7 @@ def test_multiple_filings_for_one_parent_use_their_own_cutoffs(
     events = stock_data_refresh.fetch_research_inputs()
     filings = [event for event in events if "/filing-" in event.source_url]
     if restricted:
-        assert [event.source_url for event in filings] == ["https://example.org/filing-0"]
-        [visible_filing] = filings
+        [visible_filing] = [event for event in filings if event.source_url.endswith("/filing-0")]
         payload = visible_filing.source_document.raw_json
         assert payload["facts"][0]["value"] == "12"
         assert "listedCoverageChange" not in payload
