@@ -533,7 +533,7 @@ class StockStore:
         latest_holdings, unresolved = _holdings_by_original_disclosure(selected, disclosure_times)
         other = (fact for fact in selected if fact.metric != "shares_owned")
         facts = self._choose_latest(chain(latest_holdings, other, selected_quotes, selected_edges))
-        facts, invalid_periods = _historical_reporting_periods(facts)
+        facts, invalid_periods = _historical_reporting_periods(facts, cutoff.date().isoformat())
         reporting = _current_period_facts(facts)
         retained = {fact.id for fact in reporting}
         incomplete = {
@@ -669,7 +669,9 @@ def _holding_scope_order(fact: Fact) -> str | None:
         return None
 
 
-def _historical_reporting_periods(facts: list[Fact]) -> tuple[list[Fact], set[str]]:
+def _historical_reporting_periods(
+    facts: list[Fact], cutoff_day: str
+) -> tuple[list[Fact], set[str]]:
     """Select eligible tagged holding periods before checking display permissions."""
     periods: dict[str, tuple[str, str | None]] = {}
     latest: dict[str, str] = {}
@@ -682,12 +684,12 @@ def _historical_reporting_periods(facts: list[Fact]) -> tuple[list[Fact], set[st
         periods[fact.id] = (scope, period)
         if period is None:
             invalid.add(fact.entity_id)
-        else:
+        elif period <= cutoff_day:
             latest[scope] = max(period, latest.get(scope, period))
     selected = []
     for fact in facts:
         tagged = periods.get(fact.id)
-        if tagged is None or (tagged[1] is not None and tagged[1] == latest[tagged[0]]):
+        if tagged is None or (tagged[1] is not None and tagged[1] == latest.get(tagged[0])):
             selected.append(fact)
     return selected, invalid
 
@@ -698,6 +700,7 @@ def _undernormalized_holding_entities(
     reporting: list[Fact],
     cutoff: datetime,
 ) -> set[str]:
+    cutoff_day = cutoff.date().isoformat()
     retained_periods = {
         _holding_reporting_scope(fact): _holding_scope_order(fact)
         for fact in reporting
@@ -708,12 +711,16 @@ def _undernormalized_holding_entities(
         for entity_id in entity_ids
         for disclosed_at, normalized_at, fact in delayed.get(entity_id, ())
         if disclosed_at <= cutoff < normalized_at
-        and _holding_in_reporting_scope(fact, retained_periods)
+        and _holding_in_reporting_scope(fact, retained_periods, cutoff_day)
     }
 
 
-def _holding_in_reporting_scope(fact: Fact, retained: dict[tuple[str, str], str | None]) -> bool:
+def _holding_in_reporting_scope(
+    fact: Fact, retained: dict[tuple[str, str], str | None], cutoff_day: str
+) -> bool:
     order = _holding_scope_order(fact)
+    if _is_tagged_holding(fact) and order is not None and order > cutoff_day:
+        return False
     active = retained.get(_holding_reporting_scope(fact))
     return order is None or active is None or order >= active
 

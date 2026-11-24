@@ -950,7 +950,14 @@ def test_valuation_history_preserves_conflicting_security_identity(tmp_path):
 @pytest.mark.parametrize("triggering_issuer", ["first", "second"])
 @pytest.mark.parametrize("restricted_newer", [False, True])
 @pytest.mark.parametrize(
-    ("unequal_effective", "overlapping_periods"), [(False, False), (True, False), (True, True)]
+    ("unequal_effective", "overlapping_periods", "future_period"),
+    [
+        (False, False, None),
+        (True, False, None),
+        (True, True, None),
+        (False, False, "aligned"),
+        (False, False, "delayed"),
+    ],
 )
 def test_valuation_orders_eligible_holding_revisions_by_disclosure(
     tmp_path,
@@ -959,6 +966,7 @@ def test_valuation_orders_eligible_holding_revisions_by_disclosure(
     restricted_newer,
     unequal_effective,
     overlapping_periods,
+    future_period,
 ):
     from high_signal_ingest import stock_data_refresh
     from high_signal_ingest.stock_data import Entity, Fact, Security
@@ -1036,7 +1044,13 @@ def test_valuation_orders_eligible_holding_revisions_by_disclosure(
             if issuer == "second":
                 amendment_source = "restricted-amendment" if restricted_newer else "filing"
                 observations = [
-                    ("20", newer, newer, amendment_source, "https://example.org/amendment"),
+                    (
+                        "20",
+                        newer,
+                        newer,
+                        amendment_source if not future_period else "filing",
+                        "https://example.org/amendment",
+                    ),
                     ("10", earlier, late, "filing", "https://example.org/superseded"),
                 ]
                 if unequal_effective:
@@ -1055,6 +1069,11 @@ def test_valuation_orders_eligible_holding_revisions_by_disclosure(
                     observations.append(
                         ("10", earlier, earlier, "filing", "https://example.org/prior-period")
                     )
+                if future_period:
+                    available_at = latest if future_period == "delayed" else newer
+                    observations.append(
+                        ("99", newer, available_at, amendment_source, "https://example.org/future")
+                    )
             if issuer == triggering_issuer:
                 shares = "12" if issuer == "first" else "22"
                 observations.append((shares, trigger, trigger, "filing", trigger_url))
@@ -1068,6 +1087,8 @@ def test_valuation_orders_eligible_holding_revisions_by_disclosure(
                 if url.endswith("/prior-period"):
                     fact_effective_at = "2026-10-25T11:59:59.500000Z"
                     fact_holding = {**holding, "period_end": "2026-09-30"}
+                if url.endswith("/future"):
+                    fact_holding = {**holding, "period_end": "2026-11-30"}
                 doc = store.retain_evidence(
                     source_id=source,
                     url=url,
@@ -1098,7 +1119,9 @@ def test_valuation_orders_eligible_holding_revisions_by_disclosure(
         if event.source_url == trigger_url
     ]
     payload = event.source_document.raw_json
-    if restricted_newer:
+    if future_period:
+        assert "https://example.org/future" not in str(payload)
+    if restricted_newer and not future_period:
         assert "listedCoverageChange" not in payload
         assert restricted_id not in str(payload)
     else:
