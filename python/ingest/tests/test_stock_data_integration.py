@@ -494,3 +494,217 @@ def test_orphan_evidence_chunks_survive_restore_close_and_reopen(tmp_path):
         store.put_entity(Entity("new-company", "New company", "IN"))
         assert replication.replicate(store, Client(), known) == 1
         assert orphan["id"] in known
+
+
+@pytest.mark.parametrize(
+    ("quote_at", "shares_now", "quote_now", "has_delta"),
+    [
+        ("2026-10-28T12:00:00Z", "12", "20", True),
+        ("2026-10-20T12:00:00Z", "12", "20", False),
+        ("2026-10-28T12:00:00Z", "10", "24", False),
+    ],
+)
+def test_research_carries_listed_coverage_for_one_changed_filing(
+    tmp_path, monkeypatch, quote_at, shares_now, quote_now, has_delta
+):
+    from high_signal_ingest import stock_data_refresh
+    from high_signal_ingest.stock_data import Entity, Fact, Security
+
+    filing_url = "https://example.org/holding-filing"
+    first = "2026-10-19T12:00:00Z"
+    amendment = "2026-10-29T12:00:00Z"
+    latest = "2026-10-30T12:00:00Z"
+    path = tmp_path / "stock.sqlite"
+
+    class FrozenClock(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return cls.fromisoformat(latest.replace("Z", "+00:00")).astimezone(tz)
+
+    monkeypatch.setattr(stock_data_refresh, "datetime", FrozenClock)
+    monkeypatch.setattr(stock_data_refresh, "stock_store_path", lambda: path)
+
+    with StockStore(path) as store:
+        store.put_entity(Entity("holder", "Fixture holder", "IN"))
+        store.put_entity(Entity("issuer", "Fixture issuer", "IN"))
+        store.put_security(Security("security:issuer", "issuer", "FIXTURE.NS", "INR"))
+        permit(store, "filing")
+        permit(store, "historic-quote")
+        permit(store, "current-quote")
+        for value, at in (("10", first), (shares_now, amendment)):
+            filing = store.retain_evidence(
+                source_id="filing",
+                url=filing_url,
+                body=f"{at}: {value}".encode(),
+                available_at=at,
+                ingested_at=at,
+            )
+            store.put_fact(
+                Fact(
+                    "holder",
+                    "shares_owned",
+                    value,
+                    "shares",
+                    first,
+                    at,
+                    at,
+                    filing.id,
+                    "/shares",
+                    {
+                        "security_id": "security:issuer",
+                        "asset_entity_id": "issuer",
+                        "share_basis": "v1",
+                    },
+                )
+            )
+        for source, at, price in (
+            ("historic-quote", quote_at, "20"),
+            ("current-quote", latest, quote_now),
+        ):
+            quote = store.retain_evidence(
+                source_id=source,
+                url=f"https://example.org/{source}",
+                body=source.encode(),
+                available_at=at,
+                ingested_at=at,
+            )
+            if source == "historic-quote":
+                old_quote_id = quote.id
+            store.put_fact(
+                Fact(
+                    "issuer",
+                    "raw_close",
+                    price,
+                    "INR",
+                    at,
+                    at,
+                    at,
+                    quote.id,
+                    "/price",
+                    {
+                        "security_id": "security:issuer",
+                        "price_basis": "nominal",
+                        "share_basis": "v1",
+                    },
+                )
+            )
+            store.put_fact(
+                Fact(
+                    "holder",
+                    "market_cap",
+                    "100",
+                    "INR",
+                    at,
+                    at,
+                    at,
+                    quote.id,
+                    "/capitalization",
+                )
+            )
+
+    events = stock_data_refresh.fetch_research_inputs(days=14)
+    [event] = [event for event in events if event.source_url == filing_url]
+    payload = event.source_document.raw_json
+    assert ("listedCoverageChange" in payload) is has_delta
+    if not has_delta:
+        return
+    change = payload["listedCoverageChange"]
+    assert change["method"] == "listed_coverage"
+    assert change["before"]["listedInvestmentCoverage"] == "2"
+    assert change["after"]["listedInvestmentCoverage"] == "2.4"
+    assert change["before"]["inputSnapshotId"] != change["after"]["inputSnapshotId"]
+    assert change["after"]["inputSnapshotId"] == payload["inputSnapshotId"]
+    assert len(change["after"]["inputFactIds"]) == 3
+    assert quote.id in change["after"]["inputEvidenceIds"]
+    assert old_quote_id in change["before"]["inputEvidenceIds"]
+    assert change["changedHoldingFactIds"] == [payload["facts"][0]["id"]]
+    assert {document["url"] for document in payload["evidence"]} == {filing_url}
+    assert payload["investmentConclusion"] is None
+    assert "Listed investment coverage" not in event.content
+    assert (
+        len([event for event in events if "listedCoverageChange" in event.source_document.raw_json])
+        == 1
+    )
+    assert [item.id for item in stock_data_refresh.fetch_research_inputs(days=14)] == [
+        item.id for item in events
+    ]
+
+    with StockStore(path) as store:
+        store.put_rights(
+            SourceRights(
+                "historic-quote",
+                "https://example.org/licence",
+                public_display="prohibited",
+            )
+        )
+    [withheld] = [
+        event
+        for event in stock_data_refresh.fetch_research_inputs(days=14)
+        if event.source_url == filing_url
+    ]
+    assert "listedCoverageChange" not in withheld.source_document.raw_json
+    assert old_quote_id not in str(withheld.source_document.raw_json)
+    assert withheld.content == event.content
+    assert withheld.id == event.id
+
+
+def test_valuation_history_preserves_conflicting_security_identity(tmp_path):
+    from high_signal_ingest.stock_data import Fact
+    from high_signal_ingest.stock_data_refresh import valuation_snapshots
+
+    at = "2026-10-29T12:00:00Z"
+    with StockStore(tmp_path / "scope.sqlite") as store:
+        permit(store, "fixture")
+        doc = store.retain_evidence(
+            source_id="fixture",
+            url="https://example.org/fixture",
+            body=b"synthetic market and filing evidence",
+            available_at=at,
+            ingested_at=at,
+        )
+        basis = {"security_id": "security:asset", "share_basis": "v1"}
+        holding = Fact(
+            "parent",
+            "shares_owned",
+            "10",
+            "shares",
+            at,
+            at,
+            at,
+            doc.id,
+            "/shares",
+            {**basis, "asset_entity_id": "asset"},
+        )
+        cap = Fact("parent", "market_cap", "100", "INR", at, at, at, doc.id, "/cap")
+        price_basis = {**basis, "price_basis": "nominal"}
+        prices = [
+            Fact(
+                entity,
+                "raw_close",
+                "20",
+                "INR",
+                at,
+                at,
+                at,
+                doc.id,
+                f"/price/{index}",
+                price_basis,
+            )
+            for index in range(20)
+            for entity in ("asset", "unrelated-wrong-issuer")
+        ]
+        right = min(
+            (fact for fact in prices if fact.entity_id == "asset"), key=lambda fact: fact.id
+        )
+        wrong = max(
+            (fact for fact in prices if fact.entity_id == "unrelated-wrong-issuer"),
+            key=lambda fact: fact.id,
+        )
+        assert wrong.id > right.id
+        store.put_facts((holding, cap, right, wrong))
+        [full] = valuation_snapshots(store.dataset(as_of=at, audience="display"))
+        [scoped] = valuation_snapshots(
+            store.valuation_history({at: {"parent"}}, freshness_days=7)[at]
+        )
+        assert full["value"] is None and scoped["value"] is None
+        assert scoped["issues"] == full["issues"] == ("price issuer/security mismatch",)

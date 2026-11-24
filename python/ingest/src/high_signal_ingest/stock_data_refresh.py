@@ -5,10 +5,10 @@ from __future__ import annotations
 import argparse
 import json
 from dataclasses import asdict
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from .stock_data.models import Fact, content_id
+from .stock_data.models import Fact, content_id, instant
 from .stock_data.store import StockStore
 from .stock_data.valuation import (
     ListedHolding,
@@ -117,10 +117,51 @@ def fetch_research_inputs(days: int = 3) -> list[Event]:
         raise RuntimeError("canonical stock ledger unavailable; run the equities refresh first")
     now = datetime.now(timezone.utc).isoformat()
     with StockStore(path) as store:
-        dataset = store.dataset(as_of=now, audience="display", freshness_days=max(days, 7))
+        freshness_days = max(days, 7)
+        cutoff = instant(now) - timedelta(days=freshness_days)
+        dataset = _research_projection(store, now, freshness_days)
+        facts = {fact["id"]: fact for fact in dataset["facts"]}
+        filing_scopes: dict[str, set[str]] = {}
+        for valuation in dataset["valuations"]:
+            if (
+                valuation["listed_investment_coverage"] is None
+                or valuation["freshness"] != "fresh"
+                or valuation["missing_holding_fact_ids"]
+            ):
+                continue
+            for fact_id in valuation["input_fact_ids"]:
+                fact = facts[fact_id]
+                if fact["metric"] == "shares_owned" and instant(fact["available_at"]) >= cutoff:
+                    filing_scopes.setdefault(fact["available_at"], set()).add(
+                        valuation["parent_entity_id"]
+                    )
+        before_filing = {
+            at: (instant(at) - timedelta(microseconds=1)).isoformat() for at in filing_scopes
+        }
+        prior = store.valuation_history(
+            {before_filing[at]: scope for at, scope in filing_scopes.items()},
+            freshness_days=freshness_days,
+        )
+        baselines = {
+            at: _with_research_valuations(prior[prior_at]) for at, prior_at in before_filing.items()
+        }
         # Stable event identities provide downstream idempotency. Delivery progress
         # belongs to existing audit acknowledgements, never a local pre-send cursor.
-        return research_events(None, dataset)
+        return research_events(None, dataset, valuation_baselines=baselines)
+
+
+def _research_projection(store: StockStore, as_of: str, freshness_days: int) -> dict:
+    return _with_research_valuations(
+        store.dataset(as_of=as_of, audience="display", freshness_days=freshness_days)
+    )
+
+
+def _with_research_valuations(dataset: dict) -> dict:
+    if any(fact["metric"] == "shares_owned" for fact in dataset["facts"]):
+        dataset["valuations"] = valuation_snapshots(dataset)
+    else:
+        dataset["valuations"] = []
+    return dataset
 
 
 def main() -> None:

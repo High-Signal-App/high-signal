@@ -7,7 +7,8 @@ import json
 import sqlite3
 from contextlib import contextmanager
 from dataclasses import asdict
-from datetime import timedelta
+from datetime import datetime, timedelta
+from itertools import chain
 from pathlib import Path
 from typing import Iterable, Iterator
 
@@ -278,6 +279,9 @@ class StockStore:
         known_at: str | None = None,
         entity_id: str | None = None,
         metric: str | None = None,
+        entity_ids: tuple[str, ...] = (),
+        metrics: tuple[str, ...] = (),
+        security_ids: tuple[str, ...] = (),
     ) -> list[Fact]:
         terms = ["substr(effective_at,1,19)<=?", "substr(available_at,1,19)<=?"]
         args = [utc(as_of)[:19], utc(as_of)[:19]]
@@ -288,6 +292,15 @@ class StockStore:
             if value is not None:
                 terms.append(f"{column}=?")
                 args.append(value)
+        for column, values in (("entity_id", entity_ids), ("metric", metrics)):
+            if values:
+                terms.append(f"{column} IN ({','.join('?' for _ in values)})")
+                args.extend(values)
+        if security_ids:
+            terms.append(
+                "json_extract(payload,'$.dimensions.security_id') IN (SELECT value FROM json_each(?))"
+            )
+            args.append(canonical_json(security_ids))
         rows = self.connection.execute(
             "SELECT payload FROM facts WHERE "
             + " AND ".join(terms)
@@ -307,8 +320,12 @@ class StockStore:
         )
 
     def latest_facts(self, **kwargs: object) -> list[Fact]:
+        return self._choose_latest(self.facts(**kwargs))
+
+    @staticmethod
+    def _choose_latest(facts: Iterable[Fact]) -> list[Fact]:
         chosen: dict[str, Fact] = {}
-        for fact in self.facts(**kwargs):
+        for fact in facts:
             key = series_id(fact.entity_id, fact.metric, fact.unit, fact.dimensions)
             previous = chosen.get(key)
             if (
@@ -383,13 +400,105 @@ class StockStore:
         required_metrics: Iterable[str] = (),
         freshness_days: int = 7,
     ) -> dict:
+        return self._project_dataset(
+            self.latest_facts(as_of=as_of, known_at=known_at, entity_id=entity_id),
+            as_of=as_of,
+            entity_id=entity_id,
+            known_at=known_at,
+            audience=audience,
+            required_metrics=required_metrics,
+            freshness_days=freshness_days,
+        )
+
+    def valuation_history(
+        self, scopes: dict[str, set[str]], *, freshness_days: int
+    ) -> dict[str, dict]:
+        """Read the relevant valuation series once for the requested display snapshots."""
+        if not scopes:
+            return {}
+        last = max(scopes, key=instant)
+        entities = sorted(set().union(*scopes.values()))
+        holdings: dict[str, list[tuple[datetime, Fact]]] = {}
+        security_ids: set[str] = set()
+        for offset in range(0, len(entities), 400):
+            for fact in self.facts(
+                as_of=last,
+                entity_ids=tuple(entities[offset : offset + 400]),
+                metrics=("shares_owned", "market_cap"),
+            ):
+                public_at = max(instant(fact.effective_at), instant(fact.available_at))
+                holdings.setdefault(fact.entity_id, []).append((public_at, fact))
+                if fact.metric == "shares_owned" and fact.dimensions.get("security_id"):
+                    security_ids.add(fact.dimensions["security_id"])
+
+        quotes: dict[str, list[tuple[datetime, Fact]]] = {}
+        if security_ids:
+            for fact in self.facts(
+                as_of=last, metric="raw_close", security_ids=tuple(sorted(security_ids))
+            ):
+                public_at = max(instant(fact.effective_at), instant(fact.available_at))
+                quotes.setdefault(fact.dimensions["security_id"], []).append((public_at, fact))
+
+        # The valuation engine validates the full ownership graph. Reuse its history
+        # across filing cutoffs rather than narrowing it to the quoted entities.
+        edges = [
+            (max(instant(fact.effective_at), instant(fact.available_at)), fact)
+            for fact in self.facts(as_of=last, metric="ownership_fraction")
+        ]
+        return {
+            at: self._project_dataset(
+                self._valuation_facts_at(instant(at), entity_ids, holdings, quotes, edges),
+                as_of=at,
+                audience="display",
+                freshness_days=freshness_days,
+            )
+            for at, entity_ids in sorted(scopes.items())
+        }
+
+    def _valuation_facts_at(
+        self,
+        cutoff: datetime,
+        entity_ids: set[str],
+        holdings: dict[str, list[tuple[datetime, Fact]]],
+        quotes: dict[str, list[tuple[datetime, Fact]]],
+        edges: list[tuple[datetime, Fact]],
+    ) -> list[Fact]:
+        selected = [
+            fact
+            for entity_id in sorted(entity_ids)
+            for public_at, fact in holdings.get(entity_id, ())
+            if public_at <= cutoff
+        ]
+        securities = {
+            fact.dimensions["security_id"]
+            for fact in selected
+            if fact.metric == "shares_owned" and fact.dimensions.get("security_id")
+        }
+        selected_quotes = (
+            fact
+            for security in sorted(securities)
+            for public_at, fact in quotes.get(security, ())
+            if public_at <= cutoff
+        )
+        selected_edges = (fact for public_at, fact in edges if public_at <= cutoff)
+        return self._choose_latest(chain(selected, selected_quotes, selected_edges))
+
+    def _project_dataset(
+        self,
+        facts: list[Fact],
+        *,
+        as_of: str,
+        entity_id: str | None = None,
+        known_at: str | None = None,
+        audience: str,
+        required_metrics: Iterable[str] = (),
+        freshness_days: int,
+    ) -> dict:
         if audience not in {"internal", "display", "export"}:
             raise ValueError("unknown dataset audience")
         if freshness_days < 0:
             raise ValueError("freshness_days must be nonnegative")
-        facts = _current_period_facts(
-            self.latest_facts(as_of=as_of, known_at=known_at, entity_id=entity_id)
-        )
+        facts = _current_period_facts(facts)
         retained: list[Fact] = []
         documents: dict[str, dict] = {}
         rights_versions: dict[str, str] = {}

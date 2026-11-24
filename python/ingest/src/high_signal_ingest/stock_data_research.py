@@ -4,12 +4,17 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from .stock_data.models import content_id
-from .stock_data.valuation import detect_changes
+from .stock_data.models import content_id, decimal_value
+from .stock_data.valuation import canonical_fact_key, detect_changes
 from .types import Event, SourceDocument
 
 
-def research_events(previous: dict | None, current: dict) -> list[Event]:
+def research_events(
+    previous: dict | None,
+    current: dict,
+    *,
+    valuation_baselines: dict[str, dict] | None = None,
+) -> list[Event]:
     """Keep one original evidence origin per event; a finding is not corroboration."""
     if current.get("audience") != "display":
         raise ValueError("editorial inputs require permitted display rights")
@@ -42,6 +47,11 @@ def research_events(previous: dict | None, current: dict) -> list[Event]:
             "classification": "numerical_observation",
             "investmentConclusion": None,
         }
+        valuation_change = _filing_valuation_change(
+            entity_id, facts, previous, current, valuation_baselines or {}
+        )
+        if valuation_change is not None:
+            payload["listedCoverageChange"] = valuation_change
         raw_hash = content_id(
             "research", [entity_id, source_url, sorted(f["id"] for f in facts)]
         ).split(":", 1)[1]
@@ -72,3 +82,112 @@ def research_events(previous: dict | None, current: dict) -> list[Event]:
             )
         )
     return out
+
+
+def _filing_valuation_change(
+    entity_id: str,
+    event_facts: list[dict],
+    previous: dict | None,
+    current: dict,
+    baselines: dict[str, dict],
+) -> dict | None:
+    holdings = [fact for fact in event_facts if fact["metric"] == "shares_owned"]
+    filing_times = {fact["available_at"] for fact in holdings}
+    if len(filing_times) != 1:
+        return None
+    baseline = baselines.get(next(iter(filing_times))) if previous is None else None
+    previous = previous if previous is not None else baseline
+    if not previous or previous.get("audience") != "display":
+        return None
+
+    # Only live reconstructions, never caller-supplied historical snapshots, add
+    # rights for sources that appear solely in the preceding valuation.
+    current_rights = {
+        right["id"]: right["public_display"]
+        for projection in (baseline or {}, current)
+        for right in projection.get("usage_rights", [])
+    }
+    permitted = {
+        source for source, permission in current_rights.items() if permission == "permitted"
+    }
+    before = _listed_coverage(previous, entity_id, permitted)
+    after = _listed_coverage(current, entity_id, permitted)
+    if not before or not after or not _comparable_coverage(before, after):
+        return None
+
+    changed_holding_ids = _changed_holdings(
+        holdings, previous["facts"], set(before["inputFactIds"]), set(after["inputFactIds"])
+    )
+    if not changed_holding_ids:
+        return None
+    return {
+        "method": "listed_coverage",
+        "before": before,
+        "after": after,
+        "changedHoldingFactIds": changed_holding_ids,
+    }
+
+
+def _comparable_coverage(before: dict, after: dict) -> bool:
+    return all(
+        before[key] == after[key] for key in ("componentIds", "currency", "modelVersion")
+    ) and (
+        decimal_value(before["listedInvestmentCoverage"])
+        != decimal_value(after["listedInvestmentCoverage"])
+    )
+
+
+def _changed_holdings(
+    holdings: list[dict], previous: list[dict], before_ids: set[str], after_ids: set[str]
+) -> list[str]:
+    before_holdings = {
+        canonical_fact_key(fact): fact
+        for fact in previous
+        if fact["id"] in before_ids and fact["metric"] == "shares_owned"
+    }
+    changed_holding_ids = []
+    for holding in holdings:
+        prior = before_holdings.get(canonical_fact_key(holding))
+        if (
+            prior
+            and decimal_value(prior["value"]) != decimal_value(holding["value"])
+            and holding["id"] in after_ids
+        ):
+            changed_holding_ids.append(holding["id"])
+    return sorted(changed_holding_ids)
+
+
+def _listed_coverage(dataset: dict, entity_id: str, permitted: set[str]) -> dict | None:
+    result = next(
+        (item for item in dataset.get("valuations", []) if item["parent_entity_id"] == entity_id),
+        None,
+    )
+    if not result or (
+        result["method"] != "listed_coverage"
+        or result["freshness"] != "fresh"
+        or result["listed_investment_coverage"] is None
+        or result["missing_holding_fact_ids"]
+        or tuple(result["input_snapshot_ids"]) != (dataset["snapshot_id"],)
+    ):
+        return None
+    facts = {fact["id"]: fact for fact in dataset["facts"]}
+    evidence = {document["id"]: document for document in dataset["evidence"]}
+    input_ids = set(result["input_fact_ids"])
+    if input_ids & set(dataset["stale_fact_ids"]) or not input_ids <= facts.keys():
+        return None
+    evidence_ids = {facts[fact_id]["evidence_id"] for fact_id in input_ids}
+    if any(
+        key not in evidence or evidence[key]["source_id"] not in permitted for key in evidence_ids
+    ):
+        return None
+    return {
+        "valuationSnapshotId": result["snapshot_id"],
+        "inputSnapshotId": dataset["snapshot_id"],
+        "modelVersion": result["model_version"],
+        "inputFactIds": sorted(input_ids),
+        "inputEvidenceIds": sorted(evidence_ids),
+        "componentIds": sorted(line["interest_id"] for line in result["components"]),
+        "asOf": result["as_of"],
+        "currency": result["currency"],
+        "listedInvestmentCoverage": result["listed_investment_coverage"],
+    }
