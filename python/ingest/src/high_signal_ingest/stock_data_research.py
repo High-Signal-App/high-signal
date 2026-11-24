@@ -94,7 +94,13 @@ def _filing_receipt(
 ) -> tuple[str | None, dict | None]:
     if len(evidence) != 1 or not any(fact["metric"] == "shares_owned" for fact in facts):
         return None, None
-    key = content_id("stock-filing", [origin_id, evidence[0]["sha256"], raw_hash])
+    document = evidence[0]
+    key = content_id("stock-filing", [origin_id, document["sha256"], raw_hash])
+    if any(
+        fact["metric"] == "shares_owned" and fact["available_at"] != document["available_at"]
+        for fact in facts
+    ):
+        return key, None
     return key, _filing_valuation_change(facts[0]["entity_id"], facts, windows)
 
 

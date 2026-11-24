@@ -120,25 +120,8 @@ def fetch_research_inputs(days: int = 3) -> list[Event]:
         freshness_days = max(days, 7)
         cutoff = instant(now) - timedelta(days=freshness_days)
         securities = {row["id"]: row for row in store.identities("security")}
-        dataset = _with_research_valuations(
-            store.dataset(as_of=now, audience="display", freshness_days=freshness_days),
-            securities,
-        )
-        facts = {fact["id"]: fact for fact in dataset["facts"]}
-        filing_scopes: dict[str, set[str]] = {}
-        for valuation in dataset["valuations"]:
-            if (
-                valuation["listed_investment_coverage"] is None
-                or valuation["freshness"] != "fresh"
-                or valuation["missing_holding_fact_ids"]
-            ):
-                continue
-            for fact_id in valuation["input_fact_ids"]:
-                fact = facts[fact_id]
-                if fact["metric"] == "shares_owned" and instant(fact["available_at"]) >= cutoff:
-                    filing_scopes.setdefault(fact["available_at"], set()).add(
-                        valuation["parent_entity_id"]
-                    )
+        dataset = store.dataset(as_of=now, audience="display", freshness_days=freshness_days)
+        filing_scopes = _research_filing_scopes(dataset, cutoff)
         before_filing = {
             at: (instant(at) - timedelta(microseconds=1)).isoformat() for at in filing_scopes
         }
@@ -158,14 +141,31 @@ def fetch_research_inputs(days: int = 3) -> list[Event]:
         return research_events(None, dataset, valuation_windows=windows)
 
 
+def _research_filing_scopes(dataset: dict, cutoff: datetime) -> dict[str, set[str]]:
+    """Consider only holdings already eligible for the existing raw research events."""
+    stale = set(dataset["stale_fact_ids"])
+    evidence = {document["id"]: document for document in dataset["evidence"]}
+    scopes: dict[str, set[str]] = {}
+    for fact in dataset["facts"]:
+        if fact["metric"] != "shares_owned" or fact["status"] != "available" or fact["id"] in stale:
+            continue
+        at = fact["available_at"]
+        document = evidence[fact["evidence_id"]]
+        if at == document["available_at"] and instant(at) >= cutoff:
+            scopes.setdefault(at, set()).add(fact["entity_id"])
+    return scopes
+
+
 def _with_research_valuations(dataset: dict, securities: dict[str, dict]) -> dict:
     facts = {fact["id"]: fact for fact in dataset["facts"]}
     values = []
     if any(fact["metric"] == "shares_owned" for fact in facts.values()):
+        ambiguous = set(dataset.get("ambiguous_holding_entities", []))
         values = [
             value
             for value in valuation_snapshots(dataset)
-            if all(_registered_holding(line, facts, securities) for line in value["components"])
+            if value["parent_entity_id"] not in ambiguous
+            and all(_registered_holding(line, facts, securities) for line in value["components"])
         ]
     dataset["valuations"] = values
     return dataset

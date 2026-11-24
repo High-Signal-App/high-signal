@@ -497,16 +497,19 @@ def test_orphan_evidence_chunks_survive_restore_close_and_reopen(tmp_path):
 
 
 @pytest.mark.parametrize(
-    ("quote_at", "shares_now", "quote_now", "registry_currency", "has_delta"),
+    ("quote_at", "shares_now", "quote_now", "registry_currency", "case", "has_delta"),
     [
-        ("2026-10-28T12:00:00Z", "12", "20", "INR", True),
-        ("2026-10-20T12:00:00Z", "12", "20", "INR", False),
-        ("2026-10-28T12:00:00Z", "10", "24", "INR", False),
-        ("2026-10-28T12:00:00Z", "12", "20", "USD", False),
+        ("2026-10-28T12:00:00Z", "12", "20", "INR", "normal", True),
+        ("2026-10-20T12:00:00Z", "12", "20", "INR", "normal", False),
+        ("2026-10-28T12:00:00Z", "10", "24", "INR", "normal", False),
+        ("2026-10-28T12:00:00Z", "12", "20", "USD", "normal", False),
+        ("2026-10-28T12:00:00Z", "12", "20", "INR", "delayed-fact", False),
+        ("2026-10-28T12:00:00Z", "12", "20", "INR", "conflicting-amendment", False),
+        ("2026-10-28T12:00:00Z", "12", "20", "INR", "incompatible-current-quote", True),
     ],
 )
 def test_research_carries_listed_coverage_for_one_changed_filing(
-    tmp_path, monkeypatch, quote_at, shares_now, quote_now, registry_currency, has_delta
+    tmp_path, monkeypatch, quote_at, shares_now, quote_now, registry_currency, case, has_delta
 ):
     from high_signal_ingest import stock_data_refresh
     from high_signal_ingest.stock_data import Entity, Fact, Security
@@ -532,14 +535,20 @@ def test_research_carries_listed_coverage_for_one_changed_filing(
         permit(store, "filing")
         permit(store, "historic-quote")
         permit(store, "current-quote")
-        for value, at in (("10", first), (shares_now, amendment)):
+        holdings = [("10", first, first), (shares_now, amendment, amendment)]
+        if case == "conflicting-amendment":
+            holdings.append(("15", amendment, "2026-10-29T12:00:00.250000Z"))
+        for value, at, ingested_at in holdings:
             effective_at = first if at == first else "2026-10-20T12:00:00Z"
+            disclosed_at = (
+                "2026-10-28T10:00:00Z" if case == "delayed-fact" and at == amendment else at
+            )
             filing = store.retain_evidence(
                 source_id="filing",
                 url=filing_url,
                 body=f"{at}: {value}".encode(),
-                available_at=at,
-                ingested_at=at,
+                available_at=disclosed_at,
+                ingested_at=ingested_at,
             )
             store.put_fact(
                 Fact(
@@ -549,7 +558,7 @@ def test_research_carries_listed_coverage_for_one_changed_filing(
                     "shares",
                     effective_at,
                     at,
-                    at,
+                    ingested_at,
                     filing.id,
                     "/shares",
                     {
@@ -564,6 +573,7 @@ def test_research_carries_listed_coverage_for_one_changed_filing(
             ("historic-quote", quote_at, "20"),
             ("current-quote", latest, quote_now),
         ):
+            unavailable = case == "incompatible-current-quote" and at == latest
             quote = store.retain_evidence(
                 source_id=source,
                 url=f"https://example.org/{source}",
@@ -577,7 +587,7 @@ def test_research_carries_listed_coverage_for_one_changed_filing(
                 Fact(
                     "issuer",
                     "raw_close",
-                    price,
+                    None if unavailable else price,
                     "INR",
                     at,
                     at,
@@ -589,6 +599,7 @@ def test_research_carries_listed_coverage_for_one_changed_filing(
                         "price_basis": "nominal",
                         "share_basis": "v1",
                     },
+                    status="unavailable" if unavailable else "available",
                 )
             )
             store.put_fact(

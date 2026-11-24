@@ -21,6 +21,7 @@ from .models import (
     SourceRights,
     canonical_json,
     content_id,
+    decimal_value,
     instant,
     utc,
     series_id,
@@ -445,15 +446,17 @@ class StockStore:
             (max(instant(fact.effective_at), instant(fact.available_at)), fact)
             for fact in self.facts(as_of=last, metric="ownership_fraction")
         ]
-        return {
-            at: self._project_dataset(
-                self._valuation_facts_at(instant(at), entity_ids, holdings, quotes, edges),
-                as_of=at,
-                audience="display",
-                freshness_days=freshness_days,
+        snapshots = {}
+        for at, entity_ids in sorted(scopes.items()):
+            facts, ambiguous = self._valuation_facts_at(
+                instant(at), entity_ids, holdings, quotes, edges
             )
-            for at, entity_ids in sorted(scopes.items())
-        }
+            snapshot = self._project_dataset(
+                facts, as_of=at, audience="display", freshness_days=freshness_days
+            )
+            snapshot["ambiguous_holding_entities"] = sorted(ambiguous)
+            snapshots[at] = snapshot
+        return snapshots
 
     def _valuation_facts_at(
         self,
@@ -462,7 +465,7 @@ class StockStore:
         holdings: dict[str, list[tuple[datetime, Fact]]],
         quotes: dict[str, list[tuple[datetime, Fact]]],
         edges: list[tuple[datetime, Fact]],
-    ) -> list[Fact]:
+    ) -> tuple[list[Fact], set[str]]:
         selected = [
             fact
             for entity_id in sorted(entity_ids)
@@ -481,7 +484,8 @@ class StockStore:
             if public_at <= cutoff
         )
         selected_edges = (fact for public_at, fact in edges if public_at <= cutoff)
-        return self._choose_latest(chain(selected, selected_quotes, selected_edges))
+        facts = self._choose_latest(chain(selected, selected_quotes, selected_edges))
+        return facts, _ambiguous_holding_entities(selected, facts)
 
     def _project_dataset(
         self,
@@ -547,6 +551,27 @@ class StockStore:
 
 
 Store = StockStore
+
+
+def _holding_revision(fact: Fact) -> tuple[str, str, str]:
+    series = series_id(fact.entity_id, fact.metric, fact.unit, fact.dimensions)
+    return series, fact.effective_at, fact.available_at
+
+
+def _ambiguous_holding_entities(candidates: list[Fact], chosen: list[Fact]) -> set[str]:
+    """A later receipt time does not establish which same-disclosure filing supersedes another."""
+    revisions = {_holding_revision(fact): fact for fact in chosen if fact.metric == "shares_owned"}
+    ambiguous = set()
+    for fact in candidates:
+        if fact.metric != "shares_owned":
+            continue
+        selected = revisions.get(_holding_revision(fact))
+        if selected and selected.value != fact.value:
+            actual = decimal_value(fact.value) if fact.value is not None else None
+            expected = decimal_value(selected.value) if selected.value is not None else None
+            if actual != expected:
+                ambiguous.add(fact.entity_id)
+    return ambiguous
 
 
 def _stale_fact_ids(facts: list[Fact], as_of: str, freshness_days: int) -> list[str]:
