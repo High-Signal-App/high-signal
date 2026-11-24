@@ -673,17 +673,18 @@ def test_research_carries_listed_coverage_for_one_changed_filing(
 
 
 @pytest.mark.parametrize(
-    ("simultaneous", "restricted", "delayed", "superseded"),
+    ("simultaneous", "restricted", "delayed", "superseded", "missing_metadata"),
     [
-        (False, False, False, False),
-        (True, False, False, False),
-        (True, True, False, False),
-        (True, True, True, False),
-        (False, False, False, True),
+        (False, False, False, False, False),
+        (True, False, False, False, False),
+        (True, True, False, False, False),
+        (True, True, True, False, False),
+        (False, False, False, True, False),
+        (True, True, True, False, True),
     ],
 )
 def test_multiple_filings_for_one_parent_use_their_own_cutoffs(
-    tmp_path, monkeypatch, simultaneous, restricted, delayed, superseded
+    tmp_path, monkeypatch, simultaneous, restricted, delayed, superseded, missing_metadata
 ):
     from high_signal_ingest import stock_data_refresh
     from high_signal_ingest.stock_data import Entity, Fact, Security
@@ -789,6 +790,17 @@ def test_multiple_filings_for_one_parent_use_their_own_cutoffs(
                 )
                 if source_id == "restricted-filing":
                     restricted_evidence_id = filing.id
+
+    if missing_metadata:
+        disclosure_times = StockStore._holding_disclosure_times
+
+        def incomplete_disclosure_times(store, evidence_ids):
+            times = disclosure_times(store, evidence_ids)
+            assert restricted_evidence_id in times
+            times.pop(restricted_evidence_id)
+            return times
+
+        monkeypatch.setattr(StockStore, "_holding_disclosure_times", incomplete_disclosure_times)
 
     events = stock_data_refresh.fetch_research_inputs()
     filings = [event for event in events if "/filing-" in event.source_url]

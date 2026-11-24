@@ -471,21 +471,35 @@ class StockStore:
         self, holdings: dict[str, list[tuple[datetime, Fact]]]
     ) -> dict[str, list[tuple[datetime, datetime, Fact]]]:
         """Collect disclosure gaps for withholding only, before any display rights filtering."""
-        documents = {}
+        document_times = self._holding_disclosure_times(
+            {
+                fact.evidence_id
+                for rows in holdings.values()
+                for _, fact in rows
+                if fact.metric == "shares_owned"
+            }
+        )
         delayed: dict[str, list[tuple[datetime, datetime, Fact]]] = {}
         for entity_id, rows in holdings.items():
             for normalized_at, fact in rows:
                 if fact.metric != "shares_owned":
                     continue
-                if fact.evidence_id not in documents:
-                    documents[fact.evidence_id] = self.evidence(fact.evidence_id)
-                document = documents[fact.evidence_id]
-                if document is None:
-                    continue
-                disclosed_at = max(instant(document.available_at), instant(fact.effective_at))
+                effective_at = instant(fact.effective_at)
+                # If historical metadata is missing, block the possible interval
+                # rather than assuming it was safe to use the older holding.
+                disclosed_at = max(document_times.get(fact.evidence_id, effective_at), effective_at)
                 if disclosed_at < normalized_at:
                     delayed.setdefault(entity_id, []).append((disclosed_at, normalized_at, fact))
         return delayed
+
+    def _holding_disclosure_times(self, evidence_ids: set[str]) -> dict[str, datetime]:
+        if not evidence_ids:
+            return {}
+        rows = self.connection.execute(
+            "SELECT id,available_at FROM evidence WHERE id IN (SELECT value FROM json_each(?))",
+            (canonical_json(sorted(evidence_ids)),),
+        )
+        return {row["id"]: instant(row["available_at"]) for row in rows}
 
     def _valuation_facts_at(
         self,
