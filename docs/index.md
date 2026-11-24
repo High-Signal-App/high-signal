@@ -30,7 +30,7 @@ For the three products and related retirements, see the
 | --- | --- | --- |
 | `product/` | Product direction, scope, feature audit, commercial handoff | [`product/direction.md`](product/direction.md) |
 | `architecture/` | How it works end-to-end, system structure, data boundaries, architecture decisions (ADRs) | [`architecture/how-it-works.md`](architecture/how-it-works.md) |
-| `development/` | Setup, seeding, local workflows | [`development/seeding.md`](development/seeding.md) |
+| `development/` | Setup, seeding, local workflows | [Seeding](development/seeding.md) · [Source corroboration](development/source-research.md) |
 | `operations/` | Source catalog/coverage, data audits, cron jobs, runbooks | [`operations/source-catalog.md`](operations/source-catalog.md) |
 | `knowledge/` | Durable learnings, failed approaches, external references, retros | [`knowledge/learnings/lessons.md`](knowledge/learnings/lessons.md) |
 | `archive/` | One-time snapshots kept for history (not maintained) | [`archive/`](https://github.com/High-Signal-App/high-signal/tree/main/docs/archive) |
