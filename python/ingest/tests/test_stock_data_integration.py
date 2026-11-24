@@ -547,6 +547,8 @@ def test_research_carries_listed_coverage_for_one_changed_filing(
             holdings.append((shares_now, amendment, other_time, "v2"))
         for value, at, ingested_at, share_basis in holdings:
             effective_at = first if at == first else "2026-10-20T12:00:00Z"
+            if share_basis == "v2":
+                effective_at = "2026-10-20T11:59:59Z"
             disclosed_at = (
                 "2026-10-28T10:00:00Z" if case == "delayed-fact" and at == amendment else at
             )
@@ -947,8 +949,9 @@ def test_valuation_history_preserves_conflicting_security_identity(tmp_path):
 
 @pytest.mark.parametrize("triggering_issuer", ["first", "second"])
 @pytest.mark.parametrize("restricted_newer", [False, True])
+@pytest.mark.parametrize("unequal_effective", [False, True])
 def test_valuation_orders_eligible_holding_revisions_by_disclosure(
-    tmp_path, monkeypatch, triggering_issuer, restricted_newer
+    tmp_path, monkeypatch, triggering_issuer, restricted_newer, unequal_effective
 ):
     from high_signal_ingest import stock_data_refresh
     from high_signal_ingest.stock_data import Entity, Fact, Security
@@ -1029,10 +1032,21 @@ def test_valuation_orders_eligible_holding_revisions_by_disclosure(
                     ("20", newer, newer, amendment_source, "https://example.org/amendment"),
                     ("10", earlier, late, "filing", "https://example.org/superseded"),
                 ]
+                if unequal_effective:
+                    observations = [
+                        ("18", newer, newer, "filing", "https://example.org/middle"),
+                        ("10", earlier, late, "filing", "https://example.org/superseded"),
+                        ("20", late, late, amendment_source, "https://example.org/amendment"),
+                    ]
             if issuer == triggering_issuer:
                 shares = "12" if issuer == "first" else "22"
                 observations.append((shares, trigger, trigger, "filing", trigger_url))
             for shares, disclosed, available, source, url in observations:
+                fact_effective_at = (
+                    "2026-10-25T11:59:59Z"
+                    if unequal_effective and url.endswith("/amendment")
+                    else effective
+                )
                 doc = store.retain_evidence(
                     source_id=source,
                     url=url,
@@ -1046,7 +1060,7 @@ def test_valuation_orders_eligible_holding_revisions_by_disclosure(
                         "shares_owned",
                         shares,
                         "shares",
-                        effective,
+                        fact_effective_at,
                         available,
                         available,
                         doc.id,

@@ -616,8 +616,8 @@ def _holdings_by_original_disclosure(
         if disclosed_at is None:
             unresolved.add(fact.entity_id)
             continue
-        series = series_id(fact.entity_id, fact.metric, fact.unit, fact.dimensions)
-        rank = (fact.effective_at, disclosed_at, fact.available_at, fact.ingested_at, fact.id)
+        series, effective_order, _ = _holding_revision(fact, disclosure_times)
+        rank = (effective_order, disclosed_at, fact.available_at, fact.ingested_at, fact.id)
         previous = chosen.get(series)
         if previous is None or rank > previous[0]:
             chosen[series] = (rank, fact)
@@ -628,8 +628,11 @@ def _holding_revision(
     fact: Fact, disclosure_times: dict[str, datetime]
 ) -> tuple[str, str, datetime]:
     series = series_id(fact.entity_id, fact.metric, fact.unit, fact.dimensions)
-    disclosed_at = disclosure_times.get(fact.evidence_id, instant(fact.available_at))
-    return series, fact.effective_at, disclosed_at
+    disclosed_at = disclosure_times.get(fact.evidence_id) or instant(fact.available_at)
+    # The canonical series contains the declared period. Effective time still
+    # bounds eligibility, but only untagged series use it to order revisions.
+    effective_order = "" if "period_end" in fact.dimensions else fact.effective_at
+    return series, effective_order, disclosed_at
 
 
 def _period_scope(fact: Fact) -> str:
