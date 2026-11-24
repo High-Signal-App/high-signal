@@ -505,6 +505,8 @@ def test_orphan_evidence_chunks_survive_restore_close_and_reopen(tmp_path):
         ("2026-10-28T12:00:00Z", "12", "20", "USD", "normal", False),
         ("2026-10-28T12:00:00Z", "12", "20", "INR", "delayed-fact", False),
         ("2026-10-28T12:00:00Z", "12", "20", "INR", "conflicting-amendment", False),
+        ("2026-10-28T12:00:00Z", "12", "20", "INR", "compatible-basis-last", False),
+        ("2026-10-28T12:00:00Z", "12", "20", "INR", "incompatible-basis-last", False),
         ("2026-10-28T12:00:00Z", "12", "20", "INR", "incompatible-current-quote", True),
     ],
 )
@@ -535,10 +537,15 @@ def test_research_carries_listed_coverage_for_one_changed_filing(
         permit(store, "filing")
         permit(store, "historic-quote")
         permit(store, "current-quote")
-        holdings = [("10", first, first), (shares_now, amendment, amendment)]
+        later_receipt = "2026-10-29T12:00:00.250000Z"
+        accepted_time = later_receipt if case == "compatible-basis-last" else amendment
+        holdings = [("10", first, first, "v1"), (shares_now, amendment, accepted_time, "v1")]
         if case == "conflicting-amendment":
-            holdings.append(("15", amendment, "2026-10-29T12:00:00.250000Z"))
-        for value, at, ingested_at in holdings:
+            holdings.append(("15", amendment, later_receipt, "v1"))
+        if case in {"compatible-basis-last", "incompatible-basis-last"}:
+            other_time = amendment if case == "compatible-basis-last" else later_receipt
+            holdings.append((shares_now, amendment, other_time, "v2"))
+        for value, at, ingested_at, share_basis in holdings:
             effective_at = first if at == first else "2026-10-20T12:00:00Z"
             disclosed_at = (
                 "2026-10-28T10:00:00Z" if case == "delayed-fact" and at == amendment else at
@@ -546,7 +553,7 @@ def test_research_carries_listed_coverage_for_one_changed_filing(
             filing = store.retain_evidence(
                 source_id="filing",
                 url=filing_url,
-                body=f"{at}: {value}".encode(),
+                body=f"{at}: {value}: {share_basis}".encode(),
                 available_at=disclosed_at,
                 ingested_at=ingested_at,
             )
@@ -564,7 +571,7 @@ def test_research_carries_listed_coverage_for_one_changed_filing(
                     {
                         "security_id": "security:issuer",
                         "asset_entity_id": "issuer",
-                        "share_basis": "v1",
+                        "share_basis": share_basis,
                         "period_end": effective_at[:10],
                     },
                 )
@@ -666,10 +673,17 @@ def test_research_carries_listed_coverage_for_one_changed_filing(
 
 
 @pytest.mark.parametrize(
-    ("simultaneous", "restricted"), [(False, False), (True, False), (True, True)]
+    ("simultaneous", "restricted", "delayed", "superseded"),
+    [
+        (False, False, False, False),
+        (True, False, False, False),
+        (True, True, False, False),
+        (True, True, True, False),
+        (False, False, False, True),
+    ],
 )
 def test_multiple_filings_for_one_parent_use_their_own_cutoffs(
-    tmp_path, monkeypatch, simultaneous, restricted
+    tmp_path, monkeypatch, simultaneous, restricted, delayed, superseded
 ):
     from high_signal_ingest import stock_data_refresh
     from high_signal_ingest.stock_data import Entity, Fact, Security
@@ -720,7 +734,6 @@ def test_multiple_filings_for_one_parent_use_their_own_cutoffs(
             )
         )
         for i, (disclosure, revised) in enumerate(zip(disclosures, ("12", "13"))):
-            source_id = "restricted-filing" if restricted and i == 1 else "filing"
             issuer = f"issuer-{i}"
             security = f"security:{issuer}"
             store.put_entity(Entity(issuer, f"Fixture issuer {i}", "IN"))
@@ -740,13 +753,25 @@ def test_multiple_filings_for_one_parent_use_their_own_cutoffs(
                     {**basis, "price_basis": "nominal"},
                 )
             )
-            for shares, at in (("10", first), (revised, disclosure)):
+            observations = [("10", first, first), (revised, disclosure, first)]
+            if superseded and i == 0:
+                older = "2026-10-25T12:00:00Z"
+                observations.append(("9", older, older))
+            for shares, at, effective_at in observations:
+                source_id = (
+                    "restricted-filing" if restricted and i == 1 and at == disclosure else "filing"
+                )
+                normalized_at = (
+                    "2026-10-29T12:00:00Z" if delayed and i == 1 and at == disclosure else at
+                )
+                if effective_at != first:
+                    normalized_at = latest
                 filing = store.retain_evidence(
                     source_id=source_id,
                     url=f"https://example.org/filing-{i}",
                     body=f"{at}: {shares}".encode(),
                     available_at=at,
-                    ingested_at=at,
+                    ingested_at=normalized_at,
                 )
                 store.put_fact(
                     Fact(
@@ -754,12 +779,12 @@ def test_multiple_filings_for_one_parent_use_their_own_cutoffs(
                         "shares_owned",
                         shares,
                         "shares",
-                        first,
-                        at,
-                        at,
+                        effective_at,
+                        normalized_at,
+                        normalized_at,
                         filing.id,
                         "/shares",
-                        {**basis, "asset_entity_id": issuer},
+                        {**basis, "asset_entity_id": issuer, "period_end": effective_at[:10]},
                     )
                 )
                 if source_id == "restricted-filing":

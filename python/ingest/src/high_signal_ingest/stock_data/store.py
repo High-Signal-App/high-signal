@@ -412,7 +412,7 @@ class StockStore:
         )
 
     def valuation_history(
-        self, scopes: dict[str, set[str]], *, freshness_days: int
+        self, scopes: dict[str, set[str]], *, freshness_days: int, observed_at: str | None = None
     ) -> dict[str, dict]:
         """Read the relevant valuation series once for the requested display snapshots."""
         if not scopes:
@@ -423,7 +423,7 @@ class StockStore:
         security_ids: set[str] = set()
         for offset in range(0, len(entities), 400):
             for fact in self.facts(
-                as_of=last,
+                as_of=observed_at or last,
                 entity_ids=tuple(entities[offset : offset + 400]),
                 metrics=("shares_owned", "market_cap"),
             ):
@@ -446,24 +446,46 @@ class StockStore:
             (max(instant(fact.effective_at), instant(fact.available_at)), fact)
             for fact in self.facts(as_of=last, metric="ownership_fraction")
         ]
+        delayed = self._delayed_holding_disclosures(holdings)
         snapshots = {}
         for at, entity_ids in sorted(scopes.items()):
-            facts, ambiguous = self._valuation_facts_at(
-                instant(at), entity_ids, holdings, quotes, edges
-            )
+            cutoff = instant(at)
+            facts, ambiguous = self._valuation_facts_at(cutoff, entity_ids, holdings, quotes, edges)
             snapshot = self._project_dataset(
                 facts, as_of=at, audience="display", freshness_days=freshness_days
             )
             visible = {fact["id"] for fact in snapshot["facts"]}
+            reporting = _current_period_facts(facts)
             withheld = {
                 fact.entity_id
-                for fact in _current_period_facts(facts)
+                for fact in reporting
                 if fact.metric == "shares_owned" and fact.id not in visible
             }
+            withheld |= _undernormalized_holding_entities(entity_ids, delayed, reporting, cutoff)
             # Internal-only holder IDs. Restricted facts never enter the snapshot.
             snapshot["withheld_holding_entities"] = sorted(ambiguous | withheld)
             snapshots[at] = snapshot
         return snapshots
+
+    def _delayed_holding_disclosures(
+        self, holdings: dict[str, list[tuple[datetime, Fact]]]
+    ) -> dict[str, list[tuple[datetime, datetime, Fact]]]:
+        """Collect disclosure gaps for withholding only, before any display rights filtering."""
+        documents = {}
+        delayed: dict[str, list[tuple[datetime, datetime, Fact]]] = {}
+        for entity_id, rows in holdings.items():
+            for normalized_at, fact in rows:
+                if fact.metric != "shares_owned":
+                    continue
+                if fact.evidence_id not in documents:
+                    documents[fact.evidence_id] = self.evidence(fact.evidence_id)
+                document = documents[fact.evidence_id]
+                if document is None:
+                    continue
+                disclosed_at = max(instant(document.available_at), instant(fact.effective_at))
+                if disclosed_at < normalized_at:
+                    delayed.setdefault(entity_id, []).append((disclosed_at, normalized_at, fact))
+        return delayed
 
     def _valuation_facts_at(
         self,
@@ -492,7 +514,7 @@ class StockStore:
         )
         selected_edges = (fact for public_at, fact in edges if public_at <= cutoff)
         facts = self._choose_latest(chain(selected, selected_quotes, selected_edges))
-        return facts, _ambiguous_holding_entities(selected, facts)
+        return facts, _ambiguous_holding_entities(selected, _current_period_facts(facts))
 
     def _project_dataset(
         self,
@@ -565,6 +587,35 @@ def _holding_revision(fact: Fact) -> tuple[str, str, str]:
     return series, fact.effective_at, fact.available_at
 
 
+def _holding_reporting_scope(fact: Fact) -> str:
+    dimensions = {
+        key: value
+        for key, value in fact.dimensions.items()
+        if key not in {"period_start", "period_end"}
+    }
+    return series_id(fact.entity_id, fact.metric, fact.unit, dimensions)
+
+
+def _undernormalized_holding_entities(
+    entity_ids: set[str],
+    delayed: dict[str, list[tuple[datetime, datetime, Fact]]],
+    reporting: list[Fact],
+    cutoff: datetime,
+) -> set[str]:
+    retained_periods = {
+        _holding_reporting_scope(fact): fact.effective_at
+        for fact in reporting
+        if fact.metric == "shares_owned"
+    }
+    return {
+        entity_id
+        for entity_id in entity_ids
+        for disclosed_at, normalized_at, fact in delayed.get(entity_id, ())
+        if disclosed_at <= cutoff < normalized_at
+        and fact.effective_at >= retained_periods.get(_holding_reporting_scope(fact), "")
+    }
+
+
 def _ambiguous_holding_entities(candidates: list[Fact], chosen: list[Fact]) -> set[str]:
     """A later receipt time does not establish which same-disclosure filing supersedes another."""
     revisions = {_holding_revision(fact): fact for fact in chosen if fact.metric == "shares_owned"}
@@ -573,10 +624,12 @@ def _ambiguous_holding_entities(candidates: list[Fact], chosen: list[Fact]) -> s
         if fact.metric != "shares_owned":
             continue
         selected = revisions.get(_holding_revision(fact))
-        if selected and selected.value != fact.value:
+        if selected:
             actual = decimal_value(fact.value) if fact.value is not None else None
             expected = decimal_value(selected.value) if selected.value is not None else None
-            if actual != expected:
+            if actual != expected or (
+                fact.dimensions.get("share_basis") != selected.dimensions.get("share_basis")
+            ):
                 ambiguous.add(fact.entity_id)
     return ambiguous
 

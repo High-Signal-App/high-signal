@@ -132,7 +132,7 @@ def fetch_research_inputs(days: int = 3) -> list[Event]:
         historical = {
             at: _with_research_valuations(dataset, securities)
             for at, dataset in store.valuation_history(
-                scopes, freshness_days=freshness_days
+                scopes, freshness_days=freshness_days, observed_at=now
             ).items()
         }
         windows = {at: (historical[before], historical[at]) for at, before in before_filing.items()}

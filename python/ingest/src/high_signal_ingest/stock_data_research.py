@@ -209,19 +209,35 @@ def _listed_coverage(dataset: dict, entity_id: str, permitted: set[str]) -> dict
     input_ids = set(result["input_fact_ids"])
     if input_ids & set(dataset["stale_fact_ids"]) or not input_ids <= facts.keys():
         return None
-    evidence_ids = {facts[fact_id]["evidence_id"] for fact_id in input_ids}
-    if any(
-        key not in evidence or evidence[key]["source_id"] not in permitted for key in evidence_ids
-    ):
+    selected = [facts[fact_id] for fact_id in input_ids]
+    evidence_ids = _supported_evidence_ids(selected, evidence, permitted)
+    if not evidence_ids:
         return None
     return {
         "valuationSnapshotId": result["snapshot_id"],
         "inputSnapshotId": dataset["snapshot_id"],
         "modelVersion": result["model_version"],
         "inputFactIds": sorted(input_ids),
-        "inputEvidenceIds": sorted(evidence_ids),
+        "inputEvidenceIds": evidence_ids,
         "componentIds": sorted(line["interest_id"] for line in result["components"]),
         "asOf": result["as_of"],
         "currency": result["currency"],
         "listedInvestmentCoverage": result["listed_investment_coverage"],
     }
+
+
+def _supported_evidence_ids(
+    selected: list[dict], evidence: dict[str, dict], permitted: set[str]
+) -> list[str]:
+    evidence_ids = {fact["evidence_id"] for fact in selected}
+    if any(
+        key not in evidence or evidence[key]["source_id"] not in permitted for key in evidence_ids
+    ):
+        return []
+    if any(
+        fact["metric"] == "shares_owned"
+        and fact["available_at"] != evidence[fact["evidence_id"]]["available_at"]
+        for fact in selected
+    ):
+        return []
+    return sorted(evidence_ids)
