@@ -949,9 +949,16 @@ def test_valuation_history_preserves_conflicting_security_identity(tmp_path):
 
 @pytest.mark.parametrize("triggering_issuer", ["first", "second"])
 @pytest.mark.parametrize("restricted_newer", [False, True])
-@pytest.mark.parametrize("unequal_effective", [False, True])
+@pytest.mark.parametrize(
+    ("unequal_effective", "overlapping_periods"), [(False, False), (True, False), (True, True)]
+)
 def test_valuation_orders_eligible_holding_revisions_by_disclosure(
-    tmp_path, monkeypatch, triggering_issuer, restricted_newer, unequal_effective
+    tmp_path,
+    monkeypatch,
+    triggering_issuer,
+    restricted_newer,
+    unequal_effective,
+    overlapping_periods,
 ):
     from high_signal_ingest import stock_data_refresh
     from high_signal_ingest.stock_data import Entity, Fact, Security
@@ -1034,10 +1041,20 @@ def test_valuation_orders_eligible_holding_revisions_by_disclosure(
                 ]
                 if unequal_effective:
                     observations = [
-                        ("18", newer, newer, "filing", "https://example.org/middle"),
+                        (
+                            "18",
+                            newer,
+                            newer,
+                            amendment_source if overlapping_periods else "filing",
+                            "https://example.org/middle",
+                        ),
                         ("10", earlier, late, "filing", "https://example.org/superseded"),
                         ("20", late, late, amendment_source, "https://example.org/amendment"),
                     ]
+                if overlapping_periods:
+                    observations.append(
+                        ("10", earlier, earlier, "filing", "https://example.org/prior-period")
+                    )
             if issuer == triggering_issuer:
                 shares = "12" if issuer == "first" else "22"
                 observations.append((shares, trigger, trigger, "filing", trigger_url))
@@ -1047,6 +1064,10 @@ def test_valuation_orders_eligible_holding_revisions_by_disclosure(
                     if unequal_effective and url.endswith("/amendment")
                     else effective
                 )
+                fact_holding = holding
+                if url.endswith("/prior-period"):
+                    fact_effective_at = "2026-10-25T11:59:59.500000Z"
+                    fact_holding = {**holding, "period_end": "2026-09-30"}
                 doc = store.retain_evidence(
                     source_id=source,
                     url=url,
@@ -1065,7 +1086,7 @@ def test_valuation_orders_eligible_holding_revisions_by_disclosure(
                         available,
                         doc.id,
                         "/shares",
-                        holding,
+                        fact_holding,
                     )
                 )
                 if source == "restricted-amendment":
@@ -1084,3 +1105,47 @@ def test_valuation_orders_eligible_holding_revisions_by_disclosure(
         change = payload["listedCoverageChange"]
         assert change["before"]["listedInvestmentCoverage"] == "6"
         assert change["after"]["listedInvestmentCoverage"] == "6.4"
+
+
+@pytest.mark.parametrize("second_period", ["2026-10-25", "2026-99-25"])
+def test_valuation_history_withholds_an_incomplete_or_invalid_declared_period(
+    tmp_path, second_period
+):
+    from high_signal_ingest.stock_data import Fact
+
+    at = "2026-10-29T12:00:00Z"
+    with StockStore(tmp_path / "period.sqlite") as store:
+        permit(store, "filing")
+        doc = store.retain_evidence(
+            source_id="filing",
+            url="https://example.org/filing",
+            body=b"fixture period",
+            available_at=at,
+            ingested_at=at,
+        )
+        for period, opened, effective in (
+            ("2026-10-25", "2026-07-01", "2026-10-25T12:00:00Z"),
+            (second_period, "2026-01-01", "2026-10-25T12:00:01Z"),
+        ):
+            store.put_fact(
+                Fact(
+                    "holder",
+                    "shares_owned",
+                    "10",
+                    "shares",
+                    effective,
+                    at,
+                    at,
+                    doc.id,
+                    "/shares",
+                    {
+                        "security_id": "security:asset",
+                        "asset_entity_id": "asset",
+                        "share_basis": "v1",
+                        "period_start": opened,
+                        "period_end": period,
+                    },
+                )
+            )
+        [snapshot] = store.valuation_history({at: {"holder"}}, freshness_days=7).values()
+        assert snapshot["withheld_holding_entities"] == ["holder"]

@@ -7,7 +7,7 @@ import json
 import sqlite3
 from contextlib import contextmanager
 from dataclasses import asdict
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from itertools import chain
 from pathlib import Path
 from typing import Iterable, Iterator
@@ -533,9 +533,14 @@ class StockStore:
         latest_holdings, unresolved = _holdings_by_original_disclosure(selected, disclosure_times)
         other = (fact for fact in selected if fact.metric != "shares_owned")
         facts = self._choose_latest(chain(latest_holdings, other, selected_quotes, selected_edges))
-        return facts, unresolved | _ambiguous_holding_entities(
-            selected, _current_period_facts(facts), disclosure_times
-        )
+        facts, invalid_periods = _historical_reporting_periods(facts)
+        reporting = _current_period_facts(facts)
+        retained = {fact.id for fact in reporting}
+        incomplete = {
+            fact.entity_id for fact in facts if _is_tagged_holding(fact) and fact.id not in retained
+        }
+        ambiguous = _ambiguous_holding_entities(selected, reporting, disclosure_times)
+        return facts, unresolved | invalid_periods | incomplete | ambiguous
 
     def _project_dataset(
         self,
@@ -650,6 +655,43 @@ def _holding_reporting_scope(fact: Fact) -> tuple[str, str]:
     return "untagged_series", series_id(fact.entity_id, fact.metric, fact.unit, fact.dimensions)
 
 
+def _is_tagged_holding(fact: Fact) -> bool:
+    return fact.metric == "shares_owned" and "period_end" in fact.dimensions
+
+
+def _holding_scope_order(fact: Fact) -> str | None:
+    if not _is_tagged_holding(fact):
+        return fact.effective_at
+    declared = fact.dimensions["period_end"]
+    try:
+        return declared if date.fromisoformat(declared).isoformat() == declared else None
+    except ValueError:
+        return None
+
+
+def _historical_reporting_periods(facts: list[Fact]) -> tuple[list[Fact], set[str]]:
+    """Select eligible tagged holding periods before checking display permissions."""
+    periods: dict[str, tuple[str, str | None]] = {}
+    latest: dict[str, str] = {}
+    invalid = set()
+    for fact in facts:
+        if not _is_tagged_holding(fact):
+            continue
+        period = _holding_scope_order(fact)
+        scope = _period_scope(fact)
+        periods[fact.id] = (scope, period)
+        if period is None:
+            invalid.add(fact.entity_id)
+        else:
+            latest[scope] = max(period, latest.get(scope, period))
+    selected = []
+    for fact in facts:
+        tagged = periods.get(fact.id)
+        if tagged is None or (tagged[1] is not None and tagged[1] == latest[tagged[0]]):
+            selected.append(fact)
+    return selected, invalid
+
+
 def _undernormalized_holding_entities(
     entity_ids: set[str],
     delayed: dict[str, list[tuple[datetime, datetime, Fact]]],
@@ -657,7 +699,7 @@ def _undernormalized_holding_entities(
     cutoff: datetime,
 ) -> set[str]:
     retained_periods = {
-        _holding_reporting_scope(fact): fact.effective_at
+        _holding_reporting_scope(fact): _holding_scope_order(fact)
         for fact in reporting
         if fact.metric == "shares_owned"
     }
@@ -666,8 +708,14 @@ def _undernormalized_holding_entities(
         for entity_id in entity_ids
         for disclosed_at, normalized_at, fact in delayed.get(entity_id, ())
         if disclosed_at <= cutoff < normalized_at
-        and fact.effective_at >= retained_periods.get(_holding_reporting_scope(fact), "")
+        and _holding_in_reporting_scope(fact, retained_periods)
     }
+
+
+def _holding_in_reporting_scope(fact: Fact, retained: dict[tuple[str, str], str | None]) -> bool:
+    order = _holding_scope_order(fact)
+    active = retained.get(_holding_reporting_scope(fact))
+    return order is None or active is None or order >= active
 
 
 def _ambiguous_holding_entities(
