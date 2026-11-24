@@ -530,8 +530,10 @@ class StockStore:
             if public_at <= cutoff
         )
         selected_edges = (fact for public_at, fact in edges if public_at <= cutoff)
-        facts = self._choose_latest(chain(selected, selected_quotes, selected_edges))
-        return facts, _ambiguous_holding_entities(
+        latest_holdings, unresolved = _holdings_by_original_disclosure(selected, disclosure_times)
+        other = (fact for fact in selected if fact.metric != "shares_owned")
+        facts = self._choose_latest(chain(latest_holdings, other, selected_quotes, selected_edges))
+        return facts, unresolved | _ambiguous_holding_entities(
             selected, _current_period_facts(facts), disclosure_times
         )
 
@@ -599,6 +601,27 @@ class StockStore:
 
 
 Store = StockStore
+
+
+def _holdings_by_original_disclosure(
+    eligible: list[Fact], disclosure_times: dict[str, datetime]
+) -> tuple[list[Fact], set[str]]:
+    """Use normalization for eligibility and the original disclosure for selection."""
+    chosen: dict[str, tuple[tuple, Fact]] = {}
+    unresolved = set()
+    for fact in eligible:
+        if fact.metric != "shares_owned":
+            continue
+        disclosed_at = disclosure_times.get(fact.evidence_id)
+        if disclosed_at is None:
+            unresolved.add(fact.entity_id)
+            continue
+        series = series_id(fact.entity_id, fact.metric, fact.unit, fact.dimensions)
+        rank = (fact.effective_at, disclosed_at, fact.available_at, fact.ingested_at, fact.id)
+        previous = chosen.get(series)
+        if previous is None or rank > previous[0]:
+            chosen[series] = (rank, fact)
+    return [fact for _, fact in chosen.values()], unresolved
 
 
 def _holding_revision(

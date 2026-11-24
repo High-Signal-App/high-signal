@@ -943,3 +943,130 @@ def test_valuation_history_preserves_conflicting_security_identity(tmp_path):
         )
         assert full["value"] is None and scoped["value"] is None
         assert scoped["issues"] == full["issues"] == ("price issuer/security mismatch",)
+
+
+@pytest.mark.parametrize("triggering_issuer", ["first", "second"])
+@pytest.mark.parametrize("restricted_newer", [False, True])
+def test_valuation_orders_eligible_holding_revisions_by_disclosure(
+    tmp_path, monkeypatch, triggering_issuer, restricted_newer
+):
+    from high_signal_ingest import stock_data_refresh
+    from high_signal_ingest.stock_data import Entity, Fact, Security
+
+    effective = "2026-10-25T12:00:00Z"
+    earlier = "2026-10-26T12:00:00Z"
+    newer = "2026-10-27T12:00:00Z"
+    late = "2026-10-28T12:00:00Z"
+    trigger = "2026-10-29T12:00:00Z"
+    latest = "2026-10-30T12:00:00Z"
+    trigger_url = "https://example.org/trigger"
+    path = tmp_path / "stock.sqlite"
+
+    class FrozenClock(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return cls.fromisoformat(latest.replace("Z", "+00:00")).astimezone(tz)
+
+    monkeypatch.setattr(stock_data_refresh, "datetime", FrozenClock)
+    monkeypatch.setattr(stock_data_refresh, "stock_store_path", lambda: path)
+
+    with StockStore(path) as store:
+        store.put_entity(Entity("holder", "Fixture holder", "IN"))
+        permit(store, "filing")
+        permit(store, "quote")
+        store.put_rights(
+            SourceRights(
+                "restricted-amendment",
+                "https://example.org/amendment-rights",
+                public_display="prohibited",
+            )
+        )
+        quote = store.retain_evidence(
+            source_id="quote",
+            url="https://example.org/quotes",
+            body=b"fixture quotes",
+            available_at=effective,
+            ingested_at=effective,
+        )
+        store.put_fact(
+            Fact(
+                "holder",
+                "market_cap",
+                "100",
+                "INR",
+                effective,
+                effective,
+                effective,
+                quote.id,
+                "/cap",
+            )
+        )
+
+        for issuer in ("first", "second"):
+            security = f"security:{issuer}"
+            store.put_entity(Entity(issuer, f"Fixture issuer {issuer}", "IN"))
+            store.put_security(Security(security, issuer, f"{issuer}.NS", "INR"))
+            basis = {"security_id": security, "share_basis": "v1"}
+            holding = {**basis, "asset_entity_id": issuer, "period_end": effective[:10]}
+            store.put_fact(
+                Fact(
+                    issuer,
+                    "raw_close",
+                    "20",
+                    "INR",
+                    effective,
+                    effective,
+                    effective,
+                    quote.id,
+                    "/price",
+                    {**basis, "price_basis": "nominal"},
+                )
+            )
+            observations = [("10", earlier, earlier, "filing", f"https://example.org/{issuer}")]
+            if issuer == "second":
+                amendment_source = "restricted-amendment" if restricted_newer else "filing"
+                observations = [
+                    ("20", newer, newer, amendment_source, "https://example.org/amendment"),
+                    ("10", earlier, late, "filing", "https://example.org/superseded"),
+                ]
+            if issuer == triggering_issuer:
+                shares = "12" if issuer == "first" else "22"
+                observations.append((shares, trigger, trigger, "filing", trigger_url))
+            for shares, disclosed, available, source, url in observations:
+                doc = store.retain_evidence(
+                    source_id=source,
+                    url=url,
+                    body=f"{disclosed}: {shares}".encode(),
+                    available_at=disclosed,
+                    ingested_at=available,
+                )
+                store.put_fact(
+                    Fact(
+                        "holder",
+                        "shares_owned",
+                        shares,
+                        "shares",
+                        effective,
+                        available,
+                        available,
+                        doc.id,
+                        "/shares",
+                        holding,
+                    )
+                )
+                if source == "restricted-amendment":
+                    restricted_id = doc.id
+
+    [event] = [
+        event
+        for event in stock_data_refresh.fetch_research_inputs()
+        if event.source_url == trigger_url
+    ]
+    payload = event.source_document.raw_json
+    if restricted_newer:
+        assert "listedCoverageChange" not in payload
+        assert restricted_id not in str(payload)
+    else:
+        change = payload["listedCoverageChange"]
+        assert change["before"]["listedInvestmentCoverage"] == "6"
+        assert change["after"]["listedInvestmentCoverage"] == "6.4"
