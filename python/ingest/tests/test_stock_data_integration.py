@@ -497,15 +497,16 @@ def test_orphan_evidence_chunks_survive_restore_close_and_reopen(tmp_path):
 
 
 @pytest.mark.parametrize(
-    ("quote_at", "shares_now", "quote_now", "has_delta"),
+    ("quote_at", "shares_now", "quote_now", "registry_currency", "has_delta"),
     [
-        ("2026-10-28T12:00:00Z", "12", "20", True),
-        ("2026-10-20T12:00:00Z", "12", "20", False),
-        ("2026-10-28T12:00:00Z", "10", "24", False),
+        ("2026-10-28T12:00:00Z", "12", "20", "INR", True),
+        ("2026-10-20T12:00:00Z", "12", "20", "INR", False),
+        ("2026-10-28T12:00:00Z", "10", "24", "INR", False),
+        ("2026-10-28T12:00:00Z", "12", "20", "USD", False),
     ],
 )
 def test_research_carries_listed_coverage_for_one_changed_filing(
-    tmp_path, monkeypatch, quote_at, shares_now, quote_now, has_delta
+    tmp_path, monkeypatch, quote_at, shares_now, quote_now, registry_currency, has_delta
 ):
     from high_signal_ingest import stock_data_refresh
     from high_signal_ingest.stock_data import Entity, Fact, Security
@@ -527,11 +528,12 @@ def test_research_carries_listed_coverage_for_one_changed_filing(
     with StockStore(path) as store:
         store.put_entity(Entity("holder", "Fixture holder", "IN"))
         store.put_entity(Entity("issuer", "Fixture issuer", "IN"))
-        store.put_security(Security("security:issuer", "issuer", "FIXTURE.NS", "INR"))
+        store.put_security(Security("security:issuer", "issuer", "FIXTURE.NS", registry_currency))
         permit(store, "filing")
         permit(store, "historic-quote")
         permit(store, "current-quote")
         for value, at in (("10", first), (shares_now, amendment)):
+            effective_at = first if at == first else "2026-10-20T12:00:00Z"
             filing = store.retain_evidence(
                 source_id="filing",
                 url=filing_url,
@@ -545,7 +547,7 @@ def test_research_carries_listed_coverage_for_one_changed_filing(
                     "shares_owned",
                     value,
                     "shares",
-                    first,
+                    effective_at,
                     at,
                     at,
                     filing.id,
@@ -554,6 +556,7 @@ def test_research_carries_listed_coverage_for_one_changed_filing(
                         "security_id": "security:issuer",
                         "asset_entity_id": "issuer",
                         "share_basis": "v1",
+                        "period_end": effective_at[:10],
                     },
                 )
             )
@@ -613,9 +616,11 @@ def test_research_carries_listed_coverage_for_one_changed_filing(
     assert change["before"]["listedInvestmentCoverage"] == "2"
     assert change["after"]["listedInvestmentCoverage"] == "2.4"
     assert change["before"]["inputSnapshotId"] != change["after"]["inputSnapshotId"]
-    assert change["after"]["inputSnapshotId"] == payload["inputSnapshotId"]
+    assert change["after"]["asOf"] == "2026-10-29T12:00:00.000000Z"
+    assert change["after"]["inputSnapshotId"] != payload["inputSnapshotId"]
     assert len(change["after"]["inputFactIds"]) == 3
-    assert quote.id in change["after"]["inputEvidenceIds"]
+    assert old_quote_id in change["after"]["inputEvidenceIds"]
+    assert quote.id not in change["after"]["inputEvidenceIds"]
     assert old_quote_id in change["before"]["inputEvidenceIds"]
     assert change["changedHoldingFactIds"] == [payload["facts"][0]["id"]]
     assert {document["url"] for document in payload["evidence"]} == {filing_url}
@@ -646,6 +651,114 @@ def test_research_carries_listed_coverage_for_one_changed_filing(
     assert old_quote_id not in str(withheld.source_document.raw_json)
     assert withheld.content == event.content
     assert withheld.id == event.id
+    assert withheld.source_document.document_key == event.source_document.document_key
+
+
+@pytest.mark.parametrize("simultaneous", [False, True])
+def test_multiple_filings_for_one_parent_use_their_own_cutoffs(tmp_path, monkeypatch, simultaneous):
+    from high_signal_ingest import stock_data_refresh
+    from high_signal_ingest.stock_data import Entity, Fact, Security
+
+    first = "2026-10-27T12:00:00Z"
+    disclosures = (
+        "2026-10-28T12:00:00Z",
+        "2026-10-28T12:00:00Z" if simultaneous else "2026-10-29T12:00:00Z",
+    )
+    latest = "2026-10-30T12:00:00Z"
+    path = tmp_path / "stock.sqlite"
+
+    class FrozenClock(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return cls.fromisoformat(latest.replace("Z", "+00:00")).astimezone(tz)
+
+    monkeypatch.setattr(stock_data_refresh, "datetime", FrozenClock)
+    monkeypatch.setattr(stock_data_refresh, "stock_store_path", lambda: path)
+
+    with StockStore(path) as store:
+        store.put_entity(Entity("holder", "Fixture holder", "IN"))
+        permit(store, "filing")
+        permit(store, "quote")
+        quote = store.retain_evidence(
+            source_id="quote",
+            url="https://example.org/quotes",
+            body=b"fixture quotes",
+            available_at=first,
+            ingested_at=first,
+        )
+        store.put_fact(
+            Fact(
+                "holder",
+                "market_cap",
+                "100",
+                "INR",
+                first,
+                first,
+                first,
+                quote.id,
+                "/cap",
+            )
+        )
+        for i, (disclosure, revised) in enumerate(zip(disclosures, ("12", "13"))):
+            issuer = f"issuer-{i}"
+            security = f"security:{issuer}"
+            store.put_entity(Entity(issuer, f"Fixture issuer {i}", "IN"))
+            store.put_security(Security(security, issuer, f"FIXTURE{i}.NS", "INR"))
+            basis = {"security_id": security, "share_basis": "v1"}
+            store.put_fact(
+                Fact(
+                    issuer,
+                    "raw_close",
+                    "20",
+                    "INR",
+                    first,
+                    first,
+                    first,
+                    quote.id,
+                    "/price",
+                    {**basis, "price_basis": "nominal"},
+                )
+            )
+            for shares, at in (("10", first), (revised, disclosure)):
+                filing = store.retain_evidence(
+                    source_id="filing",
+                    url=f"https://example.org/filing-{i}",
+                    body=f"{at}: {shares}".encode(),
+                    available_at=at,
+                    ingested_at=at,
+                )
+                store.put_fact(
+                    Fact(
+                        "holder",
+                        "shares_owned",
+                        shares,
+                        "shares",
+                        first,
+                        at,
+                        at,
+                        filing.id,
+                        "/shares",
+                        {**basis, "asset_entity_id": issuer},
+                    )
+                )
+
+    events = stock_data_refresh.fetch_research_inputs()
+    filings = [event for event in events if "/filing-" in event.source_url]
+    assert [event.source_url for event in filings] == [
+        "https://example.org/filing-0",
+        "https://example.org/filing-1",
+    ]
+    payloads = [event.source_document.raw_json for event in filings]
+    if simultaneous:
+        assert all("listedCoverageChange" not in payload for payload in payloads)
+        return
+    changes = [payload["listedCoverageChange"] for payload in payloads]
+    assert [
+        (change["before"]["listedInvestmentCoverage"], change["after"]["listedInvestmentCoverage"])
+        for change in changes
+    ] == [("4", "4.4"), ("4.4", "5")]
+    for payload, change in zip(payloads, changes):
+        assert change["changedHoldingFactIds"] == [payload["facts"][0]["id"]]
 
 
 def test_valuation_history_preserves_conflicting_security_identity(tmp_path):

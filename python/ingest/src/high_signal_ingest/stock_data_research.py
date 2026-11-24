@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 
 from .stock_data.models import content_id, decimal_value
-from .stock_data.valuation import canonical_fact_key, detect_changes
+from .stock_data.valuation import detect_changes
 from .types import Event, SourceDocument
 
 
@@ -13,7 +13,7 @@ def research_events(
     previous: dict | None,
     current: dict,
     *,
-    valuation_baselines: dict[str, dict] | None = None,
+    valuation_windows: dict[str, tuple[dict, dict]] | None = None,
 ) -> list[Event]:
     """Keep one original evidence origin per event; a finding is not corroboration."""
     if current.get("audience") != "display":
@@ -47,14 +47,14 @@ def research_events(
             "classification": "numerical_observation",
             "investmentConclusion": None,
         }
-        valuation_change = _filing_valuation_change(
-            entity_id, facts, previous, current, valuation_baselines or {}
-        )
-        if valuation_change is not None:
-            payload["listedCoverageChange"] = valuation_change
         raw_hash = content_id(
             "research", [entity_id, source_url, sorted(f["id"] for f in facts)]
         ).split(":", 1)[1]
+        document_key, valuation_change = _filing_receipt(
+            facts, original_evidence, origin_id, raw_hash, valuation_windows or {}
+        )
+        if valuation_change is not None:
+            payload["listedCoverageChange"] = valuation_change
         content = "\n".join(
             f"{f['metric']}: {f['value']} {f['unit']} (effective {f['effective_at']}; publicly available {f['available_at']}; locator {f['locator']}; input {f['id']})"
             for f in facts
@@ -74,6 +74,7 @@ def research_events(
                 raw_hash=raw_hash,
                 source_document=SourceDocument(
                     canonical_url=evidence["url"],
+                    document_key=document_key,
                     published_at=published_at,
                     raw_hash=evidence["sha256"],
                     raw_json=payload,
@@ -84,27 +85,37 @@ def research_events(
     return out
 
 
+def _filing_receipt(
+    facts: list[dict],
+    evidence: list[dict],
+    origin_id: str,
+    raw_hash: str,
+    windows: dict[str, tuple[dict, dict]],
+) -> tuple[str | None, dict | None]:
+    if len(evidence) != 1 or not any(fact["metric"] == "shares_owned" for fact in facts):
+        return None, None
+    key = content_id("stock-filing", [origin_id, evidence[0]["sha256"], raw_hash])
+    return key, _filing_valuation_change(facts[0]["entity_id"], facts, windows)
+
+
 def _filing_valuation_change(
     entity_id: str,
     event_facts: list[dict],
-    previous: dict | None,
-    current: dict,
-    baselines: dict[str, dict],
+    windows: dict[str, tuple[dict, dict]],
 ) -> dict | None:
     holdings = [fact for fact in event_facts if fact["metric"] == "shares_owned"]
     filing_times = {fact["available_at"] for fact in holdings}
     if len(filing_times) != 1:
         return None
-    baseline = baselines.get(next(iter(filing_times))) if previous is None else None
-    previous = previous if previous is not None else baseline
-    if not previous or previous.get("audience") != "display":
+    window = windows.get(next(iter(filing_times)))
+    if not window:
         return None
+    previous, current = window
 
-    # Only live reconstructions, never caller-supplied historical snapshots, add
-    # rights for sources that appear solely in the preceding valuation.
+    # Both projections used the same current rights in one local transaction.
     current_rights = {
         right["id"]: right["public_display"]
-        for projection in (baseline or {}, current)
+        for projection in (previous, current)
         for right in projection.get("usage_rights", [])
     }
     permitted = {
@@ -116,9 +127,9 @@ def _filing_valuation_change(
         return None
 
     changed_holding_ids = _changed_holdings(
-        holdings, previous["facts"], set(before["inputFactIds"]), set(after["inputFactIds"])
+        previous["facts"], current["facts"], set(before["inputFactIds"]), set(after["inputFactIds"])
     )
-    if not changed_holding_ids:
+    if not changed_holding_ids or set(changed_holding_ids) - {fact["id"] for fact in holdings}:
         return None
     return {
         "method": "listed_coverage",
@@ -138,23 +149,40 @@ def _comparable_coverage(before: dict, after: dict) -> bool:
 
 
 def _changed_holdings(
-    holdings: list[dict], previous: list[dict], before_ids: set[str], after_ids: set[str]
+    previous: list[dict], current: list[dict], before_ids: set[str], after_ids: set[str]
 ) -> list[str]:
-    before_holdings = {
-        canonical_fact_key(fact): fact
-        for fact in previous
-        if fact["id"] in before_ids and fact["metric"] == "shares_owned"
-    }
-    changed_holding_ids = []
-    for holding in holdings:
-        prior = before_holdings.get(canonical_fact_key(holding))
-        if (
-            prior
-            and decimal_value(prior["value"]) != decimal_value(holding["value"])
-            and holding["id"] in after_ids
-        ):
-            changed_holding_ids.append(holding["id"])
-    return sorted(changed_holding_ids)
+    before = _holding_inputs(previous, before_ids)
+    after = _holding_inputs(current, after_ids)
+    if not before or not after or before.keys() != after.keys():
+        return []
+    if before_ids - {fact["id"] for fact in before.values()} != (
+        after_ids - {fact["id"] for fact in after.values()}
+    ):
+        return []
+    return sorted(
+        fact["id"]
+        for key, fact in after.items()
+        if decimal_value(before[key]["value"]) != decimal_value(fact["value"])
+    )
+
+
+def _holding_inputs(facts: list[dict], input_ids: set[str]) -> dict[tuple, dict]:
+    holdings = {}
+    for fact in facts:
+        if fact["id"] not in input_ids or fact["metric"] != "shares_owned":
+            continue
+        dimensions = fact["dimensions"]
+        key = (
+            fact["entity_id"],
+            dimensions.get("asset_entity_id"),
+            dimensions.get("security_id"),
+            dimensions.get("share_basis"),
+            fact["unit"],
+        )
+        if not all(key) or key in holdings:
+            return {}
+        holdings[key] = fact
+    return holdings
 
 
 def _listed_coverage(dataset: dict, entity_id: str, permitted: set[str]) -> dict | None:

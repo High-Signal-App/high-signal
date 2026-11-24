@@ -116,10 +116,14 @@ def fetch_research_inputs(days: int = 3) -> list[Event]:
     if not path.exists():
         raise RuntimeError("canonical stock ledger unavailable; run the equities refresh first")
     now = datetime.now(timezone.utc).isoformat()
-    with StockStore(path) as store:
+    with StockStore(path) as store, store.transaction():
         freshness_days = max(days, 7)
         cutoff = instant(now) - timedelta(days=freshness_days)
-        dataset = _research_projection(store, now, freshness_days)
+        securities = {row["id"]: row for row in store.identities("security")}
+        dataset = _with_research_valuations(
+            store.dataset(as_of=now, audience="display", freshness_days=freshness_days),
+            securities,
+        )
         facts = {fact["id"]: fact for fact in dataset["facts"]}
         filing_scopes: dict[str, set[str]] = {}
         for valuation in dataset["valuations"]:
@@ -138,30 +142,49 @@ def fetch_research_inputs(days: int = 3) -> list[Event]:
         before_filing = {
             at: (instant(at) - timedelta(microseconds=1)).isoformat() for at in filing_scopes
         }
-        prior = store.valuation_history(
-            {before_filing[at]: scope for at, scope in filing_scopes.items()},
-            freshness_days=freshness_days,
-        )
-        baselines = {
-            at: _with_research_valuations(prior[prior_at]) for at, prior_at in before_filing.items()
+        scopes: dict[str, set[str]] = {}
+        for at, before in before_filing.items():
+            for cutoff_at in (at, before):
+                scopes.setdefault(cutoff_at, set()).update(filing_scopes[at])
+        historical = {
+            at: _with_research_valuations(dataset, securities)
+            for at, dataset in store.valuation_history(
+                scopes, freshness_days=freshness_days
+            ).items()
         }
+        windows = {at: (historical[before], historical[at]) for at, before in before_filing.items()}
         # Stable event identities provide downstream idempotency. Delivery progress
         # belongs to existing audit acknowledgements, never a local pre-send cursor.
-        return research_events(None, dataset, valuation_baselines=baselines)
+        return research_events(None, dataset, valuation_windows=windows)
 
 
-def _research_projection(store: StockStore, as_of: str, freshness_days: int) -> dict:
-    return _with_research_valuations(
-        store.dataset(as_of=as_of, audience="display", freshness_days=freshness_days)
-    )
-
-
-def _with_research_valuations(dataset: dict) -> dict:
-    if any(fact["metric"] == "shares_owned" for fact in dataset["facts"]):
-        dataset["valuations"] = valuation_snapshots(dataset)
-    else:
-        dataset["valuations"] = []
+def _with_research_valuations(dataset: dict, securities: dict[str, dict]) -> dict:
+    facts = {fact["id"]: fact for fact in dataset["facts"]}
+    values = []
+    if any(fact["metric"] == "shares_owned" for fact in facts.values()):
+        values = [
+            value
+            for value in valuation_snapshots(dataset)
+            if all(_registered_holding(line, facts, securities) for line in value["components"])
+        ]
+    dataset["valuations"] = values
     return dataset
+
+
+def _registered_holding(line: dict, facts: dict[str, dict], securities: dict[str, dict]) -> bool:
+    inputs = {facts[fact_id]["metric"]: facts[fact_id] for fact_id in line["input_fact_ids"]}
+    holding, quote = inputs.get("shares_owned"), inputs.get("raw_close")
+    if not holding or not quote:
+        return False
+    security_id = holding["dimensions"].get("security_id")
+    security = securities.get(security_id)
+    return bool(
+        security
+        and security["entity_id"] == line["asset_entity_id"]
+        and security["entity_id"] == quote["entity_id"]
+        and security["currency"] == quote["unit"]
+        and security_id == quote["dimensions"].get("security_id")
+    )
 
 
 def main() -> None:
