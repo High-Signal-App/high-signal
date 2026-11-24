@@ -11,23 +11,23 @@
       "capture": {
         "sourceUrl": "https://www.10xdental.com/",
         "finalUrl": "https://www.10xdental.com/",
-        "fetchedAt": "2026-11-09T15:10:23.863Z",
-        "contentSha256": "b991e8d007ee8277fb584860843541c9b40fc6c9fca76554d3e6f689087f6e29",
+        "fetchedAt": "2026-11-24T15:07:48.396Z",
+        "contentSha256": "dc14daed6d01cfc880b3400e40daa64d376e810b9f83901326efdb8c0168bb7b",
         "claim": "10x offers call and text workflows for dental patient recall.",
         "excerpt": "Two-way conversations by call and text, every day, so recall does not wait on a free moment at the front desk.",
         "sourceCompanyIdentity": {
           "name": "10x",
           "canonicalWebsite": "https://www.10xdental.com/",
-          "identityBasis": "The current YC company record lists this website; the retained page identifies the same product."
+          "identityBasis": "The retained YC directory URL redirects to the current 10x Dental listing, which names the same product and links to 10xdental.com."
         }
       },
       "review": {
         "state": "accepted",
-        "reviewedAt": "2026-11-09T15:15:23.942Z",
+        "reviewedAt": "2026-11-24T15:07:52.443Z",
         "reviewer": "codex-source-review",
-        "validUntil": "2026-12-09T15:15:23.942Z",
-        "supportRationale": "Company-owned page supports the stated core product capability. This does not independently verify adoption, financial, performance or other historical directory claims.",
-        "identityRationale": "Exact company name and website match the current YC company record; destination remains on the retained official host."
+        "validUntil": "2026-12-24T15:07:52.443Z",
+        "supportRationale": "The company-owned page provides original support for the stated product capability. The claim is company-reported and makes no assertion about adoption, financing or measured performance.",
+        "identityRationale": "The retained YC directory URL redirects to the current 10x Dental listing, which names the same product and links to 10xdental.com."
       }
     },
     {
@@ -39,24 +39,24 @@
       "expectedDescriptionSha256": "43d2318342312cc073076fa257b23aecf1fca36900b32e3a9bd2678e2914fee0",
       "capture": {
         "sourceUrl": "https://www.firecrawl.dev",
-        "finalUrl": "https://www.firecrawl.dev",
-        "fetchedAt": "2026-11-09T15:10:25.206Z",
-        "contentSha256": "df819a986093ca34d97e169a930dd341acd60435ea2f6d8fe3ba260e86f5af61",
+        "finalUrl": "https://www.firecrawl.dev/",
+        "fetchedAt": "2026-11-24T15:07:48.472Z",
+        "contentSha256": "4f0b1a19b6800490667c3c2ea344f657f947c9ff0e3ecfa00e38595240bd933d",
         "claim": "Firecrawl provides web search and scraping data for AI applications.",
         "excerpt": "The infrastructure layer that helps AI find, read, and act on the live web.",
         "sourceCompanyIdentity": {
           "name": "Firecrawl",
           "canonicalWebsite": "https://www.firecrawl.dev",
-          "identityBasis": "The current YC company record lists this website; the retained page identifies the same product."
+          "identityBasis": "The current YC company listing names the same company and links to the captured company-owned domain."
         }
       },
       "review": {
         "state": "accepted",
-        "reviewedAt": "2026-11-09T15:15:23.942Z",
+        "reviewedAt": "2026-11-24T15:07:52.443Z",
         "reviewer": "codex-source-review",
-        "validUntil": "2026-12-09T15:15:23.942Z",
-        "supportRationale": "Company-owned page supports the stated core product capability. This does not independently verify adoption, financial, performance or other historical directory claims.",
-        "identityRationale": "Exact company name and website match the current YC company record; destination remains on the retained official host."
+        "validUntil": "2026-12-24T15:07:52.443Z",
+        "supportRationale": "The company-owned page provides original support for the stated product capability. The claim is company-reported and makes no assertion about adoption, financing or measured performance.",
+        "identityRationale": "The current YC company listing names the same company and links to the captured company-owned domain."
       }
     },
     {
@@ -68,24 +68,24 @@
       "expectedDescriptionSha256": "2a81efe49dff93d46975b600ae262fc08e18db94056d904760fde089f144774c",
       "capture": {
         "sourceUrl": "https://langfuse.com",
-        "finalUrl": "https://langfuse.com",
-        "fetchedAt": "2026-11-09T15:10:25.463Z",
-        "contentSha256": "16ef36665c8cd2437319bca26339b32550add1745dc8410a28768be7f07092cc",
+        "finalUrl": "https://langfuse.com/",
+        "fetchedAt": "2026-11-24T15:07:47.290Z",
+        "contentSha256": "d28a71a5532d50927b3f44705d423ea8b7318b1203bf61e1e5e452dfdb3e588a",
         "claim": "Langfuse provides LLM tracing, prompt management and evaluation workflows.",
         "excerpt": "One integrated platform to trace, manage prompts, evaluate, and experiment from prototype to production scale.",
         "sourceCompanyIdentity": {
           "name": "Langfuse",
           "canonicalWebsite": "https://langfuse.com",
-          "identityBasis": "The current YC company record lists this website; the retained page identifies the same product."
+          "identityBasis": "The current YC company listing names the same company and links to the captured company-owned domain."
         }
       },
       "review": {
         "state": "accepted",
-        "reviewedAt": "2026-11-09T15:15:23.942Z",
+        "reviewedAt": "2026-11-24T15:07:52.443Z",
         "reviewer": "codex-source-review",
-        "validUntil": "2026-12-09T15:15:23.942Z",
-        "supportRationale": "Company-owned page supports the stated core product capability. This does not independently verify adoption, financial, performance or other historical directory claims.",
-        "identityRationale": "Exact company name and website match the current YC company record; destination remains on the retained official host."
+        "validUntil": "2026-12-24T15:07:52.443Z",
+        "supportRationale": "The company-owned page provides original support for the stated product capability. The claim is company-reported and makes no assertion about adoption, financing or measured performance.",
+        "identityRationale": "The current YC company listing names the same company and links to the captured company-owned domain."
       }
     },
     {
@@ -97,24 +97,24 @@
       "expectedDescriptionSha256": "021b338d98626fab9be96272dbdb0325b216e170e38e966aa99cdd6e2e6f86b5",
       "capture": {
         "sourceUrl": "https://supabase.com",
-        "finalUrl": "https://supabase.com",
-        "fetchedAt": "2026-11-09T15:10:26.219Z",
-        "contentSha256": "5a4a637b5fb22e7e126e3eb632bd83f26c701dfa8be608b92649d3c87bbb62bc",
+        "finalUrl": "https://supabase.com/",
+        "fetchedAt": "2026-11-24T15:07:47.421Z",
+        "contentSha256": "6d652cb3482c15fe974b5d76b9f71eef85fa046de5d42c9b6505a791909e6a9a",
         "claim": "Supabase combines Postgres with authentication, APIs and realtime application services.",
         "excerpt": "Start your project with a Postgres database. Add Authentication, Data APIs, Edge Functions, Realtime Data, Storage, and Vector embeddings.",
         "sourceCompanyIdentity": {
           "name": "Supabase",
           "canonicalWebsite": "https://supabase.com",
-          "identityBasis": "The current YC company record lists this website; the retained page identifies the same product."
+          "identityBasis": "The current YC company listing names the same company and links to the captured company-owned domain."
         }
       },
       "review": {
         "state": "accepted",
-        "reviewedAt": "2026-11-09T15:15:23.942Z",
+        "reviewedAt": "2026-11-24T15:07:52.443Z",
         "reviewer": "codex-source-review",
-        "validUntil": "2026-12-09T15:15:23.942Z",
-        "supportRationale": "Company-owned page supports the stated core product capability. This does not independently verify adoption, financial, performance or other historical directory claims.",
-        "identityRationale": "Exact company name and website match the current YC company record; destination remains on the retained official host."
+        "validUntil": "2026-12-24T15:07:52.443Z",
+        "supportRationale": "The company-owned page provides original support for the stated product capability. The claim is company-reported and makes no assertion about adoption, financing or measured performance.",
+        "identityRationale": "The current YC company listing names the same company and links to the captured company-owned domain."
       }
     },
     {
@@ -126,24 +126,285 @@
       "expectedDescriptionSha256": "ea10b6b14ef68a166523a8b5136e40e1bce458e20e6ea8e29e1085cf2a70599b",
       "capture": {
         "sourceUrl": "https://trigger.dev",
-        "finalUrl": "https://trigger.dev",
-        "fetchedAt": "2026-11-09T15:10:28.786Z",
-        "contentSha256": "af5fca7a05bb23b3bdee8fb2771b89dad0d97f2c43bfd0a439f00a83c1d7f90c",
+        "finalUrl": "https://trigger.dev/",
+        "fetchedAt": "2026-11-24T15:07:48.382Z",
+        "contentSha256": "6240c0958556a4656aa8e10db60831dcb0e5aaf4c1b3e85ebfc7b4a2db5ca9bd",
         "claim": "Trigger.dev runs durable AI tasks and workflows in TypeScript with retries and queues.",
         "excerpt": "Trigger.dev is the open source platform for building AI agents in TypeScript. Long-running tasks with retries, queues, AI observability, and elastic scaling.",
         "sourceCompanyIdentity": {
           "name": "Trigger.dev",
           "canonicalWebsite": "https://trigger.dev",
-          "identityBasis": "The current YC company record lists this website; the retained page identifies the same product."
+          "identityBasis": "The current YC company listing names the same company and links to the captured company-owned domain."
         }
       },
       "review": {
         "state": "accepted",
-        "reviewedAt": "2026-11-09T15:15:23.942Z",
+        "reviewedAt": "2026-11-24T15:07:52.443Z",
         "reviewer": "codex-source-review",
-        "validUntil": "2026-12-09T15:15:23.942Z",
-        "supportRationale": "Company-owned page supports the stated core product capability. This does not independently verify adoption, financial, performance or other historical directory claims.",
-        "identityRationale": "Exact company name and website match the current YC company record; destination remains on the retained official host."
+        "validUntil": "2026-12-24T15:07:52.443Z",
+        "supportRationale": "The company-owned page provides original support for the stated product capability. The claim is company-reported and makes no assertion about adoption, financing or measured performance.",
+        "identityRationale": "The current YC company listing names the same company and links to the captured company-owned domain."
+      }
+    },
+    {
+      "id": "official-site-20261124-airbyte",
+      "companySlug": "airbyte",
+      "expectedName": "Airbyte",
+      "expectedDirectoryUrl": "https://www.ycombinator.com/companies/airbyte",
+      "expectedWebsiteHost": "airbyte.com",
+      "expectedDescriptionSha256": "bc9b23bf6d20e99003f17da4e4b2f4423466f25133ddc1bec368cd6851dee93b",
+      "capture": {
+        "sourceUrl": "https://airbyte.com/",
+        "finalUrl": "https://airbyte.com/",
+        "fetchedAt": "2026-11-24T15:07:47.586Z",
+        "contentSha256": "c1bae6ad25e966fe79fbcf7f110b7dd4d9397701a53b38e0d168cf8a56c72127",
+        "claim": "Airbyte provides ELT pipelines that can run in a customer's VPC or in Airbyte Cloud.",
+        "excerpt": "Run in your VPC or on Airbyte Cloud",
+        "sourceCompanyIdentity": {
+          "name": "Airbyte",
+          "canonicalWebsite": "https://airbyte.com/",
+          "identityBasis": "The current YC company listing names the same company and links to the captured company-owned domain."
+        }
+      },
+      "review": {
+        "state": "accepted",
+        "reviewedAt": "2026-11-24T15:07:52.443Z",
+        "reviewer": "codex-source-review",
+        "validUntil": "2026-12-24T15:07:52.443Z",
+        "supportRationale": "The company-owned page provides original support for the stated product capability. The claim is company-reported and makes no assertion about adoption, financing or measured performance.",
+        "identityRationale": "The current YC company listing names the same company and links to the captured company-owned domain."
+      }
+    },
+    {
+      "id": "official-site-20261124-airweave",
+      "companySlug": "airweave",
+      "expectedName": "Airweave",
+      "expectedDirectoryUrl": "https://www.ycombinator.com/companies/airweave",
+      "expectedWebsiteHost": "airweave.ai",
+      "expectedDescriptionSha256": "80e165e5df411164bf2230b44f205798d5d6ddbae4f25e0ef9352d0ae2164dcc",
+      "capture": {
+        "sourceUrl": "https://airweave.ai/",
+        "finalUrl": "https://airweave.ai/",
+        "fetchedAt": "2026-11-24T15:07:48.519Z",
+        "contentSha256": "2e40746c3f2c1fcfe254e3b8bdb035e6f2c5623333b52487da81b77e6eac4288",
+        "claim": "Airweave provides context retrieval for AI agents from apps and databases.",
+        "excerpt": "Airweave lets AI agents retrieve relevant context from apps and databases.",
+        "sourceCompanyIdentity": {
+          "name": "Airweave",
+          "canonicalWebsite": "https://airweave.ai",
+          "identityBasis": "The current YC company listing names the same company and links to the captured company-owned domain."
+        }
+      },
+      "review": {
+        "state": "accepted",
+        "reviewedAt": "2026-11-24T15:07:52.443Z",
+        "reviewer": "codex-source-review",
+        "validUntil": "2026-12-24T15:07:52.443Z",
+        "supportRationale": "The company-owned page provides original support for the stated product capability. The claim is company-reported and makes no assertion about adoption, financing or measured performance.",
+        "identityRationale": "The current YC company listing names the same company and links to the captured company-owned domain."
+      }
+    },
+    {
+      "id": "official-site-20261124-brex",
+      "companySlug": "brex",
+      "expectedName": "Brex",
+      "expectedDirectoryUrl": "https://www.ycombinator.com/companies/brex",
+      "expectedWebsiteHost": "brex.com",
+      "expectedDescriptionSha256": "e1b1a94efc8453c6f089585ade3c345f0204cc1137873a40c2b3cadc4884661c",
+      "capture": {
+        "sourceUrl": "https://www.brex.com/",
+        "finalUrl": "https://www.brex.com/",
+        "fetchedAt": "2026-11-24T15:07:48.927Z",
+        "contentSha256": "c7030a402eb36153a086da25cd27244d4001105b29d83c0f64d40bb720b82ef9",
+        "claim": "Brex provides corporate cards with built-in spending controls.",
+        "excerpt": "Spend smart globally with powerful cards and built-in controls.",
+        "sourceCompanyIdentity": {
+          "name": "Brex",
+          "canonicalWebsite": "https://www.brex.com",
+          "identityBasis": "The current YC company listing names the same company and links to the captured company-owned domain."
+        }
+      },
+      "review": {
+        "state": "accepted",
+        "reviewedAt": "2026-11-24T15:07:52.443Z",
+        "reviewer": "codex-source-review",
+        "validUntil": "2026-12-24T15:07:52.443Z",
+        "supportRationale": "The company-owned page provides original support for the stated product capability. The claim is company-reported and makes no assertion about adoption, financing or measured performance.",
+        "identityRationale": "The current YC company listing names the same company and links to the captured company-owned domain."
+      }
+    },
+    {
+      "id": "official-site-20261124-deepsource",
+      "companySlug": "deepsource",
+      "expectedName": "DeepSource",
+      "expectedDirectoryUrl": "https://www.ycombinator.com/companies/deepsource",
+      "expectedWebsiteHost": "deepsource.com",
+      "expectedDescriptionSha256": "cf0c3ff5052b73e6770e57bf7ed6f3dd5ff02fc2a17a858ce126f29bad30ea72",
+      "capture": {
+        "sourceUrl": "https://deepsource.com/",
+        "finalUrl": "https://deepsource.com/",
+        "fetchedAt": "2026-11-24T15:07:49.821Z",
+        "contentSha256": "1b2d64acdef3f125b4df76d7fc446c37615dd4e6a1cc85774777294a663d8599",
+        "claim": "DeepSource automates pull request code review using static analysis and AI.",
+        "excerpt": "Deep code review with hybrid static analysis and AI agents.",
+        "sourceCompanyIdentity": {
+          "name": "DeepSource",
+          "canonicalWebsite": "https://deepsource.com/",
+          "identityBasis": "The current YC company listing names the same company and links to the captured company-owned domain."
+        }
+      },
+      "review": {
+        "state": "accepted",
+        "reviewedAt": "2026-11-24T15:07:52.443Z",
+        "reviewer": "codex-source-review",
+        "validUntil": "2026-12-24T15:07:52.443Z",
+        "supportRationale": "The company-owned page provides original support for the stated product capability. The claim is company-reported and makes no assertion about adoption, financing or measured performance.",
+        "identityRationale": "The current YC company listing names the same company and links to the captured company-owned domain."
+      }
+    },
+    {
+      "id": "official-site-20261124-exa",
+      "companySlug": "exa",
+      "expectedName": "Exa",
+      "expectedDirectoryUrl": "https://www.ycombinator.com/companies/exa",
+      "expectedWebsiteHost": "exa.ai",
+      "expectedDescriptionSha256": "c14a2ae2c496d55d47760761d2c6ecb3c21b8326b6a715b0ab07dd093f7790d9",
+      "capture": {
+        "sourceUrl": "https://exa.ai/products/search",
+        "finalUrl": "https://exa.ai/products/search",
+        "fetchedAt": "2026-11-24T15:07:49.465Z",
+        "contentSha256": "486704c8a04afc349f2c234ddf3f4f354e03d2b6a86b3c3f2c738b6e2be73219",
+        "claim": "Exa provides an API for public web search in AI applications.",
+        "excerpt": "Search the public web and proprietary data through one API",
+        "sourceCompanyIdentity": {
+          "name": "Exa",
+          "canonicalWebsite": "https://exa.ai",
+          "identityBasis": "The current YC company listing names the same company and links to the captured company-owned domain."
+        }
+      },
+      "review": {
+        "state": "accepted",
+        "reviewedAt": "2026-11-24T15:07:52.443Z",
+        "reviewer": "codex-source-review",
+        "validUntil": "2026-12-24T15:07:52.443Z",
+        "supportRationale": "The company-owned page provides original support for the stated product capability. The claim is company-reported and makes no assertion about adoption, financing or measured performance.",
+        "identityRationale": "The current YC company listing names the same company and links to the captured company-owned domain."
+      }
+    },
+    {
+      "id": "official-site-20261124-front",
+      "companySlug": "front",
+      "expectedName": "Front",
+      "expectedDirectoryUrl": "https://www.ycombinator.com/companies/front",
+      "expectedWebsiteHost": "front.com",
+      "expectedDescriptionSha256": "0fa9e092e66cefcd6e5aeec1c17f779517b94e94138b899c7d4c1fa18e431459",
+      "capture": {
+        "sourceUrl": "https://front.com/email-management",
+        "finalUrl": "https://front.com/email-management",
+        "fetchedAt": "2026-11-24T15:07:49.933Z",
+        "contentSha256": "3b60b1bdfd61ea1aa1ffab2aa6c1a7293369f3ae8adedbb891a25b45d71b6c37",
+        "claim": "Front offers shared inbox workflows and assignments for customer email.",
+        "excerpt": "With Front, teams can get shared inbox workflows, clear assignments, and AI-assisted triage",
+        "sourceCompanyIdentity": {
+          "name": "Front",
+          "canonicalWebsite": "https://front.com",
+          "identityBasis": "The current YC company listing names the same company and links to the captured company-owned domain."
+        }
+      },
+      "review": {
+        "state": "accepted",
+        "reviewedAt": "2026-11-24T15:07:52.443Z",
+        "reviewer": "codex-source-review",
+        "validUntil": "2026-12-24T15:07:52.443Z",
+        "supportRationale": "The company-owned page provides original support for the stated product capability. The claim is company-reported and makes no assertion about adoption, financing or measured performance.",
+        "identityRationale": "The current YC company listing names the same company and links to the captured company-owned domain."
+      }
+    },
+    {
+      "id": "official-site-20261124-hightouch",
+      "companySlug": "hightouch",
+      "expectedName": "Hightouch",
+      "expectedDirectoryUrl": "https://www.ycombinator.com/companies/hightouch",
+      "expectedWebsiteHost": "hightouch.com",
+      "expectedDescriptionSha256": "8a5d16a903a6c88f20390546ce7c3f3ddb444f8ce525342f3f1680082770e63f",
+      "capture": {
+        "sourceUrl": "https://hightouch.com/platform/reverse-etl",
+        "finalUrl": "https://hightouch.com/platform/reverse-etl",
+        "fetchedAt": "2026-11-24T15:07:50.785Z",
+        "contentSha256": "ed39b94ee3517a7abad6b145ad9cbb2b3af880a50e810f5ef9a5fe50b59538a3",
+        "claim": "Hightouch uses reverse ETL to sync warehouse data to downstream tools.",
+        "excerpt": "Sync data from your warehouse to any tool",
+        "sourceCompanyIdentity": {
+          "name": "Hightouch",
+          "canonicalWebsite": "https://hightouch.com/",
+          "identityBasis": "The current YC company listing names the same company and links to the captured company-owned domain."
+        }
+      },
+      "review": {
+        "state": "accepted",
+        "reviewedAt": "2026-11-24T15:07:52.443Z",
+        "reviewer": "codex-source-review",
+        "validUntil": "2026-12-24T15:07:52.443Z",
+        "supportRationale": "The company-owned page provides original support for the stated product capability. The claim is company-reported and makes no assertion about adoption, financing or measured performance.",
+        "identityRationale": "The current YC company listing names the same company and links to the captured company-owned domain."
+      }
+    },
+    {
+      "id": "official-site-20261124-posthog",
+      "companySlug": "posthog",
+      "expectedName": "PostHog",
+      "expectedDirectoryUrl": "https://www.ycombinator.com/companies/posthog",
+      "expectedWebsiteHost": "posthog.com",
+      "expectedDescriptionSha256": "69dabf6dc3d71cf46d59b38bab27804f95ce5b1789c547792b9e0cb757fefd55",
+      "capture": {
+        "sourceUrl": "https://posthog.com/",
+        "finalUrl": "https://posthog.com/",
+        "fetchedAt": "2026-11-24T15:07:50.447Z",
+        "contentSha256": "5cd5a09272edc0fff7cc2e9f21f8439a3c0257992042660ddaf3a87f9a772b59",
+        "claim": "PostHog collects product analytics, error events, and session replays.",
+        "excerpt": "PostHog ingests and stores your analytics, errors, replays, and business data",
+        "sourceCompanyIdentity": {
+          "name": "PostHog",
+          "canonicalWebsite": "https://www.posthog.com",
+          "identityBasis": "The current YC company listing names the same company and links to the captured company-owned domain."
+        }
+      },
+      "review": {
+        "state": "accepted",
+        "reviewedAt": "2026-11-24T15:07:52.443Z",
+        "reviewer": "codex-source-review",
+        "validUntil": "2026-12-24T15:07:52.443Z",
+        "supportRationale": "The company-owned page provides original support for the stated product capability. The claim is company-reported and makes no assertion about adoption, financing or measured performance.",
+        "identityRationale": "The current YC company listing names the same company and links to the captured company-owned domain."
+      }
+    },
+    {
+      "id": "official-site-20261124-screenpipe",
+      "companySlug": "screenpipe",
+      "expectedName": "screenpipe",
+      "expectedDirectoryUrl": "https://www.ycombinator.com/companies/screenpipe",
+      "expectedWebsiteHost": "screenpipe.com",
+      "expectedDescriptionSha256": "cc77f9e72180c4e2f46810e664a682fd298f949e936169b557dae81050617a03",
+      "capture": {
+        "sourceUrl": "https://screenpipe.com/",
+        "finalUrl": "https://screenpipe.com/",
+        "fetchedAt": "2026-11-24T15:07:51.428Z",
+        "contentSha256": "e52aefe2ffb5b4aea5a67270ea342777d7a3f7b218db3b6dd432c9cbde78a58c",
+        "claim": "screenpipe offers local screen, audio, and app history that agents can search.",
+        "excerpt": "Screenpipe keeps your screen, audio, and app history locally. Your agent can search that history to understand your work and act on it.",
+        "sourceCompanyIdentity": {
+          "name": "screenpipe",
+          "canonicalWebsite": "https://screenpipe.com",
+          "identityBasis": "The current YC company listing names the same company and links to the captured company-owned domain."
+        }
+      },
+      "review": {
+        "state": "accepted",
+        "reviewedAt": "2026-11-24T15:07:52.443Z",
+        "reviewer": "codex-source-review",
+        "validUntil": "2026-12-24T15:07:52.443Z",
+        "supportRationale": "The company-owned page provides original support for the stated product capability. The claim is company-reported and makes no assertion about adoption, financing or measured performance.",
+        "identityRationale": "The current YC company listing names the same company and links to the captured company-owned domain."
       }
     }
   ]

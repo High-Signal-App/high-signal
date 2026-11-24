@@ -1,6 +1,15 @@
 # high-signal — PROJECT STATUS
 
-Last updated: 2026-11-15
+Last updated: 2026-11-24
+
+## November 24 reviewed company-source refresh
+
+The web artifact renews the same five pilot sources and adds reviewed company
+evidence for Airbyte, Airweave, Brex, DeepSource, Exa, Front, Hightouch, PostHog
+and screenpipe. The unchanged publication policy admits 349 profiles, up from
+340. The other 12,950 records and the full historical snapshot are unchanged.
+The new reviews expire December 24. Production verification, API parity, and
+future renewals are tracked in [issue #320](https://github.com/High-Signal-App/high-signal/issues/320).
 
 November 15 public brief reading path — implementation:
 
