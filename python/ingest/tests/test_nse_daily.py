@@ -457,22 +457,26 @@ def test_scheduled_nse_holiday_records_documented_no_session(tmp_path, monkeypat
         return httpx.Response(404)
 
     client = httpx.Client(transport=httpx.MockTransport(absent))
+
     def collect_at_observed_time(root, day, **options):
         return collect(root, day, client=client, observed=HOLIDAY_OBSERVED, **options)
 
     monkeypatch.setattr(nse, "collect", collect_at_observed_time)
-    assert main(
-        [
-            "--market",
-            "nse",
-            "--archive",
-            str(tmp_path),
-            "--session",
-            HOLIDAY.isoformat(),
-            "--allow-unpublished-weekend",
-            "--allow-confirmed-holiday",
-        ]
-    ) == 0
+    assert (
+        main(
+            [
+                "--market",
+                "nse",
+                "--archive",
+                str(tmp_path),
+                "--session",
+                HOLIDAY.isoformat(),
+                "--allow-unpublished-weekend",
+                "--allow-confirmed-holiday",
+            ]
+        )
+        == 0
+    )
     assert requests == [
         "/content/cm/BhavCopy_NSE_CM_0_0_0_20261124_F_0000.csv.zip",
         "/content/cm/NSE_CM_security_24112026.csv.gz",
