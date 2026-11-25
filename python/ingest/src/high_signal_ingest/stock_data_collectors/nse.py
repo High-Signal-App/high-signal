@@ -342,7 +342,8 @@ def _download_pair(client: httpx.Client, day: date, *, allow_no_session: bool) -
         try:
             bodies[name] = _download(client, url)
         except httpx.HTTPStatusError as exc:
-            if exc.response.status_code != 404:
+            # A 404 from a redirect target cannot prove this report was absent.
+            if exc.response.status_code != 404 or exc.response.url != httpx.URL(url):
                 raise
             missing.append(exc)
     if not missing:

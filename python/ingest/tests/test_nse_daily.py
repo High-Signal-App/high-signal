@@ -525,6 +525,31 @@ def test_nse_holiday_requires_opt_in_and_two_absent_reports(
     assert not (tmp_path / "no-session.json").exists()
 
 
+@pytest.mark.parametrize("redirect_both", [False, True])
+def test_nse_holiday_rejects_404_from_redirected_report_urls(tmp_path, redirect_both):
+    outage_url = "https://example.test/unrelated/maintenance"
+
+    def response(request):
+        if str(request.url) == outage_url:
+            return httpx.Response(404)
+        if redirect_both or request.url.path.endswith(".zip"):
+            return httpx.Response(302, headers={"Location": outage_url})
+        return httpx.Response(404)
+
+    with httpx.Client(transport=httpx.MockTransport(response), follow_redirects=True) as client:
+        with pytest.raises(httpx.HTTPStatusError) as error:
+            collect(
+                tmp_path,
+                HOLIDAY,
+                client=client,
+                observed=HOLIDAY_OBSERVED,
+                allow_confirmed_holiday=True,
+            )
+
+    assert str(error.value.response.url) == outage_url
+    assert not (tmp_path / "no-session.json").exists()
+
+
 def test_nse_holiday_collects_both_published_reports(tmp_path):
     master, bhavcopy = compressed(*files(count=1000, traded=1000, day=HOLIDAY), day=HOLIDAY)
 
