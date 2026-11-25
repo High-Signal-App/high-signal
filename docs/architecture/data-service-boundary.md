@@ -75,13 +75,15 @@ Master records without a daily observation retain null prices. Raw closes never
 stand in for corporate-action-adjusted history or supported valuations.
 
 `cron-equities` collects NSE files daily, including potential weekend special
-sessions, with a late retry. The requested session must match the files' trade
-date. Scheduled runs record a no-session outcome when both exact report URLs
-return HTTP 404 on a weekend or a weekday documented in an NSE Capital Market
-trading-holiday circular. Confirmed weekday receipts cite the circular. A complete
-pair follows the normal ingest path on either day. Partial pairs, redirected
-404s, an unverified weekday miss, network errors, identity conflicts and failed
-R2 receipts fail the job. Manual workflow dispatch remains strict. A no-session
+sessions, with a late retry. The collector verifies the bhavcopy's trade date
+against the requested session and checks its instrument ID, ISIN, and series
+against the security master. Scheduled runs record a no-session outcome when
+both report URLs return HTTP 404 on a weekend or a weekday documented in an NSE
+Capital Market trading-holiday circular. Confirmed weekday receipts cite the
+circular. A complete pair follows the normal ingest path on either day. Partial
+pairs, 404s whose final URLs differ from the requested reports, unverified
+weekday misses, network errors, identity conflicts and failed R2 receipts fail
+the job. Manual workflow dispatch remains strict. A no-session
 result preserves latest without relabeling the previous trade date, and
 freshness continues to use the existing weekday publication deadline. Operator
 job summaries expose outcomes. Every object is downloaded and hash-verified
