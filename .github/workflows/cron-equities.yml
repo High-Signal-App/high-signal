@@ -65,7 +65,7 @@ jobs:
           elif [[ "$RUN_KIND" == schedule ]]; then
             created_at=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" --jq .created_at)
             session=$(node scripts/nse-scheduled-session.mjs "$RUN_SCHEDULE" "$created_at")
-            args=(--session "$session" --allow-unpublished-weekend)
+            args=(--session "$session" --allow-unpublished-weekend --allow-confirmed-holiday)
           fi
           uv run --project python/ingest python -m high_signal_ingest.equities_daily \
             --market nse --archive artifacts/nse "${args[@]}"
@@ -86,7 +86,11 @@ jobs:
           if [[ "${{ job.status }}" != success ]]; then
             echo "NSE refresh or downstream consumption failed. Inspect the failing step; no missing session is labelled current." >> "$GITHUB_STEP_SUMMARY"
           elif [[ -f artifacts/nse/no-session.json ]]; then
-            echo "Neither official CM file was published for the weekend session. Latest remains unchanged; no trading holiday is inferred." >> "$GITHUB_STEP_SUMMARY"
+            if [[ $(jq -r .status artifacts/nse/no-session.json) == confirmed_holiday ]]; then
+              echo "NSE confirmed a Capital Market holiday and neither official CM file was published. Latest remains unchanged." >> "$GITHUB_STEP_SUMMARY"
+            else
+              echo "Neither official CM file was published for the weekend session. Latest remains unchanged; no trading holiday is inferred." >> "$GITHUB_STEP_SUMMARY"
+            fi
           else
             echo "Full NSE CM files retained privately and the canonical dataset verified." >> "$GITHUB_STEP_SUMMARY"
           fi

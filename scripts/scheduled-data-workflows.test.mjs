@@ -31,7 +31,10 @@ assert.ok(nseJob, 'the canonical equities workflow must own full NSE collection'
 assert.ok(equitiesWorkflow.includes('30 13 * * *'), 'NSE must refresh after India close');
 assert.ok(nseJob.includes('--market nse'));
 assert.ok(nseJob.includes('elif [[ "$RUN_KIND" == schedule ]]'));
-assert.ok(nseJob.includes('--allow-unpublished-weekend'));
+assert.ok(
+  nseJob.includes('args=(--session "$session" --allow-unpublished-weekend --allow-confirmed-holiday)')
+);
+assert.ok(nseJob.includes('args=(--session "$NSE_SESSION")'));
 assert.ok(nseJob.includes('scripts/nse-scheduled-session.mjs "$RUN_SCHEDULE" "$created_at"'));
 for (const [schedule, createdAt, session] of [
   ['30 21 * * 0,6', '2026-11-23T01:55:32Z', '2026-11-22'],
@@ -39,6 +42,8 @@ for (const [schedule, createdAt, session] of [
   ['30 13 * * *', '2026-11-19T13:30:00Z', '2026-11-19'],
   ['30 13 * * *', '2026-11-19T02:42:51Z', '2026-11-18'],
   ['30 21 * * 1-5', '2026-11-23T09:00:00Z', '2026-11-20'],
+  ['30 13 * * *', '2026-11-24T23:08:02Z', '2026-11-24'],
+  ['30 21 * * 1-5', '2026-11-25T04:27:40Z', '2026-11-24'],
 ]) {
   assert.equal(nseScheduledSession(schedule, createdAt), session);
 }

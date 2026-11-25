@@ -24,6 +24,8 @@ from high_signal_ingest.nse_archive import consume, publish, restore
 
 DAY = date(2026, 10, 27)
 OBSERVED = "2026-10-27T15:00:00+00:00"
+HOLIDAY = date(2026, 11, 24)
+HOLIDAY_OBSERVED = "2026-11-25T04:28:11Z"
 
 
 def csv_bytes(rows):
@@ -439,3 +441,103 @@ def test_weekday_or_one_missing_weekend_file_remains_a_failed_refresh(tmp_path):
             observed="2026-10-31T15:00:00+00:00",
             allow_unpublished_weekend=True,
         )
+
+
+def test_scheduled_nse_holiday_records_documented_no_session(tmp_path, monkeypatch):
+    from high_signal_ingest.equities_daily import main
+    from high_signal_ingest.stock_data_collectors import nse
+
+    _, pointer = candidate(tmp_path)
+    prior_bytes = encoded(pointer)
+    (tmp_path / "latest.json").write_bytes(prior_bytes)
+    requests = []
+
+    def absent(request):
+        requests.append(request.url.path)
+        return httpx.Response(404)
+
+    client = httpx.Client(transport=httpx.MockTransport(absent))
+    def collect_at_observed_time(root, day, **options):
+        return collect(root, day, client=client, observed=HOLIDAY_OBSERVED, **options)
+
+    monkeypatch.setattr(nse, "collect", collect_at_observed_time)
+    assert main(
+        [
+            "--market",
+            "nse",
+            "--archive",
+            str(tmp_path),
+            "--session",
+            HOLIDAY.isoformat(),
+            "--allow-unpublished-weekend",
+            "--allow-confirmed-holiday",
+        ]
+    ) == 0
+    assert requests == [
+        "/content/cm/BhavCopy_NSE_CM_0_0_0_20261124_F_0000.csv.zip",
+        "/content/cm/NSE_CM_security_24112026.csv.gz",
+    ]
+    receipt = json.loads((tmp_path / "no-session.json").read_bytes())
+    assert receipt["status"] == "confirmed_holiday"
+    assert receipt["session"] == HOLIDAY.isoformat()
+    assert receipt["calendarSource"] == (
+        "https://nsearchives.nseindia.com/content/circulars/CMTR71775.pdf"
+    )
+    assert (tmp_path / "latest.json").read_bytes() == prior_bytes
+    assert (tmp_path / "previous-candidate.json").read_bytes() == prior_bytes
+    assert not (tmp_path / "candidate.json").exists()
+
+
+@pytest.mark.parametrize(
+    ("day", "allow_holiday", "bhavcopy", "master", "status"),
+    [
+        (HOLIDAY, False, 404, 404, 404),
+        (date(2026, 11, 25), True, 404, 404, 404),
+        (HOLIDAY, True, 200, 404, 404),
+        (HOLIDAY, True, 404, 200, 404),
+        (HOLIDAY, True, 404, 403, 403),
+        (HOLIDAY, True, 500, 404, 500),
+    ],
+)
+def test_nse_holiday_requires_opt_in_and_two_absent_reports(
+    tmp_path, day, allow_holiday, bhavcopy, master, status
+):
+    def response(request):
+        return httpx.Response(
+            bhavcopy if request.url.path.endswith(".zip") else master, content=b"present"
+        )
+
+    client = httpx.Client(transport=httpx.MockTransport(response))
+    with pytest.raises(httpx.HTTPStatusError) as error:
+        collect(
+            tmp_path,
+            day,
+            client=client,
+            observed=HOLIDAY_OBSERVED,
+            allow_unpublished_weekend=True,
+            allow_confirmed_holiday=allow_holiday,
+        )
+    assert error.value.response.status_code == status
+    assert not (tmp_path / "no-session.json").exists()
+
+
+def test_nse_holiday_collects_both_published_reports(tmp_path):
+    master, bhavcopy = compressed(*files(count=1000, traded=1000, day=HOLIDAY), day=HOLIDAY)
+
+    def present(request):
+        return httpx.Response(
+            200, content=bhavcopy if request.url.path.endswith(".zip") else master
+        )
+
+    client = httpx.Client(transport=httpx.MockTransport(present))
+    manifest = collect(
+        tmp_path,
+        HOLIDAY,
+        client=client,
+        observed=HOLIDAY_OBSERVED,
+        allow_confirmed_holiday=True,
+    )
+    assert manifest is not None
+    pointer = json.loads((tmp_path / "candidate.json").read_bytes())
+    assert pointer["tradeDate"] == HOLIDAY.isoformat()
+    assert not (tmp_path / "no-session.json").exists()
