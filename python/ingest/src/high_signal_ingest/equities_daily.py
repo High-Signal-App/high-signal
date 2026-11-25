@@ -239,6 +239,11 @@ def main(argv: Optional[list[str]] = None) -> int:
     )
     p.add_argument("--archive", type=Path, default=_find_data_dir() / "stock-data" / "nse")
     p.add_argument("--allow-unpublished-weekend", action="store_true")
+    p.add_argument(
+        "--allow-confirmed-holiday",
+        action="store_true",
+        help="accept both reports missing on a documented NSE Capital Market holiday",
+    )
     args = p.parse_args(argv)
     if args.market == "nse":
         if args.limit is not None or args.retain_history:
@@ -247,11 +252,16 @@ def main(argv: Optional[list[str]] = None) -> int:
         from .stock_data_collectors.nse import collect, expected_session
 
         day = date.fromisoformat(args.session) if args.session else expected_session()
-        path = collect(args.archive, day, allow_unpublished_weekend=args.allow_unpublished_weekend)
+        path = collect(
+            args.archive,
+            day,
+            allow_unpublished_weekend=args.allow_unpublished_weekend,
+            allow_confirmed_holiday=args.allow_confirmed_holiday,
+        )
         print(
             path
             if path
-            else f"NSE weekend session {day}: neither official report published; latest unchanged"
+            else f"NSE session {day}: neither official report published; latest unchanged"
         )
         return 0
     run_daily(

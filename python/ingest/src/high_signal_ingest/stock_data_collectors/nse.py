@@ -28,6 +28,29 @@ EXTRACTOR_VERSION = "nse-cm.v4"
 PREFIX = "stock-data/nse/v1"
 MAX_BYTES = 80_000_000
 
+# Capital Market weekday holidays. Retain source dates explicitly so an
+# unreviewed year or weekday cannot be treated as a no-session by inference.
+CM_HOLIDAY_SOURCES = dict.fromkeys(
+    (
+        date(2026, 1, 26),
+        date(2026, 3, 3),
+        date(2026, 3, 26),
+        date(2026, 3, 31),
+        date(2026, 4, 3),
+        date(2026, 4, 14),
+        date(2026, 5, 1),
+        date(2026, 5, 28),
+        date(2026, 6, 26),
+        date(2026, 9, 14),
+        date(2026, 10, 2),
+        date(2026, 10, 20),
+        date(2026, 11, 10),
+        date(2026, 11, 24),
+        date(2026, 12, 25),
+    ),
+    "https://nsearchives.nseindia.com/content/circulars/CMTR71775.pdf",
+) | {date(2026, 1, 15): "https://nsearchives.nseindia.com/content/circulars/CMTR72260.pdf"}
+
 
 def encoded(value: object) -> bytes:
     return json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
@@ -313,19 +336,20 @@ def _download(client: httpx.Client, url: str) -> bytes:
     return bytes(body)
 
 
-def _download_pair(client: httpx.Client, day: date, allow_unpublished_weekend: bool) -> dict | None:
+def _download_pair(client: httpx.Client, day: date, *, allow_no_session: bool) -> dict | None:
     bodies, missing = {}, []
     for name, url in urls(day).items():
         try:
             bodies[name] = _download(client, url)
         except httpx.HTTPStatusError as exc:
-            if exc.response.status_code != 404:
+            # A 404 from a redirect target cannot prove this report was absent.
+            if exc.response.status_code != 404 or exc.response.url != httpx.URL(url):
                 raise
             missing.append(exc)
     if not missing:
         return bodies
-    if len(missing) == 2 and day.weekday() > 4 and allow_unpublished_weekend:
-        return None  # explicit unpublished session, never a fabricated holiday
+    if len(missing) == 2 and allow_no_session:
+        return None
     raise missing[0]
 
 
@@ -336,10 +360,13 @@ def collect(
     client: httpx.Client | None = None,
     observed: str | None = None,
     allow_unpublished_weekend: bool = False,
+    allow_confirmed_holiday: bool = False,
 ) -> Path | None:
     observed = observed or datetime.now(timezone.utc).isoformat()
     if day > datetime.fromisoformat(observed).date():
         raise ValueError("Future NSE session requested")
+    holiday_source = CM_HOLIDAY_SOURCES.get(day) if allow_confirmed_holiday else None
+    allow_no_session = bool(holiday_source) or (day.weekday() > 4 and allow_unpublished_weekend)
     owns_client = client is None
     client = client or httpx.Client(
         timeout=45,
@@ -347,23 +374,26 @@ def collect(
         headers={"User-Agent": "Mozilla/5.0"},
     )
     try:
-        bodies = _download_pair(client, day, allow_unpublished_weekend)
+        bodies = _download_pair(client, day, allow_no_session=allow_no_session)
     finally:
         if owns_client:
             client.close()
     if bodies is None:
         root.mkdir(parents=True, exist_ok=True)
-        (root / "no-session.json").write_bytes(
-            encoded(
-                {
-                    "status": "unpublished_weekend",
-                    "session": day.isoformat(),
-                    "observedAt": observed,
-                    "sourceUrls": urls(day),
-                    "reason": "both official reports returned HTTP 404; no holiday inferred",
-                }
+        receipt = {
+            "status": "unpublished_weekend",
+            "session": day.isoformat(),
+            "observedAt": observed,
+            "sourceUrls": urls(day),
+            "reason": "both official reports returned HTTP 404; no holiday inferred",
+        }
+        if holiday_source:
+            receipt.update(
+                status="confirmed_holiday",
+                calendarSource=holiday_source,
+                reason="NSE Capital Market holiday; both official reports returned HTTP 404",
             )
-        )
+        (root / "no-session.json").write_bytes(encoded(receipt))
         # An older local candidate must not be mistaken for this attempt.
         if (root / "candidate.json").exists():
             (root / "candidate.json").replace(root / "previous-candidate.json")
