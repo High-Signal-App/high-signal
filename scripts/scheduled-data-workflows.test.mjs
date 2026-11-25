@@ -32,7 +32,9 @@ assert.ok(equitiesWorkflow.includes('30 13 * * *'), 'NSE must refresh after Indi
 assert.ok(nseJob.includes('--market nse'));
 assert.ok(nseJob.includes('elif [[ "$RUN_KIND" == schedule ]]'));
 assert.ok(
-  nseJob.includes('args=(--session "$session" --allow-unpublished-weekend --allow-confirmed-holiday)')
+  nseJob.includes(
+    'args=(--session "$session" --allow-unpublished-weekend --allow-confirmed-holiday)'
+  )
 );
 assert.ok(nseJob.includes('args=(--session "$NSE_SESSION")'));
 assert.ok(nseJob.includes('scripts/nse-scheduled-session.mjs "$RUN_SCHEDULE" "$created_at"'));
